@@ -1,0 +1,227 @@
+{
+ "batch": "1791003561-human-13",
+ "label": "human-13",
+ "map": "Quicksilver Remake 1.24",
+ "date": "2026-10-03",
+ "shape": "1v1",
+ "people": "computer_whisperer: the user himself, playing Armada from E3 (seat 0, team 0, ally team 0 in script.txt and the record header; a player here, not a spectator). No rating recorded. Nobody else was in the game.",
+ "our_side": "One seat (ai 0, team 1, ally team 1). Side Random, played as Cortex (corcom), from D7 (3370, 5560) in the south box. Player: Claude Opus 5.5 at effort medium on the claude2 account, in realtime in the user's lobby. Hands: Jev jev-latest (1.13) under the pianist at hands effort normal. These are the rebuilt hands (2026-10-02) with human-11's fixes, and the lane tool's rove (retired 2026-10-08) was in use. No commander role. 59 turns, median wall 12.7 s; Jev $0.43.",
+ "build": "Not in the banner. The checkout read at run time was 83f076d (2026-10-03 00:32): the brief's item 17, 'A commit is one plain sentence', is in the prompt. The binary is a8b68e2 (human-11's fixes, 2026-10-02 23:36) or later, up to 83f076d; which one is not recorded.",
+ "result": {
+  "outcome": "won",
+  "minute": "14:57 (his commander destroyed at E3; his remaining buildings died 14:59-15:01 with nothing of ours near them; the record runs to 15:26 and has no result row, so the outcome is inferred)"
+ },
+ "summary": "A 1v1 on Quicksilver against the user himself (computer_whisperer, Armada, from E3), which our one Opus 5.5 medium seat (Cortex, from D7) won at 14:57, when a ball of Thugs reached his base and killed his commander. The opening followed Matt's line (lab 0:57, Grunts from 1:29), but the Grunts were kept as pickets on our home spots while his single Pawns raided from 2:02, and nothing of ours crossed the middle until 6:33. Our first push stopped at spot_20 and met five Centurions (895 lost for 270, 7:58-8:32), which then walked through our middle killing four extractors while our soldiers split into eleven small hunts; our extractors fell from 14 at 8:00 to 9-11 for the rest of the game. From 10:00 we led 2.4-19x on what we saw, and the player ordered the base push at 10:37 and 11:37, but the hands held it for about two minutes and it reached E3 only at 14:50. Once there it took his E3 economy and his commander within a minute; his factory was never seen.",
+ "root": {
+  "clock": "2:00",
+  "what": "The game stayed winnable throughout; 2:00-4:00 is where it left the short path. The first window (2.1-2.4x his army as seen) ended at 4:00 with none of our army in his half. The brief's Quicksilver guard rule kept the Grunts as pickets on our own spots, and the first unit of ours crossed at 6:33. Meanwhile he raided our home spots with single Pawns from 2:02 and expanded unseen: 14 winds at E3, extractors at C1 and G3 by 7:22. This is the reader's reading, measured against the players' rule (L-raid-first-handful) and the user's K-open-early-pawn-pressure-is-standard; nobody commented on this game.",
+  "evidence": "minutes.py WINDOWS '2:00-3:00 (2.1-2.4x, 2 min): our mass by minute D7 E6 ... peak 0% ... ended at 4:00 at 0.0x (516/0)'; first crossing 'corak_4291: crossed 6:33'; 3:48 instruct 'None goes north of spot_23 or spot_25'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:02-3:27",
+   "what": "Single Pawns raided the home spots our Grunt pickets were guarding: the D7 extractor at 2:02, the D6 extractor at 3:07, and a constructor and a Grunt by 3:27. The player answered with turrets and pickets: 'Pawns are faster than Grunts: kill them where they stand at our buildings, never chase them away' (3:27).",
+   "evidence": "raid_ledger '2:02 spot_36 D7 armpw', '3:07 spot_28 D6 armpw'; analyze_match #0 3:07-3:26 D6: 'we lost 213 ({cormex: 1, corck: 1, corak: 1}), they lost 108 ({armpw: 2})'"
+  },
+  {
+   "clock": "6:17-7:22",
+   "what": "group_Q (4 Grunts), put on the lane's rove at 6:17, crossed at 6:33, saw his commander at E3 at 6:46 and came within 782 of his start at 6:56. It saw his economy ('His eco at E3 (14 winds), mexes at C1, G3; factory unseen'). This was our only look at his base before 14:00.",
+   "evidence": "minutes.py 'corak_9895: crossed 6:34; nearest his start 782 at E3 6:56'; record enemy_seen armcom (3658, 2261) 6:46; 7:22 note"
+  },
+  {
+   "clock": "6:46-8:32",
+   "what": "At 6:46 the player ordered group_N (13 units, mostly Grunts with three Thugs) to 'fight to spot_14 now ... then stand at spot_20'. It left at 7:21, and the hands stopped it at spot_20 at 7:33. Five Centurions came at 7:54. Within three seconds the hands played walk, a hunt by four, attack, then walk again, and the group lost 895 for 270.",
+   "evidence": "hands_window 7:33 'group_N: hold where it stands'; 7:56 'walk to spot_23', '4 of group_N hunt party_7'; 7:57 'attack party_7'; 7:58 'walk to spot_23'; analyze_match #2 7:58-8:32 E4: we lost 895, they lost 270 ({armwar: 1})"
+  },
+  {
+   "clock": "8:03-9:36",
+   "what": "The Centurions walked D4, E5, E6 through our middle and killed the extractors at spot_20, spot_21, spot_25 and spot_29. Meanwhile our soldiers split into one- and two-unit hunts after single Pawns: eleven groups at 9:34. The player merged them again at 9:36.",
+   "evidence": "raid_ledger 8:03 spot_20 armwar, 8:32 spot_21, 8:46 spot_25, 9:13 spot_29; hands_window 9:34: groups E1 K1 L1 N1 O1 Q1 R1 S1 T1 U1 V1 of 1-2 units; 9:36 note 'army shattered into 11 one-Thug groups hunting single Pawns'"
+  },
+  {
+   "clock": "10:21-11:47",
+   "what": "Both raiding Centurions were dead by 10:21, and we had 21-23 Thugs (3.2k against 2.3k seen). The player ordered the base push at 10:37 and turned it back at 11:01 for two Centurions at spot_23 and Pawns raiding the east. Fifteen Pawns took four eastern extractors from 10:58 to 11:42.",
+   "evidence": "10:37 note 'Spending the lead: group_N1 fight_to spot_14->12->10->8'; 11:01 note 'Push to E3 postponed; ball kills them in our half'; raid_ledger 10:58 spot_26, 11:09 spot_32, 11:27 spot_31, 11:42 spot_29 (armpw)"
+  },
+  {
+   "clock": "11:37-13:51",
+   "what": "The push was ordered again at 11:37, 12:34, 12:55 and 13:20, and did not start for 2:14. The ball (27-29 Thugs) chased Pawns east under a stale engage until 11:56. At 12:00 it was sent to spot_21, the fall-back place in the order. It stood idle at F6 from 12:20 to 13:13. Then it switched between attack and walk against two Centurions (13:29-13:34), and the Centurions took 980 for 270.",
+   "evidence": "hands_window group_N1 'task engage' 11:37-11:56 (3931,4505) to (4455,4826); 12:00 'advance to spot_21'; at (5073, 4600) 12:21-13:13; samples 12:30-13:10: 28 of 28 Thugs idle; analyze_match #9 13:11-13:49"
+  },
+  {
+   "clock": "13:43-14:57",
+   "what": "At 13:43 the player set group_N1 to raw (micro off). It went north, killed five Centurions at E4 (14:25 note), reached E3 at 14:52 and killed his commander at 14:57. His remaining buildings died from 14:59 to 15:01 with nothing of ours near them. At 14:59 the player still doubted the kill ('decoy? game continues').",
+   "evidence": "13:43 lane {group_N1: raw}; record enemy_destroyed armcom (3778, 2353) 14:57; analyze_match #10 13:56-15:01 E3 'we lost 1960 ({corthud: 14}), they lost 6955'; #11 G4 14:59-15:01 'ours 0 + 0'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "1:50-6:33",
+   "what": "The first soldiers were pickets on our own spots while his single Pawns raided and he expanded unseen. A stronger player sends the first handful across to his spots and constructors by about 2:30 (the user's K-open-early-pawn-pressure-is-standard; the players' L-raid-first-handful). The guard rule came from the brief of the time: the 'first Grunts are the guard' passage from human-8.",
+   "evidence": "1:50 instruct 'A corak loses to an armpw one against one: our Grunts fight Pawns only beside the commander'; 3:48 'None goes north of spot_23 or spot_25'; minutes.py first crossing 6:33, 'his first factory seen: never'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:40-1:48",
+   "what": "With only three winds up, the commander's 'assist 20' on the lab emptied the energy store: 0 of 1,102 at 1:20 with 571 metal banked. The first constructor took 28 s, and the fourth wind came at 1:18. Matt's line has the lab at 0:33 and ten generators by 1:30; we had the lab at 0:57 and six generators by 1:48.",
+   "evidence": "told 1:20 'metal 571 (+2.0/-6.5), energy 0/1102 (-0) STALLING'; record corlab 0:40-0:57, corck 1:01-1:29, corwin 1:18, corsolar 1:28 and 1:39; K-open-matt-order-timings",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:46-8:01",
+   "what": "The first push went to the middle with raiders (Grunts) against an army we had not seen. The order named a standing place (spot_20), which the hands took as the destination. When five Centurions came, the Grunts fought them in the open under an attack/walk thrash. A stronger player runs the raiders round his outer spots and brings the Thugs to the middle as one body (reader's reading).",
+   "evidence": "6:46 instruct 'fights to spot_14 now ... then stands at spot_20'; hands_window 7:33 'group_N: hold where it stands'; analyze_match #2 lost 895 ({corak: 5, corthud: 2, corllt: 2, cormex: 2, corck: 1}), they lost 270",
+   "kind": "both"
+  },
+  {
+   "clock": "8:12-9:36",
+   "what": "The player pulled the commander and group_N back to spot_28 (8:12), and the hands fed our soldiers into single hunts. Five Centurions walked our middle for 90 s and killed four extractors and turrets, although we had about 1.6k of army against 1.35k seen.",
+   "evidence": "8:12 instruct 'group_N walks to spot_28 now ... It never walks out to meet the Centurions alone'; raid_ledger 8:03-9:13 four extractors to armwar; hands_window 9:34 eleven groups of 1-2; analyze_match #3 F6 lost 628, they lost 540",
+   "kind": "both"
+  },
+  {
+   "clock": "10:21-11:01",
+   "what": "With 21-23 Thugs against 2.3k seen, the player first wanted radar before pushing (10:21). Then at 11:01 he turned the push back from E5 to kill raiders in our half. A stronger player sends the ball at his economy and lets the turrets and new Thugs meet the raid, which is the player's own reasoning at 11:37 ('forces his Pawns home'). Reader's reading.",
+   "evidence": "10:21 note 'Next: radar/scout before pushing E3'; 11:01 note 'Push to E3 postponed; ball kills them in our half'; analyze_match #5 10:43-11:06 D5: we lost 420, they lost 0, with 3,080 of ours on the spot",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:37-13:51",
+   "what": "The hands did not play the ordered base push for 2:14 (the defects below). It was the costliest delay of the game: 4k of Thugs stood in our half against 0.3k seen, 980 was lost at E5 from 13:11 to 13:49, and our extractors fell to 8.",
+   "evidence": "minutes.py rows 12-13: our mass F6 (2%) and F6 (4%) at 15.7x and 19.1x; 13:43 note 'footwork likely holding Thugs back'; analyze_match #9 lost 980 ({corllt: 4, corck: 2, corthud: 2, cormex: 2}), they lost 270",
+   "kind": "harness"
+  },
+  {
+   "clock": "2:42-8:00",
+   "what": "Against a person raiding with Pawns, we expanded with seven constructors by 8:00 to 14 extractors behind light turrets. We lost 17 extractors and held 9-11 from 10:00 on. The Quicksilver lobby players' words (L-other-quicksilver: 'Making more than 1 or two construction bots will make defending yourself hard', 'more grunts') point the other way. Whether fewer constructors would have held more is the reader's reading.",
+   "evidence": "analyze_match builders 2/4/5/7 at 3/5/6/8 min; extractors 14 at 8:00, then 12/11/10/9/10/9/10; raid_ledger totals: 17 lost, 'with a turret 11', 'lost twice or more' four spots",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "The user (Armada) opened a bot lab and sent single Pawns at our home spots from 1:50: the D7 extractor at 2:02, then the D6 extractor and a constructor from 3:07 to 3:27. He raided with Pawns all game (8 of our 17 extractor losses). At 7:54 he brought five Centurions down the middle. They broke our Grunt push at spot_20, then walked D4-E5-E6 killing four extractors and turrets (8:03-9:36). Behind that he expanded unseen: 14 wind turbines at E3 and extractors at C1 and G3 by 7:22, plus a nano turret and a radar at E3. From 10:58 to 11:42 fifteen Pawns raided our east and took four extractors, while two Centurions hit spot_23. A Construction Aircraft (armca, his first air unit, 11:01) implies an air plant, but no combat aircraft were seen. From 13:11 to 13:49 two Centurions kited our 28-Thug ball at spot_21/25 (980 lost for 270). No tier 2 was seen, and his factory was never in our picture. His commander stayed at E3 (seen 6:46 and 14:52) and died there at 14:57.",
+ "defects": [
+  {
+   "defect": "The hands read places named in a group's order as places to go: the stand place and the fall-back clause were played as destinations (human-12's finding, the brief's item 17).",
+   "fixed": "open at this build; the brief's item 17 (83f076d) was in this game's prompt and did not prevent it; later status on the hands' side not checked",
+   "evidence": "6:46 'fights to spot_14 now ... then stands at spot_20' -> 7:33 'group_N: hold where it stands' at spot_20; 11:37 'Against a party that outweighs it, it walks to spot_21' -> 12:00 'group_N1: advance to spot_21'"
+  },
+  {
+   "defect": "Attack/walk thrash: one-second plays switching between attack and walk against a named fight (human-12's thrash; the thrash pair covered only walk-back).",
+   "fixed": "open at this build; later status not checked",
+   "evidence": "hands_window 7:56-7:58 walk, hunt by four, attack, walk; 13:29-13:34 'attack party_24 (2 armwar)' and 'walk to spot_14' alternating each second"
+  },
+  {
+   "defect": "Hunts split the body into one-unit groups after single Pawns (hunts off hunts, as in human-12).",
+   "fixed": "open at this build; later status not checked",
+   "evidence": "hands_window 9:34: eleven groups of 1-2 units on hunt, engage or move; 9:36 note 'army shattered into 11 one-Thug groups hunting single Pawns'"
+  },
+  {
+   "defect": "A stale engage outlived the player's new order, and then the ball stood idle under a task the hands still read as fight_to, then hold.",
+   "fixed": "open at this build; the march fixes (9ba2889, 2026-10-03 11:34: form-up points that do not fit the ground) are a candidate cause of the idle stand, unverified",
+   "evidence": "group_N1 'task engage' 11:37-11:56 despite 'never chases Pawns'; samples 12:30-13:10: 28 Thugs at F6, all idle, task fight_to spot_21 (to 12:42) then hold; orders for E3 at 12:34 and 12:55"
+  },
+  {
+   "defect": "The record has no end row and no result in a game with people (the end row was added 2026-10-03 night), so the outcome must be inferred.",
+   "fixed": "2026-10-03",
+   "evidence": "the record's last line is a sample at 15:26; bot.log ends 'session ended: unexpected end of file'; the win is read from enemy_destroyed armcom at 14:57"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Nothing of ours crossed until 6:33. His single Pawns were on our spots from 2:02, and his expansion (14 winds at E3, C1, G3) went unseen until 7:22. The rule was relayed the same night, after player-45."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "The 10:00-14:00 lead (2.4-19.1x seen) ended the game within a minute of reaching E3 (14:52 to 14:57). Each minute it stood in our half cost extractors (down to 8 at 13:43)."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "At 9:34 our soldiers were split into eleven groups of one or two and lost the middle. The winning push was one body of 27-29 Thugs."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "The order 'When his commander is in sight, group_N1 attacks it with the whole group' stood from 11:37 to 14:37. His commander died at E3 at 14:57."
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "illustrates",
+   "note": "From his side: five Centurions kept walking D4-E5-E6 (8:03-9:36), killing four extractors, and were not caught until 10:21."
+  },
+  {
+   "id": "L-other-quicksilver",
+   "relation": "illustrates",
+   "note": "On Quicksilver against a Pawn raider, we had seven constructors by 8:00 and lost 17 extractors; the lobby players said 'more grunts' and '2 cons is very gready on this map'."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The commander assisted the lab (assist4 93 s), but with only three winds the assist emptied the energy store at 1:20."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The Quicksilver guard rule (human-8) was in force: 'our Grunts fight Pawns only beside the commander' (1:50), and the first crossing came at 6:33. A case for the subject's 'explain away or scope' item."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The ball stood in our half at 15.7-19.1x through 12:00-13:00 while extractors fell; once at E3 as one body it ended the game."
+  },
+  {
+   "id": "The Quicksilver packet from Matt's line",
+   "relation": "illustrates",
+   "note": "Matt's line was played against a person on 2026-10-03; the backlog says there has been no game since 2026-09-22. Lab 0:57 against Matt's 0:50, energy empty at 1:20 with 571 metal banked, Grunts from 1:29."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "All 17 raids were answered within 60 s (median 3 s), 11 with a turret beside the spot, and 'parties that paid 0'. Pickets of Grunts cannot catch Pawns (the 5:59 note)."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Grunts against five Centurions lost 895 for 270 (7:58-8:32); a body of 28 Thugs killed five Centurions at E4 by 14:25."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "The commander stayed home (never north of spot_23/spot_28), D-gunned Pawns at our spots, and was at 100% at 15:26."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (7:20-8:35, 8:00-9:40, 9:30-9:36, 11:37-14:10 group_N1, 12:15-12:45 group_N1)",
+   "run/impedance_sweep.py",
+   "record-0.jsonl events and samples read directly",
+   "strategist-0.jsonl instructs read directly",
+   "bot.log",
+   "script.txt"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "There is no truth file (a game with a person), so his numbers are sightings and floors and the army ratios overstate our lead. The game has no chat lines, no ledger row and no review, so nothing a person said about it exists. Every 'because' here is the reader's reading, except where it cites lessons and the human-12 row. The record predates the end row and has no result: the win is inferred from his commander's enemy_destroyed at 14:57 and his structures dying with nothing of ours near at 14:59-15:01. analyze_match.py fails on the batch directory ('no record-*.jsonl') and was run on 00/. pro_baseline.py was not run (Comet only; Quicksilver has no cards); K-open-matt-order-timings was used instead. The binary's commit is not recorded."
+ },
+ "open_questions": [
+  "Why did group_N1's 28 Thugs stand idle at F6 from 12:20 to 13:13 while the hands' task read fight_to spot_21? The march's form-up (fixed in 9ba2889 later that day) is a candidate; the Jev log's group_N1 frames would say.",
+  "What were his real army and economy? With no truth file, only the engine's demo (not read) can say whether the 5.7-20.5x and 15.7-19.1x windows were real.",
+  "Would Grunts sent across at 2:00-3:00 have paid against a person's Pawns, given that a Pawn beats a Grunt one against one?",
+  "What killed the four Thugs at E3 at 14:52-14:55 'to something unseen' before his commander died? (The 14:57 deaths fit the commander's death blast, 350 radius, 5,000 damage.)",
+  "Human-13 has no ledger row, so the main session never read this game. Did the user say anything about it outside the game chat?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791003561-human-13.json"
+}

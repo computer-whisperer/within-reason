@@ -1,0 +1,246 @@
+{
+ "batch": "1791074646-human-20",
+ "label": "human-20",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-03",
+ "shape": "1v1",
+ "people": "[gecko]thebluegecko (lobby 41), Armada, the opponent; no spectator spoke; chat was 'gl hf!' both ways",
+ "our_side": "seat 0 (one record), Armada vehicles from G1 (his start B5, plant B4); player Opus 5.5 medium (46 turns, 12.3 s wall median) under an Opus 5.5 high commander seat (8 turns, 6 directions, the chat); hands Jev on the rebuilt one-menu hands with layers (2026-10-02); the standing brief",
+ "build": "b9a5c9e",
+ "result": {
+  "outcome": "lost",
+  "minute": "11:11"
+ },
+ "summary": "We built an army above the pool's p75 by 3:00 (722) and 4:00 (1,021), but the first Blitzes were made a picket against his Rovers and split into hunts of one or two that caught nothing, so the 3:00-4:00 lead of 4.9-14.7x (of what we saw) never left G2/F2. thebluegecko opened Rovers that killed our first lone constructor and the F1/H2/H3 extractors, then massed Blitzes and raided in parties of 3-9 while our eight-Blitz body held, chased one raider home (4:18-4:45) and another west (5:20-5:54) under packets and directions that said to cross. It crossed at 6:02, strung out, and lost 8 Blitzes for 4 at D3; after that the army was 0.8-1.0x and the extractors 3-6 against the pool's 13-17. The plant died at 8:02, the player turned to Stouts and Sentries at home, and 15-23 of his Blitzes ended it at 11:11 with no building of his ever killed.",
+ "root": {
+  "clock": "2:44",
+  "what": "The first six Blitzes (made 2:16-3:06) were turned from the raid into a home picket by the player's 2:44 and 3:03 packets while the hands split them into hunts of one or two after Rovers they cannot catch; the window of 3:00-4:00 was spent at home.",
+  "evidence": "minutes.py WINDOWS: '3:00-4:00 (4.9-14.7x, 2 min): our mass by minute G2 F2 (... peak 10%)'; 2:44 instruct: 'group_C: the picket of our west side. It stands at spot_3 and attacks any armfav or armflea party'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:46-2:55",
+   "what": "His Rovers kill spot_3 (F1) and constructor_19977, sent alone to spot_3 at 1:58 with no turret; constructors at 3:00: 1 (pool p25 2).",
+   "evidence": "raid_ledger '2:46 spot_3 F1 armfav 4 armfav ... 2 of group_C hunt party_2 ... paid 0'; pro_baseline min 3 constructors '1 | 2/2/3 <p25'"
+  },
+  {
+   "clock": "2:30-3:26",
+   "what": "Eleven hunt or whole-group attack plays by Blitz groups, ten on armfav parties; no raider paid.",
+   "evidence": "hands_window 2:30 '1 of group_B hunt party_1 (1 armfav) as group_C', 2:45 '2 of group_C hunt party_2', 2:48, 2:49, 2:59, 3:04, 3:12, 3:14, 3:16, 3:26; raid_ledger 'parties that paid 0'"
+  },
+  {
+   "clock": "3:42-4:11",
+   "what": "group_C, six to eight Blitzes, holds at F1/G1 under the 3:25 packet ('gathers at spot_13 until it has four Blitzes or more, then goes'); the advance is not posed.",
+   "evidence": "existing review: worlds_gate fight_to_spot_13 read 0.37-0.46 at 3:44-3:58, task hold at (6054,793); packet landed 3:42 (hands_window 'events: packet')"
+  },
+  {
+   "clock": "4:18-4:45",
+   "what": "All eight Blitzes follow three, then one, of his Blitzes east to our plant; a lone Blitz kills the two home extractors.",
+   "evidence": "raid_ledger '4:41 spot_10 G1 armflash 1 armflash ... none' and '4:44 spot_5 G1 armflash 1 armflash ... none'; player note 4:54 'Lost home extractors 10 and 5 to a lone Blitz while 8 Blitzes chased'"
+  },
+  {
+   "clock": "5:20-5:45",
+   "what": "His 3-6 Blitzes kill four extractors, two constructors and a Sentry at F1/F2 while group_C walks from the plant after party_11.",
+   "evidence": "analyze_match #0 '5:22-5:45 F2 in our half: we lost 555 ({armmex: 4, armcv: 2, armllt: 1}), they lost 141'; hands_window 5:20 'attack party_11 (3 armflash) with the whole group' at 0.59"
+  },
+  {
+   "clock": "6:04-6:23",
+   "what": "The body crosses at 6:02 strung out after a 34 s chase and meets six Blitzes at D3: 8 lost for 4. Army 1,100 at 6:00, 665 at 7:00 (0.9x).",
+   "evidence": "analyze_match #1 '6:04-6:23 D3 in their half: we lost 880 ({armflash: 8}), they lost 440 ... ours 880 + 0 vs theirs 330 + 0; our spread 144'; minutes.py row 7 '665/770 ( 0.9)'"
+  },
+  {
+   "clock": "8:00-8:02",
+   "what": "The plant and six constructor frames die to party_17 (5-6 Blitzes) while group_L (3) holds about 600 away.",
+   "evidence": "analyze_match #4 '8:00-8:02 G2 at our base: we lost 1400 ({armcv: 6, armvp: 1}), they lost 0'; hands_window group_L 'task hold' at (6962,774) 7:52-8:00, party_17 at (6237,849)"
+  },
+  {
+   "clock": "10:16-11:11",
+   "what": "15-23 of his Blitzes in our base; 0 extractors at 11:00; the engine closes at 11:11 with four units of ours.",
+   "evidence": "minutes.py row 11 '225/1760 ( 0.1)'; analyze_match #8 '10:42-11:10 G1 ... theirs 1540 + 0'; ledger 'the engine closed at 11:11 with four units of ours'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "2:44-3:26",
+   "what": "The first Blitzes made a picket/guard at home and split into hunts of one or two on Rovers (101 against 168 speed). A stronger player keeps the 2:28 words (four Blitzes cross to spot_13 and on, never chase Rovers) and answers Rovers with a Sentry.",
+   "evidence": "3:03 instruct: 'group_C: while it has fewer than six Blitzes it is our guard ... With six Blitzes or more it is the raid'; pro_baseline 'army metal in his half' '-' every minute against the pool's 124 at 3:00",
+   "kind": "both"
+  },
+  {
+   "clock": "1:58-3:59",
+   "what": "A constructor sent alone to the outermost west spot (spot_3, F1) with no turret, the side his raids came from; the first Sentry stood at 3:59, after the first constructor and three extractors had died.",
+   "evidence": "existing review: constructor_19977 to spot_3 at 1:58, died 2:55 at (5553,442) to a Rover; first Sentry 3:59 (H3); 2:44 queue 'extractor spot_3, armllt spot_3' came after",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:42-4:11",
+   "what": "The raid body held 29 s under a packet that said gather and go; the hands posed no advance until the 4:02 packet's 'advances to spot_13 now' landed at 4:11.",
+   "evidence": "existing review: fight_to_spot_13 0.37-0.46 (3:44-3:58), advance picked at 4:11 at 0.67; packet landings 3:42, 3:57, 4:11 (hands_window)",
+   "kind": "harness"
+  },
+  {
+   "clock": "4:18-4:45",
+   "what": "The whole body chased three, then one, Blitz into our base, leaving the home spots to a lone Blitz; the 4:40 packet then wrote the whole-group home answer into group_C ('While a party of his stands at our buildings at home it attacks that party with the whole group').",
+   "evidence": "raid_ledger 4:41 spot_10 and 4:44 spot_5 answered 'none'; 4:40 instruct group_C text; the commander's 4:35 direction ('8 Blitzes standing at home to chase one raider is the wrong use of them') reached the player at 4:54",
+   "kind": "both"
+  },
+  {
+   "clock": "5:09-6:23",
+   "what": "A hold at 0.03, a 34 s chase of party_11 from the plant to E3, then the crossing strung out into a ready party of six at D3. A stronger player crosses at 4:35 with the lead (1,021 against 674 seen) and gathers before contact.",
+   "evidence": "hands_window 5:09 'PICK split [group_C: took w2 of 1 at 0.03]'; group_C (7120,576) at 5:21 to (4832,1615) at 5:54; analyze_match #1 'our spread 144', 880 lost for 440",
+   "kind": "both"
+  },
+  {
+   "clock": "5:54-7:42",
+   "what": "Two constructors kept on F-column lists written at 5:54 after the commander's 6:05 direction turned expansion south (the 6:30 lists for the others did go south); both died there.",
+   "evidence": "5:54 queue constructor_24017 'extractor spot_11 ... spot_3', constructor_4965 'armllt spot_18, extractor spot_16'; existing review: 24017 died 6:57 F1, 4965 died 7:42 F3; 7:38 queue '4965: stop'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:50-8:02",
+   "what": "The plant lost with group_L (three units) holding about 600 away and the commander near; whether the packet's 'against a party that outweighs it, it walks to home' or the hands held it is not determined.",
+   "evidence": "hands_window 7:50 'group_L: hold where it stands' at 0.19, task hold to 8:00; 'PARTY party_17 answer=0.83'; analyze_match #4 1,400 lost for 0",
+   "kind": "both"
+  },
+  {
+   "clock": "0:11-3:00",
+   "what": "The opening queue put three extractors and three solars before the plant (started 1:04, first soldier 1:35, energy empty 16.5% of the game in minutes 2-3). Not on the chain: the army was above the pool's p75 at 3:00 and 4:00.",
+   "evidence": "pro_baseline --all-starts 'first factory started 1:04 | 0:34 0:34 0:58 ... >p75 (late)', 'first soldier 1:35 | 0:53 0:55 1:18'; floor e0% 16.5; army min 3 '722 | 186/279/372 ... >p75'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Armada vehicles, plant at B4 (spot_36), a Sentry at spot_19 (B3) and at spot_50 (B5), at least seven extractors seen by 5:00 (spot_28, 19, 36, 45, 50, 43, 52). He opened Rovers that crossed to our F1 side by 2:44, killed the lone constructor at 2:55 and spot_3, spot_17, spot_25 (2:46-4:18) and outran every Blitz hunt. From about 4:14 he raided with Blitzes, one alone killing both home extractors at 4:41-4:44, then parties of 3-6 at F1/F2 (5:22-5:43), met our crossing at D3 with six and won 8 for 4 (6:04-6:23), and raided our home with 6-9 at a time (6:55, the plant at 8:02, 8:46-9:20) before closing with 15-23 at 10:16-11:11. Of his 5,590 lost (what we saw), 4,397 died at our base and 440 in his half: he fought only on our side and kept expanding. No tier 2 in 11 minutes.",
+ "defects": [
+  {
+   "defect": "The player's role text carried two rules for the first Blitzes: 'a picket of one or two at each outer spot cluster from the first Blitzes' (player.md:283-285, from 9bf5fdc, 2026-09-22) and 'the first handful runs to the other side ... The picket for our extractors is the turret' (346-349). The 2:44 packet took the picket. The root rests on it.",
+   "fixed": "open (the picket sentence stands at crates/bot/src/strategist/player.md:371 today)",
+   "evidence": "git show b9a5c9e:crates/bot/src/strategist/player.md lines 283-285 and 346-349; 2:44 instruct 'group_C: the picket of our west side'"
+  },
+  {
+   "defect": "Group names drift during a packet's flight: the 2:28 packet governed group_B ('does not stop to chase his Rovers'); by its landing at 2:40 the hands had detached it into group_C (2:30) and folded group_B in, so the hunts of 2:45-2:49 ran under a name the packet did not govern.",
+   "fixed": "open (not checked)",
+   "evidence": "hands_window 2:30 '1 of group_B hunt party_1 (1 armfav) as group_C', 'group_B: join group_C'; packet landed 2:40; group_C hunts at 2:45, 2:48, 2:49"
+  },
+  {
+   "defect": "A packet's advance is not posed as a world when it lands (Jev's reading under the bar), and a lone candidate is taken at any rating.",
+   "fixed": "unknown (the impedance fixes of 2026-10-16/17 target packets not followed; not verified against this case)",
+   "evidence": "existing review: fight_to_spot_13 0.37-0.46 (3:44-3:58), fight_to_spot_31 0.20-0.22 (5:10-5:12); hands_window 5:09 'took w2 of 1 at 0.03' (hold where it stands)"
+  },
+  {
+   "defect": "The whole body follows a raider into our own base: the 4:1 detachment rule (0342da2, in this build) exempts the party a body is already fighting, so eight Blitzes followed three and then one Blitz (4:18-4:45) and party_11 for 34 s (5:20-5:54).",
+   "fixed": "unknown (the 2026-10-17 chase fix withdraws at danger; it is not about the length of a chase after one raider)",
+   "evidence": "existing review: commands walk x 5096 to 6936 at 4:18-4:45; hands_window 5:20 'attack party_11 (3 armflash) with the whole group' at 0.59, engage to 5:54"
+  },
+  {
+   "defect": "An order played between thinking ticks was overwritten by the lane's old goal: 4:47 'group_C advance to spot_13' issued fight to (6936,584), our plant, and the group stood 22 s.",
+   "fixed": "2026-10-03 (b3649b1, whose message names human-20 4:47); a contributor of 22 s, not the root",
+   "evidence": "existing review, record frame 8622; b3649b1: 'a redirected body marched to its old goal (human-20 4:47, human-22 11:30)'"
+  },
+  {
+   "defect": "The commander seat's direction reaches the player 17-19 s after it is written, is shown in full on one turn only, then by reference, and carries two clocks (3:05, 3:15) for one text.",
+   "fixed": "unknown",
+   "evidence": "existing review 'The two directions': 3:05 direction first in the 3:25 turn's prompt, 4:35 direction first at the 4:54 turn; the player's 4:40 packet was written before it arrived"
+  },
+  {
+   "defect": "The seat's own banner and hands line reached the commander as chat and woke it, costing one 4 s turn.",
+   "fixed": "2026-10-03 (5347921 in source before the game, built after it in 194750c)",
+   "evidence": "ledger human-20 row: 'The seat's banner and hands line reached the commander as chat and the second cost a 4 s turn (fixed in source before the game, built after)'"
+  },
+  {
+   "defect": "Two of our Rovers are recorded as killed by armcv at his plant.",
+   "fixed": "unknown",
+   "evidence": "minutes.py 'armfav_24894: ... died 2:57 at B4 to armcv', 'armfav_5523: ... died 3:09 at B4 to armcv'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Our Rovers crossed at 2:22 and found his plant at 2:46, but no Blitz crossed until 6:02 and no building of his died in 11:11 while he expanded to seven seen extractors by 5:00 and raided freely."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "The conflict this subject must resolve (the 2026-09-22 picket against the 2026-10-03 crossing) happened in one role text: the 2:44 packet chose the picket, and the window was spent at home."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "A 4.9-14.7x army lead (of what we saw) at 3:00-4:00 and 1,021 against 674 at 4:35 stayed at G1-F2; 0.9x by 7:00."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The lead decayed in our half in three minutes; the body arrived strung out (spread 144) after a chase and lost 8 for 4 at D3."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "Blitzes never caught a Rover (eleven plays, no raider paid); 14 of 20 extractors lost had a turret within 700, so one Sentry did not stop parties of 3-9 Blitzes; the 4:40 packet's whole-group home answer preceded human-21's raid wording."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "illustrates",
+   "note": "A person's Rover opening paid (the lone constructor at 2:55, three extractors by 4:18) where our Blitz hunts paid nothing: the micro the lesson says the units need."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "Extractors 3-6 all game against the pool's 7/13/17 at 4/6/8 minutes; the player's 10:56 note: 'the economy never recovered after 4:54'."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars with a constructor as the plant's first unit (1:23, the pool's first constructor 1:30); the plant at 1:04 and first soldier 1:35 against 0:34 and 0:55."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The commander assisted the plant 114 s of the first 4:00 (floor assist4; pool 50); the commander seat's 3:05 direction told it off the plant 'while metal is at 0', against the lesson."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Energy empty 16.5% of the game, in minutes 2-3, under three solars and the assisted plant."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "1 constructor at 3:00 (pool p25 2) and 8 made by 8:00 (p75 7) with 5 lost on the west side his raids came from."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "The 6:12 switch to Stouts at home against massed Blitzes came too late: three Stouts at 10:35 against 15-23 Blitzes."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (and --engagement 1)",
+   "run/pro_baseline.py (no G1 card; --all-starts)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 2:15-3:30, 2:15-6:10, 5:05-6:25 group_C, 7:40-8:05, 7:54-8:03",
+   "run/impedance_sweep.py",
+   "inline python over strategist-0.jsonl (instruct texts), commander.jsonl (directions, notes) and record-0.jsonl (destroyed)",
+   "git show b9a5c9e:crates/bot/src/strategist/player.md",
+   "grep human-20 docs/experiments.md and chat.jsonl"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791074646-human-20/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file: his numbers are floors of what we saw. No results.jsonl (analyze_match and floor print 'outcome None after 0.0 min'); the result is the ledger's. pro_baseline has no G1 Armada card; --all-starts used, pressure rows blank for ours. No computer_whisperer line in this game's chat; the only people's words are the lessons. I agree with review.md's root and chain and differ on: (1) the 2:44 picket followed the role text's own picket sentence, so the owner is the brief and the player; (2) three solars is within L-opening-solar-cap and fits L-opening-solars, and the opening is off the chain (army >p75 at 3:00-4:00); (3) the 5:54 F-column lists predate the 6:05 direction; (4) 'his Blitzes won every even fight' (the commander seat's note, a model's) holds only at D3: home fights were near even (720/660, 1135/990, 1795/1870)."
+ },
+ "open_questions": [
+  "Were the two Rovers recorded as killed by armcv at B4 (2:57, 3:09) reclaimed by his constructors, killed by his commander, or given a wrong attacker?",
+  "Did group_L hold 7:50-8:02 while party_17 killed the plant under the packet's 'outweighs' clause or because the hands posed no answer (party_17 answer read 0.83)?",
+  "party_11 was 3 Blitzes at spot_3 (F1) at 5:20 and 6 at D3 at 6:07: the same party grown, or a name passed (H-HANDS-PARTY-NAME-STAYS was built after human-21)?",
+  "With a Sentry at spot_3/spot_11 by 2:00 and the 2:28 words kept, would four Blitzes in his half by 3:00 have survived his Rovers and the B3/B5 Sentries? No truth file to price his economy."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791074646-human-20.json"
+}

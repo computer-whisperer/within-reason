@@ -1,0 +1,125 @@
+{
+ "batch": "1792370678-human",
+ "label": "1792370678-human",
+ "map": "Cape_Violet_V1",
+ "date": "2026-10-18",
+ "shape": "2v1 (his side also seated an InactiveAI)",
+ "people": "[gecko]thebluegecko (lobby skill 34.34 in script.txt), Armada, alone in the west box (ally team 0) with an InactiveAI (NullAI) seated on his team 1. Spectators: computer_whisperer (the user, host), [gecko]u6bkep (19.24), [gecko]Covariance (16.84). His only line was '!stop' at 3:15; the user typed nothing in this game.",
+ "our_side": "Two seats in the east box (ally team 1), both Armada (lobby side Random): ai 1, team 2 at H6 (9320,3829; record-1) and ai 2, team 3 at H4 (9866,2481; record-2). One Opus 5.5 medium player a seat under an Opus 5.5 high commander, all on the ~/.claude2 account; the hands Jev jev-1.14.0 with the post-rebuild layers. No session ever took a turn: all three were refused by the five-hour rate limit before the game began, so Jev played the hands' default standing text (crates/bot/src/brain/pianist/default.md) alone for the whole game.",
+ "build": "f6e9a07 (reader's inference: the last code commit before launch; HEAD at launch was ea15d1e, docs only). No banner exists because no player ever spoke, and there is no ledger row.",
+ "result": {
+  "outcome": "aborted",
+  "minute": "3:15"
+ },
+ "summary": "A Cape Violet game against thebluegecko, launched at 20:44:38 EDT about half a minute after the Azurite game against him ended, on the ~/.claude2 account whose five-hour window already read 0.99. All three Opus sessions (two players and the commander) were refused on their first prompt (rate_limit_event, five_hour, status rejected, 0.77 s of wall time), so no packet, plan or chat line was ever written and Jev played the hands' default standing text alone. That opening put two wind generators before the lab (0:35-0:37) on both seats; energy sat under 2% of storage from 1:12-1:14 for 46-47% of the game while 555-640 metal waited in the store, and seat 2's constructors assisted the lab instead of taking spots (2 extractors at 3:00; seat 1 had 3). Nothing of his was ever seen and no unit crossed the map; thebluegecko typed '!stop' at 3:15 and the game ended. It shows nothing about play against a person: it is an operational failure, a game with people seated on a spent account.",
+ "root": {
+  "clock": "before 0:00 (launch, 20:44:38 EDT)",
+  "what": "The game was launched on the ~/.claude2 account with no five-hour room left. The Azurite players' last rate events (20:44:01-05) read allowed_warning at 0.99, the +40 Apex rung running beside it since 20:01 was refused at 20:44:38-43, and this game's first turns were refused the same second. The launch was the avoidable moment: the other account, or waiting for the 21:20 reset. Everything after is its cost, ending with the person's '!stop' at 3:15.",
+  "evidence": "strategist-1.jsonl first turn: rate_limit_event 'five_hour ... utilization 1 ... status rejected', then 'stopped', turn_end wall 0.77 s; bot.log '[ai 1] the session ended; the hands carry on alone'; Azurite strategist-0 last event: allowed_warning 0.99"
+ },
+ "turning_points": [
+  {
+   "clock": "0:00",
+   "what": "The two players stopped at frame 0 and the commander at frame 600 (0:20), each on its first prompt. None wrote an order, a note or a chat line.",
+   "evidence": "bot.log: '[strategist] STOPPING: rate limit event {...\"rateLimitType\":\"five_hour\",\"resetsAt\":1792372800...}' three times; '[commander] the session ended; the players carry on by their own judgement'; commander_turns --notes: '1 turns ... 0 output tokens'"
+  },
+  {
+   "clock": "0:35-0:37",
+   "what": "Both commanders placed the lab after two extractors and two wind generators (the default text asks for three generators), then assisted it from 0:59 and 1:03.",
+   "evidence": "hands_window seat 1: '0:11 build a armwin', '0:30 build a armwin', '0:37 build a armlab at home (H7)', '1:03 commander_t2: help lab_3070 build'; jev-2: '0:35 commander_t3: build a armlab at spot_33 (H4)'"
+  },
+  {
+   "clock": "1:12-1:14",
+   "what": "Energy fell under 2% of storage on both seats and stayed there for most of the game, while the metal store held 555-640.",
+   "evidence": "records (reader's count): e<2% first 1:14 (record-1) and 1:12 (record-2), 46% and 47% of samples; bot.log '[ai 1] f=3600 (2 min) metal 555 (+6.3/-6.1) energy 0/1152'"
+  },
+  {
+   "clock": "3:15",
+   "what": "thebluegecko stopped the game. No enemy appeared in any sample of either record.",
+   "evidence": "chat.jsonl 3:15 '[gecko]thebluegecko: !stop'; record end f=5877 'Connection reset by peer (os error 104)'; minutes.py 'his first factory seen: never'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "launch (20:44 EDT)",
+   "what": "Seated a person against a side with no players. run/human_game.sh snapshots usage but neither refuses to start nor switches accounts, and the warning was already on the record: allowed_warning 0.97-0.99 in the Azurite transcripts. A sound operation checks run/claude_usage.py first, then launches on the other account or after the 21:20 reset.",
+   "evidence": "run/human_game.sh: 'python3 run/claude_usage.py --snapshot ... || true' then exec; strategist-1.jsonl's first rate event 'rejected', five_hour utilization 1, resetsAt 1792372800 (21:20 EDT)",
+   "kind": "harness"
+  },
+  {
+   "clock": "0:11-1:14",
+   "what": "The hands' default opening with no packet: two winds before the lab, then the commander's assist on the first constructor, emptied the energy store by 1:12-1:14 while 555-640 metal sat banked (e<2% on 46% and 47% of samples). A player would have added generators before or with the lab; the backlog's escalate-2 row shows the same thing, energy at zero at 2:00 on two generators.",
+   "evidence": "hands_window seat 1 '0:11 armwin', '0:30 armwin', '0:37 armlab', '0:56 armwin'; bot.log '[ai 2] f=3600 (2 min) metal 565 (+5.2/-6.5) energy 0/1202'; floor.py (seat 1) e0% 46.4",
+   "kind": "harness"
+  },
+  {
+   "clock": "1:15-2:11",
+   "what": "Seat 2's two constructors each built a wind generator and then assisted the lab. After the commander's two extractors nobody took another spot, so the seat held 2 extractors at 3:00 with about 556-600 metal banked, against the default text's 'take the free metal spots nearest home first'.",
+   "evidence": "jev-2 plans: '1:15 constructor_15048: build a armwin', '1:40 constructor_15048: help lab_25222 build', '2:11 constructor_23882: help lab_25222 build'; bot.log '[ai 2] f=5400 (3 min) metal 556 ... mex 2'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Nothing of his was seen: no enemy in any sample of either record, no building in the picture, and minutes.py reads 'his first factory seen: never'. He played Armada from the west box and typed '!stop' at 3:15. Reader's reading, not in the chat: he stopped once it was clear our side had no players. Neither the user nor our side wrote a line saying why.",
+ "defects": [
+  {
+   "defect": "No check of the five-hour window before a game with people, and a session guard that ends a session at the limit with no other account to fall back on. The eras list does not name it. The same account limit stopped the +40 Apex rung in the same minute, and all four SD-129 sessions on 2026-10-20.",
+   "fixed": "open",
+   "evidence": "run/human_game.sh only snapshots usage ('|| true'); crates/bot/src/strategist/mod.rs:442 'STOPPING: rate limit event'; SD-129 ledger row: 'all four sessions stopped at 13:48-14:11 on the five-hour rate limit'"
+  },
+  {
+   "defect": "When no player is connected, the hands' default standing text opens energy-starved on this wind map: two winds before the lab, and constructors that assist instead of expanding. default.md is unchanged since the 2026-10-02 hands rebuild, and Jev was 1.14.0. Reader's reading; this was never measured as a fallback.",
+   "fixed": "open",
+   "evidence": "records e<2% from 1:12-1:14 on 46-47% of samples; jev-2 constructors 'help lab_25222 build' at 1:40 and 2:11; seat 2 'mex 2' at 3:00"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Two generators, then the lab at 0:35-0:37 with a constructor first ('with 2 get the factory moving faster'). Under the commander's assist the energy was gone by 1:12-1:14. This was the hands alone, so it shows what two winds give on Cape Violet's wind of 8-20, not a player's choice."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "Both commanders assisted the lab at its birth (0:59, 1:03), as the default text asks. The assist on the first constructor is part of why the energy store emptied at 1:12-1:14."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Repeats the escalate-2 row (energy at zero at 2:00 on two generators). Against the 'metal-bound' premise, the store held 555-640 metal with energy at zero: on two winds under the assist, energy was the bound. Hands only."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "Seat 2's constructors assisted the lab instead of taking spots and held 2 extractors at 3:00, the opposite of 'expanding with all available cons'. This was the hands' pick from the default text, not a player's."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py (failed)",
+   "run/impedance_sweep.py --counts",
+   "run/hands_window.py 0:00 3:20",
+   "reader's scripts over jev-2.jsonl plans, record-1/2 samples and the neighbouring games' rate events",
+   "git log"
+  ],
+  "existing_review": "none (no review.md in the match directory)",
+  "confidence": "high",
+  "caveats": "A 3:15 game with no player turns: the instruments have nothing to read beyond the hands. No truth file, so his side is unseen. minutes.py, analyze_match.py, floor.py and hands_window.py read the first record only (seat 1, H6). Seat 2's numbers come from jev-2.jsonl, record-2 and bot.log, counted by the reader. wake_read.py failed: it hard-codes strategist-0.jsonl, and this game's seats are 1 and 2. pro_baseline.py was not run (not Comet). No ledger row, so the build is inferred from git log. The reason for '!stop' is not in the chat. The main session's memory lists this game as '(no record)', but record-1 and record-2 exist."
+ },
+ "open_questions": [
+  "Why did thebluegecko stop at 3:15? Did the user tell him out of game, or did he see the side idle? No chat line says.",
+  "Should run/human_game.sh refuse to start, or pick the other account, when the five-hour window reads near its limit? The Azurite transcripts' allowed_warning 0.99 would have caught this one.",
+  "Should the side say in chat when its sessions stop? The person sat through three minutes of a side playing its default text with no word.",
+  "Is the hands' default text worth tuning as a fallback (two winds then the lab, energy at zero by 1:12; seat 2's constructors assisting instead of expanding), or is a game without players always void?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792370678-human.json"
+}

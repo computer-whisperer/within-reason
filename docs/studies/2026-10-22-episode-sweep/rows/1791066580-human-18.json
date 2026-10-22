@@ -1,0 +1,303 @@
+{
+ "batch": "1791066580-human-18",
+ "label": "human-18",
+ "map": "All That Glitters Extended v1.0.2 (15360x10240, 437 spots; enemy start about 10,000 away on foot)",
+ "date": "2026-10-03",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (lobby 34.34), Cortex vehicles (the start script and record header said Armada; every unit of his seen was Cortex). Spectators: computer_whisperer (the user), [gecko]u6bkep (19.24), [gecko]Covariance (16.84); neither of the latter two typed.",
+ "our_side": "Three seats: t1 red Armada F8 (record-0), t2 green Armada H8 (record-1), t3 magenta Cortex C8 (record-2). One Opus 5.5 medium player over all three seats (mode 'player', one packet for every seat's hands), Jev jev-latest hands per seat, hands_effort normal, no commander seat; the standing brief docs/briefs/player.md. Rebuilt hands of 2026-10-02/03.",
+ "build": "3061208",
+ "result": {
+  "outcome": "lost",
+  "minute": "32:19"
+ },
+ "summary": "We out-expanded him early (side 91 extractors at 9:28, 112 at 17:16) and the report showed an army lead of 4-30x over what we saw, but the lead was against a floor: the side never scouted his half, his base was found only at 10:09 (E2) and his units destroyed in our sight already came to 19.7k metal by 16:00 and 74k by 22:00. Our pressure went at his base side (F1/F2) as trickles of Blitzes into Exploiters, Pounders and then Twin Guard nests, while from 9:28 every new group was a home guard, so magenta's army (13.7k-36.6k from 16:00) stood in C6-C8 for 18 minutes. The hands split groups into detachments chasing raiders; his Brute raids took magenta's home from 44 to 16 extractors at 18:36-21:43 while its guard held. He reached tier 2 unseen (Tzar reported 22:02, Tigers 25:49) and raised 138 of our dead with Graverobbers; his Tzar push broke the east seats from 26:44, both Armada commanders died at 29:46 and 30:54, and the engine closed the game at 32:19. The one player's turns slowed from 15.7 s to 30.3 s and its notes named each problem minutes after it began (the ledger's reading).",
+ "root": {
+  "clock": "9:28 (inside the 8:00-12:00 window)",
+  "what": "Reader's reading, on the user's 5:11 line: with the first lead (seen army 4.8-28.6x, 91 extractors), the 9:28 packet kept every new group home ('never north of row 6') and left denial of his spread to Blitzes aimed at his base side, which all died at F1/F2 by 12:03; his expansion went unpunished and unseen.",
+  "evidence": "9:28 instruct: 'new soldiers from the plants stay home as the guard of their seat ... A guard never goes north of row 6.' minutes: armflash_5981 'died 9:27 at F1 to corexp' ... armflash_27258 'died 12:03 at F2 to corlevlr'. 12:14 note: 'Blitzes feed into corexp/pounders; base still the target.'"
+ },
+ "turning_points": [
+  {
+   "clock": "5:11-5:24",
+   "what": "The user, watching, names the plan: expand on all seats and stop him doing the same; he is betting on using the space before we punish it (a person's reading).",
+   "evidence": "chat 5:11 computer_whisperer: 'Expand aggressively on all seats, and do your best to keep thebluegecko from doing the same.' 5:24: 'He is betting on his ability to use the space before you can punish him for it.'"
+  },
+  {
+   "clock": "8:21-8:52",
+   "what": "Magenta's two Incisors reach his start (156 elmos at 8:21) and kill a constructor, an extractor and a turret: the only units of ours ever near his start.",
+   "evidence": "minutes seat 2: 'corgator_17125: crossed 4:58; nearest his start 156 at D1 8:21; died 8:25'; analyze seat 0 #0 8:21-8:37 D1: they lost {'corcv': 1, 'cormex': 1, 'corllt': 1}"
+  },
+  {
+   "clock": "9:04-12:03",
+   "what": "Red's Blitz raid (about 30 crossed 4:39-10:50) dies piece by piece at F1/F2 to Exploiters, Pounders and Brutes; the 8:00-12:00 window ends with red's mass at G8 and magenta's at C8 (0% in his half).",
+   "evidence": "minutes seat 0 WINDOWS: '8:00-12:00 (4.8-28.6x) ... G7* G7* G3* G8* G8 ... ended at 13:00'; seat 2 '8:00-12:00 ... D2* C8* C8 C8 C8'"
+  },
+  {
+   "clock": "12:14",
+   "what": "The player sees the economy stall: 95 extractors flat for three minutes, about 48 constructors helping plants or standing in lanes; sends the strike at his plant (E2).",
+   "evidence": "note 12:14: '95 extractors flat for 3 min with ~48 constructors mostly helping plants/standing in lanes ... Strike: group_Q_t1 (19) walking to spot_98 to join raid, then his_plant E2.'"
+  },
+  {
+   "clock": "13:40-14:46",
+   "what": "group_A_t1, 60 Blitzes, fights into the F2/F3 Exploiter and Twin Guard line toward his plant and loses a quarter in 26 s while the hands peel off hunting detachments.",
+   "evidence": "hands_window seat 0: 13:40 'group_A_t1: 60 ... fight_to his_plant', 14:06 '45'; 13:59 'PLAYS group_A_t1: 8 of group_A_t1 hunt party_43 (2 corgator)'; analyze #18 13:49-14:46 F2: we lost 3850 (35 armflash), they lost 4305"
+  },
+  {
+   "clock": "16:13",
+   "what": "The player writes the lead down as unspent, 38.5k against about 5k seen; by then his units destroyed in our sight already totalled 19.7k metal, so the 4-8x was a floor read as a value.",
+   "evidence": "note 16:13: 'Army 38.5k vs ~5k seen: the lead is unspent because groups never gather.' Inline count, deaths once by id across the three records: his mobile units destroyed by 16:00 19,678 metal; ours 23,355."
+  },
+  {
+   "clock": "18:36-21:43",
+   "what": "Brute and Incisor raids take magenta's home (B6-D8): 22 of its extractors in 16:00-20:00, 44 down to 16 by 21:00, while its guard held at spot_334; the side falls from 112 to 86.",
+   "evidence": "analyze seat 2 extractors 44 (18:00), 25 (20:00), 16 (21:00); hands_window seat 2: 18:59 party_94 appears, group_G_t3 'task hold' at (4978,8672) until 19:36 'attack party_94'. note 20:07: 'extractors 112->86, magenta down to 24'"
+  },
+  {
+   "clock": "22:02-23:15",
+   "what": "His tier 2 shows: a Tzar at F3; the Stout body pushes into the F3 nest (5 Twin Guards, Tzar, Graverobbers) and loses 19 Stouts in 27 s.",
+   "evidence": "note 22:02: 'His corgol (Tzar, T2 splash) seen at F3: he has teched.' note 23:15: 'L1_t1 lost 19 Stouts in 27s pushing into the F3 nest (5 corhllt + corgol + rez bots).' analyze #63 22:21-23:04 F3: lost 5550, they 5601"
+  },
+  {
+   "clock": "26:44-28:04",
+   "what": "His Tzars with Brutes, Tigers and raised Stouts push G4/G5; the east groups are fed in piecemeal while magenta's 35k stays west in C6-C7.",
+   "evidence": "analyze seat 0 #91 27:10-27:52 G5: we lost 6965 (17 armstump, 18 armsam), they 4259 (2 corgol); minutes seat 2 27:00 'C6 (0%)' at 35,055; note 27:24 'eco collapsing (63 ext, 395 metal)'"
+  },
+  {
+   "clock": "29:46-32:19",
+   "what": "Green's commander dies at H8 and red's at F8 to Tzars; magenta's army loses 10k at C6 with 20k standing; the engine closes the game.",
+   "evidence": "analyze seat 1: 'our commander died at 29:46 at H8'; seat 0: 'died at 30:54 at F8 (at our base) to corgol'; seat 2 #127 30:05-31:01 C6: we lost 10125, they 2621, ours 19990 vs 2100 on the spot before"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "9:28",
+   "what": "Every new group made a home guard that never goes north of row 6, so the side's growth stood in our half; a stronger team holds raids with turrets and one small group a seat and sends the body against his spots (the user's 5:11 ask).",
+   "evidence": "9:28 instruct (guard rule, in force to the end); minutes seat 2 WINDOWS '14:00-31:00 (1.6-30.4x, 18 min) ... C4 C7 C7 C7 D6 C7 ... peak 22%'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:39-12:03",
+   "what": "The raid went at his base side and into armed extractors (corexp, 435 reach) and Pounders with Blitzes (180 reach), in trickles; none hunted his outer spots in A-D or G-H rows 2-4. Every Blitz that crossed before 12:00 died.",
+   "evidence": "minutes seat 0 UNITS SENT: all 31 Blitzes/Rovers that crossed before 12:00 died, 29 of them at F1-F3 (one at E2, one back at G4) 9:07-14:21; 12:14 note 'Trade negative because Blitzes feed into corexp/pounders; base still the target.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:02-19:00",
+   "what": "Metal banked while energy stalled and constructors idled: magenta's store empty of energy 42% of the game with 2.7-4.4k metal banked 9:00-19:00; side 6.2k banked at 17:54 with about 20 constructors idling on plants.",
+   "evidence": "floor e0%: seat 0 9.2, seat 1 20.1, seat 2 42.2. analyze seat 2 bank 2671 (9:00) ... 4442 (18:00). note 17:54: 'Energy STALLING with 6.2k metal banked and ~20 constructors idling on plants'",
+   "kind": "both"
+  },
+  {
+   "clock": "13:40-16:00",
+   "what": "The Blitz mass was sent into the F2/F3/F4 turret line (Exploiters, Twin Guard 490) instead of around it or with reach; bled again at 15:30.",
+   "evidence": "hands_window seat 0 group_A_t1 60 at 13:40 to 44 at 14:06 under fire; note 15:30: 'Blitz strike bled ~2k to F4/F2 turret nest (corhllt 490) while strung out.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:46-18:16",
+   "what": "Groups split into hunting detachments of 4-8 after single raiders and milled; the packet's 14:01 ban did not end it.",
+   "evidence": "hands_window seat 0 13:46 'group_E1_t1: 8 of group_E1_t1 hunt party_39 (1 corfav, 1 corgator)'; 14:04 '4 of group_A_t1 hunt party_44 (1 corgator)'. notes 17:16 'Lost 18 Blitzes chasing Brute raiders'; 18:16 '~25k of Stouts milling in G4-F6 chasing raiders'",
+   "kind": "harness"
+  },
+  {
+   "clock": "18:59-21:43",
+   "what": "Magenta's home guard (16-24 units at spot_334) held for 37 s while Brute parties walked into C6-D7, and the seat fell from 44 to 16 extractors in 18:00-21:00 with 19-22k of army at home.",
+   "evidence": "hands_window seat 2: party_94 '1 corgator' 18:59 grows to '10 corraid' by 19:3x; group_G_t3 'task hold' until 19:36 'attack party_94'. raid_ledger seat 2: 22 lost in 16-20, 'answered 0'",
+   "kind": "both"
+  },
+  {
+   "clock": "10:09-22:02",
+   "what": "His base was never scouted past the vehicle plant: no lab, advanced plant or commander of his was ever seen, so his tier 2 (and his Graverobbers' bot lab) came as a surprise.",
+   "evidence": "first sightings across the three records: corvp 10:10, corhllt 14:16, cornecro 19:49, corgol 22:37, correap 25:49, coracv/cormoho 27:41; never corlab, coravp, corcom. minutes: 'first of ours within 1,500 of his start (D1): never' (seat 0)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "22:21-23:04",
+   "what": "The Stout body attacked the F3 nest with a Tzar and Graverobbers behind it, head on, instead of going round or waiting for reach.",
+   "evidence": "analyze seat 0 #63 22:21-23:04 F3: we lost 5550 (22 armstump, 4 armsam), they 5601; note 23:15: 'Stopped feeding F3: hold at spot_259'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "24:07-28:00",
+   "what": "Magenta's largest army (30-36k, 65 Brutes idle at 24:07) stayed in the west while his Tzar push broke the east seats; the bodies were never one.",
+   "evidence": "minutes seat 2: 25:00 36,615 at C6 (13%), 27:00 C6 (0%), 28:00 C7 (0%); note 24:07: 'Magenta's B1_t3 (65 Brutes, 15k) idle at home'; note 27:24: 'our east groups scattered and fed piecemeal'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Cortex vehicles. Rascal and Incisor raids on our outer spots from 4:55 (red) and 7:40 (magenta); his own spots in F1/F2/F4 and D1 held by Exploiters (armed extractors, 435 reach) and Pounders, with Twin Guard nests at F3/F4 by 14:16. Brute masses raided our homes (magenta 18:36-21:43, red and green 26:00-31:00); Graverobbers raised our dead: 138 distinct Armada units fought for him, the first seen at 16:22, 89 by 25:00. Tier 2 unseen: a Tzar reported at 22:02 (first in a sample 22:37), Tigers 25:49, advanced extractors and Scorpions 27:29-27:41; two Tzars led the push that killed both Armada commanders. His mobile units destroyed in our sight (each once across the three records) came to 6.6k metal by 12:00, 19.7k by 16:00, 74k by 22:00 and 186k by the end, about 12k a minute from 18:00 to 30:00: an economy near ours built in the half we never scouted (the reader's inference; no truth file). The user at 5:24: 'He is betting on his ability to use the space before you can punish him for it.'",
+ "defects": [
+  {
+   "defect": "One player session over three seats fell behind the game: turn 15.7 s median at 0-5 min to 30.3 s at 20-25, report 10,000 to 56,000 characters, one packet for all seats (K-llm-one-player-over-three-seats-falls-behind-the-game).",
+   "fixed": "later: the commander-seat design was written after this game (2026-10-03, not built that night); glitters-4v5-1 later ran --players seat with an Opus commander",
+   "evidence": "ledger human-18; wake_read: 'fraction of game time the player was busy (orders in flight): 92%'; 76 turns in 32.3 min, wall median 23.0 s"
+  },
+  {
+   "defect": "Hands split groups into hunting detachments after single raiders and did not withdraw (the chase that did not withdraw at danger).",
+   "fixed": "2026-10-17",
+   "evidence": "hands_window seat 0 13:59 '8 of group_A_t1 hunt party_43 (2 corgator)', 14:04 '4 of group_A_t1 hunt party_44'; notes 14:01, 17:16 ('Lost 18 Blitzes chasing Brute raiders'), 18:16. The loss rests partly on this."
+  },
+  {
+   "defect": "The report stated his state as values from floors: 'the opponent is known to hold N' extractors and the army compared with what was seen, so the player read a 4-8x lead.",
+   "fixed": "2026-10-17 (the ruling that the harness claims nothing of his state; the predict tool)",
+   "evidence": "report 9:57 'the opponent is known to hold 14'; note 16:13 'Army 38.5k vs ~5k seen'; his mobile units destroyed in our sight by 16:00: 19,678 metal"
+  },
+  {
+   "defect": "An extractor in a plant's exit lane (magenta's lane blocked; the player names about ten minutes).",
+   "fixed": "2026-10-13",
+   "evidence": "wake 9:28: 'plant_25029's exit lane is blocked ... in the lane: cormex_913'; 23 turns woken 'nothing of ours stands in the lane'; note 31:45 'magenta plant lane blocked 10 min'"
+  },
+  {
+   "defect": "The Cortex seat's opening list came out with Armada names and was skipped; the start script's faction for him (Armada) reached the player though he played Cortex.",
+   "fixed": "unknown",
+   "evidence": "note 0:46: 't3 (Cortex) list was resolved to arm names and skipped; re-queued with cor names at 0:46.' note 0:06: 'Enemy thebluegecko Armada in north box'; corrected 7:54 'one person (Cortex)'"
+  },
+  {
+   "defect": "No build-power draw numbers in the player's report: energy stalls with metal banked went on for minutes (the spending line came later).",
+   "fixed": "2026-10-17 (the spending line); builder priority 2026-10-13",
+   "evidence": "floor e0% seat 2 42.2; reports 6:02 and 17:54 'STALLING' with 1,028 and 6.2k metal banked"
+  },
+  {
+   "defect": "A home guard held while a raiding party grew in its cells; the first attack pick came 37 s after the party appeared.",
+   "fixed": "unknown",
+   "evidence": "hands_window seat 2 18:59 'party_94=1 corgator, 1 corraid@(5601,6234)' answer 0.68; group_G_t3 'task hold' to 19:36 'attack party_94 ... with the whole group'"
+  },
+  {
+   "defect": "Jev load on a map this size: one seat read 9.2 M tokens in one minute at 28:00 (cost not counted), the costliest gate 330,000 tokens.",
+   "fixed": "later layers (near, again, the cost fuse; in use by glitters-4v5-1)",
+   "evidence": "ledger human-18 and glitters-4v5-1 rows; commander-seat design §: '32,144 questions at minute 28'"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "1:16",
+   "text": "This is a very big map, bigger than you have played before, Within Reason."
+  },
+  {
+   "clock": "5:11",
+   "text": "Expand aggressively on all seats, and do your best to keep thebluegecko from doing the same."
+  },
+  {
+   "clock": "5:24",
+   "text": "He is betting on his ability to use the space before you can punish him for it."
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "supports",
+   "note": "The user said at 5:11-5:24 what the lesson says of a greedy expander ('an agressive responce is needed'); our raid hit his defended base side instead of his spread spots and his economy grew unseen to about our size."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "We did the 'keep taking mexes' half (112 extractors at 17:16) and not 'raiding the corners'; expansion alone did not hold against an unraided person on a 437-spot map."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "The end was the economy: extractors 112 at 17:16, 86 at 20:07, 63 at 27:24, 39 at 29:26, 9 at 31:45, while the trade the player read was even or positive."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The groups never fought as one: red's Blitzes and Stouts fed into F2-F4, green's into G3-F4, magenta's body stayed west; the player's own 16:13 and 27:24 notes say so."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "A seen lead of 38.5k against about 5k at 16:13 was never taken into him, but it was against a floor (his destroyed-in-sight 19.7k by then): the lesson needs a lead measured against his estimate, not his sightings."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "supports",
+   "note": "Blitzes and Stouts sent head-on into Exploiters and Twin Guard nests at F2, F3, F4 (13:40, 15:30, 22:21) bled each time."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'go arround rather than attack the strongest postition': 19 Stouts lost in 27 s at the F3 nest at 23:15."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "Blitzes into Pounders and Brutes lost; the player switched to Stouts and Whistlers only at 14:01."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "From his side: Graverobbers raised 138 of our dead from the fields our piecemeal attacks left, 89 of them by 25:00."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "Stores high with build power missing: magenta's energy empty 42% of the game with 2.7-4.4k metal banked; 6.2k banked at 17:54."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Already cites human-18's bank; adds that magenta's 13.7-36.6k stood at home 18 minutes and that the 'lead' was against a floor."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Nests at F2-F4 broke three attacks; his lab, advanced plant and commander were never scouted before committing."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "165 extractors lost to him over three seats (raid ledgers 52, 51, 62) with 'answered 0' in every raid ledger; magenta's guard held 37 s while a party grew to 10 Brutes."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "supports",
+   "note": "Banks of 4-6k side-wide from 8:44 with energy stalling; about 48 constructors helping plants or in lanes at 12:14."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "The player read '+7k trade in 3 min' at 20:07 and '+6k/3min' at 22:02 while extractors fell 112 to 78; counted once by id, mobile losses by 22:00 were ours 70.5k, his 74.2k."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Blitz (180 reach) against Exploiter (435) and Pounder; the Tzar's splash against packed Stouts at 23:15 and 27:10."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "His tier 2 (Tzar by 22:02) broke a tier-1 army several times his seen size; red's advanced plant started only at 23:15."
+  },
+  {
+   "id": "The scenario variables and scaling by the map",
+   "relation": "illustrates",
+   "note": "On a 15360x10240 map with 437 spots and a 10,000 walk the first raiders reached his side at 9:04 and the one player's report grew to 56,000 characters."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (each seat)",
+   "run/analyze_match.py (each seat)",
+   "run/floor.py (each seat)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 0 13:40-14:10; seat 2 18:55-19:45)",
+   "inline python over the three records: deaths counted once by unit id, cumulative metal by minute for both sides, first sightings by type, raised Armada units in his army, an ally-contamination check",
+   "grep of bot.log, script.txt, docs/experiments.md, docs/knowledge/jev.md, docs/design/2026-10-03-commander-seat.md"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "No truth file: every number of his is a floor, and the root rests on the reader's inference that his economy neared ours by about 18:00 (his destroyed-in-sight units), with the user's 5:11-5:24 lines as the person's support. analyze_match and minutes read only the first record, so seats 1 and 2 were run from scratch directories linking record-1 and record-2 as record-0; the 'his' columns are the side's shared sight and the same in each seat. pro_baseline not run (not Comet Catcher); impedance_sweep not run. raid_ledger's 'answered 0' may reflect this record's era. The ledger's '63 extractors at 27:24' is ours (note 27:24). The main session's reading (ledger, commander-seat design) puts the cause at the unspent lead of 12:14-16:13 and the one-player structure; this row puts the root earlier and calls the lead a floor. Scratch note: this reader briefly overwrote bot.log, script.txt and strategist-0.jsonl links in the shared scratchpad dirs seat1/ and seat2/ of the 1792547311-human reader (about 00:33-00:34) and restored them to that game's files; that reader's runs in that minute may have read human-18 files."
+ },
+ "open_questions": [
+  "How large were his army and economy at 12:00-20:00? The replay (run/replay_match.py on the .sdfz) would give his truth and settle whether the 4-8x lead was real.",
+  "Did thebluegecko or the spectators say anything about this game afterwards (relayed by the user)? None is in the chat or the inbox.",
+  "Would a player a seat (or the commander seat) have answered magenta's 18:59-21:43 raid and gathered the bodies at 14:00, or is the guard's 37 s hold a hands matter?",
+  "Was the Cortex seat's opening list resolving to Armada names fixed, and does the record header still take his faction from the start script?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1791066580-human-18.json"
+}

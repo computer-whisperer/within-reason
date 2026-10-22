@@ -1,0 +1,253 @@
+{
+ "batch": "1790475073-bluegecko-3v1-comet-catcher-5",
+ "label": "bluegecko-3v1-comet-catcher-5",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-27",
+ "shape": "3v1",
+ "people": "[gecko]Infern8 (lobby 24.7, Armada), the opponent, alone in the west (start B5, vehicle plant at B4). Spectating and coaching in the chat: [gecko]thebluegecko (engine player 2) and [Stud]Irishstud14 (player 1), attributed through docs/briefs/lessons.md, since chat.jsonl has '?' for every speaker of this game. The user hosted (player 5).",
+ "our_side": "Three seats on the east strip, side Random: t1 (seat 0) G1 Cortex, t2 (seat 1) H8 Cortex, t3 (seat 2) G4 Armada. One Opus player drove all three seats (claude-opus-5-5, effort medium, Claude Code 2.1.283; one transcript, strategist-0.jsonl). No LLM commander. Hands: one Jev per seat, jev-latest = jev-1.13.0. Realtime, in the user's lobby, on the shim rebuilt with the script-parser fix.",
+ "build": "84aa001",
+ "result": {
+  "outcome": "won",
+  "minute": "9:35"
+ },
+ "summary": "A 3v1 on Comet Catcher: three seats of ours (two Cortex, one Armada, one Opus 5.5 medium player for all three) against [gecko]Infern8 (Armada, lobby 25), with thebluegecko and Irishstud14 coaching from the spectators' chat. We won when his plant died at 9:29 and his commander at 9:35, both at B4. The opening was slow on every seat: the plant at 0:49 after three solars, scout cars first, commanders off the plant after 25 s, and plants idle in half the samples to 5:07 under a hands default that was fixed during the game. The spectators named each of these faults as it happened. He raided with Blitzes (F6 at 3:35; seat 0's F1/E1 at 4:41-4:55, two extractors) but showed little army. From 5:00 each seat held 2.7 to 3.7 times the army it saw; the player gathered at E5 at 5:13 and ordered the advance at 6:04, but the hands held the groups in place and walked them back, and they crossed only at 7:19-7:35. After thebluegecko's 6:49 'time to go fight and win', the three groups went together. They broke 14 Blitzes and the D4 turret nest (7:37-8:41) and pushed into B4, where 26 of our raiders died to his commander before it fell.",
+ "root": {
+  "clock": "5:00-7:19",
+  "what": "The game never left the winning path. The earliest slack on the chain to the result: from 5:00 every seat held 2.7 to 3.7 times the army it saw (3,170 metal against 330 seen, combined), yet the mass stayed in our half until 7:19-7:35. The player gathered at spot_46 (E5) at 5:13 and ordered the advance to spot_39 at 6:04; the order landed at 6:26. The hands then held both strike forces in place for 21-33 s and walked them back to spot_32 at 6:55-7:02. thebluegecko named this at 6:49 (a person's reading). Once the groups went, the game ended 2:16 after the crossing.",
+  "evidence": "minutes seat 0: '5:00-7:00 (2.7-5.5x, 3 min): our mass by minute E1 E4 F2 (... peak 7%)'; seat 2 '5:00-9:00 ... F5 E4 F3 D4* C4*'; hands_window seat 0: group_A_t1 6:29-7:02 at (5492,1210)-(5249,1279) 'task fight_to spot_39', 7:02 'walk to spot_32 [plan]'"
+ },
+ "turning_points": [
+  {
+   "clock": "1:32-1:52",
+   "what": "The spectators on the opening. thebluegecko: three solars only make sense for a fast constructor, otherwise two and an earlier plant. Irishstud14: the commanders left the lab too early. At 1:47 the player put all three commanders on assist.",
+   "evidence": "pro_baseline seat 2: 'first factory started 0:49' (pool 0:34), 'solars before the plant 3' (2), 'first soldier 1:10' (a scout car), 'first constructor 1:26', 'factory units by 4:00 9' (pool 17/18/20)"
+  },
+  {
+   "clock": "2:04-2:09",
+   "what": "Seat 2's first scout car saw his plant and commander at B4. The player marked enemy_plant and stationed one group per seat at home.",
+   "evidence": "minutes seat 2: 'armfav_1268: crossed 1:49; nearest his start 623 at B4 2:04'; 'his first factory seen: 2:00 at B4'; 2:09 note 'Enemy vehicle plant + commander at B4 (1406,2768), Blitzes out by 2:09'"
+  },
+  {
+   "clock": "4:18-4:55",
+   "what": "Five Blitzes went through F2 into seat 0's north. group_A_t1 (five units at G1) engaged at 4:32, but its hunt ended at 4:40 on the 900 leash. spot_3 (F1) and spot_8 (E1) died, with a constructor and a turret.",
+   "evidence": "impedance_sweep 4:40 'group_A_t1's hunt of party_10_t1 ended after 0 s: the leash of 900 from where it began reached'; raid_ledger 4:45 spot_3, 4:55 spot_8, 'answer none'; analyze #0 4:41-4:55 E1 we lost 335, they 220"
+  },
+  {
+   "clock": "5:13-6:26",
+   "what": "The player saw the lead and chose to gather first at E5, then at 6:04 ordered a strike force to spot_33/39. The order landed at 6:26, 22 s after the turn began.",
+   "evidence": "notes 5:13 'army 3.6k vs 330 seen ... Gathering ... at spot_46 (E5) as one ball'; 6:04 'Strike force (purple Incisors + teal Blitzes, ~2.9k) advances to spot_33/39'; hands_window 6:26 'advance to spot_39 [plan]'"
+  },
+  {
+   "clock": "6:29-7:28",
+   "what": "Both strike forces stood under 'fight_to spot_39': seat 2's 18-22 units sat at spot_18 (G3), and at 6:49 only two of them got fight orders. Then the pick walked both groups back to spot_32. thebluegecko at 6:49 and 6:59; at 7:04 the player said the three armies would converge at E4. Seat 0 advanced again at 7:28.",
+   "evidence": "hands_window seat 2 group_A_t3 6:34-6:55 at (6017,1891)-(6005,1929), 6:55 'walk to spot_32 [plan]'; record seat 2 cmd f=12270: fight to (2904,2952) for 10566 and 12125 only; chat 6:49 'up by almost 400% army value'"
+  },
+  {
+   "clock": "7:19-8:41",
+   "what": "The crossing and the D4 fight. All three seats' groups crossed in about 15 s and broke his Blitz body and the D4 nest.",
+   "evidence": "minutes: seat 2 Blitzes crossed 7:19-7:23, seat 1 Incisors 7:23-7:26, seat 0 7:34-7:37; analyze seat 0 #1 7:37-8:41 C4: they lost 3160 (14 armflash, 5 armllt, 3 armmex, 3 armstump); ours 600 + 1826 + 1131 across the seats"
+  },
+  {
+   "clock": "8:16-9:35",
+   "what": "At his base: the plant, five constructors, Stumpies, two Janus and seven solars died. The commander fell at 9:35 after killing 26 of our raiders.",
+   "evidence": "analyze seat 2 #1 8:16-9:38 B4: they lost 8430 (9 armstump, 2 armjanus, 5 armcv, 9 armsolar, armvp, armcom); record enemy_destroyed armvp 9:29 (1406,2768), armcom 9:35 (1573,2530); minutes killers: 26 of ours 'to armcom' 8:39-9:34"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "5:13-7:19",
+   "what": "A lead of 3 to 9 times what we saw was held in our half for over two minutes. Two causes: a gathering place in our half (E5) chosen at 5:13, and the hands' standing and walk-back after the 6:04 advance. A stronger player sends the three groups straight at his outer extractors and D4 from 5:13 (going, not gathering), keeps fall-back off on the way, and is in his half by about 5:45. thebluegecko's 'down in metal income' says the lead was decaying.",
+   "evidence": "notes 5:13 'Gathering ... at spot_46 (E5)'; standing 6:04 group_A_t1 fall_back_to spot_32 with station spot_39 advance; minutes seat 0 peak 7% in his half 5:00-7:00; chat 6:59 'if you dont use taht army advantage this will soon go bad'",
+   "kind": "both"
+  },
+  {
+   "clock": "0:00-1:47",
+   "what": "The opening packet: per commander, two extractors, three solars, then the plant; 25 s of assist, then off to a far extractor; produce with scout cars first and the constructor third. A stronger player opens with two solars and the plant at about 0:34, or three solars with a constructor first (thebluegecko's reason), and keeps the commander assisting (Irishstud14). The person's reading; the numbers agree.",
+   "evidence": "calls 0:00 queue commander_t1 ['extractor spot_10','extractor spot_5','corsolar'x3,'corvp','assist 25','extractor spot_6',...]; produce all ['corfav:2','corcv:2','corgator',...]; floor seat 0 fac4 8; pro_baseline seat 2 factory units by 4:00 9 (p25 17)",
+   "kind": "both"
+  },
+  {
+   "clock": "1:10-5:07",
+   "what": "The plants were idle in half the samples to 5:07 with the store under 150. The hands' only factory default was standing idle, and the rules let Jev build only while the store was full. A stronger player keeps a unit queued so no build power is wasted (thebluegecko 4:31).",
+   "evidence": "e01aa80 (committed 22:20 EDT, during this game): 'each vehicle plant was idle in half the samples to 5:07, the store under 150 in nine of ten of them'; chat 4:01 'labs should never be idle longer than 2 seconds'; the user 5:01",
+   "kind": "harness"
+  },
+  {
+   "clock": "4:18-4:55",
+   "what": "The north raid on seat 0 got no real answer. Five Blitzes were in sight from 4:18; the five-unit home group engaged at 4:32 and turned back on the 900 leash at 4:40, and no turret stood at F1/E1. Two extractors, a constructor and a turret were lost for two Blitzes. The game recovered: spot_3 was rebuilt at 5:40.",
+   "evidence": "raid_ledger seat 0 '4:45 spot_3 F1 armflash 5 armflash 26s sold 1 tur 0 none'; '4:55 spot_8 E1 ... 35s 2 0 none'; impedance_sweep 4:40 hunt-ended-leash",
+   "kind": "both"
+  },
+  {
+   "clock": "8:39-9:34",
+   "what": "Our raiders went into his commander one after another in a strung-out file, and 26 of them died to it in 55 s before it fell. The packet had no words for attacking the commander, so 'attack_unit with everything' reached the hands only as a station on a mark. thebluegecko's way is to target the commander and circle it.",
+   "evidence": "minutes (three seats): 26 of ours 'died ... to armcom' 8:39-9:34; decompression-review P6 'attacking the commander (no vocabulary)'; 8:47-9:30 mark enemy_com x4, stations enemy_com; analyze --scene 9:00 shows a diagonal file",
+   "kind": "both"
+  },
+  {
+   "clock": "5:34-7:18",
+   "what": "Build power and energy were late. The first construction turret was begun at 7:01, after both spectators had asked for nanos (5:34, 6:29). Energy fell to 1,736 of 4,600 at 7:18, losing 434 a second, and seat 1 stalled in minute 7. Minor; the push won before it mattered.",
+   "evidence": "pro_baseline seat 2 'first construction turret begun 7:01' (pool 5:29/6:28/6:56); told 7:18 'energy 1736/4600 (-434)'; analyze seat 1 'energy stalled in minutes [7]'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Infern8 (Armada) played alone from B5, with one vehicle plant at B4 that was in sight from 2:00. He had Blitzes out by 2:09 and raided with them: four at E6 at 3:02 that cost group_A_t2 two of its five at F6 (3:35), and five through F2 into seat 0's F1/E1 at 4:18-4:55 (two extractors, a constructor and a turret, for two Blitzes). He kept a Blitz body of 11-16 at D4/E4 from 6:59. Behind it stood a turret nest at D4 (the ledger: six turrets and three extractors) and, at home, Stumpies and two Janus. His commander fought at C4-B4 from 8:39 and killed 26 of our raiders. No tier 2 was seen (no truth file). His economy is unknown: the report claimed 3 extractors 'known'. thebluegecko judged at 6:49 that he was ahead in metal income (a person's reading; per seat or for the team is unclear).",
+ "defects": [
+  {
+   "defect": "An idle factory's only default was standing idle, and Jev built only 'while the store is full', so the plants waited for the bank (H-HANDS-LAB-DEFAULT, fixed after this game).",
+   "fixed": "2026-09-27 (e01aa80, committed during this game)",
+   "evidence": "e01aa80: 'in bluegecko-3v1-comet-catcher-5 each vehicle plant was idle in half the samples to 5:07, the store under 150 in nine of ten of them'; the user's 5:01 'I don't think this version can queue very well'"
+  },
+  {
+   "defect": "The strike forces stood for 21-33 s under an advance order. The ledger calls it the wait for a stuck straggler; tying it to the march rule (H-ARMY-MARCH) is the reader's reading, not traced in the code.",
+   "fixed": "2026-09-28 (1cd47ce deleted the hands' follow and march)",
+   "evidence": "ledger: 'the strike force stood 22 s for a stuck straggler (6:49 ...)'; hands_window seat 0 6:29-7:02 and seat 2 6:34-6:55 'task fight_to spot_39' with the body near still"
+  },
+  {
+   "defect": "The follow leash: a hunt ended at once when it reached 900 from where it began, and a group 'drawn 912 from where it engaged' held where it stood.",
+   "fixed": "2026-09-28 (1cd47ce deleted the follow)",
+   "evidence": "impedance_sweep 4:40 'hunt of party_10_t1 ended after 0 s: the leash of 900 from where it began reached'; wakes 5:50, 6:04 'group_A_t1 was drawn 912 ... it holds where it is'"
+  },
+  {
+   "defect": "The pick walked advancing groups back to their fall-back place on a hit (6:55 seat 2, 7:02 seat 0, 7:43 seat 0 at contact). The player answered with hold_line at 7:45. Pre-hands-rebuild.",
+   "fixed": "unknown (the hands were rebuilt 2026-10-02; not checked whether that removed it)",
+   "evidence": "hands_window seat 0 7:43 'group_A_t1: walk to spot_32 [plan]'; wake 7:45 'group_A_t3 has lost 2 of its 20 soldiers ... walking to spot_32 at E4'; 7:45 standing hold_line yes x3"
+  },
+  {
+   "defect": "The report's trade summed the seats' sighted deaths, so a death could count up to three times. The player's closing note read 'Traded 35k:10k'.",
+   "fixed": "2026-09-27 evening (the ledger's correction, changes doc 3.1)",
+   "evidence": "ledger: 'of theirs destroyed, 11.8k (each death counted once by unit id across the seats' records; the row's figure summed the seats ...)'; note 9:42 'Traded 35k:10k'"
+  },
+  {
+   "defect": "The report claimed things about his state: 'the opponent is known to hold 3' extractors, from sightings.",
+   "fixed": "2026-10-17 (ruling: the harness claims nothing of his state)",
+   "evidence": "told 5:13-7:45 score lines: 'the opponent is known to hold 3' (4 from 7:45)"
+  },
+  {
+   "defect": "A produce call was refused whole because one plant was not yet in the picture.",
+   "fixed": "open in this build; not traced",
+   "evidence": "impedance_sweep 1:05 'RESULT produce: REFUSED: plant_16626: not a factory in the picture (plant_22145)'"
+  },
+  {
+   "defect": "Decompression of the packet. Each seat re-read P1 every second from 0:25 to 1:12; P3-P4 gave the constructors attack_raiders yes from the raiders' sentence (it never played); and no group got rules from P1-P4.",
+   "fixed": "unknown",
+   "evidence": "00/decompression-review.md: '47/50/44 extra calls'; 'constructors attack_raiders yes (wrong) 4:15-6:26 (no plays)'; 'P1-P4 named no group_X, so the army got no rules from the first 6 minutes'"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "5:01",
+   "text": "I don't think this version can queue very well"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Said in this game (6:49, 6:59, 8:35). The lead had been held in our half from 5:00; once the groups went, the plant and commander fell 2:16 after the crossing."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The three seats' groups crossed within about 15 s and won every fight after. The player's own note: 'separate groups fought piecemeal early (3:35); combining at one station won every fight after'."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Said here at 1:32-2:32. Every seat opened with three solars, then the plant at 0:49 and a scout car as the first unit (pro_baseline seat 2)."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "Said here at 1:46. The lists gave the commanders 25 s of assist, then a far extractor; the player re-queued assist at 1:47."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "supports",
+   "note": "Said here at 4:01/4:31. Plants were idle in half the samples to 5:07 (e01aa80), with 8-9 factory units by 4:00 against the pool's 17-20."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "Said here at 4:38-5:03. Converters 0 all game; the energy store was near full at 5:13-6:32."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "illustrates",
+   "note": "Said here at 5:34 and 6:29. The first construction turret was begun at 7:01 (pool median 6:28)."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "Said here at 8:32, after wakes on wreck fields at D4/C4 (600 to 2,595 metal, 7:59-8:29)."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "supports",
+   "note": "Our raiders reached his commander in a file and 26 died to it in 8:39-9:34; there was no vocabulary for targeting it."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "thebluegecko's 'You are down in metal income' (6:49) with 24-26 extractors held across the three seats; the army lead converted before the gap told."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "No pressure until 7:37: the first scout car saw his plant at 2:04 and killed nothing. The game was won anyway, but as a 3v1 against a lobby-25 player it does not test the lesson."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "4.6 minutes from the first 2x minute (5:00) to the commander's death, inside the pool's p75 of 5.4. The gather at E5, the standing and the walk-back cost about two minutes; one body from one gathering place then won."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Three solars before a plant at 0:49 (pool 0:34); thebluegecko's reason for three; Irishstud14 on the commander assisting at birth."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "Idle plants under a low store (the hands default); 'que units so no BP is wasted'; nanos late."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "The F1/E1 raid at 4:18-4:55: the home group's hunt ended at once on the 900 leash, and no turret stood with the spots."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "The trade figure the backlog must explain away: the player's 'Traded 35k:10k' and the ledger's 21.5k to 8.4k, corrected to 11.8k of his. This 3v1 was ahead and won."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (and --scene 9:00)",
+   "run/pro_baseline.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls --told",
+   "run/wake_read.py",
+   "run/hands_window.py",
+   "run/impedance_sweep.py",
+   "bot.log chat lines",
+   "the records' chat and enemy_destroyed events",
+   "00/decompression-review.md"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "There is no truth file, so his army and economy are floors of what we saw. There is no batch.json or results.jsonl; the result comes from the records (armvp 9:29, armcom 9:35; records end 9:47) and the ledger (WON 9:42, the player's note). The per-match tools read only record-0 (seat 0); seats 1 and 2 were read through per-seat views symlinked in the scratchpad. pro_baseline has no carded side for the Cortex seats (G1, H8), its pressure rows are blank on seat 2, and its pool is 1v1 against our 3v1's shared spots. chat.jsonl gives '?' for every speaker here; attribution is by engine player id (1 Irishstud14, 2 thebluegecko, as in lessons.md; 5 the host). The host's unprefixed 5:01 line is taken as the user's comment under the 2026-10-21 ruling. The two 0:00 lines on pounders are Irishstud14's about the previous game. The match directory holds no review.md; decompression-review.md audits only the packet stage, and this row builds on it. The ledger says 'no exit-lane wake all game', but the transcript has two (2:09 plant_16626, 8:47 plant_7132)."
+ },
+ "open_questions": [
+  "Was thebluegecko's 'You are down in metal income' (6:49) per seat or for the team? Our report showed 53 income from 24-26 extractors across the three seats; his count is unknown without a truth file.",
+  "What held the strike forces at 6:29-7:02? Seat 2's group read 'advances to its station spot_39' while only two members got fight orders at 6:49. The ledger says a stuck straggler; the march rule is the reader's guess.",
+  "Would a push at 5:13 (3.6k against 330 seen) have found D4 before its turret nest stood? The first of his turrets seen in the minute rows is at 8:00."
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1790475073-bluegecko-3v1-comet-catcher-5.json"
+}

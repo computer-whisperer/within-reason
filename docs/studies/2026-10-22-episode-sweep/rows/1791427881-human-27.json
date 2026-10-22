@@ -1,0 +1,284 @@
+{
+ "batch": "1791427881-human-27",
+ "label": "human-27",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-07",
+ "shape": "1v1",
+ "people": "[gecko]u6bkep (lobby skill 29.97), Armada from B5; computer_whisperer (the user) hosting as a spectator, silent in the chat",
+ "our_side": "one seat (ai 0, 'Chris'), Cortex (Random in the lobby), start G1; the player Opus 5.5 at effort medium (player-under-command) under the side's commander Opus 5.5 at effort high (11 turns, 9 directions); hands Jev jev-latest (jev-1.13.0), hands effort normal; briefs docs/briefs/player.md, player-opus.md, player-experience.md; realtime lobby game",
+ "build": "7cce146+ (dirty tree), 2026-10-07",
+ "result": {
+  "outcome": "lost",
+  "minute": "13:48"
+ },
+ "summary": "A realtime 1v1 on Comet Catcher: one Opus 5.5 seat (Cortex, G1) under an Opus 5.5 commander against [gecko]u6bkep (Armada, B5), lost at 13:48. The opening was slow (plant at 1:08 behind three extractors and three solars; two extractors at 3:00 against the pool's p25 of 5), and from 2:33 his Rovers and then Blitzes raided the home spots, killing 6 extractors and 7 Incisors by 5:51. From then to the end the side held 4 extractors: with 3 to 6 constructors and about 70 free spots after 4:56 it began one extractor before 12:00, because the packet walked constructors to the commander whenever an enemy was in reach and the player put expansion off until the raids stopped. Meanwhile the commander, Pounders and Guards killed 45 Blitzes at home, and the seen trade went positive (5,153 destroyed to 4,645 lost at 10:22). A single roving Rascal killed 13 of his extractors in the A and B columns from 8:49 to 12:31, our only damage in his half. His 10:01 wave killed three of six constructors reclaiming at F1/F2; five Stouts and three Janus killed the plant at 11:51, razed the base and caught the commander at the new plant at spot_17.",
+ "root": {
+  "clock": "4:48",
+  "what": "The constructors were tied to home. From the 4:48 packet on, a constructor with an enemy in reach walked to the commander, with his raiders in our half every minute and lone Blitzes parked at outer spots. From 5:56 the player also put off the raid, and from 8:00 the expansion, until 'his Blitz waves stop'. After 4:56 the side began one extractor before 12:00, with 3 to 6 constructors and about 70 free spots, though raids took only two more extractors in that span; extractors stayed at 4 and metal income at 11 to the end. The earlier losses (the slow opening, the 4:00-5:30 raids) were still recoverable at 4:00, with 6 extractors (the pool's p25) and an army above its p75. This root is the reader's reading; no person commented on the game.",
+  "evidence": "4:48 instruct: 'An enemy within reach: it walks to the commander and resumes its list when they are gone'; record: cormex created 4:56, then only 7:42 (killed 7:45) to 12:00; 8:00 note: 'Expansion past home waits for his Blitz waves to stop.'"
+ },
+ "turning_points": [
+  {
+   "clock": "1:08",
+   "what": "A slow opening. The plant started at 1:08, behind three extractors and three solars, and the energy store was empty at 1:54 with the commander and the first constructor both on the plant. That constructor (finished 1:38) stood 30 s in the plant's exit lane and built a solar; the first extractor away from home began at 3:04. The commander stood 46 s at a site another builder had taken (2:08-2:54). The side held three extractors until 3:23.",
+   "evidence": "pro_baseline: 'first factory started 1:08 | 0:34 0:48 1:01 >p75 (late)', extractors at 3:00 '2 | 5/5/6 <p25'; 1:54 report 'energy 12/1300 (-124) STALLING'; 2:24 wake: 'exit lane is blocked: corcv_16990 ... 0:30'"
+  },
+  {
+   "clock": "2:41",
+   "what": "His first Rover killed spot_5 at home, where no turret stood. The first Guard went up at G2 from 2:59 to 3:07.",
+   "evidence": "raid_ledger: '2:41 spot_5 G1 armfav 1 armfav 8s sold 2 tur 0'; record: corllt 31913 created 2:59, finished 3:07"
+  },
+  {
+   "clock": "3:53",
+   "what": "Six Rovers came into G1 and killed spot_6 and spot_5; all six died at G1/H1 by 4:21. The 4:12 packet meanwhile sent the Incisors west as group_B's raid ('armfav and lone armflash in our half are not its business'), with Blitzes already seen coming from the middle.",
+   "evidence": "raid_ledger: '4:00 spot_6 G1 armfav 6 armfav', '4:11 spot_5 G1 armfav'; enemy_destroyed armfav x6 4:13-4:21 at G1/H1; hands_window 3:56-4:02: party_11, party_12 armflash at E2-E3"
+  },
+  {
+   "clock": "4:26",
+   "what": "His Blitzes fought our Incisors in pieces at F1/F2: 940 lost (5 Incisors, 2 extractors, a Guard, a solar) for 660 (6 Blitzes). The army fell from 798 at 4:00 to 266 at 6:00, and extractors from 6 to 4.",
+   "evidence": "analyze_match #2 4:26-5:26 F2: 'we lost 940 ... they lost 660 ({'armflash': 6}); on the spot before ... ours 240 + 90 vs theirs 440'; impedance-review item 3: group_H's follow overridden, 3 Incisors died at F2 5:00-5:16"
+  },
+  {
+   "clock": "5:37",
+   "what": "The plant switched to Pounders (Brutes from 6:07), which the commander endorsed at 5:50. From then on the commander's D-gun, the Pounders and the Guards killed each Blitz wave at home, and the seen trade turned at 8:00.",
+   "evidence": "5:37 produce ['corlevlr:1',...]; enemy_destroyed armflash: 8 at 6:22-6:44, 8 at 7:41-7:57, 10 at 8:46-9:12, 9 at 10:07-10:25; 8:00 note: 'trade turned (2823 destroyed vs 2589 lost)'"
+  },
+  {
+   "clock": "5:56",
+   "what": "Expansion stopped. The 5:56 note put off the raid until home was clear, and a converter went up at 6:34. constructor_16990 alternated between its spot_25 Guard and walking home 11 times (5:39-7:13) under a lone Blitz. The 6:56 list bug dropped an extractor step. The extractor begun at spot_25 at 7:42 died at 7:45 to that Blitz, which had been seen 145 s before.",
+   "evidence": "5:56 note: 'Raid west deferred until home is clear'; record: cormakr 26844 6:34; hands_window: 'build a corllt at spot_25' / 'walk to home; its list step ... waits' 5:39-7:13; raid_ledger '7:45 spot_25 H3 armflash ... 145s'"
+  },
+  {
+   "clock": "8:49",
+   "what": "The Rascal corfav_20617, roving since 2:51, killed its first building of his at 8:49 and then 12 more extractors by 12:31 in the A and B columns, while his army was in our half. It found his plant at B4 at 9:11. The commander ordered four more Rascals at 10:50, but the plant died before any was made.",
+   "evidence": "enemy_destroyed armmex x13 8:49-12:31 at A1-A8, B1, B3, B7, B8, the Rascal within 97-158 of each; minutes.py 'his first factory seen: 9:11 at B4'; pool first building killed p75 5:08"
+  },
+  {
+   "clock": "9:22",
+   "what": "Every free builder and the commander went to reclaim the 2,250 metal of wrecks at F1/F2, on the Blitz approach. Reclaim lifted income to 78 at 9:37. Then his 10:01 wave of 11 Blitzes and 2 Stouts killed three of the six constructors there (one by our own Pounder).",
+   "evidence": "9:22 note: 'Every free builder + commander reclaiming 2.25k of wrecks at F1/F2'; record: corcv 31089 10:03 (by corlevlr), 23546 10:05, 15016 10:10 at F1/F2; 10:22 report 'constructors 3'"
+  },
+  {
+   "clock": "11:03",
+   "what": "Five Stouts and two Blitzes, then the Janus, came into G1; Stouts (350) and the Janus (380) outreach the commander. The plant died at 11:51 and the base was razed by 13:20.",
+   "evidence": "analyze_match #7 11:03-11:59 G1: 'we lost 2710 ... they lost 895'; record: '11:51 destroyed corvp 23436 G2 armjanus'; 11:20 instruct: 'Stouts outreach the commander's D-gun'"
+  },
+  {
+   "clock": "12:16",
+   "what": "A new plant went up at spot_17 (two frames from one tagged step) and stood at 13:25. The commander stayed at it as eight Stouts and three Janus arrived; the walk to spot_25 that the packet named was rated 0.22 and 0.35 and not played. The record ends at 13:48 with the commander at 11%.",
+   "evidence": "analyze_match: 'last sample 13:48: our commander at 11% health at H3 ... ({'armstump': 8, 'armjanus': 3})'; impedance-review item 1 (13:38-13:48, A3)"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "4:48",
+   "what": "Constructors were held at home for seven minutes. The packet's rule walked every constructor to the commander whenever an enemy was in reach. With his raiders in our half every minute and lone Blitzes parked at spot_25 and spot_17, that rule froze the outer lists, and the player then chose to wait for the raids to stop (5:56, 8:00). The commander's direction at 9:20 says the opposite: 'Expansion does not wait for his Blitz waves to stop, because they will not stop.' A stronger player keeps taking spots away from his approach (the east and south strip, G3-H8), each with its turret, and sends two soldiers at a parked raider at once.",
+   "evidence": "record: one cormex begun 4:56-12:00 (7:42); impedance-review: 28 step-waits, 'corllt spot_25 waited from 5:22 to 7:02'; 7:25 packet's 'send two Incisors at it' rated 0.49-0.58, not played",
+   "kind": "both"
+  },
+  {
+   "clock": "1:08",
+   "what": "The opening was slow on extractors. The plant came at 1:08 after three solars, and the first constructor spent its first minute on the plant and a solar while the commander stood at a blocked site. The side had two extractors at 3:00. A stronger opening has the plant up by about 0:50 and sends the first constructor straight to the H2/H3 spots: 5 extractors at 3:00.",
+   "evidence": "pro_baseline 'first factory standing 1:26 | 0:53 1:07 1:20 >p75'; 'income 7 | 12/14/16 <p25' at 3:00; hands_window 1:47 'constructor_16990: help plant_23436 build', 2:09 'build a corsolar'; impedance-review item 9",
+   "kind": "both"
+  },
+  {
+   "clock": "2:41",
+   "what": "No turret stood at the home extractors when the first Rover came, and the first Guard was begun only after spot_5 died. A light turret at the plant by about 2:00 kills scout cars (review item O5; the Cortex opening puts one at 0:27).",
+   "evidence": "raid_ledger '2:41 spot_5 ... tur 0'; record: first corllt created 2:59",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:12",
+   "what": "The Incisors were sent west as a raid just as his Blitzes came from the middle. At 4:32 they were called back, and the decode read the join in reverse, so they met the Blitzes in two parts and lost 5 for 6. Fighting at home with the commander and the Guards from 4:12 would have kept the army.",
+   "evidence": "4:12 instruct: 'Our Incisors go to his half now ... home against his Rovers is the commander and Guards, never the Incisors'; impedance-review: '4:27-4:34 ... ran in reverse (0.68 against 0.52)'; analyze_match #2",
+   "kind": "both"
+  },
+  {
+   "clock": "6:34",
+   "what": "The player built a converter on a metal-starved economy (energy full, metal 0, about 70 free spots) instead of an extractor.",
+   "evidence": "5:56 note: 'one converter for the spare energy'; record: cormakr 26844 created 6:34, finished 7:02; extractors 4 throughout",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:22",
+   "what": "Every builder went to the wreck fields at F1/F2, which lay on the Blitz approach west of spot_6. The 10:01 wave killed three of the six constructors, and constructors stayed at 3 to 4 to the end. Reclaim could have run with a group covering it, or the builders could have taken the eastern spots and reclaimed between waves.",
+   "evidence": "9:22 instruct: 'reclaiming it now is our economy'; record: corcv deaths 10:03, 10:05, 10:10 at F1/F2; bot.log 'cons 6' at 9:00, 'cons 4' at 11:00",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "u6bkep played Armada from B5, with a vehicle plant at B4 (first seen 9:11, with a nano and nine solars). He opened with Rovers: one at 2:33 killed spot_5, and six at 3:53 killed two home extractors before the commander and the Guards killed all six. From 4:21 he sent Blitzes into our western home (F1, F2, G1, G2) in waves of 6 to 11 about every 1.5 minutes (4:26, 6:22, 7:41, 8:46, 10:07), parked lone Blitzes on outer spots (spot_25 for 145 s), and lost 45 Blitzes and 14 Rovers doing it. The waves held us at 4 extractors. From 10:07 he added Stouts, then Janus, which outreach the commander and the Guards' line; five Stouts and the Janus killed the plant at 11:51, and eight Stouts and three Janus caught the commander at 13:48. His mass stood 100% in our half from minute 3, and he showed no tier 2. His seen losses came to 7,609 metal by 13:24, against our 9,484. With no truth file, his economy is unseen; he held at least 13 extractors in the A and B columns, which our Rascal killed. He said nothing in the chat.",
+ "defects": [
+  {
+   "defect": "A builder stood at a build site another builder had just placed on: the commander waited 46 s at a taken solar site and built nothing.",
+   "fixed": "2026-10-08 (6ea433b: the placed site reported, unstarted builds kept out of site searches, H-HANDS-BLOCKED-SITE)",
+   "evidence": "impedance-review item 9: '2:08-2:54 ... The commander's list step \"solar\" lost its site to constructor_16990's solar placed a second later. It stood 46 s'"
+  },
+  {
+   "defect": "The `same` layer kept a stale answer after a packet change, and newcomers sat idle at the yard, so the first Rascals stood at spot_18 instead of roving.",
+   "fixed": "2026-10-08 (6ea433b; Group::admit); rove became a group task the same day (131f11b)",
+   "evidence": "impedance-review items 10-11: group_A 'kept 0.23 (asked again: 0.57)' 2:09-2:34; joiners idle 35-47 s; minutes.py first Rascal crossed 2:51 (pool median 2:05)"
+  },
+  {
+   "defect": "A list step was taken as done on a build that had never started, so the next step's order replaced it.",
+   "fixed": "2026-10-16 (e9f5175, the step waits for the frame)",
+   "evidence": "impedance-review items 4-5: 6:56 constructor_833 'extractor spot_6' and 11:07 constructor_16990 'extractor spot_25' taken as done; part of the seven minutes with no extractor begun; not the main cause"
+  },
+  {
+   "defect": "A turret step at a spot whose extractor the engine had refused was skipped, although the turret was meant as home defence.",
+   "fixed": "2026-10-16 (e9f5175)",
+   "evidence": "impedance-review item 7: 10:36 'skipped the step corhlt spot_6 ...: the extractor at spot_6 was refused lately'"
+  },
+  {
+   "defect": "Two builders given one tagged plant step in the same tick each began a plant frame.",
+   "fixed": "2026-10-12 (4ed68d8, the same-tick #id race)",
+   "evidence": "unfinished-review item 1: corvp 22076 at 12:24 and corvp_1291 at 12:49 from 'corvp spot_17 #vp2'; 285 metal left in the second frame"
+  },
+  {
+   "defect": "The report gave his floors as values ('the opponent is known to hold 3'), so neither the player nor the commander saw how far he had out-expanded us.",
+   "fixed": "2026-10-17 (e8e2c19, the report claims nothing of his state; the predict tool)",
+   "evidence": "reports 4:12-6:16 'the opponent is known to hold 3', 9:22 '7', 11:53 '9'; our Rascal alone killed 13 of his extractors 8:49-12:31"
+  },
+  {
+   "defect": "The micro engine's fight orders overrode a follow, and the follow did not re-issue its walk.",
+   "fixed": "unknown",
+   "evidence": "impedance-review item 3: 5:00-5:16 group_H's three Incisors 'stood 11 s at F2 under 4 Blitzes and all died' (360 metal)"
+  },
+  {
+   "defect": "The decode read joins in reverse.",
+   "fixed": "unknown (Jev 1.14.0 pinned 2026-10-16)",
+   "evidence": "impedance-review: 3:02 'Its corfav join group_C' read as group_C joining group_B (0.51); 4:27-4:34 'group_D: joins group_B now' ran in reverse, so the push west never left"
+  },
+  {
+   "defect": "The engine refused an extractor at spot_6 (G1, the dead extractor's place) for a reason the report never gave.",
+   "fixed": "open (cause unknown)",
+   "evidence": "impedance-review item 6: 9:43 'the engine refused a cormex at G1: the site was bad'; spot_6 empty from 4:00 to the end"
+  },
+  {
+   "defect": "Our own fire killed three of our units.",
+   "fixed": "unknown",
+   "evidence": "record: corgator 23863 killed by corgator 6:41 (F1), corgator 27323 by corlevlr 8:05 (F1), corcv 31089 by corlevlr 10:03 (F2)"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost on extractors, not at home. The side held 4 extractors from 5:00 to the end while winning the fights at home (seen trade 5,153 to 4,645 at 10:22), until Stouts and Janus arrived."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "One extractor begun between 4:56 and 12:00 with 3 to 6 constructors and about 70 free spots. This opponent was the human player of game 7, of whom the lesson says he took mexes 'so much faster'."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "One roving Rascal (26 metal) killed 13 of his extractors in the A and B columns from 8:49 to 12:31, while his army was in our half."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "His first handful did it to us: Rovers at 2:33 and six at 3:53 held us at 2 to 4 extractors. Our first kill of a building of his came at 8:49 (pool p75 5:08); our Incisors crossed at 2:56 and 3:15 and turned back within 17 s."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "illustrates",
+   "note": "His six-Rover raid killed two extractors and died whole to the commander and the Guards (4:13-4:21). Our Rascal's rove footwork (code, since 2026-10-07) killed nothing for six minutes, then 13 extractors."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "supports",
+   "note": "A converter at 6:34 on 4 extractors, with energy full and metal 0, on the map Irishstud14 called metal-heavy."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars and a constructor as the plant's first unit (1:28), as the lesson intends. Even so, the store was empty at 1:54 with the commander and the constructor both on the plant, and the plant started at 1:08 (pool p75 1:01)."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The commander assisted the plant 51 s of the first 4:00 (floor assist4 51), then stood 46 s at a blocked solar site (2:08-2:54)."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "The 2,250 metal at F1/F2 was taken by every builder at 9:22 and lifted income to 78. With no cover on the Blitz approach, the 10:01 wave killed three of six constructors."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "'all pounder if I am getting pushed': Pounders with the commander and Guards from 5:37 killed 35 Blitzes at home between 6:22 and 10:25, after Incisors had traded 1:1 with Blitzes."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "Against our static home defence of Pounders, Guards and the commander, he switched to Stouts (350) and Janus (380), which outreach both; they killed the plant at 11:51. This is the reader's reading."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "The first constructor stood 30 s in the plant's exit lane (2:24 wake)."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "spot_5 was lost at 2:41 with no turret. A lone Blitz parked at spot_25 for 145 s froze a constructor for 1.5 minutes, and the packet's 'send two Incisors' was not played. 10 of 11 losses had a turret within 700."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "Constructors stood at the pool's median (6 made by 8:00), yet extractors stayed at 4. Spots were not rebuilt after the raider left (spot_6 empty from 4:00 to the end), which the lesson's 'a lost spot rebuilt the minute the raider is gone' names."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Energy was 12/1300 at 1:54 with three solars, the commander and a constructor on the plant; e0% 22.8 for the game."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "Its D-gun at home broke four Blitz waves. Stouts and Janus outreached it: it fell from 95% to 54% building a Guard beside five Stouts at 11:11, and died at spot_17 at 13:48."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "In a 1v1 with one seat, so with no double count, the seen trade was positive from 8:00 to 10:22 and the game was lost on the economy: 'a loss is the commander or the economy, not the army'."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "His Rovers crossed by 2:33, and his raids kept our economy down. Our first building kill came at 8:49, by a lone Rascal."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py (and --all-starts --faction any)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (1:28-2:55; 1:47-3:05 constructor_16990 and the commander; 3:50-4:35; 5:20-7:50 the constructors and the commander)",
+   "run/impedance_sweep.py --counts",
+   "inline tallies of record-0 (deaths by killer type and minute, enemy_destroyed by type and cell, created/finished/destroyed, the Rascal's path against its kills, unit costs from the header), the packets in strategist-0.jsonl and the directions in commander.jsonl"
+  ],
+  "existing_review": "none (no review.md); built on run/matches/1791427881-human-27/00/impedance-review.md (2026-10-16) and unfinished-review.md (2026-10-17), Opus readers' reviews",
+  "confidence": "medium",
+  "caveats": "No ledger row for human-27. The main session's review of 2026-10-08 survives only as commit 6ea433b's message ('Four fixes from the human-27 review (the user's word)'), all about 1:47-2:54. No person commented: the chat holds only our 'gl hf'. There is no truth file, so his army and economy are floors, pro_baseline's pressure rows are blank and floor's known%/look_min read '-'. There is no results.jsonl, so floor and analyze_match show no outcome; the loss at 13:48 is from the record's end with the commander at 11%. pro_baseline needed --all-starts --faction any (G1 not carded). Where this row differs from the impedance review: it rated the 9:22 reclaim moment clean, but the 10:01 wave killed three of the six constructors at F1/F2. The root is the reader's reading."
+ },
+ "open_questions": [
+  "What was u6bkep's economy? With no truth file, the replay is the only source; our Rascal alone killed 13 of his extractors in the A and B columns.",
+  "Why did the roving Rascal kill nothing from 2:51 to 8:49 and then 13 extractors in under four minutes: were his corner spots taken late, or did his army leave them when the waves went to our half?",
+  "Why did the engine refuse the extractor at spot_6 (G1) at 9:43 ('the site was bad'): a heap or wreck on the dead extractor's place?",
+  "Would spots on the east and south strip (G3-H8), each with a Guard, have held? Lone Blitzes reached spot_25 (H3) twice.",
+  "The commander's 5:50 note says 'the brief's \"go now\" does not apply while behind'. Did the brief of the time steer both the player and the commander to 'home first'?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791427881-human-27.json"
+}

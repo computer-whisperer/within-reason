@@ -1,0 +1,261 @@
+{
+ "batch": "1791089694-human-23",
+ "label": "human-23 (first game)",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-04",
+ "shape": "1v1",
+ "people": "[APM]thedujin (lobby 37), Armada, in the west start box (commander seen at A6 3:03, base and advanced air plant at A8); spectators BM_Caspian and the user (computer_whisperer)",
+ "our_side": "One seat (ai 0), Cortex at G1; player Sonnet 5.5 medium (claude-sonnet-5-5) under an Opus 5.5 high commander seat (claude-opus-5-5); hands Jev jev-latest (pianist), the rebuilt hands of 2026-10-02/03 with layers; real time, deathmode=com",
+ "build": "b4fe162",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 11:00 (inferred: our commander at 8% under nine Brawlers at G1 in the last sample 10:59, then 'Connection reset by peer'; no result file)"
+ },
+ "summary": "A real-time duel against [APM]thedujin (Armada, lobby 37), who announced at 0:00 \"i will try cheese\" / \"t2 gunship rush\"; our commander seat read it and planned to punish the tech with early pressure, anti-air only once air was seen. Our Rascals and Incisors were in his half from 2:06 and held 57% of our mass there in minute 4, but the commander's gather-first direction, played at 4:22 as group_A following a one-Incisor group_B at our base, pulled everything home (the asked-for scout of A8 included), and the body then waited at E3 until 7:13 with 1,878 to 2,958 of army against one Pawn seen (he asked at 7:38: \"why AI no try attakc\"). The late push killed 1,125 at B4-A7 for 224, then walked unscouted into his A8 base at 9:49-9:57 and lost 33 Incisors (3,960) for 675 to seven Brawlers, Beamers and a storage blast. No Thistle was ever built (the 9:54 order was skipped for want of a place), energy had been empty since 7:38, and eight Brawlers killed our commander at G1 at about 11:00. The user's reading (ledger): \"if we had simply attacked into his base for the middle 50% of the game we would have just won.\"",
+ "root": {
+  "clock": "4:15-4:22",
+  "what": "The pressure was pulled home. The commander had told the Incisors to leave the rove and gather (3:10, 4:08: 'put them with the new Incisors at meet_sw'); the player's 4:15 packet took group_A off rove and told it to 'join group_B there' while group_B was one Incisor at G1, with the commander's A8 scout as a line inside group_A's paragraph; at 4:22 the hands played 'group_A: follow group_B' for all seven units, Rascals included. From then on our mass was never in his half until 7:24, while he built an advanced air plant unseen at A8. Earliest avoidable decision: the gather-first direction (3:10/4:08) turned into a home gathering by the 4:15 packet; the hands' follow made it total. Agrees with the existing review's 4:22 root, but I read it as the loss of pressure (the user's reading), with the lost scout as part of it.",
+  "evidence": "minutes.py: our mass in his half 57% (min 4), 12% (5), 0% (6), 0% (7). hands_window 4:22: 'PLAYS group_A: follow group_B [plan]', group_B '2 at (6431, 683)' (G1); group_A at (4501, 1699) by 4:43; Rascals back in our half 4:43-4:46."
+ },
+ "turning_points": [
+  {
+   "clock": "0:00-0:33",
+   "what": "He announced a tier-2 gunship rush; our commander answered in chat and planned the window: pressure early, anti-air only once his aircraft or an air plant is seen.",
+   "evidence": "chat 0:00 [APM]thedujin: \"t2 gunship rush\"; 0:33 our player: \"Could be a bluff though, so I'll come and look.\" Commander 0:01: \"No anti-air until his aircraft or an air plant is seen\"."
+  },
+  {
+   "clock": "2:06-2:49",
+   "what": "Three Rascals crossed early (first soldier in his half 2:06, earlier than the Cortex pool's 2:48) and saw A6, B7, B8 (his commander, Sentries, extractors) but never A8.",
+   "evidence": "minutes.py: corfav_19409 crossed 2:06, nearest his start 269 at B5 2:26; corfav_11080 crossed 2:08, 283 at A5 2:33. pro_baseline: first soldier 1:22 (<p25, early)."
+  },
+  {
+   "clock": "4:22",
+   "what": "The root: group_A (4 Incisors, 3 Rascals at B4) played 'follow group_B' toward our base; the A8 scout was never played.",
+   "evidence": "hands_window 4:22: 'PLAYS group_A: follow group_B [plan]'; minutes.py: corgator_19975 back in our half 4:44, corfav_19409 4:46, corfav_20698 4:43."
+  },
+  {
+   "clock": "5:20-7:13",
+   "what": "The body gathered at spot_20/spot_32 (E3, our half) on a count (nine), against the commander's 'every Incisor goes west and stays west' (5:19) and go_west (6:56); the hands kept 'gather on its front' until 7:13.",
+   "evidence": "hands_window: group_B 20 at (4995, 2098) 6:24 hold; 'gather on its front' 6:45, 6:52, 6:54, 6:59, 7:06, 7:08; 'advance to spot_36' 7:13. pro_baseline: army 1,878 at 6:00 vs pool p75 1,492."
+  },
+  {
+   "clock": "7:10-7:55",
+   "what": "Second plant stood and made Lashers (2,400 energy each) into group_B on about 300 energy income; the energy store emptied and stayed empty to the end.",
+   "evidence": "Player 7:47 report: 'energy 53/2100 (-55) STALLING'; analyze_match: energy stalled in minutes [2, 8, 9, 10]; floor: e0% 28.2, mfull% 11.1."
+  },
+  {
+   "clock": "7:37-9:38",
+   "what": "The push, once made, paid: B4, B5 and A6 cleared, 1,125 killed for 224 by 9:25.",
+   "evidence": "analyze_match engagement #0 7:37-8:14 B5: we lost 78, they lost 940 (2 armllt, 3 armmex, 4 armsolar). Player 9:25 report: 'whole game 224 lost, 1125 destroyed'."
+  },
+  {
+   "clock": "9:49-9:57",
+   "what": "The body (46) walked from A7 into his unseen A8 base: seven Brawlers, three Beamers, an energy storage's blast; 33 Incisors died in eight seconds.",
+   "evidence": "hands_window 9:55: 'group_B met 1 armaap, 6 armadvsol, 3 armbeamer, 7 armbrawl, ... at A8'; analyze_match #1 9:51-9:57 A7: we lost 3960 (33 corgator), they lost 675."
+  },
+  {
+   "clock": "10:29-11:00",
+   "what": "Brawlers took four undefended extractors (F6-F3) while the body stood at E3; three detachments of four chased one Brawler west; eight flew to G1 and killed the commander, which had no energy for the D-gun.",
+   "evidence": "raid_ledger: 4 lost 10:29-10:42, undefended 4. hands_window 10:50-10:52: '4 of group_B hunt party_10 (1 armbrawl)' x3; record 10:59: commander 8% at (6514, 558), energy 2 of 2550."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "3:10-4:22",
+   "what": "Gather-first: the commander took the Incisors off rove to gather at meet_sw with five (3:10, 4:08), the player turned it into 'join group_B there' with group_B at home (4:15), and the hands' follow walked seven units out of his half. A stronger player keeps the first handful in his half, raiding and looking, and sends new units to it.",
+   "evidence": "Commander 4:08: 'split them out of the rove now and put them with the new Incisors at meet_sw'. Player 4:15: 'Incisors go to meet_sw and join group_B there'. Hands 4:22: 'group_A: follow group_B'.",
+   "kind": "both"
+  },
+  {
+   "clock": "4:15",
+   "what": "The commander's scout of A8 (asked 4:08, 5:19, 6:49) was written as a line inside group_A's paragraph (4:15) and dropped from the 5:20 and 6:55 packets; A8, one cell from what we had seen, was unseen until 9:53.",
+   "evidence": "Player 4:15: 'one Rascal scouts spot_62 then spot_68 (never seen, his factory likely there)'; 5:20: 'group_A (3 Incisors and 3 Rascals) joins group_B'. minutes.py: his first factory seen 9:53 at A8.",
+   "kind": "both"
+  },
+  {
+   "clock": "5:20-7:13",
+   "what": "The player moved the gathering place from meet_sw (his half) to spot_20 (E3, our half) and waited for nine, then held; 0 army in his half at 6:00 and 7:00 against the pool's median 344 and 240.",
+   "evidence": "Player 5:45: 'group_B (all the Incisors) stands at spot_20; with nine there it fights to spot_32'. pro_baseline (--all-starts): army metal in his half 6:00 p25/median 78/344. Opponent 7:38: \"why AI no try attakc\".",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:01-7:15",
+   "what": "Against an announced gunship rush, no anti-air until air was seen; the Lashers ordered 'anyway' at 6:49 joined group_B walking west, and no Thistle stood at home. A stronger player puts two Thistles and the first Lashers at home once he says gunships, or scouts to confirm.",
+   "evidence": "Commander 0:01: 'No anti-air until his aircraft or an air plant is seen'. Player 7:15: 'produce plant_10641 group_B [corcv:1, cormist:4, ...]'. pro_baseline: light turrets by 8:00 0 (<p25 5).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:49-8:35",
+   "what": "Energy: a Lasher-heavy second plant on about 300 energy income with no generators ordered until 7:37 and the first advanced solar at 8:25; the bank rose to 2,601 at 10:00 while the store sat at 0. Solars 11 by 8:00 against the pool's p25 14.",
+   "evidence": "analyze_match: metal bank 1411 (8), 1984 (9), 2601 (10); energy stalled in minutes [2, 8, 9, 10]. floor: e0% 28.2. pro_baseline: solars by 8:00 11 (<p25), radars 0 (<p25 2).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:20-9:43",
+   "what": "No look ahead of the body: it stood at A7 for 36 s alternating 'shell' and 'advance' at spot_62, then walked into A8 blind; the commander at 9:38 guessed his plant was 'almost surely in the north-west', though A8 had been named at 4:08.",
+   "evidence": "hands_window 9:07-9:43: 'shell his buildings at spot_62' / 'advance to spot_62' alternated, then 'advance to spot_73'. Commander 9:38: 'his factory and commander ... almost surely in the north-west (A1-A4...)'.",
+   "kind": "both"
+  },
+  {
+   "clock": "10:13-10:52",
+   "what": "After the loss the body stood at E3 (spot_20, then spot_23), 1,900 from the commander, while Brawlers flew past it; detachments of four were sent after one Brawler as eight went to G1.",
+   "evidence": "Player 10:13: 'goes to spot_20 and stands there as one body'. hands_window 10:50-10:52: three '4 of group_B hunt party_10 (1 armbrawl)'; party_9=8 armbrawl at (6203, 1562) 10:50.",
+   "kind": "both"
+  }
+ ],
+ "their_play": "He said his plan at 0:00 (\"i will try cheese\", \"t2 gunship rush\") and played it: almost no ground army (one Pawn seen near 4:20, two Pawns at A8 at 9:55), Sentries beside his extractors (B8, A6, B5, B4), extractors spread over A6/B7/B8/B5/B4, and the economy into tier-2 air at A8: an advanced aircraft plant (armaap), three construction turrets, six advanced solars, two energy storages, three Beamers, a radar (all first seen 9:52-9:55). Seven Brawlers were out by 9:49 and fought our body beside his Beamers at A7-A8; eight Brawlers and a radar plane then raided our F-column extractors 10:29-10:42 and killed our commander at G1 at about 11:00. His T1 air plant and the advanced plant's start were never seen (no truth file). His chat: \"holy crap eco balance\" (4:08), \"crap\" (5:19), \"why AI no try attakc\" (7:38), \"oh uh\" (8:08, as our body reached B4-B5).",
+ "defects": [
+  {
+   "defect": "The lane rove of this build moved Incisors one by one into Sentries (one died alone at A6 4:15), which is why the commander pulled them off rove into a gather; roving as a group task came later.",
+   "fixed": "2026-10-07/08 (rove a group task; 131f11b checked offline)",
+   "evidence": "Commander 4:08: 'The four Incisors are still roving one by one inside group_A, and one is dying to the Sentry at A6'. minutes.py: corgator_3447 died 4:15 at A6 to armllt."
+  },
+  {
+   "defect": "One task per group: a per-unit scout line inside a group's paragraph was not played, and 'join group_B there' was played as 'follow group_B' with group_B at our base, pulling seven units out of his half.",
+   "fixed": "open (not verified against later hands)",
+   "evidence": "Packet 4:15 asked one Rascal to scout spot_62 then spot_68; hands_window 4:22: 'PLAYS group_A: follow group_B [plan]' (group_B 2 at (6431, 683))."
+  },
+  {
+   "defect": "The hands kept a gathering hold against 'does not wait for stragglers: it fights to spot_36 (B4) now' and the go_west signal (impedance).",
+   "fixed": "open (unverified; the impedance fixes of 2026-10-16/17 are the era's candidates)",
+   "evidence": "Packet 6:55 and go_west at 6:56; hands_window: 'gather on its front' 6:59, 7:06, 7:08; 'advance to spot_36' only at 7:13."
+  },
+  {
+   "defect": "An extractor in the plant's exit lane (cormex_4256): a constructor and then the commander stood in the lane; four wakes; the player's 3:03 note blamed the lane for the slow extractor start.",
+   "fixed": "2026-10-13 (3aabc77, the exit-lane extractor fix)",
+   "evidence": "Wakes 2:33, 4:36, 6:30, 9:25: \"plant_12181's exit lane is blocked ... in the lane: cormex_4256\". Note 3:03: 'constructor_31288 stuck on solars in plant lane'. pro_baseline: extractors 6 at 4:00 (<p25 7)."
+  },
+  {
+   "defect": "Wake lines under-counted losses: 'lost 2 of its 46 soldiers' while 15 had died, and 'lost 2 of its 42' beside 4,064 lost in three minutes.",
+   "fixed": "open (unverified)",
+   "evidence": "Player wake 9:54: 'group_B has lost 2 of its 46 soldiers (240 metal)'; 10:13: 'lost 2 of its 42 soldiers (240 metal)' with 'in the last 3 min we lost 4064 metal'."
+  },
+  {
+   "defect": "The commander seat was not woken by the first tier-2 aircraft or by 33 losses (the player was); its turns were chat wakes (14 in 0:24-1:40, mostly the opponent's and a spectator's lines) and 90-s timers; last turn 9:38, next due about 11:08.",
+   "fixed": "open (unverified; the commander seat was reworked 2026-10-18, not checked for this wake)",
+   "evidence": "commander.jsonl: turns 0:24-1:40 (14), 3:10, 4:08, 5:19, 6:49, 7:38, 8:08, 9:38. Player 9:54 wake: 'first tier-2 air unit of his seen: armbrawl at A7'. User 1:28: 'I still need to add logic to filter out spec chat'."
+  },
+  {
+   "defect": "A list step 'corrl' with no place was skipped on landing ('it needs a place'), so the 9:54 Thistle order never started; re-ordered as 'corrl home' at 10:13, from a constructor at E3 that never got home. Not named in the existing review.",
+   "fixed": "open (unverified)",
+   "evidence": "impedance_sweep: 10:08 'constructor_3200: skipped the step 'corrl' of its list: it needs a place' x3; 10:17 the same for constructor_451 x3; 10:48 'walk to home; its list step 'corrl home' waits for it'."
+  },
+  {
+   "defect": "Ten build orders never started: eight cormex and two corsolar refused by the engine as bad sites (F2, F3, G4, F4, E2, E1, G1).",
+   "fixed": "open (unverified)",
+   "evidence": "impedance_sweep: 'the engine refused a cormex at F2: the site was bad' (3:42) and nine more to 9:46; bot.log: 'dropped build orders so far: 10'."
+  },
+  {
+   "defect": "'armdrag' (Dragon's Teeth, a wall) credited with six kills and 2,733 damage; the player's 9:54 packet repeated 'armdrag ... outrange it'. Probably a disguised turret reported under its disguise (the existing review's reading and mine, unverified).",
+   "fixed": "open (unverified)",
+   "evidence": "minutes.py: corgator_4960, corgator_28676, corgator_3226, corgator_29802, corgator_1618, corgator_27645 'died ... at A7 to armdrag'."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:43",
+   "text": "bots can't use chat seats, so it has to use my player"
+  },
+  {
+   "clock": "1:28",
+   "text": "I still need to add logic to filter out spec chat"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Army 1,878-2,958 against one Pawn seen at 6:00-7:00, held in our half; the opponent's 'why AI no try attakc' (7:38) and the user's 'attacked into his base for the middle 50%' say the same as thebluegecko's 'time to go fight and win'."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "The first handful did cross (2:06) and found his spread extractors, then was pulled home at 4:22; with no pressure his greedy tier-2 air opening came out on its clock."
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "supports",
+   "note": "The body stood at spot_32 for 56 s (6:17-7:13) and at spot_62 for 36 s (9:07-9:43); each stop gave him time."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'scout your opent ... and pre emptively go air': he even announced gunships, and we neither scouted A8 nor built anti-air before the first Brawler (9:49)."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "Gathering one body before going cost 2.5 minutes in our half (5:20-7:13); togetherness bought at the gathering place, not on the way, is the tension the backlog names."
+  },
+  {
+   "id": "L-chat-no-faction",
+   "relation": "illustrates",
+   "note": "The other direction: the opponent leaked his plan in chat ('did i just intel leak to AI') and our commander used it, but only as a condition waiting for a sighting."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "illustrates",
+   "note": "Commander 9:38: 'plant_12181 is idle' with 2,390 banked; factory units by 4:00 11 against the pool's p25 16."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "This game is already cited there (a leading army in our half, 33 Incisors dead at an unlooked base); the trace confirms both: 0 in his half at 6:00-7:00, 9:51-9:57 3,960 for 675."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "The sign came at 0:00 in chat; the answer waited for a sighting at 9:49; the Thistle order at 9:54 never started and the commander died at about 11:00."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "The body went into A8 without a look: Beamers, Brawlers and an energy storage's blast (2,489 unseen damage in one second at 9:55, per the existing review) killed 33 in eight seconds."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "First soldier in his half 2:06 (Cortex pool 2:48), then no kill of his until 7:37 because the handful was gathered at home."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "The 1,411-2,601 bank from 8:00 meant energy missing (store 0, e0% 28.2), not build power or metal; Lashers at 2,400 energy each made it worse."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "The commander stayed at G1 all game as directed and died there: staying home is no defence against gunships without anti-air beside it and energy for the D-gun (2 of 2,550 at 10:59)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py (--all-starts, --faction any)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (2:00-4:12, 4:10-4:50, 5:20-7:35 group_B, 9:00-10:00 group_B, 10:36-10:59)",
+   "run/impedance_sweep.py",
+   "python over commander.jsonl, strategist-0.jsonl, record-0.jsonl",
+   "grep chat.jsonl, docs/experiments.md"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791089694-human-23/00/review.md",
+  "confidence": "high",
+  "caveats": "A game with a person: no truth file, results.jsonl or batch.json, so his side is what we saw (floors), the result is inferred from the last sample, and analyze_match prints 'outcome None after 0.0 min'. minutes.py takes his start as B5 (his base was at A8) and finds no WINDOWS (his army reads 0). pro_baseline has no carded side from G1 ('no carded side ... from ['B8', 'G1']'); I used --all-starts (39 Cortex sides from all starts), whose pressure rows are '-' without his start. known%/look_min not computable. No tool reads commander.jsonl; read directly. A parallel reader overwrote one scratch output of mine (a shared scratch name); I regenerated it before quoting. Where I differ from the existing review: the root framed as the lost pressure (the user's reading), not only the lost scout; the 9:54 Thistle order skipped for want of a place; the solar clause stood 3:33-6:30 (dropped at 6:55), not to 8:20; the exit-lane extractor (since fixed) and the lane rove (since fixed) named; the commander's 9:38 north-west guess noted."
+ },
+ "open_questions": [
+  "When did he start his advanced aircraft plant, and where was his T1 air plant (never seen)? Would a Rascal at A8 at about 4:30 have seen it? (no truth file)",
+  "Is the 'join group_B there' -> 'follow group_B' play, which pulled seven units out of his half, possible in today's hands?",
+  "Is 'armdrag' credited with kills a disguised Dragon's Claw reported under its disguise, and does the report still name it so?",
+  "Why did the engine refuse eight cormex orders as bad sites (F2, F3, G4, F4, E2, E1)? A placement-geometry fault of that build?",
+  "Are the commander seat's wakes (first tier-2 aircraft, large losses) and the wake lines' loss counts fixed since 2026-10-04?",
+  "What did his \"holy crap eco balance\" (4:08) and \"crap\" (5:19) refer to? Nothing in our record explains them."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791089694-human-23.json"
+}

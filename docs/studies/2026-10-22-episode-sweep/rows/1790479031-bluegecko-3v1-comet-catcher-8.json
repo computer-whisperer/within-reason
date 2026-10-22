@@ -1,0 +1,275 @@
+{
+ "batch": "1790479031-bluegecko-3v1-comet-catcher-8",
+ "label": "bluegecko-3v1-comet-catcher-9",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-26",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (34 in the record header; the ledger says OS 48), Armada, the west strip; his commander seen once, at B5 at 2:35",
+ "our_side": "Three seats under one Opus 5.5 medium player (claude-opus-5-5, effort medium, Claude Code 2.1.283): t1 G1 Cortex (purple), t2 H8 Armada (dark blue), t3 G4 Armada (teal); hands Jev jev-latest (jev-1.13.0) as the pianist, with the packet decompression on; realtime, the user's lobby; no commander seat",
+ "build": "0f1e6b2",
+ "result": {
+  "outcome": "lost",
+  "minute": "20:16"
+ },
+ "summary": "Three seats under one Opus 5.5 medium player filled our half fast (30 extractors at 7:35, 44 by 10:35) and showed three to six times his seen army from 7:00 to 11:00, but the lead was held for 'a later push on his base' while Blitz and Stout groups ground against his forward Janus, Stout and Beamer block at C6 and B1, and the constructors stayed east of the middle by the packet's rule. His counter-push took seven middle spots at 11:45-12:43; our gathered groups broke it about evenly (counted once, 5.4k of his for 4.9k of ours), while the report's seat-summed trade told the player it was winning 2:1. The 13:24 'spending the lead' went piecemeal into Beamer nests, and his factory was never seen in 20 minutes. Out of sight he had gone to tier 2: Bulls from 14:54 (24 distinct seen) killed our Stouts and a 36-Pounder ball in pieces, then overran the three bases from 17:19; the last commander died at 20:16. thebluegecko afterwards: the game was over by 15:00 for lack of metal, and we 'need to hold more of the map'.",
+ "root": {
+  "clock": "7:10",
+  "what": "The first window (7.1k army against 1.3k seen, his raid block broken at C6, our groups in his half at B1 and C6, our half nearly full by 8:16) was held for 'a later push on his base' while every constructor stayed east of the middle by the packet. The map beyond the middle was never taken, our extractors stopped at 44 by 10:35, and his economy outgrew all three seats (24 Bulls from 14:54). The 'not enough metal, hold more of the map' reading is thebluegecko's (a person); the minute is the reader's.",
+  "evidence": "7:10 note: 'Plants start Stouts/Janus as a line for a later push on his base (commander last at B5)'; 2:05 instruct: 'Constructors stay in the eastern half of the map; they never go to the enemy's strip'; minutes WINDOWS 6:00-8:00 t1 'C1* B1* B1*', t2 'D7* C6* D6*'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:35",
+   "what": "Our scout cars reach B4-B5 and see his commander once, at B5. No scout is sent after that, and no factory of his is seen all game; every later push aims at that 2:35 sighting.",
+   "evidence": "minutes t2: 'armfav_30441: crossed 2:20; nearest his start 612 at B5 2:36'; records: armcom's only sighting 2:35 at (1313, 3509); minutes, all seats: 'his first factory seen: never'"
+  },
+  {
+   "clock": "6:16",
+   "what": "t2's 21 Blitzes are hit at C6 by 4 Rovers and 10 Blitzes, and the pick walks them back to spot_57. They cross again from 6:50 and fight at C6 in pieces.",
+   "evidence": "hands_window seat t2 6:16: 'party_34_t2=4 armfav, 10 armflash' / 'group_A_t2: 21 at (3584, 4931)' / 'PLAYS group_A_t2: walk to spot_57 [plan]' / 'PICK w2 p=0.77'"
+  },
+  {
+   "clock": "7:35",
+   "what": "Energy runs dry behind three plants. The player puts three constructors and two commanders on four solars each.",
+   "evidence": "told 7:35 'energy 91/4700', 7:47 'energy 3/4750'; queue 7:35 constructor_17135 four armsolar, 7:47 constructor_12553 and constructor_23930 four each; floor e0% t1 22.8, t2 7.8, t3 8.8"
+  },
+  {
+   "clock": "8:41",
+   "what": "The grind at C6 and B1 against his Janus, Stouts, Beamers and light turrets, to 10:53. Counted once, 7:00-11:00 we lost 10.6k and killed 6.3k, while the report said 'his army mostly spent'.",
+   "evidence": "analyze t2 #3 8:41-9:32 C6 lost 1760 for 1145; t1 #4 9:38-9:48 B1 lost 1080 for 225; records counted once 7:00-11:00: his 6,349, ours 10,580; 10:46 note 'trade 19.6k:10.5k ... his army mostly spent'"
+  },
+  {
+   "clock": "10:35",
+   "what": "Our extractors peak at 44 with our half full. They never rise again: 38-39 from 13:00 to 16:00.",
+   "evidence": "told 13:24 score: 'extractors 38 (most held 44, no new high for 2:49; free spots we can walk to 35, nearest on foot: #55 F6 2412, #46 E5 2448 ...)'"
+  },
+  {
+   "clock": "11:45",
+   "what": "His block of about 7 Janus and 9 Stouts takes the middle spots in E4-F6. Our four southern groups gather on the spot_55 turret and break it by 13:07, about evenly when counted once (the report said 24.5k for 9.5k).",
+   "evidence": "raid_ledger t2: spot_56 11:45, spot_58 11:58, spot_44 12:04, spot_49 12:06, spot_37 12:20, spot_46 12:29, spot_55 12:43; counted once 11:45-13:10: his 5,390, ours 4,872"
+  },
+  {
+   "clock": "13:24",
+   "what": "'Spending the lead': the player bars the constructors from 25 spots of his half, and the south ball goes into the spot_59 Beamer nest piecemeal, then on to D7.",
+   "evidence": "13:24 standing constructors never 'spot_2 spot_7 ... spot_52 spot_61 spot_31 spot_21'; 14:13 note 'arrived piecemeal'; analyze t2 #11 13:35-14:18 D6 lost 3590 for 880, #13 14:43-15:09 D7 lost 2085 for 515"
+  },
+  {
+   "clock": "14:54",
+   "what": "The first Bull is seen at D6, and 24 distinct Bulls are seen by the end (about 22.8k of metal). Our advanced plant, ordered at 11:16, stands only at 16:12.",
+   "evidence": "records: armbull first enemy_seen 14:54 at (3616, 4251), 24 distinct unit ids; posing review: 'the plant was created at 11:38 and finished at 16:12'"
+  },
+  {
+   "clock": "15:47",
+   "what": "The Pounder ball is sent onto Bulls that outrange it (460 against 315) and outrun it (62 against 40), and dies at D3. Earlier, at 15:16-15:44, three Bulls beat t2's Stouts in ones at E7.",
+   "evidence": "analyze t1 #13 15:47-16:52 D3 lost 7480 ({'corlevlr': 34}) for 195; t2 #14 15:12-15:53 E8 lost 2630 for 190; 15:42 note '3 Bulls beat our Stouts in ones'"
+  },
+  {
+   "clock": "17:19",
+   "what": "The Bulls overrun the three bases in turn. The commanders die at 18:17 (t1, walked to `shelling` by the retreat rule), 19:08 (t2) and 20:16 (t3, walking home into the Bulls).",
+   "evidence": "analyze t1 #15 17:19-18:30 G1 lost 9530; t2 #21 19:08-19:21 H8 lost 6975; t3 #17 19:26-20:16 G4 lost 8005; 18:20 note 'the retreat_when_enemy_near rule walked it to `shelling`'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "2:05",
+   "what": "The packet kept every constructor east of the middle all game, and at 13:24 the player barred them from 25 spots of his half. With our half full by 8:41, the count stopped at 44. A stronger 3v1 side takes the C and D columns behind its army, with turrets (thebluegecko: 'need to hold more of the map').",
+   "evidence": "2:05 instruct 'they never go to the enemy's strip'; told 8:41 'nearest on foot: #12 H2 684, #25 H3 915, #23 E3 2880, #1 D1 3171, #31 D4 3251'; 13:24 constructors never-list of 25 spots",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:10",
+   "what": "The lead was held for a later push on B5 (a 2:35 sighting) that never came. Blitz and Stout groups instead ground in pieces against his C6 strongpoint and the B1 turrets. A stronger player converges the three seats on his base, or takes his map, rather than his strongpoint.",
+   "evidence": "notes 7:10 'a later push on his base', 8:16 'one push via spot_52 toward B5 once Stouts are a handful', 10:46 'push spot_52 -> spot_43 -> B5'; counted once 7:00-11:00: his 6,349, ours 10,580",
+   "kind": "both"
+  },
+  {
+   "clock": "2:35",
+   "what": "No scouting after 2:35: his factory was never seen, the push target stayed the commander's 2:35 position, and his tier 2 was unseen until Bulls walked into E7 and D6 at 14:54.",
+   "evidence": "posing review: 'no scout was played after 2:35 (group_C_t3)'; minutes: 'his first factory seen: never'; records: armcom seen once (2:35, B5), armbull first 14:54",
+   "kind": "both"
+  },
+  {
+   "clock": "7:35",
+   "what": "Three plants outran the solars, and energy ran dry at 7:35-7:47. Then constructors were taken off expansion for four solars each.",
+   "evidence": "told 7:47 'energy 3/4750 (+0)'; analyze t1 'energy stalled in minutes [3, 4, 5, 7, 9]'; floor e0% t1 22.8",
+   "kind": "both"
+  },
+  {
+   "clock": "7:10",
+   "what": "No wrecks were reclaimed. The game's three remove calls were all for our own units: an extractor twice, and a Rover in a lane. The wake reasons offered 509 metal at 7:10, 930 at 9:27 and 9,740 at 16:12. Our 29k lost west of the middle was his to eat.",
+   "evidence": "told 16:12 'wrecks worth 9740 metal lie where no enemy is in sight'; remove armmex_18440 (7:58, 8:41), armfav_30441 (11:29); records: ours destroyed west of x=4096, 29,150 metal",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:24",
+   "what": "His tier-2 window (seen army 2.3k) went into Beamer nests piecemeal instead of finding his base or lab (F7). By the player's own note, the Stouts were fed one by one into three Beamers.",
+   "evidence": "14:13 note 'the spot_59 push arrived piecemeal (Stouts fed one by one into 3 beamers, F_t2 drifted back to passage_1)'; analyze t2 #11 lost 3590 for 880, #13 lost 2085 for 515",
+   "kind": "both"
+  },
+  {
+   "clock": "11:16",
+   "what": "Our tier 2 was started on t2 while that seat was banking 1.2k, and then built for five minutes with that seat at metal 0 while t1 banked 759. At 14:45 the player believed it was standing.",
+   "evidence": "11:16 note 'Seat t2 banks 1.2k: constructor_9920 starts the advanced vehicle plant'; 14:45 note 'advanced vehicle plant (plant_3639) stands'; posing review finding 8: finished 16:12, first Mauser 17:55",
+   "kind": "both"
+  },
+  {
+   "clock": "15:58",
+   "what": "The 36-Pounder ball (7.9k) was sent onto Bulls that outreach and outrun it, with four reversals in 45 s. It lost 34 Pounders for 195 metal. Pounders are a defensive unit (L-mix-pounders-mediums); a stronger player holds on turrets or closes as one body.",
+   "evidence": "15:58 note 'Pounder ball (36, 7.9k) is the one force that outweighs them'; 16:12 note 'Bulls outrange our Pounders and Stouts'; analyze t1 #13 lost 7480 for 195",
+   "kind": "both"
+  }
+ ],
+ "their_play": "thebluegecko (Armada, west strip, commander at B5 at 2:35) raided early with Rovers and Blitzes and held extractors on middle spots (the player's 4:18 note: 'spot_46/49 where enemy extractors block ours'; 7 of 35 bad-site refusals of ours were at E5). He did not meet our three seats in the open. He held a forward block at C6 (Janus, Stouts, 13 Beamers seen from 8:25) and light turrets at B1, which out-traded our raiders and Stouts from 7:00 to 11:00. At 11:45 he pushed about 16 Janus and Stouts into E5/E6 for seven of our middle spots; that block was traded off about evenly by 13:07. Meanwhile he went to tier 2 out of sight: Bulls from 14:54 (24 distinct seen), rebuilt Beamer nests and a Mauser (the ledger). The Bulls worked in pairs through D2-E2 into t1's base (17:19-18:30), then F8 into t2's (19:08) and G4 into t3's (19:26-20:16). His factories were never in our sight.",
+ "defects": [
+  {
+   "defect": "The report's trade summed the three seats' records and counted each of his deaths up to three times. The player read 'his army mostly spent' (10:46) and 'his block is dead' (13:24) off it; counted once, we were behind on the trade in every phase except 11:45-13:10.",
+   "fixed": "2026-09-27 (ff32935, H-PLAYER-TRADE-ONCE)",
+   "evidence": "13:24 note 'his block is dead (trade 37k:17k)'; records counted once by unit id to 13:24: his 12,396 (37,188 summed over seats), ours 17,828; whole game his 19,626 against ours 83,848"
+  },
+  {
+   "defect": "The odds words priced parties by metal, with no reach: Bulls showed as 'an even fight' for 13 Stouts, and the Pounder ball as the force that 'outweighs them'. The Bull-phase losses rest partly on this.",
+   "fixed": "2026-09-26, after this game (d265666, H-HANDS-ODDS-REACH)",
+   "evidence": "posing review finding 4: 'enemies_near: party_78_t2 (3 armbull) 711 away: an even fight'; Pounder reach 315 at speed 40 against the Bull's 460 at 62"
+  },
+  {
+   "defect": "No memory of his units across sightings and seats, and no event for his first tier-2 unit: 22 hunts and attacks named 20 different Bull parties. No build share on our plant either (believed standing at 14:45).",
+   "fixed": "2026-09-27 (ff32935: H-HANDS-SIDE-PARTIES, H-HANDS-ENEMY-MEMORY, build percentages)",
+   "evidence": "posing review findings 6 and 8: 'The 22 hunts and attacks named 20 different Bull parties'; 'building a Advanced Vehicle Plant ... ordered 200 s ago', with no build share"
+  },
+  {
+   "defect": "The pick chose 'go home' over the escape list with home banned, so the last commander walked into four Bulls.",
+   "fixed": "2026-09-26 (9b4ad85)",
+   "evidence": "20:09 note 'commander_t3 keeps walking to home (G4, into the Bulls) despite never:home, a follow_list job, a refuge list'; t3 commander died 20:16 at G4"
+  },
+  {
+   "defect": "No solar default for a draining energy store: energy ran dry behind three plants.",
+   "fixed": "2026-09-26 (9b4ad85)",
+   "evidence": "told 7:35 'energy 91/4700', 7:47 'energy 3/4750'; floor e0% t1 22.8"
+  },
+  {
+   "defect": "The packet decompression re-read the first packet every second from 0:20 to about 1:10, read wrong never-lists and a wrong hold_line, and left the tool unable to clear a packet rule.",
+   "fixed": "2026-09-27 (2879bdf, the decompression deleted)",
+   "evidence": "decompression review: '159 decompression calls (631k input tokens). 138 of them were the first packet re-read every second'; 'attack_raiders yes' stayed after the 18:38 'no'"
+  },
+  {
+   "defect": "There was no way to move metal between our seats, so the advanced plant was built on a seat at 0 while another banked.",
+   "fixed": "2026-09-27 (54c2df2, the transfer tool); the standing transfer 2026-10-19/20",
+   "evidence": "posing review finding 8: 'team 2 ... metal 0', beside team 1's 759 banked"
+  },
+  {
+   "defect": "The old hands: a fall-back walk home for a group that outweighed the party (6:16), detachments of 5-11 tanks hunting single Bulls, the retreat rule walking commander_t1 to `shelling`, and group distances measured from the centre of a 2,000-2,900-elmo string.",
+   "fixed": "2026-10-02 (the hands rebuild; the exact wording of group distances not verified)",
+   "evidence": "hands_window t2 6:16 'PLAYS group_A_t2: walk to spot_57 [plan]'; posing review findings 1, 6, 7"
+  },
+  {
+   "defect": "The score line claimed his state ('the opponent is known to hold 7') beside our 38-39.",
+   "fixed": "2026-10-17 (harness claims nothing of his state)",
+   "evidence": "told 14:01 score: 'extractors 39 (most held 44 ...; the opponent is known to hold 7)'"
+  },
+  {
+   "defect": "35 extractor orders refused by the engine as bad sites, 7 at E5 and 5 at E4 (his extractors on our middle spots, or our seats' lists colliding: not established).",
+   "fixed": "unknown",
+   "evidence": "impedance_sweep: 'flagged: {'engine-refused': 35, ...}'; e.g. '7:25 constructor_2914: the engine refused a armmex at E5: the site was bad'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "This game is the lesson's first case. Asked about the Bull switch, he answered that the game was over by 15:00 on metal. The trade counted once (behind in every phase but one) and 24 Bulls from 14:54 agree with him."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "We held about half the map (44 of 80 spots at 10:35) and stopped, with the constructors barred from his half. Against him, half was not enough."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The seen lead at 7:10 and 13:24 was never converted, against game 5's converge-and-kill. Note that the lead was partly a floor of sight: his seen army was small, and the trade counted once ran against us."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The player's own notes: 14:13 'the spot_59 push arrived piecemeal'; 15:42 '3 Bulls beat our Stouts in ones'."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "Nothing was reclaimed; 9.7k to 15.5k of wrecks were offered late, and 29k of ours died west of the middle, where he could eat it."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "His Bulls beat a tier-1 army of Stouts, Janus and Pounders; our own tier 2 stood only at 16:12."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "Pounders used as the offensive ball against Bulls lost 34 for 195 metal."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The scout cars crossed at 2:20 and saw his commander at B5, but the first raider mass crossed only at 5:43. The first building of his to die was a light turret at D5 (6:07, the map's middle); the first in his own corner was at B1 at 7:37."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "The midline as a fence: 44 extractors, all in our half, and 'not enough metal', as in human-10's 'not enough mex'."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The windows at 6:00-8:00 and 13:00-16:00 decayed while groups gathered and arrived in pieces."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Beamer nests at C6 and D6 out-traded the tier-1 army; Bulls at 460 against Pounders at 315; no scouting after 2:35."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "Our sprint from 11:16 ran on a starved seat with no transfer and took five minutes; his unseen sprint produced 24 Bulls."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "The quoted 37k:17k was summed over the seats; counted once it was 12.4k against 17.8k at 13:24. The loss was the economy, not a lead thrown away."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "commander_t1 was walked toward the Bulls by the retreat rule (18:17), and commander_t3 walked home into them (20:16)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (three seats)",
+   "run/analyze_match.py (three seats)",
+   "run/pro_baseline.py (t3; t2 with --all-starts; t1 uncarded)",
+   "run/floor.py (three seats)",
+   "run/raid_ledger.py (three seats)",
+   "run/commander_turns.py --notes and --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (t2 5:55-6:34 group_A_t2)",
+   "run/impedance_sweep.py",
+   "python over record-*.jsonl (enemy sightings; deaths counted once by unit id)"
+  ],
+  "existing_review": "none (no review.md; the match directory's posing-review.md and decompression-review.md were read and built on)",
+  "confidence": "medium",
+  "caveats": "There is no truth file, so his army, extractors and income are floors from our sight. The case that his economy outgrew three seats rests on the person's word and on 24 distinct Bulls seen, not on a measured income. minutes, analyze_match, floor, raid_ledger and hands_window read only record-0 (t1), so t2 and t3 were run through scratch directories linking record-N as record-0. pro_baseline compares single seats with a 1v1 pool: t1 (G1 Cortex) is uncarded, t2 needs --all-starts, and its pressure rows are blank without a truth start. The match directory holds no review.md, but it has posing-review.md and decompression-review.md (2026-09-27), and this row builds on both. Where it differs: the posing review's estimate of 'at least 46 metal a second' used the seat-summed 37,188; counted once, it is 12,396. The chat lines' speaker is '?' in chat.jsonl and 'player 0' (the opponent's seat) in bot.log; the attribution to thebluegecko is the record header's, the ledger's and L-mex-game-over's. The event def ids are offset by one from the header's unit_defs ids, and the reader's script corrected for this. impedance_sweep counts one session replacement. The loss does not rest on a since-fixed defect alone: the Bull phase leaned on the reach-less odds, and the player's belief that it was ahead leaned on the triple-counted trade, but the person put the decision on metal before 15:00."
+ },
+ "open_questions": [
+  "Where was his base? His commander was seen once, at B5 at 2:35, and no factory of his was ever seen. What were his extractor count and income at 13:00?",
+  "Was the 6:16 pick (21 Blitzes walked back from 4 Rovers and 10 Blitzes at C6) a misjudgement, or right given what stood unseen behind them?",
+  "How much of our 29k lost west of the middle, and of his own wrecks, did he reclaim?",
+  "t3's income reads 16.9 flat with 8 extractors from 11:00 to 18:00: a stalled seat, or a sample artifact?",
+  "Were the 35 'site was bad' extractor refusals his extractors on our middle spots, or our three seats' lists colliding?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790479031-bluegecko-3v1-comet-catcher-8.json"
+}

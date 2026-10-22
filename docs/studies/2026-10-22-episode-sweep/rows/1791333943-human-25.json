@@ -1,0 +1,259 @@
+{
+ "batch": "1791333943-human-25",
+ "label": "human-25",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-06",
+ "shape": "3v2",
+ "people": "[gecko]u6bkep (19.24, Armada, team 0) and [gecko]Covariance (16.84, Armada, team 1); bases seen at A3/B4 (plant A3 2:53, commander B4 2:38) and B8/C8 (plant B8 5:20, commander C8 5:32, forward plant D8 8:44); which person held which base is not in the records. Host computer_whisperer spectating, silent.",
+ "our_side": "Three seats, factions Random, start boxes not honoured: t2 = seat 0 Cortex at G1 (north-east corner), t3 = seat 1 Armada at H8 (south-east), t4 = seat 2 Armada at G4 (middle-east). Each seat an Opus 5.5 medium player (Claude Code 2.1.292) under one Opus 5.5 high side commander; hands Jev jev-latest = jev-1.13.0; real time.",
+ "build": "c515f12 (the banner chat line of every seat)",
+ "result": {
+  "outcome": "won",
+  "minute": "24:22"
+ },
+ "summary": "Won at 24:22 when both people resigned (vote passed 24:22): three Opus seats under an Opus commander on Comet Catcher in real time against two Armada players based at A3/B4 and B8/C8. Our scouts and Blitzes won the first five minutes (18 Rovers, 7 extractors, 3 constructors of theirs dead by 4:48; side army about 3,500 to 770 seen at 5:00), but the push on A3 went in seat by seat under Sentries and commanders and traded even 5:00-6:48, and the commander kept the far base first, sending the two strong bodies into a two-Beamer nest at B4 (about 3,500 lost for 1,760 at 10:13-11:11) while the south player's forward plant at D8 (seen 8:44) fed Stouts into the weakest seat. The south seat's commander, sent out by its own player's packet to fight raiders at spot_75, died at 10:56 and the seat stopped building by 12:30. From 12:50 the side's economy (41-44 extractors to his 15-16 known) and one Pounder-Stout-artillery body killed the D8 plant, a 17-Stout block at C4 (17:30), the B4 commander (18:37) and the B4 and A3 plants; the second commander and the B8 plant died in the resignation burst at 24:23-24:26, not to our army. No person said more than gg; every 'because' here is the reader's or the commander's own note.",
+ "root": {
+  "clock": "4:48-5:48",
+  "what": "The first lead was spent piecemeal and the plan split the side: go_base at 4:48 sent t3's and t4's Blitzes by B5 without the gather (t2 arriving later from the north), and at 5:48 the commander chose the far base (A3) first with t2+t4 and left t3 alone beside the second player's B8 base. The A3 push traded even under Sentries and commanders, t3's army fell to 0.5x what it saw by 7:00, and every later cost (the B4 nest, the D8 Stouts, t3's commander, a 24-minute game) follows from fighting the far base first with the bodies apart. Reader's reading, built on the commander's own 6:48 note.",
+  "evidence": "commander 5:48: 'we strike one base at a time: t4's and t2's bodies take his_base now ... t3 keeps base_sw busy without feeding it'; seat 2 #4 6:10-6:45 C5: lost 990 for 880 (911 vs 110 on the spot); seat 1 minutes 7:00 '423/770 (0.5)'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:16-4:48",
+   "what": "Early pressure works: three seats' Rascals, Rovers and Blitzes cross at 2:16-2:46, find his commander at B4 (2:38) and plant at A3 (2:53) and kill his scout cars, constructors and outer extractors.",
+   "evidence": "records, unique ids by 4:48: armfav 18, armmex 7, armcv 3 destroyed; analyze_match #0 4:13 D7 they lost 605, #1 4:32 C6 959; side army 5:00 1252+973+1272 vs 770 seen"
+  },
+  {
+   "clock": "6:10-6:48",
+   "what": "The push on A3 goes in four and five at a time under his Sentry at B5 and his commanders; the windows close in every seat.",
+   "evidence": "commander 6:48: 'The last three minutes were even (3,300 lost for 3,700 killed) because our seats went in four and five at a time'; seat 2 note 6:48: 'ground down piecemeal at B5/C5 (from 12 to 6 scattered)'"
+  },
+  {
+   "clock": "8:33-8:44",
+   "what": "go_two sends t2's 15 and t4's 14 (about 3,500) from D5 west toward his_base; eleven seconds later his south commander is seen raising a vehicle plant at D8, 900 from t3's spot_78; its Stouts are first seen at E8 at 9:37.",
+   "evidence": "commander 8:33 'go_two is given ... straight on into his_base'; t3 note 8:48 'NEW plant at D8 (spot_71) ... 900 from our spot_78'; first armstump seen 9:37 at E8 (4607,5631)"
+  },
+  {
+   "clock": "10:13-11:11",
+   "what": "The two bodies walk into the B4 nest (two Beamers, range 490, his commander, Sentries) and lose; the commander turns south to D8 and adds artillery.",
+   "evidence": "seat 0 #10 10:13-11:11 B4: lost 1200 (10 corgator) for 1760; seat 2 #11 lost 2315 (19 armflash); commander 10:48: 'out-ranges every unit we have and cost us 2,800 for 1,300'"
+  },
+  {
+   "clock": "10:12-10:56",
+   "what": "t3's commander walks to spot_75 on its packet, meets six Stouts and a Blitz, turns home too late and dies; t3's base falls by 12:30.",
+   "evidence": "seat 1 record: 10:40 1,008 from home hp 89, 8 enemies within 700; 10:50 hp 34; analyze_match (seat 1) 'our commander died at 10:56 at G8 to armstump'; #12 10:39-12:06 G8 lost 8800 for 1455"
+  },
+  {
+   "clock": "12:24-13:40",
+   "what": "Both bodies together kill the D8 plant (12:50) and two Stout-Janus waves; his commander escapes into the D7 Beamer and D8 Sentries.",
+   "evidence": "seat 0 #12 12:26-13:40 D8: they lost 7435 (16 armstump, 7 armjanus, armvp, 8 armsolar) for 2300; seat 2 #14 lost 3100; armvp 3198 destroyed 12:50"
+  },
+  {
+   "clock": "16:52-18:07",
+   "what": "His main army, a block of about 17 Stouts eating our middle spots at C4-D4, is met by t2's Pounders and t4's group_T together and dies.",
+   "evidence": "seat 0 #20 16:52-18:07 C4: they lost 6460 (25 armstump) for 2680; commander 17:34: 'his Stout block killed at D4; our 17k together vs 4.2k seen'"
+  },
+  {
+   "clock": "18:37-24:22",
+   "what": "His B4 commander dies at 18:37, the B4 plant at 19:10, the A3 plant at 21:12; both people resign at 24:22 and the B8 plant and second commander go in the burst that follows.",
+   "evidence": "records: armcom 2220 destroyed 18:37 B4; armvp 18816 19:10; armvp 13538 21:12; 50 enemy deaths at 24:23-24:26 after 'Vote for command resign ... passed' at 24:22"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "4:48-6:48",
+   "what": "go_base given without the gather the commander had itself set at 3:48; t3+t4 went by B5 and t2 from the north at different times into a Sentry and two commanders. A stronger side gathers the three bodies at one place out of turret reach and goes in once.",
+   "evidence": "commander note 5:03: 'gave go_base without the gather at meet_west'; seat 2 #4 6:10-6:45 C5 at their base: lost 990 (9 armflash) for 880",
+   "kind": "strategy"
+  },
+  {
+   "clock": "5:48",
+   "what": "Far base first: the commander struck A3 with t2+t4 and left t3 (the seat beside base_sw) to 'keep base_sw busy' alone; t3 lost its Blitz trades near B8 and was the weak seat from then on. The near base, or the side's whole body beside t3, was the stronger order.",
+   "evidence": "t3 note 6:21: 'Blitz-vs-Blitz trades near base_sw are costing us'; seat 1 minutes: army 863/1100 (0.8) at 6:00, 423/770 (0.5) at 7:00",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:33-10:13",
+   "what": "go_two into the B4 nest (Beamers 490 over our 350) while the D8 plant went up beside t3; the commander kept the body on B4 at 10:03 ('Do not go at D8 alone: the allied body comes to it after his_base'). Going round the nest to D8 at 8:44 was open: the body stood at D5, about 2,100 from it.",
+   "evidence": "seat 0 #10 + seat 2 #11 at B4: about 3,515 of ours lost for 1,760; commander 10:48 'no body goes into it again head-on'; spot_44 (3984,3360) to D8 plant (3582,5408)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:18",
+   "what": "The commander moved 700 metal from t3 (under raid, army 1,318 falling to 507 by 10:00) to t4, and t3 banked 1,197-1,663 from 8:48 to 10:00 with nanos and a second plant queued only at 9:19-9:58.",
+   "evidence": "commander 9:18 transfer {from t3, metal 700, to t4}; t3 eco 8:48 'metal 1197', 9:19 'metal 1663'; floor seat 1 mfull% 6.2",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:41-10:56",
+   "what": "t3's player put its commander in the raid fight ('commander_t3: goes to spot_75 now and attacks his Blitzes ... and Stout'; 9:58: attacks raiders at spot_75/spot_70), and the side commander said 'Hold your strip ... with your commander' (10:03). Stouts outrange the D-gun; the commander belonged at the plant with turrets and the body between it and the raid.",
+   "evidence": "seat 1 hands 10:12 'commander_t3: walk to spot_75' (p 0.66); hit from 10:38; 'walk to home' 10:41 at 0.84; died 10:56; the 10:44 EMERGENCY turn took 21.7 s wall and landed after the death",
+   "kind": "both"
+  },
+  {
+   "clock": "11:06-12:33",
+   "what": "After its commander died t3's player gave the seat away 'before the seat's ending rules take them' (the seat played on: team commander-ends); the transfers were refused for names already dead, only 6 units moved at 12:33, and t3 held 8 extractors and 12 turrets with no builder for 12 minutes.",
+   "evidence": "impedance seat 1 11:06 'RESULT transfer: REFUSED: group_E_t3: nothing of ours has that name'; records 'taken' 12:33 x6; analyze seat 1 builders 0 from 13:00",
+   "kind": "both"
+  },
+  {
+   "clock": "12:52-22:18",
+   "what": "Plants stood idle with counted lists used up, noticed by the commander and t2 several times.",
+   "evidence": "t2 note 12:52 'Plants were idle (lists spent)'; commander 13:04 'Both your plants stand idle with their lists used up'; 22:04 'All three plants stand idle'",
+   "kind": "both"
+  },
+  {
+   "clock": "15:58-24:27",
+   "what": "Wreck fields of 24-28k metal lay on held ground while his Lazarus (four seen 15:58) raised our Pounders and Incisors and a Cortex constructor against us; our reclaim began about 21:57.",
+   "evidence": "seat 1 wakes 21:27 'wrecks worth 24236 metal lie where no enemy is in sight', 24:27 '28264'; enemy corlevlr killed x4 at 21:00; t2 note 21:57 'metal 0 ... with 23k of wrecks on held ground'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Two Armada vehicle players. Early Rovers came at G1 along row 1 (commander 2:18) and lost wholesale to our raiders; Blitz masses died in numbers (side fights lines: 16 Blitzes in the minute to 7:00, 14 to 8:00, 18 to 10:00, 20 to 11:00). The south player walked his commander forward and raised a vehicle plant at D8 (seen 8:44, 900 from t3's spot_78) whose Stouts (first seen 9:37) raided t3's strip 9:20-11:46 and killed its commander at 10:56. Beamer nests with commanders and Sentries at B4 (first Beamer 9:42) and D7 (9:53) beat head-on pushes. From 12:50 a Stout/Janus army in blocks of 14-17 ate our middle extractors at C3-E3 and D4-D6 (seat 0 lost 13, 10 of them to Stouts). Lazarus from 15:58 raised our Cortex wrecks (Pounders, Incisors, a Cortex constructor that built Cortex Sentries by 22:00). No advanced factory seen (no truth file); a Gauntlet frame at D8 at 24:00. They resigned at 24:22, one commander dead, their B4 and A3 plants gone and the D8 plant gone since 12:50.",
+ "defects": [
+  {
+   "defect": "Rove as a lane rule (before rove became a group task): the roving scouts drifted to the code's mirror guess of his start (B7) and a roving group could not be split.",
+   "fixed": "2026-10-07/08 (rove as a group task)",
+   "evidence": "commander note 2:18: 'rove scouts drift south (code guesses mirror B7)'; t2 note: 'Direction asks one Rascal off rove by hand: not possible to split a roving group'"
+  },
+  {
+   "defect": "The fights line credited every seat with every enemy death any ally saw, and the side commander's report summed the three seats' lines (a triple count) while its trade line counted each death once.",
+   "fixed": "2026-10-18 (4b92174, H-PLAYER-OWN-TRADE)",
+   "evidence": "commander report 4:48 (window 3:48-4:48): 'killed armcv x6, killed armfav x48, killed armflash x3, killed armmex x6'; the records' unique deaths in that window: 2, 16, 1, 2, exactly a third; its direct: '48 of his Rovers ... 21 extractors dead'"
+  },
+  {
+   "defect": "An extractor standing in a plant's exit lane (the lab exit-lane extractor).",
+   "fixed": "2026-10-13 (exit-lane fix, 3aabc77)",
+   "evidence": "seat 1 wake 9:19: 'plant_3758's exit lane is blocked ... in the lane: armmex_14334'; wake_read: exit-lane wakes in all three seats (plant_23447, plant_3758, plant_27692)"
+  },
+  {
+   "defect": "The players' role text said a seat loses when its own commander dies (team commander-ends was in force), so t3's player gave the seat away at its commander's death.",
+   "fixed": "2026-10-18 (K-rules-commander-death-ends-game corrected)",
+   "evidence": "t3 note 11:06: 'Gave t3's plants, constructors, groups and 780 metal to t4 before the seat's ending rules take them'; commander 19:04: 't3 survived its commander death'"
+  },
+  {
+   "defect": "A transfer call is refused whole for one stale name, so t3's give-away failed twice while its units were dying.",
+   "fixed": "unknown",
+   "evidence": "seat 1 11:06 and 11:27: 'RESULT transfer: REFUSED: group_E_t3 / constructor_70: nothing of ours has that name'; only 6 units given at 12:33"
+  },
+  {
+   "defect": "Real-time latency of the player: an emergency order landed after the event it answered.",
+   "fixed": "open",
+   "evidence": "wake_read wall median 13.7 / 12.1 / 15.3 s; seat 1 10:44 EMERGENCY turn 21.7 s wall, commander dead at 10:56"
+  },
+  {
+   "defect": "Build orders that never started, and sessions replaced mid-game.",
+   "fixed": "unknown",
+   "evidence": "bot.log: 37 'order ... never started' (22 seat 0, 3 seat 1, 12 seat 2); impedance_sweep session replacements 2 / 1 / 2; Jev answer dropped after 3 s at 20:51"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Seat bodies arriving separately traded even at B5/C5 (6:10-6:48) and lost at B4 (10:13-11:11); one body of t2's Pounders and t4's Stouts and artillery broke the C4 Stout block at 17:30. The commander's closing lesson: 'bodies of several seats arriving separately lose'."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "3.5x to 6x the army seen at 3:00-6:00 with 18 Rovers and 7 extractors of his dead, not converted; the game ran to 24:22 and cost the south seat."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "In a game against u6bkep himself, the head-on push into the B4 Beamer nest cost about 3,500 for 1,760; going round to the D8 plant then won the next fight."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "supports",
+   "note": "Two Beamers with a commander and Sentries at B4 beat 5,000 of tier-1 tanks; the commander added Shellshockers and Wolverines (710) for nests at 10:48."
+  },
+  {
+   "id": "L-mix-arty-not-the-body",
+   "relation": "illustrates",
+   "note": "Artillery added three a seat behind the Stout and Pounder body, not as the body; the nests at B4 and A2-A3 fell to the body later."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "t2's Pounder mass (35-54) with t4's Stouts beat his Stout/Janus army 15:00-18:00 (commander's closing note: 'Pounder mass worked vs Stout/Janus')."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "24-28k of our wrecks lay on held ground 21:27-24:27 and his Lazarus raised our Pounders, Incisors and a Cortex constructor against us."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "The first units crossed at 2:16-2:46 and killed 18 Rovers, 7 extractors and 3 constructors by 4:48; the early raid gave the lead the rest of the game ran on."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "12:36-12:58 both bodies committed on his commander at the D8 plant; it D-gunned five Blitzes and escaped into the D7 Beamer and D8 Sentries."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "41-44 extractors to his 15-16 known from 9:00 to 12:00 carried the side through the loss of a seat."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Gather skipped at 4:48, piecemeal trade 6:10-6:48, bodies idle at C5/D4 10:48-11:34; the single gathered body from 16:00 won."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "B4 nest (Beamer 490 over our 350) cost about 3,500 for 1,760; the switch to 710 artillery and to the D8 plant (one Beamer, a Sentry), which fell at 12:50."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "t3's commander walked toward six Stouts (350 over its D-gun) on its packet and died at 10:56; the seat played on (team commander-ends), a premise for team games."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "t3 answered 8 of 11 extractor losses (median 12.5 s) with a small body and its commander and still lost the strip; seat 0 lost 13 middle extractors 12:50-20:22 with 5 of the 13 answered."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "t4 kept its Blitzes off his Stout/Janus party at 12:14 because 'Janus splash eats packed Blitzes'; the Pounder/Stout body won where Blitz bodies lost."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "t3 banked 1,200-1,660 under raid 8:48-10:00 and gave 700 away; t2 banked 1,750-1,880 at 10:00-11:00 (metal above 500 in minutes 8-11)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (all three seats)",
+   "run/analyze_match.py (all three seats)",
+   "run/pro_baseline.py (all three; a pool only for G4)",
+   "run/floor.py (all three)",
+   "run/raid_ledger.py (all three)",
+   "run/commander_turns.py --notes (seats) and --notes --calls (side commander); --told --calls (seat 1)",
+   "run/wake_read.py (all three)",
+   "run/hands_window.py seat 1 10:15-10:57 commander",
+   "run/impedance_sweep.py --seat 0/1/2 and --commander",
+   "bot.log, records' chat/given/taken/enemy events, a scratch script for enemy plant and commander sightings"
+  ],
+  "existing_review": "none (no review.md or other review file in the match directory)",
+  "confidence": "medium",
+  "caveats": "No truth file: his army and buildings are what we saw (floors), his tier 2 cannot be ruled out, raid_ledger's 'paid' and floor's look_min/known% are empty. No ledger row. The tools read the first record only, so seats 1 and 2 were read through symlinked copies in the scratchpad. Start boxes were not honoured, so minutes.py's 'his half' (the mirror of each seat's start) is wrong here (seat 1's mirror G1 is our own seat 0): the his-half percentages are unreliable. pro_baseline found no pool for Cortex G1 or Armada H8, and G4's pool is duels. The second commander and the B8 plant died in the burst after the resign vote, so the commander's 'resigned after B8 fell and second commander died' has the order reversed. Which person played which base is unknown."
+ },
+ "open_questions": [
+  "Which person held A3/B4 and which B8/C8/D8? The records carry no team on enemy units; the engine replay would say.",
+  "Did the D8 plant stand before 9:37 and make the Stouts that killed t3's commander, or did they come from B8? No truth file.",
+  "Would the 3,500 at D5 sent to D8 at 8:44 instead of B4 have saved t3? Reader's counterfactual, untested.",
+  "Is the transfer tool still refused whole for one stale name, and did the 2026-10-17 chase fix change how the hands walk a commander into a party that outranges it on a packet step?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791333943-human-25.json"
+}

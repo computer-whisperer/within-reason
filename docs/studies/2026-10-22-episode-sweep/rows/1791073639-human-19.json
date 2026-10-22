@@ -1,0 +1,251 @@
+{
+ "batch": "1791073639-human-19",
+ "label": "human-19",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-03",
+ "shape": "2v1",
+ "people": "[gecko]thebluegecko (lobby 40.78; header 41), the opponent, Cortex vehicles from B4/B5. Spectators in script.txt: [gecko]u6bkep (29.33), [gecko]Covariance (18.42), computer_whisperer (the user, host). Only thebluegecko and the user typed.",
+ "our_side": "Two seats under one commander: t1 Armada north (G1) and t2 Cortex south (H8), each an Opus 5.5 medium player (per-seat sessions), an Opus 5.5 high commander over both; hands Jev jev-latest = jev-1.13.0 (banner); the standing brief for the players.",
+ "build": "binary 6ff4528+ (chat banner 'Within Reason 6ff4528+'); ledger b9a5c9e (the commander's chat/marks/fights role texts, read from the tree at run time)",
+ "result": {
+  "outcome": "won",
+  "minute": "15:23"
+ },
+ "summary": "Won: thebluegecko wrote \"gg wp\" and resigned at 15:23 against two seats of ours on Comet's east strip under an Opus commander, with 56 extractors of ours to his 17 seen. The extractor lead was there by 6:22 (29 to 11 seen) and his early Rascal and Incisor raids barely touched it, but the conversion took nine more minutes because the two seats met him one seat at a time three times: 5:14 (Blitzes alone into Incisors at C3), 9:10 (t1's Stouts alone at his base, seven to his commander's D-gun) and 10:41 (t2's Incisors alone into Pounders at D4). Meanwhile 4,200 metal sat in the two banks at 10:00. From 10:52 the commander called the fight on his army in the open at D4, with no clock or count, and the bodies fought together. His Pounders and Brutes died at D4 (11:12-12:57), then a stream of 55 Thugs from a bot lab we never saw, with Graverobbers raising our wrecks, held C4 until 15:19. He never went tier 2; his commander died at B4 at 15:26.",
+ "root": {
+  "clock": "8:29-8:47",
+  "what": "Both seats fought the first in-step fight (7:57-8:34 C4, 665 lost for 1,545), then split. t2 stopped at meet_west at 8:29; t1's 8:47 packet sent its body on to his_base with orders to attack his commander. The commander was in a 60 s wait from 7:52 and missed the split; its hold order reached t1 at 9:12 with the body already at B4.",
+  "evidence": "minutes.py row 10: lost ours 2470 (B4); WINDOWS: 8:00 at 3.2x 'ended at 9:00 at 0.0x'. t1 8:47 instruct: 'his commander it attacks with the whole group when it is in sight'. analyze_match #5 9:10-9:26 B4: lost 2245, they lost 455."
+ },
+ "turning_points": [
+  {
+   "clock": "2:19",
+   "what": "t1's Rovers find his vehicle plant at B4 and learn he plays Cortex (the lobby said Armada).",
+   "evidence": "minutes.py: 'his first factory seen: 2:19 at B4'; 'first of ours within 1,500 of his start (B5): 2:16 armfav_26317'. t1 note 2:42: 'He plays Cortex.'"
+  },
+  {
+   "clock": "5:14-5:30",
+   "what": "The first joint push goes piecemeal: the hands send 8 Blitzes of the gathering body after 5 Incisors 26 s before the 5:40 clock. t1 switches to Stouts at 5:30.",
+   "evidence": "hands_window 5:14: 'PLAYS group_B_t1: 8 of group_B_t1 hunt party_6 (5 corgator) as group_D_t1 [plan]' pick 0.62; analyze_match #0 5:17-5:30 C3: lost 550 (5 armflash), they lost 120."
+  },
+  {
+   "clock": "7:57-8:34",
+   "what": "The one fight both seats fought in step before 11:00 is won at C4.",
+   "evidence": "analyze_match #3 7:57-8:34 C4: we lost 665, they lost 1545 (8 corgator, corllt, corexp, corcv, corrad, cormex)."
+  },
+  {
+   "clock": "9:10-9:26",
+   "what": "t1's Stouts commit onto his commander at B4, and the D-gun kills seven.",
+   "evidence": "fire.py: 'corcom->armstump 196911', all of it in 9:10-9:29 (record xi by 10 s). record-0 destroyed 9:00-9:30: armstump by corcom x7. #5: lost 2245 for 455."
+  },
+  {
+   "clock": "10:52",
+   "what": "The commander's direction with no clock or count: fight his army (party_18) where it came out at D4, t2 falling back onto t1's 22 Stouts, at Stout range.",
+   "evidence": "commander 10:52 plan: 'That is the fight we want: in the open, away from his commander and turrets ... Stouts out-range Pounders (350 to 315): keep at range'."
+  },
+  {
+   "clock": "11:12-12:57",
+   "what": "His field army breaks at D4.",
+   "evidence": "analyze_match #8 11:12-11:47 D4: lost 1691, they lost 3365; #9 11:52-12:57: lost 2385, they lost 3640. Commander 11:37: '16 Pounders and 8 Brutes dead in the last minutes'."
+  },
+  {
+   "clock": "13:23-15:27",
+   "what": "A Thug stream from an unseen bot lab, with Graverobbers raising our wrecks, holds C4 for two minutes. Then his base and commander fall at B4.",
+   "evidence": "#11 13:23-15:19 C4: lost 1800, they lost 10850 (55 corthud, 5 cornecro); #16 15:26 B4 corcom killed. t2 14:37 note: 'bounced spot_39/spot_26 for 2 min killing a Thug stream at C4 ... but no ground'."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "8:29-9:26",
+   "what": "The second push arrived one seat at a time (root). t1 dropped the other seat as a condition at 7:18. At 8:47 it marched on to his_base. At 9:12 it overrode the commander's hold and put the whole group on his commander although a Stout had already died to it. A stronger player holds at spot_26 until t2 stands there and shoots the commander from beyond 262.",
+   "evidence": "t1 9:12 report: 'lost armstump to corcom in their half x1'. t1 9:12 instruct: 'Its target is his commander (corcom): the whole group on it'. Note: 'committing ... rather than stepping back to spot_26'. #5: 2245 for 455.",
+   "kind": "both"
+  },
+  {
+   "clock": "4:34-5:30",
+   "what": "The first joint push was set as a clock or a count ('5:40, or sooner when 14'). The hands could not read the clock, t1 rode a hunt off the gathering, and t2 was 3,800 away answering a real raid. 14 Blitzes of t1 died to Incisors (range 230 to their 180) before 8:00.",
+   "evidence": "Commander 4:34: 'go in together at 5:40, or sooner when 14 soldiers stand there'. record-0 destroyed before 8:00: armflash by corgator x14. t1 5:30 note: 'his 5 Incisors (230 range) beat our strung-out Blitzes (180)'.",
+   "kind": "both"
+  },
+  {
+   "clock": "7:00-10:54",
+   "what": "The banks rose with nothing to spend them. Energy was the limit until about 9:30 and build power after it. t2 had no working construction turret until 10:54. The commander named build power only at 9:52; the fix is three nanos per plant once a bank passes 700.",
+   "evidence": "record s rows: t1 metal 843 (7:00), 2423/2500 (10:00), 2494/2500 (10:30); t2 368 (7:00), 1779 (10:00), 1958 (11:00). analyze_match: 'metal banked above 500 in minutes [7, 8, 9, 10, 11, 12]'. floor seat 0: e0% 12.0.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:41",
+   "what": "t2 sent its Incisor groups at party_18 (Pounders and Brutes) 'now with the whole group' before t1's Stouts were there. They fought alone and split.",
+   "evidence": "t2 10:41 instruct: 'group_C_t2 attacks party_18 now with the whole group'. t2 11:02 note: 'lost ~1,300 (mostly Incisors) to party_18's Pounders at D4 fighting alone; the 'attack now' split into detachments'.",
+   "kind": "both"
+  },
+  {
+   "clock": "2:06-6:44",
+   "what": "The first handful crossed early but did no damage. The Rovers were at his base by 2:16, yet the first building of his died at 6:44 and the first constructor at 8:25. t1's 5:30 note that 'Rovers are killing his constructors' is not borne out by the record.",
+   "evidence": "record-0 enemy_destroyed: first corexp 6:44 at C3, first corcv 8:25; earlier kills were Rascals and Incisors only. Skill O6 pool: first building killed median 3:49, p75 5:08 (duels). minutes.py: armfav crossed 2:06.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:23-15:19",
+   "what": "The body traded at C4 against a Thug stream for two minutes while his Graverobbers raised our wrecks. The bot lab feeding it went unsearched until the 14:07 direction, and the wrecks went unreclaimed until 14:18.",
+   "evidence": "Commander 14:07: 'He is resurrecting our wrecks at C4 (a Graverobber, and one of our Stouts now fights for him) ... His Thugs come from a plant we have not seen'. t2 14:18: four home constructors sent to reclaim D4/D3/C4.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:02",
+   "what": "The south seat's opening list was written to `commander` (the unit is commander_t2), accepted and dropped. The hands put the plant up with no extractor and energy ran empty by 0:37. The seat caught up by about 2:30.",
+   "evidence": "t2 0:11 note: 'Opening list dropped (named 'commander', seat is commander_t2); hands started the plant at 0:02'. record s rows: extractors t1/t2 3/1 at 1:00, 3/3 at 2:00, 18/11 at 6:00, 26/25 at 12:00.",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Cortex vehicles from a plant at B4, a second plant at B5 by 9:12, and a bot lab never seen until 15:15. Rascals raided our south at 2:43-2:57 (a t2 extractor at G6; four Rascals died at G7). Incisors held C3 against the Blitzes, backed by armed extractors (corexp) at C3, C4 and B3 and light turrets. An Incisor/Rascal raid along row 8 (5:08-5:42) killed one extractor and lost 3 Incisors and a Rascal to t2 at F8. He switched to Pounders and Brutes around 8:30. His commander stayed home and D-gunned seven Stouts at B4 at 9:11-9:26. His army came out at D4 at 10:28 and died there by 12:57. Then he streamed Thugs from the bot lab at C4 with Graverobbers raising our wrecks and a heavy turret (corhllt): 55 Thugs died in #11. Extractors seen: 5 at 4:34, 11 at 6:22, 13 at 8:52, 17 at the end. No tier 2. He resigned with 'gg wp' at 15:23.",
+ "defects": [
+  {
+   "defect": "A seat's opening `queue` to the bare name `commander` was accepted and dropped under per-seat players (the unit is commander_t2).",
+   "fixed": "2026-10-03 (50c999e)",
+   "evidence": "t2 0:11 note; ledger human-19: 'the south seat's opening list was written to commander, accepted and dropped ... 3 extractors at 3:11'. The game recovered (t2 26/25 extractors at 12:00 against t1's 26)."
+  },
+  {
+   "defect": "Jev does not act on a clock written in the packet ('or the game clock reads 5:40 or later'), so the commander's go-clocks reached the hands as nothing. K-jev-a-clock-condition-in-the-packet-is-not-followed was measured on this game (frame 9111, 5:03). Replaced by the signal tool.",
+   "fixed": "2026-10-03 (8b0513c, signal tool)",
+   "evidence": "docs/knowledge/jev.md: under 'At 6:00 on the game clock, not before' the move read 0.25-0.28 at 5:03 and 0.27-0.31 at 6:00. A cause of the 5:14 early departure. The 7:44 advance to spot_26 coincides with the 7:45 clock (open)."
+  },
+  {
+   "defect": "The opponent's faction came from the lobby's word (script.txt team0 side=Armada) while he played Cortex. The commander's first direction said 'thebluegecko, Armada'.",
+   "fixed": "2026-10-03 (df0f8e7)",
+   "evidence": "Commander 0:20 plan: '2v1 against a strong person (thebluegecko, Armada)'. t1 note 2:42: 'He plays Cortex.' The existing review: the sides line read Armada at least until 4:26."
+  },
+  {
+   "defect": "Under a commander, each seat's own banner reached the commander as the host's chat and woke it. A mark's pair written in a string was refused.",
+   "fixed": "2026-10-03 (5347921)",
+   "evidence": "impedance_sweep --commander 3:04: 'mark {\"his_base\": \"[1264, 2832]\"}' refused ('a grid cell is A1 to H8'), then re-sent as 'B4'. Ledger: 'the seats' own banners reached the commander as chat from the host and one woke it'."
+  },
+  {
+   "defect": "Walks and advances the hands played between thinking ticks went out rewritten toward the previous order's points (realtime only).",
+   "fixed": "2026-10-03 night (8a7e2d5 rehearsal 10 of 10)",
+   "evidence": "docs/knowledge/jev.md: 'Over human-19 to human-22, of the walks and advances played between thinking ticks 13 of 118 had no command within 400 of the named place'. Effect on this game's moments not measured."
+  },
+  {
+   "defect": "An advanced solar was placed in plant_28350's exit lane, blocking it.",
+   "fixed": "unknown (the extractor-in-lane case was fixed 2026-10-13; solars not checked)",
+   "evidence": "wake_read reasons: \"plant_28350's exit lane is blocked: 1 of\" x2, 'in the lane: armadvsol_5608' x2 (9:03 and 12:00 per the existing review); t1 9:03 'remove ... reclaim armadvsol_5608'."
+  },
+  {
+   "defect": "The hands sent a hunt or attack off a gathering body: 8 Blitzes after 5 Incisors that outrange them (5:14), and t2's 'attack now' splitting into detachments (10:41-11:02).",
+   "fixed": "partly 2026-10-17 (the chase that did not withdraw at danger); the split off a gathering body not traced to a fix",
+   "evidence": "hands_window 5:14 'PICK split [group_B_t1: took w2 of 1 at 0.62]'; t2 11:02 note 'the 'attack now' split into detachments'."
+  },
+  {
+   "defect": "Both players' sessions were replaced mid-game. Rate-limit events show 'allowed'.",
+   "fixed": "open (cause not determined)",
+   "evidence": "impedance_sweep --counts: strategist-0 '1 session replacements', strategist-1 '1 session replacements'; 'taking over mid-game' prompts at 10:54 (seat 0) and 13:59 (seat 1)."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "4:49",
+   "text": "this is testing the new chat code"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Three piecemeal arrivals (5:14, 9:10, 10:41) cost 550, 2,245 and about 1,315. The trade turned only when both seats fought as one body at D4 from 11:12 (1,691 for 3,365; 2,385 for 3,640). Reader's reading; no person commented in this game."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Won on extractors: 29 to 11 seen at 6:22, 56 to 17 at the end. Two seats out-expanding one person, with his raids costing us 1 extractor of seat 0 and 4 of seat 1 all game."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "His Incisors beat Blitzes (14 died before 8:00) and his Pounders beat Incisors (t2 8:29, 11:02). t1's medium tanks (Stouts from 5:30) out-ranged his Pounders (350 to 315) and broke them at D4."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "Banks of 2,423 and 1,779 at 10:00 with energy full from 9:30. t2 had no working construction turret until 10:54, and the build-power answer came at 9:52. This is the pattern of thebluegecko's 'metal store is getting higher, making more build power ... construction turrets could help'."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "9:11: 16-18 strung-out Stouts (spread 336) went onto his commander under his base with Pounders beside it, and seven died to the D-gun (2,245 for 455). The snipe needs encircling from outside 262 at once, which the packet did not give."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "Wrecks up to 7,948 metal lay at D4/C4 (wake reasons). His Graverobbers raised them, and one of our Stouts fought for him. Our reclaim began at 14:18 (t2), after the 11:37 direction had first asked for it."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first Rovers crossed at 2:06 and saw his base at 2:16-2:19, but the first building of his died at 6:44 and the first constructor at 8:25. Crossing without damage did not stop his economy; two economies against one did."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "t2's 8:29 push stalled on armed extractors (corexp) and Pounders at spot_39/52. t1 answered at 9:28 with Shellshockers (710 range) to out-range the commander, corexp and light turrets."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "Both sides of the backlog's conflict. The go-conditions written as a clock or a count let one seat go alone (5:14, 9:10), and the clocks were unreadable to the hands. The decisive fight had no clock or count and a place between the bodies, where his army had come out (10:52 D4)."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "supports",
+   "note": "Two phases: an energy-limited bank (7:30-9:30, energy 0 on both seats) and then a build-power-limited bank (9:30-11:00, energy full, banks still rising at 2 plants and 0-2 nanos)."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "Blitz (180) against Incisor (230): 14 Blitzes lost before 8:00. Stout (350) against Pounder (315) won at D4. Incisors against Pounders lost (t2 11:02). Our Shellshockers and Stouts hit our own Stouts: friendly fire 2.9% (fire.py armart->armstump 719)."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "The corexp nests at C3/C4/B3 stopped t2 at 8:29, and the D-gun reach (262) against Stout range (350) was ignored at 9:11. The bot lab feeding the 13:23-15:19 Thug stream was never scouted until 15:15."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Crossed by 2:06 (pool median 2:06), first building killed 6:44 (pool p75 5:08; duel numbers, this was a 2v1)."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "t2 turned its strike body on his row-8 raid at 5:23 (#1 F8: 386 killed for 0, one extractor lost at 5:38). Seat 0 lost one extractor all game, answered in 12 s (raid_ledger)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py (failed)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls --told",
+   "run/wake_read.py",
+   "run/impedance_sweep.py --counts --commander",
+   "run/hands_window.py 5:08-5:20 group_B_t1 group_D_t1; 7:18-8:00; 8:45-9:28 group_I_t1",
+   "run/fire.py",
+   "inline python over record-0/1 (s rows, destroyed, enemy_destroyed, xi), strategist-0/1, commander.jsonl, jev-1 via run/jevlog.py, script.txt"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791073639-human-19/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file: his army and economy are floors of what we saw (minutes.py's 'army his' is 0 in most minutes). pro_baseline exits: 'no carded side on Comet Catcher Remake 1.8 at OS 40+ from [B8, G1] as arm'. minutes, analyze_match, floor, raid_ledger, wake_read and hands_window read seat 0 only. analyze_match prints 'opponent None; outcome None after 0.0 min'; floor shows result '-' and 0 minutes (no results.jsonl/batch.json). Seat-1 numbers come from inline reads of record-1, strategist-1 and jev-1. Where I differ from review.md: (1) t2's body at 5:23 was answering a real raid on row 8 (#1 F8, 386 for 0; extractor lost 5:38), not merely an unsaid departure. (2) The go-clocks were unreadable to the hands (K-jev claim measured on this game), so the clock half of each go condition was harness-void. (3) I count 14 Blitzes lost to Incisors before 8:00 (record-0 destroyed), not 20. (4) The first building of his died at 6:44, and t1's 'Rovers killing his constructors' at 5:30 is not in the record. (5) His commander did 196,911 of the 273,554 damage taken by seat 0, all in 9:10-9:29. No person reviewed this game. thebluegecko resigned without answering our 'what should we have done better?', so every 'because' here is the reader's or the commander's own notes."
+ },
+ "open_questions": [
+  "Did t1's 7:44 advance to spot_26 follow the packet's 7:45 clock, or was it chance? K-jev-a-clock-condition-in-the-packet-is-not-followed measured one moment of this game (5:03) as clock-blind.",
+  "Why were both players' sessions replaced (seat 0 at 10:54, seat 1 at 13:59), with rate limits 'allowed'?",
+  "How many units did plant_28350 lose to the advanced solar in its exit lane (wake reasons at 9:03 and 12:00)?",
+  "What would thebluegecko have answered to 'Any advice on what we should have done better?' (15:24)? He resigned first; worth asking him for the episode.",
+  "Seat 1's hands at 10:38-10:57: group_C_t2 was under fire from 10:38, before the 10:41 'attack now' packet, and reached yard2 (home) at 10:57. Did the hands' fall-back or the packet decide that walk?",
+  "His true army at 8:00-10:00 (no truth file): was 9:12 really 3:1, as t1's note says, apart from the D-gun?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791073639-human-19.json"
+}

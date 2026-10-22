@@ -1,0 +1,296 @@
+{
+ "batch": "1791593626-human-29",
+ "label": "human-29",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-09",
+ "shape": "1v1",
+ "people": "[gecko]u6bkep (30; the start script: skill 29.97, rank 4, ranked game), Armada from the west box (B5); computer_whisperer (the user) hosting as a spectator, silent in the chat",
+ "our_side": "one seat (team 1, record-0), east box, start G1 (6899, 681), side Random played as Armada (armcom); player 'Rysica' claude-opus-5-5 effort medium (Claude Code 2.1.296); the side's commander claude-opus-5-5 effort high (12 turns, 10 directions); hands Jev jev-latest = jev-1.13.0, hands effort normal; realtime lobby game",
+ "build": "b0d7213 (the banner at 0:02: 'Rysica is Within Reason b0d7213')",
+ "result": {
+  "outcome": "won",
+  "minute": "18:03"
+ },
+ "summary": "A realtime 1v1 against u6bkep on Comet Catcher, won at 18:03 when the body killed his commander at B4; 55 of his units and buildings, the commander among them, died 18:03-18:07, and the record ended at 18:14. We out-expanded him from 7:00 (17 extractors to 5 seen, 22 to 5 at 10:00) and led in army from 3:00 on, never under 1.8x his seen army. The first raiders crossed at 2:00 but roved our own half and then died piecemeal to his Blitzes and commander at B4/C4 (4:40-5:27); no building of his died until the body reached his south spots at 9:38. The body's first assault on his plants (10:56-11:22) went in at 13-17 soldiers with a plant's output kept home as a picket and energy empty, and was called off at 9 left; five minutes of split fights at C4/E4 followed while his Stouts raided our middle and he added an air plant and, by 17:30, an advanced vehicle plant. The game ended when a gathered 41-soldier body (7.8k) went in as one on the go_b4 signal at 16:53.",
+ "root": {
+  "clock": "8:22",
+  "what": "The game never left the winning path; this root marks where the win was delayed by about six minutes (the reader's reading, no person commented). At 8:22 the player made plant_20622's whole output a home picket at spot_18, while the commander's 8:05 direction kept only two Blitzes home; with energy empty from 8:17, the body that reached his plants at 10:56 was 13-17 soldiers of a 4.4-4.9k army. The attack was called off at 11:22 with 9 left, and the end needed a second, gathered push at 16:53.",
+  "evidence": "8:22 produce plant_20622 {group: new}, packet: 'the newest group from plant_20622 stands at spot_18'; 10:40 report: group_G '17 soldiers worth 3175' at B5, J/K/M 1,490 at home; 11:22: 'group_G does not attack spot_36 now: his four armstump under two Sentries there outweigh it'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:00-5:27",
+   "what": "The first handful (3 Rovers, then Blitzes) crossed at 2:00-2:03 and came within 1,500 of his start at 2:13, but the Blitzes joined the Rover's rove and went back through our half. Then they went into his base piecemeal and died to his Blitzes and commander at B4/C4, trading about even.",
+   "evidence": "minutes.py: armfav_7155 'crossed 2:03 ... back in our half at 4:03; died 4:45 at B4 to armflash'; 5:21 note: 'piecemeal Blitzes in his half lost to his Blitzes+commander (730 lost vs 705)'"
+  },
+  {
+   "clock": "6:28-7:07",
+   "what": "A detachment of 4 Blitzes hunted 2 of his Blitzes from E3 to C3, under his army and the heavy laser tower first seen at 6:55, and all 4 died.",
+   "evidence": "analyze_match #5 7:00-7:07 C3: 'we lost 440 ({armflash: 4}), they lost 110'; impedance item 1: send_4_party_19 rated 0.54, forbid mark 0.66"
+  },
+  {
+   "clock": "8:22-9:54",
+   "what": "The body (group_G, 13 units with Stouts) left spot_23 on the commander's 8:05 'goes now with what it has' and went south round the C3 tower. At 9:38-9:54 it killed his first buildings: a Sentry and 4 extractors at B8.",
+   "evidence": "record: enemy_destroyed armllt 9:38 (1632, 5472), armmex 9:41 x2, 9:52, 9:54; analyze_match #6 9:33-9:54 B8: 'they lost 285 ({armllt: 1, armmex: 4})'"
+  },
+  {
+   "clock": "10:06-10:34",
+   "what": "Five Thunders bombed the home extractor at spot_6 and a Nettle frame. All five died at home to the Nettles (finished 7:53 and 9:32), the Whistlers and the commander.",
+   "evidence": "analyze_match #7 10:11-10:34 G2: 'we lost 155 ({armsolar: 1}), they lost 802 ({armpeep: 1, armthund: 5})'; raid_ledger 10:07 spot_6 armthund 'rebuilt no'"
+  },
+  {
+   "clock": "10:19-11:22",
+   "what": "The body hit his base at B5 then B4 and killed more than it lost, but it was down to 9 units against his 4 Stouts and 2 Sentries. The player called the attack off and walked the body back to spot_59.",
+   "evidence": "analyze_match #8 B5: lost 880, killed 1411; #9 10:55-11:20 B4: 'we lost 1570 ... they lost 2041'; 11:22: 'The body (group_G) is down to 9 units'"
+  },
+  {
+   "clock": "12:09-13:24",
+   "what": "His Stouts caught the body strung out on its walk back. A 5-Stout party then took 4 middle extractors at F5, G4 and E3 through their turrets.",
+   "evidence": "12:09 note: '7 Stouts caught group_G strung out on its walk back'; raid_ledger: spot_40 12:36, spot_41 12:43, spot_35 12:53, spot_23 13:24, all armstump, 'parties that paid 0'"
+  },
+  {
+   "clock": "13:41-16:29",
+   "what": "In split fights against his main army (9-12 Stouts and Janus) at C4 and E4, the trade came out about even. group_P walked home at 13:41 while group_G fought, and at 16:23 the body hit his base piecemeal and walked back.",
+   "evidence": "analyze_match #15 C4: lost 2465, killed 1830; #16 E4: lost 960, killed 2280; #17 C4: lost 2795, killed 2070; #18 B4: lost 1125, killed 930"
+  },
+  {
+   "clock": "16:53-18:03",
+   "what": "The player held the body at spot_43/C5 until 41 soldiers (7.8k) had gathered, then gave go_b4. It went in as one, killed his base, his air plant, his advanced plant and his commander, and won.",
+   "evidence": "16:53 note: 'group_P gathered at C5 with 41 soldiers (7.8k) ... go_b4 given now'; analyze_match #19 17:25-18:06 B4: 'we lost 2570 ... they lost 14630' incl. armcom, armavp, armap"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "8:22-11:04",
+   "what": "The player kept a whole plant's output home as a picket, against the commander's 'two Blitzes stay home'. The first assault on his plants went in at about two thirds of the army and failed. A stronger player sends the reinforcements to the body, or waits for them, before going into a Sentry-covered base.",
+   "evidence": "8:05 direction: 'Two Blitzes stay home against raiders'; 10:40 report: group_J 485, group_K 220, group_M 785 at home vs group_G 3175 at B5; produce plant_20622 to group_G only at 11:04",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:00-11:15",
+   "what": "Energy stood empty for about three minutes while two plants made Stouts and 10-11 constructors worked. Unit output was slowed, and the Nettle and Sentry frames that died at 10:06 and 10:20 were built at about two thirds of full rate. The commander had asked for 450 energy a second by 9:00.",
+   "evidence": "floor.py e0% 29.7; analyze_match 'energy stalled in minutes [2, 7, 9, 10, 11, 12]'; every report 8:00-11:39: 'energy 0/2600 ... STALLING'; unfinished review: store empty 8:17-11:15, 178 s",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:00-5:27",
+   "what": "Pressure was late. The first raiders crossed on time but roved our half, then fought his Blitzes and commander inside his base instead of hitting his outer spots. No building of his died before 9:38, against a pool p75 of 4:13 (all starts, Armada).",
+   "evidence": "commander 3:20: 'Our Blitzes were set to rove and are scattered through our own half'; pro_baseline --all-starts 'first building of his killed' pool 2:18/2:48/4:13; record: first armllt killed 9:38",
+   "kind": "both"
+  },
+  {
+   "clock": "11:39-12:52",
+   "what": "The walk back from his base to spot_59 left the body strung out, and it was caught by his Stouts. His raid on the middle extractors met only the turrets: the 1.5-2k home picket killed no raiding party.",
+   "evidence": "12:09 note; raid_ledger totals: 'answered 11 (11 within 60 s ...); parties that paid 0'; extractors 23 at 12:00 to 18 at 16:00 (analyze_match curves)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:41-14:43",
+   "what": "group_P (13 soldiers, 2,045 metal) walked home on the report's local 'outweighs' line while group_G fought his army at C4 alone. The fight was lost piecemeal.",
+   "evidence": "impedance item 4: actor entry led with 'for the 1 of its 8 soldiers near it, it outweighs us' while the group 'outweighs it narrowly (1.2 to 1)'; analyze_match #15 13:49-14:43 C4: lost 2465, killed 1830",
+   "kind": "harness"
+  },
+  {
+   "clock": "11:39-18:14",
+   "what": "No wreck was reclaimed all game, though the field grew to 7,805 metal behind our own front. The commander asked for reclaim three times, and the player never ordered it.",
+   "evidence": "bot.log every minute: '... 0 at work'; 18:00 'wrecks: 76 known in 11 fields, 7805 metal'; 11:58 note: 'wrecks at A4/B4 are in his base, not safe to reclaim yet'; directions 12:20, 15:20 and 16:50 ask for it",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:00-17:00",
+   "what": "Income stalled at 43-55 while the pool rose to 70-76: extractors fell 23 to 18 under his Stout raids, with 8 of 12 constructors helping the plants. The home extractor at spot_6 stood empty from 10:07 to the end.",
+   "evidence": "pro_baseline min 16: extractors 18 vs p25 24 '<p25', income 43 vs p25 70 '<p25'; commander 15:20: 'our extractors have fallen from 23 to 18 ... 8 of 12 constructors are helping the plants'",
+   "kind": "both"
+  },
+  {
+   "clock": "16:12-16:53",
+   "what": "The second arrival at his base was piecemeal and walked back east. The go_b4 signal sent inside an orders call was refused, and the 24 s turn ran in game time, so the gathered push started only at 16:53.",
+   "evidence": "16:27 note: 'body hit his base ... piecemeal and the hands walked it back'; impedance item 12: 'signal: not a tool that can be batched'; item 7: the turn took 24.3 s of wall time",
+   "kind": "both"
+  }
+ ],
+ "their_play": "u6bkep (Armada) opened one vehicle plant at B4, seen at 2:15, with Blitzes and his commander at home. They beat our piecemeal raiders at B4/C4 (4:40-5:27) and sent pairs of Blitzes onto our strip (H3 4:16, H2 5:29, E3 6:14). He walled his base with Sentries at spot_36, 28, 45 and 67, put a heavy laser tower at C3 by 6:55 and a radar, and held few extractors in sight: 4-7 all game, his south four lost at 9:38-9:54. He built energy heavily (12 solars, 4 advanced solars and 2 energy stores died at his base). He went air: a Peeper at 9:16, Thunders at 9:19, five bombing our home extractor at 10:06, the air plant at B4 seen at 10:52. From about 10:50 he fought with Stouts and Janus: 5-Stout raids into our middle took 4 extractors at 12:36-13:24, and his main army (9-12 Stouts, 2-3 Janus) met our split groups at C4 and E4 (13:49-16:08). He had an advanced vehicle plant up by 17:30 (an armacv seen at 17:29), too late: the 41-soldier body killed the advanced plant, the air plant and his commander at B4 by 18:03, and the rest of his side died with the commander by 18:07. He wrote nothing in the chat.",
+ "defects": [
+  {
+   "defect": "Rove was one task for the whole group, with no region: the Blitzes that joined the Rover's group roved our own half instead of staying in his.",
+   "fixed": "2026-10-16/17 (produce 'by_type' 5046f71; rove within a marked region 6264365)",
+   "evidence": "impedance item 8: units back in our half at 2:39, 2:53, 3:18 and 4:03; commander 3:20: 'Our Blitzes were set to rove and are scattered through our own half'"
+  },
+  {
+   "defect": "A detachment's whole-group attack shed the hunt's 900 leash, and the chase did not withdraw at danger.",
+   "fixed": "2026-10-16 (leash from each hunter's anchor, e9f5175) and 2026-10-17 (the chase can be recalled, 76139d9)",
+   "evidence": "impedance item 1: group_H 'attacking with the whole group and so without the hunt's 900 leash, chased from E3 to C3'; 4 Blitzes dead 7:00-7:07, 440 for 110"
+  },
+  {
+   "defect": "The detachment's forbidden mark acts only at 0.70, so detachments the packet forbade went at readings of 0.61-0.79.",
+   "fixed": "open (docs/harness/impedance.md: 'the forbidden mark acts at 0.70' under still open)",
+   "evidence": "impedance: forbid 0.66 at 6:28-6:39 (send_4_party_19), 0.66-0.67 at 12:23-12:29 (send_8_party_41), 0.65 at 10:21 (a bomber hunt); the 12:23 split let Stouts reach spot_40, 41 and 35"
+  },
+  {
+   "defect": "A produce call with only a group dropped the plant's counted list.",
+   "fixed": "open (no fix found in the 2026-10-16/17 lists)",
+   "evidence": "impedance item 9: after 2:29 produce {plant_20622: {group: new}}, the entry read 'idle: building nothing' at 3:04; nothing started 2:52-3:08"
+  },
+  {
+   "defect": "signal was not batchable inside an orders call.",
+   "fixed": "2026-10-16 (e9f5175)",
+   "evidence": "16:27 'signal: not a tool that can be batched'; go_b4 given alone at 16:53, about 25 s of the gathered push lost"
+  },
+  {
+   "defect": "The report read 'outweighs it' on the local comparison, so a group walked home under a fall-back clause meant for the whole group.",
+   "fixed": "open (no fix found)",
+   "evidence": "impedance item 4, 13:41: group_P (2,045 metal) walked about 2,100 home while group_G fought at C4"
+  },
+  {
+   "defect": "The commander's report counted turrets without their type, so the commander believed we had no anti-air.",
+   "fixed": "open (no fix found)",
+   "evidence": "commander 9:20: 'We have no anti-air; it has been asked for since 0:20 and was never built' while Nettles finished at 7:53 and 9:32 (impedance item 13, B6)"
+  },
+  {
+   "defect": "An extractor step at a no_site spot stood unreported under a 'walking to build' line; the spot_6 home extractor was never rebuilt.",
+   "fixed": "partly 2026-10-16 (a build with no site is said to the player, e9f5175); what blocked the site is unsettled",
+   "evidence": "unfinished review: no_site 10:59, step stood 2:14, watchdog 13:13, no_site again 13:14; spot_6 empty 10:07-18:14"
+  },
+  {
+   "defect": "A hit builder stayed on its frame when no move cleared the world bar.",
+   "fixed": "open (no fix found)",
+   "evidence": "unfinished review item 1: constructor_3766 and its Sentry frame at E4 both died at 15:05; the gate read change 0.69-0.78 and no move entered a world"
+  },
+  {
+   "defect": "No builder priority: plants and turrets were built at the default priority through the energy stall (before the 2026-10-13 builder-priority fix). That this would have saved the frames is the reader's reading.",
+   "fixed": "2026-10-13",
+   "evidence": "unfinished review: armrl_5197 at 3.2%/s against 5%, bombed at 70% at 10:06; armllt_17783 at 2.5%/s against 3.75%, shot at 71% at 10:20"
+  },
+  {
+   "defect": "Builders stood in the plant's exit lane, and no lever kept a builder out of it.",
+   "fixed": "open (impedance.md: 'where a builder stands (the exit lane)' carries no lever)",
+   "evidence": "exit-lane wakes at 13:00 (armstump_28241), 15:13 and 16:27 (constructor_14761); floor.py yard_min 0.2, stuck_s 469"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The groups arriving one at a time (10:56 body of 13-17 with the picket home; 13:41 group_P home while group_G fought; 16:23 piecemeal at B4) traded about even. The one gathered 41-soldier body killed 14.6k for 2.6k and ended the game."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Army 2.8-9.3x his seen from 10:00 to 16:00 (minutes.py WINDOWS); commander 13:50: 'this is the moment to end it, before his air or tier 2 arrives'. The win came at 18:03, with his advanced plant up by 17:30."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "7,805 metal of wrecks in 11 fields at 18:00, none worked all game, three times asked for by the commander: the 'eat as you push' that was not done."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "22-23 extractors to his 4-7 seen at 10:00-12:00 paid for the army that won. The count fell to 18 by 16:00 when constructors went to the plants and his Stouts raided the middle."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The handful crossed at 2:00-2:03 (on the pool's clock) but roved our half and then fought inside his base, killing no building until 9:38. Whether it held his extractors at 4-7 is not shown: there is no truth file."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "His south spots at B8 (a Sentry, 4 extractors) fell in 16 s at 9:38-9:54 once the body went round the C3 tower to them."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "illustrates",
+   "note": "The same person, as the opponent, went air (Thunders 9:19, air plant seen 10:52). Our pre-emptive Nettles (7:53, 9:32) and Whistlers killed his five bombers at home for one extractor."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "floor.py assist4 132 s, the commander on the plant (pool 50, thebluegecko 140)."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars before the plant (pool 2), plant started 1:04 (pool 0:34 all starts), first unit a constructor at 1:23: the three-solar line with its fast constructor, though the plant was late."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "illustrates",
+   "note": "plant_20622 idle 2:52-3:08 after a produce call with only a group dropped its list (a harness defect)."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "Exit-lane wakes at 13:00, 15:13 and 16:27 for our own units standing in plant_20622's lane."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "From 7:20, on the commander's 6:20 direction, Stouts joined the Blitzes against his Blitzes and Sentries. He answered with Stouts and Janus from about 10:50."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "From 2x (8:00, 4.0x his seen) to the end took about ten minutes, against the pool's 3.4-minute median. The gathered body from spot_43/C5 won in 70 s; the body's walk home at 11:39-12:52 was caught strung out."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "A turret with every outer extractor (14 light turrets by 8:00, pool p75 13) and a 1.5-2k picket answered all 11 raids within 60 s, yet no raiding party paid. Stout parties of 3-5 overran turreted pairs."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "The C3 heavy laser tower (seen 6:55) was routed round from 8:05. The 10:56 assault into Sentries, Blitzes, Stouts and a Janus at B4 cost 8 of 17 soldiers and was called off."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Commander 0:20: 'A person may go to air, so by 7:00 put an anti-air turret at the plant'. Nettles stood at 7:53 and 9:32, before the first bombers at 10:06; all 5 Thunders died."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Crossed at 2:00 and within 1,500 of his start at 2:13, but his first building died at 9:38 (pool p75 4:13), the raiders lost to his Blitzes and commander in his base."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "10 constructors by 8:00 (pool p75 7) bought extractors above p75 at 7:00-10:00. The same constructors then sat at the plants while income fell under the pool's p25 at 16:00."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "Energy, not metal, bound this game: e0% 29.7 against mfull% 0.6, idle% 2.5. Frames under the stall rose at about two thirds of full rate."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py (and --all-starts)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 10:45-11:25 group_G",
+   "the commander's transcript (commander.jsonl, every direct/note call)",
+   "inline reads of record-0 (enemy_destroyed, enemy_seen first sightings, created events near spot_6) and of strategist-0.jsonl (instruct texts at 8:22, 9:58, 11:22)",
+   "the existing impedance-review.md (2026-10-16) and unfinished-review.md (2026-10-17) in the match directory"
+  ],
+  "existing_review": "none (no review.md); built on run/matches/1791593626-human-29/00/impedance-review.md and unfinished-review.md, studies of the harness, not of the game",
+  "confidence": "medium",
+  "caveats": "No ledger row exists for human-29 and no review.md. No person commented on the game: the chat holds only our banner and 'gl hf', the person wrote nothing, and the user was silent. There is no truth file, so his army, extractors and economy are what we saw (floors). pro_baseline found no carded side for G1, so its rows come from --all-starts (all starts, Armada, OS 40+), and its pressure rows and 'army metal in his half' column are blank; minutes.py gave the crossing clocks instead. The root is the reader's reading of a won game. The impedance and unfinished reviews are model readings, cited as such; the reader did not re-run impedance_sweep.py. Not checked: whether the produce-drops-list, the outweigh report and the commander's turret count have since been fixed."
+ },
+ "open_questions": [
+  "Did the early raids and the body keep him at 4-7 extractors, or were more of his unseen? There is no truth file.",
+  "What blocked the spot_6 home extractor (no_site from 10:59 to the end): the bombed extractor's wreck, our Nettle at (6248, 632), or plant_20622's footprint?",
+  "Would the 10:56 assault on B4 have ended the game with the home picket (about 1.5k) and full energy behind it? This is the reader's root; no person has looked at the game.",
+  "How close was his tier 2 to mattering? The advanced vehicle plant and an armacv were first seen at 17:29-17:30, and when they were started is unknown."
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1791593626-human-29.json"
+}

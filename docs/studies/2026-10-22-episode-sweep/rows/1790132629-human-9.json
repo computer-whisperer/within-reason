@@ -1,0 +1,243 @@
+{
+ "batch": "1790132629-human-9",
+ "label": "human-9",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-22",
+ "shape": "1v2",
+ "people": "None in the header (the shim bug of the time) and no player chat in the record. The ledger says: the user's lobby, \"opponents Armada air and Cortex bots\". Units seen: Armada (commander, constructors, an Aircraft Plant at A4, Banshees, Blitzes) and Cortex (Grunts, Storms, Thuds, Necros). Names and ratings unknown.",
+ "our_side": "One seat, alone on its team (ai 1, team 2, ally team 1; no allied unit in any sample). Armada from G1 (6899, 681), the north-east corner. Player: Claude Opus 5 at effort low on the claude2 account, in realtime. Hands: Jev 1.13.0 (jev-latest) under the pianist, the old hands before the 2026-10-02 rebuild. No commander role. 35 turns, 11.1 s median wall.",
+ "build": "684a07c",
+ "result": {
+  "outcome": "lost",
+  "minute": "12:55 (the record ends with our commander at 2% at H3; the base was overrun 9:20-10:26)"
+ },
+ "summary": "One Opus 5 low seat played alone against two people (Armada air and Cortex bots) from the north-east corner of Comet Catcher, and its economy never started. By 1:43 the opening had two extractors and six solars. From 2:00 metal stood at 0 with the energy store full, and we never held more than four extractors (income 5-8 all game). Our Rover saw his Aircraft Plant at 2:18, but the report gave only its grid: the player called it a vehicle plant and the plant kept making Blitzes. Single Banshees from 3:54 and Cortex Grunt raids (eight at 6:01) took extractors faster than we rebuilt. The Whistlers asked for at 5:28 came at 8:32, and at 8:13-8:20 six Banshees killed all eight Blitzes, which were stuck on a stale engage 700 elmos west of the Nettles. Storms, Thuds, Grunts and Armada Blitzes then overran a base with no army (9:20-10:26), and the commander fled south-east, hunted to 2%.",
+ "root": {
+  "clock": "2:00",
+  "what": "The economy left the path in the opening. The 0:00 packet put two extractors and five solars on the commander. The default added one more solar in the 22 s before the packet landed, so four stood before the plant (started 1:01; pool 0:34). By 2:00 metal was 0 with energy full, and the player's 1:00 and 2:00 turns were 'wait'. The first constructor took 60 s under the stall, so the third extractor came at 2:37 and four was the most ever held.",
+  "evidence": "bot.log 2:00: 'metal 0 (+5.4/-5.4) energy 1350/1350 | mex 2 labs 1 cons 1'; pro_baseline: extractors 2 at 2:00 (pool 3/3/4, <p25), 'solars before the plant 4' vs 2, plant started 1:01 vs 0:34; commander_turns 1:00 and 2:00: 'wait'"
+ },
+ "turning_points": [
+  {
+   "clock": "0:22-0:28",
+   "what": "In the 22 s before the first packet landed, the default built extractors at spot_10 and spot_5 and a solar. The list then started from its first step: it skipped spot_10, re-issued spot_5 (already built; the picture did not match that extractor to the spot) and was refused, then built three more solars before the plant (ordered 0:54).",
+   "evidence": "hands_window 0:07 'build a armmex at spot_5 (G1) [jev]', record created armmex (6992,560) 0:10; impedance_sweep '0:23 skipped the step extractor spot_10 ... not free', '0:28 the engine refused a armmex at G1: the site was bad'"
+  },
+  {
+   "clock": "2:18",
+   "what": "The Rover (crossed 1:51, within 88 of his start at 2:17) saw his Aircraft Plant at A4. The report listed it as a grid without a type, and at 3:27 the player called it a vehicle plant. The produce stayed Rover, constructors and Blitzes.",
+   "evidence": "minutes.py 'his first factory seen: 2:18 at A4'; record enemy_seen armap (992,2488) 2:18; 3:15 report 'its factories standing as far as we know: A4 (992, 2488)'; 3:27 instruct 'commander and vehicle plant were seen'"
+  },
+  {
+   "clock": "3:54-5:40",
+   "what": "The first Banshee came at 3:54, and the hands sent Blitzes after it. Single Banshees killed extractors at 3:59 and 5:40. The first Nettle was started at 4:42 and standing at 5:02.",
+   "evidence": "hands_window 4:06 'group_C: attack party_19 (1 armkam) [jev]', 4:08 'group_B: attack party_19 (1 armkam)'; raid_ledger 3:59 spot_12 armkam, 5:40 spot_6 armkam; record armrl created 4:42 finished 5:02"
+  },
+  {
+   "clock": "6:01-6:31",
+   "what": "Eight Grunts raided H2/H1, and the Blitzes went at them in ones: group_C's two split into a group of one, and group_E sent two and then walked west to spot_6. We lost two extractors, a turret, a Nettle and a constructor.",
+   "evidence": "analyze_match #1 6:03-6:31 H2: 'we lost 555 ... they lost 86 ({corak: 2})'; hands_window 6:03 'group_C: send 1 soldiers as group_F', 'group_E: send 2 soldiers as group_G'; 6:18 'group_E: walk to spot_6'"
+  },
+  {
+   "clock": "7:44-8:34",
+   "what": "group_E (six Blitzes, eight with joiners) chased three Grunts west. The packet sent at 7:43 put the group at spot_6 under a Nettle, but the group stood on a stale engage at F1 (5810, 914) until six Banshees killed it. The Nettles then killed all six Banshees at 8:22-8:34.",
+   "evidence": "hands_window group_E at (5810, 914) 'task engage' 7:44-8:20, 6 to 1; analyze_match #2 8:11-8:34 F1: 'we lost 660 ({armflash: 6}), they lost 810 ({armkam: 6})'; scene 7:56: the Nettles about 700 east"
+  },
+  {
+   "clock": "9:20-10:26",
+   "what": "With the army gone (one Whistler, finished 9:16), seven Storms, two Thuds, Grunts and Armada Blitzes overran the base. The plant died at 10:04, and the player turned to saving the commander.",
+   "evidence": "analyze_match #4 10:04-10:26 G1: 'we lost 1895 ({armvp: 1, ... armsolar: 6 ...}), they lost 0; ours 450 + 80 + commander vs theirs 1043'; raid_ledger 9:27 spot_6 '7 corstorm, 2 corthud'"
+  },
+  {
+   "clock": "11:25-12:55",
+   "what": "In the south-east the two-Whistler escort held 1,300 away while Banshees hit the commander at spot_42. When its list ran out, the commander walked back north to spot_17. The record ends with it at 2%.",
+   "evidence": "commander_turns 11:25 note: 'the Whistlers were holding 1300 away'; 12:37 note: 'the hands walked the commander back north to spot_17 once its list ran out'; analyze_match last sample 12:55: commander 2% at H3"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00",
+   "what": "The opening packet put two extractors, three solars, the plant and two more solars on the commander, and gave the constructors no lists until 3:15. A stronger player builds two solars and the plant by ~0:34 with the commander on it, then sends the first constructor straight to spot_12/spot_6/spot_17. The pool has 3 extractors at 2:00 and 7 at 4:00.",
+   "evidence": "commander_turns 0:00 queue: ['extractor spot_10','extractor spot_5','armsolar'x3,'armvp','armsolar'x2,'assist']; pro_baseline 'factory units by 4:00' 6 vs 17/19/22; extractors 3 at 4:00 vs 6/7/8",
+   "kind": "strategy"
+  },
+  {
+   "clock": "1:00-2:00",
+   "what": "The player waited through two turns: 'extractors 2 (no new high for 1:44)', metal 0 and energy full. Meanwhile the commander spent 1:43-2:25 on a sixth solar instead of assisting the plant or taking spot_12. A stronger player cuts the remaining solars and queues extractors.",
+   "evidence": "told 2:00: 'eco: metal 0 (+5.4/-5.4), energy 1350/1350 (+98) | extractors 2 constructors 1 labs 1'; record armsolar created 1:43, finished 2:25; floor stall4 86 s",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:18-5:28",
+   "what": "Anti-air started only after the first Banshee: the first Nettle at 4:42, Whistlers asked for at 5:28. The air plant had been in sight since 2:18 but untyped, so the player could not read it (a harness cause). The player's own debrief says Nettles and Whistlers should be in the plan by 3:30.",
+   "evidence": "minutes.py 'his first factory seen: 2:18 at A4'; 3:27 instruct 'vehicle plant'; record armrl created 4:42; debrief: 'put Whistlers (armsam) and Nettles in the plan by 3:30, not after the first gunship'",
+   "kind": "both"
+  },
+  {
+   "clock": "5:28-8:32",
+   "what": "The player listed Whistlers first at 5:28, but the plant's pick chose a Blitz at 5:51 and constructors at 6:21 and 7:03. The first Whistler started at 8:32 and finished at 9:16, after the Blitzes had died.",
+   "evidence": "jev-1 plant_11326.next 5:51: armflash 0.76, armsam 0.05 with 'Whistler (armsam) (4 more allowed)' first; 6:21 armcv 0.68; 7:03 armcv 0.44; 8:08 armsam 0.56; record armsam created 8:32 finished 9:16",
+   "kind": "harness"
+  },
+  {
+   "clock": "6:01-6:31",
+   "what": "Against eight Grunts at H2/H1 the hands fed the Blitzes in ones and twos, and the main group walked west while the raid was east. The packet's 'one body ... never in detachments' did not hold the old hands' detachment picks.",
+   "evidence": "hands_window 6:03 'group_C: send 1 soldiers as group_F to spot_17', 'group_E: send 2 soldiers as group_G'; 6:18 'group_E: walk to spot_6'; analyze_match #1 555 lost for 86",
+   "kind": "harness"
+  },
+  {
+   "clock": "7:34-8:20",
+   "what": "The army chased a Grunt party off the Nettle cover and then stood still. The packet sent at 7:43 (landed about 7:58) ordered it back to spot_6, but the hands kept 'engage' at F1 for 36 s until six Banshees killed it. The 880-metal army was the only one we ever had.",
+   "evidence": "hands_window 7:34 'group_E: attack party_40 (3 corak)'; 7:44-8:20 group_E at (5810, 914) task engage while party_40 walked to (4881,1306); 7:43 instruct: 'they come back and stand at spot_6'",
+   "kind": "harness"
+  },
+  {
+   "clock": "5:15",
+   "what": "With income 7, an army of 550 and single Banshees killing extractors, the player allowed two more constructors before any anti-air unit. They took the plant from 6:21 to 8:06 under the stall (the reader's reading: at four extractors and income 7 the plant could not both rebuild and defend).",
+   "evidence": "commander_turns 5:15 produce plant_11326 ['armcv:2','armflash']; record armcv created 6:59 finished 8:06, armcv created 8:07 finished 8:30",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:25-12:37",
+   "what": "The relocated commander was left without its escort, which held 1,300 away, and it walked back toward the enemy when its list emptied. The old hands had no escort order and no idle default.",
+   "evidence": "commander_turns 11:25 note 'Banshees found the commander at spot_42; the Whistlers were holding 1300 away'; 12:37 note 'the hands walked the commander back north to spot_17'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Two opponents, read from their units only (no truth file, so their economy is unknown). The Armada player built an Aircraft Plant at A4, seen at 2:18. His first Banshee came at 3:54, and single Banshees killed an extractor about once a minute (3:59, 5:40, 7:14). A six-Banshee wave at 8:07-8:20 killed all eight Blitzes and then died to the Nettles, and four more hunted our commander at 11:29-11:41. His Blitzes were in our base from 9:21. The Cortex player opened bots: a Storm near his base at 2:27, Grunt raids from 3:29, eight Grunts at H2/H1 at 6:01. At 9:27 seven Storms, two Thuds and Grunts came in at spot_6 alongside the Armada Blitzes, and the base fell 9:20-10:26; Necros appeared at 10:04. No tier 2 or static defence of theirs was seen. Every fight was in our half (their losses 2,054 at our base, 675 in our half). In a 1v2 they pressed early, air raids and bot raids together, while we sat on four extractors.",
+ "defects": [
+  {
+   "defect": "The spot table used the engine's points, 82-113 elmos from where extractors actually stand. Our extractor at spot_5 (6992, 560, built 0:10) was never matched to spot_5. The list re-issued the step and was refused at 0:28, every report listed spot_5 as free, and the player re-ordered it (7:03, 9:02, 9:20), drawing refusals at 8:18 and 9:17. The refusal was a duplicate, not a lost extractor; this differs from the ledger's reading.",
+   "fixed": "2026-09-22 (058336d, the metal-centroid spot centres)",
+   "evidence": "record created armmex u4289 (6992,560) 0:10, standing until 10:14; impedance_sweep '0:28 ... refused a armmex at G1: the site was bad', '8:18 constructor_2512 ... refused', '9:17 constructor_5535 ... refused'; told 1:00-3:54 '#5 G1 272' free"
+  },
+  {
+   "defect": "The report named an enemy factory by its grid only, never its type, so the Aircraft Plant read as a vehicle plant.",
+   "fixed": "2026-09-22 (058336d, the report names the factory types it sees)",
+   "evidence": "3:15 report: 'its factories standing as far as we know: A4 (992, 2488)'; record armap seen 2:18; 3:27 instruct 'Their commander and vehicle plant were seen'"
+  },
+  {
+   "defect": "No air words on the menus or in the roster. The hands sent Blitzes at a Banshee, and the plant's pick rated a Whistler at 0.05 against a Blitz at 0.76 with gunships about.",
+   "fixed": "2026-09-22 (058336d, the glossary's per-class damage against aircraft)",
+   "evidence": "hands_window 4:06 'group_C: attack party_19 (1 armkam) [jev]'; jev-1 5:51 plant_11326.next armflash 0.76 armsam 0.05"
+  },
+  {
+   "defect": "The pianist's first week. The default played the first 22 s before the packet landed, then the list started from its first step without counting what the default had built: a fourth solar went up before the plant and the plant order slipped to 0:54. The plant's pick also ignored the order of the produce list.",
+   "fixed": "2026-10-01 (the opening turn before the game and produce as a sequence)",
+   "evidence": "impedance_sweep 0:00 turn '22 s wall'; hands_window 0:02-0:14 [jev] mex, mex, solar, then [list] 0:23-0:54; pro_baseline 'solars before the plant 4'; jev-1 picks 5:51, 6:21, 7:03 against 'Whistler (armsam)' listed first"
+  },
+  {
+   "defect": "The old hands (era A): detachments of one against an eight-Grunt raid, a stale engage that kept the army at F1 against the packet's place, an escort that could not follow the commander, and a commander that walked off when its list emptied.",
+   "fixed": "2026-10-01/02 (the escort order and waiting list 2026-10-01; the hands rebuilt 2026-10-02)",
+   "evidence": "hands_window 6:03 group_F/group_G of 1-2; 7:44-8:20 group_E 'task engage' at (5810,914); notes 11:25 'holding 1300 away', 12:37 'walked the commander back north'"
+  },
+  {
+   "defect": "The player's session was replaced mid-game at 8:40 because a prompt file changed on disk; its notes were carried over. Not decisive: the army was already gone.",
+   "fixed": "procedure 2026-10-14 (no brief edits during a player game); the re-read on change stands",
+   "evidence": "bot.log ~8:18-9:00: 'the prompt on disk has changed: a fresh session reads it'; 8:40 turn woken 'TAKEOVER', prompt 'You are taking over mid-game from an earlier session of yourself'"
+  },
+  {
+   "defect": "A picture fault: 'unclaimed soldiers stand at: A1' appeared in reports while we had no soldiers, or none at A1.",
+   "fixed": "unknown",
+   "evidence": "told 0:00, 1:00, 2:00, 3:15, 3:54: 'unclaimed soldiers stand at: A1' (army 0 at 0:00-1:00)"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-opening-solar-cap",
+   "relation": "supports",
+   "note": "Six solars by 1:43, four of them before the plant. The energy store was full from 1:00 while metal was 0 from 2:00 (stall4 86 s)."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "supports",
+   "note": "Three-plus solars without a fast constructor: the plant's first unit was a Rover at 1:21, and the constructor took 1:32-2:32 under a metal stall. Two solars and an earlier plant would have fitted."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "supports",
+   "note": "The plant stood at 1:20, and the commander left at once for two more solars (1:21-1:42, 1:43-2:25) rather than assisting."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Never more than four extractors and income 5-8, alone against two people. The loss traces to the extractor count before any fight."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "The air and the overrun were the visible cause (and the player's debrief says 'Air decided it'), but at 2-4 extractors no unit choice could have paid for both anti-air and an army."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'Scout your opponent and pre-emptively go air': we scouted the air plant at 2:18, but anti-air came only after the first Banshee (the plant's type was missing from the report)."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The Rover crossed at 1:51 and was within 88 of his start at 2:17 (pool: in his half by 1:40), finding the air plant. It was the only unit of ours ever in his half; no pressure followed."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "This game is that lesson's source: the plant was seen at 2:18 (the record; the brief's 2:16 is the first constructor seen) and the first Banshee came at 3:54. The Whistler took 5:28 to 9:16 from ask to standing under the stall."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "Four solars before the plant, metal 0 at 2:00 with energy at 1,350/1,350, and the commander on a sixth solar while the plant starved."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Blitzes cannot fight gunships: eight were lost to six Banshees at F1. The Nettles killed 15 Banshees over the game wherever they stood."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "14 extractors lost; 5 undefended; no raiding party ever paid. Detachments of one met eight Grunts, and one spot (spot_12) was lost four times."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "After the base fell, the commander, with its list empty, walked back north toward their army (12:37) while its escort held 1,300 away."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Three constructors by 8:00 (pool 4/5/7). The first took 60 s under the stall, and the expansion lists came at 3:15."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "docs/experiments.md (ledger row)",
+   "chat.jsonl (no lines)",
+   "docs/briefs/inbox/1790132629-human-9.md (the player's debrief)",
+   "run/minutes.py",
+   "run/analyze_match.py (+ --engagement 2)",
+   "run/pro_baseline.py --all-starts",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls --told",
+   "run/wake_read.py (via seat-0 symlinks in the scratchpad)",
+   "run/impedance_sweep.py --seat 1",
+   "run/hands_window.py (0:00-1:05, 1:30-3:15, 3:54-4:30, 5:28-7:00 plant, 5:55-6:35, 7:30-8:36, 9:15-10:10, 12:00-12:56)",
+   "record-1.jsonl and jev-1.jsonl.zst read directly (events, plant picks)",
+   "bot.log"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No truth file, batch.json or results.jsonl: the opponents' numbers are only what we saw, and the 1v2 shape comes from the ledger plus the two factions seen. The only record is seat 1 (record-1.jsonl). wake_read hardcodes strategist-0/record-0, so it was run on scratchpad symlinks aliasing seat 1; impedance_sweep needed --seat 1. pro_baseline found no carded side from G1 and ran with --all-starts; the pool is OS 40+ duels, so it bounds only our own clocks in a 1v2. analyze_match reads outcome None. Three deaths at 9:35-10:05 are credited to 'xmasball2_6' (a seasonal ornament unit), which cannot be interpreted. The record's banner chat is attributed to player 0 as 'keithphw is Within Reason'. The ledger says the engine refused the spot_5 extractor and so the economy never passed four; the record shows the spot_5 extractor built at 0:10 and the refusal was a duplicate order, so the reader puts the root in the packet and the stall, not the refusal."
+ },
+ "open_questions": [
+  "How many opponent seats were there, and who played them? Neither the header nor the chat names anyone. The units show one Armada and one Cortex seat, and the ledger says the user's lobby.",
+  "Was this winnable for one seat against two people from a corner with a pool-shaped opening (7 extractors by 4:00)? With no truth file, their economy and army are unknown.",
+  "Was the 'unclaimed soldiers stand at: A1' line in the picture (seen with no soldiers) fixed, and when?",
+  "The spot_5 extractor stood 113 elmos from the table point (-72, +88), while the ledger measured BARb's extractors at (+40, +72) from the table at this start. Do the two offsets agree with the centroid fix, or did our placement differ from the game's?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790132629-human-9.json"
+}

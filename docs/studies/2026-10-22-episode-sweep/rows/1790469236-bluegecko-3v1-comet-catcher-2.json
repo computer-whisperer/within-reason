@@ -1,0 +1,271 @@
+{
+ "batch": "1790469236-bluegecko-3v1-comet-catcher-2",
+ "label": "bluegecko-3v1-comet-catcher-2",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-26",
+ "shape": "3v1",
+ "people": "thebluegecko (the label's 'bluegecko'; Armada, the west strip, start B5); the header recorded no person (the shim bug of the time) and the chat holds no line of his; rating not recorded in this game",
+ "our_side": "Three Armada seats on the east strip: t1 G1 (record-0, team 1), t2 H8 (record-1, team 2), t3 G4 (record-2, team 3); one player, claude-opus-5-5 at effort medium (Claude Code 2.1.283), ordering all three; no commander layer; hands Jev jev-latest = jev-1.13.0 on each seat; realtime; banner names MoustacheG, rossco, MonkeyLord (seat mapping not checked)",
+ "build": "98cac09",
+ "result": {
+  "outcome": "lost",
+  "minute": "20:27"
+ },
+ "summary": "Three Armada seats of ours (one Opus 5.5 medium player) on Comet Catcher's east strip lost to thebluegecko at 20:27, all three commanders dead (15:53 H2, 19:03 H7, 20:27 G4). The trade was level at 8:00 (2,707 of ours lost against 2,706 of his seen die); then the player turned two Blitz dives on his commander at his plant (5:15, 7:17-8:16: 23 units to the D-gun) and sent single groups into his Janus and Stouts (c3_outpost 10:16, E3 12:09), losing 12.9k for 4.6k from 8:00 to 13:00. From 11:00 our army (8-14k against a seen floor of 0.5-4.4k) never stood in his half again, and he walked Stout-Janus blocks round it: north to G1 (14:55-16:11), then with 30 Rovers along the south edge to H8 (16:38-19:03), while our ball stood at F4, spot_20 and, stalled by a stale march goal, spot_10. Both lost commanders were walked back into the block by go-home plays (harness, since fixed), and six or seven Bulls (first 18:33) took the last seat against no tier 2 of ours. Counted once by unit id across the three records, his destroyed was 25.2k against our 52.7k lost: the 'ahead on the trade' reading of the ledger, the player's report and the existing review rests on the report's triple counting.",
+ "root": {
+  "clock": "5:15",
+  "what": "The first lead (3.3k of Blitzes and Rovers across the seats against 31 seen at 5:00, the trade still even) was turned on his commander at his plant: 5:15 'THE KILL ... attack_unit the commander with every soldier', the hands' 5:19 hunt of 8 Blitzes onto the commander's party, and the 5:33 lesson drawn wrong ('Gathering 27 Blitzes ... before a single combined attack_unit'), which became the 47-Blitz attack of 7:17 and the 8:08 'NO RETREAT'. A stronger player keeps Blitzes off a D-gun at its plant, spends the lead on his outer extractors and constructors, and switches the plants at his first Janus (6:39). The 8:23 retreat to our half, the piecemeal fights and the seats lost one by one are its cost. Reader's reading; no person commented on this game.",
+  "evidence": "minutes.py seat 0 WINDOWS: '3:00-5:00 (2.2-50.7x) ... D5* ... ended at 6:00 at 0.0x (990/0)'; analyze_match #2 '5:18-5:27 C4 at their base: we lost 911 ... they lost 0'; hands_window 5:19 'PLAYS group_A_t1: 8 of group_A_t1 hunt party_32_t1 (1 armcom, ...) [plan]'"
+ },
+ "turning_points": [
+  {
+   "clock": "5:15-5:27",
+   "what": "First dive: 8 Blitzes and a Rover D-gunned at C4 by the hands' hunt before the player's orders landed (the slot was still station_spot_38).",
+   "evidence": "hands_window seat 0 5:19 'PICK w2 ... changed=[group_A_t1: 8 of group_A_t1 hunt party_32_t1 (1 ar...]'; minutes 'armflash_11375 ... died 5:25 at C4 to armcom' (eight such lines 5:20-5:27)"
+  },
+  {
+   "clock": "7:17-8:23",
+   "what": "47 Blitzes of three groups sent at B4 to kill the commander; the old hands walked group_A_t2 home mid-attack at 8:07; 2,781 lost for 1,252 (dedup); 20 Blitzes and 3 Rovers to the D-gun in all. 8:23: plants to Janus/Stout/Shellshocker and the army held at spot_37 in our half.",
+   "evidence": "7:17 note 'committing 47 Blitzes (3 groups) ... attack_unit commander on sight'; hands_window seat 1 8:07 'PLAYS group_A_t2: fall back home [plan]'; inline dedup 7:45-8:30 ours 2781, his 1252; 8:23 note 'lost ~20 Blitzes to its D-gun'"
+  },
+  {
+   "clock": "10:16-11:45",
+   "what": "c3_outpost: group_C_t3 alone into 2 Janus, 4 Stouts and an LLT at D4; 'we outweigh, letting it finish'; 5,190 lost for 1,726 (dedup, with the D4/E4 fights to 11:45).",
+   "evidence": "10:39 note 'group_C_t3 (3.5k) fighting their party of 7 ... plus an LLT at D4; we outweigh, letting it finish'; 10:47 'lost ~11 Blitzes ... piecemeal'; minutes seat 2 min 11 '2420 (D4)'"
+  },
+  {
+   "clock": "11:45-13:58",
+   "what": "His second wave (15 Stouts, 8 Janus seen) broken inside our F3/F4 turrets after group_A_t2 arrived alone at 12:09; it cost us 9,025 for his 5,498 (dedup), not the win the report's '33k:19.7k' showed. 13:58: the 8k ball parked at spot_20 over the wrecks instead of going west.",
+   "evidence": "12:09 note 'group_A_t2 lost 11 Blitzes to Janus arriving alone'; 13:58 note 'second enemy wave broken (trade 33k:19.7k). Ball of 3 groups (~8k) moves to spot_20'; inline dedup 11:45-13:58 ours 9025, his 5498"
+  },
+  {
+   "clock": "14:55-16:11",
+   "what": "His third wave (12-14 Stouts and Janus) walked round the ball to seat 1 at G1: plant, extractors, commander_t1 (dead 15:53 after 'go home [rule]' at 15:41). 14:15-16:15: 13.9k lost for 7.9k (dedup).",
+   "evidence": "analyze_match seat 0 '#10 at 15:10 G1 (at our base): we lost 5975 metal, they lost 2730'; hands_window 15:41 'PLAYS commander_t1: go home [rule]'; 'our commander died at 15:53 at H2 ... to armstump'"
+  },
+  {
+   "clock": "17:08-19:03",
+   "what": "Stouts along the south edge (with 30 Rovers at D6-G7 from 16:38) took seat 2 at H8 while group_A_t2 (35, 7.4k) stood at spot_10 on a stale march goal; commander_t2 held by an assist list step, then 'go home [plan]' at 18:48, dead 19:03.",
+   "evidence": "hands_window seat 1 'group_A_t2: 35 at (6595, 1069), task fight_to spot_57' every sample 17:23-17:48; 17:49 note 'stalled near spot_10 for minutes'; 18:48 'go home; its list step armllt spot_51 waits [plan]'"
+  },
+  {
+   "clock": "18:33-20:27",
+   "what": "Tier 2: first Bull 18:33 at F3, air constructors 19:27; six or seven Bulls took seat 3 at G4 for 220 of theirs; commander_t3 dead 20:27. No advanced plant of ours all game.",
+   "evidence": "first sightings 'armbull 18:33 5347 1735', 'armca 19:27'; analyze_match seat 2 '#16 at 19:57 G4: we lost 5515 metal, they lost 0'; 'our commander died at 20:27 at G4 ... to armbull'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "5:15, 7:17, 8:08",
+   "what": "Blitzes (reach 180) sent at a commander with a D-gun at its plant, twice, the second time with the whole army and 'NO RETREAT' ('forty Blitzes kill it in seconds'); a stronger player raids his outer extractors and constructors and leaves the commander to Stouts and Janus.",
+   "evidence": "8:08 instruct 'the commander's D-gun kills one Blitz a shot and forty Blitzes kill it in seconds'; records: 23 of ours destroyed by armcom (20 armflash, 3 armfav)",
+   "kind": "both"
+  },
+  {
+   "clock": "6:39-8:23",
+   "what": "Plants kept on Blitzes after his first Janus (6:39) and Stouts (7:49); switched only at 8:23 after the second dive. From 8:00 to 13:00 Blitzes into Janus and Stouts traded 12.9k for 4.6k.",
+   "evidence": "first sightings 'armjanus 6:39', 'armstump 7:49'; 8:23 produce armjanus/armstump/armart; inline dedup 8:00-13:00 ours 12911, his 4574",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:16, 12:09",
+   "what": "Single groups sent into his parties: group_C_t3 alone to c3_outpost, group_A_t2 alone into E3; the three seats fought as one only once (13:19).",
+   "evidence": "10:16 instruct 'group_C_t3 advances to c3_outpost'; 12:09 note 'group_A_t2 lost 11 Blitzes to Janus arriving alone'; 13:19 note 'all three groups (~8.5k) engage it together'",
+   "kind": "both"
+  },
+  {
+   "clock": "8:23-20:27",
+   "what": "The lead never converted: from 11:00 our mass was never over 30% in his half on any seat; stations spot_37, spot_20, spot_27, spot_10, spot_18, spot_42; standing never on spot_36/spot_38 (9:58, 10:30); the 16:16 'push west' never ordered. A stronger player goes west at 13:58 with the 8k ball.",
+   "evidence": "minutes.py all three seats: '(  0%)' in every row from 12:00; 16:16 note 'seen army ~1.4k vs our 10k ... gather ball at spot_18 then ... push west'; next stations spot_57, spot_42",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:00-12:00",
+   "what": "Economy below the pool on every seat: three solars before the plant, factory units by 4:00 16/9/9 (pool 19), constructors by 8:00 3/3/3 (pool 5), extractors below p25 from 4-5 min, seats adding 3/3/0 extractors from 8:00 to 12:00 (winners 11); the three seats together about one pro winner (35 extractors, 75 income at 14:00 against winners' 30/72).",
+   "evidence": "pro_baseline: 'factory units by 4:00 16 ... <p25' (9, 9 on seats 2-3); 'constructors made by 8:00 3 ... <p25'; 14:23 wake 'no growth: we have not held more than 13 extractors for 4 min, with 37 free spots'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:03",
+   "what": "The north group (10 Blitzes by the player's count) sent west to spot_38 with nothing left at home; five Rovers took five of seat 1's extractors 4:21-4:53 (rebuilt by 6:45).",
+   "evidence": "4:03 note 'North group of 10 Blitzes goes to raid enemy middle/west spots (spot_38)'; raid_ledger seat 0 4:21-4:53 spot_3, spot_11, spot_16, spot_5, spot_12",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:58",
+   "what": "The ball parked to cover a 5k wreck field that was not reclaimed (no rez bots; the existing review counts 8 reclaim plays all game).",
+   "evidence": "13:58 note 'moves to spot_20 to cover the 5k wreck field ... No bot lab so no rez bots; constructors reclaim'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "18:33-20:07",
+   "what": "Tier 2 unanswered: no advanced plant queued all game; at 20:07 the player read four listed Bulls as 'a lone heavy (likely the Bull)'.",
+   "evidence": "18:37 note 'Enemy has a Bull (T2) at F3 now'; 20:07 note 'a lone heavy (likely the Bull) is picking off turrets/extractors'; existing review: party_95_t3 = 4 armbull",
+   "kind": "strategy"
+  },
+  {
+   "clock": "15:41, 18:48",
+   "what": "Both lost commanders were walking away (the player's escape) when a go-home play turned them back into the block; commander_t2 had first been held at H8 by an assist list step.",
+   "evidence": "hands_window seat 0 15:41 'PLAYS commander_t1: go home [rule]'; seat 1 18:48 'go home; its list step armllt spot_51 waits for it [plan]'; 18:23 note 'on a list with assist so the hands could not move it'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Rover raids at both ends from 2:43 (11 of our extractors by 4:53) and an outpost at E3 by 4:43 (a beamer, Rovers, two constructors, an extractor; killed 4:56-5:13); his commander stayed at his plant and D-gunned both Blitz dives (23 kills). Janus from 6:39 and Stouts from 7:49, a minute and more before our switch, then waves of Stouts and Janus: D4 10:38, E3 11:39-13:50 (15 Stouts, 8 Janus seen), and blocks that walked round our ball rather than into it: north to G1 (14:55-16:11), then 30 Rovers to the south (16:38-17:35) with Stouts along the south edge into H8 (17:00-18:39). Beamer turrets at E3 from about 16:00; a Bull at 18:33, air constructors at 19:27, six or seven Bulls at G4 by 20:12. He fought almost entirely in our half (seat 0's record: 17.2k of his losses in our half, 4.3k at our base, 2.5k in his half, 1.3k at his base). We saw 11 of his extractors, none after 10:12, and never his advanced plant; his economy is unknown (no truth file), but he fielded at least 61 Stouts, 28 Janus, 57 Rovers and 8 Bulls.",
+ "defects": [
+  {
+   "defect": "Old hands' walks home (era A): a retreat rule and the plan's go-home state walked commanders back into the party; the fall-back walked a group home mid-attack.",
+   "fixed": "2026-09-26 (a9cd2f0, the rule's case); 2026-10-02 (hands rebuilt, the plan's go-home)",
+   "evidence": "15:41 'go home [rule]' then commander_t1 dead 15:53; 18:48 commander_t2 'go home ... [plan]', dead 19:03; 8:07 'group_A_t2: fall back home [plan]' at B4. The north and south seats' ends rest on this."
+  },
+  {
+   "defect": "A list step (assist) that the hands could not leave held a commander under a block (lists that could not be cancelled, era A).",
+   "fixed": "2026-09-26 (a9cd2f0)",
+   "evidence": "18:23 note 'commander_t2 was on a list with assist so the hands could not move it'; 4-15 Stouts within 700 of it 18:15-18:33 (existing review)"
+  },
+  {
+   "defect": "The old engage pick: the hands hunted a party holding the enemy commander with 8 Blitzes (era A).",
+   "fixed": "2026-10-02 (hands rebuilt)",
+   "evidence": "hands_window seat 0 5:19 'PLAYS group_A_t1: 8 of group_A_t1 hunt party_32_t1 (1 armcom, 1 armfav, 1 armf [plan]'; 5:33 note 'hands hunted with 8 Blitzes before orders landed'"
+  },
+  {
+   "defect": "Stale march goal: group_A_t2's members kept fighting toward the 15:25 station (spot_10) under two later stations; 'lane raw' freed it.",
+   "fixed": "2026-10-02 (hands rebuilt; the specific fix not verified)",
+   "evidence": "hands_window seat 1 'group_A_t2: 35 at (6595, 1069), task fight_to spot_57' 17:23-17:48; existing review: fight (6800, 600) commands 30, 21, 18, 10, 24 a half minute from 15:30. Seat 2's loss rests partly on it."
+  },
+  {
+   "defect": "The report's trade summed the seats: each enemy death counted once per seat that saw it (three times) (era B).",
+   "fixed": "2026-09-27 (ff32935, H-PLAYER-TRADE-ONCE)",
+   "evidence": "13:58 note 'trade 33k:19.7k', 16:16 '56.7k:33.5k'; counted once by unit id across the records: 11.0k:19.8k at 13:59, 18.9k:33.7k at 16:16, 25.2k:52.7k at the end"
+  },
+  {
+   "defect": "The packet's paragraphs never reached a tagged group (group_A_t2 read as group_A) (era B).",
+   "fixed": "2026-09-26 (d64864a, after the game began)",
+   "evidence": "decompression-review.md: 'On 98cac09, rules_for gives only constructors a class, so those rules reached no actor'; 0 of 215 plays depended on a packet-only rule"
+  },
+  {
+   "defect": "No seat's odds counted the other seats' groups (allied groups out of the picture) (era B); a reader's link to the piecemeal fights, not measured.",
+   "fixed": "2026-09-27 (ff32935, H-HANDS-ALLIED-GROUPS)",
+   "evidence": "group_C_t3 alone at D4 10:38-11:39 and group_A_t2 alone at E3 11:54-12:09; the existing review: one near-joint fight all game (13:19-13:58)"
+  },
+  {
+   "defect": "Pianist answers dropped (Jev over 3 s) on seats 2 and 3 in the first raids.",
+   "fixed": "unknown",
+   "evidence": "bot.log: 19 lines 'the answer to the request of frame N has not come in 3 s; dropped', f=4380-5640 (2:26-3:08)"
+  },
+  {
+   "defect": "Builders fled unarmed air constructors (the threat states).",
+   "fixed": "2026-09-26 (a9cd2f0)",
+   "evidence": "19:50 note 'constructors kept fleeing unarmed enemy air constructors: retreat rule cleared'"
+  },
+  {
+   "defect": "The header recorded no person and the opponent's seat as controller Unknown; no truth file.",
+   "fixed": "2026-09-27 (the people in the header, per the sweep README)",
+   "evidence": "record-0 header seats: team 0 'controller': 'Unknown', team 1 (ours) 'Unknown'; analyze_match 'opponent data: ONLY what our units saw (no truth file)'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "An army of 8-14k against a seen 0.5-4.4k from 11:00 to 20:00 never went into his half after 11:00 and the game went bad seat by seat, as the lesson's 'if you dont use taht army advantage this will soon go bad' predicts."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Groups arrived one at a time (group_C_t3 alone at D4 10:38, group_A_t2 alone at E3 12:09); the three seats fought as one only at 13:19."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "His Janus (6:39) and Stouts (7:49) beat our Blitzes: 12.9k of ours for 4.6k of his from 8:00 to 13:00; the plants switched at 8:23."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "Bounds the lesson: Blitzes driven at a commander that stands at its plant with an LLT and Janus died to the D-gun (23 units, 5:18-5:27 and 7:50-8:16); the lesson's case was a commander caught away from its base."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Three seats together held about one pro winner's economy (35 extractors, 75 income at 14:00 against the pool winners' 30 and 72); the seats added 3/3/0 extractors from 8:00 to 12:00 with 37 free spots."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "supports",
+   "note": "No advanced plant of ours all game; his Bulls (first 18:33) took the last seat for 220 of theirs."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "13:58: the ball parked to cover a 5k wreck field with no rez bots and few reclaim plays."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Our Rovers crossed at 1:52-2:47 and came within 587-1,725 of his start as scouts, killing nothing there; the first buildings of his killed at his base died at 7:54-8:06 (an outpost extractor at E3 at 4:58)."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars before the plant on every seat, Rover first and the constructor second (1:58/1:40/1:19); factory units by 4:00 16/9/9 against the pool's 19."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The 8k ball parked at spot_20 at 13:58 and at spot_18 at 16:16; his blocks walked round it and took two seats."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "Blitzes into the D-gun (23 dead) and into Janus and Stouts (c3_outpost 5.2k for 1.7k; E3 12:09)."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "contradicts",
+   "note": "Counted once by unit id across the three records the game was not ahead on the trade: 25.2k of his destroyed against 52.7k of ours lost (mobile 24.5k against 39.9k); level only to 8:00."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "Two commanders walked back into Stout blocks by go-home plays (a harness fault, fixed a9cd2f0 and the hands rebuild), not by the player's plan, which had them walking away."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "A game past 14:00 unconverted met his Bulls at 18:33 with three tier-1 seats and no advanced plant."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Constructors 3 a seat by 8:00 (pool 5), extractors below p25 on every seat from 4-5 minutes on."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (each seat)",
+   "run/analyze_match.py (each seat)",
+   "run/pro_baseline.py --all-starts (each seat)",
+   "run/floor.py (each seat)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 0 5:12-5:30 group_A_t1, 15:34-15:53 commander_t1; seat 1 7:50-8:20 and 17:00-17:50 group_A_t2, 18:15-19:03 commander_t2)",
+   "inline python: deaths counted once by unit id across the three records, first sightings by type, his extractors seen",
+   "grep of bot.log and docs/experiments.md"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790469236-bluegecko-3v1-comet-catcher-2/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, results.jsonl or batch.json: his army, economy and losses are what we saw (floors). minutes.py, analyze_match, pro_baseline and floor read record-0 only, so seats 1 and 2 were read through scratchpad directories of symlinks and the jev logs decompressed from .zst; pro_baseline has no pool for G1/H8 and its pressure rows read '-'; raid_ledger 'answered 0' on every seat is the tool's pattern; floor's jev columns exist for seat 0 only. games.jsonl lists our_seats 2, but the header has three seats of ours (team 1's controller recorded Unknown). The chat holds only our banners: no person's line and no computer_whisperer line, so every 'because' here is the reader's or the player's notes. Differs from review.md (Fable 5.1, 2026-09-26): its 'you won every fight you chose' and '56.7k destroyed to 33.5k lost at 16:16' rest on the triple-counted trade (18.9k to 33.7k counted once); its decisive moment 13:58 is here a turning point and the root is 5:15; the 8:23 'never toward enemy_plant' was prose that reached no group (d64864a), so the army's stay in our half was the player's stations and its standing never on spot_36/spot_38."
+ },
+ "open_questions": [
+  "His economy: 11 of his extractors seen, none after 10:12, his advanced plant never seen; were our three seats' 35 extractors and 75 income at 14:00 ahead of his or level?",
+  "Did the triple-counted trade (13:58 '33k:19.7k', 16:16 '56.7k:33.5k') shape the choice to park and rebuild rather than push? The notes cite it at both turns; only the transcript's reasoning could tell.",
+  "Was the stale march goal (members fighting toward an old station under new ones) fixed specifically, or only removed with the hands rebuild of 2026-10-02?",
+  "games.jsonl gives our_seats 2 for this batch while the header has three seats of ours; other games of the era may be undercounted the same way."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790469236-bluegecko-3v1-comet-catcher-2.json"
+}

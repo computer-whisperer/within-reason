@@ -1,0 +1,240 @@
+{
+ "batch": "1790465811-bluegecko-2v1-great-divide",
+ "label": "bluegecko-2v1-great-divide",
+ "map": "Great Divide V1",
+ "date": "2026-09-26",
+ "shape": "2v1",
+ "people": "thebluegecko (the ledger's 'bluegecko'; OS 48 in the ranked duel list per docs/briefs/lessons.md), the north box, Armada; the header recorded no person (the shim bug of the time); bot.log names him 'player 0' for both of his chat lines",
+ "our_side": "Two seats of ours in the south box, one player over both: seat 0 Armada at B8 (640, 3744), seat 1 Cortex at H8 (2691, 3690). The player was claude-opus-5 at effort medium (run/human_game.sh set no model), with no commander role. The hands were Jev jev-1.13.0 as the pianist (the one-pass era, before the hands rebuild). Realtime, in the user's lobby.",
+ "build": "2c63194",
+ "result": {
+  "outcome": "lost",
+  "minute": "15:28"
+ },
+ "summary": "thebluegecko walked his commander through the E5 pass at 4:26 with a Rocko and a Warrior, added a Lazarus by 5:57, and lived in our half (C7-D7) to the end, building a forward nest there from 8:02 (light turrets, then Beamers and a heavy turret at 12:07-12:27). Our two seats met his party one group at a time and lost nearly every fight with more metal on the spot, except at 8:03-9:13 (lost 1,694, killed 1,975); after that the west group flipped thirty times between a station under his turrets and home. Under all of it was a seat fault fixed the same day: the first turn saw one seat, and one name space for two seats sent the lists and standing orders to whichever seat ticked first. So no list step played before 3:00, no scout was ever made, and the never list and the stations landed on the wrong seat. He came west at 13:25 with Warriors, then a Fatboy (seen 14:14) and Zeus (14:38); the west commander died at 14:20, the east at 15:28. We lost 25.5k and saw 4.4k of his die.",
+ "root": {
+  "clock": "0:00",
+  "what": "The first turn fired at frame 1 with one seat published. The player took itself for the south-east Cortex seat alone and wrote one Cortex opening keyed 'commander', which both seats share. No list step played on either seat before 3:00: both plants defaulted to bot labs, the scout cars were never made, and his base was never seen. The same drain later split the standing orders across seats. The cost began at 4:26, when his commander walked into groups that met it one at a time.",
+  "evidence": "commander_turns --notes 0:00: \"Great Divide, south-east H8 start, Cortex, 2v1 with an ally. Two passes here (C5 narrow, G5 wide)\"; K-team-one-name-for-two-seats-loses-a-seat (fixed aca9d65); minutes.py: \"his first factory seen: never\""
+ },
+ "turning_points": [
+  {
+   "clock": "4:26",
+   "what": "His commander, a Rocko and a Warrior came south through the pass. The west group (11 soldiers at D7) held while it was shelled, and the east group was still walking west from F7 as new units joined it.",
+   "evidence": "record en: armcom first seen 4:30 at (1684, 2581); hands_window seat 0 4:27 \"group_A: leaves party_4 and holds [rule]\" with \"group_A hit\"; seat 1 4:30 \"group_A: 5 at (2047, 3256), task move_to spot_15\""
+  },
+  {
+   "clock": "4:38",
+   "what": "First fights with the commander party, one seat at a time: west #0 at 4:38, then east #0 at 5:30. Both lost with more metal on the spot.",
+   "evidence": "analyze_match seat 0 #0 4:38 E7: ours 865 + 170 + commander vs 390 + commander, lost 368 for 0; seat 1 #0 5:30 E7: ours 1249 + 90 vs 660 + commander, lost 1249 for 270"
+  },
+  {
+   "clock": "5:33",
+   "what": "The player's 4:40 order 'everything onto their commander' landed 53 s late. The west group alternated between the rule's attack and hold and the pick's fall-back home in the same seconds.",
+   "evidence": "jev-0 packet decompressed 5:33 (turn 4:40); hands_window seat 0: 4:57 \"attack party_4 ... [rule]\", 4:58 \"leaves party_4 and holds [rule]\", then \"fall back home [plan]\""
+  },
+  {
+   "clock": "7:29",
+   "what": "The closest we came: his commander at 2,567 of 3,700 (69%) during #2. It healed, and after 8:00 it was seen in sight again only at 11-12 minutes, near full health.",
+   "evidence": "record en (both seats): armcom lowest health 2567 at 7:29 (1442, 3038); in-sight samples by minute: 6: min 2984, 7: min 2567, 8: 2742, 11: 3560, 12: 3638"
+  },
+  {
+   "clock": "8:03",
+   "what": "The only trade won came after the 7:18 commit of both groups to spot_15: seven Warriors and an LLT killed. The player's report read it as 3,670 destroyed because the seats' kills were summed.",
+   "evidence": "analyze_match seat 0 #3 8:03-9:13 D7 lost 1224, they lost 1975 (armwar 7, armllt 1); seat 1 #3 lost 470; notes 8:50: \"trade turned (12 Centurions and 2 turrets killed, 3670 destroyed in 3 min)\""
+  },
+  {
+   "clock": "9:36",
+   "what": "The west group flipped between station_spot_15 and walk_home under his LLTs until 12:21. Its station stood because the player's 9:31 and 10:47 'station spot_16' went to seat 1's group_A, which already had it.",
+   "evidence": "jev-0 pass slots group_A: station_spot_15 / walk_home alternating 9:36, 9:42, 9:56, 10:00 ... 11:57, 12:01; jev-1 group_A carried station_spot_16 from 8:53; seat 0 #4-#6: -570, -260, -2080 for 540"
+  },
+  {
+   "clock": "13:25",
+   "what": "His army came into the west base: the lab fell at 13:25 and the commander at 14:20. Our 13:29 retreat order landed at 14:16 as 'job expand'.",
+   "evidence": "analyze_match seat 0 #7 13:25 C8 lost 1010 (armlab); #8 14:04-14:20 B8 lost 4185 incl. armcom, ours 890 + 170 vs 2820 + 800; notes 13:29: \"West written off\""
+  },
+  {
+   "clock": "14:42",
+   "what": "The east seat fell in 46 s to Zeus, a Fatboy and Warriors.",
+   "evidence": "analyze_match seat 1 #7 14:42-15:28 G7 lost 6821 (corthud 11, corsolar 7, corlab, corcom) for 370; record en: armfboy first seen 14:14 (1171, 3622), armzeus 14:38"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "4:26-7:28",
+   "what": "His commander, with one to three escorts, stood in our half, and the two seats never converged on it. They fed it in groups and pieces, 3,827 lost for 800. A stronger player masses both groups, and the west commander (about 700 from his, helping the lab), into a circle around it and does not let go.",
+   "evidence": "notes 7:18: \"out-trading us because only half our soldiers are ever in the fight\"; analyze_match seat 0 #2 6:55 D7 ours 2014 + 170 vs 930 + commander, lost 1150 for 400",
+   "kind": "both"
+  },
+  {
+   "clock": "0:00",
+   "what": "The opening packet was built for one Cortex seat and on two false passes (C5, G5). The lists never played, both plants made constructors first from the hands' default, and both groups were sent to spot_12, the east seat's spot. The player also announced its seat and faction in chat.",
+   "evidence": "commander_turns --calls 0:00: say \"gl hf! south-east seat here, Cortex.\"; queue {\"commander\": [... \"corvp\" ...]}; produce {\"all\": [\"corfav:2\", ...]}; record: armlab 1:02, corlab 0:57, no armvp/corvp",
+   "kind": "both"
+  },
+  {
+   "clock": "0:00-15:28",
+   "what": "No scouting all game. The only scout was one Tick (2:57), which died at D7. The 12-20 radar contacts at D3-E4 were never identified, his factories and tier 2 were never seen, and the first Pawn east turned back at 4:17.",
+   "evidence": "minutes.py: \"his first factory seen: never\"; \"first of ours within 1,500 of his start (E2): never\"; \"armpw_29765: crossed 2:27; nearest his start 1993 at G6 2:42; back in our half at 4:17\"",
+   "kind": "both"
+  },
+  {
+   "clock": "9:31-12:13",
+   "what": "The west army stood and flipped under his nest of three LLTs, then a Beamer, losing 2,910 for 540. The cause was the seat drain of standing orders. The player diagnosed the stale station at 10:12, but its 10:47 clear-and-set went to the other seat again, and only 'clear all' at 12:06 (landed 12:13) ended it.",
+   "evidence": "notes 10:12: \"group_A was oscillating ... because the tool station was still spot_15/advance\"; notes 12:06: \"the stale tool station spot_15/advance kept parking the army under their new Beamer\"",
+   "kind": "harness"
+  },
+  {
+   "clock": "3:14-10:47",
+   "what": "No construction turret, second plant or tier 2 on either seat in 15 minutes. Four metal makers went up at 3:14-3:55, the west seat built three wind generators on a 0-20 wind map, and constructors stood idle 20-26% of the time. West income fell from 15.0 at 5:00 to 8.4 at 10:00.",
+   "evidence": "record finished: armmakr x3 3:14, cormakr 3:55, armwin x3 0:25; analyze_match seat 0 income 15.0 (5) -> 8.4 (10); floor idle% 20.2 seat 0, 25.7 seat 1; notes 10:47: \"income is 19 on 7 extractors\"",
+   "kind": "both"
+  },
+  {
+   "clock": "5:34-7:12",
+   "what": "After the 4:16 never list (which landed on the west seat only), the east seat's constructors walked north to his-side spots (spot_9 at 5:34, spot_8 at 6:35). Two died at the pass's north mouth at 7:08 and 7:12.",
+   "evidence": "review finding 4, verified in the claim K-team-one-name-for-two-seats-loses-a-seat: \"the 4:16 never spot_0..11 ... landed on the west seat only\"; commander_turns 4:16 standing never spot_0 ... spot_11",
+   "kind": "harness"
+  },
+  {
+   "clock": "12:42-14:20",
+   "what": "The west commander stayed at B8 under ten Warriors. The 13:29 retreat came late in the game and landed 47 s later, and it died 4 s after that. The labs' exit lanes were blocked by our own commander, constructors and an extractor (8:50, 12:42).",
+   "evidence": "notes 12:42: \"Our labs were idle with our own commander and a constructor blocking their exit lanes for two minutes\"; jev-0 packet 14:16 (turn 13:29); analyze_match: our commander died at 14:20 at B8",
+   "kind": "both"
+  }
+ ],
+ "their_play": "This was a commander-led push, not a pass camp. His commander came through the E5 pass at 4:26 with a Rocko and a Warrior, and a Lazarus (seen 5:57) raised our wrecks. The commander stayed in our half every minute from 5:12 to 15:26 (sightings at z 3000-3500) and was never below 69%. From 8:02 he built a forward nest at D6-D7: an LLT, two more at 9:13, a Beamer at 12:07, then a heavy turret and a second Beamer at 12:27. Warriors were the body, with a reserve of 12-20 radar contacts at D3-E4 that we never identified. Only two LLTs stood at the pass's north mouth (7:05, 7:07). His tier 2 was ready by about 14:00: a Fatboy seen at B8 at 14:14 and Zeus at 14:38, for the final sweep west (13:25-14:20) and then east (14:42-15:28). At 1:12 he told our player not to announce its faction and spawn.",
+ "defects": [
+  {
+   "defect": "Two seats shared one name space, and the first turn fired at frame 1 with one seat published (K-team-one-name-for-two-seats-loses-a-seat). Lists and standing orders went to whichever seat ticked first: the Cortex list to the Armada seat, the never list to seat 0 only, the stations to the other seat. A precursor of eras group B. The loss rests largely on it.",
+   "fixed": "2026-09-26 (aca9d65; follow-ups 2026-09-27/28, eras group B)",
+   "evidence": "0:00 note \"south-east H8 start, Cortex\"; jev pass slots: seat 1 group_A station_spot_16 from 8:53 while seat 0 kept station_spot_15 to 12:21; review: no [list] play on either seat before 3:00"
+  },
+  {
+   "defect": "The threat slot's default fired by rule in the same second the pick sent the group elsewhere: attack, then hold, then fall back.",
+   "fixed": "2026-09-26 (98cac09, Slot::open)",
+   "evidence": "hands_window seat 0: 4:57 \"attack party_4 (1 armrock, 1 armwar) with the whole group [rule]\"; 4:58 \"leaves party_4 and holds [rule]\"; then \"fall back home [plan]\""
+  },
+  {
+   "defect": "The passage finder named the necks of dead-end pockets (C5, G5) rather than the one pass at E5, and the player built its first packet on two passes.",
+   "fixed": "2026-09-26 (98cac09); replaced by the map sheet's widths 2026-10-03 (1175440)",
+   "evidence": "bot.log \"[ai 1] terrain: passage at C5 (1103, 2483), 272 wide\" and \"G5 (2675, 2061), 500 wide\"; 0:00 note \"Two passes here (C5 narrow, G5 wide), not one\""
+  },
+  {
+   "defect": "The old hands (before the 2026-10-02 rebuild, eras group A): fall-back and walk-home states and the station walk. A group held while being shelled.",
+   "fixed": "2026-10-01/02 (the fall-back home walks removed e690e5e; the hands rebuild)",
+   "evidence": "hands_window seat 0 4:27 \"leaves party_4 and holds [rule]\" while \"group_A hit\"; 5:21 \"fall back to home from party_4 [plan]\"; seat 1 5:17 \"fall back to where it last held, 492 from spot_12 (G7) [plan]\""
+  },
+  {
+   "defect": "The report's trade line summed enemy deaths across seats, so the player read inflated kills.",
+   "fixed": "2026-09-27 evening (H-PLAYER-TRADE-ONCE, posing-changes 3.1; the score and eco counts made to agree in 3.3)",
+   "evidence": "notes 8:50 \"12 Centurions and 2 turrets killed, 3670 destroyed\" against analyze_match #3: armwar 7 + armllt 1 = 1975; review Z3: 1:13 \"score: extractors 4\" beside \"eco: extractors 5\""
+  },
+  {
+   "defect": "Realtime turn latency: 1.16 turns a minute, orders in flight 96% of the game, and one turn abandoned at 120 s with the session replaced.",
+   "fixed": "open (a property of realtime play; not tied to one fix)",
+   "evidence": "wake_read: \"18 turns over 15.5 min = 1.16/min; wall median 44.7s\"; \"fraction of game time the player was busy (orders in flight): 96%\"; bot.log \"turn abandoned after 120 s with no answer\""
+  },
+  {
+   "defect": "Lab exit lanes were blocked by our own extractor, commander and constructors (eras group J).",
+   "fixed": "2026-10-13 (the extractor in the lab's exit lane, 3aabc77); the lane keep-out earlier",
+   "evidence": "commander_turns 8:50 remove {\"by\": \"constructor_13416\", \"reclaim\": [\"cormex_14278\"]}; notes 12:42 \"labs were idle ... blocking their exit lanes for two minutes\""
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-chat-no-faction",
+   "relation": "illustrates",
+   "note": "This lesson comes from this game: at 0:48 our player said 'south-east seat here, Cortex', and thebluegecko answered at 1:12. Whether the announcement helped his commander push is not shown."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "supports",
+   "note": "His commander stood in our half for 11 minutes with one to three escorts. Our groups never circled it: its lowest health was 69% at 7:29, and 'every soldier onto their commander' landed 53 s late."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The two seats' groups met the commander party one at a time (west 4:38, east 5:30). The player's note at 7:18: 'only half our soldiers are ever in the fight'."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Nothing of ours pressed his side. The first Pawn turned back at 4:17 and his base was never seen, so his commander was free to walk south at 4:26."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "Four metal makers at 3:14-3:55 on a store near 0. The lesson's premise ('a metal heavy map') is Comet's and is unmeasured for Great Divide."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "Labs idled behind their own commander, constructors and an extractor in the exit lanes (8:50, 12:42)."
+  },
+  {
+   "id": "Great Divide: the pass, the camp, fire over it, air, the crossing",
+   "relation": "contradicts",
+   "note": "No camp at the pass: two LLTs at its north mouth (7:05). He walked his commander through at 4:26 and built his nest in our half (D6-D7) from 8:02. The 'one covered point at the mouth' was never ours (spot_11 never taken)."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "An OS-48 person used his commander as the early army in our half for 11 minutes, and it lived. Ours helped the lab about 700 from it and never fought; the west one died at 14:20 after a retreat that landed 47 s late."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The groups arrived piecemeal and the ball kept returning home (flips 9:36-12:01). Our combined army was 2.3-2.6x his seen army in minutes 6-10, but that count is a floor and leaves out his commander."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "The army was parked under an LLT/Beamer nest at C7-D7 (seat 0 #4-#6: -2,910 for 540). The player's counter at 10:12 was Rocketeers (475) to outrange the LLTs (430)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "No first handful crossed, so the initiative and the ground of the fights were his from 4:26."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Ten of the south's eleven spots taken by 4:54 (the map's ceiling), then no nano, second plant or moho; income fell 15.0 to 8.4 on the west seat."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "The brief's 'tier 2 by about 10:00 on both seats' was never attempted. His Fatboy (seen 14:14) and Zeus (14:38) closed the game."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (both seats)",
+   "run/floor.py (both seats)",
+   "run/raid_ledger.py (both seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 0 4:20-6:15, seat 1 4:20-6:15 group_A)",
+   "python over record-0/1.jsonl (en sightings, finished events)",
+   "python over jev-0/1.jsonl.zst (decompress frames, group_A slot states)",
+   "bot.log"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790465811-bluegecko-2v1-great-divide/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, no results.jsonl and no batch.json: his numbers are floors, and 12-20 contacts were never priced. minutes.py, analyze_match, floor and raid_ledger read only record-0; seat 1 was read through a scratchpad directory of symlinks. pro_baseline was not run (Comet only). chat.jsonl marks all three lines '?', but bot.log gives 'player 0' (the north seat, the opponent) for 'gl hf' and the 1:12 line; the 0:48 line is our player's say. Where I differ from review.md: (1) it ranks by cost, this row by root. (2) The 30 flips and the banned-spot walks were the seat drain, per the claim and the Jev slots, not 'a station set that does not replace an advance' or 'never not pruning the gate'. (3) His Fatboy was first seen at 14:14, not 15:00. (4) Our combined army was 2.3-2.6x his seen army in minutes 6-10, against its 'never 2x'. (5) The player's '3670 destroyed' was the double count. The rest of the review's findings stand."
+ },
+ "open_questions": [
+  "How big were his economy and army (no truth file; 12-20 contacts at D3-E4 never identified)? Was our 2.3-2.6x of the seen army in minutes 6-10 real?",
+  "Would both groups and both commanders converged at 4:30-5:30 have killed his commander (3,700 hp and a D-gun, with 1-3 escorts)? The lowest we saw was 2,567 at 7:29.",
+  "The backlog's episode index (backlog.md section c, group X 'the old heuristic bot') lists this game, but it was a pianist game (Opus 5 over Jev 1.13). The tag is an over-tag through a passage citing team-2v2 games, and its row 809 note should not be read as this game's regime.",
+  "Seat 0's group_A held under shelling at 4:26-4:38 ('leaves party_4 and holds [rule]' while hit) before any fall-back. Was that the rule's hold beside a party with a commander? No eras-list entry names it.",
+  "When did his advanced lab start? It was never seen; the Fatboy at 14:14 bounds it."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790465811-bluegecko-2v1-great-divide.json"
+}

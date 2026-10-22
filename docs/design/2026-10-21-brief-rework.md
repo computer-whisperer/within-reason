@@ -177,7 +177,12 @@ from premises produces different text.
 - **Meta** is catalogued from `backlog.md` §b by population (the pool at OS 40+, named people, BARb by profile,
   Apex), each observation with map and date, rationale attached when known.
 - **Episodes** are an index, not prose: the game, what it showed, its defects, its lens, the derivations it tests.
-  Those with a lesson resting on a fixed defect are indexed with the defect and no lesson.
+  Those with a lesson resting on a fixed defect are indexed with the defect and no lesson. The episode sweep of
+  2026-10-22 (`docs/studies/2026-10-22-episode-sweep/`: 57 Opus readers, one per game with people, 13.8 M tokens)
+  wrote one row a game (`rows/`, `episodes.jsonl`, `index.md`): the root minute, turning points, our mistakes by
+  kind (strategy 199, both 187, harness 60), the person's play, the build's defects, the user's in-game comments,
+  what lessons and backlog subjects the game bears on, and the reader's confidence (high 10, medium 47). The rows
+  are a model's reading until a person checks them; the episode document is written from them in step 7.
 - **Lessons** are one document, `docs/briefs/lessons.md`, by subject: each passage one verbatim quotation (or an
   exchange) with its context in a sentence or two, and a block `id: L-<subject>-<n>`, `layer: lesson`, `sources:
   {people, dates, games, clocks, relay}`, `covers:` the archive rows it takes over. The bar for inclusion is the

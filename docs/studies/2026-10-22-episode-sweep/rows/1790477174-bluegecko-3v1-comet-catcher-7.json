@@ -1,0 +1,285 @@
+{
+  "batch": "1790477174-bluegecko-3v1-comet-catcher-7",
+  "label": "bluegecko-3v1-comet-catcher-7",
+  "map": "Comet Catcher Remake 1.8",
+  "date": "2026-09-27",
+  "shape": "3v1",
+  "people": "[gecko]u6bkep (lobby 19.24, Armada), the opponent; spectating and advising in chat: thebluegecko (bot.log 'player 1') and Infern8 (lobby 25, 'player 2'), names per docs/briefs/lessons.md (chat.jsonl has speaker '?' for every line)",
+  "our_side": "Three seats on the east strip, all Cortex (side Random): purple t1 at G1 (ai 0, record-0), dark blue t2 at H8 (ai 1), teal t3 at G4 (ai 2). One player, Opus 5.5 medium (Claude Code 2.1.283), over all three seats; hands Jev jev-latest = jev-1.13.0, one per seat; realtime; no commander layer.",
+  "build": "b9bd34e (2026-09-26; the players' advice block H-PLAYER-PLAYERS-ADVICE in its first game)",
+  "result": {
+    "outcome": "won",
+    "minute": "13:59"
+  },
+  "summary": "Three Cortex seats under one Opus 5.5 medium player beat u6bkep (Armada, lobby 19), with thebluegecko and Infern8 advising in chat. His commander died at 13:59 at B4 when all three groups attacked together (sent at 13:00), and both his plants fell by 14:08. He played one vehicle plant and only Blitzes until 10:35. They raided our strip from 4:23 (18 of our extractors in all) and killed teal's commander at home at 6:12, but about 46 Blitzes died doing it, and from 7:00 he had almost no army against our 5.8k. The first attack on his base, ordered at 7:00, arrived as a single group of Incisors after a 54-s stall at C1, and his commander D-gunned 11 of them. Then the player held for three minutes, banked 3.4k and began an advanced plant that was never finished; meanwhile he rebuilt with Stouts and Janus, which beat our groups one at a time at C5 (11:04-11:53).",
+  "root": {
+    "clock": "7:00",
+    "what": "The game never lost the lead (seen floors only); the root is where the quick close was given up. At 7:00 his Blitz army was spent (the player's note: ~40 killed, his commander at B4 with 3 constructors), and the player ordered group_A_t1 and group_A_t2 to advance 'together' and attack_unit the commander. The two groups started from C1 and G6, about 5,900 apart. group_A_t1 (24 Incisors, just out of a 54-s stall at C1) reached B4 alone at 7:50 while group_A_t2 was still at E5. His commander D-gunned 11 of the 16 Incisors lost, and the fall-back at 7:58 walked the rest 3,845 back to F2. The next attack that arrived together (sent 13:00) killed him within a minute. Our reading; thebluegecko named the stall at 7:26.",
+    "evidence": "hands_window seat 0 7:54 'group_A_t1: 22 at (2032, 2201), task fight_to enemy_plant'; seat 1 7:55 'group_A_t2: 23 at (4305, 3570)'; minutes 'corgator_7580 ... died 7:57 at B4 to armcom'; analyze #4 7:18-8:11 B4 'we lost 1920 ({'corgator': 16})'"
+  },
+  "turning_points": [
+    {
+      "clock": "0:00-1:52",
+      "what": "The first turn came at frame 1, before the other seats' faction was known. The player's lists named both factions, and the queue and produce were refused. The hands improvised with turrets early, and teal's plant started only at 1:52 (pool p75 1:03). In every seat the first soldier came at 2:12-2:32 and 12 factory units by 4:00 (pool p25 16).",
+      "evidence": "impedance_sweep 0:00 'RESULT queue: REFUSED: commander_t2: 'armsolar' is not a step'; 1:05 note 'Energy income was +6 at 1:05 with turrets built early'; pro_baseline seat 2 'first factory started 1:52 ... >p75 (late)'"
+    },
+    {
+      "clock": "4:27-5:52",
+      "what": "His Blitz bands raided all three seats: 10 extractors lost in 85 s, none answered, most with no turret. Our groups killed 24 Blitzes by 6:00 (the ledger: 5.1k to 1.5k).",
+      "evidence": "raid_ledger seat 1 '4:32 spot_57 G6 armflash ... none' through '5:52 spot_79 F8'; seat 1 totals 'undefended ... 5'; player 5:47 note 'Blitzes outrun Incisors; groups can't catch the ~10 Blitz raid band'"
+    },
+    {
+      "clock": "5:35",
+      "what": "Acting on thebluegecko's 5:26 'try and hold half the map while raiding the corners', the player turned group_A_t1 from its advance on his plant (at C3, ~1,900 away) to the north corner, spot_9. From 6:19 to 7:13 it stood at C1 with no party in the picture. Infern8 noticed at 6:59 and thebluegecko at 7:26; the player learned of it from the chat.",
+      "evidence": "standing 5:35 'group_A_t1': {'station': 'spot_9'}; hands_window 5:43 'advance to spot_9 [plan]' at (3213, 1707); 6:20-7:09 'group_A_t1: 16-22 at (2803-3018, 711-820), task fight_to spot_9', 'parties: none'"
+    },
+    {
+      "clock": "6:12",
+      "what": "8-9 Blitzes killed teal's commander at home (G4) while it stepped away. Its group had been sent west at 4:44 and was 2,348-2,570 away (posing review). Its death blast took 2 Incisors, 2 extractors, a constructor, a solar and a turret. Teal then floated metal and stalled on energy.",
+      "evidence": "record-2 destroyed corcom 6:12 at (6665, 2710); minutes seat 2 min 7 'lost 3425 (G4)'; floor seat 2 e0% 18.5, mfull% 6.0; player 6:26 note 'a seat's group stays home near its commander'"
+    },
+    {
+      "clock": "7:49-8:11",
+      "what": "The first attack on his base: group_A_t1 alone at B4 lost 16 Incisors, 11 of them to his commander's D-gun, and killed 2,595 (14 Blitzes, 3 constructors, extractors, solars). The fall-back to F2 cost 6 more on the walk.",
+      "evidence": "analyze #4 'we lost 1920 ({'corgator': 16}), they lost 2595'; hands_window 7:58 'fall back to where it last held, spot_11 (F2) [plan]'; 7:59 '17 at (2063, 2203)' to 8:11 '11 at (3005, 1876)'"
+    },
+    {
+      "clock": "7:57-10:47",
+      "what": "'Nobody attacks the commander yet.' The groups waited at spot_22/spot_31 for Brutes and Lashers, and group_A_t2 raided his south on thebluegecko's 8:42 word (6 extractors per the 9:20 note). Our bank rose to 3.4k, plants idled on energy at 9:42, and the advanced plant began. His Blitzes took 8 more extractors from 9:33 to 10:47.",
+      "evidence": "instruct 8:54 'Nobody attacks the commander yet'; 9:20 note 'bank 3.4k (purple 2.3k)'; 9:42 note 'plants idle because energy low (882)'; raid_ledger seat 0 9:40-10:34 five losses, 'answered 0'"
+    },
+    {
+      "clock": "10:35-12:18",
+      "what": "His Stouts (first seen 10:35) and Janus (10:54) beat our groups one at a time at C5. t2 went in alone (11:04-11:21, 1,482 lost), then t1 (11:36-11:53, 1,315), with the Incisors ahead of the Brutes. The posing review puts the C5 fight at ~5.9k of ours.",
+      "evidence": "hands_window seat 1 10:57 'party_48_t2=2 armjanus, 4 armstump'; 11:21 'group_A_t2: fall back to where it last held, 612 from spot_33 (D4) [plan]'; minutes seat 0 min 12 'lost 1905 (C5)'"
+    },
+    {
+      "clock": "12:29-13:59",
+      "what": "The player gathered all three groups at spot_43, then at 13:00 sent them together (9.2k) to B4. His commander died at 13:59, and its death blast took 13 Brutes (3,055). Both vehicle plants fell 14:01-14:08, and the session ended at 14:11.",
+      "evidence": "12:29 note 'Gather all three at spot_43 first, then push B4 together'; record-0 13:59 enemy_destroyed u 18880 (armcom) at (1641, 2707); 13 corraid destroyed by 18880 at 13:59"
+    }
+  ],
+  "our_mistakes": [
+    {
+      "clock": "7:00",
+      "what": "Ordered Incisors to attack_unit a commander, from two groups 5,900 apart; they came at the D-gun one by one. A stronger player would gather both groups and the new Brutes at C3/D3 and go in at once, circling the commander (L-snipe-commander) or killing plant and eco outside its reach.",
+      "evidence": "instruct 7:00 'every soldier of both groups uses attack_unit on the commander'; player 7:57 'it eats our Incisors when they come at it one by one'; minutes: 11 corgator 'died 7:53-8:04 at B4 to armcom'",
+      "kind": "both"
+    },
+    {
+      "clock": "4:44",
+      "what": "Sent teal's only group west with group_A_t1 and left teal's commander alone against a 9-Blitz band; the commander died at 6:12 at home. The player's own 6:26 lesson: a seat's group stays home near its commander.",
+      "evidence": "standing 4:44 group_A_t3 'station': 'enemy_plant'; record-2 corcom destroyed 6:12 at (6665, 2710); minutes seat 2 min 7 'lost 3425 (G4)'",
+      "kind": "both"
+    },
+    {
+      "clock": "5:35",
+      "what": "Turned the one group advancing on his base (C3) to a corner raid, then left it standing 54 s at C1 without noticing. A person flagged the stall before the player did.",
+      "evidence": "standing 5:35 group_A_t1 'station': 'spot_9'; hands_window 6:20-7:13 group_A_t1 at (2803-3018, 711-820), 'parties: none'; chat 6:59 'the raid in the north has stopped moving'",
+      "kind": "both"
+    },
+    {
+      "clock": "7:57-10:47",
+      "what": "Held the army for three minutes, with about 5.9k against ~0 seen and the bank rising, and let him rebuild with Stouts and Janus. A stronger player would push all three groups at about 8:30 and spend the bank on units (L-lead-use-it).",
+      "evidence": "minutes seat 0/1/2 min 9 army 1435/2927/1560 vs 0 seen; analyze seat 0 'metal banked above 500 in minutes [8, 9, 10, 11]'; first armstump seen 10:35",
+      "kind": "strategy"
+    },
+    {
+      "clock": "9:20",
+      "what": "Began an advanced vehicle plant at purple (2,600 metal) while two tier-1 plants kept drawing. It was 45% built at 13:00 and 77% at 14:00, and never made a unit; the game was won on tier 1.",
+      "evidence": "9:20 note 'purple starts an advanced vehicle plant at spot_12'; posing review: '45% at 13:00, 77% at 14:00 by nanoframe health', the store at 0-69 of 2,400",
+      "kind": "both"
+    },
+    {
+      "clock": "5:13-11:00",
+      "what": "Energy short all midgame: solars by 8:00 were 8/11/6 against a pool p25 of 14, and the first construction turrets went up at 7:53-8:11 (pool p75 6:10). Those turrets then drew the energy the plants needed (thebluegecko 8:01, 10:10).",
+      "evidence": "report 5:13 'energy 2197/4550 (-250)'; floor e0% 14.1 / 5.4 / 18.5; pro_baseline 'first construction turret begun 8:11 ... >p75 (late)'; chat 10:10 'con turrets take a lot of e'",
+      "kind": "both"
+    },
+    {
+      "clock": "11:00-11:53",
+      "what": "Groups entered C5 one at a time, Incisors (reach 230) ahead of the Brutes, against Stouts (350) and Janus (380). The plan was to gather at spot_39, but the hands' fall-back sent t2 back before the 11:18 joint advance landed.",
+      "evidence": "11:05 note 't2 lost 3 to a Janus/Stout party at C5 on the way to spot_39'; 12:29 note 't1 and B_t1 ... walking to B4 alone while t2 (4.8k) fights 6 Stouts at C5'",
+      "kind": "both"
+    },
+    {
+      "clock": "4:27-10:47",
+      "what": "18 extractors lost to Blitzes across the three seats; none answered in time, and light turrets came only from 5:46. Per the brief and pool, light turrets beside the outer spots catch Blitzes; groups cannot.",
+      "evidence": "raid_ledger totals seat 0/1/2: 7, 8, 3 lost, all armflash, 'answered 0'; pro_baseline light turrets by 8:00: 4 (seat 0, pool median 7, winners 8)",
+      "kind": "both"
+    }
+  ],
+  "their_play": "u6bkep (Armada, lobby 19) ran one vehicle plant at B4 (seen 3:12) and kept his commander home all game. He built only Blitzes until 10:35 and raided our east strip in bands of 2-10 from 4:23: 18 of our extractors died, all to armflash (10 in 4:27-5:52, 8 in 9:33-10:47), and 8-9 Blitzes killed teal's commander at G4 at 6:12. About 46 Blitzes died doing it, and his army in sight was 0 at 7:00 and 9:00 (floors). His commander D-gunned 11 Incisors at B4 from 7:49 to 8:11. He then added a second vehicle plant, a radar (9:14), a beam turret at B8 (9:54), Stouts (first seen 10:35) and Janus (10:54). That party beat our groups at C5 from 11:04 to 12:18; 28 Stouts and 11 Janus died in all. No tier 2 was seen. thebluegecko at 5:01: 'the human player is taking mexes so much faster that 3v1 is about fair'. His extractor count is unknown (no truth file; 5-8 seen).",
+  "defects": [
+    {
+      "defect": "The first turn fired at frame 1, before the other seats' faction was known. The player's lists named both factions and the whole queue and produce were refused, so the opening ran on the hands' defaults until 1:05 (teal's plant 1:52).",
+      "fixed": "2026-09-26 (e83b72d: the first turn waits for every seat's faction; the commit names this game)",
+      "evidence": "impedance_sweep 0:00 'REFUSED: commander_t2: 'armsolar' is not a step'; 'REFUSED: armcv is not a unit of our roster'"
+    },
+    {
+      "defect": "No state or tool fired our commander's D-gun. Teal's commander died with 1,415 of 1,450 energy, and the 'steps away ... out of its reach' words ignored the raiders' speed and its health (posing review).",
+      "fixed": "2026-09-27 (54c2df2 H-HANDS-DGUN; afc08b6 speeds by the party's slowest and fastest)",
+      "evidence": "record-2 corcom destroyed 6:12; posing review finding 1 '38 speed against 101'; minutes seat 2 min 7 'lost 3425 (G4)'"
+    },
+    {
+      "defect": "The odds priced fights by metal alone: nothing about their commander's D-gun or death blast. At 7:54 'we outweigh it heavily' fed 11 Incisors to the D-gun, and at 13:55 'an even fight' put 13 Brutes in the death blast. The 7:56 hunt also ended with 'the quarry is dead' while the party was still listed.",
+      "fixed": "2026-09-27 (afc08b6 H-HANDS-ODDS-WHAT-SHOOTS; picture.rs cites game 7)",
+      "evidence": "posing review findings 3 and 4; record-0 13 corraid destroyed by 18880 (armcom) at 13:59; minutes 11 corgator 'died ... at B4 to armcom'"
+    },
+    {
+      "defect": "The odds left out reach: at C5, Stouts (350) and Janus (380) outranged Incisors (230), the group lines read 'near: None', and the party's speed came from its fastest member.",
+      "fixed": "2026-09-26 (d265666 H-HANDS-ODDS-REACH, after this build) and 2026-09-27 (afc08b6)",
+      "evidence": "posing review finding 2: 't2's line read \"near: None\" every second'; '\"it outruns this group at 101 against 72\"'"
+    },
+    {
+      "defect": "The fall-back rule ('fall back to where it last held') picked a place across the map: at 7:58, spot_11 at F2, 3,845 away, and 5-6 more Incisors died walking it. At 11:21 it pulled t2 off C5 before the player's joint advance landed.",
+      "fixed": "2026-10-02 (the hands rebuilt, 355b0d7; the phrase is gone from crates/bot/src; e690e5e removed the walks home 2026-10-01)",
+      "evidence": "hands_window 7:58 'fall back to where it last held, spot_11 (F2) [plan]'; group_A_t1 17 at 7:59 to 11 at 8:11; seat 1 11:21 'fall back ... 612 from spot_33 (D4)'"
+    },
+    {
+      "defect": "A group stood ~54 s at C1 with no party in the picture and no wake to the player (task fight_to spot_9); the player learned of it from the spectators' chat.",
+      "fixed": "open (no group-stall wake found by a grep of crates/bot/src; not verified)",
+      "evidence": "hands_window 6:19-7:13 group_A_t1 at (2803-3018, 711-820); wake_read reasons have no stall kind; floor seat 0 stuck_s 176"
+    },
+    {
+      "defect": "Unfinished structures carried no percentage, so the player promised at 13:14 to pause the tier-1 plant 'when the advanced plant finishes', not knowing it was half built.",
+      "fixed": "2026-10-17 (aa1f35e: every unfinished structure with % built in the report)",
+      "evidence": "posing review finding 7: 'building a Advanced Vehicle Plant (coravp) at spot_12 (H2), ordered 225 s ago', with no percentage"
+    },
+    {
+      "defect": "The report's counts disagreed with each other ('score: extractors 33' beside 'eco: extractors 37' at 7:57; Z3), and the trade summed the seats' seen deaths, so the player's '74k:18k' counted one death up to three times. The ledger corrects the destroyed figure to 24.7k.",
+      "fixed": "trade: corrected in the ledger 2026-09-27 evening (changes doc 3.1); report counts: unknown",
+      "evidence": "report 7:57 'score: extractors 33' / 'eco: extractors 37'; 14:08 note 'trade 74k:18k'; ledger 'of theirs destroyed, 24.7k'"
+    }
+  ],
+  "user_comments": [],
+  "bears_on": [
+    {
+      "id": "L-mex-half-the-map",
+      "relation": "illustrates",
+      "note": "The lesson's source game (thebluegecko 5:01-6:34). We held 23 extractors at 5:09, and the team's grew to 44 by 9:20. Applying 'hold half the map while raiding the corners' at 5:35 turned the advancing group into the C1 stall."
+    },
+    {
+      "id": "L-raid-keep-moving",
+      "relation": "supports",
+      "note": "The north raid stood 54 s at C1 (6:19-7:13). By the time it reached B4 (7:50) his commander was home and D-gunned it. The 8:42 'south has unprotected mexes' raid killed 6 extractors (the 9:20 note)."
+    },
+    {
+      "id": "L-raid-naked-mexes",
+      "relation": "supports",
+      "note": "His bare southern extractors were raided at 8:53 on thebluegecko's word; 6 died (the 9:20 note)."
+    },
+    {
+      "id": "L-energy-nanos",
+      "relation": "supports",
+      "note": "Source of the 8:01 and 10:10 lines. The first construction turrets went up 7:53-8:11 (pool p75 6:10), then drew energy: plants idle at 9:42, e0% 14.1/5.4/18.5."
+    },
+    {
+      "id": "L-snipe-commander",
+      "relation": "supports",
+      "note": "Incisors that came at his commander one by one lost 16 (11 to the D-gun) at 7:49-8:11; three groups together killed it at 13:59, though 13 Brutes died in its death blast."
+    },
+    {
+      "id": "L-lead-use-it",
+      "relation": "supports",
+      "note": "From 7:00 his army in sight was near zero against 5.8k. The three-minute hold (7:57-10:47) let him rebuild with Stouts and Janus, and the close came only at 13:59."
+    },
+    {
+      "id": "L-lead-together",
+      "relation": "supports",
+      "note": "Split arrivals cost us at 7:50 (A_t1 alone, A_t2 at E5) and at C5 11:04-11:53 (t2, then t1); the gathered push from spot_43 at 13:00 won within a minute."
+    },
+    {
+      "id": "L-other-infern8-transition",
+      "relation": "illustrates",
+      "note": "The lesson's source (13:05, 13:40). It came while purple's advanced plant was 45% built with one constructor, and that plant never finished."
+    },
+    {
+      "id": "L-tier2-tier1-under-tier2",
+      "relation": "illustrates",
+      "note": "Purple's advanced plant drew from a store at 0-69 beside two tier-1 plants still producing; it never finished, and the game was won on tier 1."
+    },
+    {
+      "id": "L-chat-no-faction",
+      "relation": "illustrates",
+      "note": "Our player announced its state and plans in chat ('23 extractors, 11 constructors' 5:09; 'Sending our 22-Incisor group south' 8:53). Whether the opponent could read it is unknown."
+    },
+    {
+      "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+      "relation": "supports",
+      "note": "The root: the 7:00 attack arrived split and fed a D-gun, while the 13:00 attack from one gathering place (spot_43) won. The fall-back home rule cost Incisors at 7:58."
+    },
+    {
+      "id": "Pressure from the first units: the first handful crosses the map",
+      "relation": "supports",
+      "note": "First soldiers came at 2:12-2:32 (pool p75 1:49) and none crossed before 5:31. thebluegecko at 5:01: the person was out-expanding our three seats."
+    },
+    {
+      "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+      "relation": "illustrates",
+      "note": "18 extractors were lost to Blitz bands with 'answered 0'. The answers read 'they drive it off ... without catching it (85 against its 101)'; light turrets came from 5:46."
+    },
+    {
+      "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+      "relation": "illustrates",
+      "note": "Odds without the D-gun, death blast or reach cost Incisors at 7:54, the C5 fight and 13 Brutes at 13:59 (fixed 2026-09-26/27)."
+    },
+    {
+      "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+      "relation": "illustrates",
+      "note": "Teal's commander died at home with its group sent west and no D-gun. His commander stayed home and D-gunned 11 Incisors."
+    },
+    {
+      "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+      "relation": "supports",
+      "note": "The bank reached 3.4k at 9:20 (seat 0 above 500 in minutes 8-11). thebluegecko at 8:01 asked for build power, but the construction turrets then starved the plants of energy."
+    },
+    {
+      "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+      "relation": "illustrates",
+      "note": "Energy at -250/s at 5:13 behind three plants and turrets; solars by 8:00 were 8/11/6 (pool p25 14). The opening ran on refused lists until 1:05."
+    },
+    {
+      "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+      "relation": "illustrates",
+      "note": "A tier-2 start at 9:20 in a 3v1 with his army gone bought nothing: the plant was unfinished at 14:11. Infern8's feeding advice came at 13:05."
+    },
+    {
+      "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+      "relation": "supports",
+      "note": "thebluegecko: 'expanding with all avalible cons is important'. 11 constructors at 5:09 took the team from 23 to 44 extractors by 9:20."
+    },
+    {
+      "id": "Ahead on the trade and lost: the 3v1 pattern",
+      "relation": "illustrates",
+      "note": "The contrasting case: a 3v1 ahead on the trade that was won, because the three groups finally arrived together at his base. The player's trade lines were summed across seats (24.7k corrected)."
+    }
+  ],
+  "lens": {
+    "reviewer": "claude-opus-5-5 reader",
+    "date": "2026-10-22",
+    "tools": [
+      "run/minutes.py (seats 0, 1, 2)",
+      "run/analyze_match.py (seat 0)",
+      "run/pro_baseline.py --all-starts (seats 0, 1, 2)",
+      "run/floor.py (seats 0, 1, 2)",
+      "run/raid_ledger.py (seats 0, 1, 2)",
+      "run/commander_turns.py --notes; --calls --told",
+      "run/wake_read.py",
+      "run/hands_window.py (group_A_t1 4:44-8:15 seat 0; group_A_t2 7:00-8:30 and 10:55-11:25 seat 1)",
+      "run/impedance_sweep.py (seat 0)",
+      "direct reads of record-0/1/2 (enemy first sightings, armcom and corcom deaths), bot.log, strategist-0.jsonl"
+    ],
+    "existing_review": "none (no review.md; 00/posing-review.md and 00/decompression-review.md read and built on)",
+    "confidence": "medium",
+    "caveats": "No truth file, results.jsonl or batch.json, so his numbers are what we saw. analyze_match, minutes, floor, raid_ledger, pro_baseline and hands_window read only record-0 (seat 0, purple); seats 1 and 2 were read through scratch directories of symlinks. pro_baseline needed --all-starts and compares each seat, a third of a 3v1, against 1v1 duels. raid_ledger's answer column reads 'none' where jev-0 shows group plays (posing review). There is no review.md, but 00/posing-review.md and 00/decompression-review.md exist; I build on the posing review's findings and rank by root, not cost. I differ from the ledger, which takes the 14:11 end as his resignation: the record has his commander destroyed at 13:59 (u 18880 at (1641, 2707)). chat.jsonl speakers are '?'; names come from bot.log player ids and lessons.md. One player session was replaced mid-game (impedance_sweep) with no visible cost."
+  },
+  "open_questions": [
+    "Did the game end on the commander kill at 13:59 (commander ends) or on his disconnect at 14:11? The record has armcom destroyed at 13:59, and both plants died 14:01-14:08.",
+    "How many extractors did he hold at 5:00? thebluegecko said he out-expanded three seats ('3v1 is about fair'); with no truth file, only 5-8 were seen.",
+    "Could the opponent read our player's chat (our extractor count at 5:09, the corner raid at 5:42, 'Sending our 22-Incisor group south' at 8:53)? The record does not give the chat's audience.",
+    "Why did group_A_t1 stand at C1 from 6:19 to 7:13 with fight_to spot_9 and no party in the picture: terrain (the player's reading) or pathing into the north corner?",
+    "Would the 15 Incisors at C3 at 5:43 have done better at his base than the 24 that arrived at 7:50? His commander was home both times."
+  ],
+  "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1790477174-bluegecko-3v1-comet-catcher-7.json"
+}

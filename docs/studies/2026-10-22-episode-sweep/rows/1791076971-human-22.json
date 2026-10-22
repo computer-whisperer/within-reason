@@ -1,0 +1,270 @@
+{
+ "batch": "1791076971-human-22",
+ "label": "human-22",
+ "map": "Isidis crack 1.1",
+ "date": "2026-10-03",
+ "shape": "2v1",
+ "people": "[gecko]thebluegecko (lobby rating 41), the opponent, from B7; the lobby and the record header said Armada, every unit of his seen was Cortex (or a raised Pawn of ours). computer_whisperer (the user) hosted and spectated.",
+ "our_side": "Two seats of ours on ally team 1: seat 0 (ai 0, team 1) Armada from F3, seat 1 (ai 1, team 2) Cortex from H3. Each seat a Claude Sonnet 5.5 medium player under a Claude Opus 5.5 high commander (13 commander turns, a direction every two minutes, reaching the players 19-22 s later). Hands: the pianist at effort normal on the hands rebuilt 2026-10-02 with human-11's fixes. Players: 102 and 104 turns, wall median 7.3 s and 8.1 s; Jev $0.45 and $0.49 (floor.py).",
+ "build": "641cc72 (2026-10-03 21:20, 'human-21 lost at 17:44; the raid wording for the player and the commander applied, and the party-name fix built'), from the ledger row; the game started 21:22.",
+ "result": {
+  "outcome": "lost",
+  "minute": "18:40 (surrendered on the host's word at 18:12: both commanders self-destructed; seat 0's record shows armcom dying at 18:32 at F2)"
+ },
+ "summary": "Our two seats (Armada at F3, Cortex at H3, Sonnet 5.5 players under an Opus 5.5 commander) lost by surrender at 18:40 to thebluegecko (Cortex, from B7) on Isidis Crack. Both seats expanded on two constructors each until 4:51 and called their first raiders home by 3:51, while his lone Grunts took 14 extractors before 8:00 and he set Exploiters and a Guard on the middle; seat 1 went in alone at 6:04 and ground about even before walking back at 8:08. The commander's 8:11 gather-and-go-together direction turned seat 0's 20 Maces (already on fight_to spot_46) into a wait at 9:07, and from 9:15 to 10:10 both bodies stood about 850 apart at F4 while neither went; his raiders then took 12 extractors in both bases (24 to 13) and three more push directions (10:11, 12:11, 14:11) went unexecuted. His Brute, Thug and Pounder push into both bases at 13:06-14:33 traded about even, and three Whirlwind bombers took ten extractors from 14:14, seat 1's first anti-air bot standing at 14:13 and seat 0's only at 17:15. No unit of ours came within 1,500 of his start and his base was never seen; we ended on 6 to 9 extractors.",
+ "root": {
+  "clock": "0:41-3:51",
+  "what": "The opening set both seats on a slow, unpressured economy: 'two constructors first, then raiders only' (seat 1 0:41, seat 0 0:56) held two builders a seat until 4:51, and at 3:15 (seat 0: Pawns gather at spot_34 'only when about ten', Maces only from 3:31) and 3:51 (seat 1: 'The raid across the map is cancelled until we have about fifteen Grunts') both seats turned their first handful from pressure to gathering at home. From then he raided our outer spots freely and built his middle and economy unseen. The user's reading (ledger): 'Sonnet does not expand as Opus did'; the pressure half is the reader's, on L-raid-first-handful.",
+  "evidence": "analyze_match: extractors 5/4 at 4:00, 9/9 at 8:00 (seat 0/seat 1), builders 2/2 at 2:00-4:00; minutes.py: seat 1's first unit across at 6:04, 'first of ours within 1,500 of his start (B7): never', 'his first factory seen: never'."
+ },
+ "turning_points": [
+  {
+   "clock": "3:13-3:51",
+   "what": "His first Grunt kills an extractor at spot_14 (E2); seat 0's Pawns, sent across in ones to threes from 2:44, die at C5 to Grunts 1,684-2,439 from his start; both seats recall their raiders to gather at home (3:15, 3:51).",
+   "evidence": "minutes.py seat 0: 'armpw_31701: crossed 2:58; nearest his start 1709 at C5 3:27; died 3:28 at C5 to corak'; raid_ledger seat 0: '3:13 spot_14 E2 corak 1 corak'."
+  },
+  {
+   "clock": "5:55-7:35",
+   "what": "One Grunt (party_9) kills six of seat 1's northern extractors (spot_5, 4, 3, 6, 8, 12) while the hands send hunts of 4, 8, 4 and 8 after it, two of them split at 6:42-6:43 from the body at spot_44 (E5) that faced ten Grunts 400 away; seat 1 had no turret standing until about 8:30.",
+   "evidence": "hands_window seat 1 6:42: 'PLAYS group_O_t2: 4 of group_O_t2 hunt party_9 (1 corak)' with party_9 at (6465,625) and 'party_7=10 corak@(3895,4415)'; analyze seat 1 turrets 0 through 8:00."
+  },
+  {
+   "clock": "6:04-8:08",
+   "what": "Seat 1's body (13 Grunts, then Thugs) goes in alone on its 6:01 packet and the commander's 6:11 't2's body ... is the spearhead and is going in now'; it meets two Exploiters and a Guard at spot_46, holds at spot_44, grinds even and walks back to spot_28. Seat 0 had turned to a turtle at 6:10.",
+   "evidence": "seat 1 note 7:27: 'even grind near spot_46 (lost 1604, destroyed 1720)'; seat 0 note 6:10: 'Switched to turtle at home with Sentries + Maces ... Not following meet_mid push until ~8 Maces'."
+  },
+  {
+   "clock": "8:11-10:10",
+   "what": "The commander names meet_south and 'At 9:15, or when 25 soldiers of ours stand there ... both go together'. Shown to seat 0 at 9:07, it turns seat 0's 20 Maces, on fight_to spot_46 since 8:57, into a wait; seat 0's own go at 9:37 is held by the hands on 'gather on its front', 8 split off to hunt at 9:41; the bodies stand at F4 until 10:10.",
+   "evidence": "hands_window seat 0: 8:58 'group_A_t1: 20 at (4295, 2680), task fight_to spot_46'; 9:21-9:40 '23 at (4559, 3039), task hold', 'PLAYS group_A_t1: gather on its front'."
+  },
+  {
+   "clock": "10:11-11:16",
+   "what": "His raid parties (Grunts, Incisors, Pounders, raised Pawns) take 12 extractors across both bases (24 to 13) while the bodies are at F4/F5; both players call the push off (seat 1 10:42, seat 0 10:59).",
+   "evidence": "raid_ledger seat 1: '10:11 spot_44 F5 corgator 6 corgator, 5 corak' ... '11:10 spot_3 H1'; seat 0 10:59 packet: 'group_A_t1 fights to home now with the whole group'."
+  },
+  {
+   "clock": "10:51-16:07",
+   "what": "A Hercules transport (corvalk) at E6 is the first sign of his air plant and goes unanswered; the first Whirlwind (corshad) comes at 12:57, the commander's anti-air word at 14:11, and three bombers take ten extractors 14:14-16:07; our first anti-air: seat 1's Trasher at 14:13, its Thistle at 17:06, seat 0's Crossbow at 17:15.",
+   "evidence": "wake_read: 'first air unit of his seen: corvalk at E', then 'corshad at F'; enemy_seen in the records: corshad 3 distinct, first 12:57; raid_ledger: corshad 5 kills a seat."
+  },
+  {
+   "clock": "13:06-14:33",
+   "what": "His whole army (Brutes from 12:01, Thugs 12:22, Pounders, Grunts, Graverobbers) attacks both bases at F4/G4/H3; we hold it at home and trade about even, then the 14:11 push is refused by seat 0 on its numbers and seat 1's goes late and alone.",
+   "evidence": "analyze seat 0 #14 13:15-13:47 F4: 'we lost 2570 ... they lost 2917'; commander 14:11 note: 'we won the trade 7,656 to 6,434 at home'; seat 0 note 14:40: 'not following the meet_south push'."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:41-4:51",
+   "what": "Two constructors a seat until the commander's 4:11 '2 more constructors now' (first made 4:51 and 4:57), with about sixty extractor steps waiting; combined extractors 9 at 4:00 and 18 at 8:00 for two seats. A stronger player keeps a constructor out of the factory every few soldiers (the role text written the same night: five a seat by 5:00).",
+   "evidence": "analyze_match builders 2/2 at 2:00-4:00, 3/3 at 5:00; extractors 5/4 at 4:00; ledger: 'Expansion (the user: Sonnet does not expand as Opus did)'; commander.md now cites human-22.",
+   "kind": "both"
+  },
+  {
+   "clock": "3:15-3:51",
+   "what": "Both seats stopped the first handful's pressure to gather at home until ten or fifteen; seat 0's early Pawns had gone in singly and died at C5. His economy, middle and plants went unpressured and unseen all game. The players' word: the first handful runs across to stop a greedy economic opening.",
+   "evidence": "seat 1 3:51: 'The raid across the map is cancelled until we have about fifteen Grunts'; seat 0 3:15: 'It goes into his half only when about ten Pawns stand together'; minutes.py: 'his first factory seen: never'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:31",
+   "what": "Seat 0's lab on Maces only from 3:31, and the commander's 4:11 'Maces beat Grunts': the bodies of both seats became slow line bots (Mace 46, Thug 45) against an opponent of Grunts (81) and Incisors (85) who raided where the bodies were not; the commander saw it at 12:11 ('our Maces and Thugs cannot catch them').",
+   "evidence": "seat 0 3:31 produce {'lab_23084': ['armham']}; units.csv speeds armham 46.2, corthud 45, corak 81, corgator 85; commander 12:11 direction text.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:43-8:30",
+   "what": "No turret beside seat 1's outer extractors until about 8:30 (the packets said 'a corllt beside outer ones', the lists carried none until 4:54 and 7:10); nine of its extractors fell to lone Grunts before 8:00, five with no soldier within 900 and no turret within 700.",
+   "evidence": "analyze seat 1 turrets 0 at minutes 1-8, 2 at 9; raid_ledger seat 1 totals: 'undefended (no soldier within 900, no turret within 700) 8; with a turret 8'; rows 5:55-7:35 all '1 corak'.",
+   "kind": "both"
+  },
+  {
+   "clock": "6:11",
+   "what": "The commander sent one seat's body in alone ('t2's body ... is the spearhead and is going in now') against his own 0:20 plan ('never one seat alone'), into two Exploiters and a Guard; it ground even and came home.",
+   "evidence": "commander direction 6:11 (commander.jsonl); seat 1 note 6:26: 'at spot_46 it met 7+ corak under two corexp and a corllt (0.5 to 1 odds)'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:11-10:10",
+   "what": "The commander's gather condition ('At 9:15, or when 25 soldiers ... stand there') stopped seat 0's own push of 20 Maces and left two bodies waiting for each other at F4 for a minute; each seat's packet then conditioned its go on the other seat (one naming a group that no longer existed). A stronger commander says go now to both, to the same place, with no clock or count.",
+   "evidence": "commander 8:11 direction text; seat 0 9:07 packet: 'holds there as one body, waiting for group_A_t2'; seat 1 9:25: 'does not advance to spot_46 until about 25 soldiers stand together' (review).",
+   "kind": "both"
+  },
+  {
+   "clock": "9:41-15:00",
+   "what": "The hands shredded the bodies into hunts of lone raiders and bombers against packets that forbade detachments: 48 hunt detachments 9:00-15:00 across both seats, 37 at one or two units, 12 at bombers the Maces and Thugs cannot hit (the review's count; seen by the reader at 6:42-6:43 and 9:41).",
+   "evidence": "hands_window seat 0 9:41: 'PLAYS group_A_t1: 8 of group_A_t1 hunt party_17 (1 corak, 1 corgator)'; existing review finding 4.",
+   "kind": "harness"
+  },
+  {
+   "clock": "10:51-14:11",
+   "what": "No anti-air on the first air sign (a Hercules transport at 10:51); none stood until seat 1's first Trasher at 14:13, 76 s after the first Whirlwind (12:57), and seat 0's first Crossbow at 17:15; the bombers took ten extractors at the back of both bases. A stronger player puts a Nettle/Thistle at each back row and two anti-air bots in each lab's list on the first air unit seen.",
+   "evidence": "wake_read reason 'first air unit of his seen: corvalk at E' (10:51); raid_ledger corshad rows 14:14-16:07 (5 a seat); records: 'finished' corcrash 14:13 (seat 1), corrl 17:06, armjeth 17:15 (seat 0).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:11-18:00",
+   "what": "The wrecks of the home fights were left lying (and partly raised by his Graverobbers): the report's wreck line rose to about 10,000 metal 'where no enemy' is, though the commander ordered reclaim at 12:11, 14:11 and 16:11. Energy stood empty 28% and 23% of the game.",
+   "evidence": "wake_read reasons: 'wrecks worth 521 metal lie where no ene' rising to 'wrecks worth 10166 metal' (seat 0); floor.py e0% 28.1 and 22.8; enemy_seen cornecro 5, raised armpw 5 from 8:13.",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Cortex from B7, though the lobby said Armada. Grunts from 2:35 (112 distinct seen), singly and in small parties at our outer extractors from 3:13: 14 extractors by 7:35, none of the parties paying in the raid ledger. Two Exploiters (armed extractors) and a Guard on the middle spots by 6:05-6:13 and a radar at 7:52, which stopped seat 1's lone push. A vehicle plant by 7:42 (14 Pounders, 14 Incisors seen); stealthy Graverobbers raising our dead Pawns (raised armpw in his parties from 8:13, Graverobbers first seen 10:44). Raids into both bases at 10:11-11:16 while our bodies waited at F4; a Hercules transport at 10:51; Brutes from 12:01 and Thugs from 12:22 for a push into both bases at 13:06-14:33 that traded about even; three Whirlwind bombers from 12:57 that took ten extractors at the back of our bases; a Twin Guard at 15:32. He fought only in our half after 8:30, and his base, plants and economy were never seen; by the review's count he had spent at least 15,491 metal on what we saw by 13:12, and no tier-2 unit of his was seen.",
+ "defects": [
+  {
+   "defect": "An opening count read as the whole: the commander's 0:20 'one constructor, then Pawns' and the players' 'one constructor first, then raiders only' made two constructors a seat and no more until the 4:11 direction; the role texts then gave no constructor rhythm.",
+   "fixed": "2026-10-03 (4c4f30d: the builder and build power wording, 'Never write a factory's order or a number of constructors as an opening'; corrected 0b33620)",
+   "evidence": "commander 0:20 plan: 'one constructor, then Pawns'; analyze builders 2/2 at 2:00-4:00; commander.md:115 cites human-22."
+  },
+  {
+   "defect": "Gather conditions and a clock in the commander's direction ('At 9:15, or when 25 soldiers ... stand there'): Jev does not act on a clock in the packet, and the commander's text of the time gathered a leading army.",
+   "fixed": "2026-10-03/04 (aa85e66 measured, 8b0513c the signal tool; 73f3086 'going is the standing order of a leading army')",
+   "evidence": "commander 8:11 direction; K-jev-a-clock-condition-in-the-packet-is-not-followed; seat 0's 20 Maces turned from fight_to spot_46 to a wait at 9:07 (hands_window)."
+  },
+  {
+   "defect": "Hunt detachments at parties of one and at bombers against packets forbidding them; the player was not shown the hands' rules ('a small detachment'), repeated sends at a party already hunted were not said, and the chase did not withdraw at danger.",
+   "fixed": "2026-10-17 (76139d9: rules.md in the player's prompt, 'already on it', the chase ask, hunters keep the name); the forbid and size words still did not bind then (open in part)",
+   "evidence": "hands_window seat 1 6:33-6:43: hunts of 4, 8, 4 and 8 at party_9 (1 corak); review: 48 detachments 9:00-15:00, 37 at one or two units."
+  },
+  {
+   "defect": "A join ran the body into its own detachment, renaming it and leaving it on the detachment's 'follow' of a gone group (seat 1 12:32 R1 33 into A2 4; 14:48 L2 30 into Q2 2), so the 12:33 push packet held at H2.",
+   "fixed": "2026-10-03 (a978ee2, H-HANDS-JOIN-SYMMETRIC, 'the user, after human-22')",
+   "evidence": "K-hands-a-body-joined-its-own-detachment (docs/knowledge/jev.md): 'held there until 12:52'; review finding 6."
+  },
+  {
+   "defect": "An order played between thinking ticks reached the engine on the group's previous goal: seat 0's fight_to spot_46 at 11:30 walked the body 900 the other way, home.",
+   "fixed": "2026-10-03 (b3649b1, 8a7e2d5: H-HANDS-STANDING-BETWEEN-TICKS)",
+   "evidence": "K-hands-a-redirected-body-marched-to-its-old-goal: 'human-22 11:30: group_A_t1.fight_to_spot_46 went to (4920, 2776), 1,516 from the spot, and the body walked home'."
+  },
+  {
+   "defect": "The opponent's faction named from the lobby ('Armada' all game); the commander's opening plan was written against Armada (Sentries, Rocketeers) and corrected only at 4:11.",
+   "fixed": "2026-10-03 (df0f8e7: named from the units seen)",
+   "evidence": "commander 0:20 note: 'Isidis crack 2v1 vs thebluegecko (Armada)'; 4:11 note: 'opponent fields corak (Cortex) though the lobby said Armada'."
+  },
+  {
+   "defect": "The commander's report carried no build power line (raised by the user during this game), and the colours our greeting named did not match the game's.",
+   "fixed": "2026-10-03 (f6cfb6d build power line; b687d63 colours, source only, untested then)",
+   "evidence": "commit f6cfb6d: 'the user, during human-22'; b687d63: 'the user, human-22: the colours named do not match the game's'; chat 0:37: 'AI commander here (red + orange)'."
+  },
+  {
+   "defect": "One place under two move ids (fight_to_spot_39 and fight_to_meet_south) with the gate's rating split between them under 'gather'.",
+   "fixed": "open (not traced since by this reader)",
+   "evidence": "review finding 6: at 14:41 'fight_to_meet_south 0.33 and fight_to_spot_39 0.30 side by side' under gather 0.62 and hold 0.75."
+  },
+  {
+   "defect": "The skill's tools read record-0 only; no truth file, results.jsonl or batch.json exists for this game (a tool limit, not the bot's).",
+   "fixed": "open",
+   "evidence": "analyze_match: 'opponent None; outcome None after 0.0 min'; seat 1 read through a directory of links."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "18:12",
+   "text": "You should probably surrender now. The player llms can self-destruct their commanders."
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Both seats called the first raiders home by 3:51; no unit of ours came within 1,500 of his start and his base was never seen, while his raids and greedy middle ran unanswered."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost on extractors: 24 at 10:00 to 6-9 at the end, the expansion slow from the opening (the user: 'Sonnet does not expand as Opus did'); the army trade was about even."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "He held the middle with Exploiters and a Guard from 6:13; our two seats never held half the map nor raided his corners."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Seat 1 alone at 6:04-8:08 ground even; at 9:15-10:10 the two bodies stood 850 apart waiting for each other; three joint pushes never left together."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The commander's '3.6 to 1' at 10:11 was against a seen floor (no truth file); the lead, real or not, was spent waiting in our half until his raids recalled it."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "Its rider 'Maces as the first units of the game are wrong; Grunts kill Maces early': seat 0 went Maces only at 3:31 and the slow bodies could neither catch his Grunts and Incisors nor protect the spots."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "Wrecks worth about 10,000 metal lay beside our bases at the end and his Graverobbers raised our Pawns; reclaim ordered by the commander from 12:11 was not done at scale."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "From the other side: he answered our massed line bots with Pounders by 7:42 and Brutes by 12:01, and a bomber switch (cf. 'air switch to bomb solar') once our bodies sat at home."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "46 extractors lost (20 and 26), the parties paid nothing; seat 1 had no turret until about 8:30 and one Grunt killed six spots while hunts of 4 and 8 chased it, two split from a body facing ten Grunts."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The 8:11 gather-at-a-clock-or-count direction stopped a body already going; the commander's 'going' text (73f3086, 2026-10-04) followed this game and human-23."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "Two constructors a seat until 4:51; commander.md and strategist/player.md cite human-22 for the constructor rhythm."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "Seat 0's Pawns crossed in ones to threes (2:44-3:53) and died at C5; both seats then gathered; the first building of his killed was an Exploiter at 7:43 (records' enemy_destroyed)."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Hercules transport at 10:51, first Whirlwind 12:57, the commander's anti-air word 14:11, first anti-air bot standing 14:13 (seat 1) and 17:15 (seat 0); three bombers took ten extractors."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "The ledger's 'trade was ours (18,318 destroyed for 14,905 lost)' sets both seats' kills against seat 0's losses with the surrender; both seats lost about 18,000 before 18:12 (reader's sum of analyze_match), an even trade."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Mace 46 and Thug 45 bodies against Grunt 81 and Incisor 85 raiders, and no anti-air against bombers."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (both seats)",
+   "run/analyze_match.py (both seats)",
+   "run/floor.py (both seats)",
+   "run/raid_ledger.py (both seats)",
+   "run/commander_turns.py --notes --calls",
+   "run/wake_read.py (both seats)",
+   "run/hands_window.py (seat 0 7:50-9:12, 9:10-10:12; seat 1 6:30-7:36)",
+   "inline python over commander.jsonl, strategist-{0,1}.jsonl and the records' enemy_seen events",
+   "git log for the fixes after 641cc72"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791076971-human-22/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file: every number of his (army, the WINDOWS ratios, the commander's '3.6 to 1') is a floor of what we saw, and his economy is unknown. The per-match tools read record-0 only; seat 1 was read through a scratchpad directory of links (record-1 as record-0). pro_baseline.py not run (Comet only; Isidis has no cards); impedance_sweep.py and commander_turns --told not run. No results.jsonl or batch.json. I differ from the existing review in ranking: it roots the game at 9:15 (the bodies waiting at F4) with expansion second; I root it in the opening (0:41-3:51: slow expansion and the first handful recalled), on the user's expansion remark and L-raid-first-handful, and treat 8:11-10:10 as the costliest consequence, itself rooted in the commander's 8:11 direction that stopped seat 0's 20 Maces already going. The trade line is my sum of the two seats' analyze_match losses."
+ },
+ "open_questions": [
+  "His economy and extractor count: never seen and no truth file; the replay (.sdfz) would say how far ahead he was at 8:00 and 10:00.",
+  "Would seat 0's 20 Maces, on fight_to spot_46 at 8:57, or a joint push at 9:15, have broken his Exploiters and Pounders and reached his base?",
+  "Why seat 0's 7:49 packet (fight to spot_37, spot_46, spot_45), landed at 7:55, left the body on hold at home (5040, 1959) until the 8:12 packet moved it at 8:18.",
+  "How much of the wreck field our constructors reclaimed (picks to reclaim at C5 at 7:50-7:52) and how much his Graverobbers raised.",
+  "The ledger's trade line (18,318 for 14,905) appears to set both seats' kills against one seat's losses; worth a correction in docs/experiments.md if confirmed."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791076971-human-22.json"
+}

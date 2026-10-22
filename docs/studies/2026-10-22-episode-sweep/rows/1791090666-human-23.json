@@ -1,0 +1,287 @@
+{
+ "batch": "1791090666-human-23",
+ "label": "human-23 (second game)",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-04",
+ "shape": "1v1",
+ "people": "[APM]thedujin (lobby rating 37 in the header, skill 36.77 in the record), Armada, his plant at A8; the user (computer_whisperer) spectating",
+ "our_side": "Seat 1 (team 1), Armada (armcom) from G1 (6899, 681); a Sonnet 5.5 medium player under an Opus 5.5 high commander (12 turns, 6 directions); Jev jev-latest (1.13 then) as the hands on the rebuilt hands with layers news, same, fuse, openers, split, tick, places; real time. No banner lines in chat; read from bot.log and the ledger.",
+ "build": "b4fe162 (the ledger; 2026-10-04 00:21, after the hands rebuild and the human-11 fixes, before the 2026-10-13 exit-lane and priority fixes and the 2026-10-16/17 impedance fixes and levers)",
+ "result": {
+  "outcome": "lost",
+  "minute": "14:13 (inferred: the record ends with our commander at 9% and nine Stouts within 700; no results.jsonl)"
+ },
+ "summary": "He announced a greedy '1scout 4con' opening but had a Rover in our base at 2:02, and Rovers in parties of up to ten killed five of our extractors by 4:05 while our first soldiers were all on rove and no turret stood until 5:49. Our side's three Rovers and one Blitz paid in his half (six of his extractors and a constructor dead 3:02-4:59) and the commander with four Blitzes killed eight Rovers at 4:07-4:13, so the trade was near level at 5:00, but we held 2 extractors to the pool's 9 and metal sat at 0 from 2:37 to 8:00. From 3:10 every Blitz stayed home, and from 4:47 the commander held the body until 8 extractors stood, which never happened; his Blitz raids 6:30-9:00 killed nine more extractors, eight with our soldiers within 900, while the hands split our Blitzes into hunts of one and two against the packets. The body went west at 10:13 into about 16 Blitzes and 4 Stouts, his bombers took 1,495 at our base at 11:15-11:48 before any anti-air stood, and his Stouts walked in from 12:14. The user's reading, quoted in the ledger: 'probably just poor defensive control from what I saw.'",
+ "root": {
+  "clock": "2:02",
+  "what": "His first Rover stood in our base with nothing armed at home but the commander: the player had put every early soldier on rove (1:11, 1:31, against its own 0:00 'two stay home against raiders') under the commander's 'cross the map at once', no turret was queued before 2:30, and the hands kept the commander on its list 450-550 from the Rover. Spot_6 died at 2:34; the extractor curve fell below the pool's p25 at 4:00 and never came back.",
+  "evidence": "raid_ledger 2:34 spot_6 armfav, sold 0 tur 0; jev log 2:30-2:33 commander.attack_party_1 0.40-0.47 vs party_1.answer 0.88-0.91, plays 'help plant_10511 build [list]'; pro_baseline extractors 3/2 at 4:00/5:00 vs p25 6/8"
+ },
+ "turning_points": [
+  {
+   "clock": "2:34",
+   "what": "First extractor lost (spot_6) to one Rover, earlier than the pool's p25 (2:36); the commander near spot_10 never attacked.",
+   "evidence": "pro_baseline: first extractor lost 2:34 vs p25 2:36 / median 4:21 '<p25'; raid_ledger 2:34 spot_6 G1 armfav 1 armfav, sold 0 tur 0"
+  },
+  {
+   "clock": "3:02-4:59",
+   "what": "Our three roving Rovers and one Blitz killed six of his extractors, a constructor and later his B5 turret: the crossing paid against his naked expansion.",
+   "evidence": "record enemy_destroyed: armmex 3:02 (656,4240), armcv 4:02, armmex 4:07 x2, 4:13, 4:19, 4:59, armllt 5:52; minutes: first of ours within 1,500 of his start 2:37 armfav_29367"
+  },
+  {
+   "clock": "3:44-4:13",
+   "what": "Four extractors lost in 21 s to Rover parties of 2, 2, 3 and 10 while both turret frames died unfinished; then four Blitzes and the commander killed eight Rovers.",
+   "evidence": "raid_ledger 3:44 spot_17, 3:51 spot_12, 3:56 spot_11, 4:05 spot_6 (10 armfav); record armllt destroyed 3:15 and 4:06 unfinished; bot.log 5 min: killed armfav x6, killed armmex x5"
+  },
+  {
+   "clock": "4:47",
+   "what": "The commander turned the plan to extractors first: 'When 8 extractors stand, four Blitzes join the Rovers in his half'; repeated 6:17 and 7:47. We did not hold 8 before 11:00.",
+   "evidence": "commander.jsonl 4:47 direct: 'we hold 2 extractors at 4:47, where people hold 7... Once 8 stand, the Blitzes go west'; bot.log mex 2,4,6,3,4,5,8 at 5:00-11:00"
+  },
+  {
+   "clock": "5:42-8:57",
+   "what": "Nine more extractors lost to Rovers and Blitz pairs, eight of them with 2 to 8 of our soldiers within 900, while the hands sent ones and twos after single Rovers.",
+   "evidence": "raid_ledger 5:42-8:57 sold 5,4,3,4,2,4,8,0,3; hands_window 6:31 'group_B: 1 of group_B hunt party_25 (1 armfav)', 6:58 '2 of group_B hunt party_12'; bot.log 6 min H-MICRO-HUNT=48"
+  },
+  {
+   "clock": "10:13-12:02",
+   "what": "The body (18 Blitzes) went west, broke party_41 at E3 (10:44-11:04), walked back to spot_20 and held, then lost 10 for 8 to about 16 Blitzes and 4 Stouts.",
+   "evidence": "hands_window 11:06 'group_X: advance to spot_20' (17 at (4337,1568)); analyze_match #7 11:37-12:02 E3: we lost 1100 (armflash 10), they lost 880 (armflash 8)"
+  },
+  {
+   "clock": "11:15-11:48",
+   "what": "His bombers hit the base with no anti-air standing: six solars, two extractors, two constructors and a turret for one scout plane; energy stalled from 12:00.",
+   "evidence": "analyze_match #6 11:15-11:48 G1: we lost 1495, they lost 52 ({'armpeep': 1}); record first armthund seen 10:56, first armrl finished 11:48; bot.log 12 min energy 138/1550"
+  },
+  {
+   "clock": "12:14-14:13",
+   "what": "His Stouts walked into the base; the commander was at 9% when the record ended.",
+   "evidence": "analyze_match: last sample 14:13 our commander at 9% at G1 with 9 enemy soldiers within 700 ({'armstump': 9}); #13 13:40-14:10 theirs 2056 on the spot"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-1:31",
+   "what": "Every early soldier sent away, nothing kept home and no turret before the outer spots. The player's 0:00 packet kept two home, but its 1:11 and 1:31 lane calls put the whole group on rove, following the commander's 'first soldiers cross the map at once... do not let it gather at home'. A stronger player keeps one or two Rovers home or puts a light turret at the plant by about 2:00.",
+   "evidence": "0:00 instruct: 'Soldiers gather at home... two stay home against raiders'; 1:11 lane {'group_R': 'rove'}, 1:31 lane {'group_A': 'rove'}; record first armllt created 2:52, first finished 5:49",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:02-2:34",
+   "what": "The commander kept helping the plant while one Rover walked to spot_6 about 450-550 from it and killed it. The packet allowed 'fights raiders within its short walk', but the gate rated the attack at 0.40-0.47 and the pick never took it. The D-gun kills a Rover.",
+   "evidence": "jev log f4500-4596: commander.attack_party_1 0.47, 0.43, 0.40, 0.42; party_1.answer 0.88-0.91; hands_window 2:12 'commander: next, queued: help plant_10511 build [list]', 2:45 'build a armsolar'",
+   "kind": "harness"
+  },
+  {
+   "clock": "1:11-2:38",
+   "what": "The produce list was re-sent at 1:11 (twice) and 1:31 and restarted each time, so four of the first eight units were constructors. The first soldier came at 1:24 (pool median 0:55), with 12 factory units by 4:00 against p25 17.",
+   "evidence": "pro_baseline: first soldier 1:24 '>p75 (late)', factory units by 4:00 12 '<p25'; calls 1:11 produce x3, 1:31 produce; existing review: constructor 1:12, 1:31, 2:02, 2:38",
+   "kind": "both"
+  },
+  {
+   "clock": "3:10-10:13",
+   "what": "Pressure stopped once it had paid: from 3:10 every new Blitz was a home guard (the commander agreed at 3:17), and from 4:47 the commander held the body until 8 extractors stood. His plant at A8 had been seen unturreted at 4:09. The 6:00-9:00 window minutes.py prints is a floor of what was in sight, though; see open questions.",
+   "evidence": "3:10 instruct 'group_H... holds at home'; minutes WINDOWS '6:00-9:00 (2.2-9.3x, 4 min): our mass by minute G1 G2 G2 G2... peak 16%'; minutes 'his first factory seen: 4:09 at A8'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "5:17-5:35",
+   "what": "The player stopped two turret frames at the plant ('stop' lists, then 'Constructors: only extractors for now'), following the commander's 4:47 'a Sentry beside each outer pair rather than turrets around the plant'. The frames were abandoned at 1%, and no further turret was started until 9:08.",
+   "evidence": "calls 5:17 queue constructor_21812 ['stop', ...], constructor_24510 ['stop', ...]; bot.log 6 min 'abandoned an unfinished armllt (1% built) x2'; record next armllt created 9:08",
+   "kind": "strategy"
+  },
+  {
+   "clock": "5:36-9:15",
+   "what": "Poor defensive control (the user's words): the hands answered single Rovers and Blitz pairs with hunts of one to four Blitzes against packets that said 'never splits into detachments'. The body broke into dozens of named groups and the player spent 17 instructs re-joining them, and extractors kept dying with soldiers beside them.",
+   "evidence": "packet 7:00 'never sends detachments or hunts a lone armfav'; played 7:01 '4 of group_K hunt party_12', 7:36 '2 of group_K hunt party_12'; impedance_sweep: 69 flagged of 602 hands' lines; raid_ledger 8 of 9 losses 5:42-8:57 with soldiers within 900",
+   "kind": "harness"
+  },
+  {
+   "clock": "11:06-11:32",
+   "what": "After winning at E3, the body walked back east to spot_20 and held 14 s under packets that said 'goes to spot_44 now without stopping'. It met party_49 still standing and lost the last army.",
+   "evidence": "hands_window 11:06 'group_X: advance to spot_20 [plan]' at (4337,1568); existing review: task hold 11:18-11:32, pick 'kept w1'; packet 11:19 'goes to spot_44 now without stopping'",
+   "kind": "harness"
+  },
+  {
+   "clock": "10:50-11:48",
+   "what": "No anti-air until the bombers struck: his air plant was never seen, the first Nettles were queued at 11:01 after a bomber was sighted at 10:56, and the first stood at 11:48.",
+   "evidence": "record first enemy_seen armpeep 10:50, armthund 10:56, no armap ever; calls 11:01 queue armrl x5; record armrl finished 11:48; analyze_match #6 1495 lost",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "[APM]thedujin (Armada, A8) said at 0:00 'i play normal i try uh' and '1scout 4con greedy expansion open', and opened with Rovers: one in our base at 2:02, nine units in sight at 3:00, a party of 10 at spot_6 at 4:05. Eight of them died at 4:07-4:13 to our commander and four Blitzes. His expansion was naked: our three Rovers and a Blitz killed six of his extractors, a constructor and a B5 turret 3:02-5:52. From 4:53 his Blitzes raided our home spots in parties of 2-5 (6:30-9:00, killing nine extractors), and he said 'i'm fee3ding' at 8:07 (our commander answered that his raids had wrecked our economy). He built an advanced solar and an energy store by 6:58, and by 10:55 had a body of about 16 Blitzes and 4 Stouts at D3, a scout plane (10:50) and Thunder bombers (10:56) that struck our base at 11:15. A Stout push of 9 then went into our base from 12:14. By our commander's sighted estimates his extractors went 9+ (7:47), 11 (9:43), 16 (13:25). No tier 2 seen; his air plant was never seen.",
+ "defects": [
+  {
+   "defect": "Jev's pick over the packet: hunts and detachments of one to four Blitzes played under packets forbidding detachments (the forbidden mark too weak; the impedance study's 'the packet weights the pick and does not command'). This is the core of the 5:42-8:57 losses with soldiers beside the spots, so the loss rests partly on it.",
+   "fixed": "2026-10-16/17 in part (5046f71: the whole-group attack returns to the menu when every detachment reads forbidden; 76139d9: a chase can be recalled); not measured on this shape",
+   "evidence": "packets 6:30, 7:00, 9:08 'no group splits off a detachment'; played 6:31, 6:52, 6:56, 6:58, 7:01, 7:36, 9:08, 9:11 hunts; group names A to B2"
+  },
+  {
+   "defect": "The commander's attack on a lone Rover at about 500 from it rated 0.40-0.47 by the gate and never picked, under a packet that let it fight raiders within its short walk.",
+   "fixed": "unknown (the impedance study's 'commander's rule without an instructions clause' was one of the mechanisms; whether the ten fixes covered it is not checked)",
+   "evidence": "jev log f4500-4596 commander.attack_party_1 0.40-0.47; raid_ledger 2:34 spot_6 lost, sold 0 tur 0"
+  },
+  {
+   "defect": "An extractor in the plant's exit lane (armmex_12301, then armmex_31257). Blitzes and constructors stood in the lane 30 s at 5:17, 6:24, 10:44 and 12:39.",
+   "fixed": "2026-10-13 (3aabc77)",
+   "evidence": "told 6:24 'plant_10511's exit lane is blocked: 2 of ours... in the lane: armmex_12301'; 10:44 and 12:39 'in the lane: armmex_31257'; floor stuck_s 294"
+  },
+  {
+   "defect": "No builder priority: turret frames at normal priority under a metal store at 0 from 2:37 to 8:00, competing with the plant and extractors; two died unfinished at spot_6 (2:52-3:15, 3:40-4:06). That the low/high flag would have saved them is the reader's reading.",
+   "fixed": "2026-10-13 (plants and turrets at low priority, the builder priority arc)",
+   "evidence": "told 2:46 'eco: metal 0 (+8.9/-8.6)'; bot.log metal 0 at 3:00-7:00; record armllt 9501 created 2:52 destroyed 3:15, 778 created 3:40 destroyed 4:06"
+  },
+  {
+   "defect": "A re-sent produce list restarts from its head (1:11 twice, 1:31): four constructors in the first eight units.",
+   "fixed": "unknown (not in the eras list; player-45's ledger row of 2026-10-03 names the same restart)",
+   "evidence": "calls 1:11 produce {'plant_10511': [...]}, produce {'all': null}, produce {group_R}; 1:31 produce {group_A}; pro_baseline first soldier 1:24 '>p75 (late)'"
+  },
+  {
+   "defect": "A produce call refused for a group not in the picture (3:10), and the player's session replaced twice (TAKEOVER at 7:23 and 13:10).",
+   "fixed": "unknown",
+   "evidence": "existing review: 'REFUSED: plant_10511: group_H is not a group in the picture'; impedance_sweep: '87 turns, 2 session replacements... 4 refused'"
+  },
+  {
+   "defect": "Six build orders never started; one engine rejection.",
+   "fixed": "unknown",
+   "evidence": "bot.log: armmex for 26700 (2:16), armsolar for 26700 (3:14), armmex for 11653 (3:56), armmex for 24510 (8:32), armrl for 9205 and 21812 (13:19, 13:21) 'never started'; 12:49 'engine rejected command for unit 7884 (code -3)'"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:00",
+   "text": "damnit, i don't think it started correctly"
+  },
+  {
+   "clock": "0:00",
+   "text": "No, the bot didn't connect this time"
+  },
+  {
+   "clock": "0:11",
+   "text": "oh, apparently it did"
+  },
+  {
+   "clock": "10:24",
+   "text": "yea it's early game still needs a lot of work to pressure and defend right"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "supports",
+   "note": "Both ways: our extractors without turrets died to single Rovers from 2:34, and his naked greedy expansion lost six extractors and a constructor to three Rovers and one Blitz by 4:59."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Our first handful crossed (Blitz 2:10, his first extractor dead 3:02 against the pool median 2:48) and paid. His handful crossing the other way did the same to us. Scope: the crossing needs a picket at home (a turret) beside it, or it trades evenly."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "contradicts",
+   "note": "In part: three of our Rovers on rove, with no special micro, killed six extractors and a constructor against a greedy opener's naked spots. The lesson's 'need specific micro to be worth anything' was said of a Rover mass against a guarded opening."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Extractors decided it: we never held more than 8 (2 at 5:00, 3 at 8:00), against his sighted 9+ at 7:47, 11 at 9:43 and 16 at 13:25; the armies traded about evenly 6:30-9:21."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The commander held the body home 4:47-10:13 on '8 extractors first' with his plant seen unturreted at 4:09, but the army lead was a floor of what was in sight. The commander read 'even, about 1,000 a side' at 7:47."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "'less groups': the hands split the Blitzes into groups named A to B2, with 17 instructs 6:30-9:15 re-joining them."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "Bombers struck at 11:15 with no anti-air standing (first Nettle 11:48, 1,495 lost); his air plant was never scouted."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "An extractor in the plant's exit lane held Blitzes and constructors 30 s at a time (6:24, 10:44, 12:39). This is the defect fixed 2026-10-13 (3aabc77)."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars, then the plant's first unit a constructor at 1:12, the intent the lesson names; energy was still empty at 1:31 (13/1300), after which the game was metal-bound with energy full from 3:00."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "The commander's 7:47 'eat the wrecks at G1' lifted metal income to 49 at 9:00, but the wrecks known at 12:00-14:00 (1,883 to 3,878 metal) were not being worked at the minute marks."
+  },
+  {
+   "id": "L-energy-priority",
+   "relation": "illustrates",
+   "note": "Turret frames competed with the plant under a metal store at 0 (2:37-8:00) before the priority flag existed. Reader's reading."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "The first turret stood at 5:49 (5 light turrets by 8:00 against p25 7). Blitzes hunted Rovers they cannot catch. A body turning for lone raiders killed nothing while spots died with soldiers within 900."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "The backlog cites human-23 x2 for 'a leading army in our half loses its lead'. Here the 6:00-9:00 ratio is a sight floor and trades were even, so this game shows the cost of stopping pressure more than a lead decaying. Also the body's return to spot_20 at 11:06 after a won fight."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "The crossing paid (six extractors and a constructor of his by 4:59, first kill 3:02) and stopped at 3:10. Against a greedy opener the pressure was right; leaving home with no picket was the cost."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Anti-air was ordered at 11:01 after the first bomber sighting (10:56) and stood at 11:48, after 1,495 lost. A scout of his base would have shown the air plant earlier."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "As the early army it failed at 2:26-2:34 (a lone Rover about 500 away, attack rated 0.40-0.47, list kept) and succeeded at 4:02-4:13 (eight Rovers). At 13:37 it walked toward the Stouts against the packet."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Energy was empty at 1:31, then the game was metal-bound: metal 0 from 2:37 with energy full 1,449/1,450 at 3:10; the commander assisted the plant (assist4 116 s)."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "8 constructors made by 8:00 (>p75) on a metal income of 7 to 13, with extractors never above 8: the builders had nothing to build with."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py (--all-starts)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py (--notes, --calls, --told)",
+   "run/wake_read.py",
+   "run/hands_window.py",
+   "run/impedance_sweep.py",
+   "direct reads of bot.log, commander.jsonl, strategist-0.jsonl, record-0.jsonl (via run/match_read.py), jev-0.jsonl.zst"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791090666-human-23/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, no results.jsonl, no batch.json: his numbers are floors of what we saw, and the loss and minute are inferred. pro_baseline needs --all-starts (no carded G1 Armada side) and prints '-' for our pressure rows although the record has the crossing at 2:10 and the first kill at 3:02. minutes.py guesses his start at B5 (his base was A8). analyze_match prints 'opponent None; outcome None'. floor.py has no result, known% or look_min. raid_ledger's 'paid' is 0 on every row for want of a truth file. None of the tools reads commander.jsonl (read directly). The existing review (Fable 5.1, 2026-10-04) ranks the same root; I differ in four places. (1) The 6:00-9:00 '2.2-9.3x' is a sight floor: engagements #1-#4 traded 1,485 for 1,272 and the commander read 'even' at 7:47, so I rank the hold below the defence chain, with the user. (2) At 2:02-2:34 the commander was there and the hands chose its list. (3) The trade was near level at 5:00. (4) The 5:17 stop of the plant turrets. The ledger's row says 'as the first' game, whose row says we were Cortex; this record says armcom (Armada). The existing review's 'no line in docs/experiments.md' is out of date (rows 676-677 now exist)."
+ },
+ "open_questions": [
+  "How many extractors did he hold at 5:00, when the kills were about level (his 6 extractors, a constructor and 8 Rovers against our 5 extractors, a constructor and 2 turret frames)? No truth file says.",
+  "Was there a real army lead at 6:00-9:00? minutes.py's 2.2-9.3x counts only what was in sight at each sample, while the commander read the armies even at 7:47 and the fights then traded evenly.",
+  "Would the post-2026-10-17 hands have sent the commander's D-gun at the lone Rover at 2:26-2:34, and the whole body rather than hunts of one or two at 6:30-9:00?",
+  "Is a re-sent produce list still restarted from its head?",
+  "Which faction did we play in the first human-23 game? The ledger says Cortex for it and 'as the first' for this one, but this record is Armada."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791090666-human-23.json"
+}

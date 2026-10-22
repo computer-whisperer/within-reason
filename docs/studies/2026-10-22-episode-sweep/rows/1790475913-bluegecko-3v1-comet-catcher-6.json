@@ -1,0 +1,311 @@
+{
+ "batch": "1790475913-bluegecko-3v1-comet-catcher-6",
+ "label": "bluegecko-3v1-comet-catcher-6",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-26",
+ "shape": "3v1",
+ "people": "[gecko]Infern8 (lobby skill 24.7, recorded as 25); the lobby and the record's seats say Armada, but he played Cortex (corcom, corvp, corgator seen at B4 from 2:05)",
+ "our_side": "Three seats of ours on the east strip, lobby side Random: t1 purple G1 Armada (ai 0), t2 dark blue H8 Cortex (ai 1), t3 teal G4 Cortex (ai 2). One player, claude-opus-5-5 effort medium (Claude Code 2.1.283), over all three seats with no commander role; hands Jev jev-latest = jev-1.13.0 on every seat (banner names MonkeyLord, Rikerss).",
+ "build": "99999a4",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 17:05 (the record's end; commander_t2 died 14:16, commander_t1 16:18, teal's commander alive and chased at the end)"
+ },
+ "summary": "Three Opus-led seats against Infern8 (lobby 25, Cortex) on Comet Catcher, lost at about 17:05 with two commanders dead. The side out-expanded him (30 extractors at 8:00 against 9 ever seen) but kept a mostly light army at home as pickets. It killed one building of his in the game's first 16 minutes, and he walked his commander forward to D4 with a second plant, a light turret, Brutes and, from 8:29, Pounders. The player gathered the three seats for 90 s and ordered one attack at 8:14. Each seat's hands priced its own group alone, so the seats went in one after another and about 80 soldiers (10.2k) fell to 24 for about 3.5k of his. After that, reading a trade line that counted every kill three times, the player held and rebuilt: one good fight at 12:08 (18 Brutes), then his single block of Pounders and Brutes beat dark blue's lone group at 13:04 and took dark blue's home by 14:28 and purple's by 16:18, while up to 14k of wrecks lay unreclaimed and the advanced plant begun at 10:16 never finished; the distinct trade was 24.4k of his for about 50k of ours.",
+ "root": {
+  "clock": "6:45",
+  "what": "His commander and a new forward plant were found at D4 just after his Incisors died (6 at 6:35). We had about 7k of soldiers, 60 of 78 of them light, against one person. The player chose to gather all three seats at a place in our half (spot_32, then spot_27 further back at 7:38), to wait until all three were there, and to make the commander the target. For 90 s he added Brutes, a light turret and Pounders. The three seats' hands could not form one body, so the 8:14 attack went in as three (reader's reading of the cause; the clock and the cost come from the tools).",
+  "evidence": "6:45 note: 'enemy commander forward at D4 with a second plant ... Gathering all three raider groups (~6.4k) at spot_32 to attack_unit the commander together.' Records at 8:20: t1 29, t2 28, t3 21 soldiers at x5829-6003 (10.2k); 9:30: 10/5/9 (4.5k)."
+ },
+ "turning_points": [
+  {
+   "clock": "2:08",
+   "what": "All three groups stationed at home spots (spot_6, spot_70, spot_35) under the opening instruct 'raiders ... stand as pickets'. His Cortex plant at B4 had been seen at 2:05 and his nano turret at 2:36.",
+   "evidence": "2:08 standing {group_A_t1 station spot_6, group_A_t2 spot_70, group_A_t3 spot_35}; 0:00 instruct: 'Raiders gather at their seat's home until a handful, then stand as pickets'."
+  },
+  {
+   "clock": "4:32-5:25",
+   "what": "Teal's Incisor raid toward his extractors (spot_52, spot_61, spot_43) did not move for almost a minute: the packet's hold_line outlived the tool's null. At 5:55 the raid was redirected to the nearer spot_39.",
+   "evidence": "5:25 woken: 'group_A_t3 was told to advance to spot_61 and has not got nearer for 45 s, 4372 short of it'; decompression-review.md: hold_line: null at 4:32 left the packet's hold_line for 58 s."
+  },
+  {
+   "clock": "6:38-6:48",
+   "what": "His forward vehicle plant, his commander, Brutes and a light turret appeared at D4. Teal had just killed 6 of his Incisors.",
+   "evidence": "first sightings: corraid 6:38 D4, corllt 6:48 D4; analyze_match #0 6:35-6:46 D4: they lost 720 (6 corgator)."
+  },
+  {
+   "clock": "8:24-9:31",
+   "what": "The D4 attack: the three gathered seats engaged one after another. t1 went first, t3 30-40 s later, t2 last on a southern line. Our army fell from about 80 soldiers to 24 against his commander, Pounders, Brutes and an LLT.",
+   "evidence": "per-seat soldiers 8:40/8:50/9:00/9:20: t1 28/18/14/14, t3 23/24/11/12, t2 29/30/29/7. hands_window t1 8:35 'attack party_12_t1 (7 corgator, 1 corraid) with the whole gr'; 8:53 9 left."
+  },
+  {
+   "clock": "10:05-10:33",
+   "what": "A raid of 7-9 Brutes and an Incisor took 6 of purple's northern extractors (E1-F2) while group_A_t1 was walking home on a retreat pick.",
+   "evidence": "raid_ledger t1: spot_20 10:05, spot_15 10:08, spot_16 10:19, spot_3 10:22, spot_11 10:32, spot_8 10:33, all corraid, answer none; side extractors 32 at 10:00, 25 at 11:00."
+  },
+  {
+   "clock": "12:08",
+   "what": "The side's one good fight: Stouts and Pounders together killed 18 Brutes at F3/F4.",
+   "evidence": "12:08 note: 'killed 18 Brutes; Stouts and Pounders together on the 7 left at F3'; distinct kills in minutes 11-12: 2,260 and 1,880."
+  },
+  {
+   "clock": "13:04-14:28",
+   "what": "His block of 7 Pounders and 8 Brutes beat dark blue's lone Brutes at E6/F6. Teal's Pounders were stuck at spot_27 for 38 s. Dark blue's army went from 3.3k to 170, its commander died at 14:16 and its home fell.",
+   "evidence": "13:04 note 'enemy block 7 Pounders + 8 Brutes at E6 outweighs dark-blue Brutes'; 13:14 'Pounders stuck at spot_27 38s'; seat t2 army 13:00 3290, 14:00 170; corcom died 14:16."
+  },
+  {
+   "clock": "15:05-16:18",
+   "what": "With his main block out of sight, teal's Pounders were sent south after 5 Graverobbers. The block of about 13 Pounders and 15 Brutes overran purple's home (5.9k lost) and killed commander_t1.",
+   "evidence": "15:05 note 'Pounders go kill them at spot_42 while the block is out of sight'; analyze_match #15 15:35-16:10 G1: we lost 5905 (armvp, armavp, 7 solars, 4 mex); armcom died 16:18 H2."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-6:18",
+   "what": "No pressure. Each plant made raiders only, the raiders stood as home pickets, and the one raid was ordered at 3:59. In 16 minutes the side killed one building of his (an extractor at B5, 2:18), so a lone person kept an untouched economy. A stronger player sends the first handful across the map and hits his outer extractors (pool: first building killed at 2:48).",
+   "evidence": "pro_baseline t1 --all-starts: 'first building of his killed - | pool 2:18 2:48 4:13'; distinct kills: buildings only cormex 2:18 (B5) and cormex 16:43; side army at 4:00-8:00 0-6% in his half (records).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:45-8:14",
+   "what": "A gather in our half, held until all three groups had arrived, with his commander in a defended forward block as the target. The 90 s let him add Pounders and a turret. With three seats that could not move as one, a stronger choice was to go now or around: three lanes at his naked extractors, not the strongest point on the map.",
+   "evidence": "6:45 instruct: 'When group_A_t1, group_A_t2 and group_A_t3 all stand at spot_32 together: every group attacks the enemy commander'; 7:38 moved to spot_27; corlevlr first seen 8:29 D4.",
+   "kind": "both"
+  },
+  {
+   "clock": "6:18-8:20",
+   "what": "The army was light raiders into Pounders. At 8:20, 60 of the side's 78 armed units were Incisors, Blitzes and scout cars, and line tanks had been ordered only from 6:18. Against his Pounders and Brutes the light mass traded badly.",
+   "evidence": "records 8:20: corgator 31, armflash 19, corfav 7, armfav 3, armstump 7, corraid 6, corlevlr 5; 6:18 produce switched to Stout/Brute/Pounder 1:1 with raiders.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:24-9:31",
+   "what": "The attack went in as three bodies. Each seat's Jev weighed its own group alone, on a partly seen party, and the player's 'as one body' and 'attack the commander' had no rule to land in. The result was 9.6k lost for 3.5k at D4.",
+   "evidence": "posing-review.md: 'No seat's picture contains an allied unit'; A_t1 24 -> 9 by 8:54; lost 3,397/3,345/2,845 by seat; distinct his deaths in minutes 8-9: 915 + 2,585.",
+   "kind": "harness"
+  },
+  {
+   "clock": "9:08-12:31",
+   "what": "The posture rested on a false account. The trade line summed three seats' kills, so the player read 'traded even' and 'time favours us' and chose to hold and rebuild instead of meeting the fact that the D4 trade had gone badly against us.",
+   "evidence": "9:08 note 'traded even (6.5k lost vs 6.1k) ... time favours us'; 12:31 'trade 31.8k vs 18.8k'; distinct by 12:31 about 10.6k of his for 19.0k of ours (posing-review.md).",
+   "kind": "harness"
+  },
+  {
+   "clock": "3:00-13:38",
+   "what": "No radar on any seat until 13:38 (pool: a radar by 3:04). Fire from E3/E4 went unseen at 12:16, and his main block kept leaving sight. The player committed at D4 and later split the army without knowing where the block was.",
+   "evidence": "pro_baseline t1 and t3: 'radars by 8:00 0 | pool 1-2 / 2-3'; first corrad created 13:38 (t3); 12:16 note 'losing to something unseen at E3/E4'; 14:01 radar shows ~34 unidentified at E3/E4.",
+   "kind": "both"
+  },
+  {
+   "clock": "10:00-15:00",
+   "what": "Wreck fields were left lying. Fields of 3.5k to 12k metal in our half went unreclaimed: the player's 11:26 instruct ('first take apart the wrecks at F2') never put a constructor on them. His Graverobbers raised them at F5 from 15:02.",
+   "evidence": "bot.log ai 0 wrecks: 18000 '3476 metal (3476 safe to work), 0 at work' ... 28800 '17378 metal (12480 safe to work), 0 at work'; cornecro first seen 15:02 F6.",
+   "kind": "both"
+  },
+  {
+   "clock": "9:45-16:05",
+   "what": "Tier 2 and build power were slow. Purple's advanced plant was started at 10:16 and never finished in six minutes. No seat built a construction turret all game, and the energy store was empty 7-9% of the time. Meanwhile he showed Reapers by 17:00.",
+   "evidence": "record-0 events: 'created armavp' 10:16, 'destroyed armavp' 16:05 with no 'finished'; floor e0% 8.4/9.2/7.2; pro_baseline 'nano turrets by 8:00 0'; correap first seen 17:00 G4.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "13:04-14:16",
+   "what": "The groups were apart again: dark blue's Brutes at F6 alone against his block, teal's Pounders stuck, and dark blue's commander, picked by its hands, stepped away toward where the raid was heading. It was walking at 38 against Brutes at 87.",
+   "evidence": "posing-review.md finding 4: 13:59 'step away ... to spot_60 ... out of its reach', 1,112 to walk; dead at 14:16. raid_ledger t2: 8 extractors lost 13:44-14:28.",
+   "kind": "both"
+  },
+  {
+   "clock": "15:05",
+   "what": "The army was split while the main block was out of sight: Pounders went after 5 Graverobbers, and the block of 13 Pounders and 15 Brutes, last seen at F2/F3, took purple's home.",
+   "evidence": "15:05 report: in sight '6 at F5 ... corlevlr 1, cornecro 5'; posing-review.md: 13 Pounders and 15 Brutes at F2/F3 at 14:45, back at F2/G2 at 15:35, G1 at 15:45.",
+   "kind": "both"
+  }
+ ],
+ "their_play": "Infern8 played Cortex vehicles from one plant at B4, with a nano turret by 2:36 and Incisors from 2:36; his radar stood at C4 by 4:03. Unpressured, he walked his commander forward to D4 with a second vehicle plant and a light turret (6:38-6:48), added Brutes and, from 8:29, Pounders, and held D4 as one block with the commander inside. Through the attack of 8:35-9:20 the block lost about 3.5k and stayed together. He then raided with Brutes: 7-9 into our north at 10:05-10:33 (6 extractors) and Brutes with Pounders into the south-middle at 10:55-11:44. He kept one main block (about 34 contacts on radar at E3/E4 at 14:01; 13 Pounders and 15 Brutes at F2/F3 at 14:45) and moved it from seat to seat: dark blue's home at 13:43-14:28, then north to purple's at 14:41-16:18. From 15:02 his Graverobbers raised our wrecks at F5/F6, and Reapers (tier 2) were in sight at 17:00. Over the game we saw 66 Brutes, 40 Pounders and 13 Incisors of his, but only 9 extractors. No building of his base died after 2:18, and the D4 plant never died.",
+ "defects": [
+  {
+   "defect": "Each seat's picture had no allied groups and each seat's Jev priced its own group alone; the player's 'as one body' and 'attack the commander' had no rule. This made the gathered ball into three sequential attacks at D4.",
+   "fixed": "2026-09-27 (ff32935, H-HANDS-ALLIED-GROUPS); the D4 loss, the game's largest, rests on it in large part",
+   "evidence": "posing-review.md 8:35: 'group_A_t1 attacks party_12_t1 ... with the whole group (3622 metal against its 1075)'; per-seat collapses 8:40-8:53, 8:50-9:00, 9:10-9:20."
+  },
+  {
+   "defect": "The report's trade summed every seat's sightings of a death, counting each kill up to three times, so a losing trade read as even and then as ahead.",
+   "fixed": "2026-09-27 (ff32935, H-PLAYER-TRADE-ONCE; later H-PLAYER-OWN-TRADE 2026-10-18); the middle game's hold-and-rebuild posture rested on it",
+   "evidence": "17:02 report 'whole game 48551 lost, 72540 destroyed'; distinct enemy deaths across the three records 24,415 metal."
+  },
+  {
+   "defect": "His extractor count was given as 'known to hold 8' with no age, unchanged from 6:45 to the end.",
+   "fixed": "2026-09-27 (ages, H-HANDS-ENEMY-MEMORY); the claim itself removed 2026-10-17 (harness claims nothing of his state)",
+   "evidence": "every score line from 6:45: 'the opponent is known to hold 8'; 9:45 note '32 mex/68 income vs ~8 known theirs'."
+  },
+  {
+   "defect": "A party that left sight dropped out of the picture, so the main block's last place was not shown when the player split the army at 15:05.",
+   "fixed": "2026-09-27 (H-HANDS-ENEMY-MEMORY: out_of_sight, biggest_party_known)",
+   "evidence": "15:05 report showed '6 at F5 ... corlevlr 1, cornecro 5' and a 3-minute tally only; posing-review.md finding 3."
+  },
+  {
+   "defect": "Party names were per seat, so a standing order naming a party from the report was refused once the name changed seat.",
+   "fixed": "2026-09-27 (H-HANDS-SIDE-PARTIES)",
+   "evidence": "16:42 RESULT standing: 'refused: group_A_t3: party_59_t3 is not a party in the picture'."
+  },
+  {
+   "defect": "The standing tool's `hold_line: null` did not lift the packet's hold_line, so teal's raid order stood still for almost a minute.",
+   "fixed": "pre-hands-rebuild; superseded by the rebuild of 2026-10-02 (this specific fix not verified)",
+   "evidence": "5:25 woken 'has not got nearer for 45 s, 4372 short of it'; decompression-review.md 'Harm': 58 s."
+  },
+  {
+   "defect": "A retreat pick ('fall back home', 9:52) outlived the player's new station (10:06) while the north was raided.",
+   "fixed": "pre-hands-rebuild (2026-10-02; this specific fix not verified)",
+   "evidence": "posing-review.md finding 6; 10:33 'hunt of party_14_t1 ended after 0 s: the leash of 900 from where it began reached'."
+  },
+  {
+   "defect": "The commander's step-away targets were priced against nothing and could point at an enemy's estimated position: commander_t2 stepped 'out of its reach' 1,112 away from Brutes, and commander_t1 stepped toward 'shelling'.",
+   "fixed": "pre-hands-rebuild (2026-10-02; this specific fix not verified)",
+   "evidence": "posing-review.md findings 4-5: 16:14 'steps away from party_61_t1 ... to shelling (near away), out of its reach'; commander_t1 died 16:18."
+  },
+  {
+   "defect": "The player's prose order to reclaim the wrecks reached no constructor: the decompression gave follow_list and the constructors kept their lists.",
+   "fixed": "unknown (pre-hands-rebuild)",
+   "evidence": "bot.log: '0 at work' at every minute while wrecks rose to 17,378 metal; decompression-review.md P11 (11:37): 'constructors follow_list, never'."
+  },
+  {
+   "defect": "The opponent's faction came from the lobby ('Armada') in every sides line; he played Cortex.",
+   "fixed": "unknown",
+   "evidence": "record seats: Infern8 side 'armada'; 2:08 note: 'Enemy is Cortex: commander and vehicle plant at B4'."
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The seats fought one at a time twice: at D4 (t1 8:40-8:53, t3 8:50-9:00, t2 9:10-9:20) and again at 13:04-14:16 (dark blue's Brutes alone while teal's Pounders were stuck). His one block beat both. Here a since-fixed defect drove it: each seat priced its own group alone."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "At 8:20, 60 of our 78 armed units were light (31 Incisors, 19 Blitzes, 10 scout cars), and they died into his Pounders and Brutes at D4. The ledger: 'he went Pounders and Brutes early'."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Raiders stood as home pickets. Apart from an extractor at 2:18, nothing of his died before 16:43, and the lone person built a forward plant at D4 unharassed."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "The same lesson against another person: our economic lead (30 extractors against 9 seen at 8:00) went unused while his economy and forward plant were never raided."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'I would go around rather than attack the strongest position.' The attack went head-on into his commander, light turret and Pounders at D4, for 9.6k lost against 3.5k."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "Infern8, this game's opponent, said the next day that defences are strong per metal and need range or overwhelming force. Here his LLT and commander at D4 anchored a block that light raiders could not break."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "This is a rematch of game 5, which was won by converging on him. Here the lead (9.3k of soldiers at 8:00, all at F4) was held at home until 8:24 and then spent on the strongest point."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "From 10:00, 3.5k to 12k of wrecks lay in our half with 0 constructors at work. His Graverobbers raised them at F5/F6 from 15:02."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "illustrates",
+   "note": "No seat built a construction turret all game. Purple's advanced plant, started at 10:16, was still unfinished when it died at 16:05."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "illustrates",
+   "note": "The advanced plant came late (started at 10:16, the first of the six games per the ledger) and never finished. His Reapers were in sight at 17:00."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "The player made his commander the target (6:45-8:14). The words had no rule to land in, and the commander lived."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "This game shows both sides of the subject's conflict. The count-based gather ('when all three stand at spot_32') burned 90 s in our half and still produced no single body. The army stood 0-6% in his half from 4:00 to 8:00."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "We committed into an LLT, the commander and Pounders on partial sight (the party's weight swung 1,075 to 5,510 within seconds). There was no radar until 13:38, and the fire from E3/E4 at 12:16 went unseen."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "A light mass of Blitzes and Incisors attacked into Pounders and Brutes and lost. The 12:08 fight with Stouts and Pounders together won (18 Brutes)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "Scout cars reached his base at 2:02-2:44, but nothing followed: the pool's first building killed is at 2:48, ours never came after 2:18."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "Home pickets and a turret beside nearly every extractor (31 of 36 lost had a turret within 700) did not stop the Brute raids. Purple's 6 extractors at 10:05-10:33 died with the group on a retreat pick."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "The armavp was begun at 10:16 on an empty store (income 55-70 across the side, energy empty 7-9%) and was unfinished six minutes later."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "commander_t2 stepped toward the raid at 13:59 and died at 14:16; commander_t1 stepped toward 'shelling' and died at 16:18. Both were since-fixed era defects in the step-away pricing (not verified individually)."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Every seat built three solars before the plant (pro_baseline '>p75 (late)'), with the plant started at 0:49-0:51. The energy store was empty 7-9% of the game (floor e0%)."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "This supports the explain-away. The report read 72,540 destroyed against 48,551 lost, but distinct deaths were 24.4k of his against about 50k of ours. The game was not ahead on the trade: it was lost on the trade."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat t1 on the match; t2 and t3 through symlinked scratch dirs)",
+   "run/analyze_match.py (seat t1)",
+   "run/pro_baseline.py --all-starts (t1 Armada G1, t3 Cortex G4)",
+   "run/floor.py (all three seats)",
+   "run/raid_ledger.py (all three seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 8:24-8:56 group_A_t1",
+   "run/impedance_sweep.py",
+   "direct Python over record-0/1/2.jsonl (side-wide curves, per-seat army positions 8:00-9:40, distinct kills and losses, composition, first sightings, armavp events)",
+   "strategist-0.jsonl instruct texts; bot.log wreck lines",
+   "docs/experiments.md row bluegecko-3v1-comet-catcher-6",
+   "00/posing-review.md and 00/decompression-review.md (model reviews of 2026-09-27)"
+  ],
+  "existing_review": "none (no review.md; /ceph/christian/within-reason/run/matches-archive/1790475913-bluegecko-3v1-comet-catcher-6/00/posing-review.md and decompression-review.md were read)",
+  "confidence": "medium",
+  "caveats": "No review.md exists, but 00/posing-review.md and 00/decompression-review.md (model reviews, 2026-09-27) were read and built on. I agree with their D4 finding and add the gather delay, the light composition and the absent pressure as causes upstream of it. I differ from the ledger's 'purple attacked his D4 block alone at 7:38': as posing-review.md says, those were raiders fed forward (471 lost for 0), and the costly entry came at 8:35-8:54. The per-match tools read only record-0 and jev-0 (seat t1). Seats t2 and t3 were read through symlinked scratch dirs; a first attempt used a scratch dir another reader had populated, and those outputs were discarded. There is no truth file, so his army and extractor counts are floors, minutes.py's 12:00-15:00 'windows' rest on a block that was out of sight, and his tier-2 timing is unknown. pro_baseline needed --all-starts (no G1 card) and compares one seat with a 1v1 pool. raid_ledger's 'answered 0' is a tool fault with seat-tagged party names (as posing-review.md notes). The chat holds no computer_whisperer line and no advice: the only person line, at 1:59, is unattributed ('Claude: how does this handle unicode?')."
+ },
+ "open_questions": [
+  "How many extractors did he really hold? Only 9 were ever seen, and the posing review estimates about 24k of soldiers fielded by 15:00, which is more than 8 extractors pay for. Reclaim is unaccounted.",
+  "When did his tier 2 start? Reapers were first seen at 17:00, and there is no truth file.",
+  "Would an immediate strike at 6:45, or three separate raids on his outer extractors (which need no coordination between seats), have won under the defect that each seat priced its own group alone?",
+  "The ledger row records the opponent as Armada (the lobby's side), but he played Cortex. Should the row be corrected?",
+  "Did the reclaim instruction of 11:26 fail in the decompression (P11 gave follow_list) or in the constructors' queued lists? bot.log shows 0 at work all game."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790475913-bluegecko-3v1-comet-catcher-6.json"
+}

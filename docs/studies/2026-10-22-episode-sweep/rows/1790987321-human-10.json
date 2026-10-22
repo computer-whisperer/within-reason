@@ -1,0 +1,274 @@
+{
+ "batch": "1790987321-human-10",
+ "label": "human-10",
+ "map": "Gecko Isle Remake v1.2.1",
+ "date": "2026-10-02",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (OS 34, the opponent, Cortex); spectators [gecko]u6bkep (lobby rating 19) and computer_whisperer (the user, hosting)",
+ "our_side": "three seats under one player: t1 red Cortex D7 (seat 0), t2 blue Cortex F8 (seat 1), t3 teal Armada B7 (seat 2); player Opus 5.5 at effort low, no commander; Jev hands at effort normal with the `news` layer alone (run/human_game.sh defaults); realtime; Jev $6.91 over three seats (ledger)",
+ "build": "eb159ef",
+ "result": {
+  "outcome": "lost",
+  "minute": "23:45"
+ },
+ "summary": "Three seats of ours, driven by one Opus 5.5 player at effort low, lost at 23:45 to thebluegecko alone on Gecko Isle. The opening was poor: the hands built labs before the lists arrived, and t1 waited 107 s for its third extractor. Grunt raids from 4:11 then killed six of t1's constructors (5:12-5:41) and five extractors on t2 and t3 by 9:24, yet from 6:00 the army had 4.9 to 20.7 times what we could see of his. The push ordered at 5:50 stayed in our half for four minutes, then spent 10:09-14:48 walking back and forth in front of his turret outpost at D4 (10,109 metal lost for 1,380). Expansion stopped at the midline: 27 extractors at 6:00 and 35 at 12:00 across three seats, none in his half, while unseen he went tier 2 (Tzar 14:05, bombers 16:12, Shiva 19:36). At 19:23-20:18 the army changed course every second under fire it could not see and lost 9,571 metal for nothing; the people put the cause on the economy, not the units ('not a unit choice problem, a not enough mex problem').",
+ "root": {
+  "clock": "5:50",
+  "what": "The raid was beaten and the army stood at 4.9-20.7x what we saw of his. The lead was turned into neither ground nor extractors: the push ordered at 5:50 (spot_42/35/38, then north) stayed in our half until 10:09 and then met the outpost, and every constructor target except the outpost itself was in our half (27 extractors at 6:00, 29 at 8:00). The cause is from people (thebluegecko, the user); the minute is minutes.py's.",
+  "evidence": "minutes WINDOWS: '6:00-7:00 (4.9-20.7x, 2 min): our mass by minute D6 C6 (...; peak 0%); his factory in the picture: not yet'; note 5:50 'Spending the lead: one ball via spot_53 to spot_42/35/38 then north'"
+ },
+ "turning_points": [
+  {
+   "clock": "0:10-1:15",
+   "what": "The pre-game turn could only write prose (factions unknown, and the lists took internal names only). Jev built labs first on t2 and t3, and the lists then started a second lab on each; the player stopped them at 1:15",
+   "evidence": "record-2/1 created: armlab 0:10, corlab 0:14, armlab 1:08, corlab 1:14; note 1:15 'Hands built labs early at 0:10 for t2/t3, then lists started second labs; stopped them.'"
+  },
+  {
+   "clock": "5:06-5:41",
+   "what": "Six Grunts reached t1's constructors at C6/D6; group_A_t1 (15-16 Grunts, about 1,300 away) was cut into hunt detachments almost every second; t1 lost six constructors and its builders fell from 6 to 1",
+   "evidence": "analyze_match #0 5:12-5:46 D6: we lost 849 ({'corck': 6, 'corak': 3}), they lost 258 ({'corak': 6}); curves min 5 builders 6/0, min 6 1/4"
+  },
+  {
+   "clock": "5:50",
+   "what": "THE PUSH ordered: gather at spot_53, fight to spot_42, spot_35 and spot_38, then spot_30, spot_20 and spot_23; home guards and later raid hunters split off; constructor targets all in our half",
+   "evidence": "instruct 5:50: 'THE PUSH: group_E_t1, group_N_t2 and group_A_t3 are the army. They gather at spot_53, then fight to spot_42, spot_35 and spot_38 together ...'"
+  },
+  {
+   "clock": "6:35-6:57",
+   "what": "Grunt waves took two extractors each from t2 and t3 and two of t3's constructors (28 extractors fell to 24); with 1,150 banked the player answered with a vehicle plant on every seat",
+   "evidence": "record-1/2 destroyed armmex 6:35, 6:49, cormex 6:43, 6:49; report 6:56 'extractors 24 (most held 28 ...)'; note 6:57 'Bank 1150: adding a vehicle plant per seat'"
+  },
+  {
+   "clock": "8:54-10:09",
+   "what": "The army's advance stalled: group_O_t1 held 'fight_to spot_47' for 75 s and moved about 300 elmos; the player saw it at 9:53",
+   "evidence": "hands_window: 9:00 'group_O_t1: 44 at (3490, 5730), task fight_to spot_47' ... 10:04 '53 at (3309, 5458), task fight_to spot_47'; note 9:53 \"'advancing to spot_47' never completes (tail short)\""
+  },
+  {
+   "clock": "10:05-11:07",
+   "what": "The user asked for the attack; the army reached the D4 outpost (spot_42) and reversed course on alternate seconds under four Twin Guards",
+   "evidence": "chat 10:05 computer_whisperer 'Try attacking now opus'; analyze_match #4 10:23-11:03 D4: we lost 1646 ({'corak': 22, 'corthud': 5}), they lost 0"
+  },
+  {
+   "clock": "13:30-14:48",
+   "what": "Second attack on the outpost by all three seats, now with his Tzar and Reapers; turned 'around, east' only after u6bkep's advice",
+   "evidence": "first seen correap 14:00, corgol 14:05; analyze_match #5 13:58-15:30: we lost 4439, they lost 1380 ({'correap': 2}); u6bkep 14:26 'I would go arroung rather than attack the strongest postition on the map'"
+  },
+  {
+   "clock": "16:12-17:05",
+   "what": "Shadow bombers on blue's commander and red's base; blue's army and constructors transferred to red",
+   "evidence": "first seen corshad 16:12; raid_ledger t1 losses 16:54, 16:55 to corshad; note 17:05 'bombers on the stuck blue commander at spot_85; giving blue's army/constructors to red'"
+  },
+  {
+   "clock": "19:23-20:18",
+   "what": "The decisive moment: red's army (with blue's) gathered at spot_53 beside an unseen Shiva and Tzar and changed course every second",
+   "evidence": "analyze_match #12 19:23-20:18 D6: we lost 9571 (..., 'corthud': 33, 'corwolv': 10), they lost 0; hands_window 20:05-20:15 group_K1_t1 70 -> 40 soldiers, a new course each second"
+  },
+  {
+   "clock": "21:27-23:45",
+   "what": "Commanders killed: t3 21:27 (two Tzars at B7), t2 about 22:00, t1 23:45 at B7 to the Shiva",
+   "evidence": "notes 21:27, 22:00; analyze_match 'our commander died at 23:45 at B7 (in our half) to corshiva'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "5:50-12:00",
+   "what": "Expansion stopped at the midline. Every constructor target was in our half, except t1's spot_42, the outpost itself (9:36-10:16), and three seats went from 27 to 35 extractors between 6:00 and 12:00 (38 at the peak), none in his half. At 6:57 the bank went into a vehicle plant per seat rather than constructors and turrets for spots. A stronger player escorts constructors into his half behind the lead.",
+   "evidence": "5:50 instruct 'Red seat (D7): spot_66, spot_59, spot_60, spot_53, spot_47 ...'; seats' extractors 27/29/33/35 at 6/8/10/12 min; thebluegecko 22:38 'not a unit choice problem, a not enough mex problem' (person)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "5:50-10:09",
+   "what": "The lead was spent in our half for four minutes. The push was ordered at 5:50 and 7:42, but the army was split into a ball, home guards and raid hunters, and its advance stalled at spot_47. Our mass was never over 0% in his half in any window, and no unit came within 1,500 of his start.",
+   "evidence": "minutes WINDOWS '10:00-11:00 (11.4-17.3x): our mass D5 D5 ... peak 0%'; 'first of ours within 1,500 of his start (E1): never'; hands_window 8:54-10:09 task fight_to spot_47",
+   "kind": "both"
+  },
+  {
+   "clock": "10:09-14:48",
+   "what": "The whole army went to the strongest position on the map: the D4 outpost with four corhllt (reach 490 against our 380) and a corexp. It walked back and forth there, and the player held that target through eight orders. A stronger player goes around it, as u6bkep said.",
+   "evidence": "u6bkep 13:49 'your units wandered back and forth in front of 4 twin Guard and a pounder and never acualy attacked.' (person); ledger: 10,109 of ours died within 800 of spot_42 for 1,380 of his",
+   "kind": "both"
+  },
+  {
+   "clock": "5:02-5:41",
+   "what": "t1's constructors walked to C6/D6 spots without an escort, with the turret listed after the extractor. Six Grunts caught them while the nearby group cut itself into detachments; six of its constructors died (t1's builders 6 at 5:00, 1 at 6:00), and t1 sat at 7-9 extractors from 5:00 to 11:00.",
+   "evidence": "queue 5:02 constructor_15220 ['extractor spot_59', 'corllt spot_59', 'extractor spot_53']; analyze_match #0 we lost 849 ({'corck': 6, 'corak': 3}); t1 extractors by minute 7,7,8,9,9,9,10 (5-11)",
+   "kind": "both"
+  },
+  {
+   "clock": "0:03-2:28",
+   "what": "The opening. t1 built three winds before its two home extractors and its lab at 1:01, and finished its third extractor 107 s after the second. t2 and t3 got labs first from the hands, then second labs from the lists (destroyed or reclaimed at 1:58 and 2:10).",
+   "evidence": "record-0 created corwin 0:03, 0:11, 0:20, cormex 0:26, 0:35, corwin 0:45, 0:52, corlab 1:01; extractors finished 0:32, 0:41, 2:28",
+   "kind": "both"
+  },
+  {
+   "clock": "0:17",
+   "what": "thebluegecko's tidal tip was declined (this map's tidal is 25, wind 2-16), and no tidal was built on any seat. t1's energy store was empty 39.6% of seconds, and the stalls returned from 16:00 to 21:00.",
+   "evidence": "chat 0:04 'tidals are good here' (person); the player's turn text 'I didn't act on that tip: the wind is at 11 on a 2-16 range, so wind is enough for now.'; floor e0% 39.6; analyze_match energy stalled in minutes [..., 16-21]",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:12-18:15",
+   "what": "We never saw his tech or his air. There was one radar (t1, 11:12) and his base was never seen. Nothing answered his air until t3's air plant at 18:15, two minutes after bombers hit t1's base and three after they were first seen.",
+   "evidence": "minutes 'his first factory seen: never'; first seen corshad 16:12; armap created 18:15; u6bkep 17:55 'figs is the only reliable way to stop a large bomber force like that ...' (person)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "15:55-16:19",
+   "what": "31 Thuds died chasing kiting Reapers under the Tzar at E5, despite the player's 'never chase party_5'",
+   "evidence": "analyze_match #6 15:55-16:19 E5: we lost 4340 ({'corthud': 31}), they lost 1805; note 15:41 \"hands keep attacking party_5 (2 Tigers kiting near D4) despite 'never chase'\"",
+   "kind": "harness"
+  },
+  {
+   "clock": "19:14-20:18",
+   "what": "The army gathered at spot_53, beside a Shiva the player had just placed there (19:36), and then changed course every second under fire it could not see. The alternatives were to pull back out of reach as one body, or to close on the Shiva at once.",
+   "evidence": "note 19:36 'the ball is gathering at spot_53 right beside it'; analyze_match #12 we lost 9571, they lost 0; user 20:19 'apparently the army movements are still broken' (person)",
+   "kind": "both"
+  }
+ ],
+ "their_play": "thebluegecko played Cortex; the header said armada, and the player noted at 5:50 'Enemy is Cortex despite lobby'. He sent Grunt raids in waves of 6-8 into all three seats from 4:04: t2's first extractor died at 4:11, t1's constructors at 5:12-5:41, t2's and t3's extractors at 6:35-6:49, and t2's again at 9:20-9:24. He fortified a forward outpost at D4 (spot_42: Exploiter, four Twin Guards, a radar, first seen 5:29-6:09) and went tier 2 behind it without being seen: Reapers 14:00, a Tzar at the outpost 14:05, a scout plane 16:00, Shadow bombers 16:12 on blue's commander and red's base, Shuriken drones 18:31, a Shiva 19:36, a Behemoth by 20:44 (the player's note) and a moho seen at 22:15. From 15:00 he fought mostly in our half (his losses in our half 12,683, in his 2,668: seat 0's view) and finished the commanders with Tzars and the Shiva from 21:27 to 23:45. His base and his extractor count were never seen, and there is no truth file; the user put his income at 6x ours at 20:19.",
+ "defects": [
+  {
+   "defect": "Lists and `produce` took internal names only, so the pre-game turn (factions set by the lobby at the start) wrote prose. The hands played that prose: Jev built labs at 0:10 (t3) and 0:14 (t2) against prose that put the factory third, and the lists then added second labs at 1:08/1:14 (era H)",
+   "fixed": "2026-10-02 (role words, 6b28423); the hands acting on placeholder prose before the lists is open per K-player-a-lobby-sets-the-faction-at-the-start",
+   "evidence": "record-2/1 created armlab 0:10, corlab 0:14, armlab 1:08, corlab 1:14; turn 0:00 note 'factions unknown: generic opening in words'"
+  },
+  {
+   "defect": "The thrash at a turret nest. The rules' step-back sentence, over an odds line that counted only the soldiers within 800, pulled against the player's commit, so the group reversed course on alternate seconds at the D4 outpost (era H, before the thrash pair). Half of the outpost loss rests on it; the target choice is the player's",
+   "fixed": "2026-10-02 (the thrash pair, 25e474b; the user called it a success on 2026-10-03 after player-44 and human-11)",
+   "evidence": "ledger: group_O_t1 fourteen course changes in 27 s 10:14-10:41, change 0.76-0.91 whichever the course; 10,109 metal of ours within 800 of spot_42 for 1,380"
+  },
+  {
+   "defect": "The same reversal under fire from out of sight: walk, shell and advance each picked in turn, a new course every second",
+   "fixed": "open (the thrash claim's own 'would be wrong if' names unseen fire as at 19:23; no later fix named in the eras list)",
+   "evidence": "hands_window 20:05-20:15 group_K1_t1: walk spot_53, shell party_99, shell, walk spot_61, walk spot_77, advance shelling_K1_t1, walk spot_53, shell, walk spot_80, walk spot_53, shell party_38; 70 -> 40"
+  },
+  {
+   "defect": "Detachment dicing in a raid answer. The pick split a new hunt detachment off group_A_t1 almost every second and folded detachments back in (K-hands-detachment-folds-back shape), against the player's 'fight as ONE body: no detachments, no pairs' (5:27)",
+   "fixed": "open (no fix named in the eras list)",
+   "evidence": "hands_window 5:06-5:36: hunts of 2, 8, 4, 2, 8, 8, 2, 8, 2, 2, 4, 2, 8 on party_2 (6 corak) at picks p 0.01-0.98 (w27 p=0.11, w30 p=0.01, w38 p=0.02); 6 corck lost"
+  },
+  {
+   "defect": "An advance that never completed: group_O_t1 held 'fight_to spot_47' for 75 s and moved about 300 elmos, and was never re-picked toward spot_42, which was rated best",
+   "fixed": "unknown (the march of 2026-10-03, 9ba2889, fixed form-up points; not shown to cover this)",
+   "evidence": "hands_window 8:54 'advance to spot_47'; 9:00 44 at (3490,5730); 10:04 53 at (3309,5458), still fight_to spot_47; note 9:53 'the hands never re-pick spot_42 though best_rated'"
+  },
+  {
+   "defect": "Blue's yard was boxed in. From 11:00 to 17:00, 13-27 Thuds and blue's commander stood stuck in a pocket between blue's lab and the generators placed around it (the reader's reading of the coordinates; era J)",
+   "fixed": "unknown (possibly the extractor-in-the-exit-lane fix of 2026-10-13: spot_87's extractor stands about 174 south of the lab; or solar placement; not verified)",
+   "evidence": "record-1: 198 move_failed on corthud at (5800-6000, 8000-8200), 10:00-16:59; Thuds in the yard box 9/18/26/27 at 10/11/13/17 min; corsolar by constructor_29192 at 8:44, 9:27, 10:09 beside the lab at (6035,8066)"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "10:05",
+   "text": "Try attacking now opus"
+  },
+  {
+   "clock": "20:19",
+   "text": "you can forfeit now, thebluegecko has you beat by 6x on income and apparently the army movements are still broken"
+  },
+  {
+   "clock": "22:28",
+   "text": "the game was lost 10 minutes ago"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "a source game: asked after the loss, thebluegecko said 'not a unit choice problem, a not enough mex problem'; we had 35 extractors at 12:00 across three seats, all in our half"
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "we held only our own half (38 of its 44 spots at the peak) and never raided his; three seats against one lost on income"
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "a source game: the D4 nest cost 10,109 for 1,380; bombers at 16:12 and our air plant at 18:15; his base never scouted"
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "a 4.9-20.7x seen lead at 6:00-7:00 was ordered across at 5:50 but stood in our half until 10:09, then went into the strongest position on the map"
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "13:41 'K_t3 arrived ahead alone and stepped back'; the seats' groups reached the outpost one at a time"
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "illustrates",
+   "note": "a source game: the tip came at 0:04 and was declined at 0:17; no tidal on any seat; t1's energy store empty 39.6% of seconds (no counterfactual measured)"
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "no unit of ours came within 1,500 of his start in 23:45, while his Grunts were at our constructors by 5:06"
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "human-10's 'not enough mex' is one of its must-reproduce items; the ceiling at the midline is shown (every target in our half; 27 -> 35 from 6:00 to 12:00)"
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "four corhllt at reach 490 against our tier-1 380 at D4; later 87 units lost at 19:23 to a Shiva and Tzar out of sight; first radar 11:12"
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "every window at 1.5x or more had 0% of our mass in his half; the leads decayed into the outpost and then the 19:23 collapse"
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "bombers were seen at 16:12 and the air plant started at 18:15, after the bombers had struck at 16:54 and 17:31; u6bkep: 'scout your opent and pre emptively go air'"
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "5:06-5:41: 15-16 Grunts 1,300 away cut into 13 detachments against six Grunts while six constructors died; the turret was listed after the extractor"
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "in every window from 6:00 to 20:00 the army led what we saw of his by 2-35x, and the game was still lost on the economy; the people said so"
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "illustrates",
+   "note": "the tidal (25) was on the commander's menu and never built; the rules line named wind only (existing review)"
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 5:00-5:45, 8:50-10:10, 20:04-20:18",
+   "scratch per-seat reads of record-0/1/2.jsonl (extractors, income, losses, first sightings, move_failed, yard positions)",
+   "strategist-0.jsonl tool_call texts"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790987321-human-10/00/review.md",
+  "confidence": "high",
+  "caveats": "No truth file, results.jsonl or batch.json, so every number for him is what we saw. minutes.py, analyze_match.py, floor.py, raid_ledger.py, wake_read.py and hands_window.py read seat 0 (t1) only; seats 1 and 2 came from scratch reads of their records. pro_baseline.py does not apply (Comet only); impedance_sweep.py was not run. Where this differs from the existing review: it said our extractor losses began at 15:30, but that was t1's ledger. Its root was 0:00-8:00 for the opening and 5:50 for the lead; here it is 5:50, and the opening counts as a contributing cause, because t2 had 11 extractors by 6:00. This row adds four findings: the early raids (t1's six constructors at 5:12-5:41; t2's extractors at 4:11 and 6:43-9:24; t3's at 6:35-6:49), the detachment dicing at 5:06-5:41, the advance stalled 8:54-10:09, and blue's boxed yard. The yard finding is a geometric reading of building and unit coordinates, unverified in the engine."
+ },
+ "open_questions": [
+  "His extractor count and when he started tier 2 are unknown (no truth file); the user's '6x on income' at 20:19 cannot be checked from our records.",
+  "Was blue's boxed yard (13-27 Thuds stuck 11:00-17:00) the extractor-in-the-lab's-exit-lane bug fixed on 2026-10-13, or the solars constructor_29192 placed at 8:44-10:09? Has any later fix covered it?",
+  "Has the detachment dicing of a raid answer (13 detachments in 30 s at 5:06-5:36, against an explicit 'no detachments') been fixed since, or does it still happen?",
+  "Would going around the D4 outpost at 10:09 (u6bkep's advice) have found his base before the Tzar came at 14:05?",
+  "How much would tidals (25) have lifted t1's energy against wind 2-16, given that its store was empty 39.6% of seconds?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790987321-human-10.json"
+}

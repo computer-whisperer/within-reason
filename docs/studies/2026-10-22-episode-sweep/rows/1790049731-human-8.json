@@ -1,0 +1,215 @@
+{
+ "batch": "1790049731-human-8",
+ "label": "human-8",
+ "map": "Quicksilver Remake 1.24",
+ "date": "2026-09-22",
+ "shape": "1v1",
+ "people": "One person, unnamed and unrated: the header recorded no one (the shim bug of the time) and the record's only chat is our own banner; Armada (Pawns, armpw). The user hosted in his lobby and typed nothing in the game.",
+ "our_side": "Seat 0 (ai 0, ally team 1, 'Master_Conquest'), Cortex (corcom) from E3 (4066, 2237), the north start; player claude-opus-5 at effort low (Claude Code 2.1.278, the claude2 account); no commander seat; hands Jev jev-latest = jev-1.13.0 (the pianist, 418 ms to the first answer); realtime; the produce cap (corck:1) in play.",
+ "build": "94f9df1 (the banner); the ledger names 8b594c6, a ledger-only commit one minute later on the same code",
+ "result": {
+  "outcome": "lost",
+  "minute": "3:31"
+ },
+ "summary": "A realtime 1v1 in the user's lobby: our Cortex seat (Opus 5 low, Jev 1.13) opened on Matt's line to the lab (lab 0:36, one constructor under corck:1, a Grunt every 9 s from 1:20, ten by 2:43) against an unnamed Armada player's Pawn rush, first seen at D4 at 2:03. After the lab the commander was told to help it instead of building Matt's generator batch, so the energy store sat at zero from 1:16 to 2:06 with about 450 metal banked. At first contact the hands split our Grunts into pairs and singles, a pair chased one Pawn 2,700 out to G6, and his party, grown to 6-9 Pawns, met our soldiers piecemeal at E3/D4 while the commander built windmills 550 away with no attack row on its menu: eight Grunts died by 3:14 for four Pawns. The constructor and two extractors fell 2:38-3:19, the switch to Thugs (first out at 3:15) emptied the energy again, and the commander's first fight, alone at the lab from 3:26, ended in its death at 3:31, the blast levelling the lab. The user: 'it let pawns drift too far out and didn't use its commander to improve exchange rates early on'; the groups and the commander's row were fixed that night (e5600f0).",
+ "root": {
+  "clock": "2:03",
+  "what": "First contact at D4. The hands answered a lone raider with a pair (the opening packet's 'detachment of two or four'), newcomers from the lab formed groups of their own, and from 2:22 the pair group_C chased one Pawn out to G6. The Pawn party then grew to 6-9 at E3/D4 and met our soldiers in ones, twos and fives, away from the commander. This is the user's reading (a person): the Pawns drifted too far out and the commander was not used for the exchange.",
+  "evidence": "hands_window 2:03 'PLAYS group_A: send 2 soldiers as group_B against party_1 (1 unidentified)'; 2:22 'group_C: attack party_1 (1 armpw)'; 3:02 'group_C: 2 at (5778, 5106)'; analyze #0 2:11-3:20: 'ours 215 + 0 + commander vs theirs 108', we lost 693, they 162"
+ },
+ "turning_points": [
+  {
+   "clock": "1:16",
+   "what": "The energy store empties and stays at 0-3 until 2:06. The commander alternates one windmill with helping the lab, and the metal bank holds 450-510 (Matt's was 8 at 2:00).",
+   "evidence": "record samples e [cur, in, out]: 1:16 [0, 54, 199], 1:41 [0, 103, 103], 2:01 [0, 122, 122]; metal 511 at 1:16, 451 at 2:01; floor e0% 25.0; generators created 0:10, 0:16, 0:23, 1:19 (four by 1:30; Matt ten)"
+  },
+  {
+   "clock": "2:03",
+   "what": "First Pawn at D4. group_A splits a pair off against it, the pair and then single Grunts drift south-west, and two Grunts and a lone group_A Grunt die by 2:27 for one Pawn.",
+   "evidence": "hands_window 2:03 send_against 0.53; destroyed corak 2:11 (3691,2708), 2:13 (3774,2690), 2:27 (3169,3080); enemy_destroyed 2:13"
+  },
+  {
+   "clock": "2:22",
+   "what": "group_C (two Grunts) engages a single Pawn and follows it 40 s out to G6, 2,700 from home. It kills the Pawn at 3:00 and is still walking home at 3:30. This went against three packets saying 'never chase a raider beyond our own extractors'.",
+   "evidence": "hands_window: 2:22 group_C at (4226, 2846) 'attack party_1 (1 armpw)'; 2:43 (5404, 3688); 3:02 (5778, 5106); 3:30 group_E 3 at (4581, 3289) 'move_to home'; minutes: corak_11714 crossed 2:48, back 3:29"
+  },
+  {
+   "clock": "2:38",
+   "what": "The Pawn party (4-6) at D4/E3 kills the constructor at 2:38 and spot_8 at 2:49. spot_16's 0% frame dies with its builder at 2:41. The energy store empties again at 2:46 after the 2:35 switch to Thugs.",
+   "evidence": "destroyed corck 2:38 (3136,2689), cormex 2:41 (2976,2784, by none: aband 1), cormex 2:49 (3696,1968) by armpw; samples 2:46 e [1, 164, 307]; report 2:45 'energy 2/1105 (-143)'"
+  },
+  {
+   "clock": "2:52",
+   "what": "group_D (5 Grunts) engages the 5-8 Pawn party at E3 while the commander, 550 away, builds windmills; no attack option is on its menu. Three Grunts are lost 2:57-2:59 and two more 3:13-3:14, for two Pawns; group_D falls back at 3:12.",
+   "evidence": "record d: 2:52 group_D 'engage 0.35 attack party_1 (5 armpw)'; commander 2:56 options without attack -> 'wind_generator 0.95'; destroyed corak 2:57, 2:58, 2:59, 3:13, 3:14; enemy_destroyed 2:55, 2:56"
+  },
+  {
+   "clock": "3:26",
+   "what": "Nine Pawns are in the base (six windmills and spot_14 dead 3:18-3:24). Only now is the commander offered attack (party within 320), and it fights alone at the lab. Its health falls from 99% at 3:23 to 2% at 3:31 and it dies. Its blast kills the lab, nine windmills, the constructor, three Thugs and four Pawns.",
+   "evidence": "record d 3:26 commander 'attack 0.84 attack party_1'; own [12474,...,hp]: 3:23 99, 3:27 56, 3:31 2; analyze #1 3:21-3:31 'we lost 4147 (corwin 9, corck 1, corcom 1, corlab 1, cormex 1, corthud 3), they lost 486'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:37",
+   "kind": "both",
+   "what": "No generator batch after the lab. The opening packet made 'help the lab' the commander's standing state the moment the lab stood, leaving it 'only to build another wind generator while energy is low'. Matt's commander queued seven winds and a solar at 0:53-1:04 and had ten generators by 1:30; ours had four. The hands then played one windmill at a time and went back to the lab, so the store read 0 from 1:16 to 2:06 with 451 metal banked at 2:01, and the commander's assist added nothing. A stronger player queues six or seven winds right after the lab, then guards. The player slept 0:37-2:07 on a 90 s wait (woken by the timer, energy 1/1152). This is the reader's reading, not a person's; the counts stayed level (ten Grunts by 2:43), so it is contributing, not the root.",
+   "evidence": "commander_turns 0:37 instruct 'After the lab stands, help the lab: that is your standing state'; record d 1:18 'wind_generator 0.47', 1:24 'assist_lab 0.66', 1:44 wind 0.52, 1:51 assist 0.70; floor e0% 25.0, assist4 62; analyze 'energy stalled in minutes [2]'"
+  },
+  {
+   "clock": "0:37",
+   "kind": "strategy",
+   "what": "The raid rule in the opening packet made pairs the answer: 'send a detachment of two or four against it from the nearest group'. At 2:03 the hands split group_A that way against a single unidentified raider. The 2:12 packet reversed it ('fight in a lump, never in pairs'), but the first fights had already been taken in pairs. A stronger player holds the first Grunts beside the commander at the lab until they are a handful, and all of them fight together (the rule the brief took from this game).",
+   "evidence": "0:37 instruct: 'send a detachment of two or four against it from the nearest group'; 2:12 instruct: 'they fight in a lump, never in pairs'; hands_window 2:03 'send 2 soldiers as group_B against party_1 (1 unidentified)'"
+  },
+  {
+   "clock": "2:03",
+   "kind": "harness",
+   "what": "Fresh Grunts formed groups of one and two at the lab (groups A to F by 3:22), and the engage task followed a lone raider while it was in sight. group_C went 2,700 out to G6 against three packets' 'never chase beyond our own extractors'. Eight Grunts died by 3:14, 380 to 1,231 from the commander, in groups of 1, 1, 2, 2, 5, 5, 5 (the main session's count). These were the hands' faults, fixed after the game: newcomers that night, the chase of singles with the rebuild.",
+   "evidence": "hands_window 2:21 'group_D: 1 at (4159, 2459)', 2:15 'group_A: 1 at (3685, 2743)'; docs/knowledge/jev.md K-hands-grunts-die-away-from-the-commander; destroyed corak x8 by 3:14"
+  },
+  {
+   "clock": "2:46",
+   "kind": "both",
+   "what": "The commander built windmills (2:46, 2:56) and then helped the lab while 6-9 Pawns fought our Grunts 400-600 from it. Its menu offered no attack until 3:26, because the row reached only 320. Until 2:45 the packets kept it 'at home ... help the lab'; the 2:55 packet's 'the commander attacks it' had no row to land on. This is the user's reading: the commander was not used to improve the exchange. A stronger player walks the commander into the 2:47 fight beside the five Grunts, using the D-gun at 250.",
+   "evidence": "record d: commander 2:46 'wind_generator 0.86', 2:56 'wind_generator 0.95', 3:06 'assist_lab 0.94', 3:16 'assist_lab 0.6', no 'attack' option before 3:26; record 2:47 party at (3511,2365), commander (4111,2526)"
+  },
+  {
+   "clock": "2:35",
+   "kind": "strategy",
+   "what": "The player switched production to Thugs (140 metal, 1,150 energy) because 'Their Pawns beat our Grunts one for one', with the energy store already failing. It read 2/1105 at -143 by 2:45, and the first Thug came out at 3:15, too late to fight. Metal for metal a Grunt (43) is close to a Pawn (54); the losses came from the shape of the fights, not the unit type. This is the reader's reading.",
+   "evidence": "2:35 produce ['corck:1', 'corthud', 'corak'] and instruct 'Their Pawns beat our Grunts one for one, so we switch to Thugs'; created corthud 3:09, finished 3:15; units.csv Grunt 43 / 280 hp / 74 dps, Pawn 54 / 370 / 90"
+  },
+  {
+   "clock": "3:26",
+   "kind": "both",
+   "what": "The commander's first fight was alone at the lab against 6-9 Pawns. group_E (3) was still walking home from F5 and group_F (2) held. It lost 97% of its health in eight seconds, and its death ended the game and levelled the base. Fought at 2:47 with the five Grunts against five or six Pawns, the same commander would have had the numbers. This is the reader's reading.",
+   "evidence": "hands_window 3:26 'commander: attack party_1'; 3:27 'group_E: 3 at (4680, 3458), task move_to home', 'group_F: 2 at (4157, 2454), task hold'; commander hp 99 (3:23) -> 2 (3:31); analyze 'our commander died at 3:31 at E3 to armpw'"
+  }
+ ],
+ "their_play": "An Armada bot-lab Pawn rush; only Pawns (armpw) were ever seen. First seen at 2:03 at D4 (3360, 2608), west of our base: one, then two by 2:06. Singles and pairs probed D4/E4/F4 from 2:03 to 2:30, and one of them drew our pair out east to G6. 4-6 Pawns massed at D4/E3 by 2:36-2:47, killing the constructor (2:38) and spot_8 (2:49); there were 8-9 by 2:56. They regrouped at D4 (about 3340-3580, 2720-3180) at 3:07-3:12 and pushed into E3 from 3:13, killing the windmills, spot_14 and the commander at 3:31. At least 13 Pawns (13 seen dying, 702 metal, four of them to the commander's death blast) against our 4,840 lost, the commander included. His base was never seen, and there was no tier 2 in 3.5 minutes. His first handful ran across the map and decided the game.",
+ "defects": [
+  {
+   "defect": "Newcomers in groups of one and two, and pairs sent against raiders (send_against two), era group U of the earliest lobby hands",
+   "fixed": "2026-09-22 (e5600f0: a newcomer walks to join the largest group within 1,500 in our half)",
+   "evidence": "hands_window 2:03 send_against 2 vs 1; 2:15 group_A of 1, 2:21 group_D of 1; groups A to F formed by 3:22; eight Grunts lost in groups of five or fewer"
+  },
+  {
+   "defect": "The commander's attack row only for a party within 320 (H-HANDS-COMMANDER-FIGHTS), so the packet's 'the commander attacks it' (2:55, 3:12) had nothing to land on",
+   "fixed": "2026-09-22 (e5600f0: within 500 when the party stands at our building or fights our soldiers)",
+   "evidence": "record d: commander options at 2:46, 2:56, 3:06, 3:16 without 'attack'; 3:26 'attack 0.84 attack party_1'"
+  },
+  {
+   "defect": "The old engage followed a party while it was in sight: a chase of singles by the pre-rebuild hands (era group A)",
+   "fixed": "2026-10-02 (the hands rebuilt; this reader did not check the new code for the same chase)",
+   "evidence": "group_C followed one Pawn from (4226, 2846) at 2:22 to (5778, 5106) at 3:02, against packets at 2:12, 2:22 and 2:35 saying never chase beyond our extractors"
+  },
+  {
+   "defect": "The lab's 'nothing' words while a unit was being made: it chose 'nothing' seven times from 0:59 to 1:17 under 'one constructor first, then raiders'",
+   "fixed": "2026-09-22 (e5600f0: the words say a choice waits behind the unit being made)",
+   "evidence": "record d: lab_29613 'nothing' at 0:59, 1:02, 1:05, 1:08, 1:11, 1:14, 1:17; no cost seen, since the first Grunt started 1:20, a second after the constructor finished"
+  },
+  {
+   "defect": "The report said 'unclaimed soldiers stand at: A1' in every turn: an unset station (0, 0) from the commander-mode field, shown under the pianist",
+   "fixed": "2026-09-24 (17ae210 deleted the field with the commander modes)",
+   "evidence": "commander_turns --told: every 'ground:' line from 0:37 to 3:22 ends 'unclaimed soldiers stand at: A1'; record intent 'station': [0, 0]; harmless, since no packet used it"
+  },
+  {
+   "defect": "No wake on an empty energy store: the player slept from 0:37 to 2:07 on a 90 s timer through the stall",
+   "fixed": "open (crates/bot/src/brain/wake.rs has no energy condition today); arguably the player's choice of 90 s",
+   "evidence": "wake_read: timer turn idle 83.7 s; 2:07 'Woken because: 90 s have passed', eco 'energy 1/1152'; wake conditions {max_seconds, enemy_near_extractor, squad_engaged, extractor_lost, pool_reaches, chat}"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "after the game",
+   "text": "it let pawns drift too far out and didn't use its commander to improve exchange rates early on (the user, quoted in docs/knowledge/jev.md K-hands-grunts-die-away-from-the-commander; not a chat line: chat.jsonl has no line from computer_whisperer for this game)"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "'less groups' and 'your armies keep not fighting together': groups A to F by 3:22, eight Grunts dead in groups of 1-5 for four Pawns while 215 of ours plus the commander faced 108 on the spot"
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The commander helped the lab from 1:08, as Irishstud14 says it should, but with the energy store at 0 from 1:16 to 2:06 the assist (62 s by 4:00) added no build rate; Grunts stayed at one every 9-12 s. The lab-assist rule needs the generators first."
+  },
+  {
+   "id": "L-other-quicksilver",
+   "relation": "supports",
+   "note": "'something like 20 e for every m': four generators by 1:30 gave 54-98 energy against 5-8 metal and stalled the store. One constructor (corck:1) kept us in units, as 'more than 1 or two construction bots' warns. 'if you loose all your econ, GG': the economy was gone by 3:22."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "His side: his first Pawns crossed by 2:03 and won by 3:31. The brief's counter-line drawn from this game ('the first Grunts are the guard, not the raid') rests on a fight lost to hands defects fixed that night, so this game is weak evidence for the guard rule."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Every threat line read 'NO turret' (2:12-3:12). The packet's 'a light turret once several stand' gave the first turret frame at 3:16, after spot_8 and the constructor were dead."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "His side: nine Pawns took our commander from 99% to 2% in eight seconds (3:23-3:31) once it stood among them alone, and the game ended on it"
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "'A handful of Pawns die to it' was never tried while the party was 5-6 (2:47-2:52): the commander built windmills with no attack row. Its one fight, alone against 6-9 at 3:26, killed it in 9 s. Scope the claim to the commander with soldiers, or to a handful."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "contradicts",
+   "note": "This opening was energy-bound, not metal-bound: store 0 from 1:16 to 2:06 with 451 metal banked at 2:01, because the packet left out the post-lab generator batch. 'The store at 150 at 2:00' holds only with the generators built."
+  },
+  {
+   "id": "The Quicksilver packet from Matt's line",
+   "relation": "illustrates",
+   "note": "Matt's cadence held to the lab (0:36 against his 0:33), and the produce cap gave exactly one constructor (0:58). But the packet dropped his seven-winds-and-a-solar batch, leaving four generators by 1:30 against his ten. 'Two constructors is very greedy' was respected."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "This is the game behind the 'first Grunts are the guard' line the backlog must scope. The guard lost to groups of one and two and a commander with no attack row (fixed e5600f0), while the person's own first handful crossed by 2:03 and won."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "The answers were pairs (send_against 2 at 2:03) and a pair chasing a lone Pawn 2,700 out (2:22-3:02, one kill at G6) while nine Pawns ate the base. No turret stood with any spot: the first frame was at 3:16."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 0:50-2:05 commander/lab, 2:00-2:45, 2:44-3:32",
+   "run/impedance_sweep.py",
+   "record-0.jsonl read directly (created/destroyed events, resource and unit samples, the hands' decision rows)",
+   "strategist-0.jsonl tool calls",
+   "git show e5600f0, 17ae210"
+  ],
+  "existing_review": null,
+  "confidence": "high for the sequence and the fight (the record and the hands' log cover the whole 3.5 minutes); medium for the ranking, since the energy item is the reader's reading and the root follows the user's",
+  "caveats": "No truth file: his numbers are floors (13 Pawns seen dying). The archive directory has no results.jsonl or batch.json; analyze_match prints 'outcome None after 0.0 min' and floor's result and minutes columns are blank. The header recorded no person and the chat has only our banner. pro_baseline was not run (Comet only; Quicksilver has no cards): compared against K-open-matt-order-timings instead. The user's words are taken from docs/knowledge/jev.md and the ledger, not from a chat line. The raid ledger counts spot_16 (2:41) as a loss, but it was a 0% frame that died three seconds after its constructor (floor aband 1). The 'groups of 1,1,2,2,5,5,5' and 'distances 380-1,231' come from the main session's claim; this reader confirmed the eight deaths and the group sizes at those clocks in hands_window."
+ },
+ "open_questions": [
+  "Should the energy shortfall from 1:16 (four generators by 1:30 against Matt's ten, 451 metal banked at 2:01) rank as the root instead of the 2:03 fight? The user named the fight and the counts were level (ten Grunts by 2:43), but about ten Grunts' metal sat in the bank.",
+  "Did the commander fire its D-gun at 3:25-3:31? The record has no weapon events; four Pawns died beside it before it fell.",
+  "Who was the opponent, and at what rating? Neither the header nor the chat names him.",
+  "Would the rules added that night (newcomers walk to the largest group within 1,500; the commander's row at 500) have held E3 against 6-9 Pawns? No game on Quicksilver against a person has tested them since.",
+  "Should the wake carry an energy-store condition? The player slept from 0:37 to 2:07 on a 90 s timer through the stall, and crates/bot/src/brain/wake.rs has none today."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790049731-human-8.json"
+}

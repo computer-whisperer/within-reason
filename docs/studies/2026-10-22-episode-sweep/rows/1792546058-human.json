@@ -1,0 +1,246 @@
+{
+ "batch": "1792546058-human",
+ "label": "human (Gasbag Grabens 3v2; no ledger row of its own: the SD-129 row names it as 'lost about 16:40, not reviewed')",
+ "map": "Gasbag Grabens 1.1.1",
+ "date": "2026-10-20",
+ "shape": "3v2",
+ "people": "[gecko]thebluegecko (34.34, team 0) and [gecko]u6bkep (19.24, team 1) in the west box (x 1290-2212). The start script says Armada for both, but Cortex Grunts, an Exploiter, Arbiters, a Sheldon and a Persecutor fought beside u6bkep's Armada Pawns and Maces; our models took thebluegecko for the Cortex side (their inference). Spectators: computer_whisperer (the user, hosting; no lines) and [gecko]Covariance (16.84; no lines).",
+ "our_side": "Three seats, ally team 1, east box (x 7004-7926), factions Random in the script: t2 = seat 0 Armada at G5 (7437,3484); t3 = seat 1 Cortex at G3 (7745,2272); t4 = seat 2 Armada at G2 (7064,1477). Each an Opus 5.5 medium player (account .claude2) on Jev jev-1.14.0, hands normal, under an Opus 5.5 high side commander (15 turns). Lobby names badosu, Shadowisper, EnJoY (not mapped to seats). Every seat's session was replaced mid-game at 10:40-10:54.",
+ "build": "d44e318 (banner: 'Within Reason d44e318 | player (claude-opus-5-5, effort medium, 2.1.305 (Claude Code)) | hands: Jev jev-1.14.0')",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 16:28-16:33 (the commander's surrender call; 'We resign' in chat at 16:33; the record ends 16:42)"
+ },
+ "summary": "A realtime 3v2 on Gasbag Grabens: three Opus 5.5 medium seats (t2 Armada G5, t3 Cortex G3, t4 Armada G2) under an Opus 5.5 high commander against thebluegecko and u6bkep. The commander's plan at 0:02 was a tier-2 sprint at t4 fed by the other two. t4 placed its advanced bot lab at F3 at 3:40, as all eleven of our first raiders were dying at D5-D6 to his larger group, and the feeders' labs paused while the frame took 2:21 (it stood at 6:01) because the feeds moved nothing. Meanwhile his Grunts took all six of t4's extractors (6:13-7:14), u6bkep's commander built a forward bot lab and Beamer at F7 in our half (5:49) that we never struck, and the side never held more than 16 of its 24 spots. From 8:00 u6bkep's Mace and Pawn block razed t2's home and then t3's (t3's commander died at 9:56 and its blast took the base) while t3's body of about 20 walked between G3 and F3, and 21 Grunts killed the advanced lab at 9:17 before its first moho stood. thebluegecko's tier 2 (an Arbiter at 12:38) and a forward nest at F2-F3 (Arbiters, a Sheldon, a Scorpion, a Persecutor) out-ranged t4's last base, and the commander surrendered at about 16:28.",
+ "root": {
+  "clock": "3:40 (chosen at 0:02; cost 4:39-9:56)",
+  "what": "The side went for the tier-2 sprint at t4 with no cover. The advanced bot lab was placed at F3, 800 west of t4's start and toward the Grunts' E3 path, the minute the first raid had failed in the middle. The commander paused t2's and t3's labs and had t4 eat its tier-1 lab. For the 2:21 the frame took, no seat grew an army or guarded t4's spots, and his forward base at F7 went unanswered. The plant made four advanced constructors and a Welder, then died at 9:17, before its first moho stood (10:22). Our commander's end note and our player's resign line say the same; these are model words, and no person commented.",
+  "evidence": "commander 3:41: 't4's advanced bot lab was placed at F3 at 3:40. Until it stands (about 90 s), your lab makes nothing'; record s2: 'finished armalab 6360,1880' 6:01, 'destroyed armalab' 9:17; commander 16:28 note: 'the t4 sprint at 3:40 was not covered'"
+ },
+ "turning_points": [
+  {
+   "clock": "3:21-3:47",
+   "what": "All eleven first raiders (t2 2 Pawns, t3 4 Grunts, t4 5 Pawns) cross in three seat groups and die at D5-D6 to his group under a Sentry in mid. His early army outweighed our handful on the spot.",
+   "evidence": "t2 note 3:50: 'Lost 7 Pawns for 1 so far to his ~10 Pawns/Grunts under an LLT in mid'; analyze s2 #0 3:39-3:45 D5: 'ours 270 + 0 vs theirs 679 + 0'"
+  },
+  {
+   "clock": "3:40-6:01",
+   "what": "The sprint: the advanced lab takes 2:21 on t4's own income of 13 plus 800 sent by hand at 3:41. The commander's standing transfers are refused (keep_metal passed as a string), and the players' own move nothing, because the feeders keep spending.",
+   "evidence": "t4 note 5:00: 'advanced lab 46% (1209/2600), our store at 0 and income 13; the standing transfers from t2 and t3 have moved 0 metal because both seats spend everything (stores 14 and 27)'"
+  },
+  {
+   "clock": "5:44-7:58",
+   "what": "u6bkep's commander builds a forward bot lab and Beamer at F7 in our half, 1,900 from t2's home, taking t2's southern spots 39/41/43/45. The commander sets meet_f7 and strike_f7 at 6:11 but never gives the signal, and cancels it at 7:58.",
+   "evidence": "minutes: 'his first factory seen: 5:49 at F7'; t2 note 5:44: 'his (u6bkep, Armada) commander is in our half at F7 ... building a Beamer'; commander 7:58: 'That replaces the meet_f7 gathering and the strike_f7 signal'"
+  },
+  {
+   "clock": "6:13-7:14",
+   "what": "Grunts take all six of t4's extractors and its wind field. Maces and the commander answer and catch nothing. t4 is on 0 extractors at 8:00, and the side drops from 16 to 11.",
+   "evidence": "raid_ledger s2: 6:13-7:14 seven losses to corak, 'answered 7 ... parties that paid 0'; t4 note 7:22: 'Grunt raids took all six of our extractors (0 now, income 2); our Maces and commander cannot catch Grunts'"
+  },
+  {
+   "clock": "8:00-9:33",
+   "what": "u6bkep's Mace and Pawn block razes t2's home at G5, killing its lab, its moho frame and 15 wind turbines. t3's body of 8-24 stays between G3 and F3 and never reaches spot_30.",
+   "evidence": "analyze s0 #6 8:00-9:33 G5: 'we lost 4104 ... they lost 790'; hands s1 group_A_t3 8:20 '8 at (7463, 2217)', 9:00 '19 at (6875, 2328), task fight_to spot_30', 9:07 'attack party_24 (21 corak)'"
+  },
+  {
+   "clock": "9:17",
+   "what": "21 Grunts kill the advanced lab at F3, with a Welder beside it, as t3's body turns toward them too late.",
+   "evidence": "analyze s2 #10 9:17-9:19 F3: 'we lost 2950 ({'armalab': 1, 'armzeus': 1}), they lost 258'; t4 note 9:23: 'our advanced lab died to 21 Grunts (2600 lost; its wreck at F3 holds 1657)'"
+  },
+  {
+   "clock": "9:33-10:09",
+   "what": "The block rolls into t3's home at G4. t3's commander dies at 9:56, and its death blast takes six Thugs, the advanced constructor, the moho frame and four constructors.",
+   "evidence": "analyze s1 #9 9:33-10:09 G4: 'we lost 7036 ... corcom 1 ... they lost 1168'; t3 note 10:00: 'our commander died at home to his 10-Mace block (I pulled it out too late; it walked with the army instead)'"
+  },
+  {
+   "clock": "12:38-16:28",
+   "what": "thebluegecko's tier 2 appears (an Arbiter at 12:38, a Sheldon at 13:47), and a forward nest at F2-F3 out-ranges t4's home (Arbiters 1,210, a Scorpion, a Persecutor 1,390). t4's second advanced lab is started too late, and the commander surrenders.",
+   "evidence": "t3 note 12:38: 'a Cortex Arbiter (corhrk ...) killed our light turret at home from out of sight'; t4 note 15:50: 'His F3 nest (Arbiter, Sheldon, Viper, cortoast) out-reaches everything we have'; s2 'destroyed armalab' 16:32"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:02-3:41",
+   "kind": "strategy",
+   "what": "The commander chose a covered-by-allies sprint against two people it had itself called early raiders. Then it stopped the allies' cover: at 3:41 both feeders' labs were told to make nothing, and t4 was told to eat its tier-1 lab. A stronger side holds the line first (Sentries at the outer spots, labs on soldiers, the raid answered) and sprints once his raiders are dealt with, or not on a 24-spot half against two people.",
+   "evidence": "commander 0:02: 'this will be a long game decided by who upgrades first'; 3:41 to t4: 'Reclaim your tier-1 lab at once'; 16:28 note: 'the sprint needed a held line first, or should have been later'"
+  },
+  {
+   "clock": "3:40",
+   "kind": "strategy",
+   "what": "t4 placed the advanced lab at F3 (6360,1880), toward the E3 approach the Grunts used, not beside the home turrets at G2. A 2,600-metal frame then stood 2:21 on the side of the base the raids came from, and it died there.",
+   "evidence": "record s2: 'finished armalab 6360,1880' 6:01; t4 note 6:09: 'Ten of his at E3/E4 heading for spot_11'; t4 note 9:11: '21 Grunts (party_24) are killing our advanced lab at F3'"
+  },
+  {
+   "clock": "4:20-6:01",
+   "kind": "both",
+   "what": "The feed was surplus, not production. t2 built a construction turret and two energy storages, and t3 built eight converters and turrets, so the standing transfers found empty stores. The commander's own standing transfers were refused by the string defect.",
+   "evidence": "record s0: armnanotc 4:49, armestor 5:10 and 5:20; s1: eight cormakr 4:31-6:03; commander 5:11: 'The standing transfer to t4 has sent 0 metal since 4:30, because your lab went back to Maces and your store is at 0'"
+  },
+  {
+   "clock": "4:39-7:14",
+   "kind": "both",
+   "what": "t4's outer and home spots had no Sentry (turrets 1 at 3:00-6:00, then 0). The answer was Maces (46) and the commander hunting Grunts (81), so no raider paid. A stronger seat puts a turret beside each spot and keeps fast units for raiders.",
+   "evidence": "analyze s2 turrets (ours/his): 1/0 at 3:00-5:00, 0/0 at 7:00, 0/2 at 8:00; raid_ledger s2 6:57: '2 of group_B_t4 hunt party_13 (3 corak)', four spots lost 6:58-7:14, 'paid 0'"
+  },
+  {
+   "clock": "5:44-7:58",
+   "kind": "strategy",
+   "what": "His commander stood in our half at F7 building a lab and Beamer, and no strike went. The gathering place meet_f7 sat beside his party, so t3 held at spot_12 rather than go there, and the signal was never given (L-snipe-commander's chance, missed).",
+   "evidence": "t2 note 6:25: 'A joint push on F7 by t2+t3+t4 soldiers would kill a lab and maybe a commander'; t3 note 7:21: 'meet_f7 is next to it, so our 7 Thugs hold spot_12 instead of going to meet_f7'"
+  },
+  {
+   "clock": "7:38-9:33",
+   "kind": "strategy",
+   "what": "t2 fought the Mace block alone at its home while t3's 1,163-2,500 of soldiers stood about 1,200 elmos away at G3. The direction to join came at 7:58, reached t3's order at 8:22, and was routed by spot_12. Then a hunt of a single unit at 8:53, and a turn to the Grunts at 9:07: the block met the seats one at a time.",
+   "evidence": "t2 note 7:38: 't3's 1,163 at F4 beside us would make this a win'; t2 8:32: 't3's 1,949 have not come'; hands s1 8:53: '8 of group_A_t3 hunt party_64 (1 unidentified)'"
+  },
+  {
+   "clock": "9:36-9:56",
+   "kind": "strategy",
+   "what": "t3 fought the block at home beside its commander, inside Mace reach. The commander was ordered out at 9:49 and died at 9:56, and its death blast finished the seat's base and economy.",
+   "evidence": "t3 instruct 9:36: 'It fights it at home, beside our comman…'; hands s1 9:44: 'commander_t3: follow group_A_t3'; t3 note 10:00: 'Its death blast killed 6 Thugs, the advanced constructor, the moho frame, 4 constructors and 2 extractors'"
+  },
+  {
+   "clock": "10:51-11:44",
+   "kind": "strategy",
+   "what": "The one body (t3's Thugs given to t4) attacked 11 Maces at F3-F4 on a count read from what was seen, and traded 2,421 for 780.",
+   "evidence": "commander 10:58: 'You outweigh it two to one'; analyze s2 #12 10:51-11:44 F3: 'we lost 2421 ({... 'corthud': 14, ...}), they lost 780'"
+  },
+  {
+   "clock": "12:38-16:02",
+   "kind": "both",
+   "what": "Nothing with reach answered the Arbiter, Sheldon and Persecutor nest at F2-F3. The second advanced lab came only from 14:42, and the hands split the body into detachments after single Maces.",
+   "evidence": "t4 note 15:05: 'the army split into detachments chasing single Maces and lost 2,000 metal in a minute'; hands s2 14:48: '2 of group_B_t4 hunt party_144 (1 armham) as group_J_t4'"
+  }
+ ],
+ "their_play": "u6bkep (Armada bots): Pawns in mid under a Sentry at C6 (3:33) beat our first handful. His commander walked to F7 in our half and put up a bot lab and a Beamer by 5:44-5:49, taking t2's south. Pawns and Maces raided t2's spots from 6:23 (E6, then E5, F5 and G5). A block of 5-10 Maces, 10-11 Pawns and 2 Lazarus razed t2's home (8:00-9:33) and t3's (9:33-10:09, killing t3's commander), then held F4-G4 with 10-16 Maces to 13:44. thebluegecko (Cortex bots, by our models' inference): Grunts with Exploiters and a radar at D4-D5. Grunts raided t4 from 4:39, took all six of its extractors at 6:13-7:14 and killed the advanced lab at 9:17 with 21. Tier 2 by about 12:38 (Arbiters, a Sheldon), then a forward nest at F2-F3 (a Scorpion, a Persecutor) that out-ranged our last base. Seen by unique id over the game: 54 Pawns, 49 Grunts, 45 Maces. With no truth file, his extractors and tier-2 clock are unknown; our commander guessed 24 extractors at 13:28.",
+ "defects": [
+  {
+   "defect": "The commander's standing transfer was refused when keep_metal came as a string ('150'), because mcp.rs reads as_f64. The refusal printed only the usage line, so the commander fed by hand once and the players set their own feeds. Its lift ('metal': 0) was refused the same way. The loss does not rest on it: the players' feeds ran and moved nothing because the stores were empty.",
+   "fixed": "open (crates/bot/src/strategist/mcp.rs still `as_f64` at c16ac76; the SD-129 game twenty minutes later hit it again)",
+   "evidence": "commander 3:41 transfer {'from': 't2', 'keep_metal': '150', 'to': 't4'} -> 'transfer takes metal and/or energy with from and to, ... or keep_metal / keep_energy'; 16:28 note: 'The keep_metal standing transfer is not accepted by my transfer tool'"
+  },
+  {
+   "defect": "Cross-faction list steps: the Cortex seat's tier-1 constructors given 'armmoho' steps were told it 'is not a step'. The real reason is that the builder cannot build it.",
+   "fixed": "open (the same message misled the SD-129 game at the same build; no fix in git log since)",
+   "evidence": "impedance_sweep s1 7:40: \"REFUSED: constructor_14217: 'armmoho spot_13 #m1' is not a step; a step is extractor, assist, reclaim, ...\""
+  },
+  {
+   "defect": "Ladder hunts split the body: the hands sent pairs after single raiders, against the player's one-body instruction.",
+   "fixed": "open (seen in SD-129 at 13:00-13:20 too; no fix since)",
+   "evidence": "hands s2 14:48: '2 of group_B_t4 hunt party_144 (1 armham) as group_J_t4', '2 of group_I_t4 hunt party_144 (1 armham) as group_K_t4'; t4 note 15:05: 'lost 2,000 metal in a minute'"
+  },
+  {
+   "defect": "The raid answer ignores the speed mismatch: Maces and the commander were sent to hunt Grunts they cannot catch (the R5 pattern).",
+   "fixed": "open",
+   "evidence": "raid_ledger s2 6:57-7:14: '2 of group_B_t4 hunt party_13 (3 corak)' for four losses, 'parties that paid 0'; t4 note 7:22: 'our Maces and commander cannot catch Grunts'"
+  },
+  {
+   "defect": "Realtime latency: player turns take 10-13 s of wall and orders land after them, and a direction reaches a seat's order a turn later. t3's commander was ordered out in a turn that began 7 s before it died, and the order landed after.",
+   "fixed": "open (a property of realtime play)",
+   "evidence": "wake_read: wall median 12.6 / 9.9 / 12.2 s by seat; commander 7:58 'join at spot_30' -> t3 instruct 8:22; t3 instruct 9:49 'commander_t3 ... walks to spot_1 now' -> commander dead 9:56"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "u6bkep's block met t2 (8:00-9:33) and t3 (9:33-10:09) one seat at a time, while t3's body of about 20 walked G3-F3 and never reached F5. Our commander's own lesson (2) at 16:28 says the same."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "'Hold half the map': the side never held more than 16 of the 24 spots in our half (4:00-6:00), and his forward lab took t2's south at 5:44. The count fell to 11 at 8:00 and 8 at 10:00."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "The economy was lost before the army: 16 extractors falling to 8 by 10:00 and his tier 2 at 12:38. His count is unknown (no truth file)."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "u6bkep's commander stood in our half at F7 from 5:44, 1,900 from t2's home. The strike was planned at 6:11 and never given."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "The people eat the tier-1 lab once tier 2 is active. Our procedure ate it at placement (3:41, reclaimed 6:37), and the sprint seat stood without soldiers while Grunts took its spots."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "illustrates",
+   "note": "Bounds 'either bomb or t2 now': going tier 2 at 3:40 under two people's raids, with the side's cover paused, lost the plant at 9:17 before its first moho stood."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Our first handful crossed on time (3:21-3:31) but in three seat groups, and died at D5-D6 to his larger group under a Sentry. Against two people the handful met more than a handful."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "illustrates",
+   "note": "Both people built forward: u6bkep's lab and Beamer at F7 (5:49), and thebluegecko's Arbiter, Scorpion and Persecutor nest at F2-F3 (13:35-16:02). t4 rightly called off the attack on F3 at 14:42, but had nothing with reach."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "contradicts",
+   "note": "This is the first test against people of the 2026-10-18/19 team procedure, which tells the feeders their plants make nothing. That removed the cover the backlog says a team game provides. The feed moved 0 (feeders' constructors kept spending), the frame took 2:21, and the plant died at 9:17 before its first moho (10:22). The trigger 'first bank' fired at 3:40 with 16 of 24 spots taken."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Arrive together: the gathering place meet_f7 sat beside his party, held t3 at spot_12, and the seats' bodies met the Mace block one at a time."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "t4's spots had no turret, and Maces and the commander answered Grunts they cannot catch: seven losses at 6:13-7:14, none paid."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "t3's commander fought beside the army at home against Maces that out-ranged it, died at 9:56, and its blast took the seat's base."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "From 12:38 the Arbiter (1,210), Sheldon (850) and Persecutor (1,390) at F2-F3 outranged every turret and unit of ours. The tier-1 body could only hold or lose."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Mohos were placed 6:26-8:14 on an energy-starved seat and stood at 10:22, 12:11 and 13:15. The two given to t2 and t3 died unfinished at 9:22 and 9:56, so the sprint's payback never came."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (per seat)",
+   "run/analyze_match.py (per seat)",
+   "run/floor.py (per seat)",
+   "run/raid_ledger.py (per seat)",
+   "run/commander_turns.py --notes (the three seats)",
+   "run/commander_turns.py --notes --calls (the commander, via a view with commander.jsonl as the transcript)",
+   "run/wake_read.py (per seat)",
+   "run/impedance_sweep.py --counts and --seat 0/1/2",
+   "run/hands_window.py (t3 group_A 8:20-9:58, t3 commander 9:25-9:57, t4 groups 14:20-15:05)",
+   "record event census by scratch scripts (tier-2 buildings, enemy units by unique id, t4's losses 5:00-9:20, losses after the surrender)",
+   "commander.jsonl tool results read directly (the refused transfers)"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "There is no truth file, ledger row, results.jsonl or review.md. His economy, army and tier-2 clock are floors from sightings, and which person played Cortex is our models' inference (the script says Armada for both). minutes.py, analyze_match.py, floor.py, raid_ledger.py and wake_read.py read only record-0/strategist-0, so I ran them on per-seat symlink views in the scratchpad. Per-seat armies include transferred units, so the per-seat windows mislead, and I summed the seats by hand. pro_baseline.py does not apply (not Comet Catcher). impedance_sweep counts the commander's three refused transfers as 0 refused (the refusal prints only the usage line). analyze s2's last engagement (13:15-16:42, 10,721 lost) runs past the surrender at about 16:28, and 4,140 of t4's losses fall after it. No person commented, so every 'because' here is a model's (ours, or our players' and commander's notes). Reader's slip: from 00:55:14 to about 00:55:50 (2026-10-22) I overwrote the shared scratchpad views seat0/seat1/seat2/cmdr, which belong to the SD-129 reader (1792547311-human). I pointed them back at that game's files. A tool run by that reader inside those 36 s would have read this game's records."
+ },
+ "open_questions": [
+  "Was the side ever ahead in army on the spot? Our side summed 2,839 at 8:00 and 3,369 at 9:00 against 964 and 1,126 seen, but by unique id he fielded 54 Pawns, 49 Grunts and 45 Maces over the game. Without a truth file the lead is unknown.",
+  "Would a held line first (Sentries at every spot, labs on soldiers) and a sprint at the side's 24 spots have survived two people on this map, or does a 24-spot half against two people call for no early sprint at all? The procedure's 'first bank' trigger fired at 3:40.",
+  "Which person was Cortex? The start script says Armada for both; our models assumed thebluegecko.",
+  "The direction of 7:58 reached t3's order at 8:22: how much of the one-at-a-time defence is the commander's latency (21 s turn wall), not the players' choices?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792546058-human.json"
+}

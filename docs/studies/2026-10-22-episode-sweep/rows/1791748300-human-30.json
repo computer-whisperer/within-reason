@@ -1,0 +1,284 @@
+{
+ "batch": "1791748300-human-30",
+ "label": "human-30 (the second game of that label, on Eclipsed; no ledger row, the impedance study calls it 'human-30 Eclipsed')",
+ "map": "Eclipsed 0.9.8",
+ "date": "2026-10-11",
+ "shape": "4v2",
+ "people": "[gecko]thebluegecko (34, Armada, team 0) and [gecko]u6bkep (19, Armada, team 1), in the west start box (x 0-2509); computer_whisperer (the user) hosting as a spectator, no comments in the chat",
+ "our_side": "Four seats, ally team 1, all in the north-east: t2 = seat 0 Armada at G1 (6216,146); t3 = seat 1 Armada at H3 (6780,1949); t4 = seat 2 Armada at E1 (4460,273, outside the lobby's box); t5 = seat 3 Cortex at G2 (5754,931). Each an Opus 5.5 medium player (account claude2) on Jev jev-latest (1.13.0), hands normal, under an Opus 5.5 high side commander (15 turns, 8 transfers). From 8:15 the commander handed the other seats' armies to t3, which ran the one body.",
+ "build": "efa6d21 (2026-10-10 11:32, the last commit before the game at 2026-10-11 15:52 EDT; no banner line names the commit)",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 21:45 (inferred: the record ends at f=39162 'unexpected end of file' with no result line, after Liches killed t3's commander at 21:28 and t5's at 21:35; t4's died at 14:52; t2's was alive at the last sample)"
+ },
+ "summary": "A realtime 4v2 on Eclipsed: four seats of ours in the north-east (three Armada, one Cortex; Opus 5.5 medium players on Jev 1.13 under an Opus 5.5 high commander) against thebluegecko and u6bkep, both Armada, in the west. Our first soldiers stood near his start by 2:35-3:02 and the side led about 3,600 to 330 seen at 5:00, but the commander's gathering place meet_d5 lay under his D4 Beamer beside his Pawns, the seats arrived one at a time (6:12-7:23), and the body built by transfer at 8:15 walked into the same C4-D6 nest twice more (9:08-9:33, 11:04-13:10), the second time into his first Welders and a Pit Bull. All the while the side's extractors stood at 29-32 from 8:00 to the end (income about 62) and no tier 2 stood until t4's advanced vehicle plant at 17:20, after four failed placements, against his Welders from 11:10 and a moho at 12:35. After 'The lead is gone' (commander, 14:15) his Stout block killed t4's commander (14:52), a forward Pit Bull post at F6 and 15-16 Welders pinned t3's 10k body at H6-H7, and Liche atomic bombers from an air plant never scouted killed two more commanders at 21:28 and 21:35; the record ends at 21:45.",
+ "root": {
+  "clock": "5:15 (its cost 6:12-7:23)",
+  "what": "The commander spent the early lead (side army 3,604 against 330 seen at 5:00) by gathering four seats' raiders at meet_d5 (3000,4100), inside the reach of his D4 Beamer and beside his Pawns at C4/C5, with no lever for one seat's group to wait for another's (the transfer that existed was first used at 8:15). Each seat met him alone and was worn down. It was the first of three walks into the C4-D6 turret nest that spent the lead while the economy stood still. This is the reader's reading; no person commented, and the commander's own notes at 8:15 and 14:15 say the same.",
+  "evidence": "commander 5:15: '3,800 of army against about 1,100 of his seen ... join into one body at meet_d5'; hands_window t2 group_B 11 (6:22) to 4 (6:37) at B5, t3 group_B 12 (6:35) to 6 (7:07) at C4; commander 8:15: 'we lost 3,900 against 2,555'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:35-3:02",
+   "what": "The first scouts of three seats stand within 1,500 of his guessed start B3 and find his north (A1-C3) empty.",
+   "evidence": "minutes.py: 'first of ours within 1,500 of his start (B3): 2:35 corfav_13730' (t5), 2:44 (t2), 3:02 (t3); t2 note 3:05: 'our rovers saw A1-C3 empty of his buildings'"
+  },
+  {
+   "clock": "4:40-5:14",
+   "what": "t3's Rover finds his bot lab at C8 with 5 extractors and 6 solars; the first kill at B3 (a Beamer, a Blitz, an extractor and a constructor).",
+   "evidence": "minutes.py 'his first factory seen: 4:40 at C8'; analyze_match t3 #0 5:02-5:14 B3: they lost 485 ({'armbeamer': 1, 'armflash': 1, 'armmex': 1, 'armcv': 1})"
+  },
+  {
+   "clock": "6:12-7:23",
+   "what": "The seats' raiders are beaten one seat at a time at B5, C4 and B4 on the way to meet_d5.",
+   "evidence": "analyze_match t2 #2 6:12-6:36 B5: we lost 770 (7 armflash), they 770; t3 note 6:59: 'Blitz body lost 6 at C4 to 8 Pawns + a Centurion under the D4 Beamer ... the allied body never formed'"
+  },
+  {
+   "clock": "8:15",
+   "what": "The commander gives t2's, t4's and t5's armies to t3: one body of about 4,800.",
+   "evidence": "commander 8:15 transfer {'to': 't3', 'units': ['group_B_t2', 'group_A_t5', 'group_C_t4']}; minutes.py t3 army 1,026 at 8:00, 4,901 at 9:00"
+  },
+  {
+   "clock": "9:08-9:33",
+   "what": "The joint body walks through meet_d5 into the C4/D4 Beamers with flee footwork off and loses a third of itself.",
+   "evidence": "hands_window t3 9:08 'walk to meet_d5', group_D_t3 34 at 9:00, 22 at 9:33; commander 9:45: 'walking through meet_d5 cost 17 tanks for about 1,750'"
+  },
+  {
+   "clock": "11:10",
+   "what": "His first tier 2 is seen: a Welder at D6 (a Butler at D5). The seats read it as the brief's 'window' and send the body to C8 via D5/D6.",
+   "evidence": "t2 wake 11:10 'first tier-2 unit of his seen: armzeus at D6'; t3 note 11:10: 'per the brief his tech is our window ... sent it straight south-west by spot_46'"
+  },
+  {
+   "clock": "12:35-13:26",
+   "what": "The body is ground down at D5/D6 by Welders, Beamers and a Pit Bull going up beside a moho at C6, and falls back to G5.",
+   "evidence": "t3 12:36: 'lost about 3.8k for 4.7k in 3 min'; minutes.py t3 army 5,506 (12:00), 3,121 (13:00); t3 13:26: 'Our body is down to 12 (2.2k)'"
+  },
+  {
+   "clock": "12:45",
+   "what": "The commander orders tier 2 at t4, reading 'our economy is twice his' from the report's floor 'the opponent is known to hold 14'.",
+   "evidence": "commander note 12:45: 'I started tier 2 at t4 ... because ... our economy is twice his'; its report: 'extractors 32 ... the opponent is known to hold 14'"
+  },
+  {
+   "clock": "14:15-14:52",
+   "what": "'The lead is gone'; his Stout block (11 Stouts, 3 Janus) hits the D2 row and kills t4's commander walking home through E2.",
+   "evidence": "commander 14:15: 'his seen army is 9,925 against our 9,252'; analyze_match t4: 'our commander died at 14:52 at E2 (at our base) to armstump'"
+  },
+  {
+   "clock": "16:16-19:59",
+   "what": "His forward post at F6 (two Pit Bulls, a Beamer, Welders, Butlers, an advanced constructor) pins t3's body at H6/H7 under unseen fire; 15 Welders mass at G5.",
+   "evidence": "t3 16:21: 'a forward Pit Bull post going up at F6 ... our body is 1:1 and outranged'; t2 19:59: '15 armzeus (about 5,000 metal) at G5'"
+  },
+  {
+   "clock": "17:20",
+   "what": "Our first tier-2 plant stands (t4's armavp), four minutes after the order; the first moho finishes at 21:44.",
+   "evidence": "record-2 finished events: armavp 17:20, armacv 17:41 (2), armmoho 21:44 (1); no other seat finished a tier-2 building"
+  },
+  {
+   "clock": "21:15-21:35",
+   "what": "Liche atomic bombers with two radar planes arrive; anti-air is ordered only now; t3's army at H3 and the t3 and t5 commanders die.",
+   "evidence": "t3 21:16: 'His Liche ... We had no anti-air at home'; analyze_match t3 #20 21:26 H3: we lost 5455, commander died 21:28 to armliche; t5 commander 21:35 to armliche"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "5:15-8:15",
+   "what": "The lead was sent to gather at meet_d5, inside his D4 Beamer's reach, across four seats that could not wait for each other. Each seat walked in alone (t2's group chased Blitz parties, t3 turned east under the Beamer, t4 met the B4 commander and LLT, t5 held at spot_31). A stronger side picks a gathering place out of turret reach (F4/E4), transfers the raiders to one seat at once (the lever existed), and hits the exposed C8 lab or the E6/E7 commander as one body.",
+   "evidence": "impedance-review item 1: 't3 left meet_d5 for his_post_f7 at 6:40, t5 held at spot_31 at 6:58, and t4 gathered at spot_31 at 8:15'; commander 8:15: 'three directions asking them to meet were each read by a seat on its own'",
+   "kind": "both"
+  },
+  {
+   "clock": "8:40-9:33",
+   "what": "The joint body of 34 (about 4.6k) was routed through meet_d5 with flee footwork off, into the C4/D4 Beamers (490 reach against the Blitz's 180), and lost 12 units in 25 s. It should have gone round the nest to the F7 post and the C8 lab from the south, as the commander directed after the fact.",
+   "evidence": "t3 note 8:40: 'group_D fights via meet_d5 ... avoids the D4/C4 Beamers. Footwork flee off for it'; hands_window group_D_t3 34 (9:00) to 22 (9:33); commander 9:45: 'It stays off the C4/D4 Beamers'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:10-13:26",
+   "what": "His first Welder was read as the brief's 'window' and the body went into D5/D6 (Welders, Beamers, a Pit Bull being built at C6) instead of going tier 2 or going round. Meanwhile t4's 12 and t2's 9 stood idle in our half. The pick then alternated shell and walk about every second (12:51-13:04). The body fell from 5.5k to 2.2k.",
+   "evidence": "commander 12:45: 'The last three minutes were an even trade (4,100 killed against 4,000 lost) ... Two of our armies stood idle in our half'; impedance-review item 10: ten changes in 12 s; minutes.py t3 army 5,506 to 2,266 (12:00-14:00)",
+   "kind": "both"
+  },
+  {
+   "clock": "8:00-17:20",
+   "what": "No tier 2 while the extractors were capped. The four seats held 29-32 of 71 spots from 8:00 on (t5 2-4 all game, t2 5-7, with 42 steps skipped on allies' spots), and the commander called tier 2 only at 12:45, 'knowing we are weak there', resting on the report's 'known to hold 14' floor. The plant took four failed placements and stood at 17:20, the first moho at 21:44. With 62 income across four seats and a spare energy bank (t5 at 7,800 of 8,050 at 21:00), one seat could have sprinted at 8:00-10:00 and the others fed it.",
+   "evidence": "analyze_match extractors at 8/12/16/20 min: t2 5/7/7/7, t3 10/10/9/9, t4 10/11/11/11, t5 4/4/2/3; income 12:00: 12.2+18.6+19.0+12.2; record-2 armavp finished 17:20, armmoho 21:44",
+   "kind": "both"
+  },
+  {
+   "clock": "14:31-14:52",
+   "what": "t4's commander was walked home to back_yard through E2 into party_54 (11 Stouts, 3 Janus) shown 444 away, and died. Its player noted 'Commander back home.' and kept the walk rule.",
+   "evidence": "impedance-review item 2: report 'party_54 ... 444 away ... contact in 6 s'; hands_window t4 14:31 'commander_t4: walk to back_yard', 'commander_t4 hit' 14:46-14:52; analyze_match: died 14:52 at E2 to armstump",
+   "kind": "both"
+  },
+  {
+   "clock": "9:00-21:17",
+   "what": "His south-west was never looked at after 9:00, so his advanced labs and air plant were never seen. Anti-air beyond one early missile tower a seat was ordered only when the Liche was in sight; two commanders and 5,455 of t3's army at home died to the bombers.",
+   "evidence": "impedance-review item 7: 'No unit of any seat reached the south-west corner after 9:00 ... the Liche was first seen at 21:15'; record finishes: one armrl/corrl a seat at 4:12-6:38, nothing after; t2 21:17: 'Every seat needs anti-air at its commander now'",
+   "kind": "both"
+  },
+  {
+   "clock": "15:00-21:00",
+   "what": "t3's body grew to 10k of tier-1 tanks and stood at G5-H7 (0-1% in his half) waiting for Mausers that never came, bleeding to unseen fire and Rattlesnake shells while his F6 post and Welders grew. The tier-1 mass was built after his tier 2 was up, and the advanced plant made two advanced constructors (17:41, 18:04) and one Bull (19:38), no Mauser.",
+   "evidence": "minutes.py t3 army 7,131 (15:00), 10,010 (18:00), 10,265 (21:00), mass F3 F5 G6 G6 H6 H7 H6 with peak 1% in his half; t3 19:25: 'Our body bleeds about a unit every 10-20 s to unseen fire'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Both Armada, one apparently on bots (Pawns, Centurions, then Welders and Butlers from an advanced bot lab) and one on vehicles (Stouts, Janus, a Rattlesnake); who played which is not in our records. A Beamer at D4 by about 3:40 and a bot lab at C8 seen at 4:40 (5 extractors, 6 solars). One commander walked out to E6/F7 and built a Beamer post at F7 with two constructors at 6:20 on the edge of our south, killing t3's constructor at 6:40. He held our raids under the D4 Beamer with 8-11 Pawns and a Centurion (6:45-7:07) and turned the C4-D6 ground into a turret nest (three Beamers, then an HLT at D5 by 13:26). Tier 2 came early: a Welder at D6 at 11:10, a moho and a Pit Bull at C6 by 12:35. Our body was traded down at D5/D6 (12:00-13:30). A block of 11-14 Stouts and 2-3 Janus pushed our north row (14:09-14:52), killed t5's spot_31 and t4's commander, and broke on t4's turrets. A forward Pit Bull post at F6 (16:16-16:21) with 7 Welders, 4 Butlers and an advanced constructor pinned our biggest body for five minutes under unseen fire, with a Rattlesnake at C4 shelling spot_31 (19:47) and 15-16 Welders at G5 (19:59). A B1 post (HLT, Beamer) held the north. Liche atomic bombers with radar planes came at 21:15 from an air plant we never saw and killed two commanders. The report's trade line at 20:15 read 32,869 of ours lost against 18,849 of his seen destroyed (unfinished-review.md); his seen losses reach about 25.6k by the end (analyze_match).",
+ "defects": [
+  {
+   "defect": "No join across seats: 'every seat's raiders join into one body at meet_d5' had no lever, and each seat walked its group alone. The commander's transfer was the only join and was first used at 8:15.",
+   "fixed": "open (the impedance study, 2026-10-16, §3.6 lists it under no lever; transfer stays the only join)",
+   "evidence": "impedance-review 'What Opus wanted that the harness has no lever for': 'no move makes a group wait for, or march with, another seat's group'"
+  },
+  {
+   "defect": "Spot ownership not carried between seats: each seat saw only its own paragraph of the commander's split, and a step on another seat's spot was accepted, then skipped when the builder arrived (42 skips: t2 19, t5 10, t4 9, t3 4).",
+   "fixed": "partly 2026-10-18 (fd58c88: the other seats and the side's spots line in each seat's report); claims in flight not checked here",
+   "evidence": "t5 note 3:08: 'Other seats keep taking the spots we walk to (31, 38, 5)'; t2 8:15: 'allied seats keep taking the spots assigned to t2'"
+  },
+  {
+   "defect": "The report claimed his state: 'the opponent is known to hold 14' (a floor) beside our 32, which the commander read as 'our economy is twice his' when timing tier 2. The trade lines ('whole game 11557 lost, 8926 destroyed') stood in the reports too.",
+   "fixed": "2026-10-17 (the report and prompts claim nothing of his state, e8e2c19, 8b29f6c)",
+   "evidence": "commander report 12:45: 'the opponent is known to hold 14, nearest our start first: #37 C4 ...'; note 12:45: 'our economy is twice his'"
+  },
+  {
+   "defect": "Jev's pick against the packet (Jev 1.13.0). t2 6:03-6:22 chased Blitz parties instead of the spot_37 buildings and meet_d5 (attack party_5/15/16, picked at 0.04-0.72), losing 7 Blitzes. t3 12:35-13:04 alternated shell and walk. Hunts on detachments ran against 'with the whole group' (t3 15:26, t4 14:45).",
+   "fixed": "open in kind (the pick weighs the packet by design); Jev 1.14.0 pinned 2026-10-16; the whole-group attack lever 2026-10-16/17",
+   "evidence": "hands_window t2 6:09 'PICK split [group_B_t2: took w2 of 1 at 0.04] ... attack party_15 (4 armflash)'; group 11 to 4 by 6:37"
+  },
+  {
+   "defect": "t4's advanced plant (ordered 13:23) went through a chain of failures. The host dropped it as no_site while the report showed the walk for 38 s. avp_yard was refused five times. One id shared over seven constructors started a frame at D1 on the front (15:18). The blocked-site watchdog re-placed the site at the E2 passage. It stood at 17:20.",
+   "fixed": "the shared-id race 2026-10-12 (4ed68d8); the no_site report line 2026-10-16; the watchdog's re-placement not checked here",
+   "evidence": "impedance-review items 3, 11-14; unfinished study: 'fourteen orders for one advanced plant over two minutes; the no-site line was built 2026-10-16, after it'"
+  },
+  {
+   "defect": "Extractors placed in a plant's exit lane: t2's plant_31605 (armmex_9649, armmex_24115) woke t2 five times from 12:44, and t5's plant_30020 (cormex_5874) woke t5 five times from 6:20.",
+   "fixed": "2026-10-13 (3aabc77)",
+   "evidence": "strategist-0 12:44: 'plant_31605's exit lane is blocked ... in the lane: armmex_9649, armmex_24115'; strategist-3 6:20: '... in the lane: cormex_5874'"
+  },
+  {
+   "defect": "Frames looked up by type and distance: a neighbour's advanced solar finishing took builders off their own frames. Four frames and 893 metal in this game, by the unfinished-structures study.",
+   "fixed": "2026-10-17",
+   "evidence": "docs/studies/2026-10-17-unfinished-structures.md: 'human-30 second game: four, 893'"
+  },
+  {
+   "defect": "No wake named the party the commander's walk-home ran into. t4's commander picked 'walk to back_yard' at 14:31 with party_54 444 away, went from 82 to 6 hp over 14:39-14:51 and died 14:52.",
+   "fixed": "open as far as the eras list shows",
+   "evidence": "impedance-review item 2, fix class report: 'a wake for \"commander under fire\", whose actor line names the party its walk runs into'"
+  },
+  {
+   "defect": "The rove took no destination: t2's 11:34 'his start box's south-west first (spot_55, spot_58)' became a rove of the north, and his air plant was never seen before the Liches.",
+   "fixed": "2026-10-17 (rove within a marked region, docs/design/2026-10-17-rove-destinations.md)",
+   "evidence": "impedance-review item 7: 'the rover worked the north (\"12:19 gave up looking at spot_0\", then spot_23, spot_1, spot_43)'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The four seats' groups arrived one at a time at B5, C4 and B4 (6:12-7:23) and the commander wrote 'the joint body never formed'. Irishstud14's 'your armies keep not fighting together' in another 4-seat shape."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "u6bkep was one of the opponents. Our body attacked the strongest position (the C4-D6 Beamer nest) three times instead of going round, and his Liches came with no anti-air of ours prepared: the two halves of his human-10 words, here as the opponent's play."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "The human-10 shape again: extractors only in our half (29-32 of 71 from 8:00) while an army lead was spent against his D4 turrets. His count is unknown (no truth file), so the reader cannot say the loss was on extractors."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "supports",
+   "note": "No tier 2 of ours until 17:20 against his Welders at 11:10 and moho at 12:35, with energy in surplus at t5 (7,800 banked at 21:00); the tier-1 mass lost to his tier 2."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "His side: tier 2 from about 11:00 with Welders and Pit Bulls; ours: 10k of tier-1 tanks built after it and pinned by the F6 post."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The lead was used at once (5:15 'we go at him now with everything') but into his turret nest and piecemeal, so using it is not enough: where and together matter."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "The side held about its half of the spots (29-32 of 71) but raided no corner after 9:00. The commander at 11:15: 'the free spots left are on contested ground'."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "Two chances at a lone commander (E6/E7 at 5:15, C1 at 18:33), both ordered and neither converged."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "Wrecks worth 3.6k to 9.7k lay where no enemy stood (t2's wakes) through the middle game; t4 reclaimed D2/C1 from 15:24 ('income 55 from wrecks' at 16:09), and 4.8k was known with none at work at 21:00."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "Extractors in t2's and t5's plant exit lanes (the defect fixed 2026-10-13)."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The gathering place in his reach and the seats arriving one at a time (3,900 for 2,555, 5:15-8:15). The body that did form (8:15) walked through the gathering place into the nest."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Beamers (490) against Blitzes (180) at D4/D5 three times: 34 to 22 at 9:08-9:33, 5.5k to 2.2k at 12:00-13:26. Then a Pit Bull (730) post at F6, unseen fire at G6/F5 (18:40-19:25) and a Rattlesnake (1,380) at C4."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "With four seats, none sprinted until 12:45. The one plant took four minutes of failed placements, and feeding was 550 metal and two constructors at 17:15-19:46. Tier-1 bodies lost to Welders head on."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Liche bombers with radar planes at 21:15; anti-air ordered at 21:16-21:17. Two commanders were dead by 21:35, and his air plant was never scouted after 9:00."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "The commander's 0:20 'five constructors by 5:00' reached no produce list (3 each at 5:00). Extractors were flat at about 30 from 8:00, and the first moho came at 21:44."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "t4's commander walked home through E2 into an 11-Stout block and died at 14:52."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (per seat)",
+   "run/analyze_match.py (per seat)",
+   "run/floor.py (per seat)",
+   "run/raid_ledger.py (per seat)",
+   "run/commander_turns.py --notes (the four seats)",
+   "run/commander_turns.py --notes --calls (the commander, via a view with commander.jsonl as the transcript)",
+   "run/wake_read.py (seat 0)",
+   "run/hands_window.py (t2 6:00-6:40; t3 6:35-7:10, 9:00-9:45, 12:25-13:05; t4 commander 14:28-14:55)",
+   "record finished-event census (tier 2, nanos, anti-air) by a scratch script",
+   "the match's impedance-review.md and unfinished-review.md"
+  ],
+  "existing_review": "none: no review.md (the match's impedance-review.md and unfinished-review.md were read)",
+  "confidence": "medium",
+  "caveats": "There is no truth file: his economy, army and tier-2 clocks are floors from what we saw, and the people's own play is inferred from sightings. There is no ledger row, no results.jsonl and no review.md. The result is inferred from the record's end and the commanders' deaths. minutes.py, analyze_match.py, floor.py, raid_ledger.py and wake_read.py read only record-0/strategist-0, so I ran them on per-seat symlink views in the scratchpad (wake_read on seat 0 only). Per-seat armies include transferred units, so the per-seat windows mislead and the side's sums are the reading. 'His half' is measured from each seat's guessed start (B3, or C8 for t4). pro_baseline.py does not apply (not Comet Catcher). The impedance-review.md (2026-10-16) and unfinished-review.md (2026-10-17) in the match directory are model reviews of harness impedance and frames, not of the game. I build on their facts and differ in ranking: they put the cross-seat join first; I put the gathering place in his reach and the three walks into the nest, with the absent tier 2, as the game's root and cost."
+ },
+ "open_questions": [
+  "His economy and tier-2 clocks: the engine replay of this game appears to be in the BAR install's demos (2026-10-11_19-52-13-420_Eclipsed 0.9.8); run/replay_match.py would give their side, as it did for Center Command 2v4.",
+  "How the game ended at 21:45: t2's commander was at 100% at H1 in the last sample. A Liche on it, or the host leaving?",
+  "Which person played the bots (Pawns, Welders) and which the vehicles (Stouts, Janus, Rattlesnake)? u6bkep played Armada vehicles on Center Command.",
+  "What was the unseen fire on t3's body at G6/F5 (18:40-19:25)? Cloaked snipers as t3 suspected, or the Pit Bull and Rattlesnake under radar?",
+  "Would a 5:15 transfer to one seat, with a gathering place out of the D4 Beamer's reach, have converted the 3.6k-to-0.3k lead against the C8 lab or the E6/E7 commander?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1791748300-human-30.json"
+}

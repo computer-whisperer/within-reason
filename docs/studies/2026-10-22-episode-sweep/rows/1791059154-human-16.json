@@ -1,0 +1,274 @@
+{
+ "batch": "1791059154-human-16",
+ "label": "human-16",
+ "map": "Cape_Violet_V1",
+ "date": "2026-10-03",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (lobby 34.34), alone in the west; he played Cortex though the lobby script lists Armada. Spectators: computer_whisperer (the user, 6.02) and [gecko]u6bkep (19.24), who said nothing.",
+ "our_side": "Three seats on the east strip (t1 H6 south, t2 H4 middle, t3 H2 north), all Cortex (side Random). One Opus 5.5 player at effort medium for all three seats (Claude Code 2.1.288), hands Jev jev-latest, no commander. Realtime, with the standing brief docs/briefs/player.md.",
+ "build": "a58ed00 (2026-10-03 16:07; banner 'Within Reason a58ed00'); the cannot-fire record (7309fb8) was committed during this game and was not in it",
+ "result": {
+  "outcome": "lost",
+  "minute": "26:06 (where the records end; two commanders were dead at 25:31 and 25:44 to Shivas and the third was hiding on the seabed; the user called it lost at 25:40)"
+ },
+ "summary": "This was our second game on Cape Violet: three Cortex seats against thebluegecko. On our side of the map we out-expanded him: 37 extractors by 10:16, 12 of them on under-water spots taken by Muskrats, and none of his extractors was ever seen. By 14:00 the three seats' army was 24.8k against 1.7k of his seen. But all of it went by land into his B3 nest, which sits on the only land passage. Twin Guards repaired by construction turrets, then Sumos and Mammoths, took 5.6k for 0.5k by 10:16 and 16.1k for 3.8k in the three minutes to 17:04. Meanwhile he took the sea and climbed the tech: his torpedo launchers killed 11 of our sea extractors from 11:02 with none answered, a Despot battleship sat in the central lake from 19:56, Shivas came from 18:02, and Wasps and a cruise-missile ship arrived by 25:00. We had no ship, plane or anti-air all game, and his Shivas and Wasps broke the bases at 24:30-26:00. The user's verdict was that the early economic lead was never converted into damage, and that air or naval units were needed early, or siege units used properly.",
+ "root": {
+  "clock": "4:02",
+  "what": "The player saw his lab on the B3 passage, the only land way west, and planned to break it by land with tier-1 tanks. The 'shipyard decision at ~2:30' from 0:05 lapsed, although the brief in force said to build a shipyard by 4:00 and never to walk into the B3 camp. From here the leads went into the one place he was strongest, and the sea, his road and his economy, was left to him (person-backed: the user, 25:40).",
+  "evidence": "minutes.py: '3:00-4:00 (2.4-7.6x, 2 min): our mass by minute H6 H6 ... peak 13%'. Note at 4:02: 'His lab sits on the B3 passage (only land way west) ... plants add Lashers+Brutes to break B3 by ~7:00.' The first shipyard was created 11:49 and never finished."
+ },
+ "turning_points": [
+  {
+   "clock": "5:14-5:33",
+   "what": "Seat 2's nine Incisors died to Grunts in the D4/D5 shallows. Standing in water, they fired in 2% of the seconds they had a target (the user at 5:56: they 'can't shoot while in shallow water').",
+   "evidence": "minutes.py, seat 2: 'corgator_9960: crossed 4:58 ... died 5:14 at D4 to corak' and seven more by 5:33. Note at 5:33: 'Incisors lost 6 to 5 corak with no kills seen'."
+  },
+  {
+   "clock": "7:19-7:33",
+   "what": "The first push on the B3 nest arrived piecemeal (the player: B_t1 alone, B_t2 held).",
+   "evidence": "analyze_match.py, seat 0, #1: '7:19-7:33 B3 in their half: we lost 1190 ({corgator: 6, corraid: 2}), they lost 86'. Note at 7:34: 'First push on B3 nest failed piecemeal'."
+  },
+  {
+   "clock": "8:49-10:16",
+   "what": "His tier 2 was seen (corack). The player read it as 'our window' and kept the siege going, while his construction turrets repaired the Twin Guards and reclaimed our wrecks (the user at 10:05 and 10:14).",
+   "evidence": "Report at 10:16: 'in the last 3 min we lost 4295 metal ... destroyed 172 ... whole game 5573 lost, 517 destroyed'. Note at 9:41: 'Siege of B3 is bleeding (5.1k lost vs 0.5k)'."
+  },
+  {
+   "clock": "11:02-17:57",
+   "what": "Torpedo launchers that his construction ships laid at our coast took the sea extractors one by one, with none answered. The south shipyard frame was killed 22 s after it was started. Extractors went from 37 to 30.",
+   "evidence": "raid_ledger.py: 11 extractors lost to cortl parties, seat 0 from 11:02, seat 2 from 11:35, seat 1 from 16:42, each with 'answer none'. Record: corsy created 11:49, destroyed 12:11 by an attacker out of sight (by_d -1)."
+  },
+  {
+   "clock": "13:48-17:04",
+   "what": "The second siege used the whole army (about 20-24k) against Mammoths under repaired Twin Guards. It failed after killing 12 Sumos in the field.",
+   "evidence": "Report at 17:04: 'in the last 3 min we lost 16140 metal ... destroyed 3799'. Note at 16:29: 'Siege failed: 4 Mammoths under repaired Twin Guards'."
+  },
+  {
+   "clock": "18:02-23:51",
+   "what": "Shivas (reach 800) and a Despot battleship in the central lake (reach 950) out-ranged our tier-1 army from the water. A shipyard started at the lake at 21:42 was killed at 21:48.",
+   "evidence": "Wake at 18:02: 'first tier-2 unit of his seen: corshiva at C3'. Wake at 20:21: shelled by 'a corbats (corbats) (range 950)'. Report at 23:51: 'in the last 3 min we lost 18405 metal ... destroyed 0'."
+  },
+  {
+   "clock": "24:34-26:06",
+   "what": "About 26 Shivas and Sumos went through the south base and 18-19 Wasps through the north, with no anti-air standing. Two commanders died.",
+   "evidence": "Note at 25:24: 'His main army (~26 Shivas + Sumo, ~48k) is in our south base and 18 Wasps in the north'. Record: commanders destroyed 25:31 and 25:44 by corshiva. raid_ledger.py, seat 2: five extractors to corape 25:25-26:03."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:05-4:02",
+   "what": "The water plan was dropped. The brief said one seat's commander builds a shipyard by 4:00, puts a scout plane over the sea by 8:00, and sets flak at each home by 12:00. The player deferred the shipyard to 'a decision at ~2:30', then built none until the user said 'you should also build boats' (10:46). A stronger player gets a yard and the sea's units up on one seat by 4:00, while the other two take the land.",
+   "evidence": "Note at 0:05: 'Shipyard decision at ~2:30.' Records: corsy created 11:49 (seat 0) and 21:42 (seat 1), both killed as frames. No shipyard, air plant or anti-air was finished in any seat all game.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:19-16:29",
+   "what": "The army walked into the strongest position on the map three times with tier-1 land units, against the brief's words for this map ('it does not walk into the B3 beamer camp'). A stronger player holds the passage with turrets out of reach and goes round by sea or air.",
+   "evidence": "Reports: 5573 lost vs 517 destroyed at 10:16; 16140 lost vs 3799 in the three minutes to 17:04; at 18:22, '27128 lost, 5576 destroyed' for the whole game.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:49",
+   "what": "His tier 2 was read as a window to press the siege, when it was the moment he out-teched us. Our only advanced plant (seat 1) was started at 8:52, stood at 12:38, and made 2 Tremors and 5 Banishers. A stronger player goes to tier 2 on every seat, or to air, by about 9:00.",
+   "evidence": "Note at 8:49: 'his tier 2 is up. That is our window: push continues onto his_lab with all ~9.4k now.' Records: coravp created 8:52, finished 12:38; cortrem 2 and corban 5 finished.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:47-26:06",
+   "what": "The answer at sea never came. The player saw the torpedo launchers at 12:04 and put up two hover platforms (finished 14:18 and 14:27). From its 14:24 produce call each platform's list allowed only Caymans, yet both platforms made nothing for 11 minutes, so the 12 sea extractors were left with no defence.",
+   "evidence": "Reports from 14:41 to 25:47, 85 times: 'factory_17046 ... idle: building nothing; allowed: the player allows only: Cayman (corsnap); best_rated: a Cayman (corsnap) (0.23)'. Record: no corsnap was created.",
+   "kind": "both"
+  },
+  {
+   "clock": "9:00-25:00",
+   "what": "Mass tier 1 stayed the body under his tier 2 and 3: 195 Thugs from the seats 0 and 2 bot labs, and 106 Wolverines, of which 66 came from seat 1, 55% of its plant's output. Tier-1 artillery was used as the army itself, not 1-3 behind a screen (the user: 'or properly use seige units').",
+   "evidence": "Record finished counts: corthud 104 (seat 0) and 91 (seat 2); corwolv 25, 66 and 15. Seat 1's plant created 120 units, 66 of them Wolverines.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "16:29-25:24",
+   "what": "Energy sat full while metal sat at zero, with no converters. A minor cost next to the above.",
+   "evidence": "Report at 18:22: 'metal 451 (+76.7/-27.0), energy 6067/6162 (+1071)'. Report at 25:24: 'energy 5780/5810 (+1330)'. The eco line read 'converters 0' all game.",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "thebluegecko played Cortex alone. His bot lab stood on the B3 passage, the only land way into his half, by 2:31, with a Guard, Twin Guards and Grunts. Construction turrets behind the Twin Guards repaired them under our attacks and reclaimed our wrecks (the user at 10:05 and 10:14). His construction ships were at our coast from about 7:10, and the torpedo launchers they laid killed our under-water extractors from 11:02. He had tier 2 by 8:49 (an Advanced Construction Bot), Sumos from 10:05, and Mammoths holding B3 from about 14:41. Shivas (tier-3 amphibious) followed from 18:02, a Despot battleship in the central lake from 19:56, and by 24:55-25:25 construction aircraft, 18-19 Wasps and a Messenger cruise-missile ship. On land he never came out beyond Sumo sorties (12 died at spot_31 13:48-14:24). He fought on his towers, then came by water and air into our bases at 22:00-26:00. None of his extractors or his main base beyond B3 was ever in our sight.",
+ "defects": [
+  {
+   "defect": "No cannot-fire information: soldiers standing in shallow water with a target did not fire and still counted in the fight's odds. The fix was the H-HANDS-CANNOT-FIRE record.",
+   "fixed": "2026-10-03 (7309fb8, committed during this game; first built in build-smoke)",
+   "evidence": "K-mech-a-low-muzzle-does-not-fire-from-shallow-water: Incisors in water 10-20 deep fired in 2% of 86 unit-seconds with a target. Seat 2 lost 9 Incisors at D4/D5 5:14-5:33."
+  },
+  {
+   "defect": "A factory with the player's produce list stood idle: the lab was offered the listed unit and 'nothing', and the pick kept 'nothing'. Both hover platforms stood idle from 14:24 to the end with a Cayman-only list.",
+   "fixed": "open as far as the docs say (H-HANDS-PRODUCE still offers a lab its list and 'nothing'; the default unit plays only when no question goes out)",
+   "evidence": "85 report lines from 14:41: 'idle: building nothing; allowed: the player allows only: Cayman (corsnap); best_rated: a Cayman (corsnap)' at 0.15-0.35. No corsnap was created."
+  },
+  {
+   "defect": "The score line stated a floor as a value: 'the opponent is known to hold 1' every turn, while he held the sea spots unseen (the harness claiming his state).",
+   "fixed": "2026-10-17 (e8e2c19, the report claims nothing of his state)",
+   "evidence": "Every report from 2:45 to 25:24: 'the opponent is known to hold 1, nearest our start first: #26 B3'. analyze_match.py: 'extractors: ... theirs end at 0'."
+  },
+  {
+   "defect": "An extractor stood in a plant's exit lane.",
+   "fixed": "2026-10-13 (3aabc77)",
+   "evidence": "wake_read.py: 6 turns woken by 'in the lane: cormex_13934 (the remove tool takes them away)' in plant_876's lane. floor.py, seat 0: yard_min 1.9."
+  },
+  {
+   "defect": "Places are tagged by seat in a game with several seats, so a bare place name the player used was no place.",
+   "fixed": "unknown (places are still seat-tagged in picture.rs)",
+   "evidence": "23:44: 'skipped the step corrad passage_2 of its list: passage_2 is not a place in the picture'. Note at 23:51: 'passage_2 was never a valid place in a multi-seat game (it is passage_2_t2), so nothing had a step-back'."
+  },
+  {
+   "defect": "The march lane held the body for stuck stragglers while Mammoths shelled it (the player's reading, not checked in the hands' log).",
+   "fixed": "unknown",
+   "evidence": "Note at 15:42: 'Push stalled at spot_31: march footwork waited for stuck stragglers while Mammoths shelled us (8.1k lost vs 4.2k in 3 min)'."
+  },
+  {
+   "defect": "Words in the wakes and the report: one seat's count was said as the side's ('no growth: we have not held more than 13 extractors for 8 min' while the side held 30), and a Shiva was named a 'tier-2 unit' (it is tier 3, from the experimental gantry).",
+   "fixed": "unknown",
+   "evidence": "Wake at 16:53: 'no growth: we have not held more than 13 extractors for 8 min, with 16 free spots'; the score line read 'extractors 30'. Wake at 18:02: 'first tier-2 unit of his seen: corshiva at C3'."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "5:56",
+   "text": "those units apparently can't shoot while in shallow water, the pawns can"
+  },
+  {
+   "clock": "10:05",
+   "text": "there are construction turrets behind the twin guards that are repairing them when you attack"
+  },
+  {
+   "clock": "10:14",
+   "text": "those corpses are feeding him metal"
+  },
+  {
+   "clock": "10:46",
+   "text": "you should also build boats"
+  },
+  {
+   "clock": "25:40",
+   "text": "The game was lost when you couldn't convert your early economy lead into damage. You needed air or naval units early"
+  },
+  {
+   "clock": "25:50",
+   "text": "or properly use seige units"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'I would go arroung rather than attack the strongest postition on the map': three tier-1 sieges of the B3 nest lost 16k and more, while the sea and the air were open. The user at 25:40 named air or naval units early."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "supports",
+   "note": "Twin Guards repaired by construction turrets beat tier-1 tanks at every try. The long-range answer came as 2 Tremors, at 14:24 and after."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "supports",
+   "note": "Our massed tier-1 land army told him he was safe to tech: tier 2 by 8:49, Shivas by 18:02, a Despot, Wasps and a cruise-missile ship."
+  },
+  {
+   "id": "L-mix-arty-not-the-body",
+   "relation": "supports",
+   "note": "106 Wolverines (55% of seat 1's plant) as the siege body. The user: 'or properly use seige units'."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The first B3 push at 7:19 arrived piecemeal (B_t1 alone, B_t2 held): 1,190 lost for 86."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The lead was used, at once and hard, but against the one position where it could not convert. The user: 'couldn't convert your early economy lead into damage'."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "illustrates",
+   "note": "One advanced plant for three seats: started 8:52, finished 12:38. His tier 2 was seen at 8:49."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "Every tier-1 lab kept making Thugs and Wolverines to the end while his tier 2 and 3 arrived."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "The other side of the lesson: our wrecks under his towers fed him (the user at 10:14). Our own 6.5k wreck field at C4 got Graverobbers only from 16:29."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "The same shape of answer: asked at 25:00 what to build against the units that broke us, the user said the game was lost earlier. The cause he named was conversion and unit class, not extractors: we held 37 at 10:16, and his were never seen."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Rascals crossed at 2:11, but no unit of ours ever came within 1,500 of his start. The first Incisor handful died in the D4/D5 shallows."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "After b9a43ff the Muskrats took 12 sea spots, but the seats built no sea army. Torpedo launchers took 11 extractors unanswered, both shipyards died as frames, and the hover platforms made nothing. The brief's shipyard by 4:00 was not followed."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "30 turns were woken by 'shelled from out of sight' (Twin Guards 490, Mammoths 650, Shivas 800, Despot 950). The three sieges of a repaired nest were never scouted past B3."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "Tier 1 against his tier 2 from 8:49 and his tier 3 from 18:02. Three seats, one advanced plant."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "Seat 0's window ran 9:00-14:00 at 4.3-24.3x with our mass in his half (C4), but at the nest. A lead spent at the wrong place decays as surely as one held at home."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "contradicts",
+   "note": "This 3v1 was behind on the trade from the first push: 5,573 to 517 at 10:16 and 68,950 to 10,846 at 25:24. It was ahead only on extractors and army size."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "illustrates",
+   "note": "The Despot was first seen at 19:56; the lake shipyard started 21:42 and died at 21:48. Construction aircraft were first seen at 24:55 and Wasps struck at 25:25 with zero anti-air; there was no scout plane all game."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0; seats 1 and 2 through scratch copies)",
+   "run/analyze_match.py (the same three)",
+   "run/floor.py (each seat)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/impedance_sweep.py (--counts and full)",
+   "run/hands_window.py 7:10-7:35 group_B_t1",
+   "record event tallies (created/finished/destroyed) by a read-only script",
+   "git show a58ed00:docs/briefs/player.md (the Cape Violet section in force)"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No truth file, so his numbers are floors: his extractors and economy were never seen, and minutes.py's HIS TIER 2 section is empty though corack was seen at 8:49. minutes.py, analyze_match.py, floor.py and raid_ledger.py read only the first record (seat 0). I ran them on seats 1 and 2 through scratch directories that symlink record-N as record-0; the opponent columns are shared sight. analyze_match.py's engagements are per seat; the side's trade figures come from the player's report ('each death counted once across our seats'). pro_baseline.py was not run (not Comet). The batch has no ledger row and no review.md. The lobby script says thebluegecko was Armada, but the records show Cortex units, and the player believed Armada until 2:45. Result minute: the records end at 26:06; the outcome is inferred from the user's verdict and two commander deaths. chat.jsonl carries the user's 25:40 line twice; it is listed once here. Loss on a since-fixed defect: only the 5:14 Incisor loss (about 1k) rests on the cannot-fire gap, fixed the same day. The loss rests on the strategy (land sieges, no sea or air) and on the idle hover platforms, which are not shown fixed."
+ },
+ "open_questions": [
+  "Why did both hover platforms stay idle for 11 minutes with a Cayman-only list (the pick kept 'nothing' at Cayman ratings of 0.15-0.35), and does a lab with a player's list still idle this way today?",
+  "The brief in force said to build a shipyard by 4:00 and never to walk into the B3 camp. Why did the player defer the shipyard ('decision at ~2:30') and then drop it? Did the brief's water lines reach the turn, or were they outweighed by the land plan?",
+  "How many sea spots did he hold, and when? We never saw one of his extractors, and there is no truth file.",
+  "What killed the two shipyard frames (12:11 at (7280, 4800) and 21:48 at (5824, 1840)) out of sight: torpedo launchers, the Despot, or submarines?",
+  "Did the player's belief that he was Armada (0:05-2:45) shape the opening (Incisors chosen to 'beat Grunts', the D2/D4 shallows route)?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791059154-human-16.json"
+}

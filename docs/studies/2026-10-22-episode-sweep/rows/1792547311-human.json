@@ -1,0 +1,294 @@
+{
+ "batch": "1792547311-human",
+ "label": "human (SD-129 2v3)",
+ "map": "Project SD-129 v1.0",
+ "date": "2026-10-20",
+ "shape": "3v2",
+ "people": "[gecko]thebluegecko (lobby 34; Cortex by the units seen though the lobby said Armada; the north, his base found at C3) and [gecko]u6bkep (lobby 19; Armada vehicles; the south, vehicle plant at C6), in the west box; [gecko]Covariance spectating (no chat); computer_whisperer (the user) hosting from his spectator client, no comments in the chat. The only chat: 'gl hf!' (thebluegecko 0:00) and our player's '[WReason] gl hf! (AI side here, three seats)' (0:47).",
+ "our_side": "Three seats, ally team 1, packed in the east box (factions Random in the lobby): t2 = seat 0 (record-0) Cortex at G5; t3 = seat 1 (record-1) Armada at G4, the sprint seat; t4 = seat 2 (record-2) Armada at F5. Each an Opus 5.5 medium player (account claude2) on Jev jev-1.14.0, hands normal (layers news, same, fuse, openers, split, tick, places per the review), under an Opus 5.5 high side commander (10 turns on a 90-120 s timer). Brief: the standing brief with the experience brief's team sprint procedure (feeders' plants make nothing, standing transfer).",
+ "build": "d44e318 (2026-10-20 20:58 EDT, from the ledger row; bot.log names no commit; game started about 21:48 EDT)",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 15:01 (the record ends with t3's base gone, t4 at 0 extractors and t2's commander under Stouts and Janus; no result file: the host ended it)"
+ },
+ "summary": "A ranked lobby 3v2 on Project SD-129, a land ring round a central sea with 9,000-12,000 elmo walks: our three seats in the east (t2 Cortex, t3 and t4 Armada; Opus 5.5 medium players under an Opus 5.5 high commander, Jev 1.14.0) against thebluegecko (Cortex, north) and u6bkep (Armada vehicles, south). The commander's 0:01 plan sprinted t3 to tier 2 on a clock (advanced plant placed 4:00, standing 5:50 on 3,150 metal of standing transfers while t2's and t4's plants paused) and sent every seat's first soldiers into his half to stay, where they died by 6:46; meanwhile thebluegecko's Rascals took t3's undefended spots at 4:21-4:54, u6bkep's Blitzes stood at E6 from 5:02, and from 7:00 his mass stood in our half every minute to the end. After the plant stood the commander put mohos before the army: four advanced constructors before the first Bull at 9:28, 11 mohos at 7,700 energy each with every seat's energy at zero and banks of 1,400-2,650 unspent, while u6bkep's 8 Blitzes and 3 Stouts took t4's home 8:17-9:37 with t2's army held at home and the commander asleep on its 120 s timer. The people's tier-1 vehicles (about 12,000 metal seen by unique id: 41 Brutes, 40 Blitzes, 28 Stouts, 8 Janus) then took the side from 41 extractors at 10:00 to 9 at 14:00 while our two bodies stood at G4/G5, never in his half. All four sessions stopped on the five-hour rate limit at 13:48-14:11, and t3's Bulls and base died to Brutes at 14:14-14:55.",
+ "root": {
+  "clock": "0:01 (the commander's plan; still avoidable until 4:43, when the feeders' plants went idle with his Rascals already on t3's spots)",
+  "what": "The plan sprinted t3 on a clock ('around 4-5 min'), not on the brief's trigger (first bank or the side's spots taken: t3 banked 56 at 4:00 and 43 spots in our half were free at 3:31), paused both feeders' plants by the brief's procedure, and sent every seat's first soldiers into his half to stay, so nobody held the line the brief says to ask about. The side stood at 17 soldiers from 4:00 to 6:00 while his raiders took our spots; from 7:00 his mass was in our half every minute. The reader's reading, agreeing with the existing review and the ledger (model readings); the user's reading is pending.",
+  "evidence": "commander 0:01: 't3 sprints, t2 and t4 hold the fronts and feed it' ... 'Your first raiders go west ... They stay in his half'; minutes.py all seats: his mass in our half 100% each minute 7:00-15:00; team_read soldiers 17 at 4:00 and 6:00"
+ },
+ "turning_points": [
+  {
+   "clock": "2:47-2:56",
+   "what": "t4's Rover stands 71 elmos from u6bkep's start and sees his plant at C6; nothing of ours comes within 1,500 of either start again.",
+   "evidence": "minutes.py seat2: 'armfav_7890: crossed 2:17; nearest his start 71 at B6 2:56; died 4:02 at B2 to corexp'; 'his first factory seen: 2:56 at C6'; seats 0 and 1: 'first of ours within 1,500 of his start: never'"
+  },
+  {
+   "clock": "3:31",
+   "what": "The commander's three standing transfers are refused (keep_metal passed as the string \"60\"); it tells the feeders to set their own and pause their plants.",
+   "evidence": "impedance_sweep --commander 3:31: transfer {\"from\": \"t2\", \"keep_metal\": \"60\", \"to\": \"t3\"}; note: 'the transfer tool refused keep_metal (schema has no such field)'"
+  },
+  {
+   "clock": "4:00-5:50",
+   "what": "armavp placed at G3 by t3, standing in 1:50 on seven constructors, the commander and the feed (thebluegecko's benchmark in the brief: 1:46).",
+   "evidence": "t3 note 4:00: 'armavp frame placed at home (F3/G4) by constructor_2509'; t3 note 5:50: 'armavp (plant_16060) stands'; t2/t4 notes 5:54-5:58: lifted transfers (800 and 1,652 sent)"
+  },
+  {
+   "clock": "4:21-4:54",
+   "what": "thebluegecko's 4-5 Rascals kill t3's spot_40, 44, 45, 64 with no soldier within 900 and no turret within 700; the answer is one Blitz.",
+   "evidence": "raid_ledger seat1: 4:21 spot_40 G3 corfav, '1 of group_A_t3 hunt party_10 (1 corfav)'; 4:27-4:31 spot_44/45; 4:54 spot_64; totals 'undefended ... 5'; 'parties that paid 0'"
+  },
+  {
+   "clock": "4:43-6:10",
+   "what": "The feeders' plants make nothing (t4 4:43-6:10, t2 4:46-5:37) while t4's Blitzes die at D6/E6 to u6bkep's Blitzes, his commander and the Sentries at his E7/D7 post.",
+   "evidence": "record created events: t4 plant 4:43 armcv then 6:10; t2 plant 4:46 corcv then 5:37; analyze_match seat2 #2 5:02-5:21 E6: lost 660 (6 armflash), they 270; #3 6:18-6:46: lost 650, they 330"
+  },
+  {
+   "clock": "6:01",
+   "what": "The commander's plan puts '(1) Mohos on every seat's spots' ahead of '(2) An army in the south'; the advanced plant makes four advanced constructors (5:52-7:38) and stands idle on an empty store until its first Bull at 9:28.",
+   "evidence": "commander 6:01 direct; record-1 created by plant_16060: 5:52, 6:20, 7:08, 7:38 armacv, 9:28 armbull; analyze_match seat1 bank 0 at 8:00, 19 at 9:00"
+  },
+  {
+   "clock": "8:17-9:37",
+   "what": "u6bkep's 8 Blitzes and 3 Stouts take t4's home: its Stouts follow commander_t4 off to a solar list step, the plant dies 9:22, 3,000 of buildings go; t2's army stays home and the commander sleeps until 9:31.",
+   "evidence": "hands_window seat2 8:21: 'commander_t4: walk to spot_94; its list step armsolar waits' (0.02); 8:23 'group_K_t4: follow commander_t4'; analyze_match seat2 #6 lost 1,485, #7 8:54-9:37 lost 3,000"
+  },
+  {
+   "clock": "10:56-13:01",
+   "what": "The side's spots fall on both flanks (D2/E2/E1 to Brutes, F7/G6/H6 and H5 to Stouts and Janus, E8 to 14 Blitzes) while t2's army walks F6 as 'the south army'.",
+   "evidence": "team_read: side extractors 41 at 10:00, 27 at 12:00, 9 at 14:00; raid_ledger seat2: 22 lost, 'answered 6', the rest 'none'; commander 13:01: 'His armies are in our homes, split into parties'"
+  },
+  {
+   "clock": "13:48-14:55",
+   "what": "All four sessions stop on the five-hour rate limit; the hands alone meet the next Brutes at F3 (4 Bulls lost, 3,800) and t3's base dies (8,981).",
+   "evidence": "bot.log: 'STOPPING: rate limit event ... five_hour' x4, 'the session ended; the hands carry on alone'; analyze_match seat1 #17 14:14-14:43 lost 3,800 (4 armbull), #18 14:34-14:55 lost 8,981"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:01",
+   "what": "The commander's plan sent every seat's first soldiers into his half to stay and sprinted on a clock, leaving the fronts it said t2 and t4 would hold empty. A stronger side would have picketed north_pass (F3) and E6 with the first soldiers and a Sentry pair each, and started the sprint at the first bank or with the side's spots taken.",
+   "evidence": "commander 0:01 t2/t4: 'Your first raiders go west ... at once ... They stay in his half'; t3: 'Aim for about 4:00-5:00'; 3:31 report: 'free spots 93: 43 in our half'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:00-6:46",
+   "what": "The first handful crossed and died for little: t3's two Rovers at C1, t2's four Incisors at D2, t4's Blitzes at u6bkep's E7/D7 post (his commander and Sentries); about 17 units and 1,900 metal for about 800.",
+   "evidence": "minutes.py seat1: armfav died 3:20/3:22 at C1 to corfav; analyze_match seat0 #1 4:49-5:12 D2: lost 480, they 550; t4 note 5:36: 'the Blitz raid died at south_pass ... 801 lost for 580 killed'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:21-6:49",
+   "what": "Raids on undefended outer spots met by one unit or nothing: one Blitz after four Rascals at t3's spots; 49 extractors lost side-wide in 15 minutes (3.3 a minute; the pros 1.85) and no raiding party ever paid.",
+   "evidence": "raid_ledger totals: seat0 14 lost, seat1 13, seat2 22; 'parties that paid 0' on every seat; seat1 4:21 '1 of group_A_t3 hunt party_10'",
+   "kind": "both"
+  },
+  {
+   "clock": "6:01-9:28",
+   "what": "Mohos before army after the plant stood: four advanced constructors before the first Bull, 11 mohos (7,700 energy each) on seats whose energy sat at zero, so the banks could not be spent; a stronger side makes one constructor and then tanks (Infern8's word) and builds energy ahead of mohos.",
+   "evidence": "floor.py e0% 13.5 / 1.3 / 7.6; analyze_match seat1 energy stalled in minutes [7, 10, 11, 12]; seat0 bank 2,148 at 11:00; commander 11:01: 'The banks ... sit unspent because every energy store is empty'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:14-11:29",
+   "what": "t3's player read its seat as 'metal-bound, not energy' and its commander built four converters that drained 280 energy a second from the mohos until the side's commander called them off at 11:01.",
+   "evidence": "t3 note 8:15: 'commander builds 5 converters at solar_field'; commander 11:01: 't3's 4 converters burn 280 energy a second: switch them off or reclaim them'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:17-9:37",
+   "what": "t4's home fell to eleven tier-1 vehicles while t2's eleven Incisors (about 1,320) stood 3,000 away: t2 kept them home at 8:20 and ordered the attack at 8:59, but the hands played 'fight_to spot_74', 'gather on its front' and at 9:11 'walk to spot_77' (apparently the order's own 'against a party that outweighs it' clause; party_34 was 8 Blitzes and 3 Stouts) and never the attack; t2 called it back at 9:16. commander_t4's solar list step pulled the Stouts off the fight.",
+   "evidence": "t2 note 8:20: 'I keep our 7-9 new Incisors (group_L_t2) at home as the guard'; hands_window seat0 9:11 'group_L_t2: walk to spot_77'; t2 9:16 instruct: 'it does not walk out to F6 to meet it'",
+   "kind": "both"
+  },
+  {
+   "clock": "9:31-13:01",
+   "what": "The body was sent south as 'the south army' while three of his parties took our north, east and south spots; the 13:01 direction to take them 'one at a time' came with 14 extractors left. A stronger side holds the home spots with the body and answers raids with pickets and turrets.",
+   "evidence": "commander 9:31: 'that body is the south army. It walks west through south_gather'; raid_ledger seat0 10:56-11:18 D2/E2/E1 to corraid, 11:45-11:51 H5 to armstump; team_read 41 -> 27 extractors 10:00-12:00",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:11-14:38",
+   "what": "Two fusions (3,350 each) placed with raiders in the homes; both killed unfinished.",
+   "evidence": "analyze_match seat2 #13 14:07-14:17 G4: lost 3350 ({'armfus': 1}); seat1 #18 14:34-14:55 lost 8,981 incl. armfus; t4 note 12:30: 'Kept the fusion (34%) going'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:56-13:20",
+   "what": "t3's Bulls were split by the hands' ladder hunts at single Brutes after the player's 'join and attack together' order, which landed 18 s late.",
+   "evidence": "t3 note 13:27: 'Bulls had split into four groups by ladder sends at single Brutes'; raid_ledger seat1 13:08 '2 of group_A_t3 hunt party_72 (1 corraid)'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Two people splitting the map by row. thebluegecko (Cortex, north, base at C3) raided from 4:21 with 4-6 Rascals on t3's and t2's G3/F3/H3/H4/H5 spots, guarded his C1/C2 extractors with armed extractors (corexp: t2's second Incisor raid died to them at 9:17-9:34), had an air plant seen at C3 by 6:17 and Whirlwind bombers that killed t4's unfinished fusion at 14:07 (losing 9-10 of them), and from 10:38 sent Brutes and a Pounder through D2/E2 (4 extractors, 2 Guards, the radar by 11:18) and then 10-11 Brutes into t3's F3/G3 home 12:41-13:46 and its base 14:34-14:55. u6bkep (Armada vehicles, south, plant at C6) walked his commander east to a post at E7/D7 with Blitzes and three Sentries by about 5:00 that ate t4's Blitz raid, stood Blitzes at E6 from 5:02, took t4's home with 8 Blitzes and 3 Stouts at 8:17-9:37, then roamed our south and east with Stouts and Janus (F7/G6/H6 9:57-11:34, H5 11:45-11:51) and 14 Blitzes at E8 (12:31-12:48). No tier 2 of either was seen in 15 minutes: massed tier-1 vehicles (about 12,000 metal by unique id) against a side that had built economy.",
+ "defects": [
+  {
+   "defect": "The commander's wake was a timer only (90-120 s, or a person's chat): the seats' pleas reached it at its next report. t4 asked for t2's army at 7:43, 8:21 and 9:08; the commander, on 'wait 120' from 7:31, read them at 9:31, after t4's plant died at 9:22. The eras list does not name it.",
+   "fixed": "open (crates/bot/src/strategist/command.rs drive() unchanged since d44e318)",
+   "evidence": "d44e318 command.rs drive(): due = last + max_seconds; 'A person's chat wakes it at once'; commander 9:31 report: '[8:34] 8:21 t4: ... please send it south to F6 if it can come'"
+  },
+  {
+   "defect": "The standing transfer (eras list: 2026-10-19/20) failed its first commander use on a type: keep_metal passed as the string \"60\" reads as None (as_f64) and the call returns the generic usage line, which the commander read as 'no such field' and gave up. No cost here: the players set theirs with numbers.",
+   "fixed": "open (mcp.rs:946 still arguments[\"keep_metal\"].as_f64())",
+   "evidence": "impedance_sweep --commander 3:31: three transfer calls with \"keep_metal\": \"60\"; note: 'a standing feed cannot be set from here'; t2/t4 notes 4:07-4:16: their own standing transfers set"
+  },
+  {
+   "defect": "The hands kept a commander's list step over a fight: commander_t4 walked to spot_94 for a solar as the 8+3 party opened, its group followed it strung out under fire, and from 8:59 it built Sentries by list beside the dying plant.",
+   "fixed": "open",
+   "evidence": "hands_window seat2 8:21 'commander_t4: walk to spot_94; its list step armsolar waits for it' (took w2 of 1 at 0.02); 8:23 'group_K_t4: follow commander_t4'; group_K 6 at 8:21, 4 at 8:27"
+  },
+  {
+   "defect": "Ladder hunts split a body at single stragglers (the detachments arc, 2026-10-17, named it; not fixed): t3's Bulls in pairs and fours after single Brutes 13:03-13:20.",
+   "fixed": "open",
+   "evidence": "existing review's hands_window seat1 12:55-13:30: '2 of group_A_t3 hunt party_72 (1 corraid)', '4 of group_A_t3 hunt party_78 (2 corraid)'; t3 note 13:27"
+  },
+  {
+   "defect": "Players' wall time of 16-19 s a turn in a real-time game, orders in flight 82-91% of game time; orders landed 13-18 s late at the moments that mattered.",
+   "fixed": "open",
+   "evidence": "wake_read: busy 91% / 82% / 91%, turn gap median 21 / 17 / 18.8 s; floor turn_s 19.2 / 15.9 / 18.2; t4's 9:08 D-gun order landed 9:21, the plant died 9:22 (existing review)"
+  },
+  {
+   "defect": "No check of the five-hour window before a game with people: all four sessions stopped at 13:48-14:11 after the Gasbag Grabens game 20 minutes earlier spent it. The game was decided before.",
+   "fixed": "open",
+   "evidence": "bot.log lines 473-505: 'STOPPING: rate limit event {... \"rateLimitType\":\"five_hour\",\"resetsAt\":1792548600 ...}' then 'the hands carry on alone' for ai 2, 1, 0 and the commander"
+  },
+  {
+   "defect": "Cross-faction raw unit names on a borrowed or other-faction constructor refused as 'not a step' rather than 'cannot build it' (2e395b2 of 2026-10-20 fixed role words, not raw names); two turns lost at 12:53-13:23.",
+   "fixed": "open",
+   "evidence": "existing review Z4: 12:53 queue constructor_4502 ['stop', 'armhlt spot_77', ...] 'not a step'; impedance_sweep counts seat0 refused {'queue': 3}"
+  },
+  {
+   "defect": "The allies line printed each ally's income from its spots a thousandfold: the spot worth was summed raw (t3 '8 extractors (about 18204 metal a second from its spots)'). No visible cost in this game. Not in the eras list.",
+   "fixed": "open (crates/bot/src/brain/briefing.rs: worth += spot.y, unchanged since 2e395b2)",
+   "evidence": "t2 report 8:20: 't3 ... 8 extractors (about 18204 metal a second from its spots)', 't4 ... 16 extractors (about 36333 metal a second from its spots)'; record header metal_spots_amount: 'worth', ~1700-3200 a spot"
+  },
+  {
+   "defect": "mark refused a spot name ('a grid cell is A1 to H8'); recovered with coordinates in the same turn.",
+   "fixed": "open",
+   "evidence": "commander 6:01: mark {\"south_gather\": \"spot_113\"} refused; then mark {\"south_gather\": \"[8840, 10456]\"}; impedance_sweep: refused {'south_gather': 1}"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "contradicts",
+   "note": "First test of the team procedure against people (a design test episode, E-sd129-2v3). Conduct worked: plant standing in 1:50 on 3,150 metal of standing transfers. But 'with allies beside you the gap is covered' failed here: a 3v2 on a large map with paused feeders and raiders sent away was not covered, and the clock trigger ignored the brief's 'first bank or spots taken'."
+  },
+  {
+   "id": "L-other-infern8-transition",
+   "relation": "supports",
+   "note": "'one constructor and then tanks': our advanced plant made four constructors before its first Bull (9:28), and the side's army stayed below what was raiding it. Infern8 is a less experienced player."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "A scope limit: the first handful crossed at 2:00-4:20 in a 3v2 with 9,000-12,000 walks and died to his post, armed extractors and Rascals (about 1,900 for 800), leaving nothing at home. The lesson was given for duels whose first soldiers killed nothing."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Reversed: here the people raided our naked outer extractors (t3's four at 4:21-4:54, 49 side-wide), and our answer was one Blitz or none."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "The side took the spots (41 at 10:00) but did not hold them: 41 to 9 by 14:00 under tier-1 raids. Holding needs the army where the spots are."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "The extractor collapse (10:00-14:00) came minutes before the end; the loss was on extractors and buildings (16,732 lost) not on the army trade (5,736 of soldiers lost against 9,759 of his destroyed, per the commander's traded line in the ledger)."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "supports",
+   "note": "t3 built four converters at 8:25-9:36 on 'metal-bound, not energy' and they drained 280 e/s from the mohos until 11:29."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "'less groups': t2's and t3's bodies never fought together; the Bulls split into four groups by ladder hunts at 13:00-13:20; the people's parties were met one at a time."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "illustrates",
+   "note": "The brief's team procedure idles the feeders' plants (t4 87 s, t2 51 s) exactly when his raids arrived; t4's plant then stood dead 9:22-11:00 with a full store. The lesson and the procedure pull opposite ways."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "What we built told them what was safe: a side of constructors and mohos with few soldiers met 41 Brutes, 40 Blitzes and 28 Stouts and no tier 2 from them. His own word was that Brutes 'apply more pressure'."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "'too many construction bots, made and kept out on the map': side builders 24-29 from 8:00 against 30-36 soldiers (team_read)."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "49 extractors lost in 15 minutes, no raiding party paid; t3's four spots at 4:21-4:54 undefended; t4's 16 of 22 losses unanswered; the ball sent after the raids instead of pickets and turrets."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "The minutes.py windows were against seen army only; the side's mass was 0% in his half after 3:00 and his was 100% in ours from 7:00. Economy without an army did not win."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "11 mohos by 12:41 at 7,700 energy each on wind-0 seats with energy at zero; advanced solars and fusions came after the mohos, not with them."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "contradicts",
+   "note": "Bounds 'a bank above 500 with income over 30 is build power missing': the banks of 1,400-2,650 at 10:00-13:00 were energy missing (e0% 13.5 / 7.6 on t2 / t4; the commander at 11:01)."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "commander_t4 left the fight for a solar list step at 8:21 and the Stouts followed it; it then built Sentries by list beside the dying plant (a hands' fault)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "In a 3v2 with long walks the first soldiers that crossed died to his post and armed extractors; scope for the ruling."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "t4's Blitzes died to u6bkep's commander and Sentries at E7/D7; t2's Incisors to armed extractors at C1/C2 (9:17-9:34); his base unseen after 2:56."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (each seat through scratch links)",
+   "run/analyze_match.py (each seat)",
+   "run/floor.py (three seats)",
+   "run/raid_ledger.py (each seat)",
+   "run/team_read.py run/matches/1792547311-human 2",
+   "run/commander_turns.py --notes (commander and each seat), --calls (commander, t2 8:00-10:00)",
+   "commander.jsonl and strategist-0.jsonl read directly (directions in full, turn prompts, what reached the commander)",
+   "run/wake_read.py (each seat)",
+   "run/impedance_sweep.py --counts, --commander",
+   "run/hands_window.py (seat2 8:15-8:50 commander_t4 group_K_t4; seat0 8:58-9:40 group_L_t2)",
+   "reader's script over the records' created events (plant production, def names by list index)",
+   "git show d44e318 (command.rs, commander.md, player-experience.md), git log d44e318..HEAD"
+  ],
+  "existing_review": "run/matches/1792547311-human/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file (a lobby game): his numbers are floors from shared sight, and minutes.py's WINDOWS compare our army with what was seen, never a lead. The per-match tools read record-0/strategist-0/jev-0 only, so each seat was read through scratchpad directories of symlinks (seatN with record-N as record-0); analyze_match's 'opponent None' and floor's empty result/minutes follow from no result file. pro_baseline.py not run (Comet only; no SD-129 cards). impedance_sweep counts one session replacement for t3 and t4 that bot.log does not show. No person's reading exists: no computer_whisperer lines in the chat, the ledger row and review.md are model readings, and the main session's memory says the user's reading is pending. Where I differ from the existing review: (a) I add the commander's timer-only wake as a defect behind t4's home (the pleas of 7:43-9:08 reached it at 9:31); (b) t2 did order its army at F6 at 8:59, but the hands never played the attack (fight_to spot_74, then walk to spot_77, apparently under the order's own 'outweighs' clause) and the player reverted at 9:16; (c) I put the sprint's clock trigger against the brief's own trigger; (d) a new open defect, the allies line's income a thousandfold. Otherwise I build on its findings and numbers."
+ },
+ "open_questions": [
+  "Was the sprint wrong for this scenario, or only its cover? The brief says 'long, covered, none: the sprint starts now'; this game was long and 3v2, and the user's reading is pending.",
+  "Would t2's eleven Incisors with t4's six soldiers, commander and two Sentries have held t4's home against 8 Blitzes and 3 Stouts at 8:20? The hands walked group_L_t2 to spot_77 at 9:11 instead, apparently judging the party the heavier.",
+  "Should a seat's plea, or a seat's plant under fire, wake the commander? At this build only its timer or a person's chat did.",
+  "What was his economy? No truth file, and his extractors went unseen from about 9:30.",
+  "Has the allies line's thousandfold income figure misled a commander or player in another team game since H-REPORT-ALLIES-LINE was built?",
+  "Twenty minutes earlier the same two people beat us on Gasbag Grabens (run/matches/1792546058-human, not reviewed): same pattern or not?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1792547311-human.json"
+}

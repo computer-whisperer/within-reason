@@ -1,0 +1,271 @@
+{
+ "batch": "1792372195-human",
+ "label": "1792372195-human",
+ "map": "Cape_Violet_V1",
+ "date": "2026-10-18",
+ "shape": "1v1",
+ "people": "computer_whisperer (the user himself as the opponent; lobby skill 6.02, Armada, handicap +100%, so income x2), hosting; spectators [gecko]u6bkep (19.24) and [gecko]Covariance (16.84), neither typed; a ranked SPADS lobby game",
+ "our_side": "one seat (team 1, side Random, played Cortex: corcom at H6 in the east box); the player was Opus 5.5 (claude-opus-5-5) at effort medium, the side's commander agent Opus 5.5 at effort high (25 turns), the hands Jev 1.14.0 at hands effort normal; realtime; no bonus on our side",
+ "build": "f6e9a07 (committed 2026-10-18 18:53; banner at f=69: 'Within Reason f6e9a07 | player (claude-opus-5-5, effort medium, 2.1.303 (Claude Code)) | hands: Jev jev-1.14.0')",
+ "result": {
+  "outcome": "lost",
+  "minute": "33:31 (the AI conceded; the record ends 33:44)"
+ },
+ "summary": "A 1v1 on Cape Violet against the user himself at +100% income. We played Cortex in the east and only ever built on land: 3 extractors until 3:00, then 16-19 from 8:00 to the end on 21 distinct spots, while none of the 14 under-water spots east of the middle was ever built (our commander could have built them from 0:00). Our early Incisors reached C5 by 6:38, then went into his Centurions a few at a time at D4-D5 (7:06-7:40), and after that our mass never stood in his half again. His bot wave broke on our turrets and Pounders at F6 (8:33-9:48, 6,458 of his for 2,510 of ours) and we built tier 2 at 9:43, but from 11:59 he took the sea, raised our wrecks with resurrection bots, and went through Fatboys (15:13), a fleet that broke our 16:50 push on the E4 shore, and Titans (23:55). We broke his Fatboy waves at G6 (19-23 min) but lost 11k for 2.4k charging two Titans at F6 (26:47-27:46) and about 27 bombers to their anti-air; an Epoch (29:56) and two nuclear missiles (31:02 and 32:20, no anti-nuke ever finished) ended it, and his base was never seen.",
+ "root": {
+  "clock": "0:10",
+  "what": "The player put off the under-water spots and never came back to them. Neither it nor the commander agent ordered a sea extractor, Muskrat, hover constructor or shipyard. Our count stopped at the land ceiling, though 14 spots no bot of ours could walk to lay east of the middle, the nearest (spot_57, G7) 1,175 from home and in reach of the amphibious commander from the first minute.",
+  "evidence": "0:10 player: 'A Muskrat for the under-water spots comes later.' Record: 39 extractor completions (26 cormex, 13 cormoho) on 21 spots, none under water; no cormuskrat, corch or corsy made. The user after the game: 'it looks like the player never tried to expand into the water slots'."
+ },
+ "turning_points": [
+  {
+   "clock": "0:20",
+   "what": "The commander agent's opening plan counted only the walkable spots ('Our own 22 spots on the east side are ours to take'). The report showed it 'free spots we can walk to 42' and a water note that described only his construction ships taking the under-water spots.",
+   "evidence": "commander.jsonl 0:20 direct: 'Our own 22 spots on the east side are ours to take'; its report: 'free spots we can walk to 42, nearest on foot: #47 H6 428, #45 G6 992 ...'"
+  },
+  {
+   "clock": "7:06",
+   "what": "The forward Incisors (groups B, F and E) came back east through four Centurions at D4-D5 one group at a time and died. minutes.py's first departure from the winning path: our mass is never again over 8% in his half.",
+   "evidence": "minutes.py: 'corgator_24848: ... back in our half at 7:25; died 7:31 at D5 to armwar'; engagement #1 7:06-7:28 D4: we lost 600, they lost 0; 8:00 our mass G6 (1%)"
+  },
+  {
+   "clock": "9:43",
+   "what": "His wave broke at F6. The commander agent chose tier 2 with the body held at E5-E6, not the push west its 7:50 direction had promised for this moment.",
+   "evidence": "#4 8:33-9:48 F6: we lost 2510, they lost 6458; 9:20 commander: 'this is the window for tier 2 ... it does not walk into D4'; 9:43 note: advanced vehicle plant started"
+  },
+  {
+   "clock": "11:59",
+   "what": "He took the sea: a construction ship on spot_27 (G3, in our half), a Dolphin at our H2 extractors, then Corsairs. Our two torpedo launchers (Jellyfish) were ordered and never finished.",
+   "evidence": "12:08 note: 'an Armada construction ship (armcs) at spot_27 G3 ... Jellyfish torpedo launchers (cordl) at spot_16 and spot_13'; record: cordl placed 8 times, finished 0"
+  },
+  {
+   "clock": "12:19",
+   "what": "His resurrection bots raised our dead Incisors on the F5-F6 wreck field, which we left unreclaimed for three more minutes.",
+   "evidence": "12:19 note: 'his Incisors (corgator) are our dead ones raised'; 13:50 commander: 'The F6 wrecks (about 2,900) are still not reclaimed while his Lazarus raise them'"
+  },
+  {
+   "clock": "17:57",
+   "what": "The push west on the E4 shore was shelled by his fleet and Fatboys. The trade was even, but he had double income, and the push was called off at 18:45.",
+   "evidence": "#12 17:57-18:47 E4: we lost 10055 (20 corlevlr, 5 correap), they lost 11945 (7 armdecade, 6 armpship, 8 armroy, 1 armfboy); 18:45 note: 'The direction's push is off'"
+  },
+  {
+   "clock": "26:47",
+   "what": "After holding a 20-25k body at home for about 140 s, we charged two Titans in the open at F6. The bombers then went in with no ground unit beside them and died to the Titans' anti-air.",
+   "evidence": "#19 26:47-27:46 F6: we lost 11235, they lost 2440; #20 28:10-28:21 F5: we lost 2550 (17 corshad), they lost 0, ours on the spot 0 soldiers; 25:50 commander: 'stood at home for 140 s'"
+  },
+  {
+   "clock": "31:02",
+   "what": "His first nuclear missile landed on the body at spot_45 and home, 30 s after the Epoch had come within reach at G5. The second landed at 32:20, and we conceded at 33:31.",
+   "evidence": "record: 59 of our units destroyed at 31:02 within one second around (8490,3487), no killer seen; 44 at 32:20 around (9595,3721); 31:15 note: 'a nuclear missile from his silo at A2 (guns_35) wiped 28k'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:10",
+   "what": "The under-water spots were put off and never ordered, though the brief's Cape Violet sheet said to make an amphibious constructor second or third with a list of them, and to build a shipyard by 4:00. A stronger player sends the commander to spot_57 or spot_36 in the first minutes, makes a Muskrat with a list of the six water spots within 2,600, and builds a shipyard for the far ones.",
+   "evidence": "0:10 player: 'A Muskrat for the under-water spots comes later'; no cormuskrat, corch or corsy in 115 turns of orders; brief at f6e9a07 player.md:944: 'each seat's plant makes a Beaver ... with a list of the under-water spots'",
+   "kind": "both"
+  },
+  {
+   "clock": "1:00",
+   "what": "Slow expansion: 3 extractors until 3:00. The first constructor came at 1:40, and its first list (1:52) went to spot_45. The economy caught up to the commander agent's targets (9 at 5:00, 16 at 8:00), so the game recovered from this one.",
+   "evidence": "analyze_match: extractors 3/3/3/4/9 at 1-5 min; 2:53 note: 'both stores empty on 3 extractors'; 3:20 commander: 'we had 3-4 extractors from 1:00 to 3:20 with energy full'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:56",
+   "what": "The forward groups were pulled east past four Centurions one at a time, instead of falling back together or joining up first. Meanwhile the hands flipped group_E between walking, advancing and hunting.",
+   "evidence": "hands_window 6:56: group_B and group_F 'advance to spot_32' from hold_c4; 7:10-7:25 group_E picks flip 'walk to spot_45' / 'advance to spot_32' / '7 of group_E hunt party_4' at 0.1-0.62; 7:28 note: 'fed into Centurions piecemeal'",
+   "kind": "both"
+  },
+  {
+   "clock": "9:20",
+   "what": "After his wave broke, the body stayed at F6-G6 while the advanced plant went up. Through the windows minutes.py shows (3.6x at 12:00-13:00, 2.2-14.6x at 17:00-19:00, against the army we saw), our mass never went past 0-1% in his half.",
+   "evidence": "minutes.py WINDOWS: '12:00-13:00 (3.6-3.6x) ... our mass by minute F6 F6 ... peak 0%'; 'his first factory seen: never'; 'first of ours within 1,500 of his start (A5): never'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:08",
+   "what": "His sea went unanswered. One constructor was sent alone to the coast under a Dolphin. From 12:32 a standing order left ships to torpedo launchers, none of which ever stood, and no shipyard, submarine or torpedo aircraft was ever begun.",
+   "evidence": "12:32 player's standing order: ships are never chased, 'the Jellyfish turrets answer them'; 13:04-13:39 constructor_31731 list 'build a cordl at spot_16' vs plan 'walk to spot_45', pick 0.48 to 0.14; 29:59 note: 'torpedo aircraft or subs we do not have'",
+   "kind": "both"
+  },
+  {
+   "clock": "16:50",
+   "what": "The push west went along the E4-E5 shore, where his Corsairs and Ellysaws could shell it from the water. A stronger route would have kept inland or waited until the fleet had been hit from the air.",
+   "evidence": "18:13 note: 'the push west was shelled at E4 by a fleet of 6 Corsairs (armroy) + Dolphins and a Fatboy ... Nothing of ours outranges 700 from the water'; the agent's concession lesson (1): 'the 16:50 push walked the E4 shore'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "21:00",
+   "what": "The bank sat at 4,600-8,169 through 21:00-28:00 while he built a gantry, a second Titan, an Epoch and a silo. Build power and plants lagged the income that reclaim brought in.",
+   "evidence": "analyze_match bank: 4624 (21), 4447 (22), 3801 (25), 7667 (27), 8169 (28); 21:20 commander: 'The bank is 4,600 and unspent'; 27:08 note: '8k metal bank turned into six construction turrets'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "24:00",
+   "what": "The body held at home for about 140 s waiting for a Titan that never came, then charged two Titans in the open. The bombers went in after the body had pulled back (27:49), with nothing on the ground in the Titans' reach, which is the one case where their anti-air fires.",
+   "evidence": "25:49 note: 'it has stood at C4 for two minutes'; #19 lost 11235 for 2440; 28:15 note: 'the Titan's anti-air shot down 13 Whirlwinds in seconds'; #20-#22 28:10-28:45: 27 corshad lost for 0",
+   "kind": "both"
+  },
+  {
+   "clock": "24:00",
+   "what": "No anti-nuke after his tier 3 was seen (23:55), though our mohos had stood since 13:01. The anti-nuke (Prevailer) was ordered only after the first missile and never finished, because every advanced constructor died. His base was never scouted, so the silo, gantry and shipyard went unseen until they fired.",
+   "evidence": "record: corfmd placed 2, finished 0; 31:49 note: 'every advanced constructor is dead, so no Prevailer can be built'; the agent's concession lesson (4): 'an anti-nuke should have stood once tier 3 was seen at 24:00'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "The person (Armada bots, +100% income, lobby skill 6) guarded the B3 passage with a Guard turret and four Centurions by 5:00. His Pawn/Rocketeer/Centurion wave of about 3-5k left at 7:45 and broke on our turrets at F6 by 9:48; Pawn waves came again at 12:00-13:00. He had a shipyard by about 11:59: a construction ship on spot_27 (G3, our half), a Dolphin at our H2 extractors at 12:02, Corsairs from 12:41. From 12:19 his resurrection bots raised our wrecks at F5-F6. An advanced bot lab stood by about 12:30 (Zeus, Welders). Fatboys came from 15:13: six to nine of them with Corsairs, Dolphins and Ellysaws at E4 (17:57-18:47) and at G6 (20:39-23:16). Then a gantry: a Titan with eleven Lazarus at C4 by 23:55, two Titans at F6 by 27:00, an Epoch at F3 by 29:56, and a nuclear silo at A2 whose missiles landed at 31:02 and 32:20. He fought almost entirely in our half: his seen losses were 46,049 there and 14,300 at our base, against 370 in his own half. His base, factories and commander were never seen by us.",
+ "defects": [
+  {
+   "defect": "The water words, before the fix: the score line and the 'no growth' wake counted only the spots we can walk to, and no report ever named a water spot. The map block marked water only by a null walking distance. The water note described his construction ships taking the under-water spots and listed our commander as '(armed)' only. The words 'under water' were computed into place descriptions that neither the player nor Jev was shown. The loss rests partly on this defect, since fixed.",
+   "fixed": "2026-10-18 (e5b8331, H-REPORT-FREE-SPOTS-BY-REACH; unit-tested, unmeasured in a game)",
+   "evidence": "0:20 report: 'free spots we can walk to 42, nearest on foot: #47 H6 428 ...'; water note: 'its construction ships take the under-water spots'; amphibious list: 'corcom (armed)'"
+  },
+  {
+   "defect": "The list hold lifted the moment a builder was clear of a party covering its site. constructor_31731 flipped between its torpedo-launcher list step and the pick's retreat from one Dolphin until the player gave up the site.",
+   "fixed": "2026-10-18 (e5b8331: the hold lasts while a party is within 800 of the next step's site)",
+   "evidence": "hands_window 13:02-13:40: 'build a cordl at spot_16 (H2) [list]' then 'walk to spot_45; its list step ... waits' four times, pick 0.48, 0.28, 0.24, 0.14"
+  },
+  {
+   "defect": "A group's order flipped when two fights were on at once: group_E alternated between walking, advancing and hunting from second to second at low pick confidence (the order that flips, H7).",
+   "fixed": "open (no fix named in the eras list)",
+   "evidence": "7:10-7:25 group_E: 'walk to spot_45', 'advance to spot_32', '7 of group_E hunt party_4' at 0.1-0.62; 7:28 player note: 'Hands thrash between walk and advance with two fights at once'"
+  },
+  {
+   "defect": "The glossary contradicts itself on the Titan: its prose says 'It has almost no anti-air, so bombers and gunships kill it', beside 1052 dps against aircraft that fires when nothing on the ground is in range.",
+   "fixed": "open (crates/bot/data/units.json armbanth prose unchanged on 2026-10-22)",
+   "evidence": "28:20 commander note: 'the glossary contradicts itself on the Titan's anti-air'; 28:10-28:45: 27 Whirlwinds (corshad) lost for 0"
+  },
+  {
+   "defect": "Wall time per turn in realtime: median 15.1 s at medium effort (the skill's line is 10 s), with orders in flight 89% of game time; 2 session replacements.",
+   "fixed": "open",
+   "evidence": "wake_read: '114 turns over 33.7 min = 3.38/min; wall median 15.1s'; impedance_sweep: '115 turns, 2 session replacements, 278 orders, 6 refused'"
+  },
+  {
+   "defect": "A nuclear missile was worded as shelling. A wake said our soldiers were 'shelled from out of sight by a armsilo (a turret) (range 72000)', and the commander agent put the 31:02 losses on the Epoch's guns.",
+   "fixed": "open (unverified; late-game.md now says a strike reads as deaths with no killer named)",
+   "evidence": "33:06 wake: 'shelled from out of sight by a armsilo (a turret) (range 72000)'; 31:20 commander: 'Most of the 28,000 ... went with the Epoch's guns'; record: Epoch-killed metal 235 (30:xx), 640 (31:xx)"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "post-game 2026-10-18 (not in chat; quoted in commit e5b8331 and docs/heuristics.md H-REPORT-FREE-SPOTS-BY-REACH)",
+   "text": "it looks like the player never tried to expand into the water slots"
+  },
+  {
+   "clock": "post-game 2026-10-18 (not in chat; quoted in commit e5b8331)",
+   "text": "let's proceed with 1 through 5"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Our extractor count was flat at 16-19 from 8:00 to the end, on 21 distinct land spots, with 14 water spots east of the middle never built. The user's post-game reading names expansion as the fault."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "The visible killers were Titans, the Epoch and two missiles, but the person's reading puts the loss on extractors (the water slots) twenty minutes earlier."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "7:06-7:40: groups B, F and E reached four Centurions one at a time at D4-D5 (#1: 600 lost for 0)."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "After his wave broke at 9:48, and through the minutes at 3.6x (12:00-13:00) and 2.2-14.6x (17:00-19:00), the body stayed at F6-G6. Those ratios are against the army we saw, which is a floor."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "His resurrection bots raised our wrecks at F5-F6 from 12:19 while 2.9-5.5k lay unreclaimed until 15:20. Once we did reclaim (22:50-24:00), our income reached 230-314."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "We made 164 Brutes beside our Banishers and Tigers, and at 24:20 the commander agent chose to mass Brutes against the Titan. They died in bulk: 30 in #19, 44 in #24 to the missile."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Our Rascals crossed at 3:03 and twelve Incisors at 4:43-6:08, and one extractor of his at C3 died by 4:01. The Incisors were then fed into Centurions. Crossing early is not the same as paying."
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "illustrates",
+   "note": "The reader's reading: the map's tidal strength is 20 (record header), yet no tidal generator was built, while energy stalled in minutes 12-14 (e0% 7.3)."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "Our commander's build list held cormex and corsy, and it was amphibious from 0:00, yet none of the 14 east-side water spots was built. This is the case for the backlog's must-fix: the Cape Violet plan omits that the commander takes sea spots itself."
+  },
+  {
+   "id": "The nuke and the anti-nuke: the silo's clock, the anti-nuke's timing by opponent, the nuke line on three maps",
+   "relation": "supports",
+   "note": "A person's missiles landed after 30:00 (31:02, 32:20) at +100%. Our mohos had stood since 13:01 and his tier 3 was seen at 23:55, but no anti-nuke stood; the one ordered after the first missile never finished. This fits the long-game clause."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "Our tier-1 body against two Titans lost 11,235 for 2,440 (26:47-27:46)."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "The 16:50 push walked the E4 shore into ships that out-reached it. His base was never scouted all game, so the silo, gantry and shipyard went unseen until they fired."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "A 25k body held at home for 140 s (24:00-26:29) while he added a second Titan and an Epoch."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "The bank sat at 4.6-8.2k from 21:00 to 28:00, against an opponent who was out-teching us."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Bombers sent at Titans with no ground unit engaged: 27 Whirlwinds lost for 0. The glossary's prose said the Titan had almost no anti-air."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Land spots ran out by 8:00 (16-19 held). Mohos (13 from 13:01) and reclaim, not new spots, carried the income."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (6:55-7:30, 7:04-7:30 group_B group_F, 13:02-13:40 constructor_31731)",
+   "run/impedance_sweep.py",
+   "commander.jsonl read directly (the commander agent's directions)",
+   "record-0.jsonl read directly (finished types, extractor spots, killers by def index, the missile bursts)",
+   "script.txt",
+   "git show f6e9a07 / e5b8331"
+  ],
+  "existing_review": "run/matches/1792372195-human/00/review.md",
+  "confidence": "medium",
+  "caveats": "There is no truth file, so all of his numbers are sightings (floors) and minutes.py's ratios compare our army with the army we saw. pro_baseline.py was not run (it covers Comet only; no Cape Violet pool). commander_turns.py and wake_read.py need the 00 directory: on the match directory commander_turns printed nothing. The record's unit_defs 'id' is 1-based, so killers must be named by list index (by id the Titan reads as armawac). There is no ledger row for this game. Where I differ from the existing review: (a) its '39 extractors on land' counts completions (26 cormex + 13 cormoho) on 21 distinct spots; (b) its spot_12 F2 is unwalkable, not a land spot left untaken; (c) it gives 13 water spots in our half, while I count 14 unwalkable spots east of x=5120. I keep its 0:10 root on the user's post-game words; minutes.py alone gives 7:00."
+ },
+ "open_questions": [
+  "Would the 14 east-side water spots (about +13 extractors by 10:00) have held the economy against +100% income? We have no truth file for his extractors; the commander agent's predicts ranged from 13 to 22.",
+  "At 27:46-28:20, did the Titans' anti-air fire while our ground units were in their reach, or only after the body pulled back? The scenes for #19-#22 would say.",
+  "Does a nuclear strike reach the player's report as a missile? The wake called it shelling by 'armsilo (a turret)', and the commander agent misattributed the 31:02 losses.",
+  "The brief's Cape Violet plan named Armada's Beaver (armbeaver) while we drew Cortex. The player translated it to a Muskrat, but the sheet's plan is tied to one faction."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792372195-human.json"
+}

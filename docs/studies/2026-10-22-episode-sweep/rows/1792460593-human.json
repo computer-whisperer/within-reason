@@ -1,0 +1,237 @@
+{
+ "batch": "1792460593-human",
+ "label": "human (Center Command 2v4)",
+ "map": "Center Command BAR v1.0",
+ "date": "2026-10-19",
+ "shape": "4v2",
+ "people": "[gecko]thebluegecko (34, Cortex bots, start A3) and [gecko]u6bkep (19, Armada vehicles, start B5); spectators [gecko]Covariance and computer_whisperer (the user, hosting)",
+ "our_side": "Four seats in the east box: t2 Cortex H7 (seat 0), t3 Armada H1 (seat 1), t4 Cortex G4/G5 forward (seat 2), t5 Cortex H5 the tier-2 sprint seat (seat 3); Opus 5.5 medium players under an Opus 5.5 high side commander; hands Jev 1.14.0; lobby names MonkeyLord, obliterator, Amojini, [D]4RK_HUNT[E]R",
+ "build": "1c077e4",
+ "result": {
+  "outcome": "lost",
+  "minute": "21:05"
+ },
+ "summary": "Our four seats held more tier-1 extractors (27 to 19 at 7:00) and 1.6-8.5x the two people's army from 2:00 to 13:00 (2.2-2.3x at 8:00-10:00, the sum of our four records against the replay's truth), and lost at about 21:05 on the tier-2 economy. The commander's plan (one sprint seat fed by the other three) was sound, but the sprint was fed as surplus: t5 placed its advanced vehicle plant at 4:15 on 9 metal a second, received 450 metal in nineteen minutes and had it standing at 7:39 (3:24 against thebluegecko's 1:46); its advanced constructors went out one at a time, the second idled three minutes on the Armada seat (a harness fault), and the side had 1 moho at 12:00 against their 8. The people sprinted as one team from 7:08 (one advanced bot lab, constructors shared across factions, mohos in 19-33 s with helpers, each advanced plant eaten for the next) while thebluegecko's commander crept heavy turrets into our north at E1-E2 from 6:24, took t3's outer spots and later put his forward advanced plant, two fusions and a Beamer-and-Sheldon nest there. Our army lead was spent in separate bodies, t2 trading at D7 and C6 in the south and t3 losing about 7,700 metal for about 200 in four attacks on the F2-F3 nest (13:11-16:06), and it flipped at 15:00 (7,460 against 10,285); from 17:00 Stouts, Tzars, Sheldons, a Negotiator and Wasps on about four times our income overran t4, t3 and t5 in turn.",
+ "root": {
+  "clock": "4:15",
+  "what": "The tier-2 sprint was starved from the minute it was placed. t5 put its advanced vehicle plant down at 4:15 on 4 extractors (9.4 metal a second) while the three feeding seats spent everything on tanks (stores at 0-50) and were asked only for surplus ('every 150 metal that builds up', 0:20 and 4:50). 450 metal reached t5 before 19:32, the plant stood at 7:39, and the moho race was lost 1 to 8 by 12:00. The person's reading (the user) and the commander's own post-mortem point here; the army-lead reading is a turning point below.",
+  "evidence": "record-3: '4:15 created coravp 5539', '7:39 finished coravp 5539'; t2 note 5:29: 'right now it sits at 0-50 on 13 income ... nothing to send yet'; metal to t5 before 19:00: 200 + 250. The user: 'several exposed mistakes in how our team t2 mex buildout progresses vs the humans'"
+ },
+ "turning_points": [
+  {
+   "clock": "4:15-7:39",
+   "what": "The sprint plant builds for 3:24 on t5's own 9-12 metal a second; t5's tier-1 plant keeps a constructor frame crawling 4:09-8:33 and is reclaimed only 9:42-10:20 (thebluegecko ate his tier-1 lab the second he placed the advanced one).",
+   "evidence": "t5 note 4:27: 'AVP frame at 4% (108/2600) with t5 metal at 0 and +9/s'; record-3: '4:09 created corcv 16163' / '8:33 finished corcv 16163' / '10:20 destroyed corvp 5960' (by 9436, a reclaim)"
+  },
+  {
+   "clock": "6:24-9:01",
+   "what": "thebluegecko's commander creeps heavy laser turrets from D2 to E1-E2 in our north and takes t3's outer six extractors; t3 asks the side for help twice, gets only t4's 11 Incisors at 8:08, and its strike fails. His forward advanced vehicle plant (12:38), fusions (18:00, 18:18) and the Beamer-and-Sheldon nest later stand on that ground.",
+   "evidence": "seat 1 analyze #6 7:57-9:01 E2: 'we lost 1600 ... they lost 0'; t3 note 8:56: 'his commander + 3 Thugs + necro under his E2 turrets outweigh our north body (0.4:1) ... North outer spots lost (6 extractors)'; replay truth: coravp at (5080, 776) first 12:38"
+  },
+  {
+   "clock": "7:08-10:00",
+   "what": "His tier 2: the advanced bot lab placed at B3 with the tier-1 lab reclaimed the same second, standing 8:54, never in our picture. This was the window (side army 2.2-2.3x at 8:00-10:00), but our bodies were split across three fronts and t4's army was gone by 10:00.",
+   "evidence": "minutes (replay truth): 'coralab started at 7:08 at B3 (1064, 1448) / standing at 8:54 / its first unit, corack, at 8:56 / in our picture: never'; side army 8:00 5,488 vs 2,465, 10:00 7,798 vs 3,410; seat 2 army 340 at 10:00"
+  },
+  {
+   "clock": "8:50-13:33",
+   "what": "Our advanced constructors go out one at a time from a starved plant (8:50, 10:22, 11:05, 12:12, 13:07); t5 keeps the first for its own 4 spots; the second sits three minutes on the Armada seat, which cannot order it; mohos go up one at a time on one constructor at an empty store.",
+   "evidence": "replay truth, finished mohos theirs/ours: 10:00 1/0, 12:00 8/1, 13:00 12/1, 15:00 16/5, 17:00 21/7, 21:00 34/3; record-3: '9:09 created cormoho 19152' / '11:25 finished'"
+  },
+  {
+   "clock": "10:44-13:41",
+   "what": "t2's south body (the side's best fights) trades evenly at D7 and C6, then is pulled back from the C5 Beamer nest; side army still 1.7x at 12:00.",
+   "evidence": "seat 0 analyze #5 10:44-11:35 D7: 'we lost 2010 ... they lost 2490'; #6 12:31-13:41 C6: 'we lost 3010 ... they lost 3435'; t2 note 13:13: 'A beamer (guns_4, reach 490) at C5 outranges our tanks (350)'"
+  },
+  {
+   "clock": "13:11-16:06",
+   "what": "t3's four attacks on the F2-F3 Beamer-and-Sheldon nest lose about 7,660 metal for about 215; the side's army flips at 15:00 as the people's moho income lands.",
+   "evidence": "seat 1 analyze: #10 13:11 F3 lost 1200/0; #12 13:44 lost 2430/140; #13 15:15 F4 lost 1965/75; #15 16:00 F3 lost 2065/0. Side army 15:00: 7,460 vs 10,285; commander 15:20: 'two attacks into the F2 Beamer+Sheldon nest cost ~6k for ~300'"
+  },
+  {
+   "clock": "17:04-21:05",
+   "what": "The overrun: the G5 fight trades 6,905 for 6,855 and then t4 is out (commander handed to t5 at 17:36), t3's commander dies at home to Wasps at 19:53, t5's at 20:53, t2's commander at 18% at the last sample.",
+   "evidence": "seat 1 #17 17:04-18:36 G5: 'we lost 6905 ... they lost 6855'; t3 note 19:57: 't3's commander died at home to Wasps (corape) and a Sheldon'; seat 0: 'last sample 21:05: our commander at 18% health at H7'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:20-4:50",
+   "kind": "both",
+   "what": "The commander asked the feeders for surplus ('send metal you don't need', then 'every 150 metal that builds up') while their plants spent as they earned, so no surplus existed; the feeders built about 12,000 metal of tanks and 2,000 of turrets in minutes 4-12 (ledger). A stronger side fixes the sprint's share as production: a standing rate per seat, a paused plant per seat, or every spare constructor on the frame (the user's ruling 2026-10-20: feeding is production, not surplus). Harness side: no standing transfer existed.",
+   "evidence": "commander direct 4:50: 't2, t3 and t4 each send t5 every 150 metal that builds up in their store'; metal to t5 before 19:00: the commander's 200 at 4:50 and t4's 250 at 5:34 (its 5:14 call refused: 'from and to are seat tags'); feeders' stores 0-180 at 5:00-13:00 (analyze curves)"
+  },
+  {
+   "clock": "8:14",
+   "kind": "strategy",
+   "what": "t5 kept the first advanced constructor for its own four mohos against the commander's order (first three to t3, t2, t4), and every moho was built by one advanced constructor at an empty store: 2:16 for the first, 1:31 for the second, against the people's 19-33 s with helpers. The user's ruling: start the frame, pass the constructor on, let tier-1 build power finish it.",
+   "evidence": "t5 note 8:14: 't5's first advanced constructor (constructor_28669) stays home to upgrade t5's 4 spots to mohos first'; record-3: cormoho 9:09->11:25, 11:29->13:00"
+  },
+  {
+   "clock": "6:24-10:00",
+   "kind": "strategy",
+   "what": "The side's army lead (2.2-2.3x at 8:00-10:00) was never one body: t3 met the Cortex commander's turret creep alone, t4's army was lost piecemeal at C5-C7, t2 held the south. His commander was alone at E2 for minutes (a snipe chance t3 named twice) and his tech window passed untouched.",
+   "evidence": "commander 9:20: 'We have lost 5,400 metal to his 2,200 because our bodies met his blocks one at a time'; t3 note 6:24: 'If allied armies came north, his commander at E2 is the prize.'"
+  },
+  {
+   "clock": "13:11-16:06",
+   "kind": "strategy",
+   "what": "t3 attacked the F2-F3 nest four times with tier 1 (Beamers 490 reach, Sheldons 850) instead of going around or waiting for an answer that outranges it; about 7,660 metal lost for about 215.",
+   "evidence": "commander note 15:20: 'Lesson: I sent a body at a defended position (mortars under beamers) without checking reach.'; t3 note 19:57: 'the north F2 nest and the Sheldon/Tzar mix ate four tier-1 attacks (~10k for <1k)'"
+  },
+  {
+   "clock": "13:04-16:16",
+   "kind": "both",
+   "what": "An anti-nuke (1,500 metal, 2.4 mohos) built at the sprint seat on 20-25 income, then lost to mortars at 18:48 without ever being needed. The user (2026-10-20): the anti-nuke was built too early; the gecko people nuke late or never. Brief side: the 2026-10-19 'due diligence' wording.",
+   "evidence": "record-3: '13:04 created corfmd 14604' / '16:16 finished corfmd' / '18:48 destroyed corfmd'; t5 note 11:22: 'then the anti-nuke at home (started ~12:30, before 14:00)'"
+  },
+  {
+   "clock": "0:00-21:00",
+   "kind": "strategy",
+   "what": "Build power: the side built one construction turret all game against the people's 73, and a fusion was begun only at 16:23 (never finished).",
+   "evidence": "replay truth, construction turrets theirs/ours: 13:00 11/1, 17:00 27/1, 19:00 53/1, 21:00 73/0; record-2: '6:02 created cornanotc 6910' (the only one); record-3: '16:23 created corfus 25476', destroyed 20:26"
+  },
+  {
+   "clock": "7:00-19:36",
+   "kind": "strategy",
+   "what": "Anti-air: the commander asked for one anti-air turret at each home by 7:00; t3 and t5 never finished one, t2 had one from 8:56 and three more only at 19:56-20:18, after the Wasps were overhead (19:36).",
+   "evidence": "records, finished corrl/armrl and kin: seat 0 8:56, 19:56, 20:08, 20:18; seat 1 none; seat 2 6:26, 10:21; seat 3 none; t3 note 19:57: 'anti-air came only when the Wasps were already overhead'"
+  }
+ ],
+ "their_play": "Two people on about 12 spots each played the sprint as one team. thebluegecko (Cortex) placed his advanced bot lab at B3 at 7:08 on 11 extractors and a 1,165 bank and reclaimed his tier-1 lab the same second; it stood at 8:54 and made five advanced constructors by 10:15 (ledger), the second given to u6bkep, who built Cortex mohos with it from 9:47. Mohos went up at 19-33 s each from 9:27 with two advanced constructors and tier-1 helpers in parallel (ledger; finished: 8 at 12:00, 12 at 13:00, 34 at 21:00, replay truth), and nano farms grew to 73 construction turrets by 21:00. Each advanced plant was eaten for the next: the bot lab reclaimed at 13:20 for an advanced vehicle plant placed forward at E2, in our half (12:38, standing 13:22), that one reclaimed at 18:44 for an advanced air plant (18:52); fusions at 18:00 and 18:18, also at E2-F2. In the field his commander led a heavy-turret creep from D2 to E1-E2 from 6:24 that took our north spots; Beamers held C5 and F2; u6bkep's Stout and Janus block (with Thugs and Blitzes early) fought our south at C5-D7 and later E7-G5; Sheldons with a jammer at F3 from 13:13, Tzars, a Negotiator, Mausers and Wasps (from 19:36) finished it. Side income per the ledger: theirs 55, 106, 250, 277 at 8:00, 12:00, 15:00, 20:00 against ours 59, 56, 63, 56.",
+ "defects": [
+  {
+   "defect": "A constructor of another faction could not be ordered: the queue tool's name check and the role words followed the seat's faction, not the builder's. The Cortex advanced constructor given to the Armada seat t3 at 10:30 idled three minutes and went back at 13:33; t3 held no moho all game.",
+   "fixed": "2026-10-20 (2e395b2, roster::of_unit)",
+   "evidence": "seat 1 10:40: 'REFUSED: constructor_14291: 'cormoho spot_2 #m2' is not a step'; 12:36 note: 'The coracv's moho list was refused as armmoho (it is Cortex)'; record-1: 10:30 given / 13:33 taken coracv 14291"
+  },
+  {
+   "defect": "A tagged plant step (coravp home #avp1) on a constructor listed while it was being built started a second advanced plant after the first stood.",
+   "fixed": "2026-10-20 (2e395b2, note_tag)",
+   "evidence": "record-3: '8:52 created coravp 28253' by 16163 (the constructor born 8:33), '9:26 destroyed coravp 28253'; t5 note 8:59: 'a duplicate advanced plant frame at H4 (bug: #avp1 step restarted) is reclaimed'"
+  },
+  {
+   "defect": "No standing transfer: feeding a sprint seat depended on one-shot transfer calls from seats whose stores sat at 0.",
+   "fixed": "2026-10-20 (2e395b2, H-PLAYER-STANDING-TRANSFER and the commander's transfers line)",
+   "evidence": "metal transfers to t5 before 19:00: commander 200 at 4:50, t4 250 at 5:34 (its 5:14 call refused); 450 in nineteen minutes against three asks (ledger)"
+  },
+  {
+   "defect": "The brief's anti-nuke wording (once his tier 2 is seen, as due diligence) led to a 1,500-metal anti-nuke at 13:04 on 20-25 income.",
+   "fixed": "2026-10-20 (2e395b2, the anti-nuke on the opponent's clock)",
+   "evidence": "t5 note 10:34: 'his tier 2 seen ... The anti-nuke (1,500 metal) waits until t5's 4 mohos'; record-3: corfmd 13:04-16:16"
+  },
+  {
+   "defect": "Each player's session was replaced once (Z1); constructors parked in plant exit lanes woke players repeatedly ('plant_5044's exit lane is blocked', 5 wakes on t2).",
+   "fixed": "open",
+   "evidence": "impedance_sweep --counts: '1 session replacements' on each of strategist-0..3; wake_read seat 0: 'other:plant_5044's exit lane is blocked: 1 of ': 5"
+  },
+  {
+   "defect": "Whether the loss rests on a since-fixed defect: in part. The cross-faction fault cost one of four advanced constructors three minutes and t3's mohos, and the missing standing transfer let the feed stay at 450 metal; both were fixed 2026-10-20. The gap at 12:00 (8 mohos against 1) was set mostly by the allocation (strategy).",
+   "fixed": "2026-10-20 (the contributing parts)",
+   "evidence": "first moho 11:25 at t5 (fault-free); t2's first moho 13:27 after its constructor came 11:30; t3's constructor idle 10:30-13:33"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "supports",
+   "note": "The people ate their tier-1 lab the second the advanced lab was placed (corlab 470 lost at 7:08) and moved each plant on; our feeders kept massing tier 1 (side army 8,747 at 13:00) while the sprint starved."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Side army 1.6-2.3x from 6:00 to 13:00 (2.2-2.3x at 8:00-10:00, during his tier-2 build) was never converted; it flipped at 15:00 (7,460 vs 10,285)."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The commander at 9:20: 'our bodies met his blocks one at a time'; t3 fought the E2 post alone, t2 the south alone, t3's tier-1 attacks on the F2 nest came one after another."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "Four attacks on the strongest position (the F2-F3 Beamer-and-Sheldon nest) lost about 7,660 for about 215; Wasps came at 19:36 with no anti-air at t3 or t5."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "One construction turret on our side all game against 73 of theirs by 21:00; our mohos took 1:31-2:16 on one constructor, theirs 19-33 s with helpers."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "Decided on extractors minutes before the overrun, here on mohos (8 vs 1 at 12:00, 21 vs 7 at 17:00) while we led tier-1 extractors 27-19 at 7:00."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "thebluegecko's commander stood alone at E2 from 6:24 (t3: 'his commander at E2 is the prize'); the side never converged on it."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "contradicts",
+   "note": "As a general rule only: the people built 31 converters by 17:00 on Center Command; the lesson was said of metal-heavy Comet, so this is a scope note, not a refutation."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "The source case: 450 metal fed in nineteen minutes against three asks, the plant 3:24 against 1:46, the lab eaten at placement, constructors shared across factions, one constructor per moho."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "supports",
+   "note": "Mohos at 1:31-2:16 on one advanced constructor at an empty store against 19-33 s with tier-1 helpers; 73 nanos against 1."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Side army lead of 1.6x or more from 2:00 to 13:00, spent in separate bodies across three fronts, decayed to 0.73x at 15:00."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Beamer 490 reach over our tanks' 350 at C5 (t2 13:13), Sheldons 850 under Beamers at F2-F3; four tier-1 attacks into it, about 7,660 for about 215."
+  },
+  {
+   "id": "The nuke and the anti-nuke: the silo's clock, the anti-nuke's timing by opponent, the nuke line on three maps",
+   "relation": "illustrates",
+   "note": "Ours 13:04-16:16 at 20-25 income, nothing flew, destroyed 18:48; the source of the 2026-10-20 ruling (people nuke late or never)."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Anti-air ordered for 7:00 was not built at t3 and t5; Wasps at 19:36, t3's commander dead at 19:53."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Our income flat at 56-63 from 8:00 to 15:00 on 24 tier-1 spots; theirs 55 to 250 on mohos, converters and two fusions."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (the match as recorded: seat 0 only, no truth; then seats 0-3 each with the replay's truth)",
+   "run/analyze_match.py (same four seat views)",
+   "run/floor.py (seat 0 as recorded; seats 0-3)",
+   "run/raid_ledger.py (seat 0 as recorded; seats 0-3)",
+   "run/commander_turns.py --notes and --calls (seat 0, seat 1, seat 3, the side commander); --told --calls (seat 3)",
+   "run/wake_read.py (seats 0-3)",
+   "run/hands_window.py 5:15-5:32 (seat 0)",
+   "run/impedance_sweep.py --counts; --seat 0..3",
+   "record event scans (tier-2 builds, transfers, anti-air) and replay-truth counts (mohos, nanos, converters, advanced plants) by scratch scripts"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No truth file in the match directory (a people game) and the per-match tools read only record-0 (t2); I built scratch directories pairing each record-N with the engine replay's truth-(N+2) from run/matches/1792466765-replay-center-command-2v4b (unit ids match), so side totals are my sums of the four seat rows and 'his' is both people together. pro_baseline not run (not Comet). wake_read is hard-wired to record-0/strategist-0, so seats 1-3 ran through renamed links. floor's noop%/jev$ are blank on the scratch dirs (seat 0 as recorded: noop 42%, jev$ 0.28). chat.jsonl has no lines for this game and the records carry only the host's banners: the user's words come from the ledger and commits a2fd043/2e395b2, not from in-game chat. The humans' income and lab clocks to the second are the ledger's (the main session's replay read); mohos, nanos and plants by minute are mine from the replay truth. The root choice (economy over the unconverted army lead) follows the user and the commander; the army reading is mine."
+ },
+ "open_questions": [
+  "In a 4v2 with about 6 spots a seat, was matching the tier-2 sprint right, or would one combined body on his E2 post and B3 lab during 7:08-10:00 (side army 2.2-2.3x) have ended it first? The review skill's F7 says the scenario decides; this game does not settle it.",
+  "Would t5 sending its first advanced constructor out at 8:50 as ordered have helped, given that the first recipient in the commander's order was the Armada seat that could not use it?",
+  "How much of the wreck metal named in the wake reasons (up to 12,064 at t2) was ever reclaimed?",
+  "Did the 2026-10-20 fixes (standing transfer, start on a list step, cross-faction constructors) change the moho clock in a later team game? (unmeasured as of the memory)"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1792460593-human.json"
+}

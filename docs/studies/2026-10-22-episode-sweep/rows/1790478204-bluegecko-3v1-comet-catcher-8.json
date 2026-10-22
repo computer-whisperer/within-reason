@@ -1,0 +1,224 @@
+{
+ "batch": "1790478204-bluegecko-3v1-comet-catcher-8",
+ "label": "bluegecko-3v1-comet-catcher-8",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-26",
+ "shape": "3v1",
+ "people": "[gecko]u6bkep (lobby skill 19, Armada), the opponent, starting B5. Infern8 (lobby 25) spectated and advised in chat at 7:36 and 7:50 (chat.jsonl marks the speaker '?', player 2; the ledger and L-other-infern8-defences name Infern8). No computer_whisperer line in this game's chat.",
+ "our_side": "Three seats under one player: t1 purple G1 Cortex (ai 0), t2 dark blue H8 Armada (ai 1), t3 teal G4 Cortex (ai 2), lobby side Random. The player: Opus 5.5 medium (claude-opus-5-5, Claude Code 2.1.283), 32 turns, wall median 10.7 s. The hands: Jev jev-latest (jev-1.13.0) on the pre-rebuild one-pass hands, with the packet decompressed into standing rules beside the standing tool. No commander seat. Realtime.",
+ "build": "5abd4f9 (banner 'Within Reason 5abd4f9'); the fixes from this game (0f1e6b2) landed the same night",
+ "result": {
+  "outcome": "won",
+  "minute": "9:13"
+ },
+ "summary": "Our three seats beat u6bkep in 9:13, when his commander died at his base at B4 under teal's and dark blue's groups after both his vehicle plants had fallen (8:56, 9:13); the record runs to 9:24. The opening ran on the constructor-first lists, with three solars and each commander on its plant (assist4 140 s a seat), and we lost one extractor all game. His 11-Blitz ball pushed teal's lone group back at D5 (4:55-5:19, 651 lost for 330). Teal and dark blue then met it together near E5 (5:42-6:01, eight Blitzes for eight of ours), and teal broke his Blitz-Stout-Janus block at C5 alone (7:12-7:40, 1,585 for 960); once his plant was seen at 7:39, both groups went for the base. Purple's group raided the north strip alone and lost ten Incisors to his C4 block and the Beamer at C1 (6:43-7:02). The hands' fall-back then walked it home, and it stood frozen at G1 from 8:05 to the end, so two of three groups killed the base, losing 29 units to his commander's D-gun and death blast.",
+ "root": {
+  "clock": "7:01",
+  "what": "None. The game never left the winning path: his commander died at 9:13. The earliest costly detour came after purple's lone north raid lost ten Incisors to his C4 block and the Beamer at C1 (6:43-7:02). The hands' fall-back then walked purple's group (17) home to G1, over three station orders. From 8:05 the march rule froze it there, and the base fell to two of three groups.",
+  "evidence": "hands_window 7:01 'PLAYS group_A_t1: fall back to where it last held, spot_6 (G1) [plan]'; report 7:42 'walking to where it last held, spot_6 (G1), 983 to go, for 40 s'; 8:37 'has not got nearer its goal for 31 s: stalled'"
+ },
+ "turning_points": [
+  {
+   "clock": "4:55-5:19",
+   "what": "Teal's group had been sent alone to spot_43 (C5) at 3:55. It arrived strung out, met his Blitz ball at D5 and was pushed back. The player then joined teal's and dark blue's groups at spot_46.",
+   "evidence": "seat 2 analyze #0 4:55-5:19 D5: ours 986 vs 440 on the spot, 'spread over 464 elmos', 'we lost 651 (corfav 1, corgator 4, corcv 1), they lost 330'; note 5:11 'enemy Blitz ball of 11 at D5 pushed teal Incisors back'"
+  },
+  {
+   "clock": "5:42-6:01",
+   "what": "Teal and dark blue met the ball together near E5/E6: eight Blitzes killed for eight of ours. The ledger's '18 Blitzes for 2' is not in the records.",
+   "evidence": "seat 1 #2 5:42-6:01 E5: 'we lost 612 (armfav 2, armflash 5), they lost 880 (armflash 8)'; seat 2 #1 5:44-5:54: 'we lost 120 (corgator 1)'"
+  },
+  {
+   "clock": "6:43-7:02",
+   "what": "Purple's group, raiding toward spot_9 (C1), ran into his C4 block and a Beamer nothing had scouted.",
+   "evidence": "seat 0 #2 6:43-7:02 C4: 'we lost 960 (corgator 8), they lost 770 (armflash 7)'; #3 6:56-7:01 C1: 'we lost 240 (corgator 2), they lost 50 (armmex 1)'; minutes: 'corgator_21444 ... died 7:01 at C1 to armbeamer'"
+  },
+  {
+   "clock": "7:01-8:05",
+   "what": "The hands' pick sent purple's group home to its old station at G1. The walk held through the player's new stations at 7:21, 7:32 and 7:42 until it arrived.",
+   "evidence": "hands_window 7:01 'fall back to where it last held, spot_6 (G1) [plan]'; reports 7:10-7:55 'walking to where it last held, spot_6 (G1), 2794 ... 708 to go'; 8:09 'advancing to enemy_plant, 4779 to go'"
+  },
+  {
+   "clock": "7:12-7:57",
+   "what": "Teal broke his block alone at C5, then at B4. Dark blue's group was still at F6 at 7:00 (0% in his half).",
+   "evidence": "seat 2 #3 7:12-7:40 C5: 'we lost 960 (corgator 8), they lost 1585 (armmex 2, armflash 3, armstump 3, armjanus 2)'; #4 7:40-7:57 B4: 600 for 800; seat 1 minutes 7: 'F6 (0%)'"
+  },
+  {
+   "clock": "7:39-7:42",
+   "what": "His plant was seen at B4. The player marked it enemy_plant, committed all three groups and answered Infern8 in chat.",
+   "evidence": "minutes: 'his first factory seen: 7:39 at B4'; 7:42 mark {\"enemy_plant\": [1534, 2560]}; note 'All three groups commit to it ... Trade 13k to 3.8k'"
+  },
+  {
+   "clock": "8:24-9:13",
+   "what": "Teal and dark blue took the base: the plants (8:56, 9:13), 14 solars, a nano turret and constructors. Then his commander died at B4.",
+   "evidence": "records enemy_destroyed: armvp 8:56 (1534,2560), armvp 9:13 (1294,2672), armcom 9:13 (1427,2839); seat 1 #6 8:24-9:15 B4: 'we lost 3080 (armflash 28), they lost 9345'; seat 2 #5: 'we lost 2040 (corgator 17)'"
+  },
+  {
+   "clock": "9:13-9:24",
+   "what": "His commander's death blast killed 17 of ours in one frame. Every unit of his elsewhere on the map was destroyed 9:14-9:16, and the engine closed by 9:24.",
+   "evidence": "records: frame 16590, 17 'destroyed' with by=29669 (his armcom) at B4; 31 unseen units of his destroyed 9:14-9:16, armbeamer and armrad at C1 9:14; bot.log 'session ended: unexpected end of file' x3"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "3:55-5:19",
+   "kind": "strategy",
+   "what": "In the first contact the three groups went three ways: teal alone to spot_43 deep in his half (3:55), purple alone on the north raid (spot_22, 4:35), dark blue at home. Teal arrived strung out and lost six units for three Blitzes. A stronger player sends the first crossing as one body; two groups together won the same fight 40 s later. (Reader's reading.)",
+   "evidence": "3:55 standing group_A_t3 station spot_43 advance; 4:35 group_A_t1 station spot_22 advance; seat 2 #0 D5: 986 vs 440 on the spot, 'spread over 464 elmos', 651 lost for 330"
+  },
+  {
+   "clock": "6:20-7:02",
+   "kind": "strategy",
+   "what": "Purple's raid was pushed deeper, to spot_9 (C1), alone and past his C4 block onto an unscouted Beamer. Ten Incisors died for seven Blitzes and one extractor. A person (Infern8, 7:36) named the Beamer lesson; the player then barred spot_4 and stopped raiding into it.",
+   "evidence": "6:20 standing group_A_t1 station spot_9; seat 0 #2 C4 960 for 770, #3 C1 240 for 50; chat 7:36 'defensive structures (like the beamer in the north) are generally stronger per metal than mobile units'"
+  },
+  {
+   "clock": "7:01-9:24",
+   "kind": "both",
+   "what": "Purple's group (15 to 34 soldiers) missed the decisive minutes. The fall-back walk home outlasted three station orders. From 8:05 its leaders stood strung along the north row while its body held at the yard. At 8:37 the player read 'stalled' and changed the station to spot_24; setting the lane to raw would have lifted the march. (The cause of the freeze is the reader's reading of the cmd rows.)",
+   "evidence": "seat 0 cmd 8:05: 14 'move' within ~100 of the body at (6450,750), 7 'fight' to (1528,2568), 'stop' for 5 nine frames later; same at 8:49; 9:10: 22 soldiers within 500 of (5960,800); report 9:13 'stalled'"
+  },
+  {
+   "clock": "8:24-9:13",
+   "kind": "strategy",
+   "what": "Dark blue's Blitzes reached B4 in a string, and 11 died to his Stouts and Janus from 8:24 to 8:41. Then raiders closed on his commander: 12 died to its weapon (8:49-9:10) and 17 to its death blast at 9:13. That is about 3.35k of the 5.1k lost at the base. The kill ended the game, so here the cost did not matter.",
+   "evidence": "seat 1 minutes: armflash deaths 8:24-8:41 'to armstump'/'to armjanus' (11); records: by_d armcom 7 armflash + 5 corgator 8:49-9:10; frame 16590: 6 armflash + 11 corgator by unit 29669"
+  }
+ ],
+ "their_play": "u6bkep (Armada) opened raiding with single Blitzes from 3:09 (F1, F8). Dark blue lost one extractor and a constructor at F8 at 3:48, our only extractor lost all game. By 4:55 he had an 11-Blitz ball in the middle at D5; it pushed teal back and lost eight Blitzes at E5/E6 to two groups together (5:42-6:01). His Blitz-Stout-Janus block held C4-C5 at 6:43-7:57, beside a radar and a Beamer at C1 on the north strip (2 Incisors killed). His base was two vehicle plants at B4 (first seen 7:39), 14 solars and a nano turret, with his commander kept there. It killed 12 of ours with its weapon (8:49-9:10) and 17 with its death blast. We saw no tier 2, no air and no turret but the Beamer. Without a truth file his economy is unknown; we killed seven extractors of his.",
+ "defects": [
+  {
+   "defect": "The group's fall-back to 'where it last held' was a code-chosen walk home (spot_6, G1, about 5,000 away). Once picked, the walk held until arrival over the player's newer stations (4abeb0c, 2026-09-26). It took purple's group out of the game from 7:01 to 8:05. The win did not rest on it; the detour did.",
+   "fixed": "2026-10-02 (the walk to our base removed 2026-10-01, e690e5e; fall_back to where it last held gone with the hands rebuild, 355b0d7)",
+   "evidence": "hands_window 7:01 'fall back to where it last held, spot_6 (G1) [plan]'; standing 7:21 spot_38, 7:32 spot_38, 7:42 enemy_plant with fall_back_to null; reports to 7:55 still 'walking to where it last held'"
+  },
+  {
+   "defect": "The march rule (H-ARMY-MARCH) froze a strung-out group. Leaders more than 350 nearer the goal than the body were stopped while the body sat at the yard, so purple's group never moved from 8:05 to 9:24.",
+   "fixed": "2026-09-28 (march deleted, 1cd47ce)",
+   "evidence": "seat 0 cmd 8:05/8:49 'fight' then 'stop' for the leaders; bot.log 'f=16200 rules: H-ARMY-MARCH=25'; leaders static 8:18-9:10 at (3357,1009) ... (5924,655); reports 8:37/9:13 'stalled'"
+  },
+  {
+   "defect": "The trade line summed the seats' records, counting a death up to three times. The player read 41.5k destroyed against 9.5k lost.",
+   "fixed": "2026-09-27 evening (the ledger's trade correction, changes doc 3.1)",
+   "evidence": "report 9:13 'whole game 9474 lost, 41505 destroyed'; his deaths counted once by unit id over the three records: 14,870 metal (ledger corrected: 14.9k)"
+  },
+  {
+   "defect": "The whole `produce` call was refused because one plant was still going up. Purple's first unit was a soldier at 1:13 instead of the constructor the list put first.",
+   "fixed": "2026-09-26 (0f1e6b2)",
+   "evidence": "1:05 'produce: REFUSED: plant_10291: not a factory in the picture (plant_18470)'; pro_baseline seat 0: first soldier 1:13, first constructor 1:22; minutes 2: 'b2 s1'"
+  },
+  {
+   "defect": "Energy converters were on the builders' usual menu and got built unasked whenever energy banked.",
+   "fixed": "2026-09-26 (0f1e6b2)",
+   "evidence": "record 'created' cormakr: seat 0 5:23, 5:48, 5:55; seat 2 5:58"
+  },
+  {
+   "defect": "Lists landing together skipped each other's spots, so the extractor count stalled.",
+   "fixed": "2026-09-26 (0f1e6b2)",
+   "evidence": "impedance_sweep flagged 'step-skipped': 22; note 6:20 'Extractors stalled at 27 because lists skipped steps; re-queued explicitly'"
+  },
+  {
+   "defect": "The packet decompression re-read the first packet every second from 0:18 to 1:12 (158 of 176 reads) and read 9 wrong rules of 70 on seat 0. Nothing played from it (00/decompression-review.md: neutral).",
+   "fixed": "2026-09-27 (decompression deleted, 2879bdf)",
+   "evidence": "decompression-review.md: 'No action in this game came from the decompression ... 158 of those reads were the same first packet'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "The lesson comes from this game (7:36, 7:50), after purple's raid lost two Incisors to the Beamer at C1. The player answered 'we'll stop running raiders into the beamer', barred spot_4 and won with overwhelming numbers at the plant."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Our army was 4.0-4.9x his seen army at 5:00-6:00 (seat 0's view), and the base and commander were dead by 9:13: about four minutes, near the pool's 3.4-minute median."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The lone groups lost: teal at D5 651 for 330, purple at C4 and C1 1,200 for 820. Two together won at E5 (8 for 8 in units, 880 against 732 in metal). Purple's group sat out the final attack, frozen at home by the hands."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "His commander died at B4 to whole-group attacks on its party (8:50 'attack party_31_t3 (1 armcom, 2 armcv, 3 armstump) with the whole group'), at a cost of 12 to its weapon and 17 to its death blast."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "supports",
+   "note": "Every seat built three solars and then ran a constructor-first list, the intent the lesson gives the third solar. The 1:05 refusal made purple's first unit a soldier (1:13), with the constructor at 1:22 (pool median 1:22)."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "supports",
+   "note": "floor assist4 was 140 s on every seat (thebluegecko's 140 in the skill's O3), and the economy grew to 27 extractors at 6:00 across the seats."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "Four converters were built unasked 5:23-5:58, a harness default removed from the menu that night (0f1e6b2)."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Our first soldier crossed at 2:42 but held as a scout at spot_2. The first building of his killed was at 5:50, past the pool's p75 of 5:08. That was enough against a 19-rated player in a 3v1."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The lead was converted in about four minutes. It also shows the 'arrive together' failure: purple's group was walked home and then frozen by the march rule, a premise this subject names."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "An unscouted Beamer at C1 killed two of the north raid for one extractor. The player avoided it after Infern8's words."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "His commander, fighting at home, D-gunned 12 raiders that closed on it. Its death ended the game, and its blast took 17 more."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "This is the double count in action: the report's 41,505 destroyed at 9:13 against 14,870 counted once. The game was a 3v1 won while ahead, against a 19-rated player."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The first kill of a building of his came at 5:50, past the pool's p75. Teal's first crossing (4:33-4:53) died piecemeal at C5/D5."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0; seats 1 and 2 through scratchpad symlink directories)",
+   "run/analyze_match.py (all three seats)",
+   "run/pro_baseline.py --faction any --all-starts (seat 0)",
+   "run/floor.py (all three seats)",
+   "run/raid_ledger.py (seat 0)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 0 6:50-9:16 group_A_t1; seat 0 9:05-9:16; seat 2 8:50-9:14 group_A_t3)",
+   "run/impedance_sweep.py",
+   "python over record-0/1/2.jsonl (enemy_destroyed deduplicated by unit id, our deaths with killers, cmd rows, soldier positions, converters)",
+   "strategist-0.jsonl reports (group_A_t1 lines 7:10-9:13)",
+   "bot.log",
+   "00/decompression-review.md",
+   "git log (fix dates)"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790478204-bluegecko-3v1-comet-catcher-8/00/decompression-review.md (an audit of the packet decompression, not a game review; there is no review.md)",
+  "confidence": "medium",
+  "caveats": "There is no truth file, results.jsonl or batch.json, so his numbers are floors. The per-match tools read record-0 only; seats 1 and 2 were read through symlink directories in the scratchpad. pro_baseline found no carded side from G1/B8 as Cortex. The all-starts any-faction pool is a 1v1 pool set against one of three seats, and its pressure rows are blank without truth. Where this row differs from the ledger row (the main session's reading): (1) The ledger has 'his commander alone at B4 ... taken as his resignation'. The records show his commander destroyed at 9:13 at B4, with every unit of his destroyed 9:14-9:16. (2) The ledger says 'hit by all three groups'. Purple's group stood at F1/G1 from 8:05 to the end. (3) The ledger counts '18 Blitzes for 2' at 5:52. The records give 8 for 8. (4) The ledger dates the converters from 5:52; the first one is at 5:23. The chat speaker '?' is attributed to Infern8 after the ledger."
+ },
+ "open_questions": [
+  "Was his commander killed by our fire or self-destructed? The records show its destruction at 9:13:00, with its blast killing 17 of ours in the same frame, but not the cause; the demo would settle it.",
+  "What exactly froze purple's group from 8:05: the march rule stopping the strung-out leaders while the body held at the yard (this row's reading of the cmd rows), or something at the yard? The march is deleted, so it bears only on the episode's lesson.",
+  "Would three groups at B4 from 8:05 have ended the game sooner, with fewer raiders lost to the commander's weapon?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1790478204-bluegecko-3v1-comet-catcher-8.json"
+}

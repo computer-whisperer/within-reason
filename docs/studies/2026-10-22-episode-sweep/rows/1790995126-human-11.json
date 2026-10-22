@@ -1,0 +1,258 @@
+{
+ "batch": "1790995126-human-11",
+ "label": "human-11",
+ "map": "Avalanche 3.4",
+ "date": "2026-10-02",
+ "shape": "1v1",
+ "people": "computer_whisperer: the user himself, hosting and playing Armada from the north-west box (B1); no rating in the header. He typed no chat in this game (chat.jsonl has no line for it; the record holds only our two banner lines). The main session's memory calls it a 1v1 he played to stress realtime (not in the repo).",
+ "our_side": "One seat (ai 0, team 1), Armada (lobby side random, played arm) from H7 (3764, 3287) in the south-east box. Player: Claude Opus 5.5 at effort low (claude2 account), realtime, via run/human_game.sh. Hands: Jev jev-latest (jev-1.13.0) at normal with every layer (news, same, fuse, openers, split, tick, places): the rebuilt hands of 2026-10-02, before the human-11 fixes. No commander role. 49 turns, median 11.0 s wall; player $5.28, Jev $0.19.",
+ "build": "95abfd5",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 12:34 (the commander at 100% at 12:22 and 5% at 12:33, at G6 beside the lab; the record ends there; a lobby game with no results row)"
+ },
+ "summary": "One Opus 5.5 low seat (Armada, south-east) played the user himself (computer_whisperer, Armada, north-west) in realtime on Avalanche 3.4 and lost at about 12:34 when its commander died at home. The pre-game role-word list was in force at 0:02, but the player's 0:10 turn swapped its solars and third extractor for seven wind turbines, and at 1:50, in a wind lull with the energy store empty, listed two more turbines ahead of the first constructor's extractors: ten turbines by 2:20, the energy store full and metal at 0 from 3:00, two extractors from 0:15 to 3:08 and never more than six of our ten spots (income 3.5-11.6). His Pawns were in our half from 2:18; at 4:01-4:10 two parties split our one Pawn group, which switched target four times, and four extractors fell by 5:31 with no raiding party paying. Our one counter-raid (12 Pawns, 6:25) killed his E4 outpost and was walked home by a since-fixed losses-line defect; his factory was never seen. From 8:27 his Maces and Centurions (reach 380 against the Pawns' 180) beat our Pawns at F4/F5, walked into the base at 10:55 while our army was at D6 against his turret creep (1,272 lost for 530), and killed the commander at the lab at 12:23-12:33.",
+ "root": {
+  "clock": "0:10",
+  "what": "The player's second turn replaced the pre-game list already in force (two extractors, three solars, lab, assist, a third extractor) with seven wind turbines and no third extractor; the commander built turbines and the lab, and the seat held two extractors until 3:08 on 5.5 metal a second.",
+  "evidence": "commander_turns --calls 0:10: queue commander [\"extractor spot_13\", \"armwin\" x3, \"armlab\", \"assist 40\", \"armwin\" x4, \"assist 30\", \"armsolar\", \"assist\"]; record: armmex created 0:03, 0:15, then 3:08; analyze_match: extractors 2, income 5.5 at minutes 1-3"
+ },
+ "turning_points": [
+  {
+   "clock": "1:18-1:50",
+   "what": "The first constructor (made 1:10) built a turbine at 1:18 under the player's own clause 'with energy STALLING and metal 150 or more, one wind turbine', helped the lab at 1:45, and at 1:50, in a wind lull, the player listed two turbines before its extractors; its first extractor was created at 3:08.",
+   "evidence": "1:50 report: 'energy 0/1152 (-1) STALLING ... wind now 8 of this map's 3 to 19'; queue constructor_15805 [armwin, armwin, extractor spot_18, ...]; 2:50 report: 'energy 1183/1205 (+112), wind now 18'; armwin created x10 by 2:20"
+  },
+  {
+   "clock": "2:18-3:05",
+   "what": "His first Pawn was in our half at 2:18; from 2:48 one Pawn drew hunts of 2-4 from our Pawns (the player's 'send one or two against a lone raider') and killed two turbines.",
+   "evidence": "hands_window 2:18 'group_A met 1 unidentified at F6', 2:20 'party_1=1 armpw'; 0:10 instruct '(send one or two against a lone raider)'; record: armwin destroyed 2:51, 2:53; review.md counts 20 group changes 2:48-3:05"
+  },
+  {
+   "clock": "4:01-5:31",
+   "what": "Two Pawn parties at once (3 at H7/H8, 4 at H5) split our single group, which switched target four times in nine seconds; spot_18 and spot_15 fell with 10 of our soldiers within 900, then spot_13 and spot_8 with none: extractors 3 at 4:00, 1 at 5:00.",
+   "evidence": "hands_window: 4:01 group_J attack party_3, 4:04 attack party_4, 4:08 party_3, 4:10 party_4. raid_ledger: 4:02 spot_18 (sold 10), 4:10 spot_15 (10), 5:03 spot_13 (0), 5:31 spot_8 (0); 'parties that paid 0'"
+  },
+  {
+   "clock": "6:25-6:37",
+   "what": "The one counter-raid (12 Pawns to E4) killed his extractor, Sentry and a constructor, then the hands walked it home from an unarmed constructor on a losses line that counted the Sentry's kills; nothing of ours came within 1,500 of his start all game.",
+   "evidence": "analyze_match #3 6:27-6:36 E4: we lost 162, they lost 245 (armmex, armllt, armck); hands_window 6:37 'group_J: walk to spot_8' (0.77); minutes.py: nearest his start 2083 at E4 6:38; 'his first factory seen: never'"
+  },
+  {
+   "clock": "8:27-9:54",
+   "what": "His Mace-and-Centurion army (party_7, first shown as one Pawn) came in at F4/F5 and beat our Pawns twice; the lab switched to Maces at 8:42, after it arrived.",
+   "evidence": "analyze_match #4 8:30-8:48 F4: we lost 405, they lost 0; #5 9:35-9:54 F5: 436 for 54; 8:42 produce lab_6376 [armham]; instruct: 'Pawns lose to it in the open'"
+  },
+  {
+   "clock": "10:11-11:29",
+   "what": "With party_7 out of sight the player sent the whole army (group_K1) to D6 against his constructor's Sentries beside our spot_12; party_7 walked into G5/G6 at 10:55 with K1 about 1,400 away and took six turrets, an extractor and the Pawns.",
+   "evidence": "10:11 report: 'extractors under threat: D6 (3 enemies, NO turret)'; instruct: 'group_K1 attacks his buildings and constructor at spot_12 now, all together'; analyze_match #7 10:55-11:29 G6: we lost 1272, they lost 530"
+  },
+  {
+   "clock": "12:18-12:33",
+   "what": "party_7 (seven units) came into the base; the commander fought it at the lab under the 12:15 orders, walked at 12:27, attacked again at 12:30 at 24% health once the 12:25 'everything attacks party_7 now' had landed, and went from 100% to 5% in eleven seconds; party_7 lost 1,070.",
+   "evidence": "record samples: commander 100% 12:22, 50% 12:27, 24% 12:30, 5% 12:33; hands_window 12:23 attack, 12:27 walk to spot_15, 12:30 attack party_7; analyze_match #8 12:18-12:32: they lost 1070, we lost 281 and the commander"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:10",
+   "what": "Rewrote a correct pre-game list: the third extractor dropped and seven turbines put on the commander. A stronger player keeps the extractors first (spot_13, spot_18 at 684, spot_11 at 924) and adds generators only as the lab's draw requires.",
+   "evidence": "0:10 queue (the root); the player's text: 'I swapped the solar generators for wind turbines, which follows the experienced players' advice on a windy map'; analyze_match extractors 2 at minutes 1, 2, 3",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:10",
+   "what": "Stationed the Pawns at spot_11 (G5) and told them to send one or two against a lone raider: Pawn hunts of equal speed caught nothing, the H7/H8 home spots were 600-900 from the group, and no Sentry stood at a home spot when they fell. A stronger player keeps the body on the spots it defends and puts a Sentry beside each.",
+   "evidence": "0:10 instruct: 'then they hold at spot_11, attacking enemy raiders ... (send one or two against a lone raider)'; raid_ledger: 'answered 10 (median delay 1.0 s); parties that paid 0'; first armllt created 3:01",
+   "kind": "strategy"
+  },
+  {
+   "clock": "1:50",
+   "what": "Read a wind lull as an energy shortage and put two more turbines ahead of the constructor's extractors, under the solar rule the player had copied into its instructions; by 2:50 the store was full and metal at 0. A stronger player lets the store run low behind the plant (the bound was metal) or builds a solar, which needs no energy to build.",
+   "evidence": "1:50 report: 'energy 0/1152 ... STALLING ... wind now 8'; queue constructor_15805 [armwin, armwin, extractor spot_18, ...]; 3:00 report: 'metal 0 (+5.5/-4.9), energy 1204/1204 (+150), wind now 15'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:00-12:00",
+   "what": "No scouting: his factory was never seen and nothing of ours came within 1,500 of his start, so his switch to Maces was met only when it arrived at 8:27. A stronger player keeps a Pawn or a radar on his side and switches the lab when the first Mace shows.",
+   "evidence": "minutes.py: 'his first factory seen: never'; 'first of ours within 1,500 of his start (B1): never'; 8:42 produce lab_6376 [armham]",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:01-4:10",
+   "what": "One group answered two parties by switching between them every few seconds (the hands' picks, on the player's single-group station); two halves, or the group on one pair and the commander on the other, would have saved one pair.",
+   "evidence": "hands_window 4:01 attack party_3, 4:04 party_4, 4:08 party_3, 4:10 party_4; raid_ledger 4:02 spot_18 and 4:10 spot_15, 10 soldiers within 900 each",
+   "kind": "both"
+  },
+  {
+   "clock": "10:11",
+   "what": "Sent the whole army to D6 to clear a turret creep while his main army was unseen in our half; it was about 1,400 from the base when party_7 came. A stronger player answers a creep with a few units or the turrets' reach and keeps the body home while the Mace army is about.",
+   "evidence": "10:11 instruct: 'group_K1 attacks his buildings and constructor at spot_12 now, all together, then walks back and holds at spot_11'; party_7 last fought at F5 9:35-9:54 (#5); review.md: K1's front at D6, tail at E7 at 10:55",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:32-12:23",
+   "what": "Thrash: 30 advance/walk-back reversals of 178 group course changes in near-even fights at home against a party whose seen weight swung 790-1,870, with the player's own 'if it outweighs, it walks to spot_13' in force (the review's count, not recounted).",
+   "evidence": "review.md 'The thrash check': group_C1 9:32-9:49, group_K1 10:55-11:04 and 12:19-12:23, reversals 0-7 s apart; attack picks 0.29-0.36 against go_spot_13 0.50-0.53",
+   "kind": "both"
+  },
+  {
+   "clock": "12:15-12:30",
+   "what": "Kept the commander in the base fight against seven Maces and Centurions that outreach it; at 24% health it attacked again and died, ending the game. A stronger player takes the commander out of a lost base fight early: a third-health clause is seconds too late under seven units (37% to 5% in five seconds).",
+   "evidence": "12:25 instruct: 'everything attacks party_7 now ... Under a third health it walks to spot_18'; Jev 12:30: 'health: badly hurt, near death (24%)', '3 of them outreach its D-gun'; commander 37% 12:28, 5% 12:33",
+   "kind": "both"
+  }
+ ],
+ "their_play": "computer_whisperer (the user, Armada, B1) opened with Pawns across the map: one in our half at 2:18, raids at G7 from 2:48, two parties at once (3 at H7/H8, 4 at H5) at 4:00-4:10 and parties of three at 5:03 and 5:31, taking four extractors while no raiding party of his was paid for. He held an outpost at E4 (extractor, Sentry, constructor; seen 6:25) and later crept Sentries onto our spot_12 at D6 (9:54-10:24). By 8:27 he had switched to Maces and Centurions (reach 380 and 325 against the Pawns' 180): the army came in at F4/F5 (8:30-9:54), left sight, came back into G5/G6 at 10:55 while our army was at D6, withdrew at 11:29 and returned to finish the base and the commander at 12:18-12:33. His factory, economy and tier were never seen (no truth file: what we saw are floors; party_7 read 790 to 1,870 metal).",
+ "defects": [
+  {
+   "defect": "The wind turbine's glossary line said 'average 12 on Quicksilver' on every map; on Avalanche (wind 3 to 19) it was shown to Jev 194 times and to the player twice.",
+   "fixed": "2026-10-02 (649ff8a)",
+   "evidence": "review.md Z3; the 0:10 turn's unit list: 'Wind Turbine armwin ... average 12 on Quicksilver'. The loss does not rest on it: the player's swap cited the map's own reading ('The wind reads 12 here (range 3 to 19)')"
+  },
+  {
+   "defect": "A newborn constructor's first pick was helping the lab, over its listed spot (K-hands-a-newborn-constructors-first-pick-is-the-lab): constructor_15805 at 1:45, then four constructors in a row at 2:41, 5:45, 6:14, 6:51.",
+   "fixed": "2026-10-03 (a8b68e2: the help move's words, staged lists, the brief's listless-constructor item)",
+   "evidence": "hands_window 1:45 'constructor_15805: help lab_6376 build [plan]' (0.68); docs/knowledge/jev.md cites 2:41 (0.55 against the listed spot 0.36), 5:45, 6:14, 6:51. Part of the extractor delay, not its main cause"
+  },
+  {
+   "defect": "The losses line counted every loss of the last 30 s whatever killed it, so the counter-raid read 'losing this fight' against an unarmed constructor and walked home (K-jev-a-losses-line-without-killers-steps-a-raid-back-from-nothing).",
+   "fixed": "2026-10-03 (a8b68e2, H-HANDS-PARTY-KILLING)",
+   "evidence": "jev.md: group_J 6:37 'lost 3 of its 12 soldiers (162 metal, a large share: it is losing this fight)', 'party_6 (1 armck) ... unarmed', go_spot_8 0.78; hands_window 6:37 walk to spot_8"
+  },
+  {
+   "defect": "Realtime turns had no flight review: losses and reasons raised while a turn was out were not reviewed at its landing; an instruction from the 9:32 turn reached the hands at 9:41 calling party_7 '2 Maces and a Pawn' when it read 4 Maces and a Centurion.",
+   "fixed": "2026-10-02 (649ff8a, realtime turns as flights)",
+   "evidence": "review.md 'Lateness' (not rechecked); wake_read: 65 of 68 unit losses during in-flight orders; orders in flight 73% of game time"
+  },
+  {
+   "defect": "Detachment churn and group renaming: hunts of 2-4 split off a group against single raiders (20 group changes 2:48-3:05, 17 at 8:27-8:39) and new group names kept appearing (group_A, J, C1, D1, E1, H1, K1, M1, P1, Q1, R1, S1 ...).",
+   "fixed": "the new-group allowance clobber, named in jev.md as the likeliest cause of the renaming, 2026-10-03 (groups.rs); hunts splitting a group open (seen again in human-12)",
+   "evidence": "review.md H2; jev.md K-hands-a-new-group-rewrote-the-allowance: 'the likeliest cause of human-11's group renaming churn ... (open there)'; ledger human-12: 'hunts off hunts again'"
+  },
+  {
+   "defect": "An extractor at spot_11 (armmex_10985, created 6:35) stood in the lab's exit lane (the lab at 3504, 2992): units stood in the lane 30 s at 7:05, 8:29 and 9:32; the extractor-in-the-lab's-exit-lane defect.",
+   "fixed": "2026-10-13 (3aabc77)",
+   "evidence": "record events f12750, f15285, f17160: 'lab_6376's exit lane is blocked ... in the lane: armmex_10985 (the remove tool takes them away)'; created f11847 at (3440, 2592)"
+  },
+  {
+   "defect": "The player's session was replaced once, between the 10:52 and 11:03 turns.",
+   "fixed": "open in this build (the review's Z1)",
+   "evidence": "impedance_sweep: '1 session replacements'; 11:03 'woken: TAKEOVER'; review.md: total_cost_usd 4.38 then 0.28"
+  },
+  {
+   "defect": "At 12:30 the world pick undid the commander's walk to spot_15 and attacked party_7 at 24% health, although the instructions in force said 'Under a third health it walks to spot_18' and the picture said it was near death and outreached. Not the cause of the loss: the base was gone and the walk was 587 elmos against faster units.",
+   "fixed": "unknown",
+   "evidence": "jev-0 f22518: commander 'health: badly hurt, near death (24%)', 'doing: walking to spot_15, 587 to go'; worlds.c0.pick w8 (probability 0.26, confidence 0.15): 'commander: attack party_7'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost on extractors before the fights: two extractors to 3:08, never more than six of our ten spots, income 3.5-11.6; every later fight was fought on that (the reader's reading; nobody said it in this game)."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "We never held half the map: at most 6 of 19 spots (11:00), all in our half; his extractor count is unknown (no truth file)."
+  },
+  {
+   "id": "L-other-quicksilver",
+   "relation": "illustrates",
+   "note": "The 0:10 swap cited 'the experienced players' advice on a windy map' (this lesson's 'go wind for the rest of their e'), but dropped the rest of the same lines: '2 mex, wind ... one construction bot expanding' and 'solar is better when you are out of e, because you do not e stall making solar' (turbines queued into an empty store at 1:50)."
+  },
+  {
+   "id": "L-opening-solar-cap",
+   "relation": "illustrates",
+   "note": "The wind-map form of the same over-build: ten turbines by 2:20, the energy store full at 2:50-3:00 with metal at 0; the lesson itself is about solars on Comet."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "From his side: his first Pawn was in our half at 2:18 and his Pawn parties took four extractors 4:02-5:31; ours first crossed at 6:35 and never came within 1,500 of his start."
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "illustrates",
+   "note": "Our one raid stopped at his E4 outpost and was walked home at 6:37 (a since-fixed losses-line defect) instead of going on to spot_6/3/4 as the player's 6:04 note planned."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "Detachments of 2-4 against single Pawns (2:48-3:05, 8:27-8:39) and the army strung from D6 to E7, about 1,400 from the base, when his army came at 10:55."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "The bot form of the light-to-medium switch, played against us: his Maces and Centurions beat our Pawns at F4 (405 for 0) and F5 (436 for 54); our lab switched at 8:42, after they arrived."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "Metal was the bound: from 2:50 the energy store was full and metal at 0 (income 5.5) with the lab fed (floor fac4 18, assist4 120 s)."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "contradicts",
+   "note": "Against the solar rule (STALLING and 150 metal) as a generator trigger on a wind map: the player copied it as 'with energy STALLING and metal 150 or more, one wind turbine'; the 1:18 and 1:50 stalls (wind 8 at 1:50) bought three of the ten turbines and the store was full by 2:50 (wind 18)."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "Answers within a second and no Sentry at the spots did not pay: 10 of 11 losses answered at a median 1.0 s, no raiding party paid, none at H7/H8 before they fell; one group flipped between two parties 4:01-4:10."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "The person's first handful crossed by 2:18 and set our extractor count; ours never reached his side."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "Mace and Centurion beat Pawns and light turrets: #4 405 for 0, #5 436 for 54, #7 six Sentries among 1,272 lost for 530."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "The D6 commitment at 10:11 with his army unseen; the thrash at odds near 1:1 against a party whose seen weight swung 790-1,870 as units left and entered sight."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "The commander died at home fighting Maces and Centurions that outreach its D-gun (380 and 325 to 250); Jev's picture said so and that it was at 24%, and the 12:30 pick still attacked."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (and --engagement 7)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes, --calls, --told",
+   "run/wake_read.py",
+   "run/impedance_sweep.py",
+   "run/hands_window.py 0:00-0:50 commander, 1:05-3:10 constructor_15805, 3:55-4:20, 6:25-6:50 group_J, 12:15-12:34 commander",
+   "record-0.jsonl and strategist-0.jsonl read directly (turbine and extractor events, the commander's health samples, the turns' texts)",
+   "jev-0.jsonl.zst at f22500-22518",
+   "docs/experiments.md row human-11",
+   "docs/knowledge/jev.md",
+   "git log bb0dd1f, eb69612, 649ff8a, a8b68e2, 3aabc77"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790995126-human-11/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, results row or batch file (a lobby game): his numbers are what we saw, floors. pro_baseline.py not run (not Comet; the review found no Avalanche cards); floor.py's result and minutes columns blank. The user was the opponent and typed no chat, so the only person's word on this game is his post-game ruling in docs/knowledge/jev.md (2026-10-03, after reviewing player-44 and human-11): 'The thrash hasn't been a huge problem in this game and in player-44 ... I would call that fix a success'. The thrash counts and the 9:32 lateness are the existing review's, not recounted. Built on review.md and agrees with its root (0:10). Differs on: the raid war's root (the player's 0:10 station at spot_11 and 'send one or two' clause, before the 2:48 churn the review names); the 1:50 stall being a wind lull answered under the player's copied solar rule; the 10:11 order answering his turret creep on our spot_12 (the review frames it as an attack on an outpost); and the commander's end (the review has the 12:23 attack under 'everything attacks party_7 now', but that turn began at 12:25; the 12:23 attack was under the 12:15 orders, and the 12:25 instruction had landed by the 12:30 pick, which attacked at 24% health against its own health clause). The review places the end at H6; analyze_match and the record put the commander at G6 beside the lab."
+ },
+ "open_questions": [
+  "His economy and timings are unknown (no truth file): when did his Maces start, and how many extractors did he hold at 4:00 and 8:00? The replay or the user could answer.",
+  "Was the D6 Sentry creep (9:54-10:24) meant to draw our army out before the 10:55 attack? (the reader's reading; the user played it)",
+  "At 1:18 the places audit marked the first constructor's gate a fault (asked about spot_12 alone while spot_18/11/8 stood open at 0.58-0.64): the places layer or the openers layer? (the review's candidate)",
+  "Why did the 12:30 world pick undo the commander's walk at 24% health with 'Under a third health it walks to spot_18' in the instructions: does the player's 'everything attacks party_7 now' outrank its own health clause for Jev?",
+  "Would wind as the generator have been right on Avalanche's 3-19 wind had the extractor steps been kept? The finding is the count and the dropped extractor, not the choice."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790995126-human-11.json"
+}

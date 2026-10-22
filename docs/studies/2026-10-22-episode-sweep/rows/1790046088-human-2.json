@@ -1,0 +1,225 @@
+{
+ "batch": "1790046088-human-2",
+ "label": "human-3",
+ "map": "Quicksilver Remake 1.24",
+ "date": "2026-09-21",
+ "shape": "1v1",
+ "people": "None recorded in the header (the shim bug of the time). Chat player 1, an unnamed person (opponent or spectator; the record cannot say), gave the energy and constructor advice. The opponent played Armada (only Pawns seen). Ratings unknown.",
+ "our_side": "Seat 0 (ai0, team 1), Cortex (random side), starting at E3 (4066,2237) on the north box. The player was claude-opus-5 at effort low on the claude2 account (Claude Code 2.1.278). The hands were Jev jev-latest (jev-1.13.0). No commander seat. Realtime, in the user's lobby; our seat's chat went out as player 2 (OConquor).",
+ "build": "36cbfd7",
+ "result": {
+  "outcome": "lost",
+  "minute": "4:00"
+ },
+ "summary": "The hands started the lab at 0:37 before any generator and before the player's first turn, and the energy store sat at zero from 0:46 to 1:54. The player's first packet asked for constructors first, the hands queued three in six seconds (1:06-1:12) and a fourth at 1:55, and the first Grunt was created only at 3:01. The opponent's Armada Pawns reached E4 at 2:02-2:08 against zero soldiers; the commander chased one party west (2:30-2:50) while another killed the windmills and extractors and, at 3:03, the lab, 931 from the commander. A second lab at spot_8 died at 3:34; the commander and two light turrets killed nine Pawns in 3:37-4:00, and the commander died at 4:00 with the energy store at zero. An unnamed person coached in chat throughout ('you are about to run out of e' at 0:56, wind on this map at 2:04, 'too many constructors' at 2:12), and the ledger records the user asking afterwards why it never built a unit.",
+ "root": {
+  "clock": "0:36",
+  "what": "The hands put the lab down before any generator, before the player's first turn, and the player's first packet then put constructors first. The store emptied at 0:46 and stayed empty to 1:54. The first unit, a constructor, took 43 s, and four constructors came before any soldier, so the Pawn rush of 2:02-2:08 met no army.",
+  "evidence": "jev 0:36 commander.do: lab 0.77, generator 0.16, no player instructions, energy '333 of 1000 ... running the store down'; record: corlab created 0:37, finished 1:05; e<2% 0:46-1:54; 0:37 instruct: 'lab_1: builds constructors until we have a couple'"
+ },
+ "turning_points": [
+  {
+   "clock": "0:37",
+   "what": "The lab started with no generator. The player's first turn was woken by the factory going up; its packet listed constructors first and put solar only 'whenever energy is low or STALLING'.",
+   "evidence": "0:37 Woken because: ... our first factory is up; eco: energy 335/1000, labs 1, generators 0; produce all: [corck, corak, corthud]"
+  },
+  {
+   "clock": "0:56",
+   "what": "The person warned about energy once the store was already empty. The player switched the commander to generators first; the hands built windmills (the one generator option), finished from 1:17.",
+   "evidence": "chat 0:56 player 1: 'you are about to run out of e'; 0:56 report: energy 1/1000; instruct: 'While energy is low or STALLING it builds solar generators'; record corwin created 1:07, finished 1:17"
+  },
+  {
+   "clock": "1:06",
+   "what": "The lab was asked three times in six seconds while its words said 'constructors 0'. Three constructors were queued; the first took 43 s at the stall, and a fourth was queued at 1:55.",
+   "evidence": "jev 1:09 lab_4277 'doing: building corck', 'we_have: constructors 0 (none)' -> corck 0.97; 1:12 corck 0.94; corck created 1:10, finished 1:53; created 1:54, 2:18, 2:42"
+  },
+  {
+   "clock": "2:02",
+   "what": "The Pawns reached our E4 with zero soldiers of ours on the map. The player's produce list of 2:13 (Grunts only) waited behind the queued constructors.",
+   "evidence": "hands_window 2:02 party_1=1 unidentified@(3500,3084); 2:10 2 armpw; minutes.py min 3: army 0/270, his mass E3 100%; 2:13 produce all [corak]; first corak created 3:01"
+  },
+  {
+   "clock": "2:30",
+   "what": "The commander took the hands' new attack option and chased Pawns west, away from the lab. Meanwhile the eastern party killed the windmills (2:39-2:53) and the extractors (2:41-3:14).",
+   "evidence": "jev 2:30 attack party_1 0.59 ('we outweigh it heavily'); 2:40 attack party_2; commander 610 from the lab at 2:25, 912 at 2:40, 1,218 at 2:50; raid_ledger: 5 extractors lost 2:41-3:14, undefended 5"
+  },
+  {
+   "clock": "3:00",
+   "what": "Walking home, the commander switched to a windmill at spot_8 (generator 0.38 over retreat_home 0.37). Five Pawns killed the lab at 3:03 with the first Grunt unfinished.",
+   "evidence": "jev 3:00 commander 'walking to home, 690 to go' -> generator 0.33; record: corak created 3:01, destroyed 3:03; corlab destroyed 3:03; commander 931 from the lab at 3:00"
+  },
+  {
+   "clock": "3:13",
+   "what": "A second lab was put down at spot_8 among 7-11 Pawns: finished 3:29, dead at 3:34 with its first Grunt. The commander's two light turrets (3:41, 3:52) and its gun killed nine Pawns. The commander died at 4:00 with the store at zero.",
+   "evidence": "record: corlab created 3:13, finished 3:29, destroyed 3:34; corllt finished 3:49; enemy_destroyed x9 3:37-4:00; commander hp 100 at 3:50, 61 at 3:55, 0 at 4:00; energy 285, 6, 0"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:36",
+   "what": "The lab came before any generator. Matt's line on this map puts three windmills first (0:16-0:28) and the lab at 0:33, with energy at 490 and rising.",
+   "evidence": "jev 0:36 lab 0.77 vs generator 0.16 (no player instructions yet); K-open-matt-order-timings: 'wind 0:16, 0:22, 0:28, the lab 0:33 ... with energy at 490 and rising'",
+   "kind": "harness"
+  },
+  {
+   "clock": "0:37",
+   "what": "The first packet asked for constructors first ('until we have a couple') and put extractors before generators. A stronger player makes one constructor and then raiders from about 1:10; Matt's Pawns came every ten seconds from 1:12. The person's word: 'too many constructors'.",
+   "evidence": "0:37 instruct: 'lab_1: builds constructors until we have a couple, then Grunts'; chat 2:12 player 1: 'too many constructors'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:43",
+   "what": "Our player told the table its faction and plan.",
+   "evidence": "chat 0:43 our player: 'Cortex here, going eco-first with Grunts for defence. Any advice welcome.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "1:06",
+   "what": "Three constructor orders went in six seconds, and the lab's words said 'constructors 0' while one was being made.",
+   "evidence": "jev 1:09 and 1:12: lab 'building corck', we_have 'constructors 0 (none)', corck 0.97 and 0.94",
+   "kind": "harness"
+  },
+  {
+   "clock": "1:06",
+   "what": "Turns at 1:06, 1:11, 1:24 and 1:29 showed labs 1, constructors 0-1, energy 0 and no soldier, and changed nothing about the lab's list. At 1:29 the player waited up to 120 s; the list came after the Pawns were seen (2:03, 2:13).",
+   "evidence": "commander_turns: 1:06 wait, 1:11 wait, 1:24 say+wait, 1:29 wait {max_seconds:120}; next turn 2:03 'enemies within 600 of our extractors at E4'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:16",
+   "what": "Constructors walked to far spots as the Pawns entered: spot_17 (F4) at 2:16 and spot_20 (D4) at 2:18. The D4 one kept 'continue' after the 2:18 packet told it to go home; its extractor stood for one second.",
+   "evidence": "hands_window 2:16 constructor_16737 cormex spot_17 (F4); 2:18 constructor_25504 cormex spot_20 (D4); 2:28, 2:38 continue; record cormex created 2:46, destroyed 2:47",
+   "kind": "both"
+  },
+  {
+   "clock": "2:30",
+   "what": "The commander chased Pawns away from the lab and was 931 away when five Pawns killed it. Its gun was the only weapon we had, and it killed nine Pawns at 3:37-4:00. The packets of 0:37 and 2:03 said it attacks a small party it outweighs.",
+   "evidence": "jev 2:30 attack party_1, 2:40 attack party_2; commander 1,218 from the lab at 2:50; 3:00 generator 0.38 vs retreat_home 0.37; corlab destroyed 3:03",
+   "kind": "both"
+  },
+  {
+   "clock": "2:39",
+   "what": "No turret stood at the lab or the extractors until 3:41. Matt's line has a turret beside the far extractors at 2:32.",
+   "evidence": "raid_ledger: undefended 5, with a turret 0; record corllt created 3:41",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:13",
+   "what": "Reader's reading: the second lab went down among 7-11 Pawns and lived 5 s once finished. The commander then fought ten Pawns in the open at spot_8 with the store empty.",
+   "evidence": "corlab created 3:13, finished 3:29, destroyed 3:34; energy 685 at 3:40, 6 at 3:55, 0 at 4:00; commander destroyed 4:00 by armpw",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Armada, a Pawn rush. Pawns were first at E4/D4 at 2:02 and in our base by 2:20. They came in parties of 2-5 split between the west (spot_8) and the windmills and lab in the east, 7 at 3:14 and eleven in our base by 3:16 by our player's count. Their first kill was a windmill at 2:39; then five extractors 2:41-3:14, the lab at 3:03, the second lab at 3:34 and the commander at 4:00. He lost 11 Pawns (594 metal), nine of them in the last 25 s to our commander and two light turrets. His base, economy and tier were never seen: no truth file, and none of our units went to his side. This is the shape of K-open-early-pawn-pressure-is-standard (a handful of Pawns before anything else, at the opponent's base before 2:30).",
+ "defects": [
+  {
+   "defect": "The opening before the player's first turn was the hands' own. The commander's pick at 0:36 had no player instructions and chose the lab (0.77) over a generator (0.16) with the store running down; the player was first woken at 0:37 by 'our first factory is up'.",
+   "fixed": "2026-09-21 in part (b31c9ed Matt's order as the default text; 0e6f54f the lab option states its draw); 2026-10-01 fully (3748b72, the opening turn before the game)",
+   "evidence": "jev 0:36 commander.do lab 0.77, no instructions key; strategist first turn frame 1125 (0:37) 'our first factory is up'"
+  },
+  {
+   "defect": "Era U/E: the lab was asked three times in six seconds while its words said 'constructors 0', and three constructors were queued (a fourth at 1:55).",
+   "fixed": "2026-09-21 (0e6f54f: a lab keeps one order waiting at most; its words count what is being made)",
+   "evidence": "jev 1:06/1:09/1:12 corck 0.97/0.97/0.94, we_have 'constructors 0 (none)'; corck created 1:10, 1:54, 2:18, 2:42"
+  },
+  {
+   "defect": "The player's produce whitelist waited behind the queue: Grunts only at 2:13, the first Grunt created at 3:01.",
+   "fixed": "2026-09-21 (0e6f54f)",
+   "evidence": "2:13 produce all [corak]; jev 2:30 lab 'building corck (constructor) then corak'; corak created 3:01"
+  },
+  {
+   "defect": "There was one `generator` option, wind by the map's average. The player asked for solar (0:56 instruct; chat 'going solar' at 1:24) and the hands built six windmills. It was harmless here: wind gave +42 to +78 by 2:13-2:25, and the person recommended wind.",
+   "fixed": "2026-09-21 (b31c9ed: wind and solar as two options with their costs)",
+   "evidence": "jev rules: 'wind generators (40 metal) beat solar collectors here'; bot.log 'lost corwin ... x7' by 3:00"
+  },
+  {
+   "defect": "Era A, the old hands: the commander's attack option (new in this build) chased a party away from home, and a 0.33-confidence pick cut its walk home. A busy constructor kept 'continue' after the player's packet told it to go home.",
+   "fixed": "2026-10-02 (the hands rebuild; not checked against this exact case)",
+   "evidence": "jev 2:30 attack party_1 (0.54), 2:40 attack party_2; 3:00 generator 0.33 over retreat_home; constructor_25504 continue 2:28, 2:38 after the 2:18 instruct"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-other-quicksilver",
+   "relation": "supports",
+   "note": "Three of its quoted lines come from this game: 'solar is better when you are out of e' (1:23), 'this map as 12 wind...' (2:04), 'too many constructors' (2:12). The game shows the cost: four constructors and no soldier when the Pawns came."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "supports",
+   "note": "Energy before the factory is what makes a fast first constructor. With none, the first constructor took 43 s (1:10-1:53) at the stall."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The commander left the lab: it walked to spot_8 at 2:10 and chased Pawns at 2:30-2:50, and was 931 away when the lab died."
+  },
+  {
+   "id": "L-chat-no-faction",
+   "relation": "illustrates",
+   "note": "0:43: 'Cortex here, going eco-first with Grunts for defence.'"
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Seen from the receiving side: his first handful of Pawns crossed the map by 2:02 and decided the game by 3:03."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "This game is the source of the must-reproduce item 'the lab before any generator empties the store (human-3)'. The opening was energy-bound, not metal-bound: metal 740 at 1:00 and 540 at 2:00 sat unspent while energy was at 0 from 0:46 to 1:54."
+  },
+  {
+   "id": "The Quicksilver packet from Matt's line",
+   "relation": "supports",
+   "note": "Its don'ts (not four constructors, not the lab before generators) are this game: four constructors were made (1:10, 1:54, 2:18, 2:42), and the lab came at 0:37 with no generator."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "A handful of Pawns die to it: with two light turrets it killed nine in 3:37-4:00. Losing the economy for want of it is the game: it chased west while the lab died."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "Five extractors were lost, all undefended (no soldier within 900, no turret within 700); the first turret came at 3:41."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Constructors die alone at far spots: one was sent to D4 at 2:18 into the Pawns and its extractor stood for 1 s. Three constructors died (2:55, 3:03, 3:23)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The opponent's play is the rule: Pawns at our base by 2:02-2:08, the lab dead at 3:03."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py",
+   "run/impedance_sweep.py",
+   "direct reads of record-0.jsonl, jev-0.jsonl.zst, strategist-0.jsonl, bot.log",
+   "docs/experiments.md row human-3"
+  ],
+  "existing_review": null,
+  "confidence": "high",
+  "caveats": "No truth file, so his side is what we saw (floors). The header recorded no people. chat.jsonl marks every line '?'; I attributed them from the record's player ids: player 2 carries our banner and our player's lines, player 1 is an unnamed person. pro_baseline.py was not run (Quicksilver has no cards); K-open-matt-order-timings is the reference instead. The tools read the result as unknown (floor.py result '-', analyze_match 'outcome None after 0.0 min'); the commander's death at 4:00 is in the record and bot.log. The header's unit_defs ids do not match the engine ids in the events, so unit names come from bot.log and the hands' words. The date is 2026-09-21 local (wall_start 23:02 EDT, build committed 23:00): L-other-quicksilver says 2026-09-19/20 and the backlog says 2026-09-22. The ledger labels this batch human-3; the directory is named human-2."
+ },
+ "open_questions": [
+  "Who was player 1, the opponent or a spectator? The human-2 ledger row calls the same advice 'the opponent's', and the 3:18 line 'less e trouble this game, nice improvment' shows the speaker had seen the previous game.",
+  "Did the commander fire its D-gun at 3:37-4:00? The store fell from 685 to 6 between 3:40 and 3:55, but the record has no weapon events. If the store was empty when the last Pawns closed in at 3:55-4:00, it could not fire.",
+  "Would the commander standing at the lab at 2:40-3:03 have held it against five Pawns? It and two turrets killed nine in 25 s later on, which suggests so (reader's reading)."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790046088-human-2.json"
+}

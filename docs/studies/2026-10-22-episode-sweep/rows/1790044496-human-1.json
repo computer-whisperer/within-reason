@@ -1,0 +1,237 @@
+{
+ "batch": "1790044496-human-1",
+ "label": "human-1",
+ "map": "Quicksilver Remake 1.24",
+ "date": "2026-09-22",
+ "shape": "1v1 (a second person advising in chat)",
+ "people": "player 0: the opponent, Armada, Pawns (name and rating not recorded); player 1: an advisor in chat (name, rating and whether seated or spectating not recorded). The header recorded no person (the shim bug of the time); chat.jsonl has speaker '?', attributed here from the bot.log player numbers and the ledger row. The user hosted from his GUI client and typed nothing.",
+ "our_side": "One seat (ai0, team 1, bot name Glaucus), Armada (armcom from (4067, 2233), E3). Player claude-opus-5 at effort low on claude2 (Claude Code 2.1.278), realtime, no commander seat; hands Jev jev-latest = jev-1.13.0, the pianist of 2026-09-21/22 (pre-hands-rebuild). Started by run/human_game.sh.",
+ "build": "9f383db",
+ "result": {
+  "outcome": "lost",
+  "minute": "5:30 (the user ended it with the commander at 14% health, three turrets and two extractors; the record has no result line)"
+ },
+ "summary": "The first game against a person: Opus 5 low over the pianist hands on Quicksilver, Armada against an Armada Pawn opening, with a second person advising in chat. Our 0:11 packet put constructors first (Maces and Pawns later) and sent the field builders to the southern spots; the lab queued three constructors in six seconds, the commander built five windmills after the lab (energy 0 at 1:00) and walked to spot_21, and the player, woken by its own echoed 'gl hf', turned chat wakes off and slept 0:19 to 2:09 through the opponent's '~30 pawns before mace' (0:51). His Pawns reached our field constructors at 2:07 against zero soldiers, killed all four constructors by 2:45 and six extractors by 3:48 (480 lost against 54 in the first fight). The home turret and the commander won one trade (3:00-3:18, six Pawns for two windmills), but the player switched the lab to Maces at 3:00, the lab's queue lag turned later orders into three constructors, the hands sent pairs against parties of five to eight four times, and the lab died at 4:43. At least 33 of his Pawns were seen (23 killed, 10 standing at 5:30) when the user ended the game.",
+ "root": {
+  "clock": "0:11-0:34",
+  "what": "The opening. The 0:11 packet said 'build constructors until we have a couple, then Maces and Pawns about two to one' and sent constructors outward through spot_16/20/21/17 with no soldier or scout; the lab took three constructor picks in six seconds (a since-fixed queue defect), so four constructors came before any soldier: the first soldier was picked at 1:38 and started at 2:24, 17 s after his first Pawn was seen. Reader's reading; the opponent's '~30 pawns before mace' (0:51) is the person's word on what to make.",
+  "evidence": "minutes.py: '1 | 0/0 | b1', '2 | 0/0 | b2', '3 | 260/324 (0.8) | b1 s2'. Record lab picks: 0:28 armck 0.99, 0:31 armck 1.0, 0:34 armck 0.96, 1:13 armck, 1:38 armham; created armck 0:29, 1:12, 1:37, 2:01, first armham 2:24."
+ },
+ "turning_points": [
+  {
+   "clock": "0:19",
+   "what": "Woken by its own echoed chat line, the player set chat wakes off and a 120 s wait; it slept 1:50 of game time, so the opponent's advice at 0:51 and 1:04 was read only at 2:09, after the Pawns had arrived.",
+   "evidence": "commander_turns: '0:19 wait {\"chat\": false, ... \"max_seconds\": 120}'; '[2:09] Woken because: enemies within 600 of our extractors at D4 ... 1:50 of game time since your last turn began'. Player: 'That was my own chat echoed back'."
+  },
+  {
+   "clock": "0:11-1:26",
+   "what": "The lab went up (0:11-0:27) before any generator, then the commander built five windmills in a row; the store was empty at 1:00 and the first constructor took 43 s (23 s at full build power). The commander's extractor at spot_10 had no site (the lab stood 102 from it).",
+   "evidence": "bot.log f=1800: 'energy 0/1101 (+49/-48) | mex 1 labs 1 cons 1 army 0'; floor.py e0% 14.2, assist4 2; record 1:26 no_site armmex (builder 7320); 'f=2610 no site for armmex (builder 7320)'."
+  },
+  {
+   "clock": "1:35-2:14",
+   "what": "Three constructors sent to spot_16 (D4), spot_20 (D4) and spot_17 (F4) and the commander to spot_21 (E5), each about 1,250-1,400 from home, with no soldier on the map and no turret.",
+   "evidence": "Record decisions: 1:35 constructor_17697 'armmex at spot_16 (D4)', 1:37 constructor_3966 'spot_20 (D4)', 1:50 commander 'spot_21 (E5)', 2:01 constructor_30707 'spot_17 (F4)'; created armmex (4064, 3600) at 2:14."
+  },
+  {
+   "clock": "2:07-2:45",
+   "what": "His Pawns came from the south to the field builders: the first seen at E4 (4152, 3457) at 2:07, spot_20 lost at 2:10, all four constructors dead by 2:45.",
+   "evidence": "analyze_match: '#0 2:08-3:00 D4 at our base: we lost 480 ({armmex: 3, armck: 3}), they lost 54 ({armpw: 1}); ours 0 + 0 + commander'. raid_ledger: '2:10 spot_20 D4 armpw 2 armpw 5s 0 0'."
+  },
+  {
+   "clock": "2:19-3:02",
+   "what": "The player locked the lab to Pawns at 2:19, but two Maces already queued (picked 1:38 and 2:02) came first; the first Pawn was created at 3:02.",
+   "evidence": "commander_turns: '2:19 produce {\"all\": [\"armpw\"]}'; record: created armham 2:24 and 2:40, first armpw (d 181) created 3:02 by lab 4547."
+  },
+  {
+   "clock": "3:00-3:18",
+   "what": "The one trade won: the first light turret (3:03) and the commander at home killed six Pawns for two windmills. In the same minute the player switched the lab to Maces.",
+   "evidence": "analyze_match: '#1 3:00-3:18 E3 at our base: we lost 80 ({armwin: 2}), they lost 324 ({armpw: 6})'. Player 3:00: 'Switched to Maces - they beat Pawns head-on'."
+  },
+  {
+   "clock": "3:37-4:48",
+   "what": "Raids of five to eight Pawns inside the base: the hands sent two soldiers against the party four times (each pair rejoined a second later), the lab made constructors during the raid, and the lab died at 4:43.",
+   "evidence": "hands_window: 3:37 'send 2 soldiers as group_B against party_1 (5 armpw)', 4:13 'send 2 ... (8 armpw)', 4:14 'group_D: join group_A'. analyze_match: '#2 4:11-4:48 ... we lost 1182 (... armlab: 1, armck: 2), they lost 270'."
+  },
+  {
+   "clock": "5:11-5:30",
+   "what": "The commander reclaimed the home wreck field (+77 metal a second) into turrets; the turrets killed eleven Pawns at 5:23-5:30, but the commander was at 14% with nine Pawns within 700 when the user ended the game.",
+   "evidence": "analyze_match: '#3 5:15-5:30 E3 at our base: we lost 550 ({armmex: 1, armlab: 1}), they lost 594 ({armpw: 11})'; 'last sample 5:30: our commander at 14% health ... 9 enemy soldiers within 700'."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:11",
+   "what": "The opening packet: constructors first, Maces two to one over Pawns, the field builders to the far southern spots, no scout and no turret with any outer spot. A stronger player (the opponent's own line, a person's word) makes Pawns before Maces and keeps the early builders near the lab until soldiers cover them.",
+   "evidence": "instruct 0:11: 'lab_1: build constructors until we have a couple, then Maces (armham) and Pawns (armpw) about two to one, forever'; 'constructors ... working outward through spot_14, spot_16, spot_20, spot_21, spot_23, spot_17'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:19",
+   "what": "Turned chat wakes off and slept 110 s through the opening after its own echo woke it, missing the advice for 78 s; a stronger player keeps listening to the table in a game with people.",
+   "evidence": "wake_read: 'turn-to-turn game gap s: median 10.0 ... max 110'; '0:19 wait {\"chat\": false, ... \"max_seconds\": 120}'.",
+   "kind": "both"
+  },
+  {
+   "clock": "0:10-1:24",
+   "what": "The hands built the lab after one extractor and before any generator, then five windmills one at a time with the commander, which never helped the lab: energy at zero at 1:00, first constructor 43 s in the making.",
+   "evidence": "record decisions: 0:10 commander 'build a armlab' 0.82; 0:29, 0:41, 0:53, 1:10, 1:18 'build a armwin'; floor.py e0% 14.2, assist4 2; analyze_match 'energy stalled in minutes [1]'.",
+   "kind": "harness"
+  },
+  {
+   "clock": "1:50-2:20",
+   "what": "The commander walked to spot_21 (E5, about 1,390 from home) to build one extractor; the packet's own spot list allowed it. The advisor's 3:34 line names exactly this.",
+   "evidence": "1:50 commander 'build a armmex at spot_21 (E5)'; created (4064, 3600) 2:14. Advisor (player 1) 3:34: 'moving the commander arround costs build power. try to avoid sending your commander on long walks to do one thing.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:00",
+   "what": "Switched the lab from Pawns to Maces in the middle of a Pawn swarm, against the advice it had accepted at 2:09; at 3:16 it asked for constructors whenever fewer than a couple, and the lab made three constructors 3:37-4:16 while raiders were in the base.",
+   "evidence": "3:00 produce {\"all\": [\"armham\", \"armck\"]}; lab picks 3:14 armck 0.48, 3:26 armck 0.75, 3:37 armck 0.76; bot.log f=9000 'abandoned an unfinished armck (69% built)', 'lost armck to armpw at home x2'.",
+   "kind": "both"
+  },
+  {
+   "clock": "2:00-2:55",
+   "what": "No light turret until 2:55 (finished 3:03); turrets were the only defence that traded, as the player's own debrief says.",
+   "evidence": "record: first armllt created 2:55 by the commander; raid_ledger totals: 'undefended (no soldier within 900, no turret within 700) 5; with a turret 2'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:45-5:11",
+   "what": "The home wreck field was left until 5:11; reclaimed, it paid +77 metal a second. The player's debrief names it.",
+   "evidence": "bot.log: f=5400 'wrecks: 5 known in 1 fields, 132 metal'; f=9000 '19 known in 2 fields, 944 metal ... 0 at work'. Player 5:22: 'Reclaim is giving us +77 metal a second'.",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Player 0, Armada, opened Pawns ('i suspect ~30 pawns before mace is better ... than maces fast', 0:51/1:04, his own plan as advice). His first Pawns came from the south and were seen at E4 (4152, 3457) at 2:07, going straight for our field constructors and the far extractors (spot_20, spot_16, spot_17, spot_21); by 2:35 three were at D4, from 3:38 parties of five raided the home spots, a second wave of seven or eight entered the base at 4:08-4:48 and killed the lab, and about fifteen converged at 5:17. Only Pawns were seen: 23 killed and 10 standing at 5:30 (at least 33, about 1,780 metal). No building, tier 2 or base of his was ever seen (no truth file: these are floors).",
+ "defects": [
+  {
+   "defect": "The lab asked three times in six seconds with counts that left out queued units: three constructors queued before the first stood, and every later pick came out one or two units late (Pawns ordered 2:19 created from 3:02; Maces ordered 3:00 came after three Pawns). Group U.",
+   "fixed": "2026-09-22 (0e6f54f: a lab keeps one order waiting at most; counts include what is being made)",
+   "evidence": "Lab picks 0:28/0:31/0:34 armck; picks vs creations: 1:38 armham -> 2:24, 2:25 armpw -> 3:02, 3:14 armck -> 3:37."
+  },
+  {
+   "defect": "Our own chat lines came back as chat from player 3 (the AI's host) and woke the player; it answered by turning chat wakes off and slept through the opponent's advice (K-mech-chat-echoes-our-own-lines).",
+   "fixed": "2026-09-22 (a45186a: echoed lines dropped)",
+   "evidence": "bot.log 'f=570 chat from player 3: gl hf! Opening: ...'; '[0:19] Woken because: someone in the game said something'; player: 'That was my own chat echoed back'."
+  },
+  {
+   "defect": "The lab was built beside the commander 102 from spot_10, leaving no site for its extractor (twice); the user's report 'it builds the lab right on top of it' (K-eco-lab-anchored-on-a-spot).",
+   "fixed": "2026-09-22 (a45186a: 150 from a spot; 36cbfd7: 260 for a lab)",
+   "evidence": "Lab created at (3936, 2160), spot_10 at (3864, 2088); record no_site at 1:26 and 3:35; bot.log 'pianist: armmex order for unit 7320 near (3864, 2088) never started'."
+  },
+  {
+   "defect": "The lobby's start boxes put the enemy start beside our home (E3, 579 away), so the picture called home ground enemy_base, the ground line read 43 spots held, and the commander was picked to build 'at enemy_base (E3)'; the player marked the mirror at 2:25 (K-mech-lobby-box-beside-us). Group U.",
+   "fixed": "2026-09-22 (36cbfd7: a box guess nearer than a third of the map is discarded for the mirror)",
+   "evidence": "bot.log: 'enemy start 605 away on foot, 579 in a straight line'; 'metal spots held 43, contested 0, theirs 1'; record 2:22 commander 'build a armmex at enemy_base (E3)'."
+  },
+  {
+   "defect": "send_against offered against parties of five to eight Pawns: pairs sent four times, each rejoining the ball a second later, also after the 3:40 packet said one block and no detachments (H-HANDS-DETACH).",
+   "fixed": "2026-09-22 (a45186a: parties of three at most, a new group not asked for 10 s); send_against retired 2026-09-26",
+   "evidence": "hands_window 3:37, 4:08, 4:13, 4:18 'send 2 soldiers ... against party_1 (5/7/8 armpw)'; 4:09, 4:14, 4:19 'join group_A'."
+  },
+  {
+   "defect": "The lab before any generator, and generators one pick at a time (no queue-ahead): the store empty at 1:00 under five windmills built one after another (K-eco-lab-before-generators-empties-the-store). Group U.",
+   "fixed": "2026-09-22 (0e6f54f the lab's draw words; 226652c the queue-ahead and batched generators)",
+   "evidence": "bot.log f=1800 'energy 0/1101'; commander armwin created 0:30, 0:42, 1:00, 1:11, 1:19; first armck 0:29 to 1:12 (43 s)."
+  },
+  {
+   "defect": "Our chat lines cut at 127 characters by the engine: 'What would you build next?' (3:35) never reached the table, and the 5:17 question ended at 'swa'. Group B.",
+   "fixed": "2026-09-26 (01cb124)",
+   "evidence": "say 3:35 '... rebuilding behind 2 LLTs with maces. What would you build next?' arrived as '... with maces.'; 5:21 chat '... Any tip for surviving a t1 bot swa'."
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-other-quicksilver",
+   "relation": "supports",
+   "note": "This game is the source of two of its quotes: '~30 pawns before mace' (player 0, the opponent, 0:51/1:04) and 'moving the commander arround costs build power' (player 1, the advisor, 3:34). The block dates the games 2026-09-19/20; this record's wall clock is 2026-09-21 22:34 EDT (2026-09-22 UTC)."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "supports",
+   "note": "The commander built five windmills and walked to spot_21 instead of assisting the lab (assist4 2 s); the first constructor took 43 s at a crawl. The advisor's 3:34 line is the same advice from another person."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Seen from the receiving side: his first handful of Pawns crossed by 2:07 and punished a four-constructor opening with no soldier."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Our far extractors at spot_20/16/17/21 had no turret; raid_ledger counts 5 of 7 losses undefended, the first at 2:10."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "The home wreck field (132 metal at 3:00, 944 at 5:00) was left until 5:11; reclaimed, it paid +77 metal a second."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "No turret with any outer spot (the first at 2:55); the only trade won was at the home turret (3:00-3:18, six Pawns for 80 metal); pairs against parties of five to eight lost for nothing (a hands defect since fixed)."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "The lab before any generator, five windmills after it, energy 0 at 1:00, e0% 14.2, the commander off the plant (assist4 2 s)."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "Four constructors before the first soldier on Quicksilver against a Pawn opening; all four dead by 2:45 at the far spots (the packet asked for 'a couple'; the lab-queue defect made it four)."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "The walk to spot_21 (the advisor's 3:34 line); at home beside the turrets the commander traded best (3:00-3:18, 5:23-5:30)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The opponent's Pawns were at our field constructors at 2:07, the person-side version of the pool's first soldier in his half."
+  },
+  {
+   "id": "The Quicksilver packet from Matt's line",
+   "relation": "illustrates",
+   "note": "Both of the derivation's don'ts (not four constructors, not the lab before generators) are in this game, which predates Matt's line in the texts (b31c9ed)."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "The player's 3:00 'Maces beat Pawns head-on' against the opponent's '~30 pawns before mace'; the two Maces died with the lab in engagement #2. Too small to settle it (reader's reading)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 0:20-2:15, 3:30-4:50",
+   "run/impedance_sweep.py",
+   "record-0.jsonl decision rows (kind lab/builder) and created/destroyed events",
+   "strategist-0.jsonl orders and turn texts",
+   "bot.log",
+   "docs/briefs/inbox/1790044496-human-1.md (the player's debrief)",
+   "docs/experiments.md row human-1"
+  ],
+  "existing_review": null,
+  "confidence": "high",
+  "caveats": "No truth file: the opponent's numbers are what we saw (floors), and his start is unknown (the Pawns came from the south). minutes.py and the record take his start as E3 (the lobby-box guess beside our home), so its 'his half', WINDOWS and UNITS SENT sections mean nothing here. analyze_match reports outcome None: the record has no result line when the host ends the game; the result is from the ledger. pro_baseline.py not run (Comet only; Quicksilver has no cards). hands_window shows only commander plays in the opening; the lab's picks were read from the record's decision rows. Chat speakers are '?' in chat.jsonl; the opponent/advisor split (player 0/player 1) is the ledger's. Date: the record's wall clock is 2026-09-21 22:34 EDT; the repository dates the game and its fixes 2026-09-22, as here. Confidence is high for the facts, medium for ranking the root (packet against the lab-queue defect)."
+ },
+ "open_questions": [
+  "Who were player 0 (the opponent) and player 1 (the advisor), with ratings? The record and the start script carry no names.",
+  "With the one-deep lab queue (0e6f54f) alone, the first soldier would have started at about 1:38 instead of 2:24, against Pawns at 2:07: would that have saved the field builders, or was the constructors-first packet the loss either way? Reader's estimate, untested.",
+  "L-other-quicksilver dates the first games with people 2026-09-19/20; this record's wall clock is 2026-09-21 22:34 EDT (2026-09-22 UTC). Should the block's dates be corrected?",
+  "The player's question 'What would you build next?' (3:35) was cut by the 127-character limit; the advisor never answered it. Was any other advice lost the same way in the early lobby games?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790044496-human-1.json"
+}

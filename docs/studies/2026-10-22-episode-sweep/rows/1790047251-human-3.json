@@ -1,0 +1,232 @@
+{
+ "batch": "1790047251-human-3",
+ "label": "human-5",
+ "map": "Quicksilver Remake 1.24",
+ "date": "2026-09-22",
+ "shape": "1v1",
+ "people": "One unnamed person playing Armada (all Pawns). His rating is not recorded: the header has no person (a shim bug of the time) and the chat gives no name. No spectator, and no computer_whisperer line in this game's chat.",
+ "our_side": "Seat 0 (ally team 1; 'Unusual Emphasis', player 1 in chat), Armada (armcom from E3). Player: claude-opus-5 at effort low on the claude2 account (Claude Code 2.1.278), no commander. Hands: Jev jev-latest, which was jev-1.13.0. Realtime, no lockstep. Matt's opening was in the texts and the first packet.",
+ "build": "b31c9ed (2026-09-21 23:20 EDT: 'The opening to copy is Matt's': Matt's first three minutes in the brief, the hands' default text and the prompt's build-order line)",
+ "result": {
+  "outcome": "lost",
+  "minute": "5:03"
+ },
+ "summary": "The first game against a person with Matt's opening as the packet matched Matt's up to the lab (extractors 0:03/0:25, wind 0:11/0:18, lab 0:33; the ledger records that the user called it better). Then the lab chose a second constructor at 0:53, three seconds into the first, so the first Pawn came at 1:40 (Matt's at 1:12), and the commander built generators one at a time until 2:17, the last two into a full energy store, helping the lab only from 2:24. The person, by his own account at 4:20 ('2 mex, wind because the speed was high. one construction bot expanding all else was pawns'), had Pawns at D4 by 2:08 and four by 2:17. Ours met them in groups of two and three, 600 to 1,000 from our commander, and by 3:00 we had lost 5 Pawns, both constructors, 4 wind, a solar and 2 extractors (plus the frame at spot_16) against 3 of his. A three-Pawn group then chased east to F3 while the wind field burned, energy sat at zero from 3:30 to 4:00, and the Maces (from 2:52) and two light-turret frames came too late. 11 to 14 Pawns killed the split Maces and then the lab at 4:54, and the record ends at 5:03 with our commander at 14% health among 11 Pawns.",
+ "root": {
+  "clock": "0:53",
+  "what": "The lab picked a second constructor while the first was 3 s into its build. The 0:33 packet had asked for 'a second constructor when we have only one', and the lab's words read '0 constructors and 1 more being made'. That constructor stood at 1:40, the first Pawn started at 1:40 instead of about 1:16, and the second constructor walked to spot_16 (D4) and died at 2:18. The same chain kept the commander on generators until 2:24 (Matt's commander helped the lab from 1:36). With Pawns at D4 by 2:08 and four by 2:17, we met the rush with three Pawns. Owners: the packet (an ambiguous count) and the hands (they do not keep counts).",
+  "evidence": "jev log 0:50 'lab_13871.next=armck(0.99)', 0:53 'armck(0.49)' with criteria 'We have 0 constructors already and 1 more being made'; record: armck created 0:51 and 1:15, first armpw created 1:40, finished 1:51"
+ },
+ "turning_points": [
+  {
+   "clock": "0:53",
+   "what": "The second constructor was queued before any Pawn (Matt's second came at 1:45, after six Pawns).",
+   "evidence": "jev 0:53 lab_13871.next=armck(0.49); record: armck 10335 created 1:15, finished 1:40; armpw 19808 created 1:40"
+  },
+  {
+   "clock": "2:09",
+   "what": "The commander built wind into a full energy store instead of helping the lab. The guard order on the lab came first at 2:24, and Pawns then came every 4-5 s instead of every 11-12 s.",
+   "evidence": "jev 2:09 commander.do wind_generator 0.42 (assist_lab 0.18), energy '1249 of 1254 stored (full: what comes in beyond this is wasted)'; 2:17 wind 0.49; record cmd 2:24 guard 28471 13871; armpw finished 2:37, 2:41, 2:46, 2:51"
+  },
+  {
+   "clock": "2:12",
+   "what": "group_A (2, then 3 Pawns) was sent to D4, about 1,000 from home, after one Pawn. The party there grew to four, and all three Pawns and both constructors died by 2:32.",
+   "evidence": "hands_window 2:12 'group_A: 2 at (4063, 2643), task engage PLAYS group_A: attack party_1 (1 armpw)'; 2:32 'party_1=4 armpw@(3557,2996) group_A: 1'; record: armpw lost 2:27, 2:29, 2:32; armck lost 2:18, 2:31"
+  },
+  {
+   "clock": "2:54",
+   "what": "group_B (3 Pawns) chased party_2 east to F3 while party_1 (3-4 Pawns) was in our wind field at E3. The commander answered party_1 alone. Between 2:53 and 3:18 the base lost 8 wind, a solar and spot_8.",
+   "evidence": "hands_window 2:54 'party_1=3 armpw@(3521,2369), party_2=3 armpw@(4643,2657) ... group_B: attack party_2'; 3:10 'group_B: 2 at (5328, 2368)'; record: armwin lost 2:53-3:18, armsolar 2:59, armmex 3:00"
+  },
+  {
+   "clock": "3:24",
+   "what": "The two home extractors (spot_12, spot_10) were lost. Energy was at zero from 3:30 to 3:50 with metal income at 2, so the lab crawled.",
+   "evidence": "raid_ledger '3:24 spot_12 E3 armpw 8 armpw ... 3:28 spot_10 E3 armpw 7 armpw'; samples 3:30 e [1, 56.9, 56.1, 1151], 3:50 e [0, ...], 4:00 m [0, 2.0, ...]"
+  },
+  {
+   "clock": "4:31",
+   "what": "The last fight: 11-14 Pawns against a split defence, with group_F (2 units) holding at E4 and group_G (3) at home. We lost 3 Maces and a fourth still being built, then the lab at 4:54. The record ends with our commander at 14% health.",
+   "evidence": "analyze_match '#2 at 4:31 E3 (at our base): we lost 1519 metal, they lost 378; before it we had 552 of soldiers there against 540'; hands_window 4:29 'party_1=11 armpw' group_F at (4074, 2928), group_G at (4105, 2378)"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:33",
+   "what": "The opening packet allowed a second constructor ('when we have only one'), sent constructors outward to spot_16 and spot_20 (D4, 1,318-1,366 on foot), and answered raids with 'a detachment of two or four'. A stronger player opens with one constructor and then only Pawns, as the person did, keeps the constructor on the near spots (spot_8, spot_14), and keeps the raiders in one body with the commander.",
+   "evidence": "instruct 0:33 'lab_1: build one constructor first, then raiders (armpw) without a gap; a second constructor when we have only one' ... 'Raids: ... send a detachment of two or four from the nearest group'",
+   "kind": "both"
+  },
+  {
+   "clock": "0:53",
+   "what": "The lab took a second constructor from the words '0 and 1 more being made' while the first was being built, which pushed the first Pawn to 1:40.",
+   "evidence": "jev 0:53 lab_13871.next=armck(0.49); record armck created 1:15, armpw first created 1:40",
+   "kind": "harness"
+  },
+  {
+   "clock": "1:09",
+   "what": "The commander built generators one pick at a time until 2:17, 8.5 s apart. The last two went into a full energy store, and it reached the lab only at 2:24. The packet had said to build wind 'until energy banks up high; after that help the lab'.",
+   "evidence": "jev picks: wind 1:09 0.83, 1:44 0.62, 1:59 0.54 (energy 1094/1254), 2:09 0.42 and 2:17 0.49 at 1249/1254 'full'; assist_lab 0.15-0.20; record guard on the lab 2:24",
+   "kind": "harness"
+  },
+  {
+   "clock": "0:39",
+   "what": "The player waited 90 s after the opening and set no produce restriction until 2:09; even then it still allowed armck. At 2:41 it asked for 'one constructor when we have no constructor at all', so the lab spent 110 metal on a constructor at 2:51 with four Pawns in the base.",
+   "evidence": "commander_turns: 0:39 wait 90; 2:09 produce lab_13871 [armpw, armck]; 2:41 instruct 'Build one constructor when we have no constructor at all'; jev 2:47 armck 0.91; record armck created 2:51",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:12",
+   "what": "Pawns went out in pairs and threes after one raider, about 1,000 from the commander, and were beaten piecemeal by a party that grew to four. The player said the same in its 2:31 note.",
+   "evidence": "hands_window 2:12-2:32 (group_A 2-3 Pawns engaging at D4); note 2:31 'lost a constructor and two pawns trading piecemeal'; analyze #0 2:18-3:24 we lost 1155, they lost 216",
+   "kind": "both"
+  },
+  {
+   "clock": "2:54",
+   "what": "Three Pawns chased a party east to F3, 1,250 from home, while 3-4 Pawns burned the wind field. They traded 2 of his for 1 of ours there, and the base lost 8 wind, a solar and an extractor.",
+   "evidence": "hands_window 2:54 'group_B: attack party_2 (3 armpw)', 3:04 'attack party_3 (2 armpw)', 3:10 group_B at (5328, 2368); record enemy armpw died 3:04, 3:06; ours 10370 died 3:06 at (5217, 2486)",
+   "kind": "harness"
+  },
+  {
+   "clock": "2:31",
+   "what": "No turret stood at any extractor. The first light turret was ordered at 3:10, and both frames (3:14, 3:30) died unfinished. At 4:54 the player concluded that a turret and soldiers on the near extractors had to exist before 2:30.",
+   "evidence": "--told 2:15 'extractors under threat: E4 (1 enemies, NO turret); D4 (1 enemies, NO turret)'; record armllt created 3:14, destroyed 3:26; created 3:30, destroyed 3:50; note 4:54",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:26",
+   "what": "The order 'all soldiers mass at home' did not bring group_F (2 units) in from E4, where it died alone to 11-13 Pawns. At 4:34 the commander was building an extractor at spot_10 as the Pawns came.",
+   "evidence": "instruct 4:26 'All soldiers mass at home with the commander'; hands_window 4:29-4:37 group_F 'task hold' at (4074-4194, 2813-2928); 4:34 'commander: build a armmex at spot_10'; record armham lost 4:36, 4:40",
+   "kind": "both"
+  }
+ ],
+ "their_play": "Armada, in his own words at 4:20: '2 mex, wind because the speed was high. one construction bot expanding all else was pawns'. His first Pawn was seen at 2:08 at D4 (3344, 3074), four by 2:17 in two pairs at D4 and E4. They killed our expanding constructors first (2:18 at spot_16, 2:31), then walked into the wind field at E3 (2:49-3:18), and a second wave came from the south at 3:14-3:18. By 2:59 we had seen at least 9 distinct Pawns, 12-14 at 4:29-4:54 for the lab kill. He made no line unit we saw. We killed 16 Pawns in all. His base was never seen and there is no truth file, so his economy and tier are unknown.",
+ "defects": [
+  {
+   "defect": "Produce without counts (eras group E): the lab picked armck at 0:50 and again at 0:53, the second time with 'We have 0 constructors already and 1 more being made' in its words (K-hands-do-not-count-constructors).",
+   "fixed": "2026-09-22 (the produce cap, c6a5e85 era; first in play in human-8 at 8b594c6)",
+   "evidence": "jev 0:50 armck 0.99, 0:53 armck 0.49; record armck created 0:51, 1:15"
+  },
+  {
+   "defect": "Generators one pick at a time (eras group U): commander wind 1:10, 1:18, 1:38, 1:45, 1:53, 2:02, 2:11, 2:18, about 8.5 s apart against Matt's 6 s from one batch (K-hands-idle-gap-per-building cites this game).",
+   "fixed": "2026-09-22 (the queue-ahead, H-HANDS-QUEUE, first in human-6 at bb75274)",
+   "evidence": "record created events d=244 by 28471 at those clocks"
+  },
+  {
+   "defect": "The commander was not helping the lab: the hands rated assist_lab 0.15-0.20 and picked wind with the energy store full; Matt's commander helped the lab 'the moment it stands'.",
+   "fixed": "2026-09-22 in the texts (226652c) and the assist row on queue-ahead asks (c6a5e85); the menus rebuilt 2026-10-02",
+   "evidence": "jev 2:09 wind 0.42 at 1249/1254, 2:17 wind 0.49 at 1248/1255; first guard on the lab 2:24"
+  },
+  {
+   "defect": "Old hands' detachments (eras groups U and A): newcomers in groups of one to three sent after a lone raider at D4, about 1,000 from home and away from the commander.",
+   "fixed": "2026-10-02 (hands rebuild; this build is pre-hands-rebuild)",
+   "evidence": "hands_window 2:12 'group_A: 2 ... attack party_1 (1 armpw)', 2:15 'attack party_2 (1 armpw)'; three Pawns lost 2:27-2:32"
+  },
+  {
+   "defect": "Old hands' chase (eras group A): a group chased a party to F3 while another party raided the base, and a holding group kept its station at E4 against 'mass at home'.",
+   "fixed": "2026-10-02 (hands rebuild)",
+   "evidence": "hands_window 2:54-3:14 group_B to (5328, 2368); 4:23-4:37 group_F 'task hold' at (4112, 2905) after the 4:26 packet"
+  },
+  {
+   "defect": "Own chat as chat: the banner and the hands' line reached the player as 'player 1' chat at 0:33, and the 0:39 turn was woken by 'someone in the game said something' right after our own 'gl hf!'. No cost: the player then chose to wait 90 s.",
+   "fixed": "2026-09-22 (7e06983, the banner echo dropped)",
+   "evidence": "0:33 report 'chat since your last turn: 0:02 player 1: Unusual Emphasis is Within Reason b31c9ed'; impedance_sweep '0:39 woken: someone in the game said something'"
+  },
+  {
+   "defect": "A phantom in the picture: 'unclaimed soldiers stand at: A1' appeared in every report, including those with no soldier of ours.",
+   "fixed": "2026-09-24 (the line deleted with the old modes, 17ae210)",
+   "evidence": "--told 0:33 and 2:09 'ground: ... unclaimed soldiers stand at: A1'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-other-quicksilver",
+   "relation": "supports",
+   "note": "This game is one of the block's sources (its opponent's '2 mex, wind ... all else was pawns', 4:20). Our second constructor before any Pawn, followed by a loss to all-Pawns, bears out 'more than 1 or two construction bots will make defending yourself hard'. The block dates these games 2026-09-19/20, but the batch stamps say 2026-09-21 evening EDT."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "supports",
+   "note": "The commander was on generators until 2:17 and on the lab only from 2:24 (Matt's from 1:36). The Pawn interval fell from 11-12 s to 4-5 s once it helped."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "Our raiders fought in bodies of one to three (group_A at D4 2:12-2:32, group_B in the east 2:54-3:14, group_F alone at E4 4:31) and lost each fight."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Seen from the receiving side: his first Pawns were at D4 by 2:08 and killed our expanding constructor at 2:18. Our greedy start (a second constructor, far spots) is exactly what that pressure punishes."
+  },
+  {
+   "id": "The Quicksilver packet from Matt's line",
+   "relation": "illustrates",
+   "note": "This is the backlog's 'where we lag him (human-5)' game. It does not settle 'two constructors is very greedy' against Matt's line: our second constructor came before the first Pawn, Matt's after six Pawns at 1:45."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "The commander built wind into a full store (2:09, 2:17) while metal sat at 214-261 from 2:00 to 3:20 and helped the lab only at 2:24. Matt spent his bank to 8 by 2:00 with the commander on the lab."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "Our commander built wind at home while two and three Pawns died 600-1,000 away (2:12-2:32), and was building an extractor at 4:34 as 13 Pawns came. Losing the economy for want of the commander as the early army is what happened here."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "Every threat line read 'NO turret'. Pairs sent from 1,000 away lost to a party that grew from one Pawn to four. The player's lesson at 4:54 was that a turret and soldiers on the near extractors had to exist before 2:30. The 0:33 packet's 'detachment of two or four' invited the pairs."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "Both constructors died alone at far spots on the packet's outward list: spot_16 (D4) at 2:18, and on the way to spot_20 (D4) at 2:31."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "From 2:00 to 3:20 a bank of 214-261 sat beside an income of 8-10: what was missing was build power (the commander on generators), not metal."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "His first handful crossed and killed our first building (the spot_16 frame) and a constructor at 2:18-2:20. Ours stayed home as the guard and lost piecemeal there: a case against Quicksilver's 'first Grunts are the guard' (human-8)."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "The Mace answer from 2:52, split into two groups, lost 3 Maces (and a fourth frame), the lab and a constructor for 7 Pawns at 4:31-4:54. Compare human-1's person: 'i suspect ~30 pawns before mace is better'."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/analyze_match.py --engagement 2",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --calls",
+   "run/commander_turns.py --told",
+   "run/wake_read.py",
+   "run/hands_window.py (0:48-1:20, 2:08-3:20, 4:20-5:03)",
+   "run/impedance_sweep.py",
+   "record-0.jsonl events and samples read directly",
+   "jev-0.jsonl.zst rows read through run/jevlog.py"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "There is no truth file, so his numbers are only what we saw: minutes.py's 4:00 'window' at 5.4x is one Pawn in sight, not a lead. pro_baseline was not run (Quicksilver has no cards); Matt's line in docs/knowledge/openings.md served as the reference. hands_window prints only the plays for this 2026-09-21 log format, so the lab's and commander's ratings were read from the jev rows. chat.jsonl marks all four lines speaker '?', but the record's chat events say player 1 (ours) typed 0:39, 3:29 and 4:25 and player 0 (the opponent) typed 4:20. The ledger's 'the store never below 700' does not match the record: energy was 0 at 1:20 and from 3:30 to 3:50, and metal 214-251 from 2:00 to 3:20. analyze_match shows outcome None (no results file for a lobby game); the end comes from the record's last sample (5:03) and bot.log ('Connection reset by peer'). The date is 2026-09-21 23:20 EDT local, which is 2026-09-22 UTC and the ledger's era."
+ },
+ "open_questions": [
+  "Who was the opponent, and what is his rating? Was he the same person as human-6's 'more grunts. 2 cons is very gready on this map'?",
+  "Would Matt's line (second constructor after six Pawns, commander on the lab from 1:36, generators as one batch) have held against one constructor and all Pawns? This game never played that line.",
+  "What does the ledger's 'the store never below 700' measure? Neither store in the record stays above 700.",
+  "Would the commander fighting beside the first Pawns at home from 2:12 (K-hands-grunts-die-away-from-the-commander, human-8) have won the D4/E3 exchanges? Untested here."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790047251-human-3.json"
+}

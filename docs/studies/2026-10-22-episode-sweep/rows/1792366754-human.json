@@ -1,0 +1,279 @@
+{
+ "batch": "1792366754-human",
+ "label": "human (Azurite Shores 3v2; no ledger row)",
+ "map": "Azurite Shores 1.0.2",
+ "date": "2026-10-18",
+ "shape": "3v2",
+ "people": "[gecko]thebluegecko (34.34; played Cortex though the start script says Armada; west land, base A1-A2, never seen) and [gecko]u6bkep (19.24, Armada; the middle sea, commander on the D4 islet). The user (computer_whisperer) hosted as a spectator and said nothing in chat.",
+ "our_side": "Three seats, factions Random: t2 (seat 0) Armada at B8 on the WEST land beside both people (the lobby boxes were not honoured), t3 (seat 1) Cortex at G8 and t4 (seat 2) Cortex at H8 on the EAST land, which no enemy could walk to. Players Opus 5.5 effort medium (claude2), side commander Opus 5.5 effort high, hands Jev jev-1.14.0, realtime.",
+ "build": "f6e9a07",
+ "result": {
+  "outcome": "lost",
+  "minute": "39:42"
+ },
+ "summary": "A 3v2 on a map split by a sea: our Armada seat t2 shared the west land with both people while t3/t4 sat on an east land no enemy could walk to. thebluegecko fought t2 on land (Grunt raids, his commander planting turrets in t2's half until it escaped at 974 of 3,700 health at 9:36, Graverobbers on our wrecks, tier-2 Sumos from 14:46, Mammoths from 24:34, about 60 Wasp gunships at 37:53) while u6bkep took the middle sea from 6:00 and grew it to Dreadnoughts (17:17) and two Epochs (26:36-32:00). Our side out-earned them (50 extractors at 28:00, the east seats banking 6-11k for twenty minutes) and twice stood at his door with a large lead (12:55-15:47, 22:30-24:28), but no unit ever saw his factories and every push into the tier-2 door at A2-A3 went in pieces (the commander at 29:00: 122k lost for 40k killed). From 28:55 the Epochs' 2,450 reach killed the Basilisks, took t3's base, drove t2's body into its corner and killed t2's commander (33:45); Mammoths walked into t2's base (36:58), and the Wasps, met by no anti-air until 38:42, killed the last two commanders at 39:41-39:42.",
+ "root": {
+  "clock": "12:55-15:47",
+  "what": "The first big lead in his half was spent on his outer spots and not on his base: go_north (12:55) took B4 and A4 (13:26-15:18) as the plan ordered, his tier 2 came out at A3-A4 (advanced constructor 14:22, Sumos 14:46) and at 15:47 the body stepped back to spot_35 on the packet's 'outweighs it' clause, with his labs at A1-A3 never seen. From there the west front was tier 1 against tier 2 behind turrets (Sumos, then Mammoths), and the second lead (22:30) failed at the same door. Reader's reading; no person commented.",
+  "evidence": "commander 14:15: 'nothing of his army stands in front of it (about 1,100 seen against our 18,700)'; minutes.py seat 0 '15 | 10107/1120 (9.0) | A4 (54%)'; hands 15:47 'PLAYS group_G_t2: walk to spot_35'; HIS BASE: 'his first factory seen: never'"
+ },
+ "turning_points": [
+  {
+   "clock": "6:00-7:34",
+   "what": "While t2's 25 Pawns died at B3 for 18 Grunts (6:11-6:59), his commander walked to A5-A6 and planted light turrets beside t2's spots; t2 fell from 12 extractors (6:00) to 7 (11:00).",
+   "evidence": "raid_ledger: '6:00 spot_46 A5 corllt ... sold 0 tur 0 answer none'; '7:34 spot_52 A6 corcom ... +107s'; engagement #1 6:11-6:59 B3: lost 994 (16 armpw), they lost 774 (18 corak)"
+  },
+  {
+   "clock": "9:20-9:38",
+   "what": "His commander, in t2's half, was shot from 3,689 to 974 health and walked out of sight; the hunt ended with the sighting and the body went to shell buildings. (Here a commander's death did not eliminate its seat: t2 played on after 33:45.)",
+   "evidence": "record en: '9:34 corcom A5 hp 1190 ... 9:36 hp 974, 5 of ours within 600; 9:38 not in sight'; hands: '9:20 attack party_7 (1 corcom) with the whole group' then '9:39 advance to a5_post'"
+  },
+  {
+   "clock": "9:20",
+   "what": "The side left the middle sea to u6bkep: t4's hovers, turned back by floating lasers at D4, were sent to the west land; nothing of ours fought at sea again until t4's bombers on spot_33 (12:21) and t3's shore turrets and shipyard (13:11-15:20).",
+   "evidence": "commander 9:20: 'u6bkep's floating lasers in the middle water out-range our hovers, so the hovers stop fighting there and fight on the west land beside t2 instead, until bombers come'"
+  },
+  {
+   "clock": "16:57-17:44",
+   "what": "The body met 7-9 Sumos at A3-B3 in pieces while the hands flipped its play between attack, walk back and shell every one to three seconds; 66 soldiers became 38 by 17:35.",
+   "evidence": "analyze #13 16:57-17:44 B3: 'we lost 9020 ... they lost 2800 (corcan 5)'; hands 17:17-17:23: attack party_61, walk to spot_31, shell party_61, advance to spot_31, attack party_61"
+  },
+  {
+   "clock": "19:00-22:38",
+   "what": "Recovery: t3's Ducks, t2's Hounds and Janus and the bombers broke the Sumos; the trade evened and the body (110, 19k) marched north.",
+   "evidence": "commander 22:30: 'he lost about 23,000 (48 Sumos, 45 Graverobbers, Dreadnoughts, subs), as much as we did'; seat 0 22:38: 'The body (110 soldiers, 19k) now marches north to A3, A2, A1/B1'"
+  },
+  {
+   "clock": "22:55-24:34",
+   "what": "The hands took the body into the C3 and B3 Scorpion nests (good trades, but 1.5 minutes); it reached A2 at 24:28 as the first Mammoth appeared there.",
+   "evidence": "seat 0 22:55: 'the hands took the body to the C3 nest'; 23:51: '3 of 73 soldiers in reach and losing Hounds one at a time'; first corsumo seen 24:34 A2"
+  },
+  {
+   "clock": "25:15-29:18",
+   "what": "Three pushes into the A2 door (5-6 Mammoths, two Scorpions, Twin Guards) arrived strung out; the retreat flipped with 'advance to shelling' eight times in 23 s.",
+   "evidence": "analyze #32 25:15-26:03 A2: lost 9750 for 0; commander 29:00: 'In three minutes we lost 34,000 of soldiers for 2,200'; hands 25:48-26:11 walk to spot_24 / advance to shelling x8"
+  },
+  {
+   "clock": "26:36-29:25",
+   "what": "An Epoch (20,000 metal, reach 2,450) shelled from the middle sea, killed t4's three Basilisks and t3's seven Basilisk builders, and 17 Anglers sent at it died to its anti-air.",
+   "evidence": "seat 2 analyze #53 28:34 F5: 'we lost 14790 metal, they lost 0'; seat 1 28:59: 'It killed all seven Basilisk builders'; 29:25: 'All 17 Anglers died to the Epoch fleet's anti-air at E5'"
+  },
+  {
+   "clock": "30:59-33:45",
+   "what": "Two Epochs off both shores: t3's east base lost (labs, air plant), t2's held body pushed off B4/A5, t2's commander killed at home walking to its safe corner.",
+   "evidence": "commander 32:00: 'one at D6 shells t2's base, one at E8 shells t3's'; seat 0 33:54: 'our commander died at home to Epoch fire on its walk out'; record: armcom destroyed 33:45 B8, killer unseen"
+  },
+  {
+   "clock": "36:58-39:42",
+   "what": "Eleven Mammoths in t2's base, then 54-60 Wasps wiped it (38:27) and flew east; one Epoch was sunk by about 40 Anglers (37:21), but t3's and t4's commanders died to Wasps with no anti-air at H7-H8.",
+   "evidence": "seat 0 36:58: 'eleven Mammoths ... inside our base'; first corape seen 37:53 B6; analyze #57 37:21 E8: they lost 29510 incl. armepoch; corcom destroyed 39:41 H7 and 39:42 H8 by corape"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "12:55-15:47",
+   "what": "The lead (about 18.7k against 1.1k seen) went to the Exploiters at B4/A4 first and stepped back at the first Sumos; his factories at A1-A3 were never found. A stronger side goes straight for the base while his army is paying for tier 2, every seat's crossers with it.",
+   "evidence": "commander 12:05: 'the Exploiters and heavy laser at A4/B4 first, then his base'; seat 0 15:53: 'seven Sumos (about 3.9k of tier 2) stand at A2 ... The body steps back to spot_35'",
+   "kind": "both"
+  },
+  {
+   "clock": "24:28-29:18",
+   "what": "Tier 1 and Ducks fed into a tier-2 door (Mammoths 650 reach under Scorpions and Twin Guards) three times, in pieces, instead of going round it or answering it with reach (t2's own Fatboys out-range Mammoths: 700 against 650) and bombers first.",
+   "evidence": "commander 27:00: 'broke three pushes, because each arrived in pieces: the front fought at 1.2 to 1 while the tail walked'; seat 0 29:29: 'reaching six Mammoths 11 soldiers at a time with its tail 2,400 back'",
+   "kind": "both"
+  },
+  {
+   "clock": "9:20-26:36",
+   "what": "The middle sea was left to u6bkep while it was cheap (floating turrets and construction ships); the answers came late and in pieces (shore turrets 13:11, Orcas that cannot fight Barracudas, Anglers stalled 20:37 and lost 17 at 29:25). Massed Anglers sank an Epoch only at 37:21.",
+   "evidence": "seat 1 21:03: 'The Orcas can't fight Barracudas'; 20:37: 'Anglers never attacked (group stalled)'; commander signal sink_epoch given 36:30; analyze #57 37:21 E8 Epoch killed",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:37-25:30",
+   "what": "The east seats' economy did not reach the fight: t3's advanced lab (6:37) made five constructors and then stood idle until Ducks at 12:21; t3/t4 sat with full metal stores a third of the game, banking 6-11k from about 18:00 while t2 ran dry, fed by one-shot transfers.",
+   "evidence": "floor.py mfull%: t3 32.9, t4 34.4; commander 12:05: 'Your advanced lab has stood idle for minutes with energy full'; 25:30: 'Our metal store is full at 25,700: every second now wastes about 100 metal'",
+   "kind": "both"
+  },
+  {
+   "clock": "20:42-38:42",
+   "what": "No anti-air on the side until 38:42 (t2 never built one; t3 one Manticore at 13:33), his air plant never scouted although his Manticores (20:42) showed a tier-2 lab; both east commanders stood at H7-H8 with nothing over them when the Wasps came.",
+   "evidence": "finished: seat 1 coraak 1 (13:33), corvamp 4 (38:42); seat 2 corvamp 6 (38:45), corflak 4 (39:17); seat 0 none; first corape 37:53; commanders died 39:41-39:42",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:20-9:38",
+   "what": "His commander was left at 974 health: the group's attack ended when it left sight, and nothing chased its last place.",
+   "evidence": "seat 0 9:29 instruct: 'attacks his commander ... keeps attacking until it is dead'; 9:46 note: 'his commander escaped north from A5'; hands 9:39 'advance to a5_post'",
+   "kind": "harness"
+  },
+  {
+   "clock": "17:17-17:23, 25:48-26:11",
+   "what": "The hands flipped the body between attack, retreat and 'advance to shelling' every one to three seconds under fire, losing the body twice (8.4k for 2.8k; 5.9k on the retreat).",
+   "evidence": "seat 0 17:39: 'the hands sent the body back at the Sumos twice, and we lost 8.4k for 2.8k in a minute'; 26:16: 'The hands kept flipping between walking to spot_24 and advancing on the out-of-sight shooter'",
+   "kind": "harness"
+  },
+  {
+   "clock": "6:00-11:17",
+   "what": "t2's first army was spent in his half at B3 while his commander and Grunts took t2's home spots (12 extractors to 7); recovered from by 15:00.",
+   "evidence": "minutes.py seat 0 rows 6-11: extractors 12 -> 7 (analyze curves), losses A3/B3/A5/A6/C7; raid_ledger 4-8: 3, 8-12: 5",
+   "kind": "strategy"
+  },
+  {
+   "clock": "32:43-33:45",
+   "what": "t2's commander walked out through the Epochs' reach to a safe corner and died on the way.",
+   "evidence": "seat 0 32:43: 'our commander is at 39% under Epoch fire at home, so it walks to safe_corner'; 33:54: 'died at home to Epoch fire on its walk out'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "thebluegecko (Cortex, base A1-A2, never seen): Grunts and Exploiters early, Graverobbers from 4:07 (about 20 at B3 from 8:49, 45 killed by 22:30) eating the wrecks of every fight in his half; his commander down the A column from 5:40, planting light turrets beside t2's spots until 9:38; Grunt raids on t2's home 8:23-11:17; tier 2 about 13:30 (advanced constructor 14:22, Sumos 14:46, Scorpions 14:51), Manticores 20:42 against our bombers, a Persecutor frame at C3 22:51, Mammoths from 24:34 behind Scorpions and Twin Guards at A2-B2; then about 60 Wasps with Nighthawks at 37:53 that wiped t2 and killed both east commanders. u6bkep (Armada): from 6:00 the middle sea from the D4 islet (commander, tidals, Mantas, Harpoons, construction ships), advanced shipyard by about 12:30 (Paladin, Bermuda), Dreadnoughts 17:17, Barracudas 19:44, a Longbow shelling from C4 24:59, an Epoch from 26:36 and a second by 32:00 with Dragonslayers and an anti-nuke ship, shelling both shores at 2,450.",
+ "defects": [
+  {
+   "defect": "A hunt ends when its target leaves sight: the attack on his commander (974 of 3,700 health) became 'advance to a5_post' two seconds after the last sighting; nothing goes to the last-known place.",
+   "fixed": "open",
+   "evidence": "hands 9:20 'attack party_7 (1 corcom)'; record 9:36 hp 974, 9:38 not in sight; hands 9:39 'advance to a5_post' (not found fixed in heuristics or git log)"
+  },
+  {
+   "defect": "Order flips under fire: the pick alternates attack, walk back, shell and 'advance to shelling' plays for one group every 1-3 s (H7/H5 of the review skill).",
+   "fixed": "open",
+   "evidence": "hands 17:17-17:23 five plays for group_G_t2; 25:48-26:11 eight flips between 'walk to spot_24' and 'advance to shelling'; the player's notes 17:39 and 26:16"
+  },
+  {
+   "defect": "Bodies arrive strung out: groups sent across his half reach the enemy a few soldiers at a time with the tail far back.",
+   "fixed": "open",
+   "evidence": "seat 0 29:29: 'reaching six Mammoths 11 soldiers at a time with its tail 2,400 back (0.2 to 1 at the front)'; 28:07: 'meeting them in pieces at 0.8 to 1, lost 10.5k in a minute'"
+  },
+  {
+   "defect": "No standing transfer (era L): feeding the only land seat took one-shot transfers each turn while the east seats banked 6-11k.",
+   "fixed": "2026-10-20 (H-PLAYER-STANDING-TRANSFER)",
+   "evidence": "commander transfers at 6:20-38:30; seat 1 24:10: 't2 is down to 939 again, so 3,000 went to t2'; seat 1 34:16: 'The 4,000 sent to t2 seemingly did not land (... likely its cap)'"
+  },
+  {
+   "defect": "A unit transferred to a seat that cannot use it (era L, borrowed constructor / cross-faction words): t3's Cortex advanced constructor given to t2 across water, returned 12 s later.",
+   "fixed": "2026-10-19/20 (era L, per the eras list; not verified)",
+   "evidence": "record-0: given f=16599 (9:13) from team 3 at (6830, 7289), taken back 9:25; seat 0 9:15: 'our bots cannot walk from there to B8 (water between), so I gave it back to t3'"
+  },
+  {
+   "defect": "A tagged build step fired twice (era L): a re-sent Basilisk id started a third frame.",
+   "fixed": "after 2026-10-20 (era L; fix date not checked)",
+   "evidence": "seat 2 26:36: 'a third frame was started by a re-sent id and is dropped'"
+  },
+  {
+   "defect": "An empty produce list leaves a factory unrestricted (H-HANDS-PRODUCE, as designed): an air plant kept making Whirlwinds into Manticores, an Orca yard made a rez sub.",
+   "fixed": "open (by design)",
+   "evidence": "seat 2 22:07: 'the aircraft plant's empty list had left it unrestricted (it kept making Whirlwinds that died to Manticores)'; seat 1 21:31: 'The empty produce list left the Orca yard unrestricted'"
+  },
+  {
+   "defect": "An air group will not attack a named target its odds rate badly: Anglers stalled at 20:37, and the air group at the Epoch kept walking at 'outweighed 0.2:1' until the packet named the party.",
+   "fixed": "open",
+   "evidence": "seat 1 20:37: 'Anglers never attacked (group stalled)'; seat 2 37:40: 'the hands keep it walking instead of attacking the Epoch (rated outweighed 0.2:1)'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Two leads at his door (12:55-15:47, 22:30-24:28) not used on his base; his tier 2 and then his Mammoths came on."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Every push into the Sumos and the A2 door arrived in pieces (the commander's 27:00 and 29:00 notes)."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "supports",
+   "note": "t2 kept massing tier 1 (200 Maces, 165 Janus, 123 Rocketeers) into Sumos and Mammoths; its advanced lab came only at 17:59."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "His commander at 974 of 3,700 health in our half at 9:36 escaped; here commander death was per ally team (t2 played on after 33:45), so a kill would have cost him his commander, not the game."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "Both halves: the A2 door attacked three times instead of going round, and no anti-air until 54-60 Wasps had arrived; two commanders died 1:48 after the first Wasp."
+  },
+  {
+   "id": "L-mix-hovers",
+   "relation": "supports",
+   "note": "t4's 98 Goons traded nothing against floating turrets, ships and Exploiters (seat 2 13:42, 17:42)."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "Scorpions and Twin Guards at C3, B3 and A2 made each tier-1 approach pay; Fatboys (700) were the reach that out-ranged the Mammoths."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "From his side: about 20 Graverobbers at B3 from 8:49 (45 killed by 22:30) on the wrecks of our fights in his half."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Leads of about 17x (14:15, the commander) and 6.7x (22:00, minutes.py) over what was seen; his base never reached, his factories never seen."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "t3 sprinted at 6:37 on a covered land but its advanced lab stood idle until 12:21; one-shot feeding of the land seat; tier-1 bodies lost to Sumos and Mammoths at 2-5x the count."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Pushes onto unseen Mammoths under Scorpions; the hands closing on the out-of-sight shooter (26:16); his factories never seen in 39:42."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "Seat t4 took the seven water spots of our half (cases.md), but the middle sea was left to u6bkep and its Epochs decided the end."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Anti-air came 49-84 s after the first Wasp and too late; his Manticores at 20:42 were the only sign of his tier-2 production."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "East seats with full stores a third of the game (mfull 33-34%), banks of 6-11k from 18:00."
+  },
+  {
+   "id": "The nuke and the anti-nuke: the silo's clock, the anti-nuke's timing by opponent, the nuke line on three maps",
+   "relation": "illustrates",
+   "note": "t4's silo stood 31:35, missiles on A2 at 34:43 and B1 at 37:40 with no sight of the result; an anti-nuke ship with the Epoch fleet ruled out a missile on it."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "t2's commander died walking out through the Epochs' 2,450 reach (32:43-33:45); his commander's forward turret walk (5:40-9:38) is the people's version."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seats 0, 1, 2)",
+   "run/analyze_match.py (seats 0, 1, 2; --engagement 3)",
+   "run/floor.py (seats 0, 1, 2)",
+   "run/raid_ledger.py (seats 0, 1, 2)",
+   "run/commander_turns.py --notes (all seats; the commander) and --calls (seat 0; the commander)",
+   "run/wake_read.py (seats 0, 1, 2)",
+   "run/hands_window.py (9:18-9:50, 15:45-17:45, 25:40-26:20)",
+   "ad-hoc reads of record-*.jsonl (enemy commander health and sightings, first sightings by type, units finished, commander deaths, the seen trade by minute)"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No truth file: the opponent's numbers are what we saw (floors), and minutes.py's 'he starts C2/F4/G5' are guesses; his commander was seen at A2 (1131, 1073) at 3:35. The per-match tools read only record-0, so seats 1 and 2 were run through symlinked scratch views of record-1/-2. pro_baseline.py not run (Comet only); impedance_sweep.py not run. No person commented (only our 'gl hf'), no ledger row; the root and every 'because' are the reader's reading or the in-game players' and commander's notes (model readings). The seen trade (all seats, structures included) was 2:1 against from 7:00 (7,975 lost / 3,252 killed to 12:00; 141.9k / 62.1k to 29:00). Process note: this reader's first scratch views overwrote two stale shared links in the scratchpad's seat1/seat2 folders, restored to their 1792547311 targets within a minute."
+ },
+ "open_questions": [
+  "Where were his factories? No unit saw one in 39:42 although units stood 437-650 from A1/A2 at 15:00 and 24:00-26:00; the Finch the commander asked for at 10:50 is not traced here.",
+  "Was the root the land door (12:55-15:47, then 24:28) or the sea? The land army was rebuilt to 44.6k by 33:30 after the A2 failures; the Epochs were the loss the side never recovered from.",
+  "Was the 15:47 step back the hands' odds reading of seven Sumos against 51 soldiers under the packet's 'outweighs it' clause, and would a commit then have won?",
+  "Did the Apocalypse missiles on A2 (34:43) and B1 (37:40) land or meet an anti-nuke? Nothing of ours saw.",
+  "Could t3's idle advanced lab (7:00-12:00) or a shipyard have contested the sea while u6bkep had only tier-1 floating turrets?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792366754-human.json"
+}

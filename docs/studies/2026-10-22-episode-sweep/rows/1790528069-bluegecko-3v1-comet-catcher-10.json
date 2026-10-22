@@ -1,0 +1,276 @@
+{
+ "batch": "1790528069-bluegecko-3v1-comet-catcher-10",
+ "label": "bluegecko-3v1-comet-catcher-10",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-28",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko, lobby skill 34.34 in the header (OS 48 in the ranked duel list per docs/briefs/lessons.md), the opponent, alone in the west; the header lists him as Armada but every unit of his seen was Cortex. The user hosted and watched from the host's seat (computer_whisperer). No spectator spoke.",
+ "our_side": "Three seats in the east strip under one player: t1 G1 Cortex (seat 0, record-0), t2 H8 Armada (seat 1), t3 G4 Cortex (seat 2). The player was claude-opus-5-5 at effort medium (Claude Code 2.1.283), with no commander role. Each seat's hands were Jev jev-1.13.0 (the banner says jev-latest), in the one-pass era before the hands rebuild. Realtime, in the user's lobby.",
+ "build": "d2b5e2c",
+ "result": {
+  "outcome": "lost",
+  "minute": "26:42"
+ },
+ "summary": "Our three seats led on every count we could see from 4:00 to 12:00: 2.2k to 17.3k of army against at most 900 of his in sight, and 34 extractors at 7:00. The lobby's start boxes were not honoured, so the rovers and the picture looked for him in the top rows (which hold our own G1 seat), the player read the empty north as a base in the north-west (B1-C2, marked 5:24), and no unit of ours ever entered A4-C8, where his raids came from. He built turret outposts in the middle (E3/E4 from 6:01, D5 11:25, E6 16:06), raided our south-west-facing spots with Incisor swarms (8:05-11:27), and beat our first push into the west at B3 (12:26-13:36) with Pounders and stun drones. We answered with Lashers: 59 Lashers and 2 Brutes from 13:00 to 18:00, with the army held at D2. As he said himself, that made his tier 2 safe: Tigers from 17:46 and Tzars from 18:22 killed the Lasher mass at D3/E4 (18:43-20:01) and swept G1, G4 and H8 by 26:42. Our own tier-2 plant took 4:03 with about one constructor's build power, because the player's assist steps were dropped.",
+ "root": {
+  "clock": "3:17",
+  "what": "The first scouts reached the picture's 'his start' (D2, the lobby box A1-H2, which holds our own G1 home) and found nothing; a Rascal pair drove row 1 to B1 by 3:32 and turned back. From here every rover goal stayed in rows 1-2. The 0:00 packet had asked for 'the west strip spots and the enemy start box', but the rovers ranked the box first. The player had it right at 3:53 ('he may be in the west strip'), turned it at 4:17 (base at E1-F1) and marked B1-C2 at 5:24. His base was never seen, so the 5-20x lead of 4:00-12:00 never had a target.",
+  "evidence": "minutes.py: \"corfav_19457: crossed 3:07; nearest his start 125 at D2 3:17\"; \"his first factory seen: never\"; hands_window seat 0 3:32 \"group_A_t1: 2 at (1484, 560)\", then back east along z~500; first visit per cell (three records): A4-A8, B4-B8, C4-C8, D7, D8 never"
+ },
+ "turning_points": [
+  {
+   "clock": "4:17",
+   "what": "The player's correct 3:53 guess (west strip) became 'his base is probably at E1-F1', read from the rovers refusing spot_3 and spot_8 for turret reach. At 5:24 it marked enemy_nw at B1-C2 and the packet said the base was in the north-west.",
+   "evidence": "notes 3:53 \"box A1-H2 swept by rovers with no base found, he may be in the west strip\"; 4:17 \"his base is probably at E1-F1, next to our G1 seat\"; 5:24 mark {\"enemy_nw\": [1700, 800]}"
+  },
+  {
+   "clock": "8:31",
+   "what": "Three groups (9.0k at 8:00 across the seats, against 440 seen) killed the E3/E4 outposts. At 8:49 two of the groups were stationed back at F4 and G5 in our half, behind the Incisor raids. The 9:01 advance went to D2, the picture's 'his start'.",
+   "evidence": "analyze_match seat 0 #2 7:59-8:31 E3: we lost 360, they lost 1520 (3 corhllt ...); commander_turns 8:49 standing group_A_t3 station spot_42 walk, group_D_t1 station spot_27 walk; three-seat army 8951 at 8:00, west share 0%"
+  },
+  {
+   "clock": "8:05",
+   "what": "Incisor swarms of 5-11 came from the south-west (first seen at C6/D5 at 8:03) and took t2's and t3's middle and south spots: nine extractors at D5-G5 by 8:54, five more at E6-F8 by 11:27. The seats' extractors fell from 34 at 8:00 to 26 at 9:00.",
+   "evidence": "raid_ledger seat 1: 8:05 D5, 8:12 D6, 8:16 E6, 8:27 E5, 8:32 D6 (corgator); seat 2: 8:21 E5, 8:36 F5, 8:39 F5, 8:54 G5; enemy en rows: corgator at (3061, 4156) C6 8:03; extractors (3 seats) 34 at 8:00, 26 at 9:00"
+  },
+  {
+   "clock": "10:31",
+   "what": "The push (group_D_t1 and group_B_t2, 42 tanks) walked row 1 west. It killed the C1 nest (10:49-11:30) and found only extractors. At 11:50 the player wrote that his base was not in the north and turned the push south along the west edge.",
+   "evidence": "notes 11:50 \"the north box is swept: only extractors and the nest, no factory and no commander. His base must be west-middle (B3-B4/C3)\"; analyze_match seat 0 #7 10:49 C1 they lost 745, #8 11:17 C1 they lost 440"
+  },
+  {
+   "clock": "12:26",
+   "what": "At B3/A3 two of our three groups (19-22 Brutes and 17 Stouts, from A2) met 6 Pounders, 3 Brutes and Shuriken stun drones, and lost 34 tanks by 13:16 and 7 more Stouts at 13:19-13:36. t3's 16 Brutes stayed at F5.",
+   "evidence": "analyze_match #12 12:26-13:16 B3: seat 0 lost 5405 (23 corraid), seat 1 lost 2475 (11 armstump), they lost 3498 (9 corlevlr, 6 corraid ...); scene 12:26 theirs C=corlevlr x6, D=corraid x3; seat 1 #16 13:19 B3 lost 1575"
+  },
+  {
+   "clock": "12:47",
+   "what": "The plants switched to Lashers ('575 range ... to outrange Pounders'). At 13:16 the army was held at D2: 'They do NOT go west ... the old route west is abandoned'. From 13:00 to 18:00 the plants made 59 Lashers, 18 Janus and 2 Brutes.",
+   "evidence": "commander_turns 12:47 produce plant_16137/plant_8535 [\"cormist\", \"corraid\"]; record finished events 13-18:00: cormist 59, armjanus 18, corraid 2; glossary sim duels: Lasher vs Pounder -0.72, vs Brute -0.65"
+  },
+  {
+   "clock": "17:46",
+   "what": "His tier 2 arrived: a Tiger at D5 at 17:46 and a Tzar at E4 at 18:22. It killed the Lasher mass in two fights: 21 Lashers at D3 (18:43-19:00) and 36 at E4 (19:20-20:01).",
+   "evidence": "en rows: correap 21092 D5 17:46, corgol 15842 E4 18:22; analyze_match seat 0 #21 18:43 D3 lost 3255 (21 cormist) for 895; seat 2 #27 19:20-20:01 E4 lost 6050 (36 cormist) for 1749"
+  },
+  {
+   "clock": "23:16",
+   "what": "Five Tzars and Tigers pushed onto the G1 seat. The player evacuated to G4, then to H8. The commanders died at 26:08 (G8), 26:10 (H7) and 26:42 (H8).",
+   "evidence": "notes 23:16 \"Five Tzars plus Tigers push onto the G1 seat; it is lost\"; analyze_match seat 1: \"our commander died at 26:42 at H8 (at our base) to correap\"; seat 2: died 26:08 at G8"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-5:24",
+   "what": "The scouting. The opening packet kept the first handful at home ('the rest hold at home') and left scouting to the rovers, which looked only at the lobby box. The player's 4:17 and 5:24 notes then put his base north-west on turret refusals and one Pounder sighting. A stronger player sends one Rascal through D4, C4, B4 and B5 by 4:00, the way his raiders came, and marks the base when it is seen.",
+   "evidence": "instruct 0:00 \"...the rest hold at home. Scout cars scout the west strip spots and the enemy start box.\"; first visits: B4, B5, C4, A4 never; pro_baseline (top seat, --all-starts): first soldier in his half '-' (no truth file)",
+   "kind": "both"
+  },
+  {
+   "clock": "5:00-10:31",
+   "what": "The lead was spent in columns E-G and then turned north. The three seats had 3.0k / 4.1k / 6.4k / 9.0k / 12.0k of army at 5 / 6 / 7 / 8 / 10:00, with 0-3% of it west of the centre line. The orders were stations at E3, F3, E4, then F4 and G5 (8:49), then D2 (9:01); the push left only at 10:31, along the empty row 1. A stronger player takes the 9k ball west along rows 3-5 at 8:31, where the raids came from.",
+   "evidence": "own rows of the three records (scratch script): army 3024/4106/6431/8951/11956 at 5-8 and 10:00, west share 3/2/1/0/0%; minutes.py WINDOWS \"3:00-14:00 (1.5-78.3x) ... his factory in the picture: not yet\"",
+   "kind": "both"
+  },
+  {
+   "clock": "12:26-13:36",
+   "what": "The first push into his real ground was two of three groups. Both were already worn, the Brutes at 80% health and walked 3,000 along row 1. They went into Pounders, a riot tank, and stun drones at his base. t3's 16 Brutes stayed at F5 guarding against the raids. It cost about 9.5k for 3.5k, and the player abandoned the west for good.",
+   "evidence": "own rows 12:26: t1 corraid A2 19, t2 armstump A2 17, t3 corraid F5 16; analyze_match #12 seat 0 -5405, seat 1 -2475, #16 seat 1 -1575; theirs lost 3498; notes 13:31 \"about 13.6k lost vs 7.8k killed over 3 min\"",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:47-18:00",
+   "what": "The person's reading: a Lasher mass with the army held at D2 told him tier 2 was safe. 59 Lashers and 2 Brutes came out from 13:00 to 18:00 (137 Lashers over the game), and the 13:16 packet forbade going west. A stronger player keeps Brutes on his extractors at A4, B3 and C3, so he must spend on army. Lashers lose to Pounders and Brutes in the sim duels.",
+   "evidence": "chat 24:09 \"i think you made too many lashers\"; 25:10 \"...you made many lashers, so I was safe to go T2.\"; 25:18 \"brutes would ahve given you the ability to apply more pressures\"; finished 13-18:00 cormist 59, corraid 2",
+   "kind": "strategy"
+  },
+  {
+   "clock": "15:18-19:43",
+   "what": "The top seat's tier-2 plant was built by about one constructor. It placed at 15:40 and stood at 7 / 27 / 47 / 71% at 16-19:00, finished at 19:43, while the seat's store rose to 1,153 (19:00) and 1,432 (20:00). Before 17:31 the T1 plant took the metal for Lashers; after 17:31 build power was the limit, since the 17:31 and 17:46 assist steps were dropped. The 18:00 'coravp spot_5' started a second frame, which was stopped. Our first Tiger came at 20:42, three minutes after his. The user's diagnosis: 'one constructor on its advanced plant and a second ... started a second frame'.",
+   "evidence": "record samples coravp 16994: 7% 16:00, 27% 17:00, 47% 18:00, 71% 19:00, finished 19:43; impedance_sweep 17:39 \"constructor_4955: the step 'assist' of its list could not be played this second and was dropped\"; 13998 created 18:35, destroyed 19:15",
+   "kind": "both"
+  },
+  {
+   "clock": "18:26-20:01",
+   "what": "The Lasher groups were fed into the Tzar and Tigers at D3 and E4. The Tzar outranges them (650 against 575), and its splash kills Lashers (860 hp). 57 Lashers were lost in two fights for 2.6k. The player's own 25:00 note: 'the ball fed piecemeal into unseen Tzars at D2-E4 from 18:30'.",
+   "evidence": "notes 18:26 \"Lashers close inside the Tzar's blind range\"; 19:36 \"Lashers (575) are being picked off by the Tzar (650): 10 lost\"; analyze_match seat 0 #21 -3255 for 895; seat 2 #27 -6050 for 1749",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:39-23:29",
+   "what": "The old hands' answers. At 9:39-9:48 group_B_t2 sent detachments of 7-14 after single Incisors and Pounders after the 9:01 'raiders ignore'. At 9:52 it fell back to 'where it last held' (F4) on its way to D2. At 22:35-23:29 the answers to Tzar-and-Tiger parties at our G1 extractors were one Rascal hunting a scout car.",
+   "evidence": "hands_window seat 1 9:39 PICK \"9 of group_B_t2 hunt party_23 (1 corga\"; 9:52 PICK \"group_B_t2: fall back to where it last held, spot_\"; raid_ledger seat 0 22:52 \"1 of group_F_t1 hunt party_91 (1 corfav)\" while \"4 corgol, 3 correap\" killed spot_11",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Cortex, alone in the west; the header's 'armada' was wrong. Scout cars came early: Rascals at G5 at 2:41 and F1 at 2:47, Incisors from 3:31. The first extractor of ours fell at 3:19 (t2 G6). He made his forward line of armed extractors and turrets on the centre column: an Exploiter, a light turret and a radar at E3 at 6:01-6:16, a Twin Guard there at 6:25, E4 at 6:56-7:54, a C1 nest at 7:39-7:40. Later came D5 (a Twin Guard at 11:25), E6 (16:06) and D1 (16:38), and extractors in our south-west (our builders were refused at D6-D8 at 14:26). Incisor swarms of 5-11 came from the south-west through C6 and D5 at 8:03-8:54 and again at 10:50-11:27. Pounders were his defensive body from 5:24 (12 seen before 12:00), with Shuriken stun drones from 12:32 (77 seen in all); 6 Pounders and 3 Brutes held B3 against two of our groups at 12:26. Tier 2 came when our Lashers did, by his own words: a Tiger at 17:46 (D5), a Tzar at 18:22 (E4), an advanced constructor at 22:07, mohos and Scorpions at 22:15-23:27. He swept G1 (23:02-24:42), G4 (24:04-24:50) and H8 (25:57-26:42) with Tzars, Tigers, Rascal swarms (126 seen over the game) and drones. His base, factories and commander were never in our sight.",
+ "defects": [
+  {
+   "defect": "The lobby's start boxes were not honoured (eras group D). The picture's box for him was A1-H2, which contains our own G1 seat; the enemy guess for every seat was D2 (3872, 880); and the rover ranked 'spots in his start box' first. Every rover goal, the 9:01 advance, the north-row push and the turrets' facing went at rows 1-2, and his base in the west was never seen. The loss rests on it in good part, together with the player's 4:17/5:24 misread.",
+   "fixed": "2026-09-28 (51aad17: our start inside another team's box discards the box guesses for the mirror, the rover ranks no box as his; H-MAP-ENEMY-START, K-map-lobby-boxes-not-honoured)",
+   "evidence": "bot.log \"[ai 0] start box of ally team 0: (0, 0) to (8192, 1229)\", \"playing corcom from (6898, 685)\"; picture start_boxes {cells A1-H2, ours: false}; minutes.py \"we start G1, he starts D2\""
+  },
+  {
+   "defect": "The rover ranked his recently seen places first, so rovers walked back and forth between the few reachable row 1-2 spots (eras group I, the old rove). The user saw this while watching, as the ledger and review record it.",
+   "fixed": "2026-09-28 (b2ccaf3, committed while the game ran; not in its build)",
+   "evidence": "hands_window seat 0 3:05-4:20: group_A_t1 from (5098, 545) to (1484, 560) at 3:32 and back east, z 430-720 throughout; review section 9a: armfav_12743 23 reversals 5:17-10:52"
+  },
+  {
+   "defect": "The tier-2 plant had no build power. Bare 'assist' and 'assist 60' steps were dropped, so the helpers went to the T1 plant. A factory step beside an unfinished frame started a second frame (18:35, 224 from the first). The coravp took 4:03 on about one constructor.",
+   "fixed": "2026-09-28 for the second frame (3086b7c: a builder told to build a factory type helps an unfinished frame within 900 up; H-HANDS-STARTED amended); the dropped bare 'assist' not checked",
+   "evidence": "impedance_sweep 17:39 \"the step 'assist' of its list could not be played this second and was dropped\" (constructor_26295, constructor_4955); 17:54 'assist 60' dropped; hands_window 17:36 PICK \"commander_t1: help plant_8535 build\""
+  },
+  {
+   "defect": "The old hands before the rebuild (eras group A): the fall-back walk to where a group last held, detachment hunts after the packet's 'ignore', and single-unit hunts against parties of Tzars and Tigers.",
+   "fixed": "2026-10-01/02 (the fall-back walks removed e690e5e; the hands rebuild)",
+   "evidence": "hands_window seat 1 9:52 \"group_B_t2: fall back to where it last held, spot_\"; 9:39-9:48 hunts of 7-14 after one corgator/corlevlr; raid_ledger seat 0 22:35-23:29 answers \"1 of group_F_t1 hunt party_84 (1 corfav)\""
+  },
+  {
+   "defect": "The unfinished-building state was not pooled across the seats. Dead Twin Guards (corhllt) at E4 (destroyed 7:59) and C1 (destroyed 11:23) still read '(being built)' at 24:00. The state itself was this build's new feature (H-HANDS-UNFINISHED-HARMLESS).",
+   "fixed": "2026-09-28 (51aad17, pooled through the team board)",
+   "evidence": "review section 6 (Z new): \"spot_37 (E4): 1 corhllt (being built); seen 16:00 ago\" at 24:00; ledger row: \"the being-built state was not pooled across seats ... fixed the same night\""
+  },
+  {
+   "defect": "Plant exit lanes were blocked by our own commanders and builders (eras group J). Twelve player turns were woken by lane wakes, and the 25:00 note said the packet could not move them.",
+   "fixed": "partly: the extractor in the lab's exit lane 2026-10-13 (3aabc77); a commander assisting from the lane not checked",
+   "evidence": "wake_read: \"plant_8535's exit lane is blocked: 1 of ours (corcom_28158)\" at 1:45, 2:54, 4:17, 8:15; notes 25:00 \"builders stood in exit lanes for 8 minutes and the packet could not move them\""
+  },
+  {
+   "defect": "Realtime cadence: 4.42 turns a minute, median 10.7 s a turn, orders in flight 86% of the game, and two session replacements.",
+   "fixed": "open (a property of realtime play)",
+   "evidence": "wake_read \"118 turns over 26.7 min = 4.42/min; wall median 10.7s\"; \"fraction of game time the player was busy (orders in flight): 86%\"; impedance_sweep \"2 session replacements\""
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "17:27",
+   "text": "Top should stop building other units while doing t2 transition"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-mix-adversarial",
+   "relation": "supports",
+   "note": "This game is the lesson's source. 59 Lashers and 2 Brutes were made from 13:00 to 18:00 with the army held at D2 ('They do NOT go west', 13:16). His first Tiger came at 17:46, and the tier 2 killed 57 Lashers in two fights (18:43-20:01)."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "'Pounders for defence': 6 Pounders, 3 Brutes and drones held B3 against 21 Brutes and 17 Stouts (12:26-13:36, about 9.5k of ours for 3.5k). Our answer, Lashers to outrange Pounders, loses the sim duel to Pounders (-0.72) and Brutes (-0.65)."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "We held 5-20x his seen army from 4:00 to 12:00 (12.0k at 10:00 against 560 seen) and never reached his base. The lead was spent in columns E-G and on the empty north row."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The B3 push was two of three groups, already worn (Brutes at 80%). t3's 16 Brutes stayed at F5, and the Stouts lost 7 more at 13:19-13:36 after the Brutes were gone."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The 0:00 packet: 'the rest hold at home'. No soldier of ours went near his real side, A4-C8, all game, while his Rascals were at our G5 by 2:41."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "Build power, not metal, bound the top seat's tier 2 after 17:31: about one constructor on the coravp (20-24% a minute) while the store rose to 1,153-1,432. In the user's words, gifted metal is nothing without the build power (3086b7c)."
+  },
+  {
+   "id": "L-other-infern8-transition",
+   "relation": "illustrates",
+   "note": "The user's 17:27 comment says the same thing (stop the other lab during the transition), and the player paused plant_8535 at 17:31. Stopping production alone did not speed the plant, since the helpers' assist steps were dropped. The bottleneck was build power."
+  },
+  {
+   "id": "L-opening-commander",
+   "relation": "illustrates",
+   "note": "The relay was said after this game. In the records, the top seat's commander assisted 67 s of the first 4:00 (assist4; pool 50), often from the plant's exit lane (wakes 1:45-4:17). The plant stalled on metal, not build power: stall4 65%, store 2 at 3:00 and 4:00, 11 factory units by 4:00 against the pool's p25 of 16."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "We never held or visited anything west of column D below row 2 (A4-C8, D7, D8). His outposts sat at E3/E4/D5/E6 and his extractors in our south-west. Our extractors fell from 34 at 8:00 to 26 at 9:00, peaked at 39 at 18:00, and 72 were lost over the three seats."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "His Twin Guard (corhllt) nests at E3/E4 (6:25-7:54), C1 (7:40), D5 (11:25) and E6 (16:06) held the middle. The player kept constructors and groups off them with 'never' lists and cleared them only with the whole ball (8:31, 10:49-11:30)."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "Exit lanes were blocked by our commanders and builders all game (12 lane wakes). The player's 25:00 note: 'the packet could not move them'."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "Feeding is build power on the frame: the coravp took 4:03 on about one constructor, its assist steps were dropped, and a second frame was started. Tier 1 (137 Lashers, 49 Janus) lost to Tzars and Tigers at every count from 18:43."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "Lashers (860 hp, 575 reach) under the Tzar's 650-reach splash: 21 lost for 895 at D3 and 36 for 1,749 at E4. Riot Pounders and stun drones beat packed medium tanks at B3."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "12.0k at 10:00 with 0% west of centre. The ball went back to F4/G5 at 8:49, and group_B_t2 fell back to F4 by rule at 9:52. The west push arrived as two worn groups at 12:26."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "His nests were taken only by the whole ball. The B3 commit went in with nothing scouted. From 21:07 the Janus 'die to shooters out of sight at D2-E3' (the Tzar from D4)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The opening held the handful at home and nothing pressed his side. The pressure was his: raiders from 2:41 and outposts in the middle from 6:01."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "supports",
+   "note": "The top seat banked 704 at 15:00, then 1,153-1,432 at 19-20:00, with the coravp short of build power and the T1 plant limited to one constructor."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "contradicts",
+   "note": "This 3v1 was behind on the trade by unit id from 8:00: about 2.2k lost against 1.1k at 8:00, 9.3k against 8.3k at 12:00, 44k against 23k at 20:00 (my count includes our abandoned frames and reclaims). It was lost on map and mix, not while ahead on trade."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "72 extractors were lost over the three seats (19, 24, 29). Undefended losses were 5, 14 and 10 by the seats' ledgers. At 22:35-23:29 single-unit hunts were sent against Tzar parties."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (record-0)",
+   "run/analyze_match.py (seat 0; seats 1 and 2 through private per-seat symlink dirs) and --engagement 12",
+   "run/pro_baseline.py (exit 1 as run; --all-starts for the top seat)",
+   "run/floor.py (all three seats)",
+   "run/raid_ledger.py (all three seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/impedance_sweep.py --counts and --from 15:18 --to 18:45",
+   "run/hands_window.py (seat 0 3:05-4:20 group_A_t1; seat 0 17:31-18:10 commander and builders; seat 1 9:36-10:35 group_B)",
+   "python over record-0/1/2.jsonl (three-seat army, extractors, west share, first visit per cell, enemy first sightings, finished units by phase, the coravp frames, the trade by unit id)",
+   "bot.log; git show 51aad17, 3086b7c, b2ccaf3"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790528069-bluegecko-3v1-comet-catcher-10/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, batch.json or results.jsonl, so his economy, army and base location are unknown and his numbers are floors. minutes.py, analyze_match, floor, raid_ledger, wake_read and hands_window read only record-0 (the top seat); seats 1 and 2 were read through private symlink directories. My first try put those links in the shared scratchpad's seat1/seat2, which belonged to another reader, so the tools read the SD-129 game. Those numbers were thrown away and the other reader's links restored. pro_baseline needs --all-starts, and then it compares one seat of a 3v1 to a duel pool. The date: the batch's unix time reads 2026-09-27 16:54 UTC, but lessons.md, the inbox file and the commit messages date game 10 2026-09-28 (the machine clock ran a day behind the session's dates). chat.jsonl marks the 17:27 line '?'. The record gives it to player 2, the host's seat, without the [WReason] prefix, and the rework design (section 6) makes that the user's comment. The inbox file players-chat-2026-09-28.md gives it to thebluegecko and review.md to a spectator. Where I differ from review.md: (1) The tier-2 plant was not at 0% for three minutes. The 15:40 frame built 7/27/47/71% at 16-19:00 and stood at 19:43. The 0% frame was a second one, started by the player's 18:00 'coravp spot_5' (placed 18:35, dropped 19:15). The cause was build power: dropped assist steps and about one constructor, as the user said (3086b7c). (2) The B3 push was two groups (19-22 Brutes and 17 Stouts at A2 at 12:26), not the top seat's Brutes alone, and it lost about 9.5k with the Stouts. (3) The 0:00 packet did ask scouts for the west strip, so the rovers' box ranking overrode a correct instruction. (4) My three-seat army counts finished units only (12.0k at 10:00 against the review's 12.7k). The rest of the review stands, ranked here by root."
+ },
+ "open_questions": [
+  "Where was his base? It was never seen. His extractors at A4 (seen 12:56) and B3 and the raid routes (Incisors at C6/D5 at 8:03) point to the west middle or south-west (A4-B5), but there is no truth file.",
+  "How big were his economy and army at 8:00-12:00, when we held 9-17k against at most 900 seen? Would the 9k ball sent west along rows 3-5 at 8:31 have found and broken his base before his Pounders and drones massed?",
+  "3086b7c fixed the second frame. Was the dropped bare 'assist' step (17:39 'could not be played this second and was dropped') also fixed, by the hands rebuild or later?",
+  "The backlog's episode index tags this game with group C (the water words) and group X (the heuristic bot). Comet is a land map and the pianist played, so both read as over-tags. Group K's tag likely means the second frame, which 3086b7c addressed on 2026-09-28, earlier than group K's 2026-10-17 frames fix.",
+  "thebluegecko's 25:37 'you are getting better': this game ran 26:42 against game 9's 20:16. Was that the opponent's reading of the scouting and mix, or of the length alone?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790528069-bluegecko-3v1-comet-catcher-10.json"
+}

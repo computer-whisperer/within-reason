@@ -1,0 +1,227 @@
+{
+ "batch": "1792369310-human",
+ "label": "1792369310-human (no ledger row; the second Azurite Shores game of 2026-10-18 evening, after 1792366754-human)",
+ "map": "Azurite Shores 1.0.2",
+ "date": "2026-10-18",
+ "shape": "2v1",
+ "people": "[gecko]thebluegecko (lobby skill 34.34, OS 34), the lobby's side Armada but played Cortex (corcom, corcv, Garpikes seen), from A4; spectators [gecko]u6bkep (19), [gecko]Covariance (16.8) and computer_whisperer (the user, host)",
+ "our_side": "Two seats in the east box, factions Random, handicap 0 on both sides: t1 (team 1, ai 0, record-0) Cortex from G1 (7030,625); t2 (team 2, ai 1, record-1) Armada from G5 (7240,4978). Players Opus 5.5 medium a seat (claude-opus-5-5, Claude Code 2.1.303) under an Opus 5.5 high commander (15 turns); hands Jev jev-1.14.0, hands effort normal. Jev $0.66 (t1) + $0.51 (t2) by floor.py; players 52 and 57 turns, 61,910 and 66,165 output tokens.",
+ "build": "f6e9a07 (2026-10-18 18:53, H-ENEMY-GONE-NEEDS-SIGHT; banner 'Within Reason f6e9a07 | player (claude-opus-5-5, effort medium ...) | hands: Jev jev-1.14.0')",
+ "result": {
+  "outcome": "won",
+  "minute": "18:32 (he resigned: 'gg wp' 18:31, '!resign' 18:32; the record ends 18:44)"
+ },
+ "summary": "A 2v1 on an island map (sea in columns C-E) against thebluegecko (Cortex, base at A4). On the commander's first direction t1 opened a Hovercraft Platform (1:45) and its Goons were in his box at 3:46; by 9:00 they had killed 15 of his extractors and 7 constructors, while t2 Armada took the south land and water spots and sprinted to an advanced vehicle plant (standing 7:10). He answered with Garpikes landing on both our shores from 7:04 (Salamanders from 11:15), which cost the side 21 extractors without one raiding party paying, and with tier 2 at A4 by 9:00 (advanced vehicle plant, aircraft plant, 9 mohos, two fusions by 13:54). We led throughout (side army 4.5x what was seen at 7:00, 35-38 extractors to his 6-10 seen), but the first strike at 9:30 was seven Pincers and was pulled back; the commander gathered both seats' amphibious units under t2 by transfers (9:03, 12:03, 15:03) and signalled strike_a4 at 13:33. The joined body (37-57 units, 10.7k-16k) reached his base 15:00-16:30, killed his vehicle plant 17:39, advanced plant 17:51 and both fusions, and he resigned at 18:32 with his commander at B4 under it.",
+ "root": {
+  "clock": "9:30",
+  "what": "The game never left the winning path (a win); the earliest avoidable delay of the win (reader's reading): with his tier 2 just seen and many of his Garpikes on our shore, t2 sent its 7 Pincers onto his commander at 9:27 before t1's given Caymans and Garpikes reached meet_b5, against the commander's 9:03 order to gather first. The thin body bled to his commander and Salamanders, held at spot_47 from 10:30 and went back across the sea at 12:11; the body that won reached his base only at 15:00-16:30, so a 3.4-11x lead from 7:00 took until 18:32 to convert.",
+  "evidence": "reader's script (seat t2's soldiers within 1,500 of his base at (1032,3192)): 9:30 '7 (1400.0)', 10:30 '9 (2000.0)', 12:30 '0 (0)', 15:00 '16 (3300.0)', 16:30 '37 (9605.0)'. Side army 6,540 at 9:00. Commander 9:03: 'When the given units reach meet_b5, the whole body goes onto his_base'"
+ },
+ "turning_points": [
+  {
+   "clock": "1:45-5:14",
+   "what": "t1's Hovercraft Platform stands at 1:45 (the commander at 0:03: 'Goons across the sea from the first minute'); the first Goon is in his box at 3:46, kills a constructor at 4:03 and six extractors at B5 at 4:47-5:14. He never builds a greedy economy: 15 extractors and 7 constructors of his dead by 9:00.",
+   "evidence": "record-0 finished '1:45 corhp'; engagement #0 '4:47-5:14 B5 ... they lost 385 ({cormex: 3, corcv: 1, corllt: 1})'; t1 6:11 note: 'Goons have killed ~13 of his extractors'"
+  },
+  {
+   "clock": "7:04-7:48",
+   "what": "His first Garpike landing at t2's home shore (G5): two extractors, three construction turrets, a radar, a solar and two winds lost for three Garpikes. Landings continue on both shores to 14:20, then Salamanders in the far south 16:29-17:15.",
+   "evidence": "bot.log t2 f=14400: 'lost armmex to corgarp at home x2, lost armnanotc to corgarp at home x2, lost armrad ...'; engagement #2 '7:34-7:48 G5 ... they lost 660 ({corgarp: 3})'"
+  },
+  {
+   "clock": "7:10",
+   "what": "t2's advanced vehicle plant stands (placed 5:12 at 15 extractors, on the commander's sprint direction). The first advanced constructor goes to t1 at 9:49.",
+   "evidence": "record-1 finished '7:10 armavp'; t2 5:12: '15 extractors, income 43, 4 land spots left: starting the advanced vehicle plant (#avp1)'"
+  },
+  {
+   "clock": "9:00-9:21",
+   "what": "His tier 2 seen at A4 (an advanced constructor being built 9:00; advanced plant, vehicle plant, commander 9:20-9:21). The commander transfers t1's Caymans and Garpikes to t2 and orders a gathered strike from meet_b5.",
+   "evidence": "first sightings: '9:00 coracv at (1032,3192)', '9:20 coravp', '9:21 corcom'; commander 9:03: 'Every amphibious and hover line unit of ours becomes one body under t2'"
+  },
+  {
+   "clock": "9:47-10:32",
+   "what": "Eight Garpikes walk through t1's base at G1/G2: 2,220 of ours lost (winds, advanced solars, a construction turret, a Goon, a turret, an extractor) for 880 of his, with 1,760 of our soldiers, 350 of turrets and the commander there.",
+   "evidence": "engagement #6 '9:47-10:11 G2 ... we lost 1490 ... they lost 880'; #8 '10:15-10:32 G1 ... we lost 730 ... they lost 0 ... ours 1760 + 350 + commander vs theirs 660'"
+  },
+  {
+   "clock": "10:30-12:11",
+   "what": "The Pincer strike is called off: held at spot_47 'while his corbw gunships are over them' (10:30), then pulled back to spot_53 on our side after losing to Salamanders and hunts (12:11).",
+   "evidence": "t2 11:56: 'the Pincer body was bleeding in piecemeal chases of Garpikes and a Salamander at B3 (lost 500 for 0 last minute)'; 12:11: 'Pincers regroup at spot_53 on our side of the sea'"
+  },
+  {
+   "clock": "13:33-14:20",
+   "what": "strike_a4 signalled by the commander; at 14:01 the hands turn the body back to spot_47 on a low-confidence pick; the player recommits at 14:20.",
+   "evidence": "hands_window t2 14:01: 'PICK split [group_B_t2: took w3 of 2 at 0.34] changed=['group_B_t2: walk to spot_47']'; t2 14:20: 'had walked back to spot_47 at 14:01; recommitted'"
+  },
+  {
+   "clock": "15:55-18:32",
+   "what": "The joined body (37 units/10.7k at 15:55, 57/16k at 16:48) fights his commander's party at A3/B4, then his base: A3 16:14-17:24 (he lost 5,029), A4 17:32-18:07 (17,497: two fusions, both vehicle plants, Tzar frames, a moho). He resigns at 18:32.",
+   "evidence": "engagements #21 '16:14-17:24 A3 ... they lost 5029', #23 '17:32-18:07 A4 ... they lost 17497 ({corfus: 2, corwin: 22, ...})'; chat 18:31 'gg wp', 18:32 '!resign'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "5:00-7:30",
+   "what": "t2 expanded along its shore (21 extractors by 7:00) with five light turrets for all of them, though the commander's 0:03 plan asked 'a turret beside each extractor on the shore'; 12 of t2's 17 raid losses had no soldier within 900 and no turret within 700. A stronger player puts a Guard/HLT with each shore spot (Guards outrange Garpikes, 430 to 305, as the commander said at 10:33) or keeps an amphibious squad on the coast.",
+   "evidence": "raid_ledger t2: '17 extractors lost ... undefended (no soldier within 900, no turret within 700) 12; ... parties that paid 0'; t1: '4 extractors lost ... with a turret 4'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:27",
+   "what": "t2 sent its 7 Pincers onto his commander 'now' instead of gathering with t1's given units at meet_b5 as the commander ordered; then at 10:30 it held them for three minutes and at 12:11 took them home. A stronger player commits the whole amphibious/hover army at once (Goons included) while his Garpikes are away, or not at all.",
+   "evidence": "t2 9:27 instruct: 'group_B_t2, group_F_t2 and group_J_t2 attack his commander there now'; commander 9:03: 'When the given units reach meet_b5, the whole body goes onto his_base'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:47-10:32",
+   "what": "t1's home guard (Pounders, Garpikes, a Cayman, the commander) lost 2,220 for 880 against eight Garpikes at G1/G2: the hands split it into hunts at single Garpikes and walks home, and the land Pounders could not follow units in the water (the second half is the reader's reading).",
+   "evidence": "hands_window t1 ~10:1x: \"group_B_t1: 2 of group_B_t1 hunt party_28 (1 corga\", 'group_I_t1: walk to home', 'group_B_t1: advance to home'; party_29 still '3 corgarp@(8060,794)' at 10:3x",
+   "kind": "both"
+  },
+  {
+   "clock": "10:33-18:00",
+   "what": "t2 banked instead of building: about 2,300 for three minutes with the advanced plant on its own power (the commander's words at 10:33), then 1,700-6,157 from 14:00 to the end while energy stalled; t1 sat at 0-250 with an energy surplus. A stronger player turns the bank into build power on the advanced plant, a fusion and Turtles, or sends it to t1.",
+   "evidence": "floor t2: 'mfull% 9.2', 'e0% 8.1'; bot.log t2 'f=30600 (17 min) metal 4362', 'f=32400 (18 min) metal 6157'; commander 18:03: 'Your bank has climbed to 6,200 over five rows'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:32-18:03",
+   "what": "t1 kept amphibious units and Goons at home against the commander's 12:03 order ('Send group_E_t1's six Garpikes to spot_47 now'): at 14:00-16:00 11-12 Garpikes and 10-14 Goons stood at home, at 18:00 29 Goons and 13 Garpikes (reader's count from record-0); the commander's own post-game note: 't1 kept Goons/Garpikes idle at home'.",
+   "evidence": "t1 12:32 note: 'group_E_t1 is 6 Garpikes merged with 3 Pounders; I keep it home as the landing guard'; record-0 18:00 home (x>5500): corsh 29, corgarp 13",
+   "kind": "strategy"
+  },
+  {
+   "clock": "14:01",
+   "what": "The hands turned the committed strike body back to spot_47 on a split pick at 0.34 while no party near it outweighed it (a corveng, a corca, a coracv with a corcv); 19 s of the player's next turn to undo, the body advancing again by 14:45.",
+   "evidence": "hands_window t2 14:01: parties 'party_62=1 corveng', 'party_58=1 corca'; 'PICK split [group_B_t2: took w3 of 2 at 0.34] changed=['group_B_t2: walk to spot_47']'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "thebluegecko (Cortex, base A4) expanded with constructors and Exploiters to B1, B4-B5, C3-C4 and lost most of it to the Goons (15 extractors, 7 constructors, 2 Muskrats dead by 9:00). He answered across the water with Garpikes (20 seen from 4:39): landings at G5 7:04-7:48, F1 7:16, H7/H8 9:35-9:51, G1/G2 9:47-10:32, H2 11:13, H3-H6 13:18-14:20, then Salamanders (14 seen from 11:15) at G7/G8/H8 16:29-17:15; the landings took 21 of our extractors and no raiding party paid. At home: tier 2 by 9:00 (coravp; 9 mohos seen from 9:58), an aircraft plant with Shurikens by 10:00 and Valiants, two fusions by 13:54, Scorpion pop-ups at A2/A6, HLTs at A3/B4, his commander forward at B4 D-gunning our body (15:55), Tigers from 16:10 and Tzar frames by 17:48, too late. He held the trade even to 16:00 (we lost 13,900, he 13,454) on 6-10 extractors seen against our 35-38. No word from him on the game beyond 'gl hf' and 'gg wp'; our player's question at 18:35 ('what would you have done differently on our side?') has no answer in the record.",
+ "defects": [
+  {
+   "defect": "A constructor of another faction could not be given its own faction's steps (the queue's names and role words followed the seat's faction): t2's armacv given to the Cortex seat t1 had armmoho refused as 'not a step' and advanced_extractor as not buildable; it worked only from the packet's sentence (era L).",
+   "fixed": "2026-10-20 (2e395b2: role words and queue names resolve against the unit's own faction)",
+   "evidence": "t1 10:08: \"queue: REFUSED: constructor_23522: 'armmoho spot_5' is not a step\"; 10:30 \"'advanced_extractor spot_9': it cannot build advanced_extractor\"; t1 16:10 note"
+  },
+  {
+   "defect": "No standing transfer (era L): the bank seat fed the other only by one-shot transfers (the commander 700 at 7:33 and 900 at 10:33; t2 600 at 8:30) while t2 banked 1,100-6,157.",
+   "fixed": "2026-10-20 (2e395b2, H-PLAYER-STANDING-TRANSFER)",
+   "evidence": "commander 7:33: transfer {from: t2, metal: 700, to: t1}; 10:33 {metal: 900}; bot.log t2 'f=32400 (18 min) metal 6157'"
+  },
+  {
+   "defect": "Hunts detach parts of a body at single raiders: t1's home guard split at the 10:1x Garpikes, t2's Pincers 'bleeding in piecemeal chases' at B3 before 11:56 despite 'sends no detachments' in the packet.",
+   "fixed": "open (the SD-129 ledger row of 2026-10-20 shows ladder hunts splitting Bulls again)",
+   "evidence": "hands_window t1: \"2 of group_B_t1 hunt party_28 (1 corga\"; t2 11:56 note: 'the Pincer body was bleeding in piecemeal chases'; floor unanswered 2/4"
+  },
+  {
+   "defect": "Jev's split pick took a course change at 0.34 that reversed a committed strike with no outweighing party (the gate's change with no bar named in the human-8v8-1 thrash study the same day).",
+   "fixed": "open (nothing built as of this build)",
+   "evidence": "hands_window t2 14:01: 'PICK split [group_B_t2: took w3 of 2 at 0.34] changed=['group_B_t2: walk to spot_47']'"
+  },
+  {
+   "defect": "An ally's moho over our extractor read as a loss: t1's report woke on 'extractor destroyed' at spot_9/spot_5 and its score line listed the upgraded spots as free; the player spent notes at 13:44, 14:50 and 15:34 sorting it out.",
+   "fixed": "unknown (not in the eras list; not checked)",
+   "evidence": "t1 14:50 note: 'our three armmohos (spot_9, 5, 12) do stand ... the score line just lists their spots as free'; raid_ledger t1: '4 extractor(s) destroyed by our own units, an upgrade or a reclaim'"
+  },
+  {
+   "defect": "Constructors standing in plant exit lanes (t1's two at 15:20, t2's two in the air plant's lane at 14:45).",
+   "fixed": "open (the 2026-10-13 fix was the extractor in a lab's lane, not builders)",
+   "evidence": "floor yard_min 0.8 (t1), 0.4 (t2); t1 15:20 note: 'constructor_1384 and constructor_13406 stood in the factories' exit lanes'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Goons in his box at 3:46, first kill 4:03, 15 extractors and 7 constructors of his dead by 9:00; he held 6-10 extractors seen all game against our 35-38."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Both ways: his unguarded expansions died to Goons; our unguarded shore spots (t2: 12 of 17 losses undefended) died to Garpikes."
+  },
+  {
+   "id": "L-mix-hovers",
+   "relation": "illustrates",
+   "note": "Goons as harass decided the early game; but 29 Goons stood idle at home at 18:00, against 'the harass units needed to not exist or be harassing'."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "A 3.4-11x army lead from 7:00 was converted only at 17:30-18:30; until then the trade ran even (13,900 lost to 13,454 at 16:00) and he reached tier 2, fusions and Tzar frames."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Seven Pincers sent ahead of the given units at 9:27 bled and withdrew; the one body of both seats' units (37-57) broke the base 15:55-18:07."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "From 15:55 the body was put on his commander at B4 from outside its D-gun, then on his plants (17:01) when his turret ring stalled it; he resigned with the commander alive under the body."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Our island's spots plus the water spots (side 35-38 extractors from 8:00) against his 6-10 seen carried the game despite 21 extractors lost."
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "illustrates",
+   "note": "Tidal generators from 5:45 (t1) and 8:40 (t2) when the wind fell to 2 (the commander at 7:33)."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "One seat sprinted (AVP placed 5:12, standing 7:10) behind the moat while the other raided; the advanced constructor went to the other seat at 9:49. Feeding ran the wrong way (t2 to t1) and t2 still banked to 6,157."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Thin early strike, a hold at spot_47, a return across the sea at 12:11, then a gathered body via unit transfers that won; 11 minutes from the first 2x to the end against the pool's 3.4."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "Amphibious raiders from the water: 21 extractors lost, no party paid; t1's four losses all had a turret within 700 (light turrets, outranged in numbers), t2's mostly none; home groups split into hunts."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "The army that matters crosses water: hover platform first on t1, Beavers on t2 (2:29), an amphibious/hover strike body; land Pounders and Jaguars only guarded home."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "t2 at 2,300 for three minutes with the advanced plant on its own power (10:33), 6,157 at 18:00, mfull 9.2%."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py (each seat through scratch links)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes --calls (both seats)",
+   "commander.jsonl read directly",
+   "run/wake_read.py (each seat)",
+   "run/hands_window.py (t1 9:45-10:35; t2 10:55-11:56, 13:48-14:03)",
+   "run/impedance_sweep.py --counts",
+   "reader's scripts over both records: side armies by minute, soldiers near his base, first sightings, kills and trade by minute"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No ledger row and no truth file: his numbers are floors from shared sight. The record's enemy_start intent was wrong until his base was seen ((6264,5976) for t1, (6392,408) for t2, corrected at 9:20), so minutes.py's 'his half' shares, WINDOWS and UNITS SENT sections and analyze_match's half labels are wrong; recomputed by x<4608 and distance to his base. minutes.py, analyze_match.py and floor.py read record-0 (t1) only; pro_baseline not run (Comet only; Azurite has no cards). bot.log's 'labs 0'/'cons 0' for t1 misses the hover platform and hover constructors. Rate-limit warnings at 89-90% five-hour use, no stop. The win's 'root' is the delay of the win, not a loss."
+ },
+ "open_questions": [
+  "What would thebluegecko have answered to our 18:35 question ('what would you have done differently on our side?')? Nothing is recorded after it.",
+  "At 17:18 the armacv's armmoho order at spot_3 removed our cormex and no moho frame appeared (t1's note): the cross-faction fault, or the extractor-grid snap fixed on 2026-10-20/21 (52e985b)?",
+  "Did the wrong enemy_start intent before 9:20 shape any hands words ('toward our side', 'in their half') the players or Jev read?",
+  "Would the 9:30 strike have ended the game near 11:00 if it had waited for t1's Caymans and Garpikes and the Goons (about 3,500 west of centre at 10:00)? Reader's reading, unverified."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792369310-human.json"
+}

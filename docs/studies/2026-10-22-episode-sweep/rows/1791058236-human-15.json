@@ -1,0 +1,271 @@
+{
+ "batch": "1791058236-human-15",
+ "label": "human-15",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-03",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (34), Cortex from B5 (the start script listed his team as Armada; his units were Cortex); computer_whisperer (the user) hosting as a spectator, silent in the chat",
+ "our_side": "three Armada seats on the east strip: t1 G1 (ai 0), t3 G4 (ai 2), t2 H8 (ai 1); one Opus 5.5 player at effort medium for all three seats, no commander; hands Jev jev-latest (jev-1.13.0), hands effort normal; the standing brief docs/briefs/player.md; realtime lobby game",
+ "build": "a58ed00",
+ "result": {
+  "outcome": "won",
+  "minute": "10:20"
+ },
+ "summary": "A realtime 3v1 on Comet Catcher: one Opus 5.5 player on three Armada seats against thebluegecko (Cortex, B5). It ended at 10:20, when a Stout and Shellshocker push killed his commander at B4; his plant fell at 10:21. Our side out-expanded him from the start (18 extractors at 4:11 and 47 at 9:13, against at most 13 of his seen) and lost only two extractors, both to two Rascals at 2:57 and 3:21. Its army led by 3.5x or more from 4:11 (6.3k against about 0.5k seen at 7:30), but until 7:30 the packet kept it off his plant and commander and sent Blitz groups one at a time to D4 and C4. There his Incisors (17 Blitzes killed, 4:00-7:00) and then Pounders (16 Blitzes and 5 Stouts, 6:00-10:00) won the exchanges, and the seen trade stood at 3,964 lost to 2,941 destroyed at 8:12. The player moved two plants to Stouts at 6:02 and the third at 8:12, sent one heavy body at his plant at 7:30, and the push was fighting at his base from 9:37; his commander killed 16 of ours before it died, and he never showed tier 2 or fought in our half after 3:00.",
+ "root": {
+  "clock": "4:32",
+  "what": "Nothing ever put the win at risk; this root marks where the game's cost and length were set (the reader's reading, no person commented). With the side's army at about 3.5x his seen, the packet sent each Blitz group to spot_33 (D4) to join one body that raided outer spots, and repeated that it never goes at his plant or commander (first said at 2:37, again at 6:02). Blitzes walked in a few at a time to his Incisors and then Pounders until the 7:30 push order; that one body ended the game in under three minutes.",
+  "evidence": "4:11 note: 'army 3060 vs >=850 seen'; 4:32 instruct: each Blitz group 'walks to spot_33 and joins group_B_t3' and 'It never goes at his plant at spot_36 or his commander'; records: 17 Blitzes to corgator 4:00-7:00"
+ },
+ "turning_points": [
+  {
+   "clock": "2:07",
+   "what": "The Rovers crossed and found his base: his vehicle plant at B4, seen 2:20, and his commander at B5. At 2:37 the player corrected his faction to Cortex.",
+   "evidence": "minutes.py t1: 'armfav_26536: crossed 2:07; nearest his start 281 at B5 2:31'; 'his first factory seen: 2:20 at B4'; 2:37 note: 'he is Cortex, vehicle plant at B4 (1264,2832), commander at B5'"
+  },
+  {
+   "clock": "2:57",
+   "what": "Two Rascals killed seat t2's two new extractors and nothing answered them. Seat t2 held 3 extractors until about 4:30.",
+   "evidence": "raid_ledger t2: '2:57 spot_65 H7 corfav ... answer none', '3:21 spot_70 G8 corfav ... none'; rebuilt 4:32 and 4:53; analyze_match t2 extractors 3 at minutes 3 and 4"
+  },
+  {
+   "clock": "4:19",
+   "what": "First fights in his half at B3 and C4. He lost two extractors, two constructors, seven Incisors and four Rascals, while our Blitzes began dying to Incisors.",
+   "evidence": "analyze_match engagements #0 4:19-4:29 B3 (they lost corcv, cormex, corgator) and #1 4:24-5:19 C4 (they lost 1319: 6 corgator, 4 corfav...); 5:20 report: 'whole game 1451 lost, 1686 destroyed'"
+  },
+  {
+   "clock": "6:02",
+   "what": "Plants t1 and t3 were moved to Stouts and Shellshockers, with the Stouts told to gather at spot_37. Pounders were first seen at 5:40 and named in the packet at 6:24. Plant t2 kept making Blitzes.",
+   "evidence": "6:02 produce plant_31576 ['armstump:2','armart:3','armstump'], plant_6902 ['armstump']; record-0 first corlevlr seen 5:40; 6:24 instruct: 'Cortex: Incisors corgator, a Pounder corlevlr'"
+  },
+  {
+   "clock": "6:30",
+   "what": "Pounders won the exchanges at C4 and D4, mostly against seat t2's Blitzes, and the seen trade turned negative.",
+   "evidence": "records (3 seats): Blitzes killed by corlevlr 16, by corgator 17; 6:42 report 'whole game 2111 lost, 1806 destroyed'; 8:12 '3964 lost, 2941 destroyed'; 10:22 note 'Blitzes lost the trade to Pounders 6:30-8:30'"
+  },
+  {
+   "clock": "7:30",
+   "what": "The push was ordered: group_G_t1 (Stouts and Shellshockers) fights to spot_38, then spot_22, then his plant at spot_36, with the Blitz army behind it and the commander to be killed when seen. At 7:51 seat t3 began a second plant.",
+   "evidence": "7:30 note: 'army 6.3k vs ~0.5k seen. Committing: Stout+art group with Blitz army following, spot_38 -> spot_22 -> spot_36 (his plant). Commander kill when seen.'"
+  },
+  {
+   "clock": "9:13",
+   "what": "Every plant was set to 15-20 Stouts. At 9:45 the kill order: group_P_t3 and group_G_t1 attack party_20 and his commander first. At 10:02 footwork was turned off ('raw').",
+   "evidence": "9:13 produce plant_26739/plant_31144/plant_6902 ['armstump:20',...]; 9:45 instruct: 'When his commander corcom is in sight, both attack it first'; 10:02 lane group_G_t1, group_P_t3 'raw'"
+  },
+  {
+   "clock": "10:20",
+   "what": "His commander died at B4, after killing 16 of ours (11 Stouts). His plant fell at 10:21 and the base was razed at 10:23. The seen trade ended at 9,926 lost to 14,241 destroyed.",
+   "evidence": "record-0 enemy_destroyed: '10:20 corcom 1788 2951', '10:21 corvp'; records: 16 of ours killed by corcom; bot.log f=18705 'enemy base at (1264, 2832) is razed'; 10:23 report '9926 lost, 14241 destroyed'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "4:32",
+   "what": "The lead was kept off the kill. From 4:11 to 7:30 the side's army was 3.5x to over 12x his seen, yet the packet sent it to raid outer spots and barred his plant and commander. One body sent at his plant by about 5:00 would likely have ended the game minutes earlier and saved the Blitzes lost to Incisors and Pounders. This is the reader's reading, backed by thebluegecko's 'time to go fight and win' (L-lead-use-it).",
+   "evidence": "2:37, 4:32 and 6:02 instructs: 'never goes at his plant at spot_36 or his commander'; minutes.py t1 WINDOWS '5:00-10:00 (2.3-17.3x, 6 min)'; one body from E3 at 8:46 to his commander's death at 10:20",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:32",
+   "what": "Blitz groups reached the gathering place at D4 one at a time, inside his Incisors' reach, and fought there in small groups.",
+   "evidence": "4:32 wake: 'group_B_t3 has lost 2 of its 11 soldiers ... attacking a party at D4; group_F_t2 has lost 2 of its 7'; 4:54 and 5:20 the same; records: 17 Blitzes killed by corgator 4:00-7:00",
+   "kind": "both"
+  },
+  {
+   "clock": "6:24",
+   "what": "Seat t2's plant kept making Blitzes for about two minutes after Pounders were seen (5:40) and named (6:24); it was switched to Stouts only at 8:12. A stronger player answers riot tanks with medium tanks at once (L-mix-pounders-mediums).",
+   "evidence": "hands_window t2 6:32-7:58: 'plant_26739: build a armflash' repeatedly; 8:12 produce plant_26739 ['armstump']; minutes.py t2 losses 471 (7), 392 (8), 880 (9), nearly all Blitzes at C4/D4 to corlevlr",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:54",
+   "what": "The hands split the Blitz army into three hunts ahead of the Stout body: 8 and 4 Blitzes against one Brute, 7 against two Pounders. The 7:30 packet said the Blitz army 'never goes ahead of' group_G_t1. Two of the hunts lost 5 of 11 in four seconds.",
+   "evidence": "hands_window t2 7:54-8:04: 'hunt party_15 (1 corraid) as group_O_t2', 'as group_P_t2', 'hunt party_14 (2 corlevlr) as group_Q_t2'; group_P_t2 4->2, group_Q_t2 7->4; group_N_t2 at (4955, 3955)",
+   "kind": "harness"
+  },
+  {
+   "clock": "5:20",
+   "what": "Energy stalled: the 2:37 packet cut the energy rule to 'otherwise no generator', and by 5:20 the side was STALLING while its extractor count tripled. The energy store was empty for 19.6% of the game on t1 and 22.5% on t3.",
+   "evidence": "floor.py e0% t1 19.6, t2 8.5, t3 22.5; 2:37 note 'Energy rule cut back'; 5:20 report 'energy 178/4850 (-146) STALLING'; analyze_match t3 energy stalled in minutes [2, 5, 6, 7]",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:00",
+   "what": "Plants stood idle on uncounted produce entries for 13-14% of their time, 20-24 s in some single minutes, while the army was the side's whole need. Irishstud14's rule is two seconds at most (L-opening-idle-lab).",
+   "evidence": "record idle flag, plant-seconds idle: t1 78 of 548 (23 in 7:00-8:00, 20 in 8:00-9:00), t2 65 of 539, t3 86 of 706 (24 in 6:00-7:00); hands_window t1 5:54-5:57 'plant_31576: kept w1 over w2'",
+   "kind": "both"
+  },
+  {
+   "clock": "1:04",
+   "what": "Each seat's plant started 30-40 s after the pool's, after three extractors and three solars, so factory units by 4:00 fell below the pool's p25 on every seat. Light turrets and radars by 8:00 were also below p25.",
+   "evidence": "pro_baseline --all-starts: first factory started t1 1:04, t2 1:14, t3 1:12 (pool median 0:34, p75 0:58); factory units by 4:00 14/15/15 (p25 17); light turrets by 8:00 3/3/5 (p25 7); radars 0 (p25 1)",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:56",
+   "what": "The final push went straight into his commander at his plant. His commander killed 16 of ours there (11 Stouts, 2 Shellshockers, 2 Rovers and a Blitz), and seat t1 alone lost 2,430 metal in that fight. Shellshockers could have shelled from their reach, or the push could have ringed the commander (L-snipe-commander).",
+   "evidence": "records (3 seats): killed by corcom 11 armstump, 2 armart, 2 armfav, 1 armflash, 15 of them in 10:00-10:30; analyze_match t1 #5 9:37-10:23 B4: 'we lost 2430 ({armstump: 9, armart: 3})'",
+   "kind": "both"
+  },
+  {
+   "clock": "5:39",
+   "what": "No wreck was ever reclaimed: the fields at C4 and B3 grew from about 1,000 to 4,259 metal with nobody working them, though the packet ordered it at 6:02 and 7:30.",
+   "evidence": "bot.log ai 0: f=9000 'wrecks: 18 known in 2 fields, 966 metal ... 0 at work'; f=18000 '52 known in 6 fields, 4259 metal (3027 safe to work), 0 at work'",
+   "kind": "both"
+  }
+ ],
+ "their_play": "thebluegecko played Cortex from B5, with a single vehicle plant standing at B4 by 2:20 and a construction turret beside it by about 9:00. He raided our south seat early, with two Rascals that killed two fresh extractors at 2:57 and 3:21, and otherwise defended his half with light turrets on his extractors (one killed a Rover at 2:57) and Exploiters on outer spots (by 5:39). His army changed as ours did: Incisors from about 4:00, which killed 17 Blitzes in C4/B3/D4 by 7:00; Pounders from 5:40, which killed 16 Blitzes and 5 Stouts; a Brute by 7:54. He fought only in his own half (his mass C4/B4, 0% in ours after minute 3) and showed no tier 2. At the end his commander fought at the plant and killed 16 of ours before dying at 10:20. His extractors seen never passed 13, against our 47. A 3v1 at even resources with his economy unseen: the reader cannot say how far behind he was, only that he held a negative trade against us until the base fell.",
+ "defects": [
+  {
+   "defect": "The hands sent detachments ahead of the body into riot tanks, against the packet's 'never goes ahead of it'.",
+   "fixed": "partly 2026-10-17 (the chase that did not withdraw at danger; a chase can be recalled)",
+   "evidence": "hands_window t2 7:54-8:04: three hunts (8, 4, 7 Blitzes) split from group_N_t2 on 1 corraid and 2 corlevlr; P and Q lost 5 of 11 by 8:04 while the parent stood 2,000 east. Part of the trade's negative stretch, not of the result"
+  },
+  {
+   "defect": "Plants stood idle because uncounted produce entries were left to Jev's pick.",
+   "fixed": "open (the role text today still makes uncounted entries Jev's choice; not checked further)",
+   "evidence": "record idle flag: t1 78 of 548 plant-seconds, t2 65 of 539, t3 86 of 706; 10:22 note: 'Plants needed counted produce entries to stop idling'"
+  },
+  {
+   "defect": "Builders and the commander stood in plants' exit lanes.",
+   "fixed": "partly 2026-10-13 (extractor sites kept off exit lanes); what these blockers were doing was not identified",
+   "evidence": "8 wakes 'exit lane is blocked', among them 2:37 armfav_9410, 6:24 armcv_1272, 7:11 armcv_15403, 7:51 two armcv, 8:52 armcom_7038, 10:02 and 10:23; floor.py stuck_s t1 430, t2 65, t3 107"
+  },
+  {
+   "defect": "A group stayed on its hold task while under fire.",
+   "fixed": "unknown",
+   "evidence": "hands_window t2 6:40-6:46: group_G_t2 'task hold' at (3334, 2673), 'hit' at 6:40, 6:44, 6:45, 6 -> 4 soldiers before 'walk to spot_22' at 6:46"
+  },
+  {
+   "defect": "No constructor worked the wreck fields, though the packet ordered it.",
+   "fixed": "unknown",
+   "evidence": "bot.log: 0 at work in every minute; 4,259 metal known at 10:00; packet orders at 6:02 (two named constructors) and 7:30 (any constructor with no list)"
+  },
+  {
+   "defect": "The opposing seat's faction was taken from the lobby's word, not from units seen.",
+   "fixed": "2026-10-03 (df0f8e7, after this game)",
+   "evidence": "0:05 note: 'all Armada vs thebluegecko (Armada)'; start script team0 side=Armada; 2:37 note corrects it to Cortex from sight. No cost seen: the opening lists did not depend on faction"
+  },
+  {
+   "defect": "Rove was a lane word for the Rover groups, not a group task.",
+   "fixed": "2026-10-07/08 (rove as a group task)",
+   "evidence": "1:45 lane group_A_t1 'rove'; 2:15 group_A_t2, group_A_t3 'rove'; Rovers got 281 from his start at 2:31; report 'destroyed 0' at 2:57 and 3:06, against the 2:37 note 'Rovers killing his extractors'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "He brought Pounders in from 5:40, which killed 16 Blitzes and 5 Stouts. Our switch to Stouts (medium tanks), last plant at 8:12, carried the push that killed him. The player's own summary: 'Blitzes lost the trade to Pounders 6:30-8:30'."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "Our Blitz mass was answered first by Incisors (17 Blitzes killed) and then by Pounders, while our plants kept making Blitzes."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "The side led 3.5x to over 12x in army from 4:11, and the lead went into raids until the 7:30 order to push. One body then went from E3 at 8:46 to his commander's death at 10:20."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Blitz groups reached D4 one at a time from 4:32, and at 7:54-8:04 the hands split three hunts ahead of the body. The trade was negative until the base fell."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "The 9:45 order was to attack his commander first when seen, and it died at 10:20, but only after it had killed 16 of ours at its plant."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first Rovers were in his half at 2:07 and found his base, but killed nothing. The first kills (an extractor, a constructor and an Incisor at B3) came with the Blitzes at 4:19."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "supports",
+   "note": "The Rovers got within 281 of his start at 2:31 without doing damage (trade 0 destroyed at 3:06), and one died to a light turret at 2:57."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "supports",
+   "note": "Plants were idle 13-14% of their time on uncounted produce entries, by the player's own note and the records' idle flag."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "The side held 47 extractors at 9:13 against at most 13 of his seen and lost only two. The economy carried a negative army trade through to the win."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "Wreck fields at C4 and B3 reached 4,259 metal and were never worked, in a game short enough that it did not matter."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Every seat built three solars and then a constructor as the plant's first unit (1:24), as the lesson intends, but the plants stood at 1:23-1:33, past the pool's p75."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "There were 8 wakes on blocked plant exit lanes, and t1 lost 430 unit-seconds to stuck units."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "A gathering place at D4 in his units' reach, filled one group at a time, fed the trade. The single heavy body, once committed at 7:30, closed the game in under three minutes, inside the pool's 3.4-minute median from twice the army to the end."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "33 Blitzes died to Incisors and Pounders (17 and 16), the seen trade stood at 3,964 lost to 2,941 destroyed at 8:12, and the Stouts won the base. It is the vehicle twin of 'Blitzes die to line bots; Stouts from the first one seen'."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "This game is the converse: behind on the seen trade from about 6:30 to 10:14 (8,471 lost to 6,891 at 10:14), and won on extractors and a commander kill. It bounds the trade as a measure; the premise that a game is decided by the commander or the economy holds."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "Two Rascals took seat t2's two new extractors at 2:57 and 3:21 with no answer and no turret. The south picket was ordered only at 4:32."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Three solars came before the plant, which started at 1:04-1:14, factory units by 4:00 fell below p25, and the energy store was empty for 19.6-22.5% of the game on two seats."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (3 seats)",
+   "run/analyze_match.py (3 seats)",
+   "run/pro_baseline.py --all-starts (3 seats)",
+   "run/floor.py (3 seats)",
+   "run/raid_ledger.py (3 seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (t1 group_G_t1 8:20-10:24 and 9:55-10:21, t1 plant 5:20-6:10, t2 6:30-7:00 and 7:44-8:16)",
+   "run/impedance_sweep.py",
+   "inline tallies of the records (deaths by killer type and minute, plant idle seconds, his commander's death)"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "No ledger row exists for human-15 and no review.md. No person commented on the game: the chat holds only 'gl hf' and 'wp!', the user was silent, and the player's closing question went unanswered. The per-match tools read record-0 only, so seats t2 and t3 were read through scratchpad views with record-1 and record-2 (and their jev logs) renamed. There is no truth file: his army, extractors and economy are what we saw (floors), and pro_baseline's pressure rows are blank. pro_baseline needed --all-starts because G1, H8 and G4 are not carded starts. The root is the reader's reading of a won game. The only word from the user dated 'during human-15' (design 2026-10-03, one brief with everything in it) is about the brief, not this game."
+ },
+ "open_questions": [
+  "What would thebluegecko have done differently against the three seats? Our player asked at 10:29 and the chat holds no answer; did he answer the user elsewhere?",
+  "The player's note says groups' 'march' held the push back. hands_window shows group_G_t1 walking back to spot_37 at 8:27 after meeting four units at C3, then shelling from 8:41. Was that the march rule or the hands' retreat rule?",
+  "Were the exit-lane blockers (constructors and the commander, 8 wakes) building in the lane (the 2026-10-13 fix) or stuck?",
+  "Why did no constructor take apart the wreck fields after the 6:02 and 7:30 orders: were their lists never empty, or was the reclaim option never offered?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791058236-human-15.json"
+}

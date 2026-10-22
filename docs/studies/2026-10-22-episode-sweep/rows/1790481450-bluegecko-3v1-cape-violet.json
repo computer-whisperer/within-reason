@@ -1,0 +1,302 @@
+{
+ "batch": "1790481450-bluegecko-3v1-cape-violet",
+ "label": "bluegecko-3v1-cape-violet",
+ "map": "Cape_Violet_V1",
+ "date": "2026-09-26",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (lobby skill 34.3 in the record header), Armada, alone in the west box with his start at B3. His only line was 'gl hf!' at 0:28 (bot.log: player 0). The user, as computer_whisperer, hosted from the host's seat and typed four comments (see user_comments).",
+ "our_side": "Three seats of ours on the east edge, all Armada (the lobby side was 'random'): t1 orange at H6 (record-0), t2 sky blue at H4 (record-1), t3 green at H2 (record-2). One player, claude-opus-5-5 at effort medium (Claude Code 2.1.283), over all three seats, with no commander role. The hands were Jev jev-1.13.0, and the decompression stage was on. This was before the 2026-10-02 hands rebuild. Realtime, in the user's lobby, on a map new to us.",
+ "build": "d265666",
+ "result": {
+  "outcome": "lost",
+  "minute": "18:18"
+ },
+ "summary": "thebluegecko opened as greedily as a person can: two Pawns were his only army until his first Welder at 7:41, he reclaimed his bot lab at 5:12 and both shipyards for an advanced bot lab at 6:58, and his construction ships took the sea (16 extractors under water by 8:00, 24 by 10:00). We took none of the map's 26 underwater spots, because every Beaver step to one was skipped as 'not free' and every shipyard order snapped to land; both were picture defects, fixed the next day in b9a43ff. Our three seats' combined army was 3.0k, 6.9k and 11.7k against his 108, 108 and 1,158 at 4, 6 and 8 minutes, but all three Rovers turned home at 2:41-2:53 and the player held and then gathered the groups in our half (3:56-7:57) instead of crossing. The commit reached his base strung out at 8:35, met five Welders, two Beamers and an LLT, and lost 6.7k while killing two Welders (700). From then on his sea extractors and reclaim-fed income outgrew us (40 extractors to our 29 at 10:00), and our Stouts broke Welder pushes at spot_29 but lost every advance through the E3 neck. His army grew from 4.3k at 10:00 to 18.5k at 16:00, and Liches from air plants we never saw killed all three commanders at 17:19, 17:29 and 18:18.",
+ "root": {
+  "clock": "3:56",
+  "what": "At 3:56 the player read 'army 2.7k vs 54 seen' and ordered the three groups to stand together at the D2 choke and hold, advancing only once they had gathered. His base had been unseen since 2:41-2:53, when the hands' pick sent each seat's Rover home on sighting a constructor and a Pawn about 700 from his start. His whole army until 7:41 was two Pawns, an LLT, a commander and one or two Beamers, and from 5:12 to 7:22 he had no land factory. The window was 3:00-8:00, at 3.6-35x on seat 0 alone. It was spent in our half: the gather stalled, and the commit landed after his Welders. Everything after 8:35 is its cost.",
+  "evidence": "minutes.py (seat 0, replay truth): 'WINDOWS 3:00-8:00 (3.6-35.2x, 6 min): our mass by minute H7 G6 G6 G6 G6 E2*'; notes 3:56 'army 2.7k vs 54 seen ... Ball to passage_2'; hands_window 2:41 'PLAYS group_B_t1: join group_A_t1 [plan]'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:41",
+   "what": "Each seat's first Rover reached about 700 from his start and turned home on sighting a constructor and a Pawn, without seeing his lab. His factory first entered the picture at 8:42.",
+   "evidence": "hands_window seat 0 2:41 'party_1_t1=1 armck, 1 armpw@(1711,1704)' then 'join group_A_t1 [plan]' p=0.62; seat 1 the same; seat 2 at 2:53; minutes: 'his first factory seen: 8:42 at B3'"
+  },
+  {
+   "clock": "3:56",
+   "what": "The ball-and-hold packet. The tool refused its standing call whole because passage_2 was not a place in the picture, so only the packet's rules acted.",
+   "evidence": "tool result: 'passage_2 is not a place in the picture; refused: group_A_t2 ...'; instruct 3:56: 'stand together at passage_2 as one ball and hold it ... When the three groups stand together ... they advance'"
+  },
+  {
+   "clock": "5:12",
+   "what": "He reclaimed his bot lab (it vanished, unkilled) and had no land factory until his advanced bot lab stood at 7:22. Both shipyards went the same way at 6:50 and 7:42.",
+   "evidence": "replay truth-1: '5:12 gone (765, armlab)'; '6:58 appears (25445, armalab) (1640, 1576)'; card: 'armalab 6:56-7:21 at B3, first tier-2 unit armack at 7:21'; army every two minutes: '6: 2 armpw'"
+  },
+  {
+   "clock": "5:17-6:55",
+   "what": "group_A_t1 stood at home on 'fight_to d2_gate' for about 100 s while the groups were to gather. Its first move west came after 6:55.",
+   "evidence": "hands_window seat 0 group_A_t1: 5:37 '19 at (8551, 3696), task fight_to d2_gate' ... 6:51 '30 at (8540, 3684)'; 7:15 '34 at (7232, 2999), task move_to spot_19'"
+  },
+  {
+   "clock": "8:35-9:03",
+   "what": "The commit reached his base at B3 strung out. Seat 0 and seat 2 lost 6.7k of Blitzes and Rovers to five Welders, two Beamers and an LLT, and killed two Welders. group_A_t2 was still short of d2_gate.",
+   "evidence": "analyze_match seat 0 #3: lost 3912 (armflash 35, armfav 2), they lost 700 (armzeus 2); seat 2 #3: lost 2781; truth 8:30 near B3: armzeus 5, armbeamer 2, armllt 1, armfark 2; card 'Fighting 8 B3 2/60'"
+  },
+  {
+   "clock": "8:12-11:00",
+   "what": "His construction ships took eight sea spots on our side (E3, F3, G3 twice, G7, G5, G1 twice). His extractors went from 31 to 40 while ours went from 28 to 29. On land we led throughout.",
+   "evidence": "replay truth-1 + terrain-0.bin: his extractors 8:00 31 (16 under water), 10:00 40 (24 under water); card spots 8:12 spot_20(E3) ... 11:00 spot_8(G1); ours (card) 13+6+9=28 at 8:00, 13+7+9=29 at 10:00"
+  },
+  {
+   "clock": "10:20-11:17",
+   "what": "The Welders came east to C3/D3. Seat t2 fought them alone, while t1 and t3 held about 3.4k idle on the spot_19 plateau pocket and at the ford edge, stuck on a fall-back walk judged by the group's centre.",
+   "evidence": "analyze_match seat 1 #4 10:27 D3 lost 2175, #5 10:51 lost 1466; topology-review.md: 'group_A_t1 held about 1.8k ... idle for 98 s' at spot_19; notes 10:36 'our groups jam at the E2/E3 land bridge (11 of 22 stuck)'"
+  },
+  {
+   "clock": "13:09-16:00",
+   "what": "Our Stouts broke Welder pushes when the Welders came to spot_29, and lost each advance into D3 through the neck. His army passed ours at 13:00 (seat 0's view) and reached 18.5k at 16:00.",
+   "evidence": "notes 13:09 'Welder push broken at spot_29' then 13:27 'Advance to D3 failed again: 11 fresh Welders, 7 Stouts lost strung out in the neck'; card army 12: 9304, 14: 13700, 16: 18500"
+  },
+  {
+   "clock": "17:00-18:18",
+   "what": "Liches with radar planes came from air plants (9:53 at A3, 12:11 at A2) that we never saw. All three commanders died, and our first anti-air finished at 17:28.",
+   "evidence": "analyze_match: commander died 17:19 H8, 17:29 H4, 18:18 H2, each 'to armliche'; first seen armawac 16:59, armliche 17:00; armap/armaap never seen; record finished armrl 17:28 (seat 1)"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-3:56",
+   "what": "We put no pressure on a greedy opening. The opening packet stood the first Blitzes as pickets at home, and the 3:56 packet balled the army at the D2 choke to hold it. Nothing crossed while his army was two Pawns, and he had no land factory from 5:12. A stronger player sends the first handful across at about 2:30-3:00 and the whole army by 4:00-5:00, to kill his constructors, extractors and lab.",
+   "evidence": "instruct 0:00: 'each seat's Blitzes gather at its home until they are a handful, then stand as pickets'; combined army (card) 4:00 3,046 vs 108, 6:00 6,896 vs 108",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:41-7:16",
+   "what": "We scouted once and stopped. Each seat's Rover turned home on the pick about 700 from his start. The 3:56 packet asked for a scout 'again whenever they have not been seen for a few minutes', but no Rover crossed again until 6:01-7:16, with the army. The player committed at 7:57 on 'nothing seen but a beamer at B3'.",
+   "evidence": "minutes seat 0: 'armfav_6877: crossed 2:19; ... back in our half at 3:04'; next armfav crossings 6:01, 6:21, 7:16 (seats 1, 2, 0); notes 5:02 'army 4.5k (~40 Blitz) vs nothing seen'",
+   "kind": "both"
+  },
+  {
+   "clock": "5:02-7:57",
+   "what": "The gather took three minutes. group_A_t1 stood at home for about 100 s on its fight_to d2_gate. group_A_t2 stood short of d2_gate from 7:10 to 9:21 and missed the push. The station set at 3:56 had been refused. Ordering each group to go straight to his base would not have waited on a gather.",
+   "evidence": "hands_window seat 0 group_A_t1 at (8540-8670, 3684-3740) 4:20-6:51; posing-review.md finding 3: 'group_A_t2 short of d2_gate 7:10-9:21 (130 s, so it missed the push)'",
+   "kind": "both"
+  },
+  {
+   "clock": "7:57-9:03",
+   "what": "The army went into his base after his tier 2 stood. Its 48 soldiers were strung over eight cells, with 17 at B3 at 8:36 under Beamers and Welders. It lost 6.7k for 700. By 7:57 his production of tier-2 bots was the real target, and arriving as one body or raiding his sea extractors would have cost far less.",
+   "evidence": "posing-review.md finding 2: 'at 8:36, 17 of its 48 soldiers were already in B3, under 2 Beamers, a light turret and 5-7 Welders'; notes 8:47 'push into B3 failed: Welders (armzeus) + 2 beamers ate ~28 Blitzes'",
+   "kind": "both"
+  },
+  {
+   "clock": "1:08-10:31",
+   "what": "We took no sea spot and built nothing in water all game. The player sent each seat's Beaver to underwater spots at 2:21, but the picture skipped every such step as 'not free'. It ordered a shipyard at 6:00 on the user's word, and the site snapped to the commander's own ground at 6:09, 7:05, 7:38 and 10:31. The commanders, which are amphibious, were never sent to a sea spot. His 24 sea extractors at 10:00 were the economic gap.",
+   "evidence": "jev-0: 'constructor_27165 skipped the step 'extractor spot_61' of its list: spot_61 is not free' x65; record no_site armsy 6:09/7:05 (9664,955), 7:38 (9246,3878); finished: no armsy, no armmex under water",
+   "kind": "both"
+  },
+  {
+   "clock": "9:40-13:30",
+   "what": "We gathered at a pocket and fed the neck. spot_19 is a plateau that opens west, and the player made it the gather point (7:09) and the consolidation point (10:36), so the groups split between the plateau and the ford below it. Then each advance to D3 went through the E3 neck in pieces, while the Welders kept coming in through it.",
+   "evidence": "topology-review.md: 'spot_19 (E2) ... opens west, down a ramp to the D3 lowland'; notes 11:47 'the neck at E3 splits our groups again, t1 fought alone'; 12:50 'groups again trickled to D3 into 7 Welders'",
+   "kind": "both"
+  },
+  {
+   "clock": "9:53-17:28",
+   "what": "We had no anti-air and no look at his production after 8:42. His air plant (9:53) and advanced air plant (12:11) were never seen, and the first Nettles finished at 17:28, after commander_t1 had died. A sensor, a scout or anti-air at each commander by 15:00 was within reach of three seats' income.",
+   "evidence": "record first enemy_seen: armap never, armaap never, armawac 16:59, armliche 17:00; finished armrl 17:28 (seat 1), 17:31 (seat 2); notes 17:07 'Emergency AA'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:00-1:24",
+   "what": "Each commander built three wind turbines on a wind of 14 that fell to 8, and energy hit 21 of 3,455 at 1:24. The player added two solars a commander at 0:56. The game recovered; this is not on the chain to the loss.",
+   "evidence": "told 1:24: 'energy 21/3455 (+3), wind now 8 of this map's 8 to 20'; notes 0:56 'Energy falling -100/s with wind at 8: two solars per commander'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Armada bots from B3. He opened with four wind turbines before the lab at 0:34, two constructors, LLTs at 1:06 and 2:28, and two Pawns (1:39, 1:49), which were his whole army until 7:41. He expanded hard: 12 extractors at 4:00 and 18 at 6:00 on land, plus geothermals from 4:20 and metal makers from 5:18. Shipyards at 4:21 (B4) and 5:15 (B2) made construction ships from 5:13, and they took the sea: 16 extractors under water by 8:00 and 24 by 10:00, eight of them on our side at E3-G7 (8:12-11:00). He reclaimed his bot lab at 5:12 and both shipyards (6:50, 7:42) and went straight to an advanced bot lab at 6:58, with a moho at 7:34. His Welders came from 7:41: 3 at 8:00, 12 at 10:00, 24 at 14:00. Two Beamers (4:38, 6:30) and an LLT covered his base. He met our strung-out Blitz column in that base at 8:35-9:03 and lost two Welders. His metal income went from 68 at 8:00 to 273 at 10:00 (the replay card's figure; my reading is that it was the reclaim of our wrecks at B3). From 10:00 Welders and Farks pushed through D3 and the E3 neck, and from 14:00 they wore our Stouts down in our half. He added an air plant at 9:53 (A3), an advanced air plant at 12:11 (A2), a Dreadnought seen at 13:32 and Longbow cruisers on the coasts. Six Liches with radar planes killed our three commanders from 17:19 to 18:18. He said nothing during the game beyond 'gl hf!'.",
+ "defects": [
+  {
+   "defect": "The water words (eras group C). The picture listed only spots our soldiers can walk to, so every Beaver step to an underwater spot was skipped as 'not free'. A shipyard at a water mark was snapped to the builder's own ground. No tidal was on the menu. The economic half of the loss rests on these: his 24 sea extractors against our 0.",
+   "fixed": "2026-09-27 (b9a43ff; b6e5819 and the snap fix 51aad17 the same day)",
+   "evidence": "jev-0 'spot_61 is not free' x65, 'spot_70' x65; jev-2 'spot_7', 'spot_22', 'spot_12' x51 each; record no_site armsy 6:09, 7:05 (seat 2), 7:38 (seat 0), 10:31; ledger: 'fixed b9a43ff'"
+  },
+  {
+   "defect": "The old hands (eras group A). The scout ended on its first sighting and joined the home group. Fall-back walks stayed the base world until arrival. Formation slots held a group at home. The army-window half of the loss rests partly on these.",
+   "fixed": "2026-10-01/02 (the hands rebuild); the hands' scout run by the rover lane 2026-09-27 (4ffc540)",
+   "evidence": "hands_window 2:41/2:53 'join group_A_t1 [plan]' on all three seats; group_A_t1 at home 5:17-6:55 on fight_to d2_gate; topology-review.md: fall_back_spot_19 the base world in 68 of 89 asking passes"
+  },
+  {
+   "defect": "The group was read as a point, its centroid. The reported place hid a column strung over eight cells, arrival was judged by the centre, newcomers were sent to a centre in the water, and the wake's loss count restarted every turn. At 8:47 the wake said 2 lost while 3,252 had died.",
+   "fixed": "2026-09-27 (c454e8c, H-HANDS-GROUP-BODY)",
+   "evidence": "posing-review.md finding 2: 'advancing to spot_26, 1953 to go' while 17 of 48 stood in B3; confusions 8:47: 'group_A_t3 has lost 2 of its 32 soldiers (220 metal)'"
+  },
+  {
+   "defect": "The odds by metal (eras group O). This build already said reach (H-HANDS-ODDS-REACH, d265666), but tier-2 Welders were priced by metal alone, and the speed of an unidentified contact was priced as a Pawn's.",
+   "fixed": "2026-09-27 (afc08b6, H-HANDS-ODDS-WHAT-SHOOTS)",
+   "evidence": "posing-review.md finding 1: 'we outweigh it heavily' 350 times on the main groups, e.g. 14:28 against 1 armzeus; 10:20 'it outruns this group at 87 against 75'"
+  },
+  {
+   "defect": "Ground groups were offered parties at sea and unreachable places, and distances were straight lines. At 11:17 the whole group_A_t3 (4.1k) was sent at a floating radar in deep water, '938 away, 13 s of walking', while 10 Welders killed the Sentry at spot_25.",
+   "fixed": "2026-09-27 for unreachable parties (dde1d1a); walking distances (changes doc 9b.1) held for scope 2026-09-27",
+   "evidence": "topology-review.md episode 2: 'group_A_t3 attacks party_11_t3 (1 unidentified) with the whole group ... 938 away, 13 s of walking'; picked w2 at p 0.36"
+  },
+  {
+   "defect": "A standing set was refused whole over one unknown place: the groups' station at 3:56 ('passage_2') and the constructors' bans at 9:34 and 9:46. The decompression stage covered for them by accident.",
+   "fixed": "2026-09-27 (987b5bd: a standing set applies what checks and names what it refused); the decompression deleted (2879bdf)",
+   "evidence": "transcript 3:56: 'passage_2 is not a place in the picture; refused: group_A_t2 ...'; 'spot_34 is not a place in the picture'; decompression-review.md: 'It covered for two refused standing calls'"
+  },
+  {
+   "defect": "The trade was summed across seats (eras group Z). The B3 push read as 6.8k for 2.1k and the game as 42-43k for 33k, while each death counted once was 700 at B3 and 24.9k for the game.",
+   "fixed": "2026-09-27 evening (ff32935, 0acc9d7)",
+   "evidence": "replay card 'Fighting 8 B3 2/60' (2 of his died); analyze_match seats 0 and 2 #3 each 'they lost 700 (armzeus 2)'; notes 15:48 'game trade 42k vs 32.6k'; ledger correction 24.9k"
+  },
+  {
+   "defect": "A false exit-lane wake fired for a constructor still being built on the pad (eras group J).",
+   "fixed": "fixed after this game, per the ledger (commit not identified)",
+   "evidence": "told 1:31 'plant_16159's exit lane is blocked: 1 of ours (armcv_13403) have stood in it for 0:30'; 1:37 the same for plant_18480"
+  },
+  {
+   "defect": "The ford was drawn as sea. The sketch drew every cell below 0 as water, so the E3-E5 shallows that both armies waded were neither a passage nor a place, and the passages listed only B3 and D2.",
+   "fixed": "2026-09-27 (987b5bd, changes doc 9.1 and 9b.4: the map tool's fords and alcoves)",
+   "evidence": "posing-review.md finding 8: 'The Welders came east through E4/E5 at height -14'; topology-review.md: 'Most of it, though, is ford at -14 to -20, and the tank limit is 20'"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:45",
+   "text": "Note: this is a water map. Check your map tool"
+  },
+  {
+   "clock": "1:08",
+   "text": "there are metal spots underwater"
+  },
+  {
+   "clock": "6:00",
+   "text": "At least one seat should build naval units"
+  },
+  {
+   "clock": "10:07",
+   "text": "You haven't taken any underwater mexes at all, and now thebluegecko has taken them"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "This is the lesson's 'extremely greedy economic opening': two Pawns until 7:41, no land factory 5:12-7:22, 18 extractors at 6:00. Our first Blitzes stood as pickets at home (0:00 packet) and nothing crossed to press him."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Our combined army was 28x his at 4:00 and 64x at 6:00 (card: 3,046 and 6,896 against 108). It went unused until 7:57 and was spent at 8:35 against his new tier 2."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The commit arrived strung out (17 of 48 at B3 at 8:36; group_A_t2 still at d2_gate). At 10:20-11:00 t2 fought alone while t1 and t3 huddled at spot_19. The player's note at 11:47: 't1 fought alone'."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "The game was lost on extractors. We led on land (28 to 15 at 8:00), but all his growth from 6:00 was under water: 40 to 29 at 10:00, 45 to 22 at 14:00. The Welder fights were the symptom."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "Here half the map was the sea: 26 of 72 spots lie under water, and we held none."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "supports",
+   "note": "A person reclaimed his tier-1 bot lab (5:12) and both shipyards (6:50, 7:42) to pay for the advanced bot lab (6:58), and made no tier-1 soldiers beyond two Pawns."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "Our Blitz mass sat in our half from 3:00 to 7:40, which made his factory-less tier-2 sprint safe. What we did with the units told him what he could get away with, as in the lesson's 'you made many lashers, so I was safe to go T2'."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "My reading, unproven: his income went from 68 at 8:00 to 273 at 10:00 after 6.7k of ours died at his base. Our 13:09 plan to reclaim about 8k of wrecks at D3 never held D3."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "This is one of 'the two Cape Violet losses'. Construction ships from 5:13 took 24 sea spots by 10:00, and we took none. The Beavers were ordered to sea spots at 2:21 but skipped as 'not free' (a defect fixed in b9a43ff), so the 'we took no sea spot' lesson rests on that defect. The commanders, which are amphibious, were never sent to a sea spot (the backlog's must-fix)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "It shows the first soldiers as pickets (the 2026-09-22 rule) against the first handful crossing. His opening was unguarded and went unpunished for five minutes."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The lead decayed from 35x at 7:00 to 1.0x at 9:00 on seat 0 (replay truth). The gathering place stalled the body for three minutes, and the body did not arrive together."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "The commit at 7:57 rested on 'nothing seen but a beamer at B3' and went into two Beamers, an LLT and five Welders. The scouts had turned home at 2:41-2:53."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "His tier 2 at 6:58, factory-less from 5:12, was our window (review item F7), and we did not take it. Our tier 1 then fought his Welders for ten minutes, and none of our three seats went tier 2 in 18 minutes."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "This is the backlog's 'a Liche's one bomb kills a commander (Cape Violet)'. The air plants (9:53, 12:11) were never seen, radar planes showed at 16:59 and Liches at 17:00, and the first anti-air finished at 17:28."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "This supports the explain-away. The seats' sum read the trade as 42-43k for 33k (and the B3 push as 6.8k for 2.1k), while each death counted once gives 24.9k for the game and 700 at B3."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "The 8:47 switch to Stouts ('350 range outranges Welder 280') broke Welder pushes that came to spot_29 (13:09). The same Stouts lost every advance through the neck (13:27)."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Three wind turbines a commander on a wind of 14 that fell to 8 left energy at 21 of 3,455 at 1:24. The fix was two solars a commander at 0:56. It is off the loss's chain."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (match dir, seat 0; and seats 0-2 from scratch dirs pairing each record with the replay's truth)",
+   "run/analyze_match.py (same)",
+   "run/floor.py (three seats)",
+   "run/raid_ledger.py (three seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 0 2:15-3:10; seats 1-2 2:35-3:00; seat 0 group_A_t1 4:20-7:40)",
+   "python over record-0..2 (Beavers, finished, no_site, first enemy sightings)",
+   "zstdcat jev-0/jev-2 (the Beavers' skipped steps)",
+   "python over the replay's truth-1 with terrain-0.bin (his army, factories, sea extractors)",
+   "the replay card 1790483222-replay-human-cape-violet/card.md",
+   "bot.log (chat speaker ids, banner)",
+   "git log (fix dates)"
+  ],
+  "existing_review": "no review.md; three model reviews in 00/: posing-review.md, topology-review.md, decompression-review.md",
+  "confidence": "high",
+  "caveats": "The match has no truth file. The re-simulated replay /ceph/christian/within-reason/run/matches-archive/1790483222-replay-human-cape-violet supplies truth-1..3 with the live game's unit ids (our commander is 11775 in both), so his numbers are true, not floors. The per-match tools read record-0 only, so seats 1-2 were read through scratchpad directories of symlinks. On truth, analyze_match counts his reclaimed buildings (armlab 5:12, armsy 6:50, 7:42) as losses. The sea count maps each extractor to its nearest spot (it reads 27 for 26 at 14:00). The 273 income at 10:00 is the card's figure, with reclaim not separated. chat.jsonl marks all four comments '?'; bot.log gives player 3 (the host's seat) without the [WReason] prefix, which design §6 rules are the user's. pro_baseline was not run (Comet only), nor was impedance_sweep. That a push at 4:00-6:00 would have won is my reading; his commander and D-gun are unpriced. Where I differ from the model reviews and the ledger: (1) posing-review ranks by cost (21.8k to Welders first); this row ranks by root, the 3:00-8:00 window against a factory-less opponent, which those reviews could not see without a truth file. (2) The B3 push killed 700 (two Welders), not 2.1k. (3) Liches killed three commanders (17:19, 17:29, 18:18), not two. The ledger's and the reviews' other findings stand."
+ },
+ "open_questions": [
+  "Would a crossing at 4:00-5:00 (about 30 Blitzes against two Pawns, an LLT, a Beamer being built and his commander) have killed his lab and constructors, or did the D-gun make it a trade?",
+  "Was his income jump from 68 (8:00) to 273 (10:00) the reclaim of our 6.7k at B3? The card does not separate reclaim.",
+  "Why did the pick send every Rover home at about 0.6 on sighting one constructor and one Pawn, 700 from his start? Was it the old scout state ending on any sighting? Review item F6 names the same at player-9.",
+  "With the sea spots listed, would the Beavers have taken them before his construction ships arrived (8:12 on our side), and would the player have sent the amphibious commanders?",
+  "spot_12 is an island (+73), not under water, yet seat 2's Beaver skipped it as 'not free' too. Was that the same defect, or reach by class?",
+  "The backlog's episode index tags this game with group O. The 'without reach' half was already in this build (d265666 is H-HANDS-ODDS-REACH); what bit was the odds by metal and tier (afc08b6)."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790481450-bluegecko-3v1-cape-violet.json"
+}

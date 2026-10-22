@@ -1,0 +1,290 @@
+{
+ "batch": "1790467496-bluegecko-2v1-comet-catcher",
+ "label": "bluegecko-3v1-comet-catcher",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-27",
+ "shape": "3v1",
+ "people": "bluegecko (thebluegecko of the lessons; the ledger's experienced person), Armada, the west strip, his buildings first seen at B5 at 3:20; lobby rating not recorded (the record's header names no person: team 0 and our team 1 read controller Unknown, the shim bug of the time). chat.jsonl marks both lines '?': by bot.log the 0:06 'gl hf' is engine player 0, the person; the 1:14 'gl hf' is our player's own `say` of its 1:10 turn. The user hosted the lobby and typed nothing.",
+ "our_side": "Three Armada seats on the east strip under one player, claude-opus-5-5 effort medium (Claude Code 2.1.283), no commander role: team 1 at G1 (record-0, the north seat: commander_t1, group_A_t1), team 2 at H8 (record-1, the south seat: commander_t2, group_A_t2), team 3 at G4 (record-2, the middle seat: commander_t3, group_B_t3). Hands Jev jev-latest, which answered as jev-1.13.0 (168-183 ms first answer). Realtime through run/human_game.sh in the user's lobby. No batch.json, so no recorded penalty or cap. Banner seat names Moose and ewang.",
+ "build": "aca9d65 (banner 'Within Reason aca9d65'): before the standing drain fix 8cc9ac6 (committed 11 minutes into this game), the tagged-packet fix d64864a and the cross-seat party registry ff32935",
+ "result": {
+  "outcome": "lost",
+  "minute": "21:21"
+ },
+ "summary": "Single Rovers and Blitzes took our naked outer spots from 2:31, the middle seat falling to 2 extractors at 4:00, while our three starved openings had 6-10 factory units by 4:00 against the pool's 17-19. From 4:00 to 13:00 our three seats' army was at least 4 times what we saw of his, and we held up to 29-31 extractors. But at 4:30 the player split it into two home pickets and a lone north raid, which stalled at C1 and lost 11 for 2 at 7:51. The first combined push, 64 Blitzes of two seats at 9:30, traded 7,040 for 4,825 into his D3/C3 nest of beamers, light turrets and Stouts, and his factory was never seen. The middle seat's ball of 44-53 Blitzes, the home guard by the player's word and beyond every later tool order because of the standing drain, held at H5 while one block of 8-10 Stouts and 4-7 Janus, seen at 11:30, killed the north seat (commander_t1 at 14:24). The ball then won every fight it joined (his 22 Stouts and 5 Janus lost 6,150 at G4, 15:10-16:09), but six Stouts took the south plant at 16:37, and Thunders (17:48) and Banshees (19:28) met no anti-air; the middle seat fell at 19:51 and the south at 21:21.",
+ "root": {
+  "clock": "4:30",
+  "what": "The player's (strategy, amplified by the harness): with 22 soldiers (2,104 metal) across the seats against 5 known extractors of his, the 4:30 packet split the army into three roles. group_A_t1 raided the north edge alone, and group_A_t2 and group_B_t3 picketed home; at 6:16 group_B_t3 'stays home at spot_48'. That dropped the player's own 3:20 plan of one combined ball west. The first window (4:00-5:00, 8-9x his seen army on the north seat alone) ended at 6:00 with no body in his half but the raid. The home ball grew to 46-53 Blitzes at H5/H6 (every minute 6:00-13:00) and was unused when the block crossed the north at 11:30-14:24. Every later order to move it (stations at 7:36, 8:10, 9:07, 9:53) was lost to the standing drain, and none appeared in its seat's log until 16:45.",
+  "evidence": "3:20 note: 'Plan: Blitzes mass, then a combined ball west once ~15 Blitzes'; 4:30 packet: 'group_A_t1 is the raid ... The home groups (group_A_t2 at spot_42, group_B_t3 at spot_35 ...)'; minutes north: '4:00-5:00 (8.1-9.4x) ... peak 0%; ended at 6:00'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:31-3:44",
+   "what": "Rovers at both ends of our strip at once (H2 and H5). The middle seat lost six extractors, three solars and two turret frames to one Rover and one Blitz with no turret standing: 2 extractors at 4:00 against the pool's 7.",
+   "evidence": "analyze middle #0: '2:53-3:44 G4 at our base: we lost 816 ({'armmex': 3, 'armfav': 1, 'armsolar': 3, 'armllt': 2}), they lost 141'; raid_ledger middle: 2:31 spot_51 H5 to 3:26 spot_34 G4, sold 0-2, tur 0, answered 0"
+  },
+  {
+   "clock": "3:36",
+   "what": "The first standing set (stations at spot_29, spot_42, spot_35 around G4/G5) landed on the south seat only. group_A_t1's spot_29 never appeared, and group_B_t3 carried no tool station until 16:45: from here the middle seat's army answered no tool order.",
+   "evidence": "station states read from jev-0/1/2.jsonl.zst: group_A_t2 3:47=station_spot_42; group_A_t1 first 4:42=station_spot_9; group_B_t3 first 16:45=station_spot_60"
+  },
+  {
+   "clock": "4:30-6:18",
+   "what": "The north group alone raided C1/B2 and killed the only buildings of his we took before 9:30. The first was at about 5:35, against the pool's median of 2:48 for a first building killed.",
+   "evidence": "analyze north #2: '5:35-5:47 C1 in their half: we lost 0, they lost 405 ({'armllt': 1, 'armcv': 2, 'armmex': 1})'; #3 '6:11-6:18 B2 ... they lost 251'; pro_baseline pool p25/median/p75 2:18/2:48/4:13"
+  },
+  {
+   "clock": "6:39-7:59",
+   "what": "The north raid stood at C1 for 70 s on 'fight_to spot_9', about 800 short of the spot, and grew to 31 Blitzes. It then attacked 7 Blitzes and a Janus on his ground and lost 11 for 2.",
+   "evidence": "hands_window north: '6:39 group_A_t1: 21 at (2966, 687), task fight_to spot_9' ... '7:46 group_A_t1: 31 at (2848, 681)'; analyze #4 '7:51-7:59 B2: we lost 1210 ({'armflash': 11}), they lost 350'"
+  },
+  {
+   "clock": "9:07-10:48",
+   "what": "'We hold a big army lead: this is the attack.' The north and south seats' 64 Blitzes fought his D3/C3 nest (2 beamers, 2 light turrets, 8-9 Stouts, 2 Janus) and traded 7,040 for 4,825 seen. group_B_t3's southern prong never got its station. His factory was never seen, and the north seat fell from 35 soldiers at 9:00 to 13 at 12:00.",
+   "evidence": "analyze north #6 '9:30-10:48 D3: we lost 3960 ({'armflash': 36}), they lost 4600 (... 'armbeamer': 2 ...)'; south #8 '9:28-11:14 D3: we lost 3080 ({'armflash': 28})'; minutes: 'his first factory seen: never'"
+  },
+  {
+   "clock": "11:30-14:24",
+   "what": "A block of 8-10 Stouts and 4-7 Janus, seen at D3/D4, walked E3 to G1. It killed 11 north extractors (12:18-14:23), 13 Stouts at F2, the plant and commander_t1 (14:24). The 44-50 Blitz ball held at H5 until 13:01, then was drawn after side parties at 13:58-14:12, and it was still at G3 (6,364, 1,828) at 14:23.",
+   "evidence": "hands_window middle: '11:30 group_B_t3: 44 at (7414, 3751), task hold ... PARTY party_48_t3 answer=0.27'; task hold 12:17-13:01; '13:01 PLAYS group_B_t3: attack party_48_t3 ... [plan]'; analyze north: commander died 14:24 at H2"
+  },
+  {
+   "clock": "15:10-16:09",
+   "what": "His second wave of 22 Stouts and 5 Janus walked into the ball and the middle seat's turrets at G4 and lost 6,150 for 4,335. The ball won every fight it was in.",
+   "evidence": "analyze middle #15: '15:10-16:09 G4 at our base: we lost 4335 (... 'armflash': 26 ...), they lost 6150 ({'armstump': 22, 'armjanus': 5})'"
+  },
+  {
+   "clock": "16:37-17:41",
+   "what": "Six Stouts and three Janus took the south plant, eleven solars and seven Shellshockers while the south seat's other Shellshockers walked west on a station the tool could not change.",
+   "evidence": "analyze south #18: '16:37-17:41 G8 at our base: we lost 3730 ({'armsolar': 11, 'armllt': 4, 'armart': 7, 'armmex': 3, 'armvp': 1}), they lost 2070'"
+  },
+  {
+   "clock": "17:48-21:21",
+   "what": "Air with no anti-air standing. Thunders bombed G4 at 17:48 and again 18:13-19:28, and twelve Banshees came with Stouts at 19:28. commander_t3 died at 19:51 and commander_t2 at 21:21.",
+   "evidence": "analyze middle #18 '17:48-17:51 G4: we lost 1025 ({'armsolar': 5, 'armmex': 2, 'armsam': 1}), they lost 0'; #22 '19:28-19:53 H4: we lost 5575 (... 'armcom': 1), they lost 2965 (... 'armkam': 12)'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-3:44",
+   "kind": "strategy",
+   "what": "The opening starved all three plants. Each seat built three solars before the plant (started 0:51-0:54 against the pool's 0:34), the produce list put two Rovers before the constructor, and no light turret stood before about 3:19. That gave 6-10 factory units by 4:00 against the pool's 17-19 and left the middle seat's outer spots naked to one Rover and one Blitz. A stronger player builds two solars and the plant at 0:34, or three solars for a fast first constructor, and a light turret at each home's outer pair by 2:00.",
+   "evidence": "pro_baseline middle: 'first factory started 0:51 | 0:34 0:34 0:34 >p75 (late)', 'factory units by 4:00 6 | 17 18 20 <p25' (north 9, south 10); 0:00 produce {'all': ['armfav:2', 'armcv:1', 'armfav:1', 'armcv:1', 'armflash']}"
+  },
+  {
+   "clock": "4:30",
+   "kind": "strategy",
+   "what": "The root. The player split the army into a lone north raid and two home pickets instead of the combined ball its own 3:20 note planned, and at 6:16 made group_B_t3 the home guard at spot_48. That body grew to 46-53 Blitzes and fought nothing until 13:01. A stronger player gathers the three seats' 20-30 Blitzes at one place (E4/F3) and goes west together while the window is open.",
+   "evidence": "6:16 packet: 'group_B_t3 stays home at spot_48 and spot_42 and attacks enemy scout cars and raiders at our extractors on sight'; minutes middle: our mass H6 at 6:00-8:00, H5 at 9:00-13:00, 0% in his half every minute"
+  },
+  {
+   "clock": "6:39-7:51",
+   "kind": "both",
+   "what": "The north raid stopped at C1 for 70 s on a 'fight_to' that did not advance (old hands; the packet also forbade attacking turrets), new Blitzes trickling in. It then fought his Blitzes and Janus on his ground and lost 11 for 2. A stronger raid keeps moving to undefended spots (spot_2, spot_7, spot_14) or comes back.",
+   "evidence": "hands_window north 6:39-7:46: group_A_t1 at (2738-2966, 681-711), 'task fight_to spot_9', 21 to 31 Blitzes; '7:49 PLAYS group_A_t1: attack party_36_t1 (7 armflash, 1 armjanus) ... [plan]'"
+  },
+  {
+   "clock": "9:07",
+   "kind": "both",
+   "what": "The attack went as two prongs, the north and south groups to spot_38 and group_B_t3 through spot_61, into a nest nothing had scouted: Blitzes against beamers, light turrets and Stouts under unseen light-turret fire. The drain ate group_B_t3's station and group_A_t1's spot_38, so only half the army went, and it traded even. A stronger player sends one body from a gathering place after a look at the nest, or walks round it to his extractors.",
+   "evidence": "9:07 standing: group_A_t1/group_A_t2 'station': 'spot_38', group_B_t3 'station': 'spot_61'; group_A_t1's log: spot_21 8:33 to 10:03, no spot_38; wakes 8:22-9:53 'shelled from out of sight by a armllt'"
+  },
+  {
+   "clock": "11:30-13:01",
+   "kind": "both",
+   "what": "With the block named at D3/D4 heading east, the player kept the 44-50 Blitz ball at H5 and gave its triggers as the middle seat's spots (plus F3 at 12:31), leaving the north home to 12 Stouts. The ball moved at 13:01, when the block reached F3. The harness had already made the ball deaf to the tool (the player's 11:14 note). A stronger player meets about 2,300 with 5,500 in the open at E3/F3 by 12:00, through the packet's prose, the one lever left.",
+   "evidence": "11:30 packet: 'group_B_t3: when enemy soldiers come near spot_48, spot_42, spot_27, spot_41 or spot_35, it attacks them with the whole group; otherwise it holds at spot_48.'"
+  },
+  {
+   "clock": "14:05-20:25",
+   "kind": "both",
+   "what": "The south seat's Shellshockers walked to spot_21 alone, unscreened, on a station the tool could not change. They lost 12 at E5 for 915, were away when the south plant fell at 16:37, and lost 11 more at G6 for 240. Shellshockers as a lone group was also the player's choice.",
+   "evidence": "analyze south #12 '14:05-15:00 E5: we lost 2255 ({'armart': 12, ...}), they lost 915'; #22 '20:25-20:31 G6: we lost 1710 ({'armart': 11, ...}), they lost 240'; 17:06 note: 'station stays spot_21 whatever I set or clear'"
+  },
+  {
+   "clock": "8:00-16:18",
+   "kind": "strategy",
+   "what": "The economy behind the army never grew past one pro side's. There was no nano turret all game and one second factory (south, 18:50). The energy store was empty 10.6/20.0/10.9% of seconds, and 15,097 metal of wrecks lay unworked at 16:18. The seats held at most 29-31 of the 80 spots (the east half has 40) and lost 70 extractors (17/26/27).",
+   "evidence": "pro_baseline: nano turrets by 8:00 0/0/0 (pool 1-2), second factory -/18:50/-; floor e0% 10.6/20.0/10.9; 16:18 wake: 'wrecks worth 15097 metal lie where no enemy is in sight'; analyze extractors at 12:00 11+8+10"
+  },
+  {
+   "clock": "16:44-17:52",
+   "kind": "strategy",
+   "what": "No anti-air after his Blink scout plane was seen over H8 at 16:44. The player ordered Whistlers and Nettle (armrl) queues only at 17:36-17:52, as the Thunders arrived. A stronger player puts a Nettle at each home and Whistlers in the body at the first air sign.",
+   "evidence": "analyze south #16 '16:44-17:41 H8 ... they lost 2122 ({'armstump': 6, 'armjanus': 3, 'armpeep': 1})'; 17:36 produce '... armsam'; 20:15 note: 'no anti-air until bombers arrived'"
+  }
+ ],
+ "their_play": "He opened with single Rovers and Blitzes at both ends of our strip at once (H2 and H5, 2:31), then four or five Rovers and a Blitz at the south home (4:17-5:48) and three or four Blitzes there again (7:01-8:25). He built light turrets, radars, two beamers and Stouts into a nest at C3/C4/D3 that broke our 64-Blitz push (9:30-10:48), and switched to Stouts and Janus from about 7:50 (a Janus at B2 at 7:51), medium tanks against our light-tank mass. From 11:30 he walked one block of 8-10 Stouts and 4-7 Janus down our north (E3 to G1, 12:18-14:24) and killed the north seat. A second wave of 22 Stouts and 5 Janus died to the ball at G4 (15:10-16:09). Six Stouts and three Janus then took the south plant (16:37). Air followed: a Blink at 16:44, Thunders on G4 from 17:48, twelve Banshees with 15-25 Stouts and Janus at 19:28-19:53. No advanced factory of his was ever seen, nor any factory at all. In sight he never showed more than about 5,000-5,700 of army at once (5,055 at 14:00). He fought almost every fight in our half and took the seats one at a time.",
+ "defects": [
+  {
+   "defect": "The standing tool's list was drained by whichever seat read it first (era B, 'the standing tool stored rules on the wrong seat'). group_B_t3 received no tool order from 3:36 to 16:45. group_A_t2's station stuck at spot_21 from 9:47, and group_A_t1 missed its 3:36 and 9:07 stations. The north seat's loss and the Shellshockers' walks rest on this since-fixed defect, together with the player's 4:30 split.",
+   "fixed": "2026-09-27 (8cc9ac6; the standing tool itself deleted in f2cf462)",
+   "evidence": "station states from jev-N.jsonl.zst: group_B_t3 first 16:45=station_spot_60; group_A_t2 3:47 spot_42, 8:05 spot_21, 9:21 spot_38, 9:47 spot_21 then none; 11:14 note: 'standing tool orders on _t2/_t3 groups never show up'"
+  },
+  {
+   "defect": "The packet's paragraphs never reached a tagged group or commander: the decompression keyed group_A/group_B/commander while the actors were group_A_t1, group_B_t3, commander_t2 (era B, 'paragraphs not reaching tagged groups').",
+   "fixed": "2026-09-27 (d64864a)",
+   "evidence": "00/decompression-review.md (Opus 5.5, 2026-09-27): 'Only the constructors rules reached any actor ... keyed its group and commander rules group_A, group_B, group_D and commander. The actors were group_A_t1, commander_t2'"
+  },
+  {
+   "defect": "engage_party could not name another seat's party: each seat named the same party differently (the block was party_48_t3 on the middle seat, party_49_t1 on the north), and the tool checked one picture.",
+   "fixed": "2026-09-27 (ff32935, one party name across seats through a shared registry)",
+   "evidence": "impedance_sweep: 'refused: {'standing': 3}' (9:27 party_42_t2, 13:15 party_49_t1, 14:04 party_61_t3); 14:29 note: 'standing engage_party refused cross-seat party names'"
+  },
+  {
+   "defect": "The old hands before the rebuild (era A). The threat answer for the block offered the whole ball at 0.23-0.42 and held. The plan's picks flipped between 'hunt' and 'attack with the whole group' on a 4-7 Stout side party while the block was at G1. A fight_to stood about 800 short of its spot for 70 s.",
+   "fixed": "2026-10-02 (the hands rebuild)",
+   "evidence": "hands_window middle 13:58-14:06: '11 of group_B_t3 hunt party_67_t3' / 'attack party_67_t3 ... with the whole group' / '14 of ... hunt' / 'attack' / '16 of ... hunt' / 'attack', all [plan]"
+  },
+  {
+   "defect": "The record's header names no person (team 0 and our team 1 read controller Unknown), and the match directory is labelled 2v1 for three seats.",
+   "fixed": "2026-09-27 evening (the shim bug)",
+   "evidence": "record-0 header seats: [{'ally_team': 0, 'controller': 'Unknown', 'side': 'armada', 'team': 0}, {'ally_team': 1, 'controller': 'Unknown', ...'team': 1}, ...]"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Irishstud14's 'your armies keep not fighting together' / 'less groups' fits this game too. Only two seats' groups fought together once (9:30). Every later fight was one seat's, and the north seat fell while the 46-50 Blitz ball stood 2,500 elmos away."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "The army was at least 4x his seen army from 4:00 to 13:00 and never went to his base as one body; his factory was never seen. The contrast is game 5, where the three armies converged at E4 and won at 9:42."
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "supports",
+   "note": "The north raid stood at C1 for 70 s (6:39-7:49) and grew to 31 Blitzes; he answered with Blitzes and a Janus and it lost 11 for 2. Here the stop was the old hands' fight_to with a no-turrets packet, not terrain."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "Seen from his side: his first Rovers were on our spots at 2:31 at both ends. Our first scouts turned back (3:36, 3:47), and our first kill of a building of his came at about 5:35, past the pool's p75 of 4:13."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Here we were the naked side. The middle seat's outer spots had no turret until about 3:19 and lost six extractors to one Rover and one Blitz by 3:26."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "supports",
+   "note": "All three seats built three solars, then put Rovers before the constructor, the pattern he named in game 5. The plants started at 0:51-0:54 (pool 0:34), with 6-10 factory units by 4:00 (pool 17-19)."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "His Stouts and Janus with beamers beat a Blitz mass: 64 Blitzes for 4,825 at the nest. The player switched to Stouts at 9:07 and to Stouts and Shellshockers at 10:09. The Blitz ball still beat his 22 Stouts at G4, beside turrets and the commander."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "supports",
+   "note": "Blitzes into a beamer and light-turret nest at D3/C3 (9:30-10:48), under unseen light-turret fire from 8:22, traded 7,040 for 4,825."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "No anti-air until bombers: Blink at 16:44, Thunders at 17:48, the first Nettles queued 17:52. The player's own 20:15 note names it."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "15,097 metal of wrecks on our ground at 16:18 (3,338 at F4, 2,228 at H2), and no reclaim followed before the seats fell."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "No nano turret on any seat all game, one second factory (south, 18:50), energy empty 10.6/20.0/10.9% of seconds."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "Three seats held at most 29-31 of 80 spots (the east half has 40), about one pro winner's 27 at 12:00, and lost 70 extractors, 27 of them 12:00-16:00."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "His extractors are unseen (no truth file), but he fielded 22 Stouts after losing 32.8k seen and then went air: an income near our three seats'. Not testable from this record."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The lead went unconverted for nine minutes, split into three roles. The half-army push at 9:30 traded even, and the home ball's lead decayed into seats lost one at a time."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "The 9:07 push went onto a nest nothing had scouted, with light-turret fire from out of sight reported 8:22-9:53; the 9:07 packet's target list was a guess at his side."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "70 extractors lost; turrets 14-15 by 8:00 on two seats stopped single raiders but not blocks of 6-12 Stouts. The home ball answered nothing it was not standing on (unanswered 9/14/42)."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "Three solars, plants at 0:51-0:54, first soldier 1:39-1:42 against the pool's 0:53-0:55, factory units 9/10/6 by 4:00."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "He pressured first (2:31) and we answered with one north raid at 5:35. No building of his died before then, and he expanded unpressured."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "The Blink at 16:44 came 64 s before the Thunders; anti-air was ordered at 17:36-17:52."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "supports",
+   "note": "Blitz bodies of 31-64 into Stouts, Janus and beamers; the 46-53 Blitz ball as one body far past the pros' typical body size."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "contradicts",
+   "note": "This game was lost behind on the corrected trade: 32.8k of his seen destroyed (each death counted once, the ledger's correction) against about 58k of ours (17.3k + 19.3k + 21.5k by the three records' metal lost by place)."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "commander_t1 was walked away as told (spot_12, passage_1_t1, home) and died at H2 at 14:24 under 5 Janus and 5 Stouts, with the ball still at G3 (6,364, 1,828) at 14:23."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (each seat, through symlink views)",
+   "run/analyze_match.py (each seat)",
+   "run/pro_baseline.py (north and south --all-starts, middle on B5/G4)",
+   "run/floor.py (each seat)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/impedance_sweep.py --counts",
+   "run/hands_window.py (middle 11:30-11:50, 12:15-13:35, 13:15-14:25 group_B_t3; north 6:15-7:55 group_A_t1)",
+   "strategist-0.jsonl tool_call rows read directly (3:36, 5:06, 9:07, 11:30, 12:18, 12:31, 13:15, 13:32)",
+   "jev-0/1/2.jsonl.zst station states read directly",
+   "bot.log",
+   "00/review.md, 00/verdict.json, 00/decompression-review.md",
+   "docs/experiments.md row bluegecko-3v1-comet-catcher",
+   "git log aca9d65, 8cc9ac6, d64864a, ff32935"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790467496-bluegecko-2v1-comet-catcher/00/review.md",
+  "confidence": "medium",
+  "caveats": "There is no truth file, results.jsonl or batch.json, so his numbers are floors of what we saw. His start is guessed (minutes.py says B5, pro_baseline mirrors to B8), so pro_baseline's pressure rows are empty. minutes, analyze_match, floor and raid_ledger read record-0 only, so the other seats were read through symlink views in scratchpad/r1790467496. impedance_sweep --seat did not switch records (identical for 0/1/2), so read it as the north seat. raid_ledger's 'answered 0' on every seat is likely the tool not matching tagged party names. floor differs from the review's run (unanswered 9/14/42 against 11/16/50, aband_m 0/160/128 against 0/26/25): the tool has changed. Dates follow the repository's convention (the batch stamp is 2026-09-27 00:04 UTC, 2026-09-26 20:04 EDT local). Where I differ from review.md: (1) it ranks the H5 hold first (decided by 14:00, cost-ranked), while cause before symptom puts the root at the 4:30 split; (2) its finding 5 makes the third seat's absence at 9:30 the player's, but the 9:07 transcript ordered group_B_t3 a southern prong (station spot_61) that the drain ate; (3) the ball's first move was the hands' 13:01 [plan] attack, when the block reached F3 (a spot in the 12:31 packet's trigger list); the 13:32 packet played at 13:43, not 13:33; and the ball was still at G3 (6,364, 1,828) at 14:23, not at G2 at about 14:20. Incident: my first symlink views in the shared scratchpad/seat1 and seat2 overwrote links of another reader (1790475913-bluegecko-3v1-comet-catcher-6) for about a minute around 00:17. I removed mine and pointed their strategist-0.jsonl and bot.log links at their match; that reader's per-seat runs at about 00:17 may have read this match."
+ },
+ "open_questions": [
+  "Did the packet's prose move group_B_t3 at 13:01? The 12:31 trigger list named spot_18 (F3), and the block reached F3 at about 12:57. Or was it the hands' own threat answer? The decompression review says no packet rule reached a tagged actor, yet the timing fits the prose.",
+  "His economy and start are unknown (no truth file). Was the game already lost on extractors before 11:30, as L-mex-game-over would say? A replay read (run/replay_match.py on the game's .sdfz, if one survives) could settle his extractor curve and his factory's place.",
+  "Was the north raid's 70 s stop at C1 (6:39-7:49) a light turret at spot_9 that the packet forbade attacking, or the old hands' fight_to failing to advance?",
+  "raid_ledger reads 'answered 0' on all three seats while floor gives react_s 2-3 s: is that the tool missing tagged party names, or were the raids truly unanswered?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790467496-bluegecko-2v1-comet-catcher.json"
+}

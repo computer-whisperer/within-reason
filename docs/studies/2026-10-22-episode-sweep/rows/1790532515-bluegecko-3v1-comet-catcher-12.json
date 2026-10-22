@@ -1,0 +1,267 @@
+{
+ "batch": "1790532515-bluegecko-3v1-comet-catcher-12",
+ "label": "bluegecko-3v1-comet-catcher-12",
+ "map": "SailAway 2 (the directory's label says Comet Catcher; the record header, script and ledger say SailAway 2)",
+ "date": "2026-09-27",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (lobby 34.34), the opponent, alone in the north box (team 0; the script lists Armada, he played Cortex), base at C2/C3, said nothing in the chat. Spectators: computer_whisperer (the user, hosting, 6.02) and [gecko]u6bkep (19.24, silent), from script.txt.",
+ "our_side": "Three islet seats in the south box under one Opus player (claude-opus-5-5, effort medium, Claude Code 2.1.283; one transcript, strategist-0.jsonl): t1 seat 0 orange F7 Armada, t2 seat 1 red C7 Cortex, t3 seat 2 dark purple F8 Armada (side Random). No LLM commander. Hands: one Jev per seat, jev-latest = jev-1.13.0 (old hands, before the 2026-10-02 rebuild). Realtime in the user's BAR install, startpostype 2.",
+ "build": "b6e5819+",
+ "result": {
+  "outcome": "lost",
+  "minute": "14:47 (resigned after the host's 14:38 suggestion: the player's `remove` self-destructed the last commander; the records end 14:52)"
+ },
+ "summary": "The second SailAway 2 game of the bluegecko 3v1 series: three islet seats under one Opus 5.5 medium player against thebluegecko (Cortex), lost by resignation at 14:47 on the host's suggestion. Every seat opened with a shipyard (1:09-1:23), and when the hands refused every construction ship's extractor step (a since-fixed defect: ships had no distance field from a land start), the player decided the islet spots were out of ships' reach and also put a 670-metal hover platform on every seat. So orange held 3 extractors and red 2 for the whole game, and the side's income was 35 at 8:00. From 4:09 the yards were held to 280-range Dolphins and Supporters, even after the first Riptide (480) at 4:50 and the report's 'it outranges everything here' at 5:32, and the 7:22 push on a seen-metal lead went as three pieces and was sunk in our own water and at his yard 8:31-9:45. He then killed two commanders with Riptides and unseen Orcas (10:25, 11:35) and finished the last base with Cutlass seaplanes (13:08-14:27); no sonar tower stood and no anti-air was ordered until 13:32.",
+ "root": {
+  "clock": "2:21-2:34",
+  "what": "The side's economy was capped in the opening. Every seat had spent 450 on a shipyard first (1:09-1:23), and its first units were construction ships. At 2:21-2:33 the hands refused all their extractor steps (harness: no ship distance field from a land start). At 2:34 the player wrote ships off for expansion (tidals, converters, assist) and ordered a 670 hover platform per seat, then paused the yards at 3:19 with 0 metal on every seat. Orange and red never expanded. The person's reading (the user) puts the cause here; the existing review's 4:50 boat-choice root is the decisive turning point that followed.",
+  "evidence": "2:21 report, to a construction ship: 'spot_75 is off this builder's ground ...: an amphibious or hover constructor or a construction ship takes it'. Records: orange 3, red 2 extractors 1:00-12:00. The user: 'The shipyard should build constructors and expand with mexes like normal'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:34",
+   "what": "The player concluded construction ships cannot take the spots, gave them tidals and factory help, and ordered a hover platform on every seat (orange standing 5:08, dark purple 4:35; red's died unfinished 7:21).",
+   "evidence": "2:34 note: 'Construction ships cannot take the spots: they are on land islets ... Each commander builds a naval hover platform'. Partly wrong: dark purple's ships built extractors at 1:33, 3:35 and 4:54 from the player's lists."
+  },
+  {
+   "clock": "3:19",
+   "what": "All three yards paused for lack of metal; 17 energy converters ordered on full energy.",
+   "evidence": "3:19 eco: 'metal 0 (+22.5/-22.4), energy 4703/4703 (+484)'; produce {factory_1723: [], factory_6751: [], factory_786: []}; the player: 'all three seats had 0 metal, so I paused the shipyards'"
+  },
+  {
+   "clock": "3:56-5:14",
+   "what": "Two of his Supporters raided red's home water. They killed its construction ships, tidals and converters, and red never held more than 2 extractors (income 5.9).",
+   "evidence": "First seen: coresupp 3:56 at (2817,8323). Red lost 1,130 metal to coresupp. Red's yard made four construction ships (1:30-3:33) before its first Supporter (4:16)."
+  },
+  {
+   "clock": "4:09",
+   "what": "Every yard was narrowed to 280-range boats 'until the raid is beaten', and the list stayed until 9:12.",
+   "evidence": "4:09 produce {factory_1723: [coresupp], factory_6751: [armdecade], factory_786: [armdecade]}; 7:22 and 8:02 instructs: 'Shipyards: Dolphins (Armada) or Supporters (Cortex)'; 9:12 produce switched to armpship/armroy/corpship."
+  },
+  {
+   "clock": "4:50-5:32",
+   "what": "First Riptide seen. The report then named the reach gap, and the player counted metal instead.",
+   "evidence": "First seen corpship 4:50 at (5398,7936). 5:32 report: 'it outranges everything here (480 against our 280)'. Player 5:32: 'It outranges our Dolphins, 480 against 280, but the four at red_harbor outweigh it (700 metal to 420)'"
+  },
+  {
+   "clock": "7:22",
+   "what": "The fleet was sent north on a lead counted in seen metal, but it never sailed as one body: orange's group held at D7.",
+   "evidence": "7:22 note: 'fleet ~3100 metal of Dolphins+Supporters vs ~840 of his seen (Riptides). Spending the lead'. hands_window 7:23-7:29: 'group_A_t1: 5 at (4633, 7993), task hold'"
+  },
+  {
+   "clock": "8:31-9:45",
+   "what": "The fleet was destroyed piecemeal: dark purple's Dolphins at E6, orange's at D7, and red's 13 Supporters at his yard at C3.",
+   "evidence": "analyze_match #3 9:05-9:24 D7: 'we lost 1200 ({armdecade: 6, armpt: 1}), they lost 0'. 9:12 note: 'Riptides (480 range) beat Dolphins/Supporters (280); trade 3.3k lost vs 1.15k'"
+  },
+  {
+   "clock": "9:05",
+   "what": "His seaplane platform was seen at C3, and the first Cutlass at 10:04. Anti-air was first ordered at 13:32; one Naval Nettle stood at 14:05.",
+   "evidence": "First seen corplat and corcsa 9:05 at (2608,2704), corcut 10:04. Player 9:12: 'He has a seaplane platform + air constructor'. Dark purple lost 5,200 metal (frames included) to corcut."
+  },
+  {
+   "clock": "10:25-11:35",
+   "what": "Two commanders were lost, both to Riptides: red's at C7 and orange's at E6. Orange's was walking into the water toward the fleet.",
+   "evidence": "Records: seat 1 'corcom by corpship' 10:25 at (3700,8331); seat 0 'armcom by corpship' 11:35 at (6177,7284). analyze_match: 'our commander died at 11:35 at E6 (at our base) to corpship'"
+  },
+  {
+   "clock": "13:08-14:38",
+   "what": "Seven Cutlasses and four Riptides took dark purple's base. The host suggested resigning.",
+   "evidence": "Seat 2: armsy destroyed 13:36 and 14:16, armfhp 13:59 by corcut. 13:32 note: 'home under 7 Cutlass + 4 Riptide attack, all outrange commander'. 14:38 computer_whisperer: 'now might be a good time to resign'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "1:09-2:34",
+   "what": "Every seat built both a 450 shipyard and a 670 hover platform before expanding. The user's ruling after the game: one hover platform giving constructors by transfer, and two shipyards whose ships expand.",
+   "evidence": "Commit a522989 (the user, after game 12): 'every seat built a shipyard and a hover platform before expanding and the side stood at 14 extractors at 8:00'. Side income 22 at 3:00, 35 at 8:00 (records).",
+   "kind": "both"
+  },
+  {
+   "clock": "2:34",
+   "what": "The player read the hands' refusals as geography ('on land islets') and stopped all ship expansion, although dark purple's ships had built extractors. A stronger player would have checked a ship against one near-shore spot.",
+   "evidence": "Player 2:34: 'Every extractor step was refused because those spots are on land islets'. All-records scan: armcs built extractors at 1:33, 3:35, 4:54 (seat 2). 4:09 instruct: 'Construction ships: build tidal generators near home'",
+   "kind": "both"
+  },
+  {
+   "clock": "1:50-4:16",
+   "what": "Red's yard made four construction ships before its first warship, and its home water was the first place he raided.",
+   "evidence": "Red finishes: corcs 1:30, 1:56, 2:26, 3:33; first coresupp 4:16. First enemy seen 3:56 at red's C7; red lost 1,130 to coresupp.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:09-9:12",
+   "what": "The yards were held to 280-range Dolphins and Supporters for five minutes after the 480 Riptide appeared, though the 0:00 catalog named the answer. A stronger player switches to Ellysaws and Corsairs at 4:50-5:32.",
+   "evidence": "Catalog 0:00: Riptide 'beats destroyers two to one'; Ellysaw 'plasma at 470'; Corsair 'outranges every tier-1 ship and torpedo launcher'. Lists unchanged 4:09-9:12; first Ellysaw 10:05 (the review).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:22",
+   "what": "The player pushed on a lead in seen metal, without counting reach or his unseen fleet. The three groups went at different minutes; 8:02 left orange's as home guard.",
+   "evidence": "7:22 instruct: 'we outweigh everything of his we have seen. The three groups sail together as one body'. 8:02 standing: group_A_t1 station fleet_point; A_t3 and B_t2 to his_yard. Player 14:39: 'the fleet was fed in pieces'",
+   "kind": "both"
+  },
+  {
+   "clock": "3:00-12:40",
+   "what": "No sonar tower all game, although the brief's water paragraph set one by 3:00. His Orcas shelled unseen from 9:23.",
+   "evidence": "First armfrad order 12:40; dark purple's frame killed unfinished 13:33 (the review). First corsub seen 9:23. The review: 5,208 metal of finished units died to fire attributed to no type.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:05-13:32",
+   "what": "Anti-air came four and a half minutes after the seaplane platform was seen. Sweepers from the hover platforms, or Naval Nettles, were on the menu.",
+   "evidence": "Seaplane platform seen 9:05; first AA order (armfrt/armrl) 13:32; one Naval Nettle 14:05, died 14:14. Cutlasses killed 4,730 metal of finished units (the review).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:24",
+   "what": "Orange's commander walked into the water toward the fleet, in front of eight Riptides that outranged it.",
+   "evidence": "11:24 report: 'party_3 (8 corpship) 331 away: ... it outranges us (it reaches 480 to our 300)'. armfhp lost 11:30, armcom 11:35 to corpship at E6.",
+   "kind": "both"
+  }
+ ],
+ "their_play": "thebluegecko (Cortex; commander never seen; base and shipyard at C2/C3, a radar/sonar tower at D3 by 7:05) played the sea by reach. He opened with a two-Supporter raid on our weakest seat's home water (red, C7, 3:56). Riptides followed from 4:50: 21 distinct ones over the game, about 8.8k metal by the review's count. He kept them as the main body, fighting in our water (E6, D7, F7, F8) from 480 against our 280 and taking our fleet piece by piece. He added Orca subs from 9:23, unseen without sonar, behind the Riptides. From 9:05 a seaplane platform and construction seaplanes gave Cutlasses at 10:04, and seven of them with four Riptides finished the last base. At 12:58 a Guard light turret was planted at red's harbor to kill its extractors. No tier-2 land factory was seen. His true economy and army are unknown (no truth file).",
+ "defects": [
+  {
+   "defect": "Era C (water words). A ship class's distance field was seeded at our land start, so it was never built. The ten construction ships were offered no metal spot all game, and their listed extractor steps were refused with words that named a construction ship as the builder that takes it.",
+   "fixed": "2026-09-27/28 (a522989: every class's field seeded from the nearest ground it stands on; K-hands-a-ships-field-from-a-land-start)",
+   "evidence": "jev-0 state ids for constructor_2328: armvp, armap, armlab, armdl/armguard/armtl beside home spots, armtide, armsy, armfrad, help_factory_786; no extractor_spot_N. 2:21-2:33 refusals in the report. The loss's economic root rests on it."
+  },
+  {
+   "defect": "Era C. The eco line read 'constructors 0 labs 0' all game, beside ten construction ships and three yards.",
+   "fixed": "2026-09-27 (4fa252d, after this build)",
+   "evidence": "Every --told eco line, e.g. 7:22: 'extractors 17 constructors 0 labs 0 turrets 0 converters 0'"
+  },
+  {
+   "defect": "Era C. The score's and the eco line's extractor counts disagreed.",
+   "fixed": "after game 12 (the ledger: 'the extractor count by definition')",
+   "evidence": "7:22: 'score: extractors 13' beside 'eco: ... extractors 17'; 8:02: 15 against 17"
+  },
+  {
+   "defect": "Era C. The islet/under-water words, and the sonar option's sentence repeated about 2,900 times in one log.",
+   "fixed": "after game 12 (the ledger: the islet words fixed, the sentence shortened, `submerges` removed)",
+   "evidence": "The ledger row for bluegecko-3v1-comet-catcher-12; the review's §6."
+  },
+  {
+   "defect": "Era A (old hands, before the 2026-10-02 rebuild). A prose packet asking three groups to sail as one body left one group holding: the 7:22 standing nulled its station, and the hands played 'task hold'.",
+   "fixed": "2026-10-02 (hands rebuild)",
+   "evidence": "hands_window 7:20-8:50: 'group_A_t1: 5 at (4633, 7993), task hold' from 7:23. The review: held at D7 to 8:50."
+  },
+  {
+   "defect": "Era J (yard and exit lanes). Construction ships and the commander stood in shipyard exit lanes and woke the player repeatedly.",
+   "fixed": "unknown (the 2026-10-13 lane fix concerned extractors in a lab's lane)",
+   "evidence": "wake_read: \"factory_786's exit lane is blocked\" x2, factory_6751, factory_1723 and factory_10227 x1 each. floor (record-0): stuck_s 611, yard_min 0.5."
+  },
+  {
+   "defect": "A yard transferred under fire kept restarting frames it could not finish.",
+   "fixed": "open at the time (the ledger lists it as open)",
+   "evidence": "31 Corsair frames 13:13-13:36 at F7 (7376,7872), each killed at 0-1% (the review). bot.log: 'abandoned an unfinished armroy (0% built) x12'"
+  },
+  {
+   "defect": "Era B (seat tooling, chat). Chat reached the player as 'player 2' with no name, three times (once per seat). The player took the host's line for the opponent's.",
+   "fixed": "unknown",
+   "evidence": "14:39 report: '14:39 player 2: now might be a good time to resign' x3. 14:39 note: 'conceding at the opponent's suggestion'. script.txt: player2 = computer_whisperer, a spectator."
+  },
+  {
+   "defect": "Era D (enemy-start guess). His start was guessed at his box's centre (5120,1228), about 2,500 from his base at C2/C3. This is the correct fallback for a chosen start, so it is not a fault of the bot, but the tools still measure from it.",
+   "fixed": "not a defect (startpostype=2 fixes no position)",
+   "evidence": "minutes.py: 'he starts E1'; 'armsh_9585: ... nearest his start 391 at E2 7:30; died 8:40 at C2'. His shipyard first seen 7:49 at C3."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "14:38",
+   "text": "now might be a good time to resign"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "The 7:22 fleet never went as one body. Orange's group held at D7, dark purple's Dolphins died at E6 8:31-8:45, and red's 13 Supporters died alone at C3 9:10-9:45. Our player at 14:39: 'the fleet was fed in pieces'."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "This bounds the lesson: the lead was used at 7:22, but it was counted in seen metal ('we outweigh everything of his we have seen') against a fleet that outranged ours 480 to 280. A lead that ignores reach and the unseen part of his army was no lead."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "'pre emptively go air' / scout and answer air early: the seaplane platform was seen at 9:05, but anti-air was first ordered at 13:32, and Cutlasses killed 4.7k and finished the base."
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "illustrates",
+   "note": "Tidals went up first on every seat (0:48-1:03; 31 in all), but metal, not energy, bound this game: at 3:19 energy was full at 4703 (+484) with 0 metal, and the player turned to 17 converters."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "The reader's reading, no person's: each layer he added was one we had no answer to. Riptides came against 280-range boats, Orcas against no sonar, and seaplanes against no anti-air."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "This game is a source of the subject: the user's ruling of one hover platform and two shipyards, and seats with 2-3 extractors all game. The 'ships cannot take islet spots' reading rests on the since-fixed ship-field defect, and dark purple's ships did build three extractors, so it must not be derived from this game."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Reach decided the sea: Riptide 480 against Dolphin and Supporter 280. Odds counted by metal sent the 7:22 push, and unseen Orca fire with no sonar cost 5.2k of finished units."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Arrive together or wait: three groups moved at three different minutes and were sunk one at a time."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "These are naval counters, from the 0:00 catalog the player held: the Riptide beats destroyers two to one, the Ellysaw reaches 470, and the Corsair outranges every tier-1 ship."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Seaplane platform at 9:05, first Cutlass at 10:04, first anti-air order at 13:32."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "supports",
+   "note": "Orange's commander walked into the water toward the fleet in front of eight Riptides (480 against its 300) and died at 11:35. Red's died at C7 at 10:25."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Ten construction ships, none ever offered a spot, and 17 converters in place of extractors. The side income was 35 at 8:00, against game 11's 81 (the review)."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 1:40-2:40 constructor_2328",
+   "run/hands_window.py 7:20-8:50 group_A_t1",
+   "run/impedance_sweep.py",
+   "zstdcat jev-0.jsonl.zst (state ids)",
+   "scratch scans of record-0..2 (extractors, income, builds, losses by killer, first sightings) and strategist-0.jsonl (instructs, produce, report lines, player text)"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790532515-bluegecko-3v1-comet-catcher-12/00/review.md",
+  "confidence": "medium",
+  "caveats": "No truth file, batch.json or results.jsonl: his numbers are what our seats saw (floors), and analyze_match/floor report 'outcome None after 0.0 min'. minutes.py, analyze_match, floor and raid_ledger read record-0 only (orange, F7); side-wide numbers come from my scans of all three records. pro_baseline was not run: the map is SailAway 2 despite the batch name, and the pool has no SailAway cards. My records scan's extractor counts include frames (dark purple 12 at 8:00, the side 17, matching the eco line), where the review counts 14 finished. My loss totals include frames, so for finished units I cite the review (29.0k, Riptides 16.5k). Where I differ from review.md: it ranks the 4:50 boat choice as the root and the opening economy as a checked cost. I put the root at 2:21-2:34 on the user's later reading and the refusals in the record. The boat choice remains the decisive turning point."
+ },
+ "open_questions": [
+  "His true economy and fleet at 7:22 are unknown (no truth file); the replay would say whether the side was ever ahead in anything but seen metal.",
+  "Our player's 14:47 question 'What should our navy have been?' had no answer in the chat; did thebluegecko answer it anywhere?",
+  "With the ships' field fixed and Ellysaws/Corsairs from 4:50, would three seats at about 35 income have held his Riptides, or did the opening economy cap the side regardless?",
+  "Was the 3:19 yard pause, which funded 670-metal hover platforms and 17 converters, net positive against keeping the yards on boats?",
+  "Does a yard under fire still restart frames it cannot finish (31 Corsair frames 13:13-13:36) in today's hands?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1790532515-bluegecko-3v1-comet-catcher-12.json"
+}

@@ -1,0 +1,292 @@
+{
+ "batch": "1792459018-human",
+ "label": "1792459018-human (no ledger row; a 4v3 lobby game on Gecko Isle, 26 minutes before the Center Command 2v4 on the same build)",
+ "map": "Gecko Isle Remake v1.2.1",
+ "date": "2026-10-19",
+ "shape": "4v3",
+ "people": "[gecko]thebluegecko (lobby rating 34), [gecko]u6bkep (19), [gecko]Covariance (17); computer_whisperer (the user) hosting as a spectator, silent. The header lists all three as armada; the factories seen say two Cortex starts (vehicle plant C1, bot lab H2) and one Armada (bot lab E1); who played which is not recorded",
+ "our_side": "four seats under one side commander: t3 Cortex D7 (seat 0), t4 Armada F8 (seat 1, the named tier-2 sprint seat), t5 Cortex B7 (seat 2), t6 Armada G8 (seat 3); factions Random; players Opus 5.5 at effort medium, side commander Opus 5.5 at effort high, hands Jev 1.14.0 at effort normal; realtime ranked lobby (bot.log and the banner chat lines)",
+ "build": "1c077e4 (the banner: 'Within Reason 1c077e4 | player (claude-opus-5-5, effort medium ...) | hands: Jev jev-1.14.0')",
+ "result": {
+  "outcome": "lost",
+  "minute": "21:48"
+ },
+ "summary": "Four Opus 5.5 seats under an Opus 5.5 high commander lost at 21:48 on Gecko Isle to three gecko-clan people, the last commander (t5's) dying under a Tzar. The tier-1 game was even to about 10:00 and then ours: the side held 38-39 extractors from 8:00, won the G6 fight at 10:20-11:20, and the commander logged 12.8k of army against about 4.6k seen at 12:50; our advanced vehicle plant had stood since 9:35 on t4, the sprint seat, which held 6 extractors and 14.5 metal a second. The side kept making tier 1 (about 110 soldiers in minutes 10-15, 88 Thugs on t3 over the game) while the advanced constructors' mohos waited on empty stores (3 mohos at 14:00), and the lead sat in our half until 12:50, when all three bodies were sent north after his advanced constructor had been seen (12:20). The east push broke on Skuttles at spot_54 (13:52) and the west push at C4 on a Tzar, Tigers, a Fatboy and Scorpion turrets (14:29-15:45), about 13k lost for 3k by the commander's count; his tier 2 then took a dozen of our extractors from out of sight by 20:00. Seven Cutlass seaplane gunships, met by no anti-air, killed t6's commander at 20:03 and t4's at 20:27, their death blasts taking both bases, and t3's commander walked home into the Tzar block at 21:02. Nobody, the user included, said anything in the chat; every cause below is the reader's reading.",
+ "root": {
+  "clock": "9:35-12:50",
+  "what": "Our tier 2 stood first and the side did not turn to it, nor spend its tier-1 lead before his tier 2 came. t4's advanced plant stood at 9:35, before any sign of his (advanced constructor seen 12:20); it made seven advanced constructors and no soldier until 15:36, and their mohos waited on stores at 0 while the other seats made about 110 tier-1 soldiers in minutes 10-15 (first moho 13:05, 3 at 14:00). Meanwhile the lead of 11:00-13:00 stood in our half (0-1% in his half on t3 and t6), the plan changing each turn, and reached his C4 line only at 14:29-15:20, after his Tzar (14:35). Earlier contributor: the sprint seat t4 held 6 extractors and 14.5 metal a second from 4:00 and was fed 1,050 metal by 9:20. Reader's reading; no person spoke in this game.",
+  "evidence": "minutes seat 0 '11:00-13:00 (1.9-5.1x, 3 min): our mass D6 D6 D6 ... peak 0%'; seat 3 '11:00-13:00 (1.9-5.6x) G6 G6 G6 peak 1%'; record-1 armavp finished 9:35, armacv 10:08, armmoho 13:05, armmart 15:36; side mohos 3 at 14:00"
+ },
+ "turning_points": [
+  {
+   "clock": "4:50-5:04",
+   "what": "The commander gave t4's nine Blitzes to t6 for an east body; minutes later a Grunt/Pawn raid took t4's middle spots 45/49/52 and a constructor, and t4 pulled its constructors home onto wind for the sprint. t4 stayed at 6 extractors and 14.5 metal a second until 14:00.",
+   "evidence": "commander 4:50 transfer {to t6, group_B/E/F_t4}; t4 note 5:04 'A ~14-unit Grunt/Pawn raid hit spot_45/49/52 ... constructors pulled home onto wind for the sprint'; seat 1 curves '6 | 0 14.5 | 6/1' to '13 | 103 18.1 | 6/2'"
+  },
+  {
+   "clock": "6:16-9:35",
+   "what": "The side's one advanced plant went up on t4's own income: ordered 6:16, frame created 7:15, standing 9:35; t3 and t5 sent 1,050 metal in four transfers while they spent on tier-1 armies and 13-19 turrets each; t5 at 8:18 kept its plant on Brutes rather than feed.",
+   "evidence": "t4 note 7:27 'advanced plant frame 12% (305/2600); t4 metal 443 and empty in ~12 s at income 14'; commander transfers 450+200 (6:20), 200 (7:50), 200 (9:20); t5 8:18 'I keep the plant on Brutes rather than banking for t4'"
+  },
+  {
+   "clock": "9:20-11:20",
+   "what": "The plan changed every turn: 9:20 t5's body north up the west; 10:20 t3's army to march east along row 6 to G6; 11:20 the march cancelled, raids at C5/D5 and spots 56/54/49 first. t5 gave its body to t3 at 9:54 on the stale 6:56 direction. The east fight at G6 was won (he lost 40 Grunts, 7 Blitzes and Graverobbers for about 1,600).",
+   "evidence": "commander directs 9:20, 10:20, 11:20; t5 9:59 'I gave group_L ... to t3 at 9:54 per the 6:56 direction, before reading the 9:20 one'; analyze #10 9:49-11:00 G6 they lost 2750 (corak 40, armflash 7, cornecro 2)"
+  },
+  {
+   "clock": "12:20-12:50",
+   "what": "His advanced constructor seen at G4 (his tier 2 standing); at 12:50 the commander sent all three bodies north at once 'before his tier 2 turns it', with the side at about 12.6k of army against 1.3k seen.",
+   "evidence": "first enemy_seen corack 12:20 (6963, 4092); commander note 12:50 'lead taken (12.8k vs ~4.6k seen ...). All three bodies sent north at once, no gathering'; side army at 13:00 4280+0+4000+4336"
+  },
+  {
+   "clock": "13:30-13:52",
+   "what": "The east push (t6, 23 units) broke at spot_54 on cloaked Skuttle bombs and two Twin Guards: 4,170 lost in a minute; t6 went back to its turrets for good.",
+   "evidence": "t6 note 13:52 'the push at spot_54 broke: 4,170 lost in a minute, 5 Stouts to his corsktl ... others to two corhllt at F5 and unseen fire'"
+  },
+  {
+   "clock": "14:29-15:45",
+   "what": "The west push met his tier 2 at C4 in two pieces: t5's Brutes broken by the Tzar at 14:29-14:51 and held back at spot_44, then t3's Thugs alone at 15:03-15:45, told of the Tzar at 14:42 and committed 'raw' at 15:23; they thrashed between advance and walk and died.",
+   "evidence": "analyze #16 15:05-15:42 C4 we lost 3780 (corthud 27), they lost 60; #18 15:43-16:00 lost 1900, they 0; t5 14:51 'the Tzar killed five Brutes from out of reach at C4'; commander 15:50 '13,000 in three minutes for 3,000'"
+  },
+  {
+   "clock": "16:00-19:05",
+   "what": "His Arbiters (1,210), Fatboys, Hounds and a Persecutor shot our forward extractors from out of sight; side extractors 39 at 16:00 to 30 at 19:00; a Tzar-and-nine-Tigers block stood at C5 by 19:02.",
+   "evidence": "bot.log kills 'lost armmoho to a corhrk out of sight', 'lost armart to a cortoast out of sight'; t4 17:45 'Every extractor beyond spot_72 dies to his corhrk/Hound/Fatboy from out of sight'; t3 19:02 'a Tzar + 9 Tigers (~7.9k) at C5'"
+  },
+  {
+   "clock": "19:25-20:27",
+   "what": "Seven Cutlass seaplane gunships entered our east base, first seen there; nothing of ours hit air. t6's commander died at 20:03 and t4's at 20:27, and their death blasts took t6's plant, nano and converters and t4's advanced plant, nine constructors and mohos.",
+   "evidence": "first enemy_seen corcut 19:25 (7258, 8701); record-3 armcom destroyed 20:03 by corcut, record-1 20:27 by corcut; analyze seat 1 #24 20:27 F8 'we lost 13631 metal, they lost 0'; seat 3 #30 19:52 G7 lost 8903"
+  },
+  {
+   "clock": "21:02-21:48",
+   "what": "t3's commander walked home into the Tzar/Tiger block and died (its blast took t3's base); t5's commander, the last, fell to 0% under a Tzar at 21:48 and the engine closed.",
+   "evidence": "record-0 corcom destroyed 21:02 by corgol at (3353, 7819); analyze #27 20:49-21:09 D7 we lost 9701, they 0; seat 2 last sample 21:48 'our commander at 0% health at B7 ... corgol'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "9:35-15:36",
+   "what": "Tier 1 kept under tier 2. With the advanced plant up at 9:35 the side went on making tier-1 soldiers on every seat while the advanced constructors' mohos crawled on stores at 0: first moho 13:05, t3's first 15:03, t5's 16:49; the plant made nothing but constructors until its first Mauser at 15:36. A stronger side stops tier-1 production for the transition, eats the tier-1 plant and puts every seat's metal into mohos and a first batch of tier-2 units.",
+   "evidence": "minutes made s4-s12 a minute on t3, s3-s7 t5, s2-s7 t6 in minutes 10-15; record-0 corthud finished 88; t3 report 12:15-13:02 'metal 0/1600 ... STALLING'; mohos finished t4 13:05, t6 13:50, t3 15:03, t5 16:49",
+   "kind": "both"
+  },
+  {
+   "clock": "0:20-9:35",
+   "what": "The sprint put on the poorest seat and fed from surplus. t4 was named at 0:20, lost its army to t6 at 4:50 and 7:50, held 6 extractors and 14.5 metal a second, and its plant took 2:20 on that income with 1,050 metal from two seats. A stronger side sprints on the richest seat or feeds the frame as production, not leftovers.",
+   "evidence": "seat 1 curves extractors 6 from 4:00 to 15:00, income 14.5 at 4:00-10:00; commander 0:20 'Tier-2 sprint: t4'; transfers to t6 4:50 and 7:50; t4 7:27 'empty in ~12 s at income 14'",
+   "kind": "both"
+  },
+  {
+   "clock": "11:00-12:50",
+   "what": "The tier-1 lead stood in our half for two minutes after the G6 win, under plans that changed each turn, and went north only after his tier 2 was seen; the bodies then crossed slowly and arrived apart (east 13:30, t5 14:29, t3 15:03). A stronger player goes at 11:00 in one body, or holds and techs once 12:20 shows his tier 2.",
+   "evidence": "minutes windows seat 0 11:00-13:00 peak 0% in his half, seat 3 peak 1%; commander 11:20 'The row-6 march is cancelled'; t3 note 15:23 't5's Brutes are at B5, not with us'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "14:42-15:45",
+   "what": "t3 kept the push after the report named the Tzar at C4 (14:42) and at 15:23 set the group raw and sent it through a Tzar, Tigers, a Fatboy and Scorpions that all out-ranged Thugs; the hands then flipped the group between 'advance to shelling' and walking back eight times in nine seconds. A stronger player does not walk tier 1 into tier-2 reach and turrets.",
+   "evidence": "t3 told 14:42 'first tier-2 unit of his seen: corgol at C4'; 15:23 lane raw, 'goes through it as one body'; hands_window group_U_t3 15:34-15:43: walk spot_47, advance, walk spot_53, advance, walk spot_38, walk spot_47, advance, walk spot_47",
+   "kind": "both"
+  },
+  {
+   "clock": "0:20-20:20",
+   "what": "No anti-air and no scouting. The commander wrote at 0:20 'an air plant of his is likely, so each seat keeps anti-air in mind from 6:00' and 'No spots under water' on a map with sea and tidal 25; anti-air was not ordered until 20:20 (one Cortex missile tower 8:11, one Armada at 20:24), and his base went unscouted from about 6:30, so the seaplane platform was never seen.",
+   "evidence": "commander 20:20 note 'anti-air was never ordered after the 0:20 mention'; record finished corrl 8:11 (t5), armrl 20:24 (t4); commander predict 14:20 'his base unscouted 10 min'; header map tidal 25.0",
+   "kind": "strategy"
+  },
+  {
+   "clock": "19:41-21:02",
+   "what": "Commanders stayed at home among the buildings with gunships and the Tzar block loose: three died there and their death blasts took three bases (t4's advanced plant, t6's plant, t3's labs). t3's walked 'home' on a stale packet into the block.",
+   "evidence": "t3 note 21:03 'the hands walked it home (my earlier packet named home) instead of to orange_home before the new packet landed'; bot.log seat 3 'lost armwin to our own armcom's death blast at home x13', 'lost armmakr ... x8'",
+   "kind": "both"
+  },
+  {
+   "clock": "15:21-20:15",
+   "what": "Long guns fought blind: extractors and turrets died to Arbiters (1,210), Fatboys and a Persecutor out of sight; t3 had no radar until 20:15, the order for a radar per seat came at 18:50.",
+   "evidence": "record finished radars: t4 4:38, t6 10:27, t3 20:15; t4 15:38 'the spot_58 moho died to a corhrk (reach 1,210) shooting from out of sight'; commander 18:50 'Every seat puts a radar tower behind its line'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:50-17:47",
+   "what": "An anti-nuke at t4 (14:56-17:47) during the energy stall that held its first Mausers; the people built no silo that we saw.",
+   "evidence": "commander 12:50 'anti-nuke ordered at t4 (E8 ...) and t5 (B7)'; t4 15:21 'energy empty (99, -1,300/s) under the Mauser, the anti-nuke and the mohos'; record-1 armamd created 14:56, finished 17:47",
+   "kind": "both"
+  },
+  {
+   "clock": "7:50-21:00",
+   "what": "Build power and spare resources unused: six construction turrets on the side all game, energy banked 7-14k while metal stalled, 36 basic converters instead of nanos, no tidals on a tidal-25 map, and 16k of known wreck metal unworked at 21:00.",
+   "evidence": "record finished cornanotc 5, armnanotc 1, armmakr 21, cormakr 15, no armtide/cortide; commander 7:50 'Energy is banked unused (10,000)'; bot.log f=37800 'wrecks: 154 known ... 16217 metal (11983 safe to work), 0 at work'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Two Cortex starts (vehicle plant C1, bot lab H2) and one Armada (bot lab E1). Massed tier-1 raids from 2:20 into our middle and east: Grunts (101 seen), Pawns (49), Incisors (45), with Graverobbers raising wrecks; geothermals at D2 and F2 by 6:08; armed extractors (12 Exploiters seen) with Twin Guards planted on our middle spots 38/40/43/49/54/56 from 7:37. Tier 2 behind it, never scouted: an advanced constructor at G4 12:20, Skuttles 13:31, a Tzar at C4 14:35, Sumos 14:52, Sheldons and Scorpion turrets 15:15, Tigers 15:19 (13 seen), Hounds 16:23, Fatboys 17:41, a Sharpshooter firing from out of sight, Arbiters and a Persecutor shelling our spots from out of sight, a Tzar-and-nine-Tigers block at C5 (19:02), a Banisher 20:32 and a Shiva 20:33 (an experimental gantry). The decisive stroke was seven Cutlass seaplane gunships from an unseen seaplane platform into our east base at 19:25, killing two commanders 24 seconds apart (20:03, 20:27); seaplane fighters by 21:23. They fought almost wholly in our half (their losses seen 'in our half' 24.9k-29.4k by seat, 2.3k-4.4k in theirs). No chat from any of them.",
+ "defects": [
+  {
+   "defect": "Cross-faction advanced constructor: t5 (Cortex) could not queue armmoho for the Armada armacv t4 gave it ('Our queue tool refuses armmoho for the Armada advanced constructor'), gave it on to t6 at 12:58 and built its own advanced vehicle plant (13:26-14:44), first moho 16:49; the same defect as Center Command's, role words and name checks following the seat's faction",
+   "fixed": "2026-10-20 (roster::of_unit, after the Center Command review)",
+   "evidence": "t5 notes 12:34 and 12:58; record-2 coravp created 13:26, finished 14:44; cormoho first finished 16:49"
+  },
+  {
+   "defect": "Anti-nuke as due diligence in the brief/commander text (4b3980c, 2026-10-19): the commander ordered anti-nukes at 12:50 against people who never built a silo; t4's took 1,500 metal and its energy during the Mauser stall",
+   "fixed": "2026-10-20 (the user's ruling: people nuke late or never; the wording replaced)",
+   "evidence": "commander 12:50 note; t4 15:21 'energy empty ... under the Mauser, the anti-nuke and the mohos'; armamd 14:56-17:47"
+  },
+  {
+   "defect": "Feeding read as surplus: the direction said the others feed the sprint, players fed leftovers (1,050 metal by 9:20) and kept their plants on tier 1; no standing transfer existed",
+   "fixed": "2026-10-20 (the standing transfer with keep_metal, the commander's transfers line, the brief's 'feeding is production')",
+   "evidence": "t5 8:18 'I keep the plant on Brutes rather than banking for t4'; t4 7:27 'needs the promised metal from t3/t5 now'; commander transfers 6:20-9:20 total 1,050"
+  },
+  {
+   "defect": "Advance/walk thrash: group_U_t3 flipped between 'advance to shelling' and walking back eight times in 9 s under the Tzar at C4 (the human-10 pattern)",
+   "fixed": "open as of this build (no later fix found in the eras list)",
+   "evidence": "hands_window 15:34-15:43 group_U_t3; t3 15:45 'the group thrashed between advance and walk'"
+  },
+  {
+   "defect": "A direction acted on out of order: t5 executed the 6:56 direction at 9:54 before reading the 9:20 one, moving the west body to t3 against the newer plan",
+   "fixed": "open (not in the eras list)",
+   "evidence": "t5 9:59 'I gave group_L ... to t3 at 9:54 per the 6:56 direction, before reading the 9:20 one that has t5 run the west body'"
+  },
+  {
+   "defect": "The commander walked to a place named in a superseded packet ('home') before the new packet landed, into the Tzar block",
+   "fixed": "open (packet latency)",
+   "evidence": "t3 note 21:03"
+  },
+  {
+   "defect": "Builders stuck with no blocker named and exit lanes blocked after the 2026-10-13 exit-lane fix: 122 move failures on t5, constructors stuck at avp_yard/spot_78/solar_field and at spot_85-87 for minutes, six exit-lane wakes on t3's lab",
+   "fixed": "open",
+   "evidence": "record-2 move_failed 122 (3:48-21:48); t5 20:29 'stuck ... for over a minute; the picture names no blocker'; t4 16:03 'constructor_1029 has been stuck at spot_85-87 for minutes'"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "supports",
+   "note": "with our tier 2 up at 9:35 the side made about 110 tier-1 soldiers in minutes 10-15 (88 Thugs on t3 over the game) while mohos starved; the tier-1 bodies then broke on his tier 2 at C4 and spot_54"
+  },
+  {
+   "id": "L-other-infern8-transition",
+   "relation": "supports",
+   "note": "the other plants of the seats kept producing when the advanced plant came online; the plant made seven constructors and no soldier for six minutes"
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "a tier-1 lead (side 7.9k at 11:00 and 12.6k at 13:00 against 0.65-2.4k seen) stood in our half until 12:50 and was spent only after his tier 2 had come"
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "the pushes arrived apart: east at spot_54 13:30, t5's Brutes at C4 14:29, t3's Thugs at C4 15:03, each broken alone"
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "u6bkep was among the opponents; their air came with nothing of ours to meet it (seven Cutlass gunships killed two commanders), and our bodies attacked his strongest position at C4 instead of going around"
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "supports",
+   "note": "Scorpion and Beamer turrets with a Tzar at C4 took 47 Thugs and 18 Brutes; nothing of ours out-ranged them until 15:36"
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "six construction turrets on the four seats all game while energy banked 7-14k and metal stalled"
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "16,217 metal of wrecks known at 21:00, 0 at work; reclaim trips past spot_72 died to his tier 2"
+  },
+  {
+   "id": "L-reclaim-map",
+   "relation": "illustrates",
+   "note": "a second Gecko Isle game in which the map's reclaim went mostly unused"
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "illustrates",
+   "note": "Gecko Isle again; no tidal built by any seat (tidal 25), and the commander wrote 'No spots under water'; the people used the sea for a seaplane platform"
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "done to us: seven Cutlasses went straight for two commanders at home (20:03, 20:27), and with deathmode com the commanders were the game"
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "illustrates",
+   "note": "we went tier 2 first (9:35) and still lost the tier-2 game: going is not enough without the transition"
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "a second case from the same night as Center Command: the sprint on the seat with 6 extractors and 14.5 a second, 1,050 metal fed, the cross-faction moho refusal, tier 1 against tier 2 at C4"
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "the 11:00-13:00 windows (1.9-5.6x) with 0-1% of our mass in his half, then a late push that arrived in pieces"
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Tzar 650, Scorpion 730, Arbiter 1,210 against Thugs and Brutes at 350; extractors lost to unseen fire 16:00-20:00; his base unscouted for 10+ minutes"
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "illustrates",
+   "note": "no earlier sign was ever seen because nothing scouted: the gunships were first seen inside our base at 19:25; the 0:20 'keep anti-air in mind' never became an order"
+  },
+  {
+   "id": "The nuke and the anti-nuke: the silo's clock, the anti-nuke's timing by opponent, the nuke line on three maps",
+   "relation": "supports",
+   "note": "supports the 2026-10-20 ruling: an anti-nuke at 14:56-17:47 against gecko people who showed no silo, paid in the Mauser stall"
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it",
+   "relation": "supports",
+   "note": "three commanders died at home under air or a Tzar; their death blasts took three bases"
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "illustrates",
+   "note": "the sea was the people's (seaplane platform, Cutlasses, seaplane fighters) and none of ours; no tidals"
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "ahead on seen trades to 12:50 and lost; the loss came through the commanders and the tier-2 economy, not the tier-1 army"
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0 on the match; seats 1-3 through scratch directories linking record-N as record-0)",
+   "run/analyze_match.py (all four seats, the same way)",
+   "run/floor.py (four seats)",
+   "run/raid_ledger.py (four seats)",
+   "run/commander_turns.py --notes (match, every seat)",
+   "run/commander_turns.py --calls on the side commander's commander.jsonl",
+   "run/commander_turns.py --told --calls (seat 0, read 12:15-15:45)",
+   "run/wake_read.py (seat 0)",
+   "run/hands_window.py 15:00-15:45 group_U (seat 0)",
+   "scratch reads of record-0..3.jsonl: commander deaths, transfers between seats, first enemy sightings, finished units and structures, side extractors and mohos by minute, move_failed",
+   "bot.log, script.txt"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "No truth file and no engine replay of this game: his numbers are what we saw (floors), his tier-2 start and extractor count unknown. No ledger row, no review, and no chat from the people or the user, so every cause is the reader's reading. The per-match tools read only record-0 (seat 0); seats 1-3 were read by linking each record as record-0 in a scratch directory, and the 'his' columns there are the side's shared sight. pro_baseline not run (not Comet); impedance_sweep not run. Process note: my first per-seat links briefly reused two finished readers' scratch directories (seat1/00, seat2/00 of human-16 and comet-catcher-11, rows written 00:38 and 00:43); restored at 00:53."
+ },
+ "open_questions": [
+  "When did the people start tier 2 and how many extractors did they hold? Is this game's engine replay still in the BAR install (the Center Command game 26 minutes later got one)?",
+  "Why could t3 build four armmoho with the Armada advanced constructor it received while t5's queue refused armmoho for another one? Different paths (Jev's pick against the queue tool)?",
+  "Why did the first moho come three minutes after the first advanced constructor (10:08 to 13:05) on t4: the empty store at 14.5 a second, or the constructor's list?",
+  "What held t5's builders (122 move failures, constructors stuck at avp_yard, spot_78 and solar_field with no blocker named)?",
+  "Is the advance/walk thrash under a long-range shooter (human-10, here at C4) still open in today's hands?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1792459018-human.json"
+}

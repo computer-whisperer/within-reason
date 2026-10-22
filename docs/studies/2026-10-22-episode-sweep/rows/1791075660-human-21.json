@@ -1,0 +1,265 @@
+{
+ "batch": "1791075660-human-21",
+ "label": "human-21",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-03",
+ "shape": "1v1",
+ "people": "[gecko]u6bkep (lobby rating 29), Armada, from B5 (placed by minutes.py from sightings); the user (computer_whisperer) hosting as a spectator",
+ "our_side": "One seat, Cortex from G1 on the east strip: Opus 5.5 medium as the player (`run/human_game.sh human-21 medium normal claude-opus-5-5 seat claude-opus-5-5 high`) under an Opus 5.5 high commander (13 turns, 11 directions); Jev hands after the 2026-10-02 rebuild; group_A (five Rascals, one Incisor) on `lane rove` driven by code from 2:13.",
+ "build": "194750c",
+ "result": {
+  "outcome": "lost",
+  "minute": "17:44"
+ },
+ "summary": "We opened three solars, then the plant at 1:08 (pool Cortex p75 1:03) with no turret, sent the first handful across at 2:30-2:39, found his plant at 2:55 and killed 210 of his for nothing by 3:25; at 4:00 we had 7 extractors and an army of 824, above the pool's p75. From 4:27 four Blitzes came in behind the base while the seven-Incisor raid stood about 1,500-2,000 in front under a packet that said it never comes home; the party name passed to one of his constructors, the body walked west, home and west again on the commander's 5:13 direction, and extractors fell from 7 to 3 by 5:25. u6bkep kept raiding with parties of 7-10 Blitzes (about 17 seen by 6:18), went to Stouts at 9:48 and Janus at 11:18, and fought the whole game in our half while expanding to 19 extractors. Our home held trades about even from 7:00 to 12:20, but extractors stayed at 3-7 against the pool's 11-24, the commander reversed the player's 6:18 Pounder switch at 6:20 and moved the home body south at 9:20 into a nine-unit raid, and a Stout and Janus army killed the plant at 14:02. The commander relocated to H7 at 15:20, conceded in chat at 17:16 after the host's \"you could just surrender\", and the game closed at 17:44 with one unit of ours.",
+ "root": {
+  "clock": "3:51",
+  "what": "The player's 3:51 packet (repeated at 4:11) was written with a Blitz at H3 in the report and the commander's 3:20 'Keep a turret or two at home against his Blitzes' in it. It left home to group_D, two Incisors, told the seven-Incisor group_B 'It never comes home and never sends detachments after lone raiders', and queued no turret at home. At 4:27 four Blitzes came in behind the base. The game was still on the path at 4:00: 7 extractors (pool p25 7), army 824 (pool p75 709), 210 of his killed for 0.",
+  "evidence": "minutes.py 4:00 '824/0 ... lost 166 (H3)'; 5:00 'his mass G2 (57%) ... 495 (G1)'. analyze_match #0 4:25-5:12 G2: we lost 695 (5 cormex, 2 corsolar, 1 corcv), they lost 0; ours on the spot 480 + 0 turrets. 4:11 queue: turrets only at spot_3 (F1) and spot_25 (H3)."
+ },
+ "turning_points": [
+  {
+   "clock": "2:30-3:25",
+   "what": "The first handful crossed (Rascals 2:30-2:39), found his plant at B4 at 2:55 and reached his start at 3:16; rovers killed his extractors at B5/A6 for no loss.",
+   "evidence": "minutes.py: 'his first factory seen: 2:55 at B4'; corfav_5024 'nearest his start 59 at B5 3:16'. Player note 3:25: 'rovers killing his mexes at B5/A6 (210 destroyed, 0 lost)'."
+  },
+  {
+   "clock": "3:20",
+   "what": "The commander's direction asked for a turret or two at home; it stood in the player's report from 3:51 and was not acted on (no home turret until 5:44).",
+   "evidence": "commander 3:20 direct: 'Keep a turret or two at home against his Blitzes so the Incisors don't have to come back.' Existing review: first finished turret 5:44 (record created/finished events)."
+  },
+  {
+   "clock": "4:27-5:25",
+   "what": "Four Blitzes raided home: spot_17 4:28 unanswered, spot_12/5/10/6 4:35-5:12 answered by the commander alone, spot_3 5:25; extractors 7 to 3.",
+   "evidence": "raid_ledger: '4:28 spot_17 H2 armflash ... none'; '4:35 spot_12 ... 4:56 +23s commander: attack party_11'; '5:25 spot_3 F1 ... group_D: attack party_11'. analyze_match curves: extractors 6 at 4:00, 3 at 6:00."
+  },
+  {
+   "clock": "4:42-5:13",
+   "what": "group_B's errand: west to spot_22, then at party_4 (by then a constructor and Blitzes at B2), then home, then west again on the commander's direction; it fought nowhere (the user's review in the ledger).",
+   "evidence": "hands_window: 4:42 'group_B: advance to spot_22 [plan]'; 4:50 'attack party_4 (1 armcv, 3 armflash)'; 5:09 'advance to spot_6'. commander 4:50 direct: 'do not bring them home'."
+  },
+  {
+   "clock": "6:05-7:10",
+   "what": "Ten-Blitz parties at F1/E1: we lost 965 for 0 at 6:05-6:33, then the home fight on turrets, commander and Incisors turned (600 lost for 990).",
+   "evidence": "analyze_match #3 6:05-6:33 F1: we lost 965, they lost 0; #5 6:37-7:10 F1: we lost 600, they lost 990 (9 armflash). Player note 7:09: 'Home fight turned: 8 Blitzes killed in two minutes'."
+  },
+  {
+   "clock": "6:18-6:39",
+   "what": "The player switched the plant to Pounders at 6:18; the commander's 6:20 direction ('one Pounder in every three or four Incisors') reversed it from 6:39, and Incisors stayed the bulk until 12:45.",
+   "evidence": "Player 6:18 note: 'Switching plant to Pounders (corlevlr, riot, beats Blitzes head-on) ... Incisors only as filler'. commander 6:20: 'put one Pounder (corlevlr) in every three or four Incisors for now'."
+  },
+  {
+   "clock": "9:20-11:21",
+   "what": "The commander moved group_D south to cover expansion; at 10:29 a party of 7 Blitzes and 2 Stouts came home with group_D about 2,100 south, and the second plant's frame and turrets died.",
+   "evidence": "hands_window 10:29: 'party_26=2 armflash@(5828,1011) ... group_D: 10 at (6362, 2945), task fight_to spot_27 ... kept w1 over w2 of 2 at 0.81'. analyze_match #8 10:38-11:21 G2: lost 1595 (corvp 1), they 775."
+  },
+  {
+   "clock": "13:50-15:02",
+   "what": "A Stout and Janus army outranging the Incisors broke home: the plant died at 14:02 and the base was lost by 15:22.",
+   "evidence": "analyze_match #13 13:50-15:02 G1: we lost 4065 (corvp 1, 4 corlevlr, 4 cormex, 11 corsolar), they lost 1380 (4 armstump, 2 armjanus). Player 15:22: 'Base lost: 1 extractor'."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "3:51",
+   "what": "The packet answered a raid seen since 2:38 with a two-Incisor picket and 'never comes home', and no home turret, though the commander's 3:20 direction asked for one. A stronger player keeps a light turret at the home cluster from about 2:00 and writes beforehand which body turns for a party in the base (the user's rule after this game).",
+   "evidence": "4:11 instruct: 'group_B: the raid ... It never comes home and never sends detachments after lone raiders. group_D: home picket'. Existing review: first armflash seen 2:38; pool Cortex first turret median 0:38.",
+   "kind": "both"
+  },
+  {
+   "clock": "0:00-1:08",
+   "what": "Opening list of three extractors, three solars, then the plant, and no turret: the plant started at 1:08 against the pool's 0:59, and metal sat at 0-141 from 3:00 to 4:30 with energy full.",
+   "evidence": "pro_baseline --all-starts: 'first factory started 1:08 | 0:37 0:59 1:03 >p75 (late)'; 'solars before the plant 3 | 1 2 2 >p75'. 0:00 queue: extractor x3, solar x3, plant.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:50-5:13",
+   "what": "The commander's 4:50 direction sent the body the player had just recalled back west ('do not bring them home') while four Blitzes shot the plant and home extractors.",
+   "evidence": "commander 4:50: 'group_B's 7 Incisors keep going west ... do not bring them home.' Player 5:13 note: 'Following direction: group_B back to raiding west (B3/B5), not home.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:20",
+   "what": "The commander reversed the player's Pounder switch; the simulator has the Pounder beating the Blitz (+0.89), the Stout (+0.68) and the Janus (+0.33), and the commander itself called the 12:20 switch late.",
+   "evidence": "commander 6:20: 'put one Pounder (corlevlr) in every three or four Incisors'; 17:13 note: 'the switch to Pounders came at 12:20, late against Stout/Janus'. units.csv corlevlr: beats Blitz (+0.89); armstump loses to Pounder (-0.68).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:00-14:00",
+   "what": "Incisors (speed 85) were sent after Blitzes (101) they cannot catch, and kept as the bulk against Stouts (range 350) and Janus (380) that outrange them (230).",
+   "evidence": "commander 13:50: 'group_H's Incisors can't catch Blitzes (85 against 101), so stop hunting'; 12:20: 'both out-range the Incisor (350 and 380 against 230)'. units.csv confirms speeds and ranges.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:20",
+   "what": "The commander moved the home body to cover expansion at G4 while the fights block showed ten-Blitz raids killing light turrets; the 1,034 bank went into a second plant frame that died at 10:49.",
+   "evidence": "commander 9:20: 'Move it to stand where the constructors are taking spots ... the turrets hold home'; 10:50 note: 'my 9:20 order moved group_D south ... killing the new 2nd plant and the turrets'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:00-12:00",
+   "what": "Extractors stayed at 3-7 with the bank at 675-1,027 at 9:00-10:00 and the first construction turret at 9:24; constructors were pulled home on every raider alarm and lists were cancelled at 11:13.",
+   "evidence": "pro_baseline: extractors 4/5/7/7/6/6 at 6:00-11:00 against pool p25 10-16; 'first construction turret begun 9:24 | 4:45 5:06 6:10'. analyze_match: 'metal banked above 500 in minutes [9, 10]'.",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "u6bkep (Armada, lobby 29) opened on vehicles from B5 with a light turret at his outer extractors (our Rascals died to armllt at A6 at 3:51 and 9:38) and raided with Blitzes from 2:38: one Blitz at home at 2:38-3:25, the first extractor killed at 3:57 (H3), four Blitzes through H2, G1 and F1 from 4:20 to 5:25 while our raid stood forward, then parties of 7-10 Blitzes at 6:05 and 9:46 (about 17 seen by 6:18). He moved to Stouts (first seen 9:48) and Janus (11:18) and sent mixed raids of 7 Blitzes and 2-3 Stouts at 10:29, then a Stout and Janus army of about 1,800 that killed the plant at 14:02 and followed the commander south to H7. Every fight was in our half (our metal lost: 11,177 at our base, 292 in his half), he lost 945 in his half to our rovers, and he expanded from 13 known extractors at 9:20 to 19 at 15:20 (the commander's notes); no tier 2 was seen.",
+ "defects": [
+  {
+   "defect": "Party name passed to other units: party_4 (the raiders at our base) went to a constructor in his half at 4:32, so the packet's 'group_B attacks party_4 now' sent the body at B2 while party_11 shot the plant (K-hands-a-party-name-passed-to-other-units). The errand of 4:42-5:13 rests partly on it.",
+   "fixed": "2026-10-03 (641cc72, registry fix; unmeasured in play)",
+   "evidence": "hands_window 4:32: 'party_4=1 armcv@(1363,1708)'; 4:33 'party_11=3 armflash@(7558,1016)'; 4:50 'group_B: attack party_4 (1 armcv, 3 armflash) with the whole group [plan]'."
+  },
+  {
+   "defect": "The player prompt had no in-base rule for a raiding party, so the lone-raider wording ('never comes home ... after lone raiders') covered four Blitzes at the plant; the 641cc72 player.md passage cites this game.",
+   "fixed": "2026-10-03 (641cc72, prompt wording)",
+   "evidence": "4:11 instruct: 'It never comes home and never sends detachments after lone raiders.' crates/bot/src/strategist/player.md:360-368 now: 'A raiding party, three or more of his ... is an army in our base'."
+  },
+  {
+   "defect": "The commander's role text did not stop it from sending back out a body the player had just turned to meet a raid in its own base.",
+   "fixed": "2026-10-03 (641cc72, commander.md wording)",
+   "evidence": "commander 4:50 'do not bring them home', landed 5:13; commander.md:132 now cites human-21: 'do not send it back out with your next direction'."
+  },
+  {
+   "defect": "The commander's report carried no build-power line, so a bank of 675-1,027 at 9:00-10:00 was read as an extractor problem and spent on a second plant frame.",
+   "fixed": "2026-10-03 (f6cfb6d, after this game)",
+   "evidence": "Existing review finding 4: 'The commander's report of this game carried no build power line (added in f6cfb6d, after)'. analyze_match: bank 675 at 9:00, 1027 at 10:00."
+  },
+  {
+   "defect": "The commander's 4:50 report showed the plant as 'idle: building nothing ... (all 4 allowed made: no more)' between two Incisors, and the commander read it as an exhausted list.",
+   "fixed": "unknown",
+   "evidence": "commander 4:50: '(1) The plant is idle because its list ran out.' hands_window: 4:42 and 4:54 'plant_9526: build a corgator'."
+  },
+  {
+   "defect": "The report's 'killing our Vehicle Plant now' meant shooting it; the ledger, jev.md and player.md first said the plant died at 5:01 (it stood at 72% and died at 14:02), since corrected in the texts.",
+   "fixed": "2026-10-03 or later (texts corrected; report wording unknown)",
+   "evidence": "Player 5:01 instruct: 'his Blitzes (party_11, 4 armflash) are killing our plant at home now.' analyze_match #13: corvp lost 13:50-15:02."
+  },
+  {
+   "defect": "The hands kept group_D's walk to spot_27 over a growing party at home for seven seconds of picks (10:29-10:36) until the player's next packet.",
+   "fixed": "unknown",
+   "evidence": "hands_window 10:29-10:36: group_D 'task fight_to spot_27', 'kept w1 over w2 of 2 at 0.81' while party_26 grew from 2 armflash to '7 armflash, 2 armstump'."
+  },
+  {
+   "defect": "Turn latency: median 13.7 s wall a turn and orders in flight 86% of the game, so every raid answer landed 10-16 s after the report that prompted it (P2: above 10 s is harness-side).",
+   "fixed": "open",
+   "evidence": "wake_read: '65 turns over 17.6 min = 3.70/min; wall median 13.7s'; 'fraction of game time the player was busy (orders in flight): 86%'; extractors destroyed: next turn after median 9.2 s."
+  },
+  {
+   "defect": "The commander has no resign tool: asked to surrender at 17:12 it could only ask the host to end the game.",
+   "fixed": "unknown",
+   "evidence": "chat 17:16 our player: 'I have no resign command, so please end it from the host side.' Ledger: 'the players' remove can destruct, the commander can only direct it'."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "17:12",
+   "text": "you could just surrender"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "Source game of the in-base rule ('the answer must stand in the packet before the raid'). It also scopes 'a turret beside each outer pair is the picket': against a person's 7-10 Blitz parties, light turrets alone did not hold (12 of 25 losses had a turret within 700; commander 10:50: 'Light turrets alone don't hold against his 9-unit raids')."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "illustrates",
+   "note": "'the fault was the army's stationing': our army was above the pool's p75 at 4:00-6:00 (824/1,424/1,544) while four Blitzes took home, because the body stood forward under 'never comes home'."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost later to Stouts and Janus, but the commander's own summary and the record put the loss at extractors: 7 down to 3 at 4:27-5:25, then 3-7 through 12:00 while he went from 13 to 19."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "supports",
+   "note": "'I like to make pounders for defence ... or all pounder if I am getting pushed': the player's 6:18 switch to Pounders for home defence matched this and the simulator; the commander's 6:20 reversal left Incisors as the bulk against Stouts and Janus."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first handful crossed at 2:30-2:39 (pool Cortex 2:48), found his plant at 2:55 and killed 210 for 0 by 3:25; group_A was the best trade of the game (about 4:1, the existing review's attribution) but did not slow his expansion, and home fell behind it."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Pressure met the pool's clock and paid, which shows it is necessary but not sufficient: without a home answer, his return raids cost us more than ours cost him."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars with a constructor first (the reason he gave for three), but the plant came at 1:08 (>p75), energy stalled at 2:41, and metal sat at 0 from 3:07 with energy full."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Three solars before the plant against the Cortex pool's 1/2/2; the store at 0-141 from 3:00 to 4:30 with energy full; the commander's 3:20 direction 'Add solars only when energy actually runs short'."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "First construction turret begun 9:24 against the pool's 5:06, with the bank at 675-1,027 at 9:00-10:00 spent on a second plant frame that died."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "A bank of 1,034 at 9:31 on income 16-18 went into a second plant at home rather than build power; the commander's report had no build-power line (f6cfb6d added it after this game)."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Incisor 85 speed / 230 range against Blitz 101 / 180, Stout 350 and Janus 380 (units.csv); the Pounder beats all three in the simulator. Incisors chased what they could not catch and were outranged once he switched at 9:48-11:18."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "The commander unit was the only answer to four Blitzes at the home spots from 4:56 to 5:12 ('attack party_11; its list step assist') and helped turn the 6:37-7:10 home fight; it survived to 17:44."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Constructors were 3.0-6.1 alive (pool 4-8) but extractors stayed 3-7 from 6:00 to 12:00: turret-heavy lists, walks home on alarms, and three lists cancelled at 11:13."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "The commander at 13:50 asked for one or two energy converters on a full energy store; Irishstud14's 'this is a metal heavy map. You won't need converters' was said of a healthy economy, not one at 4 extractors. Nothing in the record measures either."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "Wrecks of about 2,800 metal lay at home at 13:50 (the commander's count) and 6,104 were reported by the end; the commander asked for reclaim at 6:20, 7:50, 10:50, 12:20 and 13:50, and at 14:16 the player set it aside because 'the wrecks lie under his army'."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/pro_baseline.py --all-starts",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 4:20-5:20 group_B",
+   "run/hands_window.py 10:27-10:40 group_D",
+   "run/impedance_sweep.py",
+   "commander.jsonl tool_call extraction",
+   "docs/glossary/units.csv lookups"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1791075660-human-21/00/review.md",
+  "confidence": "high",
+  "caveats": "There is no truth file for a game with people: his numbers are what we saw (floors), and P3, known%, pred% and his curves cannot be checked. pro_baseline finds no pool from G1 as Cortex and runs only with --all-starts (39 Cortex sides), and its pressure rows are blank without a truth file. raid_ledger's 'paid' is 0 in every row although engagement #2 killed four Blitzes. floor and analyze_match print result '-' and 0.0 minutes. Extractor-loss counts differ: raid_ledger 25, analyze_match 24, wake_read 21. The record's enemy def ids do not map onto the header's unit_defs by id; first-sighting clocks are taken from the existing review. I differ from the existing review on the root: it puts the root at 0:00 (the opening list without a turret, last avoidable 3:51); I put it at 3:51, the packet, because at 4:00 the game was still on the path and the user's reading (the ledger) also points to the packet and the body's stationing. I add that the simulator backs the 6:18 Pounder switch, which the review left undetermined."
+ },
+ "open_questions": [
+  "Would group_B, recalled correctly at 4:27 (seven Incisors at about (5300, 730), roughly 1,700-2,100 from the home spots at speed 85), have saved spot_6 (5:12) and spot_3 (5:25), or only traded with Blitzes it cannot catch? This decides how much of the 7-to-3 drop rests on the since-fixed party-name fault.",
+  "Would a Pounder-led home body from 6:18, as the player chose, have held against a person's Blitz and then Stout and Janus raids? The simulator says yes head-on, but no game of ours with people measures it.",
+  "How much of the home wreck metal (2,800 at 13:50) did the constructors actually reclaim between raids? Nothing run here measures it."
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791075660-human-21.json"
+}

@@ -1,0 +1,220 @@
+{
+ "batch": "1791008485-human-14",
+ "label": "human-14",
+ "map": "Altair_Crossing_V4.1",
+ "date": "2026-10-03",
+ "shape": "2v2: one seat of ours beside the user's near-idle base, against two BARb medium (the user: 'Your goal is to win the 1v2')",
+ "people": "computer_whisperer (the user, hosting; our partner on ally team 0, Armada, start A7; lobby rating not recorded). The opponents were not people: BARbstable(1) and BARbstable(2), profile medium, side Random. One played Armada, with a bot lab at H5 (Pawns, Maces, Rocketeers). The other played Cortex vehicles in the north-east, G1-G2 (Incisors, corcv, Levelers, an LLT).",
+ "our_side": "One seat: ai 2, team 3, ally team 0, side Random (Armada), start A4 (359, 1908). Player claude-opus-5-5, effort medium (Claude Code 2.1.288), no commander role, realtime. Hands: Jev jev-latest = jev-1.13.0, effort normal. The session was replaced once, at 9:30. Jev cost $0.26 (floor.py). No ledger row exists for this game.",
+ "build": "9b1b6fd (banner at 0:02: 'Within Reason 9b1b6fd | player (claude-opus-5-5, effort medium, 2.1.288 (Claude Code)) | hands: Jev jev-latest | seat ai2 team 3 random')",
+ "result": {
+  "outcome": "aborted",
+  "minute": "about 11:04. The record and the session end together (bot.log: 'session ended: unexpected end of file'; the user hosted, so the engine closed with him). No result row. The side was behind: 4 extractors, and our army of 1,862 against at least 5,210 of theirs seen. Their raiders were at the partner's base (B7)."
+ },
+ "summary": "The user set a realtime test on Altair Crossing, a map new to us: our one Armada seat beside his near-idle base, against two BARb medium. He typed 'defend me', then 'Your goal is to win the 1v2'. The first six Pawns reached the Armada lab at H5 at 2:40 and walked back. Next the player built a third lab and three nano turrets on wind power and held the Pawns at passage_1 until there were fifteen; the energy store was empty from 3:54 to about 5:20 while 1,000+ metal sat banked. The fifteen went along the north edge into the Cortex corner and lost 8 Pawns at G2 to Levelers and an LLT (5:26-5:40), killing only an extractor, a constructor and a raider; meanwhile both opponents' Maces, Rocketeers, Pawns and Levelers came into our middle and north. Extractors fell from 10 (5:32) to 3 (9:17), metal stayed at 0 from 6:00, the first lab died at 9:26, and 5 Levelers beat 16 Maces and the commander at B4 at 10:07. The session ended at about 11:04; by then the user's own Banshees had killed the Armada's metal makers at H5-H6.",
+ "root": {
+  "clock": "3:20-3:37",
+  "what": "The first handful had reached the Armada lab at 2:40, the bank stood at 1,400 and income was 12 a second. The player chose build-up over pressure: a third lab (3:20; the second was started at 2:35) and three nano turrets (3:08), all on wind power while the wind fell from 27 to 15. At 3:37 it also recalled the Pawns to passage_1 to wait for fifteen. The energy store emptied at 3:54, so the fifteen were not ready until 4:31, and no enemy building died to us before 5:35. This is the reader's reading; the clocks come from the tools.",
+  "evidence": "3:37 instruct: 'group_I stands at passage_1 as one body ... When it holds about fifteen Pawns it goes'; 3:54 eco: 'metal 1090 (+11.6/-13.9), energy 0/1604 (-24) STALLING'; minutes WINDOWS: 3:00 at 6.0x ended 4:00, our mass at A6."
+ },
+ "turning_points": [
+  {
+   "clock": "2:40-2:53",
+   "what": "The first six Pawns reached the Armada lab at H5 (a lab, an extractor, a wind turbine, 3 Pawns), and the hands walked them back to spot_18 and then passage_1. One Pawn chased on and died at F4. Nothing of his was killed.",
+   "evidence": "hands_window 2:40 'group_A met 1 armlab, 1 armmex, 3 armpw, 1 armwin at H5' -> 'walk to spot_18'; 2:42 'walk to passage_1'; minutes: armpw_18603 nearest 1262 at G5 2:39, died 2:53 at F4."
+  },
+  {
+   "clock": "3:54-5:18",
+   "what": "The energy store sat empty while three labs, nano turrets and nine constructors drew on wind at 12-20. The bank drained from 1,090 to 113 slowly, through starved builds. The first nano turret took 1:44 to finish.",
+   "evidence": "eco 3:54 'energy 0/1604 STALLING', 4:46 '0/1654', 5:10 'metal 376 ... energy 0/1805', 5:18 '113 ... 15/1856'; record: armnanotc created 3:17, finished 5:01; floor e0% 14.1."
+  },
+  {
+   "clock": "4:31-5:40",
+   "what": "The raid of 15-17 Pawns went along the north edge to the Cortex corner. At 5:18 the player ordered it onto party_11 (a corcv and Incisors) at G1. Between 5:25 and 5:32 the hands changed target five times, the last onto 2 Levelers. 8 Pawns were lost at G2.",
+   "evidence": "5:18 instruct 'group_O attacks party_11 now ... until it is dead'; hands 5:32 'attack party_11 (2 corgator, 2 corlevlr)'; analyze_match #1 5:26-5:40 G2: we lost 432 (8 armpw), they lost 315 (corgator, corcv, cormex)."
+  },
+  {
+   "clock": "5:16-6:48",
+   "what": "Both opponents' parties came into our middle and north: Maces, a Rocketeer, Pawns and an Incisor at D3-D4; 8 Pawns at D1/E1, which took spot_4, spot_0 and spot_1; 3 Maces with 3 Levelers at D2-D3. 8 more Pawns were lost at D2.",
+   "evidence": "hands 5:24 'party_4=4 armham, 3 armpw, 1 armrock, 1 corgator@(2149,1372)'; raid_ledger 6:00 spot_4, 6:16 spot_0, 6:21 spot_1; analyze_match #4 6:34-6:48 D2: lost 432 (8 armpw) vs theirs 1088 on the spot."
+  },
+  {
+   "clock": "7:18-9:38",
+   "what": "Raids reached home. Home extractors A2/B2 fell at 7:18. A swarm of about 14 Pawns hit B5-C5 at 8:13, and 7 wind turbines and 2 solars died at B5. A Mace and Rocketeers killed the first lab at 9:26. Extractors were down to 3.",
+   "evidence": "8:13 instruct 'a big Pawn swarm (party_25: about 14 armpw and a corgator)'; analyze_match #7 7:59-8:37 B5 lost 936; record: armlab u27253 destroyed 9:26; 9:39 note 'down to 3 extractors at income 9'."
+  },
+  {
+   "clock": "10:07-10:13",
+   "what": "5 Levelers and a Brute beat 16 Maces and the commander at home (C4/B4). 6 Maces were lost and nothing of theirs died.",
+   "evidence": "hands 10:10 'party_15=5 corlevlr, 1 corraid@(1011,1830)'; analyze_match #11 9:57-10:13 B4: we lost 870 (6 armham, armmex, armwin), they lost 0; ours 2458 + 85 + commander vs 120."
+  },
+  {
+   "clock": "11:04",
+   "what": "The session ended while their Rocketeers, Maces and a Warrior stood at the partner's base. In the 10:30 sample, enemies at B7/C7 were armrock 4, armham 2, armwar 1.",
+   "evidence": "bot.log 11:00 'mex 4 labs 2 cons 4 army 16 | enemies visible 7'; last report 'army 15 soldiers worth 1862' against 'soldiers seen ... 46 worth 5210'; bot.log 'session ended: unexpected end of file'."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "3:08-3:47",
+   "what": "Build power the energy could not run: three bot labs (finished 1:07, 2:51, 3:47) and three nano turrets on 6 extractors, powered by wind at 12-15. The labs and the first nano starved for about 85 s while the metal bank sat above 1,000. A stronger player keeps one lab running with the commander on it. He puts the bank into extractors and steady energy, and adds a lab or nano only when the energy can carry it.",
+   "evidence": "3:08 queue constructor_14634 ['armnanotc','armnanotc','armnanotc',...]; 3:20 commander ['stop','armlab home #lab3']; floor e0% 14.1, mfull% 11.3; analyze_match 'metal banked above 500 in minutes [3, 4, 5]'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:42-3:37",
+   "what": "No pressure was kept up. The first handful turned back from the Armada lab at 2:42 (the hands, under the packet's 'from a party that outweighs it, walk to passage_1'). At 3:37 the player recalled every Pawn to passage_1 to wait for fifteen. Our units killed two enemy buildings all game, both Cortex, and none of the Armada's. The Armada buildings that did die (8:57-10:22, G7-H6) died to the partner's Banshees.",
+   "evidence": "record enemy_destroyed: cormex G1 5:35, corwin E4 6:53 are the only buildings near our units; armmex G7 8:57 ... armmakr x8 H5-H6 10:21-10:22 with only allied armkam at G8/F8/H8; 3:37 instruct quoted in root.",
+   "kind": "both"
+  },
+  {
+   "clock": "4:31-5:32",
+   "what": "Wrong raid target, then a chase into defences. At 4:31 the fifteen were sent to the Cortex corner (spot_1, spot_3, spot_7, spot_9), not back to the Armada spots they had already reached. At 5:18 they were ordered after a retreating corcv and Incisors into G1, where an LLT and Levelers stood unscouted. The hands then took 13 Pawns onto 2 Levelers. The trade: 8 Pawns for 315.",
+   "evidence": "4:31 instruct: 'It raids along the north edge as one body: spot_1, then spot_3, then spot_7, then spot_9'; hands 5:28 'group_O met 1 corcv, 2 corgator, 1 corlevlr, 1 cormex, 1 corwin at G1'; analyze_match #1.",
+   "kind": "both"
+  },
+  {
+   "clock": "0:05-5:32",
+   "what": "The army was all Pawns until 5:32, against Maces, Rocketeers and Levelers. Pawns died to Levelers on both halves of the map. The switch to Maces came after the Levelers had been seen, and 16 Maces still lost 6 for nothing to 5 Levelers at 10:07.",
+   "evidence": "bot.log minute 6 'lost armpw to corlevlr in their half x5'; minute 7 'lost armpw to corlevlr in our half x7'; 5:32 produce ['armham:6', ...]; analyze_match #11.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "1:25-9:00",
+   "what": "Constructors and extractors were left alone at outer spots. 12 constructors were made by 7:28 and 9 were lost by 9:00. Light turrets were queued beside most spots, but only 2 ever finished; the rest were abandoned as frames once metal hit 0. 11 extractors were lost, and no raiding party paid for its raid.",
+   "evidence": "raid_ledger totals: 'undefended ... 3; with a turret 2; answered 8 (8 within 60 s ...); parties that paid 0'; record: armllt finished 2 by 5:00 and 2 at 11:00; bot.log 'abandoned an unfinished armllt' minutes 7, 9 (x2), 10.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:00-11:00",
+   "what": "1.8-2.7k metal of wrecks lay in our half, mostly safe to work, while the metal store read 0. The player called them 'our best income now' at 6:58, but only one or two constructors were ever sent to reclaim.",
+   "evidence": "bot.log 9:00 'wrecks: 60 known in 12 fields, 2603 metal (2603 safe to work), 0 at work'; record reclaim_feature orders only at 2:54, 3:20, 7:15, 7:54, 9:28, 10:54, 11:02.",
+   "kind": "both"
+  }
+ ],
+ "their_play": "Two BARb medium, no tier 2 seen (there is no truth file, so every figure is a floor). The Armada BARb's lab at H5 was seen at 2:38. It sent Pawns, then Maces and Rocketeers, into our middle: party_4 at D3-D4 at 5:24, a swarm of about 14 Pawns at B5-C5 at 8:13, 11 Pawns at B1 at 9:16, and the Mace and Rocketeers that killed our first lab at 9:26. The Cortex BARb held the north-east (G1-G2) with Incisors, corcv, an LLT and Levelers. Its Incisors raided our outer spots from 4:32 (E5) and 5:29 (D4). Its Levelers broke the Pawn raid at G2 (5:26-5:40), joined the Armada Maces at D2-D3 at 6:44, and five of them beat 16 Maces at B4 at 10:07. Seen enemy spending rose from 'at least 3619' at 5:32 to 'at least 13284' at 10:43. At 11:00 both were at the partner's base (B7). The user's own play: 2 extractors, 4 wind turbines, a bot lab and 1 Pawn. He added an air plant by 6:00, and his Banshees killed the Armada's LLT, radar, extractors, wind turbines and 8 metal makers at G7-H6 between 8:57 and 10:22.",
+ "defects": [
+  {
+   "defect": "An extractor in a lab's exit lane: armmex_4873 at spot (368, 1792) stood in lab_20737's lane (the lab at (48, 1888)). Units and constructors were reported standing in the lane three times. The cost was small.",
+   "fixed": "2026-10-13",
+   "evidence": "5:32 woken: \"lab_20737's exit lane is blocked: 1 of ours (armpw_3276) have stood in it for 0:30 ... in the lane: armmex_4873\"; the same at 3:54 (armck_14634) and 10:43 (armck_26152)."
+  },
+  {
+   "defect": "The chase that did not withdraw at danger. group_O stayed engaged into Levelers and an LLT at G1-G2 and changed target five times in 7 s.",
+   "fixed": "2026-10-17",
+   "evidence": "hands 5:25 attack party_4, 5:26 party_11, 5:29 party_4, 5:30 party_14, 5:32 'attack party_11 (2 corgator, 2 corlevlr)' with 13 left of 17; analyze_match #1: 8 armpw lost at G2."
+  },
+  {
+   "defect": "No spending line and no factory draw in the report. The player ordered a third lab and nanos with only totals in view, and saw STALLING only after the store had emptied. Whether the spending line would have prevented the stall is the reader's reading.",
+   "fixed": "2026-10-17",
+   "evidence": "3:37 eco: 'metal 1393 (+12.6/-48.2), energy 1249/1454 (-137)'; 3:54 'energy 0/1604 (-24) STALLING'; the eras list: the spending line (2026-10-17)."
+  },
+  {
+   "defect": "The player session was replaced mid-game at 9:30 ('You are taking over mid-game from an earlier session of yourself'). Only the notes and the instructions in force carried over. This is not in the eras list.",
+   "fixed": "unknown",
+   "evidence": "impedance_sweep: '47 turns, 1 session replacements'; 9:30 turn prompt: 'You are taking over mid-game from an earlier session of yourself. Its notes: ...'."
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:36",
+   "text": "This is a test of your performance -- defend me"
+  },
+  {
+   "clock": "0:54",
+   "text": "I am south of you. Your goal is to win the 1v2"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first six Pawns crossed at 2:27-2:46 and reached the Armada lab at 2:40, then walked back. At 3:37 they were held at passage_1 for fifteen. Our units killed two Cortex buildings all game and no Armada building."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "Three nano turrets and a third lab were ordered at 3:08-3:20 on wind at 15. The first nano took 3:17-5:01 under an empty energy store ('con turrets take a lot of e')."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "At most 10 extractors against two opponents. 9 constructors were made by 5:00, most of the early ones building wind and solars at home ('cons at home only if you have extra metal to spend')."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "The 4:31 raid went to the defended Cortex corner (an LLT, Levelers), not to the undefended Armada spots it had reached at 2:40. It killed one extractor."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "A light army (38 Pawns) against Levelers and Maces: Pawns lost to corlevlr 5 in their half (minute 6) and 7 in ours (minute 7), and the late Maces lost 6 for 0 to 5 Levelers."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "1.8-2.7k of wrecks in our half from 6:00 to 11:00 with the metal store at 0; only one or two constructors were sent to reclaim."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "An extractor in lab_20737's exit lane (reported 3:54, 5:32, 10:43); the placement defect fixed 2026-10-13."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The handful crossed and found the lab at 2:40, but the packet's 'from a party that outweighs it, walk to passage_1' plus the 3:37 hold-for-fifteen undid it."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "1,000-1,400 banked from 1:55 to 4:31 at 9-13 a second went into two more labs and nanos the energy could not run. This scopes 'plants or nanos, either spends it': not without the energy for them."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "Wind was the energy plan ('Wind is strong here (12 to 27): wind turbines are our energy'). The wind fell from 27 to 12-15 at 3:37-4:31, and the store emptied at 3:54 with three labs and nanos building."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "11 extractors lost. Turrets were queued at most spots but only 2 finished; raid_ledger: answered 8 within 60 s, parties that paid 0."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "group_O followed a retreating corcv and Incisors into G1-G2 and met an LLT and Levelers it had not scouted: 8 Pawns for 315."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "Constructors die alone at far spots: 12 made by 7:28, 9 lost by 9:00."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes --calls --told",
+   "run/wake_read.py",
+   "run/hands_window.py",
+   "run/impedance_sweep.py",
+   "direct reads of record-2.jsonl, bot.log, strategist-2.jsonl, script.txt"
+  ],
+  "existing_review": "none",
+  "confidence": "medium",
+  "caveats": "The record is record-2.jsonl (seat ai 2), not record-0. wake_read.py hard-codes strategist-0/record-0, so it, hands_window.py and impedance_sweep.py ran on a scratch folder that aliases the seat-2 files as seat 0. There is no truth file: every enemy number is what we saw. minutes.py and analyze_match.py merge the two BARb into one 'his', and analyze_match's engagement #10 (G8) is the partner's Banshees, not us. pro_baseline.py was not run (not Comet Catcher; no pool for this map). There is no ledger row, no review, and no person's reading beyond the user's two opening lines, so every cause here is the reader's reading. Opponents were BARb medium, not a person."
+ },
+ "open_questions": [
+  "Why did six Pawns walk back from the Armada lab at 2:40-2:42 against 3 Pawns? It could be the packet's outweigh clause, fire from the BARb commander, or the lab's defence; with no truth file it cannot be told.",
+  "The user's first instruction was 'defend me', then 'Your goal is to win the 1v2'. No unit of ours was ever stationed toward his base at A7, and enemies stood at B7 at 11:04. Did he mean defence to stay part of the task?",
+  "Did the user close the game at 11:04 because he judged it lost? No chat line says so, and no result row exists.",
+  "Was the wind-only energy plan a map-specific error (the wind range on Altair is 12 to 27), or would the same three labs and nanos have stalled on solars too?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791008485-human-14.json"
+}

@@ -1,0 +1,267 @@
+{
+ "batch": "1791335540-human-26",
+ "label": "human-26",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-06",
+ "shape": "2v2",
+ "people": "[gecko]u6bkep (lobby 19.24, Armada) and [gecko]Covariance (lobby 16.84, Armada); computer_whisperer (the user) hosting as a spectator; no person typed in the chat",
+ "our_side": "Two seats on the east edge, both Armada vehicle plants: t2 'gajop' (seat 0, team 2, G1, the north-east, 'red') and t3 'Glass' (seat 1, team 3, H8, the south-east, 'yellow'), each played by claude-opus-5-5 at effort medium (Claude Code 2.1.292), under the side's commander claude-opus-5-5 at effort high; hands Jev jev-latest = jev-1.13.0 (banner chat lines at 0:03 and 1:38). Realtime game with people. The lobby's start boxes were not honoured (bot.log: 'our start is in another team's box').",
+ "build": "c515f12 (the banner chat lines: 'gajop is Within Reason c515f12 | player (claude-opus-5-5, effort medium ...) | hands: Jev jev-latest')",
+ "result": {
+  "outcome": "lost",
+  "minute": "10:07"
+ },
+ "summary": "A realtime 2v2 on Comet Catcher: our two Opus 5.5 medium seats on the east edge (t2 at G1, t3 at H8) under an Opus commander, against u6bkep (19) and Covariance (17), both Armada, who opened with a Rover mass (65 Rovers died in the game) and switched to Blitz packs from about 6:20. Both seats opened late (plants standing at 1:26 and 1:35 on three solars, 13 and 10 factory units by 4:00 against the pool's 17-22) with no turret at home, and the Rovers took t3's home spots at 2:03-2:31 while its own Rovers had been put on rove, then 11 Rovers burned t2's home at 3:33-4:25 while its six Blitzes walked west under a packet that called home raids not their business. The Rover mass broke on our homes by 5:30 and the side climbed back to about 9 extractors, but t2's army went west at 6:37, killed 270 metal at C3 and died at B3, and at 7:20 eight Blitzes and two Rovers killed t2's commander at F1 while its home guard, merged into another group by the hands, chased one Blitz across the map. The people's Blitz packs grew to 15-25, t2's plant died at 9:15 and t2 was out by 9:49, and t3's commander stood at 1% with ten Blitzes on it when the record ends at 10:07. Only one enemy base (B8) was ever seen, and neither seat held more than 6 extractors (a duel side in the pool holds 11-15 by 6:00-8:00).",
+ "root": {
+  "clock": "1:51",
+  "what": "The people's Rover opening reached homes with no turret and with their soldiers sent elsewhere. At t3 the player's rove (ordered 1:51, landed 1:57) took its two Rovers off the first raid; spot_77, a constructor and spot_65 died 2:03-2:31 and t3 stood at 1 extractor by 3:00. The same shape cost t2 4 extractors, 3 constructors and 2 solars at 3:33-4:25 (turning point 2). From 2:00 on, when both seats were level with the pool at 3 extractors, the side never held more than 6 extractors a seat. The earliest avoidable moment is the opening itself (plant at 1:07/1:16 on three solars, the first Sentry at t3 2:35, at t2 5:38); the user's own review picked 1:58 (t3) and 3:30 (t2), the reader the shared shape.",
+  "evidence": "seat 1 minutes.py '3 | 141/93 ... lost 297 (G8)'; raid_ledger '2:03 spot_77 G8 armfav 3 armfav 11s ... 1:54 +2s group_A_t3: attack party_1 ... paid 0'; hands_window 1:57 group_A_t3 'task hold', walking north (z 5437 to 4523 by 2:05); pro_baseline 'first extractor lost 2:03 <p25'"
+ },
+ "turning_points": [
+  {
+   "clock": "1:51-2:31",
+   "what": "t3's first raid: 1-3 Rovers at G8; Jev sent group_A_t3 to attack party_1 at 1:54, then the player's lane rove (1:57) turned the two Rovers north; spot_77 died 2:03, constructor_9614 2:21, spot_65 2:31. The user reviewed this minute (1:58) after the game (person, via docs/design/2026-10-07-rove-approval.md).",
+   "evidence": "hands_window seat 1: '1:54 PLAYS group_A_t3: attack party_1 (1 armfav) with the whole group [plan]' then '1:57 group_A_t3: 2 at (7254, 5437), task hold'; analyze_match seat 1 '#0 2:03-2:31 G8 ... we lost 235'"
+  },
+  {
+   "clock": "3:27-4:25",
+   "what": "t2's home burned: the 3:27 packet sent group_B west ('Enemy armfav at our home extractors are not its business once it has left spot_18'); 7-11 Rovers, out of sight 3:06-3:33 after leaving t3's base, hit H2/G1 at 3:33; group_B (6) stood 1,200 away, then walked to spot_18 and spot_27; the swarm died at spot_11 4:10-4:25. The user's review at 3:30 (person, via docs/studies/2026-10-07-raid-packets.md).",
+   "evidence": "hands_window seat 0 '3:33 party_1=7 armfav@(7524,1019) ... group_B_t2: 6 at (6358, 795)'; '3:40 PICK ... group_B_t2: walk to spot_18'; analyze_match #0-#2 3:34-4:25: we lost 420+310+270 (4 mex, 3 cv, 2 solar, a Sentry)"
+  },
+  {
+   "clock": "4:22-5:39",
+   "what": "The Rover mass broke on our homes: t3 killed 26 Rovers at G8 in 26 s and 48 Rovers were dead by 5:50; his army in sight was 0 at 5:00 and 6:00 and t2 held 942 of soldiers.",
+   "evidence": "analyze_match seat 1 '#2 4:22-4:48 G8 at our base: we lost 355 ..., they lost 806 ({'armfav': 26})'; record enemy_destroyed: 48 unique armfav by 5:50; minutes.py seat 0 '5 | 832/0'"
+  },
+  {
+   "clock": "5:50-7:50",
+   "what": "The commander's 'The army goes now' sent t2's Blitzes west as one body; 9 crossed at 6:37-6:43, 4 turned back at 6:47-6:50, the rest killed a constructor, a Sentry and an extractor at C3 (270) and died at B3 7:36-7:50 (471). The commander was shown 'killed armfav x74' for a window with 37 unique Rover deaths.",
+   "evidence": "minutes.py seat 0 UNITS SENT: 'armflash_24348: crossed 6:43 ... back in our half at 6:49' (4 such), 'armflash_22612 ... died 7:37 at B3 to armflash'; analyze_match '#5 6:52-6:56 C3 ... they lost 270', '#8 7:25-7:50 B3: we lost 471'"
+  },
+  {
+   "clock": "6:52-7:20",
+   "what": "t2's commander died at F1: the 6:52 home-guard packet named group_H, which the pick had joined into group_I at 6:58; group_I's hunt leash ended at 7:03 and at 7:05-7:06 it chased one Blitz at D8 about 4,300 away while party_18 (2 Rovers, 8 Blitzes) shot the commander, which had walked out to build spot_11.",
+   "evidence": "hands_window seat 0 '6:58 PLAYS group_H_t2: join group_I_t2'; '7:05 PLAYS group_I_t2: 2 of group_I_t2 hunt party_39 (1 armflash) as group_J_t2'; analyze_match '#7 7:13-7:20 G1: we lost 2905 ({... armcom: 1 ...})'"
+  },
+  {
+   "clock": "8:50-9:49",
+   "what": "The commander gave t2's six idle Blitzes to t3 (the transfer landed 9:02, 12 s into a 27.6 s turn) as 13-15 Blitzes reached t2's home; t3's hands walked them to H8 under fire, t2's plant died at 9:15 and t2 was out by 9:49.",
+   "evidence": "commander.jsonl 8:50 'transfer {to: t3, units: [group_I_t2]}'; analyze_match '#10 8:57-9:31 G2: we lost 1915 (... armvp: 1 ...)'; t2 note 9:49 'Seat is out; all metal sent to t3'"
+  },
+  {
+   "clock": "9:13-10:07",
+   "what": "15-25 Blitzes in t3's base; the last sample has t3's commander at 1% at G8 with ten Blitzes within 700, and the record ends.",
+   "evidence": "analyze_match seat 1: 'last sample 10:07: our commander at 1% health at G8 (at our base) with 10 enemy soldiers within 700 ({'armflash': 10})'; record end 'unexpected end of file' at f 18210"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-2:00",
+   "what": "Both openings slow and unguarded against a Rover opening: three solars, the plant standing at 1:26 (t2) and 1:35 (t3) where the pool stands at 0:53, 13 and 10 factory units by 4:00 (pool p25 17), the first Sentry at t3 2:35 (after its raid) and at t2 5:38 (after its raid). A stronger side has the plant up by 0:53 and a light turret at the home spots by about 2:00.",
+   "evidence": "pro_baseline seat 0 'first factory standing 1:26 ... 0:53 >p75 (late)', 'factory units by 4:00 13 ... 17 <p25', seat 1 '10'; record finished events: first armllt t3 2:35, t2 5:38",
+   "kind": "strategy"
+  },
+  {
+   "clock": "1:51",
+   "what": "t3's player put its first Rovers on rove (the commander's 0:20 'first fast units: find them') while a raid stood in its base; the lane setting took the two Rovers off the attack Jev had picked, and the home spots died. The fault is half the player's timing and half the harness: the lane rove bypassed Jev.",
+   "evidence": "commander_turns seat 1 1:14 note 'I put three Rovers on rove first'; hands_window 1:54 attack party_1, 1:57 'task hold'; raid_ledger seat 1 '2:03 spot_77', '2:31 spot_65 H7 armfav 6 armfav'",
+   "kind": "both"
+  },
+  {
+   "clock": "3:27",
+   "what": "t2's packet sent every Blitz west, ignoring the commander's 2:50 'Keep two Blitzes at home as the north-east picket against Rovers', and wrote the exclusion 'not its business' against a raid it could not see; it landed at 3:39 on 11 Rovers. Put the raid answer first, keep the picket, and write no exclusion (docs/briefs/player-opus.md, built from this minute).",
+   "evidence": "impedance-review item 3 and 11: 3:27 packet 'Enemy armfav at our home extractors are not its business once it has left spot_18'; commander.jsonl 2:50 'Keep two Blitzes at home'; raid-packets study: attack 0.43 recorded, 0.60 with the raid paragraph first",
+   "kind": "both"
+  },
+  {
+   "clock": "3:44",
+   "what": "t2's commander walked to spot_11 at F2, which another constructor's list had started; the engine refused the extractor and the commander stood idle at F2 as 11 Rovers hit G1.",
+   "evidence": "impedance-review item 10: 'the engine refused a armmex at F2: the site was bad'; bot.log '[ai 0] f=6735 pianist: armmex order for unit 15349 near (5736, 772) never started'",
+   "kind": "harness"
+  },
+  {
+   "clock": "5:50-6:43",
+   "what": "The army left t2's home with about four Blitzes behind against an opponent who had just shown 25-Rover swarms, on a kill count shown doubled; the body split at 6:47 and the raid traded 471 for 270. With Blitz packs about to come, the army on the home cluster, or one body sent with the home guard named and anchored, was the stronger line.",
+   "evidence": "commander.jsonl 5:50 'His Rover mass is breaking on us: 74 Rovers killed ... The army goes now'; record: 37 unique armfav destroyed 4:20-5:50; analyze_match '#8 7:25-7:50 B3: we lost 471 ..., they lost 270'",
+   "kind": "both"
+  },
+  {
+   "clock": "6:52-7:20",
+   "what": "t2's commander walked out to F1/F2 to build spot_11 and fight Rovers, away from the G1 Sentries, while the home guard chased a single Blitz across the map; 8 Blitzes and 2 Rovers killed it (2,700 metal and the seat's build power; t2's energy at 0 by 8:00). The commander builds at the plant and fights what comes into its D-gun at home.",
+   "evidence": "t2 note 7:28 'our commander died at F1 to six enemy Blitzes after walking out to build spot_11 and fight Rovers there (home guard split into pairs, raid gone west)'; bot.log [ai 0] f=14400 'energy 0/900'",
+   "kind": "both"
+  },
+  {
+   "clock": "8:50-9:15",
+   "what": "The transfer of t2's six Blitzes landed while they were fighting 13 Blitzes at t2's home; t3's hands walked them away under fire and t2 was told only after 9:09. Giving the units to the seat that was under attack later, or not giving them during a fight, kept t2's plant.",
+   "evidence": "impedance-review items 8-9: 'send_units ran at 9:02, 12 s into a 27.6 s commander turn ... 2 died (9:13, 9:16); t2's plant died at 9:15'; t2 note 9:10 'after our six Blitzes were given to t3'",
+   "kind": "both"
+  },
+  {
+   "clock": "4:00-10:00",
+   "what": "The economy never recovered: income 4-12 a seat against the pool's 17-36, t2's energy store empty 19.9% of the game, and the wreck fields at our homes (3,891 metal at 8:00, 5,324 at 10:00) lay with no constructor at work although the commander ordered reclaim at 5:50.",
+   "evidence": "pro_baseline seat 0 income column: 4 at 5:00 (pool 18/20/27), 12 at 8:00 (28/36/41), both <p25; floor seat 0 e0% 19.9; bot.log '[ai 0] f=14400 wrecks: 49 known in 8 fields, 3891 metal (3891 safe to work), 0 at work'",
+   "kind": "strategy"
+  }
+ ],
+ "their_play": "Both people played Armada vehicles from the west (one plant seen, at B8, its commander at B8 2:55, C8 5:41, D7 6:33, D6 8:42; the second base never seen, guessed A1-A5). They opened with a Rover mass: 1-3 Rovers in t3's base at 1:51, 6-7 by 2:31, the same seven out of sight across the middle 3:06-3:33 and then 11 on t2's home, swarms of 14-17 at t3 4:34-5:31; 65 Rovers died in all, 48 by 5:50, but they took 9 extractors, 5 constructors, 3 solars and 3 Sentries of ours by 5:40. Their outer spots carried Sentries (B3, B5 two, A4, A6, C3, C5, D4, B7). From about 6:20 they switched to Blitzes (first at t3's spot_75 6:21): packs of 4-8 at 6:45-7:58, the 8 Blitzes and 2 Rovers that killed t2's commander at F1 7:20, 13-15 at t2's plant 8:52-9:31, 15-25 in t3's base 9:13-10:07. No tier 2 seen. They fought in our half all game (seat 0's metal-lost-by-place has theirs 2,772 in our half and 2,893 at our base); the only units of ours near the B8 base were scout Rovers (armfav_28488 445 from it at 2:59, armfav_2847 831 at 6:16), and t2's raid reached their outer spots at C3/B3 only (6:52-7:50).",
+ "defects": [
+  {
+   "defect": "The lane's rove was a setting that bypassed Jev: the player's 'lane group_A_t3: rove' reset the group's engage task and handed both Rovers to the rove micro mid-raid (t3 1:57).",
+   "fixed": "2026-10-07/08 (rove a pick, a4c57ed; roving a group task, 131f11b)",
+   "evidence": "hands_window seat 1 1:54 attack party_1, 1:57 'task hold' walking north; commit 0e48a29 'human-26 1:57, the player's rove took two Rovers off a raid Jev had sent them against'"
+  },
+  {
+   "defect": "No out-of-sight party in the player's report: the seven Rovers that left t3's base at 3:06 were invisible to t2's 3:27 turn.",
+   "fixed": "2026-10-07 (recently seen lines, 8a9788a; H-HANDS-ENEMY-MEMORY)",
+   "evidence": "impedance-review: 'None of the game's 81 reports has a recently-seen/out-of-sight block'; commit 8a9788a 'at human-26 3:27 the picture had the seven Rovers 23 s out of sight moving toward our side'"
+  },
+  {
+   "defect": "The turn-cost words (H-HANDS-TURNS) counted a route's own stops as turns and held group_B's turn-back to the burning base at 0.24-0.49 against a plain attack order (3:54-4:05).",
+   "fixed": "2026-10-07 (fec12c4)",
+   "evidence": "raid-packets study Task 2b: recorded attack 0.30 median, 0.53 with the words cut and the raid paragraph first; impedance-review item 4 'kept w1 over w3 ... changed=[]' 3:56-4:05"
+  },
+  {
+   "defect": "A group's name was lost when the pick joined it into another: the 6:52 home-guard packet for group_H landed at 7:01 naming nothing, group_H having joined group_I at 6:58.",
+   "fixed": "open (not found fixed; 76139d9 of 2026-10-17 only says the join to the group it split from)",
+   "evidence": "hands_window seat 0 '6:58 PLAYS group_H_t2: join group_I_t2'; impedance-review item 1, large"
+  },
+  {
+   "defect": "A hunt's leash was measured from where the hunt began, so the home guard's hunt that began at D2 ended 950 short of the pack on the commander (7:03).",
+   "fixed": "partly 2026-10-16 (e9f5175: leash from each hunter's own start); the zone-anchored leash the impedance review asked for is not built",
+   "evidence": "impedance-review item 2: \"group_I_t2's hunt of party_18 ended after 8 s: the leash of 900 from where it began reached\""
+  },
+  {
+   "defect": "The commander's list step took a spot another builder's list held; the engine refused it and the commander stood idle at F2 (3:44).",
+   "fixed": "open (not confirmed fixed)",
+   "evidence": "impedance-review item 10; bot.log 'armmex order for unit 15349 near (5736, 772) never started'"
+  },
+  {
+   "defect": "The commander's one-shot transfer landed mid-fight with no re-check, and the giving seat was told only after 9:09.",
+   "fixed": "open as built here (the standing transfer and H-TRANSFER-TO-ALLIES came 2026-10-18/20; whether they re-check is not confirmed)",
+   "evidence": "impedance-review items 8-9: send_units at 9:02 into a 13-Blitz fight, 2 died, plant lost 9:15"
+  },
+  {
+   "defect": "The side commander's 'fights since last turn' counts each kill once per seat (both seats see every allied kill): 'killed armfav x74' at 5:50 for 37 unique Rover deaths since 4:20. The 'traded' line on the same report counted once. The reader's finding.",
+   "fixed": "open (crates/bot/src/strategist/shared.rs fight() still adds every seat's line to the side's map)",
+   "evidence": "commander.jsonl 5:50 prompt 'fights since last turn: killed armfav x74'; record-0 enemy_destroyed: 37 unique armfav 4:20-5:50; bot.log both seats '[ai 0]/[ai 1] f=9000 ... killed armfav x42'"
+  },
+  {
+   "defect": "The ally's start was in no report line while the lobby boxes were not honoured: t2 sent its first scouts toward t3's home and t3 placed the enemy in the north (0:10-0:11; corrected 1:25 and 2:00, cost none).",
+   "fixed": "2026-10-18 (H-REPORT-ALLIES-LINE, fd58c88; the reader's match, not confirmed)",
+   "evidence": "impedance-review items 13-14; bot.log 'the lobby's start boxes are not honoured (our start is in another team's box, and outside ours)'"
+  },
+  {
+   "defect": "t3's plant exit lane read as blocked by its own spot_65 extractor 6:39-8:55; the player ordered it reclaimed and cancelled.",
+   "fixed": "2026-10-13 (the extractor in the lab's exit lane, 3aabc77)",
+   "evidence": "impedance-review B5: 'the yard lines said the exit lane was blocked by our own spot_65 extractor while the plant kept putting units out'"
+  },
+  {
+   "defect": "A frame looked up by type and distance: t3's re-sent Sentry step placed a new frame 64 elmos beside its own 71% frame, which decayed (F8 7:18-8:11).",
+   "fixed": "2026-10-17",
+   "evidence": "unfinished-review item 6: 'the host's site search found that site taken by our own 71% frame and created armllt_24004 64 elmos north'"
+  },
+  {
+   "defect": "t3's player session was replaced at 8:37 (a takeover); the new session re-listed constructor_22438 over a Beamer step it could not see.",
+   "fixed": "unknown",
+   "evidence": "strategist-1.jsonl 8:37 'You are taking over mid-game from an earlier session of yourself'; impedance-review item 12"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost on extractors, not on the trade: 22 extractors lost in ten minutes (12 at t2, 10 at t3), never more than 6 a seat, while fights near our homes killed 109 of theirs."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "The people's first handful crossed the map: Rovers in t3's base by 1:51 and on t2's by 3:33. Ours went on rove or stayed home: one scout Rover killed a Sentry at A6 at 3:36 and died there, and the next kills of theirs came at C3 at 6:52-6:56 (pool: first building killed 2:48 median)."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Our side was the one with naked extractors: no Sentry at t2's home until 5:38. Both raids ran there."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "illustrates",
+   "note": "In people's hands a Rover mass paid against bases with no turret: 65 Rovers (about 2,000 metal) for 9 extractors, 5 constructors, 3 solars and 3 Sentries by 5:40, and the economy gap. The lesson's 'needs specific micro' holds for our attempt, not theirs."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Commander 8:50: 'we keep meeting them three Blitzes at a time'. t2's raid split at 6:47 (4 of 9 back), and the transfer that tried to make one body landed mid-fight."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "They did it to us: 8 Blitzes and 2 Rovers caught t2's commander at F1, away from its Sentries, at 7:20."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "3,891 metal of wrecks at our homes by 8:00 and 5,324 by 10:00, with '0 at work' in every minute's wreck line, while income sat at 4-12 a seat."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "Three solars with the fast constructor as the plant's first unit (t2 1:37, t3 1:46), but the plant stood at 1:26 and 1:35, against the pool's 0:53."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "The source of the 'raid rule last 0.43, first 0.60' measurement. Also: t2 ignored the commander's two-Blitz picket at 3:27, and turrets came after the raids, not with the spots."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "t2's commander stood idle at F2 at 3:44 on a refused step and died at F1 at 7:20 after walking out to build and chase Rovers away from its Sentries."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "Here it was the people's pressure that decided the economy. Our first units scouted (rove) or held."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "t2's 2:00-4:00 window (1.5-3.7x) was spent at home (mass H2 G2 F4). The 6:37 body split on the way. The 8:50 'one body' transfer came too late."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "supports",
+   "note": "t3 at 8:08: 'trade still 4.8k destroyed vs 2.6k lost', with 2 extractors. The commander's kill line double-counted across seats, the same overstatement the 2026-09-27 corrections named."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0; seat 1 through a scratch symlink directory)",
+   "run/analyze_match.py (both seats)",
+   "run/pro_baseline.py --all-starts (both seats; the plain call found no carded side from B8/G1)",
+   "run/floor.py (both)",
+   "run/raid_ledger.py (both)",
+   "run/commander_turns.py --notes",
+   "run/wake_read.py (both: t2 34 turns, 3.38/min, wall median 11.6 s, busy 65%; t3 46 turns, 4.59/min, 11.3 s, 82%)",
+   "run/hands_window.py (seat 1 1:48-2:35; seat 0 3:30-3:56 group_B_t2; seat 0 6:56-7:21 commander_t2 group_I_t2 group_H_t2)",
+   "commander.jsonl directions and prompt read directly",
+   "record reads: enemy sightings, unique enemy deaths, finished events, chat events",
+   "existing impedance-review.md and unfinished-review.md in the match directory",
+   "docs/studies/2026-10-07-raid-packets.md, docs/design/2026-10-07-rove-approval.md"
+  ],
+  "existing_review": "none (no review.md; the match directory holds impedance-review.md and unfinished-review.md)",
+  "confidence": "medium",
+  "caveats": "No truth file (a game with people): their numbers are floors, and the second person's base was never seen. No result line: the loss is read from t2 out at 9:49 and t3's commander at 1% under ten Blitzes at the last sample (deathmode=com). No ledger row. chat.jsonl holds no line for this batch; the records' four chat events are our banners. The user's review moments (1:58, 3:30) come through the 2026-10-07 studies and design, not verbatim. minutes.py and analyze_match read record-0 only, so seat 1 was read through a symlink directory, and for seat 1 they took 'his start' as G1 (our ally), so its 'his half'/'their base' columns are wrong. For seat 0 'he starts B7' is the mirror guess, near the one base seen at B8. pro_baseline's pool is OS 40+ duels (a 2v2 seat has about half the spots), and its pressure rows are '-'. floor's fac4/stall4/assist4 are empty for seat 1. commander_turns --told --calls and impedance_sweep were not rerun: the existing impedance review's sweep and quotes were used and spot-checked with hands_window. No review.md exists; impedance-review.md and unfinished-review.md (2026-10-16/17 studies) were built on, and this row agrees with their items, adding the doubled kill count."
+ },
+ "open_questions": [
+  "Where was the second person's base (never seen; the commander guessed A1-A5)? Did each person raid one of our seats or both?",
+  "Would the commander's two-Blitz picket at G1, or a Sentry by 2:00, have held t2's home against 11 Rovers at 3:33?",
+  "Does the side commander's report still double-count kills across seats (shared.rs fight() adds each seat's line to the side's map)?",
+  "Did the game end on t3's commander death (deathmode=com) or did the host stop it at 10:07?",
+  "What was the 9:00 income spike (t2 +49.7, t3 +72.6): reclaim of the commander's wreck, or something else?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791335540-human-26.json"
+}

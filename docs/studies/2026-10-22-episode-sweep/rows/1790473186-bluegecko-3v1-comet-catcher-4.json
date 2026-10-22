@@ -1,0 +1,317 @@
+{
+ "batch": "1790473186-bluegecko-3v1-comet-catcher-4",
+ "label": "bluegecko-3v1-comet-catcher-4",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-09-27",
+ "shape": "3v1 (three seats of ours against one person; a second person spectating and advising in chat)",
+ "people": "[Stud]Irishstud14 (OS 48, Cortex), the opponent in the west box (A1-B8); [gecko]thebluegecko (OS 48 duel, lobby 34) spectating and advising in chat. The header recorded no person (the shim's script reader took the [gecko] clan tag for a section); chat.jsonl has speaker '?' throughout, attributed here from the ledger row and docs/briefs/lessons.md. The user hosted and typed nothing in chat.",
+ "our_side": "Three seats on the east strip, lobby side Random: t1 G1 Armada (ai 0, team 1), t2 H8 Cortex (ai 1, team 2), t3 G4 Cortex (ai 2, team 3). One player, claude-opus-5-5 at effort medium, for all three seats (strategist-0.jsonl, 94 turns, median 10 s wall, 2 session replacements); no commander seat. Hands: three Jev pianists on jev-latest (bot.log), the pre-rebuild pianist with the packet decompression still on (run/human_game.sh did not switch it off). Realtime, the user's lobby.",
+ "build": "57f0277 (+ the chat prefix 3b4db70), per the ledger; no banner line in the chat",
+ "result": {
+  "outcome": "lost",
+  "minute": "about 20:40: the records end at 20:43 with commander_t1 at 22% health at H2 among 22 enemy soldiers; commander_t3 died 19:18 at G5, commander_t2 20:05 at H7 (the ledger: about 20:30)"
+ },
+ "summary": "Irishstud14 declared 'I greed then' (0:27) and took naked extractors behind Rascal raids, while our three seats opened slowly (3-4 solars before the plant, 7-9 factory units by 4:00 against the pool's p25 of 16-17) and kept their first soldiers as pickets on our strip, the constructors fenced out of his half and the commanders out of the middle. thebluegecko, spectating, called it from 3:58 to 5:53 ('almost caught up to the three claude players by building naked mexes', 'an aggressive response is needed'); our raiders first crossed at 6:32-7:20 and the north and middle groups pushed his main base at B3 on hold-line, where Pounders from 8:10 broke the Blitzes (about 25 lost on seat 0, 11 of them on a retreat through the Pounder line at 9:02-9:19). The middle game was even: Lashers, then Brutes and Pounders on his advice, and a 9k three-group strike on his commander at D3 (11:59-13:27) that killed his escort but let him walk away. From 13:22 swarms of 10-18 Incisors slipped past the slower Brute ball and took our extractors from 31 to 11 by 17:00, his Graverobbers raised our Stouts from the unreclaimed E3 wreck field from 17:28, the army collapsed at F3 (17:37-18:18) and two commanders died by 20:05. Counted once per death across the three records, the fights were about even (our army lost 37.8k against his 42.4k seen) and the whole trade was lost (62.4k against 44.7k): one person out-produced three seats, as thebluegecko put it at 18:57, 'irish expanded faster than the three claude bots, even fight on first contact'.",
+ "root": {
+  "clock": "2:07-4:10 (the spectator saw it at 3:58)",
+  "what": "Against an opponent who had announced a greedy opening, the player turned the first soldiers of every seat into pickets on our own extractors (stations from 2:07 and 2:58), barred the commanders from the middle columns (3:13) and the constructors from 32 spots of his half (4:10), on top of a metal-starved opening whose plants 'idle on metal' (its own 3:13 note). So the first window, 2.3-6.9x his seen army on every seat at 4:00-5:00, was spent at home while he took naked extractors, and our expansion stayed on the strip. The cause is the person's reading (3:58, 4:22, 18:57); the orders behind it are from the transcript.",
+  "evidence": "minutes.py 4:00-5:00 windows, our mass in his half peak 0% (t1), 5% (t2), 0% (t3); 3:13 standing commander never spot_32 ... spot_1; 4:10 constructors never 32 western spots; thebluegecko 3:58 'Irish has almost caught up to the three claude players by building naked mexes.'"
+ },
+ "turning_points": [
+  {
+   "clock": "3:58-5:53",
+   "what": "thebluegecko names the economy race and asks for pressure; the player, told the opponent 'is known to hold 2-3' extractors, sends one five-Incisor raid at 4:31 that stalls at F4 from 5:13 to 6:28 while new units join it.",
+   "evidence": "chat 4:22 'an agressive responce is needed to prevent irish gaining a large metal lead'; 5:53 'if you send all your units now you might still be ok'; 6:33 wake: 'group_B_t3 ... has not got nearer for 45 s, 2501 short of it'."
+  },
+  {
+   "clock": "5:53-7:20",
+   "what": "The lead at its largest (army 3.3k against about 260 seen, 22 extractors) is gathered at D3 and sent at his main base at B3 on hold-line, not at the two corners the spectator suggested at 6:45; the south seat's Incisors go to the B8 corner and kill the first buildings of his at about 7:00.",
+   "evidence": "note 5:53 '22 mex, income 50, army 3.3k vs ~260 seen'; chat 6:45 'might be a good idea to spread out for the raid, attack both corners'; analyze #1 6:55-7:54 B8: they lost corexp, 2 cormex, corllt, corcv."
+  },
+  {
+   "clock": "8:10-9:19",
+   "what": "Pounders out of his main plant stop the Blitz and Incisor push at B3/A3; the 9:02 retreat walks 11 Blitzes back through five Pounders at C2/C3. thebluegecko at 9:06-9:21: go where the slow Pounders are not.",
+   "evidence": "first corlevlr seen 8:10 at B4; seat 0: 17 Blitzes died to corlevlr 8:34-9:19; analyze #5 9:08-9:19 C3: we lost 1210 (11 armflash), they lost 560. Chat 9:21 'pounders are made in the main lab and slow'."
+  },
+  {
+   "clock": "11:59-13:27",
+   "what": "All three groups (about 9k) commit to his commander, seen at D3 with Brutes and Guards: the escort dies (12 Brutes and 6 Pounders by the player's count) but the commander walks west out of sight, two of three engage orders refused on renamed parties, and the south seat is left to six Pounders.",
+   "evidence": "12:35 refused: 'group_B_t3: party_83_t3 is not a party in the picture' (also E_t2); analyze #14 12:45-13:50 D3: we lost 2135, they lost 3005; seat 1 extractors 7 at 13:00, 3 at 14:00."
+  },
+  {
+   "clock": "13:22-17:03",
+   "what": "Swarms of 10-18 Incisors (85 speed) bypass the Brute ball (72) and take extractors in the south and middle; two seats' groups chase the same three Pounders. Over the three seats our extractors fall from 31 to 11 while our army is 7.5-9.9k against 1.4-3.2k seen.",
+   "evidence": "raid_ledger t2 13:38 spot_53 F6 '18 corgator, 1 corraid', 13:56 spot_60 '14 corgator'; t3 13:47 spot_57 '15 corgator, 2 corraid'; extractors summed over seats: 31 (13:00), 20 (15:00), 11 (17:00)."
+  },
+  {
+   "clock": "17:28-19:18",
+   "what": "His Graverobbers work the E3 wreck field and raise our Stouts, which fight for him; the army collapses at F3 and the middle seat's plant and commander fall.",
+   "evidence": "enemy_seen: cornecro first 17:28 at E3, armstump first 17:39 at E3 (57 sightings, 5 killed); army over seats 7,555 at 17:30, 4,345 at 18:00; seat 2: commander died 19:18 at G5 to corraid."
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-4:00",
+   "what": "A slow opening on every seat: three solars before the plant (four on t1, whose first turn came at 0:21), Rascals first and the constructor third, the plants waiting on metal with energy full. A stronger player builds two solars and an earlier plant, or a third solar for a constructor first.",
+   "evidence": "pro_baseline: plant started t1 1:10 (pool p75 0:58), t3 0:51; solars before the plant 4/3/3 (pool 2); factory units by 4:00 9/8/7 (p25 17/16/16). 3:13 eco: 'energy 4337/4350'; note 'plants idle on metal'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:07-4:31",
+   "what": "The first soldiers stationed as pickets at our own extractors against Rascals, the commanders barred from the middle columns and the constructors from his half: no pressure on a declared greedy opening and no fight for the midline. A stronger player sends the first handful across the map and holds half of it.",
+   "evidence": "2:07 standing stations spot_19/67/36 walk; 2:58 spot_12/42/60; 3:13 commander never spot_32 ... spot_1; 4:10 constructors never 32 western spots. minutes: first raider of ours in his half 6:32 (t2).",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:31-6:46",
+   "what": "The raid ordered on the spectator's word went late and small: five Incisors at 4:31, which first turned on Rascals (4:40-4:50), then stood 75 s at F4 while the plant fed it; the window at 2.3-6.9x closed at home.",
+   "evidence": "hands_window t3: group_B_t3 'fight_to spot_39' at x 5,200-5,500 from 5:13 to 6:28, size 4 to 11; 6:33 '2501 short of it'. minutes: windows 4:00-5:00 peak 0-5% in his half.",
+   "kind": "both"
+  },
+  {
+   "clock": "6:58-9:19",
+   "what": "The lead went into his main base on hold-line, where his Pounders come out, instead of the corners; then the old hands' retreat walked the Blitzes through the Pounder line. A stronger player raids the far extractors and solars with the fast tanks and avoids the slow Pounders.",
+   "evidence": "6:58 standing A_t1, B_t3 station spot_22 advance; packet P3 'do not fall back while we outweigh' (hold_line). Chat 9:06 'try top corner, not much defence there'. Seat 0 lost 612, 990, 1435 metal in minutes 8-10.",
+   "kind": "both"
+  },
+  {
+   "clock": "7:45-10:37",
+   "what": "The answer to Pounders was Lashers in bulk (about 24 by 10:37), which then bled to Pounders under a Guard; the spectator had asked for medium tanks at 7:45 and said three to five Lashers at most.",
+   "evidence": "player 10:37 'we have ~24 Lashers'; note 11:10 'Lashers bleeding (7 lost) to Pounders under a new enemy Guard at E4'; chat 10:26 'too many lashers lose to med tanks'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:59-13:27",
+   "what": "All three groups on his commander while the south was open, with no ring around him; he escaped and the south seat lost four extractors in the minute after. thebluegecko: target the commander and drive a circle round it.",
+   "evidence": "note 12:27 'Six Pounders at E7/E8 threaten the south seat meanwhile; accepting that risk'; chat 13:07 'set target the commander and drive into a circle around it to snipe it'; seat 1 extractors 7 to 3 (13:00-14:00).",
+   "kind": "both"
+  },
+  {
+   "clock": "13:22-17:03",
+   "what": "No fast answer to Incisor swarms: the Brute ball chased, the seats chased the same party, and Incisor or Blitz hunters were ordered only at 14:30 with extractors already 33 to 23 in the player's count.",
+   "evidence": "note 14:30 'enemy Incisor swarms (10-15) bypass the Brute ball ... Incisor/Blitz hunters being built'; posing review #1: party_87_t2 and party_87_t3 the same three units, ~8,000 metal from two seats at them.",
+   "kind": "both"
+  },
+  {
+   "clock": "13:29-19:16",
+   "what": "The E3 wreck field was left lying: no constructor sent to reclaim it, no resurrection, though vehicle constructors reclaim; his Graverobbers took it and raised our Stouts.",
+   "evidence": "chat 13:29 'send some cons to eat the metal field too', 15:46 'a few rez bots would be strong here too'; player 15:53 'we only have vehicle plants'; 19:27 'we left ~10k metal of wrecks lying'.",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:42, 17:29, 18:31",
+   "what": "Plants found idle three times, once with 1,000 metal banked: the factories had no default unit and waited for an order.",
+   "evidence": "notes 10:42 'all three plants idle with 1000 banked', 17:29 'plants all idle and 11 extractors', 18:31 'both Cortex plants idle again on low metal'; posing review #9: 984 of 2,428 lab slots idle.",
+   "kind": "harness"
+  },
+  {
+   "clock": "19:07-19:18",
+   "what": "commander_t3 attacked a one-unit party at the edge of a nine-unit raid under a packet default meant for the other two commanders, and died; its blast killed three constructors.",
+   "evidence": "decompression review: P18 'commanders' paragraph named commander_t1 and t2, applied to every seat; Jev picks 19:10 and 19:11 played the attack; health 100 at 19:10, dead 19:18.",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Irishstud14 (Cortex) opened greedy by his own word ('I greed then', 0:27): naked extractors in the middle and his half (thebluegecko at 3:58; his first Guard seen at 5:16, at B8), and Rascal swarms (10 seen at 2:58, 29 killed) raiding our outer spots from 3:53 to 6:22. Incisors from 6:52 (100 seen killed), Brutes from 7:13 (64), Pounders from 8:10 (59), all from vehicle plants; the Pounders met our push at his main base and then roamed our north in pairs (10:11-11:40); Guards beside his forward extractors and at E4; his commander forward at D3 at 11:50 with Brutes and Guards, walking away from three groups. From 13:22 he raided in three or four parties, the biggest 14-18 Incisors, choosing our outer and southern extractors over our ball; from 17:28 Graverobbers reclaimed and resurrected at E3 (our Stouts fought for him from 17:39), Twin Guards at E4. No tier 2 and no aircraft were seen. His army seen at any one time never passed 4,070 (18:00), yet his army seen killed or standing (42.4k killed, 1.5k of it our resurrected Stouts and Blitzes, plus 2.9k seen at 20:00) exceeds all the army our three seats lost or held at the end (37.8k + about 1.3k): one person out-produced three seats.",
+ "defects": [
+  {
+   "defect": "Era B, the seats' tooling: the [gecko] clan tag read as a script section, so the person was 'not in the script' and the first turn fired with two of three seats (t1 Armada queued only at 0:21; its plant started 1:10).",
+   "fixed": "2026-09-27 (5226a45, before game 5)",
+   "evidence": "note 0:00 'Cortex, 2 seats east strip vs one person west'; 0:21 'Three seats: t1 G1 Armada (north)...'; header seats: team 0 controller 'Unknown'."
+  },
+  {
+   "defect": "Era B: the player wrote [WReason] itself and the bot added another, and the engine cut every line at 127 characters.",
+   "fixed": "2026-09-27 (01cb124)",
+   "evidence": "chat 4:39 '[WReason] [WReason] Good call. Sending our dark blue seat's Incisors west to hunt their bare extractors in the middle. Where wo'."
+  },
+  {
+   "defect": "Era J, yard and exit lanes: three of five factories with their south exit lane on unwalkable ground; plant_19419's lane blocked by its commander, a constructor and an extractor built in it.",
+   "fixed": "2026-09-27 lanes off cliffs (84aa001); 2026-10-13 the extractor in a lab's exit lane (3aabc77)",
+   "evidence": "2:37 wake: 'plant_19419's exit lane is blocked ... in the lane: cormex_23113'; again 4:10 (corcv_3249). 84aa001: 'three of five factories with their south lane on cliffs'."
+  },
+  {
+   "defect": "Plants had no default unit: an idle plant waited for the player's next produce call.",
+   "fixed": "2026-09-27 (e01aa80, H-HANDS-LAB-DEFAULT, during game 5)",
+   "evidence": "notes 10:42 'all three plants idle with 1000 banked', 17:29, 18:31; posing review #9: 'none of 2,428 lab slots, 984 of them idle, marked a unit as default'."
+  },
+  {
+   "defect": "The trade line counted each enemy death once per seat that saw it (up to three times), so the player read the fights as won 2.4:1.",
+   "fixed": "2026-09-27 (ff32935, H-PLAYER-TRADE-ONCE)",
+   "evidence": "notes 14:30 'trade 57k vs 23.5k', 19:06 'we won the army trade 2.4:1'; recount by unit id: his 44.7k seen killed (42.4k army) against our 62.4k lost (37.8k army)."
+  },
+  {
+   "defect": "Party names per seat: engage orders refused when the name changed before landing, and two seats' groups chased one party as two.",
+   "fixed": "2026-09-27 (ff32935, H-HANDS-SIDE-PARTIES)",
+   "evidence": "12:35 refused 'party_83_t3 is not a party in the picture' (also 19:20, 20:03); posing review #1: party_87_t2 = party_87_t3, the same three Pounders."
+  },
+  {
+   "defect": "Packet decompression: the standing tool's 'no' or null could not remove a packet rule (six cases), a 'commanders:' paragraph naming two commanders bound all three, and 'no energy converters' was read as 'solar never'.",
+   "fixed": "2026-09-27 (2879bdf, the decompression deleted)",
+   "evidence": "decompression review: commander_t1 attack_raiders kept 119 s after the 3:34 'no'; commander_t3 attack default at 19:10-19:11, died 19:18."
+  },
+  {
+   "defect": "Era A, the old hands: a retreat walk that does not fight, a group's place and odds from its centroid, only chase or leave against a faster swarm, 'losing this fight' lingering after a fight.",
+   "fixed": "2026-10-02 (the hands rebuilt)",
+   "evidence": "posing review #4: 9:02 retreat, 11 Blitzes through five Pounders (1,210 for 560); #6: 7:27 'together at D3' with 15 at C3 and 7 strung to G2; #2: 13:47-14:40 chase-or-keep against 15 Incisors."
+  },
+  {
+   "defect": "The score line's 'the opponent is known to hold N' extractors, a floor that never aged, read 2 to 4 while he out-expanded three seats.",
+   "fixed": "2026-10-17 (e8e2c19, the report claims nothing of his state)",
+   "evidence": "reports 3:13 to 13:27: 'the opponent is known to hold 2' ... 'known to hold 3'; chat 3:58 'Irish has almost caught up to the three claude players'. Reader's reading that it delayed the raids."
+  },
+  {
+   "defect": "Enemy resurrection was not said: Graverobbers and enemy Stouts were listed, never that he raised our wrecks.",
+   "fixed": "unknown",
+   "evidence": "posing review: 'cornecro 5' and 'armstump 3' in enemy lines, 'E3 3388 metal (not safe)' among wrecks; the player at 18:31 called them 'captured Stouts'."
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "supports",
+   "note": "The source game; the tools agree with the spectator: the 4:00-5:00 window at home on all three seats, our first raider in his half at 6:32, the first buildings of his killed about 7:00 at B8."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "supports",
+   "note": "A declared greedy opening ('I greed then', 0:27) met no pressure: our first soldiers were stationed on our own extractors from 2:07, against the pool's first soldier in his half at 1:40-2:48."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "The player fenced constructors out of 32 western spots (4:10) and commanders out of the middle columns (3:13); three seats peaked at 32 extractors while one person out-produced them."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "Lost on extractors (31 at 13:00 to 11 at 17:00) with the fights about even; thebluegecko 18:57 'irish expanded faster than the three claude bots, even fight on first contact'."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "The source game: Pounders from 8:10 stopped the Blitz push at B3 and A3 (17 Blitzes of seat 0 died to corlevlr, 8:34-9:19)."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "About 24 Lashers by 10:37 bled to Pounders under a Guard; thebluegecko 10:26 'too many lashers lose to med tanks', the lesson he gave again as the opponent of game 10."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "The source game: the 11:59-13:27 strike killed the escort, not him; two of three engage orders were refused on renamed parties (a since-fixed defect)."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "The E3 field was left; his Graverobbers (seen 17:28) raised our Stouts, seen fighting for him from 17:39."
+  },
+  {
+   "id": "L-placement",
+   "relation": "illustrates",
+   "note": "The source line (2:22); plant_19419's exit lane blocked at 2:37 and 4:10 by an extractor and units; three of five factories' south lanes on cliffs (84aa001)."
+  },
+  {
+   "id": "L-opening-solar-cap",
+   "relation": "supports",
+   "note": "Seat t1 built four solars before its plant, which started at 1:10 against the pool's p75 of 0:58."
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "supports",
+   "note": "Three solars on the Cortex seats with Rascals first and the constructor third, the energy store full (4,337 of 4,350 at 3:13) while the plants waited on metal."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "supports",
+   "note": "Plants idle on metal at 3:13 and all idle at 10:42 (1,000 banked), 17:29 and 18:31."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "Army 3.3k against about 260 seen at 5:53, spent first at home and then on his main base, not on his economy."
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "illustrates",
+   "note": "The raid ordered at 4:31 stood at F4 from 5:13 to 6:28 ('has not got nearer for 45 s', 6:33); thebluegecko at 9:40 on a stopped raid in the south."
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "No construction turret by 8:00 on the Cortex seats (the pool's median 1); seat t2's first at 9:40."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "Two converters by 4:10 and six by 12:18 with the energy store near full; the players' line came the next game."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "contradicts",
+   "note": "Counted once per death across the three records, we lost 62.4k (37.8k army) against his 44.7k seen (42.4k army): the fights were about even and the whole trade lost; 'ahead' was the per-seat count."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "supports",
+   "note": "No soldier of ours in his half before 6:32 against a greedy opening; the spectator's 3:58-5:53 lines mark the cost."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "55 extractors lost with a turret beside most (13 of 15, 13 of 16, 21 of 24): pickets and turrets held Rascals but not swarms of 10-18 Incisors, which the Brute ball could not catch (72 against 85)."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "The 5:53 lead went late and at his strongest point; the ball strung over four cells at 7:27; three groups arrived together on his commander at 12:27 and still let him walk."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Pounders against Blitzes at 8:10-9:19; massed Lashers against Pounders at 10:00-11:10."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "Constructors made by 8:00: 3, 4, 4 against the pool's p25 of 4, 4 and 6; the midline barred to constructors and commanders by the player."
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "supports",
+   "note": "Three to four solars before the plant, energy full and the plants idle on metal by 3:13."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "commander_t3 attacked into a nine-unit raid at 19:10 (a packet default, since fixed) and died 19:18."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (per seat)",
+   "run/analyze_match.py (per seat)",
+   "run/pro_baseline.py (t3 own start; t1, t2 --all-starts)",
+   "run/floor.py (per seat)",
+   "run/raid_ledger.py (per seat)",
+   "run/commander_turns.py --notes --told --calls",
+   "run/wake_read.py",
+   "run/impedance_sweep.py",
+   "run/hands_window.py (t1 8:30-9:20, t3 4:30-7:30)",
+   "record and enemy_seen scans by python"
+  ],
+  "existing_review": "none (the match directory has posing-review.md and decompression-review.md, model audits of 2026-09-27, but no review.md)",
+  "confidence": "medium",
+  "caveats": "No truth file and no batch.json/results.jsonl: his numbers are floors. analyze_match, minutes, raid_ledger and hands_window read only the first record/jev file, so seats t2 and t3 were read through scratch links (record-1/2 as record-0). raid_ledger's 'answered 0' is a tool artifact: its regex drops the _t<team> suffix (the posing review's corrected count: 10/15, 12/17, 22/24). The match directory holds two model reviews (posing-review.md, decompression-review.md, 2026-09-27), no review.md; I differ from the posing review's headline that most of the loss traces to what the menus could express: the person's reading and the tools put the root at 2:07-4:10 in the player's own orders, and the menu gaps raise the cost from 13:00. The ledger's 'seen trade 85k to 30k in our favour' (his side corrected to 44.7k) understates our losses: by unit id over the three records ours were 62.4k. pro_baseline's pool for t3 (G4 Cortex) is 3 sides. Date: the record's local clock is 2026-09-26 21:39 EDT (2026-09-27 UTC), the ledger's day. Chat speakers are '?'; attribution follows lessons.md. Process note, not about the game: for about a minute (00:18-00:19 local) my per-seat links sat in the shared scratchpad's seat1/ and seat2/, which the bluegecko-3v1-comet-catcher-6 reader had just made; I removed them, but a tool that reader ran on seat1/ or seat2/ in that minute read this game's records."
+ },
+ "open_questions": [
+  "How many extractors did Irishstud14 hold at 4:00-8:00? There is no truth file; thebluegecko's 3:58 line is the only measure.",
+  "Why did group_B_t3's raid stand at F4 from 5:13 to 6:28 under 'fight_to spot_39': attack-move on the Rascals, the group waiting for the units the plant fed it, or the route?",
+  "Would the 5:53 army (3.3k against about 260 seen) sent at the two corners, as advised at 6:45, have broken his economy before the Pounders came at 8:10?",
+  "Did the triple-counted trade line (57k against 23.5k at 14:30) push the player to commit all three groups to the commander at 11:59 and accept the south's risk?",
+  "Who typed 'still 84 apm, to do this' (20:24), and about whom?"
+ ],
+ "written": "/home/christian/workspace/playground/bar_bots/docs/studies/2026-10-22-episode-sweep/rows/1790473186-bluegecko-3v1-comet-catcher-4.json"
+}

@@ -1,0 +1,323 @@
+{
+ "batch": "1790530604-bluegecko-3v1-comet-catcher-11",
+ "label": "bluegecko-3v1-comet-catcher-11 (the label is wrong: the map was SailAway 2)",
+ "map": "SailAway 2",
+ "date": "2026-09-27",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko, lobby skill 34.3 in the record header (OS 48 in the ranked duel list per docs/briefs/lessons.md). The header gives his side as armada, but every unit of his seen was Cortex. He started in the north box (A1-H2); his commander was seen at D1 (4352, 960) at 7:23 and at E1 at 10:46. The host was computer_whisperer (the user), on player id 2, watching and not playing.",
+ "our_side": "Three Cortex seats of ours (lobby side random) on islets. ai0 is team 1 'red' at F7 (6947, 7916) on land; ai1 is team 2 'dark magenta' at C7 (3773, 8888) on land; ai2 is team 3 'dark blue' at F8 (7443, 9205) in the water at height -62. Each seat had three spots reachable on foot. One player, claude-opus-5-5 at effort medium (Claude Code 2.1.283), ran all three seats with no commander role. The hands were Jev jev-1.13.0 (banner 'jev-latest'), before the hands rebuild. Realtime, in the user's lobby.",
+ "build": "1281d6e+ (dirty; committed 2026-09-27 13:31, five minutes before the game; 51aad17 at 13:48 and b6e5819 at 13:58 were committed while it ran)",
+ "result": {
+  "outcome": "lost",
+  "minute": "24:33"
+ },
+ "summary": "On SailAway 2 (69% sea) the player made hovers the side's army: a hover platform on every seat, then Goons, Caymans and Mangonels. It announced 'Going hovers' in chat and took the islands well: 54 extractors across the side at 9:00-10:00, against 10 of his seen all game. thebluegecko (Cortex) went navy: Riptides from 4:10, a sonar tower going up at the G5 crossing at 5:50, subs from about 8:52 that nothing of ours could see or hit, Cutlass seaplanes from 10:11 and Buccaneers at 21:23. Our answer to the first Riptide was more hovers and one shipyard on the water seat; the Goons chased ships that kite, and the 7:24 push across the sea to his commander (seen once) arrived at 10:05-10:51, just as the Cutlasses did: 7.8k lost for 1.1k in minute 10. Subs then took the shipyard, the naval hover platform and the water seat's commander (12:22). The side's extractors fell from 51 at 12:00 to 24 at 16:00 with 3-5k banked, and from 15:40 a fleet of 10-14 Riptides beat the Mangonel body at home; we lost 75.2k for 20.6k seen and resigned at 24:33 after thebluegecko called it unwinnable.",
+ "root": {
+  "clock": "0:00",
+  "what": "The opening packet made hovers the army on a 69%-sea map: a land hover platform in every commander's list, 'Goons and Caymans about two to one', groups 'never north of row 5', and no shipyard, sonar tower or torpedo launcher on any seat. Beside it, the picture's water block listed hovers and amphibious units as all that reaches deep water, and no ship (my reading: a harness share). The first evidence came at 4:10 (a Riptide at G4) and 4:25 (a Goon killed by a Herring). The 4:23 turn was the last cheap switch (718 banked, 75 lost), and it answered with Caymans and Mangonels on three plants and one shipyard on the water seat. The kiting, the unseen subs and the Cutlasses are the cost.",
+  "evidence": "notes 0:00: \"Opening: 3 home mex, 3 wind, hover platform (hovers cross water)\"; the user 0:12: \"Note: this is a water map. Check your map tool.\"; minutes.py: \"corsh_406 ... died 4:25 at F4 to corpt\"; calls 4:23: produce [\"corsnap\", \"cormh\", ...]"
+ },
+ "turning_points": [
+  {
+   "clock": "0:53",
+   "what": "The user said the seat in the water needs tidal generators. Dark blue's commander had walked toward a wind site that did not exist. It switched to tidals and a naval hover platform: still hovers, not a shipyard.",
+   "evidence": "the user 0:53: \"the one starting in the water needs to build tidal generators\"; calls 0:53 commander_t3 [\"stop\", \"cortide\" x3, \"corfhp\", ...]; bot.log f=570 \"no site for corwin (builder 4089)\"; first cortide (seat 2) 1:04"
+  },
+  {
+   "clock": "4:10-5:04",
+   "what": "His first Riptide was seen at G4 at 4:10 and a Herring at F4 at 4:24. Seat 0's first three Goons to cross (3:52-3:59) died at 4:25-5:04 to a Herring, an LLT and a construction ship. The 4:23 turn answered with Caymans and Mangonels; the shipyard (seat 2, 4:40) made its first Riptide at 6:15.",
+   "evidence": "enemy_seen corpship 4:10 (7734, 4926), corpt 4:24; minutes.py: corsh_2843 \"died 4:46 at E2 to corllt\", corsh_24473 \"died 5:04 at E1 to corcs\"; notes 4:23 \"Answer: Caymans/Mangonels from hover plants, shipyard on dark blue\""
+  },
+  {
+   "clock": "6:43-7:13",
+   "what": "Dark blue's group_A chased party_7 (2 Riptides, a Supporter, a Herring) at G5; the pick flipped between attack and advance. Minute 7-8 cost 2,650 for 860 across the side.",
+   "evidence": "hands_window seat 2: 6:47 PICK \"group_A_t3: attack party_7 (1 coresupp, 2 corpship\"; 7:09-7:11 advance/attack/advance; notes 7:13: \"Seven Goons lost to his ships chasing them; ships kite hovers\""
+  },
+  {
+   "clock": "7:24",
+   "what": "The player committed the hover army (~4.2k) across the sea to his commander, seen once at D1. The stations on spot_11 were refused. It announced the push in chat, and he answered 'i see them'. The mass reached the north only at about 9:30.",
+   "evidence": "calls 7:24: refused \"spot_11 is not a place in the picture\" x3; say \"gl hf gecko - our hovers are coming for a visit.\"; thebluegecko 7:52 \"i see them\"; notes 9:28 \"group_A_t2 89 s near home, 8371 to go\""
+  },
+  {
+   "clock": "8:52",
+   "what": "Unseen sub fire hit our ships at G5. Nothing of ours carried sonar until a Jellyfish at 10:22 (dead by 10:40), an Orca at 11:22 and Urchins at 11:38/11:41. No sonar tower all game.",
+   "evidence": "notes 8:52: \"An unseen corsub (sub) hits our ships at G5; Riptides cannot target subs\"; created: cordl 10:22, corsub 11:22, cortl 11:38 / 11:41, no corfrad or corsonar on any seat"
+  },
+  {
+   "clock": "10:05-10:53",
+   "what": "The push reached E1/E2 as his Cutlasses appeared (first at 10:11, E2) and lost its Mangonels, which cannot shoot up. His commander turned up at E1 at 10:46 and killed two Caymans; nothing was left to circle it.",
+   "evidence": "analyze_match seat 0 #7 10:30 E1 lost 600 (cormh 3), #8 E2 lost 400; side minute 10-11 lost 7816, killed 1116; notes 10:43 \"Push to D1 failed (commander not there\"; seat 2 corsnap by corcom 10:51, 10:53"
+  },
+  {
+   "clock": "11:34-12:22",
+   "what": "Subs killed the water seat's shipyard (11:34), its naval hover platform (12:04) and its commander, in the water at F7 (12:22). Minute 12-13 cost 6,500.",
+   "evidence": "analyze_match seat 2: \"our commander died at 12:22 at F7 (at our base) to corsub\"; notes 11:38 \"Shipyard lost to sub. Bank 3.9k.\"; side minute 12-13 lost 6500"
+  },
+  {
+   "clock": "12:00-16:00",
+   "what": "The side's extractors fell from 51 to 24, to subs on the under-water spots and to Cutlasses, while the army was stationed at gather_e3 (12:47) and sent toward his commander again (14:44). 34 of the 63 extractors lost in the game fell in these four minutes.",
+   "evidence": "raid_ledger by minute 12-16: seat 0 10, seat 1 16, seat 2 8; standing 12:47 \"station\": \"gather_e3\", 14:44 \"station\": \"his_commander\"; notes 15:11 \"Extractors 51->29 in 3 min while the hover army walked to E3\""
+  },
+  {
+   "clock": "15:40-19:15",
+   "what": "With about 30 Birdeaters standing, the plants went back to Mangonels against a Riptide fleet that grew to 10-14 at F6 beside the red home. Minutes 15-19 cost 20.5k for 6.0k.",
+   "evidence": "notes 15:40 \"Plants switch to Mangonels (700 > Riptide 480)\"; 16:04 \"Two Riptides at F6 have killed ~10 Mangonels in 3 min\"; 18:38 \"fleet of 10 Riptides + 2 Supporters (~4.6k) at F6\"; side 18-19 lost 7870 killed 1650"
+  },
+  {
+   "clock": "21:23-24:33",
+   "what": "His Buccaneers (tier 2) arrived and swept the south coast. Seat 1's commander was killed at D8 at 24:24. The user had said at 23:28 how to surrender, thebluegecko called the game unwinnable at 24:24, and the player self-destructed.",
+   "evidence": "enemy_seen corcrus 21:23 (4799, 7233); analyze_match seat 1 \"our commander died at 24:24 at D8 (at our base) to corcrus\"; thebluegecko 24:24 \"i think the game is unwinable for you at this point\""
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00",
+   "what": "Hovers as the army on a sea map, with no shipyard, sonar or torpedo plan. A stronger player puts a shipyard on the water seat from the first list, Riptides or subs, and a naval radar/sonar tower at each harbour by 3:00, with hovers for the island constructors and a few raiders. The brief of that build had no sea case.",
+   "evidence": "instruct 0:00: \"hover platform (each seat): first one construction hovercraft; then Goons ...; then Goons and Caymans about two to one\"; created: 10 hover platforms (9 land, 1 naval), 1 shipyard, 217 combat hovers, 10 ships",
+   "kind": "both"
+  },
+  {
+   "clock": "4:23",
+   "what": "At the first Riptide the player added Mangonels and Caymans, both slower than a Riptide (63.9 and 67 against 82.5), and only one shipyard. It also read the report's 650 (the Herring's range, given in the same line) as the Riptide's.",
+   "evidence": "report 4:23: \"a corpt (corpt) with range 650; it outranges everything here\" beside \"found his Riptide (corpship) at (G4)\"; notes 4:23 \"Riptide seen at G4, 650-range shooter\"; units.csv speeds",
+   "kind": "strategy"
+  },
+  {
+   "clock": "6:43-7:13",
+   "what": "Goons and whole groups chased ships that outran them and chose the range. The 0:00 instruct ('when the group outweighs a party at our spots, it engages') and the old hands' attack picks both sent them in.",
+   "evidence": "hands_window seat 2 6:47-7:11 attack party_7 / advance flips; wake reasons \"group_A_t3 was drawn 1004 from where it engaged its party, which is running\"; notes 7:24 \"lost ~1.6k chasing\"",
+   "kind": "both"
+  },
+  {
+   "clock": "7:24",
+   "what": "The player committed the whole army across the sea on one sighting of an amphibious commander about 7,400 from the red home, and announced it in chat. His factories were never seen, and his subs and seaplanes were out of sight. The push took two to three minutes to arrive, while the home harbours had no sonar.",
+   "evidence": "notes 7:24 \"Commit the hover army (~4.2k ...) onto his commander\"; minutes.py: \"his first factory seen: never\"; side minute 10-11 lost 7816 for 1116",
+   "kind": "both"
+  },
+  {
+   "clock": "8:52-11:38",
+   "what": "After seeing unseen sub fire, the player still bought no sonar tower and first answered with Corals (useless against subs, 9:13). The side banked 2.7-3.9k meanwhile. Urchins came only at 11:38.",
+   "evidence": "notes 9:13 \"answer with Coral floating heavy lasers (630 range)\"; side bank 9:00 2737, 10:00 3069, 12:00 4724 (records); units.csv corfhlt \"useless against subs\"",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:47-15:11",
+   "what": "The army was stationed at E3 against the Cutlasses and sent at his commander again at 14:44, while subs and Cutlasses ate the home economy (51 to 24 extractors by 16:00).",
+   "evidence": "standing 12:47 gather_e3, 14:44 his_commander; notes 15:11 \"Extractors 51->29 in 3 min while the hover army walked to E3\"",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:11-15:40",
+   "what": "The anti-air came in swings: Birdeaters from 10:16, Birdeaters only from 11:24 until 'about ten stand', then Mangonels again at 15:40 once ~30 stood. The mix never held line units in front of a few Mangonels.",
+   "evidence": "notes 11:24 \"all hover plants on Birdeaters only until about ten stand\"; 15:40 \"~30 Birdeaters now, enough AA ... Plants switch to Mangonels\"; created: 102 Mangonels, 52 Birdeaters, 15 Caymans across the side",
+   "kind": "strategy"
+  },
+  {
+   "clock": "15:40-19:15",
+   "what": "Mangonels were the body against a Riptide fleet at our own harbours, where the faster ship chose the range. thebluegecko afterwards: Mangonels one to three behind a body, never the body.",
+   "evidence": "notes 16:24 \"2-3 Riptides at F6 kite our hovers (faster, 480 range)\"; hover deaths by killer: corpship 120 of 210 (records); analyze_match seat 0 #29-#30 18:29-19:15 lost 3781 for 1460",
+   "kind": "strategy"
+  },
+  {
+   "clock": "12:22",
+   "what": "Dark blue's commander stood in the water at its harbour with no sonar near, and a sub killed it. retreat_when_enemy_near was set for commanders in that same turn.",
+   "evidence": "record-2 destroyed corcom 12:22 (7617, 8884) by corsub; calls 12:22 standing {\"commander\": {\"no_chase\": \"yes\", \"retreat_when_enemy_near\": \"yes\"}}",
+   "kind": "both"
+  }
+ ],
+ "their_play": "Cortex from D1, navy-first. A shipyard by about 3:30 (first Riptide 4:10 at G4, down the east channel), construction ships at E1 by 4:49, extractors, winds and LLTs at F2/D1, and a naval radar/sonar tower being built at the G5 crossing at 5:50, where every raid of his came through. Riptides with Herrings and Supporters raided G5/F6 and kited our hovers. Subs from about 8:52 (first seen 11:01 at G7) killed our under-water extractors and tidals, the shipyard, the naval hover platform and the water seat's commander. 27 Cutlass seaplanes from 10:11 met the push at E1/E2 and then raided the islands' land extractors. 33 Riptides were seen in all, and the fleet grew to 10-14 at F6 by 18:38. He built extractors of his own beside our home (G7 at 16:50, F6). Buccaneers (tier 2) came at 21:23. None of his factories was ever seen. In chat: 'i see them' (7:52) to our announced push, and 'i think the game is unwinable for you at this point' (24:24). After the game, relayed by the user: 'it is better than barbs at water ... mongonals ... 1-3 of them with other units in front ... t1 artillery ... shouldn't be the primary unit body.'",
+ "defects": [
+  {
+   "defect": "The picture's water block said a deep-water place 'is reached only by what is listed below', and `amphibious_of_ours` listed hovers and amphibious units (cormh, corsh, corsnap, corah, corch, ...) but no ship or shipyard: briefing.rs `crosses` takes hover or depth >= 1000, and ships are excluded. Not on the eras list. My reading is that it fed 'hovers cross water'; untested.",
+   "fixed": "open (today's briefing.rs still filters ships out of the list, though the note's words now name ship constructors)",
+   "evidence": "0:00 prompt map.water: \"a spot or a place in deep water is reached only by what is listed below\", amphibious_of_ours [\"coraak\", \"corah\", ... \"corsnap\"], no corpship/corsy; notes 0:00 \"hover platform (hovers cross water)\""
+  },
+  {
+   "defect": "No sea case in the brief and no under-water words in the picture. The player learnt that a party was under water from the hands' 'unseen corsub' at 8:52, although the unit list did say an Orca is 'invisible without sonar'.",
+   "fixed": "2026-09-27 (b6e5819, H-HANDS-UNDER-WATER, committed 13:58 while this game ran; the SailAway water paragraph after it)",
+   "evidence": "0:00 prompt: 'Under the water' 0 times; Orca line \"invisible without sonar\"; notes 8:52 \"An unseen corsub (sub) hits our ships at G5\""
+  },
+  {
+   "defect": "The hands had no tidal generator on their menu, so the commander that started in the water tried wind with no site and walked 794 elmos before its first energy.",
+   "fixed": "2026-09-28 (per the brief's SailAway passage)",
+   "evidence": "bot.log f=570 \"no site for corwin (builder 4089)\"; impedance_sweep 0:20 \"commander_t3: the engine refused a corwin at F8: the site was bad\"; first cortide 1:04 after the user's 0:53 word"
+  },
+  {
+   "defect": "The old hands (eras: pre-hands-rebuild): whole-group attacks on parties that run, attack/advance flips, and attack picks on party_7 after the player's 'raiders_party: ignore'.",
+   "fixed": "2026-10-02 (the hands rebuild); the chase that did not withdraw at danger 2026-10-17",
+   "evidence": "hands_window seat 2 6:47-7:11 attack/advance flips; seat 1 7:36-7:42 \"attack party_7 (2 corpship, 2 corpt)\" after the 7:24 ignore; wake \"drawn 1004 from where it engaged its party, which is running\""
+  },
+  {
+   "defect": "The enemy-start snap: two seats took a spot beside their own home as his start, so minutes.py's 'his half' and the picture's side geometry were wrong for ai0/ai1.",
+   "fixed": "2026-09-27 (51aad17, committed 13:48 while this game ran)",
+   "evidence": "bot.log \"[ai 0] ... enemy start 310 away on foot, 291 in a straight line\"; \"[ai 1] ... enemy start 90 away on foot\"; minutes.py \"he starts F6\""
+  },
+  {
+   "defect": "The report's eco line said 'constructors 0 labs 0' all game, because hover constructors and platforms were uncounted, and the score and eco extractor counts disagreed.",
+   "fixed": "after 2026-09-27 (the ledger: fixed after; the counts made to agree in posing-changes 3.3, 2026-09-27 evening)",
+   "evidence": "report 4:23 \"score: extractors 20\" beside \"eco: ... extractors 22 constructors 0 labs 0\" with 3 hover platforms standing"
+  },
+  {
+   "defect": "Seat 2's home in the water was not passable for the raider's class, so it had no terrain field from home.",
+   "fixed": "after 2026-09-27 (the ledger)",
+   "evidence": "bot.log \"[ai 2] no terrain data; distances are straight lines\" while terrain-2.bin exists"
+  },
+  {
+   "defect": "Stations on under-water spots were refused before any hover constructor stood there, and the his_commander mark sat on ground the hover groups did not reach, so the push stalled near home.",
+   "fixed": "open per the ledger (the refusal); unknown (the unreachable mark)",
+   "evidence": "calls 7:24 \"spot_11 is not a place in the picture\" x3; impedance 8:47 \"spot_35 is not a place\"; notes 9:28 \"maybe pathing onto unreachable land; moved the mark into water\"; floor seat 1 stuck_s 668"
+  },
+  {
+   "defect": "The prompt on disk was edited mid-game (the main session's water and start-box work), so the player's session was replaced at 6:48 and 19:46. A turn-cap rotation followed at 15:11.",
+   "fixed": "a practice rule since 2026-10-14 (feedback-to-self: no brief edits during a player game); no code guard known",
+   "evidence": "bot.log \"[ai 0] the prompt on disk has changed: a fresh session reads it\" between f=12105 and 12600, and f=34200 and 36000; impedance_sweep \"3 session replacements\"; fresh full prompts at 6:48, 15:11, 19:46"
+  },
+  {
+   "defect": "Realtime turn latency.",
+   "fixed": "open (a property of realtime play)",
+   "evidence": "wake_read: \"109 turns over 24.9 min = 4.38/min; wall median 10.5s\"; \"fraction of game time the player was busy (orders in flight): 82%\""
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:12",
+   "text": "Note: this is a water map. Check your map tool."
+  },
+  {
+   "clock": "0:53",
+   "text": "the one starting in the water needs to build tidal generators"
+  },
+  {
+   "clock": "23:28",
+   "text": "you can surrender by self-destructing commanders"
+  },
+  {
+   "clock": "24:11",
+   "text": "I am told hovers are bad generically"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-mix-arty-not-the-body",
+   "relation": "supports",
+   "note": "This game is the lesson's source. 102 of our 217 combat hovers were Mangonels, and from 15:40 they were the body at home against Riptides: 'Two Riptides at F6 have killed ~10 Mangonels in 3 min' (16:04)."
+  },
+  {
+   "id": "L-mix-hovers",
+   "relation": "supports",
+   "note": "Hovers as army bulk (217 combat hovers built, 194 lost) lost to a navy. The user's 24:11 'I am told hovers are bad generically' is the earlier form of the human-17 lesson."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "He answered a hover mass with what it could not fight: Riptides that outrun Mangonels and Caymans, subs no hover can target, and Cutlasses the Mangonels cannot shoot."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "contradicts",
+   "note": "This bounds the lesson. At 7:00 our army was 6.8k against 1.15k of his seen, and going to use it (7:24) lost 7.8k for 1.1k. The lead was in units that could not catch his ships or hit his subs and seaplanes, and his army was a floor."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "contradicts",
+   "note": "On what we saw, we held 54 extractors at 10:00 against his 10 seen and lost on the unit domain. The collapse to 24 at 16:00 was a cost of the mix, not the cause. His real count is unknown (no truth file)."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "At 7:24 the player sent every soldier at a commander seen once, about 7,400 from the red home across the sea. The army arrived at 10:05-10:51; his commander, seen at E1 at 10:46, killed two Caymans and lived."
+  },
+  {
+   "id": "L-chat-no-faction",
+   "relation": "illustrates",
+   "note": "A day after the lesson, our player announced its seats and plan at 0:22 ('Going hovers') and the push at 7:42. He answered 'i see them' at 7:52; whether it changed his play is not shown."
+  },
+  {
+   "id": "L-water-tidals",
+   "relation": "supports",
+   "note": "The user's 0:53 word set the water seat's first energy, a tidal at 1:04, after a 794-elmo walk toward a wind site that did not exist."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Seat 0's first three Goons crossed at 3:52-3:59 and died at 4:25-5:04 to his first Herring, an LLT and a construction ship; on a sea map the first handful meets ships. Later rovers lived longer, and one found his commander at D1 at 7:23."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "illustrates",
+   "note": "The 'one body' push strung out: group_A_t2 '89 s near home, 8371 to go' at 9:28, with its tail 2,600 behind at 15:11."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "This game is one of the subject's sources. The islet economy was taken (54 extractors) and the army that crossed water was the wrong class: 10 hover platforms against 1 shipyard, and no sonar tower against the '3:00' rule written afterwards."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Speed and reach at sea: Riptide 82.5 / 480 against Mangonel 63.9 / 700, so the faster unit chose the range. Riptides killed 120 of the 210 hovers and hover constructors we lost."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Unseen sub fire from 8:52 with no sonar of ours, and a push committed at 7:24 to a place seen once, with none of his factories ever seen."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "The answers were ordered on sight but came late: Birdeaters ordered at 10:16 (the first stood at 10:27) for the 10:11 Cutlasses, and for the 8:52 sub an Orca at 11:22 and Urchins at 11:38. His seaplane platform and shipyard were never scouted, so no earlier sign was looked for."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "The side banked 2.3-5.0k from 8:00 to 14:00 while no sonar tower (130 metal) or torpedo launcher stood at the harbours. Seat 2 sat on 0.8-1.2k from 12:00 to 18:00 with at most one factory (floor mfull% 21.9)."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "Dark blue's commander died in the water at its own harbour to a sub (12:22); dark magenta's died to Buccaneers at D8 (24:24)."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "illustrates",
+   "note": "A seen-metal lead of 6-16x in minutes 7-10 decayed on the walk across the sea; the push arrived piecemeal from 10:05 and came home at 10:43."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Seat 0's Goons were across by 3:52, and the first three died by 5:04. Two more lived to 8:27 and 11:54, and a rover found his commander at D1 at 7:23."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (all three seats)",
+   "run/floor.py (all three seats)",
+   "run/raid_ledger.py (all three seats)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py (seat 2 group_A 6:40-7:15; seat 1 group_A 7:24-8:05)",
+   "run/impedance_sweep.py",
+   "python over record-0/1/2.jsonl (builds, losses by killer, enemy sightings, side extractors/army/bank/trade by minute)",
+   "python over strategist-0.jsonl (tool calls, fresh-session prompts, the 0:00 map.water block)",
+   "bot.log",
+   "docs/glossary/units.csv",
+   "crates/bot/src/brain/briefing.rs (water_description)"
+  ],
+  "existing_review": "/ceph/christian/within-reason/run/matches-archive/1790530604-bluegecko-3v1-comet-catcher-11/00/review.md",
+  "confidence": "medium",
+  "caveats": "There is no truth file, batch.json or results.jsonl, so all his numbers are floors (subs and seaplanes mostly out of sight). The per-match tools read record-0 only; seats 1 and 2 were run through scratchpad symlink directories. minutes.py's 'he starts F6' is the snap bug's guess, which voids its 'his half' columns and the 8:00-11:00 and 13:00-15:00 windows. analyze_match's army column now counts hovers, but its engagement 'on the spot' soldier values are still 0 for them. pro_baseline.py was not run (Comet only). chat.jsonl marks the host lines '?'; they are attributed here to the user (computer_whisperer) by the host-seat rule in design §6 and docs/knowledge/_inbox/players-chat-2026-09-28.md. The date is 2026-09-27 by the batch's epoch and the files; the brief passage and the lessons give 2026-09-28, the relay date. Where I differ from review.md and the ledger: (1) The root clock is 0:00, the plan, with 4:23 as the last cheap switch, and I name a harness share they do not: the water block's list had no ship. (2) The review's Z1 stands against the ledger: bot.log has 'the prompt on disk has changed' twice, and impedance_sweep counts 3 session replacements (6:48, 15:11 cap, 19:46). (3) The 4:23 '650' was the Herring's range, given in the same report line, not a header misread. (4) The 24:24 refusal of 'remove commander_t2' was its death to a Buccaneer at 24:24, not a naming fault. (5) His commander was at E1 at 10:46 and killed two Caymans at 10:51-10:53, so 'commander not there' (10:43) was true only by seconds. (6) The second push (12:47 gather_e3, 14:44 his_commander) during the 12-16 extractor collapse is a finding the review folds into air and subs."
+ },
+ "open_questions": [
+  "How big were his economy and army? His shipyard, seaplane platform and advanced shipyard were never seen; the first Riptide at 4:10 bounds the shipyard at about 3:30, and the first Cutlass at 10:11 the platform at about 9:00.",
+  "Did the water block's hover-only list (no ship or shipyard) steer the 0:00 'hovers cross water'? It is still so in briefing.rs. An offline replay of the 0:00 turn with ships listed would tell.",
+  "What would have held: Riptides of our own from 4:23 on two seats plus sonar towers and Urchins at each harbour? Game 12 (shipyards on every seat by 1:09) lost too, on reach per the brief, so 'a navy' alone is not the whole answer.",
+  "Did the fresh session at 6:48 (brief edited on disk) change the plan? The 7:24 push was the second session's, built on the carried notes; the transcript cannot separate the two.",
+  "Were the 27 engine refusals of cormex sites (G3, F3, H3, D3, E2 from 5:30) his extractors already standing on spots of his half, i.e. constructors sent to taken spots?",
+  "Is the 'spot_11 is not a place in the picture' refusal for an under-water spot before any hover constructor stands still open, as the ledger says?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1790530604-bluegecko-3v1-comet-catcher-11.json"
+}

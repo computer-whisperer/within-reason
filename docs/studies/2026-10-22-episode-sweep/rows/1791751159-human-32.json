@@ -1,0 +1,288 @@
+{
+ "batch": "1791751159-human-32",
+ "label": "human-32",
+ "map": "Flats and Forests v2.2",
+ "date": "2026-10-11",
+ "shape": "3v2",
+ "people": "[gecko]thebluegecko (34; Cortex, base B3), [gecko]u6bkep (19; Armada vehicles, base B8)",
+ "our_side": "Three seats under an Opus 5.5 high side commander: t2 = seat 0, Cortex, G3 (middle); t3 = seat 1, Armada, H6 (south); t4 = seat 2, Cortex, H3 (north). Players Opus 5.5 medium (Claude Code 2.1.296); hands Jev jev-latest = 1.13.0. Realtime lobby game hosted by the user (computer_whisperer) as a spectator.",
+ "build": "efa6d21 (2026-10-10)",
+ "result": {
+  "outcome": "lost",
+  "minute": "27:20"
+ },
+ "summary": "u6bkep opened with a mass of Rovers that took all of t3's extractors by 3:58 and six of t2's by 5:53, while thebluegecko's Rascals and then Incisor swarms raided t4's north from 3:08 to 20:00 (53 of t4's extractors lost, 38 to Incisors). Our side answered at home and held a growing lead over the army it saw (4,700 to 1,600 at 7:50, 18,900 to 7,500 at 16:50), but the first strike west (go_west 7:50) reached his half as three separate bodies at 11:00-12:40 and lost at C7, C6 and C1/D1. After that nothing of ours came within 3,378 of blue's base, the side killed 9 of the people's extractors all game, and every fight from 13:00 was in our half (his losses: 52.6k there, 3.8k in his own half). From 16:50 to 21:00 the side's largest army (about 19k) stood in our half while thebluegecko built an advanced plant and a gantry unseen; his first Shiva shelled t2's spots at 21:03. Eight to eleven Shivas then took t2's and t4's bases while u6bkep's Bulls broke t3 at G6-H6, and the commander conceded at 27:20.",
+ "root": {
+  "clock": "7:50 (the window opened at 6:00)",
+  "what": "The first lead went west late and in pieces. From 6:00 the side held 2-9x the army it saw, at home against the Rovers. The commander's go_west at 7:50 sent bodies on three routes: t4's chased Incisors in our half (17 to 4, first stop 9:45), t3's waited at home until 9:06, and t2's was handed to t3 mid-fight at 10:50. They reached his half one at a time at 11:03-12:38 and each lost. From 12:44 our mass never again stood over 30% in his half, and his bases and economy went untouched while he teched.",
+  "evidence": "commander 7:50: 'We have 4,700 of army against 1,600 of his seen, and none of it is in his half'; minutes.py seat 0 WINDOWS: '10:00-11:00 (2.0-3.0x) ... F6 F4 ... ended at 12:00 at 0.7x'; seat 2: 17 Incisors crossed 11:17-11:27, died C1/D1 11:46-12:39"
+ },
+ "turning_points": [
+  {
+   "clock": "3:05-3:58",
+   "what": "u6bkep's 8-9 Rovers take all 5 of t3's extractors, 3 constructors and its generators. t3's first light turret stands at 3:37, after the raid began.",
+   "evidence": "t3 note 3:58: 'green's 8-9 Rovers took all 5 of our extractors, 3 constructors and the solars/winds; 0 extractors'; analyze_match seat 1 extractors 5 at 3:00, 0 at 4:00"
+  },
+  {
+   "clock": "4:50-5:53",
+   "what": "The commander transfers t2's three home Incisors to t3. About 10 Rovers then take four of t2's extractors and a constructor.",
+   "evidence": "commander 6:20: 'My transfer of your picket to t3 cost you four extractors'; analyze_match engagements #0 4:54 F4 and #1 5:18 F3: lost 428 and 385, 3 cormex each"
+  },
+  {
+   "clock": "7:59-9:45",
+   "what": "go_west: t4's 17-soldier body is turned after single Incisors in our half. It reaches its first stop two minutes after the signal.",
+   "evidence": "hands_window seat 2: 7:59 'PLAYS group_O_t4: attack party_47 (4 corgator) with the whole group'; 'group_O_t4: 12 ... 8 of group_O_t4 hunt party_47 (1 corgator)' leaves 4; impedance item 3: first stop 9:45"
+  },
+  {
+   "clock": "11:03-12:44",
+   "what": "The three bodies arrive separately and lose: t2's Incisors at C7 to Janus and Stouts, t3's Blitzes at C6, t4's 17 Incisors in an even fight at C1/D1.",
+   "evidence": "t3 11:32: 't2's Incisors died piecemeal at C7 against Janus and Stouts before our Blitzes arrived'; t4 11:55: 'group_O lost the even Incisor fight at C1/D1 (17->10)'; t3 12:44: 'died attacking it piecemeal'"
+  },
+  {
+   "clock": "13:20-16:00",
+   "what": "blue's Incisor swarms (29 on t2's home at 13:20) pin the bodies at home. t4's army splinters into detachments, and t4 loses 11 extractors between 12:00 and 16:00.",
+   "evidence": "t2 13:20: 'about 29 blue Incisors are on t2's home at once'; t4 14:33: 'army had shattered into ten detachments chasing single Incisors; extractors 17->10'; raid_ledger seat 2: '12-16': 11"
+  },
+  {
+   "clock": "15:20-18:20",
+   "what": "The side's largest body, t4's (53 soldiers, 8,300), is turned south to meet_south at 15:20 and ordered west at 16:50. It walks north to F2, then south to F6, fights green's block at E6, and is handed to t3 at 18:20. It never goes west.",
+   "evidence": "commander 16:50: '18,900 of army against 7,500 of his seen ... none of ours has stood in his half for six minutes'; hands_window seat 2: P1 at (9019,2539) 16:17, 'fight_to spot_139' 16:52-17:44, '28 at (7201,7976)' 18:25"
+  },
+  {
+   "clock": "19:24",
+   "what": "blue's tier 2 is first seen: an advanced constructor vehicle and a Scorpion are killed at F4. Neither of his bases had been in sight since 10:00.",
+   "evidence": "analyze_match #34 19:24 F4: they lost 1310 ({'corvipe': 1, 'coracv': 1}); our nearest unit to blue's base (2304,4512) by minute: 3,378 at 12:00, 4,775-5,925 from 13:00 to 22:00 (record scan)"
+  },
+  {
+   "clock": "19:51-21:21",
+   "what": "t2's strike body W1 (39-44 soldiers) holds at F4 through the 20:23 packet sending it to meet_blue (landed 20:38). Its first move is 'advance to shelling' at 21:21, toward the Shiva.",
+   "evidence": "hands_window seat 0: 'group_W1_t2: 44 at (9125, 4818), task hold' 20:38-21:18; 20:38 'events: packet'; 21:21 'PLAYS group_W1_t2: advance to shelling'"
+  },
+  {
+   "clock": "21:03-21:52",
+   "what": "The first Shiva shells t2's spots. On the commander's order, W1 closes on it beside the F4 Twin Guards and goes from 44 soldiers to 7, thrashing between attack and retreat.",
+   "evidence": "hands_window seat 0: 43 at 21:21, 29 at 21:37, 'attack party_151 (1 corshiva)' 21:38, advance/walk to spot_80 alternating 21:42-21:46, 7 at 21:52; analyze_match #40 21:16-22:16 we lost 8555"
+  },
+  {
+   "clock": "22:24-26:44",
+   "what": "Eight to eleven Shivas take t2's base (6,780 and 7,156 lost in #43 and #45). t4's commander dies at 25:42 and t2's at 26:44. u6bkep's Bulls break t3's body at G6 at 26:19.",
+   "evidence": "analyze_match seat 0 #45 23:30 G3: lost 7156 against 11900 on the spot; seat 2: 'our commander died at 25:42 at H2 ... to corshiva'; seat 1 #50 26:19 G6: lost 15175"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "6:00-12:44",
+   "what": "The lead went west late (go_west 7:50, two minutes after the 6:20 direction said 'the rest goes west') on three routes, with mid-march transfers. A stronger side sends one body from one gathering place at 6:30, while the Rovers are in our homes and his base is bare.",
+   "evidence": "commander 6:20: 'his own base is bare while his Rovers are here'; minutes.py: side army 3,235 vs 187 seen at 6:00; three bodies lost separately at C7, C6, C1/D1 11:03-12:39",
+   "kind": "both"
+  },
+  {
+   "clock": "10:00-21:03",
+   "what": "No scouting of either base after the first strike, so the tier-2 and gantry switch went unseen until a coracv walked into F4 at 19:24 and a Shiva fired at 21:03. One fast unit per seat on his edge would have seen the advanced plant minutes earlier.",
+   "evidence": "record scan: our nearest unit to blue's base ≥3,378 from 10:00, ≥4,500 from 13:00; to green's ≥3,948 from 13:00; 9 of the people's extractors killed all game, none near his bases after 6:58",
+   "kind": "strategy"
+  },
+  {
+   "clock": "16:50-21:00",
+   "what": "The side's largest army (16-19k) stood in our half for four minutes after the commander called his armies spent. t4's body was turned twice and transferred, and t2's body held at F4. The window, his tech, needed one strike at his base then.",
+   "evidence": "minutes.py seat 0 WINDOWS: '17:00-21:00 (2.2-8.6x, 5 min): our mass F4 F4 F4 F4 F4 ... peak 0%'; seat 2: '14:00-20:00 (2.0-18.2x) ... peak 0%'",
+   "kind": "both"
+  },
+  {
+   "clock": "3:00-6:00",
+   "what": "Turrets came after the raids, and the 4:50 transfer stripped t2's picket. t3 had no turret until 3:37, t4 until 4:15 and t2 until 4:32, though the 0:20 direction asked for a turret with each outer extractor. The side held 18 extractors at 6:00.",
+   "evidence": "record 'finished' firsts: armllt 3:37 (t3), corllt 4:15 (t4), 4:32 (t2); analyze_match extractors at 6:00: 5, 4, 9",
+   "kind": "strategy"
+  },
+  {
+   "clock": "21:20-23:04",
+   "what": "Tier-1 bodies were sent at the Shivas: W1 at one Shiva beside the Twin Guards, then Y2 past eight of them. The commander admitted the first at 22:50. A stronger side steps out of the Shivas' 800 range and races the gantry by another route.",
+   "evidence": "commander 22:50: 'they killed t2's body at F4; that was my order, and tier 1 cannot fight them'; t2 23:04: 'group_Y2 died walking past the Shivas'",
+   "kind": "both"
+  },
+  {
+   "clock": "12:12-18:07",
+   "what": "Wrecks from the home fights lay uncollected while the side was metal-bound; the people fielded Graverobbers.",
+   "evidence": "wake reasons: 'wrecks worth 4817 metal lie where no enemy' 12:12 (seat 0) rising to 18,202 at 18:07 (seat 1); analyze_match #46 23:32 F4: 'cornecro': 14 killed",
+   "kind": "strategy"
+  },
+  {
+   "clock": "19:11-23:24",
+   "what": "Tier 2 was started late and fielded nothing. t2's advanced plant (started 19:11) stood at 23:03 and died by 24:28 unused. t3's (started 21:25) was duplicated by the id race and stood at 23:24. t4 never built one.",
+   "evidence": "record 'finished': coravp 23:03 (t2), armavp 23:24 (t3), armmoho 26:09; analyze_match #45 23:30 G3 lost 'coravp': 1; t3 22:20: 'two advanced-plant frames had been started at avp_yard'",
+   "kind": "both"
+  },
+  {
+   "clock": "3:12-22:29",
+   "what": "t4's commander stood penned at spot_64 by its own plant and wind turbines. The remove asking to reclaim the turbine was refused for want of a handle. It was freed only by reclaiming the seat's plant at 22:29, and it died at 25:42 attacking a radar Shiva.",
+   "evidence": "impedance item 1: 'corwin: nothing of ours has that name'; floor.py seat 2 stuck_s 1539, yard_min 11.5; t4 25:44: 'the hands kept it attacking a party at 560 instead of walking'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Both people opened fast-unit raids at once and kept them up for 20 minutes, while teching behind them unseen. u6bkep (Armada): a Rover mass (about 18, 51 Rovers and Rascals killed by 6:20) into all three homes from 3:05, then Blitzes (7 at G6 7:55), then a Stout and Janus block (3 Stouts at 10:18, 8 Stouts and 3 Janus at 12:44, about 21 and 3 at 14:47) that beat t3's body at E6 at 15:20; Beamer nests at D6/E7 from 19:00; Bulls from about 21:45, 4 at 22:04, 12 at 26:14 and about 20 overrunning H6 at 26:42. thebluegecko (Cortex): Rascals on t4's spots from 3:08, then Incisor swarms through our north and middle from 7:59 (29 on t2's home at 13:20, 21 at t4's home at 20:05, about 200 killed from 13:00 to 19:50); a forward nest at E4/F4 (a Twin Guard and three Exploiters by 12:39, three Twin Guards and dragon's teeth by 17:24); tier 2 seen at 19:24; a gantry, with the first Shiva at 21:03, 8 at 22:41 and 10-11 by 24:20, plus 14-15 Graverobbers behind them and Wasp gunships by 26:53. Every fight from 13:00 was in our half (his mass 'our half %' 100 from 14:00), and neither person's base was hit after 7:00 (the three extractors of theirs killed later, at 17:23-20:39, stood in our half).",
+ "defects": [
+  {
+   "defect": "`remove` took handles only, and the picture gave no handles for our buildings, so the penned commander could not be freed. t4's commander was stuck from 3:12 to 22:29, and t4's elimination at 25:42 rests on this.",
+   "fixed": "2026-10-16/17 (remove by '<type> at <place>', among the levers built after the impedance study)",
+   "evidence": "impedance item 1: 'corwin: nothing of ours has that name'; floor.py seat 2 stuck_s 1539, yard_min 11.5; t4 notes 3:31 and 25:44"
+  },
+  {
+   "defect": "Same-tick #id race: six builders on 'armavp avp_yard #avp1' raised two advanced-plant frames.",
+   "fixed": "2026-10-12 (4ed68d8)",
+   "evidence": "impedance item 8: plant_6196 21:53 and plant_13221 22:01; t3 22:20 note"
+  },
+  {
+   "defect": "The remove of the duplicate frame was turned into 'help plant_6196 build' by the shared id: about 750 metal sunk, and the frame died unfinished at 26:30.",
+   "fixed": "open (unfinished-structures study §2.6: 'a remove on a frame an id still claims')",
+   "evidence": "impedance item 5: '22:32 constructor_2000 takes plant_6196 apart next' then '22:33 constructor_2000: help plant_6196 build (from its list)'"
+  },
+  {
+   "defect": "Jev 1.13.0's pick overruled whole-body packets with detachments, hunts and nest moves (A3), and it held W1 at F4 through a strike packet.",
+   "fixed": "partly: forbidden-detachment levers 2026-10-16/17; Jev 1.14.0 pinned 2026-10-16; the hold not verified",
+   "evidence": "impedance items 2, 3, 12, 14: group_O_t4 8:38, group_P1_t4 14:16, W1 into the E4 nest 17:14 (35 to 24); hands_window seat 0 W1 'task hold' 20:38-21:18"
+  },
+  {
+   "defect": "An unidentified radar contact was read as outweighed: the report called the Shiva '1 unidentified ... outweighs it heavily (10.9 to 1)' after the 21:03 wake had named a corshiva, and t4's commander attacked a radar Shiva at 25:05.",
+   "fixed": "open (not verified in the code)",
+   "evidence": "impedance items 4 and 7; t2 26:52: 'The unidentified party at H1 on the commander's escape path was two Shivas'"
+  },
+  {
+   "defect": "Hunt leash measured from the hunters' own centre: t4's hunts of party_81 ended after 11 s while it killed spot_60.",
+   "fixed": "2026-10-16/17 (named among the impedance study's cheap code faults; the fix is not verified here)",
+   "evidence": "impedance item 11: 'group_B2_t4's hunt of party_81 ended after 11 s: the leash of 900 ... reached'"
+  },
+  {
+   "defect": "Transfers landed before the receiving seat's packet named the units (B6): t2's picket to t3 at 5:01, and group_P_t2 to t3 at 11:03 with the body already fighting.",
+   "fixed": "open (not verified)",
+   "evidence": "impedance items 6 and 9: t3's packet naming the group landed 11:27, 2 of 8 soldiers left"
+  },
+  {
+   "defect": "No builder priority (pre-2026-10-13): plants and extractor frames competed for an empty store.",
+   "fixed": "2026-10-13",
+   "evidence": "t2 8:44: 'extractors stuck at 6: metal 0 with 6 constructors and the assisted plant competing'"
+  },
+  {
+   "defect": "Realtime packets reached the hands 10-19 s after the turn; two session replacements per seat.",
+   "fixed": "open (realtime by nature)",
+   "evidence": "impedance sweep notes: 17:09 to 17:19, 21:34 to 21:46; hands_window: 20:23 packet 'events: packet' at 20:38; impedance_sweep --counts: '2 session replacements' each seat"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "A lead over the seen army (4,700/1,600 at 7:50, 18,900/7,500 at 16:50) was never taken to his base, and it went bad on the Shiva switch. Caveat: the lead is against floors."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Three bodies reached his half one at a time (11:03-12:38) and lost each fight; W1 and Y2 then went into the Shivas separately."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "The concession named the Shiva switch; the people's economy was never touched after 7:00 (9 of their extractors killed all game, the last near his bases at 6:58) while we lost 136. No truth file shows their count."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "The side held its half (51 extractors at 16:00) but raided nothing after 7:00; it was the people who raided our corners."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first scouts crossed at 2:13-2:54 and killed constructors and a cormex at 4:08; the pressure stopped after 7:00, and both people teched unchecked."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "18.2k of wrecks lay 'where no enemy' by 18:07, uncollected; the people ran Graverobbers."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "illustrates",
+   "note": "Our tier 2 started at 19:11 and 21:25 and fielded nothing; the people went to tier 2 and 3 behind their raids."
+  },
+  {
+   "id": "L-mix-adversarial",
+   "relation": "illustrates",
+   "note": "t2 massed Lashers ('11 Lashers is already too many', 19:11) and tier-1 riot units while thebluegecko went to a gantry."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "supports",
+   "note": "W1 walked into the E4/F4 Twin Guard nest at 17:14 (35 to 24), and at 21:21 into the Shiva beside the Twin Guards."
+  },
+  {
+   "id": "L-other-infern8-defences",
+   "relation": "illustrates",
+   "note": "The E4/F4 nest held all game and shelled t2's spots; tier-1 bodies never cracked it."
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "illustrates",
+   "note": "t2's plant ran out of its list at 19:11; t3's stood idle at 21:25 with 898 metal."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "The root of this loss. Leads at 7:50 and 16:50 decayed in our half, and the bodies arrived separately."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "Seen-destroyed trade about even to 21:00 (ours 46.9k lost, his 42.3k seen), then -81k; three seats' sums against two people's floors read as ahead."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "illustrates",
+   "note": "Tier 1 against eight to eleven Shivas and about 20 Bulls; no seat's tier 2 fielded a unit."
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "illustrates",
+   "note": "t4 lost 53 extractors (38 to Incisors) and its body splintered into ten detachments; the first turrets came after the raids."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "E4/F4 nest; the Shiva's 800 reach against tier 1; an unidentified contact rated as outweighed."
+  },
+  {
+   "id": "The commander's conduct: fights at home, builds at the plant, never toward what outreaches it, the early army",
+   "relation": "illustrates",
+   "note": "t4's commander attacked a radar Shiva (25:05); t2's walked into two 'unidentified' Shivas at H1 (26:44)."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Early crossings landed; no pressure on the people's economy after 7:00."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0; seats 1 and 2 through symlink directories)",
+   "run/analyze_match.py (x3)",
+   "run/floor.py (x3)",
+   "run/raid_ledger.py (x3)",
+   "run/commander_turns.py --notes, --calls (three seats and the side commander's transcript)",
+   "run/wake_read.py (seat 0)",
+   "run/hands_window.py (t4 7:55-9:50, 15:20-18:35; t2 19:50-21:55)",
+   "run/impedance_sweep.py --counts",
+   "ad-hoc read-only scans of the records: side trade by three-minute window, nearest unit to each enemy base by minute, first finished buildings, decode reads"
+  ],
+  "existing_review": "none (no review.md; the match directory holds impedance-review.md and unfinished-review.md)",
+  "confidence": "medium",
+  "caveats": "There is no truth file (a human game, and no replay dump), so every number of theirs is a floor of what we saw. The side's ratios sum three seats against two people's floors, so the 'lead' may be overstated: t3 found green's block 'far heavier than we knew' at 14:47. The per-match tools read record-0 only, so seats 1 and 2 were read through symlink directories in the scratchpad. pro_baseline was not run (Comet only; no cards for this map). wake_read covers seat 0 only. There is no ledger row and no computer_whisperer line, so no person's reading of the game exists beyond 'gg wp'. The people's tech clocks are inferred from first sightings. The match directory holds impedance-review.md and unfinished-review.md (no review.md); this row agrees with their items and adds the strategic chain."
+ },
+ "open_questions": [
+  "When did thebluegecko start his advanced plant and gantry, and how many extractors did the two people hold at 12:00-20:00? A replay dump through run/replay_match.py would give their truth.",
+  "Would one body sent at 6:30-8:00 have won in his half, given that green's block was heavier than seen?",
+  "Has the report's wording for an unidentified radar contact ('we outweigh it heavily') been fixed since?",
+  "Why did W1 stand at F4 from 20:38 (when the strike packet landed) to 21:21: the pick's hold, or the player's 20:43 rewrite putting 'shell the Twin Guards first'?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791751159-human-32.json"
+}

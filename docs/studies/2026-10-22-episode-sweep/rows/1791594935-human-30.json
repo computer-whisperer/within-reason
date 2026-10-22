@@ -1,0 +1,327 @@
+{
+ "batch": "1791594935-human-30",
+ "label": "human-30 (no ledger row; the label is shared with the later batch 1791748300-human-30, a different game)",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-09",
+ "shape": "1v1",
+ "people": "[gecko]u6bkep (lobby skill 29.97, Armada, start B5); computer_whisperer (the user) hosting as a spectator, no chat lines",
+ "our_side": "one seat (team 1, side Random -> Armada, start G1): an Opus 5.5 medium player ('Honkwaddle') under an Opus 5.5 high commander; hands Jev jev-latest = 1.13.0, effort normal, layers news, same, fuse, openers, split, tick, places",
+ "build": "b0d7213 (2026-10-09)",
+ "result": {
+  "outcome": "won",
+  "minute": "19:37"
+ },
+ "summary": "A realtime 1v1 against u6bkep (lobby skill 30), Armada against Armada on Comet Catcher, won at 19:37 when group_G killed his commander beside his forward plants at C4. The economy decided it: 21 extractors at 8:00 (pool p75 18) and 34 from 16:00, a light turret at each outer spot and one extractor lost all game, against at most 22 of his ever seen. The army took ten minutes to convert that lead: the raid traded evenly at his C1 turret (5:14-6:50), then the body gathered in our half until 9:29 while he put up a forward plant at C4 (seen 7:30) and turned to Stouts and Janus. At D3 our reinforcements reached the grind in pieces, and we lost 9.8k for 7.3k of his from 9:29 to 14:18. His Stout block and commander broke on our turrets at spot_23 by 15:11, the trade turned our way (16:20-19:06: 7.0k lost for 9.6k), and the 40-unit body reached his commander. Nobody said anything in chat beyond our two banners.",
+ "root": {
+  "clock": "6:31",
+  "what": "After the raid's even Blitz trade at his C1 turret, the player pulled the body back to hold and gather at spot_1 in our half ('does not go west of spot_1') until it had about six Stouts. We had income 32 and estimated his at half that. Apart from the 8:12 chase, the body stayed in our half until 9:29. In that window he built the C4 forward plant and turned to Stouts and Janus, so our 2-3x economy then met an army of equal weight in the middle for ten minutes. This is my reading. The commander (a model) argued the same at 7:50.",
+  "evidence": "6:31 note: 'Pulled group_B to hold spot_1 ... push again when the body has ~6 Stouts'; minutes.py 8:00 'D1 (20%)'; his C4 plant and first armstump seen 7:30 at (2814,3056); commander 7:50: 'don't gather at spot_1 waiting for a count of Stouts'"
+ },
+ "turning_points": [
+  {
+   "clock": "2:57",
+   "what": "His base found: the Rover armfav_10018 got within 293 of his start, and his plant B4, commander B5 and turrets at spot_28/spot_45 were seen. His home base was then not looked at again until 19:37.",
+   "evidence": "minutes.py: 'armfav_10018: crossed 2:35; nearest his start 293 at B5 2:54; died 2:55'; 'his first factory seen: 2:57 at B4'; armvp 22382 sighted at 2:57 and next at 19:37"
+  },
+  {
+   "clock": "4:54",
+   "what": "The raid's first kills: extractors at spot_22, spot_4 and spot_19, his C1 light turret and a constructor (4:54-5:21). The pool's first building killed comes at 2:48.",
+   "evidence": "enemy_destroyed: 4:54 armmex (1936,1840), 5:07 armmex (2256,496), 5:19 armllt + armcv at C1, 5:21 armmex (1184,1776); engagement #1 5:14-5:20 lost 220 for 330"
+  },
+  {
+   "clock": "6:02",
+   "what": "The Blitz mirror at his C1 turret went even. group_B switched every few seconds between attacking, walking to spot_1 and advancing to spot_4, under fire from an unseen turret.",
+   "evidence": "analyze #2 6:02-6:50 C1: lost 880 (8 armflash), they lost 770 (7 armflash); hands_window 6:06-6:32 PLAYS: walk to spot_1, attack party_9, advance to spot_4, attack, walk to spot_2, walk to spot_1, advance, walk to spot_7"
+  },
+  {
+   "clock": "7:30",
+   "what": "His forward vehicle plant at C4 and his first Stout seen. Janus followed at 9:57.",
+   "evidence": "record enemy_seen: armvp 29103 at (2814,3056) 7:30; armstump first 7:30 at (2841,3056); armjanus first 9:57; player 7:39: 'he has a second vehicle plant at C4 (spot_39) and Stouts'"
+  },
+  {
+   "clock": "8:36",
+   "what": "The commander said go at 7:50. The 8:12 attack turned into a chase, and the player then held the body at spot_13 with the push signal set for 30:00, until the commander gave the push at 9:27.",
+   "evidence": "player 8:36: 'the go now body trickled into his C1/C2 Blitzes + turrets and is down to 7 units ... Will give push at about 8 Stouts'; 9:00 signal {push: 30:00}; commander signal push now 9:27"
+  },
+  {
+   "clock": "9:29",
+   "what": "The D3 grind began against his Stouts and then Janus. Our Stouts arrived a few at a time.",
+   "evidence": "analyze #6 9:29-11:56 D3: lost 4081 (13 armstump, 9 armflash), they lost 3180 (12 armstump, 2 armjanus); player 10:05: 'his Stouts+2 Janus beat our trickling Stouts at C3'"
+  },
+  {
+   "clock": "13:07",
+   "what": "The second push met his whole army with his commander at D3 and lost. The body fell back to the turrets at spot_23, and three Overwatch towers were ordered.",
+   "evidence": "hands_window 13:07 party_33=1 armcom, 2 armflash, 1 armjanus, 13 armstump at (3405,2283); analyze #8 13:07-14:18 lost 4255 for 3275; player 13:24: '9 of ours at the front, 11 reinforcements strung behind'"
+  },
+  {
+   "clock": "15:11",
+   "what": "His Stout block broke at spot_23. The trade turned positive and the body went west.",
+   "evidence": "player 15:11: 'his Stout block broken at spot_23 (only singles in sight)'; analyze #10 14:21-16:17 lost 5486 for 6815 (his commander in it); #11 16:20-17:48 lost 3645 for 5175"
+  },
+  {
+   "clock": "16:48",
+   "what": "His tier 2 seen at C4 (a Consul, an advanced constructor, later a moho). The commander sent group_G onto his commander.",
+   "evidence": "record enemy_seen: armconsul 16:17, armacv 16:25 at (2861,2680), armmoho 18:36; commander 16:50: 'he has an unseen advanced vehicle plant. Directed group_G onto his commander now'"
+  },
+  {
+   "clock": "19:37",
+   "what": "His commander was killed at C4, and everything of his died within four seconds.",
+   "evidence": "enemy_destroyed armcom 19:37 at (2941,2767); analyze #14 19:09-19:40 lost 3255 for 10085; record end 19:49 own_units 208"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00",
+   "what": "A slow opening. The player's pre-game list was three extractors, three solars, then the plant, so the plant started at 1:04. We had 14 factory units at 4:00, sent the first soldier into his half at 2:35 and made the first kill at 4:54. Energy ran out at 2:59. A stronger player starts the plant by about 0:34 and is in his half by about 1:40. The constructor did come first, at 1:23, which is the reason for a third solar.",
+   "evidence": "pro_baseline --all-starts: plant started 1:04 (p75 0:58), standing 1:23, 'solars before the plant 3 (2)', factory units by 4:00 14 (<p25 17); minutes.py first crossing 2:35; 2:59 eco 'energy 6/1400 STALLING'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:41",
+   "what": "group_A (2 Rovers and 4 Blitzes) stayed on rove in our south half after the 3:41 packet told its Blitzes to fight as one body. From 4:06 the player left it roving, so 6 units sat out the C1 fights.",
+   "evidence": "player 4:06: 'group_A would not leave its rove (scattered over our south half)'; hands_window 6:00: group_A 6 at (4120,3570) task rove while group_B fights at C1; impedance-review item 7 (decode 0.96, best move 0.42)",
+   "kind": "both"
+  },
+  {
+   "clock": "4:06",
+   "what": "The raid's way put spot_4, his C1 light turret, fifth among its stops, instead of the commander's 'spot_19 and spot_22 in B3 first'. It ground at C1 against his Blitzes and the rebuilt turret, and the hands thrashed there. A stronger raid keeps moving to the thin spots.",
+   "evidence": "player 4:06 instruct: 'spot_8, spot_13, spot_1, spot_0, spot_4, spot_9 ...'; commander 3:20: 'spot_19 and spot_22 in B3 first'; ~6:00: 'not into the turrets at C1'; analyze #2-#3 6:02-7:20 C1 lost 1210 for 1150",
+   "kind": "both"
+  },
+  {
+   "clock": "6:31",
+   "what": "The root: from 6:31 to 9:29 the body gathered in our half at spot_1, then spot_13, waiting for a Stout count while we out-earned him. He built a forward plant and a Stout and Janus army in that time. The body should have stayed in his half on his outer spots and gathered there.",
+   "evidence": "6:31 instruct: 'it holds at spot_1 ... does not go west of spot_1'; 8:36 'signal push' cleared, 9:00 push '30:00'; analyze 8:00 income 47.9 vs his ~15 (player); first armstump seen 7:30",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:12",
+   "what": "An attack on a single Blitz at spot_13 chased it 1,100 elmos into his Blitzes and turret at C1/C2. The player then blamed the go-now order, which had landed only at 8:31, and reversed it.",
+   "evidence": "impedance-review item 5: engage followed (4138,986) to (2974,1348) by 8:29, group_G 5->4, group_H 5->3; player 8:36: 'the go now body trickled into his C1/C2 Blitzes'",
+   "kind": "both"
+  },
+  {
+   "clock": "9:29",
+   "what": "For five minutes at D3, reinforcements walked to the front one at a time, and the group thrashed between attack and walk-back at even odds. The group's centre stayed at E2 while its front died at D3. A stronger player arrives together, or goes round the block.",
+   "evidence": "analyze #6-#8 9:29-14:18: lost 9786 vs 7285; hands_window 11:36-11:59 group_G attack/walk to spot_21/advance x2, centre ~(4300,1250); player 13:24: 'arrives in pieces'",
+   "kind": "both"
+  },
+  {
+   "clock": "8:00",
+   "what": "Spending lagged the income. The first construction turret came at 8:14. The store rose to about 1,000 at 10:00-11:00, energy-bound, and plants idled on open entries at 13:49. Soldiers were below the pool's p25 at 9, 12, 14 and 16 minutes, although income was above p75.",
+   "evidence": "pro_baseline: first construction turret 8:14 (p75 6:31); stored 1041 at 10 (>p75 952); soldiers 15/22/28/28 at 9/12/14/16 (<p25); floor e0% 15.1; analyze: energy stalled in minutes [2,3,7,9,10,19]",
+   "kind": "both"
+  },
+  {
+   "clock": "12:20",
+   "what": "His base went unscouted from about 3:00 to the end. The commander's 12:20 request for a Rover never became an order, and his advanced plant was never seen.",
+   "evidence": "commander 12:20: 'Send one fresh Rover ... to look at B4-B5 and A2-A5'; armvp 22382 sighted only 2:57 and 19:37; armacv first seen 16:25; impedance-review item 10: the only Rover (12:36) died in our half 14:46",
+   "kind": "strategy"
+  },
+  {
+   "clock": "14:13",
+   "what": "Our tier 2 came late and cost a lot. One #avp1 step on six builders built two advanced plants, the second standing in the first's exit lane. On top of that came ten converters from 16:08, on a metal map, and a fusion frame, and energy hit zero at 19:07. Four Bulls reached the field before the end.",
+   "evidence": "created armavp 14:46 and 14:51, armmakr x10 from 16:08, armbull first 18:26 (4); player 19:07: 'energy stalled at 0 (10 converters + two AVPs + fusion frame)'; Bull 4844 move_failed 18:54-end (impedance-review)",
+   "kind": "both"
+  },
+  {
+   "clock": "15:45",
+   "what": "The commander's south second front (8 Blitzes round C6/B6 onto his economy) never raided. The new group had no name, so the hands never read the route the packet described for it, and the group was folded into group_G at 18:39.",
+   "evidence": "impedance-review item 3: decode rows 16:08-17:33 read no place on the route; 18:05 route 0.30-0.46; commander 18:20: 'group_M joins group_G at C4; it doesn't stand at E6'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "Armada vehicles all game, and no air. Blitzes came from the start, first seen 2:46 near his plant. He had about 5 extractors at 2:59 (the player's read) and light turrets at his outer spots, rebuilding the one at spot_4 (C1) after we killed it at 5:19. He met our raid at that turret with Blitzes, and the trades were even from 5:14 to 8:45. His forward vehicle plant at C4 (spot_39) was seen at 7:30 with his first Stouts. Beamers (laser turrets) appeared at B8 (8:27), C1 (12:40), C5 (13:46) and C/D7 (15:06), and Janus from 9:57. For ten minutes he held the middle at D3 and C3 with a Stout and Janus block, his commander fighting in it: at 13:07 the party was his commander, 13 Stouts, a Janus and 2 Blitzes. He added two construction turrets at C4 (13:44) and a third vehicle plant at C4 (17:32). His tier 2 was never seen being built; the first signs were a Consul at 16:17, an advanced constructor at 16:25 and a moho at 18:36. By unique id we saw 77 Stouts, 28 Janus and 32 Blitzes, about 27.5k of soldiers, which is a far bigger economy than the 'three to one' the player assumed. He raided little: one extractor of ours died, spot_21 at 13:45 to Stouts. He did not chat.",
+ "defects": [
+  {
+   "defect": "Same-tick id race: one `armavp #avp1` step reached two builders on one tick and built two advanced vehicle plants (14:46, 14:51). The second stood in the first's exit lane, about 2,600 metal and 14,000 energy wasted.",
+   "fixed": "2026-10-12 (4ed68d8)",
+   "evidence": "impedance-review item 1: constructor_540 and constructor_7444 both 'build a armavp ... (#avp1)' at 14:36; armavp 16012 and 20158; Bull 4844 move_failed from 18:54"
+  },
+  {
+   "defect": "For three minutes the report gave both builders' frames as plant_16012, so the second plant was hidden until 18:12. I take this to be the frames-looked-up-by-type-and-distance fault.",
+   "fixed": "2026-10-17 (my match to the unfinished-structures fix; unverified)",
+   "evidence": "impedance-review item 2: 14:53-17:43 both entries 'it will be plant_16012' at two positions; reclaimed 19:07"
+  },
+  {
+   "defect": "The report's 'the opponent is known to hold N' floor of his extractors. The player planned on 'we out-earn him three to one' (8:15-10:05) against an opponent who fielded at least 27.5k of soldiers seen by unique id.",
+   "fixed": "2026-10-17 (e8e2c19, the report claims nothing of his state)",
+   "evidence": "2:59 score: 'the opponent is known to hold 5'; 8:15 instruct 'We out-earn him three to one'; record: 77 armstump, 28 armjanus, 32 armflash of his seen"
+  },
+  {
+   "defect": "A chase that did not withdraw at danger: the 8:12 attack on a Blitz at spot_13 followed it 1,100 elmos into his C1/C2 Blitzes.",
+   "fixed": "2026-10-16/17 (hunt leash anchors e9f5175; chase recall 76139d9)",
+   "evidence": "impedance-review item 5; analyze #5 8:29-9:05 C2 lost 660"
+  },
+  {
+   "defect": "`signal` inside `orders` was refused as 'not a tool that can be batched' (8:36, 11:45, 12:07). At 12:07 the player believed push2 was set.",
+   "fixed": "2026-10-16 (e9f5175)",
+   "evidence": "impedance_sweep --counts: refused {'signal': 3, 'produce': 1}; player 12:07 note 'push2 set for 12:40 (the 11:45 signal call failed)'"
+  },
+  {
+   "defect": "No lever to bring reinforcements together: new units drove to the front one by one. At 19:07 the tail was 3,626 elmos behind the front. The D3 grind partly rests on this.",
+   "fixed": "2026-10-16 as a lever (5046f71 `produce` join_in)",
+   "evidence": "player 10:05 'trickling Stouts', 13:24 '11 reinforcements strung behind'; impedance-review 'no lever' section"
+  },
+  {
+   "defect": "`produce` with group 'new' gave the group no name, so the packet's description of the south raid group never carried its route.",
+   "fixed": "2026-10-16 (5046f71 by_type names each group as it forms; my match)",
+   "evidence": "impedance-review item 3: 16:08-17:33 no route place read; 18:32 0.98 once named group_M"
+  },
+  {
+   "defect": "Thrash at even odds between a packet's attack clause and its walk-back clause, five course changes in about 30 s (group_B at C1, group_G at D3).",
+   "fixed": "open",
+   "evidence": "hands_window 6:06-6:32 group_B; 11:36-11:59 group_G attack/walk to spot_21/advance x2; player 11:45 'thrashing (walk/advance/attack)'"
+  },
+  {
+   "defect": "A roving group would not leave its rove (3:58-4:23). The decode read the stop, but the best move (0.42-0.43) never beat the gate.",
+   "fixed": "unknown",
+   "evidence": "impedance-review item 7; player 4:06 'group_A would not leave its rove'"
+  },
+  {
+   "defect": "Detachments hunted under his turret at spot_4 against the packet's 'never fights under his turret' (6:50, 6:54). The gate read the hunt as forbidden (0.69) and the pick took it at 0.72.",
+   "fixed": "partly 2026-10-16 (5046f71: the whole-group attack returns to the menu when every detachment is forbidden)",
+   "evidence": "impedance-review item 6: 'send_2_party_15.forbidden 0.69'"
+  },
+  {
+   "defect": "Plants idled on open entries in the production list; no lever kept helpers out of exit lanes.",
+   "fixed": "open (my reading; not checked against later commits)",
+   "evidence": "impedance-review item 8: plant_4070 idle 13:49-13:55, 36 s in min 11-14; 12:28 and 18:12 constructors in exit lanes; wake_read: 6 'exit lane is blocked' wakes"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "D3 9:29-14:18: reinforcements trickled in (player 10:05, 13:24), and we lost 9.8k for 7.3k against an army of equal weight with a 2-3x economy behind us"
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "the economic lead was not pressed from 6:31 to 9:29 (a gather in our half); the commander (a model) said so at 7:50. The seen army lead was small (1806 vs ~1545 at 7:50), so this is an economy lead, not the 400% army lead of the lesson"
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "supports",
+   "note": "34 extractors held and one lost all game, with a turret at each outer spot; the economy carried the game through ten minutes of even trades"
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "supports",
+   "note": "the winning side's view: extractors decided the game, 21 at 8:00 (pool p75 18), 34 from 16:00"
+  },
+  {
+   "id": "L-energy-nanos",
+   "relation": "supports",
+   "note": "the first construction turret at 8:14 (pool p75 6:31) and a store near 1,000 at 10:00-11:00 with income 62-66"
+  },
+  {
+   "id": "L-opening-idle-lab",
+   "relation": "supports",
+   "note": "plants idle on open entries 13:49-13:55 (36 s and 23 s in minutes 11-14); the commander at 13:50: 'a plant idle'"
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "supports",
+   "note": "ten converters from 16:08 on Comet, a metal map; energy at 0 by 19:07 ('10 converters + two AVPs + fusion frame')"
+  },
+  {
+   "id": "L-opening-solars",
+   "relation": "illustrates",
+   "note": "three solars before the plant, with a constructor as the first unit (1:23) as the lesson intends; the plant still started at 1:04, past the pool's p75 of 0:58"
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "first soldier in his half at 2:35 and first kill at 4:54, against the Armada pool's 1:40 and 2:48; the economy won all the same"
+  },
+  {
+   "id": "L-raid-keep-moving",
+   "relation": "illustrates",
+   "note": "the raid stopped and ground at his C1 turret 5:14-6:50 instead of moving on to the thin spots"
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "his commander fought in his block at D3 from 13:07 and lived until 19:37; the 12:43 order to go onto it as one body came apart in the grind"
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "illustrates",
+   "note": "his own advice, 'go around rather than attack the strongest position': we fought his block head-on at D3 for ten minutes, and the commander's flanking south raid (15:20) never ran (a naming defect); he built no air"
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "the Armada analogue: his switch from Blitzes to Stouts (7:30) and Janus (9:57) stopped our light tanks; we answered with Stouts (6:54) and Shellshockers (10:52)"
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "the 6:31-9:29 gather in our half and the piecemeal arrivals at D3; the win came only once the body arrived whole (15:11-19:37)"
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "supports",
+   "note": "store above 500 in minutes 9-11 and 18-19 with income over 57; first construction turret 8:14; e0% 15.1"
+  },
+  {
+   "id": "Energy in the opening: solars before and with the plant, the metal-bound first four minutes, the solar rule, the commander on the plant",
+   "relation": "illustrates",
+   "note": "three solars then the plant at 1:04; energy STALLING with metal 0 at 2:59; stall4 46 s, assist4 110 s"
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "first crossing 2:35, first building killed 4:54, against the pool's 1:40 and 2:48 for Armada"
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "supports",
+   "note": "8 constructors by 8:00 (pool p75 7), 21 extractors at 8:00, mohos only at 19:16 after a late advanced plant"
+  },
+  {
+   "id": "The raid answer: who answers a raider, pickets, the turret with the spot, the 600 rule",
+   "relation": "supports",
+   "note": "a light turret beside each outer extractor (17 by 8:00, pool p75 13); one extractor lost in 19:37"
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "his base unseen from 3:00 to 19:37; 'shelled from out of sight' wakes (9); a Beamer at C3 shredding group_G at 16:48"
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "the commander at 10:50: Janus 380 over Stout 350, Shellshockers 710 behind a Stout screen; his Stout and Janus block held our Stouts at D3"
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py",
+   "run/analyze_match.py (and --engagement 6)",
+   "run/pro_baseline.py (no carded side; --all-starts)",
+   "run/floor.py",
+   "run/raid_ledger.py",
+   "run/commander_turns.py --notes, --told --calls",
+   "run/wake_read.py",
+   "run/hands_window.py 6:00-6:50, 6:12-6:50 group_B, 9:27-10:10, 11:34-12:00, 13:05-13:25 group_G",
+   "run/impedance_sweep.py --counts",
+   "scratch readers over record-0.jsonl (enemy sightings and kills by unique id, our builds), strategist-0.jsonl (instruct texts) and commander.jsonl (directions)"
+  ],
+  "existing_review": "none (no review.md; run/matches/1791594935-human-30/00/impedance-review.md and unfinished-review.md are model reviews for the impedance and unfinished-structures studies, read and built on)",
+  "confidence": "medium",
+  "caveats": "There is no truth file, so his numbers are sightings and floors: the ratios in minutes.py (up to 23.6x) count only what we saw. There is no review.md, but the match directory holds two model reviews (impedance-review.md, unfinished-review.md); I read both and build on the impedance one, re-checking its claims where I cite them. pro_baseline has no carded side for G1, so the --all-starts pool (41 sides) is the baseline, and its four pressure rows printed '-'; I took the crossing clocks from minutes.py and the record. There is no ledger row; the label human-30 also names the later 4-seat game 1791748300. Neither a person nor the user wrote in chat. commander_turns reads only the player's transcript, so the commander's directions were read from commander.jsonl directly. The player session was replaced at 11:12. The root is my reading; a model (the commander) agrees, but no person does."
+ },
+ "open_questions": [
+  "When did he start the C4 forward plant and the Stout switch: before or after our 6:31 pullback? Both were first seen at 7:30, and there is no truth file.",
+  "What was his real economy? We saw at most 22 of his extractors, yet at least 27.5k of soldiers by unique id, so was 'three to one' ever true?",
+  "Would a gathering place in his half (C2/C3) from 6:31 have beaten his Stouts before the Janus came, or was holding right after the even Blitz trade at C1?",
+  "Where was his advanced vehicle plant and when was it started? The advanced constructor was first seen at 16:25 at C4, and the plant itself never.",
+  "Did the player session replacement at 11:12 cost anything in the D3 grind?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791594935-human-30.json"
+}

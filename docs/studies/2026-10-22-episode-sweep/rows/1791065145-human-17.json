@@ -1,0 +1,279 @@
+{
+ "batch": "1791065145-human-17",
+ "label": "human-17",
+ "map": "Coast To Coast BAR v1.0",
+ "date": "2026-10-03",
+ "shape": "3v1",
+ "people": "[gecko]thebluegecko (lobby 34.34; the opponent, Armada, west coast). Watching: computer_whisperer (the user, host), [gecko]u6bkep (19.24), [gecko]Covariance (16.84); neither of the [gecko] spectators spoke.",
+ "our_side": "Three seats in the east box (G1-H8), one Opus 5.5 medium player (Claude Code 2.1.288) for all three: t1 Armada (start G4, a hover platform), t2 Cortex (G5, a shipyard), t3 Cortex (H5, a shipyard); hands Jev 1.13.0 (jev-latest), effort normal; the standing brief with the people block and the map sheet; no commander seat.",
+ "build": "39d3876 built (the ledger); the chat banner reads Within Reason 734b042 (the checkout's HEAD at launch, 2026-10-03 17:55)",
+ "result": {
+  "outcome": "lost",
+  "minute": "15:51 (the surrender turn, on the user's 'you can surrender now' at 15:39; our gg line went out at 16:00 and the records run to about 16:21)"
+ },
+ "summary": "This was a map new to us, 60% sea. Our three seats (one Opus player) split at 0:05 into a hover platform on the Armada seat and a shipyard on each Cortex seat. The Cortex commanders built winds and a yard and never another extractor, so those two seats ran on 6.3 and 4.2 metal a second from 1:00 to 14:00. Meanwhile a list bug (2:00-3:19) turned the yards' construction ships away from the sea spots, and they were then given to the Armada seat. thebluegecko went navy: Eels from 3:26 shelled us from out of sight and killed the frames at our t2 yard, Dolphin packs raided our undefended sea extractors (16 lost on seat 0), and from 10:00 his Corsairs and Ellysaws outranged our Crocodiles (700 against 370). Our one good fight (F4, 8:53-9:30, 7 Dolphins and 2 Eels killed) was followed by 7 Crocodiles lost into 2 Corsairs at D4 (10:01-10:45), then 13 Possums and single Oppressors fed piecemeal into F5 (12:25-13:35). His Crocodiles raided our land from 13:17 and we surrendered at 15:51; afterwards he said hovers are for harass, not the army's bulk.",
+ "root": {
+  "clock": "0:05",
+  "what": "The plan for the sea map gave each seat its own factory on its own economy: the two Cortex commanders got three winds, a shipyard and no extractor step, though a commander is the only builder that reaches all 24 spots. The sea spots were left to construction ships, which a list bug then turned away (2:00-3:19). So two of three seats never had an economy for an army. This is the reader's reading, matching the ledger and other-maps.md. thebluegecko's own reading names the hover seat's army instead (our_mistakes 10:01, 10:45).",
+  "evidence": "0:05 queue commander_t2: [corwin, corwin, corwin, corsy yard_t2, assist 40, corwin, corwin, assist]; records: seat 1 +6.3, seat 2 +4.2 metal/s at every minute 1:00-14:00; cormex finished: seat 1 0:09, 0:22; seat 2 0:09; first corroy 8:24 (t2), 9:55 (t3)"
+ },
+ "turning_points": [
+  {
+   "clock": "0:05",
+   "what": "The player read the map (60% sea, bots reach 6 spots, his box unreachable by land) and switched every seat from the bot lab to a hover platform (t1) and shipyards (t2, t3), with three winds per commander first.",
+   "evidence": "0:05 note: 'Coast To Coast: 60% sea, bots reach only 6 spots, his box is unreachable by land. Switched from labs to: red(Armada) hover platform, green/magenta(Cortex) shipyards; wind for energy'"
+  },
+  {
+   "clock": "2:00-3:26",
+   "what": "The construction ships' extractor steps were skipped for every sea spot. The player gave the three ships to t1 at 2:44, where the role word then resolved to the Armada extractor. At 3:26 the expansion went to the hover constructors alone.",
+   "evidence": "2:00 'constructor_17829: skipped the step 'extractor spot_16' of its list: spot_16 is not free'; 3:01 'constructor_14656: skipped the step 'extractor spot_13' of its list: this builder cannot build it'"
+  },
+  {
+   "clock": "3:26-5:34",
+   "what": "His Eels arrived unseen at E4 and then killed every warship frame at the t2 yard while the team's metal was 0; seat 1's first warship came at 8:24.",
+   "evidence": "3:26 'shelled from out of sight by a armsub (range 500) from the west, 5 hits in 15 s'; 4:48 note 'Eels kill frames at yard_t2 (3 Oppressor frames at ~2%...)'; record: seat 1 lost 4,010 metal of frames by 5:00"
+  },
+  {
+   "clock": "7:42-9:33",
+   "what": "Dolphin packs of 3 to 9 raided the sea extractors (spot_21, spot_16, spot_10). Our groups then beat the raid at F4, our one good trade, which the player overcounted as nine Dolphins and six Eels.",
+   "evidence": "engagement #4 8:53-9:30 F4: we lost 1390, they lost 2105 ({'armdecade': 7, 'armsub': 2}); 9:33 note 'his raid (9 Dolphins, 6 Eels) destroyed'"
+  },
+  {
+   "clock": "10:01-10:45",
+   "what": "The window after his raid went into 2 Corsairs, a Skater and an Ellysaw at D4 with Crocodiles: lost.",
+   "evidence": "minutes seat 0 at 10:00: army 1890/150 (12.6x seen); engagement #5 10:06-10:58 D4: we lost 1890 ({'armanac': 7}), they lost 1275; 10:45 note 'Crocs (370) cannot close on 2 armroy (700) + armpship'"
+  },
+  {
+   "clock": "12:25-13:35",
+   "what": "His fleet (2-4 Corsairs, Ellysaws, a sub) came to F5-F6, and our Possums, Crocodiles and single Oppressors lost there. The player declared the sea war lost and pulled to land behind a Gauntlet started at 12:44.",
+   "evidence": "engagement #7 12:25-13:35 F5: we lost 1765 ({'armanac': 2, 'armmh': 7}), they lost 835; 13:27 note 'Sea war lost (15.1k lost vs 5.5k; 3 armroy + support)'"
+  },
+  {
+   "clock": "13:17-15:51",
+   "what": "His Crocodiles raided our land spots (H2, G2, H8, G3, G4) and his Corsairs shelled the base. The user told us to surrender at 15:39, and the player did at 15:51.",
+   "evidence": "raid_ledger seat 0: 13:17 spot_4 H2 armanac, 13:57 spot_4, 14:06 spot_23 H8, 14:29 spot_6 G3, 14:38 spot_8 G4; 15:32 'shelled ... by a armroy (range 700) ... 15 hits in 15 s'"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:05",
+   "what": "The two Cortex seats got three winds and a yard with no commander expansion, and no commander took a sea spot all game. With 6.3 and 4.2 metal a second, each yard finished one 960-metal Oppressor in ten minutes. A stronger plan: the commanders take the near sea spots first, and the seats feed one strong yard. This is the reader's reading; the player wrote the same lesson at 15:51.",
+   "evidence": "0:05 queue for commander_t2 and commander_t3: winds, corsy, assist, winds, no extractor; seat 1 income +6.3 and seat 2 +4.2 metal/s flat 1:00-14:00; 15:51 note: 'Cortex seats' economies never exceeded 2 extractors each'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "0:49-3:10",
+   "what": "The start stores sat unspent while the commanders built winds, and the seats then stalled on energy as the yards began.",
+   "evidence": "1:14 eco 'metal 3214 (+16.8/-23.1)'; seat 1 store 1094 at 1:00 and 1081 at 2:00; 2:30 'energy 34/3804 (-37) STALLING'; e0% 9.2 / 5.6 / 8.2 on seats 0-2",
+   "kind": "strategy"
+  },
+  {
+   "clock": "2:44",
+   "what": "The player answered the list bug by giving all three construction ships to the Armada seat. That left both yard seats without a constructor and moved every sea spot they took onto t1. The 'cormex' retry at 3:10 was dropped 16 s later, before its steps had come up.",
+   "evidence": "2:44 transfer {to: t1, units: [constructor_17829, constructor_14656, constructor_31385]}; 3:26 note 'ship lists cannot build extractors: extractor/cormex both skipped', but the 3:26 report shows no cormex skip",
+   "kind": "both"
+  },
+  {
+   "clock": "3:26-6:51",
+   "what": "The Eels shelled us unseen for three minutes before any sonar stood, and the t2 yard on open water lost its frames until the commanders built Urchins (5:34).",
+   "evidence": "3:26 'shelled from out of sight by a armsub'; 5:34 note 'two Eels kill every frame near yard_t2 while metal is 0'; corfrad finished 6:51 (seat 0 record), cortl from 4:37",
+   "kind": "strategy"
+  },
+  {
+   "clock": "4:00-13:00",
+   "what": "Energy went to waste while metal sat at 0. Both Cortex stores were full every minute, the team's line read +300 to +450 energy a second with the store full, and no converter was built all game. This is the reader's reading: conversion pays 1 metal for 70 energy above 75% storage.",
+   "evidence": "5:06 eco 'metal 0 (+21.1/-21.0), energy 4582/4582 (+442) | ... converters 0'; records: seats 1 and 2 at 1252/1252 energy at every minute 4:00-13:00",
+   "kind": "strategy"
+  },
+  {
+   "clock": "7:42-9:33",
+   "what": "The sea extractors stood undefended against Dolphin packs, and the same spots were rebuilt bare and lost again.",
+   "evidence": "raid_ledger seat 0 totals: 16 lost; undefended (no soldier within 900, no turret within 700) 15; with a turret 1; lost twice or more {spot_10: 3, spot_16: 3, spot_20: 2, spot_21: 2, spot_4: 2}",
+   "kind": "strategy"
+  },
+  {
+   "clock": "8:00",
+   "what": "After 8:00 no soldier of ours went west of x=2048. The 13 Crocodiles were built as the army and fought at home, and the Seekers' early raid, which killed 3 construction ships, was never renewed. thebluegecko said of it: 'The harass units needed to not exist or be harassing the enemy.'",
+   "evidence": "records: soldiers of ours west of x=2048 by minute, seat 0: 2, 3, 2, 3, 1 in minutes 3-7, then 0; seats 1 and 2: none all game; 4:04 note '(3 killed by Seekers)'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:01",
+   "what": "The window after his raid died went into 2 Corsairs (700 reach) and an Ellysaw with Crocodiles (370). The hands also turned the group five times in seven seconds under fire, then held it about 600 from the party: inside his reach, outside its own. thebluegecko's verdict: 'Hovers are good for harass, bad for army bulk.'",
+   "evidence": "engagement #5 D4: we lost 1890 (7 armanac), they 1275; hands_window 10:05-10:12: advance spot_21, walk spot_21, spot_18, spot_14, spot_18, attack party_20; 10:25 group at (3375,2075), party at (2754,1876)",
+   "kind": "both"
+  },
+  {
+   "clock": "10:45-13:35",
+   "what": "The answer to the Corsairs was 13 Possums (rocket hovers) as the body, with one Oppressor a seat arriving on its own. In the player's words: 'our three seats split into 6+ small groups that arrived one at a time'. thebluegecko: 'Only build a handful of the rocket ones.'",
+   "evidence": "13 armmh finished 11:15-13:55 (seat 0 record); engagement #7 12:25-13:35 F5: we lost 1765 ({'armanac': 2, 'armmh': 7}), they lost 835; corroy finished 8:24 and 9:55, one each",
+   "kind": "strategy"
+  },
+  {
+   "clock": "11:00-15:39",
+   "what": "The wrecks were never worked. Resurrection subs were queued only on the user's word at 13:53, and none finished.",
+   "evidence": "bot.log [ai 0] f=19800 'wrecks: 42 known in 10 fields, 4451 metal (525 safe to work), 0 at work'; f=27000 '6389 metal ... 0 at work'; 13:53 produce correcl:1 on both yards; no correcl finished",
+   "kind": "both"
+  }
+ ],
+ "their_play": "Armada on the west coast (commander and base at B6, a shipyard at B4 seen 4:05, tidal generators at B3, Sentries); his economy and any tier 2 are unknown (no truth file). He went navy from the start. Construction ships came early (our Seekers killed 3 around 4:00). Eels were at E4 by 3:26: they shelled us from out of sight and killed the frames at our t2 yard 4:30-5:34. Dolphin packs of 3 to 9 raided our undefended sea extractors 7:42-9:33, losing 7 Dolphins and 2 Eels at F4 in his one bad trade. From 10:00, Corsairs (700 reach) with Skaters and Ellysaws beat our Crocodiles at D4 and our Possums and Oppressors at F5-F6 (11:51-13:35). From 13:17 a few Crocodiles raided our land spots, and his Corsairs shelled our base at 15:32. He fought in our half of the sea all game. After the game, through the user: 'Hovers are good for harass, bad for army bulk. Only build a handful of the rocket ones. The harass units needed to not exist or be harassing the enemy.'",
+ "defects": [
+  {
+   "defect": "List steps for free spots were skipped as a bare 'spot_N is not free', with no reason given: the construction ships' sea spots at 2:00-2:46, and commander_t2's land spot_12 at 15:19.",
+   "fixed": "open (not checked; crates/bot/src/brain/pianist/lists.rs still ends why_not_free on the bare 'is not free')",
+   "evidence": "2:00 'constructor_17829: skipped the step 'extractor spot_16' of its list: spot_16 is not free' (also 13, 20, 21, 1, 10); 2:44 note 'the Armada hover constructor took spot_10 fine'"
+  },
+  {
+   "defect": "Cross-faction role words: after the transfer to t1, the word 'extractor' named the Armada extractor for Cortex construction ships. At 0:08 commander_t3 skipped 'armlab' and 'armsolar' the same way.",
+   "fixed": "2026-10-19/20 (era L: cross-faction constructor words, the roster-by-builder fix)",
+   "evidence": "3:01 and 3:19 'skipped the step 'extractor spot_N' of its list: this builder cannot build it'; 0:08 'commander_t3: skipped the step 'armlab' of its list: this builder cannot build it'"
+  },
+  {
+   "defect": "The map sheet guessed his start at H8, inside our own start box, although the lobby boxes put him in A1-B8. The sheet's spots nearer him and every 'his half' figure rested on that guess. The player overrode it at 0:05 and marked his base at B6 at 4:04.",
+   "fixed": "unknown (era D: the enemy-start guess and the lobby boxes)",
+   "evidence": "0:05 map sheet: starts [{cell: G4, whose: ours}, {cell: H8, whose: 'where his start may be', x: 5376, z: 3824}]; start_boxes: theirs A1-B8"
+  },
+  {
+   "defect": "The report's trade line counted unfinished frames at full cost, so the 'lost' figure the player argued from was inflated by about 4k all game.",
+   "fixed": "unknown",
+   "evidence": "4:48 'we lost 4029 metal' and note 'the 4k lost is mostly frame cost'; record: seat 1 lost 4,010 metal by 5:00, none of it finished units"
+  },
+  {
+   "defect": "The wreck line offered the land resurrection bot ('produce armrectr') when our factories were a hover platform and two shipyards. Nothing was ever at work on the wrecks.",
+   "fixed": "unknown",
+   "evidence": "15:39 'wrecks worth 1110 metal lie ...: constructors take them apart ..., resurrection bots (`produce` armrectr) raise the soldiers'; bot.log '0 at work' at every minute"
+  },
+  {
+   "defect": "The pick had no hysteresis, so a group turned again and again under fire.",
+   "fixed": "words built 2026-10-03 night (H-HANDS-TURNS, K-jev-a-bodys-turns-said-on-the-move-stop-the-turn-that-has-no-reason), unmeasured in play",
+   "evidence": "hands_window 10:05-10:12 group_C_t1, hit every second: advance to spot_21, walk to spot_21, walk to spot_18, walk to spot_14, walk to spot_18, then attack party_20"
+  },
+  {
+   "defect": "The bot wrote no end row and its process waited on after the game; floor.py reads the result as '-' with 0 minutes.",
+   "fixed": "2026-10-03 (3061208)",
+   "evidence": "3061208: 'human-17: the records stopped at a sample and the process waited on'; floor.py: result '-', minutes 0"
+  },
+  {
+   "defect": "remove/destruct answered that commander_t2 'no longer stands' twice while it walked.",
+   "fixed": "2026-10-03 for surrender (34469c5, the surrender tool); the remove lookup itself not checked",
+   "evidence": "16:15 note 'remove/destruct on commander_t2 twice answered 'no longer stands' while it walked; commander_t3 went on the second try'"
+  }
+ ],
+ "user_comments": [
+  {
+   "clock": "0:36",
+   "text": "Note: this is a tiny map with water. Check your map tools."
+  },
+  {
+   "clock": "13:28",
+   "text": "you should make grim reaper / death cavelry subs if you can"
+  },
+  {
+   "clock": "15:39",
+   "text": "you can surrender now"
+  }
+ ],
+ "bears_on": [
+  {
+   "id": "L-mix-hovers",
+   "relation": "illustrates",
+   "note": "This game is the lesson's source. The hover seat made 13 Crocodiles, 13 Possums and 3 Seekers. After 8:00 no hover went west of x=2048, and the Crocodiles died into Corsairs at D4 (10:01-10:45)."
+  },
+  {
+   "id": "L-mix-arty-not-the-body",
+   "relation": "supports",
+   "note": "From 10:45 the body was 13 Possums (710 reach), with Crocodiles and single Oppressors as the screen; they lost at F5, 7 Possums and 2 Crocodiles for 835."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Three seats' groups arrived one at a time at D4 and F5. The player at 15:51: 'our three seats split into 6+ small groups that arrived one at a time'."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "supports",
+   "note": "4,451 to 6,389 metal of wrecks were known from 11:00 with nothing at work. The user asked for resurrection subs at 13:28; they were queued at 13:53 and none finished."
+  },
+  {
+   "id": "L-raid-naked-mexes",
+   "relation": "illustrates",
+   "note": "Here we were the side with undefended extractors: 15 of the 16 sea extractors lost on seat 0 had no soldier or turret near, and spot_10 and spot_16 went three times each."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "Three Seekers crossed 3:00-4:12 and killed 3 construction ships. After 8:00 nothing of ours crossed, and he expanded and built his navy unharassed."
+  },
+  {
+   "id": "L-mex-game-over",
+   "relation": "illustrates",
+   "note": "Two of three seats held 2 and 1 extractors all game, and the side peaked at 12 of 24. Whether the loss was the economy alone cannot be told: there is no truth file for his count."
+  },
+  {
+   "id": "L-lead-use-it",
+   "relation": "illustrates",
+   "note": "The 10:00 window (seat 0: 1,890 against 150 seen) was used, but against a fleet out of sight that outranged the attackers. A lead read from what is seen is not a lead in reach."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "supports",
+   "note": "This is the source of 'a seat with one or two extractors for eight minutes had no economy'. It also backs the must-fix that the commander takes sea spots itself (no commander took one), and the sonar-by-3:00 rule (Eels unseen from 3:26, sonar at 6:51)."
+  },
+  {
+   "id": "Water maps: what reaches a sea spot, the islet's economy, the seats' sea work",
+   "relation": "illustrates",
+   "note": "The 'one hover platform and two shipyards' division was followed here and lost: two starving yards and a hover seat outranged at sea. The division is not enough without economy for each yard."
+  },
+  {
+   "id": "Unit matchups and mixes: counters, the Blitz and the Stout, splash and spacing, body size",
+   "relation": "illustrates",
+   "note": "Crocodile 370 against Corsair 700 lost at D4. Possums (710) behind a screen lost at F5 when they were the body."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "Arrive together: the groups of three seats fed in piecemeal, 10:01-13:35."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "supports",
+   "note": "Eels fired unseen from 3:26 and Corsairs shelled from 700. The Gauntlet (1,220 reach) was begun only at 12:44, after the fleet fights were lost."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "Seekers in his half 3:00-7:59 killed construction ships. Then the pressure stopped."
+  },
+  {
+   "id": "The bank and build power: what a bank means, what spends it first, build power on frames",
+   "relation": "illustrates",
+   "note": "The team's 3,000 start metal sat unspent 0:49-1:44, and the energy stores stood full 4:00-13:00 with metal at 0 and no converter."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (each seat)",
+   "run/analyze_match.py (seat 0; --engagement 5)",
+   "run/floor.py (each seat)",
+   "run/raid_ledger.py (each seat)",
+   "run/commander_turns.py --notes",
+   "run/commander_turns.py --told --calls",
+   "run/wake_read.py (seat 0)",
+   "run/hands_window.py 10:00-10:50",
+   "run/impedance_sweep.py (seat 0)",
+   "ad-hoc reads of the three records (finished events, stores by minute, distance to his base, frame losses), bot.log, script.txt"
+  ],
+  "existing_review": null,
+  "confidence": "medium",
+  "caveats": "No truth file: his economy, army and tier 2 are floors or unknown. The tools' enemy-start guess fell on our own coast (H8, G2, G3 by seat), so minutes.py's 'his half' columns, WINDOWS and 'units sent to his side' are meaningless here; reach to his base (B6, 1284,2700) was recomputed from the records. analyze_match, wake_read and impedance_sweep read record-0 only; seats 1 and 2 went through per-seat symlink directories in the scratchpad. The records have no end row. Loss sums from the record count frames at full cost unless said. pro_baseline was not run (not Comet; no cards for this map)."
+ },
+ "open_questions": [
+  "How many extractors and how much navy did he have at 8:00 and 10:00? Without a truth file it cannot be told whether we were behind on economy before the fleet fights or level and lost on reach.",
+  "Was the bare 'spot_N is not free' skip (the ships' sea spots at 2:00-2:46, commander_t2's land spot_12 at 15:19) ever fixed, and what excluded those spots?",
+  "Did the hands hold the Crocodiles about 600 from the Corsairs at 10:20-10:37 by a reach-keeping rule, or does the group centre hide a spread that did close?",
+  "Would the Cortex commanders taking the six near sea spots from 0:05 have given the yards an army before his Corsairs came at 10:00?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791065145-human-17.json"
+}

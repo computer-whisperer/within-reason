@@ -1,0 +1,307 @@
+{
+ "batch": "1791749780-human-31",
+ "label": "human-31",
+ "map": "Comet Catcher Remake 1.8",
+ "date": "2026-10-11",
+ "shape": "3v2",
+ "people": "[gecko]thebluegecko (34), played Cortex; [gecko]u6bkep (19), played Armada. The header records both as Armada; the factions come from the units seen and the transcripts ('thebluegecko plays Cortex ... u6bkep plays Armada', commander 3:20). computer_whisperer hosted as a spectator and said nothing.",
+ "our_side": "Three Cortex seats on the east strip under a side commander: t2 north at G1 (seat 0, record-0), t4 middle at G4 (seat 2, record-2), t3 south at H8 (seat 1, record-1). Each seat was an Opus 5.5 medium player with Jev jev-latest (1.13.0) hands. The commander was Opus 5.5 at high effort. Realtime, Claude Code 2.1.296.",
+ "build": "efa6d21 (banner: 'Within Reason efa6d21 | player (claude-opus-5-5, effort medium, 2.1.296 (Claude Code)) | hands: Jev jev-latest'; the last commit before the game, 2026-10-10)",
+ "result": {
+  "outcome": "lost",
+  "minute": "20:03 (surrender; t4's commander died 17:21, t2's 19:33)"
+ },
+ "summary": "u6bkep opened with a Rover pack in our south (1:58), and thebluegecko walked his commander forward with Guards and Pounders to C4, then into our half at E4 and E2. Our three seats beat the Rovers (54 killed by 4:50) but held only 11 extractors between them at 4:50, and t2 stayed capped at 9 from 8:00 under his towers. From 7:00 to 14:00 the side's summed army stood 1.4-6.3x what we saw of theirs, but it fought in our own half, seat by seat. The 9:20 strike at his base at B5 went with 7 Brutes, met u6bkep's Blitz mass at E6 and turned back, and at 10:50 the commander chose 'We stay on tier 1 for now', as the brief of that build advised. thebluegecko then switched to bombers (11:15) and tier 2 (Quaker 13:19, Tigers 13:21). The south body broke u6bkep's army at E6 by 14:41, but the Tiger block ate it (15:32-15:52), took t4's home and its unfinished advanced plant (16:54-17:30), then took t2 (19:33).",
+ "root": {
+  "clock": "9:20",
+  "what": "The last cheap moment, spent: the base was found, his tier 2 was not yet seen, and the side's army was about 3.7-5.9x what we saw of his. The commander named it ('Now is the moment, before his tier 2 comes') but sent only t4's 7 Brutes; t2 and t3 held at home. They turned back at E6 (10:46), and at 10:50 the side stayed tier 1. Reader's reading; the commander's own 18:20 note agrees. The window from 3:00 had already been spent at home.",
+  "evidence": "minutes.py seat 0: '9 | 1857/1430 ... E2 (1%)', '10 | 2176/910 ... E3 (1%)' (seats 1, 2: 0%); commander 9:20: 'Now is the moment, before his tier 2 comes'; 10:50: 'We stay on tier 1 for now.'"
+ },
+ "turning_points": [
+  {
+   "clock": "1:58-3:17",
+   "what": "u6bkep's 4-7 Rover pack lived in t3's home: t3 lost 4 extractors, a solar and 2 Rascals and killed nothing by 3:07. t3's raid west was put on hold, and it was at 1 extractor at 4:00.",
+   "evidence": "raid_ledger seat 1: 2:05 spot_77, 2:13 and 2:24 spot_70, 3:17 spot_65, all armfav; t3 note 3:07: 'nothing killed; Incisors cannot catch them. ... Our raid west is on hold.'"
+  },
+  {
+   "clock": "4:41-5:29",
+   "what": "t2's and t4's Incisors died piecemeal at thebluegecko's forward Guard, Pounder and Twin Guard at C4, C5 and D1. Between 4:16 and 7:58 14 Incisors died, none nearer than 1,436 to his start. The side ended at 11 extractors at 4:50.",
+   "evidence": "minutes.py seat 2: '5 | 840/110 ... 605 (C4)', '6 | 360/330 ... 795 (C5)'; commander 4:50: 'We hold 11 across three seats at 4:50, where one experienced player holds 9 alone'"
+  },
+  {
+   "clock": "7:50",
+   "what": "Each seat met a larger body alone: thebluegecko's Pounder block and commander in the north at D2, and u6bkep's 13-Blitz mass at D6-E7 in the south. The trade over three minutes was 2,880 lost against 1,177.",
+   "evidence": "commander 7:50 note: 'piecemeal losses (2880 vs 1177). Gave group_K_t4 to t3 so one body meets u6bkep's 13-Blitz mass at D6-E7'"
+  },
+  {
+   "clock": "10:46-10:50",
+   "what": "The base strike (t4's group_N, 7 Brutes) was caught at E6 by a Beamer and about 20 units and turned back. The commander gave group_N to t3, but the hands had already split it, so only 2 Brutes arrived. The commander also chose to stay on tier 1.",
+   "evidence": "t4 note 10:46: 'strike to blue_base aborted: at E6 a Beamer + ~20 units'; t3 11:13: 'only 2 of t4's Brutes reached us'; commander 10:50: 'Staying tier 1.'"
+  },
+  {
+   "clock": "11:15-12:20",
+   "what": "thebluegecko's Whirlwind bombers (8-17) took about 20 solars, a construction turret and extractors. Two seats had no anti-air, although the commander had asked for it at 0:20.",
+   "evidence": "commander 12:20 note: 'thebluegecko went air (corshad bombers, 8-17), my 0:20 AA ask was not carried out'; record: corshad first seen 11:15"
+  },
+  {
+   "clock": "13:19-13:31",
+   "what": "His tier 2 appeared: a Quaker at E3 and a Tiger at 13:21. t2's strike at his forward commander landed late and lost 7 units. On the commander's 13:50 call, t4 started the side's first advanced plant at 14:32.",
+   "evidence": "record: cormart 13:19, correap 13:21; t2 note 13:31: 'The strike at his commander failed: 7 units lost'; pro_baseline seat 2: 'second factory started 14:45' vs pool median 8:16"
+  },
+  {
+   "clock": "14:08-15:52",
+   "what": "The south body broke u6bkep's army at E6. The commander counted 33 Stouts, 15 Janus, 18 Blitzes and 6 Beamers killed. At 14:54 t3 held at spot_58 with Tigers on its flank, and the Tiger block ate the body to 6 tanks.",
+   "evidence": "analyze seat 1 #21 14:08 E6: they lost 3565; #22 14:41 D6: we lost 2275; minutes seat 1: '15 ... 2735 (E6)', '16 | 970/6775 ... 1645 (E6)'; t3 15:52: 'Tigers ate it at E6-D7'"
+  },
+  {
+   "clock": "16:50-17:30",
+   "what": "The commander gave t2's and t3's groups to t4 to make one body at t4_line. The body never gathered, and the Tiger block took t4's home, its commander and the advanced plant frame at 87-90%.",
+   "evidence": "analyze seat 2: '#26 16:54-17:59 G4 at our base: we lost 17170 (... corlevlr: 16 ... coravp: 1 ...), they lost 2525'; record: t4 corcom destroyed 17:21"
+  },
+  {
+   "clock": "18:45-19:35",
+   "what": "About 14-25 Tigers took t2's home. t2's commander died at home at 19:33, and the side surrendered at 20:03.",
+   "evidence": "analyze seat 0: '#29 18:58-19:35 G1 at our base: we lost 7510 ... they lost 0 ... ours 855 + 1580 + commander vs theirs 5520'; record: correap in sight 25 at 19:00"
+  }
+ ],
+ "our_mistakes": [
+  {
+   "clock": "0:00-4:50",
+   "what": "Slow opening in all three seats: three solars before the plant, the plant late, few units by 4:00, and 11 extractors between three seats at 4:50. A stronger side starts the plant at ~1:00 on two solars and gets its first constructors out to the spots before raiders arrive.",
+   "evidence": "pro_baseline (all starts): plant started 1:09 / 1:15 / 1:16 vs pool p75 1:03; 'solars before the plant 3' (pool 2); 'factory units by 4:00 12 / 10 / 12' vs p25 16",
+   "kind": "strategy"
+  },
+  {
+   "clock": "3:00-6:00",
+   "what": "The first window went to the turrets. t3 kept its army at home against Rovers it could not catch, while t2's and t4's Incisors went at the C4 and D1 turrets in groups of 3 and died. t4's group_B was walked to its hold point under the C4 Light Laser Tower (corllt) and Pounder (corlevlr) and hit every second until 3 died. A stronger side sends one body round the nest to his extractors, or leaves a Guard to kill the Rovers.",
+   "evidence": "hands_window seat 2 4:41-4:50: 'group_B_t4: 6 at (3087, 2789), task move_to spot_59' with 'group_B_t4 hit' each second, a corlevlr at (2893,2632); analyze seat 2 #1 4:50 C4: we lost 360 (corgator 3)",
+   "kind": "both"
+  },
+  {
+   "clock": "6:20-10:00",
+   "what": "Three seats fought three separate fights in our own half while the side's summed army was 2.8-5.9x his seen army. Our mass was 0-2% in his half in every seat after 5:00. One body from a gathering place at u6bkep's or thebluegecko's extractors was the move.",
+   "evidence": "minutes.py: our mass in his half 0-2% at 6:00-14:00 in all three seats; summed army 3,533 / 4,473 / 5,307 / 5,376 against 1,010 / 1,575 / 1,430 / 910 seen at 7:00-10:00",
+   "kind": "strategy"
+  },
+  {
+   "clock": "9:20-10:50",
+   "what": "The base strike was sent with one seat's 7 Brutes on the long south road, through u6bkep's mass at E6, and then dropped. The side committed to neither line: no one-body strike, and no tier 2.",
+   "evidence": "t4 note 9:45: 'group_N (7 Brutes+Incisor) sent to blue_base by spot_46, spot_44, spot_52'; 10:46: 'strike to blue_base aborted'; commander 10:50: 'We stay on tier 1 for now.'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "10:50-14:32",
+   "what": "Staying tier 1, under the brief's 'We are weak past tier 1' passage. No seat started an advanced plant until 14:32, with energy full on every seat. It came out metal-bound at 25/s and died as a frame at 87-90%. In a 3v2, one seat sprinting at about 9:00 and feeding advanced constructors is the move (the 2026-10-18 brief).",
+   "evidence": "unfinished-review: 'coravp | 1 | 2,366' lost; t4 15:38: 'AVP 19%, metal-bound at 25/s'; t2 10:33: 'Energy full, metal 0'; pool second factory median 8:16",
+   "kind": "both"
+  },
+  {
+   "clock": "0:20-11:49",
+   "what": "The commander asked for an anti-air turret at each plant by 6:00, but t4 never wrote it into a packet until 11:26, and t3 dropped it at 2:13. thebluegecko's bombers took solars, a nano and extractors, and hit t4's commander to 61%.",
+   "evidence": "impedance-review items 4-5: 'no AA in any t4 packet or list until 11:26; first Thistle at 11:49'; t4 11:48: '~17 Whirlwind bombers are killing t4's plant, solars, nanos'",
+   "kind": "both"
+  },
+  {
+   "clock": "13:12-13:31",
+   "what": "t2 went at his forward commander, which stood among Twin Guards and an unseen Quaker. The order landed after a 19 s turn, and the hands walked the group into the commander and three Quakers. 7 units were lost.",
+   "evidence": "t2 note 13:31: 'The strike at his commander failed: 7 units lost to his commander, a Quaker (800 range, unseen) and Pounders'; impedance item 6 (A5 late)",
+   "kind": "both"
+  },
+  {
+   "clock": "14:54-15:20",
+   "what": "After winning E6, the south body held at spot_58 with three Tigers on its flank. The commander then turned it south-west after u6bkep's unseen base instead of gathering the side against the Tiger block. It was eaten before the order mattered.",
+   "evidence": "t3 14:54: 'three Tigers stand at E4-E5 on its flank ... it holds spot_58'; commander 15:20: 'The south body turns away from the Tigers to u6bkep's spots in rows 7-8'; t3 15:52: '6 tanks (~1,200)'",
+   "kind": "strategy"
+  },
+  {
+   "clock": "16:50-17:21",
+   "what": "The one body at t4_line never gathered. The transfer landed at 17:04, but the direction explaining it was held back until the seat's next report. t4 attacked under its old direction while its hands split the new group into hunts.",
+   "evidence": "impedance item 1: 'The hands split group_C1 into hunts at 17:05 and 17:06 ... at 17:21 group_E1_t4's tail was 4,012 behind'; minutes seat 2: '18 | 0/6320 ... 14075 (G4)'",
+   "kind": "harness"
+  },
+  {
+   "clock": "19:18-19:33",
+   "what": "t2's commander was told to walk away east along spot_17. Jev never picked the move, and the commander died at home, which ended the seat.",
+   "evidence": "impedance item 3: 'go_spot_17 was rated 0.32-0.45 and never picked. The commander kept its 19:06 follow group_Q_t2 and died at home at 19:33'",
+   "kind": "harness"
+  }
+ ],
+ "their_play": "thebluegecko (Cortex, 34): commander forward from the start. It was laying extractors with a Guard at C4 by 2:24-3:20, at E4 by 4:50 and at E2 by 13:12, in our half. Behind it came a Pounder block and Guards and Twin Guards at C1, C4, E2 and E3, which held t2 at 9 extractors and dragged its groups under the turrets. His base at B5 (seen 8:15-8:26) had a vehicle plant, 3 construction turrets, 17 solars and 2 advanced solars. He built an unseen air plant: Whirlwind bombers from 11:15 took about 20 solars. Tier-2 vehicles followed: Quaker 13:19, Tiger 13:21, then 7 Tigers by 15:00, 11 by 17:00 and 25 by 19:00, with mohos and an advanced constructor at D5 (17:13-17:20). The Tiger block rolled up the south body, then t4, then t2. u6bkep (Armada, 19): a Rover pack in t3's home from about 1:58, then Blitzes in ones and twos at constructors, and a 13-15 Blitz mass with Beamers, Stouts and Janus at D6-E7, which was broken at E6 by 14:41. His base was never seen.",
+ "defects": [
+  {
+   "defect": "The brief of the build (player-experience.md, read by the commander and the players) said 'We are weak past tier 1 ... Going to tier 2 ourselves is a real choice ... the ground we know least'. The commander's 10:50 'We stay on tier 1 for now. The aim is to wreck his base before his tier 2 arrives' is that passage. The loss rests partly on this since-fixed brief text.",
+   "fixed": "2026-10-18 (9667cfd: the passage dropped; tier 2 as a sprint covered in a team game)",
+   "evidence": "git show efa6d21:docs/briefs/player-experience.md:55-63; commander 10:50 text"
+  },
+  {
+   "defect": "The commander-to-seat hop: a direction was held back until the seat's next report while the transfer it explained ran at once. The seat's hands played the given units under the old packet.",
+   "fixed": "open (cross-seat joins are in the impedance study's no-lever list; no fix found in the eras list)",
+   "evidence": "impedance item 1 (16:50-17:21, B6): 't4 first saw the direction at 17:21, 31 s after it was written, with its commander at 3%'"
+  },
+  {
+   "defect": "`transfer` by group name resolved after the hands had split the group: 2 of 7 Brutes went. The whole transfer was also refused for one name that had died during the turn.",
+   "fixed": "unverified (the eras list names the standing transfer 2026-10-19/20; whether names now resolve at call time is not checked here)",
+   "evidence": "impedance items 2 and 14: '10:56 4 of group_N_t4 hunt party_58 ... at 11:04 the name meant 2 units'; 17:21/17:30/17:38 'REFUSED: ... nothing of ours has that name'"
+  },
+  {
+   "defect": "`queue` accepted turret steps with no place, which the hands then skipped during the bomber raid.",
+   "fixed": "2026-10-16 (queue refuses placed buildings without a place)",
+   "evidence": "impedance item 11: t4 11:26-12:17 'it needs a place' at 11:33 and 12:17"
+  },
+  {
+   "defect": "The turret step was skipped on a 'refused lately' extractor spot where our extractor stood: spot_57 never got its Guard.",
+   "fixed": "2026-10-16",
+   "evidence": "impedance item 12: t3 6:56-7:29 'the extractor at spot_57 was refused lately'; spot_57 lost 11:45"
+  },
+  {
+   "defect": "The decode reads a negated place as a destination ('staying out of reach of the corexp at spot_0' read as spot_0 0.92).",
+   "fixed": "open (found 2026-10-16; no fix in the eras list)",
+   "evidence": "impedance item 9: t2 5:16-5:29, an Incisor died at 5:29 to the corexp"
+  },
+  {
+   "defect": "Jev's pick left a commander's named escape move under the bar while change read 0.77-0.85.",
+   "fixed": "open (Jev 1.14.0 pinned 2026-10-16 is not a fix for it)",
+   "evidence": "impedance item 3: t2 19:28-19:33"
+  },
+  {
+   "defect": "Unfinished frames: 57 frames held 5,603 metal (38 decayed, 19 killed). 5 frames (629 metal) were a harness fault, in the era of the frame lookup by type and distance.",
+   "fixed": "2026-10-17 (the frames lookup)",
+   "evidence": "unfinished-review tally: 'U9 harness fault | 5 | 629'; floor aband 14 / 16 / 8"
+  },
+  {
+   "defect": "The report gave his state as floors with no team-game reference line, and the side read three seats against two people's floors as a lead ('31 extractors against the 18 we know of theirs').",
+   "fixed": "2026-10-17 (the report claims nothing of his state, e8e2c19; the player predicts)",
+   "evidence": "commander 10:50 text; docs/studies/2026-10-17-wrong-post-mortem.md §2"
+  },
+  {
+   "defect": "The hands walked a group to its hold point straight through a known turret's reach (C4 corllt and corlevlr). Reader's reading from one window.",
+   "fixed": "open (avoid-reach routes are in the impedance study's no-lever list)",
+   "evidence": "hands_window seat 2 4:41-4:50: group_B_t4 'task move_to spot_59', hit each second; analyze seat 2 #1 4:50 C4: 3 corgator lost, they lost 0"
+  }
+ ],
+ "user_comments": [],
+ "bears_on": [
+  {
+   "id": "L-lead-use-it",
+   "relation": "supports",
+   "note": "The side's summed army was 2.8-5.9x his seen army at 7:00-10:00 with 0-2% in his half. It went bad when his bombers (11:15) and Tigers (13:21) came."
+  },
+  {
+   "id": "L-lead-together",
+   "relation": "supports",
+   "note": "Commander 7:50: 'each seat met a larger body alone'. The 9:20 strike was one seat's 7 Brutes, and the 16:50 one body at t4_line never gathered."
+  },
+  {
+   "id": "L-tier2-go",
+   "relation": "supports",
+   "note": "Energy was full on every seat for minutes ('+565 E surplus' 16:50), yet no seat started tier 2 until 14:32, metal-bound at 25/s."
+  },
+  {
+   "id": "L-tier2-tier1-under-tier2",
+   "relation": "illustrates",
+   "note": "Tier-1 Pounders, Brutes and Lashers against Tigers: 16 Pounders lost in t4's home at 16:54-17:59 for 3 Tigers."
+  },
+  {
+   "id": "L-other-u6bkep-nests-and-air",
+   "relation": "illustrates",
+   "note": "thebluegecko's Twin Guard and Guard nest at E2-E3 dragged t2's group in (10:12, 10:33). His bombers came at 11:15, and two seats had no anti-air although the commander asked at 0:20."
+  },
+  {
+   "id": "L-mix-pounders-mediums",
+   "relation": "illustrates",
+   "note": "'air switch to bomb solar is strong in the tank phase': 8-17 Whirlwinds took about 20 solars at 11:15-12:20."
+  },
+  {
+   "id": "L-mex-half-the-map",
+   "relation": "illustrates",
+   "note": "11 extractors across three seats at 4:50 ('one experienced player holds 9 alone'). His towers held spots in our half, and t2 stayed at 9 from 8:00."
+  },
+  {
+   "id": "L-raid-first-handful",
+   "relation": "illustrates",
+   "note": "The first Rascals and Incisors crossed at 2:05-4:05, then turned back or died at the C4 and D1 turrets, 1,436-2,921 short of his start."
+  },
+  {
+   "id": "L-raid-rovers",
+   "relation": "illustrates",
+   "note": "u6bkep's Rover pack burned 4 of t3's extractors at 1:58-3:17, uncatchable by Incisors. Then 54 Rovers died by 4:50 to the commander and Guards."
+  },
+  {
+   "id": "L-snipe-commander",
+   "relation": "illustrates",
+   "note": "His commander stood forward at C4, E4 and E2 for minutes. The one try (t2, 13:12) went in late, alone, into Twin Guards and Quakers, and lost 7 units."
+  },
+  {
+   "id": "L-energy-converters",
+   "relation": "illustrates",
+   "note": "On Comet the commander asked for converters at 16:50 with the energy full; the lesson says the map needs none and the spare energy goes into storage or bombers."
+  },
+  {
+   "id": "L-reclaim-field",
+   "relation": "illustrates",
+   "note": "4,100 metal of wrecks at E6 and D6 (14:54). bot.log at 20:00: '13458 metal (7338 safe to work), 0 at work'."
+  },
+  {
+   "id": "The tier-2 sprint: trigger, conduct, feeding, the team procedure, tier 1 against tier 2 and 3",
+   "relation": "supports",
+   "note": "In a 3v2 no seat sprinted. 'Staying tier 1' (10:50) came from the 'weak past tier 1' brief. The AVP at 14:32 was fed at 25/s and lost at 87-90%."
+  },
+  {
+   "id": "Going and the lead: a lead decays, one body from a gathering place, arrive together, the ball's return home, only the army wins",
+   "relation": "supports",
+   "note": "A leading army in our half lost its lead. Three seats, three fights; the strike went piecemeal."
+  },
+  {
+   "id": "Reach, turret lines and nests, the odds model (a turret at three times its metal), unseen fire, scouting before committing",
+   "relation": "illustrates",
+   "note": "Incisors died at the C4 Guard and Pounder (Guard 435 vs Incisor 230). The unseen Quaker (800) picked off spot_15 and spot_20 at 14:12."
+  },
+  {
+   "id": "Answers that take minutes start on earlier signs (air)",
+   "relation": "supports",
+   "note": "Anti-air was asked at 0:20 because thebluegecko is experienced, but not built in two seats before the bombers at 11:15."
+  },
+  {
+   "id": "Ahead on the trade and lost: the 3v1 pattern",
+   "relation": "illustrates",
+   "note": "The 'must explain away' case: three seats' sums against two people's floors read as a lead ('31 extractors against the 18 we know of theirs'), while the seen trade was negative in each window."
+  },
+  {
+   "id": "Pressure from the first units: the first handful crosses the map",
+   "relation": "illustrates",
+   "note": "The handful crossed early but at his forward nest, and nothing of his died before a corhllt at 4:58."
+  },
+  {
+   "id": "Expansion and income: constructors by the clock, the midline, mohos and advanced solars, the late ladder",
+   "relation": "illustrates",
+   "note": "t2 capped at 9 extractors by his towers in our half. t2 14:12: 'Ten constructors on 18 income: too many'."
+  }
+ ],
+ "lens": {
+  "reviewer": "claude-opus-5-5 reader",
+  "date": "2026-10-22",
+  "tools": [
+   "run/minutes.py (seat 0; seats 1 and 2 via symlinked scratch dirs)",
+   "run/analyze_match.py (all three seats)",
+   "run/pro_baseline.py --all-starts (all three seats)",
+   "run/floor.py (all three seats)",
+   "run/raid_ledger.py (all three seats)",
+   "run/commander_turns.py --notes (players) and --calls --notes (commander.jsonl)",
+   "run/wake_read.py (seat 0)",
+   "run/hands_window.py (seat 2, 4:40-4:52)",
+   "record reads (first sightings, commander deaths)",
+   "existing impedance-review.md and unfinished-review.md"
+  ],
+  "existing_review": "none (no review.md; the match directory holds the 2026-10-16 impedance-review.md and the 2026-10-17 unfinished-review.md, read and built on)",
+  "confidence": "medium",
+  "caveats": "Several gaps limit the reading. There is no truth file, so his numbers are what we saw (floors), and when he started his advanced and air plants is unknown. The record-reading tools take record-0 only, so seats 1 and 2 were read through scratch dirs with each record linked as record-0. Per-seat 1.5x windows compare one seat with his whole seen army, so the side's sums were computed by hand. pro_baseline is the 1v1 pool; a team seat holds about a third of our half, and its pressure rows read '-' for every seat. raid_ledger's 'answered 0' for seats 1 and 2 may be a tool artifact. impedance_sweep was not rerun; its 2026-10-16 review was read instead. There is no ledger row and no review.md. No person spoke except 'gg wp', so every 'because' here is the reader's reading or the commander's own."
+ },
+ "open_questions": [
+  "When did thebluegecko start his advanced vehicle plant and air plant? Neither was ever seen (coracv first seen 17:20). The replay or a truth file would date his tier 2 against our 10:50 choice.",
+  "How many extractors did the two people hold at 10:00 against our 31? This decides whether the side was behind on economy from about 5:00 or only on tech.",
+  "Would one body of all three seats at B5 at 9:20 have broken thebluegecko before his tier 2? This is unmeasured; the side's seen-army lead was 3.7-5.9x.",
+  "Did the 3:20 direction 'They do not go at his commander or his Guards at C4' give up the chance to deny his forward base, which later capped t2 at 9 extractors?",
+  "Our player asked at 18:39 what the people would have done at about 13:00. No answer is in the chat; did either person answer outside the game?"
+ ],
+ "written": "docs/studies/2026-10-22-episode-sweep/rows/1791749780-human-31.json"
+}
