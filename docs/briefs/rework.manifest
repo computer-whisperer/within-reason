@@ -4,6 +4,7 @@
 # their ids; run/brief_coverage.py tallies what of the old brief they cover). Shown by run/brief_view.py as its
 # "Rework" tab; printed by `bot --print-prompt manifest:docs/briefs/rework.manifest`.
 docs/briefs/facts/economy.md
+docs/briefs/facts/fights.md
 docs/briefs/facts/units-economy.md
 docs/briefs/facts/units-land.md
 docs/briefs/facts/units-structures.md
