@@ -165,7 +165,7 @@ blocks, about 3,500 words: distances and the grid, ground and terrain types, met
 where a building may stand, features, sight over coarse ground, wind and tide and the game's standard gravity, where
 the sides start, a catalogue of the nineteen maps with recorded games). Each fact document went to a skeptical Opus
 reader after it was written (the economy's refuted five statements, the fights' sixteen, each checked by hand before
-it was applied); the map model's reading is pending. No derivation, meta or episode document exists yet (the episode
+it was applied; the map model's fifteen, one of which reached back into the fight model: the slope limits are 27, 33 and 54 degrees, the game dividing the angle by 1.5 before the engine multiplies it, which the fight refuter and its check both missed and the engine's own hello shows). No derivation, meta or episode document exists yet (the episode
 sweep's rows are written: docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),

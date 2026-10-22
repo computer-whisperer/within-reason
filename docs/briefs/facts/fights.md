@@ -125,15 +125,15 @@ sea laser among them.
 <!--meta
 id: F-fight-ground
 layer: fact
-sources: {code: [upstream/Beyond-All-Reason/gamedata/movedefs.lua:1-60 (SLOPE, DEPTH, CRUSH), 70-400 (the classes), upstream/RecoilEngine/rts/Sim/MoveTypes/MoveDefHandler.cpp:86-96 (the written angle times 1.5, then 1 minus cosine), upstream/RecoilEngine/rts/Sim/Objects/SolidObject.h:341 (crushable false for units), upstream/RecoilEngine/rts/Sim/Features/Feature.cpp:85, upstream/RecoilEngine/rts/Sim/MoveTypes/MoveMath/MoveMath.cpp:209-217, upstream/Beyond-All-Reason/gamedata/modrules.lua:71 (allowUnitCollisionDamage), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:442 (speed)], game: 54199a0d, claims: [K-engine-a-pushed-tank-crushes-a-light-unit (its mechanism corrected: collisions, not crushing), K-mech-a-low-muzzle-does-not-fire-from-shallow-water]}
+sources: {code: [upstream/Beyond-All-Reason/gamedata/movedefs.lua:1-60 (SLOPE, DEPTH, CRUSH), 70-400 (the classes), upstream/RecoilEngine/rts/Sim/MoveTypes/MoveDefHandler.cpp:86-96 (the written angle times 1.5, then 1 minus cosine), upstream/Beyond-All-Reason/gamedata/movedefs.lua:545-556 (setMaxSlope divides the written angle by 1.5 first, so the net limit is the SLOPE table's 27, 33 and 54), run/matches/1792636232-snapshot-smoke/00/record-0.jsonl (the hello's move_classes max_slope: 54.0, 27.0, 33.0 degrees), upstream/RecoilEngine/rts/Sim/Objects/SolidObject.h:341 (crushable false for units), upstream/RecoilEngine/rts/Sim/Features/Feature.cpp:85, upstream/RecoilEngine/rts/Sim/MoveTypes/MoveMath/MoveMath.cpp:209-217, upstream/Beyond-All-Reason/gamedata/modrules.lua:71 (allowUnitCollisionDamage), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:442 (speed)], game: 54199a0d, claims: [K-engine-a-pushed-tank-crushes-a-light-unit (its mechanism corrected: collisions, not crushing), K-mech-a-low-muzzle-does-not-fire-from-shallow-water]}
 status: live
 -->
 ### Ground: slopes, water, crushing
 
 Speeds in the unit tables are elmos a second on the flat; slopes slow a unit by its class's factor and stop it at its
-limit. The engine reads the classes' limits generously (it scales the written angle by one and a half before taking
-the cosine): tanks climb to about 40 degrees, hovercraft to about 50, bots and the commander to about 80, so ground a
-bot crosses can wall a tank. Tanks and bots wade water to 20 deep (the Tick to 5); the commander, the amphibious bots
+limit: tanks climb to 27 degrees, hovercraft to 33, bots and the commander to 54, so ground a bot crosses can wall a
+tank. (The game writes each class's angle divided by one and a half and the engine multiplies it back; the engine
+reports these limits in every game's hello, and the record of 2026-10-22 shows 54.0, 27.0 and 33.0.) Tanks and bots wade water to 20 deep (the Tick to 5); the commander, the amphibious bots
 and the amphibious tanks walk the sea floor; hovercraft cross water at speed; ships need 8 of depth and submarines 15.
 A unit standing in water with its muzzle under the surface cannot fire. Units push each other and are never crushed
 (only wrecks and trees are crushable), but skidding collisions do damage, which is the likely death of the light units
