@@ -3,12 +3,13 @@
 records for every team of it, so run/army_use.py, run/batch_trade.py, run/contact_use.py and the viewer read it as
 they read an arena match.
 
-    run/replay_match.py <demo.sdfz> [--label NAME] [--timeout SECONDS] [--port N]
+    run/replay_match.py <demo.sdfz> [--label NAME] [--timeout SECONDS] [--kill-on-timeout] [--port N]
 
 Makes run/matches/<unix time>-replay-<label>/ from run/replay-template/ (the LuaUI widget replay_dump.lua does the
 writing: record-<team>.jsonl and truth-<team>.jsonl per team), copies the demo in, runs `spring-headless` on it with
 the arena's data directory (the engine build the demo's header names when run/engines has it, else run/engine), and
-prints where the records are. The game version the demo names must be in run/data
+prints where the records are. On `--timeout` the engine is left running (a slow replay by hand is not lost) unless
+`--kill-on-timeout` is given, which a batch passes so the port is free for the next demo. The game version the demo names must be in run/data
 (pr-downloader --download-game "<full name>", docs/harness/engine.md); the engine says so in infolog.txt if not.
 """
 import os, re, shutil, subprocess, sys, time
@@ -23,6 +24,7 @@ def main():
     demo = os.path.abspath(args[0])
     label = args[args.index("--label") + 1] if "--label" in args else re.sub(r"[^A-Za-z0-9]+", "-", os.path.basename(demo))[:40]
     timeout = float(args[args.index("--timeout") + 1]) if "--timeout" in args else 3600
+    kill_on_timeout = "--kill-on-timeout" in args
     out = os.path.join(REPO, "run", "matches", f"{int(time.time())}-replay-{label}")
     shutil.copytree(os.path.join(REPO, "run", "replay-template"), out)
     shutil.copy(demo, os.path.join(out, os.path.basename(demo)))
@@ -53,7 +55,16 @@ def main():
     try:
         engine.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"engine still running after {timeout:.0f} s; leaving it (stop it with run/stop_match.py {out})")
+        if not kill_on_timeout:
+            print(f"engine still running after {timeout:.0f} s; leaving it (stop it with run/stop_match.py {out})")
+            return
+        engine.terminate()
+        try:
+            engine.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            engine.kill()
+            engine.wait()
+        print(f"engine killed after {timeout:.0f} s (--kill-on-timeout); no records: {out}")
         return
     written = os.path.join(out, "LuaUI", "Config", "within-reason")
     for name in sorted(os.listdir(written)) if os.path.isdir(written) else []:

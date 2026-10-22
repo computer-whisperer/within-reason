@@ -183,3 +183,16 @@ writes to `luaui/config/` and `luaui/widgets/` (`userWritableFolders`): every `i
 and the match directory ends with no records (the first Center Command replay, `1792466245-replay-center-command-2v4`).
 The widget now writes under `LuaUI/Config/within-reason/` and the runner moves the files up when the engine exits.
 Watch infolog.txt for that message when the game moves the folders again.
+
+## A batch of long replays with one flat timeout recycles held ports (2026-10-22)
+
+The first 8v8 batch (`run/replays/replay.py --parallel 8`) gave every demo an hour and left a timed-out engine
+running, as `run/replay_match.py` does for a replay by hand. Eight 8v8 engines at once run at about 0.6 of game
+speed, so three games over 40 minutes timed out with their engines still on their ports; the three ports went
+back into the pool, every later engine on them died in two seconds (the port taken), and the three fast-failing
+slots ate the remaining 23 demos of the stage in a minute while the five good slots were still replaying. The
+runner's log is block-buffered when written to a file, so the stage looked healthy until it ended. Now: the
+timeout is four times the game's length plus ten minutes (at least an hour), the batch passes
+`--kill-on-timeout`, a port that is still held after a failure is retired from the pool and said, a failure under
+a minute prints the runner's last lines, and the log is line-buffered. When a batch shows failures in seconds,
+look for an engine still holding the port before anything else.
