@@ -12,16 +12,17 @@ short name ("mixed" when both). What the tables say:
 
 - the set: games, dates, versions, durations, who won by side kind, the people's OS, the AI side's handicap;
 - the side curves by minute, the seats summed (extractors, constructors, metal and energy income, army metal,
-  soldiers, and the metal sent within the side when the cards carry transfers), quartiles over sides by kind and
-  result;
+  soldiers, and when the cards carry transfers the metal and energy sent within the side by the engine's figure,
+  which counts a full store's overflow, and the metal and energy given by hand, the player list's gift lines, which
+  AIs never write), quartiles over sides by kind and result;
 - the seats by lane (1 the west-most or north-most start of the side): what each lane's first plant was, how often
   it opened air, when it put up an advanced plant, its income and army share at 10:00 and 20:00, what it sent and
   received;
 - the choreography of a side: the air seat's lane, the first advanced plant's lane and clock, how many seats had an
   advanced plant by 10:00, 15:00 and 20:00, the top receiver of metal and its role, the share of the army the three
-  largest seats held;
-- the unit selection by role (air seat, the first tech seat, the economy seat with most converters and fusions,
-  the lane seats): what each role built most, by count, over the pool;
+  largest seats held, the gifts by hand and the largest flows by lane, the seats taken over after a player left;
+- the unit selection by role (one role a seat: the first tech seat, the air seat, the economy seat with most
+  converters and fusions, the lane seats): what each role built most, by count, over the pool;
 - the players' chat lines that speak of roles and transfers (air, tech, t2, metal, energy, send, share), a sample.
 
 Floors, not values, where the cards cut off: a side that lost a seat early sums fewer seats. Say so when quoting.
@@ -114,29 +115,42 @@ def load(args):
         if args.min_mean_os and (not oss or st.mean(oss) < args.min_mean_os):
             continue
         out.append({"id": (r or {}).get("id") or card.get("id") or card.get("match"), "date": ((r or {}).get("start_time") or "")[:10], "version": ((r or {}).get("game_version") or card.get("game_version") or "")[-13:],
-                    "duration": secs(card.get("duration")), "sides": sides, "card": card, "match": card.get("match")})
+                    "duration": secs(card.get("duration")), "sides": sides, "card": card, "match": card.get("match"), "ended": (r or {}).get("ended")})
     return out
 
 
 def side_sum(side, minute, key):
+    """The side's seats summed at the minute; `gift:metal` and `gift:energy` sum the player list's gift lines to the
+    minute (None before the cards carried transfers, and after the game's end)."""
+    if key.startswith("gift:"):
+        if not any(t.get("transfers") for t in side["teams"]) or all(at(t, minute, "extractors") is None for t in side["teams"]):
+            return None
+        return sum(g["amount"] for t in side["teams"] for g in t.get("gifts") or [] if g["resource"] == key[5:] and secs(g["clock"]) <= minute * 60)
     vals = [at(t, minute, key) for t in side["teams"]]
     vals = [v for v in vals if v is not None]
     return sum(vals) if vals else None
 
 
+def opened_air(t):
+    return (t.get("factories") or [{}])[0].get("kind") in ("air", "advanced air", "seaplanes")
+
+
 def roles_of(side):
-    """Role words per seat of a side: air (the first plant an air plant), tech (the side's earliest advanced plant),
-    eco (the most converters and fusions, at least four), lane (the rest); a seat may carry several."""
+    """One role a seat: tech (the side's earliest advanced plant), air (the first plant an air plant, when it is not
+    the tech seat), eco (the most converters and fusions, at least four, among the rest), lane (the rest). The sets
+    hold one word each; the choreography counts air seats from the plants themselves, so an air seat that teched
+    first is still an air opening there."""
     roles = {t["team"]: set() for t in side["teams"]}
-    for t in side["teams"]:
-        f = t.get("factories") or []
-        if f and f[0].get("kind") in ("air", "advanced air", "seaplanes"):
-            roles[t["team"]].add("air")
     adv = [(secs(t["first_advanced_plant"]["started"]), t["team"]) for t in side["teams"] if t.get("first_advanced_plant")]
     if adv:
         roles[min(adv)[1]].add("tech")
+    for t in side["teams"]:
+        if not roles[t["team"]] and opened_air(t):
+            roles[t["team"]].add("air")
     eco = []
     for t in side["teams"]:
+        if roles[t["team"]]:
+            continue
         b = t.get("built") or {}
         n = sum(v for k, v in b.items() if k.endswith(("makr", "mmkr", "fus", "afus", "ckfus", "geo", "ageo", "gmm")))
         eco.append((n, t["team"]))
@@ -186,8 +200,10 @@ def main():
 
     # Side curves
     out += ["", "## The sides by minute (seats summed; p25 / median / p75 over sides, or the values when three or fewer)", ""]
-    for key, label in (("extractors", "extractors"), ("constructors", "constructors"), ("metal_income", "metal income"), ("energy_income", "energy income"), ("army_metal", "army metal"), ("soldiers", "soldiers"), ("metal_sent", "metal sent within the side, cumulative"), ("energy_sent", "energy sent within the side, cumulative")):
-        cols = [f"{k} {'won' if w else 'lost' if w is False else '?'} (n={len(v)})" for (k, w), v in groups.items()]
+    for key, label in (("extractors", "extractors"), ("constructors", "constructors"), ("metal_income", "metal income"), ("energy_income", "energy income"), ("army_metal", "army metal"), ("soldiers", "soldiers"),
+                       ("metal_sent", "metal sent within the side, cumulative (the engine's figure: gifts by hand and a full store's overflow)"), ("energy_sent", "energy sent within the side, cumulative (the engine's figure)"),
+                       ("gift:metal", "metal given by hand, cumulative (the player list's gift lines; AIs write none)"), ("gift:energy", "energy given by hand, cumulative (the gift lines)")):
+        cols = [f"{k} {'won' if w else 'lost' if w is False else 'no result'} (n={len(v)})" for (k, w), v in groups.items()]
         rows = []
         for m in MINUTES:
             cells = [q([side_sum(s, m, key) for s in v]) for v in groups.values()]
@@ -207,16 +223,17 @@ def main():
                     by_lane[t["lane"]].append(t)
         if not by_lane:
             continue
-        out += [f"**{kind} {'won' if w else 'lost' if w is False else '?'}** (n={len(v)} sides)", "",
-                "| lane | first plant | air first | advanced plant (sides) | advanced plant clock | income 10:00 | income 20:00 | army 10:00 | army 20:00 | metal sent | metal received |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+        out += [f"**{kind} {'won' if w else 'lost' if w is False else 'no result'}** (n={len(v)} sides)", "",
+                "| lane | first plant | air first | advanced plant (sides) | advanced plant clock | income 10:00 | income 20:00 | army 10:00 | army 20:00 | metal sent | by hand | metal received |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for lane in sorted(by_lane):
             ts = by_lane[lane]
             first = collections.Counter((t.get("factories") or [{}])[0].get("kind", "none") for t in ts)
-            air = sum(1 for t in ts if (t.get("factories") or [{}])[0].get("kind") in ("air", "advanced air"))
+            air = sum(1 for t in ts if opened_air(t))
             adv = [secs(t["first_advanced_plant"]["started"]) for t in ts if t.get("first_advanced_plant")]
             sent = [t["transfers"]["metal_sent"] for t in ts if t.get("transfers")]
+            hand = [t["transfers"].get("metal_given", 0) for t in ts if t.get("transfers") and "metal_given" in t["transfers"]]
             recv = [t["transfers"]["metal_received"] for t in ts if t.get("transfers")]
-            out.append(f"| {lane} | " + ", ".join(f"{k} {n}" for k, n in first.most_common(3)) + f" | {air} of {len(ts)} | {len(adv)} of {len(ts)} | {q(adv, 'clock')} | {q([at(t, 10, 'metal_income') for t in ts])} | {q([at(t, 20, 'metal_income') for t in ts])} | {q([at(t, 10, 'army_metal') for t in ts])} | {q([at(t, 20, 'army_metal') for t in ts])} | {q(sent)} | {q(recv)} |")
+            out.append(f"| {lane} | " + ", ".join(f"{k} {n}" for k, n in first.most_common(3)) + f" | {air} of {len(ts)} | {len(adv)} of {len(ts)} | {q(adv, 'clock')} | {q([at(t, 10, 'metal_income') for t in ts])} | {q([at(t, 20, 'metal_income') for t in ts])} | {q([at(t, 10, 'army_metal') for t in ts])} | {q([at(t, 20, 'army_metal') for t in ts])} | {q(sent)} | {q(hand)} | {q(recv)} |")
         out.append("")
 
     # Choreography
@@ -232,15 +249,32 @@ def main():
         recv_share = []
         sent_total = {10: [], 20: []}
         sides_with_air = 0
+        gifts_m, gifts_e, by_hand, seats_left = [], [], [], []
+        flows = collections.Counter()
         for s in v:
             roles = roles_of(s)
             airs = [(secs(t["first_air_plant"]["started"]), t) for t in s["teams"] if t.get("first_air_plant")]
             if airs:
                 c, t = min(airs)
                 air_clock.append(c)
-                if "air" in roles[t["team"]]:
+                if opened_air(t):
                     sides_with_air += 1
                     air_lanes[t.get("lane")] += 1
+            name_lane = {(t.get("_seat") or {}).get("name"): t.get("lane") for t in s["teams"]}
+            gm = ge = 0
+            for t in s["teams"]:
+                for g in t.get("gifts") or []:
+                    if g["resource"] == "metal":
+                        gm += g["amount"]
+                        flows[(t.get("lane"), name_lane.get(g["to"]))] += g["amount"]
+                    else:
+                        ge += g["amount"]
+                for x in t.get("took_over") or []:
+                    seats_left.append(secs(x["clock"]))
+            if any("metal_given" in (t.get("transfers") or {}) for t in s["teams"]):
+                gifts_m.append(gm)
+                gifts_e.append(ge)
+                by_hand.append(sum(t["transfers"].get("metal_sent_by_hand", 0) for t in s["teams"] if t.get("transfers")))
             adv = sorted((secs(t["first_advanced_plant"]["started"]), t) for t in s["teams"] if t.get("first_advanced_plant"))
             if adv:
                 tech_clock.append(adv[0][0])
@@ -260,11 +294,17 @@ def main():
                     recv_share.append(x / total_recv)
                 for m in sent_total:
                     sent_total[m].append(side_sum(s, m, "metal_sent"))
-        out.append(f"**{kind} {'won' if w else 'lost' if w is False else '?'}** (n={len(v)} sides): a seat opening on an air plant in {sides_with_air} of {len(v)}" + (f", at lane {dict(air_lanes.most_common(3))}" if air_lanes else "")
+        gift_text = ""
+        if gifts_m:
+            top = ", ".join(f"lane {a} to lane {b} {n:,}" for (a, b), n in flows.most_common(4))
+            gift_text = (f"; gifts by hand per side {q(gifts_m)} metal and {q(gifts_e)} energy (the player list's lines), metal sent with the store below nine tenths {q(by_hand)}"
+                         + (f"; the largest metal flows by lane, summed over the sides: {top}" if top else "")
+                         + (f"; seats taken over after a player left: {len(seats_left)} at {q(seats_left, 'clock')}" if seats_left else "; no seat taken over"))
+        out.append(f"**{kind} {'won' if w else 'lost' if w is False else 'no result'}** (n={len(v)} sides): a seat opening on an air plant in {sides_with_air} of {len(v)}" + (f", at lane {dict(air_lanes.most_common(3))}" if air_lanes else "")
                    + f"; the side's first air plant at {q(air_clock, 'clock')}; the first advanced plant at {q(tech_clock, 'clock')}" + (f" by lane {dict(tech_lanes.most_common(4))}" if tech_lanes else "")
                    + f"; seats with an advanced plant by 10:00 {q(n_adv[10])}, by 15:00 {q(n_adv[15])}, by 20:00 {q(n_adv[20])}"
                    + f"; the three largest armies' share of the side's army at 10:00 {q(top3[10], digits=2)}, at 20:00 {q(top3[20], digits=2)}"
-                   + (f"; metal sent within the side by 10:00 {q(sent_total[10])}, by 20:00 {q(sent_total[20])}; the top receiver (lane, roles) {dict(receivers.most_common(4))} with {q(recv_share, digits=2)} of what was received" if receivers else "; no transfer data (cards from before 2026-10-22)") + ".")
+                   + (f"; metal sent within the side by 10:00 {q(sent_total[10])}, by 20:00 {q(sent_total[20])} (the engine's figure); the top receiver (lane, role) {dict(receivers.most_common(4))} with {q(recv_share, digits=2)} of what was received" if receivers else "; no transfer data (cards from before 2026-10-22)") + gift_text + ".")
     out.append("")
 
     # Unit selection by role
@@ -281,7 +321,7 @@ def main():
                         by_role[r][k] += n
         for r in ("air", "tech", "eco", "lane"):
             if by_role.get(r):
-                out.append(f"- **{kind} {'won' if w else 'lost' if w is False else '?'}, {r}** ({seats_in_role[r]} seats): " + ", ".join(f"{k} {n}" for k, n in by_role[r].most_common(10)))
+                out.append(f"- **{kind} {'won' if w else 'lost' if w is False else 'no result'}, {r}** ({seats_in_role[r]} seats): " + ", ".join(f"{k} {n}" for k, n in by_role[r].most_common(10)))
     out.append("")
 
     # Chat
@@ -297,7 +337,7 @@ def main():
         out += [f"- {l}" for l in lines[: a.chat]]
     out += ["", "## Games", ""]
     for g in games:
-        out.append(f"- {g['id'][:8]} {g['date']} {g['version']} {clock(g['duration'])}: " + "; ".join(f"side {s['ally']} {s['kind']}" + (f" +{s['handicap']}" if s['handicap'] else "") + (" won" if s["won"] else " lost" if s["won"] is False else "") for s in g["sides"]) + f" ({g['match']})")
+        out.append(f"- {g['id'][:8]} {g['date']} {g['version']} {clock(g['duration'])}" + (" (stopped before the end)" if g.get("ended") is False else "") + ": " + "; ".join(f"side {s['ally']} {s['kind']}" + (f" +{s['handicap']}" if s['handicap'] else "") + (" won" if s["won"] else " lost" if s["won"] is False else "") for s in g["sides"]) + f" ({g['match']})")
     print("\n".join(out))
 
 

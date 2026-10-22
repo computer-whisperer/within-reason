@@ -99,10 +99,12 @@ def line_of(detail, why):
     for at in detail.get("AllyTeams", []):
         kinds[at.get("allyTeamId")] = {"players": len(at.get("Players", [])), "ais": len(at.get("AIs", []))}
         for p in at.get("Players", []):
-            players.append({"name": p.get("name"), "os": os_of(p), "rank": p.get("rank"), "faction": p.get("faction"), "team": p.get("teamId"), "ally": p.get("allyTeamId"), "start": p.get("startPos")})
+            # A player's own allyTeamId is the database id of its ally team row; the ally team's allyTeamId is the
+            # in-game number (which `winningTeam` names), so every seat takes the latter.
+            players.append({"name": p.get("name"), "os": os_of(p), "rank": p.get("rank"), "faction": p.get("faction"), "team": p.get("teamId"), "ally": at.get("allyTeamId"), "start": p.get("startPos")})
         for a in at.get("AIs", []):
             # The API gives an AI its ally team and not its team number; the card reads the number from the start script.
-            players.append({"name": a.get("name") or a.get("shortName"), "os": None, "rank": None, "faction": a.get("faction"), "team": None, "ally": a.get("allyTeamId"), "start": a.get("startPos"), "ai": a.get("shortName"), "handicap": a.get("handicap")})
+            players.append({"name": a.get("name") or a.get("shortName"), "os": None, "rank": None, "faction": a.get("faction"), "team": None, "ally": at.get("allyTeamId"), "start": a.get("startPos"), "ai": a.get("shortName"), "handicap": a.get("handicap")})
         if at.get("winningTeam"):
             winner = at.get("allyTeamId")
     m = detail.get("Map") or {}

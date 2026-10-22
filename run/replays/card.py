@@ -19,12 +19,24 @@ cells where most units died, by minute). Spot numbers are the record's metal spo
 so cards from one map speak of the same spots. Lanes: the seats of a side ranked along the axis their starts spread
 most on (west to east, or north to south), 1 first; a team game's seats read as lanes that way.
 """
-import glob, json, os, sys
+import glob, json, os, re, sys
 from collections import Counter, defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import startscript  # noqa: E402
+
+# The game's player list writes a seat's gifts, take-overs and asks into the side's chat as
+# `ui.playersList.chat.<kind>:field=value:...` (giveMetal and giveEnergy with the amount and the receiver's name,
+# takeTeamAmount when a seat takes a departed player's units and stores, needEnergy, needSupport).
+UI_LINE = re.compile(r"ui\.playersList\.chat\.(\w+)((?::\w+=[^:]*)*)")
+
+
+def _num(v):
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return 0
 
 FPS = 30
 FACTORY_KINDS = {"lab": "bots", "vp": "vehicles", "ap": "air", "hp": "hovers", "sy": "ships", "fhp": "hovers", "plat": "seaplanes", "amsub": "amphibious",
@@ -200,7 +212,7 @@ def team_card(rec, until_frames):
     commander = None
     built = Counter()
     given, taken = [], []
-    chat = []
+    chat, gifts, took_over, ui_lines = [], [], [], []
     for e in rec.events:
         k = e.get("k")
         if k == "given":
@@ -208,7 +220,20 @@ def team_card(rec, until_frames):
         elif k == "taken":
             taken.append({"clock": clock(e["f"]), "unit": rec.name(e.get("d")), "to_team": e.get("to_team")})
         elif k == "chat":
-            chat.append({"clock": clock(e["f"]), "text": e.get("text", "")})
+            # The player list's lines (UI_LINE) are the deliberate transfers, told apart from the engine's cumulative
+            # figure, which counts a full store's overflow too; the players' own words stay in `chat`.
+            text = e.get("text", "")
+            m = UI_LINE.search(text)
+            if not m:
+                chat.append({"clock": clock(e["f"]), "text": text})
+                continue
+            kind, fields = m.group(1), dict(re.findall(r":(\w+)=([^:]*)", m.group(2)))
+            if kind in ("giveMetal", "giveEnergy"):
+                gifts.append({"clock": clock(e["f"]), "resource": "metal" if kind == "giveMetal" else "energy", "amount": _num(fields.get("amount")), "to": fields.get("name")})
+            elif kind == "takeTeamAmount":
+                took_over.append({"clock": clock(e["f"]), "from": fields.get("name"), "units": _num(fields.get("units")), "metal": _num(fields.get("metal")), "energy": _num(fields.get("energy"))})
+            else:
+                ui_lines.append({"clock": clock(e["f"]), "kind": kind, **fields})
         if k == "created":
             own_ids.add(e["u"])
             d = e.get("d")
@@ -313,10 +338,28 @@ def team_card(rec, until_frames):
     last = curves[-1] if curves else {}
     transfers = None
     if "metal_sent" in last:
+        # The engine's sent figure split by the store the second before: at or above nine tenths of storage the increment
+        # is the full store's overflow to the side (the share level is 0.99 for metal and 0.95 for energy by default),
+        # below it a gift by hand. The player list's gift lines are the exact reading for people; AIs write none.
+        split = {"metal": [0, 0], "energy": [0, 0]}  # by hand, overflow
+        prev = None
+        for smp in rec.samples:
+            if prev is not None and smp.get("tr") and prev.get("tr"):
+                for i, res, key in ((0, "metal", "m"), (2, "energy", "e")):
+                    d = smp["tr"][i] - prev["tr"][i]
+                    if d > 0:
+                        store = prev.get(key) or [0, 0, 0, 0]
+                        split[res][1 if store[3] > 0 and store[0] >= 0.9 * store[3] else 0] += d
+            prev = smp
         first_sent = next((c["minute"] for c in curves if c.get("metal_sent", 0) + c.get("energy_sent", 0) >= 500), None)
         first_received = next((c["minute"] for c in curves if c.get("metal_received", 0) + c.get("energy_received", 0) >= 500), None)
-        transfers = {"metal_sent": last["metal_sent"], "metal_received": last["metal_received"], "energy_sent": last["energy_sent"], "energy_received": last["energy_received"],
-                     "units_sent": last["units_sent"], "units_received": last["units_received"], "first_minute_sent": first_sent, "first_minute_received": first_received}
+        # The totals from the last sample, not the last whole minute: a seat gave 4,000 metal away in a game's last 48 s.
+        end = next((smp["tr"] for smp in reversed(rec.samples) if smp.get("tr")), None) or [last["metal_sent"], last["metal_received"], last["energy_sent"], last["energy_received"], last["units_sent"], last["units_received"]]
+        transfers = {"metal_sent": end[0], "metal_received": end[1], "energy_sent": end[2], "energy_received": end[3],
+                     "units_sent": end[4], "units_received": end[5], "first_minute_sent": first_sent, "first_minute_received": first_received,
+                     "metal_sent_by_hand": split["metal"][0], "metal_sent_overflow": split["metal"][1], "energy_sent_by_hand": split["energy"][0], "energy_sent_overflow": split["energy"][1],
+                     "metal_given": sum(g["amount"] for g in gifts if g["resource"] == "metal"), "energy_given": sum(g["amount"] for g in gifts if g["resource"] == "energy"),
+                     "gifts": len(gifts), "first_gift": gifts[0]["clock"] if gifts else None}
     return {
         "team": rec.header.get("team"), "ally_team": rec.header.get("ally_team"), "side": side_of(order, rec.header.get("side")), "start": start,
         "build_order": order, "factories": plants, "first_air_plant": first_air, "first_advanced_plant": first_advanced, "first_tier2": first_t2, "first_tier2_unit": first_t2_unit,
@@ -325,6 +368,7 @@ def team_card(rec, until_frames):
         "pressure": {k: v for k, v in press.items() if k != "in_his_half"},
         "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "end_kills": dict(end_kills.most_common()), "fights": fights_out,
         "built": dict(built.most_common()), "transfers": transfers, "units_given": given, "units_taken": taken, "chat": chat,
+        "gifts": gifts, "took_over": took_over, "ui_lines": ui_lines,
     }
 
 
@@ -365,6 +409,15 @@ def markdown(card):
             seat.append(f"sent {tr['metal_sent']:,} metal and {tr['energy_sent']:,} energy to the side" + (f" from minute {tr['first_minute_sent']}" if tr.get("first_minute_sent") is not None else "")
                         + f", received {tr['metal_received']:,} metal and {tr['energy_received']:,} energy" + (f" from minute {tr['first_minute_received']}" if tr.get("first_minute_received") is not None else "")
                         + (f", {tr['units_sent']} units given away, {tr['units_received']} received" if tr["units_sent"] or tr["units_received"] else ""))
+            if "metal_sent_by_hand" in tr:
+                seat.append(f"of the metal sent {tr['metal_sent_by_hand']:,} went with the store below nine tenths and {tr['metal_sent_overflow']:,} as a full store's overflow, of the energy {tr['energy_sent_by_hand']:,} and {tr['energy_sent_overflow']:,}")
+        if t.get("gifts"):
+            c = Counter(g["to"] for g in t["gifts"])
+            seat.append(f"gave by hand {sum(g['amount'] for g in t['gifts'] if g['resource'] == 'metal'):,} metal and {sum(g['amount'] for g in t['gifts'] if g['resource'] == 'energy'):,} energy in {len(t['gifts'])} gifts from {t['gifts'][0]['clock']}, to " + ", ".join(f"{w} ({n})" for w, n in c.most_common(4)))
+        if t.get("took_over"):
+            seat.append("took over " + ", ".join(f"{x['from']}'s seat at {x['clock']} ({x['units']} units, {x['metal']:,} metal, {x['energy']:,} energy)" for x in t["took_over"]))
+        if t.get("ui_lines"):
+            seat.append("asked the side: " + ", ".join(f"{u['kind']} at {u['clock']}" for u in t["ui_lines"][:6]))
         if t.get("units_given"):
             c = Counter((g["unit"], g["from_team"]) for g in t["units_given"])
             seat.append("received " + ", ".join(f"{n} {u} from team {f}" for (u, f), n in c.most_common(5)))
@@ -434,7 +487,9 @@ def main():
     winners = next((r.result.get("winners") for r in recs if r.result and r.result.get("winners")), None)
     if winners is None and entry and entry.get("winner_ally") is not None:
         names = set(entry.get("winners") or [])
-        winners = sorted({p["ally"] for p in players if p["name"] in names and p.get("ally") is not None})
+        # The API's winner is the side's in-game number; its player rows carry database ids as their ally (the
+        # picker's name list was empty for every 8v8 row until 2026-10-22), so the number itself is the fallback.
+        winners = sorted({p["ally"] for p in players if p["name"] in names and p.get("ally") is not None}) or [entry["winner_ally"]]
     for p in players:
         p["won"] = (p.get("ally") in winners) if winners else None
         t = by_team.get(p.get("team"))
