@@ -82,7 +82,7 @@ def load(args):
     if os.path.exists(args.manifest) and not (args.match and not (args.map or args.sides or args.ais)):
         rows = [json.loads(l) for l in open(args.manifest) if l.strip()]
     for r in rows:
-        if not (r.get("keep") and r.get("card") and r.get("match")):
+        if not (r.get("keep") and r.get("match")):  # the card on disk decides, not the batch's flag (a re-card after a failed one)
             continue
         if args.map and r.get("map_script") != args.map:
             continue
@@ -255,7 +255,7 @@ def main():
             roles = roles_of(s)
             airs = [(secs(t["first_air_plant"]["started"]), t) for t in s["teams"] if t.get("first_air_plant")]
             if airs:
-                c, t = min(airs)
+                c, t = min(airs, key=lambda x: x[0])
                 air_clock.append(c)
                 if opened_air(t):
                     sides_with_air += 1
@@ -275,7 +275,7 @@ def main():
                 gifts_m.append(gm)
                 gifts_e.append(ge)
                 by_hand.append(sum(t["transfers"].get("metal_sent_by_hand", 0) for t in s["teams"] if t.get("transfers")))
-            adv = sorted((secs(t["first_advanced_plant"]["started"]), t) for t in s["teams"] if t.get("first_advanced_plant"))
+            adv = sorted(((secs(t["first_advanced_plant"]["started"]), t) for t in s["teams"] if t.get("first_advanced_plant")), key=lambda x: x[0])
             if adv:
                 tech_clock.append(adv[0][0])
                 tech_lanes[adv[0][1].get("lane")] += 1

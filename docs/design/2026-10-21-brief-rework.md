@@ -223,8 +223,11 @@ from premises produces different text.
   167 kept 8v8 games on Glitters (81 of people, 45 against BARb, 40 against SMRTBARb, one against RR03Barb4) and the
   user's nine client demos; the batch replays them on eight engines, SMRTBARb first. Found on the way: the two
   SMRTBARb games were played at +65 and +60 resource bonus for the AIs (the start script's handicap), which the
-  formats document now says; its SMRTBARb block is rewritten from the forty games when they are carded
-  (docs/design/2026-09-23-replay-survey.md, the 2026-10-22 status).
+  formats document now says. **The forty SMRTBARb games carded (2026-10-22, later):** the 8v8 and SMRTBARb blocks
+  rewritten from them (the roles by lane on both sides, the gifts by hand told from the store's overflow by the
+  player list's chat lines, the pressure clocks by lane, the side curves, what each role built, the players' words);
+  the BARb and people's sets follow as the batch lands them (docs/design/2026-09-23-replay-survey.md, the
+  2026-10-22 statuses).
 - **Episodes** are an index, not prose: the game, what it showed, its defects, its lens, the derivations it tests.
   Those with a lesson resting on a fixed defect are indexed with the defect and no lesson. The episode sweep of
   2026-10-22 (`docs/studies/2026-10-22-episode-sweep/`: 57 Opus readers, one per game with people, 13.8 M tokens)

@@ -60,8 +60,13 @@ class Record:
         self.header = json.loads(lines[0])
         self.defs = self.header["unit_defs"]
         self.events, self.samples, self.result = [], [], None
+        self.unreadable = 0  # lines cut mid-write (one game of forty had five records cut at the same frame)
         for line in lines[1:]:
-            o = json.loads(line)
+            try:
+                o = json.loads(line)
+            except ValueError:
+                self.unreadable += 1
+                continue
             t = o.get("t")
             if t == "ev":
                 self.events.append(o)
@@ -368,7 +373,7 @@ def team_card(rec, until_frames):
         "pressure": {k: v for k, v in press.items() if k != "in_his_half"},
         "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "end_kills": dict(end_kills.most_common()), "fights": fights_out,
         "built": dict(built.most_common()), "transfers": transfers, "units_given": given, "units_taken": taken, "chat": chat,
-        "gifts": gifts, "took_over": took_over, "ui_lines": ui_lines,
+        "gifts": gifts, "took_over": took_over, "ui_lines": ui_lines, "unreadable_lines": rec.unreadable,
     }
 
 
@@ -424,6 +429,8 @@ def markdown(card):
         if t.get("units_taken"):
             c = Counter((g["unit"], g["to_team"]) for g in t["units_taken"])
             seat.append("gave " + ", ".join(f"{n} {u} to team {f}" for (u, f), n in c.most_common(5)))
+        if t.get("unreadable_lines"):
+            seat.append(f"{t['unreadable_lines']} record lines cut mid-write and skipped")
         if seat:
             out.append("Seat: " + "; ".join(seat) + ".")
         if t.get("built"):

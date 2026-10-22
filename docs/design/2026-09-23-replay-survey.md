@@ -187,3 +187,24 @@ advanced bot lab at 2:28 and 2:39, income 714 and 742 at 20:00, no army), lane 5
 and 1:14), the largest armies at 20:00 on lanes 1, 2 and 8 (12,000 to 16,000 each), every seat with an advanced
 plant by 15:00; the people's two sides (the same lobby twice) opened air on lane 3 both times and teched first on
 lane 5 at 3:00 and 3:23.
+
+**2026-10-22, later: the SMRTBARb stage done, forty games carded.** The first batch gave every demo an hour and left a
+timed-out engine on its port (eight 8v8 engines at once run at 0.6 of game speed): three long games timed out,
+their ports went back into the pool and the fast-failing slots ate the remaining 23 demos in a minute. The runner
+now gives each demo four times its length plus ten minutes, kills the engine at that, retires a held port and
+line-buffers its log (docs/harness/pitfalls.md). The second batch replayed the remaining 26 SMRTBARb games with no
+failure (about two hours on eight engines), and the BARb stage (51 demos) and the people's games follow. Found on the
+way: the game's player list writes every deliberate gift into the side's chat (`ui.playersList.chat.giveMetal:amount=
+N:name=<receiver>`, `giveEnergy`, `takeTeamAmount` when a seat takes over a departed player), so the card counts gifts
+by hand apart from the engine's cumulative sent figure, which is mostly a full store's overflow (the AIs give nothing
+by hand; the people's 320 seats gave 2,000 metal a side median, 10,000 in the won sides); the replay API's player rows
+carry a database id as their ally team, so the manifest's 8v8 rows have no winner names (the card falls back to the
+winning side's number; the picker is fixed for new rows; the old rows are repaired from the demos' start scripts
+after the batch ends, never while the runner rewrites the manifest); one game had five records cut mid-write at
+the same frame (the card skips a cut line and says so); the aggregate takes the card on disk rather than the
+batch's flag. The forty-game reading is in docs/briefs/meta/formats.md (M-format-8v8 and M-format-smrtbarb): the
+AIs' tech seat on lane 4 with an advanced bot lab at 2:40 and no army to 16:00, handing an advanced constructor to
+each lane seat; the air seat on lane 5 at 1:20 building tier-2 fighters by the sixty; every lane seat in the
+people's half by 2:20; mohos handed between neighbouring lanes; the people's air seat on lane 3 at 0:57, their tech
+seat on lane 5 at 4:14 fed by hand from lanes 3, 8, 4 and 2, their front crossing at 7:00 to 12:00 or never; the
+side curves; the four wins of 37 made on soldiers from 4:00.
