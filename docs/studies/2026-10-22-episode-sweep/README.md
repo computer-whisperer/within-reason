@@ -4,7 +4,8 @@ Started 2026-10-22 (the user: "start the background run for the episodic memory 
 brief rework (`docs/design/2026-10-21-brief-rework.md`, §2 layer 4, §6 "Episodes") wants episodic memory as an index,
 not prose: for each game, what it showed, the harness defects of its time, the lens it was read through, and what
 in the brief it bears on. Most games with people never had a formal review (17 of 57 have a `review.md`), so this
-sweep reads every one of them with the review skill's instruments and writes one row per game.
+sweep reads every one of them with the review skill's instruments (Opus 5.5 readers, the user's call: background fleets run
+on Opus) and writes one row per game.
 
 ## Inputs
 
