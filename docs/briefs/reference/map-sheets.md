@@ -256,6 +256,21 @@ Every map we have a recorded game on, in one table each. Each sheet's table is c
 | ours | armck (36) | 4 / 19 / 34 / 53 | 32 / 49 / 52 |
 | ours | armcv (54) | 8 / 33 / 66 / 100 | 21 / 32 / 35 |
 
+### Gasbag Grabens 1.1.1
+
+- 9216 by 6144 elmos; wind 4 to 16; tidal 0; 35% under water; ground height -230 to 607.
+- 48 metal spots; a tier-1 extractor draws 2.10 / 2.29 / 2.44 metal a second (lowest / median / highest spot).
+- Starts: G5 (7437, 3484); the table below is from G5, which was ours in the game the sheet was made from.
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 5 / 13 / 24 / 28 | 19 / 42 / 64 |
+| ours | armck (36) | 5 / 13 / 24 / 28 | 19 / 44 / 67 |
+| ours | armcv (54) | 8 / 23 / 28 / 37 | 14 / 32 / 51 |
+
 ### Gecko Isle Remake v1.2.1
 
 - 8192 by 9216 elmos; wind 2 to 16; tidal 25; 30% under water; ground height -110 to 299.
@@ -355,6 +370,21 @@ Every map we have a recorded game on, in one table each. Each sheet's table is c
 | the opponent's | armcom (37.50) | 5 / 14 / 21 / 32 | 29 / 53 / 63 |
 | the opponent's | armck (36) | 5 / 12 / 21 / 31 | 30 / 55 / 65 |
 | the opponent's | armcv (54) | 9 / 16 / 37 / 53 | 20 / 37 / 43 |
+
+### Project SD-129 v1.0
+
+- 14336 by 14336 elmos; wind 0 to 0; tidal 0; 44% under water; ground height -25 to 404.
+- 148 metal spots; a tier-1 extractor draws 1.70 / 1.72 / 3.20 metal a second (lowest / median / highest spot).
+- Starts: G5 (11074, 7185); the table below is from G5, which was ours in the game the sheet was made from.
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 3 / 9 / 24 / 34 | 40 / 64 / 71 |
+| ours | armck (36) | 3 / 9 / 23 / 32 | 42 / 67 / 74 |
+| ours | armcv (54) | 6 / 21 / 36 / 48 | 28 / 49 / 54 |
 
 ### Quicksilver Remake 1.24
 
