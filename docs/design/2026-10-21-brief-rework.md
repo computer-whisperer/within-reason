@@ -278,7 +278,10 @@ compared.
    most of the conversations and can verify the context. Built 2026-10-21; the user's corrections applied the same
    day.
 5. The meta catalogue (written 2026-10-22; see §6's status paragraph).
-6. Derivations in backlog order, clusters first, each with its tests and check.
+6. Derivations in backlog order, clusters first, each with its tests and check. **Begun 2026-10-22:** the root
+   article, `docs/briefs/derived/metal.md` (D-metal-is-the-game), drafted for the user's read in the agreed shape (the
+   heuristic in the players' words, the quantity, the mechanism with premises by id, where it bends, when to depart,
+   the tests with a kill-test not yet run); the unconverted lead is the first branch to write.
 7. The episode index.
 8. The role manifests switched to the new set; the standing brief and the experience brief retired to the archive; the
    control kept runnable from the archive for measurement.
@@ -310,3 +313,13 @@ compared.
   stays for derived reasoning. Nothing is redacted yet; the decision waits on the token count of the whole new brief.
   The mechanism, when wanted: a block status the assembler withholds from every role while the checker, the viewer
   and the derivations' `premises:` still see it (the deprecated status already works this way for the text).
+- **The derived section's shape (2026-10-22).** The user's framing: an article is an honest derivation of a surface
+  heuristic, in the way "a knight on the rim is dim" derives from the squares a knight attacks; the heuristic is
+  reasonable to follow below a certain comprehension level, and the experienced players carry bodies of explanation
+  for why they say it. Both too rigorous and too loose expectations fail: false rigour derives what is meta or picks
+  premises to reach the lesson it started from, and a proof per rule is too long for play; too loose is the current
+  brief, a rule with "because" and one game attached. The agreed shape: the heuristic in the players' words (the line
+  the model may follow blindly), the quantity it protects, the mechanism with fact and meta premises named apart, the
+  scope (where it bends and when to depart), and the tests with one cheap kill-test and an honest status; an article
+  may conclude "not derivable from the facts, stands as meta". The root is thebluegecko's metal-first, with the
+  user's dispute inside it (metal spent, not metal; the sign; the horizon; the end; the side's metal in a team).

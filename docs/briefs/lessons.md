@@ -116,6 +116,20 @@ priority, which the pros' replays show set low on the commander while it assists
 ### Extractors decide the game
 
 <!--meta
+id: L-metal-first
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-22], relay: the user, paraphrased from memory in the brief-rework discussion}
+status: live
+-->
+**"The main thing in BAR is metal. That's the top thing to optimize for, secondly ..., and last, eventually killing
+the enemy I guess. All of the things like 'get mexes' and 'build units to stand out on the map and defend territory'
+can be derived from that. When your bot makes a decision, it should always be aligned with what gets it more
+metal."** (thebluegecko, as the user remembers it, relayed 2026-10-22; the second thing in his order the user does not
+remember. The user's own view: there is room to dispute how the logic stacks up, and the core is that we should have a
+good grasp on the why behind our disciplines.) The lobbies say it shorter: "this game is 95% about metal" (an 8v8 on
+All That Glitters, 0:50), "metal in labs dont make more metal" (the same player, 27:08).
+
+<!--meta
 id: L-mex-half-the-map
 layer: lesson
 covers: [docs/briefs/player.md:925-983/6, docs/briefs/experience/team-games.md:86-86/1]
