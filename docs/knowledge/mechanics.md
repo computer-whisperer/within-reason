@@ -601,6 +601,7 @@ intercept type, exterior) and each weapon's mask; the shim carries them from 202
 **Claim.** A commander's wreck resurrected by a resurrection bot gives its side a new, living commander, so a side whose
 every commander has died is not out while a Lazarus reaches a commander wreck; the kill counts only when the wreck is
 reclaimed, destroyed or stood on.
+**Corrected 2026-10-22 (the game's rules, `luarules/gadgets/game_team_com_ends.lua`, deathmode `com`, the mode our lobbies use):** a side (ally team) is killed the frame its last commander dies, so the raise only helps while another commander of the side lives, as it did in the game below (Apex's two allies' commanders stood); a seat whose own commander died plays on while an ally's lives. See docs/briefs/facts/economy.md F-eco-reclaim.
 **Status.** observed (2026-10-19)
 **Evidence.** apex-v032-altored-3v3-apex60-1 (truth file): Apex's three commanders (ids 9947, 26858, 5831) died at
 21:14, 25:52 and 37:48; new commanders 6141 and 15353 first appear at 23:54 (E8) and 43:24 (G7), both alive at 60:00;
