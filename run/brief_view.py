@@ -1,37 +1,34 @@
 #!/usr/bin/env python3
-"""Show the whole brief set each model reads, assembled the way the bot assembles it, from the checkout or from a git
-revision, as one self-contained HTML page.
+"""Show the whole brief set each model reads, as the bot assembles it, from the checkout, a git revision or a game's
+snapshot, as one self-contained HTML page.
 
-    run/brief_view.py [--rev REV | --match DIR] [--out FILE] [--open] [--annotations DIR]
+    run/brief_view.py [--rev REV | --match DIR] [--out FILE] [--open] [--annotations DIR] [--bot PATH]
 
-One tab per role: the player on the standing brief (what `run/human_game.sh` and the arena without `--brief` run), the
-player on the experience brief (`arena --brief experience`), the commander (its role text and the experience brief
-whole), and the hands (the standing texts Jev reads; the per-call request is built from the game by
-`brain/pianist/picture.rs` and is not here). Each tab shows its composition (which file, in which order, how many
-words, when last committed, whether the working tree has changed it), then the text exactly as the model gets it, with
-a band per source file, a table of contents from the headings, and under every heading the provenance found in that
-section: the games it cites, the dates, the claims, the opponents, the user's rulings. The search box lists the
-sections that match a regular expression and marks the matches. The assembled experience brief is read as the file
-the bot reads (`docs/briefs/player-experience.md`); its parts (`docs/briefs/experience/`, `docs/briefs/reference/`,
-the map sheets) are located inside it so the bands name them, and a part that is not found in the assembled file is
-said to be stale.
+One tab per role: the player on the standing brief (what `run/human_game.sh` and the arena without `--brief` run),
+the player on the experience brief (`arena --brief experience`), the commander, and the hands (the standing texts Jev
+reads; the per-call request is built from the game by `brain/pianist/picture.rs`). The text of each tab comes from
+the bot itself, `bot --print-prompt ROLE --sources` (`crates/bot/src/strategist/mod.rs`), under the variables a game
+sets, so the page shows exactly what a session gets and never re-implements the composition. Each tab shows the
+composition (which file, in which order, how many words, when last committed, whether the working tree has changed
+it), then the text with a band per source file, a table of contents from the headings, and under every heading the
+provenance found in that section: the games it cites, the dates, the claims, the opponents, the user's rulings. The
+search box lists the sections that match a regular expression and marks the matches.
 
-The composition rules are those of the bot at the revision this script was written for (`crates/bot/src/texts.rs`,
-`strategist/mod.rs`: `system_prompt`, `for_brief`, `with_hands_rules`; `brain/pianist/diet.rs`: `rules_for`); the
-files come from the revision asked for. The game-time parts (the bonus paragraph, the objective, the first report's
-map sheet) are not texts and are named as placeholders. Without `--rev` the working tree is shown; `--rev HEAD` or
-any commit reads every file with `git show`. The page is written to `run/data/brief-view/<rev>.html` unless `--out`
-says where, and `--open` opens it in the browser. `--match DIR` (a batch directory under run/matches, or a match
-directory in one) reads the texts from the batch's `snapshot/` (`bot --snapshot`: the texts a game was played with,
-with the checkout's git head, status and diff beside them), and the page says the head and how many files were
-modified at launch.
+Without `--rev` or `--match` the working tree is shown with `target/release/bot` (build first). `--rev REV` extracts
+the revision's texts with `git archive` and runs the current binary over them (the composition of now over the texts
+of then; a revision from before the manifests shows the role prompts and says the brief could not be assembled).
+`--match DIR` (a batch directory under run/matches, or a match directory in one) reads the batch's `snapshot/` (`bot
+--snapshot`: the texts a game was played with, with the checkout's git head, status and diff beside them), with the
+snapshot's own binary when it can print prompts, else the current one over the snapshot's texts; the page says the
+head and how many files were modified at launch.
 
 `--annotations DIR` (the default is docs/studies/2026-10-21-brief-annotation when it holds part-*.jsonl) overlays the
 reading pass's rows (that directory's README has the schema): under the first line of each annotated passage a chip
 with its fate, layer, derivability and era, the passage's lines marked in the fate's colour, a fate filter in the
 header that dims everything else, and an Annotations tab with every row and a text filter. A row is placed by its
-file and line range, mapped onto the text the model reads through a line diff, so passages dropped by `for_brief`
-or moved by the brief's assembly still land where they stand.
+file and line range, mapped onto the text the model reads through a line diff, so passages dropped by the role text's
+brief markers or stripped comments still land where they stand. The page is written to
+`run/data/brief-view/<rev>.html` unless `--out` says where, and `--open` opens it in the browser.
 """
 import difflib
 import glob
@@ -39,34 +36,33 @@ import html
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import webbrowser
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(REPO)
 
-# The texts, as `crates/bot/src/texts.rs` names them.
-PLAYER_PROMPT = "crates/bot/src/strategist/player.md"
-PLAYER_UNDER_COMMAND = "crates/bot/src/strategist/player-under-command.md"
-PACKET_EXAMPLE = "crates/bot/src/strategist/packet-example.md"
-COMMANDER_PROMPT = "crates/bot/src/strategist/commander.md"
-PLAYER_BRIEF = "docs/briefs/player.md"
-PLAYER_BRIEF_EXPERIENCE = "docs/briefs/player-experience.md"
-PLAYER_OPUS = "docs/briefs/player-opus.md"
-HANDS_RULES = "crates/bot/src/brain/pianist/rules.md"
-HANDS_RULES_GATE = "crates/bot/src/brain/pianist/rules_gate.md"
-HANDS_DEFAULT = "crates/bot/src/brain/pianist/default.md"
-# The parts `run/build_brief.py` joins into the experience brief, in its order; None is the map sheets it generates.
-EXPERIENCE_PARTS = [
-    "docs/briefs/experience/intro.md", "docs/briefs/experience/winning.md", None,
-    "docs/briefs/reference/comet-catcher-remake-1.8-arm.md", "docs/briefs/reference/comet-catcher-remake-1.8-cor.md",
-    "docs/briefs/reference/comet-catcher-remake-1.8-arm-games.md", "docs/briefs/experience/opponent-barb.md",
-    "docs/briefs/reference/comet-catcher-remake-1.8-barb-hard_aggressive.md", "docs/briefs/experience/units.md",
-    "docs/briefs/experience/hands.md", "docs/briefs/experience/cases.md", "docs/briefs/experience/late-game.md",
-    "docs/briefs/reference/frontier.md", "docs/briefs/experience/players-words.md",
+# The directories `git archive` extracts for a revision: everything `crates/bot/src/texts.rs` reads.
+TEXT_DIRS = ["docs/briefs", "crates/bot/src/strategist", "crates/bot/src/brain/pianist"]
+
+# The tabs: the role the bot prints, and the variables a game of that kind sets.
+ROLES = [
+    {"id": "player-standard", "name": "Player, standing brief", "role": "player",
+     "env": {"WITHIN_REASON_COMMANDER": "claude-opus-5-5", "WITHIN_REASON_MODEL": "claude-opus-5-5"},
+     "launch": "run/human_game.sh; arena without --brief (WITHIN_REASON_BRIEF unset); shown with a commander above and an Opus model"},
+    {"id": "player-experience", "name": "Player, experience brief", "role": "player",
+     "env": {"WITHIN_REASON_BRIEF": "experience", "WITHIN_REASON_COMMANDER": "claude-opus-5-5", "WITHIN_REASON_MODEL": "claude-opus-5-5"},
+     "launch": "arena --brief experience (WITHIN_REASON_BRIEF=experience); shown with a commander above and an Opus model"},
+    {"id": "commander", "name": "Commander", "role": "commander", "env": {},
+     "launch": "any game with WITHIN_REASON_COMMANDER set: the role text, then the experience brief whole"},
+    {"id": "hands", "name": "Hands (Jev)", "role": "hands", "env": {},
+     "launch": "every pick; the request itself is built from the game by brain/pianist/picture.rs"},
 ]
-MAP_SHEETS = "(the map sheets, generated by run/build_brief.py from target/release/mapsheet)"
+GAME_TIME = ["the game's bonus paragraph (from the lobby's income bonuses; none when no seat has one)", "the objective (WITHIN_REASON_OBJECTIVE)",
+             "then the game's own lines: the first report with the map sheet"]
 
 # What a section cites. Each pattern names a kind of provenance; the chips under a heading count the distinct matches.
 PROVENANCE = [
@@ -81,18 +77,20 @@ PROVENANCE = [
     ("pool", r"\bpool\b|\bOS \d\d\b|\bpros?\b"),
     ("never/always/must", r"\b(?:never|always|must)\b"),
 ]
-MARK_RE = re.compile(r"<<([a-z_]+)>>(.*?)<</\1>>", re.S)
-
-
 FATES = ["fact", "meta", "rederive", "episode", "tool", "discard"]
 FATE_COLOR = {"fact": "#2f6fd6", "meta": "#2e9e5b", "rederive": "#e08a1e", "episode": "#8a4fd6", "tool": "#888", "discard": "#d63a2f"}
+PART_RE = re.compile(r"<<<source: (.*?)>>>\n(.*?)\n<<<end>>>\n", re.S)
+
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True)
 
 
 def load_annotations(directory):
     """The reading pass's rows by file, with the lines that failed to parse counted."""
     rows, bad = {}, 0
     for path in sorted(glob.glob(os.path.join(directory, "part-*.jsonl"))):
-        for n, line in enumerate(open(path), 1):
+        for line in open(path):
             if not line.strip():
                 continue
             try:
@@ -108,7 +106,7 @@ def load_annotations(directory):
 
 def line_map(source_text, band_text):
     """For each line of the band, the 1-based line of the source file it came from (a diff, so dropped passages and
-    stripped blanks do not shift the rest); None where a line has no counterpart."""
+    stripped comments do not shift the rest); None where a line has no counterpart."""
     a, b = (source_text or "").split("\n"), band_text.split("\n")
     out = [None] * len(b)
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
@@ -121,22 +119,16 @@ def line_map(source_text, band_text):
     return out
 
 
-def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True)
-
-
 class Source:
-    """A text file at the revision: its contents, where it came from, its last commit, its working-tree state. With a
-    snapshot directory, the file is the snapshot's copy."""
+    """A text file as the page's root has it: its contents, its last commit, its working-tree state."""
 
-    def __init__(self, path, rev, snapshot=None):
-        self.path, self.rev = path, rev
-        self.text, self.state = None, "absent"
-        if snapshot is not None:
-            full = os.path.join(snapshot, path)
+    def __init__(self, path, rev=None, root=None, root_name="the game's snapshot"):
+        self.path = path
+        self.text, self.state, self.last_commit = None, "absent", ""
+        if root is not None:
+            full = os.path.join(root, path)
             if os.path.exists(full):
-                self.text, self.state = open(full).read(), "in the game's snapshot"
-            self.last_commit = ""
+                self.text, self.state = open(full).read(), f"in {root_name}"
             return
         if rev is None:
             if os.path.exists(path):
@@ -150,105 +142,17 @@ class Source:
         log = git("log", "-1", "--format=%h %ad", "--date=short", *([rev] if rev else []), "--", path).stdout.strip()
         self.last_commit = log or "(never committed)"
 
-    @property
-    def words(self):
-        return len(self.text.split()) if self.text else 0
 
-
-def for_brief(text, name):
-    """`strategist/mod.rs::for_brief`: a `<!--brief:NAME-->...<!--/brief-->` passage is kept for that brief only."""
-    out, rest = [], text
-    while True:
-        start = rest.find("<!--brief:")
-        if start < 0:
-            break
-        out.append(rest[:start])
-        after = rest[start + len("<!--brief:"):]
-        tag_end = after.find("-->")
-        if tag_end < 0:
-            break
-        tag, body = after[:tag_end], after[tag_end + 3:]
-        end = body.find("<!--/brief-->")
-        end = len(body) if end < 0 else end
-        if tag == name:
-            out.append(body[:end])
-        rest = body[end + len("<!--/brief-->"):] if end < len(body) else ""
-    out.append(rest)
-    return "".join(out)
-
-
-def rules_for_all(marked):
-    """`pianist/diet.rs::rules_for` with every marked part kept: the rules as the pick and the player's prompt read them."""
-    return MARK_RE.sub(lambda m: m.group(2), marked).rstrip()
-
-
-def band(label, text, note=""):
-    return {"label": label, "text": text, "note": note}
-
-
-def experience_bands(src, parts):
-    """The assembled experience brief cut into its parts' bands, by finding each part's text inside it."""
-    text = src.text or ""
-    bands, pos, stale = [], 0, []
-    for part in parts:
-        if part is None or part.text is None:
-            continue  # the map sheets, or a part the source has no copy of (a game's snapshot holds only what the bot reads)
-        body = part.text.strip()
-        at = text.find(body, pos) if body else -1
-        if at < 0:
-            stale.append(part.path)
-            continue
-        if at > pos:
-            between = text[pos:at]
-            if between.strip():
-                bands.append(band(MAP_SHEETS if "## The map sheets" in between else "(text not from any part)", between))
-        bands.append(band(part.path, text[at:at + len(body)]))
-        pos = at + len(body)
-    if text[pos:].strip():
-        bands.append(band("(text not from any part)", text[pos:]))
-    return bands, stale
-
-
-def roles(rev, snapshot=None):
-    S = {p: Source(p, rev, snapshot) for p in [PLAYER_PROMPT, PLAYER_UNDER_COMMAND, PACKET_EXAMPLE, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE,
-                                     PLAYER_OPUS, HANDS_RULES, HANDS_RULES_GATE, HANDS_DEFAULT] + [p for p in EXPERIENCE_PARTS if p]}
-    rules_whole = rules_for_all(S[HANDS_RULES].text or "")
-
-    def player(brief_name, brief_path):
-        prompt = for_brief(S[PLAYER_PROMPT].text or "", brief_name)
-        before, mark, after = prompt.partition("<!--hands-rules-->")
-        bands = [band(PLAYER_PROMPT, before, f"the `{brief_name}` passages kept, the others dropped")]
-        if mark:
-            bands.append(band(HANDS_RULES, rules_whole, "in place of <!--hands-rules-->: the hands' standing rules whole, every marked part kept"))
-            bands.append(band(PLAYER_PROMPT, after))
-        bands.append(band(PLAYER_UNDER_COMMAND, S[PLAYER_UNDER_COMMAND].text or "", "only with a commander above the player (WITHIN_REASON_COMMANDER)"))
-        stale = []
-        if brief_path == PLAYER_BRIEF_EXPERIENCE:
-            exp, stale = experience_bands(S[brief_path], [S[p] if p else None for p in EXPERIENCE_PARTS])
-            bands += exp
-        else:
-            bands.append(band(brief_path, S[brief_path].text or ""))
-        bands.append(band(PLAYER_OPUS, S[PLAYER_OPUS].text or "", "only for an Opus player (the model name starts with claude-opus)"))
-        placeholders = ["the packet example (WITHIN_REASON_PACKET_EXAMPLE, off unless set): " + PACKET_EXAMPLE,
-                        "the bonus paragraph, written from the lobby's income bonuses (none when no seat has one)",
-                        "the objective (WITHIN_REASON_OBJECTIVE, none unless set)",
-                        "then the game's own lines: the first report with the map sheet"]
-        return bands, placeholders, stale
-
-    std, std_ph, _ = player("standard", PLAYER_BRIEF)
-    exp, exp_ph, exp_stale = player("experience", PLAYER_BRIEF_EXPERIENCE)
-    cmd_bands, cmd_stale = experience_bands(S[PLAYER_BRIEF_EXPERIENCE], [S[p] if p else None for p in EXPERIENCE_PARTS])
-    cmd = [band(COMMANDER_PROMPT, S[COMMANDER_PROMPT].text or "")] + cmd_bands
-    hands = [band(HANDS_RULES, rules_whole, "the pick's rules, every marked part kept (a request drops the parts that do not bear on what it asks)"),
-             band(HANDS_RULES_GATE, S[HANDS_RULES_GATE].text or "", "the gate's rules under the lean diet's standing cut"),
-             band(HANDS_DEFAULT, S[HANDS_DEFAULT].text or "", "the default packet, when the player has sent none")]
-    return S, [
-        {"id": "player-standard", "name": "Player, standing brief", "launch": "run/human_game.sh; arena without --brief (WITHIN_REASON_BRIEF unset)", "bands": std, "placeholders": std_ph, "stale": []},
-        {"id": "player-experience", "name": "Player, experience brief", "launch": "arena --brief experience (WITHIN_REASON_BRIEF=experience)", "bands": exp, "placeholders": exp_ph, "stale": exp_stale},
-        {"id": "commander", "name": "Commander", "launch": "any game with WITHIN_REASON_COMMANDER set: the role text, then the experience brief whole", "bands": cmd,
-         "placeholders": ["the bonus paragraph", "the objective (WITHIN_REASON_OBJECTIVE)", "then the side's report"], "stale": cmd_stale},
-        {"id": "hands", "name": "Hands (Jev)", "launch": "every pick; the request itself is built from the game by brain/pianist/picture.rs", "bands": hands, "placeholders": ["the picture: groups, places, parties, actors, the packet's rules per actor"], "stale": []},
-    ]
+def print_prompt(binary, role, env, texts_root):
+    """The role's prompt from the bot, as parts (source, text); or the error the bot gave."""
+    environment = {k: v for k, v in os.environ.items() if not k.startswith("WITHIN_REASON_")}
+    environment.update(env)
+    if texts_root:
+        environment["WITHIN_REASON_TEXTS"] = texts_root
+    r = subprocess.run([binary, "--print-prompt", role, "--sources"], capture_output=True, text=True, env=environment)
+    if r.returncode != 0:
+        return None, (r.stderr.strip().split("\n")[-1] if r.stderr.strip() else f"exit {r.returncode}")
+    return [(m.group(1), m.group(2)) for m in PART_RE.finditer(r.stdout)], None
 
 
 def provenance(text):
@@ -260,36 +164,31 @@ def provenance(text):
     return out
 
 
-def render_role(role, palette, S, ann):
-    """The role's text as lines, headings as anchors, a band per source, provenance chips under each heading."""
+def render_role(role, palette, sources, ann):
+    """The role's text as lines, headings as anchors, a band per source, provenance chips under each heading, the
+    reading pass's chips under each annotated passage."""
     lines_html, toc = [], []
     sec_no = 0
-    # Split every band into heading-delimited sections so each section carries its own provenance.
-    for b in role["bands"]:
-        color = palette.setdefault(b["label"], f"hsl({(len(palette) * 47) % 360},55%,45%)")
-        head = f'<div class="band" style="border-color:{color}"><div class="bandlabel" style="background:{color}">{html.escape(b["label"])}'
-        if b["note"]:
-            head += f' <span class="note">{html.escape(b["note"])}</span>'
-        head += "</div>"
-        lines_html.append(head)
-        text = b["text"] or ""
+    if role.get("error"):
+        lines_html.append(f'<p class="stale">The bot could not print this prompt: {html.escape(role["error"])}</p>')
+    for label, text in role["bands"]:
+        color = palette.setdefault(label, f"hsl({(len(palette) * 47) % 360},55%,45%)")
+        lines_html.append(f'<div class="band" style="border-color:{color}"><div class="bandlabel" style="background:{color}">{html.escape(label)}</div>')
         if not text.strip():
             lines_html.append('<div class="l empty">(empty)</div></div>')
             continue
-        src = S.get(b["label"])
-        rows = ann.get(b["label"], []) if src else []
+        src = sources.get(label)
+        rows = ann.get(label, []) if src and src.text is not None else []
         lmap = line_map(src.text, text) if rows else []
-        # The annotation whose range holds a file line, and whether that line is the first of its range in this band.
         by_line = {}
         for row in rows:
-            lo, hi = (row.get("lines") or [0, 0])[:2] if len(row.get("lines") or []) >= 2 else ((row.get("lines") or [0])[0],) * 2
+            span = row.get("lines") or [0]
+            lo, hi = (span[0], span[1]) if len(span) >= 2 else (span[0], span[0])
             first = True
             for j, fl in enumerate(lmap):
                 if fl is not None and lo <= fl <= hi:
                     by_line.setdefault(j, []).append((row, first))
                     first = False
-        # Sections: from one heading line to the next; the text before the first heading is a section of its own.
-        # Every line of the band keeps its index, so the annotations' line map stays aligned.
         lines = text.split("\n")
         heading = re.compile(r"(#{1,6}) (.*)")
         starts = [0] + [i for i, l in enumerate(lines) if i > 0 and heading.match(l)]
@@ -329,20 +228,19 @@ def render_role(role, palette, S, ann):
     return "\n".join(lines_html), toc
 
 
-def composition_table(role, S, palette):
+def composition_table(role, sources, palette):
     rows = []
-    for b in role["bands"]:
-        src = S.get(b["label"])
-        words = len((b["text"] or "").split())
-        color = palette.get(b["label"], "#888")
-        rows.append(f'<tr><td><span class="sw" style="background:{color}"></span>{html.escape(b["label"])}</td><td class="n">{words:,}</td><td class="n">{int(words * 1.3):,}</td>'
-                    f'<td>{html.escape(src.last_commit if src else "")}</td><td>{html.escape(src.state if src else "generated")}</td><td class="note">{html.escape(b["note"])}</td></tr>')
-    total = sum(len((b["text"] or "").split()) for b in role["bands"])
-    rows.append(f'<tr class="tot"><td>whole</td><td class="n">{total:,}</td><td class="n">{int(total * 1.3):,}</td><td></td><td></td><td></td></tr>')
-    ph = "".join(f"<li>{html.escape(p)}</li>" for p in role["placeholders"])
-    stale = "".join(f'<li class="stale">{html.escape(p)}: not found in the assembled brief (rebuild with run/build_brief.py, or the part changed after the build)</li>' for p in role["stale"])
-    return (f'<table class="comp"><tr><th>source</th><th>words</th><th>≈ tokens</th><th>last commit</th><th>state</th><th></th></tr>{"".join(rows)}</table>'
-            f'<p class="launch">Runs as: {html.escape(role["launch"])}</p><p>Game-time parts, not texts:</p><ul>{ph}{stale}</ul>')
+    for label, text in role["bands"]:
+        src = sources.get(label)
+        words = len(text.split())
+        color = palette.get(label, "#888")
+        rows.append(f'<tr><td><span class="sw" style="background:{color}"></span>{html.escape(label)}</td><td class="n">{words:,}</td><td class="n">{int(words * 1.3):,}</td>'
+                    f'<td>{html.escape(src.last_commit if src else "")}</td><td>{html.escape(src.state if src else "")}</td></tr>')
+    total = sum(len(text.split()) for _, text in role["bands"])
+    rows.append(f'<tr class="tot"><td>whole</td><td class="n">{total:,}</td><td class="n">{int(total * 1.3):,}</td><td></td><td></td></tr>')
+    game_time = "".join(f"<li>{html.escape(p)}</li>" for p in GAME_TIME) if role["role"] != "hands" else "<li>the picture: groups, places, parties, actors, the packet's rules per actor</li>"
+    return (f'<table class="comp"><tr><th>source</th><th>words</th><th>≈ tokens</th><th>last commit</th><th>state</th></tr>{"".join(rows)}</table>'
+            f'<p class="launch">Runs as: {html.escape(role["launch"])}</p><p>Game-time parts, empty here:</p><ul>{game_time}</ul>')
 
 
 CSS = """
@@ -362,12 +260,11 @@ nav a.hit{background:#fff3b0}
 .comp{border-collapse:collapse;font-size:12px;margin:8px 0}.comp td,.comp th{border:1px solid #ddd;padding:3px 8px;text-align:left;vertical-align:top}.comp .n{text-align:right;font-variant-numeric:tabular-nums}.comp .tot td{font-weight:700}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .launch{color:#555}.note{color:#666;font-weight:400;font-size:12px}.stale{color:#b00}
-.band{border-left:4px solid;margin:14px 0;padding-left:10px}.bandlabel{color:#fff;display:inline-block;padding:1px 8px;border-radius:0 4px 4px 0;font-size:12px;margin-left:-10px;margin-bottom:6px}.bandlabel .note{color:#eee}
+.band{border-left:4px solid;margin:14px 0;padding-left:10px}.bandlabel{color:#fff;display:inline-block;padding:1px 8px;border-radius:0 4px 4px 0;font-size:12px;margin-left:-10px;margin-bottom:6px}
 .hd{margin:14px 0 2px;font-size:15px}
-.l{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.45}.l.empty{color:#999}
+.l{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.45;border-left:3px solid transparent;margin-left:-6px;padding-left:3px}.l.empty{color:#999}
 .prov{margin:0 0 4px}.chip{display:inline-block;font-size:11px;background:#eee;border:1px solid #ddd;border-radius:10px;padding:0 7px;margin:1px 2px 1px 0;color:#444}
 .sec.hit{background:#fffbe6}mark{background:#ffd54a;padding:0}
-.l{border-left:3px solid transparent;margin-left:-6px;padding-left:3px}
 .ann{font:11px system-ui,sans-serif;color:#333;background:#f3f3f3;border-left:3px solid;margin:6px 0 2px -6px;padding:1px 6px;border-radius:0 3px 3px 0}
 body.dim .l:not(.a-F),body.dim .ann:not(.a-F){opacity:.25}
 #fate{padding:4px 6px;border:1px solid #bbb;border-radius:4px}
@@ -380,8 +277,9 @@ const tabs=document.querySelectorAll('.tab'),roles=document.querySelectorAll('.r
 function show(id){tabs.forEach(t=>t.classList.toggle('on',t.dataset.id===id));roles.forEach(r=>r.classList.toggle('on',r.id===id));navs.forEach(n=>n.style.display=n.dataset.id===id?'block':'none');location.hash='';search();}
 tabs.forEach(t=>t.onclick=()=>show(t.dataset.id));
 const q=document.getElementById('q'),hits=document.getElementById('hits');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function search(){const role=document.querySelector('.role.on');let re=null;try{re=q.value?new RegExp(q.value,'gi'):null}catch(e){hits.textContent='bad regexp';return}
- let n=0,secs=0;role.querySelectorAll('.sec').forEach(sec=>{let m=0;sec.querySelectorAll('.l').forEach(l=>{const t=l.textContent;if(re){const c=(t.match(re)||[]).length;m+=c;l.innerHTML=c?t.replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])).replace(re,s=>'<mark>'+s+'</mark>'):(t===' '?'&nbsp;':l.textContent.replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])))}else{l.textContent=t}});
+ let n=0,secs=0;role.querySelectorAll('.sec').forEach(sec=>{let m=0;sec.querySelectorAll('.l').forEach(l=>{const t=l.textContent;if(re){const c=(t.match(re)||[]).length;m+=c;l.innerHTML=c?esc(t).replace(re,s=>'<mark>'+s+'</mark>'):esc(t)}else{l.textContent=t}});
   sec.classList.toggle('hit',m>0);n+=m;if(m)secs++;const a=document.querySelector('nav a[href="#'+sec.dataset.sid+'"]');if(a)a.classList.toggle('hit',m>0)});
  hits.textContent=re?n+' matches in '+secs+' sections':''}
 q.oninput=search;
@@ -392,9 +290,17 @@ show(tabs[0].dataset.id);
 """
 
 
+def supports_print_prompt(binary):
+    try:
+        r = subprocess.run([binary, "--print-prompt", "hands"], capture_output=True, text=True, timeout=60)
+        return r.returncode == 0 and "<<<" not in r.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def main():
     args = sys.argv[1:]
-    rev = out = match_dir = None
+    rev = out = match_dir = bot = None
     open_it = False
     ann_dir = "docs/studies/2026-10-21-brief-annotation"
     i = 0
@@ -409,42 +315,72 @@ def main():
             ann_dir = args[i + 1]; i += 2
         elif args[i] == "--match":
             match_dir = args[i + 1]; i += 2
+        elif args[i] == "--bot":
+            bot = args[i + 1]; i += 2
         elif args[i] in ("-h", "--help"):
             print(__doc__); sys.exit(0)
         else:
             print(__doc__); sys.exit(2)
-    snapshot = snap_info = None
+    # The root the texts come from, and the binary that assembles them.
+    texts_root = root_name = snap_info = None
+    temp = None
+    label = "working-tree"
     if match_dir:
         for candidate in (match_dir, os.path.dirname(match_dir.rstrip("/"))):
             if os.path.isdir(os.path.join(candidate, "snapshot")):
-                snapshot = os.path.join(candidate, "snapshot")
+                texts_root = os.path.join(candidate, "snapshot")
                 break
-        if snapshot is None:
+        if texts_root is None:
             print(f"{match_dir}: no snapshot/ in it or its batch (games before 2026-10-21 have none)"); sys.exit(1)
+        root_name = "the game's snapshot"
+        label = os.path.basename(os.path.dirname(texts_root.rstrip("/"))) + "-snapshot"
         try:
-            snap_info = json.load(open(os.path.join(snapshot, "snapshot.json")))
+            snap_info = json.load(open(os.path.join(texts_root, "snapshot.json")))
         except (OSError, ValueError):
             snap_info = {}
-    S, role_list = roles(rev, snapshot)
-    ann, bad_rows = load_annotations(ann_dir) if os.path.isdir(ann_dir) else ({}, 0)
-    label = rev or "working-tree"
-    if rev:
+        own = os.path.join(texts_root, "bot")
+        if bot is None and os.path.isfile(own) and supports_print_prompt(own):
+            bot = own
+    elif rev:
         label = git("rev-parse", "--short", rev).stdout.strip() or rev
-    if snapshot:
-        label = os.path.basename(os.path.dirname(snapshot.rstrip("/"))) + "-snapshot"
+        temp = tempfile.mkdtemp(prefix="brief-view-")
+        archive = subprocess.run(["git", "archive", "--format=tar", rev, *TEXT_DIRS], capture_output=True)
+        if archive.returncode != 0:
+            print(f"git archive {rev}: {archive.stderr.decode().strip()}"); sys.exit(1)
+        subprocess.run(["tar", "-x", "-C", temp], input=archive.stdout, check=True)
+        texts_root, root_name = temp, f"revision {label}"
+    if bot is None:
+        bot = "target/release/bot"
+    if not os.path.isfile(bot):
+        print(f"{bot}: no bot binary (cargo build --release)"); sys.exit(1)
     head = git("rev-parse", "--short", "HEAD").stdout.strip()
-    palette = {}
+    ann, bad_rows = load_annotations(ann_dir) if os.path.isdir(ann_dir) else ({}, 0)
+    # The roles, from the bot.
+    role_list, sources, palette = [], {}, {}
+
+    def source(path):
+        return Source(path, root=texts_root, root_name=root_name) if texts_root else Source(path)
+    for role in ROLES:
+        parts, error = print_prompt(bot, role["role"], role["env"], texts_root)
+        role_list.append({**role, "bands": parts or [], "error": error})
+        for path, _ in parts or []:
+            if path not in sources and not path.startswith("("):
+                sources[path] = source(path)
+    for manifest in ("docs/briefs/standard.manifest", "docs/briefs/experience.manifest"):
+        if manifest not in sources:
+            sources[manifest] = source(manifest)
     tabs = "".join(f'<span class="tab" data-id="{r["id"]}">{html.escape(r["name"])}</span>' for r in role_list)
     bodies, navs = [], []
     for r in role_list:
-        text_html, toc = render_role(r, palette, S, ann)
-        comp = composition_table(r, S, palette)
+        text_html, toc = render_role(r, palette, sources, ann)
+        comp = composition_table(r, sources, palette)
         bodies.append(f'<div class="role" id="{r["id"]}"><h2>{html.escape(r["name"])}</h2>{comp}{text_html}</div>')
         links = "".join(f'<a class="l{min(lv, 4)}" href="#{sid}" style="border-left:3px solid {c};padding-left:{4 + (lv - 1) * 10}px">{html.escape(t)}</a>' for lv, t, sid, c in toc)
         navs.append(f'<div class="toc" data-id="{r["id"]}">{links}</div>')
     ann_rows = [row for lst in ann.values() for row in lst]
     fate_opts = "".join(f'<option value="{f}">{f}</option>' for f in FATES)
     fate_sel = f'<select id="fate"><option value="">every fate</option>{fate_opts}</select>' if ann_rows else ""
+
     def cell(v):
         if isinstance(v, list):
             return html.escape("-".join(str(x) for x in v) if v and all(isinstance(x, int) for x in v) else ", ".join(str(x) for x in v))
@@ -459,23 +395,28 @@ def main():
         ann_table = (f'<div class="role" id="annotations"><h2>The reading pass: {len(ann_rows):,} rows from {html.escape(ann_dir)}'
                      f'{f" ({bad_rows} lines failed to parse)" if bad_rows else ""}</h2><p>' + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) +
                      f'</p><input id="af" placeholder="filter rows (plain text)"><table class="anntab"><thead><tr>{"".join(f"<th>{c}</th>" for c in cols)}</tr></thead><tbody>{trs}</tbody></table></div>')
-    files = "".join(f'<tr><td>{html.escape(p)}</td><td class="n">{s.words:,}</td><td>{html.escape(s.last_commit)}</td><td>{html.escape(s.state)}</td></tr>' for p, s in S.items())
+    files = "".join(f'<tr><td>{html.escape(p)}</td><td class="n">{len((s.text or "").split()):,}</td><td>{html.escape(s.last_commit)}</td><td>{html.escape(s.state)}</td></tr>' for p, s in sorted(sources.items()))
+    where = f" (HEAD {html.escape(head)})" if not texts_root else ""
+    if snap_info is not None:
+        where = f" (the game's snapshot: head {html.escape(str(snap_info.get('head', '?'))[:9])}, {snap_info.get('dirty_files', '?')} files modified at launch)"
     page = f"""<!doctype html><html><head><meta charset="utf-8"><title>Brief set {html.escape(label)}</title><style>{CSS}</style></head><body>
-<header><h1>The brief set at {html.escape(label)}{" (HEAD " + html.escape(head) + ")" if not rev and not snapshot else ""}{(" (the game's snapshot: head " + html.escape(str(snap_info.get("head", "?"))[:9]) + ", " + str(snap_info.get("dirty_files", "?")) + " files modified at launch)") if snapshot else ""}</h1>{tabs}<span class="tab" data-id="files">Files</span>{'<span class="tab" data-id="annotations">Annotations</span>' if ann_rows else ""}
+<header><h1>The brief set at {html.escape(label)}{where}</h1>{tabs}<span class="tab" data-id="files">Files</span>{'<span class="tab" data-id="annotations">Annotations</span>' if ann_rows else ""}
 {fate_sel}<input id="q" placeholder="search (regexp), e.g. medium|BARb"><span id="hits"></span></header>
 <main><nav>{"".join(navs)}<div class="toc" data-id="files"></div><div class="toc" data-id="annotations"></div></nav><div>{"".join(bodies)}{ann_table}
 <div class="role" id="files"><h2>Every text, at {html.escape(label)}</h2><table class="comp"><tr><th>file</th><th>words</th><th>last commit</th><th>state</th></tr>{files}</table>
-<p>Tokens are estimated as words × 1.3. The composition rules are the bot's at the revision this script was written for; the files are the revision's.</p></div></div></main>
+<p>Tokens are estimated as words × 1.3. The text of each role is what <code>{html.escape(bot)} --print-prompt</code> printed{" over the texts of " + html.escape(root_name) if texts_root else ""}.</p></div></div></main>
 <script>{JS}</script></body></html>"""
     if out is None:
         os.makedirs("run/data/brief-view", exist_ok=True)
         out = f"run/data/brief-view/{label}.html"
     open(out, "w").write(page)
-    total = {r["name"]: sum(len((b["text"] or "").split()) for b in r["bands"]) for r in role_list}
+    total = {r["name"]: sum(len(text.split()) for _, text in r["bands"]) for r in role_list}
     print(f"{out}: " + ", ".join(f"{k} {v:,} words" for k, v in total.items()))
     for r in role_list:
-        for p in r["stale"]:
-            print(f"  stale: {p} is not in the assembled {PLAYER_BRIEF_EXPERIENCE} ({r['name']})")
+        if r["error"]:
+            print(f"  {r['name']}: the bot could not print this prompt: {r['error']}")
+    if temp:
+        shutil.rmtree(temp, ignore_errors=True)
     if open_it:
         webbrowser.open("file://" + os.path.abspath(out))
 

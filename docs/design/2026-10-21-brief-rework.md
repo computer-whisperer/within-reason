@@ -1,7 +1,7 @@
 # The brief rework: derivations over lessons, sources over artifacts, games decoupled from edits
 
-Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot) is built; the assembler (§3, §4) is being built;
-no brief, prompt or rule has changed. The
+Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot) and the assembler (§3, §4) are built; no
+brief, prompt or rule has changed in what a model reads. The
 reading pass that motivates it is `docs/studies/2026-10-21-brief-annotation/` (700 rows, `summary.md`, `backlog.md`);
 the texts as each role reads them are shown by `run/brief_view.py`.
 
@@ -50,6 +50,11 @@ rules. The hands' standing rules are a role text of the hands and are read per p
 
 ## 3. The source format: documents, metadata in comments, ids
 
+Built 2026-10-21: the comment syntax (`texts::strip`: every HTML comment goes; a `<!--meta ... -->` block with
+`status: deprecated` takes its passage with it, to `<!--/meta-->` or the next blank line), the checker
+`run/brief_check.py` (ids, premises, tests, duplicates, deprecated citations; no document carries a block yet). Not
+built: front matter, generation of the fact layer.
+
 Markdown documents stay the source of truth. Provenance and structure live in HTML comments, which Markdown renderers
 and GitHub hide and which the assembler strips, so nothing of it reaches the model. Today only the player's role
 prompt carries comments (seven markers), and the reader handles exactly those kinds; any other comment reaches the
@@ -80,6 +85,13 @@ status: live
   hand-copied numbers were wrong). Generated documents carry the generator's name in their front matter.
 
 ## 4. The assembler: manifests, no artifact, one implementation
+
+Built 2026-10-21: `docs/briefs/standard.manifest` and `experience.manifest`, `texts::assemble_parts`, the artifact
+`player-experience.md` and `run/build_brief.py` deleted (the map sheets became the generated document
+`docs/briefs/reference/map-sheets.md`, `run/map_sheets.py`; the other generators are run by
+`run/regenerate_reference.py`), `bot --print-prompt ROLE [--sources]`, and `run/brief_view.py` printing from the
+binary. The context the models read was checked byte for byte against the artifact and the previous composition.
+The brief markers in the role prompt and the compiled copies of the role texts stay until the standing brief retires.
 
 The rebuild's failures share a cause: an intermediate artifact (`docs/briefs/player-experience.md`) that is generated
 and committed and compiled, so parts, artifact and compiled copy disagree, a person must remember the step, and the

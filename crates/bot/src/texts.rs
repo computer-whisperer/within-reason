@@ -10,6 +10,12 @@
 //! arena (per batch) and `run/human_game.sh` (per game) make one and run `DIR/bot` with `WITHIN_REASON_TEXTS=DIR`.
 //! The marker file is copied too, so `DIR/bot` finds DIR as its root even without the variable. The record then
 //! carries the texts a game was played with.
+//!
+//! The briefs are manifests (docs/design/2026-10-21-brief-rework.md §3, §4): `docs/briefs/<name>.manifest` names
+//! the documents, one path a line, and `assemble_parts` joins them at every session start, stripping every HTML comment
+//! and every passage whose `<!--meta ... -->` block says `status: deprecated`, so provenance written in comments
+//! never reaches a model. No assembled copy exists anywhere and the documents have no compiled copy: a game reads
+//! them from its root. `bot --print-prompt ROLE [--sources]` prints a role's prompt as a session would get it.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -30,12 +36,13 @@ pub const PLAYER_UNDER_COMMAND: Text = Text { path: "crates/bot/src/strategist/p
 pub const PACKET_EXAMPLE: Text = Text { path: "crates/bot/src/strategist/packet-example.md", compiled: include_str!("strategist/packet-example.md") };
 /// The role text of the side's commander.
 pub const COMMANDER_PROMPT: Text = Text { path: "crates/bot/src/strategist/commander.md", compiled: include_str!("strategist/commander.md") };
-pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: include_str!("../../../docs/briefs/player.md") };
-/// The brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`): assembled by
-/// `run/build_brief.py` from `docs/briefs/experience/` and the generated reference sets
-/// (docs/design/2026-10-03-brief-rewrite-and-commander-pack.md). Played against `PLAYER_BRIEF` on the same seeds
-/// until one of them goes.
-pub const PLAYER_BRIEF_EXPERIENCE: Text = Text { path: "docs/briefs/player-experience.md", compiled: include_str!("../../../docs/briefs/player-experience.md") };
+/// The briefs are manifests: one document path a line, `#` comments and blank lines ignored, assembled by `assemble_parts`.
+/// The standing brief: the arena without `--brief`, `run/human_game.sh`.
+pub const BRIEF_STANDARD: &str = "docs/briefs/standard.manifest";
+/// The brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`); the commander reads
+/// it whole (docs/design/2026-10-03-brief-rewrite-and-commander-pack.md).
+pub const BRIEF_EXPERIENCE: &str = "docs/briefs/experience.manifest";
+pub const MANIFESTS: [&str; 2] = [BRIEF_STANDARD, BRIEF_EXPERIENCE];
 /// Read beside the brief by an Opus player only (`strategist::system_prompt`): what that model does in the seat
 /// that the brief's facts do not correct (docs/studies/2026-10-07-raid-packets.md).
 pub const PLAYER_OPUS: Text = Text { path: "docs/briefs/player-opus.md", compiled: include_str!("../../../docs/briefs/player-opus.md") };
@@ -47,7 +54,7 @@ pub const HANDS_RULES_GATE: Text = Text { path: "crates/bot/src/brain/pianist/ru
 pub const HANDS_DEFAULT: Text = Text { path: "crates/bot/src/brain/pianist/default.md", compiled: include_str!("brain/pianist/default.md") };
 
 /// Every text, for the snapshot and the tests.
-pub const ALL: [&Text; 10] = [&PLAYER_PROMPT, &PLAYER_UNDER_COMMAND, &PACKET_EXAMPLE, &COMMANDER_PROMPT, &PLAYER_BRIEF, &PLAYER_BRIEF_EXPERIENCE, &PLAYER_OPUS, &HANDS_RULES, &HANDS_RULES_GATE, &HANDS_DEFAULT];
+pub const ALL: [&Text; 8] = [&PLAYER_PROMPT, &PLAYER_UNDER_COMMAND, &PACKET_EXAMPLE, &COMMANDER_PROMPT, &PLAYER_OPUS, &HANDS_RULES, &HANDS_RULES_GATE, &HANDS_DEFAULT];
 
 /// The directories read whole at run time, beside the texts: the reference tables (`strategist/reference.rs` reads
 /// `docs/briefs/reference/<map>-<faction>.json` by the game's map).
@@ -80,6 +87,12 @@ pub fn snapshot(dir: &Path) -> std::io::Result<()> {
     };
     for text in ALL {
         copy(text.path, &mut files)?;
+    }
+    for manifest in MANIFESTS {
+        copy(manifest, &mut files)?;
+        for document in documents_at(&checkout, manifest)? {
+            copy(&document, &mut files)?;
+        }
     }
     for directory in DIRECTORIES {
         let mut entries: Vec<_> = std::fs::read_dir(checkout.join(directory))?.filter_map(|e| e.ok()).filter(|e| e.path().is_file()).collect();
@@ -125,16 +138,76 @@ pub fn read_file(path: &str) -> Option<String> {
     std::fs::read_to_string(root()?.join(path)).ok()
 }
 
+/// Said once per key, on stderr: where a text is read from, that a read failed.
+fn say_once(key: String, line: String) {
+    static SAID: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+    let mut said = SAID.lock().unwrap();
+    if said.get_or_insert_with(HashSet::new).insert(key) {
+        eprintln!("[texts] {line}");
+    }
+}
+
+/// A file of the root with no compiled copy (a manifest, a brief's document): its contents, or the error naming it.
+pub fn read_required(rel: &str) -> std::io::Result<String> {
+    let root = root().ok_or_else(|| std::io::Error::other(format!("{rel}: no checkout or snapshot found (set WITHIN_REASON_TEXTS)")))?;
+    let text = std::fs::read_to_string(root.join(rel)).map_err(|e| std::io::Error::other(format!("{}: {e}", root.join(rel).display())))?;
+    say_once(format!("read {rel}"), format!("{rel} is read from {}", root.display()));
+    Ok(text)
+}
+
+/// The documents a manifest at `root` names, in its order: one path a line, `#` comments and blank lines ignored.
+fn documents_at(root: &Path, manifest: &str) -> std::io::Result<Vec<String>> {
+    let text = std::fs::read_to_string(root.join(manifest)).map_err(|e| std::io::Error::other(format!("{}: {e}", root.join(manifest).display())))?;
+    Ok(text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).map(String::from).collect())
+}
+
+/// The documents a manifest names, from the root the texts are read from.
+pub fn documents(manifest: &str) -> std::io::Result<Vec<String>> {
+    let root = root().ok_or_else(|| std::io::Error::other(format!("{manifest}: no checkout or snapshot found (set WITHIN_REASON_TEXTS)")))?;
+    let found = documents_at(root, manifest)?;
+    say_once(format!("read {manifest}"), format!("{manifest} is read from {} ({} documents)", root.display(), found.len()));
+    Ok(found)
+}
+
+/// A brief as its parts, (document path, text as the model gets it): each document stripped of comments and
+/// deprecated passages, trimmed, and shaped as a blank line, the text, a newline, so that the parts concatenated are
+/// the brief whole (the shape the assembled file had before manifests, so the context did not change with them).
+pub fn assemble_parts(manifest: &str) -> std::io::Result<Vec<(String, String)>> {
+    documents(manifest)?.into_iter().map(|path| Ok((path.clone(), format!("\n\n{}\n", strip(&read_required(&path)?).trim())))).collect()
+}
+
+/// The text as a model gets it: every HTML comment removed, and the passage after a `<!--meta ... -->` block that
+/// says `status: deprecated` removed with it. The passage runs to a `<!--/meta-->` marker when one comes before the
+/// next block, else to the next blank line. A comment alone on its line takes its line break with it.
+pub fn strip(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(open) = rest.find("<!--") {
+        let Some(close) = rest[open..].find("-->").map(|i| open + i + 3) else { break };
+        let (before, comment) = (&rest[..open], &rest[open..close]);
+        let mut after = &rest[close..];
+        let own_line = if before.is_empty() { out.is_empty() || out.ends_with('\n') } else { before.ends_with('\n') };
+        if comment.starts_with("<!--meta") && comment.contains("status: deprecated") {
+            let next_block = after.find("<!--meta").unwrap_or(after.len());
+            let end = match after[..next_block].find("<!--/meta-->") {
+                Some(i) => i + "<!--/meta-->".len(),
+                None => after.find("\n\n").map(|i| i + 1).unwrap_or(after.len()),
+            };
+            after = &after[end..];
+        }
+        if own_line && after.starts_with('\n') {
+            after = &after[1..];
+        }
+        out.push_str(before);
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
 /// The text as it is on disk now, else as compiled. Says once per file where it reads from, and once per file when a
 /// read fails.
 pub fn read(text: &Text) -> String {
-    static SAID: Mutex<Option<HashSet<String>>> = Mutex::new(None);
-    let say_once = |key: String, line: String| {
-        let mut said = SAID.lock().unwrap();
-        if said.get_or_insert_with(HashSet::new).insert(key) {
-            eprintln!("[texts] {line}");
-        }
-    };
     let Some(root) = root() else {
         say_once("root".into(), "no checkout found (set WITHIN_REASON_TEXTS): the prompts and rules are the compiled copies".into());
         return text.compiled.to_string();
@@ -170,12 +243,43 @@ mod tests {
     }
 
     #[test]
-    fn a_snapshot_holds_every_text_the_reference_tables_the_binary_and_the_git_state() {
+    fn the_manifests_assemble_from_their_documents() {
+        for manifest in super::MANIFESTS {
+            let documents = super::documents(manifest).unwrap();
+            assert!(!documents.is_empty(), "{manifest} names documents");
+            let brief: String = super::assemble_parts(manifest).unwrap().into_iter().map(|(_, text)| text).collect();
+            assert!(brief.starts_with("\n\n") && brief.ends_with('\n'), "{manifest}: a blank line, the parts, a newline");
+            assert!(!brief.contains("<!--"), "{manifest}: no comment reaches the model");
+        }
+        assert!(super::documents(super::BRIEF_EXPERIENCE).unwrap().len() > 10, "the experience brief is many documents");
+    }
+
+    #[test]
+    fn strip_removes_comments_and_deprecated_passages_and_nothing_else() {
+        assert_eq!(super::strip("a <!-- c --> b"), "a  b");
+        assert_eq!(super::strip("x\n<!-- alone -->\ny\n"), "x\ny\n");
+        let kept = "p\n\n<!--meta\nid: D-1\nstatus: live\n-->\nkept one.\nkept two.\n\nq\n";
+        assert_eq!(super::strip(kept), "p\n\nkept one.\nkept two.\n\nq\n");
+        let dropped = "p\n\n<!--meta\nid: D-2\nstatus: deprecated 2026-10-21 (wrong)\n-->\ngone one.\ngone two.\n\nq\n";
+        assert_eq!(super::strip(dropped), "p\n\nq\n");
+        let spanned = "p\n\n<!--meta\nstatus: deprecated\n-->\ngone.\n\nstill gone.\n<!--/meta-->\nq\n";
+        assert_eq!(super::strip(spanned), "p\n\nq\n");
+        assert_eq!(super::strip("no comments\n"), "no comments\n");
+    }
+
+    #[test]
+    fn a_snapshot_holds_every_text_the_manifests_their_documents_the_reference_tables_the_binary_and_the_git_state() {
         let dir = std::env::temp_dir().join(format!("within-reason-snapshot-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         super::snapshot(&dir).expect("the snapshot is written from the checkout the test binary was built in");
         for text in super::ALL {
             assert_eq!(std::fs::read_to_string(dir.join(text.path)).unwrap(), super::read(text), "{} in the snapshot is the checkout's", text.path);
+        }
+        for manifest in super::MANIFESTS {
+            assert!(dir.join(manifest).is_file(), "{manifest} is in the snapshot");
+            for document in super::documents(manifest).unwrap() {
+                assert!(dir.join(&document).is_file(), "{document} of {manifest} is in the snapshot");
+            }
         }
         for directory in super::DIRECTORIES {
             assert!(std::fs::read_dir(dir.join(directory)).unwrap().count() > 0, "{directory} is copied whole");

@@ -1,0 +1,20 @@
+# The brief as game experience (arena --brief experience, WITHIN_REASON_BRIEF=experience); the commander reads it whole.
+# One document path a line, in reading order; `#` lines and blank lines are ignored. Assembled by the bot at every
+# session start (crates/bot/src/texts.rs `assemble`), every HTML comment and every deprecated passage stripped;
+# nothing assembled is committed (docs/design/2026-10-21-brief-rework.md §4). The hand-written documents are under
+# docs/briefs/experience/; the generated ones under docs/briefs/reference/ are written by their generators
+# (run/reference_set.py, run/timelines.py, run/opponent_set.py, run/frontier_set.py --brief, run/map_sheets.py).
+docs/briefs/experience/intro.md
+docs/briefs/experience/winning.md
+docs/briefs/reference/map-sheets.md
+docs/briefs/reference/comet-catcher-remake-1.8-arm.md
+docs/briefs/reference/comet-catcher-remake-1.8-cor.md
+docs/briefs/reference/comet-catcher-remake-1.8-arm-games.md
+docs/briefs/experience/opponent-barb.md
+docs/briefs/reference/comet-catcher-remake-1.8-barb-hard_aggressive.md
+docs/briefs/experience/units.md
+docs/briefs/experience/hands.md
+docs/briefs/experience/cases.md
+docs/briefs/experience/late-game.md
+docs/briefs/reference/frontier.md
+docs/briefs/experience/players-words.md

@@ -1,0 +1,4 @@
+# The standing brief: what the player reads with the arena's default and run/human_game.sh (WITHIN_REASON_BRIEF unset).
+# One document path a line; `#` lines and blank lines are ignored. Assembled by the bot at every session start
+# (crates/bot/src/texts.rs `assemble`), every HTML comment stripped; nothing assembled is committed.
+docs/briefs/player.md

@@ -52,34 +52,92 @@ pub(crate) fn model() -> String {
     std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5-5".into())
 }
 
-/// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild. The role, then what the
-/// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective.
-fn system_prompt() -> String {
-    use crate::texts::{read, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE, PLAYER_PROMPT};
+/// The player's prompt as parts, (source, text): the role text with the hands' rules whole where it marks them, the
+/// under-command text with a commander above, the brief its manifest names (`WITHIN_REASON_BRIEF`), the Opus text
+/// for an Opus model, the packet example when asked, then the game's bonus and objective. Every part is stripped of
+/// HTML comments last (the design's §3: provenance in comments never reaches a model). Read at every session start
+/// (`crate::texts`): an edit needs no rebuild, and a game reads from its snapshot.
+pub(crate) fn player_parts() -> std::io::Result<Vec<(String, String)>> {
+    use crate::texts::{read, strip, BRIEF_EXPERIENCE, BRIEF_STANDARD, HANDS_RULES, PACKET_EXAMPLE, PLAYER_OPUS, PLAYER_PROMPT, PLAYER_UNDER_COMMAND};
     let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
-    let brief = if experience { &PLAYER_BRIEF_EXPERIENCE } else { &PLAYER_BRIEF };
-    let under_command = if command::model().is_some() { read(&crate::texts::PLAYER_UNDER_COMMAND) } else { String::new() };
-    // Last before the game's own lines, where it is read nearest the first turn.
-    let packet_example = if std::env::var_os("WITHIN_REASON_PACKET_EXAMPLE").is_some() { read(&crate::texts::PACKET_EXAMPLE) } else { String::new() };
+    let role = for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" });
+    let mut parts: Vec<(String, String)> = Vec::new();
+    // Where the player's role text carries the hands' standing rules whole, the same words the hands read at every
+    // pick (the user, 2026-10-17: the prompt matches what Jev is prompted for).
+    match role.split_once(HANDS_RULES_MARK) {
+        Some((before, after)) => {
+            parts.push((PLAYER_PROMPT.path.into(), before.into()));
+            parts.push((HANDS_RULES.path.into(), crate::brain::pianist::hands_rules_whole()));
+            parts.push((PLAYER_PROMPT.path.into(), after.into()));
+        }
+        None => parts.push((PLAYER_PROMPT.path.into(), role)),
+    }
+    if command::model().is_some() {
+        parts.push((PLAYER_UNDER_COMMAND.path.into(), read(&PLAYER_UNDER_COMMAND)));
+    }
+    parts.extend(crate::texts::assemble_parts(if experience { BRIEF_EXPERIENCE } else { BRIEF_STANDARD })?);
     // The model's own section, after the brief: what Opus does in the seat that the brief's facts do not correct
     // (the user, 2026-10-07: per-model prose tuning; Sonnet does not read it).
-    let own = if model().starts_with("claude-opus") { read(&crate::texts::PLAYER_OPUS) } else { String::new() };
-    with_hands_rules(&for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" })) + &under_command + &read(brief) + &own + &packet_example + &bonus() + &objective()
+    if model().starts_with("claude-opus") {
+        parts.push((PLAYER_OPUS.path.into(), read(&PLAYER_OPUS)));
+    }
+    // Last before the game's own lines, where it is read nearest the first turn.
+    if std::env::var_os("WITHIN_REASON_PACKET_EXAMPLE").is_some() {
+        parts.push((PACKET_EXAMPLE.path.into(), read(&PACKET_EXAMPLE)));
+    }
+    parts.push(("(the game's bonus)".into(), bonus()));
+    parts.push(("(the game's objective)".into(), objective()));
+    Ok(parts.into_iter().map(|(source, text)| (source, strip(&text))).collect())
 }
 
-/// Where the player's role text carries the hands' standing rules whole, the same words the hands read at every
-/// pick (the user, 2026-10-17: the prompt matches what Jev is prompted for).
+fn system_prompt() -> std::io::Result<String> {
+    Ok(player_parts()?.into_iter().map(|(_, text)| text).collect())
+}
+
+/// Where the player's role text carries the hands' standing rules whole.
 const HANDS_RULES_MARK: &str = "<!--hands-rules-->";
 
-fn with_hands_rules(text: &str) -> String {
-    text.replace(HANDS_RULES_MARK, &crate::brain::pianist::hands_rules_whole())
+/// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
+/// the game's bonus and objective.
+pub(crate) fn commander_parts() -> std::io::Result<Vec<(String, String)>> {
+    use crate::texts::{read, strip, BRIEF_EXPERIENCE, COMMANDER_PROMPT};
+    let mut parts = vec![(COMMANDER_PROMPT.path.to_string(), read(&COMMANDER_PROMPT))];
+    parts.extend(crate::texts::assemble_parts(BRIEF_EXPERIENCE)?);
+    parts.push(("(the game's bonus)".into(), bonus()));
+    parts.push(("(the game's objective)".into(), objective()));
+    Ok(parts.into_iter().map(|(source, text)| (source, strip(&text))).collect())
 }
 
-/// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
-/// the game's objective.
-fn commander_prompt() -> String {
-    use crate::texts::{read, COMMANDER_PROMPT, PLAYER_BRIEF_EXPERIENCE};
-    read(&COMMANDER_PROMPT) + &read(&PLAYER_BRIEF_EXPERIENCE) + &bonus() + &objective()
+fn commander_prompt() -> std::io::Result<String> {
+    Ok(commander_parts()?.into_iter().map(|(_, text)| text).collect())
+}
+
+/// The hands' standing texts: the pick's rules whole, the gate's rules, the default packet. The request itself is
+/// built from the game by `brain/pianist/picture.rs`.
+pub(crate) fn hands_parts() -> Vec<(String, String)> {
+    use crate::texts::{read, HANDS_DEFAULT, HANDS_RULES, HANDS_RULES_GATE};
+    vec![
+        (HANDS_RULES.path.into(), crate::brain::pianist::hands_rules_whole()),
+        (HANDS_RULES_GATE.path.into(), read(&HANDS_RULES_GATE)),
+        (HANDS_DEFAULT.path.into(), read(&HANDS_DEFAULT)),
+    ]
+}
+
+/// `bot --print-prompt ROLE [--sources]`: a role's prompt as a session would get it now, under the same variables a
+/// game sets (`WITHIN_REASON_BRIEF`, `WITHIN_REASON_COMMANDER`, `WITHIN_REASON_MODEL`, `WITHIN_REASON_OBJECTIVE`);
+/// with `--sources`, every part between a `<<<source: PATH>>>` line and an `<<<end>>>` line, for `run/brief_view.py`.
+pub(crate) fn print_prompt(role: &str, sources: bool) -> std::io::Result<String> {
+    let parts = match role {
+        "player" => player_parts()?,
+        "commander" => commander_parts()?,
+        "hands" => hands_parts(),
+        other => return Err(std::io::Error::other(format!("no role {other}: player, commander or hands"))),
+    };
+    Ok(if sources {
+        parts.iter().filter(|(_, text)| !text.is_empty()).map(|(source, text)| format!("<<<source: {source}>>>\n{text}\n<<<end>>>\n")).collect()
+    } else {
+        parts.into_iter().map(|(_, text)| text).collect()
+    })
 }
 
 /// The role text for one brief: a passage between `<!--brief:NAME-->` and `<!--/brief-->` is kept for the brief of
@@ -204,7 +262,7 @@ struct Launch {
     shared: Arc<Shared>,
     model: String,
     /// The session's system prompt, read again at every start.
-    prompt: fn() -> String,
+    prompt: fn() -> std::io::Result<String>,
 }
 
 /// What runs the model, chosen by the model's name: Claude Code for Claude models, the Codex CLI for OpenAI ones
@@ -295,7 +353,7 @@ fn effort_of_the_player() -> String {
 impl Launch {
     /// The tool server and what a session of `name` starts from: `dir` receives `<name>.jsonl`, the session's
     /// working directory `<name>-cwd` and its `<name>-stderr.log`.
-    fn prepare(dir: &Path, name: &str, shared: Arc<Shared>, model: String, effort: String, prompt: fn() -> String) -> std::io::Result<(Launch, McpServer)> {
+    fn prepare(dir: &Path, name: &str, shared: Arc<Shared>, model: String, effort: String, prompt: fn() -> std::io::Result<String>) -> std::io::Result<(Launch, McpServer)> {
         let transcript = Arc::new(Transcript::create(&dir.join(format!("{name}.jsonl")))?);
         // The `predict` rows, appended (a replacement session spawns from the same launch and keeps writing).
         *shared.predictions.lock().unwrap() = Some(std::fs::OpenOptions::new().create(true).append(true).open(dir.join(format!("predictions-{name}.jsonl")))?);
@@ -313,7 +371,7 @@ impl Launch {
     }
 
     fn spawn(&self) -> std::io::Result<Session> {
-        let prompt = (self.prompt)();
+        let prompt = (self.prompt)()?;
         let model = || self.model.clone();
         if Backend::for_model(&model()) == Backend::Api {
             let endpoint = api::Endpoint::for_model(&model())?;
@@ -512,7 +570,13 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
         // A fresh session at the cap, and as soon as the prompt on disk has been edited (the user, 2026-09-22: text
         // updates without a rebuild); either way the new session is handed the notes.
-        let edited = crate::texts::digest(&(launch.prompt)()) != session.prompt;
+        let edited = match (launch.prompt)() {
+            Ok(text) => crate::texts::digest(&text) != session.prompt,
+            Err(e) => {
+                eprintln!("[ai {ai_id}] the prompt on disk cannot be read ({e}); the session goes on");
+                false
+            }
+        };
         if edited {
             eprintln!("[ai {ai_id}] the prompt on disk has changed: a fresh session reads it");
         }
@@ -784,7 +848,7 @@ mod tests {
     fn the_player_prompt_carries_the_hands_rules_whole() {
         let text = crate::texts::read(&crate::texts::PLAYER_PROMPT);
         assert!(text.contains(super::HANDS_RULES_MARK));
-        let prompt = super::with_hands_rules(&text);
+        let prompt: String = super::player_parts().unwrap().into_iter().map(|(_, text)| text).collect();
         let rules = crate::brain::pianist::hands_rules_whole();
         assert!(rules.contains("A raider at one of our extractors is met by a small detachment") && rules.contains("A factory standing idle") && !rules.contains("<<"), "{rules}");
         assert!(prompt.contains(&rules) && !prompt.contains(super::HANDS_RULES_MARK));

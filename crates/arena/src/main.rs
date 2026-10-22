@@ -104,7 +104,7 @@ struct Options {
     /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
     player_model: Option<String>,
-    /// `--brief experience`: the player reads the brief as game experience (`docs/briefs/player-experience.md`) in
+    /// `--brief experience`: the player reads the brief as game experience (`docs/briefs/experience.manifest`) in
     /// place of the standing one.
     brief: Option<String>,
     /// `seat`: one player session a seat of ours instead of one for all of them.

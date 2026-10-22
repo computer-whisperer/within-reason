@@ -26,6 +26,8 @@ use world::World;
 /// `--snapshot DIR`: write the snapshot a game runs from (`texts::snapshot`) and leave; the arena and
 /// `run/human_game.sh` then run `DIR/bot` with `WITHIN_REASON_TEXTS=DIR`, so nothing edited in the checkout reaches
 /// the game.
+/// `--print-prompt ROLE [--sources]`: print a role's prompt (player, commander, hands) as a session would get it under
+/// the variables set, and leave (`strategist::print_prompt`; `run/brief_view.py` reads it).
 fn main() -> io::Result<()> {
     let mut player = false;
     let mut pianist = false;
@@ -37,12 +39,27 @@ fn main() -> io::Result<()> {
             "--snapshot" => {
                 let dir = arguments.next().ok_or_else(|| io::Error::other("--snapshot takes the directory to write"))?;
                 let dir = std::path::PathBuf::from(dir);
-                texts::snapshot(&dir)?;
+                if let Err(e) = texts::snapshot(&dir) {
+                    eprintln!("snapshot {}: {e}", dir.display());
+                    std::process::exit(1);
+                }
                 let head = std::fs::read_to_string(dir.join("git-head.txt")).unwrap_or_default();
                 eprintln!("snapshot {} at {}", dir.display(), head.trim());
                 return Ok(());
             }
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot --pianist [--player] | bot --snapshot DIR"))),
+            "--print-prompt" => {
+                let role = arguments.next().ok_or_else(|| io::Error::other("--print-prompt takes the role: player, commander or hands"))?;
+                let sources = arguments.next().as_deref() == Some("--sources");
+                match strategist::print_prompt(&role, sources) {
+                    Ok(text) => print!("{text}"),
+                    Err(e) => {
+                        eprintln!("the {role} prompt cannot be assembled: {e}");
+                        std::process::exit(1);
+                    }
+                }
+                return Ok(());
+            }
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot --pianist [--player] | bot --snapshot DIR | bot --print-prompt ROLE [--sources]"))),
         }
     }
     if !pianist {

@@ -10,15 +10,15 @@ against quiet recorded openings (docs/studies/build-order.md); the tax is the on
     run/frontier_set.py --brief        the brief's section from the frontier files already drawn, no run
 
 Writes docs/briefs/reference/frontier-<map slug>.md (the tables) and .json (every run: plan, firsts, state by minute)
-for each map, from the latest recorded game on it (run/build_brief.py's roots), then docs/briefs/reference/frontier.md,
-the one section across the maps that run/build_brief.py assembles into the brief (the per-map files stay beside it for
-a reader who wants every order).
+for each map, from the latest recorded game on it (run/map_sheets.py's roots), then docs/briefs/reference/frontier.md,
+the one section across the maps that the experience brief's manifest names (the per-map files stay beside it for a
+reader who wants every order).
 """
 import argparse, concurrent.futures, json, os, re, subprocess, sys, tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "run"))
-from build_brief import latest_record  # noqa: E402  (chdirs to the repo)
+from map_sheets import latest_record  # noqa: E402  (chdirs to the repo)
 
 REF = "docs/briefs/reference"
 # The maps the frontier is drawn for: 11, 22 and 40 spots a side (the user's ruling: scaling off a few spots is the key skill).
