@@ -106,6 +106,8 @@ against them before the game's thirtieth minute buys nothing, while BARb hard_ag
 their own (BARb's anti-nuke at 21-25 and a silo begun 29:50 in nuke-2-hard; Apex at +60 on Altored a silo standing
 24:28 in apex60-1 and none in apex60-2).
 **Status.** supported (2026-10-20; the user's reading, three lobby games).
+**Corrected 2026-10-22 (the meta catalogue's second reader, from the truth files).** The replay's truth has 31 mohos
+finished at 20:00 and 34 at 21:00 (the 37 counted frames); apex60-1's silo first appears at 24:28 and stands at 29:42.
 **Evidence.** Center Command 2v4 replay: no `corsilo`, `armsilo`, `corfmd` or `armamd` in either person's events
 over 21 minutes while they held 37 mohos and two fusions; the Cape Violet 1v1 (`1792372195-human`): computer_whisperer's
 two missiles after 30:00 at +100 % income; our anti-nuke at 12-16 min on Center Command cost the sprint seat 1,500

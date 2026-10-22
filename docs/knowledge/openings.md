@@ -329,6 +329,9 @@ user: copy it)
 **Evidence.** The record's created events and resource samples for the first three minutes, listed above.
 **Would be wrong if.** The replay's record misattributed the builder (it names none; the order is the commander's
 own until the first constructor stands at 0:50, and the lab's units are the lab's).
+**Corrected 2026-10-22 (the meta catalogue's second reader, from truth-1 of the replay).** Six wind generators and a
+solar after the lab (0:54 to 1:32; with the three before it, ten generators by 1:35), and the second constructor at
+1:46 came after four Pawns (1:14, 1:24, 1:36, 1:42), not six.
 **Update (human-5 review).** The commander's commands in the record: `guard` on the lab at 0:50 as it finished; seven
 wind and a solar ordered 0:53 to 1:04 as one batch, built by 1:30; `guard` again at 1:36 and, after a reclaim, at
 2:02, and nothing else until 3:04. Pawn intervals 11-12 s while the lab worked alone (1:12, 1:23, 1:35), then 4-14 s
@@ -375,6 +378,9 @@ plant went up and to 114 in minute 5, never zero. From 5:00 the plant gets nano 
 storage (6:18): one plant made faster, no second factory in seven minutes. The other player's opening was the same
 shape a half-minute faster (two solars, the plant at 0:34 standing 0:53, a solar, then extractors) and his energy sat
 at 0-30 through minutes 4-6 on 18 solars because his plant ran without pause.
+**Corrected 2026-10-22 (the meta catalogue's second reader, from the card).** The plant's first two units were Rovers
+(armfav), not Rascals (VAK played Armada); Blitzes were eleven by 5:00 (the thirteenth at 5:26); Artur91's energy store
+read 1,557 at 4:00, 30 at 5:00 and 1,668 at 6:00, not 0-30 through minutes 4-6.
 **Status.** transcribed (2026-09-22) from one people's 1v1 (both rank 5, skills 52 and 43, Armada against Armada,
 2026-09-09, game test-31251).
 **Evidence.** `run/matches/1790122851-replay-vak-vs-artur-comet` (run/replay_match.py on the user's demo): record-0 is the west player ([MADO]VAK, the winner, from

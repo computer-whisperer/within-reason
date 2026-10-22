@@ -3,7 +3,7 @@ id: M-pool-intro
 layer: meta
 population: duels between people at OS 40 and above on Comet Catcher Remake 1.8
 map: Comet Catcher Remake 1.8
-dates: games 2026-08-09 to 2026-09-23 (game test-31251 to test-31383); cards cut 2026-09-23 and 10-03, re-cut 2026-10-13; the reference set regenerated 2026-10-17
+dates: games 2026-08-09 to 2026-09-23 (nine game versions, test-30922 to test-31383); cards cut 2026-09-23 and 10-03, re-cut 2026-10-13; the reference set regenerated 2026-10-17
 ground: card (the engine replay of every game, every unit of both sides)
 sources: {code: [run/data/replays/manifest.jsonl, run/replays/card.py, run/reference_set.py, docs/briefs/reference/comet-catcher-remake-1.8-arm.md, docs/briefs/reference/comet-catcher-remake-1.8-cor.md, docs/knowledge/replays.md], claims: [K-map-comet-catcher-remake-1-8-higher-os-differences]}
 status: live
@@ -11,17 +11,18 @@ status: live
 ## What strong players do: the pool
 
 The pool is forty public duels on Comet Catcher Remake 1.8 in which both players were rated OS 40 or above (the
-players OS 40 to 54, median 43), played between August 9 and September 23, 2026, replayed through the engine and cut
-into cards: every unit of both sides, every build order with its builder, every death with its killer where the
+players OS 40 to 54, median 43), played between August 9 and September 23, 2026 on nine game versions, replayed through
+the engine and cut into cards: every unit of both sides, every build order with its builder, every death with its killer where the
 engine names one. The Armada sides are 41 of 30 duels (24 won), the Cortex sides 39 of 29 (16 won). Three players
-hold most of the sides: Artur91 (OS 42-44) 22, Hellontoast (40-41) 13, thebluegecko (48.5) 9. A wider pool of 29
+hold half the sides: Artur91 (OS 41.8-43.4) 20, Hellontoast (39.7-40.8) 13, TehHardStuckOS25erer (43) 8; thebluegecko
+(48.5) has 7. A wider pool of 29
 duels at OS 25 and above (2026-09-23) is cited where it adds something; its numbers are marked.
 
 What the pool is not: it is one map, 1v1, tier 1 in all but four sides, twelve to fifteen minutes long at the median,
 and it was played by people who were not playing us. It is the floor of strong play on this map and the measure a
 Comet game of ours is read against; it says nothing about team games, other maps, or what a person does against our
-particular shape. Quicksilver, Great Divide and the lobby maps have no cards (two Full Metal Plate duels at OS 40+ are
-thebluegecko's, in his section of the people document). Every number below is a median unless it says otherwise, and
+particular shape. Quicksilver and the lobby maps have no cards, Great Divide four and Gasbag Grabens one
+below OS 40 (two Full Metal Plate duels at 40+ are thebluegecko's, in his section of the people document). Every number below is a median unless it says otherwise, and
 "p25 / median / p75" is the lower quartile, the median and the upper quartile of the sides. The full tables, by the
 minute and by milestone, are in the two reference documents named in this block's sources; this document carries what
 a player needs in play.
@@ -42,17 +43,19 @@ status: live
 
 **Armada opens on two solars and a vehicle plant at 0:34.** The commander's order in 22 of 41 sides is extractor,
 extractor, solar, solar, vehicle plant (started 0:34, standing 0:53, its first unit at 0:54); the plant is a vehicle
-plant in 40 of 41. Two solars stand before the plant in the median side (2 / 2 / 2); three in 4 of 41, four in none.
+plant in 40 of 41. Two solars stand before the plant in the median side (2 / 2 / 2); three in 5 of 41 (12 of the 80 sides of both
+factions), four in none.
 The third and fourth solars come after the plant, by 2:00 in most sides, five by 3:00 and eight by 5:00. The three-solar
 line with the plant at 0:58 is thebluegecko's (his section in the people document), and it does not separate winners
 from losers here: the count of solars by 2:00 is the same for both.
 
 **Cortex opens later and with a turret.** The most played order (11 of 39) is extractor, extractor, solar, light laser
-turret at 0:25-0:28, a third extractor, solar, vehicle plant at 0:59; a bot lab after two extractors and one or two
-solars in 7 of 39. The Cortex plant makes a constructor first (16 of 23 sides) and its first soldier at 1:46; the Armada
-plant makes a Rover first (18 of 22) and its first constructor at 1:30. In the OS 25+ pool the later plant won 18 of 29
-games to the earlier's 11, but the later plant was the higher-rated player's in most of those, so the clock itself is
-not what won.
+turret at 0:25-0:28, a third extractor, solar, vehicle plant at 0:59; a bot lab first in 15 of 39 (after two extractors
+and one or two solars in the two most played lab orders). The Cortex vehicle plant makes a constructor first (21 of 24
+sides) and its first soldier at 1:46; the Armada plant's first unit is a Rover in 22 of 40 sides, a Blitz in 11 and a
+constructor in 7, and its first constructor comes at 1:30. In the OS 25+ pool the 29 later-plant sides won 18 to the
+earlier's 11, but where the two sides of a game opened differently the later plant's 12 wins were the higher-rated
+player's in 10, so the clock itself is not what won.
 
 **The commander's work after the plant is the plant.** In the first four minutes the commander guards the plant for
 50 s at the median (30 s or more in 45 of 80 sides), first at 1:35, stepping out for a solar or an extractor and back;
@@ -76,16 +79,17 @@ status: live
 -->
 ### The first units and what the armies are made of
 
-The factory makes 17 / 19 / 22 units by 4:00. Armada's first seven are scout cars and constructors: "two Rovers, two
-constructors, three Rovers" (4 sides, all won), "a constructor, six Rovers" (4, three won); Blitzes come from about
-2:00. Cortex's bot lab makes "two constructors, five Grunts" (10 sides), its vehicle plant "a constructor, two Rascals,
-a constructor, three Rascals" (8). Five or more scout cars are out by 3:00 in 38 of 45 vehicle-plant sides, winners and
-losers alike: the scout cars are the raiders and the raid answer of the first five minutes.
+The factory makes 17 / 19 / 22 units by 4:00. Armada's first seven are mostly scout cars and constructors, with a
+Blitz among them in 19 of 41 sides (the first unit in 11): "two Rovers, two constructors, three Rovers" (4 sides, all
+won), "a constructor, six Rovers" (4, three won), "two Blitzes, three Rovers, two constructors" (3, one won). Cortex's
+bot lab makes "two constructors, five Grunts" (10 sides), its vehicle plant "a constructor, two Rascals, a constructor,
+three Rascals" (8). Five or more scout cars are out by 3:00 in 57 of 64 vehicle-plant sides, winners and losers alike:
+the scout cars are the raiders and the raid answer of the first five minutes.
 
 The armies are one unit type for ten minutes. Armada: Rovers 55% and Blitzes 42% of the army's metal at 2:00, Blitzes
 67% at 4:00 and 84-88% from 6:00 to 10:00, Stouts 38% only at 14:00. Cortex: Grunts 41% and Incisors 39% at 4:00,
-Incisors 67-76% from 6:00 to 10:00, Brutes 37% at 14:00 and 63% at 18:00, with Levelers a tenth and Pounders never
-above 5%. Army metal standing: Armada 578 / 1,080 / 1,496 / 2,530 / 3,570 / 4,718 at 4, 6, 8, 10, 12 and 14 minutes
+Incisors 67-76% from 6:00 to 10:00, Brutes 37% at 14:00 and 63% at 18:00, with Pounders a tenth and Lashers 3 to
+4%. Army metal standing: Armada 578 / 1,080 / 1,496 / 2,530 / 3,570 / 4,718 at 4, 6, 8, 10, 12 and 14 minutes
 (9, 12, 17, 23, 35 and 40 soldiers); Cortex 510 / 1,252 / 2,066 / 2,752 / 4,780 / 7,415.
 
 <!--meta
@@ -102,21 +106,22 @@ status: live
 -->
 ### The first soldiers cross the map, and both sides lose extractors all game
 
-**Every side of the pool had a soldier in the enemy's half within three minutes.** Armada's first soldier crosses the
+**Every side of the pool sent a soldier into the enemy's half, three quarters of them by 3:00 and the last at 5:19.** Armada's first soldier crosses the
 middle at 1:22 / 1:40 / 1:49, a Rover in 37 of 41 sides, 26 to 44 s after it was made; it is within 1,500 of his start
 at 1:54 and kills a building of his at 2:18 / 2:48 / 4:13 (an extractor at 3:04). Cortex, whose Rascals come after a
 constructor, crosses at 2:16 / 2:48 / 3:23 and kills at 3:33 / 4:35 / 5:35. All but one of 80 sides killed a building
-of his. Winners cross 40 s earlier than losers and have 78 of their 280 army metal in his half at 3:00 against the
-losers' 43 of 334. The players' reason, relayed by the user: the space of what the opponent may be doing is too broad
+of his. Over both factions the winners cross 40 s earlier than the losers and have 78 of their 280 army metal in his half
+at 3:00 against the losers' 43 of 334 (Armada's winners alone cross 5 s later than its losers). The players' reason, relayed by the user: the space of what the opponent may be doing is too broad
 to leave unpressed, and pressure is what stops an extremely greedy opening (the lessons on raids).
 
 **Extractors are lost at 1.5 to 2 a game-minute, by winners too.** The first extractor falls at 4:21 for Armada (2:36 /
 4:21 / 5:17) and 3:55 for Cortex; every side of the OS 25+ pool lost one. Over the game a side loses 1.54 (Armada) or
-2.09 (Cortex) a minute: the winners 0.99 and 0.90, the losers 2.52 and 2.69. The killer, where the card names it, is a
-scout car in 21 of 48 sides, an Incisor in 10, a Blitz in 8, a Grunt in 6. A side re-takes 7.5 spots a game and rebuilds
-two before 8:00. The raids are met by turrets and scout cars, not by the army: light turrets by 8:00 are 7 / 10 / 13
-for Armada (winners 11, losers 9) and 5 / 7 / 8 for Cortex (8 against 5), and the fights of the first five minutes fall
-half in each side's own half, which is raiding both ways, not a battle.
+2.09 (Cortex) a minute: the winners 0.99 and 0.90, the losers 2.52 and 2.69. In the OS 25+ survey the killer, where
+the card names it, is a scout car in 21 of 48 sides, an Incisor in 10, a Blitz in 8, a Grunt in 6, and a side rebuilds
+two before 8:00; a side re-takes 7.5 spots a game at 40+. The raids are met by turrets and scout cars rather than by
+holding the army home, as far as the cards can tell (they carry no positions): light turrets by 8:00 are 7 / 10 / 13
+for Armada (winners 11, losers 9) and 5 / 7 / 8 for Cortex (8 against 5), and in the OS 25+ survey the fights of the
+first five minutes fall half in each side's own half, which is raiding both ways, not a battle.
 
 <!--meta
 id: M-pool-expansion
@@ -134,11 +139,11 @@ status: live
 
 **The curve.** Extractors standing, Armada, p25 / median / p75 with the winners' and losers' medians: 4:00 6 / 7 / 8
 (8 and 6); 6:00 8 / 11 / 14 (12 and 9); 8:00 11 / 15 / 18 (17 and 13); 10:00 14 / 17 / 20 (19 and 14); 12:00 19 / 22 / 27
-(27 and 18); 14:00 16 / 27 / 30 (30 and 16). Cortex runs one higher through 10:00 (8, 12, 16, 21 at 4, 6, 8, 10) and
-reaches 24 at 12:00. Metal income is 2.0 to 2.3 a second an extractor over minutes 3 to 8 (the sheet's 2.30 for a spot
+(27 and 18); 14:00 16 / 27 / 30 (30 and 16). Cortex runs one higher to 8:00 and four higher at 10:00 (8, 12, 16, 21 at 4, 6, 8,
+10) and reaches 24 at 12:00. Metal income is 2.0 to 2.3 a second an extractor over minutes 3 to 8 (the sheet's 2.30 for a spot
 here), so a side at 17 extractors at 10:00 has about 40 a second. Constructors: the first at 1:30, 3 standing at 4:00,
-5 at 8:00, 8 at 12:00 (4 / 5 / 7 made by 8:00); nobody opens with a constructor count, they come one in every four or
-five units.
+5 at 8:00, 8 at 12:00 (4 / 5 / 7 made by 8:00); nobody opens with a constructor count, they are about one in six of
+the factory's units to 4:00 (3 of 19).
 
 **Where the spots are.** By 4:00, 80% of the spots a side has taken lie in the nearest quarter of the way to his start
 and 1% past the middle; by 8:00, 60% in the nearest quarter, 27% in the next, 9% within sight of the middle and 4%
@@ -148,14 +153,16 @@ and often the next pair toward the middle (A4 to spot_45 and spot_50 at 2:06-2:3
 2:12-2:36); constructors take the flank strips. From A4 the north strip goes spot_19 (B3) 2:51, spot_22 3:50, spot_14 (A2)
 4:10, spot_7 (A1) 4:46, spot_2 (B1) 5:12, spot_9 5:57, spot_4 (C1) 6:14, winners and losers on the same clock. From B5
 the winners went south-east (spot_52 C5 2:47, spot_61 C6 3:17, spot_63 C7 3:32, spot_64 D7 3:44, spot_59 D6 4:44) and
-took the back corner (spot_54, spot_62 at A6-A7) only at 5:56-6:19; the losers took the back corner first. From H5 the
+took the back corner (spot_54, spot_62 at A6-A7) only at 5:56-6:19; the losers took the back corner first (three of
+the seven winners are one player, and the losers are five sides). From H5 the
 winners took the south strip (spot_60 G6 2:06, spot_65 H7 3:14, spot_72 H8 4:00, spot_57 G6 4:09) and the losers the
 north (spot_25 H3 at 4:42); four of the seven H5 wins are one player, so this may be him rather than the map.
 
 **The gap opens between 8:00 and 12:00.** Winner minus loser in extractors: 0 at 2:00, 1 at 4:00, 2 at 6:00, 3 at
 8:00, 6.5 at 10:00, 12 at 12:00 (OS 25+ pool, 18 games reaching 12:00); from 8:00 to 12:00 the winners added 11
 extractors and the losers 1, and the winners had 25 or more at 12:00 in 14 of 18. The card cannot tell whether the
-losers' flat curve is extractors killed or never built; the loss rates above say much of it is killed.
+losers' flat curve is extractors killed or never built; the loss rates above make killing a large part of it, but the
+card cannot settle the share.
 
 <!--meta
 id: M-pool-energy-and-power
@@ -173,26 +180,31 @@ status: live
 
 **Solars only, and more of them than we build.** By 8:00 a side has 12 / 14 / 17 solars (Armada; winners 16, losers
 13) or 14 / 16 / 18 (Cortex); no side built a wind generator before 8:00 (the map's wind is 1 to 4). Energy is tight
-on both sides: the store was under 50 at some minute between 3:00 and 8:00 in 40 of 58 sides (OS 25+), and the winners
-buy more of it (energy income 400 against 330 at 8:00). Radars: 1 / 2 / 2 by 8:00 (Cortex 2 / 3 / 4), the first at about
-3:00. An energy storage: 23 of 80 sides, the first at 8:51 / 9:36 / 12:27; a metal storage 5 of 80; converters 10 of 80
-(three to twenty-four of them); a fusion none, the duels ending at 12:56 at the median.
+on both sides: the store was under 50 at some minute between 3:00 and 8:00 in 40 of 58 sides (OS 25+). Energy income at
+8:00: Armada's winners 340 against the losers' 290, Cortex's 375 against 378 (the OS 25+ survey's 400 against 330 does
+not hold for Cortex at 40+). Radars: 1 / 2 / 2 by 8:00 (Cortex 2 / 3 / 4), the first at about 3:00. An energy storage:
+23 of 80 sides, the first at 8:51 / 9:36 / 12:27; a metal storage 5 of 80; converters 10 of 80 (three to twenty-four of
+them); a fusion none, the duels ending at 12:39 at the median.
 
 **The first construction turret goes on the plant before the second factory.** Armada: begun at 5:24 / 5:56 / 6:31 in
 30 of 41 sides (winners 5:45, losers 6:25) with 9 / 11 / 13 extractors, 20 / 25 / 28 metal income, three constructors and
 358 stored. Cortex: 4:45 / 5:06 / 6:10 in 31 of 39. Of the sides that built both, 23 of 24 (Armada) and 24 of 27 (Cortex)
 put the turret first. The second factory follows at 7:12 / 8:11 / 8:56 (Armada, 30 of 41: a vehicle plant 16, a bot lab
 12, an air plant 2) and 6:14 / 8:16 / 9:36 (Cortex, 31 of 39: a vehicle plant 22, a bot lab 6, an air plant 3), with
-14 / 16 / 19 extractors and 898 stored. The higher-rated player started the second factory earlier in 17 of 29 games.
+14 / 16 / 19 extractors and 898 stored (Armada; Cortex 11 / 14 / 19 and 842). The higher-rated player started the
+second factory earlier in 17 of 29 games (OS 25+).
 
-**The bank peaks at 8:00 and the winners spend it.** Metal stored, Armada median: 52 at 3:00, 260 at 5:00, 537 at 7:00,
-837 at 8:00 (p75 1,431), 356 at 10:00 after the second factory, 410 at 12:00. At 10:00 7 of 22 winners and 15 of 22
-losers held 500 or more (OS 25+); the income gap is small to 8:00 (winner minus loser 6.9 a second) and opens after
-(13.6 at 10:00, 21.2 at 12:00).
+**The bank peaks at 8:00, and at 40+ the winners hold more of it.** Metal stored, Armada median: 52 at 3:00, 260 at
+5:00, 537 at 7:00, 837 at 8:00 (p75 1,431), 356 at 10:00 after the second factory, 410 at 12:00. The winners bank more
+than the losers at every minute from 4:00 to 16:00 (Armada 1,148 against 614 at 8:00 and 414 against 202 at 10:00;
+Cortex 878 against 449 and 1,183 against 842). The OS 25+ survey read the opposite at 10:00 (7 of 22 winners and 15 of
+22 losers with 500 or more banked): the two pools disagree, and a derivation about the bank has to say so. The income
+gap is small to 8:00 (winner minus loser about 5 a second at 40+) and opens after (Armada 14 at 10:00 and 21 at 12:00,
+Cortex 11 and 18).
 
 **Builder priority.** Fourteen of 41 players in 75 duels set the commander to low priority while it assists the plant
-or builds a solar (52 toggles, 42 of them before 5:00, 21 in the first minute, the metal store under a tenth in 23) and
-high again when it takes a build of its own; thebluegecko did it in 10 of his 12 toggles. Labs and construction
+or builds a solar (52 toggles, 42 of them before 5:00, 21 in the first minute, the metal store under a tenth in 23),
+and 12 of the 52 were set high again for a build of the commander's own; thebluegecko did it in 10 of his 12 toggles. Labs and construction
 turrets are left on the widget's low from birth by everyone (0 of 172 hand toggles). A second school (5 of 41 players,
 one of them 65 of the 81 toggles) has every constructor born low and flips the one carrying the next extractor or
 turret to high as it gets the order.
@@ -206,26 +218,29 @@ population: the Comet pool at OS 40+ (693 fights; the shapes study)
 map: Comet Catcher Remake 1.8
 dates: 2026-09-24 (shapes), 2026-09-23 (fight cells), 2026-10-03 (army in his half)
 ground: card (geometry only: the records cannot show shots or friendly fire for the pros)
-sources: {code: [docs/studies/2026-09-24-pro-fight-shapes.md, run/replays/shapes.py, docs/briefs/reference/comet-catcher-remake-1.8-arm.md], claims: [K-form-pros-order-one-point-per-unit, K-form-pros-stand-two-hulls-apart, K-form-friend-on-the-line-twice-ours, K-form-pros-fight-with-pure-bodies, K-form-a-line-at-contact-trades-better, K-form-pros-raiders-fight-at-reach, K-map-comet-catcher-remake-1-8-fights-on-rows-4-5]}
+sources: {code: [docs/studies/2026-09-24-pro-fight-shapes.md, docs/studies/2026-09-28-body-sizes.md, run/replays/shapes.py, run/replays/recheck.py, docs/briefs/reference/comet-catcher-remake-1.8-arm.md], claims: [K-army-the-pros-body-ceiling-is-a-dozen, K-form-pros-order-one-point-per-unit, K-form-pros-stand-two-hulls-apart, K-form-friend-on-the-line-twice-ours, K-form-pros-fight-with-pure-bodies, K-form-a-line-at-contact-trades-better, K-form-pros-raiders-fight-at-reach, K-map-comet-catcher-remake-1-8-fights-on-rows-4-5]}
 status: live
 -->
 ### How they fight
 
 **Small bodies, spaced, of one type.** The median body at contact is six soldiers (ours in the three games measured
-beside them, thirteen); the largest body of one type seen was a dozen raiders or line tanks and eight Stouts; bodies
-over thirty are late and mixed. Soldiers stand about two hulls from the nearest friend (Blitz 67 elmos, Stout 70; ours
+beside them, thirteen); the typical largest body of one type in a game is a dozen raiders or line tanks and eight
+Stouts (the extremes 53 Incisors, 49 Brutes, 48 Grunts, 31 Blitzes and 23 Stouts); bodies over thirty are late and
+mixed. Soldiers stand about two hulls from the nearest friend (Blitz 67 elmos, Stout 70; ours
 25 and 40), because the players give a group one point per unit on a line about 64 apart (70% of the last orders
 before contact; we give one shared point). A friend stands on a unit's line of fire for 22% of the units in reach at
 contact (ours 43%). Raiders and line units are rarely in one body (10% of cores; 33% when the side owned both), and
 short-range units hold the edge of their reach (0.94 of it; ours close to 0.86). A force that meets the enemy as a line
-across trades about five points better than a blob, and the eventual winners' lines traded 60% to the losers' 40%.
+across trades about five points better than a blob (a weak result, the interval +1 to +10), and the eventual winners'
+lines traded 60% to the losers' 40%.
 
-**Where the fighting is.** Rows 4 and 5, the middle band between the starts, hold 68% of the deaths in the eight
-costliest cell-minutes of each game (G5, B5, B4, D5 the costliest cells). The first five minutes fall half in each side's
-own half; from minute 6 the fighting moves into the loser's half (479 of 697 deaths in minutes 6-9, 1,390 of 1,645 from
-14 on) and the loser loses two to three and a half times what the winner does. Army metal in his half: the winners
-carry 376 of their 1,070 there at 6:00 and 1,540 of 4,444 at 12:00; the losers a fifth or less (172 of 1,080; 361 of
-2,786).
+**Where the fighting is.** Rows 4 and 5, the middle band between the starts, hold 62% of the deaths in the eight
+costliest cell-minutes of each game at 40+ (68% in the OS 25+ survey, where G5, B5, B4 and D5 were the costliest
+cells). In that survey the first five minutes fall half in each side's own half; from minute 6 the fighting moves into
+the loser's half (479 of 697 deaths in minutes 6-9, 1,390 of 1,645 from 14 on) and the loser loses two to three and a
+half times what the winner does. Army metal in his half (Armada): the winners carry 376 of their 1,070 there at 6:00
+and 1,540 of 4,444 at 12:00; the losers a fifth or less (172 of 1,080; 361 of 2,786). Cortex's losers carry as much as
+its winners at 6:00 (344 of 1,184 against 237 of 1,479).
 
 <!--meta
 id: M-pool-closing
@@ -241,14 +256,15 @@ status: live
 -->
 ### How a duel ends
 
-Duels last 12:05 at the median for the Armada sides (9:04 to 15:20) and 14:52 for the Cortex sides; 7 of 29 under
-ten minutes, 10 of 29 over fifteen, the longest 21:31. The eventual winner first holds twice the loser's army metal at
+Duels last 12:39 at the median over the forty games (12:05 for the Armada sides, 9:04 to 15:20; 14:52 for the Cortex
+sides); 12 of 40 under ten minutes, 15 of 40 over fifteen, the longest 21:46. The eventual winner first holds twice the loser's army metal at
 minute 7 (median; 6.5 to 13; in 27 of 40 games at all) and the game ends 3.4 minutes later (1.2 to 5.4; over six
 minutes in 5 of 27). The extractor lead reaches five at minute 7. At the end the winner holds 27 extractors to 14.5
 and 1.8 times the army; the loser's commander and every factory are among the winner's kills in 29 of 29, and the
-last minute's fights are in or beside the loser's start cell in 28 of 29. Three of 29 winners closed while behind or
-level on extractors, each with the larger army. The higher-rated player won 22 of 29 in the OS 25+ pool but only 18 of
-33 (55%) at 40+: the habits above are the pool's, and at the top the result is close to even.
+last minute's fights are in or beside the loser's start cell in 28 of 29. Three of 29 winners (OS 25+) closed while
+behind or level on extractors, two with the larger army and one at 0.8 times. The higher-rated player won 22 of 29 in
+the OS 25+ pool and 23 of 40 (58%) at 40+: the habits above are the pool's, and at the top the result is close to
+even.
 
 <!--meta
 id: M-pool-tier2-and-wrecks
@@ -264,15 +280,17 @@ status: live
 -->
 ### Tier 2 is rare, wrecks are worked at home
 
-An advanced factory was started by 1 of 41 Armada sides (at 20:28) and 3 of 39 Cortex sides (15:07 / 17:02 / 18:36); of
-the sides whose game passed 15:00, 1 of 12 and 3 of 18. Never before 12:51 in any pool. The Cortex sides that did had
-32 / 33 / 40 extractors, 116 / 119 / 262 metal income and 8,500 to 11,900 of army when they placed it, and 1 of 3 won. The
-duels are decided on tier 1; the people's own rule for when to go is in the lessons.
+An advanced factory was started by 1 of 41 Armada sides (at 20:28) and 3 of 39 Cortex sides: at 13:12 (an advanced
+bot lab on 33 extractors and 113 income with 7,600 of army; lost), 17:02 (an advanced vehicle plant on 31 extractors and
+406 income with 9,500; lost) and 20:10 (an advanced vehicle plant on 48 extractors and 119 income with 14,350; won); of
+the sides whose game passed 15:00, 1 of 12 and 3 of 18. Never before 12:51 in any pool. The duels are decided on tier
+1; the people's own rule for when to go is in the lessons.
 
 Wrecks: resurrection bots by 8:00 are 0 / 0 / 0 (Armada) and 0 / 0 / 1 (Cortex). In the OS 25+ pool 24 of 58 sides built
 them, a median of ten a side, the first between minutes 4 and 10, and they worked wrecks on their own ground: a bot
-stood within 400 of a death in the next 90 s after 22 of 2,730 deaths on the winners' side. Income above the
-extractors' yield (reclaim and resurrection) in 12% of the winners' minutes against 7% of the losers'.
+stood within 400 of a death in the next 90 s after 22 of 2,730 deaths on the winners' side (0.8%; from the records,
+not the cards). Income above the extractors' yield (reclaim and resurrection) in 12% of the winners' minutes against 7%
+of the losers'.
 
 <!--meta
 id: M-pool-limits
@@ -290,6 +308,6 @@ The cards carry no unit positions over time, so "held back" against "chasing" ca
 inferred from turret counts and fight cells. The killer of the first extractor is unnamed on 10 of 58 sides. A resign's
 self-destruct is counted among the winner's kills, so a hunted commander and a resign look alike at the end. Tier 2,
 air and the sea are nearly absent (no side opened with an aircraft plant; four advanced factories in 80 sides). The
-numbers are one game version (test-31251 to 31383; we play test-31677) and one map; the map sheet carries the walks and
+numbers are nine game versions from test-30922 to test-31383 (we play test-31677) and one map; the map sheet carries the walks and
 spot counts that let a number be carried to another map, and the derivations say which numbers travel. Team games with
 people are not in the pool at all: what the people we play do in them is the people document.

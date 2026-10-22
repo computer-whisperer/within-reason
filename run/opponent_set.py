@@ -35,10 +35,13 @@ def num(v):
 
 
 def q3(xs, kind="n"):
-    q = quartiles(xs)
-    if not q:
-        return "- / - / -"
+    """Lower quartile / median / upper quartile; with three values or fewer, the values themselves in order (the
+    interpolated quartiles of two or three numbers belong to no game and were read as games' own figures once)."""
+    xs = [x for x in xs if x is not None]
     f = clock if kind == "clock" else num
+    if len(xs) <= 3:
+        return " / ".join(f(x) for x in sorted(xs)) if xs else "- / - / -"
+    q = quartiles(xs)
     return f"{f(q['p25'])} / {f(q['median'])} / {f(q['p75'])}"
 
 
@@ -153,6 +156,8 @@ def main():
     a = ap.parse_args()
     seats = a.seats if a.seats == "any" else int(a.seats)
     bonus = a.bonus if a.bonus == "any" else int(a.bonus)
+    if a.archive and not os.path.isdir(ARCHIVE):
+        sys.exit(f"--archive given but {ARCHIVE} is not there (not mounted?): refusing to write a set from run/matches alone")
     roots = [os.path.join(REPO, "run/matches")] + ([ARCHIVE] if a.archive else [])
     games = []
     for root in roots:
@@ -164,12 +169,14 @@ def main():
     if not games:
         sys.exit("no game matches")
     P = print
-    who = " ".join(x for x in (a.ai, a.profile, a.version) if x) + (f" ({seats} seats a game, summed)" if seats != 1 else "") + (f" at +{bonus}%" if bonus not in (0, "any") else (" (any bonus)" if bonus == "any" else ""))
+    who = " ".join(x for x in (a.ai, a.profile, a.version) if x) + (" (the opponent's seats summed)" if seats != 1 else "") + (f" at +{bonus}%" if bonus not in (0, "any") else (" (any bonus)" if bonus == "any" else ""))
     P(f"## What this opponent's games look like: {who} on {a.map}\n")
     # Our results are left out: the games span every version of our side, and a tally over them says nothing of now.
     P(f"- **The games:** {len(games)} of ours against it that lasted {a.min_minutes:.0f} minutes or more, across many versions of our side, {q3([g['minutes'] * 60 for g in games], 'clock')} long; "
       f"the starts {q3([g['apart'] for g in games])} apart. Read from the truth file: everything he had, seen by us or not.")
     P("- This is what he does, against the play we gave him. It is the opponent to expect, not a pace to match: the reference game is the people's.")
+    if seats != 1:
+        P("- Several opponent seats a game: the counts are the side's sums, the first factory and tier 2 the earliest of any seat, and 'his half' is measured from the first seat's start, which misplaces part of a wide map.")
     first = collections.Counter(g["factories"][0][1] for g in games)
     P(f"- **His first factory:** {', '.join(f'{k} ({n})' for k, n in first.most_common())}, started {q3([g['factories'][0][0] for g in games], 'clock')}. "
       f"His second: {q3([g['factories'][1][0] for g in games if len(g['factories']) > 1], 'clock')} ({sum(1 for g in games if len(g['factories']) > 1)} of {len(games)} games; "

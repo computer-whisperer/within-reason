@@ -362,6 +362,11 @@ reached it.
 **Used by.** (candidate: before 12:40 its base holds no HLT; its outer extractors get defence only in proportion to income)
 
 ### K-barb-commander
+**Corrected 2026-10-22 (the meta catalogue's second reader; BuilderManager.cpp:960-990 and :1195-1210).** The peace
+radius (1,000 medium, 2,000 hard) applies from the first factory on, before and after the hide time; the hide time
+(180 s medium; hard 420 s for the Armada commander, 240 s for the Cortex one) only enables the smaller danger radius
+(900 medium, 800 hard) while a threat at its position is recent or the enemy has air. Tasks at priority NOW ignore the
+radius.
 **Claim.** The commander is role `builder`. After 180 s (420 s hard) and once more than 2 builders exist, it only takes
 tasks within 1000 elmos of base (900 when enemy influence at its position ≥ 7, with hysteresis, or when the enemy has any
 air). It retreats to a haven below its builder threshold (medium: random 0.89-1.0 of health) and resumes when the
