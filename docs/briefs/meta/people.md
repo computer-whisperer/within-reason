@@ -237,11 +237,11 @@ id: M-u6bkep
 layer: meta
 premises: [F-unit-armflash, F-unit-armstump]
 lessons: [L-raid-naked-mexes, L-other-u6bkep-nests-and-air]
-population: [gecko]u6bkep, lobby 19 (2026-09-27) rising to 30 (2026-10-07 on); Armada vehicles in every game but one; alone against one to three seats in games 7 and 8 of the 3v1 series (2026-09-27), human-21 (2026-10-03), human-25 to -30 (2026-10-06 to 10-09)
-map: Comet Catcher Remake 1.8 (all of his solo games)
-dates: 2026-09-27 to 2026-10-09
-ground: sightings, model
-sources: {code: [docs/studies/2026-10-22-episode-sweep/episodes.jsonl, docs/briefs/lessons.md]}
+population: [gecko]u6bkep, lobby 19 (2026-09-27) rising to 30 (2026-10-07 on); Armada vehicles in every game of ours but one; alone against one to three seats in games 7 and 8 of the 3v1 series (2026-09-27), human-21 (2026-10-03), human-25 to -30 (2026-10-06 to 10-09); his own replay against BARb medium on Quicksilver (2026-09-20, the demo labelled "Ben"; the user, 2026-10-22: Ben is u6bkep)
+map: Comet Catcher Remake 1.8 (all of his solo games against us); Quicksilver Remake 1.24 (against BARb)
+dates: 2026-09-20 to 2026-10-09
+ground: sightings and model against us; card (the replay's record) against BARb
+sources: {code: [docs/studies/2026-10-22-episode-sweep/episodes.jsonl, docs/briefs/lessons.md, /ceph/christian/within-reason/run/matches-archive/1789929416-replay-ben-vs-medium/record-0.jsonl], claims: [K-open-early-pawn-pressure-is-standard]}
 status: live
 -->
 ### u6bkep alone
@@ -261,6 +261,15 @@ far more than the "three to one" our player assumed. His own reading at 5:01 of 
 human player is taking mexes so much faster that 3v1 is about fair" (the lessons). In the 3v1 games 7 and 8 (lobby 19)
 his Blitz bands of 2 to 10 took 18 of our extractors and a commander by 6:12 and he lost 46 Blitzes doing it; we won
 both at 9:13 and 13:59.
+
+**Alone against BARb medium on Quicksilver (2026-09-20, his own replay, Armada bots; card).** Extractors 0:03 and 0:10,
+wind 0:16 and 0:25, the bot lab at 0:34, a solar 0:51, wind 1:00, a solar 1:00, wind 1:12; Pawns from 1:20 about every
+nine seconds (4 in the first minute of the lab, then 5, 6, 8 and 5 a minute: 28 made by 6:00) and a constructor only at
+2:49; extractors 2 until 2:12, then 4 by 2:33 and 9 by 6:00 (income 6 at 2:00, 10 at 3:00, 14 at 5:00, 16 at 6:00), the
+metal store at zero from 2:00 to 4:00. His Pawns raided BARb from 2:25, held it at two extractors, killed its lab and
+its commander at 6:05; he lost 22 Pawns and a resurrection bot, and his commander never left the base. Beside
+thebluegecko's game against the same opponent the same evening (three wind before the lab, seven more and a solar by
+1:30, a constructor first): the same Pawn rush with less energy, no early constructor, and more Pawns sooner.
 
 <!--meta
 id: M-irishstud14

@@ -287,6 +287,8 @@ minute 6 on. The claim stands for the opening measures only; an opening objectiv
 
 
 ### K-open-early-pawn-pressure-is-standard
+**Identity (the user, 2026-10-22).** "The player" of the first replay below (`replay-player2-vs-medium`) is
+[gecko]thebluegecko and "Ben" (`replay-ben-vs-medium`) is [gecko]u6bkep; both games are in docs/briefs/meta/people.md.
 **Claim.** Early raider pressure (a lab by about 0:50, then a handful of Pawns or Grunts before anything else, arriving
 at the opponent's base before 2:30) is standard 1v1 play on maps like Quicksilver, in basically every game; 1v1 games
 rarely reach 20 minutes. Against BARb medium the handful is enough to win outright: it has two LLTs and no soldier at
