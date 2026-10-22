@@ -245,3 +245,5 @@ compared.
   are weak, to be supported or replaced by our own reasoning and episodes over time.
 - Who writes: the assistant writes most of it; the user is heavily involved as it is built up (small pieces, each
   put in front of him).
+- Direct consequences (arithmetic on the facts, no situational judgement) go in the fact documents themselves, as
+  the economy document's "What follows directly" (2026-10-22).

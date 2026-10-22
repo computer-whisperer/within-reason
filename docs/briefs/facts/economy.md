@@ -189,13 +189,54 @@ short.
 <!--meta
 id: F-eco-multipliers
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/Team.cpp:130-146 (AddResources), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1046, 2083, upstream/Beyond-All-Reason/modoptions.lua (multiplier_resourceincome, multiplier_metalextraction, multiplier_energyproduction, multiplier_buildpower, ai_incomemultiplier, tax_resource_sharing_amount)], game: 54199a0d}
+sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/TeamBase.cpp:59-70 (handicap, advantage), upstream/RecoilEngine/rts/Sim/Misc/TeamBase.h:73-76, upstream/RecoilEngine/rts/Sim/Misc/Team.cpp:130-146 (AddResources), upstream/RecoilEngine/rts/Sim/Units/Unit.h:122 (the default), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1046 (decay), 2083 (reclaim), upstream/RecoilEngine/rts/Lua/LuaSyncedCtrl.cpp (AddTeamResource, SetUnitResourcing), upstream/RecoilEngine/rts/Net/NetCommands.cpp:1041-1075 (the share order), upstream/Beyond-All-Reason/luarules/gadgets/game_energy_conversion.lua:95-103 (SetUnitResourcing umm/uue), upstream/Beyond-All-Reason/luarules/gadgets/unit_mex_upgrade_reclaimer.lua (AddTeamResource), upstream/Beyond-All-Reason/modoptions.lua (multiplier_*, ai_incomemultiplier, tax_resource_sharing_amount)], game: 54199a0d, people: [the user, 2026-10-22: the bonus counts twice through converters]}
 status: live
 -->
 ### Handicaps and multipliers
 
-A lobby can give a side an income bonus (the "+50 percent" of the lobby games). It multiplies every income as it
-arrives, extractors, generators and the commander's own included, and nothing else: reclaimed metal and the refund of
-a decaying frame arrive at face value, and costs are unchanged. The room's other multipliers (resource income, metal
-extraction, energy production, build power, an AI income multiplier, a tax on sharing) all default to one or zero and
-are off in our games unless the room says so.
+A lobby can give a side an income bonus: the room's handicap, 50 for the "+50 percent" seats of the lobby games, is
+an income multiplier of 1.5. The engine applies it to every resource the engine or the game's scripts add as income:
+extractors, generators, the commander's own make, the metal a converter makes, and the 50-metal refund when an
+advanced extractor replaces a tier-1 one. It does not touch costs, reclaimed metal, the refund of a decaying frame,
+or what allies send or overflow. So the bonus counts twice through a converter: the energy reaching the converter is
+already 1.5 times the generators' make, and the metal it makes is multiplied again, 2.25 times an unbonused seat's
+metal from the same generators (a bonus seat gets 1.5 metal per 70 energy, and has 1.5 times the energy). The room's
+other multipliers (resource income, metal extraction, energy production, build power, an AI income multiplier, a tax
+on sharing) all default to one or zero and are off in our games unless the room says so.
+
+<!--meta
+id: F-eco-consequences
+layer: fact
+premises: [F-eco-extractors, F-eco-energy, F-eco-build, F-eco-reclaim, F-eco-conversion]
+sources: {people: [the user, 2026-10-22: direct consequences belong in the economy section], note: arithmetic on the facts above and the unit tables; the spot's value is the map's and Comet Catcher's 2.3 is the worked case}
+status: live
+-->
+### What follows directly
+
+Arithmetic on the facts above, with Comet Catcher's 2.3 metal a second per spot as the worked case; other maps put
+their own value in.
+
+- An extractor repays its 50 metal in 22 seconds of its own output on such a spot (50 seconds on a spot worth 1.0),
+  and its 500 energy is 25 seconds of one solar. Delay costs the thing's output over the delay: an extractor placed a
+  minute late forgoes 138 metal, nearly three times its price.
+- An advanced extractor adds three times the spot, 6.9 a second here, for 620 metal and 20 energy a second of upkeep
+  (one solar's make): the gain repays it in 90 seconds, in 3.4 minutes on a spot worth 1.0.
+- Metal per metal a second of income: an extractor 22, an advanced extractor 90, a tier-1 converter with the 3.5
+  solars that feed it about 540, an advanced converter with the advanced solars that feed it about 290. While a spot
+  stands free, taking it is twenty-five times cheaper than converting.
+- Energy by metal: a solar is 7.75 metal per energy a second, an advanced solar 4.4 (and 5,000 energy to build, 62
+  seconds of its own output), a wind turbine 40 over the map's average wind, cheaper than a solar wherever the
+  average exceeds 5.2 but never steady, a fusion 4.5, an advanced fusion 3.2.
+- What production draws in energy: a plant alone making Blitzes 68 a second (three and a half solars), with the
+  commander assisting 203 (ten); making constructors 72 and 217; Stouts 93 and 278; a constructor building
+  extractors 25, building solars nothing. The energy a side needs follows from what its plants make and who assists
+  them, not from how many plants stand.
+- Build power by metal: a construction turret 1.15 metal a point, a construction bot 1.4, a construction vehicle 1.5,
+  an advanced constructor 1.9 to 2.0; the commander's 300 is already paid for. The turret does not move and reaches
+  400.
+- A frame locks its metal for its build time over the power on it: an advanced plant on one construction vehicle
+  holds 2,600 metal for five minutes, on the commander and four constructors for 41 seconds; the metal returns only
+  by reclaim or decay.
+- A fight that destroys 2,000 metal of units leaves 1,200 in wrecks for whoever holds the ground afterwards; a
+  construction vehicle collects 15 metal of wreck a second, the commander 50, a resurrection bot 33. Eating a bot lab
+  returns 500 metal in 17 seconds of the commander's time, a vehicle plant 590 in 19.
