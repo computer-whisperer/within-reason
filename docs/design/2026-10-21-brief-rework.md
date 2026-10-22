@@ -165,8 +165,24 @@ blocks, about 3,500 words: distances and the grid, ground and terrain types, met
 where a building may stand, features, sight over coarse ground, wind and tide and the game's standard gravity, where
 the sides start, a catalogue of the nineteen maps with recorded games). Each fact document went to a skeptical Opus
 reader after it was written (the economy's refuted five statements, the fights' sixteen, each checked by hand before
-it was applied; the map model's fifteen, one of which reached back into the fight model: the slope limits are 27, 33 and 54 degrees, the game dividing the angle by 1.5 before the engine multiplies it, which the fight refuter and its check both missed and the engine's own hello shows). No derivation, meta or episode document exists yet (the episode
-sweep's rows are written: docs/studies/2026-10-22-episode-sweep/).
+it was applied; the map model's fifteen, one of which reached back into the fight model: the slope limits are 27, 33 and 54 degrees, the game dividing the angle by 1.5 before the engine multiplies it, which the fight refuter and its check both missed and the engine's own hello shows). The meta catalogue is written (2026-10-22) as four documents under `docs/briefs/meta/`, one per population, in the rework
+manifest after the facts: `pool.md` (the Comet duel pool at OS 40+, ten M-pool blocks, about 3,100 words to the model),
+`people.md` (the people we have met in lobby games, by person: thebluegecko in duels, alone against BARb, against our
+seats on Comet, on water and other maps, and as a team with u6bkep; u6bkep, Irishstud14, Infern8 and Covariance,
+thedujin, the lobby 5v5, the Quicksilver people, Matt and VAK, the user as the opponent; fourteen blocks, about 4,900
+words), `barb.md` (BARb: two code-read F-barb blocks and five observed M-barb sets, about 2,100 words) and `apex.md`
+(Apex by version, four blocks, about 800 words). Every block carries `population:`, `dates:` and a `ground:` key naming
+what the statements rest on: card (an engine replay, every unit), truth (an arena truth file), sightings (our records,
+floors), person (the user's or a player's reading), model (an Opus reader's row of the episode sweep, unchecked by a
+person). The games with people have no truth files, so the people's play rests on the eight replayed lobby games'
+cards, the Center Command replay, the user's reviews and the sweep's rows; the pool's and the opponents' numbers are
+regenerable (`run/reference_set.py`, `run/opponent_set.py` now taking `--ai`, `--version`, `--seats`, `--bonus` and
+`--archive`: the BARb hard_aggressive set is 150 games at +0 with the archive, where the 2026-10-17 document had 110 and
+a run over `run/matches` alone finds 31). The meta layer adds about 10,900 words, taking the rework tab to 42,900: the
+per-role manifests (BARb and Apex for the arena, the people for lobby games) and the §10 redaction decision will cut it.
+Each meta document went to a skeptical Opus reader after it was written; their findings are applied in the commit after
+the first. No derivation or episode document exists yet (the episode sweep's rows are written:
+docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),
 and generation is near deterministic, so a rewrite that starts from the old text reproduces it while one that starts
@@ -182,7 +198,10 @@ from premises produces different text.
   game). The user rules only where a derivation cannot settle a cluster (taste, or meta). A derivation's hit rate is
   about half until checked; an unchecked derivation says so in its block.
 - **Meta** is catalogued from `backlog.md` §b by population (the pool at OS 40+, named people, BARb by profile,
-  Apex), each observation with map and date, rationale attached when known.
+  Apex), each observation with map and date, rationale attached when known. Built as one document per population
+  under `docs/briefs/meta/`; each block names its `ground:` (card, truth, sightings, person, model) so a reader knows
+  whether a number is every unit of a replay, a truth file, what our seats saw, a person's reading or a model's;
+  BARb's code-read rules are `layer: fact` blocks in the same document, its observed sets `layer: meta`.
 - **Episodes** are an index, not prose: the game, what it showed, its defects, its lens, the derivations it tests.
   Those with a lesson resting on a fixed defect are indexed with the defect and no lesson. The episode sweep of
   2026-10-22 (`docs/studies/2026-10-22-episode-sweep/`: 57 Opus readers, one per game with people, 13.8 M tokens)
@@ -231,7 +250,7 @@ compared.
 4b. The lessons document (§6), from the transcripts and the records' chat, for the user's check: he was present for
    most of the conversations and can verify the context. Built 2026-10-21; the user's corrections applied the same
    day.
-5. The meta catalogue.
+5. The meta catalogue (written 2026-10-22; see §6's status paragraph).
 6. Derivations in backlog order, clusters first, each with its tests and check.
 7. The episode index.
 8. The role manifests switched to the new set; the standing brief and the experience brief retired to the archive; the

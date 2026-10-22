@@ -5,11 +5,17 @@ by the minute, when its soldiers come, what it builds and when it goes to tier 2
 target.
 
     run/opponent_set.py --map "Comet Catcher Remake 1.8" --profile hard_aggressive [--min-minutes 6]
+                        [--ai BARb] [--version V] [--seats 1|any] [--bonus 0|N|any] [--archive]
 
-Every match under run/matches with a record and a truth file on the map whose one opponent is BARb at `--profile`.
-His half is the ground nearer his start than ours. Markdown on stdout.
+Every match under run/matches (and, with `--archive`, the archive on /ceph) with a record and a truth file on the map
+whose opponent seats are all the AI named by `--ai` (default BARb) at `--profile` (any when empty) and `--version`
+(any when empty); `--seats` is how many opponent seats the game must have (default 1; `any` takes team games, and
+then the table is the side's seats summed, "his half" measured from the first seat's start). No game with a person
+is taken. `--bonus` is the opponent's lobby bonus (the start script's `Handicap`, an income multiplier of 1 + N/100):
+by default only games with every team at 0 are taken, `--bonus 50` takes games with his seats at +50 and ours at 0,
+`any` takes all. His half is the ground nearer his start than ours. Markdown on stdout.
 """
-import argparse, collections, glob, json, math, os, statistics as st, sys
+import argparse, collections, glob, json, math, os, re, statistics as st, sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "run"))
@@ -36,7 +42,22 @@ def q3(xs, kind="n"):
     return f"{f(q['p25'])} / {f(q['median'])} / {f(q['p75'])}"
 
 
-def read(directory, profile, map_name):
+ARCHIVE = "/ceph/christian/within-reason/run/matches-archive"
+
+
+def handicaps(directory):
+    """Each team's `Handicap` from the match's start script, by team number; empty when there is no script (0 everywhere)."""
+    path = os.path.join(directory, "script.txt")
+    if not os.path.exists(path):
+        return {}
+    out = {}
+    for m in re.finditer(r"\[TEAM(\d+)\]\s*\{([^}]*)\}", open(path).read(), re.I):
+        h = re.search(r"Handicap\s*=\s*(-?\d+)", m.group(2), re.I)
+        out[int(m.group(1))] = int(h.group(1)) if h else 0
+    return out
+
+
+def read(directory, ai, profile, version, seats, bonus, map_name):
     lines = open(os.path.join(directory, "record-0.jsonl"))
     try:
         header = json.loads(lines.readline())
@@ -44,9 +65,16 @@ def read(directory, profile, map_name):
         return None
     if header.get("map", {}).get("name") != map_name:
         return None
-    ais = [s["controller"]["Ai"] for s in header.get("seats", []) if isinstance(s.get("controller"), dict) and "Ai" in s["controller"] and s["controller"]["Ai"].get("short_name") == "BARb"]
-    if len(ais) != 1 or ais[0].get("profile") != profile or any(isinstance(s.get("controller"), dict) and "Person" in s["controller"] for s in header.get("seats", [])):
+    ais = [s["controller"]["Ai"] for s in header.get("seats", []) if isinstance(s.get("controller"), dict) and "Ai" in s["controller"] and s["controller"]["Ai"].get("short_name") == ai]
+    if not ais or (seats != "any" and len(ais) != seats) or any(isinstance(s.get("controller"), dict) and "Person" in s["controller"] for s in header.get("seats", [])):
         return None
+    if any((profile and a.get("profile") != profile) or (version and a.get("version") != version) for a in ais):
+        return None
+    if bonus != "any":
+        hs = handicaps(directory)
+        his = {s["team"] for s in header.get("seats", []) if isinstance(s.get("controller"), dict) and "Ai" in s["controller"] and s["controller"]["Ai"].get("short_name") == ai}
+        if any(hs.get(t, 0) != (bonus if t in his else 0) for t in set(hs) | his):
+            return None
     defs = header["unit_defs"]
     by_name = {d["name"]: d for d in defs}
     ours, lost, last = None, None, 0
@@ -115,19 +143,29 @@ def read(directory, profile, map_name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--map", required=True)
-    ap.add_argument("--profile", default="hard_aggressive")
+    ap.add_argument("--profile", default="hard_aggressive", help="the AI's profile; '' for any")
+    ap.add_argument("--ai", default="BARb", help="the opponent AI's short name in the start script (BARb, Apex)")
+    ap.add_argument("--version", default="", help="the AI's version as the record header has it (Apex: v0.3.2); any when empty")
+    ap.add_argument("--seats", default="1", help="opponent seats the game must have: a number, or 'any' (team games, the side summed)")
+    ap.add_argument("--bonus", default="0", help="his lobby bonus (the script's Handicap): a number (ours must be 0), or 'any'")
+    ap.add_argument("--archive", action="store_true", help=f"also read the archived matches under {ARCHIVE}")
     ap.add_argument("--min-minutes", type=float, default=6)
     a = ap.parse_args()
+    seats = a.seats if a.seats == "any" else int(a.seats)
+    bonus = a.bonus if a.bonus == "any" else int(a.bonus)
+    roots = [os.path.join(REPO, "run/matches")] + ([ARCHIVE] if a.archive else [])
     games = []
-    for d in sorted(glob.glob(os.path.join(REPO, "run/matches/*/[0-9][0-9]"))):
-        if os.path.exists(os.path.join(d, "record-0.jsonl")) and os.path.exists(os.path.join(d, "truth-0.jsonl")):
-            g = read(d, a.profile, a.map)
-            if g and g["minutes"] >= a.min_minutes and g["factories"]:
-                games.append(g)
+    for root in roots:
+        for d in sorted(glob.glob(os.path.join(root, "*/[0-9][0-9]"))):
+            if os.path.exists(os.path.join(d, "record-0.jsonl")) and os.path.exists(os.path.join(d, "truth-0.jsonl")):
+                g = read(d, a.ai, a.profile, a.version, seats, bonus, a.map)
+                if g and g["minutes"] >= a.min_minutes and g["factories"]:
+                    games.append(g)
     if not games:
         sys.exit("no game matches")
     P = print
-    P(f"## What this opponent's games look like: BARb {a.profile} on {a.map}\n")
+    who = " ".join(x for x in (a.ai, a.profile, a.version) if x) + (f" ({seats} seats a game, summed)" if seats != 1 else "") + (f" at +{bonus}%" if bonus not in (0, "any") else (" (any bonus)" if bonus == "any" else ""))
+    P(f"## What this opponent's games look like: {who} on {a.map}\n")
     # Our results are left out: the games span every version of our side, and a tally over them says nothing of now.
     P(f"- **The games:** {len(games)} of ours against it that lasted {a.min_minutes:.0f} minutes or more, across many versions of our side, {q3([g['minutes'] * 60 for g in games], 'clock')} long; "
       f"the starts {q3([g['apart'] for g in games])} apart. Read from the truth file: everything he had, seen by us or not.")
