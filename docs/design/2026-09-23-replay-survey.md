@@ -208,3 +208,13 @@ each lane seat; the air seat on lane 5 at 1:20 building tier-2 fighters by the s
 people's half by 2:20; mohos handed between neighbouring lanes; the people's air seat on lane 3 at 0:57, their tech
 seat on lane 5 at 4:14 fed by hand from lanes 3, 8, 4 and 2, their front crossing at 7:00 to 12:00 or never; the
 side curves; the four wins of 37 made on soldiers from 4:00.
+
+**2026-10-22, evening: the BARb stage done.** 51 demos replayed and carded without a failure in 3.4 hours on eight
+engines (45 Glitters 8v8 games of eight people against eight stock BARb, the user's six client games against many
+BARb, whose versions and maps the fetcher had found after all, and his Supreme Isthmus 8v8 against RR03Barb4). The
+aggregate with `--ais BARb` and two probes in the session's scratchpad (the cards' pressure clocks, roles, hand-overs
+and silos; the records' first silo and anti-nuke per team) gave the stock-BARb comparison now in the formats
+document's SMRTBARb block and a BARb paragraph in its 8v8 block: the people win 29 of 42 against stock BARb (BARb
+wins 4 of 26 at +50 and below), stock BARb has no roles by seat, hands only mohos, raids earlier, nukes from 16:00
+and builds its anti-nuke at 21:00 on a clock. The people's stage (81 demos) runs; the manifest's 8v8 rows (players'
+ally ids, winner names) and the one card flag are repaired after it ends.

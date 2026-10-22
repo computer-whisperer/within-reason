@@ -16,8 +16,9 @@ is eight people against eight AIs on a map like All That Glitters, our 1v1 profi
 BARb and Apex are probably tuned with that mode in view. The evidence base differs by format and this document says
 which: duels have the pool (40 carded games at OS 40+); team games of two to four a side have our 57 lobby games with
 people (12 won; the people document); 8v8 has forty carded public games of eight people against eight SMRTBARb on All
-That Glitters (2026-10-04 to 10-21), our four games of eight seats against eight BARb, the lobby 5v5, and the pool's
-51 games against eight BARb and 81 between people replaying (2026-10-22).
+That Glitters (2026-10-04 to 10-21), 45 of eight people against eight stock BARb on the same map (10-13 to 10-21),
+our four games of eight seats against eight BARb, the lobby 5v5, and the pool's 81 games between people replaying
+(2026-10-22).
 
 **Common to every format (the facts and the pool).** The opening is bound by energy and then by metal; the first
 units cross to the opponent because nothing else tells you what he is doing (M-pool-pressure); extractors are lost all
@@ -75,10 +76,10 @@ half after 8:00. Against three Apex seats on Altored the 3v3 was won at +0 to +5
 id: M-format-8v8
 layer: meta
 premises: [F-map-grid, F-eco-build, F-eco-conversion, M-barb-team]
-population: 8v8 on All That Glitters: forty public games of eight people against eight SMRTBARb (2026-10-04 to 10-21, replayed and carded 2026-10-22; the people's sides of mean OS 15.7 / 18.6 / 20.7 with the highest seat 33.6 median, the AIs at +30 to +75 resource bonus by the start script's handicap, +50 in 18 games; 33 won by the AIs, 4 by the people at 24:23, 24:49, 56:43 and 58:55, 3 stopped by the host); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); the pool's 51 games against eight BARb and 81 between people replaying (2026-10-22)
+population: 8v8 on All That Glitters: forty public games of eight people against eight SMRTBARb (2026-10-04 to 10-21, replayed and carded 2026-10-22; the people's sides of mean OS 15.7 / 18.6 / 20.7 with the highest seat 33.6 median, the AIs at +30 to +75 resource bonus by the start script's handicap, +50 in 18 games; 33 won by the AIs, 4 by the people at 24:23, 24:49, 56:43 and 58:55, 3 stopped by the host); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); 45 public games of eight people against eight stock BARb on the same map (2026-10-13 to 10-21, carded 10-22; the people's sides of mean OS 14.2 / 15.5 / 18.3, BARb at +0 to +80 by the handicap, +50 in 11 and +40 in 7, +65 to +80 in 16; 29 won by the people, 13 by BARb, two stopped, one with people and AIs on both sides); the pool's 81 games between people replaying (2026-10-22)
 map: All That Glitters v2.2.3 (6144 by 10240, 152 spots, two rows of eight starts across the short axis, the lanes north to south, about nine and a half spots a seat)
 dates: 2026-10-22
-ground: card (the forty SMRTBARb games: `run/replays/team_set.py --map "All That Glitters v2.2.3" --sides 8v8 --ais SMRTBARb`, quartiles over the 33 lost sides unless said); truth (our BARb games); sightings and model (the 5v5)
+ground: card (the forty SMRTBARb games: `run/replays/team_set.py --map "All That Glitters v2.2.3" --sides 8v8 --ais SMRTBARb`, quartiles over the 33 lost sides unless said; the 45 BARb games: the same with `--ais BARb`, quartiles over the 29 won sides unless said); truth (our BARb games); sightings and model (the 5v5)
 sources: {code: [run/replays/team_set.py, run/replays/card.py, run/data/replays/manifest.jsonl, docs/briefs/meta/barb.md, docs/briefs/meta/people.md, run/data/demos-client], claims: [K-team-eight-seats-lose-to-eight-barbs-on-one-curve]}
 status: live
 -->
@@ -171,6 +172,42 @@ anti-nuke in 37 of 40 games at 9:05 to 19:38, 13:47 median, standing 15:07 media
 the air seat's in 6), and the front breaking from 13:00 ("front fell" 14:38, "front lost" 15:16, "front is falling" 23:14,
 "need mid front now" 32:41), with the seats that leave taken over by a neighbour at 9:19 to 19:48.
 
+**The public games against eight stock BARb (card, 45 games).** The same lobbies against BARb instead of SMRTBARb,
+2026-10-13 to 10-21, the people's sides of mean OS 14.2 / 15.5 / 18.3 (the SMRTBARb lobbies 18.6 median) and BARb at
++0 to +80 (+50 in 11, +40 in 7, +65 to +80 in 16): the people won 29 of the 42 decided games and BARb 13. The bonus
+decides most of it: at +50 and below BARb won 4 of 26, at +65 and above 9 of 15; the people's mean OS was 17 in the
+won sides and 15 in the lost. The wins are long games, 30:21 / 36:35 / 47:15; the losses 18:10 / 21:27 / 28:00. The
+people play the convention of the SMRTBARb games: an air seat on lane 3 in 26 of 29 won sides at 0:44 / 0:55 / 1:10
+(one air opener a side, never two), the tech seat on lane 5 with its advanced plant at 3:20 / 4:24 / 7:58 (the side's
+first in 19 of 29), six front seats on bot labs two times in three with advanced plants at 8:53 (lane 7) to 13:07
+(lane 3) median, crossing first on lanes 3 and 8 (5:51 and 6:51 median) and last on 4 and 5 (23:18 and 24:41); the
+side's first soldier in BARb's half at 3:10 / 4:27 / 5:46, its first BARb building killed at 2:47 and extractor at
+4:28 (the lost sides 5:23, 3:43 and 5:35). Gifts by hand 816 / 2,171 / 9,249 metal a won side against 0 / 746 / 1,385
+a lost side, the direction of the SMRTBARb games; the won sides handed 224 advanced constructors (eight a side) and
+200 mohos between seats, the lost sides 56 and 25; five seats were taken over, all in won games, at 24:36 to 28:33.
+
+The curve is the SMRTBARb games' curve with the gap halved. The won sides against the BARb sides they beat, at 4 / 8
+/ 10 / 20 / 24 minutes: extractors 55 / 69 / 71 / 71 / 72 against 52 / 65 / 73 / 69 / 63; income 122 / 190 / 271 / 647
+/ 942 against 162 / 234 / 295 / 712 / 830; constructors 26 / 39 / 45 / 80 / 88 against 36 / 89 / 116 / 164 / 174; army
+3,643 / 8,475 / 10,132 / 40,479 / 70,985 against 6,990 / 18,176 / 21,434 / 60,429 / 109,741. The people are twice
+behind on army at 8:00 and 1.5 times at 20:00 and 24:00 and win at 36:35 anyway: their extractors hold at 71 while
+BARb's fall from 73 at 10:00 to 63 at 24:00 and 60 at 28:00, and their income passes BARb's at 24:00. The lost sides
+had the won sides' army at 10:00 (9,762 against 10,132) with less income (193 against 271) and fewer extractors (64
+against 71, falling to 50 by 20:00), and faced a BARb with the same army (21,091) and more income (376 against 295:
+the bonus) and constructors (164 against 116). Against stock BARb, then, the game is an economy race from 10:00 that
+the people win when their extractors hold, and an army gap of 1.5 to 2 times is survivable; against SMRTBARb the gap
+is 3 times at 20:00 and is not. The silo and the anti-nuke change sides: stock BARb's first silo comes at 16:02 at
+the earliest and 23:13 median in its lost sides, its anti-nuke at 20:41 / 20:57 / 21:10 on a clock; the people's
+anti-nuke at 12:40 / 14:46 / 16:55 in 27 of 29 won sides stands before any BARb silo does, and 14 of the 29 won sides
+build a silo of their own at 22:54 / 26:05 / 32:18, on the air seat's lane in 6 and the tech seat's in 5. In the
+winners' words: "this game is 95% about metal", "t2 lab on front is a bit cool to have cuz metal in labs dont make
+more metal", "eat t1 eco ... only afus ... Advanced fusion Reactor op", "why dont we have 50 afus yet", "moar afus",
+"anti nuke reminder" 18:28, "if you get a t2 heavy bot out fast it will incinerate the other team"; in the losers':
+"no t2 at 5min???", "no t2 at 13 min gg", "you cannot win with air", "ai is verry bad with air ... some cheap anti air
+units and all ai air is dead", "you were making afus in stead of defence front", "90% metal used on turtling at
+backlined instead of helping front", "they not attacking to you because u have 1k energy income in min 16", "tech
+didnt make anti nuke".
+
 **Our eight seats against eight BARb hard_aggressive (truth).** The same curve from the other side: level at 8:00 (70
 extractors against 67, 98 soldiers against 92), his armed units 2.6 times ours by 16:00 while ours stood, his
 extractors rising to 111 to 116 at 28:00 against ours falling from 70 to 13 to 20, every fight in our half from 8:00
@@ -189,14 +226,17 @@ side, so a lane holds or falls on its own seat and a neighbour's spare, and a se
 must take over. The economy is the side's, pooled two ways: the people pool it by hand into one tech seat (2,000 to
 10,000 metal a game and energy by the ten thousand), which pays the front back in advanced constructors from 6:00 to
 14:00 and in units later; the AIs pool it by overflow (a full store spills to the side, 13,000 metal and 2.2 million
-energy by 20:00) and by handing mohos and advanced constructors across lanes. Air is a seat of its own on each side,
-and the side without a working air seat loses its tier 2 to bombers and its lanes to fighters. The game runs 20 to
-32 minutes and turns at 10:00 to 12:00: the people's army is nearest the AIs' then and a third of it by 20:00, the
-AIs' nuke lands from about 12:00, and the people's advanced plants come at 11:00 to 13:00 against the AIs' 9:00 to
-12:00 with their tech seat's at 2:40. Nobody on the people's side crosses the middle before 7:00 while the AIs cross
-every lane by 2:20 and kill the first extractor at 3:17: the duel's first handful (M-pool-pressure) is absent from
-the people's 8v8 and present in the AIs'. The four sides that won made soldiers from 4:00 and fed their tech seat
-five times the metal. None of this is derived yet; it is what forty cards and four truth files show.
+energy by 20:00) and by handing mohos across lanes, SMRTBARb advanced constructors as well. Air is a seat of its own
+on the people's side and on SMRTBARb's, and the side without a working air seat loses its tier 2 to bombers and its
+lanes to fighters; stock BARb opens two air seats a side that build little. Nobody on the people's side crosses the
+middle before 7:00 while the AIs, stock or SMRT, cross every lane by 2:20 and kill the first extractor at 2:45 to
+3:17: the duel's first handful (M-pool-pressure) is absent from the people's 8v8 and present in the AIs'. Against
+SMRTBARb the game runs 20 to 32 minutes and turns at 10:00 to 12:00: the people's army is nearest the AIs' then and a
+third of it by 20:00, the AIs' nuke lands from about 12:00, and the people's advanced plants come at 11:00 to 13:00
+against the AIs' 9:00 to 12:00 with their tech seat's at 2:40; the four sides that won made soldiers from 4:00 and
+fed their tech seat five times the metal. Against stock BARb at the same bonus the same lobbies win 29 of 42, the
+game runs to 36:35, the army gap stays at 1.5 to 2 times, and it is decided by whose extractors hold from 10:00. None
+of this is derived yet; it is what 85 cards and four truth files show.
 
 <!--meta
 id: M-format-smrtbarb
@@ -279,22 +319,52 @@ income below is what its economy makes times 1.3 to 1.75, and it won 33 of 37 de
   62 against 70, army 11,801 against 15,702, income 326 against 351) and the people's soldiers were 1.4 times the
   lost sides' from 6:00: it loses to pressure before 10:00, not to anything later.
 
+- **Stock BARb in the same lobbies (45 games, 2026-10-13 to 10-21; `--ais BARb` on the same aggregate).** Eight BARb at
+  +50 and below won 4 of 26 decided games and at +65 to +80 9 of 15, against people of mean OS 15.5 median; SMRTBARb
+  won 33 of 37 at +30 to +75 against people of 18.6. Stock BARb has no roles by seat. Two seats a side open on an
+  aircraft plant at 0:31 / 0:39 / 0:45, on any lane but 5 (lanes 3, 6 and 2 most often), and build a few dozen tier-1
+  planes each over a game (corfink 495, corveng 344, corbw 342, corvamp 299, corhurc 216 over the 55 such seats of the
+  lost sides; SMRTBARb's one air seat 126 tier-2 fighters). No seat techs early: the side's first advanced plant comes
+  at 6:40 / 7:12 / 7:42 on lane 7, 2, 4 or 8, every lane's median between 8:21 (lane 2) and 12:38 (lane 5), 3 seats
+  with one by 10:00 and 7 by 15:00 (the won sides 5 and 7). No advanced constructor is ever handed over (0 in 42 sides
+  against SMRTBARb's 253 in 40); mohos are, 2,172 in 42 sides, fifty a side against SMRTBARb's thirty, between
+  neighbours (7 to 8 110, 2 to 3 72, 8 to 7 66), 3 / 6 / 10 units a seat a game. Every seat makes army from the first
+  minute and every seat crosses: the side's first soldier in the people's half at 1:25 / 1:34 / 1:42, each lane's
+  median 1:48 to 2:42 (SMRTBARb's lane seats 2:04 to 2:22), the first people's building killed at 1:08 / 2:24 / 2:43
+  (SMRTBARb 2:35) and extractor at 2:13 / 2:45 / 3:46 (3:17), with 20 soldiers at 2:00 against SMRTBARb's 50 and 62 at
+  4:00 against 52. Its silo comes at 16:02 at the earliest, 19:38 median in the won sides and 23:13 in the lost (22 of
+  42 sides) against SMRTBARb's 8:30 to 9:21 in seven games, and its anti-nuke on a clock, 20:41 / 20:57 / 21:10 in 36
+  of 42 sides (25 of them between 20:52 and 21:29), so the people's anti-nuke at 14:46 median in their won sides
+  stands before any BARb silo does, and 14 of their 29 winning sides build a silo of their own at 26:05 median. The
+  sets nearest in bonus, BARb's 29 lost sides (+35 to +50 mostly) against SMRTBARb's 33 won (+45 to +55 mostly), at
+  4 / 8 / 10 / 20 / 24 minutes: income 162 / 234 / 295 / 712 / 830 against 150 / 259 / 351 / 1,056 / 1,546; energy
+  income 2,062 / 5,506 / 7,062 / 17,618 / 23,492 against 2,137 / 5,057 / 6,293 / 33,130 / 47,500; constructors 36 / 89
+  / 116 / 164 / 174 against 27 / 51 / 66 / 190 / 258; army 6,990 / 18,176 / 21,434 / 60,429 / 109,741 against 5,644 /
+  16,189 / 15,702 / 82,785 / 110,063; extractors 52 / 65 / 73 / 69 / 63 against 46 / 65 / 70 / 83 / 81. Stock BARb has
+  the bigger army to 12:00 (all eight seats make soldiers) and more constructors to 16:00; SMRTBARb has the income
+  from 6:00 and the army from 14:00 (the tech seat's economy, the lane seats' handed advanced constructors, the air
+  seat's fighters) and holds its extractors to the end (83 at 20:00) where stock BARb's, when it loses, fall from
+  14:00. The difference is the tech seat, the air seat and the handed advanced constructors, not the raiding, which
+  stock BARb does ten to thirty seconds earlier. In the people's words, stock BARb's air: "ai is verry bad with air
+  ... some cheap anti air units and all ai air is dead", "you cannot win with air"; its attacks: "they not attacking
+  to you because u have 1k energy income in min 16".
+
 What this is not yet: a description of its rules (read its scripts the way BARb's were read, if they are published),
-a game without a bonus (none in the pool), or a comparison with stock BARb at the same bonus on the same map (the
-51 BARb games are replaying; `--ais BARb` on the same aggregate).
+or a game without a bonus (none in the pool).
 
 <!--meta
 id: M-format-coop-many
 layer: meta
 population: two or three people against five to sixteen BARb: the user's own games in his client (Boulder Beach 2v16 hard and hard_aggressive 2026-09-22, 36 min; Evad River Confluence 3v12 hard_aggressive 10-03, 36 min; Ceasefire 2v6 hard_aggressive 09-29, 71 min; Altair Crossing 2v8 hard 10-09, 47 min; Pinewood Derby 2v5 hard_aggressive 10-11, 27 min; Azurite Shores 2v5 hard_aggressive with a distilled seat 10-18, 30 min)
 dates: 2026-09-22 to 2026-10-18
-ground: the demos' start scripts only (copied to run/data/demos-client; not yet replayed: three need game versions not on disk and four maps are not in run/data/maps)
+ground: card (the six demos copied to run/data/demos-client, replayed and carded 2026-10-22 once their game versions and maps were fetched; not yet read)
 sources: {code: [run/data/demos-client]}
 status: live
 -->
 ### Two or three people against many AIs
 
 A fourth format the user plays himself: two or three people against five to sixteen BARb on a large map, thirty to
-seventy minutes long. Six such demos are copied from his client and listed above; none is carded yet, and the game
-versions and maps three of them need are not on disk. What they will show is how people hold and win against many
+seventy minutes long. Six such demos are copied from his client and listed above, replayed and carded on 2026-10-22: the people won
+five; in the Azurite Shores game two people lost to three BARb and two distilled seats of ours at +50. The cards
+are not read yet. What they will show is how people hold and win against many
 stock BARbs with a shared economy, the format closest to the 8v8 lobbies from the people's side.
