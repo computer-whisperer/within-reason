@@ -259,3 +259,8 @@ compared.
   put in front of him).
 - Direct consequences (arithmetic on the facts, no situational judgement) go in the fact documents themselves, as
   the economy document's "What follows directly" (2026-10-22).
+- Fine-grained fact blocks may be redacted from the play context once the full brief's size is known (2026-10-22):
+  many details (exact placement logic, for one) are too fine for a model in direct play, but the fact reference
+  stays for derived reasoning. Nothing is redacted yet; the decision waits on the token count of the whole new brief.
+  The mechanism, when wanted: a block status the assembler withholds from every role while the checker, the viewer
+  and the derivations' `premises:` still see it (the deprecated status already works this way for the text).
