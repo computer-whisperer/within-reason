@@ -180,8 +180,15 @@ from premises produces different text.
   user's "very experienced": thebluegecko and Irishstud14 (OS 48 in the duel list) by default; a weaker player's line
   only on the user's word. The corpus: the chat events of every game with people (856 lines in the records, most of
   them ours and the host's), the two transcripts in `docs/knowledge/_inbox/players-chat-2026-09-2{7,8}.md`, the
-  relayed words in `docs/knowledge/_inbox/player-notes.md` and in the knowledge base's claims. The chat lines of the
-  games from human-10 on are not yet attributed to a speaker (the record carries a player number, not a name).
+  relayed words in `docs/knowledge/_inbox/player-notes.md` and in the knowledge base's claims. A chat event carries the
+  engine's player id; a lobby game's `script.txt` in the match directory maps ids to names (the archived games of
+  2026-09-27 have none, and were attributed by the lines' content, confirmed by the user). The host's seat carries our
+  `[WReason]` lines and, without the prefix, the user's own comments (his lobby name is computer_whisperer): those are
+  his observations, sources for episodes and derivations, not lessons. The user's rulings of 2026-10-21 on the first
+  draft: the game-3 spectator was Irishstud14; the relayed comments he typed from memory were usually thebluegecko's,
+  said after the game; the bar (thebluegecko and Irishstud14 first, the lobby-rated 19 to 25 players in a section of
+  their own) stands. Every game with people in the records (63 batches) has had its chat read; the rest is greetings,
+  banter and the user's comments.
 - **Facts** are generated from `units.json` and the map data where possible; the economic model (metal, energy and
   build power as flows, an extractor's payback, the price of a minute), the fight model (range, damage, hit points,
   speed, what wins at equal metal) and the map model (walks, chokes, sight) are written as facts with their grounding,
@@ -206,7 +213,8 @@ compared.
 3. The archive and the coverage script (§6).
 4. The fact layer, generated where it can be; the three models written.
 4b. The lessons document (§6), from the transcripts and the records' chat, for the user's check: he was present for
-   most of the conversations and can verify the context.
+   most of the conversations and can verify the context. Built 2026-10-21; the user's corrections applied the same
+   day.
 5. The meta catalogue.
 6. Derivations in backlog order, clusters first, each with its tests and check.
 7. The episode index.
