@@ -2,7 +2,7 @@
 """Show the whole brief set each model reads, assembled the way the bot assembles it, from the checkout or from a git
 revision, as one self-contained HTML page.
 
-    run/brief_view.py [--rev REV] [--out FILE] [--open] [--annotations DIR]
+    run/brief_view.py [--rev REV | --match DIR] [--out FILE] [--open] [--annotations DIR]
 
 One tab per role: the player on the standing brief (what `run/human_game.sh` and the arena without `--brief` run), the
 player on the experience brief (`arena --brief experience`), the commander (its role text and the experience brief
@@ -21,7 +21,10 @@ The composition rules are those of the bot at the revision this script was writt
 files come from the revision asked for. The game-time parts (the bonus paragraph, the objective, the first report's
 map sheet) are not texts and are named as placeholders. Without `--rev` the working tree is shown; `--rev HEAD` or
 any commit reads every file with `git show`. The page is written to `run/data/brief-view/<rev>.html` unless `--out`
-says where, and `--open` opens it in the browser.
+says where, and `--open` opens it in the browser. `--match DIR` (a batch directory under run/matches, or a match
+directory in one) reads the texts from the batch's `snapshot/` (`bot --snapshot`: the texts a game was played with,
+with the checkout's git head, status and diff beside them), and the page says the head and how many files were
+modified at launch.
 
 `--annotations DIR` (the default is docs/studies/2026-10-21-brief-annotation when it holds part-*.jsonl) overlays the
 reading pass's rows (that directory's README has the schema): under the first line of each annotated passage a chip
@@ -123,11 +126,18 @@ def git(*args):
 
 
 class Source:
-    """A text file at the revision: its contents, where it came from, its last commit, its working-tree state."""
+    """A text file at the revision: its contents, where it came from, its last commit, its working-tree state. With a
+    snapshot directory, the file is the snapshot's copy."""
 
-    def __init__(self, path, rev):
+    def __init__(self, path, rev, snapshot=None):
         self.path, self.rev = path, rev
         self.text, self.state = None, "absent"
+        if snapshot is not None:
+            full = os.path.join(snapshot, path)
+            if os.path.exists(full):
+                self.text, self.state = open(full).read(), "in the game's snapshot"
+            self.last_commit = ""
+            return
         if rev is None:
             if os.path.exists(path):
                 self.text = open(path).read()
@@ -181,9 +191,9 @@ def experience_bands(src, parts):
     text = src.text or ""
     bands, pos, stale = [], 0, []
     for part in parts:
-        if part is None:
-            continue
-        body = (part.text or "").strip()
+        if part is None or part.text is None:
+            continue  # the map sheets, or a part the source has no copy of (a game's snapshot holds only what the bot reads)
+        body = part.text.strip()
         at = text.find(body, pos) if body else -1
         if at < 0:
             stale.append(part.path)
@@ -199,8 +209,8 @@ def experience_bands(src, parts):
     return bands, stale
 
 
-def roles(rev):
-    S = {p: Source(p, rev) for p in [PLAYER_PROMPT, PLAYER_UNDER_COMMAND, PACKET_EXAMPLE, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE,
+def roles(rev, snapshot=None):
+    S = {p: Source(p, rev, snapshot) for p in [PLAYER_PROMPT, PLAYER_UNDER_COMMAND, PACKET_EXAMPLE, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE,
                                      PLAYER_OPUS, HANDS_RULES, HANDS_RULES_GATE, HANDS_DEFAULT] + [p for p in EXPERIENCE_PARTS if p]}
     rules_whole = rules_for_all(S[HANDS_RULES].text or "")
 
@@ -384,7 +394,7 @@ show(tabs[0].dataset.id);
 
 def main():
     args = sys.argv[1:]
-    rev = out = None
+    rev = out = match_dir = None
     open_it = False
     ann_dir = "docs/studies/2026-10-21-brief-annotation"
     i = 0
@@ -397,15 +407,31 @@ def main():
             open_it = True; i += 1
         elif args[i] == "--annotations":
             ann_dir = args[i + 1]; i += 2
+        elif args[i] == "--match":
+            match_dir = args[i + 1]; i += 2
         elif args[i] in ("-h", "--help"):
             print(__doc__); sys.exit(0)
         else:
             print(__doc__); sys.exit(2)
-    S, role_list = roles(rev)
+    snapshot = snap_info = None
+    if match_dir:
+        for candidate in (match_dir, os.path.dirname(match_dir.rstrip("/"))):
+            if os.path.isdir(os.path.join(candidate, "snapshot")):
+                snapshot = os.path.join(candidate, "snapshot")
+                break
+        if snapshot is None:
+            print(f"{match_dir}: no snapshot/ in it or its batch (games before 2026-10-21 have none)"); sys.exit(1)
+        try:
+            snap_info = json.load(open(os.path.join(snapshot, "snapshot.json")))
+        except (OSError, ValueError):
+            snap_info = {}
+    S, role_list = roles(rev, snapshot)
     ann, bad_rows = load_annotations(ann_dir) if os.path.isdir(ann_dir) else ({}, 0)
     label = rev or "working-tree"
     if rev:
         label = git("rev-parse", "--short", rev).stdout.strip() or rev
+    if snapshot:
+        label = os.path.basename(os.path.dirname(snapshot.rstrip("/"))) + "-snapshot"
     head = git("rev-parse", "--short", "HEAD").stdout.strip()
     palette = {}
     tabs = "".join(f'<span class="tab" data-id="{r["id"]}">{html.escape(r["name"])}</span>' for r in role_list)
@@ -435,7 +461,7 @@ def main():
                      f'</p><input id="af" placeholder="filter rows (plain text)"><table class="anntab"><thead><tr>{"".join(f"<th>{c}</th>" for c in cols)}</tr></thead><tbody>{trs}</tbody></table></div>')
     files = "".join(f'<tr><td>{html.escape(p)}</td><td class="n">{s.words:,}</td><td>{html.escape(s.last_commit)}</td><td>{html.escape(s.state)}</td></tr>' for p, s in S.items())
     page = f"""<!doctype html><html><head><meta charset="utf-8"><title>Brief set {html.escape(label)}</title><style>{CSS}</style></head><body>
-<header><h1>The brief set at {html.escape(label)}{" (HEAD " + html.escape(head) + ")" if not rev else ""}</h1>{tabs}<span class="tab" data-id="files">Files</span>{'<span class="tab" data-id="annotations">Annotations</span>' if ann_rows else ""}
+<header><h1>The brief set at {html.escape(label)}{" (HEAD " + html.escape(head) + ")" if not rev and not snapshot else ""}{(" (the game's snapshot: head " + html.escape(str(snap_info.get("head", "?"))[:9]) + ", " + str(snap_info.get("dirty_files", "?")) + " files modified at launch)") if snapshot else ""}</h1>{tabs}<span class="tab" data-id="files">Files</span>{'<span class="tab" data-id="annotations">Annotations</span>' if ann_rows else ""}
 {fate_sel}<input id="q" placeholder="search (regexp), e.g. medium|BARb"><span id="hits"></span></header>
 <main><nav>{"".join(navs)}<div class="toc" data-id="files"></div><div class="toc" data-id="annotations"></div></nav><div>{"".join(bodies)}{ann_table}
 <div class="role" id="files"><h2>Every text, at {html.escape(label)}</h2><table class="comp"><tr><th>file</th><th>words</th><th>last commit</th><th>state</th></tr>{files}</table>

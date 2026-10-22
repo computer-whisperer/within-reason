@@ -223,6 +223,15 @@ fn main() -> io::Result<()> {
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let batch_dir = repo.join(format!("run/matches/{stamp}-{}", options.label));
     fs::create_dir_all(&batch_dir)?;
+    // The batch's games run from a snapshot of the bot and its texts (the user, 2026-10-21: an edit or a rebuild in the
+    // checkout must not reach a running game; `crates/bot/src/texts.rs`). Every match of the batch runs `snapshot/bot`.
+    if options.our_ai == FLAGSHIP_AI {
+        let bot = options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot"));
+        let status = Command::new(&bot).arg("--snapshot").arg(batch_dir.join("snapshot")).status()?;
+        if !status.success() {
+            return Err(io::Error::other(format!("{} --snapshot failed", bot.display())));
+        }
+    }
     println!(
         "{} matches vs {} {} on {}, speed {}, {} parallel -> {}",
         options.matches, opponent_name(&options.opponent), options.profile, options.map, options.speed, options.parallel, batch_dir.display()
@@ -386,7 +395,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     let mut bot = match options.our_ai == FLAGSHIP_AI {
         false => None,
         true => Some(
-            Command::new(options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot")))
+            Command::new(batch_dir.join("snapshot/bot"))
+            .env("WITHIN_REASON_TEXTS", batch_dir.join("snapshot"))
             .args(options.pianist.then_some("--pianist"))
             .args(options.player.then_some("--player"))
             // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).

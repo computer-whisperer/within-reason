@@ -1,6 +1,7 @@
 # The brief rework: derivations over lessons, sources over artifacts, games decoupled from edits
 
-Status: draft 1, 2026-10-21, in discussion with the user. Nothing is built; no brief, prompt or rule has changed. The
+Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot) is built; the assembler (§3, §4) is being built;
+no brief, prompt or rule has changed. The
 reading pass that motivates it is `docs/studies/2026-10-21-brief-annotation/` (700 rows, `summary.md`, `backlog.md`);
 the texts as each role reads them are shown by `run/brief_view.py`.
 
@@ -97,6 +98,10 @@ tool writes on any invocation. The artifact goes.
 - `run/build_brief.py` is deleted, not fixed; `--regenerate` becomes each generator's own job.
 
 ## 5. Games decoupled from edits: the snapshot
+
+Built 2026-10-21 (`bot --snapshot DIR` in `crates/bot/src/texts.rs`; the arena once a batch, `run/human_game.sh` once a
+game; `run/brief_view.py --match <batch>`; the smoke `snapshot-smoke` ran from its snapshot). The reload signal and the
+compiled copies (§9) are untouched.
 
 Today an edit to a text read at run time reaches a running game: the player's session restarts the turn the prompt on
 disk changes (`strategist/mod.rs`, the digest compared every turn, by the user's 2026-09-22 ruling that text updates

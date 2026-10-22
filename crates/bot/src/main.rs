@@ -23,14 +23,26 @@ use world::World;
 /// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`), or each seat
 /// has its own (`strategist::player_per_seat`).
 /// Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
+/// `--snapshot DIR`: write the snapshot a game runs from (`texts::snapshot`) and leave; the arena and
+/// `run/human_game.sh` then run `DIR/bot` with `WITHIN_REASON_TEXTS=DIR`, so nothing edited in the checkout reaches
+/// the game.
 fn main() -> io::Result<()> {
     let mut player = false;
     let mut pianist = false;
-    for argument in std::env::args().skip(1) {
+    let mut arguments = std::env::args().skip(1);
+    while let Some(argument) = arguments.next() {
         match argument.as_str() {
             "--player" => player = true,
             "--pianist" => pianist = true,
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot --pianist [--player]"))),
+            "--snapshot" => {
+                let dir = arguments.next().ok_or_else(|| io::Error::other("--snapshot takes the directory to write"))?;
+                let dir = std::path::PathBuf::from(dir);
+                texts::snapshot(&dir)?;
+                let head = std::fs::read_to_string(dir.join("git-head.txt")).unwrap_or_default();
+                eprintln!("snapshot {} at {}", dir.display(), head.trim());
+                return Ok(());
+            }
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot --pianist [--player] | bot --snapshot DIR"))),
         }
     }
     if !pianist {

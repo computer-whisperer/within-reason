@@ -11,9 +11,12 @@
   line-flushed; the first smoke test looked cut off at frame 31 because the engine prints almost nothing during play.)
 - **Factory build orders: SHIFT means "build five".** Enforced in the shim; see K-rules-factory-shift-means-five.
 - **The arena rebuilds the workspace at start.** Do not leave `crates/` half-edited while a batch is starting.
-- **Prompts, briefs and the hands' rules are read from the checkout at run time** (`crates/bot/src/texts.rs`), so an
-  edit to one reaches a running game: the hands within a second, the player at its next turn as a fresh session. Edit
-  them deliberately while a game runs; a half-written brief is what the next session reads.
+- **A game runs from its snapshot, not the checkout** (since 2026-10-21; `crates/bot/src/texts.rs`): `bot --snapshot`
+  copies the bot binary, every text and the reference tables to `run/matches/<batch>/snapshot/`, and the arena and
+  `run/human_game.sh` run `snapshot/bot` with `WITHIN_REASON_TEXTS` pointing there. Edits and rebuilds in the checkout
+  during a game reach the next game, not this one; before 2026-10-21 an edited brief reached the hands within a
+  second and the player at its next turn as a fresh session. The shim is the one part still shared: installed by
+  rename, a running engine keeps the library it mapped, but a later match of a batch loads whatever is installed then.
 - **Requested game speed changes outcomes** (see arena.md, OPEN). Evaluate at `--speed 50`.
 - **12 matches is noise-level.** ±14 points at 50%. Confirm with 24+ before believing a gain.
 - After a bot restart the brain takes the commander's current position as home; brain state is not persisted.
@@ -96,9 +99,10 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
   game's Jev cost against its level; compare games at the same level.
 
 - **The arena rebuilds everything but itself.** `run/install_ai.sh` runs `cargo build --release` at batch start, so the shim and
-  the bot of a batch are the tree's, but the arena process that launched the batch is the binary that existed before the build:
-  a new arena flag or default (diet-1: `--hands-effort`, default lean) is not in effect until the next arena start after a build.
-  After changing `crates/arena`, run `cargo build --release` (or one batch) before the batch that needs it.
+  the bot of a batch are the tree's (the bot as snapshotted at that start; a build during the batch does not reach it), but
+  the arena process that launched the batch is the binary that existed before the build: a new arena flag or default (diet-1:
+  `--hands-effort`, default lean) is not in effect until the next arena start after a build. After changing `crates/arena`,
+  run `cargo build --release` (or one batch) before the batch that needs it.
 
 ## Every player game before 2026-09-23 15:00 ran without the think penalty, and the penalty covered only the commander mode
 

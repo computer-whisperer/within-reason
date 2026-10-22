@@ -157,6 +157,18 @@ packet only for names; enemy parties are questions, never menus; a gate of nouls
 moves, and a pick in two stages (`compose.rs`); what Jev must remember is printed in each actor's entry (the
 registers); and every saving on what is asked is a layer with a switch and an audit (`layers.rs`, `--hands-layers`).
 
+### The game's snapshot (2026-10-21)
+
+A game runs from a snapshot, not the checkout (the user: edits to key parts of the codebase must not touch a running
+game; `docs/design/2026-10-21-brief-rework.md` §5). `bot --snapshot DIR` (`crates/bot/src/texts.rs`) copies every
+text the models read, the reference tables, the bot binary itself and the checkout's git state (head, status, diff)
+into `run/matches/<batch>/snapshot/` with the checkout's relative paths; the arena does it once a batch and
+`run/human_game.sh` once a game, and both run `snapshot/bot` with `WITHIN_REASON_TEXTS` pointing at it. The texts are
+still read from disk at every use (the 2026-09-22 ruling: an edit needs no rebuild), from the snapshot, so an edit
+reaches the next game. The record thereby carries the texts and the code state a game was played with, which a
+review reads (`run/brief_view.py --match <batch>`). The shim stays shared: installed by rename, kept by the engine
+that mapped it, loaded anew by each later match.
+
 ## Terrain (2026-09-19)
 
 The shim sends the ground once, in `Hello`: heights and slopes at the engine's slope-map resolution (16 elmos), and
