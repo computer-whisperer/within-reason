@@ -26,8 +26,9 @@ use world::World;
 /// `--snapshot DIR`: write the snapshot a game runs from (`texts::snapshot`) and leave; the arena and
 /// `run/human_game.sh` then run `DIR/bot` with `WITHIN_REASON_TEXTS=DIR`, so nothing edited in the checkout reaches
 /// the game.
-/// `--print-prompt ROLE [--sources]`: print a role's prompt (player, commander, hands) as a session would get it under
-/// the variables set, and leave (`strategist::print_prompt`; `run/brief_view.py` reads it).
+/// `--print-prompt ROLE [--sources]`: print a role's prompt (player, commander, hands, or manifest:PATH for a brief under
+/// construction) as a session would get it under the variables set, and leave (`strategist::print_prompt`;
+/// `run/brief_view.py` reads it).
 fn main() -> io::Result<()> {
     let mut player = false;
     let mut pianist = false;

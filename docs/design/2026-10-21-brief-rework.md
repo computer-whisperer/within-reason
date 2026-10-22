@@ -1,7 +1,8 @@
 # The brief rework: derivations over lessons, sources over artifacts, games decoupled from edits
 
-Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot) and the assembler (§3, §4) are built; no
-brief, prompt or rule has changed in what a model reads. The
+Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot), the assembler (§3, §4), the archive, the
+coverage tally and the fact layer's unit tables (§6, steps 3 and the generated half of 4) are built; no brief, prompt or
+rule has changed in what a model reads. The
 reading pass that motivates it is `docs/studies/2026-10-21-brief-annotation/` (700 rows, `summary.md`, `backlog.md`);
 the texts as each role reads them are shown by `run/brief_view.py`.
 
@@ -136,6 +137,15 @@ keeps the library it mapped.
   batches.
 
 ## 6. The rewrite
+
+Built 2026-10-21: the archive `docs/briefs/archive/2026-10-21/` (the 27 annotated texts under their checkout paths, a
+README, `dispositions.jsonl`), the coverage tally `run/brief_coverage.py` (523 rows counted, every one open at the
+start; `--by backlog` groups the open rows by the merge pass's subjects), the fact layer's unit tables generated from
+`crates/bot/data/units.json` by `run/fact_units.py` (five documents under `docs/briefs/facts/`, 586 citable ids
+`F-unit-<name>`, 19,600 words in all; which domains a role's manifest carries is the manifest's choice, and the player
+keeps its `unit` tool for one unit at a time), and `docs/briefs/rework.manifest`, the brief under construction that no
+role reads yet (the viewer's "Rework" tab; `bot --print-prompt manifest:PATH`). Not written: the economic, fight and
+map models; no derivation, meta or episode document exists yet.
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),
 and generation is near deterministic, so a rewrite that starts from the old text reproduces it while one that starts

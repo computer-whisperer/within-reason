@@ -124,14 +124,17 @@ pub(crate) fn hands_parts() -> Vec<(String, String)> {
 }
 
 /// `bot --print-prompt ROLE [--sources]`: a role's prompt as a session would get it now, under the same variables a
-/// game sets (`WITHIN_REASON_BRIEF`, `WITHIN_REASON_COMMANDER`, `WITHIN_REASON_MODEL`, `WITHIN_REASON_OBJECTIVE`);
-/// with `--sources`, every part between a `<<<source: PATH>>>` line and an `<<<end>>>` line, for `run/brief_view.py`.
+/// game sets (`WITHIN_REASON_BRIEF`, `WITHIN_REASON_COMMANDER`, `WITHIN_REASON_MODEL`, `WITHIN_REASON_OBJECTIVE`), or
+/// `manifest:PATH` for a manifest alone; with `--sources`, every part between a `<<<source: PATH>>>` line and an
+/// `<<<end>>>` line, for `run/brief_view.py`.
 pub(crate) fn print_prompt(role: &str, sources: bool) -> std::io::Result<String> {
     let parts = match role {
         "player" => player_parts()?,
         "commander" => commander_parts()?,
         "hands" => hands_parts(),
-        other => return Err(std::io::Error::other(format!("no role {other}: player, commander or hands"))),
+        // Any manifest on its own, for a brief under construction that no role reads yet (`docs/briefs/rework.manifest`).
+        manifest if manifest.starts_with("manifest:") => crate::texts::assemble_parts(&manifest["manifest:".len()..])?,
+        other => return Err(std::io::Error::other(format!("no role {other}: player, commander, hands, or manifest:PATH"))),
     };
     Ok(if sources {
         parts.iter().filter(|(_, text)| !text.is_empty()).map(|(source, text)| format!("<<<source: {source}>>>\n{text}\n<<<end>>>\n")).collect()

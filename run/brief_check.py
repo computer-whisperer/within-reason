@@ -2,13 +2,14 @@
 """Check the brief's provenance blocks: every `<!--meta ... -->` block in the documents the manifests name
 (docs/briefs/*.manifest), their ids, and the references between them.
 
-    run/brief_check.py [--manifest PATH ...] [--json]
+    run/brief_check.py [--manifest PATH ...] [--json] [--all]
 
 The syntax (docs/design/2026-10-21-brief-rework.md §3): a block before a passage, `key: value` lines, lists in
 brackets, a map in braces; the bot strips every HTML comment before a model sees the text and drops the passage of a
 block whose status is deprecated (`crates/bot/src/texts.rs` `strip`). Keys read here:
 
     id: D-sprint-timing                        unique across the brief; prefixes F- (fact), M- (meta), D- (derived), E- (episode)
+    ids: [F-unit-armstump, F-unit-armflash]    several ids one block defines (a generated table's rows), each citable
     layer: fact | meta | derived | episode
     premises: [F-armavp-cost, M-pool-tech-rate]   ids a derivation rests on
     tests: [E-sd129-2v3]                       episodes that test a derivation
@@ -16,7 +17,7 @@ block whose status is deprecated (`crates/bot/src/texts.rs` `strip`). Keys read 
 
 Reports: blocks and ids per document; duplicate ids; premises and tests that name no block; derivations with no
 premises; facts and meta no derivation cites; live passages citing a deprecated id; blocks without an id. Exit 1 when
-a reference is unresolved or an id is duplicated, so it can gate a commit.
+a reference is unresolved or an id is duplicated, so it can gate a commit. Lists are cut at 25 items unless `--all`.
 """
 import json
 import os
@@ -68,12 +69,14 @@ def main():
             blocks.extend(blocks_of(document))
     by_id, duplicates, no_id = {}, [], []
     for b in blocks:
-        if "id" not in b:
+        defined = ([b["id"]] if "id" in b else []) + (b["ids"] if isinstance(b.get("ids"), list) else [])
+        if not defined:
             no_id.append(b)
-        elif b["id"] in by_id:
-            duplicates.append((b["id"], by_id[b["id"]]["_file"], by_id[b["id"]]["_line"], b["_file"], b["_line"]))
-        else:
-            by_id[b["id"]] = b
+        for ident in defined:
+            if ident in by_id:
+                duplicates.append((ident, by_id[ident]["_file"], by_id[ident]["_line"], b["_file"], b["_line"]))
+            else:
+                by_id[ident] = b
     deprecated = {i for i, b in by_id.items() if str(b.get("status", "live")).startswith("deprecated")}
     unresolved, cites_deprecated, no_premises = [], [], []
     cited = set()
@@ -99,8 +102,11 @@ def main():
             items = report[name]
             if items:
                 print(f"{name} ({len(items)}):")
-                for item in items:
+                shown = items if "--all" in args else items[:25]
+                for item in shown:
                     print("  " + " ".join(str(x) for x in (item if isinstance(item, tuple) else (item,))))
+                if len(shown) < len(items):
+                    print(f"  ... {len(items) - len(shown)} more (--all)")
     sys.exit(1 if duplicates or unresolved or cites_deprecated else 0)
 
 

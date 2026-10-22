@@ -61,6 +61,7 @@ ROLES = [
     {"id": "hands", "name": "Hands (Jev)", "role": "hands", "env": {},
      "launch": "every pick; the request itself is built from the game by brain/pianist/picture.rs"},
 ]
+REWORK = "docs/briefs/rework.manifest"
 GAME_TIME = ["the game's bonus paragraph (from the lobby's income bonuses; none when no seat has one)", "the objective (WITHIN_REASON_OBJECTIVE)",
              "then the game's own lines: the first report with the map sheet"]
 
@@ -238,7 +239,8 @@ def composition_table(role, sources, palette):
                     f'<td>{html.escape(src.last_commit if src else "")}</td><td>{html.escape(src.state if src else "")}</td></tr>')
     total = sum(len(text.split()) for _, text in role["bands"])
     rows.append(f'<tr class="tot"><td>whole</td><td class="n">{total:,}</td><td class="n">{int(total * 1.3):,}</td><td></td><td></td></tr>')
-    game_time = "".join(f"<li>{html.escape(p)}</li>" for p in GAME_TIME) if role["role"] != "hands" else "<li>the picture: groups, places, parties, actors, the packet's rules per actor</li>"
+    game_time = ("<li>the picture: groups, places, parties, actors, the packet's rules per actor</li>" if role["role"] == "hands"
+                 else "<li>none: no role reads this manifest yet</li>" if role["role"].startswith("manifest:") else "".join(f"<li>{html.escape(p)}</li>" for p in GAME_TIME))
     return (f'<table class="comp"><tr><th>source</th><th>words</th><th>≈ tokens</th><th>last commit</th><th>state</th></tr>{"".join(rows)}</table>'
             f'<p class="launch">Runs as: {html.escape(role["launch"])}</p><p>Game-time parts, empty here:</p><ul>{game_time}</ul>')
 
@@ -360,13 +362,17 @@ def main():
 
     def source(path):
         return Source(path, root=texts_root, root_name=root_name) if texts_root else Source(path)
-    for role in ROLES:
+    roles_shown = list(ROLES)
+    if os.path.exists(os.path.join(texts_root or ".", REWORK)):
+        roles_shown.append({"id": "rework", "name": "Rework (under construction)", "role": f"manifest:{REWORK}", "env": {},
+                            "launch": f"no role reads it yet: the documents {REWORK} names, as the assembler joins them"})
+    for role in roles_shown:
         parts, error = print_prompt(bot, role["role"], role["env"], texts_root)
         role_list.append({**role, "bands": parts or [], "error": error})
         for path, _ in parts or []:
             if path not in sources and not path.startswith("("):
                 sources[path] = source(path)
-    for manifest in ("docs/briefs/standard.manifest", "docs/briefs/experience.manifest"):
+    for manifest in ("docs/briefs/standard.manifest", "docs/briefs/experience.manifest", REWORK):
         if manifest not in sources:
             sources[manifest] = source(manifest)
     tabs = "".join(f'<span class="tab" data-id="{r["id"]}">{html.escape(r["name"])}</span>' for r in role_list)
