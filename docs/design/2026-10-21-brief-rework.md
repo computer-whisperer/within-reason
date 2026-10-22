@@ -158,8 +158,15 @@ role reads yet (the viewer's "Rework" tab; `bot --print-prompt manifest:PATH`). 
 model, `docs/briefs/facts/economy.md` (nine F-eco blocks, about 2,200 words: the store and overflow, extractors and
 the metal map, generators, build power and the draw with a table of the common builds, decay, reclaim and
 resurrection, conversion, the lobby's multipliers), each block citing the engine and game files it is read from and
-the K- claims it replaces. Not written: the fight and map models; no derivation, meta or episode document exists yet
-(the episode sweep's rows are being written in the background).
+the K- claims it replaces; the fight model, `docs/briefs/facts/fights.md` (ten F-fight blocks, about 2,100 words:
+damage by armour class, health and experience and flanks, range with the height rule and the beam falloff, accuracy,
+sight and radar, ground, death blasts, the big weapons); and the map model, `docs/briefs/facts/maps.md` (nine F-map
+blocks, about 3,500 words: distances and the grid, ground and terrain types, metal spots and the extractor radius,
+where a building may stand, features, sight over coarse ground, wind and tide and the game's standard gravity, where
+the sides start, a catalogue of the nineteen maps with recorded games). Each fact document went to a skeptical Opus
+reader after it was written (the economy's refuted five statements, the fights' sixteen, each checked by hand before
+it was applied); the map model's reading is pending. No derivation, meta or episode document exists yet (the episode
+sweep's rows are written: docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),
 and generation is near deterministic, so a rewrite that starts from the old text reproduces it while one that starts
