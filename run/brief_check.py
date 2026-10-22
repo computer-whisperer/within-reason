@@ -8,15 +8,17 @@ The syntax (docs/design/2026-10-21-brief-rework.md §3): a block before a passag
 brackets, a map in braces; the bot strips every HTML comment before a model sees the text and drops the passage of a
 block whose status is deprecated (`crates/bot/src/texts.rs` `strip`). Keys read here:
 
-    id: D-sprint-timing                        unique across the brief; prefixes F- (fact), M- (meta), D- (derived), E- (episode)
+    id: D-sprint-timing                        unique across the brief; prefixes F- (fact), M- (meta), D- (derived), E- (episode), L- (lesson)
     ids: [F-unit-armstump, F-unit-armflash]    several ids one block defines (a generated table's rows), each citable
-    layer: fact | meta | derived | episode
+    layer: fact | meta | derived | episode | lesson
     premises: [F-armavp-cost, M-pool-tech-rate]   ids a derivation rests on
     tests: [E-sd129-2v3]                       episodes that test a derivation
+    lessons: [L-lead-1]                        the players' lessons a derivation reproduces or explains away
     status: live | deprecated <date> (<reason>)
 
 Reports: blocks and ids per document; duplicate ids; premises and tests that name no block; derivations with no
-premises; facts and meta no derivation cites; live passages citing a deprecated id; blocks without an id. Exit 1 when
+premises; facts and meta no derivation cites; lessons no derivation has reached; live passages citing a deprecated id;
+blocks without an id. Exit 1 when
 a reference is unresolved or an id is duplicated, so it can gate a commit. Lists are cut at 25 items unless `--all`.
 """
 import json
@@ -81,7 +83,7 @@ def main():
     unresolved, cites_deprecated, no_premises = [], [], []
     cited = set()
     for b in blocks:
-        refs = [(k, r) for k in ("premises", "tests") for r in (b.get(k) if isinstance(b.get(k), list) else [])]
+        refs = [(k, r) for k in ("premises", "tests", "lessons") for r in (b.get(k) if isinstance(b.get(k), list) else [])]
         for key, ref in refs:
             cited.add(ref)
             if ref not in by_id:
@@ -91,14 +93,15 @@ def main():
         if b.get("layer") == "derived" and not b.get("premises"):
             no_premises.append((b.get("id", "?"), b["_file"], b["_line"]))
     uncited = sorted(i for i, b in by_id.items() if b.get("layer") in ("fact", "meta") and i not in cited and i not in deprecated)
+    unreached = sorted(i for i, b in by_id.items() if b.get("layer") == "lesson" and i not in cited and i not in deprecated)
     report = {"manifests": manifests, "documents": len(seen), "blocks": len(blocks), "ids": len(by_id), "deprecated": len(deprecated),
               "duplicates": duplicates, "unresolved": unresolved, "cites_deprecated": cites_deprecated, "derived_without_premises": no_premises,
-              "uncited_facts_and_meta": uncited, "blocks_without_id": [(b["_file"], b["_line"]) for b in no_id]}
+              "uncited_facts_and_meta": uncited, "lessons_unreached": unreached, "blocks_without_id": [(b["_file"], b["_line"]) for b in no_id]}
     if "--json" in args:
         print(json.dumps(report, indent=1))
     else:
         print(f"{len(seen)} documents, {len(blocks)} meta blocks, {len(by_id)} ids ({len(deprecated)} deprecated)")
-        for name in ("duplicates", "unresolved", "cites_deprecated", "derived_without_premises", "uncited_facts_and_meta", "blocks_without_id"):
+        for name in ("duplicates", "unresolved", "cites_deprecated", "derived_without_premises", "uncited_facts_and_meta", "lessons_unreached", "blocks_without_id"):
             items = report[name]
             if items:
                 print(f"{name} ({len(items)}):")

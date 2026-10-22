@@ -1,8 +1,8 @@
 # The brief rework: derivations over lessons, sources over artifacts, games decoupled from edits
 
 Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot), the assembler (§3, §4), the archive, the
-coverage tally and the fact layer's unit tables (§6, steps 3 and the generated half of 4) are built; no brief, prompt or
-rule has changed in what a model reads. The
+coverage tally, the fact layer's unit tables and the first draft of the lessons document (§6, steps 3, the generated
+half of 4, and 4b) are built; no brief, prompt or rule has changed in what a model reads. The
 reading pass that motivates it is `docs/studies/2026-10-21-brief-annotation/` (700 rows, `summary.md`, `backlog.md`);
 the texts as each role reads them are shown by `run/brief_view.py`.
 
@@ -29,7 +29,7 @@ brief while the commander always reads the experience brief, so the seats and th
 The standing-versus-experience comparison (player-54/55) never resolved. Twenty conflict clusters await a ruling
 (`summary.md` §b); the derivation backlog by subject is `backlog.md` §a.
 
-## 2. The four layers (the user, 2026-10-21)
+## 2. The five layers (the user, 2026-10-21)
 
 1. **Fact**: core factual information grounded in the game's code and in ours. The references (unit definitions,
    engine behaviour, our harness code) are useless in a game but are the ground-truth standard behind the facts.
@@ -43,6 +43,14 @@ The standing-versus-experience comparison (player-54/55) never resolved. Twenty 
 4. **Episode**: episodic memory of games, recorded with the defects of the bot systems at the time and the review
    lens the match was inspected through. Diagnosing a loss is a very hard bar; a report may be wrong and reports
    deprecate over time. Episodes are evidence and tests for derivations, not doctrine.
+5. **Lessons** (added by the user later the same day): a dedicated section for verbatim lessons from the very
+   experienced players, primarily thebluegecko, with their context. "We are still weak enough that they are going to
+   be high quality heuristics, but the hope should be to build our own reasoning and detailed episodes to support or
+   replace them over time." A lesson is kept in the player's own words, never paraphrased into a rule, with who said
+   it and their rating at the time, when (date, game, clock), what was on the board and what prompted it, and how it
+   reached us (the game's chat in the record, or relayed by the user from a conversation). Its block names the
+   derivations and episodes that have come to support it or that replace it; until one does, it stands on the
+   player's authority alone, and the brief says so.
 
 Outside the brief: **tool** text (how the harness, the tools, the packet and the turn work) stays in the role prompts;
 **rulings** (a person's directive) are recorded as sources of facts, meta or derivations, dated, not as free-standing
@@ -74,10 +82,12 @@ status: live
 
 - One block before each passage; `key: value` lines, lists in brackets, a map in braces. A document may open with a
   front-matter block (`---` lines) for document-level keys (layer, owner, last review); the assembler strips it.
-- **Ids** make the rigor checkable. Prefixes by layer (`F-`, `M-`, `D-`, `E-`). A derivation cites its premises and
+- **Ids** make the rigor checkable. Prefixes by layer (`F-`, `M-`, `D-`, `E-`, `L-` for a lesson). A derivation cites its premises and
   the episodes that test it; an episode cites the derivations it bears on and its `defects` and `lens`; a fact names
-  its grounding (`units.json`, the engine, our code, a measurement). A checker resolves every id, lists derivations
-  with missing premises, facts no derivation uses, and refuses a context that cites a deprecated id.
+  its grounding (`units.json`, the engine, our code, a measurement); a lesson names its speaker, date, game, clock
+  and relay, and a derivation that reproduces or explains away a lesson lists it under `lessons:` the way it lists
+  its `tests:`, so the checker can list the lessons no derivation has reached yet. A checker resolves every id, lists
+  derivations with missing premises, facts no derivation uses, and refuses a context that cites a deprecated id.
 - **Status** deprecates in place: `status: deprecated 2026-10-21 (reason)`. The source keeps the passage; the
   assembler drops it. Episodes deprecate as their diagnosis is overturned.
 - The claim ids, game labels and dates now in the prose (104 `K-` claims, 102 `player-N` labels in the context) move
@@ -164,6 +174,14 @@ from premises produces different text.
   Apex), each observation with map and date, rationale attached when known.
 - **Episodes** are an index, not prose: the game, what it showed, its defects, its lens, the derivations it tests.
   Those with a lesson resting on a fixed defect are indexed with the defect and no lesson.
+- **Lessons** are one document, `docs/briefs/lessons.md`, by subject: each passage one verbatim quotation (or an
+  exchange) with its context in a sentence or two, and a block `id: L-<subject>-<n>`, `layer: lesson`, `sources:
+  {people, dates, games, clocks, relay}`, `covers:` the archive rows it takes over. The bar for inclusion is the
+  user's "very experienced": thebluegecko and Irishstud14 (OS 48 in the duel list) by default; a weaker player's line
+  only on the user's word. The corpus: the chat events of every game with people (856 lines in the records, most of
+  them ours and the host's), the two transcripts in `docs/knowledge/_inbox/players-chat-2026-09-2{7,8}.md`, the
+  relayed words in `docs/knowledge/_inbox/player-notes.md` and in the knowledge base's claims. The chat lines of the
+  games from human-10 on are not yet attributed to a speaker (the record carries a player number, not a name).
 - **Facts** are generated from `units.json` and the map data where possible; the economic model (metal, energy and
   build power as flows, an extractor's payback, the price of a minute), the fight model (range, damage, hit points,
   speed, what wins at equal metal) and the map model (walks, chokes, sight) are written as facts with their grounding,
@@ -187,6 +205,8 @@ compared.
    format.
 3. The archive and the coverage script (§6).
 4. The fact layer, generated where it can be; the three models written.
+4b. The lessons document (§6), from the transcripts and the records' chat, for the user's check: he was present for
+   most of the conversations and can verify the context.
 5. The meta catalogue.
 6. Derivations in backlog order, clusters first, each with its tests and check.
 7. The episode index.
@@ -196,8 +216,6 @@ compared.
 
 ## 9. Open, for the user
 
-- Who writes the derivations: agents subject by subject with the user reviewing each, or the user with an agent per
-  subject.
 - Whether live text edits mid-game remain possible by a deliberate signal, or go entirely.
 - Whether the compiled copies of the texts stay (a game away from a checkout) or go.
 - The id scheme's prefixes and whether the knowledge base's `K-` claims map onto them or retire.
@@ -211,3 +229,7 @@ compared.
 - Worse-before-better is expected.
 - The rebuild system is replaced, not repaired; provenance goes in comments the model never sees.
 - Edits to key parts of the codebase must not touch a running game.
+- A fifth layer, lessons: the very experienced players' words verbatim with context, high-quality heuristics while we
+  are weak, to be supported or replaced by our own reasoning and episodes over time.
+- Who writes: the assistant writes most of it; the user is heavily involved as it is built up (small pieces, each
+  put in front of him).
