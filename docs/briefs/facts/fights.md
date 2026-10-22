@@ -98,7 +98,7 @@ radius. A Blitz bullet's splash is 4. No weapon damages the unit that fired it.
 <!--meta
 id: F-fight-sight
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/LosHandler.cpp:83-162, upstream/RecoilEngine/rts/Sim/Misc/LosMap.cpp:16, 545, 654, upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:480-491, upstream/RecoilEngine/rts/Sim/Misc/LosHandler.h:273-283, 324-325 (radar error 96, factor 2), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:131, 1494-1504, 2314, 2331 (targfac), upstream/Beyond-All-Reason/units (no unit sets targfac)], game: 54199a0d, claims: [K-mech-under-the-water-is-sonar-and-torpedoes]}
+sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/LosHandler.cpp:83-162, upstream/RecoilEngine/rts/Sim/Misc/LosMap.cpp:16, 545, 654, upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:480-491, upstream/RecoilEngine/rts/Sim/Misc/LosHandler.h:273-283, 324-325 (radar error 96, factor 2), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:131, 1494-1504, 2314, 2331 (targfac), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:492 (isTargetingUpgrade), upstream/Beyond-All-Reason/units/ArmBuildings/LandUtil/armtarg.lua, CorBuildings/LandUtil/cortarg.lua, Legion/Utilities/legtarg.lua (the Pinpointers; the user pointed to them 2026-10-22 after a grep for the engine's internal name missed the Lua key)], game: 54199a0d, claims: [K-mech-under-the-water-is-sonar-and-torpedoes]}
 status: live
 -->
 ### Sight, radar, sonar
@@ -107,9 +107,9 @@ Sight is a ray cast over the terrain from the unit's eye (its middle plus its si
 out to its sight distance: a ridge hides what is behind it, and a unit on a rise sees over what a unit below cannot.
 Aircraft are seen at one and a half times a unit's sight distance. Radar is cast the same way from the radar's own
 height, so radar too is blocked by terrain and a radar on a hill covers more. A unit seen by radar alone is a contact
-whose position is blurred by a random offset of up to 96 elmos, the same for every side all game, since no unit in
-the game reduces it; the engine's rule is that each active targeting facility halves the error, and the game has
-none. Jammers hide what is within their circle from radar; stealth units never show on radar; under water a unit is
+whose position is blurred by a random offset of up to 96 elmos. Each powered Pinpointer a side owns (tier 2, 810
+metal and 7,200 energy, 100 energy a second to run, anywhere on the map) halves that offset for the whole side: one
+makes it 48, two 24. Jammers hide what is within their circle from radar; stealth units never show on radar; under water a unit is
 seen by sonar alone, in a plain circle, and is hit by torpedoes alone.
 
 <!--meta
