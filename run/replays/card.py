@@ -4,20 +4,37 @@
 
     run/replays/card.py <match dir> [--manifest run/data/replays/manifest.jsonl] [--until-minutes 8]
 
-Reads every record-<team>.jsonl in the directory (run/replay_match.py's output) and the manifest line whose demo file
-name matches a demo in the directory (the players, their OS, factions and start positions: the replay records carry
-no seats). Writes card.json and card.md beside the records. Per team: the build order to --until-minutes by the
-clock with each extractor's spot number and grid cell, the factories with start and finish, the first tier-2 unit,
-the curves by minute (extractors, constructors, metal income, energy income, army metal), the army by type every
-two minutes, the first enemy seen, the first extractor lost, the losses and kills by type, the order the spots were
-taken, and where the fighting was (the grid cells where most units died, by minute). Spot numbers are the record's
-metal spots (the engine's centroid spots), so cards from one map speak of the same spots.
+Reads every record-<team>.jsonl in the directory (run/replay_match.py's output), the start script the engine wrote
+beside them (`_script.txt`: who sat in every team, a person with OS and rank or an AI with its short name, the ally
+teams, the handicaps; run/replays/startscript.py) and the manifest line whose demo file name matches a demo in the
+directory (the API's start positions and winner; the winner is the record's `winners` when the dump widget wrote
+one). Writes card.json and card.md beside the records. Per team: the seat (name, OS, AI, handicap, lane), the build
+order to --until-minutes by the clock with each extractor's spot number and grid cell, the factories with start and
+finish and their kinds, the first air plant and the first advanced plant, the first tier-2 unit, the curves by
+minute (extractors, constructors, metal income, energy income, army metal, and in replays from 2026-10-22 the
+cumulative metal and energy sent to and received from the side), the army by type every two minutes, the first
+extractor lost, the losses and kills by type, what was built over the whole game by type, the units given to and
+taken from other seats, the players' chat, the order the spots were taken, and where the fighting was (the grid
+cells where most units died, by minute). Spot numbers are the record's metal spots (the engine's centroid spots),
+so cards from one map speak of the same spots. Lanes: the seats of a side ranked along the axis their starts spread
+most on (west to east, or north to south), 1 first; a team game's seats read as lanes that way.
 """
 import glob, json, os, sys
 from collections import Counter, defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import startscript  # noqa: E402
+
 FPS = 30
+FACTORY_KINDS = {"lab": "bots", "vp": "vehicles", "ap": "air", "hp": "hovers", "sy": "ships", "fhp": "hovers", "plat": "seaplanes", "amsub": "amphibious",
+                 "alab": "advanced bots", "avp": "advanced vehicles", "aap": "advanced air", "asy": "advanced ships", "shltx": "gantry", "gant": "gantry", "shltxuw": "gantry"}
+
+
+def factory_kind(name):
+    """"vehicles", "advanced air", "gantry": the plant's kind from its name without the faction prefix."""
+    base = name[3:] if name[:3] in ("arm", "cor", "leg") else name
+    return FACTORY_KINDS.get(base, base)
 
 
 def clock(frame):
@@ -181,18 +198,30 @@ def team_card(rec, until_frames):
     first_t2 = None
     first_t2_unit = None
     commander = None
+    built = Counter()
+    given, taken = [], []
+    chat = []
     for e in rec.events:
-        if e.get("k") == "created":
+        k = e.get("k")
+        if k == "given":
+            given.append({"clock": clock(e["f"]), "unit": rec.name(e.get("d")), "from_team": e.get("from_team")})
+        elif k == "taken":
+            taken.append({"clock": clock(e["f"]), "unit": rec.name(e.get("d")), "to_team": e.get("to_team")})
+        elif k == "chat":
+            chat.append({"clock": clock(e["f"]), "text": e.get("text", "")})
+        if k == "created":
             own_ids.add(e["u"])
             d = e.get("d")
             nm = rec.name(d)
             if nm[3:4] == "_":
                 continue  # a cosmetic part (arm_leftshoulder_nationwars_eec), not a build
+            if not nm.endswith("com"):
+                built[nm] += 1
             if nm.endswith("com") and commander is None:
                 commander = e["u"]
                 role_of[e["u"]] = (d, "commander")
             elif rec.is_factory(d):
-                factories[e["u"]] = {"unit": nm, "started": clock(e["f"]), "finished": None, "at": rec.grid(e["x"], e["z"])}
+                factories[e["u"]] = {"unit": nm, "kind": factory_kind(nm), "started": clock(e["f"]), "finished": None, "at": rec.grid(e["x"], e["z"])}
                 role_of[e["u"]] = (d, f"factory {nm}")
             elif rec.is_constructor(d):
                 n = sum(1 for r in role_of.values() if r[1].startswith("constructor")) + 1
@@ -253,13 +282,19 @@ def team_card(rec, until_frames):
         last_minute = minute
         own = s.get("own", [])
         soldiers = [u for u in own if rec.is_soldier(u[1])]
-        curves.append({
+        row = {
             "minute": minute,
             "extractors": sum(1 for u in own if rec.is_extractor(u[1])),
             "constructors": sum(1 for u in own if rec.is_constructor(u[1])),
             "metal_income": round(s["m"][1], 1), "metal_stored": round(s["m"][0]), "energy_income": round(s["e"][1], 1), "energy_stored": round(s["e"][0]),
             "army_metal": round(sum(rec.d(u[1]).get("metal") or 0 for u in soldiers)), "soldiers": len(soldiers),
-        })
+        }
+        if s.get("tr"):
+            # The engine's cumulative team statistics (the dump widget from 2026-10-22): sent and received by the side's
+            # sharing, by hand or by a full store's overflow, and units handed over.
+            tr = s["tr"]
+            row.update({"metal_sent": tr[0], "metal_received": tr[1], "energy_sent": tr[2], "energy_received": tr[3], "units_sent": tr[4], "units_received": tr[5]})
+        curves.append(row)
         if minute % 2 == 0:
             composition.append({"minute": minute, "army": dict(Counter(rec.name(u[1]) for u in soldiers).most_common(6))})
     hot = sorted(fights.items(), key=lambda kv: -(kv[1]["ours"] + kv[1]["theirs"]))[:8]
@@ -272,24 +307,74 @@ def team_card(rec, until_frames):
     press = pressure(rec, enemy_start(rec), (start["x"], start["z"]) if start else None)
     for c in curves:
         c.update(press["in_his_half"].get(c["minute"], {}))
+    plants = sorted(factories.values(), key=lambda f: secs(f["started"]))
+    first_air = next((f for f in plants if f["kind"] in ("air", "advanced air", "seaplanes")), None)
+    first_advanced = next((f for f in plants if f["kind"].startswith("advanced") or f["kind"] == "gantry"), None)
+    last = curves[-1] if curves else {}
+    transfers = None
+    if "metal_sent" in last:
+        first_sent = next((c["minute"] for c in curves if c.get("metal_sent", 0) + c.get("energy_sent", 0) >= 500), None)
+        first_received = next((c["minute"] for c in curves if c.get("metal_received", 0) + c.get("energy_received", 0) >= 500), None)
+        transfers = {"metal_sent": last["metal_sent"], "metal_received": last["metal_received"], "energy_sent": last["energy_sent"], "energy_received": last["energy_received"],
+                     "units_sent": last["units_sent"], "units_received": last["units_received"], "first_minute_sent": first_sent, "first_minute_received": first_received}
     return {
         "team": rec.header.get("team"), "ally_team": rec.header.get("ally_team"), "side": side_of(order, rec.header.get("side")), "start": start,
-        "build_order": order, "factories": sorted(factories.values(), key=lambda f: secs(f["started"])), "first_tier2": first_t2, "first_tier2_unit": first_t2_unit,
+        "build_order": order, "factories": plants, "first_air_plant": first_air, "first_advanced_plant": first_advanced, "first_tier2": first_t2, "first_tier2_unit": first_t2_unit,
         "spots_taken": spots_taken, "curves": curves, "army_by_type": composition,
         "first_extractor_lost": first_extractor_lost,
         "pressure": {k: v for k, v in press.items() if k != "in_his_half"},
         "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "end_kills": dict(end_kills.most_common()), "fights": fights_out,
+        "built": dict(built.most_common()), "transfers": transfers, "units_given": given, "units_taken": taken, "chat": chat,
     }
+
+
+def lanes(teams):
+    """Rank every side's seats along the axis its starts spread most on: `lane` 1..n and `lane_axis` ("west to
+    east" or "north to south") on each team. One seat a side gets lane 1."""
+    by_ally = defaultdict(list)
+    for t in teams:
+        if t.get("start"):
+            by_ally[t.get("ally_team")].append(t)
+    for ally, side in by_ally.items():
+        xs = [t["start"]["x"] for t in side]
+        zs = [t["start"]["z"] for t in side]
+        axis = "x" if (max(xs) - min(xs)) >= (max(zs) - min(zs)) else "z"
+        for i, t in enumerate(sorted(side, key=lambda t: t["start"][axis])):
+            t["lane"] = i + 1
+            t["lane_axis"] = "west to east" if axis == "x" else "north to south"
 
 
 def markdown(card):
     out = [f"# {card['map']['name']}: {card.get('title', 'a game')}", ""]
     out.append(f"Map {card['map']['width']}x{card['map']['height']}, {card['map']['spots']} metal spots, grid {card['map']['grid']}. Duration {card['duration']}. Result: {card['result']}.")
+    for s in card.get("sides", []):
+        out.append(f"- Side {s['ally']}: {s['description']}" + (f"; handicap +{s['handicap']}" if s.get("handicap") else "") + (" — won" if s.get("won") else " — lost" if s.get("won") is False else ""))
     for p in card.get("players", []):
-        out.append(f"- {p['name']} (OS {p.get('os')}, rank {p.get('rank')}, {p.get('faction')}, team {p.get('team')}){' — won' if p.get('won') else ''}")
+        who = f"AI {p['ai']}" if p.get("ai") else f"OS {p.get('os')}, rank {p.get('rank')}"
+        out.append(f"- {p['name']} ({who}, {p.get('faction')}, team {p.get('team')}, side {p.get('ally')}" + (f", lane {p['lane']}" if p.get("lane") else "") + f"){' — won' if p.get('won') else ''}")
     for t in card["teams"]:
         who = t.get("player") or f"team {t['team']}"
-        out += ["", f"## {who} ({t['side']}, start {t['start']['grid'] if t['start'] else '?'})", ""]
+        out += ["", f"## {who} ({t['side']}, start {t['start']['grid'] if t['start'] else '?'}" + (f", lane {t['lane']} {t['lane_axis']}" if t.get("lane") else "") + ")", ""]
+        seat = []
+        if t.get("first_air_plant"):
+            seat.append(f"air plant {t['first_air_plant']['unit']} begun {t['first_air_plant']['started']}")
+        if t.get("first_advanced_plant"):
+            seat.append(f"advanced plant {t['first_advanced_plant']['unit']} begun {t['first_advanced_plant']['started']}")
+        tr = t.get("transfers")
+        if tr:
+            seat.append(f"sent {tr['metal_sent']:,} metal and {tr['energy_sent']:,} energy to the side" + (f" from minute {tr['first_minute_sent']}" if tr.get("first_minute_sent") is not None else "")
+                        + f", received {tr['metal_received']:,} metal and {tr['energy_received']:,} energy" + (f" from minute {tr['first_minute_received']}" if tr.get("first_minute_received") is not None else "")
+                        + (f", {tr['units_sent']} units given away, {tr['units_received']} received" if tr["units_sent"] or tr["units_received"] else ""))
+        if t.get("units_given"):
+            c = Counter((g["unit"], g["from_team"]) for g in t["units_given"])
+            seat.append("received " + ", ".join(f"{n} {u} from team {f}" for (u, f), n in c.most_common(5)))
+        if t.get("units_taken"):
+            c = Counter((g["unit"], g["to_team"]) for g in t["units_taken"])
+            seat.append("gave " + ", ".join(f"{n} {u} to team {f}" for (u, f), n in c.most_common(5)))
+        if seat:
+            out.append("Seat: " + "; ".join(seat) + ".")
+        if t.get("built"):
+            out.append("Built over the game: " + ", ".join(f"{n} {k}" for k, n in list(t["built"].items())[:14]) + ".")
         out.append("Build order to the cut-off: " + "; ".join(f"{o['clock']} {o['unit']}" + (f" spot_{o['spot']} {o['grid']}" if "spot" in o else "") + (f" ({o['by']})" if o["by"] not in ("?", "commander") else "") for o in t["build_order"]))
         out.append("Factories: " + ", ".join(f"{f['unit']} {f['started']}-{f['finished'] or '?'} at {f['at']}" for f in t["factories"]) + (f". First tier 2: {t['first_tier2']['unit']} at {t['first_tier2']['clock']}" + (f", first tier-2 unit {t['first_tier2_unit']['unit']} at {t['first_tier2_unit']['clock']}" if t.get("first_tier2_unit") else "") + "." if t["first_tier2"] else ". No tier 2."))
         out.append("By minute (extractors / constructors / metal income / army metal): " + " ".join(f"{c['minute']}:{c['extractors']}/{c['constructors']}/{c['metal_income']:.0f}/{c['army_metal']}" for c in t["curves"] if c["minute"] % 2 == 0))
@@ -306,6 +391,8 @@ def markdown(card):
         out.append("Spots taken: " + " ".join(f"{s['clock']} spot_{s['spot']}({s['grid']})" for s in t["spots_taken"]))
         out.append("Lost: " + ", ".join(f"{n} {k}" for k, n in list(t["losses"].items())[:8]) + ". Killed: " + ", ".join(f"{n} {k}" for k, n in list(t["kills"].items())[:8]) + "." + (f" In the last 15 s (the end, or a resign): {sum(t['end_kills'].values())} of theirs died." if t.get("end_kills") else ""))
         out.append("Fighting (minute, cell, ours lost / theirs lost): " + "; ".join(f"{f['minute']} {f['grid']} {f['ours_lost']}/{f['theirs_lost']}" for f in t["fights"]))
+        if t.get("chat"):
+            out.append("Chat: " + " | ".join(f"{c['clock']} {c['text']}" for c in t["chat"][:40]) + (f" | ... {len(t['chat']) - 40} more" if len(t["chat"]) > 40 else ""))
     return "\n".join(out) + "\n"
 
 
@@ -329,22 +416,69 @@ def main():
                 if row.get("file") in demos:
                     entry = row
     teams = [team_card(r, int(until * 60 * FPS)) for r in recs]
+    lanes(teams)
+    by_team = {t["team"]: t for t in teams}
+    # The seats: the start script first (every team, people and AIs, with the ally teams and handicaps as the engine
+    # had them), the manifest's rows for what only the API knows (start positions, the winner of an old replay).
     players = []
-    if entry:
-        for p in entry["players"]:
-            won = p["ally"] == entry.get("winner_ally")
-            players.append({**p, "won": won})
-            for t in teams:
-                if t["team"] == p["team"]:
-                    t["player"] = f"{p['name']} (OS {p['os']})"
-                    t["won"] = won
+    script_path = os.path.join(match, "_script.txt")
+    if os.path.exists(script_path):
+        _, game = startscript.load_script(script_path)
+        players = startscript.players_of(startscript.seats(game))
+        api_rows = {p["name"]: p for p in (entry or {}).get("players", [])}
+        for p in players:
+            p["start"] = (api_rows.get(p["name"]) or {}).get("start")
+    elif entry:
+        players = [dict(p) for p in entry["players"]]
+    # The winner: the engine's own list in the result row (the dump widget from 2026-10-22), else the API's.
+    winners = next((r.result.get("winners") for r in recs if r.result and r.result.get("winners")), None)
+    if winners is None and entry and entry.get("winner_ally") is not None:
+        names = set(entry.get("winners") or [])
+        winners = sorted({p["ally"] for p in players if p["name"] in names and p.get("ally") is not None})
+    for p in players:
+        p["won"] = (p.get("ally") in winners) if winners else None
+        t = by_team.get(p.get("team"))
+        if t is None:
+            continue
+        t["player"] = f"{p['name']} (OS {p['os']})" if not p.get("ai") else f"{p['name']} (AI {p['ai']}" + (f", +{p['handicap']}%" if p.get("handicap") else "") + ")"
+        t["ai"] = p.get("ai")
+        t["handicap"] = p.get("handicap") or 0
+        t["os"] = p.get("os")
+        if p["won"] is not None:
+            t["won"] = p["won"]
+        p["lane"] = t.get("lane")
+    sides = []
+    for ally in sorted({t.get("ally_team") for t in teams if t.get("ally_team") is not None}):
+        seats = [p for p in players if p.get("ally") == ally]
+        ais = Counter(p["ai"] for p in seats if p.get("ai"))
+        people = [p for p in seats if not p.get("ai")]
+        oss = sorted(p["os"] for p in people if p.get("os") is not None)
+        parts = []
+        if people:
+            parts.append(f"{len(people)} {'person' if len(people) == 1 else 'people'}" + (f" (OS {oss[0]:.0f} to {oss[-1]:.0f})" if len(oss) > 1 else f" (OS {oss[0]:.0f})" if oss else ""))
+        parts += [f"{n} {k}" for k, n in ais.most_common()]
+        hc = Counter(p.get("handicap") or 0 for p in seats).most_common(1)[0][0] if seats else 0
+        sides.append({"ally": ally, "seats": len(seats), "people": len(people), "ais": dict(ais), "handicap": hc, "description": ", ".join(parts) or "nobody", "won": (ally in winners) if winners else None})
     h = recs[0].header
     last = max((r.samples[-1]["f"] for r in recs if r.samples), default=0)
-    result = "; ".join(f"{t.get('player') or 'team ' + str(t['team'])} {'won' if t.get('won') else 'lost' if 'won' in t else '?'}" for t in teams) if entry else str(recs[0].result)
+    if winners:
+        result = "; ".join(f"side {s['ally']} ({s['description']}) {'won' if s['won'] else 'lost'}" for s in sides)
+    elif players:
+        result = "unknown winner"
+    else:
+        result = str(recs[0].result)
+    # Small games are titled by their names, large ones by their sides.
+    if sides and len(players) <= 4:
+        title = " vs ".join(", ".join(p["name"] for p in players if p.get("ally") == s["ally"]) for s in sides)
+    elif sides:
+        title = " vs ".join(s["description"] for s in sides)
+    else:
+        title = os.path.basename(match)
     card = {
-        "match": os.path.relpath(match, REPO), "id": entry["id"] if entry else None, "title": " vs ".join(p["name"] for p in players) if players else os.path.basename(match),
+        "match": os.path.relpath(match, REPO), "id": entry["id"] if entry else None, "title": title,
         "map": {"name": h["map"]["name"], "width": h["map"]["width"], "height": h["map"]["height"], "spots": len(h["metal_spots"]), "grid": f"{(h.get('grid') or {}).get('columns', 8)}x{(h.get('grid') or {}).get('rows', 8)}"},
-        "game_version": entry["game_version"] if entry else None, "duration": clock(last), "result": result, "players": players, "teams": teams,
+        "game_version": entry["game_version"] if entry else (game.get("gametype") if os.path.exists(script_path) else None), "duration": clock(last), "result": result, "winners": winners,
+        "sides": sides, "players": players, "teams": teams,
     }
     with open(os.path.join(match, "card.json"), "w") as f:
         json.dump(card, f, indent=1)

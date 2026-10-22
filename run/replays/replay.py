@@ -3,12 +3,15 @@
 (docs/design/2026-09-23-replay-survey.md, decision 3).
 
     run/replays/replay.py [--manifest run/data/replays/manifest.jsonl] [--parallel 4] [--base-port 9300] [--limit N] [--map "Name"]
+                          [--ais any|none|NAME] [--until-minutes 8]
 
 Each demo runs through run/replay_match.py on its own port from --base-port up; the match directory is named
 <time>-replay-<match id>; the manifest line gets `match` (the directory) and `card` when run/replays/card.py wrote
 one. A demo whose game version is not in the pool is skipped and said (run/replays/fetch.py --versions). Do not run
 this while an arena batch runs on the same ports, and not at all while a batch runs if the machine is short of cores:
-a replay engine runs at about 1.7 times game speed and takes a core.
+a replay engine runs at about 1.7 times game speed and takes a core (an 8v8 at about game speed). `--ais` keeps the
+manifest lines by their AIs: `none` the games without one, `any` the games with one, a name (SMRTBARb, BARb) the games
+with that AI, so a batch can take the competition first. `--until-minutes` is passed to the card.
 """
 import json, os, queue, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -18,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fetch import installed_versions  # noqa: E402
 
 
-def run_one(row, ports):
+def run_one(row, ports, until=None):
     """One demo through the engine on a port taken from the pool for the run (the first batch gave ports by index and
     two engines met on 9300: twelve replays died in a second). A run without records is a failure: its directory goes."""
     demo = os.path.join(REPO, row["demo"])
@@ -43,7 +46,7 @@ def run_one(row, ports):
         match = None
     card = False
     if ok:
-        c = subprocess.run([sys.executable, os.path.join(REPO, "run", "replays", "card.py"), match], capture_output=True, text=True)
+        c = subprocess.run([sys.executable, os.path.join(REPO, "run", "replays", "card.py"), match] + (["--until-minutes", until] if until else []), capture_output=True, text=True)
         card = c.returncode == 0
     return row["id"], match, card, int(time.time() - started), proc.returncode
 
@@ -54,6 +57,8 @@ def main():
         return args[args.index(name) + 1] if name in args else default
     manifest = opt("--manifest", os.path.join(REPO, "run", "data", "replays", "manifest.jsonl"))
     parallel = int(opt("--parallel", "4"))
+    ais = opt("--ais", None)
+    until = opt("--until-minutes", None)
     base_port = int(opt("--base-port", "9300"))
     limit = int(opt("--limit", "0")) or None
     only_map = opt("--map", None)
@@ -65,7 +70,10 @@ def main():
             r.pop("match", None)
             r.pop("card", None)
     have = installed_versions()
-    todo = [r for r in rows if r.get("keep") and r.get("demo") and not r.get("match") and (only_map is None or r.get("map_script") == only_map)]
+    def ai_ok(r):
+        kinds = {p.get("ai") for p in r.get("players", []) if p.get("ai")}
+        return ais is None or (ais == "any" and kinds) or (ais == "none" and not kinds) or ais in kinds
+    todo = [r for r in rows if r.get("keep") and r.get("demo") and not r.get("match") and (only_map is None or r.get("map_script") == only_map) and ai_ok(r)]
     skipped = [r for r in todo if r["game_version"] not in have]
     todo = [r for r in todo if r["game_version"] in have][:limit]
     if skipped:
@@ -77,7 +85,7 @@ def main():
     for i in range(parallel):
         ports.put(base_port + i * 10)
     with ThreadPoolExecutor(max_workers=parallel) as pool:
-        futures = {pool.submit(run_one, r, ports): r for r in todo}
+        futures = {pool.submit(run_one, r, ports, until): r for r in todo}
         for f in futures:
             match_id, match, card, seconds, rc = f.result()
             row = by_id[match_id]

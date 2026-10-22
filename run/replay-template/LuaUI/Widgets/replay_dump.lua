@@ -1,6 +1,10 @@
 -- Within Reason: while the engine plays a demo, write every team's game in the match record format
 -- (docs/harness/record-format.md) as record-<team>.jsonl, and every other team's units as truth-<team>.jsonl, so the
 -- measurement scripts read a human's game as they read ours. Loaded by run/replay_match.py; does nothing in a live game.
+-- A replay's records carry what a team game needs beyond the bot's own (2026-10-22, the 8v8 mining): `tr` on every
+-- sample (the engine's cumulative team statistics: metal and energy sent and received, units sent and received),
+-- `given`/`taken` events for units moved between teams, `chat` events for the players' lines, and the winning ally
+-- teams in the result row.
 local widget = widget
 
 function widget:GetInfo()
@@ -17,6 +21,19 @@ local defIndex = {}
 local prioDefs = {} -- defs with the game's builder-priority command (unit_builder_priority.lua: build speed and assist or build options)
 local defRows = {}
 local headerDone = false
+local playerTeam = {} -- a player's name -> the team it plays (spectators left out), for the chat lines
+
+local function transfers(team)
+	-- The engine's cumulative statistics of the team (TeamStatistics: the last history entry is the live one):
+	-- metal sent, metal received, energy sent, energy received, units sent, units received. Sharing by hand and the
+	-- overflow of a full store both count as sent and received.
+	local n = Spring.GetTeamStatsHistory(team)
+	if not n or n < 1 then return { 0, 0, 0, 0, 0, 0 } end
+	local h = Spring.GetTeamStatsHistory(team, n, n)
+	local st = h and h[1]
+	if not st then return { 0, 0, 0, 0, 0, 0 } end
+	return { math.floor(st.metalSent or 0), math.floor(st.metalReceived or 0), math.floor(st.energySent or 0), math.floor(st.energyReceived or 0), st.unitsSent or 0, st.unitsReceived or 0 }
+end
 
 local function esc(s)
 	return '"' .. tostring(s):gsub('[%c"\\]', function(c) return string.format("\\u%04x", c:byte()) end) .. '"'
@@ -112,6 +129,10 @@ function widget:Initialize()
 		end
 	end
 	for _, team in ipairs(teams) do header(team) end
+	for _, p in ipairs(Spring.GetPlayerList()) do
+		local name, _, spectator, team = Spring.GetPlayerInfo(p, false)
+		if name and not spectator and team ~= nil then playerTeam[name] = team end
+	end
 	headerDone = true
 	Spring.Echo("<replay dump> " .. #teams .. " teams")
 end
@@ -164,7 +185,7 @@ function widget:GameFrame(frame)
 		end
 		local mCur, mStore, _, mInc, mExp = Spring.GetTeamResources(team, "metal")
 		local eCur, eStore, _, eInc, eExp = Spring.GetTeamResources(team, "energy")
-		put(team, json({ t = "s", f = frame, m = { mCur or 0, mInc or 0, mExp or 0, mStore or 0 }, e = { eCur or 0, eInc or 0, eExp or 0, eStore or 0 }, own = own, en = en, al = {}, dmg = {}, ms = 0, bp = bp[team] }))
+		put(team, json({ t = "s", f = frame, m = { mCur or 0, mInc or 0, mExp or 0, mStore or 0 }, e = { eCur or 0, eInc or 0, eExp or 0, eStore or 0 }, own = own, en = en, al = {}, dmg = {}, ms = 0, bp = bp[team], tr = transfers(team) }))
 		if frame % TRUTH == 0 and truths[team] then
 			local enemy = {}
 			for _, other in ipairs(teams) do
@@ -207,6 +228,24 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 	end
 end
 
+function widget:UnitGiven(unitID, unitDefID, newTeam, oldTeam)
+	-- After the transfer: the unit is newTeam's. Both records get the event, as the bot's own records do.
+	local x, z = place(unitID)
+	local frame = Spring.GetGameFrame()
+	put(newTeam, json({ t = "ev", f = frame, k = "given", u = unitID, d = defIndex[unitDefID] or -1, x = x, z = z, from_team = oldTeam, to_team = newTeam }))
+	put(oldTeam, json({ t = "ev", f = frame, k = "taken", u = unitID, d = defIndex[unitDefID] or -1, x = x, z = z, from_team = oldTeam, to_team = newTeam }))
+end
+
+function widget:AddConsoleLine(line, priority)
+	-- The engine logs a player's chat as "<name> text" ("<name> Allies: text" for the side's channel); a spectator's
+	-- line is "[name] ..." and is not a seat's. Written to the record of the team the name plays.
+	local name, text = line:match("^<([^>]+)> (.*)$")
+	if not name then return end
+	local team = playerTeam[name]
+	if team == nil then return end
+	put(team, json({ t = "ev", f = Spring.GetGameFrame(), k = "chat", player = name, text = text }))
+end
+
 local NAMES = { [CMD.STOP] = "stop", [CMD.MOVE] = "move", [CMD.FIGHT] = "fight", [CMD.ATTACK] = "attack", [CMD.GUARD] = "guard", [CMD.REPAIR] = "repair", [CMD.RECLAIM] = "reclaim", [CMD.RESURRECT] = "resurrect", [CMD.PATROL] = "patrol" }
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
@@ -222,9 +261,9 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 	put(unitTeam, json({ t = "cmd", f = Spring.GetGameFrame(), c = { row } }))
 end
 
-function widget:GameOver()
+function widget:GameOver(winningAllyTeams)
 	for _, team in ipairs(teams) do
-		put(team, json({ t = "result", f = Spring.GetGameFrame(), result = { outcome = "replay" }, opponent = "replay", replay = "*.sdfz" }))
+		put(team, json({ t = "result", f = Spring.GetGameFrame(), result = { outcome = "replay" }, opponent = "replay", replay = "*.sdfz", winners = winningAllyTeams or {} }))
 		if files[team] then files[team]:close() end
 		if truths[team] then truths[team]:close() end
 	end

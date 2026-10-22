@@ -76,16 +76,16 @@ half after 8:00. Against three Apex seats on Altored the 3v3 was won at +0 to +5
 id: M-format-8v8
 layer: meta
 premises: [F-map-grid, F-eco-build, F-eco-conversion, M-barb-team]
-population: 8v8: eight people against eight SMRTBARb on All That Glitters (2026-10-04, replayed and carded: people of lobby 2 to 57, lost 32:46); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); the public pool's team games with bots on Glitters (150 in ten days, 92 of them eight against eight; medians 26 minutes, p75 41) and between people (100 in two days; medians 25, p75 34)
+population: 8v8: eight people against eight SMRTBARb on All That Glitters (2026-10-04, two games of one lobby replayed and carded: people of lobby 2 to 57, the AIs at +65 and +60 resource bonus by the start script's handicap, lost 32:46 and 24:19); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); the public pool's 8v8 games on Glitters in the manifest and replaying (167 kept on 2026-10-22: 81 of people only, 45 against eight BARb, 40 against eight SMRTBARb, one against eight RR03Barb4; medians 26 minutes, p75 39)
 map: All That Glitters v2.2.3 (6144 by 10240, 152 spots, two rows of eight starts across the short axis, the lanes north to south, about nine and a half spots a seat)
 dates: 2026-10-22
-ground: card (the SMRTBARb game); truth (our BARb games); sightings and model (the 5v5); the replay service's listing
-sources: {code: [run/matches/1791158837-replay-smrtbarb-8v8-glitters/card.md, docs/briefs/meta/barb.md, docs/briefs/meta/people.md, run/data/demos-client], claims: [K-team-eight-seats-lose-to-eight-barbs-on-one-curve]}
+ground: card (the two SMRTBARb games); truth (our BARb games); sightings and model (the 5v5); the replay service's listing
+sources: {code: [run/matches/1791158837-replay-smrtbarb-8v8-glitters/card.md, run/matches/1792656522-replay-smrtbarb-8v8-glitters-2/card.md, run/replays/team_set.py, docs/briefs/meta/barb.md, docs/briefs/meta/people.md, run/data/demos-client], claims: [K-team-eight-seats-lose-to-eight-barbs-on-one-curve]}
 status: live
 -->
 ### 8v8
 
-**The shape of the one carded game (card).** Sixteen starts in two rows across the short axis, eight lanes of about
+**The shape of the first carded game (card; the AIs at +65).** Sixteen starts in two rows across the short axis, eight lanes of about
 750 elmos running the long way, nine or ten spots a seat. The people (lobby 2 to 57) opened four bot labs, one
 vehicle plant, two Legion plants and one aircraft plant at 0:49, with tier 2 early: an advanced bot lab at 3:00 (the
 Cortex seat, on six extractors), 7:08, 8:24 and 10:11, an advanced vehicle plant at 8:33, mohos from 6:07, and a
@@ -101,6 +101,26 @@ The fighting stood in the middle lanes (E5-F5) from 16:00 to 24:00 (1,800 deaths
 24:00 and into the people's bases at 28:00; the people lost 4,483 units worth 1.18 million metal, the AIs 3,413 worth
 640,000, and the AIs' losses were Grunts (829) and Incisors (425) by the hundred. The people's economy was level with
 the AIs' at 8:00 and a third of it by 20:00: the game was lost on the economy's scaling from 12:00, not in the lanes.
+The AI side's income carries its bonus: at +65 every extractor and converter makes 1.65 times what the people's do.
+
+**The second game, the same lobby against the same eight at +60 (card).** Lost at 24:19. The people's extractors
+51, 64, 72, 74, 52, 14 at 4, 8, 12, 16, 20 and 24 minutes against the AIs' 46, 60, 70, 68, 83, 108; income 196, 175,
+231, 556, 432, 279 against 151, 246, 498, 925, 1,688, 2,484; constructors 21, 29, 43, 55, 44 against 28, 48, 87, 153,
+225 at 4 to 20; army metal 3,200, 7,800, 20,400, 10,700, 26,300, 10,900 against 4,800, 18,400, 14,300, 33,700, 66,700,
+156,000. The people were ahead on extractors to 16:00 and on army at 10:00 and 12:00 (17,500 and 20,400 against
+11,400 and 14,300), and lost the army between 12:00 and 16:00 while the AIs' income doubled and doubled again. The
+same shape as the first game, eight minutes faster.
+
+**How the seats split, in the two games (card, `run/replays/team_set.py`).** On the AI side the split was the same
+both times: the seat on lane 4 was the tech seat (an advanced bot lab at 2:28 and 2:39, income 714 and 742 at 20:00,
+no army), the seat on lane 5 the air seat (an aircraft plant at 1:11 and 1:14), and the largest armies at 20:00 stood
+on lanes 1, 2 and 8 (12,000 to 16,000 of metal each); four and five seats had an advanced plant by 10:00 and all eight
+by 15:00; the three largest armies were 53% and 69% of the side's at 10:00. On the people's side (the same eight
+people twice) one seat opened on an aircraft plant both times (lane 3, at 0:49 and 0:51), one teched first both times
+(lane 5, at 3:00 and 3:23, a Cortex bot player), two and four seats had an advanced plant by 15:00, and the three
+largest armies were 61% and 63% of the side's at 10:00. What two games of one lobby cannot say: whether that split is
+the people's convention or this lobby's, and what the seats sent each other (the cards were written before the
+transfers were recorded). The forty public games against SMRTBARb and the eighty-one between people answer both.
 
 **Our eight seats against eight BARb hard_aggressive (truth).** The same curve from the other side: level at 8:00 (70
 extractors against 67, 98 soldiers against 92), his armed units 2.6 times ours by 16:00 while ours stood, his
@@ -121,25 +141,27 @@ build power, so one seat's sprint feeds eight and the side's income is what matt
 to 40 minutes, so tier 2 by 10:00 and gantries and fusions by 20:00 to 30:00 decide it, and a side that is level at
 8:00 and does not scale its economy is a third of the other by 20:00; air is a lane of its own with a player on it;
 and the AI side that holds the category raids every lane by 2:00 and builds economy and construction turrets before
-army. None of this is derived yet; it is what one card and four truth files show.
+army. None of this is derived yet; it is what two cards and four truth files show.
 
 <!--meta
 id: M-format-smrtbarb
 layer: meta
 premises: [F-barb-how-it-decides, F-eco-conversion, F-eco-build]
-population: SMRTBARb, eight seats against eight people on All That Glitters, 2026-10-04 (one carded game; a second being carded); 320 of its seats in the public pool's Glitters games of the last ten days, not yet carded
+population: SMRTBARb, eight seats against eight people on All That Glitters, 2026-10-04 (two carded games of one lobby, the AIs at +65 and +60 resource bonus; both won by the AIs, at 32:46 and 24:19); forty public games with its eight seats on Glitters in the manifest and replaying (2026-10-22)
 map: All That Glitters v2.2.3
 dates: 2026-10-22
 ground: card
-sources: {code: [run/matches/1791158837-replay-smrtbarb-8v8-glitters/card.md, run/data/demos-client, docs/briefs/meta/barb.md]}
+sources: {code: [run/matches/1791158837-replay-smrtbarb-8v8-glitters/card.md, run/matches/1792656522-replay-smrtbarb-8v8-glitters-2/card.md, run/replays/team_set.py, run/data/demos-client, docs/briefs/meta/barb.md]}
 status: live
 -->
 ### SMRTBARb, the competition in that category
 
 The user (2026-10-22): as far as he knows the state of the art, the bot we will meet head to head once we beat the
 easier 8v8 bots; watch its play. It is a community build of BARb (its seats are named SMRTBARbstable in the start
-script), so BARb's rules are the starting point (F-barb-how-it-decides) and its differences are what to read. In the
-one carded game, as eight seats of all three factions:
+script), so BARb's rules are the starting point (F-barb-how-it-decides) and its differences are what to read. Both
+carded games were played with a resource bonus for the AIs (+65, then +60: the lobby's handicap, in the start
+script), so its income figures are what its economy makes times 1.65 and 1.6. In the first carded game, as eight
+seats of all three factions:
 
 - **Openings by seat.** A bot lab at 0:28, 0:29 and 0:33, a vehicle plant at 0:43 to 0:48, and one seat an aircraft
   plant at 1:11; first soldiers in the enemy's half at 1:32 to 2:43, six of eight seats under 2:10: it raids every lane
@@ -158,10 +180,17 @@ one carded game, as eight seats of all three factions:
   16:00, 2,172 at 24:00; army 14,800 at 8:00, 25,500 at 16:00, 64,600 at 20:00, 119,000 at 24:00, 211,000 at 28:00; its
   losses Grunts and Incisors by the hundred, 255 Highwinds and 166 Hades, 640,000 metal in all against the people's
   1.18 million. It won at 32:46 against people of lobby 2 to 57.
+- **The second game, at +60, the same split.** The tech seat on lane 4 again (an advanced bot lab at 2:39, income 742
+  at 20:00, no army), the air seat on lane 5 again (an aircraft plant at 1:14), five seats with an advanced plant by
+  10:00 and eight by 15:00, the largest armies on lanes 1, 2 and 8; the side's income 151, 246, 498, 925, 1,688 and
+  2,484 at 4, 8, 12, 16, 20 and 24 minutes, its army 18,400 at 8:00, 33,700 at 16:00, 66,700 at 20:00 and 156,000 at
+  24:00. It was behind on army at 10:00 and 12:00 (11,400 and 14,300 against the people's 17,500 and 20,400) and
+  won at 24:19.
 
 What this is not yet: a description of its rules (read its scripts the way BARb's were read, if they are published),
-a sample (one game against a mixed lobby), or a comparison with stock BARb at the same bonus on the same map. The
-public pool's 320 SMRTBARb seats on Glitters are the sample to card next.
+a sample (two games against one mixed lobby, with a bonus), or a comparison with stock BARb at the same bonus on the
+same map. The forty public games with its eight seats (320 seats, with the start scripts' handicaps) are replaying;
+this block is rewritten from them, transfers included.
 
 <!--meta
 id: M-format-coop-many

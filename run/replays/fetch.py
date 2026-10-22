@@ -37,7 +37,7 @@ def installed_versions():
 
 
 def installed_maps():
-    return {os.path.basename(p).rsplit(".", 1)[0] for p in glob.glob(os.path.join(DATA, "maps", "*.sd[7z]"))}
+    return {os.path.basename(p).rsplit(".", 1)[0].lower() for p in glob.glob(os.path.join(DATA, "maps", "*.sd[7z]"))}
 
 
 def main():

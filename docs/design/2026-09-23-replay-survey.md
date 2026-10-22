@@ -30,13 +30,19 @@ survey should be preparing us for that").
    both players' OS at or above a floor (25 to start), and writes `run/data/replays/manifest.jsonl`: one line per
    match with the detail fields that matter (id, file, map script and file name, game and engine version, duration,
    winner, players with OS, rank, faction and start position). Re-running adds new matches and keeps the old lines.
+   From 2026-10-22 (the 8v8 mining) the picker also takes team games with AIs (`--bots`: the AI seats are players with
+   `ai` their short name; `--any-ending` keeps games the host stopped; `--sides 8v8` the shape; `--min-mean-os`), and
+   demos from the user's client (`--demo`: the id is the demo's game id, which is the API's id for the same game; the
+   seats from its start script, the winner from the demo's tail; `run/replays/startscript.py`).
 2. **Fetch by version.** `run/replays/fetch.py` downloads the manifest's demos into `run/data/replays/<map file
    name>/<fileName>` and the maps not yet in the pool (`pr-downloader --download-map`), then the game versions the
    demos need, one batch per version, `byar:test` refetched after; a version the engine cannot play (Gex marks
    "broken game version") is recorded in the manifest and skipped.
 3. **Replay in parallel.** `run/replays/replay.py` runs `replay_match.py` for every fetched demo not yet replayed,
    N engines at once on distinct ports from a base, never while an arena batch runs on the same ports; the match
-   directory's name is `<time>-replay-<match id>`; the manifest line gets the directory.
+   directory's name is `<time>-replay-<match id>`; the manifest line gets the directory. `--ais` orders a batch by
+   opponent (the competition's games first); `run/replay_match.py` runs the engine build the demo's header names when
+   `run/engines` has it.
 4. **The card is the unit of knowledge.** `run/replays/card.py <match dir>` writes `card.json` and `card.md` beside
    the records: the map and its facts (size, spot count, the start positions as grid cells), the players (OS,
    faction, side), the result and how it ended; per player the build order to 8:00 by the clock with each
@@ -44,7 +50,14 @@ survey should be preparing us for that").
    income, energy and army-metal curves by minute, the first contact, the first raid on an extractor and what did
    it, the army composition by minute, the losses and kills by type, and where the fights were. No prose beyond a
    few hundred words; numbers Opus can quote and a script can check. Spot numbers are the engine's centroid spots
-   (H-ECO-SPOT-CENTROID), so cards from different games of one map speak of the same spots.
+   (H-ECO-SPOT-CENTROID), so cards from different games of one map speak of the same spots. From 2026-10-22 the card
+   reads the seats from the start script the engine wrote beside the records (people and AIs, ally teams, handicaps),
+   the winner from the record's own `winners`, and carries what a team game needs: each side described, each seat's
+   lane (the side's starts ranked along the axis they spread most on), the plants by kind with the first air plant
+   and the first advanced plant, what the seat built over the whole game by type, its cumulative metal and energy
+   sent and received (the dump widget's `tr`), the units it gave and received, and the players' chat.
+   `run/replays/team_set.py` is the team-game aggregate: sides by minute, seats by lane, the choreography (air seat,
+   tech seat, transfers, army shares), what each role built, the chat lines about roles.
 5. **Synthesis is a question list, then claims.** `docs/knowledge/questions.md` holds what we want from the
    replays (per map: the opening by the clock and where it expands; when tier 2 comes; how raids are met; where the
    fights happen; how a game is closed; and across maps: what a start position's spot geometry decides). An Opus
@@ -156,3 +169,21 @@ orders, `NETMSG_AICOMMANDS` for a widget's), which is where a command the game c
 runner facts worth knowing: it writes the manifest in submission order, so a running batch's finished games are
 found by directory name (`<time>-replay-<id>` with a `card.json`); and each `replay_match.py` names its directory by
 its own start time, so a batch's directories do not share a prefix.
+
+**2026-10-22, the 8v8 mining (the user: player games as well, fetch the versions, build the aggregate, engine time is
+fine; watch how the seats split responsibility: resource transfers, tech, unit selection).** The dump widget writes
+the engine's cumulative team statistics on every sample (`tr`: metal and energy sent and received, units sent and
+received), `given`/`taken` for units moved between seats, the players' chat lines, and the winning ally teams in the
+result row. `startscript.py` reads a demo's header and script; the demo's winner list sits after the stream and
+before the statistics (the first reading took the file's last byte and found every game won by ally 0: a lesson in
+reading the recorder's write order). The picker found on All That Glitters, three pages of games with bots and two
+without: 167 kept 8v8 games (81 of people only, 45 against eight BARb, 40 against eight SMRTBARb, one against
+RR03Barb4 from the user's client), 96 of them on test-31691 and nine other versions not on disk; the user's nine
+client demos (two 8v8 against SMRTBARb at +65 and +60, one 8v8 against RR03Barb4 at +100, six of his own against
+five to sixteen BARb) entered through `--demo`. The batch runs eight engines (an 8v8 replays at about game speed):
+fetch, SMRTBARb first, then BARb, then the people's games. The two SMRTBARb games already carded (both lost by the
+people, which the demo tails confirm; the AIs at +65 and +60) show the AI side's split: lane 4 the tech seat (an
+advanced bot lab at 2:28 and 2:39, income 714 and 742 at 20:00, no army), lane 5 the air seat (an air plant at 1:11
+and 1:14), the largest armies at 20:00 on lanes 1, 2 and 8 (12,000 to 16,000 each), every seat with an advanced
+plant by 15:00; the people's two sides (the same lobby twice) opened air on lane 3 both times and teched first on
+lane 5 at 3:00 and 3:23.

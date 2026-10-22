@@ -7,7 +7,8 @@ they read an arena match.
 
 Makes run/matches/<unix time>-replay-<label>/ from run/replay-template/ (the LuaUI widget replay_dump.lua does the
 writing: record-<team>.jsonl and truth-<team>.jsonl per team), copies the demo in, runs `spring-headless` on it with
-the arena's data directory, and prints where the records are. The game version the demo names must be in run/data
+the arena's data directory (the engine build the demo's header names when run/engines has it, else run/engine), and
+prints where the records are. The game version the demo names must be in run/data
 (pr-downloader --download-game "<full name>", docs/harness/engine.md); the engine says so in infolog.txt if not.
 """
 import os, re, shutil, subprocess, sys, time
@@ -33,8 +34,20 @@ def main():
     os.makedirs(os.path.join(out, "LuaUI", "Config", "within-reason"), exist_ok=True)
     log = open(os.path.join(out, "engine.log"), "w")
     started = time.time()
+    # The engine build the demo names when it is under run/engines (a demo plays only on its own engine's version);
+    # else the arena's run/engine.
+    binary = os.path.join(REPO, "run", "engine", "spring-headless")
+    try:
+        sys.path.insert(0, os.path.join(REPO, "run", "replays"))
+        import startscript
+        wanted = startscript.read_demo(demo)[0].get("engine", "")
+        candidate = os.path.join(REPO, "run", "engines", wanted, "spring-headless")
+        if wanted and os.path.exists(candidate):
+            binary = candidate
+    except Exception as e:  # a demo whose header does not read: the default engine, and the engine will say
+        print(f"demo header not read ({e}); using {binary}")
     engine = subprocess.Popen(
-        [os.path.join(REPO, "run", "engine", "spring-headless"), "--isolation", "--write-dir", out, os.path.join(out, os.path.basename(demo))],
+        [binary, "--isolation", "--write-dir", out, os.path.join(out, os.path.basename(demo))],
         cwd=out, stdout=log, stderr=subprocess.STDOUT, env={**os.environ, "SPRING_DATADIR": os.path.join(REPO, "run", "data")},
     )
     try:
