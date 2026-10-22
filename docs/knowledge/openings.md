@@ -314,6 +314,8 @@ with two turrets and no army of ours, which is a turret and commander question; 
 opening design, step 4 (BARb's commander does not fight either).
 
 ### K-open-matt-order-timings
+**Identity (the user, 2026-10-22).** "Matt" is [gecko]thebluegecko (OS 48.5): this replay is his game against BARb medium,
+and the line below is his Quicksilver opening. The meta catalogue files it under him (docs/briefs/meta/people.md).
 **Claim.** Matt's opening on Quicksilver, by the clock: extractors 0:03 and 0:10 on the two spots beside the start,
 wind 0:16, 0:22, 0:28, the lab 0:33 (finished 0:50) with energy at 490 and rising, then wind 0:53, solar 0:59, wind
 1:08, 1:13, 1:19, 1:24, 1:30 (ten generators by 1:30), the commander assisting the lab from then; the lab a

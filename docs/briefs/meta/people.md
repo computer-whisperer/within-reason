@@ -53,11 +53,11 @@ Shivas and Juggernauts and lost the 16-minute one to Artur91's 166 Stouts and 34
 <!--meta
 id: M-gecko-alone-vs-barb
 layer: meta
-population: thebluegecko alone against six and against two BARb hard_aggressive (his own replays, 2026-09-26)
-map: Great Divide V1; Altair_Crossing_V4.1
-dates: 2026-09-27 (carded)
+population: thebluegecko alone against BARb: against six and against two hard_aggressive (his own replays, 2026-09-26) and against one medium on Quicksilver (the replay the brief called "Matt's", 2026-09-20; the user, 2026-10-22: Matt is thebluegecko)
+map: Great Divide V1; Altair_Crossing_V4.1; Quicksilver Remake 1.24
+dates: 2026-09-27 (carded); 2026-09-22 (the Quicksilver record transcribed)
 ground: card
-sources: {code: [/ceph/christian/within-reason/run/matches-archive/1790471170-replay-gecko-gd-1v6-barb/card.md, /ceph/christian/within-reason/run/matches-archive/1790471255-replay-gecko-altair-1v2-barb/card.md], claims: [K-opp-thebluegecko-one-ball-behind-turrets-then-tier-2]}
+sources: {code: [/ceph/christian/within-reason/run/matches-archive/1790471170-replay-gecko-gd-1v6-barb/card.md, /ceph/christian/within-reason/run/matches-archive/1790471255-replay-gecko-altair-1v2-barb/card.md, run/matches/1789930356-replay-player2-vs-medium/record-0.jsonl], claims: [K-opp-thebluegecko-one-ball-behind-turrets-then-tier-2, K-open-matt-order-timings]}
 status: live
 -->
 ### thebluegecko alone against BARb
@@ -72,6 +72,15 @@ at the pass for none of his in minutes 5 and 7). Altair Crossing, Cortex, one ag
 36 at 18:00) with a light turret and a radar at each outer spot; 10 spots at 12:00, 15 at 20:00; no tier 2 at all; one
 push at 18:00 into both bases that ended it. The shape in both: the whole side's spots early, one unit type massed into
 one body on its own turrets, and one push when it outweighs what stands there.
+
+Quicksilver, Armada, against one BARb medium (2026-09-20; the record the old brief transcribed as "Matt's opening", the
+user's Quicksilver line to copy): extractors 0:03 and 0:10, wind 0:16, 0:22, 0:28, the bot lab 0:33 standing 0:50 with
+energy at 490 and rising; the commander guards the lab at 0:50, orders seven wind generators and a solar as one batch at
+0:53-1:04 and has them by 1:30 (ten generators), then guards the lab for good from 1:36. The lab: a constructor at 0:50,
+then Pawns from 1:12 every eleven seconds alone and every four to fourteen with the commander helping, a second
+constructor at 1:45 after six Pawns; raiders out from about 2:30; the first far extractor at 1:45 with a turret beside it
+at 2:32; a converter at 2:55. Energy dipped to 15 once (1:01-1:07) and was full by 1:35; metal spent as it came (8
+banked at 2:00). His commander never left the base.
 
 <!--meta
 id: M-gecko-vs-us-comet
@@ -375,25 +384,16 @@ construction bot expanding all else was pawns". Their rules of thumb for the map
 twenty energy for every metal, two constructors is greedy) are in the lessons.
 
 <!--meta
-id: M-matt-and-vak
+id: M-vak
 layer: meta
-population: Matt (a friend of the user's; one replay against BARb medium on Quicksilver, 2026-09-20) and [MADO]VAK (OS 52) against [MADO]Artur91 (43) on Comet Catcher (one replay, 2026-09-09)
-map: Quicksilver Remake 1.24; Comet Catcher Remake 1.8
-dates: 2026-09-22 (both transcribed)
+population: [MADO]VAK (OS 52) against [MADO]Artur91 (43) on Comet Catcher (one replay of the user's, 2026-09-09)
+map: Comet Catcher Remake 1.8
+dates: 2026-09-22 (transcribed)
 ground: card
-sources: {code: [/ceph/christian/within-reason/run/matches-archive/1790122851-replay-vak-vs-artur-comet/card.md, run/matches/1789930356-replay-player2-vs-medium], claims: [K-open-matt-order-timings, K-open-comet-pro-order]}
+sources: {code: [/ceph/christian/within-reason/run/matches-archive/1790122851-replay-vak-vs-artur-comet/card.md], claims: [K-open-comet-pro-order]}
 status: live
 -->
-### Two single replays: Matt on Quicksilver, VAK on Comet
-
-**Matt, Quicksilver, against BARb medium.** Extractors 0:03 and 0:10, wind 0:16, 0:22, 0:28, the bot lab 0:33 standing
-0:50 with energy at 490 and rising; the commander guards the lab at 0:50, then orders seven wind generators and a solar
-as one batch at 0:53-1:04 and has them by 1:30 (ten generators), then guards the lab for good from 1:36. The lab: a
-constructor at 0:50, then Pawns from 1:12 every eleven seconds alone and every four to fourteen with the commander
-helping, a second constructor at 1:45 after six Pawns; raiders out from about 2:30; the first far extractor at 1:45
-with a turret beside it at 2:32; a converter at 2:55. Energy dipped to 15 once (1:01-1:07) and was full by 1:35; metal
-spent as it came (8 banked at 2:00). His commander never left the base. The user's ruling (2026-09-22): the Quicksilver
-line to copy.
+### One replay: VAK on Comet
 
 **VAK (52) against Artur91 (43), Comet, 6:52.** VAK from A4: extractors 0:03, 0:10, 0:24, solars 0:31, 0:40, 0:49, the
 plant 0:58 standing 1:16; two Rascals, a constructor 1:24, a second 1:41, Blitzes from 2:12 every ten to fifteen seconds

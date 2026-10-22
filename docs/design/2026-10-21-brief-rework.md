@@ -169,7 +169,7 @@ it was applied; the map model's fifteen, one of which reached back into the figh
 manifest after the facts: `pool.md` (the Comet duel pool at OS 40+, ten M-pool blocks, about 3,100 words to the model),
 `people.md` (the people we have met in lobby games, by person: thebluegecko in duels, alone against BARb, against our
 seats on Comet, on water and other maps, and as a team with u6bkep; u6bkep, Irishstud14, Infern8 and Covariance,
-thedujin, the lobby 5v5, the Quicksilver people, Matt and VAK, the user as the opponent; fourteen blocks, about 4,900
+thedujin, the lobby 5v5, the Quicksilver people, VAK, the user as the opponent; fourteen blocks, about 4,900
 words), `barb.md` (BARb: two code-read F-barb blocks and five observed M-barb sets, about 2,100 words) and `apex.md`
 (Apex by version, four blocks, about 800 words). Every block carries `population:`, `dates:` and a `ground:` key naming
 what the statements rest on: card (an engine replay, every unit), truth (an arena truth file), sightings (our records,
