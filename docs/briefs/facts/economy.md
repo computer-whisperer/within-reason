@@ -1,0 +1,199 @@
+<!--meta
+id: F-eco-intro
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp, upstream/RecoilEngine/rts/Sim/Misc/Team.cpp, upstream/Beyond-All-Reason/gamedata/modrules.lua], game: 54199a0d, engine: 2026.07.04, dates: [2026-10-22]}
+status: live
+-->
+## The economy: how metal, energy and build power work
+
+What follows is read from the engine and the game's rules, not from games. Every number is per second unless said;
+the engine applies income and upkeep twice a second and build steps every frame, thirty a second. Unit costs are
+the unit tables'.
+
+<!--meta
+id: F-eco-store
+layer: fact
+sources: {code: [upstream/Beyond-All-Reason/luarules/gadgets/game_team_resources.lua:38-99, upstream/Beyond-All-Reason/modoptions.lua (startmetal, startenergy, startmetalstorage, startenergystorage), upstream/RecoilEngine/rts/Sim/Misc/Team.cpp:274-355 (SlowUpdate), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:437 (SetStorage)], game: 54199a0d}
+status: live
+-->
+### The store
+
+A side starts with 1,000 metal and 1,000 energy and a storage of 1,000 each (the lobby's defaults; the commander's
+own 500 and 500 are inside that). Every finished building and unit adds its storage to the side's: an extractor 50
+metal, an advanced extractor 600, a lab or plant 100 of each, a solar 50 energy, a fusion 2,500 energy, an advanced
+fusion 9,000, a metal storage 3,000 metal for 330, an energy storage 6,000 energy for 170. What a unit stores leaves
+with it.
+
+Once a second the engine clamps each resource to its storage and the excess is gone. Before clamping it gives away
+what stands above 99 percent of the metal storage and 95 percent of the energy storage to allies who have room, in
+proportion to their room, filling each to 99 percent at most. So a full store is not wealth: a team-mate with room
+gets the overflow, and when nobody has room it is lost. A deliberate transfer (the share order) moves resources or
+units to an ally at once; the receiver cannot be given more than it can hold.
+
+<!--meta
+id: F-eco-extractors
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/UnitTypes/ExtractorBuilding.cpp:117-148, upstream/RecoilEngine/rts/Map/MetalMap.cpp:76-125, upstream/RecoilEngine/rts/Map/ReadMap.cpp:167, upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1080-1091 (SlowUpdate), upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armmex.lua, armmoho.lua, upstream/Beyond-All-Reason/luarules/gadgets/unit_mex_upgrade_reclaimer.lua], game: 54199a0d, claims: [K-mech-an-extractor-draws-only-the-squares-within-its-radius, K-mech-tier-2-extractor-stands-on-ours, K-mech-upkeep-has-no-priority]}
+status: live
+-->
+### Metal: extractors
+
+The map is a grid of 16-elmo squares, each worth up to the map's maximum metal (the map sheet's "metal scale";
+Comet Catcher's is 0.75). An extractor draws every square whose centre lies within the map's extractor radius of it,
+at its depth: 0.001 of the square's value a second for a tier-1 extractor, 0.004 for an advanced one, so an advanced
+extractor on the same squares yields four times the tier-1 one. A Comet Catcher spot is twelve full squares: 2.3
+metal a second for the extractor, 9.2 for the advanced one. The spot's value comes from the squares, not the
+building, and an extractor placed off the patch's centre loses the squares that fall outside its radius.
+
+A square is drawn by one extractor at a time, to the deepest depth asked of it. An advanced extractor built on top
+of a tier-1 one draws the difference while both stand; when it finishes, the game removes the old extractor and
+refunds its 50 metal, and the new one then draws the whole. If the old extractor belonged to an ally, the new one is
+the ally's from the moment its frame is placed, and the refund is theirs too: an advanced constructor lent across a
+team builds the ally's income, not its owner's.
+
+Extractors cost energy to run: 3 a second for the tier-1 extractor, 20 for the advanced one. The engine takes each
+unit's upkeep every half second, all of it or none: an extractor whose upkeep cannot be paid that half second yields
+no metal that half second. With the energy store at zero, metal income stops.
+
+<!--meta
+id: F-eco-energy
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1076-1098 (SlowUpdate), upstream/RecoilEngine/rts/Sim/Misc/Wind.cpp:93-143, upstream/RecoilEngine/rts/Sim/Misc/Wind.h:43, upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armsolar.lua, armadvsol.lua, armwin.lua, upstream/Beyond-All-Reason/units/ArmBuildings/SeaEconomy/armtide.lua, upstream/Beyond-All-Reason/scripts/Units/armsolar.bos (Close, HitByWeapon), upstream/Beyond-All-Reason/units/armcom.lua], game: 54199a0d}
+status: live
+-->
+### Energy: generators
+
+A solar collector makes 20 a second while open. It closes when hit and stays closed for eight seconds after the
+last hit, making nothing meanwhile; a solar field under fire is dark. An advanced solar makes 80, costs 350 metal and
+5,000 energy to build, and does not close. A wind turbine makes the current wind strength, capped at 25: the wind
+wanders between the map's minimum and maximum, picking a new target every fifteen seconds and blending toward it, so
+a turbine's output on a map whose wind runs 0 to 25 averages about half the cap and is sometimes nothing. A tidal
+generator makes the map's tidal strength, steady. A geothermal plant makes 300 on a vent, a fusion 750, an advanced
+fusion 3,000.
+
+The commander makes 30 energy and 2 metal a second by itself. A construction vehicle makes 10 energy, a construction
+bot 7, an advanced constructor 14 to 20. These run whether the unit works or not.
+
+<!--meta
+id: F-eco-build
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1991-2030 (AddBuildPower), upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:111-113, 349-354, upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Factory.cpp:86, 251, upstream/RecoilEngine/rts/Sim/Units/CommandAI/BuilderCAI.cpp:867-930 (ExecuteGuard), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:345-369, upstream/RecoilEngine/rts/Sim/Misc/Team.cpp:148-157, upstream/Beyond-All-Reason/units/ArmBots/armrectr.lua (canassist false)], game: 54199a0d, claims: [K-mech-stall-order-is-creation-order, K-mech-build-power-ratio, K-mech-turrets-assist-in-radius, K-energy-plant-draw-outruns-solars]}
+status: live
+-->
+### Build power, build time and the draw
+
+Every builder has a build power (the unit tables' column; the commander 300, a plant 150, an advanced plant 600, a
+construction vehicle 90, a construction bot 80, an advanced constructor 210 to 310, a construction turret 200, a
+resurrection bot 200) and every unit a build time. The seconds a build takes are its build time divided by the build
+power on it, and the power on it is the sum of every builder working on it: a plant with the commander assisting
+builds at 450. Each builder, every frame, advances the frame by its power over the build time and pays that fraction
+of the frame's metal and energy. So a build draws metal at its metal cost times the power on it over its build time,
+and energy likewise. The table gives the common cases; the rule gives any other.
+
+| build | by | seconds | metal a second | energy a second |
+|---|---|---|---|---|
+| extractor (50 m, 500 e, 1,800) | commander 300 | 6 | 8.3 | 83 |
+| extractor | construction vehicle 90 | 20 | 2.5 | 25 |
+| solar (155 m, 0 e, 2,600) | commander | 8.7 | 17.9 | 0 |
+| solar | construction vehicle | 29 | 5.4 | 0 |
+| bot lab (500 m, 950 e, 5,000) | commander | 16.7 | 30 | 57 |
+| vehicle plant (590 m, 1,550 e, 5,700) | commander | 19 | 31 | 82 |
+| construction turret (230 m, 3,200 e, 5,300) | commander | 17.7 | 13 | 181 |
+| construction vehicle (135 m, 1,950 e, 4,050) | plant alone 150 | 27 | 5.0 | 72 |
+| construction vehicle | plant + commander 450 | 9 | 15 | 217 |
+| Blitz (110 m, 900 e, 2,000) | plant alone | 13.3 | 8.3 | 68 |
+| Blitz | plant + commander | 4.4 | 25 | 203 |
+| Stout (225 m, 2,100 e, 3,400) | plant alone | 22.7 | 9.9 | 93 |
+| Stout | plant + commander | 7.6 | 30 | 278 |
+| advanced extractor (620 m, 7,700 e, 14,900) | advanced constructor 210 | 71 | 8.7 | 109 |
+| advanced extractor | that plus two construction turrets 610 | 24 | 25 | 315 |
+| advanced vehicle plant (2,600 m, 14,000 e, 27,000) | one construction vehicle | 300 | 8.7 | 47 |
+| advanced vehicle plant | commander + four construction vehicles 660 | 41 | 64 | 342 |
+| fusion (3,350 m, 18,000 e, 54,000) | advanced constructor 210 | 257 | 13 | 70 |
+| fusion | 1,000 power | 54 | 62 | 333 |
+
+Energy per metal differs by what is built: a lab 1.9, a plant 2.6, a Blitz 8.2, a Stout 9.3, an extractor 10, an
+advanced extractor 12.4, a constructor 14.4, a construction turret 13.9, an advanced plant or a fusion 5.4, a solar 0.
+What a plant draws therefore depends on what it is making and on who assists it, not on the plant.
+
+A builder's step is all or nothing. Each frame it takes its whole step if the side holds the whole step's metal and
+energy, and otherwise takes nothing and records the demand; the engine tries builders in the order they were
+created, so in a stall the oldest builder (the commander, then the first plant, then the constructors in order of
+birth) is served first, and a cheap step slips through where a dear one does not. Nothing is slowed in proportion;
+a build either moves at full speed that frame or stands. The game adds a low-priority flag per builder (a command
+people's interface sets on labs and turrets): a low builder gets its step only when the stock minus a margin minus
+the high builders' demand stays positive, so low builders yield in a stall and change nothing outside one.
+
+Assisting: a builder told to guard another builder or a plant repairs whatever that one is building, adding its
+power while within its build reach (a construction turret's reach is 400, a construction vehicle's 130, the
+commander's 145). A plant's own 150 is always on its unit. A resurrection bot cannot assist a build; it reclaims
+and resurrects. Repair is free in both resources and runs at the repairer's power; the engine caps how fast one
+unit can be repaired.
+
+<!--meta
+id: F-eco-decay
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1034-1050 (SlowUpdate), upstream/Beyond-All-Reason/gamedata/modrules.lua:15-19], game: 54199a0d}
+status: live
+-->
+### Frames left alone decay
+
+A frame nobody is building on for nine seconds starts to decay: every half second it loses one part in 0.03 times its
+build time of its progress, and the metal in the lost part comes back to the store. A lab frame (build time 5,000)
+loses a 150th a half second and is gone in 75 seconds; a Blitz frame in 30; an advanced extractor's in about four
+minutes; an advanced plant's in about seven. A builder standing on a frame, even with nothing to pay it with, stops
+the decay.
+
+<!--meta
+id: F-eco-reclaim
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Features/Feature.cpp (AddBuildPower), upstream/RecoilEngine/rts/Sim/Features/FeatureDefHandler.cpp:118, upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:2054-2120 (AddBuildPower, reclaim), upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:395-440 (resurrect), upstream/RecoilEngine/rts/Sim/Misc/ModInfo.cpp:74-86, upstream/Beyond-All-Reason/gamedata/modrules.lua:21-44, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:553-575, upstream/Beyond-All-Reason/units/armcom.lua (featuredefs)], game: 54199a0d, claims: [K-mech-reclaim-values]}
+status: live
+-->
+### Reclaim, resurrection, repair
+
+A unit that dies leaves a wreck worth 60 percent of its metal cost (a Blitz 66, a Stout 135, a Mace 78) and no
+energy; a wreck destroyed again leaves a heap worth 25 percent. The commander is the exception: its wreck holds 1,250,
+its heap 500, and it cannot be resurrected. Reclaiming a wreck costs no energy and pays out as it goes; the time is
+six times the wreck's metal over the reclaimer's power, so a construction vehicle eats a Blitz wreck in 4.4 seconds
+and the commander in 1.3, and several builders can work one wreck at once. Trees and rocks are features with the
+map's own values and reclaim the same way.
+
+Reclaiming a live unit or building of your own (or an ally's, or an enemy's you can reach) returns its full metal
+cost times its build progress, all of it at the end, with no energy cost; the time is the unit's build time over the
+reclaimer's power, so the commander eats a bot lab in 17 seconds for 500 metal and a construction vehicle eats a
+Stout in 38 for 225.
+
+Resurrecting a whole wreck (one not partly reclaimed) costs 50 percent of the unit's energy and no metal and takes
+its build time over the resurrector's power: a resurrection bot (200) raises a Blitz in 10 seconds for 450 energy, a
+Stout in 17 for 1,050. Only units flagged to resurrect can.
+
+<!--meta
+id: F-eco-conversion
+layer: fact
+covers: [docs/briefs/experience/late-game.md:31-35/1]
+sources: {code: [upstream/Beyond-All-Reason/luarules/gadgets/game_energy_conversion.lua:20-29, 263-330, upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armmakr.lua, armmmkr.lua], game: 54199a0d, claims: [K-mech-converter-threshold, K-mech-converter-rates]}
+status: live
+-->
+### Energy conversion
+
+A converter turns energy into metal only out of the energy that stands above 75 percent of the side's energy
+storage (people move the level with a slider; ours stays at the default), every half second, up to its capacity.
+The tier-1 converter takes 70 energy a second for 1 metal and costs 1 metal and 1,150 energy; the advanced one takes
+600 a second for 10.3 metal (58 energy per metal) and costs 380 metal and 21,000 energy. A converter therefore never
+empties the store by itself, and a store that sits near 75 percent with converters standing is being converted, not
+short.
+
+<!--meta
+id: F-eco-multipliers
+layer: fact
+sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/Team.cpp:130-146 (AddResources), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1046, 2083, upstream/Beyond-All-Reason/modoptions.lua (multiplier_resourceincome, multiplier_metalextraction, multiplier_energyproduction, multiplier_buildpower, ai_incomemultiplier, tax_resource_sharing_amount)], game: 54199a0d}
+status: live
+-->
+### Handicaps and multipliers
+
+A lobby can give a side an income bonus (the "+50 percent" of the lobby games). It multiplies every income as it
+arrives, extractors, generators and the commander's own included, and nothing else: reclaimed metal and the refund of
+a decaying frame arrive at face value, and costs are unchanged. The room's other multipliers (resource income, metal
+extraction, energy production, build power, an AI income multiplier, a tax on sharing) all default to one or zero and
+are off in our games unless the room says so.

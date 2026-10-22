@@ -1,8 +1,8 @@
 # The brief rework: derivations over lessons, sources over artifacts, games decoupled from edits
 
 Status: draft 1, 2026-10-21, in discussion with the user. §5 (the snapshot), the assembler (§3, §4), the archive, the
-coverage tally, the fact layer's unit tables and the first draft of the lessons document (§6, steps 3, the generated
-half of 4, and 4b) are built; no brief, prompt or rule has changed in what a model reads. The
+coverage tally, the fact layer's unit tables, the lessons document and the economic model (§6, steps 3, 4 in part
+and 4b) are built; no brief, prompt or rule has changed in what a model reads. The
 reading pass that motivates it is `docs/studies/2026-10-21-brief-annotation/` (700 rows, `summary.md`, `backlog.md`);
 the texts as each role reads them are shown by `run/brief_view.py`.
 
@@ -154,8 +154,12 @@ start; `--by backlog` groups the open rows by the merge pass's subjects), the fa
 `crates/bot/data/units.json` by `run/fact_units.py` (five documents under `docs/briefs/facts/`, 586 citable ids
 `F-unit-<name>`, 19,600 words in all; which domains a role's manifest carries is the manifest's choice, and the player
 keeps its `unit` tool for one unit at a time), and `docs/briefs/rework.manifest`, the brief under construction that no
-role reads yet (the viewer's "Rework" tab; `bot --print-prompt manifest:PATH`). Not written: the economic, fight and
-map models; no derivation, meta or episode document exists yet.
+role reads yet (the viewer's "Rework" tab; `bot --print-prompt manifest:PATH`). Written 2026-10-22: the economic
+model, `docs/briefs/facts/economy.md` (nine F-eco blocks, about 2,200 words: the store and overflow, extractors and
+the metal map, generators, build power and the draw with a table of the common builds, decay, reclaim and
+resurrection, conversion, the lobby's multipliers), each block citing the engine and game files it is read from and
+the K- claims it replaces. Not written: the fight and map models; no derivation, meta or episode document exists yet
+(the episode sweep's rows are being written in the background).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),
 and generation is near deterministic, so a rewrite that starts from the old text reproduces it while one that starts
