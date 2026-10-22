@@ -147,14 +147,14 @@ the decay.
 <!--meta
 id: F-eco-reclaim
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Features/Feature.cpp (AddBuildPower), upstream/RecoilEngine/rts/Sim/Features/FeatureDefHandler.cpp:118, upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:2054-2120 (AddBuildPower, reclaim), upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:395-440 (resurrect), upstream/RecoilEngine/rts/Sim/Misc/ModInfo.cpp:74-86, upstream/Beyond-All-Reason/gamedata/modrules.lua:21-44, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:553-575, upstream/Beyond-All-Reason/units/armcom.lua (featuredefs)], game: 54199a0d, claims: [K-mech-reclaim-values]}
+sources: {code: [upstream/RecoilEngine/rts/Sim/Features/Feature.cpp (AddBuildPower), upstream/RecoilEngine/rts/Sim/Features/FeatureDefHandler.cpp:118, upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:2054-2120 (AddBuildPower, reclaim), upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:395-440 (resurrect), upstream/RecoilEngine/rts/Sim/Misc/ModInfo.cpp:74-86, upstream/Beyond-All-Reason/gamedata/modrules.lua:21-44, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:553-575, upstream/Beyond-All-Reason/units/armcom.lua (featuredefs: dead has no resurrectable flag, heap has resurrectable 0), upstream/RecoilEngine/rts/Sim/Features/FeatureDefHandler.cpp:107 (default -1)], game: 54199a0d, claims: [K-mech-reclaim-values, K-mech-lazarus-raises-commanders]}
 status: live
 -->
 ### Reclaim, resurrection, repair
 
 A unit that dies leaves a wreck worth 60 percent of its metal cost (a Blitz 66, a Stout 135, a Mace 78) and no
-energy; a wreck destroyed again leaves a heap worth 25 percent. The commander is the exception: its wreck holds 1,250,
-its heap 500, and it cannot be resurrected. Reclaiming a wreck costs no energy and pays out as it goes; the time is
+energy; a wreck destroyed again leaves a heap worth 25 percent. The commander is the exception to the ratios: its
+wreck holds 1,250, its heap 500. Reclaiming a wreck costs no energy and pays out as it goes; the time is
 six times the wreck's metal over the reclaimer's power, so a construction vehicle eats a Blitz wreck in 4.4 seconds
 and the commander in 1.3, and several builders can work one wreck at once. Trees and rocks are features with the
 map's own values and reclaim the same way.
@@ -166,7 +166,9 @@ Stout in 38 for 225.
 
 Resurrecting a whole wreck (one not partly reclaimed) costs 50 percent of the unit's energy and no metal and takes
 its build time over the resurrector's power: a resurrection bot (200) raises a Blitz in 10 seconds for 450 energy, a
-Stout in 17 for 1,050. Only units flagged to resurrect can.
+Stout in 17 for 1,050, a commander in 375 seconds for 13,000. Wrecks can be resurrected; heaps cannot. A resurrected
+commander is a living commander, so a side whose every commander has died is not out while a resurrection bot can
+reach a commander's wreck; the kill holds only once the wreck is reclaimed, destroyed or built over.
 
 <!--meta
 id: F-eco-conversion
