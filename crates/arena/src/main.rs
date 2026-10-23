@@ -251,7 +251,8 @@ fn main() -> io::Result<()> {
         }))?,
     )?;
 
-    let queue = Arc::new(Mutex::new((0..options.matches).collect::<Vec<_>>()));
+    // Popped from the end, so the matches start in order (a series reads 00, 01, 02 as games one, two and three).
+    let queue = Arc::new(Mutex::new((0..options.matches).rev().collect::<Vec<_>>()));
     let results = Arc::new(Mutex::new(Vec::new()));
     let options = Arc::new(options);
     let workers: Vec<_> = (0..options.parallel)

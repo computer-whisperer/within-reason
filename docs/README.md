@@ -43,6 +43,13 @@ the game: did the harness do what the player ordered, and was the player told wh
 `run/impedance_sweep.py`, the brief in `studies/data/impedance-2026-10-16/`, `run/impedance_tally.py` to sum the
 reviewers' `impedance.json` files; the study `studies/2026-10-16-opus-hands-impedance.md`).
 
+**The live edge** (`design/2026-10-21-brief-rework.md` §11, `harness/arena.md` "The live edge"): the one piece of game
+memory that closes without anyone. When a player match ends, `run/live_edge.py close` (run by the arena, and by
+`run/human_game.sh` after the bot leaves) writes the game's entry into `run/data/live-edge`: the report in plain numbers
+from the record and the truth file, and the player's and the commander's own words with the player's debrief. The next
+bot against the same opponent on the same map carries the newest three entries of the last two weeks after its brief.
+Nothing moves from there into `briefs/` or `knowledge/` without a person's review; entries age out on their own.
+
 **The unit glossary** (`crates/bot/data/units.json`: numbers generated from the game source by `run/unit_stats.py`, a
 gloss and a prose paragraph a unit written by hand) is what the player's `units` tool and every menu line say about a
 unit. `run/glossary_sheet.py` lays it out with the repo's other per-unit facts as `glossary/units.csv`, a sheet for
