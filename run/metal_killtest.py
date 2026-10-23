@@ -20,6 +20,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       and which of these calls the result.
   run/metal_killtest.py pool-windows [--min-os N] [--ratio 1.5] [--margin 500] [--fall 3]
       The lead test on the pool's duels from the cards (the cards' army_metal_in_his_half is the "went").
+  run/metal_killtest.py tier2 <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--side-cache run/data/tier2_killtest.jsonl] [--workers 8]
+      The tier-2 test (docs/briefs/derived/tier2.md): for every game of the cache that lasted --min-minutes, when
+      each side placed its advanced factory (ours from the record's created, finished and destroyed events; his from
+      the truth file's first row holding one and the first row in which it stands finished) and its first advanced
+      extractor; then who sprinted and who won, the army ratio and our income at our placement, both armies over the
+      four minutes after each placement (the gap), and the lead at his placement against whether and when we matched
+      it. The per-game clocks go to the side cache, so a second run reads only the games it has not seen.
 
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
@@ -303,13 +310,13 @@ def population(r):
 
 
 def load(caches):
-    rows = []
+    rows = {}
     for p in caches:
         for l in open(p):
             r = json.loads(l)
             if "at" in r:
-                rows.append(r)
-    return rows
+                rows[r["dir"]] = r  # a game extracted twice (a root re-run) keeps its last row
+    return list(rows.values())
 
 
 def score(caches):
@@ -551,6 +558,223 @@ def pool_windows(min_os, ratio, margin, fall):
                   f"{f['went_share']:.0%} of theirs in his half | {kind}")
 
 
+
+# ---- the tier-2 test (docs/briefs/derived/tier2.md)
+ADVANCED_PLANTS = {"armavp", "armalab", "coravp", "coralab", "legavp", "legalab"}
+ADVANCED_EXTRACTORS = {"armmoho", "cormoho", "legmoho", "armuwmme", "coruwmme", "leguwmme"}
+EV_RE = re.compile(r'"k":"(created|finished|destroyed)"')
+HIS_PLANT_RE = re.compile(r'"(armavp|armalab|coravp|coralab|legavp|legalab)"')
+HIS_MOHO_RE = re.compile(r'"(armmoho|cormoho|legmoho|armuwmme|coruwmme|leguwmme)"')
+
+
+ARCHIVE = "/ceph/christian/within-reason/run/matches-archive"
+
+
+def where(d):
+    """The match directory, or its place in the archive when a batch has moved there since the cache was written
+    (docs/experiments.md's head: whole batches move to the archive under their own name)."""
+    if os.path.isdir(d) or "run/matches/" not in d:
+        return d
+    alt = ARCHIVE + "/" + d.split("run/matches/", 1)[1]
+    return alt if os.path.isdir(alt) else d
+
+
+def tier2_one(key):
+    """One match: our first advanced factory's created / finished / destroyed frames and our first advanced
+    extractor's created frame from the record; his first advanced factory's first frame in the truth file and the
+    first in which it stands finished, and his first advanced extractor's frame. `key` is the cache's directory; the
+    files are read from where the batch now is."""
+    d = where(key)
+    try:
+        records = sorted(glob.glob(d + "/record-*.jsonl"))
+        truths = sorted(glob.glob(d + "/truth-*.jsonl"))
+        if not records or not truths:
+            return {"dir": key, "skip": "no record or truth"}
+        text = read_text(records[0])
+        if text is None:
+            return {"dir": key, "skip": "record unreadable (timeout)"}
+        lines = iter(text.splitlines(True))
+        defs = json.loads(next(lines))["unit_defs"]
+        ours = {"plant": None, "created": None, "finished": None, "destroyed": None, "moho": None}
+        plant_id = None
+        for line in lines:
+            if '"t":"ev"' not in line or not EV_RE.search(line):
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            k, idx = ev.get("k"), ev.get("d")
+            name = defs[idx]["name"] if isinstance(idx, int) and 0 <= idx < len(defs) else None
+            if k == "created":
+                if ours["created"] is None and name in ADVANCED_PLANTS:
+                    ours["plant"], ours["created"], plant_id = name, ev["f"], ev.get("u")
+                elif ours["moho"] is None and name in ADVANCED_EXTRACTORS:
+                    ours["moho"] = ev["f"]
+            elif plant_id is not None and ev.get("u") == plant_id and ours["finished"] is None:
+                if k == "finished":
+                    ours["finished"] = ev["f"]
+                elif k == "destroyed" and ours["destroyed"] is None:
+                    ours["destroyed"] = ev["f"]
+        ttext = read_text(truths[0])
+        if ttext is None:
+            return {"dir": key, "skip": "truth unreadable (timeout)"}
+        his = {"plant": None, "seen": None, "stood": None, "moho": None}
+        his_id = None
+        for line in ttext.splitlines(True):
+            if his["moho"] is None and HIS_MOHO_RE.search(line):
+                m = TRUTH_RE.match(line)
+                if m:
+                    his["moho"] = int(m.group(1))
+            if his["stood"] is not None:
+                if his["moho"] is not None:
+                    break
+                continue
+            if his["seen"] is None and not HIS_PLANT_RE.search(line):
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            for u in row.get("enemy", []):
+                if his["seen"] is None:
+                    if u[1] in ADVANCED_PLANTS:
+                        his["plant"], his["seen"], his_id = u[1], row["f"], u[0]
+                        if len(u) > 5 and not u[5]:
+                            his["stood"] = row["f"]
+                        break
+                elif u[0] == his_id:
+                    if len(u) > 5 and not u[5]:
+                        his["stood"] = row["f"]
+                    break
+        return {"dir": key, "ours": ours, "his": his}
+    except Exception as ex:  # one bad match must not end the run
+        return {"dir": key, "skip": f"error {type(ex).__name__}: {ex}"}
+
+
+def minute_of(frame):
+    return None if frame is None else frame / (60 * FPS)
+
+
+def state_at(r, minute):
+    """The cache's row at the nearest recorded minute at or before `minute` (1..24), or None."""
+    for mn in range(min(24, int(minute)), 0, -1):
+        if str(mn) in r["at"]:
+            return mn, r["at"][str(mn)]
+    return None, None
+
+
+def quart(xs, fmt="{:.0f}"):
+    xs = sorted(xs)
+    if not xs:
+        return "-"
+    n = len(xs)
+    return " / ".join(fmt.format(v) for v in (xs[n // 4], xs[n // 2], xs[(3 * n) // 4]))
+
+
+def tier2(caches, side_cache, min_minutes, workers):
+    rows = [r for r in load(caches) if r["minutes"] >= min_minutes]
+    done = {}
+    if os.path.exists(side_cache):
+        with open(side_cache) as f:
+            for line in f:
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue
+                if "skip" not in j:  # a skipped game is tried again
+                    done[j["dir"]] = j
+    todo = [r["dir"] for r in rows if r["dir"] not in done]
+    if todo:
+        print(f"reading {len(todo)} games ({len(done)} in the side cache)", file=sys.stderr)
+        with Pool(workers) as pool, open(side_cache, "a") as out:
+            for i, res in enumerate(pool.imap_unordered(tier2_one, todo, chunksize=2), 1):
+                out.write(json.dumps(res) + "\n")
+                out.flush()
+                done[res["dir"]] = res
+                if i % 100 == 0:
+                    print(f"  {i} of {len(todo)}", file=sys.stderr)
+    skipped = Counter()
+    by_pop = {}
+    for r in rows:
+        s = done.get(r["dir"])
+        if not s or "skip" in s:
+            skipped[(s or {}).get("skip", "missing")] += 1
+            continue
+        by_pop.setdefault(population(r), []).append((r, s))
+    if skipped:
+        print("skipped:", dict(skipped))
+    for pop in sorted(by_pop):
+        games = by_pop[pop]
+        print(f"\n== {pop}: {len(games)} games of {min_minutes} minutes or more with a result")
+        his_seen = [minute_of(s["his"]["seen"]) for r, s in games if s["his"]["seen"] is not None]
+        his_stood = [minute_of(s["his"]["stood"]) for r, s in games if s["his"]["stood"] is not None]
+        our_created = [minute_of(s["ours"]["created"]) for r, s in games if s["ours"]["created"] is not None]
+        our_finished = [minute_of(s["ours"]["finished"]) for r, s in games if s["ours"]["finished"] is not None]
+        our_lost = sum(1 for r, s in games if s["ours"]["destroyed"] is not None and s["ours"]["finished"] is None)
+        his_moho = [minute_of(s["his"]["moho"]) for r, s in games if s["his"]["moho"] is not None]
+        our_moho = [minute_of(s["ours"]["moho"]) for r, s in games if s["ours"]["moho"] is not None]
+        print(f"his advanced factory placed in {len(his_seen)} games at {quart(his_seen, '{:.1f}')} min (p25 / median / p75), standing at {quart(his_stood, '{:.1f}')}; his first advanced extractor in {len(his_moho)} at {quart(his_moho, '{:.1f}')}")
+        print(f"ours placed in {len(our_created)} games at {quart(our_created, '{:.1f}')}, standing at {quart(our_finished, '{:.1f}')} ({our_lost} killed before standing); our first advanced extractor in {len(our_moho)} at {quart(our_moho, '{:.1f}')}")
+        # who sprinted, who won
+        tally = Counter()
+        wins = Counter()
+        for r, s in games:
+            key = ("his" if s["his"]["seen"] is not None else "") + ("+ours" if s["ours"]["created"] is not None else "")
+            key = {"": "neither", "his": "his only", "+ours": "ours only", "his+ours": "both"}[key]
+            tally[key] += 1
+            wins[key] += r["outcome"] == "Win"
+        print("won by who placed an advanced factory: " + "; ".join(f"{k} {wins[k]}/{tally[k]} ({100 * wins[k] / tally[k]:.0f}%)" for k in ("neither", "his only", "ours only", "both") if tally[k]))
+        # ours: the state at placement
+        tally, wins, incomes, gaps_o, gaps_h = Counter(), Counter(), [], [], []
+        for r, s in games:
+            if s["ours"]["created"] is None:
+                continue
+            mn, st_ = state_at(r, minute_of(s["ours"]["created"]))
+            if not st_:
+                continue
+            ratio = st_["ours"]["army"] / max(st_["theirs"]["army"], 1)
+            key = "ahead 1.5x or more" if ratio >= 1.5 else ("level (0.8 to 1.5x)" if ratio >= 0.8 else "behind (under 0.8x)")
+            key += ", his placed already" if s["his"]["seen"] is not None and s["his"]["seen"] <= s["ours"]["created"] else ", his not yet"
+            tally[key] += 1
+            wins[key] += r["outcome"] == "Win"
+            incomes.append(st_["ours"]["ext_income"])
+            later = r["at"].get(str(mn + 4))
+            if later:
+                gaps_o.append(later["ours"]["army"] - st_["ours"]["army"])
+                gaps_h.append(later["theirs"]["army"] - st_["theirs"]["army"])
+        if tally:
+            print("ours placed while: " + "; ".join(f"{k} {wins[k]}/{tally[k]} ({100 * wins[k] / tally[k]:.0f}%)" for k in sorted(tally)))
+            print(f"  our extractor income at placement {quart(incomes)}; our army over the next four minutes {quart(gaps_o, '{:+.0f}')}, his {quart(gaps_h, '{:+.0f}')}")
+        # his: the gap on his side, and what we did
+        gaps_h, gaps_o, tally, wins, delays = [], [], Counter(), Counter(), []
+        for r, s in games:
+            if s["his"]["seen"] is None:
+                continue
+            mn, st_ = state_at(r, minute_of(s["his"]["seen"]))
+            if not st_:
+                continue
+            later = r["at"].get(str(mn + 4))
+            if later:
+                gaps_h.append(later["theirs"]["army"] - st_["theirs"]["army"])
+                gaps_o.append(later["ours"]["army"] - st_["ours"]["army"])
+            ratio = st_["ours"]["army"] / max(st_["theirs"]["army"], 1)
+            lead = "we led 1.5x or more" if ratio >= 1.5 else ("level" if ratio >= 0.8 else "he led")
+            if s["ours"]["created"] is None:
+                answer = "we never placed one"
+            else:
+                delay = (s["ours"]["created"] - s["his"]["seen"]) / (60 * FPS)
+                delays.append(delay)
+                answer = "ours before his" if delay < 0 else ("ours within four minutes" if delay <= 4 else "ours more than four minutes later")
+            key = f"{lead}, {answer}"
+            tally[key] += 1
+            wins[key] += r["outcome"] == "Win"
+        if tally:
+            print(f"at his placement, his army over the next four minutes {quart(gaps_h, '{:+.0f}')}, ours {quart(gaps_o, '{:+.0f}')}; ours minus his placement {quart(delays, '{:+.1f}')} min")
+            for k in sorted(tally):
+                print(f"  {k}: {wins[k]}/{tally[k]} won ({100 * wins[k] / tally[k]:.0f}%)")
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -558,7 +782,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -571,6 +795,8 @@ def main():
         pool(opt("--min-os", 0.0))
     elif cmd == "windows":
         windows(positional, opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
+    elif cmd == "tier2":
+        tier2(positional, opt("--side-cache", "run/data/tier2_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int))
     else:
         pool_windows(opt("--min-os", 0.0), opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
 

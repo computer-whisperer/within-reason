@@ -185,7 +185,10 @@ a run over `run/matches` alone finds 31). The meta layer adds about 14,300 words
 to 46,300: the
 per-role manifests (BARb and Apex for the arena, the people for lobby games) and the §10 redaction decision will cut it.
 Each meta document went to a skeptical Opus reader after it was written; their findings are applied in the commit after
-the first. No derivation or episode document exists yet (the episode sweep's rows are written:
+the first. Derivations written: `derived/metal.md` and `derived/lead.md` (2026-10-22) and `derived/tier2.md`
+(2026-10-23, D-tier2-sprint, with its kill-test `run/metal_killtest.py tier2`; drafted on the user's steer of that
+evening that the derivations stay lean, ideas with worked arithmetic rather than rules, and kept out of the manifest
+until he has read it). No episode document exists yet (the episode sweep's rows are written:
 docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),

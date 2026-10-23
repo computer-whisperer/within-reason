@@ -374,6 +374,17 @@ point, not a rule for the rest of the game: later, tier-1 raiders and general un
 Maces as the first units of the game are wrong; well-microed Grunts kill Maces without taking damage early, and the
 numbers shift a few minutes later; too many construction bots, made and kept out on the map.
 
+<!--meta
+id: L-tier2-stop-other-units
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-09-28], games: [bluegecko-3v1-comet-catcher-10], clocks: [17:27], relay: chat, docs/knowledge/_inbox/players-chat-2026-09-28.md}
+status: live
+-->
+Game 10, 17:27, our top seat's advanced plant standing at 0 % since 15:40 with one constructor on it while that
+seat's lab went on making units: **"Top should stop building other units while doing t2 transition"** (thebluegecko,
+the opponent; the player paused the lab at 17:39, when told). His line of 25:10 on why he had been free to go tier 2
+himself is under "Unit mix: he reads it".
+
 ### Water maps
 
 <!--meta
