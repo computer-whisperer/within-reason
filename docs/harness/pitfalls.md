@@ -196,3 +196,13 @@ timeout is four times the game's length plus ten minutes (at least an hour), the
 `--kill-on-timeout`, a port that is still held after a failure is retired from the pool and said, a failure under
 a minute prints the runner's last lines, and the log is line-buffered. When a batch shows failures in seconds,
 look for an engine still holding the port before anything else.
+
+## Some archive files on the ceph mount hang in an uninterruptible read (2026-10-22)
+
+A reader that opens `/ceph/christian/within-reason/run/matches-archive/<batch>/results.jsonl` (or a record or truth file
+under it) can block in the kernel (state `D`, `folio_wait_bit_common`) and never return; a second reader of the same
+file blocks behind it, `kill -9` is deferred until the read completes, and every other file of the archive reads in
+milliseconds. On 2026-10-22 nine `results.jsonl`, 35 records and 31 truth files of 734 batches did this while
+`run/metal_killtest.py extract` ran. Read archive files through `timeout` (the tool's `read_text`, `timeout 60 head -c N
+<file>`), skip and count a file that does not answer, and never loop over the archive with plain `open()` in a process
+you need back.

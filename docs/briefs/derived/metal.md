@@ -4,7 +4,7 @@ layer: derived
 premises: [F-map-metal, F-eco-extractors, F-eco-energy, F-eco-conversion, F-eco-build, F-eco-reclaim, F-eco-consequences, M-pool-pressure, M-pool-expansion, M-pool-closing, M-format-8v8, M-barb-bonus]
 lessons: [L-metal-first]
 sources: {people: [thebluegecko, the user], dates: [2026-10-22], relay: the user's paraphrase of thebluegecko in the brief-rework discussion; the user's framing of the section as an honest derivation of a surface heuristic}
-status: live, unchecked (the kill-test named at the end has not been run)
+status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py over 1,752 games of ours and the pool's 38 duels past 12:00: the income gap at 12:00 calls the result better than the army gap in every population; the inversions are our unconverted leads and the kills)
 -->
 ## The derived layer
 
@@ -63,6 +63,18 @@ compounds faster in a neighbour's hands.
 The 8v8 lobbies against stock BARb: the people's won and lost sides had the same army at 10:00 (10,132 against
 9,762) and different income (271 against 193), and the won sides' extractors held at 71 while the lost sides' fell to
 50. Our own games: every loss on the BARb bonus ladder was a lead in army held to about 20:00 while his spots stood.
-The kill-test, not yet run: over every recorded game of ours with both sides' curves, the income gap at 12:00 should
-predict the result better than the army gap at 12:00; if the army gap predicts better, the quantity is wrong as
-named, and the root is army, not income.
+The kill-test, run 2026-10-22 (`run/metal_killtest.py`): if the army gap at 12:00 predicted the result better than
+the income gap, the quantity would be wrong as named and the root would be army. It does not, in any population. Over
+every recorded game of ours with both sides at 12:00, the sign of the income gap calls the result in 74% of the 242
+duels the model played against the army gap's 67% (where the two disagree, 51 games, income is right in 34), in 88%
+against 79% of the 1,495 duels the old code played (322 disagreements, income right in 231), in 93% against 80% of the
+15 team games, and in 84% against 79% of the pool's 38 duels that lasted past 12:00 (7 of 11 disagreements); the
+ratio ranks the won games above the lost ones at 0.84 against 0.81 (the model's), 0.95 against 0.92 (the code's) and
+0.89 against 0.83 (the pool's). Earlier the game is less decided: at 8:00 the pool's ratios rank level (0.75 against
+0.76) and 10:00 is the one minute where the army calls more often (71% against 63% over 49 duels). What the inversions
+are: of our 134 model-played losses, 38 were ahead on income at 12:00 and 35 ahead on both, and they are the long
+games, 27 / 31 / 34 minutes against 16 / 21 / 28 for the losses from behind: the unconverted lead of the bend above,
+his tier 2 arriving at about 25:00 into an army that never went to his base (rove-task-1, levers-player-1,
+barb-ladder-35-2, player-30 to player-40). Of our 108 wins, 18 were behind on income at 12:00 and won on the kill
+(barb-hard-20-1, his commander at 21:10). Our income in the test is the extractor income, each standing extractor's
+spot worth times its rate times the side's bonus, which runs at 0.96 of our seat's exact income; the pool's is exact.

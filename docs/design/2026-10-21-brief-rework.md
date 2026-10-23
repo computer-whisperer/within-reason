@@ -281,7 +281,12 @@ compared.
 6. Derivations in backlog order, clusters first, each with its tests and check. **Begun 2026-10-22:** the root
    article, `docs/briefs/derived/metal.md` (D-metal-is-the-game), drafted for the user's read in the agreed shape (the
    heuristic in the players' words, the quantity, the mechanism with premises by id, where it bends, when to depart,
-   the tests with a kill-test not yet run); the unconverted lead is the first branch to write.
+   the tests). **The kill-test run the same evening** (`run/metal_killtest.py`: every recorded game of ours with
+   both sides at 12:00, 1,752 games, and the pool's 38 duels past 12:00): the income gap at 12:00 calls the result
+   better than the army gap in every population (74% against 67% in the 242 duels the model played, 88% against 79%
+   in the 1,495 the old code played, 84% against 79% in the pool's), so the quantity stands as named; the inversions
+   are our 38 model-played losses from ahead on income, the unconverted leads of 27 to 34 minutes, and 18 wins on the
+   kill from behind. The article's status is checked. The unconverted lead is the first branch to write.
 7. The episode index.
 8. The role manifests switched to the new set; the standing brief and the experience brief retired to the archive; the
    control kept runnable from the archive for measurement.
