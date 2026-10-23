@@ -286,7 +286,17 @@ compared.
    better than the army gap in every population (74% against 67% in the 242 duels the model played, 88% against 79%
    in the 1,495 the old code played, 84% against 79% in the pool's), so the quantity stands as named; the inversions
    are our 38 model-played losses from ahead on income, the unconverted leads of 27 to 34 minutes, and 18 wins on the
-   kill from behind. The article's status is checked. The unconverted lead is the first branch to write.
+   kill from behind. The article's status is checked. **The first branch, 2026-10-22 night:** `docs/briefs/derived/lead.md`
+   (D-lead-convert-it), the unconverted lead, with the user's caution built in (the label is a catch-all for harness
+   bugs, poor army movement and wrong tempo recognition, so the article defines the state from the curves and names
+   the three ways a lead goes unconverted, not seen / not sent / not landed, for the episode index to attach games
+   to). Its kill-test ran first (`run/metal_killtest.py windows` and `pool-windows`, the cache now per minute to
+   24:00 with each side's army metal in the other's half): the first window of 1.5 times his army and 500 metal
+   between 6:00 and 14:00, kept home, wins 33% in the model's 266 duels, 41% in the old code's 1,535 and 41% in the
+   pool's duels; sent into his half it wins 71%, 76% and 82%; a window in which his extractor count fell lost no game
+   of ours. The test as named (his count's fall calls better than the window's size) came out split, and the article
+   narrows the quantity to where the surplus stands, with the fall as the sign it landed. Our 77 model-played losses
+   from a window: 40 never sent, 37 not landed. Next: the episode index, since both articles now point at it.
 7. The episode index.
 8. The role manifests switched to the new set; the standing brief and the experience brief retired to the archive; the
    control kept runnable from the archive for measurement.
@@ -328,3 +338,7 @@ compared.
   scope (where it bends and when to depart), and the tests with one cheap kill-test and an honest status; an article
   may conclude "not derivable from the facts, stands as meta". The root is thebluegecko's metal-first, with the
   user's dispute inside it (metal spent, not metal; the sign; the horizon; the end; the side's metal in a team).
+  **Added 2026-10-22 night (the user):** an article may carry the names of the ways its discipline fails (the lead
+  article's not seen / not sent / not landed) for the episode index to attach games to, and the heuristic line need
+  not be tied to a player's quote; a quote is used where one exists, the derivation stands on the facts and the meta
+  where none does.
