@@ -54,14 +54,14 @@ pub(crate) fn model() -> String {
 }
 
 /// The player's prompt as parts, (source, text): the role text with the hands' rules whole where it marks them, the
-/// under-command text with a commander above, the brief its manifest names (`WITHIN_REASON_BRIEF`), the Opus text
-/// for an Opus model, the packet example when asked, then the game's bonus and objective. Every part is stripped of
-/// HTML comments last (the design's §3: provenance in comments never reaches a model). Read at every session start
-/// (`crate::texts`): an edit needs no rebuild, and a game reads from its snapshot.
+/// under-command text with a commander above, the brief (`texts::brief`: the rework by default, `WITHIN_REASON_BRIEF`
+/// naming a control), the Opus text for an Opus model, the packet example when asked, then the game's bonus and
+/// objective. Every part is stripped of HTML comments last (the design's §3: provenance in comments never reaches a
+/// model). Read at every session start (`crate::texts`): an edit needs no rebuild, and a game reads from its snapshot.
 pub(crate) fn player_parts() -> std::io::Result<Vec<(String, String)>> {
-    use crate::texts::{read, strip, BRIEF_EXPERIENCE, BRIEF_STANDARD, HANDS_RULES, PACKET_EXAMPLE, PLAYER_OPUS, PLAYER_PROMPT, PLAYER_UNDER_COMMAND};
-    let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
-    let role = for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" });
+    use crate::texts::{brief, manifest, read, strip, HANDS_RULES, PACKET_EXAMPLE, PLAYER_OPUS, PLAYER_PROMPT, PLAYER_UNDER_COMMAND};
+    let brief = brief();
+    let role = for_brief(&read(&PLAYER_PROMPT), brief);
     let mut parts: Vec<(String, String)> = Vec::new();
     // Where the player's role text carries the hands' standing rules whole, the same words the hands read at every
     // pick (the user, 2026-10-17: the prompt matches what Jev is prompted for).
@@ -76,7 +76,7 @@ pub(crate) fn player_parts() -> std::io::Result<Vec<(String, String)>> {
     if command::model().is_some() {
         parts.push((PLAYER_UNDER_COMMAND.path.into(), read(&PLAYER_UNDER_COMMAND)));
     }
-    parts.extend(crate::texts::assemble_parts(if experience { BRIEF_EXPERIENCE } else { BRIEF_STANDARD })?);
+    parts.extend(crate::texts::assemble_parts(manifest(brief))?);
     // The model's own section, after the brief: what Opus does in the seat that the brief's facts do not correct
     // (the user, 2026-10-07: per-model prose tuning; Sonnet does not read it).
     if model().starts_with("claude-opus") {
@@ -101,12 +101,14 @@ fn system_prompt() -> std::io::Result<String> {
 /// Where the player's role text carries the hands' standing rules whole.
 const HANDS_RULES_MARK: &str = "<!--hands-rules-->";
 
-/// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
-/// the game's bonus and objective.
+/// The commander's: its role, then the game's brief whole, the same one the player reads (the user, 2026-10-03:
+/// everything in it always; the standing brief was never the commander's, so `standard` gives it the experience
+/// brief as before), then the game's bonus and objective.
 pub(crate) fn commander_parts() -> std::io::Result<Vec<(String, String)>> {
-    use crate::texts::{read, strip, BRIEF_EXPERIENCE, COMMANDER_PROMPT};
-    let mut parts = vec![(COMMANDER_PROMPT.path.to_string(), read(&COMMANDER_PROMPT))];
-    parts.extend(crate::texts::assemble_parts(BRIEF_EXPERIENCE)?);
+    use crate::texts::{brief, manifest, read, strip, BRIEF_EXPERIENCE, COMMANDER_PROMPT};
+    let brief = brief();
+    let mut parts = vec![(COMMANDER_PROMPT.path.to_string(), for_brief(&read(&COMMANDER_PROMPT), brief))];
+    parts.extend(crate::texts::assemble_parts(if brief == "standard" { BRIEF_EXPERIENCE } else { manifest(brief) })?);
     // The live edge, as in the player's prompt (§11): the last games against this opponent on this map.
     parts.push(("(the live edge)".into(), live_edge::text()));
     parts.push(("(the game's bonus)".into(), bonus()));
@@ -149,8 +151,9 @@ pub(crate) fn print_prompt(role: &str, sources: bool) -> std::io::Result<String>
     })
 }
 
-/// The role text for one brief: a passage between `<!--brief:NAME-->` and `<!--/brief-->` is kept for the brief of
-/// that name and dropped for any other, the markers themselves always dropped.
+/// The role text for one brief: a passage between `<!--brief:NAMES-->` and `<!--/brief-->` is kept when the brief's
+/// name is among NAMES (one, or several separated by commas) and dropped otherwise, the markers themselves always
+/// dropped.
 fn for_brief(text: &str, name: &str) -> String {
     const OPEN: &str = "<!--brief:";
     const CLOSE: &str = "<!--/brief-->";
@@ -162,7 +165,7 @@ fn for_brief(text: &str, name: &str) -> String {
         let Some(tag_end) = after.find("-->") else { break };
         let (tag, body) = (&after[..tag_end], &after[tag_end + 3..]);
         let end = body.find(CLOSE).unwrap_or(body.len());
-        if tag == name {
+        if tag.split(',').any(|t| t.trim() == name) {
             out.push_str(&body[..end]);
         }
         rest = body.get(end + CLOSE.len()..).unwrap_or("");
@@ -865,9 +868,10 @@ mod tests {
 
     #[test]
     fn the_role_text_keeps_the_passages_of_its_brief() {
-        let text = "a <!--brief:standard-->old<!--/brief--><!--brief:experience-->new<!--/brief--> b";
+        let text = "a <!--brief:standard-->old<!--/brief--><!--brief:experience,rework-->new<!--/brief--> b";
         assert_eq!(super::for_brief(text, "standard"), "a old b");
         assert_eq!(super::for_brief(text, "experience"), "a new b");
+        assert_eq!(super::for_brief(text, "rework"), "a new b");
         assert_eq!(super::for_brief("plain", "standard"), "plain");
     }
 

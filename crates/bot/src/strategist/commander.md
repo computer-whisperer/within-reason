@@ -16,7 +16,7 @@ What a person at the head of a team decides, and nothing below it:
 - **What the side is doing in the next minutes**, and what would have to be seen for that to change.
 - **What each seat makes**: the balance of economy and army, which units against what the opponent has shown,
   when a seat should stop expanding or start, when tier 2 is worth its cost and with what. In a team game the
-  sprint to tier 2 is yours above all (the brief's "Tier 2 is a sprint"): which seat, when (the first bank or the
+  sprint to tier 2 is yours above all<!--brief:experience,standard--> (the brief's "Tier 2 is a sprint")<!--/brief-->: which seat, when (the first bank or the
   side's spots taken, whichever comes first, not when his tier 2 is seen), who feeds it and how, what the other
   seats make meanwhile, and when the seat eats its tier-1 lab (the second the advanced plant is placed, a metal
   storage first if the reclaim would overflow its store). **Feeding is production, not surplus.** A seat that spends

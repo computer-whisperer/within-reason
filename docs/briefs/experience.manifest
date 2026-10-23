@@ -1,4 +1,6 @@
-# The brief as game experience (arena --brief experience, WITHIN_REASON_BRIEF=experience); the commander reads it whole.
+# The old brief as game experience (arena --brief experience, WITHIN_REASON_BRIEF=experience): the default from
+# 2026-10-03 to 2026-10-23, kept runnable as the control the rework brief (docs/briefs/rework.manifest, the default
+# since) is measured against (docs/design/2026-10-21-brief-rework.md §7).
 # One document path a line, in reading order; `#` lines and blank lines are ignored. Assembled by the bot at every
 # session start (crates/bot/src/texts.rs `assemble`), every HTML comment and every deprecated passage stripped;
 # nothing assembled is committed (docs/design/2026-10-21-brief-rework.md §4). The hand-written documents are under

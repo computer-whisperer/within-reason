@@ -4,8 +4,8 @@ snapshot, as one self-contained HTML page.
 
     run/brief_view.py [--rev REV | --match DIR] [--out FILE] [--open] [--annotations DIR] [--bot PATH]
 
-One tab per role: the player on the standing brief (what `run/human_game.sh` and the arena without `--brief` run),
-the player on the experience brief (`arena --brief experience`), the commander, and the hands (the standing texts Jev
+One tab per role: the player on the rework brief (what `run/human_game.sh` and the arena without `--brief` run), the
+player on the two old briefs kept as controls (`arena --brief experience|standard`), the commander, and the hands (the standing texts Jev
 reads; the per-call request is built from the game by `brain/pianist/picture.rs`). The text of each tab comes from
 the bot itself, `bot --print-prompt ROLE --sources` (`crates/bot/src/strategist/mod.rs`), under the variables a game
 sets, so the page shows exactly what a session gets and never re-implements the composition. Each tab shows the
@@ -50,14 +50,17 @@ TEXT_DIRS = ["docs/briefs", "crates/bot/src/strategist", "crates/bot/src/brain/p
 
 # The tabs: the role the bot prints, and the variables a game of that kind sets.
 ROLES = [
-    {"id": "player-standard", "name": "Player, standing brief", "role": "player",
+    {"id": "player-rework", "name": "Player, rework brief", "role": "player",
      "env": {"WITHIN_REASON_COMMANDER": "claude-opus-5-5", "WITHIN_REASON_MODEL": "claude-opus-5-5"},
-     "launch": "run/human_game.sh; arena without --brief (WITHIN_REASON_BRIEF unset); shown with a commander above and an Opus model"},
-    {"id": "player-experience", "name": "Player, experience brief", "role": "player",
+     "launch": "run/human_game.sh; arena without --brief (WITHIN_REASON_BRIEF unset, the default since 2026-10-23); shown with a commander above and an Opus model"},
+    {"id": "player-experience", "name": "Player, experience brief (control)", "role": "player",
      "env": {"WITHIN_REASON_BRIEF": "experience", "WITHIN_REASON_COMMANDER": "claude-opus-5-5", "WITHIN_REASON_MODEL": "claude-opus-5-5"},
-     "launch": "arena --brief experience (WITHIN_REASON_BRIEF=experience); shown with a commander above and an Opus model"},
+     "launch": "arena --brief experience (WITHIN_REASON_BRIEF=experience), the default from 2026-10-03 to 2026-10-23; shown with a commander above and an Opus model"},
+    {"id": "player-standard", "name": "Player, standing brief (control)", "role": "player",
+     "env": {"WITHIN_REASON_BRIEF": "standard", "WITHIN_REASON_COMMANDER": "claude-opus-5-5", "WITHIN_REASON_MODEL": "claude-opus-5-5"},
+     "launch": "arena --brief standard (WITHIN_REASON_BRIEF=standard), the default before 2026-10-03; shown with a commander above and an Opus model"},
     {"id": "commander", "name": "Commander", "role": "commander", "env": {},
-     "launch": "any game with WITHIN_REASON_COMMANDER set: the role text, then the experience brief whole"},
+     "launch": "any game with WITHIN_REASON_COMMANDER set: the role text, then the game's brief whole (the rework by default)"},
     {"id": "hands", "name": "Hands (Jev)", "role": "hands", "env": {},
      "launch": "every pick; the request itself is built from the game by brain/pianist/picture.rs"},
 ]
@@ -362,11 +365,7 @@ def main():
 
     def source(path):
         return Source(path, root=texts_root, root_name=root_name) if texts_root else Source(path)
-    roles_shown = list(ROLES)
-    if os.path.exists(os.path.join(texts_root or ".", REWORK)):
-        roles_shown.append({"id": "rework", "name": "Rework (under construction)", "role": f"manifest:{REWORK}", "env": {},
-                            "launch": f"no role reads it yet: the documents {REWORK} names, as the assembler joins them"})
-    for role in roles_shown:
+    for role in ROLES:
         parts, error = print_prompt(bot, role["role"], role["env"], texts_root)
         role_list.append({**role, "bands": parts or [], "error": error})
         for path, _ in parts or []:

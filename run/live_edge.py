@@ -5,7 +5,9 @@ file, and the words of the player and the commander who sat in it (their notes a
 debrief for the next player from run/debrief.py). No inference, no categories: the derived articles' tests run offline.
 
   run/live_edge.py close <match dir> [--no-debrief] [--store DIR]
-      Write the entry into the store (default run/data/live-edge/) and append its row to the store's index.jsonl.
+      Write the entry into the store (default run/data/live-edge/<brief>/, the brief from WITHIN_REASON_BRIEF, else
+      rework: one store a brief, since a player's words written under one brief are not the next brief's episodes)
+      and append its row to the store's index.jsonl.
       The arena runs this when a flagship player match ends; run/human_game.sh after the bot leaves.
   run/live_edge.py text <match dir> [--no-debrief]
       Print the entry, write nothing.
@@ -47,10 +49,12 @@ def clock(frame):
 
 
 def store_dir(args):
-    """`--store DIR`, else the store the arena and the bot use: WITHIN_REASON_LIVE_EDGE when set, else run/data/live-edge."""
+    """`--store DIR`, else the store the arena and the bot use: WITHIN_REASON_LIVE_EDGE when set, else
+    run/data/live-edge/<brief> (WITHIN_REASON_BRIEF, else rework, as crates/bot/src/texts.rs reads it)."""
     if "--store" in args:
         return os.path.abspath(args[args.index("--store") + 1])
-    return os.path.abspath(os.environ.get("WITHIN_REASON_LIVE_EDGE") or os.path.join(REPO, "run", "data", "live-edge"))
+    brief = os.environ.get("WITHIN_REASON_BRIEF") or "rework"
+    return os.path.abspath(os.environ.get("WITHIN_REASON_LIVE_EDGE") or os.path.join(REPO, "run", "data", "live-edge", brief))
 
 
 def match_directory(path):

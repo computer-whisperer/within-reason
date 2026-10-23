@@ -33,7 +33,7 @@
 //!              [--packet PATH]   (the pianist plays this packet text when no player writes one: the arena instrument of the A/Bs)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
-//!              [--player-model ID] [--brief standard|experience] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
+//!              [--player-model ID] [--brief rework|experience|standard] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet; the flagship plays no other way, so it is required unless --our-ai names another bot)
 //!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
 //!              [--start-delay S]   (the engine's countdown before frame 0 once everyone has loaded, the lobby's placing phase: the seats' opening turns run
@@ -104,8 +104,9 @@ struct Options {
     /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
     player_model: Option<String>,
-    /// `--brief experience`: the player reads the brief as game experience (`docs/briefs/experience.manifest`) in
-    /// place of the standing one.
+    /// `--brief`: which brief the player and the commander read (`WITHIN_REASON_BRIEF`): `rework` (the default, the
+    /// brief under construction), `experience` (the old brief as game experience, the control) or `standard` (the
+    /// old standing brief).
     brief: Option<String>,
     /// `seat`: one player session a seat of ours instead of one for all of them.
     players: Option<String>,
@@ -116,8 +117,8 @@ struct Options {
     objective: Option<String>,
     /// `--packet-example`: the player's role text carries the packet's shape with two example packets.
     packet_example: bool,
-    /// The live edge (docs/design/2026-10-21-brief-rework.md §11): the bot reads `run/data/live-edge` for the last
-    /// games against this opponent on this map, and every player match writes its entry there when it ends.
+    /// The live edge (docs/design/2026-10-21-brief-rework.md §11): the bot reads `run/data/live-edge/<brief>` for the
+    /// last games against this opponent on this map, and every player match writes its entry there when it ends.
     /// `--no-live-edge` leaves the store unread (an A/B against the default); the entry is still written.
     live_edge: bool,
     /// Play every match as this faction instead of alternating.
@@ -247,7 +248,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -424,8 +425,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
             .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
             .envs(options.packet_example.then_some(("WITHIN_REASON_PACKET_EXAMPLE", "1")))
             // The live edge's store (§11): read at the session's start for the last games against this opponent here.
-            // `run/data/live-edge` unless the arena's own environment names another (a smoke, an A/B store).
-            .envs(options.live_edge.then(|| ("WITHIN_REASON_LIVE_EDGE", live_edge_store(repo))))
+            // `run/data/live-edge/<brief>` unless the arena's own environment names another (a smoke, an A/B store).
+            .envs(options.live_edge.then(|| ("WITHIN_REASON_LIVE_EDGE", live_edge_store(repo, options.brief.as_deref()))))
             // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
             .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
             // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.
@@ -505,7 +506,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     // and the next bot reads the store at its session's start; the debrief inside is a model call of about a minute.
     if options.our_ai == FLAGSHIP_AI && options.player {
         let log = File::create(dir.join("live-edge.log"))?;
-        match Command::new("python3").arg(repo.join("run/live_edge.py")).arg("close").arg(&dir).arg("--store").arg(live_edge_store(repo)).stdout(log.try_clone()?).stderr(log).status() {
+        match Command::new("python3").arg(repo.join("run/live_edge.py")).arg("close").arg(&dir).arg("--store").arg(live_edge_store(repo, options.brief.as_deref())).stdout(log.try_clone()?).stderr(log).status() {
             Ok(status) if status.success() => println!("match {index}: the live edge has this game"),
             Ok(status) => eprintln!("match {index}: the live edge step failed ({status}); see live-edge.log"),
             Err(e) => eprintln!("match {index}: the live edge step did not run: {e}"),
@@ -536,10 +537,12 @@ fn compress_logs_command(dir: &Path) -> io::Result<()> {
 }
 
 /// The live edge's store (docs/design/2026-10-21-brief-rework.md §11): `WITHIN_REASON_LIVE_EDGE` from the arena's own
-/// environment when set (a smoke, an A/B store), else `run/data/live-edge` in the checkout. The bot reads it at a
-/// session's start and `run/live_edge.py close` writes a match's entry into the same one.
-fn live_edge_store(repo: &Path) -> PathBuf {
-    std::env::var_os("WITHIN_REASON_LIVE_EDGE").map_or_else(|| repo.join("run/data/live-edge"), PathBuf::from)
+/// environment when set (a smoke, an A/B store), else `run/data/live-edge/<brief>` in the checkout, one store a brief:
+/// the layer starts from zero games when the brief changes whole (§11), and a player's words written under one brief
+/// are not the next brief's episodes. The bot reads it at a session's start and `run/live_edge.py close` writes a
+/// match's entry into the same one.
+fn live_edge_store(repo: &Path, brief: Option<&str>) -> PathBuf {
+    std::env::var_os("WITHIN_REASON_LIVE_EDGE").map_or_else(|| repo.join("run/data/live-edge").join(brief.unwrap_or("rework")), PathBuf::from)
 }
 
 /// A faction as the start script spells it, from `--side` or `--their-side`.
@@ -858,9 +861,10 @@ fn parse_args() -> Options {
             }
             "--brief" => {
                 options.brief = Some(match value().as_str() {
+                    "rework" => "rework".to_string(),
                     "experience" => "experience".to_string(),
                     "standard" => "standard".to_string(),
-                    _ => usage("--brief takes standard or experience"),
+                    _ => usage("--brief takes rework, experience or standard"),
                 })
             }
             "--objective" => options.objective = Some(value()),
@@ -940,7 +944,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 

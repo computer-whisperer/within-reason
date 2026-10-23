@@ -1,4 +1,5 @@
-# The standing brief: what the player reads with the arena's default and run/human_game.sh (WITHIN_REASON_BRIEF unset).
+# The old standing brief (the default before 2026-10-03), kept runnable as a control: arena --brief standard,
+# WITHIN_REASON_BRIEF=standard. The default is docs/briefs/rework.manifest since 2026-10-23.
 # One document path a line; `#` lines and blank lines are ignored. Assembled by the bot at every session start
 # (crates/bot/src/texts.rs `assemble`), every HTML comment stripped; nothing assembled is committed.
 docs/briefs/player.md

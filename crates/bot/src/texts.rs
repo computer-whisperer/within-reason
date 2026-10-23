@@ -37,12 +37,43 @@ pub const PACKET_EXAMPLE: Text = Text { path: "crates/bot/src/strategist/packet-
 /// The role text of the side's commander.
 pub const COMMANDER_PROMPT: Text = Text { path: "crates/bot/src/strategist/commander.md", compiled: include_str!("strategist/commander.md") };
 /// The briefs are manifests: one document path a line, `#` comments and blank lines ignored, assembled by `assemble_parts`.
-/// The standing brief: the arena without `--brief`, `run/human_game.sh`.
+/// The brief under construction in five layers (docs/design/2026-10-21-brief-rework.md): what the player and the
+/// commander read by default (the user, 2026-10-23: the default while it is built up, to see what the content so far
+/// does before more is added).
+pub const BRIEF_REWORK: &str = "docs/briefs/rework.manifest";
+/// The old standing brief, kept runnable as a control (`arena --brief standard`, `WITHIN_REASON_BRIEF=standard`).
 pub const BRIEF_STANDARD: &str = "docs/briefs/standard.manifest";
-/// The brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`); the commander reads
-/// it whole (docs/design/2026-10-03-brief-rewrite-and-commander-pack.md).
+/// The old brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`), the default from
+/// 2026-10-03 to 2026-10-23, kept runnable as the control the rework is measured against (the design's §7).
 pub const BRIEF_EXPERIENCE: &str = "docs/briefs/experience.manifest";
-pub const MANIFESTS: [&str; 2] = [BRIEF_STANDARD, BRIEF_EXPERIENCE];
+pub const MANIFESTS: [&str; 3] = [BRIEF_REWORK, BRIEF_STANDARD, BRIEF_EXPERIENCE];
+
+/// The brief a game reads, by name: `WITHIN_REASON_BRIEF` (the arena's `--brief`) when it names one of the three,
+/// else `rework`. An unknown name is said once and read as the default.
+pub fn brief() -> &'static str {
+    brief_named(std::env::var("WITHIN_REASON_BRIEF").ok().as_deref())
+}
+
+fn brief_named(value: Option<&str>) -> &'static str {
+    match value {
+        None | Some("") | Some("rework") => "rework",
+        Some("experience") => "experience",
+        Some("standard") => "standard",
+        Some(other) => {
+            say_once("brief".into(), format!("WITHIN_REASON_BRIEF={other} names no brief (rework, experience or standard); the rework brief is read"));
+            "rework"
+        }
+    }
+}
+
+/// The manifest of a brief named by `brief`.
+pub fn manifest(brief: &str) -> &'static str {
+    match brief {
+        "experience" => BRIEF_EXPERIENCE,
+        "standard" => BRIEF_STANDARD,
+        _ => BRIEF_REWORK,
+    }
+}
 /// Read beside the brief by an Opus player only (`strategist::system_prompt`): what that model does in the seat
 /// that the brief's facts do not correct (docs/studies/2026-10-07-raid-packets.md).
 pub const PLAYER_OPUS: Text = Text { path: "docs/briefs/player-opus.md", compiled: include_str!("../../../docs/briefs/player-opus.md") };
@@ -252,6 +283,17 @@ mod tests {
             assert!(!brief.contains("<!--"), "{manifest}: no comment reaches the model");
         }
         assert!(super::documents(super::BRIEF_EXPERIENCE).unwrap().len() > 10, "the experience brief is many documents");
+        assert!(super::documents(super::BRIEF_REWORK).unwrap().len() > 10, "the rework brief is many documents");
+    }
+
+    #[test]
+    fn the_brief_is_the_rework_unless_the_variable_names_a_control() {
+        for (value, name) in [(None, "rework"), (Some("rework"), "rework"), (Some(""), "rework"), (Some("experience"), "experience"), (Some("standard"), "standard"), (Some("other"), "rework")] {
+            assert_eq!(super::brief_named(value), name, "WITHIN_REASON_BRIEF={value:?}");
+        }
+        assert_eq!(super::manifest("rework"), super::BRIEF_REWORK);
+        assert_eq!(super::manifest("experience"), super::BRIEF_EXPERIENCE);
+        assert_eq!(super::manifest("standard"), super::BRIEF_STANDARD);
     }
 
     #[test]

@@ -29,7 +29,11 @@ would brief a hard-working assistant who follows orders literally and never coun
   players' openings on this map (the reference game and the whole games; on a map without them, from its map sheet
   and the costs) ("commander: extractor at spot_3, then the lab, then two generators, then extractors on the spots
   near home"), and what to do when the plan runs out ("then assist the lab"). Say the plan you chose in a `note`
-  and why.<!--/brief--> A sequence in
+  and why.<!--/brief--><!--brief:rework-->the first packet's opening is yours to choose, from what the brief below shows of experienced
+  players' openings (the pool's and the people's, on this map where it has them; elsewhere from the map's entry, the
+  economic model and the unit costs) ("commander: extractor at spot_3, then the lab, then two generators, then
+  extractors on the spots near home"), and what to do when the plan runs out ("then assist the lab"). Say the plan
+  you chose in a `note` and why.<!--/brief--> A sequence in
   words is not followed as a sequence (the hands built four extractors from "two"): give the opening as a `queue`
   list per builder, which the bot does step by step, and keep the instructions for what comes after and for the
   exceptions. A new list takes over a builder that is helping a factory or walking at once; a bare `assist` ends a list, and `assist N` (seconds) sits anywhere in one: the builder helps the nearest factory N seconds, then the next step. In the first minutes the plant's metal is the limit, not build power: the pros' commander guards the plant between its own builds and the store never reads 0; when it does, the plant is starving. From about the fourth minute the income outgrows what one plant and the builders can take: the report's `spending` line says what they would take at full speed against the eco line's income, and each factory's entry says what it takes alone and what each 100 build power helping it adds (a construction turret is 200, a constructor 90, the commander 300). The word `low` on a step (`assist 90 low`, `armsolar low`) makes the builder draw only the team's surplus on that step and stand still in a metal stall, so the constructors' extractors come first: the pros' commander guards the plant low and builds its opening solars low while the constructors claim spots, and takes a build of its own high. The plant and the construction turrets are low always, as every human's are. The word `start` on a step that builds a structure (`cormoho spot_28 start`) has the builder place the frame and take its next step the moment the frame stands up, leaving the frame to whoever finishes it: tier-1 constructors and nanos put on it with `finish <handle>` steps, or the hands' own finish moves. One advanced constructor then lays moho frames as fast as the store carries them and the tier-1 pool finishes them, the way the people run theirs (Center Command 2v4: 19 to 33 s a moho with helpers on the frame, 90 to 135 s for one constructor alone; u6bkep's borrowed constructor left two frames to his tier-1 constructors). It pays only when the store carries more than one frame at a time; with the metal for one, `start` just spreads it.
@@ -44,7 +48,7 @@ would brief a hard-working assistant who follows orders literally and never coun
 - Your first turn comes before the game begins (its report opens `[before the game]`): the starts are still being
   placed, no game time passes while you think, and what you order is in force from the first second. You know the
   map, the seats and our start box, not yet where the commander will stand, so write <!--brief:standard-->the brief's opening for this
-  map<!--/brief--><!--brief:experience-->your opening<!--/brief--> with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest
+  map<!--/brief--><!--brief:experience,rework-->your opening<!--/brief--> with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest
   when the step comes up (`extractor spot_N` names one, once you know the start). When a seat's faction is not
   known either (a lobby with people sets it at the start), write every step and `produce` entry as a role word
   and the faction fills it in: `solar`, `wind`, `lab`, `plant`, `air_plant`, `turret`, `radar`, `nano`,
@@ -420,7 +424,7 @@ neither orders anything. A search runs beside the game and its answer comes with
 holds your turn for it: seconds of the game running without you, live or under the arena's think penalty alike, so
 keep it to the opening). The simulator knows the economy and building and nothing of the enemy: it is optimistic by
 about a tenth and blind to raids, so read its answer as the ceiling of an order, and pair it with a defence of your
-own. <!--brief:standard-->When an opening from the brief and the search disagree, try the search's in a game and say so in your notes.<!--/brief--><!--brief:experience-->When the openings the brief shows and the search disagree, say in your notes which you played and why.<!--/brief-->
+own. <!--brief:standard-->When an opening from the brief and the search disagree, try the search's in a game and say so in your notes.<!--/brief--><!--brief:experience,rework-->When the openings the brief shows and the search disagree, say in your notes which you played and why.<!--/brief-->
 
 The rules in one place. The paragraphs above explain them; these hold whatever else you infer.
 - Expansion: the hands build an extractor only at a spot you name; a builder on a `queue` list is off their menu

@@ -1,8 +1,10 @@
-# The brief under construction (docs/design/2026-10-21-brief-rework.md): no role reads it yet. One document path a
-# line, in reading order; `#` lines and blank lines are ignored. Generated documents are written by their generators
+# The brief under construction (docs/design/2026-10-21-brief-rework.md): what the player and the commander read by
+# default since 2026-10-23 (the arena without `--brief`, run/human_game.sh; the user: the default while it is built
+# up, to see what the content so far does before more is added). One document path a line, in reading order; `#`
+# lines and blank lines are ignored. Generated documents are written by their generators
 # (the fact layer: run/fact_units.py); hand-written ones carry `<!--meta -->` blocks (run/brief_check.py checks
 # their ids; run/brief_coverage.py tallies what of the old brief they cover). Shown by run/brief_view.py as its
-# "Rework" tab; printed by `bot --print-prompt manifest:docs/briefs/rework.manifest`.
+# "Player, rework brief" tab; printed by `bot --print-prompt player`.
 docs/briefs/facts/economy.md
 docs/briefs/facts/fights.md
 docs/briefs/facts/maps.md
