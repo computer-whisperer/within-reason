@@ -218,3 +218,19 @@ document's SMRTBARb block and a BARb paragraph in its 8v8 block: the people win 
 wins 4 of 26 at +50 and below), stock BARb has no roles by seat, hands only mohos, raids earlier, nukes from 16:00
 and builds its anti-nuke at 21:00 on a clock. The people's stage (81 demos) runs; the manifest's 8v8 rows (players'
 ally ids, winner names) and the one card flag are repaired after it ends.
+
+**2026-10-22, night: the people's stage done, the second 8v8 batch complete.** 81 demos of eight people against eight
+people on All That Glitters replayed and carded without a failure (the batch ended 21:32; 247 of 248 kept replays
+have cards, and the one without a flag, 1787cd6a, has its card on disk, which `team_set.py` reads directly). Written
+into the formats document as "The people against each other (card, 81 games)": the same roles as against the AIs with
+the lanes free to mirror (one air seat on lane 3 or 6, one tech seat on an inner lane with the side's first advanced
+plant at 4:33, seven advanced constructors handed a side at 9:12 median from lanes 5 and 4), early crossing that the
+people withhold against the AIs (the side's first soldier in the other half at 2:13, the edge lanes at 3:37 to 4:12),
+sides level to 8:00 and decided by whose extractors hold from 12:00 and whose seats stay (33 take-overs on the lost
+sides against 12). The manifest repair planned on 2026-10-22 (players' `ally` database ids, empty `winners`) is not
+done and not needed: the replay match directories carry no start script to repair from, the cards carry the right
+sides and results from the API's winning side number, and the fetcher's fix (70b9320) writes the rows correctly on
+the next fetch. Probes used, in the session scratchpad: `card_probe.py <dirs> none`, `nuke_probe.py <dirs>`, a
+hand-over count that leaves out a departed seat's units within 20 s of a take-over (7,389 of 25,447 `units_taken`
+entries are take-overs), and a chat sort by category. Still to fold into the tools: first silo and anti-nuke clocks
+into `card.py`, the hand-over count without take-overs and the pressure-by-lane table into `team_set.py`.

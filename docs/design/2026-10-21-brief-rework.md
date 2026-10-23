@@ -257,6 +257,14 @@ from premises produces different text.
   since derivations rest on them and the current reference curves are observations, not the model.
 - **Size**: ten to fifteen thousand words in a role's context against today's 34,000 to 45,000.
 
+**The people's 81 games carded (2026-10-22, night):** the second 8v8 batch is complete (SMRTBARb 40, BARb 45, people
+81, no failures); the formats document's 8v8 block gained "The people against each other (card, 81 games)" and its
+closing paragraph the comparison: the same convention with the lanes free to mirror, the early crossing the people
+withhold against the AIs and apply against each other, sides level to 8:00 and decided by whose extractors hold from
+12:00 and whose seats stay. The 8v8 arc's reading is done; what remains there is tooling (silo and anti-nuke clocks
+into card.py, hand-overs without take-overs and pressure by lane into team_set.py) and the user's six coop games,
+carded and unread.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. Worse-before-better is

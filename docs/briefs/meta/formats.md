@@ -17,8 +17,7 @@ BARb and Apex are probably tuned with that mode in view. The evidence base diffe
 which: duels have the pool (40 carded games at OS 40+); team games of two to four a side have our 57 lobby games with
 people (12 won; the people document); 8v8 has forty carded public games of eight people against eight SMRTBARb on All
 That Glitters (2026-10-04 to 10-21), 45 of eight people against eight stock BARb on the same map (10-13 to 10-21),
-our four games of eight seats against eight BARb, the lobby 5v5, and the pool's 81 games between people replaying
-(2026-10-22).
+our four games of eight seats against eight BARb, the lobby 5v5, and the pool's 81 games between people on the same map (2026-10-21 and 10-22, carded 10-22).
 
 **Common to every format (the facts and the pool).** The opening is bound by energy and then by metal; the first
 units cross to the opponent because nothing else tells you what he is doing (M-pool-pressure); extractors are lost all
@@ -76,10 +75,10 @@ half after 8:00. Against three Apex seats on Altored the 3v3 was won at +0 to +5
 id: M-format-8v8
 layer: meta
 premises: [F-map-grid, F-eco-build, F-eco-conversion, M-barb-team]
-population: 8v8 on All That Glitters: forty public games of eight people against eight SMRTBARb (2026-10-04 to 10-21, replayed and carded 2026-10-22; the people's sides of mean OS 15.7 / 18.6 / 20.7 with the highest seat 33.6 median, the AIs at +30 to +75 resource bonus by the start script's handicap, +50 in 18 games; 33 won by the AIs, 4 by the people at 24:23, 24:49, 56:43 and 58:55, 3 stopped by the host); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); 45 public games of eight people against eight stock BARb on the same map (2026-10-13 to 10-21, carded 10-22; the people's sides of mean OS 14.2 / 15.5 / 18.3, BARb at +0 to +80 by the handicap, +50 in 11 and +40 in 7, +65 to +80 in 16; 29 won by the people, 13 by BARb, two stopped, one with people and AIs on both sides); the pool's 81 games between people replaying (2026-10-22)
+population: 8v8 on All That Glitters: forty public games of eight people against eight SMRTBARb (2026-10-04 to 10-21, replayed and carded 2026-10-22; the people's sides of mean OS 15.7 / 18.6 / 20.7 with the highest seat 33.6 median, the AIs at +30 to +75 resource bonus by the start script's handicap, +50 in 18 games; 33 won by the AIs, 4 by the people at 24:23, 24:49, 56:43 and 58:55, 3 stopped by the host); our eight seats against eight BARb hard_aggressive on the same map (four games, 2026-10-04 to 10-10); the lobby 5v5 on Altored (2026-10-18); 45 public games of eight people against eight stock BARb on the same map (2026-10-13 to 10-21, carded 10-22; the people's sides of mean OS 14.2 / 15.5 / 18.3, BARb at +0 to +80 by the handicap, +50 in 11 and +40 in 7, +65 to +80 in 16; 29 won by the people, 13 by BARb, two stopped, one with people and AIs on both sides); the pool's 81 games between people on the same map (2026-10-21 and 10-22, carded 10-22; sides of mean OS 16.7 / 19.9 / 23.4, the lowest seat 10.5 and the highest 30.0 at the median; 79 decided, two stopped before the end)
 map: All That Glitters v2.2.3 (6144 by 10240, 152 spots, two rows of eight starts across the short axis, the lanes north to south, about nine and a half spots a seat)
 dates: 2026-10-22
-ground: card (the forty SMRTBARb games: `run/replays/team_set.py --map "All That Glitters v2.2.3" --sides 8v8 --ais SMRTBARb`, quartiles over the 33 lost sides unless said; the 45 BARb games: the same with `--ais BARb`, quartiles over the 29 won sides unless said); truth (our BARb games); sightings and model (the 5v5)
+ground: card (the forty SMRTBARb games: `run/replays/team_set.py --map "All That Glitters v2.2.3" --sides 8v8 --ais SMRTBARb`, quartiles over the 33 lost sides unless said; the 45 BARb games: the same with `--ais BARb`, quartiles over the 29 won sides unless said; the 81 games between people: the same with `--ais none`, won and lost sides apart); truth (our BARb games); sightings and model (the 5v5)
 sources: {code: [run/replays/team_set.py, run/replays/card.py, run/data/replays/manifest.jsonl, docs/briefs/meta/barb.md, docs/briefs/meta/people.md, run/data/demos-client], claims: [K-team-eight-seats-lose-to-eight-barbs-on-one-curve]}
 status: live
 -->
@@ -208,6 +207,34 @@ units and all ai air is dead", "you were making afus in stead of defence front",
 backlined instead of helping front", "they not attacking to you because u have 1k energy income in min 16", "tech
 didnt make anti nuke".
 
+**The people against each other (card, 81 games).** The pool's own 8v8s on the same map (2026-10-21 and 10-22; sides
+of mean OS 16.7 / 19.9 / 23.4, the lowest seat 10.5 and the highest 30.0 at the median; 79 decided), 17:28 / 25:39 /
+38:11 long. The convention is the one the people bring against the AIs, with the lanes free to mirror: one air seat a
+side in 150 of 158 decided sides, on lane 3 or lane 6 in equal numbers, its plant at 1:12 on the won sides and 1:03 on
+the lost; one tech seat on one of the four inner lanes (5 and 4 most often, 3 and 6 after), the side's first advanced
+plant at 4:33 (won) / 4:19 (lost), fed by hand (the gift lines: 2,892 metal a won side, 2,107 a lost one, the tech
+seat the top receiver in most sides with a third of what the side gave) and paying the side back in advanced
+constructors, seven a side won or lost, the first at 4:58 and the median at 9:12 (7:46 to 11:10), from lanes 5 and 4
+to every other lane, with a moho or two beside them; the other two inner seats and the four edge seats on bot labs,
+a quarter of the edge seats on vehicles. Against each other the people cross early where against the AIs they did
+not: the side's first soldier is in the other half at 2:13 (won) / 2:19 (lost), its first building killed at 2:14 /
+2:38 and its first extractor at 3:42 / 3:57; the edge lanes cross first (lane 1 at 3:37 and lane 8 at 4:12 median on
+the won sides), the inner lanes at 5:45 to 10:14, and a quarter to a third of the inner seats never cross at all
+(lane 4 and lane 7 in 34 of 79 lost sides). What separates the won sides from the lost is nothing at 4:00
+(extractors 59 / 58, income 123 / 124, army 4,669 / 4,464) and the extractors from 8:00: 74 against 70, 76 against 72
+at 12:00, 75 against 66 at 16:00, 70 against 62 at 20:00, 68 against 57 at 28:00, the lost side's count falling from
+12:00 while the won side's holds; the income follows from 10:00 (239 against 213, 311 against 268 at 12:00, 619
+against 528 at 20:00, 1,010 against 761 at 28:00) and the army at 1.1 to 1.2 times from 12:00, never the gap of the
+AI games. The seats that leave decide the rest: 33 take-overs on the lost sides at 18:32 / 31:25 / 47:02 against 12
+on the won. The anti-nuke stands at 13:52 median on the won sides (65 of 79) and 15:06 on the lost (53 of 79), before
+any silo; silos come in 21 won sides at 28:27 and 14 lost at 25:14, the earliest at 15:23, and the players police
+them ("dont go for a nuke at 20 minutes"). The air seats build Vengeances by the hundred (corveng 21,049 over the 79
+won sides' air seats, 13,825 over the lost), Vamps and fighters after, Shadows and Phoenixes behind them. The roles
+are claimed in the first minute ("can i air?", "eco t1 plz", "no t2", "whole team gets free t2": 133 role words in
+the first minute of 7,421 lines), and the rest of the side's talk is the tech seat's output ("fast t2 con pls", "t2
+cons pls", "i never got t2 con btw"), metal for it ("send m for t2", "pay for t2 if u can"), anti-air ("SEND AA",
+"AA front", "we need air up") and the blame ("air diff", "front collapsing").
+
 **Our eight seats against eight BARb hard_aggressive (truth).** The same curve from the other side: level at 8:00 (70
 extractors against 67, 98 soldiers against 92), his armed units 2.6 times ours by 16:00 while ours stood, his
 extractors rising to 111 to 116 at 28:00 against ours falling from 70 to 13 to 20, every fight in our half from 8:00
@@ -228,15 +255,18 @@ must take over. The economy is the side's, pooled two ways: the people pool it b
 14:00 and in units later; the AIs pool it by overflow (a full store spills to the side, 13,000 metal and 2.2 million
 energy by 20:00) and by handing mohos across lanes, SMRTBARb advanced constructors as well. Air is a seat of its own
 on the people's side and on SMRTBARb's, and the side without a working air seat loses its tier 2 to bombers and its
-lanes to fighters; stock BARb opens two air seats a side that build little. Nobody on the people's side crosses the
+lanes to fighters; stock BARb opens two air seats a side that build little. Against the AIs nobody on the people's side crosses the
 middle before 7:00 while the AIs, stock or SMRT, cross every lane by 2:20 and kill the first extractor at 2:45 to
-3:17: the duel's first handful (M-pool-pressure) is absent from the people's 8v8 and present in the AIs'. Against
+3:17; against each other the people's edge lanes cross at 3:37 to 4:12 and the side's first soldier is in the other
+half at 2:13: the duel's first handful (M-pool-pressure) is withheld against the AIs and applied against people. Against
 SMRTBARb the game runs 20 to 32 minutes and turns at 10:00 to 12:00: the people's army is nearest the AIs' then and a
 third of it by 20:00, the AIs' nuke lands from about 12:00, and the people's advanced plants come at 11:00 to 13:00
 against the AIs' 9:00 to 12:00 with their tech seat's at 2:40; the four sides that won made soldiers from 4:00 and
 fed their tech seat five times the metal. Against stock BARb at the same bonus the same lobbies win 29 of 42, the
-game runs to 36:35, the army gap stays at 1.5 to 2 times, and it is decided by whose extractors hold from 10:00. None
-of this is derived yet; it is what 85 cards and four truth files show.
+game runs to 36:35, the army gap stays at 1.5 to 2 times, and it is decided by whose extractors hold from 10:00.
+Between people the sides are level to 8:00 on the same convention, the army never further apart than 1.2 times, and
+the game is decided by whose extractors hold from 12:00 and whose seats stay. None of this is derived yet; it is what
+166 cards and four truth files show.
 
 <!--meta
 id: M-format-smrtbarb
