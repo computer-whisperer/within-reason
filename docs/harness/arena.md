@@ -185,7 +185,7 @@ of the hands and the micro lane at Jev's cents a game. (`--opening-plan` went wi
 
 Every flagship player match, when it ends, runs `run/live_edge.py close <match dir>` and waits for it (about a minute:
 the player's debrief inside is a model call on `~/.claude2`): the match's report in plain numbers and the player's and
-commander's own words go into the store, `run/data/live-edge/` (or the directory `WITHIN_REASON_LIVE_EDGE` names in
+commander's own words go into the store, `run/data/live-edge/<brief>/`, one a brief (or the directory `WITHIN_REASON_LIVE_EDGE` names in
 the arena's environment), with a row in its `index.jsonl`; `live-edge.log` in the match directory has the step's
 output. Every bot the arena starts reads the same store at its first hello and appends the last three entries of the
 same map and opponent within two weeks to the player's and the commander's prompts (`[strategist] live edge: ...` in

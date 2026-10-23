@@ -45,7 +45,7 @@ reviewers' `impedance.json` files; the study `studies/2026-10-16-opus-hands-impe
 
 **The live edge** (`design/2026-10-21-brief-rework.md` §11, `harness/arena.md` "The live edge"): the one piece of game
 memory that closes without anyone. When a player match ends, `run/live_edge.py close` (run by the arena, and by
-`run/human_game.sh` after the bot leaves) writes the game's entry into `run/data/live-edge`: the report in plain numbers
+`run/human_game.sh` after the bot leaves) writes the game's entry into `run/data/live-edge/<brief>/` (one store a brief, since a player's words written under one brief are not the next brief's episodes): the report in plain numbers
 from the record and the truth file, and the player's and the commander's own words with the player's debrief. The next
 bot against the same opponent on the same map carries the newest three entries of the last two weeks after its brief.
 Nothing moves from there into `briefs/` or `knowledge/` without a person's review; entries age out on their own.

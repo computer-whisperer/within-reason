@@ -169,7 +169,9 @@ reaches the next game. The record thereby carries the texts and the code state a
 review reads (`run/brief_view.py --match <batch>`). The shim stays shared: installed by rename, kept by the engine
 that mapped it, loaded anew by each later match.
 
-The briefs are manifests (`docs/briefs/standard.manifest`, `docs/briefs/experience.manifest`; the design's §3, §4):
+The briefs are manifests (`docs/briefs/rework.manifest`, the default since 2026-10-23 for the player and the commander
+alike; `docs/briefs/experience.manifest` and `docs/briefs/standard.manifest`, the two old briefs kept runnable as
+controls by `arena --brief` / `WITHIN_REASON_BRIEF`; the design's §3, §4):
 one document path a line, assembled by the bot at session start (`texts::assemble_parts`), every HTML comment and
 every passage whose `<!--meta ... -->` block says `status: deprecated` stripped, so provenance written in comments
 never reaches a model (`run/brief_check.py` checks the blocks' ids and references). Nothing assembled is committed;

@@ -153,8 +153,8 @@ README, `dispositions.jsonl`), the coverage tally `run/brief_coverage.py` (523 r
 start; `--by backlog` groups the open rows by the merge pass's subjects), the fact layer's unit tables generated from
 `crates/bot/data/units.json` by `run/fact_units.py` (five documents under `docs/briefs/facts/`, 586 citable ids
 `F-unit-<name>`, 19,600 words in all; which domains a role's manifest carries is the manifest's choice, and the player
-keeps its `unit` tool for one unit at a time), and `docs/briefs/rework.manifest`, the brief under construction that no
-role reads yet (the viewer's "Rework" tab; `bot --print-prompt manifest:PATH`). Written 2026-10-22: the economic
+keeps its `unit` tool for one unit at a time), and `docs/briefs/rework.manifest`, the brief under construction, which no
+role read until 2026-10-23, when it became the default (§8 step 8; the viewer's "Player, rework brief" tab). Written 2026-10-22: the economic
 model, `docs/briefs/facts/economy.md` (nine F-eco blocks, about 2,200 words: the store and overflow, extractors and
 the metal map, generators, build power and the draw with a table of the common builds, decay, reclaim and
 resurrection, conversion, the lobby's multipliers), each block citing the engine and game files it is read from and
@@ -269,7 +269,9 @@ carded and unread.
 
 ## 7. Measurement
 
-The standing brief is the control: the same seeds in the arena and a game with people. Worse-before-better is
+The standing brief is the control: the same seeds in the arena and a game with people. (2026-10-23: the control that
+exists with the same seeds is the experience brief, the default from 2026-10-03 to the switch; live-edge-series-1 ran on
+it with seeds 20-22 at +0 and rework-series-1 the same line on the new set. Both old briefs stay runnable by `--brief`.) Worse-before-better is
 expected (the user, 2026-10-21) and is not a reason to stop; the measure is whether the derivations' predictions hold
 in games (the predict tool, the floor's columns) and whether the players' reasoning in their notes cites premises
 rather than cases. The reading pass is rerun on the new set when it stands, with the same rubric, and the two censuses
@@ -309,7 +311,15 @@ compared.
    from a window: 40 never sent, 37 not landed. Next: the episode index, since both articles now point at it.
 7. The episode index.
 8. The role manifests switched to the new set; the standing brief and the experience brief retired to the archive; the
-   control kept runnable from the archive for measurement.
+   control kept runnable from the archive for measurement. **Switched 2026-10-23, before step 7, on the user's word
+   (the default now while it is built up, to see what the limited content so far does before more is added):**
+   `texts::brief` reads the rework manifest for the player and the commander unless `WITHIN_REASON_BRIEF` (the arena's
+   `--brief`) names `experience` or `standard`, the two old briefs kept runnable in place as the controls, not yet
+   retired to the archive; the role texts' brief passages carry a rework reading; the live edge's store is one a brief
+   (`run/data/live-edge/<brief>/`), so the new brief's live edge started empty as §11 says. The player's prompt is
+   64,700 words on the rework set against 44,700 on the experience brief, the five unit tables 20,400 of it; which
+   domains a role's manifest carries is still the manifest's choice (f9602b1). The first games: rework-series-1
+   (docs/experiments.md).
 9. Measure (§7); rerun the reading pass.
 
 ## 9. Open, for the user
@@ -376,7 +386,7 @@ fast unfiltered response from the player on a live bug or an opponent's habit is
 the live edge into a lesson, a worked example or a derivation without naming the defects in force.
 
 **The loop closes without anyone.** When a match ends, the arena (and `run/human_game.sh` after the bot leaves) runs
-`run/live_edge.py close <match dir>`: it writes the entry (report and words) into the store `run/data/live-edge/`
+`run/live_edge.py close <match dir>`: it writes the entry (report and words) into the store `run/data/live-edge/<brief>/` (one a brief since 2026-10-23: a player's words written under one brief are not the next brief's episodes)
 (git-ignored working data) and appends a row to its `index.jsonl` (match, date, build, map, opponent key, result).
 When a bot session starts, the bot reads the store named by `WITHIN_REASON_LIVE_EDGE`, keys the game by its map and
 its enemy seats from the hello (a person's name; an AI's short name, version and profile; the seat's bonus), takes the
@@ -390,7 +400,7 @@ evidence. Era boundaries and a dead diagnosis prune the durable layers, not the 
 
 **Built 2026-10-22 night.** `run/live_edge.py` (close | text | key | show), `crates/bot/src/strategist/live_edge.rs`
 (the key from the hello, the selection, the part on the player's and the commander's prompts after the brief), the
-arena's `--no-live-edge`, the store from `WITHIN_REASON_LIVE_EDGE` or `run/data/live-edge`, the post-match step
+arena's `--no-live-edge`, the store from `WITHIN_REASON_LIVE_EDGE` or `run/data/live-edge/<brief>`, the post-match step
 waited for (`live-edge.log` in the match directory), and `run/human_game.sh`'s close after the bot leaves. Checked:
 the tool's key and the bot's agree on a ladder game ("BARb stable hard_aggressive +35%") and on a lobby game
 ("[gecko]thebluegecko, [gecko]u6bkep"); an entry written from barb-ladder-35-2 with its debrief (48 s, 3,061 words)
