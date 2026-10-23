@@ -17,8 +17,14 @@ filesystem at 96%. On 2026-10-06 the 80 batches of 2026-10-02 and 2026-10-03 (`1
 `1791085409-bonus-smoke-100`, 38 GB: the hands rebuild through player-54, human-10 to human-18) followed, the root
 filesystem at 99%. On 2026-10-09 the 42 batches of 2026-10-04 through 2026-10-06 (`1791085481-apex-carrot-1` through
 `1791333943-human-25`, 30 GB: the apex-bot comparisons, the packet and glitters team games, the distilled bot's first rows,
-human-23 to human-25) followed, the root filesystem at 91%. Everything from 2026-10-07 on (`1791335540-human-26` and later)
-is still in `run/matches/`.
+human-23 to human-25) followed, the root filesystem at 91%. On 2026-10-23 the 152 batches of 2026-10-07 through 2026-10-19 (`1791335540-human-26` through
+`1792466765-replay-center-command-2v4b`, 27 GB: the rove approval through the sight arc, human-26 to the Center Command 2v4 and
+its replay) followed, the root filesystem at 96%; the same day the records and truth files of the 250 carded replay batches
+(`*-replay-*` with a `card.json`, 200 GB, most of them the pool's 8v8 and duel demos replayed through `run/replay_match.py` on
+2026-10-22) went to the archive directory of the same name, while their cards, demos and logs stay in `run/matches/`, so that
+`run/data/replays/manifest.jsonl` and the card readers (`run/pro_baseline.py`, `run/timelines.py`, `run/reference_set.py`) read
+as before; a tool that wants a replay's records takes the archive path. Everything else from 2026-10-20 on (`1792473708-barb-hard-1`
+and later) is still in `run/matches/`.
 **The hands' logs are compressed** (`jev-<n>.jsonl.zst`, docs/harness/record-format.md): the arena does it as a match
 closes from 7d1c566 (2026-10-09) on, and on 2026-10-09 the 413 raw logs of the archive (80.0 GB, in 336 match directories)
 and the 7 of `run/matches/` (3.5 GB) were compressed in place with `arena --compress-logs`, to 6.0 GB and 0.2 GB; every

@@ -20,7 +20,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(REPO)
 OUT = "docs/briefs/reference/map-sheets.md"
 # Where recorded games live: the working directory and the archive the ledger's head names (batches of 2026-09-19
-# through 2026-10-06 were moved there; a map whose only games are archived keeps its sheet).
+# through 2026-10-19 were moved there, with the records of the carded replay batches; a map whose only games are archived
+# keeps its sheet).
 ROOTS = ["run/matches", "/ceph/christian/within-reason/run/matches-archive"]
 # The sheets are computed from starts people use where there is a pool (Comet), our games' starts otherwise.
 COMET = "Comet Catcher Remake 1.8"

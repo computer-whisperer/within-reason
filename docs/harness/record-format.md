@@ -207,7 +207,7 @@ both sides into `engine.log` (see `arena.md`) and the truth file (below). The vi
 ally team sees one enemy), so it loads the first.
 
 ## Viewer
-`run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` (the batches of 2026-09-19 through 2026-10-06 live in `/ceph/christian/within-reason/run/matches-archive/`, see the ledger's head; give the viewer that directory to see them) at
+`run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` (the batches of 2026-09-19 through 2026-10-19, and the records of the carded replay batches, live in `/ceph/christian/within-reason/run/matches-archive/`, see the ledger's head; give the viewer that directory to see them) at
 `/matches/` and opens on a **match browser**: every batch newest first with its label, opponent, map, commit, hands
 (the team sizes, the players' model and whether there is one a seat, the commander's model) and each match's result
 (whether it was called, and its Jev bill as bot.log's minute lines sum it, a little under the logs' own total; a
