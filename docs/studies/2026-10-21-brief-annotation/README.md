@@ -125,3 +125,7 @@ ledger and `docs/knowledge/`, never from memory of other games. Do not edit any 
 games, engines or model calls; write only into this directory. A number is checked against `docs/glossary/units.csv`
 when it is a unit's cost, range, speed or hit points and the check is one lookup. Where a passage's claim rests on a
 model's review of a game, say so; where you cannot tell, say `unknown` rather than guess.
+
+## The coverage pass (2026-10-22)
+
+`coverage-2026-10-22/`: eight Opus readers judged every open row against the new set by substance (covered, partly, missing, deferred, out; the README's tallies by fate, layer, backlog subject and old file; `verdicts.jsonl` a row a passage with the reader's note and any conflict). Model verdicts, spot-checked in part; the design records what was fixed from them.

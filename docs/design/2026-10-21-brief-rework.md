@@ -265,6 +265,8 @@ withhold against the AIs and apply against each other, sides level to 8:00 and d
 into card.py, hand-overs without take-overs and pressure by lane into team_set.py) and the user's six coop games,
 carded and unread.
 
+**The coverage pass (2026-10-22, night; the user: have some Opus agents skim the previous brief and flag areas of missing coverage in the new system).** Eight Opus readers judged the 492 open passages of the annotation study against the new set by substance (`docs/studies/2026-10-21-brief-annotation/coverage-2026-10-22/`: the README's tallies and themes, `verdicts.jsonl` a row a passage): covered 145, partly 259, missing 27, deferred 36 (episodes awaiting the index), out 25. Of the 286 gap rows 143 are derivations the backlog names and nobody has written (going and the lead beyond lead.md 29, the tier-2 sprint 23, reach and the odds model 16, the nuke 16, matchups 14, the frontier 14, expansion 13, the raid answer 13, water maps 10), 89 are our own games' accounts, 30 facts, 22 meta, one lesson of thebluegecko's. 124 rows note a conflict between the old text and the new, most of them regenerated numbers or arithmetic the new set gets right; four faults inside the new set were checked against the sources and fixed (a3693a6: one builder a unit in the tables, the commander building a construction turret, four winds for three, metal.md's unnamed population). The verdicts are model readings, twelve spot-checked by the main session; the user's read decides what the next derivations are.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. Worse-before-better is
