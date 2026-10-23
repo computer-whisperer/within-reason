@@ -30,6 +30,10 @@ snapshot="$(dirname "$dir")/snapshot"
 python3 "$root/run/claude_usage.py" --snapshot "$root/run/usage-before-$label.json" >/dev/null 2>&1 || true
 echo "match dir $dir; usage snapshot run/usage-before-$label.json; socket ${XDG_RUNTIME_DIR:-/tmp}/within-reason.sock"
 cd "$dir"
-exec env WITHIN_REASON_REALTIME=1 WITHIN_REASON_EXIT_WHEN_OVER=1 WITHIN_REASON_RECORD=1 WITHIN_REASON_JEV_LOG=1 WITHIN_REASON_LOG_DIR="$dir" WITHIN_REASON_EFFORT="$effort" WITHIN_REASON_HANDS_EFFORT="$hands" WITHIN_REASON_MODEL="$model" WITHIN_REASON_PLAYERS="$players" WITHIN_REASON_COMMANDER="$commander" WITHIN_REASON_COMMANDER_EFFORT="$commander_effort" \
+env WITHIN_REASON_REALTIME=1 WITHIN_REASON_EXIT_WHEN_OVER=1 WITHIN_REASON_RECORD=1 WITHIN_REASON_JEV_LOG=1 WITHIN_REASON_LOG_DIR="$dir" WITHIN_REASON_EFFORT="$effort" WITHIN_REASON_HANDS_EFFORT="$hands" WITHIN_REASON_MODEL="$model" WITHIN_REASON_PLAYERS="$players" WITHIN_REASON_COMMANDER="$commander" WITHIN_REASON_COMMANDER_EFFORT="$commander_effort" \
     WITHIN_REASON_HANDS_LAYERS="${WITHIN_REASON_HANDS_LAYERS:-news,same,fuse,openers,split,tick,places}" \
+    WITHIN_REASON_LIVE_EDGE="$root/run/data/live-edge" \
     WITHIN_REASON_TEXTS="$snapshot" "$snapshot/bot" --pianist --player 2>&1 | tee "$dir/bot.log"
+# The live edge (docs/design/2026-10-21-brief-rework.md §11): this game's report and the player's and commander's own
+# words, for the next game against these people on this map. The bot read the store at its start; this closes the loop.
+python3 "$root/run/live_edge.py" close "$dir" || echo "the live edge step failed; the game's record is unaffected"

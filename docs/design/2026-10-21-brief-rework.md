@@ -350,3 +350,58 @@ compared.
   article's not seen / not sent / not landed) for the episode index to attach games to, and the heuristic line need
   not be tied to a player's quote; a quote is used where one exists, the derivation stands on the facts and the meta
   where none does.
+
+## 11. The episode layer: the live edge and worked examples (the user, 2026-10-22 night)
+
+**What the layer is for.** Worked examples and the live edge of information; anything distilled belongs in the fact,
+meta or derived sections, so an episode leaves the layer when its content reaches one of them, when its era ends, or
+when its diagnosis dies. The layer starts with zero games: the brief's structure and content have changed whole, and
+the new bot's first games are its first episodes. The 57 rows of the episode sweep stay a study and a list of
+candidates for worked examples.
+
+**The live edge.** The last few games against the same opponent on the same map, shown to the player and the
+commander in the snapshot of the next game of the series, in arena games and in games with people alike. Two parts,
+side by side, never the words alone: the **report** of each game in plain numbers from the record and the truth file
+(result, both sides' extractors, income and army by minute, each side's army in the other's half, extractors lost and
+where, his first soldier in our half, his first kill, his advanced factory, air plant, silo and anti-nuke, and ours),
+and the **words**: the player's and the commander's own notes and closing sentences from the game, and the player's
+debrief for the next player (`run/debrief.py`, kept). No inference by the tool, no categories: the derived articles'
+tests run offline on the curves; the live edge shows what happened and what the previous player believed, labelled as
+whose it is, so the next player can check a belief against the curves in a glance. The user's reasons: the live edge
+is temporary by definition, so a misread has bounded regret and ages out by default, and inside a three-game series a
+fast unfiltered response from the player on a live bug or an opponent's habit is worth more than any filtering. The
+2026-10-01 rule (no durable memory from the player's in-game notes) holds for the durable layers: nothing moves from
+the live edge into a lesson, a worked example or a derivation without naming the defects in force.
+
+**The loop closes without anyone.** When a match ends, the arena (and `run/human_game.sh` after the bot leaves) runs
+`run/live_edge.py close <match dir>`: it writes the entry (report and words) into the store `run/data/live-edge/`
+(git-ignored working data) and appends a row to its `index.jsonl` (match, date, build, map, opponent key, result).
+When a bot session starts, the bot reads the store named by `WITHIN_REASON_LIVE_EDGE`, keys the game by its map and
+its enemy seats from the hello (a person's name; an AI's short name, version and profile; the seat's bonus), takes the
+entries of the same key within fourteen days, newest first, at most three, and appends them to the player's and the
+commander's prompts as a part of their own, after the brief. The key is computed the same way by the tool (from the
+record's header and the start script) and by the bot (from the hello). The old debriefs in `docs/briefs/inbox/` are
+not loaded; the store starts empty. `arena --no-live-edge` leaves the store unread for an A/B.
+
+**Pruning.** By age (fourteen days) and by count (three) in the bot's selection; the store keeps everything as
+evidence. Era boundaries and a dead diagnosis prune the durable layers, not the live edge.
+
+**Built 2026-10-22 night.** `run/live_edge.py` (close | text | key | show), `crates/bot/src/strategist/live_edge.rs`
+(the key from the hello, the selection, the part on the player's and the commander's prompts after the brief), the
+arena's `--no-live-edge`, the store from `WITHIN_REASON_LIVE_EDGE` or `run/data/live-edge`, the post-match step
+waited for (`live-edge.log` in the match directory), and `run/human_game.sh`'s close after the bot leaves. Checked:
+the tool's key and the bot's agree on a ladder game ("BARb stable hard_aggressive +35%") and on a lobby game
+("[gecko]thebluegecko, [gecko]u6bkep"); an entry written from barb-ladder-35-2 with its debrief (48 s, 3,061 words)
+into a scratch store was found and logged by the bot of a two-minute hands-only arena match against the same
+opponent (live-edge-smoke); the unit tests cover the key and the selection. The real store is still empty. Not yet
+run: the series below.
+
+**The check.** A three-game series against BARb hard_aggressive on Comet Catcher with the live edge on, the
+transcripts of games 2 and 3 read for whether the player cited it, and the predict tool's error on his extractors,
+army and advanced factory in games 2 and 3 against game 1. If the words make the predictions worse, the juxtaposition
+is not enough and the words need a shorter leash.
+
+**Worked examples** come later, under their derivations: at most two per article, one that went right and one that
+went wrong, each under 150 words, none without a person-grade root (the user's review). The defect register (known
+operational flaws with an id, a status of open, deferred or fixed in a commit, and the symptom a player sees) guards
+the boundary between the live edge and the durable layers; it is not built yet.

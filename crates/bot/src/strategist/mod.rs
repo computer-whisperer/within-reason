@@ -10,6 +10,7 @@
 mod api;
 pub mod command;
 pub mod fights;
+pub mod live_edge;
 mod mcp;
 mod reference;
 mod report;
@@ -81,6 +82,9 @@ pub(crate) fn player_parts() -> std::io::Result<Vec<(String, String)>> {
     if model().starts_with("claude-opus") {
         parts.push((PLAYER_OPUS.path.into(), read(&PLAYER_OPUS)));
     }
+    // The live edge (docs/design/2026-10-21-brief-rework.md §11): the last games against this opponent on this map,
+    // their reports and the previous players' own words, when the store holds any; empty otherwise.
+    parts.push(("(the live edge)".into(), live_edge::text()));
     // Last before the game's own lines, where it is read nearest the first turn.
     if std::env::var_os("WITHIN_REASON_PACKET_EXAMPLE").is_some() {
         parts.push((PACKET_EXAMPLE.path.into(), read(&PACKET_EXAMPLE)));
@@ -103,6 +107,8 @@ pub(crate) fn commander_parts() -> std::io::Result<Vec<(String, String)>> {
     use crate::texts::{read, strip, BRIEF_EXPERIENCE, COMMANDER_PROMPT};
     let mut parts = vec![(COMMANDER_PROMPT.path.to_string(), read(&COMMANDER_PROMPT))];
     parts.extend(crate::texts::assemble_parts(BRIEF_EXPERIENCE)?);
+    // The live edge, as in the player's prompt (§11): the last games against this opponent on this map.
+    parts.push(("(the live edge)".into(), live_edge::text()));
     parts.push(("(the game's bonus)".into(), bonus()));
     parts.push(("(the game's objective)".into(), objective()));
     Ok(parts.into_iter().map(|(source, text)| (source, strip(&text))).collect())

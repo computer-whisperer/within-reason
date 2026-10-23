@@ -180,3 +180,15 @@ of the hands and the micro lane at Jev's cents a game. (`--opening-plan` went wi
 
 
 `--realtime`: speed 1, the engine not in lockstep, the bot in `WITHIN_REASON_REALTIME` (the player's turns and Jev's answers land while the game runs). The rehearsal for a game against people; a 20-minute game is 20 minutes of wall time.
+
+## The live edge (2026-10-22)
+
+Every flagship player match, when it ends, runs `run/live_edge.py close <match dir>` and waits for it (about a minute:
+the player's debrief inside is a model call on `~/.claude2`): the match's report in plain numbers and the player's and
+commander's own words go into the store, `run/data/live-edge/` (or the directory `WITHIN_REASON_LIVE_EDGE` names in
+the arena's environment), with a row in its `index.jsonl`; `live-edge.log` in the match directory has the step's
+output. Every bot the arena starts reads the same store at its first hello and appends the last three entries of the
+same map and opponent within two weeks to the player's and the commander's prompts (`[strategist] live edge: ...` in
+bot.log says what it found). `--no-live-edge` leaves the store unread for an A/B; the entry is still written. A series
+is games run one after another (`--parallel 1`); matches running in parallel do not see each other. Design:
+docs/design/2026-10-21-brief-rework.md §11.
