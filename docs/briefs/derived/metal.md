@@ -39,7 +39,7 @@ loses 1.5 to 2 a game-minute, the winners one, the losers two and a half), and p
 metal against an extractor's 50 and its 138 a minute). A fight is a metal exchange whose wrecks, up to six tenths of
 what died, go to whoever holds the ground afterwards. From these, "get mexes", "build units to stand out on the map"
 and "defend territory" follow as the three ways an army moves the quantity, and so does the pool's shape: the winner
-adds ten extractors between 8:00 and 12:00 where the loser adds five, holds twice the army at minute 7, and ends it
+adds ten extractors between 8:00 and 12:00 where the loser adds five (the Armada sides at OS 40+; the OS 25+ survey's eighteen games had eleven against one), holds twice the army at minute 7, and ends it
 three and a half minutes later.
 
 **Where it bends.** Four places, each a dispute with the heuristic as stated, and a fifth for team games.

@@ -69,14 +69,14 @@ def ratio(a, b):
 def table(domain, units):
     if domain == "economy":
         head = ["unit", "name", "tier", "class", "from", "metal", "energy", "build time", "health", "speed", "build power", "energy make", "energy upkeep", "e storage", "m storage", "flags"]
-        row = lambda k, u: [k, u["name"], u["tier"], u["class"], (u.get("made_by") or [""])[0], u["metal"], u["energy"], u["build_time"], u["health"], u["speed"] or "",
+        row = lambda k, u: [k, u["name"], u["tier"], u["class"], "/".join(u.get("made_by") or []), u["metal"], u["energy"], u["build_time"], u["health"], u["speed"] or "",
                             u.get("build_power", ""), u.get("energy_make", ""), u.get("energy_upkeep", ""), u.get("energy_storage", ""), u.get("metal_storage", ""), ", ".join(u.get("flags") or [])]
     elif domain == "structures":
         head = ["unit", "name", "tier", "class", "metal", "energy", "build time", "health", "range", "dps", "dps vs air", "sight", "dps per metal", "flags"]
         row = lambda k, u: [k, u["name"], u["tier"], u["class"], u["metal"], u["energy"], u["build_time"], u["health"], u["range"] or "", u["dps"] or "", u["dps_air"] or "", u["sight"], ratio(u["dps"], u["metal"]), ", ".join(u.get("flags") or [])]
     else:
         head = ["unit", "name", "tier", "class", "from", "metal", "energy", "build time", "health", "speed", "range", "dps", "dps vs air", "sight", "health per metal", "dps per metal", "flags"]
-        row = lambda k, u: [k, u["name"], u["tier"], u["class"], (u.get("made_by") or [""])[0], u["metal"], u["energy"], u["build_time"], u["health"], u["speed"], u["range"] or "", u["dps"] or "", u["dps_air"] or "", u["sight"],
+        row = lambda k, u: [k, u["name"], u["tier"], u["class"], "/".join(u.get("made_by") or []), u["metal"], u["energy"], u["build_time"], u["health"], u["speed"], u["range"] or "", u["dps"] or "", u["dps_air"] or "", u["sight"],
                             ratio(u["health"], u["metal"]), ratio(u["dps"], u["metal"]), ", ".join(u.get("flags") or [])]
     lines = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for k, u in sorted(units.items(), key=lambda kv: (kv[1]["tier"], kv[1]["class"], kv[1]["metal"], kv[0])):

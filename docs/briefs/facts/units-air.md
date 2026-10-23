@@ -53,10 +53,10 @@ status: live
 | corveng | Valiant | 1 | fighter aircraft | corap | 73 | 2800 | 3330 | 156 | 297.6 | 680 | 13.3 | 138.9 | 430 | 2.14 | 0.18 | flies, anti_air |
 | corsfig | Bat | 1 | fighter aircraft | corplat | 90 | 4600 | 6500 | 220 | 315.6 | 710 | 14.4 | 240 | 430 | 2.44 | 0.16 | flies, anti_air |
 | corcut | Cutlass | 1 | gunship | corplat | 230 | 5400 | 11500 | 1010 | 152.4 | 430 | 72.3 |  | 595 | 4.39 | 0.31 | flies |
-| corfink | Finch | 1 | radar plane | corap | 51 | 1450 | 2400 | 100 | 360 |  |  |  | 835 | 1.96 |  | flies |
+| corfink | Finch | 1 | radar plane | corap/cormando | 51 | 1450 | 2400 | 100 | 360 |  |  |  | 835 | 1.96 |  | flies |
 | corhunt | Watcher | 1 | radar plane | corplat | 130 | 6900 | 11500 | 730 | 324.3 |  |  |  | 1130 | 5.62 |  | flies, sonar |
 | corseap | Monsoon | 1 | torpedo bomber | corplat | 230 | 5500 | 11000 | 1000 | 200 | 600 | 85.5 |  | 535 | 4.35 | 0.37 | flies, sonar |
-| corvalk | Hercules | 1 | transport aircraft | corap | 74 | 1450 | 4120 | 280 | 198 |  |  |  | 430 | 3.78 |  | transport, flies |
+| corvalk | Hercules | 1 | transport aircraft | corap/cormando | 74 | 1450 | 4120 | 280 | 198 |  |  |  | 430 | 3.78 |  | transport, flies |
 | corhvytrans | Hephaestus | 1 | transport aircraft | corap | 190 | 4000 | 8500 | 800 | 100 |  |  |  | 430 | 4.21 |  | transport, flies |
 | corhurc | Hailstorm | 2 | bomber | coraap | 310 | 18500 | 36000 | 1520 | 248.4 | 1280 | 237.9 | 237.9 | 430 | 4.90 | 0.77 | flies, anti_air |
 | corvamp | Nighthawk | 2 | fighter aircraft | coraap | 145 | 5100 | 10500 | 290 | 379 | 690 | 24 | 500 | 430 | 2.00 | 0.17 | stealth, flies, anti_air |
@@ -80,8 +80,8 @@ status: live
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | legspbomber | Pyrphoros | 1 | bomber | legsplab | 240 | 7500 | 9890 | 1170 | 267.3 | 1280 | 150 | 150 | 455 | 4.88 | 0.62 | flies, anti_air |
 | legspcarrier | Hecatoncheir | 1 | drone carrier aircraft | legsplab | 250 | 5000 | 9250 | 1500 | 93 |  |  |  | 600 | 6.00 |  | flies |
-| legfhive | Naval Hive | 1 | drone hive | leganavyengineer | 350 | 9000 | 7500 | 1200 |  |  |  |  | 455 | 3.43 |  | submerged, on_water |
-| leghive | Hive | 1 | drone hive | legca | 350 | 9000 | 6600 | 1200 |  |  |  |  | 455 | 3.43 |  |  |
+| legfhive | Naval Hive | 1 | drone hive | leganavyengineer/legch/legnavyconship/legotter/legspcon | 350 | 9000 | 7500 | 1200 |  |  |  |  | 455 | 3.43 |  | submerged, on_water |
+| leghive | Hive | 1 | drone hive | legca/legch/legck/legcv/legotter/legspcon | 350 | 9000 | 6600 | 1200 |  |  |  |  | 455 | 3.43 |  |  |
 | legfig | Noctua | 1 | fighter aircraft | legap | 40 | 1600 | 2000 | 220 | 270 | 600 | 6.7 | 120 | 700 | 5.50 | 0.17 | flies, anti_air |
 | legspfighter | Astrapios | 1 | fighter aircraft | legsplab | 90 | 4500 | 6540 | 220 | 310.8 | 760 | 3.8 | 138.8 | 430 | 2.44 | 0.04 | flies, anti_air |
 | legmos | Mosquito | 1 | gunship | legap | 110 | 2000 | 4000 | 415 | 165 | 380 |  |  | 520 | 3.77 |  | flies |

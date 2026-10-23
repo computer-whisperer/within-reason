@@ -293,7 +293,7 @@ extractors 2:14 and 2:34, a radar at 2:50, a light turret 3:06, a Lazarus in the
 turret in the fifth; extractors 2 until 2:12, then 4 by 2:33 and 9 by 6:00 (income 6 at 2:00, 10 at 3:00, 14 at 5:00,
 16 at 6:00), seven solars and no wind at 6:00, the metal store at zero from 2:00 to 4:00. His Pawns raided BARb from
 2:25, held it at two extractors, killed its lab and its commander at 6:05; he lost 22 Pawns and a Lazarus. Beside
-thebluegecko's game against the same opponent the same evening (four wind before the lab at 0:34, six more and a
+thebluegecko's game against the same opponent the same evening (three wind before the lab at 0:33, six more and a
 solar by 1:35, one constructor before the Pawns): solars instead of wind, two constructors by 1:02 against one, and
 fewer Pawns, later (4, 9 and 15 by 2:00, 3:00 and 4:00 against 5, 13 and 18).
 

@@ -103,7 +103,7 @@ and energy likewise. The table gives the common cases; the rule gives any other.
 | solar | construction vehicle | 29 | 5.4 | 0 |
 | bot lab (500 m, 950 e, 5,000) | commander | 16.7 | 30 | 57 |
 | vehicle plant (590 m, 1,550 e, 5,700) | commander | 19 | 31 | 82 |
-| construction turret (230 m, 3,200 e, 5,300) | commander | 17.7 | 13 | 181 |
+| construction turret (230 m, 3,200 e, 5,300) | construction vehicle 90 (not in the commander's build list) | 58.9 | 3.9 | 54 |
 | construction vehicle (135 m, 1,950 e, 4,050) | plant alone 150 | 27 | 5.0 | 72 |
 | construction vehicle | plant + commander 450 | 9 | 15 | 217 |
 | Blitz (110 m, 900 e, 2,000) | plant alone | 13.3 | 8.3 | 68 |
