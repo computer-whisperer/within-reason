@@ -319,7 +319,10 @@ compared.
    (`run/data/live-edge/<brief>/`), so the new brief's live edge started empty as §11 says. The player's prompt is
    64,700 words on the rework set against 44,700 on the experience brief, the five unit tables 20,400 of it; which
    domains a role's manifest carries is still the manifest's choice (f9602b1). The first games: rework-series-1
-   (docs/experiments.md).
+   (2026-10-23, docs/experiments.md): won 18:20, 22:23 and 15:12 against the experience brief's 24:26, 20:25 and 22:35
+   on the same seeds, a third of the extractors lost, the army in his half by 8:00 in two of three, game one won on
+   tier 1; the player's words cite no id and no case under either brief, and the rework player reasons in the pool's
+   medians and quartiles. Three games a brief: a direction, not a verdict.
 9. Measure (§7); rerun the reading pass.
 
 ## 9. Open, for the user
