@@ -395,8 +395,9 @@ waited for (`live-edge.log` in the match directory), and `run/human_game.sh`'s c
 the tool's key and the bot's agree on a ladder game ("BARb stable hard_aggressive +35%") and on a lobby game
 ("[gecko]thebluegecko, [gecko]u6bkep"); an entry written from barb-ladder-35-2 with its debrief (48 s, 3,061 words)
 into a scratch store was found and logged by the bot of a two-minute hands-only arena match against the same
-opponent (live-edge-smoke); the unit tests cover the key and the selection. The real store is still empty. Not yet
-run: the series below.
+opponent (live-edge-smoke); the unit tests cover the key and the selection. The real store started empty.
+
+**The check run (live-edge-series-1, 2026-10-22 23:24 to 2026-10-23 01:05; the user: run this in a real game against BARb hard_aggressive).** Three games on the arena target line at +0, one after another in one batch, each bot reading the store the previous close wrote: won 24:26, 20:25 and 22:35 (Armada west, Armada east, Cortex west). Every close ran by itself in about 42 s with the debrief; the entries 3,416 / 3,352 / 2,340 words; game three carried two (6,768 words after its brief). Game two's player cited the last game seven times, in its opening ("the one that won our last game"), at the repeated mistake ("same lesson as the last game: Blitzes lose to Centurions", said after walking into them once more at 11:22), at the Gauntlet ("died to one body at 1.6 to 1"; "the fix for this exact gun was to drive onto it as one body with footwork off") and at a stalled push ("the move alone is what got it moving"), and won four minutes faster with its advanced plant six minutes earlier; game three's, playing Cortex against two Armada entries, cited them twice ("the last two wins were decided by our own tier-2 tanks") and wrote its own lessons. The predict tool's error, army 17% / 30% / 11% and extractors 30% / 17% / 28% by game, moves both ways: the words did not make the predictions worse, and three games cannot show them making them better. The leash stays as built; the entry size is the user's call (docs/experiments.md live-edge-series-1).
 
 **The check.** A three-game series against BARb hard_aggressive on Comet Catcher with the live edge on, the
 transcripts of games 2 and 3 read for whether the player cited it, and the predict tool's error on his extractors,

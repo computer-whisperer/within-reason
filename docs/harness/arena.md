@@ -192,3 +192,5 @@ same map and opponent within two weeks to the player's and the commander's promp
 bot.log says what it found). `--no-live-edge` leaves the store unread for an A/B; the entry is still written. A series
 is games run one after another (`--parallel 1`); matches running in parallel do not see each other. Design:
 docs/design/2026-10-21-brief-rework.md §11.
+
+Checked in live-edge-series-1 (2026-10-23, three games one after another with `--parallel 1`): every close ran by itself in about 42 s, debrief included; game two's bot carried one entry and game three's two; the players cited them (docs/design/2026-10-21-brief-rework.md §11 "The check run").
