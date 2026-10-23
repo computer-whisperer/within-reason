@@ -1,9 +1,9 @@
 <!--meta
 id: D-tier2-sprint
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-consequences, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
-lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units]
-sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-28, 2026-10-18, 2026-10-23], relay: the lessons' chat lines; the user's framing of tier 2 as a sprint whose gap is covered or not (2026-10-18) and his ruling that in a close duel the opponent's tech is the moment to kill his base (2026-09-28); his steer of 2026-10-23 that the derivations stay lean, ideas with worked arithmetic rather than rules}
+premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
+lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units, L-reclaim-field]
+sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-28, 2026-10-18, 2026-10-23], relay: the lessons' chat lines; the user's framing of tier 2 as a sprint whose gap is covered or not (2026-10-18) and his ruling that in a close duel the opponent's tech is the moment to kill his base (2026-09-28); his steer of 2026-10-23 that the derivations stay lean, ideas with worked arithmetic rather than rules, and his three reclaim patterns of the same evening (the field after a won fight, the tier-1 lab into the plant, the plant itself eaten for mohos) with a person's line relayed}
 status: live, checked (the kill-test run 2026-10-23 with run/metal_killtest.py tier2 over 1,641 recorded 1v1s of fourteen minutes or more; the tests are correlations across our own games and say so)
 -->
 ### The tier-2 sprint
@@ -37,6 +37,14 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
 - *Energy is the second bill.* Plant, constructor and six mohos take 67,000 energy; tier-2 units draw 13.7 to 14.5
   energy a metal against the Stout's 9.3, a plant alone on Bulls 339 a second; six mohos' upkeep is 120. One advanced
   solar (350 metal) per 80 a second of new draw, or the fusion.
+- *Where the bill can come from.* A unit worn down leaves a wreck worth six tenths of its metal (a Blitz 66, a Stout
+  135, a Bull 570, a Fatboy 840), one deleted by a burst a heap worth a quarter or nothing; a fight that cost him 4,300
+  leaves the plant on the ground, and both sides' dead lie where the fight was, for whoever holds that ground. A
+  construction vehicle collects 38 a second of wreck, a resurrection bot 58, the commander 75: three constructors clear
+  1,200 in ten seconds. A live building of our own returns its full cost when its reclaim ends, the vehicle plant 590 in
+  19 seconds of the commander's time, the bot lab 500 in 17, the advanced plant 2,600 in 90; but it all lands in one
+  second, and the store clamps to its storage once a second: 1,000 plus 50 an extractor, 100 a plant (which leaves with
+  the plant) and 600 a moho. What lands above that is gone. A metal storage is 330 for 3,000 of room.
 - *His gap, when he is BARb.* hard_aggressive at +0 places its lab at 10:11 / 11:04 / 11:57 and its first moho 2.1
   minutes later; in our 97 games against it his army stood still for the four minutes after the placement, -525 /
   +190 / +1,379, while ours grew +2,318 / +3,965 / +5,249. With a bonus the lab comes at 8:12 / 10:06 / 11:24.
@@ -75,6 +83,23 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
    feeders' plants paused for the minute the frame needs: two seats at 30 a second stand the plant in 43 seconds. The
    first products are advanced constructors, one for each seat (the people's way, M-gecko-team; the won 8v8 sides hand
    eight a side, M-format-8v8).
+6. *The field after a won fight is the bill.* A person who has just won a big early fight, looking at the wrecks: "oh,
+   well, I guess they gave me my T2" (the user's relay). Why: 4,300 of his dead is 2,600 on the ground, our own dead
+   beside it, and three constructors lift a plant's worth in twenty seconds while the ground is ours. Our record is
+   the weak point (`run/metal_killtest.py reclaim`): in 236 model-played games the picture named a wreck field in 218,
+   one of 1,000 or more in 205, the largest named a game 1,649 / 2,535 / 3,625 metal and seven in ten of the namings
+   marked not safe; an area reclaim was ordered in 22 games, and our income above the extractors' yield was 1 to 2 a
+   second at every minute, the commander's own make. The old code's games, which had a reclaim routine, ran 4 to 8
+   above it.
+7. *The labs as loans.* The tier-1 plant eaten into the advanced plant's frame while it draws returns 590 (the bot lab
+   500) in 19 seconds of the commander, a fifth of the bill, and never meets the clamp because the frame takes it. The
+   other way round: when the aim is advanced constructors and mohos rather than a tier-2 army, the plant is a 2,600 loan.
+   Two constructors out (1,100, 54 seconds), the plant eaten in 90, and 2,600 is back: four mohos, the two constructors'
+   net price 1,100 and three minutes. It needs 2,600 of room when the reclaim ends, a metal storage first (330 for
+   3,000) or the store spent down, and it gives up the plant's 100 storage and the tier-2 army it could have made. The
+   same arithmetic for what stands idle: twenty Stouts a tier-2 army has replaced are 4,500 (a Stout returns 225 in 38
+   seconds of a constructor), seven mohos; twenty solars once a fusion runs are 3,100 in nine seconds each of the
+   commander, after the energy is replaced.
 
 **Where it bends.** With a bonus his lab comes at 8:12 to 11:24 and his income runs 1.35 to 1.5 times: matching it
 on income that cannot pay stalls (the +50 game: plant at 8:12, the constructor 1.7 minutes to build, the first moho

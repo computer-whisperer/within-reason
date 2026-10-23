@@ -1,7 +1,7 @@
 <!--meta
 id: D-metal-is-the-game
 layer: derived
-premises: [F-map-metal, F-eco-extractors, F-eco-energy, F-eco-conversion, F-eco-build, F-eco-reclaim, F-eco-consequences, M-pool-pressure, M-pool-expansion, M-pool-closing, M-format-8v8, M-barb-bonus]
+premises: [F-map-metal, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-conversion, F-eco-build, F-eco-reclaim, F-eco-consequences, M-pool-tier2-and-wrecks, M-pool-pressure, M-pool-expansion, M-pool-closing, M-format-8v8, M-barb-bonus]
 lessons: [L-metal-first]
 sources: {people: [thebluegecko, the user], dates: [2026-10-22], relay: the user's paraphrase of thebluegecko in the brief-rework discussion; the user's framing of the section as an honest derivation of a surface heuristic}
 status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py over 1,752 games of ours and the pool's 38 duels past 12:00: the income gap at 12:00 calls the result better than the army gap in every population; the inversions are our unconverted leads and the kills)
@@ -37,7 +37,10 @@ metal: taking spots (every side of the pool sends a soldier into the other half,
 winners forty seconds earlier than the losers), denying his (the pool's first extractor dies at about 4:00; a side
 loses 1.5 to 2 a game-minute, the winners one, the losers two and a half), and protecting ours (a light turret's 85
 metal against an extractor's 50 and its 138 a minute). A fight is a metal exchange whose wrecks, up to six tenths of
-what died, go to whoever holds the ground afterwards. From these, "get mexes", "build units to stand out on the map"
+what died, go to whoever holds the ground afterwards, at 38 a second per construction vehicle, 58 per resurrection
+bot, 75 for the commander (three constructors clear 1,200 in ten seconds); and a building of one's own is metal in the
+ground too, its full cost back when its reclaim ends, landing in one second into a store that clamps to its storage
+once a second, so the room comes first. From these, "get mexes", "build units to stand out on the map"
 and "defend territory" follow as the three ways an army moves the quantity, and so does the pool's shape: the winner
 adds ten extractors between 8:00 and 12:00 where the loser adds five (the Armada sides at OS 40+; the OS 25+ survey's eighteen games had eleven against one), holds twice the army at minute 7, and ends it
 three and a half minutes later.
@@ -60,6 +63,12 @@ compounds (the unconverted lead); when his income is gone (go and kill); and in 
 compounds faster in a neighbour's hands.
 
 **The tests.** The pool: income and extractors at 8:00 to 12:00 separate winners from losers before the army does.
+Reclaim in our own play (`run/metal_killtest.py reclaim`, 2026-10-23, the records of 236 model-played 1v1s of fourteen
+minutes or more): the picture named a wreck field in 218 games and one of 1,000 metal or more in 205, the largest
+named a game 1,649 / 2,535 / 3,625 (quartiles), seven in ten of the namings marked not safe; an area reclaim was
+ordered in 22 games; income above the extractors' yield ran 1 to 2 a second at every minute, the commander's own make,
+where the old code's games, with a reclaim routine, ran 4 to 8 above it and the pool's winners stand above it in 12% of
+their minutes (M-pool-tier2-and-wrecks). The metal on the ground is the part of the quantity we have never collected.
 The 8v8 lobbies against stock BARb: the people's won and lost sides had the same army at 10:00 (10,132 against
 9,762) and different income (271 against 193), and the won sides' extractors held at 71 while the lost sides' fell to
 50. Our own games: every loss on the BARb bonus ladder was a lead in army held to about 20:00 while his spots stood.

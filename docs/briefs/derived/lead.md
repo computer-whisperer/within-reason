@@ -1,7 +1,7 @@
 <!--meta
 id: D-lead-convert-it
 layer: derived
-premises: [D-metal-is-the-game, F-eco-extractors, F-eco-consequences, F-fight-consequences, F-fight-range, M-pool-closing, M-pool-fights, M-pool-tier2-and-wrecks, M-barb-hard-aggressive-comet, M-barb-bonus]
+premises: [D-metal-is-the-game, F-eco-extractors, F-eco-reclaim, F-eco-consequences, F-fight-consequences, F-fight-range, M-pool-closing, M-pool-fights, M-pool-tier2-and-wrecks, M-barb-hard-aggressive-comet, M-barb-bonus]
 lessons: [L-lead-use-it, L-lead-together]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-22], relay: the lessons' chat lines; the user's framing of the unconverted lead as a catch-all for harness bugs, poor army movement and wrong tempo recognition, to be kept apart by name}
 status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py windows and pool-windows over 2,467 games with a result: a surplus kept home wins a third to 41% in every population, sent 71% to 82%; the quantity was narrowed in the running, see the tests)
@@ -37,6 +37,11 @@ is the tempo mistake. The margin is in metal, against what covers his nearest sp
   factory a tier-1 surplus is spent on worse terms. When that factory comes is meta: BARb starts it at 10:11 / 11:04
   / 11:57 in 103 of the 106 games that last fifteen minutes; the pool never before 12:51 and in four of eighty sides,
   so the duels there are decided on tier 1 and the cliff is BARb's, not the game's.
+- *The ground.* A fight's dead lie where it was fought, up to six tenths of their metal, for whoever holds that ground
+  afterwards (F-eco-reclaim): a surplus that fights in his half leaves his dead and ours on ground we hold, and a fight
+  that cost him 4,300 is an advanced plant lying there ("I guess they gave me my T2", a person's line the user relays;
+  D-tier2-sprint has the arithmetic). A surplus that waits leaves nothing anywhere, and ours has collected nothing: an
+  area reclaim ordered in 22 of 236 model-played games, with a field of 1,000 or more named to the player in 205.
 
 The pool's close follows from the three: the winner first holds twice the army at minute 7 and the game ends 3.4
 minutes later, with the loser's commander and every factory among the kills in 29 of 29. Nobody there holds a lead

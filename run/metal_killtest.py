@@ -27,6 +27,12 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       extractor; then who sprinted and who won, the army ratio and our income at our placement, both armies over the
       four minutes after each placement (the gap), and the lead at his placement against whether and when we matched
       it. The per-game clocks go to the side cache, so a second run reads only the games it has not seen.
+  run/metal_killtest.py reclaim <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14]
+      Reclaim in our play (docs/briefs/derived/metal.md and tier2.md): per population, the area-reclaim and resurrect
+      orders a game (the record's cmd rows), our own units reclaimed, the wreck fields the picture named to the player
+      (the report's "wrecks:" line in the first strategist file: turns, the largest field, how many were marked not
+      safe), and income above the extractors' yield by minute (the cache's exact seat income less the extractor
+      proxy: reclaim, conversion and the commander's own 2).
 
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
@@ -775,6 +781,67 @@ def tier2(caches, side_cache, min_minutes, workers):
                 print(f"  {k}: {wins[k]}/{tally[k]} won ({100 * wins[k] / tally[k]:.0f}%)")
 
 
+
+# ---- reclaim in our play (docs/briefs/derived/metal.md, tier2.md)
+RECLAIM_RE = re.compile(r'\["reclaim",')
+RESURRECT_RE = re.compile(r'\["resurrect",')
+OWN_RECLAIMED_RE = re.compile(r'"c":"reclaimed"')
+WRECKS_RE = re.compile(r'wrecks: ([^|\n]*)')
+FIELD_METAL_RE = re.compile(r'(\d[\d,]*) metal')
+
+
+def reclaim_one(r):
+    d = where(r["dir"])
+    records = sorted(glob.glob(d + "/record-*.jsonl"))
+    if not records:
+        return None
+    text = read_text(records[0])
+    if text is None:
+        return None
+    out = {"area": len(RECLAIM_RE.findall(text)), "resurrect": len(RESURRECT_RE.findall(text)), "own": len(OWN_RECLAIMED_RE.findall(text)),
+           "told": 0, "unsafe": 0, "largest": 0}
+    for s in sorted(glob.glob(d + "/strategist-*.jsonl"))[:1]:
+        st_ = read_text(s)
+        if not st_:
+            continue
+        for mm in WRECKS_RE.finditer(st_):
+            out["told"] += 1
+            if "not safe" in mm.group(1):
+                out["unsafe"] += 1
+            for n in FIELD_METAL_RE.findall(mm.group(1)):
+                out["largest"] = max(out["largest"], int(n.replace(",", "")))
+    return r, out
+
+
+def reclaim(caches, min_minutes):
+    from concurrent.futures import ThreadPoolExecutor
+    rows = [r for r in load(caches) if r["minutes"] >= min_minutes]
+    with ThreadPoolExecutor(8) as ex:
+        results = [x for x in ex.map(reclaim_one, rows) if x]
+    by_pop = {}
+    for r, o in results:
+        by_pop.setdefault(population(r), []).append((r, o))
+    for pop in sorted(by_pop):
+        items = by_pop[pop]
+        print(f"\n== {pop}: {len(items)} games of {min_minutes} minutes or more with a result")
+        print(f"area-reclaim orders a game {quart([o['area'] for r, o in items])} (none in {sum(1 for r, o in items if o['area'] == 0)} games); resurrect orders {quart([o['resurrect'] for r, o in items])}; own units reclaimed {quart([o['own'] for r, o in items])}")
+        told = [o["told"] for r, o in items if o["told"]]
+        if told:
+            big = [o["largest"] for r, o in items if o["told"]]
+            print(f"the picture named a wreck field in {len(told)} games, in {quart(told)} turns a game, {sum(o['unsafe'] for r, o in items)} of {sum(told)} namings marked not safe; the largest field named a game {quart(big)} metal; a field of 1,000 or more named in {sum(1 for r, o in items if o['largest'] >= 1000)} games, {sum(1 for r, o in items if o['largest'] >= 1000 and o['area'] == 0)} of them with no area reclaim")
+        for mn in ("8", "12", "16", "20"):
+            extra = [r["at"][mn]["ours"]["exact_income_seat"] - r["at"][mn]["ours"]["ext_income"] for r, o in items if mn in r["at"] and r["minutes"] >= int(mn)]
+            if extra:
+                print(f"  {mn}:00 income above the extractors' yield {quart(extra, '{:+.1f}')} a second (n={len(extra)})")
+        minutes = hot = 0
+        for r, o in items:
+            for k, v in r["at"].items():
+                if int(k) <= r["minutes"]:
+                    minutes += 1
+                    hot += (v["ours"]["exact_income_seat"] - v["ours"]["ext_income"]) > 6
+        print(f"  minutes with more than 6 a second above the extractors' yield: {hot} of {minutes} ({100 * hot / max(minutes, 1):.0f}%)")
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -782,7 +849,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -797,6 +864,8 @@ def main():
         windows(positional, opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
     elif cmd == "tier2":
         tier2(positional, opt("--side-cache", "run/data/tier2_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int))
+    elif cmd == "reclaim":
+        reclaim(positional, opt("--min-minutes", 14, int))
     else:
         pool_windows(opt("--min-os", 0.0), opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
 
