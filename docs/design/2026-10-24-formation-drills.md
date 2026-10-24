@@ -324,6 +324,42 @@ The bars for drill 4 (`into`) from these: a pure column's shot ramp to all withi
 2.4) and no target death before everyone has fired; a mixed column's shot ramp to half and to all are the measures a
 pacing arm must shrink from 5 and 20 s, read with the turret's cost (value left 0.63-0.65).
 
+**Terrain cases (D10, 2026-10-24 night; batches `*-duel-drill-around-*`, Quicksilver, 32 duels, all arrived):** the
+chooser's detour at 2,000 as the crow flies is (1878,5475) to (3848,5128), 2,749 on foot (1.37; the map offers no
+more at that distance with ends holding the formation). The same pair with `--from/--to` reproduces it.
+
+| arm | first / median / last s | route_s (the field) | at contact, deep x wide | ramp half / all s |
+|---|---|---|---|---|
+| 12 Blitz, lane off | 26 / 28 / 29 | 27 | 325 x 44 | 1.6 / 3.2 |
+| 12 Blitz, lane on | 26 / 28 / 31 | 27 | 364 x 291 | 1.8 / 3.6 |
+| the mix, lane off | 26 / 35 / 54 | 51 | 1386 x 218 | 8.8 / 25.7 |
+| the mix, lane on | 26 / 35 / 56 | 51 | 1353 x 326 | 8.7 / 25.0 |
+
+The series, one duel each, every three seconds (deep x wide): twelve Blitzes with the lane off 257x247, 310x216,
+197x185, 206x45, 262x33, 296x36, 347x25, 343x32, 336x52; with the lane on 69x338, 341x157, 347x119, 375x112, 390x55,
+361x69, 398x23, 369x201, 400x381, 317x339. The mix with the lane off reaches 1522 deep at 30 s and is 376x154 when
+the Janus arrive at 54 s.
+
+12. **The field's walk predicts the arrival.** The slowest type's time over the field's distance (`route_s`) is the
+    last arrival to within a second for the Blitzes (27 against 28-29) and three for the mix (51 against 54): the
+    terrain crate's distances are the engine's path, so a group's arrival on terrain can be said before it is
+    ordered.
+13. **A passage files the body and nothing re-forms it on the way.** The Blitz column is a file 25-45 wide and 340
+    deep from 12 s to the goal with the lane off; with the lane on it files the same (23 wide at 21 s) and the width
+    comes back only in the last six seconds (201 then 381), at the march's ranks at the destination. The lane's
+    formation is a destination's, not a route's: between the passage and the goal the body is a file either way, and
+    the contact shape 364 x 291 is the destination's ranks reached, not a body that marched abreast.
+14. **The detour stretches a mixed column further than the strip did:** 1,386 deep at contact against 923, the ramp
+    to all 25 s against 17, since the slow types lose the same share of a longer walk and the passage adds its queue.
+
+Other maps probed at 2,000 and 1.3 with one duel: Great Divide offers 2,755 on foot (1.38, (301,1238) to (648,3208)),
+Altored Divide 3,462 (1.73, (2928,5316) to (1928,7048)), Comet Catcher nothing (the best 1.20; a flat map). Their
+baselines follow.
+
+The bars for the terrain cases: the last arrival within `route_s` plus 3 s; the width at contact no less than the
+formation's; and the measure a route-following arm is judged on is the seconds between the passage's exit and the
+body's width back at the formation's, read from the series, with the arrival kept within the bar.
+
 ## 6. Open for the user
 
 - The group API's shape in §2 (one call per decision; what `GroupState` carries).

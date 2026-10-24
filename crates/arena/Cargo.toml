@@ -10,6 +10,7 @@ bot-protocol = { path = "../bot-protocol" }
 buildorder = { path = "../buildorder" }
 combatsim = { path = "../combatsim" }
 micro = { path = "../micro" }
+terrain = { path = "../terrain" }
 flate2 = "1.1.10"
 zstd = "0.13"
 serde = { version = "1", features = ["derive"] }

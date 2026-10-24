@@ -28,6 +28,10 @@ const STRIDE: usize = 4;
 #[derive(Clone, Copy, Debug)]
 pub struct Site {
     pub centre: Vec3,
+    /// A drill's chosen ends (start, goal) when the site is not a strip through `centre`: `--from/--to`, or a
+    /// detour found by `choose_detour` (design D10). The walk between them on foot is `walk`.
+    pub ends: Option<(Vec3, Vec3)>,
+    pub walk: Option<f32>,
 }
 
 /// The rectangle a site must offer: `length` along the west-east axis, `width` across it.
@@ -53,6 +57,13 @@ impl Footprint {
 }
 
 impl Footprint {
+    /// The side of the flat square a drill's end needs off the strip (design D10): the formation's extent either way
+    /// plus the margin on both sides.
+    pub fn drill_square(formation: Formation, count: u32) -> f32 {
+        let (across, depth) = formation.extent(count);
+        across.max(depth) + 2.0 * MARGIN
+    }
+
     /// The strip a drill walks (`drill.rs`): `distance` from the start to the goal, the formation's depth and a margin
     /// behind the start, the arrival radius and a margin beyond the goal, and the formation's width across. Comet
     /// Catcher's longest dry passable strip of 640 is 1,920 and Quicksilver's 3,200 (drill-smoke, 2026-10-24), so the
@@ -117,18 +128,25 @@ impl Formation {
 
     /// Positions for `count` units: ranks run north-south through `front`, further ranks stack away from the enemy.
     pub fn places(&self, front: Vec3, faces_east: bool, count: u32) -> Vec<Vec3> {
+        self.places_along(front, if faces_east { (1.0, 0.0) } else { (-1.0, 0.0) }, count)
+    }
+
+    /// Positions for `count` units facing `heading` (any non-zero (x, z)): ranks run across it through `front`, further
+    /// ranks stack behind.
+    pub fn places_along(&self, front: Vec3, heading: (f32, f32), count: u32) -> Vec<Vec3> {
         let per_rank = self.per_rank(count);
         let spacing = self.spacing;
-        let back = if faces_east { -spacing } else { spacing };
+        let norm = (heading.0 * heading.0 + heading.1 * heading.1).sqrt().max(1e-6);
+        let (hx, hz) = (heading.0 / norm, heading.1 / norm);
+        // Across the heading, to the right of it on the map's axes.
+        let (ax, az) = (-hz, hx);
         (0..count)
             .map(|i| {
                 let (rank, file) = (i / per_rank, i % per_rank);
                 let in_rank = (count - rank * per_rank).min(per_rank);
-                Vec3 {
-                    x: front.x + back * rank as f32,
-                    y: front.y,
-                    z: front.z + (file as f32 - (in_rank - 1) as f32 / 2.0) * spacing,
-                }
+                let back = -(rank as f32) * spacing;
+                let side = (file as f32 - (in_rank - 1) as f32 / 2.0) * spacing;
+                Vec3 { x: front.x + hx * back + ax * side, y: front.y, z: front.z + hz * back + az * side }
             })
             .collect()
     }
@@ -198,7 +216,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 (s.centre.x - centre.x).abs() >= length + SITE_GAP || (s.centre.z - centre.z).abs() >= across + SITE_GAP
             });
             if clear && sites.len() < wanted {
-                sites.push(Site { centre: *centre });
+                sites.push(Site { centre: *centre, ends: None, walk: None });
             }
         }
         if sites.len() > best.len() {
@@ -206,6 +224,114 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
         }
     }
     best
+}
+
+/// Ground a unit of the batch can stand on: dry (5 or more above the water) and no steeper than `max_slope`, per
+/// cell, as `choose` judges a site's cells. The walking-distance fields of a detour are built over it.
+pub fn standable(terrain: &Terrain, max_slope: f32) -> Vec<bool> {
+    let slope_limit = (max_slope * 255.0) as u8;
+    terrain.heights.iter().zip(&terrain.slopes).map(|(&h, &s)| s <= slope_limit && i32::from(h) >= 5).collect()
+}
+
+/// Whether the square of `side` elmos centred on cell (`cx`, `cz`) is standable throughout and rises no more than
+/// `relief`.
+fn flat_square(terrain: &Terrain, standable: &[bool], cx: i32, cz: i32, side: f32, relief: i32) -> bool {
+    let half = (side / 2.0 / terrain.cell).ceil() as i32;
+    let (width, height) = (terrain.width as i32, terrain.height as i32);
+    if cx - half < 0 || cz - half < 0 || cx + half >= width || cz + half >= height {
+        return false;
+    }
+    let (mut low, mut high) = (i32::MAX, i32::MIN);
+    for z in cz - half..=cz + half {
+        for x in cx - half..=cx + half {
+            let index = (z * width + x) as usize;
+            if !standable[index] {
+                return false;
+            }
+            let h = i32::from(terrain.heights[index]);
+            (low, high) = (low.min(h), high.max(h));
+            if high - low > relief {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Goals are tried on a lattice this far apart (one walking-distance field each); starts on a circle of `distance`
+/// round each, every `DETOUR_STEP_DEG` degrees.
+const DETOUR_LATTICE: f32 = 640.0;
+const DETOUR_STEP_DEG: i32 = 5;
+
+/// What a detour must be (design D10): `distance` apart as the crow flies, a walk on foot at least `ratio` times
+/// that, each end on a flat square of `side` within `relief`.
+#[derive(Clone, Copy, Debug)]
+pub struct Detour {
+    pub distance: f32,
+    pub ratio: f32,
+    pub side: f32,
+    pub relief: i32,
+}
+
+/// A detour's chooser (design D10): pairs `distance` apart as the crow flies whose walk on foot (`terrain::Field` over
+/// `standable`) is at least `ratio` times that, both ends on a flat square of `side` within `relief`, clear of the
+/// commanders; the longest detours first, `wanted` of them with their ends `SITE_GAP` apart. Returns the sites and the
+/// best ratio seen at all (for the message when none passes the bar).
+pub fn choose_detour(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize, detour: Detour) -> (Vec<Site>, Option<f32>) {
+    let Detour { distance, ratio, side, relief } = detour;
+    let (width, height) = (terrain.width as i32, terrain.height as i32);
+    if width == 0 || terrain.heights.len() != (width * height) as usize || terrain.cell <= 0.0 {
+        return (Vec::new(), None);
+    }
+    let standable = standable(terrain, max_slope);
+    let cell = terrain.cell;
+    let centre = |cx: i32, cz: i32| Vec3 { x: (cx as f32 + 0.5) * cell, y: 0.0, z: (cz as f32 + 0.5) * cell };
+    let clear = |at: Vec3| commanders.iter().all(|c| c.dist2d(at) >= COMMANDER_GAP);
+    let step = (DETOUR_LATTICE / cell).max(1.0) as usize;
+    let mut found: Vec<(f32, Vec3, Vec3, f32)> = Vec::new();
+    let mut best_ratio: Option<f32> = None;
+    for gz in (0..height).step_by(step) {
+        for gx in (0..width).step_by(step) {
+            if !flat_square(terrain, &standable, gx, gz, side, relief) {
+                continue;
+            }
+            let goal = centre(gx, gz);
+            if !clear(goal) {
+                continue;
+            }
+            let Some(field) = terrain::Field::from_many(terrain, &standable, &[goal]) else { continue };
+            for k in 0..(360 / DETOUR_STEP_DEG) {
+                let angle = (k * DETOUR_STEP_DEG) as f32 * std::f32::consts::PI / 180.0;
+                let start = Vec3 { x: goal.x + distance * angle.cos(), y: 0.0, z: goal.z + distance * angle.sin() };
+                let (sx, sz) = ((start.x / cell) as i32, (start.z / cell) as i32);
+                if !flat_square(terrain, &standable, sx, sz, side, relief) || !clear(start) {
+                    continue;
+                }
+                let Some(walk) = field.distance(start) else { continue };
+                let r = walk / distance;
+                best_ratio = Some(best_ratio.map_or(r, |b: f32| b.max(r)));
+                if r >= ratio {
+                    found.push((r, start, goal, walk));
+                }
+            }
+        }
+    }
+    found.sort_by(|a, b| b.0.total_cmp(&a.0));
+    let mut sites: Vec<Site> = Vec::new();
+    for (_, start, goal, walk) in found {
+        if sites.len() >= wanted {
+            break;
+        }
+        let apart = sites.iter().all(|s| {
+            let (a, b) = s.ends.expect("a detour site has ends");
+            [a, b].iter().all(|e| e.dist2d(start) >= SITE_GAP && e.dist2d(goal) >= SITE_GAP)
+        });
+        if apart {
+            let mid = Vec3 { x: (start.x + goal.x) / 2.0, y: 0.0, z: (start.z + goal.z) / 2.0 };
+            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk) });
+        }
+    }
+    (sites, best_ratio)
 }
 
 /// The least relief of any dry rectangle of `footprint` every listed unit can cross, whatever `footprint.relief` says,
@@ -247,4 +373,27 @@ fn rect_distance(centre: Vec3, point: Vec3, footprint: Footprint) -> f32 {
     let dx = ((point.x - centre.x).abs() - footprint.length / 2.0).max(0.0);
     let dz = ((point.z - centre.z).abs() - footprint.width / 2.0).max(0.0);
     dx.hypot(dz)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ranks along a heading: east is the old placement; north turns the ranks to run east-west with the second rank
+    /// to the south (behind a body facing north).
+    #[test]
+    fn ranks_are_laid_across_the_heading() {
+        let formation = Formation::parse("ranks2@64", 64.0).unwrap();
+        let front = Vec3 { x: 1000.0, y: 0.0, z: 1000.0 };
+        let east = formation.places(front, true, 4);
+        let along = formation.places_along(front, (1.0, 0.0), 4);
+        for (a, b) in east.iter().zip(&along) {
+            assert!((a.x - b.x).abs() < 0.01 && (a.z - b.z).abs() < 0.01, "{a:?} {b:?}");
+        }
+        assert_eq!((east[0].x, east[2].x), (1000.0, 936.0));
+        let north = formation.places_along(front, (0.0, -1.0), 4);
+        assert!(north.iter().take(2).all(|p| (p.z - 1000.0).abs() < 0.01), "{north:?}");
+        assert!(north.iter().skip(2).all(|p| (p.z - 1064.0).abs() < 0.01), "{north:?}");
+        assert!((north[0].x - north[1].x).abs() > 63.0);
+    }
 }

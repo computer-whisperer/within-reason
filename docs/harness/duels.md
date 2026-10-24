@@ -267,7 +267,14 @@ unconfounded by deaths; not a generator, whose death blast is the biggest weapon
 fight order ignores, see pitfalls.md; `armllt` or `armbeamer` for a turret, which a dozen units kill in about a second, so its fire comes in lives):
 the target is side `y`'s one unit, given again the tick after it dies and its deaths counted; every unit's first shot
 is recorded and the drill ends when every living mobile unit has fired (`engaged`). A drill that has not ended at
-`--time-limit` (240 s; a gather 480) is a `timeout`.
+`--time-limit` (240 s; a gather 480) is a `timeout`. Off the strip (design D10): `--from X,Z --to X,Z` runs the
+drill between two chosen points on any map, the army spawned at `from` facing `to` and the chooser not consulted;
+`--around RATIO` asks the chooser for a detour instead of a strip, a pair `--distance` apart as the crow flies whose
+walk on foot (the terrain crate's field over dry ground the force can stand on) is at least that ratio times the
+crow's, each end a flat square holding the formation and clear of the commanders, the longest detour found first
+(goals tried on a 640 lattice, starts every 5 degrees round each, about 30 s of choosing a match); when none passes
+the message says the best ratio the map offers. Quicksilver at 2,000 offers 1.37 (a Blitz column walked it as one
+file, 326 deep and 23 wide).
 
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
@@ -291,9 +298,13 @@ shape at contact, the second the first unit arrives at the goal in force (design
 `ramp_half_s` and `ramp_all_s` (each unit's depth behind the leader over its type's speed, the time until it fires beside
 the leader against a front: the median over the body and the largest; for an `into`, contact is the first shot), and
 for an `into` `first_shot_s` (from the first order), `shot_ramp_half_s` and `shot_ramp_all_s` (seconds from the first
-unit's first shot to the median unit's and the last's: the ramp measured instead of predicted) and `target_deaths`. The per-second
+unit's first shot to the median unit's and the last's: the ramp measured instead of predicted) and `target_deaths`;
+then `straight` (the crow's distance), `walk` (on foot, by the field) and `route_s` (the walk over the slowest type's
+speed, the arrival the engine's own path would give if it took the field's). The heading the shape is taken against is
+the body's: the centroid's displacement over the second when it is 10 or more, the axis to the goal in force otherwise
+(on a strip the two agree). The per-second
 log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
-formation, lane, fight, turn_at_s, reissue_s, target, target_at}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
+formation, lane, fight, turn_at_s, reissue_s, target, target_at, straight, walk, slowest}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
 and, for a gather, `stores` (the team's metal and energy as current, income, usage, storage), so
 `run/drill_table.py --types` can give each type its own arrival and speed share, which is where a mixed column's
 stringing shows, and derive the contact shape for a batch from before the columns existed. The duel's own instruments run too: `speed_x`

@@ -121,7 +121,7 @@ fn main() -> io::Result<()> {
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
             "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
             "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
-            "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f / drill::FPS), "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab, "target": d.target })),
+            "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f / drill::FPS), "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab, "target": d.target, "from": d.from, "to": d.to, "around": d.around })),
             "argv": std::env::args().collect::<Vec<_>>(),
             "disabled": std::env::var("WITHIN_REASON_DISABLE").ok(), "form_spacing": std::env::var("WITHIN_REASON_FORM_SPACING").ok(),
         }))?,
@@ -387,12 +387,19 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into() };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None };
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
     let mut economy_given = false;
     let mut map_given = false;
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
+    let point = |text: &str| -> (f32, f32) {
+        let parts: Vec<f32> = text.split(',').filter_map(|p| p.trim().parse().ok()).collect();
+        if parts.len() != 2 {
+            usage("--from and --to take X,Z in elmos");
+        }
+        (parts[0], parts[1])
+    };
     let (mut ours, mut theirs) = (Vec::new(), Vec::new());
     let mut formations = String::from("ranks8");
     let mut lanes = String::from("off");
@@ -473,6 +480,9 @@ fn parse_args() -> io::Result<Options> {
             }
             "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather or into"))),
             "--target" => drill_opts.target = value(),
+            "--from" => drill_opts.from = Some(point(&value())),
+            "--to" => drill_opts.to = Some(point(&value())),
+            "--around" => drill_opts.around = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--around takes a ratio, such as 1.3"))),
             "--distance" => drill_opts.distance = number(value()) as f32,
             "--order" => {
                 drill_opts.fight = match value().as_str() {
@@ -497,6 +507,15 @@ fn parse_args() -> io::Result<Options> {
         }
         if !theirs.is_empty() {
             usage("--drill fights nobody: no --theirs");
+        }
+        if drill_opts.from.is_some() != drill_opts.to.is_some() {
+            usage("--from and --to go together");
+        }
+        if drill_opts.from.is_some() && drill_opts.around.is_some() {
+            usage("--from/--to or --around, not both");
+        }
+        if drill_opts.from.is_some() {
+            options.sites = 1;
         }
         options.drill = Some(drill::Options { kind, ..drill_opts });
         options.pairs = ours.drain(..).map(|o| (o, plan::NOBODY.to_string())).collect();
@@ -561,7 +580,7 @@ fn parse_args() -> io::Result<Options> {
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
-       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12] [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
+       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)

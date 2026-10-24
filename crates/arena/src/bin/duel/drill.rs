@@ -37,6 +37,8 @@ pub const AT_THE_LAB: f32 = 400.0;
 /// The gather's stores are topped up to full whenever they fall under this share (the cheat gives nothing beyond the
 /// storage, and a tier-1 list costs more than the start's store holds).
 pub const TOP_UP_UNDER: f32 = 0.6;
+/// The body's centroid must move this far in a second for its displacement to be the heading (design D10).
+pub const HEADING_MOVED: f32 = 10.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -82,6 +84,10 @@ pub struct Options {
     pub turn_at: i32,
     /// `gather`: the plant that builds the force (`--lab`).
     pub lab: String,
+    /// Terrain cases (design D10): chosen ends on any map, or a detour of at least this ratio from the chooser.
+    pub from: Option<(f32, f32)>,
+    pub to: Option<(f32, f32)>,
+    pub around: Option<f32>,
     /// `into`: the structure on the goal (`--target`; the gantry by default: 16,000 health, no weapon, a death blast of
     /// 1,330 over 420 where a fusion's is 10,600 over 1,280, and units fire at it where they ignore a wall).
     pub target: String,
@@ -111,6 +117,10 @@ pub struct Score {
     pub shot_ramp_half_s: Option<f32>,
     pub shot_ramp_all_s: Option<f32>,
     pub target_deaths: u32,
+    /// Terrain (design D10): the crow's distance, the walk on foot, and the walk over the slowest type's speed.
+    pub straight: f32,
+    pub walk: Option<f32>,
+    pub route_s: Option<f32>,
 }
 
 /// One living mobile unit as the sampler sees it: its spawn index, id, place and its type's speed (elmos a second).
@@ -200,6 +210,13 @@ pub struct Drill {
     pub target_given: Option<i32>,
     pub target_deaths: u32,
     pub first_shot: HashMap<usize, i32>,
+    /// The crow's distance from the start to the goal, the walk on foot over standable ground (the terrain crate's
+    /// field; `None` when the goal is not reachable), and the slowest type's speed: `route_s` is the walk over it.
+    pub straight: f32,
+    pub walk: Option<f32>,
+    pub slowest: f32,
+    /// The body's centroid at the last sample, for the heading (its displacement over the second when 10 or more).
+    last_centroid: Option<Vec3>,
 }
 
 impl Drill {
@@ -237,6 +254,10 @@ impl Drill {
             target_given: None,
             target_deaths: 0,
             first_shot: HashMap::new(),
+            straight: options.distance,
+            walk: None,
+            slowest: 0.0,
+            last_centroid: None,
         }
     }
 
@@ -274,10 +295,26 @@ impl Drill {
         }
     }
 
-    /// The body's heading on the strip: from the end behind to the goal in force.
-    pub fn heading(&self) -> Vec3 {
+    /// The drill's axis: from the end behind to the goal in force.
+    pub fn axis(&self) -> Vec3 {
         let behind = if self.toward == self.goal { self.start } else { self.goal };
         Vec3 { x: self.toward.x - behind.x, y: 0.0, z: self.toward.z - behind.z }
+    }
+
+    /// The body's heading this second (design D10): the centroid's displacement since the last sample when it is
+    /// `HEADING_MOVED` or more, the axis otherwise (a standing body, the first second, or a strip where the two agree).
+    fn heading_now(&mut self, walkers: &[Walker]) -> Vec3 {
+        if walkers.is_empty() {
+            return self.axis();
+        }
+        let n = walkers.len() as f32;
+        let centroid = walkers.iter().fold(Vec3 { x: 0.0, y: 0.0, z: 0.0 }, |c, w| Vec3 { x: c.x + w.at.x / n, y: 0.0, z: c.z + w.at.z / n });
+        let moved = self.last_centroid.map(|last| Vec3 { x: centroid.x - last.x, y: 0.0, z: centroid.z - last.z });
+        self.last_centroid = Some(centroid);
+        match moved {
+            Some(d) if (d.x * d.x + d.z * d.z).sqrt() >= HEADING_MOVED => d,
+            _ => self.axis(),
+        }
     }
 
     /// Contact: the first unit at the goal in force, or for `into` the first shot.
@@ -289,7 +326,8 @@ impl Drill {
     /// spin-up and recovery clocks, the spread at the median arrival, and the body's shape (kept at contact).
     /// `expected` is how many units the drill waits for (`expected`).
     pub fn sample(&mut self, frame: i32, walkers: &[Walker], expected: usize, shooters: &[usize]) {
-        self.shape = Shape::of(walkers, self.heading());
+        let heading = self.heading_now(walkers);
+        self.shape = Shape::of(walkers, heading);
         for &i in shooters {
             self.first_shot.entry(i).or_insert(frame);
         }
@@ -395,6 +433,9 @@ impl Drill {
             shot_ramp_half_s: shots.first().map(|f| (shots[shots.len() / 2] - f) as f32 / FPS as f32),
             shot_ramp_all_s: shots.first().zip(shots.last()).map(|(f, l)| (l - f) as f32 / FPS as f32),
             target_deaths: self.target_deaths,
+            straight: self.straight,
+            walk: self.walk,
+            route_s: self.walk.filter(|_| self.slowest > 0.0).map(|w| w / self.slowest),
         }
     }
 }
@@ -408,7 +449,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into() }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None }
     }
 
     /// A walk: two units at full speed arrive 30 and 31 seconds in; the median arrival takes the shape; the score
@@ -454,6 +495,21 @@ mod tests {
         assert!(drill.done(&[0, 1]));
         let score = drill.score(0);
         assert_eq!((score.first_shot_s, score.shot_ramp_half_s, score.shot_ramp_all_s), (Some(20.0), Some(3.0), Some(3.0)));
+    }
+
+    /// The heading is the body's: a body walking north on an east-west axis has its depth measured along north once
+    /// its centroid has moved (design D10); the first sample takes the axis.
+    #[test]
+    fn the_heading_follows_the_body_once_it_moves() {
+        let mut drill = Drill::new(&options(Kind::Walk), at(5000.0, 1000.0), Vec::new());
+        drill.last_order = Some(0);
+        // Two units abreast across the axis (north-south), 200 apart: along the axis they are 0 deep.
+        let pair = |z: f32| vec![Walker { index: 0, id: UnitId(1), at: at(4000.0, z), speed: 100.0 }, Walker { index: 1, id: UnitId(2), at: at(4000.0, z + 200.0), speed: 100.0 }];
+        drill.sample(FPS, &pair(1000.0), 2, &[]);
+        assert_eq!(drill.shape.map(|s| (s.depth, s.width)), Some((0.0, 200.0)));
+        // The body walks north 100 in the second: the heading is north and the pair is now 200 deep, 0 wide.
+        drill.sample(2 * FPS, &pair(900.0), 2, &[]);
+        assert_eq!(drill.shape.map(|s| (s.depth, s.width)), Some((200.0, 0.0)));
     }
 
     /// The shape against a heading: depth along it from the leader back, width across it, the ramp each unit's depth

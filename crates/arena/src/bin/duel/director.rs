@@ -583,7 +583,7 @@ impl Director {
                 .collect();
             let near = if near.is_empty() { "none".to_string() } else { near.join(" ") };
             eprintln!("match {}: scenario at ({x:.0},{z:.0}); commanders within 2000: {near}", self.match_index);
-            self.fields = Some(vec![Field { site: Site { centre }, duel: None, fought: 0, abandoned: false }]);
+            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None }, duel: None, fought: 0, abandoned: false }]);
             return;
         }
         let queue = self.batch.queue.lock().unwrap();
@@ -601,17 +601,45 @@ impl Director {
             }
         }
         if let Some(options) = &self.batch.drill {
-            // The strip the largest army of the batch walks in its formation (`drill.rs`).
+            // The strip the largest army of the batch walks in its formation (`drill.rs`), or the square each end
+            // needs off the strip (design D10).
             let mut footprint = Footprint { length: 0.0, width: 0.0, relief: sites::DRILL_RELIEF };
+            let mut square = 0.0f32;
             for job in queue.iter() {
                 if let Some([x, _]) = self.sized(job) {
-                    let strip = Footprint::strip(options.distance, self.batch.shapes[job.shape][0], x.iter().map(|(_, n)| n).sum());
+                    let count = x.iter().map(|(_, n)| n).sum();
+                    let strip = Footprint::strip(options.distance, self.batch.shapes[job.shape][0], count);
                     footprint.length = footprint.length.max(strip.length);
                     footprint.width = footprint.width.max(strip.width);
+                    square = square.max(Footprint::drill_square(self.batch.shapes[job.shape][0], count));
                 }
             }
             drop(queue);
             let commanders: Vec<Vec3> = self.commanders.values().copied().collect();
+            let terrain = &hello.terrain;
+            let standable = sites::standable(terrain, max_slope);
+            let walk_between = |a: Vec3, b: Vec3| terrain::Field::from_many(terrain, &standable, &[b]).and_then(|f| f.distance(a));
+            if let (Some(from), Some(to)) = (options.from, options.to) {
+                // Chosen ends on any map: one site, the chooser not consulted.
+                let (a, b) = (Vec3 { x: from.0, y: ground(terrain, from.0, from.1), z: from.1 }, Vec3 { x: to.0, y: ground(terrain, to.0, to.1), z: to.1 });
+                let walk = walk_between(a, b);
+                let mid = Vec3 { x: (a.x + b.x) / 2.0, y: 0.0, z: (a.z + b.z) / 2.0 };
+                eprintln!("match {}: drill from ({:.0},{:.0}) to ({:.0},{:.0}): {:.0} as the crow flies, {} on foot", self.match_index, a.x, a.z, b.x, b.z, a.dist2d(b), walk.map_or("no way".to_string(), |w| format!("{w:.0}")));
+                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk }, duel: None, fought: 0, abandoned: false }]);
+                return;
+            }
+            if let Some(ratio) = options.around {
+                let detour = sites::Detour { distance: options.distance, ratio, side: square, relief: sites::DRILL_RELIEF };
+                let (sites, best) = sites::choose_detour(terrain, max_slope, &commanders, self.wanted_sites, detour);
+                if sites.is_empty() {
+                    self.fatal = Some(format!("no detour of {ratio:.2} or more at {:.0} with ends of {square:.0} square found on {}: the best is {}", options.distance, hello.map.name, best.map_or("none".to_string(), |b| format!("{b:.2}"))));
+                    return;
+                }
+                let at: Vec<String> = sites.iter().map(|s| { let (a, b) = s.ends.expect("ends"); format!("({:.0},{:.0})->({:.0},{:.0}) {:.0} on foot", a.x, a.z, b.x, b.z, s.walk.unwrap_or(0.0)) }).collect();
+                eprintln!("match {}: drill detour(s) of {:.0} as the crow flies: {}", self.match_index, options.distance, at.join(" "));
+                self.fields = Some(sites.into_iter().map(|site| Field { site, duel: None, fought: 0, abandoned: false }).collect());
+                return;
+            }
             let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, footprint);
             if sites.is_empty() {
                 // What the map offers: the flattest strip of that size, else the longest dry passable strip of that width
@@ -638,6 +666,9 @@ impl Director {
             }
             let at: Vec<String> = sites.iter().map(|s| format!("({:.0},{:.0})", s.centre.x, s.centre.z)).collect();
             eprintln!("match {}: drill strip(s) of {:.0} x {:.0} at {}", self.match_index, footprint.length, footprint.width, at.join(" "));
+            // The strip's walk on foot, for `route_s` (flat, so the crow's distance, unless the ground says otherwise).
+            let half = options.distance / 2.0;
+            let sites: Vec<Site> = sites.into_iter().map(|mut s| { s.walk = walk_between(Vec3 { x: s.centre.x - half, ..s.centre }, Vec3 { x: s.centre.x + half, ..s.centre }); s }).collect();
             self.fields = Some(sites.into_iter().map(|site| Field { site, duel: None, fought: 0, abandoned: false }).collect());
             return;
         }
@@ -746,17 +777,27 @@ impl Director {
             let wanted: Vec<(UnitDefId, u32)> = force_x.iter().map(|(n, c)| (self.defs[n].id, *c)).collect();
             let mut drill = Drill::new(options, centre, wanted);
             let place = |at: Vec3| Vec3 { x: at.x, y: ground(terrain, at.x, at.z), z: at.z };
+            if let Some((a, b)) = field.site.ends {
+                (drill.start, drill.goal) = (a, b);
+            }
             drill.start = place(drill.start);
             drill.goal = place(drill.goal);
             drill.toward = drill.goal;
+            drill.straight = drill.start.dist2d(drill.goal);
+            drill.walk = field.site.walk;
+            drill.slowest = force_x.iter().map(|(n, _)| self.defs[n].speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+            if drill.slowest.is_infinite() {
+                drill.slowest = 0.0;
+            }
             let start = drill.start;
+            let heading = (drill.goal.x - start.x, drill.goal.z - start.z);
             let spawns: Vec<Spawn> = if options.kind == drill::Kind::Gather {
                 drill.lab = Some(0);
                 vec![Self::spawn(&self.defs[&options.lab], start, None)]
             } else {
                 let count: u32 = force_x.iter().map(|(_, n)| n).sum();
                 let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
-                form_x.places(start, true, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)).collect()
+                form_x.places_along(start, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)).collect()
             };
             // `into`: the target stands on the goal for side `y`, given again when it dies (`drill_target`).
             let target: Vec<Spawn> = if options.kind == drill::Kind::Into {
@@ -1789,6 +1830,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f / FPS),
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
+        "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
     } })
 }
 

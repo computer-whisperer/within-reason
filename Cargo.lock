@@ -53,6 +53,7 @@ dependencies = [
  "micro",
  "serde",
  "serde_json",
+ "terrain",
  "zstd",
 ]
 
