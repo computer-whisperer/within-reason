@@ -107,10 +107,19 @@ pub struct LpOptions {
     /// hands that give no reclaim order: a plan that counts on 2,600 back at 10:22 is wrong by that much when
     /// nothing takes the plant down.
     pub reclaim: bool,
-    /// Seconds a constructor loses per unit it builds, by kind: an extractor or its upgrade (the spot; with one
-    /// ring the whole walk, a median 56-66 s over every batch since terr25), any other building, a factory; and the
-    /// commander's own three. From the territory bot's `begun:` lines (the order's age at its frame).
+    /// Seconds a constructor loses per unit it builds, by kind: an extractor, its upgrade, any other building, a
+    /// factory; and the commander's own three. From the territory bot's `begun:` lines (the order's age at its
+    /// frame): with one ring the extractor's is the whole walk, a median 56-66 s over every batch to terr69, when
+    /// the hands walked home between spots; chained spot to spot (terr72) a constructor's extractor frame comes
+    /// 12-19 s after its order through 9:00 and its upgrade's 28-42 s from 10:00 (the far spots, the walk from
+    /// the base). At 65 the program's own plan from the start was 18 extractors and 43 a second at 5:00, the
+    /// hands' exactly; at 15 it is 25 and 59, thebluegecko's 26 and 62 (terr73-75). The territory bot grows the
+    /// extractor's walk with the plan's t0 (its `walk_late`, 40 at 10:00: at one 15-s walk the plans from 10:00
+    /// wanted 21-24 constructors against 25-28 and 20:00 read 40-70 under); here the defaults are a plan from the
+    /// start. The commander's at 40: at 16 the program gave it nine spots by 5:00 and the hands walked it 1,950 out
+    /// for the fifth (terr72-75); at 40, two spots and ten solars, his commander's day (terr76).
     pub walk_extractor: f64,
+    pub walk_upgrade: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
     pub commander_walk_extractor: f64,
@@ -167,10 +176,11 @@ impl Default for LpOptions {
             farm_big: 0.0,
             bank: false,
             reclaim: false,
-            walk_extractor: 65.0,
+            walk_extractor: 15.0,
+            walk_upgrade: 40.0,
             walk_base: 3.0,
             walk_factory: 40.0,
-            commander_walk_extractor: 16.0,
+            commander_walk_extractor: 40.0,
             commander_walk_base: 5.0,
             commander_walk_factory: 9.0,
             commander_reach: 1500.0,
@@ -459,7 +469,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         let com = b == commander;
         match columns[i].class {
             Class::Ring(_) if rings_n == 1 => {
-                if com { options.commander_walk_extractor } else { options.walk_extractor }
+                if com { options.commander_walk_extractor } else if is_upgrade(u) { options.walk_upgrade } else { options.walk_extractor }
             }
             Class::Ring(k) => options.ring_overhead + rings[k].distance / units.list[b].speed.max(1.0),
             _ if units.list[u].role == Role::Factory => {

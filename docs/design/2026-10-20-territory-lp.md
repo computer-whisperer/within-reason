@@ -451,3 +451,16 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   14:00 against his 29, since its advanced constructors (one every 16-20 s) are what its metal and upgrade pace want.
   The marks level; the arm off by default. The test: an advanced lab with six turrets makes 7.5 constructors in a
   minute with the option against 3.2 without, and a basic lab gets no pair.
+- 2026-10-25, the extractor walk (terr73-83): `walk_extractor` 15 (65 before), `walk_upgrade` 40, the commander's
+  40 (16 before), and in the territory bot the extractor's walk grows from 15 at the start to `walk_late` 40 at
+  `walk_late_from` 600 s by the plan's t0 (lib.rs): the realized order age at a constructor's extractor frame is
+  12-19 s through 9:00 once the constructors chain spot to spot and 28-42 s from 10:00, the 65 having been measured
+  when the hands walked home between spots. At 65 the plan from the start was 18 extractors and 43 a second at 5:00
+  with 11 constructors, the hands' figures exactly; at 15 it is 25 and 59 with 8, thebluegecko's 26 and 62 with 9;
+  the annealer over the simulator gives 27 and 59.8 for five minutes. His 5:00 is above both models: the sixty-second
+  buckets from 1:00 (a constructor finished in a bucket builds from the next), the reserve, and the first factory
+  at a fraction (0.9 at 5:00) are the program's pessimism. One 15-s walk for the whole game had the plans from
+  10:00 want 21-24 constructors against 25-28 and 20:00 read 40-70 under; grown to 40 by t0 it reads 962-1,007.
+  The commander at 16 was given nine spots by 5:00 and the hands walked it 1,950 out for the fifth; at 40 two spots
+  and ten solars, his commander's day. `--reclaim` takes nothing down before 13:00 from the start: the plant's
+  reclaim at 4:41 is not in the program's interest while it wants the plant's constructors.

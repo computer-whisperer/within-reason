@@ -216,3 +216,24 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   10:00 and 15:00 up in all four games (46 / 39 / 41 / 39, 175 / 174 / 151 / 170, 464 / 416 / 417 / 457 against
   34, 135-154, 352-432) and 20:00 three of four (899-1,040). The energy still runs dry at 5:00-7:00 in two games
   (the extractors outrun it): the far constructors' energy is the next item.
+- 2026-10-25, the opening (the user: "Focus on the openings: any amount we fall behind in the first 5 minutes is
+  basically unrecoverable", and thebluegecko's 62 at 5:00 is above the program's own ceiling). Read first: the
+  program's plan from the seed-1 start promised 45 at 5:00 with 19 extractors, the hands' figures exactly; at the
+  realized 15-s extractor walk (12-19 s through 9:00 once the constructors chain; the 65 was measured when they
+  walked home between spots) it promises 59 with 25 extractors and 8 constructors, his 62 / 26 / 9, and the
+  annealer's five-minute opening is 59.8 with 27: his 5:00 is above both models. The constructors chain at full rate
+  from their first order (a frame every 33-36 s); the plan was the limit, then the constructors' minutes. Eleven
+  batches (terr73-83, ledger): the walk alone changed nothing the hands could use (the three constructors on the
+  advanced plant from 3:40 were the missing ones); the plant committed on the bank (`commit_afford` 45 s of income;
+  90 before) with its frame's helpers from anywhere (`plant_helpers_from`) stands at 5:20-5:26, his 5:35, built in
+  57-88 s; the commander kept home (`com_leash` 700, its walk priced at 40) builds its solars from 2:46 and guards
+  the plant on a metal budget (two of the product in the stock and twenty seconds of income; on the stock alone it
+  never guarded, ungated it starved the stock to zero for two minutes); a constructor with a spot's credit leaves
+  the stall's solar to the others (its first extractor at 1:48 against 2:33); the first-minute variants (four spots,
+  his three solars before the plant, one spot) all lost 5-15 at 5:00: the plant at 0:32 after two spots stands, as
+  terr48 found. The extractor walk grows with the plan's t0 (15 to 40 at 10:00; one 15-s walk cost 20:00 40-70).
+  The standing state (terr83, the defaults): 5:00 43.3 / 43.3 / 46.8 / 43.3 (terr72 45.6 / 38.7 / 41.0 / 38.7),
+  6:00 68.6 / 66.3 / 68.6 / 61.7 (59.4 / 54.8 / 55.9 / 52.5, up 9-13 in all four), 8:00 98-110, 10:00 149-176,
+  15:00 404-517, 20:00 962-1,007. The gap to his 5:00: his seven constructors by 3:16 against the hands' by 4:00
+  (his plant, fed and guarded, one every 17 s; the hands' one every 27-30 s on a stock at zero from 2:00 to 3:30)
+  and his third extractor at 0:25 (the hands' third spot is 562 out) compounding from there.

@@ -61,16 +61,17 @@ const FACTORY_HELPERS: usize = 6;
 /// 5-30 s after the order with the builder idle a few hundred elmos from where it was ordered, forty constructors
 /// placing solars beside themselves round one base).
 const PENDING_SITE: f32 = 70.0;
-/// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1: following
-/// its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to his commander
-/// 7,300 elmos from home, two games of four lost).
-pub(crate) const COMMANDER_LEASH: f32 = 1500.0;
 /// T-OPENING: in the game's first minute the commander takes the free spots within this of home before anything
 /// else, nearest first: the pros' opening (K-open-comet-pro-order; thebluegecko's extractors at 0:03, 0:10 and 0:25
 /// beside his start, the plant at 1:01), where the plan's lab-first opening put the bot's first three at 0:52,
 /// 1:06 and 1:23 (terr47). The program prices the commander's every extractor at one walk (16 s); the spots beside
-/// the start cost it six, and on three of them fifty seconds earlier it is a thousand metal by 5:00.
-const OPENING_SPOTS: f32 = 500.0;
+/// the start cost it six, and on three of them fifty seconds earlier it is a thousand metal by 5:00. The radius is
+/// the arm `opening_spots` (500). A spot is taken while the energy stock covers half an extractor's 500 (the walk's
+/// income covers the rest). The plant comes next, before the energy for it: his three solars before the plant at
+/// 1:01 put the plant's first constructor at 1:21, and with the hands' four spots and three or four solars before
+/// the plant it came at 2:17 (terr78-79, behind at every mark to 8:00), where the plant at 0:32 on an energy stock
+/// of 900, stalled fourteen seconds, has it at 1:07; the annealer's five-minute opening is one spot, the factory at
+/// once, then the solars.
 const OPENING: i32 = MINUTE;
 /// A factory's commit or class pick goes to a builder within this of home (T-COMMIT).
 const FACTORY_PLACER: f32 = 1000.0;
@@ -167,9 +168,9 @@ pub(crate) const AFFORD_SECONDS: f64 = 90.0;
 /// of a lab in the first minute of the ceiling, 0.3 of an advanced plant from 7:00 for every moho it makes), and a
 /// fraction of a factory makes nothing in the engine. Five minutes: within three the Armada plans' vehicle plant,
 /// wanted at 0.5-0.9 by the end from 3:35, stayed under the threshold until 6:20 while the Cortex plans' whole
-/// advanced lab passed it at 4:17 (terr49: 566 / 623 at 20:00 against 733 / 800).
-const COMMIT_WITHIN: f64 = 300.0;
-const COMMIT_AT: f64 = 0.05;
+/// advanced lab passed it at 4:17 (terr49: 566 / 623 at 20:00 against 733 / 800). The window, the threshold and the
+/// seconds of income the stock must cover the factory's cost with are the arms `commit_within` (300), `commit_at`
+/// (0.05) and `commit_afford` (90).
 /// T-STRUCK: a unit type whose orders have come to nothing this many times, more often than its frames have begun,
 /// is struck from the palette for the rest of the game, and its remaining steps are passed over (terr1-nullai-comet-1:
 /// every wind generator order on Comet was dropped by the engine, 9-21 a game, and every Cortex tier-2 extractor,
@@ -469,8 +470,9 @@ impl Territory {
         let Some(unit) = self.unit_index(builder.def) else { return };
         let now = self.frame as f64 / SECOND as f64;
         let ahead = now + LEAD;
-        // T-OPENING: the commander's first minute is the spots beside the start.
-        if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && self.free_spot(builder.pos, None, Some((self.home, OPENING_SPOTS)), None).is_some() {
+        // T-OPENING: the commander's first minute is the spots beside the start, while the energy stock covers half
+        // an extractor's.
+        if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && (self.energy.current as f64) >= self.game().units.list[extractor].energy_cost / 2.0 && self.free_spot(builder.pos, None, Some((self.home, self.options.opening_spots)), None).is_some() {
             let cost = self.game().units.list[extractor].build_time;
             if self.order_one(id, unit, role, extractor, cost, Some(self.ring_of_pos(self.home)), "opening", commands) {
                 return;
@@ -494,7 +496,8 @@ impl Territory {
             // commander on both to 5:00); the intent is the plant of the tier the upgrades need.
             let tier = |u: usize| (units.list[u].role, units.list[u].builds.iter().any(|b| self.is_upgrade(*b)));
             let covered: Vec<(Role, bool)> = self.own.values().filter_map(|f| self.unit_index(f.def)).chain(ordered).filter(|f| units.list[*f].role == Role::Factory).flat_map(|f| units.list[f].builds.iter().map(|p| tier(*p))).collect();
-            let wanted_soon = |u: usize| (0..=6).any(|k| targets.count_at(u, now + k as f64 * COMMIT_WITHIN / 6.0) >= COMMIT_AT);
+            let (within, at) = (self.options.commit_within, self.options.commit_at);
+            let wanted_soon = |u: usize| (0..=6).any(|k| targets.count_at(u, now + k as f64 * within / 6.0) >= at);
             // One commitment at a time: with a factory framed or ordered, none (terr32: the program wanting both
             // constructor kinds, a lab and a vehicle plant were committed in the first minute, and the commander
             // built both and assisted them to 5:00 on an income of seven).
@@ -506,9 +509,10 @@ impl Territory {
                 .iter()
                 .copied()
                 .filter(|_| !pending_factory && !too_early)
+                .filter(|f| units.list[*f].metal_cost <= self.metal.current as f64 + self.metal.income as f64 * self.options.commit_afford)
                 .filter(|f| units.list[*f].role == Role::Factory && def.builds.contains(f) && !self.hands.struck.contains(f))
                 .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(&tier(*p)) && wanted_soon(*p)))
-                .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
+                .max_by(|a, b| targets.count_at(*a, now + within).total_cmp(&targets.count_at(*b, now + within)))
         };
         // The classes: the factories as a whole for a mobile builder; a factory's products by role.
         let class_pick: Option<usize> = commit.or_else(|| {
@@ -575,15 +579,20 @@ impl Territory {
             return;
         }
         // A factory's frame first (FACTORY_HELPERS), on the producers' budget; builders at the base only (terr70: one
-        // to three constructors 2,000 out walked 45-100 s to the plant's frame and back out to the spots).
-        let factory_frame: Option<UnitId> = if builder.pos.dist2d(self.home) > FACTORY_PLACER { None } else {
+        // to three constructors 2,000 out walked 45-100 s to the plant's frame and back out to the spots), but an
+        // advanced plant's frame calls them from `plant_helpers_from` (his nine constructors came home for the plant
+        // at 5:35 and built it in 43 s; alone its placer is 300 s).
+        let from_home = builder.pos.dist2d(self.home);
+        let factory_frame: Option<UnitId> = {
             let units = &self.game().units;
+            let advanced = |i: usize| units.list[i].builds.iter().any(|c| units.list[*c].builds.iter().any(|u| self.is_upgrade(*u)));
             self.own
                 .values()
                 .filter(|f| f.being_built)
                 .filter_map(|f| {
                     let i = self.unit_index(f.def)?;
-                    (units.list[i].role == Role::Factory && self.helpers_on(f.id) < FACTORY_HELPERS && self.energy_fits(i, unit)).then_some((f.id, f.pos.dist2d(builder.pos)))
+                    let near_enough = from_home <= FACTORY_PLACER || (advanced(i) && from_home <= self.options.plant_helpers_from);
+                    (units.list[i].role == Role::Factory && near_enough && self.helpers_on(f.id) < FACTORY_HELPERS && self.energy_fits(i, unit)).then_some((f.id, f.pos.dist2d(builder.pos)))
                 })
                 .min_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(id, _)| id)
@@ -656,7 +665,11 @@ impl Territory {
         // 62 s with a step of 1,110, solars, advanced solars and turrets between (terr45 game 00); and the program's
         // own 5:00 is 62, his figure, at a walk of 36 s an extractor against 50 at the hands' realized 65.
         let far = self.options.chain && role == Role::Builder && builder.pos.dist2d(self.home) > BESIDE;
-        let chain = far && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
+        // A constructor with a spot's credit, at the base too: a new constructor's first order was the stall's
+        // solar beside the plant (terr75-81, 1:43-1:49, the first extractor at 2:33 against his first constructor's
+        // at 1:56), where the commander's solars stand a minute later anyway.
+        let spots_credit = self.options.chain && role == Role::Builder && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
+        let chain = far && spots_credit;
         if chain {
             flows.retain(|f| matches!(f.1, Class::Ring(_)));
         } else if far {
@@ -671,7 +684,7 @@ impl Territory {
         }
         // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them; a chaining
         // constructor leaves the stall's solar to the builders at the base.
-        if !chain && self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
+        if !spots_credit && self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
             return;
         }
         for (u, class, kind, _, cost, _) in flows {
@@ -702,6 +715,17 @@ impl Territory {
                     let made_here = self.own.get(&factory).and_then(|f| self.unit_index(f.def)).is_some_and(|fi| self.game().units.list[fi].builds.contains(&unit));
                     let guards = self.hands.orders.values().filter(|o| matches!(&o.what, What::Assist { factory: f, .. } if *f == factory)).count();
                     if made_here || guards >= ASSIST_GUARDS {
+                        continue;
+                    }
+                    // Only while the stock and the chunk's income cover two of the product, the factory's own and
+                    // the guard's: a guard on a factory the metal cannot feed only spreads the stall to every frame
+                    // (terr76 game 00: the commander's two chunks on the vehicle plant at 2:06 and 2:26 pumped a
+                    // constructor every 16 s on an income of 9, the stock at zero from 2:00 to 4:00, the
+                    // constructors' extractor frames 40 s each and 3 extractors at 3:00 against 6), and against the
+                    // stock alone the commander never guarded (terr81: the stock under 135 at every idle moment,
+                    // eight constructors by 4:53 against terr76's nine by 4:51 and 5:00 down 2-7 in three games).
+                    let budget = self.metal.current as f64 + self.metal.income as f64 * f64::from(ASSIST_CHUNK / SECOND);
+                    if budget < 2.0 * self.game().units.list[u].metal_cost {
                         continue;
                     }
                     if !self.energy_fits(u, unit) {
@@ -1338,7 +1362,7 @@ impl Territory {
                     self.log(format_args!("upgrade: {} over unit {} at ({:.2},{:.2}) by unit {}", target.name, standing.id.0, standing.pos.x, standing.pos.z, id.0));
                     BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
                 } else if target.extracts_metal > 0.0 {
-                    let leash = (role == Role::Commander).then_some((self.home, COMMANDER_LEASH));
+                    let leash = (role == Role::Commander).then_some((self.home, self.options.com_leash));
                     let spot = self.free_spot(builder.pos, step.site, leash, ring)?;
                     BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
                 } else {
@@ -1525,7 +1549,7 @@ impl Territory {
         self.own
             .values()
             .filter(|u| !u.being_built && u.id != id)
-            .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < COMMANDER_LEASH)
+            .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < self.options.com_leash)
             .filter(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i)))
             .filter(|u| ring.is_none_or(|k| self.ring_of_pos(u.pos) == k))
             .filter(|u| !ordered.iter().any(|o| o.dist2d(u.pos) < SPOT_TAKEN))

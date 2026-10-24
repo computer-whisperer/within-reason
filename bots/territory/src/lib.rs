@@ -194,13 +194,15 @@ impl Territory {
             farm_big: o.farm_big,
             bank: o.bank,
             reclaim: o.reclaim,
-            walk_extractor: o.walk_extractor,
+            // The extractor's walk by the game's time: the near spots first, the far ones from the base later.
+            walk_extractor: o.walk_extractor + (o.walk_late - o.walk_extractor) * (state.t0 / o.walk_late_from.max(1.0)).clamp(0.0, 1.0),
+            walk_upgrade: o.walk_upgrade,
             walk_base: o.walk_base,
             walk_factory: o.walk_factory,
             commander_walk_extractor: o.commander_walk_extractor,
             commander_walk_base: o.commander_walk_base,
             commander_walk_factory: o.commander_walk_factory,
-            commander_reach: hands::COMMANDER_LEASH as f64,
+            commander_reach: o.com_leash as f64,
             rings: o.rings,
             ring_overhead: o.ring_overhead,
         });

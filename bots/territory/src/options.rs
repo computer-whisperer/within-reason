@@ -62,6 +62,13 @@ pub(crate) struct Options {
     /// turrets' power is for frames only).
     pub nano_assist: f64,
     pub walk_extractor: f64,
+    /// The extractor's walk grows from `walk_extractor` at the start to `walk_late` at `walk_late_from` seconds of
+    /// the game, by the plan's own t0 (the realized order age at a constructor's extractor frame: 12-19 s through
+    /// 9:00, 28-42 s from 10:00; at one 15-s walk the plans from 10:00 wanted 21-24 constructors against 25-28 and
+    /// 20:00 read 40-70 under, terr73-82).
+    pub walk_late: f64,
+    pub walk_late_from: f64,
+    pub walk_upgrade: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
     pub commander_walk_extractor: f64,
@@ -70,6 +77,21 @@ pub(crate) struct Options {
     /// The program's distance rings for extractors (one: the walk a constant), and the overhead beside a ring's walk.
     pub rings: usize,
     pub ring_overhead: f64,
+    /// T-COMMIT's window and threshold (hands.rs): a factory type the program wants at `commit_at` of one within
+    /// `commit_within` seconds is started whole, once the stock and `commit_afford` seconds of income cover its cost
+    /// (no more than AFFORD_SECONDS, where order_one's own affordability binds).
+    pub commit_within: f64,
+    pub commit_at: f64,
+    pub commit_afford: f64,
+    /// An advanced plant's frame (one whose constructors build an upgrade) calls its helpers from constructors within
+    /// this of home; a basic factory's from FACTORY_PLACER (hands.rs).
+    pub plant_helpers_from: f32,
+    /// T-OPENING (hands.rs): the commander's first minute is the free spots within this of home.
+    pub opening_spots: f32,
+    /// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1:
+    /// following its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to
+    /// his commander 7,300 elmos from home, two games of four lost); the program's `commander_reach` too.
+    pub com_leash: f32,
 }
 
 impl Default for Options {
@@ -106,14 +128,23 @@ impl Default for Options {
             chain: true,
             assist_factor: 2.0,
             nano_assist: 0.0,
-            walk_extractor: 65.0,
+            walk_extractor: 15.0,
+            walk_late: 40.0,
+            walk_late_from: 600.0,
+            walk_upgrade: 40.0,
             walk_base: 3.0,
             walk_factory: 40.0,
-            commander_walk_extractor: 16.0,
+            commander_walk_extractor: 40.0,
             commander_walk_base: 5.0,
             commander_walk_factory: 9.0,
             rings: 1,
             ring_overhead: 5.0,
+            commit_within: 300.0,
+            commit_at: 0.05,
+            commit_afford: 45.0,
+            plant_helpers_from: 4000.0,
+            opening_spots: 500.0,
+            com_leash: 700.0,
         }
     }
 }
@@ -159,6 +190,9 @@ impl Options {
                 "assist" => options.assist_factor = value.parse().unwrap_or(options.assist_factor),
                 "nanoassist" => options.nano_assist = value.parse().unwrap_or(options.nano_assist),
                 "walk_extractor" => options.walk_extractor = value.parse().unwrap_or(options.walk_extractor),
+                "walk_upgrade" => options.walk_upgrade = value.parse().unwrap_or(options.walk_upgrade),
+                "walk_late" => options.walk_late = value.parse().unwrap_or(options.walk_late),
+                "walk_late_from" => options.walk_late_from = value.parse().unwrap_or(options.walk_late_from),
                 "walk_base" => options.walk_base = value.parse().unwrap_or(options.walk_base),
                 "walk_factory" => options.walk_factory = value.parse().unwrap_or(options.walk_factory),
                 "com_walk_extractor" => options.commander_walk_extractor = value.parse().unwrap_or(options.commander_walk_extractor),
@@ -166,6 +200,12 @@ impl Options {
                 "com_walk_factory" => options.commander_walk_factory = value.parse().unwrap_or(options.commander_walk_factory),
                 "rings" => options.rings = value.parse().unwrap_or(options.rings),
                 "ring_overhead" => options.ring_overhead = value.parse().unwrap_or(options.ring_overhead),
+                "commit_within" => options.commit_within = value.parse().unwrap_or(options.commit_within),
+                "commit_at" => options.commit_at = value.parse().unwrap_or(options.commit_at),
+                "commit_afford" => options.commit_afford = value.parse().unwrap_or(options.commit_afford),
+                "plant_helpers_from" => options.plant_helpers_from = value.parse().unwrap_or(options.plant_helpers_from),
+                "opening_spots" => options.opening_spots = value.parse().unwrap_or(options.opening_spots),
+                "com_leash" => options.com_leash = value.parse().unwrap_or(options.com_leash),
                 _ => {}
             }
         }
@@ -174,9 +214,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}",
             if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash
         )
     }
 }
