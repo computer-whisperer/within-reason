@@ -151,6 +151,30 @@ def contact_shape(batch, row, speeds):
     return None
 
 
+def speeds_by_second(batch, row, speeds):
+    """From one duel's per-second log: the median unit speed (elmos a second) each second from the first order, for
+    reading a pace's steadiness."""
+    read = read_log(batch, row)
+    if read is None:
+        return None
+    _meta, log = read
+    last = {}
+    out = []
+    for r in log:
+        t = r["t"]
+        moved = []
+        for index, x, z, _health in r.get("x", []):
+            if index in last:
+                lx, lz, lt = last[index]
+                if t > lt:
+                    moved.append(((x - lx) ** 2 + (z - lz) ** 2) ** 0.5 / (t - lt))
+            last[index] = (x, z, t)
+        if moved:
+            moved.sort()
+            out.append(moved[len(moved) // 2])
+    return out
+
+
 def per_type(batch, row, speeds):
     """From one duel's per-second log: each type's median arrival at the goal and mean speed share before the army's
     median arrival. None when the log is missing."""
@@ -203,6 +227,7 @@ def main():
     args = sys.argv[1:]
     by = ["x", "form_x", "lane_x"]
     types = False
+    seconds = False
     batches = []
     i = 0
     while i < len(args):
@@ -211,6 +236,9 @@ def main():
             i += 2
         elif args[i] == "--types":
             types = True
+            i += 1
+        elif args[i] == "--seconds":
+            seconds = True
             i += 1
         else:
             batches.append(args[i])
@@ -228,7 +256,7 @@ def main():
         except OSError:
             pass
         label = os.path.basename(os.path.normpath(batch))
-        print(f"## {label}: drill {meta.get('kind', '?')}, {meta.get('distance', '?')} elmos, order {meta.get('order', '?')}, reissue {meta.get('reissue_s') or 'once'}, {len(rows)} duels")
+        print(f"## {label}: drill {meta.get('kind', '?')}, {meta.get('distance', '?')} elmos, order {meta.get('order', '?')}, reissue {('%g s' % meta['reissue_s']) if meta.get('reissue_s') else 'once'}{', lead ' + str(meta['lead']) if meta.get('lead') else ''}{', pace ' + str(meta['pace']) if meta.get('pace') else ''}, {len(rows)} duels")
         if not rows:
             continue
         groups = {}
@@ -282,6 +310,11 @@ def main():
                             p[k].append(v[k])
                 for name, p in sorted(per.items()):
                     print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | | | | |")
+            if seconds:
+                for r in rs[:1]:
+                    series = speeds_by_second(batch, r, speeds)
+                    if series:
+                        print(f"|   first duel, median speed each second: {' '.join(fmt(v) for v in series)} |")
         print()
 
 

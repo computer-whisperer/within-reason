@@ -1707,10 +1707,16 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
 /// the feeder's), and
 /// each new soldier of the list adopted into the army as it appears at the lab and sent on at once.
 fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, frame: i32, commands: &mut Vec<Command>) {
-    let mobile: Vec<UnitId> = army.alive.keys().copied().filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile)).collect();
+    let mobile: Vec<(UnitId, Vec3, Vec3)> = (army.alive.keys().copied())
+        .filter_map(|u| {
+            let spawn = &army.spawns[*army.spawn_of.get(&u)?];
+            spawn.mobile.then(|| (u, army.seen_at.get(&u).copied().unwrap_or(drill.start), spawn.at))
+        })
+        .collect();
     let order_all = |drill: &mut Drill, commands: &mut Vec<Command>| {
         drill.last_order = Some(frame);
-        commands.extend(mobile.iter().map(|&u| drill.order(u)));
+        drill.first_order.get_or_insert(frame);
+        commands.extend(mobile.iter().map(|&(u, at, spawned)| drill.order(u, at, spawned, frame)));
     };
     if drill.kind == drill::Kind::Gather {
         let Some(lab) = drill.lab.and_then(|i| army.unit_of.get(&i).copied()) else { return };
@@ -1751,7 +1757,8 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
             army.alive.insert(unit.id, 1.0);
             army.max_health.insert(unit.id, unit.max_health);
             drill.appeared.insert(i, frame);
-            commands.push(drill.order(unit.id));
+            drill.first_order.get_or_insert(frame);
+            commands.push(drill.order(unit.id, unit.pos, unit.pos, frame));
         }
         if drill.reissue_due(frame) {
             order_all(drill, commands);
@@ -1828,7 +1835,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
     json!({ "meta": {
         "drill": drill.kind.label(), "start": [drill.start.x.round(), drill.start.z.round()], "goal": [drill.goal.x.round(), drill.goal.z.round()],
         "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
-        "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f / FPS),
+        "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f as f32 / FPS as f32), "lead": drill.lead, "pace": drill.pace,
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
     } })

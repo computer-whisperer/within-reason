@@ -489,7 +489,37 @@ ahead of a unit and re-issued before it gets there holds it at that speed (the d
 `docs/design/2026-10-24-formation-drills.md` §2). `WAIT_FOR_PATH` is 0 in this Recoil: a unit is not held for its
 path. Vehicles slow for turns only beyond `turninplaceanglelimit` (90 degrees for every unit read), to a tenth of
 their speed while they turn.
+**Amended 2026-10-24 night (the drill bench's kill-test, `duel --drill walk --lead L --reissue S`, 36 duels, ledger
+row lead-*).** On a straight walk the end-of-path cap does not bite: a lone Blitz sent every tick to the point L ahead
+of itself holds 0.95 of its speed at L = 70 and 0.98-0.99 at 100-200 where the cap predicted 0.55 and 0.78; its
+condition, the unit's heading off its waypoint's direction, is not met once the unit faces its goal, and a unit on a
+straight line faces it. What slows a unit near its goal there is the brake zone, `v^2 / (2 x maxdec)` (42 elmos for a
+Blitz at full speed), over a goal distance shortened by the order's latency (about seven frames from the snapshot to the
+engine): at L = 40 the Blitz holds a steady 72 (0.69-0.71, 67-75 second to second). Re-placing the same lead every
+second instead gives a sawtooth (43-66 at L = 70, 75-88 at 100; the record's 0.63-0.59 at three and more orders a
+second). The September live numbers (Stouts at 28-30 after a flee step within 130) came from steps off the unit's
+heading, where the cap's condition holds; a turning unit under a near goal is untested on the bench. The pacing law
+that stands is a slot moving at the pace, K-engine-a-slot-moving-at-a-pace-paces-the-unit.
 **Used by.** H-MICRO-FLEE, H-MICRO-FORM (the lead and the Close point); the drill bench's pacing arms.
+
+### K-engine-a-slot-moving-at-a-pace-paces-the-unit
+**Claim.** A ground unit sent every tick to a point that moves along its way at a pace below its speed settles at that
+pace, trailing the point inside its brake zone, with no speed command: the engine's own approach to a goal is the
+speed controller. A formation whose slots all move at one pace translates rigidly and arrives as it set out.
+**Status.** measured (2026-10-24 night, the drill bench, 24 duels, ledger row pace-*): a lone Blitz (101) behind a slot
+at 54 holds 52-56 a second once caught up (share 0.57; 22 s over 1,500 against 14 unpaced) and 72-83 behind one at 75
+(0.80, 16 s); at a 1 s cadence the per-second mean holds too (51-57). A Stout (75) behind a slot at 54 swings 34-77
+second to second (mean 0.77), the one unsteady reading. The 4 Blitz + 4 Stout + 4 Janus column in two ranks of six at
+64, every slot carried at 49 (0.9 of the Janus's 54), arrives 34 / 36 / 37 s over 2,000 with every type within 35-37,
+98 deep x 320 wide at contact against the ranks' nominal 96 x 320 and an engagement ramp of 0.9 / 1.8 s, where the
+same column under one order is 18 / 25 / 35, 923 deep, 7.1 / 17.1 (K-engine-a-mixed-column-under-one-order-is-one-
+column-a-speed); at the Janus's full 54 the Janus (0.95) never regains the slot it lost at the start and the column
+arrives 31 / 33 / 36, 194 deep.
+**Evidence.** `run/matches/*-duel-pace-*` (`run/drill_table.py --types --seconds`); design
+`docs/design/2026-10-24-formation-drills.md` D11 and §5.
+**Would be wrong if.** A formation of other types, on a slope or through a passage, strung out under the same arm; or
+the Stout's swings turned out to be the rule for the slower tanks rather than one type's.
+**Used by.** The anchor (design §2): the lane's group follows slots that move at the group's pace.
 
 ### K-hands-a-turret-being-built-read-as-a-threat
 **Claim.** Until 2026-09-28 nothing on our side knew whether an enemy building was finished: the shim read

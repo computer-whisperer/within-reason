@@ -14,10 +14,10 @@ duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
-duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12]
+duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
      [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
-run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types]   one row per arm of a drill batch
+run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types] [--seconds]   one row per arm of a drill batch
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
@@ -263,7 +263,13 @@ one order. The army is
 `--ours` (a plain name with `--count`, or a mixed force as written), spawned in its `--formation` at the west end of
 a strip `--distance` long (default 2,000) and given one order to the east end: a fight (the hands' advance) or
 `--order move` (the hands' walk). Nothing more goes out but `--reissue S`, the same order to every living unit every
-S seconds (the hands' re-send, as an arm). **walk** ends when every living unit is within 300 of the goal (the hands'
+S seconds (fractional; the hands' re-send, as an arm), and with `--lead L` each re-issue sends each unit to the point
+`L` ahead of its own position along the axis, the goal itself when that is past it (the lead law's kill-test, design
+D11: a unit whose goal is always `L` ahead); with `--pace P` (elmos a second) each re-issue sends each unit to its own
+slot, its spawn place carried along the axis by `--lead` plus `P` times the seconds since the first order (since the
+turn, for a reverse) and no further than the goal, the formation translated rigidly at the pace (D11's second test,
+K-engine-a-slot-moving-at-a-pace-paces-the-unit). `run/drill_table.py --seconds` prints the first duel's median unit
+speed each second, for a pace's steadiness. **walk** ends when every living unit is within 300 of the goal (the hands'
 own arrival number). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
 12, before the fast units arrive) and ends when everyone is back. **gather** gives an `--lab` (default `armvp`) at
 the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it
@@ -312,7 +318,7 @@ speed, the arrival the engine's own path would give if it took the field's). The
 the body's: the centroid's displacement over the second when it is 10 or more, the axis to the goal in force otherwise
 (on a strip the two agree). The per-second
 log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
-formation, lane, fight, turn_at_s, reissue_s, target, target_at, straight, walk, slowest}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
+formation, lane, fight, turn_at_s, reissue_s, lead, pace, target, target_at, straight, walk, slowest}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
 and, for a gather, `stores` (the team's metal and energy as current, income, usage, storage), so
 `run/drill_table.py --types` can give each type its own arrival and speed share, which is where a mixed column's
 stringing shows, and derive the contact shape for a batch from before the columns existed. The duel's own instruments run too: `speed_x`

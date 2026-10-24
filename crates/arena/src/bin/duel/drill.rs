@@ -78,8 +78,16 @@ pub struct Options {
     pub distance: f32,
     /// A fight (the hands' advance) or a move (the hands' walk) (`--order`).
     pub fight: bool,
-    /// The order again to every living unit every this many frames (`--reissue S`); `None`: once.
+    /// The order again to every living unit every this many frames (`--reissue S`, fractional seconds); `None`: once.
     pub reissue: Option<i32>,
+    /// The lead law's kill-test (design D11): with `--lead L` every re-issue sends each unit to the point `L` ahead of
+    /// its own position along the axis (the goal itself when that is past it), so its goal is always `L` ahead.
+    pub lead: Option<f32>,
+    /// The paced slot (D11, the second test): with `--pace P` (elmos a second) every re-issue sends each unit to its
+    /// own slot, its spawn place carried along the axis by `lead` plus `P` times the seconds since the first order
+    /// (since the turn, for a reverse), stopping at the goal: the formation translated rigidly at the pace, the
+    /// engine's own approach to a goal doing the following.
+    pub pace: Option<f32>,
     /// `reverse`: frames after the first order at which the order goes back to the start (`--turn-at S`).
     pub turn_at: i32,
     /// `gather`: the plant that builds the force (`--lab`).
@@ -169,14 +177,17 @@ pub struct Drill {
     pub kind: Kind,
     pub fight: bool,
     pub reissue: Option<i32>,
+    pub lead: Option<f32>,
+    pub pace: Option<f32>,
     pub turn_at: i32,
     pub start: Vec3,
     pub goal: Vec3,
     /// The goal in force: `start` after a reverse's turn.
     pub toward: Vec3,
     pub turned: Option<i32>,
-    /// The frame the last order went out to the whole army.
+    /// The frame the last order went out to the whole army, and the first.
     pub last_order: Option<i32>,
+    pub first_order: Option<i32>,
     /// Per spawn index: the frame first within `ARRIVED` of the goal in force (cleared at a reverse's turn).
     pub arrived: HashMap<usize, i32>,
     /// `gather`: the lab's spawn index, what it builds, whether the list has been queued, and the frame each adopted
@@ -228,12 +239,15 @@ impl Drill {
             kind: options.kind,
             fight: options.fight,
             reissue: options.reissue,
+            lead: options.lead,
+            pace: options.pace,
             turn_at: options.turn_at,
             start,
             goal,
             toward: goal,
             turned: None,
             last_order: None,
+            first_order: None,
             arrived: HashMap::new(),
             lab: None,
             wanted,
@@ -261,9 +275,47 @@ impl Drill {
         }
     }
 
-    /// The drill's order to one unit: the goal in force, a fight or a move.
-    pub fn order(&self, unit: UnitId) -> Command {
-        if self.fight { Command::Fight { unit, to: self.toward, queue: false } } else { Command::Move { unit, to: self.toward, queue: false } }
+    /// The drill's order to one unit standing at `at`, spawned at `spawned`: the goal in force; with `pace` its slot
+    /// this frame; with `lead` alone the point that far ahead of the unit along the axis (D11); a fight or a move.
+    pub fn order(&self, unit: UnitId, at: Vec3, spawned: Vec3, frame: i32) -> Command {
+        let to = match (self.pace, self.lead) {
+            (Some(pace), lead) => self.slot(spawned, lead.unwrap_or(0.0), pace, frame),
+            (None, Some(lead)) => self.lead_point(at, lead),
+            (None, None) => self.toward,
+        };
+        if self.fight { Command::Fight { unit, to, queue: false } } else { Command::Move { unit, to, queue: false } }
+    }
+
+    /// The paced slot of a unit spawned at `spawned`: its place in the formation carried from the end behind along the
+    /// axis by `lead` plus `pace` times the seconds since the order in force began, and no further than the goal.
+    fn slot(&self, spawned: Vec3, lead: f32, pace: f32, frame: i32) -> Vec3 {
+        let behind = if self.toward == self.goal { self.start } else { self.goal };
+        let since = self.turned.or(self.first_order).map_or(0, |f| frame - f).max(0) as f32 / FPS as f32;
+        let axis = self.axis();
+        let length = (axis.x * axis.x + axis.z * axis.z).sqrt();
+        if length <= 0.0 {
+            return self.toward;
+        }
+        let (dx, dz) = (axis.x / length, axis.z / length);
+        let along = (lead + pace * since).min(length);
+        let origin = Vec3 { x: spawned.x + behind.x - self.start.x, y: self.toward.y, z: spawned.z + behind.z - self.start.z };
+        Vec3 { x: origin.x + dx * along, y: self.toward.y, z: origin.z + dz * along }
+    }
+
+    /// The point `lead` ahead of `at` along the axis to the goal in force, or the goal itself when `at` is within
+    /// `lead` of it along the axis.
+    fn lead_point(&self, at: Vec3, lead: f32) -> Vec3 {
+        let axis = self.axis();
+        let norm = (axis.x * axis.x + axis.z * axis.z).sqrt();
+        if norm <= 0.0 {
+            return self.toward;
+        }
+        let (dx, dz) = (axis.x / norm, axis.z / norm);
+        let to_go = (self.toward.x - at.x) * dx + (self.toward.z - at.z) * dz;
+        if to_go <= lead {
+            return self.toward;
+        }
+        Vec3 { x: at.x + dx * lead, y: self.toward.y, z: at.z + dz * lead }
     }
 
     /// Whether the reverse's turn is due: `turn_at` after the first order, once.
@@ -449,7 +501,43 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None }
+    }
+
+    #[test]
+    fn a_lead_order_goes_the_lead_ahead_along_the_axis_and_to_the_goal_at_the_end() {
+        let mut drill = Drill::new(&Options { lead: Some(100.0), fight: false, reissue: Some(3), ..options(Kind::Reverse) }, at(5000.0, 1000.0), Vec::new());
+        // The strip runs from x 3500 to 6500; a unit at the start, 40 off the axis, is sent 100 east on its own line.
+        let spawned = at(3500.0, 1040.0);
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(3500.0, 1040.0), spawned, 0) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (3600.0, 1040.0));
+        // Within the lead of the goal: the goal itself.
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(6450.0, 1000.0), spawned, 0) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (6500.0, 1000.0));
+        // After the turn the axis runs west.
+        drill.turn(600);
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(6000.0, 1000.0), spawned, 0) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (5900.0, 1000.0));
+    }
+
+    #[test]
+    fn a_paced_slot_carries_the_spawn_place_along_the_axis_at_the_pace_and_stops_at_the_goal() {
+        let mut drill = Drill::new(&Options { pace: Some(60.0), lead: Some(60.0), fight: false, reissue: Some(3), ..options(Kind::Reverse) }, at(5000.0, 1000.0), Vec::new());
+        drill.first_order = Some(100);
+        // Spawned 40 north of the axis at the start: at the first order its slot is the lead ahead; ten seconds on,
+        // 600 further; the unit's own position does not matter.
+        let spawned = at(3500.0, 1040.0);
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(3400.0, 900.0), spawned, 100) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (3560.0, 1040.0));
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(3400.0, 900.0), spawned, 400) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (4160.0, 1040.0));
+        // Past the strip's length the slot stands at the goal end, in its place.
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(3400.0, 900.0), spawned, 100 + 100 * FPS) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (6500.0, 1040.0));
+        // After the turn the slot sets out from the goal end westward, timed from the turn.
+        drill.turn(4000);
+        let Command::Move { to, .. } = drill.order(UnitId(1), at(6400.0, 1000.0), spawned, 4000 + 5 * FPS) else { panic!("a move") };
+        assert_eq!((to.x, to.z), (6500.0 - 60.0 - 300.0, 1040.0));
     }
 
     /// A walk: two units at full speed arrive 30 and 31 seconds in; the median arrival takes the shape; the score

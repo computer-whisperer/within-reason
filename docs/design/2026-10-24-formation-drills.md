@@ -43,34 +43,92 @@ slow only for turns over 90 degrees, to a tenth of their speed while they turn; 
 (`MobileCAI::ExecuteGuard`: a guarder within 200 of a moving guardee takes the guardee's speed as its wanted maximum
 and a goal of its own position plus the guardee's velocity times 2.13 s; BAR's `modrules.lua` guard block).
 
-## 2. The target (the arc after this one): the lane owns the group
+## 2. The target: the lane owns the group as a formation it follows (ruled 2026-10-24 night)
 
-The host (the hands, or the duel director) declares a group once per decision and gives per-unit orders only to
-units in no group:
+The user, after the baselines and the replays: "The fundamental goal here should be making the group of units act
+predictably and coherently with each other, flagging outliers as such. Right now whenever a group gets stretched out
+by either terrain or unit mix, the subsequent battle is with a complex series of engagements as new units trickle in
+and mix with the units already fighting. Making the micro engine responsible for groups of units, with expectations
+of it managing certain properties of the group in a closed loop, enables a simpler attack/retreat/shell cost calculus
+for Jev and Claude [and] directly resolves the issues we started today's work with. Exactly how we do that is up in
+the air, but my initial thought was to try and make actual organized formations a thing we can follow." The anchor
+model below was proposed in answer and ruled ("Go ahead").
+
+**The object.** A group is one object with a position, a heading, a speed and a shape, and a member's only job is to
+be in its slot. The object is an anchor: a virtual point that walks the group's route at the group's pace. Slots are
+offsets from the anchor: ranks of `FILES` across the heading on the march, narrowed to the corridor the ground
+allows; the contact arc at contact, as today. Each member's order is its slot placed a lead ahead and re-issued at a
+cadence, so the engine's own movement does the following. The host never orders a member; it orders the group.
+
+**The properties the loop holds** (the contract the hands and the duel director rely on):
+
+1. Pace: the anchor moves at the slowest type's speed in the declared group times a fraction under one, so a lagging
+   unit of that type can regain its slot.
+2. Shape: the template across the heading, never wider than the standable ground across the route.
+3. Coherence: every member within a tolerance of its slot, or an exception.
+4. Integrity at contact: the anchor stops at reach, the formed body takes the arc, and the loop falls silent for any
+   unit with a target in reach (every order there costs shots: form6, form7).
+5. The report: each member formed, or an exception with a cause (slower, stuck, fled, blocked, joining) and a time to
+   its slot. This replaces the hands' arrival test, the gather, the joiners and the stragglers, and it is what prices
+   a fight: the formed body, with a joiner counted when it is in a slot.
+
+**Outliers and the anchor.** The anchor is held back by its formed members and released from its exceptions: a
+member behind its slot within the tolerance drags the pace; past the exception threshold it is reported and the
+anchor goes on; it rejoins when it is back inside the tolerance. Two thresholds with hysteresis, so the group never
+oscillates between waiting and leaving. Whether to wait for a real straggler stays Jev's, from the words.
+
+**Reopened rulings, with the evidence** (decisions are fluid at an arc boundary, 2026-07-18):
+
+- `2026-09-25-formation-as-a-transform.md` ("the formation as a transform of the order, not a control loop") is
+  reversed. Chose-because: the bench shows the transform holds width at arrival and nothing else (a passage files the
+  body and the ranks return only in the last six seconds; a mixed column is one column a speed; §5 D8, D10), and any
+  repair needs an anchor that moves and orders re-issued at a cadence, which is a loop. Rejected-because, what the
+  September evidence was: a 150-elmo lead that braked units through the engine's end-of-path cap, and orders costing
+  shots at contact. The first is a parameter (the lead law uses that very cap on purpose), the second holds only at
+  contact, where the loop is silent.
+- The routing arc's "routes for accounting, the engine executes" (2026-09-20) is narrowed: the host passes the route
+  with the group order and the lane places the anchor and the slots along it; the engine still paths each unit to its
+  slot. The lane does not depend on `terrain`; the hosts (the hands, the director) have the fields.
+- Bodies by chaining (`form::bodies`) go: the host declares the group and the lane never splits a declared group. The
+  raider/line separation (the pros keep them apart) becomes the host's choice, two groups or one.
+
+**The API** (one call per decision; the route from the host's field, the goal its last point):
 
 ```rust
 // crates/micro
-pub struct GroupOrder { pub kind: GroupKind, pub goal: Vec3 }   // Go | FightTo | Attack(UnitId) | Hold
+pub struct GroupOrder { pub kind: GroupKind, pub route: Vec<Vec3> }   // Go | FightTo | Attack(UnitId) | Hold
 Lane::set_group(name: &str, members: Vec<UnitId>, order: GroupOrder, footwork: Footwork, commitment: Commitment)
 Lane::clear_group(name)
 Lane::group_state(name) -> GroupState {
     anchor: Vec3, heading: (f32, f32), pace: f32,           // the formation's place, way and speed this tick
     shape: Shape,                                           // ranks on the march; the arc at contact
-    formed: Vec<UnitId>,                                    // within a hull or two of their slot
-    exceptions: Vec<(UnitId, Cause, f32)>,                  // out of slot: why (slower, stuck, fled, blocked, joining), seconds to its slot
-    arrived: bool,                                          // the anchor at the goal and the formed within their slots
+    formed: Vec<UnitId>,                                    // within the tolerance of their slot
+    exceptions: Vec<(UnitId, Cause, f32)>,                  // out of slot: why, and seconds to the slot
+    arrived: bool,                                          // the anchor at the goal and the formed in their slots
 }
 ```
 
-The lane keeps the formation up: slots as today (ranks of six on the march, the arc at contact), **pacing** by one of
-the arms the bench measures (the lead law: a unit's goal placed ahead of it by `pace / (turn_rate * k)` so the engine's
-own cap holds it at the pace, re-issued at a cadence; slow guard on a pacesetter; or no pacing and a form-up point
-short of contact), the joiners (members far from the shape walk to their slot), and the state. The bodies-by-chaining
-inference goes; the hands' standing-order upkeep for soldiers (arrival, joiners, the gather, the follow steps) goes
-into the lane or into words. The hands' words become the group state: "group_A: 11 in formation at X heading east at
-75; 3 out of it: 2 Blitzes 400 ahead (faster), 1 Stout stuck at Y" and the moves stay what they are.
+**The actuator and its numbers.** The engine has no speed command (the AI interface's set-wanted-max-speed is marked
+unused; `Spring.SetUnitMoveGoal`'s speed is a synced Lua call we cannot ship into a lobby game), so the loop closes
+through goal placement. The actuator, measured in D11 before anything was built on it, is the slot itself: a unit sent
+every tick to a point moving at the pace settles at the pace, trailing the point inside its brake zone
+(K-engine-a-slot-moving-at-a-pace-paces-the-unit; a Blitz holds 52-56 behind a slot at 54), and the mixed column
+whose slots all move at 0.9 of the Janus's speed arrives as the formation it set out in (98 x 320 against the nominal
+96 x 320, ramp 1.8 s against 17.1). The lead law as first written (a goal a fixed distance ahead of each unit, held by
+the end-of-path cap) was the wrong reading of the source: the cap does not bite on a straight walk. Five numbers, each
+with a drill: the pace fraction (0.9 held the Janus in its slot where 1.0 did not), the cadence (every tick; a 1 s
+cadence held the per-second mean and is an arm, not the default), the slot tolerance and the exception threshold (the
+gather and the terrain cases: the exceptions' count against the arrival), and the catch-up: a unit far from its slot
+runs at full speed and brakes into it. The alternative kept on the bench as a control: no pacing
+and a form-up point short of contact, which arrives when the paced march does but leaves the group a column for the
+whole walk, with no position for Jev until it forms.
 
-Not built in this arc. Written here so the bench is built to judge it.
+**Sequencing.** This arc: the group API, the anchor and the pacing arms in the lane and the duel director, judged by
+§5's bars with no model. The arc after: the hands declare groups, their soldier upkeep (`groups.rs`, about 1,200
+lines) is deleted, and the group state becomes words ("group_A: 11 in formation at X heading east at 75; 3 out of
+it: 2 Blitzes 400 ahead (faster), 1 Stout stuck at Y"), judged in games. The commitment ladder (`brain/micro.rs`
+`note_commitments`) moves into the group order's `commitment`, the hands' mapping the audited default until Jev's
+menu carries the choice.
 
 ## 3. The bench (this arc)
 
@@ -164,6 +222,32 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   (Quicksilver, Comet Catcher, Great Divide, Cape Violet, Altored Divide, Isidis Crack among them), chosen by the
   chooser, not named from memory.
 
+- **D11. The lead law's kill-test, `--lead L`** (2026-10-24 night, before the anchor is built on the law; the user:
+  "Go ahead"). On a walk every re-issue (`--reissue S`, fractional seconds from here on; 0.1 is the lane's tick) sends
+  each unit to the point `L` ahead of its own position along the axis, or to the goal itself when that point is past
+  it. One unit, the lane off, a move order: what the engine does to a unit whose goal is always `L` ahead. The two
+  readings of the source it discriminates: under the end-of-path cap (`speed <= L x turnrate x 0.001438`, which
+  `ChangeSpeed` applies only while the unit's heading differs from its waypoint's direction, and a straight walk may
+  keep them equal) a Blitz holds 31 / 55 / 78 / 101 / 101 elmos a second at L = 40 / 70 / 100 / 130 / 200 and a
+  Stout 49 at 100; under the brake alone (`v^2 / (2 x maxdec)`, 42 elmos for a Blitz at full speed, the move goal's
+  radius `SQUARE_SIZE` = 8) the Blitz holds 99 / 101 / 101 / 101 / 101. At a 1 s cadence under the cap the speed
+  decays with the shrinking distance within the second (a mean near 0.54 x L a second, against the 0.1 s cadence's
+  ripple under 8%). L = 200 at 0.1 s is the control for the orders' own cost (the chase instrument found none at 3 Hz
+  with far goals; 10 Hz is untested). Read from `speed_share`, the per-type share and the arrival. If the cap does
+  not bite on a straight walk, the fallback is the same law with its condition met, a lead placed a few elmos off the
+  unit's heading each tick, measured the same way before the anchor is built on it. Item 2 below stands: `--lead` is
+  the one deliberate loop of the director's, and an arm.
+  **Measured the same night (36 duels, ledger row lead-*):** neither reading stood. The cap does not bite on a straight
+  walk (0.95 at L = 70, 0.98-0.99 at 100-200 every tick) and the brake alone under-reads (a steady 72 at L = 40, the
+  brake over the goal distance less about seven frames of latency); a 1 s cadence is a sawtooth (43-66 at 70). The
+  fallback was not the off-heading lead but the slot itself: **`--pace P`** sends each unit every re-issue to its own
+  slot, its spawn place carried along the axis by `--lead` plus `P` times the seconds since the first order (from the
+  turn, for a reverse), stopping at the goal, the formation translated rigidly. Measured (24 duels, ledger row pace-*):
+  the lone Blitz settles at 52-56 behind a slot at 54 and 72-83 behind one at 75, the per-second mean holding at a 1 s
+  cadence too; the Stout at 54 swings 34-77; the mix at 49 arrives 34 / 36 / 37 as the formation it set out in (98 x
+  320, ramp 0.9 / 1.8), at 54 the Janus never regains its slot (31 / 33 / 36, 194 deep). The anchor rests on this:
+  K-engine-a-slot-moving-at-a-pace-paces-the-unit.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -193,8 +277,9 @@ engine, not a guess):
 | 6 | a chokepoint and a cliff on other maps (Great Divide's passages, Cape Violet's shore) | 1 and 2 on terrain | needs the terrain in the duel's view |
 | 7 | the raid answer from the stream while the bodies hold their course | the raid scenario's score with a producing lab behind the picket | after the group API |
 
-Pacing arms for drills 1-3 once the group API exists: none (the march as today), the lead law at 1 Hz and at 0.5 Hz,
-slow guard on the slowest unit. Each against the baseline, 8 repetitions, two seeds.
+Pacing arms for drills 1-3 once the group API exists: none (the march as today), the paced slot every tick and every
+second (D11: the lead law as first written does not pace; the slot moving at the pace does), slow guard on the slowest
+unit. Each against the baseline, 8 repetitions, two seeds.
 
 ## 5. Baselines
 
@@ -379,11 +464,25 @@ The bars for the terrain cases: the last arrival within `route_s` plus 3 s; the 
 formation's; and the measure a route-following arm is judged on is the seconds between the passage's exit and the
 body's width back at the formation's, read from the series, with the arrival kept within the bar.
 
+**The pacing kill-tests (D11, 2026-10-24 night; batches `*-duel-lead-*` and `*-duel-pace-*`, 60 duels, all arrived):**
+a lone Blitz sent every tick to a point a fixed lead ahead of itself holds 0.95 of its speed at 70 and 0.98-0.99 at
+100-200, a steady 72 of 101 at 40; the end-of-path cap the design leaned on does not bite on a straight walk, and a
+1 s cadence is a sawtooth (43-66 at 70). A slot moving at the pace does pace: the Blitz settles at 52-56 behind a
+slot at 54 (22 s over 1,500 against 14) and 72-83 behind one at 75, the Stout at 54 swings 34-77 (mean 0.77 of 75),
+and the mixed column translated rigidly at 49 arrives 34 / 36 / 37 over 2,000 with every type within 35-37, 98 deep x
+320 wide at contact (the two ranks' nominal 96 x 320), ramp 0.9 / 1.8 s, against the unpaced 18 / 25 / 35, 923 deep,
+7.1 / 17.1; at the Janus's full 54 the Janus (0.95) never regains its slot and the column arrives 31 / 33 / 36, 194
+deep. §5's bar for the mixed column (the ramp shrunk, the width kept, the last arrival within 3 s of the slowest
+type's walk) is met by the first arm, walking at the Janus's pace; the bars for the lane's own arm are these numbers.
+
 ## 6. Open for the user
 
-- The group API's shape in §2 (one call per decision; what `GroupState` carries).
-- Whether the gather survives as a move or becomes the group state's words (the hands' gather is a scripted
-  operation with two cliffs that contradict each other, `2026-10-24-pick-rework.md` §5).
-- The maps for drill 6.
-- The commitment ladder keyed to the task kind (`brain/micro.rs` `note_commitments`), a code decision layer older
-  than the no-live-heuristics ruling, reviewed after the group API.
+Ruled 2026-10-24 night (§2): the group API's shape, the gather's fate (it dies as a move; the pace and the joiner
+behaviour do its work and its words become the group state), the commitment ladder's destination (the group order).
+Still open:
+
+- The numbers §2 names, set by the bench, not by hand: the pace fraction, the lead and the cadence (D11 first), the
+  slot tolerance and the exception threshold.
+- Whether the raider/line separation, the host's choice from here on, becomes a word to the player or a default of
+  the hands.
+- The maps for drill 6 beyond Quicksilver, Great Divide and Altored Divide (Cape Violet's shore, Isidis Crack).
