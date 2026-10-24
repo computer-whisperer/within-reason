@@ -151,3 +151,9 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   gives. Nothing built from it yet; the order proposed to the
   user: the turret cap and the frames' site in the hands (a farm: turrets in a block, tier-2 frames placed inside
   their reach), the opening prefix, the constructor count.
+- 2026-10-24 evening, the program first (the user: "focus on iterating the LP engine now to try and include the
+  extra actions needed to match or beat this new curve"): the reclaim column and the farm arms, in the LP note's
+  section of that name. The program beats his curve at every mark given his walk and his room (62 / 316 / 1,058 /
+  2,357 from the bot's seed-1 start) and at 10, 15 and 20 with the hands' walk; what the hands owe it next, in
+  the marks' order: the extractor chain (the 5:00 mark is the hands' alone: 36 s an extractor against their 65),
+  the farm's placing with the turret cap as the arm, the reclaim order. The bot's defaults are unchanged.

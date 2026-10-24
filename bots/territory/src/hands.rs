@@ -501,7 +501,9 @@ impl Territory {
             let units = &self.game().units;
             let def = &units.list[unit];
             let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64)> = BTreeMap::new();
-            for f in targets.flows.iter().filter(|f| f.kind != Kind::Help && units.list[f.unit].role != Role::Factory) {
+            // A reclaim flow (the program taking a building down for its metal) is no build; the hands give no reclaim
+            // order yet, and the bot's arm leaves the program without the column until they do.
+            for f in targets.flows.iter().filter(|f| f.kind != Kind::Help && f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory) {
                 let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
                 e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
                 e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
@@ -553,6 +555,8 @@ impl Territory {
                         return;
                     }
                 }
+                // Never made above (the program's reclaim flows are dropped at the gate); the hands' reclaim is to come.
+                Kind::Reclaim => continue,
                 Kind::Assist => {
                     let Some(factory) = self.factory_making(u, builder.pos) else { continue };
                     if !self.energy_fits(u, unit) {

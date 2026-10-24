@@ -211,6 +211,47 @@ dearest frame), and a flow on a ring is an extractor on a spot of that ring (T-S
 ring). The credits are by (unit, class); the standing orders' seed counts extractor orders only, since the Frames
 columns carry the rest.
 
+## Reclaim and the farm (2026-10-24, from thebluegecko's game against InactiveAI)
+
+The user's benchmark example (`docs/experiments.md` replay-gecko-inactiveai-comet-2026-10-21; the bot's README) does
+two things the program had no column for, and one thing its arms forbade.
+
+- **Reclaim** (`reclaim`, off by default in the bot, `--reclaim` on the CLI): a pair of kind `Reclaim` for every
+  builder but a factory and every Whole column of a standing building (not an extractor, whose upgrade replaces it;
+  not a frame; nothing mobile). Its power counts the other way in the completion row, its metal comes back whole
+  (the engine returns a reclaimed unit's metal in the second the reclaim ends and none of its energy, read from his
+  record at 4:41 and 10:22), its work is the unit's build time at the reclaimer's power (his advanced plant, 28,000,
+  in about seven seconds under the turrets round it), a turret without a walk and a mobile builder with its base
+  walk. One metal a unit in the objective as a tie-breaker, and none in the last bucket: without them the interior
+  point took down six fusions and the storages in minute 19 to loosen the energy reserve at the horizon, where
+  nothing counts. The plan then does what he did: from the bot's seed-1 start it takes the lab down at minute 9
+  once its constructors are out (he took his at 4:41: his lab made nine and stopped, the program's makes fifty)
+  and the advanced plant at 10-11 once its constructors are out (his at 10:22), and a few solars at 8-9. In the
+  program's own accounting reclaim is worth about two percent at 20:00 (2,049 to 2,087 with the farm; 1,656 to
+  1,652 without it, inside the solver's noise), as in his game (7,200 of 499,000 made): the action's worth is in
+  the moment and the ground, which the plan does not price, and the hands will.
+- **The farm** (`max_nanos`, `maxnanos=N`, `--max-nanos N`; `help_factor` as a physical bound): his 311 turrets
+  stood in a block south of his base and his advanced fusions and converters were placed inside their reach (39
+  and 28 turrets within 300 of a frame at its placing, a median), the aircraft placing and the turrets building.
+  The program's bound of six turrets a factory was the hands' rule (turrets behind the plant), not the game's;
+  `max_nanos` replaces it with a number when above zero (the farm's size is the base's ground, which the program
+  cannot see). The help factor is the placer's share: at 40 a 310-power constructor puts 26 s on an advanced
+  fusion the turrets finish, and his advanced aircraft put less. With both (`--help-factor 40 --max-nanos 300`)
+  the program answers 2,049 at 20:00 from the bot's start (2,087 with reclaim), against 1,656 under the bot's
+  arms, and builds his economy: 135 turrets, 85 advanced converters, 16 advanced fusions, 32 fusions.
+- **The walk**: the early marks are the model's walk constant, not the room. With `--walk-extractor 36` the
+  program's 5:00 is 62 with 26 extractors, his figure exactly (his nine constructors took 55 s an extractor
+  including the build; the constant 65 is the hands' own realized median, 56-66 s over every batch since terr25,
+  since they take spots as the flows credit them and not as a chain from where they stand). The program cannot
+  fix the hands; the number says what the hands' chaining is worth: 62 / 316 / 1,058 / 2,357 at the marks with
+  all three arms against his 62 / 213 / 651 / 1,706, and 50 / 258 / 937 / 2,087 with the hands' walk.
+
+What the program still has not got of his: the air line (his farm's turrets were built by 46 constructor
+aircraft; the land-lines rule stands, since the hands fly nothing), an energy storage before 5:00 (a plan that
+never stalls has no use for one; the hands have), and the end of the horizon, where under `terminal=0` the last
+two minutes buy solars and basic converters by the hundred because the bank is worth nothing at 20:00 (the
+composition at 16:00 is the shape to read: 169 turrets, 80 converters, 17 energy buildings).
+
 ## Verification, in order
 
 1. **The LP against the simulator.** The LP's plan from the empty start, dispatched inside the simulator by the same
@@ -384,3 +425,10 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   plan buys its energy a quarter ahead of its draw and the hands' overshoot lives in the quarter. terr42: 133 /
   142 / 193 / 124 at 10:00 against 131 / 137 / 174 / 75 with the hands' stall rules alone and 112 / 110 / 95 / 112
   before them; 20:00 unchanged, about 750.
+- 2026-10-24 evening: the reclaim column and the farm arms (the section above), from the user's benchmark example
+  and his word to iterate the program for the actions his curve needs. The program beats the curve at every mark
+  once given his walk and his room (62 / 316 / 1,058 / 2,357), and at 10, 15 and 20 with the hands' walk (50 / 258
+  / 937 / 2,087); the hands now owe it three things, in the order the marks say: the extractor chain (the 5:00
+  mark is theirs alone), the farm's placing (turrets in a block, tier-2 frames inside their reach, the turret cap
+  as the arm), and the reclaim order (`ReclaimUnit`, which the protocol carries and the bot has never sent).
+  Nothing in the bot's defaults changed: `reclaim=off`, `maxnanos=0`, `help=3`.

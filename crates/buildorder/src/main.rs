@@ -22,7 +22,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--assist 2] [--help-factor 3]
-                       [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
+                       [--nanos-per-factory 6] [--max-nanos 0] [--reclaim] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
                        [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5] [--commander-reach 1500] [--rings 1] [--ring-overhead 5]
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
@@ -307,6 +307,8 @@ fn linear_program(args: &Args) {
         assist_factor: args.number("--assist", 2.0),
         help_factor: args.number("--help-factor", 3.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
+        max_nanos: args.number("--max-nanos", 0.0),
+        reclaim: args.has("--reclaim"),
         walk_extractor: args.number("--walk-extractor", 65.0),
         walk_base: args.number("--walk-base", 3.0),
         walk_factory: args.number("--walk-factory", 40.0),
@@ -353,6 +355,35 @@ fn linear_program(args: &Args) {
     let mut at_end: Vec<(f64, String)> = plan.columns.iter().enumerate().map(|(i, c)| (plan.counts[i][plan.buckets], format!("{}{}", units.list[c.unit].name, class_name(c.class)))).filter(|(n, _)| *n > 0.05).collect();
     at_end.sort_by(|a, b| b.0.total_cmp(&a.0));
     println!("at the end: {}", at_end.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
+    // What the plan takes down for its metal, by unit type and minute (`--reclaim`).
+    let mut reclaimed: Vec<(usize, String, Vec<(usize, f64)>)> = Vec::new();
+    for f in plan.flows.iter().filter(|f| f.kind == buildorder::lp::Kind::Reclaim) {
+        let entry = match reclaimed.iter_mut().find(|(u, _, _)| *u == f.unit) {
+            Some(e) => e,
+            None => {
+                reclaimed.push((f.unit, units.list[f.unit].name.clone(), Vec::new()));
+                reclaimed.last_mut().unwrap()
+            }
+        };
+        for (t, x) in f.per_bucket.iter().enumerate() {
+            let minute = (plan.starts[t] / 60.0) as usize;
+            match entry.2.iter_mut().find(|(m, _)| *m == minute) {
+                Some(e) => e.1 += x / f.cost,
+                None => entry.2.push((minute, x / f.cost)),
+            }
+        }
+    }
+    if !reclaimed.is_empty() {
+        let text: Vec<String> = reclaimed
+            .iter()
+            .map(|(_, name, by_minute)| {
+                let mut by_minute: Vec<&(usize, f64)> = by_minute.iter().filter(|(_, n)| *n > 0.05).collect();
+                by_minute.sort_by_key(|(m, _)| *m);
+                format!("{name} {:.1} ({})", by_minute.iter().map(|(_, n)| n).sum::<f64>(), by_minute.iter().map(|(m, n)| format!("{n:.1} at {m}")).collect::<Vec<_>>().join(", "))
+            })
+            .collect();
+        println!("reclaimed: {}", text.join("; "));
+    }
     for (bt, prices) in &plan.power_price {
         let shown: Vec<String> = minutes_shown.iter().step_by(2).map(|(_, t)| format!("{:.3}", prices.get(*t).copied().unwrap_or(0.0))).collect();
         println!("price of a build-power-second of {} every two minutes: {}", units.list[*bt].name, shown.join(" "));

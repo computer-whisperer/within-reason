@@ -175,6 +175,8 @@ impl Territory {
             assist_factor: o.assist_factor,
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,
+            max_nanos: o.max_nanos,
+            reclaim: o.reclaim,
             walk_extractor: o.walk_extractor,
             walk_base: o.walk_base,
             walk_factory: o.walk_factory,

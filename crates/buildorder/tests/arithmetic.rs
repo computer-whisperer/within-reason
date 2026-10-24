@@ -6,7 +6,7 @@ use std::sync::Arc;
 use buildorder::anneal::{anneal, Goal, Objective, Palette, Search};
 use buildorder::game::{Game, Spot, Straight};
 use buildorder::plan::{Item, Plan, Step};
-use buildorder::sim::{simulate, Outcome, Scenario, Standing, State};
+use buildorder::sim::{simulate, Outcome, Scenario, Standing, State, StateBuilder};
 use buildorder::units::{Role, Units};
 
 const HOME: (f64, f64) = (1000.0, 1000.0);
@@ -423,4 +423,43 @@ fn the_linear_program_fills_the_spots_within_the_build_power() {
     let expected = units.list[game.commander].metal_make + 4.0;
     assert!((plan.metal_income[plan.buckets] - expected).abs() < 0.1, "final income {} against {expected}", plan.metal_income[plan.buckets]);
     assert!(plan.made > 0.0 && plan.metal_price.iter().all(|p| *p >= -1e-6) && plan.solve_time < 2.0);
+}
+
+/// A standing lab that nothing offered needs, no metal in stock, eight spots, and five builders to take them (the
+/// commander and four constructors), so that the metal binds and not the builders' time: with `reclaim` on the
+/// program takes the lab down for its metal in the first minute, as much of it as the extractors want (a third:
+/// a `Reclaim` flow on it), and makes clearly more than without, since the commander's income alone would wait on
+/// every extractor; without the option the lab stands to the end. (With the commander alone the model rightly keeps
+/// the lab: its 29 s on the reclaim cost more than the metal saved, the commander's time being the bound.) The count
+/// after the first minute says nothing: once the spots are taken the metal is worth nothing to the objective and
+/// the interior point builds labs with it for free.
+#[test]
+fn the_linear_program_takes_an_idle_building_down_for_its_metal_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..8).map(|k| Spot { at: (1000.0 + 200.0 * k as f64, 1400.0), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots, Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let lab = units.index("armlab").unwrap();
+    let offer = vec![mex];
+    let mut state = State::start(&scenario);
+    state.metal = 0.0;
+    state.energy = 100_000.0;
+    state.energy_storage = 100_000.0;
+    state.standing.push(Standing { unit: lab, site: HOME, pays: 0.0 });
+    let ck = units.index("armck").unwrap();
+    for _ in 0..4 {
+        state.builders.push(StateBuilder { unit: ck, place: HOME, job: None });
+    }
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, ..Default::default() };
+    let with = LpOptions { reclaim: true, ..without.clone() };
+    let plain = solve(units, &scenario, &state, &offer, &without).unwrap();
+    let plan = solve(units, &scenario, &state, &offer, &with).unwrap();
+    assert!(plain.count_at(lab, 300.0) > 0.95, "without the option the lab stands: {}", plain.count_at(lab, 300.0));
+    assert!(plan.count_at(lab, 60.0) < 0.9, "with it the lab is being taken down in the first minute: {}", plan.count_at(lab, 60.0));
+    let reclaimed: f64 = plan.flows.iter().filter(|f| f.kind == Kind::Reclaim && f.unit == lab).map(|f| f.per_bucket.iter().sum::<f64>() / f.cost).sum();
+    assert!(reclaimed > 0.25, "a reclaim flow on the lab: {reclaimed}");
+    assert!(plan.made > plain.made + 50.0, "the lab's metal bought extractors: {} against {}", plan.made, plain.made);
+    assert!(plan.metal.iter().all(|m| *m >= -1e-6));
 }

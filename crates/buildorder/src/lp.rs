@@ -17,6 +17,12 @@ use clarabel::solver::{DefaultSettings, DefaultSolver, IPSolver, SolverStatus, S
 use crate::sim::{Scenario, State, Wind};
 use crate::units::{Role, Units};
 
+/// Metal a reclaim costs the objective per unit taken down: nothing in the game, a tie-breaker here, so that the
+/// solver takes a building down only for a gain and never in the last bucket's indifference (without it the
+/// interior point reclaimed thirty-six solars, twelve converters and six fusions in minute 19, where nothing
+/// counts any more, and a tenth of a solar in every minute before).
+const RECLAIM_TIE: f64 = 1.0;
+
 #[derive(Clone, Debug)]
 pub struct LpOptions {
     /// Seconds a bucket near the present; buckets grow to `mid_dt` after `mid_from` seconds and to `coarse_dt`
@@ -59,6 +65,17 @@ pub struct LpOptions {
     /// Construction turrets at most, per factory standing: a turret's reach holds a few frames round a factory and
     /// no more (the first solves bought 285-441 turrets).
     pub nanos_per_factory: f64,
+    /// Construction turrets at most, as a number, in place of the bound per factory when above zero: a farm
+    /// (thebluegecko against InactiveAI, 2026-10-21: 311 turrets in a block south of his base, his advanced fusions
+    /// and converters placed inside their reach, 39 and 28 turrets within 300 of a frame at its placing). The
+    /// farm's size is the base's ground, which the program cannot see; the number is the arm.
+    pub max_nanos: f64,
+    /// Whether the program may take a standing building down for its metal. The engine returns a reclaimed unit's
+    /// metal whole in the second the reclaim ends and none of its energy, for the unit's build time at the
+    /// reclaimer's power (his advanced plant, 28,000, in about seven seconds under the turrets round it). Off for
+    /// hands that give no reclaim order: a plan that counts on 2,600 back at 10:22 is wrong by that much when
+    /// nothing takes the plant down.
+    pub reclaim: bool,
     /// Seconds a constructor loses per unit it builds, by kind: an extractor or its upgrade (the spot; with one
     /// ring the whole walk, a median 56-66 s over every batch since terr25), any other building, a factory; and the
     /// commander's own three. From the territory bot's `begun:` lines (the order's age at its frame).
@@ -112,6 +129,8 @@ impl Default for LpOptions {
             assist_factor: 2.0,
             help_factor: 3.0,
             nanos_per_factory: 6.0,
+            max_nanos: 0.0,
+            reclaim: false,
             walk_extractor: 65.0,
             walk_base: 3.0,
             walk_factory: 40.0,
@@ -270,6 +289,8 @@ pub enum Kind {
     Assist,
     /// A construction turret on a frame.
     Help,
+    /// A builder taking a standing unit of the column down for its metal.
+    Reclaim,
 }
 
 /// One builder type's power on one column over the horizon: build-power-seconds per bucket, and what a unit
@@ -438,6 +459,30 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             pairs.push(Pair { builder: b, column: i, kind, cost, metal_per_power, energy_per_power });
         }
     }
+    // Reclaim: any builder but a factory may take a standing building of a Whole column down for its metal (not an
+    // extractor, whose upgrade replaces it; not a frame; nothing mobile): the work is the unit's build time at the
+    // builder's power, the metal comes back whole, the energy not at all. A turret reaches what stands round it and
+    // the commander takes its base walk, as a mobile builder does. The completion row counts the pair against the
+    // column, so a plan may build a thing, use it, and take it back for the next tier's metal: his vehicle plant
+    // at 4:41 once its nine constructors were out, his advanced plant at 10:22 once its fifteen were, his solars as
+    // the fusions stood.
+    if options.reclaim {
+        for b in builders.iter().copied().chain(std::iter::once(commander)) {
+            let def = &units.list[b];
+            if def.role == Role::Factory {
+                continue;
+            }
+            for (i, column) in columns.iter().enumerate() {
+                let u = column.unit;
+                if column.class != Class::Whole || units.list[u].speed > 0.0 || is_extractor(u) || !matches!(units.list[u].role, Role::Eco | Role::Factory | Role::Nano) {
+                    continue;
+                }
+                let walk = if !mobile(b) { 0.0 } else if b == commander { options.commander_walk_base } else { options.walk_base };
+                let cost = units.list[u].build_time + def.worker_time * walk;
+                pairs.push(Pair { builder: b, column: i, kind: Kind::Reclaim, cost, metal_per_power: -units.list[u].metal_cost / cost, energy_per_power: 0.0 });
+            }
+        }
+    }
     let converters: Vec<usize> = (0..columns.len()).filter(|&i| units.list[columns[i].unit].conv_capacity > 0.0).collect();
     if columns.is_empty() || pairs.is_empty() {
         return Err("nothing to build".into());
@@ -530,13 +575,14 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         cols.push(c);
         vals.push(v);
     };
-    // 1. Completion: n[i, t+1] - n[i, t] - sum_p x[p, t] / cost_p = 0.
+    // 1. Completion: n[i, t+1] - n[i, t] - sum_p x[p, t] / cost_p = 0, a reclaim pair's power counting the other way.
     for i in 0..columns.len() {
         for t in 0..buckets {
             put(row, n_at(i, t + 1), 1.0, &mut rows_i, &mut cols, &mut vals);
             put(row, n_at(i, t), -1.0, &mut rows_i, &mut cols, &mut vals);
             for (p, pair) in pairs.iter().enumerate().filter(|(_, p)| p.column == i) {
-                put(row, x_at(p, t), -1.0 / pair.cost, &mut rows_i, &mut cols, &mut vals);
+                let sign = if pair.kind == Kind::Reclaim { 1.0 } else { -1.0 };
+                put(row, x_at(p, t), sign / pair.cost, &mut rows_i, &mut cols, &mut vals);
             }
             b.push(0.0);
             row += 1;
@@ -638,18 +684,22 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             row += 1;
         }
     }
-    // 3c. Turrets per factory: sum_nano n[nano, t] - N sum_f n[f, t] <= 0.
+    // 3c. Turrets: a number at most (the farm), else per factory: sum_nano n[nano, t] - N sum_f n[f, t] <= 0.
     let nanos: Vec<usize> = (0..columns.len()).filter(|&i| units.list[columns[i].unit].role == Role::Nano).collect();
     if !nanos.is_empty() {
-        let over = nanos.iter().map(|&i| n0[i]).sum::<f64>() - options.nanos_per_factory * factory_columns.iter().map(|&i| n0[i]).sum::<f64>();
+        let standing = nanos.iter().map(|&i| n0[i]).sum::<f64>();
+        let farm = options.max_nanos > 0.0;
+        let over = if farm { standing - options.max_nanos } else { standing - options.nanos_per_factory * factory_columns.iter().map(|&i| n0[i]).sum::<f64>() };
         for t in 0..t_n {
             for &i in &nanos {
                 put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
             }
-            for &i in &factory_columns {
-                put(row, n_at(i, t), -options.nanos_per_factory, &mut rows_i, &mut cols, &mut vals);
+            if !farm {
+                for &i in &factory_columns {
+                    put(row, n_at(i, t), -options.nanos_per_factory, &mut rows_i, &mut cols, &mut vals);
+                }
             }
-            b.push(over.max(0.0));
+            b.push(if farm { options.max_nanos + over.max(0.0) } else { over.max(0.0) });
             row += 1;
         }
     }
@@ -788,6 +838,13 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             }
         }
     }
+    // A reclaim in the last bucket returns metal nothing can spend and frees a reserve nothing needs (the interior
+    // point took down six fusions and the storages in minute 19 to loosen the energy reserve at the horizon): none.
+    for (p, _) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Reclaim) {
+        put(row, x_at(p, buckets - 1), 1.0, &mut rows_i, &mut cols, &mut vals);
+        b.push(0.0);
+        row += 1;
+    }
     // 8. Nothing negative.
     for v in 0..nvars {
         put(row, v, -1.0, &mut rows_i, &mut cols, &mut vals);
@@ -808,6 +865,11 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     for (k, &i) in converters.iter().enumerate() {
         for t in 0..buckets {
             q[c_at(k, t)] -= units.list[columns[i].unit].conv_efficiency;
+        }
+    }
+    for (p, pair) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Reclaim) {
+        for t in 0..buckets {
+            q[x_at(p, t)] += RECLAIM_TIE / pair.cost;
         }
     }
 
