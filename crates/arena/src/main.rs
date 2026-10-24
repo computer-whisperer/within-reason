@@ -119,7 +119,9 @@ struct Options {
     packet_example: bool,
     /// The live edge (docs/design/2026-10-21-brief-rework.md §11): the bot reads `run/data/live-edge/<brief>` for the
     /// last games against this opponent on this map, and every player match writes its entry there when it ends.
-    /// `--no-live-edge` leaves the store unread (an A/B against the default); the entry is still written.
+    /// `--no-live-edge` leaves the store unread, so the player and the commander read the brief bare, without the
+    /// last games' reports and words (the user, 2026-10-23: the bare prompt's quality, without the closed loop against
+    /// BARb); the entry is still written. Recorded in batch.json (`live_edge`), the start line and the ledger row.
     live_edge: bool,
     /// Play every match as this faction instead of alternating.
     side: Option<&'static str>,
@@ -238,8 +240,9 @@ fn main() -> io::Result<()> {
         }
     }
     println!(
-        "{} matches vs {} {} on {}, speed {}, {} parallel -> {}",
-        options.matches, opponent_name(&options.opponent), options.profile, options.map, options.speed, options.parallel, batch_dir.display()
+        "{} matches vs {} {} on {}, speed {}, {} parallel{} -> {}",
+        options.matches, opponent_name(&options.opponent), options.profile, options.map, options.speed, options.parallel,
+        if options.live_edge { "" } else { ", live edge unread (the bare brief)" }, batch_dir.display()
     );
 
     let commit = git_commit(&repo);
@@ -248,7 +251,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -308,8 +311,8 @@ fn main() -> io::Result<()> {
     }
     print_rule_comparison(&batch_dir, &results);
     println!(
-        "ledger row for docs/experiments.md:\n| {} | {} | {}{} | {} | {}-{}-{}{} | <what this tested> | <what it showed> |",
-        options.label, commit, options.profile, if options.mirror { ", mirror" } else { "" }, results.len(),
+        "ledger row for docs/experiments.md:\n| {} | {} | {}{}{} | {} | {}-{}-{}{} | <what this tested> | <what it showed> |",
+        options.label, commit, options.profile, if options.mirror { ", mirror" } else { "" }, if options.live_edge { "" } else { ", no live edge" }, results.len(),
         count(Outcome::Win), count(Outcome::Loss), count(Outcome::Timeout),
         match count(Outcome::Aborted) { 0 => String::new(), n => format!(" ({n})") }
     );
