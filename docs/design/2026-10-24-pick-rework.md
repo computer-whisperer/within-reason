@@ -179,6 +179,16 @@ Evenness: the quick picks' played rating median 0.55, the spaced picks' 0.66 (ga
 gates well and the idle ones by lot. The lead (4,012 against 2,135 at 12:00, 8,262 against 2,654 at 16:00) went
 unconverted until the push of 20:50; 21 extractors lost to raids. Jev $0.72, the rate of the series.
 
+**pick-one-2 (272d726, the t-1 words out): WON 17:31, called** (his army 2,605 against 15,670). A change drawn in 66%
+of components (groups 64%); groups 304 picks in 17.5 minutes, **52% within 10 s** (pick-one-1 40%; the band 42-64%),
+of an idle group 56% (68%); 7 re-picks, 11 A-B-A, 139 switches; the played rating median 0.58 quick and spaced alike,
+the gap 0.01 / 0.02. The strip moved none of the alternation measures beyond noise, and two games on one seed cannot
+separate it from the dice; the engine is the one pick-one-1 exposed. New in the trace: detachments drawn under the
+forbidden mark (group_H 6:07 at 0.58 of the mass under a mark of 0.62-0.69; 6:15 at 0.84 under 0.46), which stage two
+used to catch in part; the mark is words only by the law of 2026-09-30, written when stage two stood. Gather: 30 plays
+again. Next, for the user's ruling: the gather arrival; §4 rows 3 and 9; whether a move the decode reads as forbidden
+stays on the menu under a draw; then §6's fire-on-path words.
+
 ## 6. Next, under the principle
 
 1. The state words of §2 (the fire on each path, the odds as the body will meet them, the turn's cost as this
