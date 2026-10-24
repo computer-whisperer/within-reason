@@ -40,6 +40,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       before the first death, a turret counted at k times its metal, call who lost less soldier metal?), our assaults
       on his posts (his turrets 1,000+ on the spot, our soldiers 500+, his side: the exchange, the posts that fell,
       the disasters and what stood behind them), and the sight clocks.
+  run/metal_killtest.py raids <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--side-cache run/data/raid_killtest.jsonl] [--workers 6]
+      The raid answer (docs/briefs/derived/raids.md): run/raid_ledger.py --json over every model-played 1v1 (one row
+      an extractor we lost: who came, what stood there, what answered, whether the raiders paid, whether it was
+      rebuilt), our light turrets standing by 8:00 and our first radar, kept per game in the side cache; then the loss
+      rate by result, what stood beside the lost extractors and whether it made the raiders pay, the killers and the
+      parties' sizes, the answers and their pay rate, the rebuilds, and the turrets and radar of a game against its
+      losses.
 
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
@@ -1000,6 +1007,125 @@ def reach(caches, side_cache, min_minutes, workers):
     print(f"  our first radar stood in {len(radar)} of {len(games)} games at {quart(radar, '{:.1f}')} min, by 3:00 in {sum(1 for x in radar if x <= 3)}; scouts built a game {quart([g['scouts'] for g in games])}, none in {sum(1 for g in games if g['scouts'] == 0)}")
 
 
+
+# ---- the raid answer (docs/briefs/derived/raids.md)
+LIGHT_TURRETS = {"armllt", "corllt", "legllt", "armbeamer", "corhllt", "armclaw", "cormaw", "legmg"}
+
+
+def raids_one(r):
+    """One game: raid_ledger's rows and totals (a subprocess), our light turrets standing by 8:00, our first radar."""
+    key = r["dir"]
+    d = where(key)
+    out = {"dir": key, "label": r.get("label"), "outcome": r["outcome"], "minutes": r["minutes"], "bonus": r.get("enemy_bonus") or 0,
+           "opponent": r.get("opponent"), "rows": None, "totals": None, "turrets_by_8": None, "radar": None,
+           "extractors_by_8": (r["at"].get("8") or {}).get("ours", {}).get("extractors")}
+    try:
+        p = subprocess.run(["timeout", "600", sys.executable, os.path.join(HERE, "raid_ledger.py"), d, "--json"], capture_output=True, text=True)
+        if p.returncode == 0 and p.stdout.strip():
+            j = json.loads(p.stdout.strip().splitlines()[-1])
+            out["rows"], out["totals"] = j["rows"], j["totals"]
+    except Exception:
+        pass
+    records = sorted(glob.glob(d + "/record-*.jsonl"))
+    text = read_text(records[0]) if records else None
+    if text:
+        lines = iter(text.splitlines(True))
+        try:
+            defs = json.loads(next(lines))["unit_defs"]
+        except (ValueError, KeyError, StopIteration):
+            defs = []
+        turrets = 0
+        for line in lines:
+            if '"t":"ev"' not in line or '"k":"finished"' not in line:
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            idx = ev.get("d")
+            name = defs[idx]["name"] if isinstance(idx, int) and 0 <= idx < len(defs) else None
+            if name in LIGHT_TURRETS and ev["f"] <= 8 * 60 * FPS:
+                turrets += 1
+            elif name in RADARS and out["radar"] is None:
+                out["radar"] = ev["f"]
+        out["turrets_by_8"] = turrets
+    return out
+
+
+def raids(caches, side_cache, min_minutes, workers):
+    from concurrent.futures import ThreadPoolExecutor
+    rows = [r for r in load(caches) if r["minutes"] >= min_minutes and population(r) == "1v1 model"]
+    done = {}
+    if os.path.exists(side_cache):
+        with open(side_cache) as f:
+            for line in f:
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue
+                if j.get("rows") is not None:
+                    done[j["dir"]] = j
+    todo = [r for r in rows if r["dir"] not in done]
+    if todo:
+        print(f"reading {len(todo)} games ({len(done)} in the side cache)", file=sys.stderr)
+        with ThreadPoolExecutor(workers) as ex, open(side_cache, "a") as out:
+            for res in ex.map(raids_one, todo):
+                out.write(json.dumps(res) + "\n")
+                out.flush()
+                done[res["dir"]] = res
+    games = [done[r["dir"]] for r in rows if r["dir"] in done]
+    losses = [(g, x) for g in games for x in g["rows"] if x.get("killer") != "def-1" or True]
+    print(f"== {len(games)} model-played 1v1s of {min_minutes} minutes or more; {len(losses)} extractors lost to the enemy")
+    won = [g for g in games if g["outcome"] == "Win"]
+    lost = [g for g in games if g["outcome"] != "Win"]
+    rate = lambda gs: sum(len(g["rows"]) for g in gs) / max(1, sum(g["minutes"] for g in gs))
+    print(f"lost a game-minute: won games {rate(won):.2f}, lost games {rate(lost):.2f}; a game {quart([len(g['rows']) for g in games])} (won {quart([len(g['rows']) for g in won])}, lost {quart([len(g['rows']) for g in lost])})")
+    n = len(losses)
+    undefended = [x for g, x in losses if x["soldiers_near"] == 0 and x["turrets_near"] == 0]
+    with_t = [x for g, x in losses if x["turrets_near"] > 0]
+    with_s = [x for g, x in losses if x["soldiers_near"] > 0 and x["turrets_near"] == 0]
+    paid = lambda xs: sum(1 for x in xs if (x["raiders_paid"] or 0) > 0)
+    print(f"what stood there ten seconds before: nothing within reach in {len(undefended)} ({100 * len(undefended) / max(n, 1):.0f}%), a turret within 700 in {len(with_t)} ({100 * len(with_t) / max(n, 1):.0f}%), soldiers within 900 and no turret in {len(with_s)}")
+    print(f"the raiders paid (one of the party dead within 120 s): overall {paid([x for g, x in losses])} of {n} ({100 * paid([x for g, x in losses]) / max(n, 1):.0f}%); with a turret {paid(with_t)} of {len(with_t)} ({100 * paid(with_t) / max(len(with_t), 1):.0f}%); soldiers only {paid(with_s)} of {len(with_s)} ({100 * paid(with_s) / max(len(with_s), 1):.0f}%); nothing {paid(undefended)} of {len(undefended)} ({100 * paid(undefended) / max(len(undefended), 1):.0f}%)")
+    unseen = sum(1 for g, x in losses if x["seen_s"] == 0)
+    print(f"died to something never seen: {unseen} ({100 * unseen / max(n, 1):.0f}%); seen for {quart([x['seen_s'] for g, x in losses if x['seen_s'] > 0])} s before dying when seen")
+    killers = Counter(x["killer"] for g, x in losses)
+    print("killers: " + ", ".join(f"{k} {v}" for k, v in killers.most_common(10)))
+    size = Counter()
+    for g, x in losses:
+        k = sum(x["party"].values())
+        size["none seen" if k == 0 else ("one" if k == 1 else ("two or three" if k <= 3 else "four or more"))] += 1
+    print("the party ten seconds before: " + "; ".join(f"{k} {v}" for k, v in size.items()))
+    answered = [x for g, x in losses if x["answer"]]
+    kinds = Counter()
+    kpaid = Counter()
+    for x in answered:
+        did = x["answer"]["did"]
+        k = "a hunt by a few" if "hunt" in did else ("the whole group" if "whole group" in did else "another play")
+        kinds[k] += 1
+        kpaid[k] += (x["raiders_paid"] or 0) > 0
+    print(f"answered by the hands within 120 s: {len(answered)} ({100 * len(answered) / max(n, 1):.0f}%), delay from first sight {quart([x['answer']['delay_s'] for x in answered])} s; " + "; ".join(f"{k} {kinds[k]} (paid {100 * kpaid[k] / max(kinds[k], 1):.0f}%)" for k in kinds))
+    rebuilt = [x for g, x in losses if x["rebuilt"]]
+    print(f"rebuilt: {len(rebuilt)} ({100 * len(rebuilt) / max(n, 1):.0f}%), {sum(1 for x in rebuilt if x['rebuilt']['stood'])} stood, after {quart([x['rebuilt']['delay_s'] for x in rebuilt])} s; spots lost twice or more a game {quart([len(g['totals'].get('spots_lost_twice_or_more', {})) for g in games])}")
+    buckets = Counter()
+    for g, x in losses:
+        buckets[min(28, 4 * (x["frame"] // (4 * 60 * FPS)))] += 1
+    print("by minute: " + ", ".join(f"{b}-{b + 4} {buckets[b]}" for b in sorted(buckets)))
+    # turrets and radar against the losses
+    t8 = [g for g in games if g["turrets_by_8"] is not None]
+    print(f"\nour light turrets standing by 8:00: {quart([g['turrets_by_8'] for g in t8])} (won {quart([g['turrets_by_8'] for g in t8 if g['outcome'] == 'Win'])}, lost {quart([g['turrets_by_8'] for g in t8 if g['outcome'] != 'Win'])}); extractors by 8:00 {quart([g['extractors_by_8'] for g in games if g['extractors_by_8'] is not None])}")
+    mid = lambda g: sum(1 for x in g["rows"] if 8 * 60 * FPS <= x["frame"] < 16 * 60 * FPS)
+    for lab, cond in (("fewer than 5 turrets by 8:00", lambda g: g["turrets_by_8"] < 5), ("5 to 9", lambda g: 5 <= g["turrets_by_8"] < 10), ("10 or more", lambda g: g["turrets_by_8"] >= 10)):
+        ss = [g for g in t8 if cond(g) and g["minutes"] >= 16]
+        if ss:
+            print(f"  {lab}: {len(ss)} games of 16+ min, extractors lost 8:00-16:00 {quart([mid(g) for g in ss])}, won {sum(1 for g in ss if g['outcome'] == 'Win')}")
+    early = lambda g: sum(1 for x in g["rows"] if x["frame"] < 8 * 60 * FPS)
+    for lab, cond in (("radar standing by 4:00", lambda g: g["radar"] is not None and g["radar"] <= 4 * 60 * FPS), ("radar later or never", lambda g: not (g["radar"] is not None and g["radar"] <= 4 * 60 * FPS))):
+        ss = [g for g in games if cond(g)]
+        if ss:
+            print(f"  {lab}: {len(ss)} games, extractors lost before 8:00 {quart([early(g) for g in ss])}, by 16:00 {quart([early(g) + mid(g) for g in ss if g['minutes'] >= 16])}, won {sum(1 for g in ss if g['outcome'] == 'Win')}")
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -1007,7 +1133,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -1026,6 +1152,8 @@ def main():
         reclaim(positional, opt("--min-minutes", 14, int))
     elif cmd == "reach":
         reach(positional, opt("--side-cache", "run/data/reach_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 4, int))
+    elif cmd == "raids":
+        raids(positional, opt("--side-cache", "run/data/raid_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 6, int))
     else:
         pool_windows(opt("--min-os", 0.0), opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
 
