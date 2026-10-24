@@ -428,6 +428,42 @@ status: live
 **"shhh dont say that, your oponent will know what faction you are playing and where you spawned"** (thebluegecko,
 the opponent of the Great Divide 2v1, 1:12, after our player had announced "south-east seat here, Cortex").
 
+### Bots against vehicles (thebluegecko, spoken, 2026-10-23)
+
+<!--meta
+id: L-gecko-bots-vs-vehicles
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: a voice conversation the user recorded and we transcribed locally (docs/knowledge/_inbox/gecko-bots-vs-vehicles-2026-10-23.md, faster-whisper large-v3); the bracketed corrections of the model's hearing and the speaker reading are ours, unchecked against the audio}
+status: live
+-->
+Asked by the user to restate his account of a duel between a vehicle opener and a bot opener (1:27 to 5:40 of the
+recording): **"As the match starts, one player chooses vehicle, the other bots. What happens right off the bat is the
+vehicle player has a better ability to project power onto the map. Better vision, faster units. The scout units,
+Rascal and Rover, are plenty powerful to kill a mex [the transcript: mech], and given a little bit of time, a con bot,
+but can't really effectively fight the bots."** ... **"the bot player can't invest in LLTs because it will slow down
+the expansion too much. The vehicle player then naked expands, so expands with no LLTs, while the rovers and rascals
+keep the bot player pinned on the bot player side of the map."** ... **"Triples are these close-together spawns where
+you might play a 4v4 map, 1v1. For those, the bots have an advantage, because the bot player's lab costs a little bit
+less metal, and the bot cons cost less metal, and the fact that they're slow doesn't matter so much"** ... **"the bot
+player then needs to go attack the vehicle player. Not to do damage, but to force the vehicle player to build vehicles
+with weapons rather than more cons, so that the vehicle player's cons don't run away with the map"** ... **"around that
+time, 5 minutes, 7 minutes, somewhere in there, the vehicle player will gain a large army advantage, because the bot
+player will have to invest more metal in e-production in order to keep building bots ... if the vehicle player takes a
+good engagement at this point, the game will end in the vehicle player's favor."** ... **"the bot player has to run
+all the way back home after that initial pressure to try to hide under the shelter of LLTs that are probably now at
+each triple ... Then the game kind of devolves into this sharking around where both players try to slip units past and
+pick off an expanding con"** ... **"The bot player probably switches into vehicles themselves for more equal
+engagement, and the bot player, having built more E at the start, may have an advantage in going air first ... if you
+can get a bomber or two out and bomb the enemy's E earlier, you can spiral that E advantage"**.
+
+Before it, on the Blitz against Grunts (0:00): **"The Blitz, despite being more efficient per metal, if you count the
+e-build, is quite a bit shorter range than the Grunt. And so if you get Grunts in a concave all running away, the Blitz
+can take enough shots before the engage that the Blitz lose. And in really small numbers, they can take enough shots
+before the engage that the engage never happens."** And on our measurements (1:37): **"Some of the things that you're
+measuring, like who gets the first mexes [mechs] and when, winner versus loser, or who is across the map first and when,
+winner versus loser, are skewed because the answer is dependent on which player is using which factory and not
+necessarily predictive of who ends up winning."**
+
 ### The unit sheet (thebluegecko, 2026-10-23)
 
 The glossary sheet (`run/glossary_sheet.py`, one row a unit with our numbers and our prose) went to the experienced
