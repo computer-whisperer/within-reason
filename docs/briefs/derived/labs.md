@@ -1,7 +1,7 @@
 <!--meta
 id: D-lab-choice
 layer: derived
-premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-eco-energy, F-eco-build, F-eco-conversion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-gecko-duels, D-lead-convert-it, D-reach-nests, D-raid-answer]
+premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-corlevlr, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-eco-energy, F-eco-build, F-eco-conversion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-gecko-duels, D-lead-convert-it, D-reach-nests, D-raid-answer]
 lessons: [L-gecko-bots-vs-vehicles, L-sheet-labs, L-gecko-one-more-con, L-gecko-three-resources]
 sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: his spoken account of a vehicle opener against a bot opener, recorded by the user and transcribed locally (L-gecko-bots-vs-vehicles), his unit-sheet rows on the labs (L-sheet-labs), his reading of the metal article aloud (L-gecko-one-more-con); the user's request that the derivations stay lean, ideas with their arithmetic and no doctrine}
 status: draft, checked (run/metal_killtest.py openers, 2026-10-23: the pool's 80 Comet sides by first factory and our 280 model-played duels with both first factories read; the numbers in the tests)
@@ -123,7 +123,20 @@ His account is of the duel in general; the pool's Comet duels are towered on bot
 and 5) are the fewer. (4) BARb's bot lab is not a bot player: its first units cross early (54 to 75 of army metal in
 our half at 3:00) and its expansion is scripted; against it the bot lab is the harder opponent for our habit, not for
 its strength. (5) In a team the labs are the side's, one of each kind and the sheet's air plant "around 30m/s on many
-maps" (L-sheet-labs), and the duel above is between seats, not sides.
+maps" (L-sheet-labs), and the duel above is between seats, not sides. (6) The bot player's answer in the open is range, not metal: the Grunt reaches 215 to the Blitz's
+180, and "if you get Grunts in a concave all running away, the Blitz can take enough shots before the engage that the
+Blitz lose ... in really small numbers ... the engage never happens" (L-gecko-bots-vs-vehicles). A Blitz at 101 closes
+on a Grunt backing away at 81 by 20 elmos a second, so the 35 elmos of range are 1.75 seconds of free fire per Grunt,
+130 damage, 18% of the Blitz's 730; four Grunts in a concave take 70% of the first Blitz before it fires. Per metal
+the Grunt is the better unit by the square law (74 x 280 over 43 squared against 90 x 730 over 110 squared, 11.2 to
+5.4: a thousand of Blitzes is level with about 700 of Grunts), so the vehicle side's doubled army is what it has to
+spend the free fire against, and "Blowdeer [as heard] stays on Grunts for kind of a long time trying to make that
+snowball happen". The vehicle side's own switch is the Incisor, 230 of reach, 820 health, 94 a second for 120 metal,
+level with the Blitz per metal and 50 longer: a Blitz closing at 16 a second takes 3.1 seconds of fire, 40% of
+itself, before it answers, "just a better unit than the Blitz"; and "on some maps, mash Pounder for the defensive
+value" (315 of reach, 1,400 health, 106 a second for 220 metal, too slow at 40 to raid). None of this is in the
+pool's cut, whose bot sides are Cortex Grunts in 15 of 16; the Grunt's reach may be part of why they win half the
+mixed duels.
 
 **When to depart from the line.** The line is the vehicle plant on Comet and the reading of his. Depart from the
 plant on a map with triples and wind; from the reading when his second factory changes the race (a bot player's vehicle
@@ -147,4 +160,10 @@ stood 12 / 18 extractors at 8:00 / 12:00 to its plant self's 10 / 15 with half t
 bot-lab games are 80, all September's harness (the pianist, the one-decider and the commander series), 29 won and 0 of
 8 on Comet against BARb, and say nothing about the lab. What the tests cannot do: the pool's cut is sixteen bot sides,
 Cortex in fifteen; our cut has the opener on one side only; and no game of ours yet carries a turn that named his lab
-and spent the window on it, which is the test that matters, when the episode index exists.
+and spent the window on it, which is the test that matters, when the episode index exists. The constructor adage of consider item 4 (`run/metal_killtest.py energy`, 2026-10-24, both
+sides' constructors read): in the pool the winners stand one constructor ahead at 5:00 at the median (13 of 40 sides
+ahead by one, 9 by two or more, 10 level, 8 behind) and the losers one behind; in our 242 model-played games the more
+ahead the better against BARb (at 6:00, behind won 32 of 109, level 19 of 44, one ahead 18 of 37, two 14 of 22, three
+or more 19 of 30), with no sign of his "four beats six", because BARb does not punish the extra constructor the way he
+says he does against us (M-gecko-vs-us-comet); against its bot lab we stand behind in constructors in 75 of 95 games
+at 6:00 (its 7 to our 5) and won 22 of those, against its vehicle plant ahead in 37 of 53 and won 26 of them.

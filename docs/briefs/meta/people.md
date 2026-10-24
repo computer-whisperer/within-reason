@@ -93,7 +93,7 @@ Pawns; the first far extractor at 1:45 with a turret beside it at 2:32; a conver
 id: M-gecko-vs-us-comet
 layer: meta
 premises: [M-pool-expansion, M-pool-closing]
-lessons: [L-lead-use-it, L-lead-together, L-mix-adversarial, L-raid-naked-mexes]
+lessons: [L-lead-use-it, L-lead-together, L-mix-adversarial, L-raid-naked-mexes, L-gecko-one-more-con]
 population: thebluegecko against our seats on Comet Catcher: games 1, 2, 3 and 9 of the 3v1 series (2026-09-26/28, replayed and carded), game 10 (2026-09-28), human-15 and -19 (three and two seats, 2026-10-03), human-20 (a 1v1, 2026-10-03); lobby 34 to 41. His team games with u6bkep are in the team block.
 map: Comet Catcher Remake 1.8
 dates: 2026-09-26 to 2026-10-03
@@ -145,6 +145,8 @@ human-19 Incisors held C3 behind Exploiters, his commander D-gunned seven Stouts
 1v1 we lost at 11:11, he played Armada vehicles: Rovers across to our side by 2:44, Blitz raids of 3 to 9 from 4:14,
 the close with 15 to 23. We won two of these (human-15 at 10:20 with three seats, human-19 at 15:23 with two): his
 extractors in sight never passed 13 in human-15 and reached 17 at the end of human-19.
+
+**How he reads us (his words, 2026-10-23, L-gecko-one-more-con).** Asked whether building one constructor more than the opponent is the map's meta or a read of the player: "it's different by player, too. So I know that Within Reason's historical versions don't harass me really, really early. And so I tend to open with another con or two more than I would when playing against a human player." The read is right about us so far: in the six +0 games of the rework brief (rework-series-1 and -2) our first soldier was in his half at 1:38 to 2:54 and the first building of his died at 3:02 to 10:12, against the pool's 2:48 (M-pool-pressure), and none of ours killed anything of his before 3:00. His adage for the same choice, "very slightly slower than your opponent or significantly faster", is in the lesson; what he collects against us is the slower side of it, the extra constructors paying off because no raiders come to punish them.
 
 <!--meta
 id: M-gecko-other-maps

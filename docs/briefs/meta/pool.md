@@ -211,12 +211,12 @@ card cannot settle the share.
 id: M-pool-energy-and-power
 layer: meta
 premises: [F-eco-energy, F-eco-build, F-eco-store]
-lessons: [L-energy-nanos, L-energy-converters, L-energy-priority]
+lessons: [L-energy-nanos, L-energy-converters, L-energy-priority, L-gecko-three-resources]
 population: the Comet pool at OS 40+; the energy-storage and converter counts from the whole-game records of the 80 sides; the priority toggles from 75 duels at OS 25+
 map: Comet Catcher Remake 1.8
-dates: 2026-10-17; 2026-10-19 (storage); 2026-10-13 (priority)
+dates: 2026-10-17; 2026-10-19 (storage); 2026-10-13 (priority); 2026-10-24 (by result and by map)
 ground: card
-sources: {code: [docs/briefs/reference/comet-catcher-remake-1.8-arm.md, docs/briefs/reference/comet-catcher-remake-1.8-cor.md, docs/studies/2026-10-13-builder-priority.md, run/replays/priority.py], claims: [K-pro-comet-first-construction-turret-before-the-second-factory, K-eco-winner-pulls-away-8-to-12, K-eco-energy-storage-is-the-cheap-buffer, K-econ-commander-low-while-assisting, K-econ-expanding-constructor-high, K-open-comet-radar-nano-solars-habits, K-map-comet-catcher-remake-1-8-second-factory]}
+sources: {code: [docs/briefs/reference/comet-catcher-remake-1.8-arm.md, docs/briefs/reference/comet-catcher-remake-1.8-cor.md, docs/studies/2026-10-13-builder-priority.md, run/replays/priority.py, run/metal_killtest.py (energy, 2026-10-24)], claims: [K-pro-comet-first-construction-turret-before-the-second-factory, K-eco-winner-pulls-away-8-to-12, K-eco-energy-storage-is-the-cheap-buffer, K-econ-commander-low-while-assisting, K-econ-expanding-constructor-high, K-open-comet-radar-nano-solars-habits, K-map-comet-catcher-remake-1-8-second-factory]}
 status: live
 -->
 ### Energy, build power, the bank
@@ -244,6 +244,16 @@ Cortex 878 against 449 and 1,183 against 842). The OS 25+ survey read the opposi
 22 losers with 500 or more banked): the two pools disagree, and a derivation about the bank has to say so. The income
 gap is small to 8:00 (winner minus loser about 5 a second at 40+) and opens after (Armada 14 at 10:00 and 21 at 12:00,
 Cortex 11 and 18).
+
+**By result and by map (2026-10-24, `run/metal_killtest.py energy`, the 40+ duels).** Energy per metal of income runs
+lower in the winners at every minute: 8.8 against 9.2 at 5:00, 9.3 against 10.3 at 8:00, 11.6 against 13.6 at 12:00
+(Comet; the winners' energy income is the higher, 210 against 190 at 5:00 and 750 against 547 at 12:00, on the higher
+metal income), and the metal standing in generators over the army's metal is level, 1.61 against 1.53 at 5:00 and 1.52
+against 1.64 at 8:00. The bot openers run 11.0 energy per metal of income at 5:00 on 10 solars, the vehicle openers 8.4
+on 7 (M-pool-openers). The winners stand one constructor ahead at 5:00 at the median (13 of 40 sides ahead by one, 9 by
+two or more, 10 level, 8 behind) and the losers one behind; by 8:00 the winners are two or more ahead in 15 of 36. The
+two Full Metal Plate duels in the pool are the wind map's picture: no solar, 48 turbines by 5:00 and 186 by 8:00, for
+1,180 energy a second at 5:00 against Comet's 190.
 
 **Builder priority.** Fourteen of 41 players in 75 duels set the commander to low priority while it assists the plant
 or builds a solar (52 toggles, 42 of them before 5:00, 21 in the first minute, the metal store under a tenth in 23),

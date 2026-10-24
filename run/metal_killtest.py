@@ -55,6 +55,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       by 5:00 and 8:00, the second factory, and the mixed duels one by one; then our model-played 1v1s with both first
       factories read (ours from the record, his from the truth file; the side cache) by the pair, and the Comet games
       against BARb, whose lab is dice, split by his factory.
+  run/metal_killtest.py energy [--opener-cache run/data/opener_killtest.jsonl] [--side-cache run/data/energy_killtest.jsonl] [--workers 8] [--min-os 40]
+      The energy article (docs/briefs/derived/energy.md): the pool's generators by map and by result (solars, turbines,
+      advanced solars, storages, converters, fusions from the build orders), energy over metal income, the metal in
+      generators over the army's, and the constructor difference by result; then our model-played games (the opener
+      cache's list, both first factories known): our constructors from the record's state rows and his from the truth
+      file at 4 / 6 / 8 / 12, the energy-stall share of 2:00-12:00 (store under 3 %, draw above income), and energy over
+      metal income at 5 / 8 / 12.
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
 extractor's nearest spot's worth (the header's `metal_spots`) times its `extracts_metal`, times the side's bonus
@@ -1373,6 +1380,205 @@ def openers(caches, side_cache, min_minutes, workers, min_os):
     print(f"   all our bot-lab games, any map and opponent: {len(allbots)}, won {sum(1 for g in allbots if g['outcome'] == 'Win')}; batches " + ", ".join(f"{a} {b}" for a, b in Counter((g["label"] or "?").rsplit("-", 1)[0] for g in allbots).most_common(8)))
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# energy: the energy article's cut (D-energy-second). The pool half: generators by map and by result (solars, winds,
+# advanced solars, storages, converters, fusions from the cards' build orders), energy income over metal income, the
+# metal standing in generators over the army's, and the constructor difference (mine minus his) by result. Our half: the
+# opener side cache's games (both first factories known), our constructors from the record's state rows and his from the
+# truth file at 4 / 6 / 8 / 12, the share of seconds 2:00-12:00 with the energy store under 3 % and the draw above the
+# income (a stall), and energy income over metal income at 5 / 8 / 12.
+
+GENERATORS = {"solar": ("armsolar", "corsolar", "legsolar"), "wind": ("armwin", "corwin", "legwin"), "advsolar": ("armadvsol", "coradvsol", "legadvsol"),
+              "storage": ("armestor", "corestor", "legestor"), "converter": ("armmakr", "cormakr", "legeconv"), "fusion": ("armfus", "corfus", "legfus"),
+              "tide": ("armtide", "cortide", "legtide")}
+WIND_TOP = {"Comet Catcher Remake 1.8": 4, "Quicksilver Remake 1.24": 17, "Great Divide V1": 20, "Center Command BAR v1.0": 19, "Cape Violet V1": 20,
+            "Gecko Isle Remake v1.2.1": 16, "All That Glitters v2.2.3": 16, "Altored Divide Bar Remake 1.6.2": 19, "Isidis crack 1.1": 20,
+            "Mithril Mountain v2.0.1": 17, "Carrot Mountains v2.0": 12, "Gasbag Grabens 1.1.1": 16, "Feast of Hades 1.0.1": 14}  # F-map-catalogue
+
+
+def energy_pool_sides(min_os):
+    def kind(f):
+        f = f or {}
+        return f.get("kind") or FACTORY_KIND.get(f.get("unit"), f.get("unit"))
+    out = []
+    for card, teams, m, os_by, duration in pool_duels(min_os):
+        for i, t in enumerate(teams):
+            o = teams[1 - i]
+            cur = {c["minute"]: c for c in t["curves"]}
+            ocur = {c["minute"]: c for c in o["curves"]}
+            bo = t.get("build_order") or []
+            def n(units, lim):
+                return sum(1 for b in bo if b["unit"] in units and card_secs(b["clock"]) is not None and card_secs(b["clock"]) < lim)
+            facs = t.get("factories") or []
+            out.append({"map": m, "won": bool(t.get("won")), "opener": kind(facs[0] if facs else None), "dur": duration,
+                        "gen": {g: {mn: n(units, mn * 60) for mn in (3, 5, 8, 12, 20)} for g, units in GENERATORS.items()},
+                        "e": {mn: (cur.get(mn) or {}).get("energy_income") for mn in (3, 5, 8, 12)},
+                        "mi": {mn: (cur.get(mn) or {}).get("metal_income") for mn in (3, 5, 8, 12)},
+                        "army": {mn: (cur.get(mn) or {}).get("army_metal") for mn in (5, 8)},
+                        "cons": {mn: (cur.get(mn) or {}).get("constructors") for mn in (3, 5, 8, 12)},
+                        "hcons": {mn: (ocur.get(mn) or {}).get("constructors") for mn in (3, 5, 8, 12)}})
+    return out
+
+
+def _ratio(a, b):
+    return a / b if a and b else None
+
+
+def _ahead_words(diffs):
+    return f"ahead by one {sum(1 for x in diffs if x == 1)}, by two or more {sum(1 for x in diffs if x >= 2)}, level {sum(1 for x in diffs if x == 0)}, behind {sum(1 for x in diffs if x < 0)}"
+
+
+def report_energy_pool(sides):
+    print(f"\n== the pool: {len(sides)} sides of {len(sides) // 2} duels")
+    print("-- generators by map (medians over the map's sides; the wind's top from F-map-catalogue)")
+    for m, _ in sorted(Counter(s["map"] for s in sides).items(), key=lambda kv: -kv[1]):
+        K = [s for s in sides if s["map"] == m]
+        g = lambda kind, mn: nquart([s["gen"][kind][mn] for s in K])
+        print(f"   {m[:28]:28s} n={len(K):3d} wind top {WIND_TOP.get(m, '?'):>2}: solars 5:00 {g('solar', 5)}, 8:00 {g('solar', 8)}; winds 5:00 {g('wind', 5)}, 8:00 {g('wind', 8)}; "
+              f"advanced solars by 12 {sum(s['gen']['advsolar'][12] for s in K)}, storages {sum(s['gen']['storage'][12] for s in K)}, converters {sum(s['gen']['converter'][12] for s in K)}, "
+              f"fusions by 20 {sum(s['gen']['fusion'][20] for s in K)}, tides by 8 {sum(s['gen']['tide'][8] for s in K)}; energy income 5:00 {nquart([s['e'][5] for s in K])}")
+    for label, K in (("every map", sides), ("Comet Catcher", [s for s in sides if s["map"].startswith("Comet")])):
+        W = [s for s in K if s["won"]]
+        L = [s for s in K if not s["won"]]
+        print(f"-- {label}: {len(K)} sides")
+        for mn in (3, 5, 8, 12):
+            print(f"   {mn:2d}:00 energy income won {nquart([s['e'][mn] for s in W])} lost {nquart([s['e'][mn] for s in L])}; metal income won {nquart([s['mi'][mn] for s in W])} lost {nquart([s['mi'][mn] for s in L])}; "
+                  f"energy per metal of income won {nquart([_ratio(s['e'][mn], s['mi'][mn]) for s in W], '{:.1f}')} lost {nquart([_ratio(s['e'][mn], s['mi'][mn]) for s in L], '{:.1f}')}")
+        for mn in (5, 8):
+            spend = lambda s: s["gen"]["solar"][mn] * 155 + s["gen"]["wind"][mn] * 40 + s["gen"]["advsolar"][mn] * 350
+            print(f"   {mn}:00 metal standing in generators won {nquart([spend(s) for s in W])} lost {nquart([spend(s) for s in L])}; over the army's metal won "
+                  f"{nquart([_ratio(spend(s), s['army'][mn]) for s in W], '{:.2f}')} lost {nquart([_ratio(spend(s), s['army'][mn]) for s in L], '{:.2f}')}")
+        for mn in (3, 5, 8, 12):
+            d = lambda s: (s["cons"][mn] - s["hcons"][mn]) if s["cons"][mn] is not None and s["hcons"][mn] is not None else None
+            dw = [d(s) for s in W if d(s) is not None]
+            dl = [d(s) for s in L if d(s) is not None]
+            print(f"   constructors mine minus his at {mn:2d}:00: winners {nquart(dw)} ({_ahead_words(dw)}); losers {nquart(dl)}; constructors won {nquart([s['cons'][mn] for s in W])} lost {nquart([s['cons'][mn] for s in L])}")
+        for op in ("vehicles", "bots"):
+            K2 = [s for s in K if s["opener"] == op]
+            if K2:
+                print(f"   {op}: solars by 5:00 {nquart([s['gen']['solar'][5] for s in K2])}, energy income 5:00 {nquart([s['e'][5] for s in K2])}, energy per metal of income {nquart([_ratio(s['e'][5], s['mi'][5]) for s in K2], '{:.1f}')}")
+
+
+def energy_one(row):
+    """One game of ours: constructors ours (record state rows) and his (truth file) at 4 / 6 / 8 / 12, the energy stall
+    share 2:00-12:00 and 2:00-20:00, energy over metal income at 5 / 8 / 12."""
+    d = row["dir"]
+    recs = sorted(glob.glob(f"{d}/record-*.jsonl"))
+    truths = sorted(glob.glob(f"{d}/truth-*.jsonl"))
+    if not recs or not truths:
+        return None
+    marks = (4, 6, 8, 12)
+    try:
+        with open(recs[0], errors="replace") as fh:
+            hdr = json.loads(fh.readline())
+            ud = hdr.get("unit_defs") or {}
+            byid, byname = {}, {}
+            for k, v in (ud.items() if isinstance(ud, dict) else enumerate(ud)):
+                if isinstance(v, dict):
+                    byid[int(k)] = (v.get("class"), v.get("move") is not None)
+                    byname[v.get("name")] = (v.get("class"), v.get("move") is not None)
+            cons, e_ratio = {}, {}
+            stall = {12: 0, 20: 0}
+            rows = {12: 0, 20: 0}
+            pend, epend = set(marks), {5, 8, 12}
+            for line in fh:
+                if '"t": "s"' not in line and '"t":"s"' not in line:
+                    continue
+                try:
+                    r = json.loads(line)
+                except Exception:
+                    continue
+                f = r.get("f", 0)
+                e = r.get("e") or [0, 0, 0, 0]
+                mm = r.get("m") or [0, 0, 0, 0]
+                for lim in (12, 20):
+                    if 3600 <= f <= lim * 1800:
+                        rows[lim] += 1
+                        if e[3] and e[0] < 0.03 * e[3] and e[2] > e[1]:
+                            stall[lim] += 1
+                for m in sorted(pend):
+                    if f >= m * 1800:
+                        cons[m] = sum(1 for u in (r.get("own") or []) if byid.get(u[1], (None, False)) == ("builder", True))
+                        pend.discard(m)
+                for m in sorted(epend):
+                    if f >= m * 1800:
+                        e_ratio[m] = (round(e[1], 1), round(mm[1], 1))
+                        epend.discard(m)
+        his = {}
+        with open(truths[0], errors="replace") as fh:
+            pend = set(marks)
+            for line in fh:
+                if not pend:
+                    break
+                try:
+                    r = json.loads(line)
+                except Exception:
+                    continue
+                f = r.get("f", 0)
+                for m in sorted(pend):
+                    if f >= m * 1800:
+                        his[m] = sum(1 for u in (r.get("enemy") or []) if byname.get(u[1], (None, False)) == ("builder", True) and not (len(u) > 5 and u[5]))
+                        pend.discard(m)
+        return {"dir": d, "label": row.get("label"), "outcome": row["outcome"], "minutes": row["minutes"], "bonus": row.get("bonus", 0), "map": row.get("map"),
+                "ours_opener": row.get("ours"), "his_opener": row.get("his"), "cons": {str(k): v for k, v in cons.items()}, "his": {str(k): v for k, v in his.items()},
+                "e_ratio": {str(k): v for k, v in e_ratio.items()}, "stall12": stall[12], "rows12": rows[12], "stall20": stall[20], "rows20": rows[20]}
+    except Exception as ex:
+        return {"dir": d, "error": str(ex)[:160]}
+
+
+def report_energy_ours(label, K):
+    W = [r for r in K if r["outcome"] == "Win"]
+    L = [r for r in K if r["outcome"] == "Loss"]
+    print(f"-- {label}: {len(K)} games, {len(W)} won")
+    for m in ("4", "6", "8", "12"):
+        d = lambda r: (r["cons"][m] - r["his"][m]) if r["cons"].get(m) is not None and r["his"].get(m) is not None else None
+        dw = [d(r) for r in W if d(r) is not None]
+        dl = [d(r) for r in L if d(r) is not None]
+        print(f"   constructors ours minus his at {m:>2}:00: won {nquart(dw)} ({_ahead_words(dw)}); lost {nquart(dl)} ({_ahead_words(dl)}); "
+              f"ours won {nquart([r['cons'].get(m) for r in W])} lost {nquart([r['cons'].get(m) for r in L])}; his won {nquart([r['his'].get(m) for r in W])} lost {nquart([r['his'].get(m) for r in L])}")
+    for m in ("6", "8"):
+        parts = []
+        for lo, hi, name in ((-99, -1, "behind"), (0, 0, "level"), (1, 1, "+1"), (2, 2, "+2"), (3, 99, "+3 or more")):
+            G = [r for r in K if r["cons"].get(m) is not None and r["his"].get(m) is not None and lo <= r["cons"][m] - r["his"][m] <= hi]
+            if G:
+                parts.append(f"{name} {sum(1 for r in G if r['outcome'] == 'Win')} of {len(G)}")
+        print(f"   won by the constructor difference at {m}:00: " + ", ".join(parts))
+    st = lambda r: r["stall12"] / r["rows12"] if r["rows12"] else None
+    print(f"   energy stall share 2:00-12:00: won {nquart([st(r) for r in W], '{:.2f}')} lost {nquart([st(r) for r in L], '{:.2f}')}; won by the share: " +
+          ", ".join(f"{name} {sum(1 for r in G if r['outcome'] == 'Win')} of {len(G)}" for lo, hi, name in ((0, 0.02, "under 2%"), (0.02, 0.1, "2-10%"), (0.1, 0.25, "10-25%"), (0.25, 1.01, "over 25%"))
+                    for G in [[r for r in K if st(r) is not None and lo <= st(r) < hi]] if G))
+    for m in ("5", "8", "12"):
+        er = lambda r: _ratio(r["e_ratio"][m][0], r["e_ratio"][m][1]) if r["e_ratio"].get(m) else None
+        print(f"   energy per metal of income at {m:>2}:00: won {nquart([er(r) for r in W], '{:.1f}')} lost {nquart([er(r) for r in L], '{:.1f}')}; energy income won "
+              f"{nquart([r['e_ratio'][m][0] for r in W if r['e_ratio'].get(m)])} lost {nquart([r['e_ratio'][m][0] for r in L if r['e_ratio'].get(m)])}")
+
+
+def energy(opener_cache, side_cache, workers, min_os):
+    report_energy_pool(energy_pool_sides(min_os))
+    rows = [json.loads(l) for l in open(opener_cache) if l.strip()] if os.path.exists(opener_cache) else []
+    rows = [r for r in rows if r.get("outcome") in ("Win", "Loss") and (r.get("minutes") or 0) >= 8]
+    done = {}
+    if os.path.exists(side_cache):
+        for l in open(side_cache):
+            if l.strip():
+                r = json.loads(l)
+                done[r["dir"]] = r
+    todo = [r for r in rows if r["dir"] not in done]
+    if todo:
+        with Pool(workers) as p, open(side_cache, "a") as out:
+            for res in p.imap_unordered(energy_one, todo):
+                if res:
+                    done[res["dir"]] = res
+                    out.write(json.dumps(res) + "\n")
+    games = [r for r in done.values() if "error" not in r and r.get("outcome") in ("Win", "Loss")]
+    print(f"\n== ours: {len(games)} model-played games with both first factories read ({opener_cache}), {sum(1 for r in done.values() if 'error' in r)} unreadable")
+    report_energy_ours("every game", games)
+    comet0 = [r for r in games if (r.get("map") or "").startswith("Comet") and not r.get("bonus")]
+    report_energy_ours("Comet, no bonus, 14 minutes or more", [r for r in comet0 if r["minutes"] >= 14])
+    report_energy_ours("Comet, no bonus, our vehicle plant against his bot lab", [r for r in comet0 if r["ours_opener"] == "vehicles" and r["his_opener"] == "bots"])
+    report_energy_ours("Comet, no bonus, our vehicle plant against his vehicle plant", [r for r in comet0 if r["ours_opener"] == "vehicles" and r["his_opener"] == "vehicles"])
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -1380,7 +1586,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids", "openers"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids", "openers", "energy"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -1401,6 +1607,8 @@ def main():
         reach(positional, opt("--side-cache", "run/data/reach_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 4, int))
     elif cmd == "raids":
         raids(positional, opt("--side-cache", "run/data/raid_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 6, int))
+    elif cmd == "energy":
+        energy(opt("--opener-cache", "run/data/opener_killtest.jsonl", str), opt("--side-cache", "run/data/energy_killtest.jsonl", str), opt("--workers", 8, int), opt("--min-os", 40.0))
     elif cmd == "openers":
         openers(positional, opt("--side-cache", "run/data/opener_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int), opt("--min-os", 40.0))
     else:
