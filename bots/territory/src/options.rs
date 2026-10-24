@@ -96,6 +96,11 @@ pub(crate) struct Options {
     /// terr76; 1,300 reaches his commander's two spots at 1,007 and 1,215 (2:06-2:13 in his record) and was tried in
     /// terr90-92: one spot a trip and level (terr91), or the pair with the plant unguarded and worse (terr92).
     pub com_leash: f32,
+    /// T-PRIORITY: the commander low from its first guard onward (`com_low=after`, the default since terr95: his
+    /// record's flag from 2:50 to past 7:00, through its solars and the advanced plant; 5:00 and 8:00 up in all four
+    /// games against the guard-only form), or low only while it guards (`guard`, terr94: the pros' claim raises it for
+    /// a build of its own, and the distilled bot's commander low on its solars threw its energy store).
+    pub com_low_after: bool,
 }
 
 impl Default for Options {
@@ -148,6 +153,7 @@ impl Default for Options {
             plant_helpers_from: 4000.0,
             opening_spots: 600.0,
             com_leash: 700.0,
+            com_low_after: true,
         }
     }
 }
@@ -208,6 +214,7 @@ impl Options {
                 "plant_helpers_from" => options.plant_helpers_from = value.parse().unwrap_or(options.plant_helpers_from),
                 "opening_spots" => options.opening_spots = value.parse().unwrap_or(options.opening_spots),
                 "com_leash" => options.com_leash = value.parse().unwrap_or(options.com_leash),
+                "com_low" => options.com_low_after = value == "after",
                 _ => {}
             }
         }
@@ -216,9 +223,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}",
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}, com_low={}",
             if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash, if self.com_low_after { "after" } else { "guard" }
         )
     }
 }

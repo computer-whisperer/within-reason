@@ -467,6 +467,7 @@ impl Bot for Territory {
         if tick.due() % (SECOND / 2) == 0 {
             self.run_hands(&mut commands);
             self.run_nanos(&mut commands);
+            self.run_priorities(&mut commands);
         }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             self.curve_line(&tick);

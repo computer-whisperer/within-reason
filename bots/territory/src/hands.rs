@@ -24,6 +24,9 @@ const HELD_NEAR: f32 = 300.0;
 const ATTEMPTS: u32 = 2;
 /// The simulator's `assist_chunk`.
 const ASSIST_CHUNK: i32 = 20 * SECOND;
+/// Frames within which a priority order already sent is not sent again while the flag has not read back yet (the
+/// engine applies it a frame or two after the tick that sent it).
+const PRIORITY_RESEND: i32 = SECOND;
 /// The simulator's `base_radius`: a builder this near home puts an economy building beside itself.
 const BESIDE: f32 = 600.0;
 /// The engine drops orders given in its first seconds; what comes to nothing before this counts no attempt.
@@ -271,6 +274,9 @@ pub(crate) struct Hands {
     /// Orders the energy budget refused (T-ENERGY), and by type since the last log line.
     pub energy_refused: usize,
     pub energy_refused_by: BTreeMap<usize, usize>,
+    /// Per unit, the priority flag last sent and the frame (T-PRIORITY), and whether the commander has guarded yet.
+    pub priority_sent: BTreeMap<UnitId, (bool, i32)>,
+    pub commander_guarded: bool,
 }
 
 impl Default for Hands {
@@ -301,6 +307,8 @@ impl Default for Hands {
             skipped: 0,
             energy_refused: 0,
             energy_refused_by: BTreeMap::new(),
+            priority_sent: BTreeMap::new(),
+            commander_guarded: false,
         }
     }
 }
@@ -434,6 +442,49 @@ impl Territory {
             } else {
                 self.give_next(id, role, commands);
             }
+        }
+    }
+
+    /// T-PRIORITY: the game's builder-priority flag (K-mech-builder-priority-is-a-builder-flag: a low builder draws
+    /// only the team's surplus, full speed or nothing; among high builders the engine feeds the oldest first and skips
+    /// a step it cannot pay whole). Every plant and construction turret low from birth, as the stock widget sets a
+    /// person's; the commander low while it guards a plant and high on a build of its own; constructors high: his
+    /// record's flags (the vehicle plant low from 1:02, the constructors high throughout, the commander high through
+    /// the opening and the trip and low from 2:50, the second it was back guarding, to past 7:00). With nobody low
+    /// (terr89) a stall fed the commander's solars, then the plant, then the constructors' extractors last: 24-32 s
+    /// an extractor frame against 20 at 2:37-3:03 of game 00, while his ran 19.7 s every one on a bank of 70-130;
+    /// low only while guarding halved that (terr94, level); low from its first guard onward, his flag, took every
+    /// extractor frame to its 20 s and 5:00 and 8:00 up in all four games (terr95, the default `com_low=after`).
+    /// The flag is read back each tick (`OwnUnit::priority_low`), so an order goes only when it differs, and not
+    /// again within PRIORITY_RESEND while the engine applies it; a frame still being built gets none.
+    pub(crate) fn run_priorities(&mut self, commands: &mut Vec<Command>) {
+        let frame = self.frame;
+        self.hands.priority_sent.retain(|_, (_, at)| frame - *at < PRIORITY_RESEND);
+        let mut send: Vec<(UnitId, bool)> = Vec::new();
+        let mut guarded = self.hands.commander_guarded;
+        for unit in self.own.values() {
+            if unit.being_built {
+                continue;
+            }
+            let low = match self.role_of_def(unit.def) {
+                Some(Role::Factory | Role::Nano) => true,
+                Some(Role::Commander) => {
+                    let guarding = matches!(self.hands.orders.get(&unit.id).map(|o| &o.what), Some(What::Assist { .. }));
+                    guarded |= guarding;
+                    // `com_low=after`: low from its first guard onward, as his stayed from 2:50 to past 7:00.
+                    guarding || (self.options.com_low_after && guarded)
+                }
+                Some(Role::Builder) => false,
+                _ => continue,
+            };
+            if unit.priority_low != low && self.hands.priority_sent.get(&unit.id).is_none_or(|(l, _)| *l != low) {
+                send.push((unit.id, low));
+            }
+        }
+        self.hands.commander_guarded = guarded;
+        for (unit, low) in send {
+            commands.push(Command::Priority { unit, low });
+            self.hands.priority_sent.insert(unit, (low, frame));
         }
     }
 
