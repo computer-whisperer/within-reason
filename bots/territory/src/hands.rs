@@ -28,8 +28,9 @@ const ASSIST_CHUNK: i32 = 20 * SECOND;
 const BESIDE: f32 = 600.0;
 /// The engine drops orders given in its first seconds; what comes to nothing before this counts no attempt.
 const FIRST_ORDERS: i32 = 3 * SECOND;
-/// A construction turret helps the factory within this of it.
-const NANO_REACH: f32 = 330.0;
+/// A construction turret's build distance (its def's 400; the engine adds the target's own radius): what a turret
+/// helps within, and what a frame counts its turrets within (T-FARM).
+pub(crate) const NANO_REACH: f32 = 400.0;
 /// A construction turret is asked for this far behind its factory: outside the yard's keep-out, inside its reach.
 const NANO_BEHIND: f32 = 250.0;
 /// Nothing is placed within this of a factory's centre: a site tested against an open yard passes and the engine
@@ -66,6 +67,48 @@ const OPENING_SPOTS: f32 = 500.0;
 const OPENING: i32 = MINUTE;
 /// A factory's commit or class pick goes to a builder within this of home (T-COMMIT).
 const FACTORY_PLACER: f32 = 1000.0;
+/// T-FARM: every static building but an extractor or a factory goes on one lattice, the farm, laid from an origin
+/// FARM_OFFSETS from home on the flattest ground off the line to his start: rows along the map's x axis, a row of
+/// turret slots (FARM_TURRET apart) and a row of building slots (FARM_SLOT apart) in turn, FARM_ROW from one turret
+/// row to the next, every slot on the engine's 16-elmo build grid (a six-square footprint centres on an odd
+/// multiple of 8, a twelve-square one on a multiple of 16) with 16 elmos between neighbours. The building slots
+/// within FARM_CORE of the origin are the core, the turrets' ground: a turret takes the free turret slot nearest
+/// the origin, a building that takes long enough to want them (FARM_BIG of build time: fusions, advanced
+/// converters) the free building slot with the most turrets in reach, and the cheap rest (solars, converters,
+/// storages) the free building slot nearest home outside the core. A full lattice holds 32 turrets in reach of a
+/// building slot (the rows beside it and the rows beyond) against thebluegecko's median of 39 within 300 of a
+/// fusion at its placing; terr54's sunflower of everything in one sequence (80 times the square root of n from
+/// home) gave its seventeen fusions 0-5 each, out to 1,400 elmos from home, and the constructors walked 24-33 s
+/// an order.
+const FARM_ROW: f32 = 176.0;
+const FARM_SLOT: f32 = 112.0;
+const FARM_TURRET: f32 = 64.0;
+/// One building column in this many is a street, kept clear of turrets too: the lattice's gaps are 16 elmos, no
+/// vehicle's width, and a slot inside the block could otherwise be reached by nothing on the ground; a slot is at
+/// most 168 from a street's centre, within a constructor's reach of 128 and the frame's own size.
+const FARM_STREET: i32 = 3;
+const FARM_CORE: f32 = 800.0;
+/// Two buildings of a 48-elmo footprint share a building slot, FARM_PAIR either side of its centre (converters).
+const FARM_PAIR: f32 = 32.0;
+const FARM_OFFSETS: [f32; 3] = [800.0, 1000.0, 1200.0];
+/// Slots are read this far round the origin (and round home, for the cheap rest).
+const FARM_EXTENT: f32 = 1600.0;
+/// The host's search round a slot: the build grid's snap and no more, so that a building lands in its slot.
+const FARM_SEARCH: f32 = 24.0;
+/// A building of this much build time or more goes where the turrets are.
+const FARM_BIG: f64 = 20_000.0;
+/// A slot the host found no site at is left alone this long (something the bot does not see stands there).
+const FARM_DEAD: i32 = 2 * MINUTE;
+/// The engine's slope value (255 is vertical) the ground under a slot's footprint may have, and the gap kept
+/// between footprints.
+const FARM_SLOPE: u8 = 8;
+const FARM_GAP: f32 = 8.0;
+/// A mobile unit of ours this near a slot's footprint holds it for now: the engine's site search refuses ground
+/// with a unit on it, and the host then walked its search out 200 elmos (terr55: 50 of 254 farm orders placed
+/// 200 off their slot, all solars and converters by the base, where the pad-keeper parks the idle constructors;
+/// the host placed later orders on the same ground and the engine dropped them against the first's building,
+/// seven converters in game 00, which struck the type at 14:45).
+const FARM_MOBILE: f32 = 32.0;
 /// Mobile builders guarding one factory at most: past a yard's worth they crowd the pad and the exit, and the
 /// products cannot leave (terr52 game 00: the advanced lab made two constructors at 6:15 and 6:53 and nothing
 /// until 11:25, its orders dropped as held with a finished product of its own on the site, 9-24 constructors
@@ -196,8 +239,9 @@ pub(crate) struct Hands {
     pub failures: BTreeMap<usize, u32>,
     pub successes: BTreeMap<usize, u32>,
     pub struck: BTreeSet<usize>,
-    /// Base buildings placed on the spiral so far (the simulator's `base_sites`).
-    pub base_sites: usize,
+    /// The farm's origin, chosen on first use (T-FARM), and the slots the host found no site at, until a frame.
+    pub farm_origin: Option<Vec3>,
+    pub farm_dead: Vec<(Vec3, i32)>,
     pub dropped: usize,
     pub begun: usize,
     pub skipped: usize,
@@ -226,7 +270,8 @@ impl Default for Hands {
             failures: BTreeMap::new(),
             successes: BTreeMap::new(),
             struck: BTreeSet::new(),
-            base_sites: 0,
+            farm_origin: None,
+            farm_dead: Vec::new(),
             dropped: 0,
             begun: 0,
             skipped: 0,
@@ -242,11 +287,29 @@ fn exit_lane(plant: &OwnUnit) -> Lane {
     Lane { from: plant.pos, to: Vec3 { x: plant.pos.x + dx * 400.0, y: plant.pos.y, z: plant.pos.z + dz * 400.0 }, half_width: 120.0 }
 }
 
-/// The simulator's `base_site`: a golden-angle spiral around home.
-pub(crate) fn base_site(home: Vec3, n: usize) -> Vec3 {
-    let radius = 120.0 + 28.0 * n as f32;
-    let angle = 2.4 * n as f32;
-    Vec3 { x: home.x + radius * angle.cos(), y: home.y, z: home.z + radius * angle.sin() }
+/// The farm's slots of one kind within `radius` of `centre`, laid from `origin` (T-FARM): turret slots at
+/// (8 + FARM_TURRET k, 8 + FARM_ROW r) from the origin, building slots at (FARM_SLOT k, FARM_ROW / 2 + 8 + FARM_ROW r),
+/// so that a turret row (footprint 48) and a building row (footprint up to 96) alternate with 16 elmos between.
+pub(crate) fn farm_slots(origin: Vec3, centre: Vec3, radius: f32, turret: bool) -> Vec<Vec3> {
+    let (pitch, x0, z0) = if turret { (FARM_TURRET, 8.0, 8.0) } else { (FARM_SLOT, 0.0, FARM_ROW / 2.0 + 8.0) };
+    // The street columns: every FARM_STREET-th building column, and the turret slots whose footprint reaches it.
+    let street = |x: f32| {
+        let column = ((x - origin.x) / FARM_SLOT).round() as i32;
+        column.rem_euclid(FARM_STREET) == FARM_STREET - 1 && (x - (origin.x + FARM_SLOT * column as f32)).abs() < FARM_SLOT / 2.0 + 24.0
+    };
+    let mut out = Vec::new();
+    let rows = ((centre.z - radius - origin.z - z0) / FARM_ROW).floor() as i32..=((centre.z + radius - origin.z - z0) / FARM_ROW).ceil() as i32;
+    for r in rows {
+        let z = origin.z + z0 + FARM_ROW * r as f32;
+        let cols = ((centre.x - radius - origin.x - x0) / pitch).floor() as i32..=((centre.x + radius - origin.x - x0) / pitch).ceil() as i32;
+        for k in cols {
+            let p = Vec3 { x: origin.x + x0 + pitch * k as f32, y: origin.y, z };
+            if p.dist2d(centre) <= radius && !street(p.x) {
+                out.push(p);
+            }
+        }
+    }
+    out
 }
 
 impl Territory {
@@ -530,8 +593,10 @@ impl Territory {
             let def = &units.list[unit];
             let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64)> = BTreeMap::new();
             // A reclaim flow (the program taking a building down for its metal) is no build; the hands give no reclaim
-            // order yet, and the bot's arm leaves the program without the column until they do.
-            for f in targets.flows.iter().filter(|f| f.kind != Kind::Help && f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory) {
+            // order yet, and the bot's arm leaves the program without the column until they do. The turrets' help
+            // counts toward a column's planned power (T-FARM): with the turrets doing forty times the placer's work on
+            // a farm frame, a whole unit that waited for half its cost in the placers' own flows would wait minutes.
+            for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory) {
                 let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
                 e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
                 e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
@@ -1088,7 +1153,12 @@ impl Territory {
         {
             self.hands.refused.insert(spot, self.frame + SPOT_REFUSED);
         }
-        if why == "no site" && let What::Build { unit, .. } = &order.what {
+        // A farm slot the host found no site at is the slot's fault, not the type's: dead for a while, no strike.
+        let farm = |me: &Self, unit: usize| { let kind = &me.game().units.list[unit]; kind.speed == 0.0 && kind.role != Role::Factory && kind.extracts_metal == 0.0 };
+        if why == "no site" && let What::Build { unit, near, .. } = &order.what && farm(self, *unit) {
+            let until = self.frame + FARM_DEAD;
+            self.hands.farm_dead.push((*near, until));
+        } else if why == "no site" && let What::Build { unit, .. } = &order.what {
             let frame = self.frame;
             let strikes = self.hands.no_site.entry(*unit).or_default();
             strikes.retain(|f| frame - *f < TYPE_REFUSED);
@@ -1191,7 +1261,6 @@ impl Territory {
                 if role == Role::Factory {
                     return Some((Command::Build { unit: id, def, site: None, queue: false }, What::Build { unit, def, near: builder.pos, frame: None }));
                 }
-                let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.keep_out() }];
                 let site = if target.role == Role::Factory {
                     // The simulator's rule for the anneal's plan: no more factories than it has queues for. With
                     // the program's targets the cap is the program's own (terr6-lp-nullai-comet-1: the empty plan's
@@ -1213,7 +1282,11 @@ impl Territory {
                         _ => (-ux, -uz),
                     };
                     let near = Vec3 { x: self.home.x + rx * 350.0, y: self.home.y, z: self.home.z + rz * 350.0 };
-                    BuildSite { near, search_radius: 900.0, min_dist: 8, placements: placements() }
+                    // Not in the farm's core (T-FARM): its yard and lane would hold the turrets' ground.
+                    let origin = self.farm_origin();
+                    let mut keep_out = self.keep_out(true);
+                    keep_out.push(Lane { from: origin, to: origin, half_width: FARM_CORE });
+                    BuildSite { near, search_radius: 900.0, min_dist: 8, placements: vec![Placement { facing: self.facing_enemy(), keep_out }], exact: false }
                 } else if self.is_upgrade(unit) {
                     // Over the standing basic extractor nearest the builder with nothing ordered over it.
                     let ordered: Vec<Vec3> = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, near, .. } if self.is_upgrade(*unit) => Some(*near), _ => None }).collect();
@@ -1229,29 +1302,17 @@ impl Territory {
                     // Logged to the hundredth: the game's "Deny Invalid Mex Orders" rule allows an extractor over
                     // ours only at its exact position, and every Cortex order was dropped in terr1-nullai-comet-1.
                     self.log(format_args!("upgrade: {} over unit {} at ({:.2},{:.2}) by unit {}", target.name, standing.id.0, standing.pos.x, standing.pos.z, id.0));
-                    BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() }
+                    BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
                 } else if target.extracts_metal > 0.0 {
                     let leash = (role == Role::Commander).then_some((self.home, COMMANDER_LEASH));
                     let spot = self.free_spot(builder.pos, step.site, leash, ring)?;
-                    BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new() }
-                } else if target.role == Role::Nano {
-                    // Behind the nearest factory, inside the turret's reach of it; the base spiral without one.
-                    match self.nearest_factory(builder.pos) {
-                        Some(factory) => {
-                            let (dx, dz) = (self.enemy_home.x - factory.pos.x, self.enemy_home.z - factory.pos.z);
-                            let length = dx.hypot(dz).max(1.0);
-                            let near = Vec3 { x: factory.pos.x - dx / length * NANO_BEHIND, y: factory.pos.y, z: factory.pos.z - dz / length * NANO_BEHIND };
-                            BuildSite { near, search_radius: 300.0, min_dist: 1, placements: placements() }
-                        }
-                        None => self.base_site_next(placements()),
-                    }
-                } else if target.role == Role::Eco && attempt == 0 && (self.hands.targets.is_some() || builder.pos.dist2d(self.home) < BESIDE) {
-                    // Beside a builder that is about the base anyway, as the simulator charges no walk for it; under
-                    // the program beside the builder wherever it stands (a constructor afield sent home for a solar
-                    // walked 10-32 s at the median, terr13-lp-nullai-comet-1; nothing of his raids an outpost here).
-                    BuildSite { near: builder.pos, search_radius: 500.0, min_dist: 3, placements: placements() }
+                    BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
                 } else {
-                    self.base_site_next(placements())
+                    // T-FARM: turrets and the economy's buildings on the farm's lattice (before it, a turret went
+                    // behind the nearest factory and an economy building beside its builder or on the simulator's
+                    // spiral; the turrets then helped a factory each and the frames of the late game stood one
+                    // builder apiece, terr22-53; terr54's sunflower is in the constants' note).
+                    self.farm_site(id, unit)?
                 };
                 let near = site.near;
                 Some((Command::Build { unit: id, def, site: Some(site), queue: false }, What::Build { unit, def, near, frame: None }))
@@ -1259,9 +1320,109 @@ impl Territory {
         }
     }
 
-    fn base_site_next(&mut self, placements: Vec<Placement>) -> BuildSite {
-        self.hands.base_sites += 1;
-        BuildSite { near: base_site(self.home, self.hands.base_sites - 1), search_radius: 400.0, min_dist: 3, placements }
+    /// The farm's origin (T-FARM), chosen once: of the points FARM_OFFSETS from home at sixteen bearings, the one
+    /// whose core holds the most building slots the ground can take (off the base's own 400), discounted by how far
+    /// it lies toward his start (by half, on the line to him), snapped to the build grid.
+    pub(crate) fn farm_origin(&mut self) -> Vec3 {
+        if let Some(origin) = self.hands.farm_origin {
+            return origin;
+        }
+        let (ex, ez) = (self.enemy_home.x - self.home.x, self.enemy_home.z - self.home.z);
+        let length = ex.hypot(ez).max(1.0);
+        let half = FARM_SLOT / 2.0 - FARM_GAP;
+        let mut best: Option<(f32, Vec3, usize, f32, usize)> = None;
+        for bearing in 0..16 {
+            let angle = std::f32::consts::TAU * bearing as f32 / 16.0;
+            let toward = (angle.cos() * ex + angle.sin() * ez) / length;
+            for offset in FARM_OFFSETS {
+                let snap = |v: f32| (v / 16.0).round() * 16.0;
+                let candidate = Vec3 { x: snap(self.home.x + offset * angle.cos()), y: self.home.y, z: snap(self.home.z + offset * angle.sin()) };
+                let slots = farm_slots(candidate, candidate, FARM_CORE, false).into_iter().filter(|p| p.dist2d(self.home) > 400.0 && self.farm_ground(*p, half)).count();
+                let score = slots as f32 * (1.0 - 0.5 * toward.max(0.0));
+                if best.is_none_or(|b| score > b.0) {
+                    best = Some((score, candidate, bearing, offset, slots));
+                }
+            }
+        }
+        let (score, origin, bearing, offset, slots) = best.expect("sixteen bearings");
+        let his = ez.atan2(ex).rem_euclid(std::f32::consts::TAU) / std::f32::consts::TAU * 16.0;
+        self.log(format_args!("farm: origin ({:.0},{:.0}), {offset:.0} from home at bearing {bearing}/16 (his start at {his:.1}/16), {slots} building slots of ground in the core, score {score:.0}", origin.x, origin.z));
+        self.hands.farm_origin = Some(origin);
+        origin
+    }
+
+    /// Ground a footprint of half-size `half` centred at `p` can take: on the map, no slope over FARM_SLOPE and no
+    /// water under it, no metal spot in it (an extractor or its upgrade goes there).
+    fn farm_ground(&self, p: Vec3, half: f32) -> bool {
+        let terrain = &self.hello.terrain;
+        let (width, height) = (self.hello.map.width, self.hello.map.height);
+        if p.x - half < 32.0 || p.z - half < 32.0 || p.x + half > width - 32.0 || p.z + half > height - 32.0 {
+            return false;
+        }
+        let cell = terrain.cell.max(1.0);
+        let span = |v: f32| ((v - half) / cell).floor() as i64..=((v + half - 1.0) / cell).floor() as i64;
+        for j in span(p.z) {
+            for i in span(p.x) {
+                if i < 0 || j < 0 || i >= i64::from(terrain.width) || j >= i64::from(terrain.height) {
+                    return false;
+                }
+                let at = j as usize * terrain.width as usize + i as usize;
+                if terrain.slopes.get(at).is_none_or(|s| *s > FARM_SLOPE) || terrain.heights.get(at).is_none_or(|h| *h < 0) {
+                    return false;
+                }
+            }
+        }
+        !self.hello.metal_spots.iter().any(|s| s.dist2d(p) < SPOT_TAKEN + half)
+    }
+
+    /// The farm's slot for `unit` (T-FARM): a turret's the free turret slot of the core nearest home (past the
+    /// core, the nearest outside it), a big building's the free building slot with the most turrets (standing or
+    /// framed) in reach and nearest home among those, a cheap building's the free building slot nearest its
+    /// `builder` outside the core. Free: ground the footprint
+    /// can take, not in a factory's yard or lane, not a dead slot, and FARM_GAP clear of every standing building,
+    /// frame and pending site by the footprints. None when the lattice within FARM_EXTENT has no such slot.
+    fn farm_site(&mut self, builder: UnitId, unit: usize) -> Option<BuildSite> {
+        let origin = self.farm_origin();
+        let frame = self.frame;
+        self.hands.farm_dead.retain(|(_, until)| frame < *until);
+        let kind = &self.game().units.list[unit];
+        let (turret, big) = (kind.role == Role::Nano, kind.build_time >= FARM_BIG);
+        let footprint = |fp: (i32, i32)| fp.0.max(fp.1) as f32 * 4.0;
+        let half = footprint(self.hello.unit_defs[unit].footprint);
+        let units = &self.game().units;
+        let mut taken: Vec<(Vec3, f32)> = self.own.values().filter_map(|u| self.def(u.def).filter(|d| d.speed == 0.0).map(|d| (u.pos, footprint(d.footprint)))).collect();
+        taken.extend(self.hands.orders.values().filter_map(|o| match &o.what {
+            What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some((*near, footprint(self.hello.unit_defs[*unit].footprint))),
+            _ => None,
+        }));
+        let lanes = self.keep_out(false);
+        let mobile: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.pos).collect();
+        let free = |p: Vec3| {
+            self.farm_ground(p, half)
+                && !self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(p) < FARM_GAP)
+                && !lanes.iter().any(|l| l.contains(p))
+                && !taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half + FARM_GAP)
+                && !mobile.iter().any(|q| q.dist2d(p) < half + FARM_MOBILE)
+        };
+        let home = self.home;
+        let nearer = |a: Vec3, b: Vec3, to: Vec3| a.dist2d(to).total_cmp(&b.dist2d(to));
+        // The core fills from home's side (terr55-56: filled from its centre, 800 out, every turret and frame cost
+        // its builder the walk there, 29-37 s a base order against terr53's, and 10:00 fell 20 in all eight games).
+        let slot = if turret {
+            farm_slots(origin, origin, FARM_EXTENT, true).into_iter().filter(|p| free(*p)).min_by(|a, b| (a.dist2d(origin) > FARM_CORE, a.dist2d(home)).partial_cmp(&(b.dist2d(origin) > FARM_CORE, b.dist2d(home))).unwrap())
+        } else if big {
+            let turrets: Vec<Vec3> = self.own.values().filter(|u| self.role_of_def(u.def) == Some(Role::Nano)).map(|u| u.pos).collect();
+            let reach = |p: Vec3| turrets.iter().filter(|t| t.dist2d(p) < NANO_REACH).count();
+            farm_slots(origin, origin, FARM_EXTENT, false).into_iter().filter(|p| free(*p)).max_by(|a, b| reach(*a).cmp(&reach(*b)).then_with(|| nearer(*b, *a, home)))
+        } else {
+            // Beside its builder, as the simulator charges it: the slots nearest home were the pad-keeper's ground
+            // and the commander's, and the solars walked 500-1,000 out round them (terr55-56). A 48-elmo footprint
+            // takes half a slot.
+            let from = self.own.get(&builder).map_or(home, |u| u.pos);
+            let positions = |p: Vec3| if half <= 24.0 { vec![Vec3 { x: p.x - FARM_PAIR, ..p }, Vec3 { x: p.x + FARM_PAIR, ..p }] } else { vec![p] };
+            farm_slots(origin, from, FARM_EXTENT, false).into_iter().filter(|p| p.dist2d(origin) > FARM_CORE).flat_map(positions).filter(|p| free(*p)).min_by(|a, b| nearer(*a, *b, from))
+        }?;
+        Some(BuildSite { near: slot, search_radius: FARM_SEARCH, min_dist: 0, placements: vec![Placement { facing: self.facing_enemy(), keep_out: lanes }], exact: true })
     }
 
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
@@ -1400,19 +1561,22 @@ impl Territory {
         }
     }
 
-    /// Our factories' exit lanes and yards, and the building sites placed and not yet begun: nothing is built in
-    /// them (a lane of no length is a disc).
-    fn keep_out(&self) -> Vec<Lane> {
+    /// Our factories' exit lanes and yards, the metal spots (an extractor or its upgrade needs the ground), and
+    /// with `pending` the building sites placed and not yet begun: nothing is built in them (a lane of no length is
+    /// a disc). The farm's slots keep their own distance from the pending sites, by the footprints (T-FARM).
+    fn keep_out(&self, pending: bool) -> Vec<Lane> {
         let units = &self.game().units;
-        let pending = self.hands.orders.values().filter_map(|o| match &o.what {
+        let pending = self.hands.orders.values().filter(|_| pending).filter_map(|o| match &o.what {
             What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some(Lane { from: *near, to: *near, half_width: PENDING_SITE }),
             _ => None,
         });
+        let spots = self.hello.metal_spots.iter().map(|s| Lane { from: *s, to: *s, half_width: SPOT_TAKEN });
         self.own
             .values()
             .filter(|u| self.role_of_def(u.def) == Some(Role::Factory))
             .flat_map(|plant| [exit_lane(plant), Lane { from: plant.pos, to: plant.pos, half_width: FACTORY_YARD }])
             .chain(pending)
+            .chain(spots)
             .collect()
     }
 

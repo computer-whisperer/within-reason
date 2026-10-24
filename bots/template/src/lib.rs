@@ -57,7 +57,7 @@ impl Bot for Template {
             let Some(spot) = nearest else { continue };
             self.sent.insert(spot);
             self.ordered.insert(unit.id, tick.frame);
-            let site = BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new() };
+            let site = BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false };
             commands.push(Command::Build { unit: unit.id, def: extractor, site: Some(site), queue: false });
         }
         Commands(commands)

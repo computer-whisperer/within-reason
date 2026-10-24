@@ -642,6 +642,12 @@ pub struct BuildSite {
     /// A factory's exit lane runs off its front, so its facing decides where its units can leave (player-29: an
     /// Advanced Vehicle Plant faced the map's south edge, its lane off the map, and every unit it made stood stuck).
     pub placements: Vec<Placement>,
+    /// The engine's closest site within `search_radius` of `near` or nothing: the shim does not walk the search's
+    /// centre outwards when that fails or lands on a spot or in the keep-out (the territory bot's farm slots, which
+    /// are the ground asked for or none: a building 200 elmos off its slot blocks two others', terr55). Off, the
+    /// shim walks the centre out to 600 elmos for a site.
+    #[serde(default)]
+    pub exact: bool,
 }
 
 /// One way to stand a building: the engine's facing (0 south +z, 1 east +x, 2 north -z, 3 west -x) and the ground

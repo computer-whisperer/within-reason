@@ -687,9 +687,10 @@ impl Engine {
     /// exit for five to seven minutes behind a solar 165 elmos off its front).
     fn site_facing(&self, def: UnitDefId, site: &BuildSite, facing: c_int, keep_out: &[Lane]) -> Option<Vec3> {
         let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || keep_out.iter().any(|lane| lane.contains(pos));
-        // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear.
+        // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear
+        // (an exact site: the first ring only).
         let rings = [0.0, 1.0, 2.0, 3.0].map(|r| r * 2.0 * SPOT_KEEPOUT);
-        for (ring, radius) in rings.into_iter().enumerate() {
+        for (ring, radius) in rings.into_iter().enumerate().take(if site.exact { 1 } else { 4 }) {
             let directions = if ring == 0 { 1 } else { 8 };
             for step in 0..directions {
                 let angle = step as f32 * std::f32::consts::TAU / directions as f32;

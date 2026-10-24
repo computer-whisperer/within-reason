@@ -182,3 +182,14 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   flagship at 5:00 and 20:00, behind at 10:00 and 15:00 by the plant's timing and the converters, a third of his
   at 15:00 and half at 20:00. Next: the farm (turrets in a block, the tier-2 frames inside their reach, the
   program's `maxnanos` and `help` arms on) and the reclaim order, which are base layout, the user's call.
+- 2026-10-24 night, the farm (the user: "build the layout engine the way you see fit to start, and we can iterate it
+  if there are problems when we run it"), T-FARM over four batches with the program's room on (`maxnanos=300`,
+  `help=40`): a sunflower of everything in one sequence round home (terr54: every big frame with 0-5 turrets in
+  reach, 736-763 at 20:00); a lattice of turret rows and building rows from an origin on the flattest ground off
+  his line, the core's frames at the slot with the most turrets in reach (terr55: 20-33 turrets within 400 from
+  15:00, but the host's ring walk put a fifth of the orders 200 off their slot where a parked constructor stood,
+  the engine dropped the later orders against the first's building and struck the basic converter in game 00:
+  612-846); the slot asked for exactly (`BuildSite.exact`, a protocol field the host honours) and the crowd's
+  slots held (terr56: the mechanism gone, 702-794; the cost the walking, 29-36 s a base order against terr53's
+  3-6 s); streets through the block, the core filled from home's side, cheap buildings beside their builder
+  (terr57: terr57 stands at 45.6 / 45.6 / 41.0 / 36.4 at 5:00, 147 / 168 / 137 / 132 at 10:00 (terr53 140-160), 359 / 389 / 345 / 320 at 15:00 (358-403) and 818 / 912 / 912 / 896 at 20:00 (761-850): every game above the flagship's 802 and the best batch yet, a base order 9-12 s to its frame (terr53 3-6, terr56 29-36), 244-322 basic converters a game, 66-77 turrets standing at 20:00 with 41-57 of 73 busy at 18:00 and 0-28 at 20:00, the frames under way then nearly all beyond every turret's reach (converters beside their builders, extractors at the spots): the turrets' idle half is the next lever.) The turrets' use is in the log's `turrets:` line.

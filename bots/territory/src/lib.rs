@@ -114,12 +114,15 @@ impl Territory {
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
         // first plan worth 35,000 against the 86,000 found 28 s later). Every place a plan walks to: the spots,
-        // the base spiral, home.
+        // the farm's first slots round its origin and round home (T-FARM), home.
         let began = std::time::Instant::now();
         let ground = self.ground();
         let home = (self.home.x as f64, self.home.z as f64);
         let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
-        places.extend((0..60).map(|n| { let p = hands::base_site(self.home, n); (p.x as f64, p.z as f64) }));
+        let origin = self.farm_origin();
+        let mut slots = hands::farm_slots(origin, origin, 500.0, false);
+        slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
+        places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
         places.push(home);
         for place in &places {
             ground.walk(home, *place);
@@ -321,6 +324,12 @@ impl Territory {
             self.count_role(Role::Builder), self.count_role(Role::Factory), self.count_role(Role::Nano), m.current, m.storage, m.income, m.usage, e.current, e.storage, e.income, e.usage,
             self.made, self.hands.orders.len(), self.hands.begun, self.hands.dropped, self.hands.skipped, self.hands.energy_refused, self.plans
         ));
+        // T-FARM: the turrets' use, and the frames none of them reaches.
+        let turrets: Vec<&OwnUnit> = self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Nano)).collect();
+        let busy = turrets.iter().filter(|u| !u.idle).count();
+        let frames: Vec<Vec3> = self.own.values().filter(|u| u.being_built && self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
+        let unreached = frames.iter().filter(|f| !turrets.iter().any(|t| t.pos.dist2d(**f) < hands::NANO_REACH)).count();
+        self.log(format_args!("turrets: {} standing, {busy} busy; frames {} of which {unreached} beyond every turret's reach", turrets.len(), frames.len()));
         self.log(format_args!("jobs: {}", self.jobs_line()));
         let energy = self.energy_line();
         self.log(format_args!("energy: {energy}"));

@@ -431,4 +431,4 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   / 937 / 2,087); the hands now owe it three things, in the order the marks say: the extractor chain (the 5:00
   mark is theirs alone), the farm's placing (turrets in a block, tier-2 frames inside their reach, the turret cap
   as the arm), and the reclaim order (`ReclaimUnit`, which the protocol carries and the bot has never sent).
-  Nothing in the bot's defaults changed: `reclaim=off`, `maxnanos=0`, `help=3`.
+  The bot's defaults since the farm (terr54, 2026-10-24 night): `maxnanos=300`, `help=40`; `reclaim=off` still.
