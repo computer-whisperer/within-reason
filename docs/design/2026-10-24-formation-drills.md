@@ -506,7 +506,12 @@ Blitz-Stout fight stays worse under the group than unpaced (y's value left 0.71-
 either way; the regression check is the body-shape study's own arms (Stouts against Fatboys and Bulls at 5,400, E3
 900 against the director) against their numbers (+0.462, +0.366, +0.292 under the old lane). **Run the same night
 (ledger row regress-*):** Fatboys 8-0 at +0.47, Bulls 8-0 at +0.27, E3 24-0 at +0.36, the attack-move arms at -0.55,
--0.32 and +0.31 as the study had them. The contact arc under the group loses nothing the old march had.
+-0.32 and +0.31 as the study had them. The contact arc under the group loses nothing the old march had. **Caveat and
+the clean run (the same night):** the user, watching the demos, saw the sweep's Bedbugs standing into the next duel;
+every fight match since the synced spawner carried them (the sweep judged a wave gone before the synced give had set
+its bombs down; `docs/harness/pitfalls.md`), so those margins were contaminated by about a tenth either way. With the
+sweep fixed: Fatboys 8-0 at +0.40 +- 0.09 (the study's +0.462 +- 0.113), Bulls 8-0 at +0.34 +- 0.07 (+0.366 +- 0.064),
+Fatboys attack-move 0-8 at -0.56 +- 0.11 (-0.515 +- 0.082): within the study's spreads.
 
 ## 6. Open for the user
 

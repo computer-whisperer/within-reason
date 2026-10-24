@@ -275,3 +275,27 @@ refused without a log line (the first smoke's `spawn_failed`); the shim holds sp
 `CHEAT_LAG`). Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
 to the goal, no desync in the replay's infolog; the baselines' numbers did not move. The gather's metal top-up is
 still the AI's resource cheat, so a gather's demo desyncs on its resources; everything else in a duel replays.
+
+## The synced give sets thirty units down over seconds, and the sweep judged its bombs gone before they appeared (2026-10-24)
+
+The user, watching the demos of the group bench: "in at least one of the games the area-clearing bedbugs survived until
+the subsequent test round and affected the AI unit control." The field-clearing sweep between duels (`director.rs`
+`Sweep::Bombs`) gives a lattice of crawling bombs (`corroach`, the Bedbug) over the wreckage, sets them off, and
+judged a wave gone when no bomb stood one second after the give. That held while spawns were the AI cheat's
+`CreateUnit`, which sets a unit down the same frame. The synced `/give` (the entry above) goes through the console,
+the server and back, and thirty of them take the engine two to three seconds to set down: `run/replay_match.py` on
+`regress-fboy5400-on`'s first match shows the first wave given at about 43 s and its thirty Bedbugs first present at
+46 s, so the wave was judged gone at 44 s and the next two waves given at once; the first wave's bombs were set off by
+the third wave's check when they finally stood (gone at 47 s), one of the later waves' thirty appeared at 48 s after
+the sweep had rested and finished, and the next duel's 25 Stouts spawned at 51 s among thirty standing Bedbugs of
+their own team, which died slowly through the next two duels (30 to 13 by 145 s). BAR's self-destruct gadget
+(`game_selfd_resign.lua`) is not it: a Bedbug's countdown is 0 and the gadget cancels only countdowns in progress.
+Every fight match since the synced spawner (31dc99e) with wrecks between its duels, so with a sweep, carried such
+leftovers into its second to fourth duels: the regression arms of the group bench (ledger row regress-*) among them;
+drills with no deaths (the walks, the reverse, the gather, the gantry) have no sweep and are clean. Fixed the same
+night: a wave is gone only when every bomb given has appeared (within `SWEEP_APPEAR_ALLOWANCE`, 10 s, after which
+the missing are presumed refused and said so) and none stands anywhere on the team, not only within the wreckage box;
+the rest sets off any bomb still standing and starts again; `WITHIN_REASON_SWEEP_DEBUG=1` prints each give, set-off
+and wave's end. The fight arms re-run after it (ledger row regress2-*): on those wreck boxes nine bombs a wave,
+set down 3 to 12 frames after the give (once in two batches, 2 then 7: the engine sets a few units down a frame),
+every wave gone in a second with every bomb seen, none standing at any rest; thirty a wave took two to three seconds.

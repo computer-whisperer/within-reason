@@ -39,6 +39,11 @@ const SWEEP_SPACING: f32 = 200.0;
 /// once, which a big surviving army beside one commander is.)
 const DESTRUCT_RETRY: i32 = 8 * FPS;
 const SWEEP_BOMBS: [&str; 2] = ["corroach", "armvader"];
+/// A wave's bombs given and not seen by now are presumed refused: the synced `/give` takes the engine two to three
+/// seconds to set down thirty units (the AI cheat's spawn was immediate), and a wave judged gone before its bombs
+/// appeared left thirty Bedbugs standing into the next duel (the user, 2026-10-24: "the area-clearing bedbugs
+/// survived until the subsequent test round and affected the AI unit control"; pitfalls.md).
+const SWEEP_APPEAR_ALLOWANCE: i32 = 10 * FPS;
 /// Self-destruct takes a few seconds, retries and bombing a few more; a site still not clear by now is abandoned.
 const CLEANUP_ALLOWANCE: i32 = 120 * FPS;
 /// A spawned unit is recognised by type and by standing no further than this from the place it was given at (a
@@ -360,11 +365,12 @@ enum Phase {
 }
 
 /// Clearing the field: first the survivors destroy themselves, then bombs are spawned over the wrecks and set off,
-/// `waves_left` times, then the field rests.
+/// `waves_left` times (a wave is gone when every bomb given has appeared and none stands, wherever it stands), then
+/// the field rests, any bomb still standing set off meanwhile.
 enum Sweep {
     Survivors,
-    Bombs { waves_left: u32, spawned_at: Option<i32>, set_off: HashMap<UnitId, i32> },
-    Rest { since: i32 },
+    Bombs { waves_left: u32, spawned_at: Option<i32>, given: usize, appeared: HashSet<UnitId>, set_off: HashMap<UnitId, i32> },
+    Rest { since: i32, set_off: HashMap<UnitId, i32> },
     Done,
 }
 
@@ -1509,51 +1515,91 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 Sweep::Survivors => {
                     if duel.armies.iter().all(|a| a.destruct_ordered.is_some() && a.alive.is_empty() && a.reported == frame) {
                         *stage = match (rules.sweep, duel.wreckage) {
-                            (Some((_, waves @ 1..)), Some(_)) => Sweep::Bombs { waves_left: waves, spawned_at: None, set_off: HashMap::new() },
-                            _ => Sweep::Rest { since: frame },
+                            (Some((_, waves @ 1..)), Some(_)) => Sweep::Bombs { waves_left: waves, spawned_at: None, given: 0, appeared: HashSet::new(), set_off: HashMap::new() },
+                            _ => Sweep::Rest { since: frame, set_off: HashMap::new() },
                         };
                     }
                 }
-                Sweep::Bombs { waves_left, spawned_at, set_off } if sweeper => {
+                Sweep::Bombs { waves_left, spawned_at, given, appeared, set_off } if sweeper => {
                     let (Some((bomb, _)), Some([x0, z0, x1, z1])) = (rules.sweep, duel.wreckage) else { unreachable!("checked on entry") };
-                    let bombs = tick.snapshot.own_units.iter().filter(|u| {
-                        u.def == bomb && u.pos.x > x0 - CLAIM_MARGIN && u.pos.x < x1 + CLAIM_MARGIN && u.pos.z > z0 - CLAIM_MARGIN && u.pos.z < z1 + CLAIM_MARGIN
-                    });
+                    let debug = std::env::var_os("WITHIN_REASON_SWEEP_DEBUG").is_some();
+                    // Every bomb of the type on the team, wherever it stands: one the engine set down off the lattice,
+                    // or one left from an earlier wave, is set off too.
+                    let bombs: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| u.def == bomb).collect();
                     match *spawned_at {
                         None => {
                             *spawned_at = Some(frame);
+                            appeared.clear();
                             let along = |low: f32, high: f32| {
                                 let steps = ((high - low) / SWEEP_SPACING).ceil().max(1.0) as u32;
                                 (0..=steps).map(move |i| low + (high - low) * i as f32 / steps as f32)
                             };
+                            let mut n = 0;
                             for x in along(x0, x1) {
-                                commands.extend(along(z0, z1).map(|z| Command::GiveUnit { def: bomb, at: Vec3 { x, y: rules.centre.y, z } }));
+                                for z in along(z0, z1) {
+                                    commands.push(Command::GiveUnit { def: bomb, at: Vec3 { x, y: rules.centre.y, z } });
+                                    n += 1;
+                                }
+                            }
+                            *given = n;
+                            if debug {
+                                eprintln!("sweep f={frame}: wave given, {n} bombs over ({x0:.0}, {z0:.0})-({x1:.0}, {z1:.0}), {waves_left} waves left");
                             }
                         }
                         Some(spawned) => {
                             // Bombs go off at once, so one still standing after the retry time had its order cancelled.
                             let mut standing = 0;
-                            for bomb in bombs {
+                            let mut fresh = 0;
+                            for bomb in &bombs {
                                 standing += 1;
+                                appeared.insert(bomb.id);
                                 if set_off.get(&bomb.id).is_none_or(|at| frame - at >= DESTRUCT_RETRY) {
                                     set_off.insert(bomb.id, frame);
                                     commands.push(Command::SelfDestruct { unit: bomb.id });
+                                    fresh += 1;
                                 }
                             }
-                            let all_gone = standing == 0 && frame - spawned >= FPS;
-                            if all_gone {
+                            if debug && fresh > 0 {
+                                eprintln!("sweep f={frame}: {fresh} bombs set off, {standing} standing, {} of {given} appeared", appeared.len());
+                            }
+                            // Gone: every bomb given has appeared (or the allowance is up) and none stands. Judged on
+                            // the standing count alone, a wave whose bombs the engine had not yet set down read as
+                            // gone, and they stood into the next duel (SWEEP_APPEAR_ALLOWANCE).
+                            let all_appeared = appeared.len() >= *given || frame - spawned >= SWEEP_APPEAR_ALLOWANCE;
+                            if standing == 0 && all_appeared && frame - spawned >= FPS {
+                                if appeared.len() < *given {
+                                    eprintln!("sweep f={frame}: {} of {given} bombs never appeared within {} s", appeared.len(), SWEEP_APPEAR_ALLOWANCE / FPS);
+                                }
+                                if debug {
+                                    eprintln!("sweep f={frame}: wave gone after {} s", (frame - spawned) / FPS);
+                                }
                                 *waves_left -= 1;
                                 *spawned_at = None;
                                 if *waves_left == 0 {
-                                    *stage = Sweep::Rest { since: frame };
+                                    *stage = Sweep::Rest { since: frame, set_off: HashMap::new() };
                                 }
                             }
                         }
                     }
                 }
                 Sweep::Bombs { .. } => {}
-                Sweep::Rest { since } => {
-                    if frame - *since >= REST {
+                Sweep::Rest { since, set_off } => {
+                    // A bomb still standing (a wave's late unit) is set off, and the rest starts again.
+                    let late: Vec<UnitId> = match rules.sweep {
+                        Some((bomb, _)) if sweeper => tick.snapshot.own_units.iter().filter(|u| u.def == bomb).map(|u| u.id).collect(),
+                        _ => Vec::new(),
+                    };
+                    if !late.is_empty() {
+                        let fresh: Vec<UnitId> = late.into_iter().filter(|u| set_off.get(u).is_none_or(|at| frame - at >= DESTRUCT_RETRY)).collect();
+                        if !fresh.is_empty() {
+                            eprintln!("sweep f={frame}: {} bombs standing at the rest, set off", fresh.len());
+                            for unit in fresh {
+                                set_off.insert(unit, frame);
+                                commands.push(Command::SelfDestruct { unit });
+                            }
+                        }
+                        *since = frame;
+                    } else if frame - *since >= REST {
                         *stage = Sweep::Done;
                     }
                 }
