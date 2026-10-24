@@ -730,8 +730,11 @@ ranks' 88 throughout. The ball a group makes at its destination is this funnel's
 ranks (the lane's march rewrite) holds the width the whole way (335-381) at a cost in depth (64 to 160).
 **Evidence.** The drill bench's baselines read with the depth and width measure, 2026-10-24 (`duel --drill walk`,
 8 duels an arm, lane off and on, the per-second `shape`; `docs/design/2026-10-24-formation-drills.md` §5, D8).
-**Status.** measured (2026-10-24). The hands' advance is one point for the whole group (`execute.rs`), so a group
-told to advance abreast meets a front two wide; what holds a body's width on the move is the next arc's question.
+**Status.** measured (2026-10-24). The hands' advance is one point for the whole group (`execute.rs`, every member
+the same `to`); in the flagship's games the lane's march (H-MICRO-FORM, on unless disabled) rewrites it into ranks of
+six at the destination, which is why a body arrives in ranks there and not in a ball. The funnel is what the order
+alone does, to any unit the lane does not hold, and to the harness with the lane off; what holds a body's width on
+the move at a chosen depth is the next arc's question.
 
 ### K-engine-slow-guard-paces-a-guarder-to-its-guardee
 **Claim.** The engine's one native pacing is slow guard: a unit guarding a slower moving unit, once within the game's

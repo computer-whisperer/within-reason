@@ -240,9 +240,10 @@ And the series, one duel each, every two seconds: twelve Blitzes with the lane o
 
 6. **One goal point funnels a line into a file.** Every unit walks its own straight line to the same point, so the
    width falls in step with the distance left: 320 at the order, 167 halfway, 105-116 at the goal for twelve
-   Blitzes, while the depth holds near the two ranks' 88. The "ball" at arrival is this funnel's end. The games'
-   advance is one point for the whole group, so a line abreast at the order is two wide at contact
-   (K-engine-one-goal-point-funnels-a-line-into-a-file).
+   Blitzes, while the depth holds near the two ranks' 88. The "ball" at arrival is this funnel's end. The hands'
+   advance is one point for the whole group; in the games the lane's march (H-MICRO-FORM, on unless disabled)
+   rewrites it into ranks at the destination, so the funnel is what any unit outside the lane's bodies does, and
+   what the order alone would do (K-engine-one-goal-point-funnels-a-line-into-a-file).
 7. **The lane's per-unit destinations hold the width the whole way** (335-381 against the formation's 320), at a
    cost in depth (64 to 160 for the Blitzes, the ramp to all 0.9 to 1.2 s): the march's ranks at the destination
    are what keeps six abreast, and it is the only thing in the stack today that does.
