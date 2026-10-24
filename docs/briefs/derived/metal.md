@@ -2,7 +2,7 @@
 id: D-metal-is-the-game
 layer: derived
 premises: [F-map-metal, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-conversion, F-eco-build, F-eco-reclaim, F-eco-consequences, M-pool-tier2-and-wrecks, M-pool-pressure, M-pool-expansion, M-pool-closing, M-format-8v8, M-barb-bonus]
-lessons: [L-metal-first]
+lessons: [L-reclaim-spread, L-metal-first]
 sources: {people: [thebluegecko, the user], dates: [2026-10-22], relay: the user's paraphrase of thebluegecko in the brief-rework discussion; the user's framing of the section as an honest derivation of a surface heuristic}
 status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py over 1,752 games of ours and the pool's 38 duels past 12:00: the income gap at 12:00 calls the result better than the army gap in every population; the inversions are our unconverted leads and the kills)
 -->
@@ -38,7 +38,9 @@ winners forty seconds earlier than the losers), denying his (the pool's first ex
 loses 1.5 to 2 a game-minute, the winners one, the losers two and a half), and protecting ours (a light turret's 85
 metal against an extractor's 50 and its 138 a minute). A fight is a metal exchange whose wrecks, up to six tenths of
 what died, go to whoever holds the ground afterwards, at 38 a second per construction vehicle, 58 per resurrection
-bot, 75 for the commander (three constructors clear 1,200 in ten seconds); and a building of one's own is metal in the
+bot, 75 for the commander (three constructors clear 1,200 in ten seconds on a tight field; a spread one adds the walk
+between wrecks, where the resurrection bots' acceleration and the air constructors' speed count, L-reclaim-spread); and
+a building of one's own is metal in the
 ground too, its full cost back when its reclaim ends, landing in one second into a store that clamps to its storage
 once a second, so the room comes first. From these, "get mexes", "build units to stand out on the map"
 and "defend territory" follow as the three ways an army moves the quantity, and so does the pool's shape: the winner

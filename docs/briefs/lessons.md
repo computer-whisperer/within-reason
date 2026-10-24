@@ -190,6 +190,17 @@ status: live
 **"reclaim is also good"** ... **"normaly a map like this is very vehicle favored, but the reclaim makes bots slightly
 prefered here I think"** (thebluegecko at the start of human-33, Gecko Isle, a map with reclaimable features).
 
+<!--meta
+id: L-reclaim-spread
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the user, who passed the line on the same evening ("a random quote from thebluegecko")}
+status: live
+-->
+On collecting a wreck field: **"the spread of a reclaim field matters, the construction bot can't pick up it's maximum
+effective rate on large ones, and graverobbers are better because they have higher acceleration, similarly air
+constructors are fast at it"** (the Graverobber is Cortex's resurrection bot, the Lazarus Armada's; the rates in the
+economy facts are for a collector standing at the wreck, and a spread field adds the walk between wrecks).
+
 ### Raids and pressure
 
 <!--meta

@@ -2,7 +2,7 @@
 id: D-tier2-sprint
 layer: derived
 premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
-lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units, L-reclaim-field]
+lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units, L-reclaim-field, L-reclaim-spread]
 sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-28, 2026-10-18, 2026-10-23], relay: the lessons' chat lines; the user's framing of tier 2 as a sprint whose gap is covered or not (2026-10-18) and his ruling that in a close duel the opponent's tech is the moment to kill his base (2026-09-28); his steer of 2026-10-23 that the derivations stay lean, ideas with worked arithmetic rather than rules, and his three reclaim patterns of the same evening (the field after a won fight, the tier-1 lab into the plant, the plant itself eaten for mohos) with a person's line relayed}
 status: live, checked (the kill-test run 2026-10-23 with run/metal_killtest.py tier2 over 1,641 recorded 1v1s of fourteen minutes or more; the tests are correlations across our own games and say so)
 -->
@@ -41,7 +41,8 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
   135, a Bull 570, a Fatboy 840), one deleted by a burst a heap worth a quarter or nothing; a fight that cost him 4,300
   leaves the plant on the ground, and both sides' dead lie where the fight was, for whoever holds that ground. A
   construction vehicle collects 38 a second of wreck, a resurrection bot 58, the commander 75: three constructors clear
-  1,200 in ten seconds. A live building of our own returns its full cost when its reclaim ends, the vehicle plant 590 in
+  1,200 in ten seconds on a tight field; a spread field adds the walk between wrecks, and thebluegecko's collectors for
+  one are the resurrection bots, which accelerate faster, and air constructors (L-reclaim-spread). A live building of our own returns its full cost when its reclaim ends, the vehicle plant 590 in
   19 seconds of the commander's time, the bot lab 500 in 17, the advanced plant 2,600 in 90; but it all lands in one
   second, and the store clamps to its storage once a second: 1,000 plus 50 an extractor, 100 a plant (which leaves with
   the plant) and 600 a moho. What lands above that is gone. A metal storage is 330 for 3,000 of room.
