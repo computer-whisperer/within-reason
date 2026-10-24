@@ -172,3 +172,13 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   and in game 00 to a constructor 2,000 elmos out that walked 88 s to place it; the lab idle while it was framed.
   Next: the plant's commit (its timing by the plan's own counts, its placer a builder at the base), then the farm
   and the reclaim order.
+- 2026-10-24 night, the mid-game (terr50-53): the plant's placer at the base and a five-minute commit window
+  (terr50: 10:00 145-155 in every game, 846 at 20:00 in one); the program held to the line the first lab opened
+  (`planner.rs factory_line`; terr51 read factories from the wrong list, terr52: the Armada plants from 6:30 to
+  4:30-5:00, since on its own the program wanted the vehicle line through a vehicle lab it planned a tenth of);
+  T-YARD (a factory's own product never guards it, six guards a factory, a builder with nothing to do steps out
+  of the yard; terr53: no product held in any game, 15:00 358-403 and 20:00 761-850, the best batch yet, the
+  standing state). Against the flagship's 36 / 177 / 463 / 802 and his 62 / 213 / 651 / 1,706: level with the
+  flagship at 5:00 and 20:00, behind at 10:00 and 15:00 by the plant's timing and the converters, a third of his
+  at 15:00 and half at 20:00. Next: the farm (turrets in a block, the tier-2 frames inside their reach, the
+  program's `maxnanos` and `help` arms on) and the reclaim order, which are base layout, the user's call.

@@ -64,6 +64,14 @@ pub(crate) const COMMANDER_LEASH: f32 = 1500.0;
 /// the start cost it six, and on three of them fifty seconds earlier it is a thousand metal by 5:00.
 const OPENING_SPOTS: f32 = 500.0;
 const OPENING: i32 = MINUTE;
+/// A factory's commit or class pick goes to a builder within this of home (T-COMMIT).
+const FACTORY_PLACER: f32 = 1000.0;
+/// Mobile builders guarding one factory at most: past a yard's worth they crowd the pad and the exit, and the
+/// products cannot leave (terr52 game 00: the advanced lab made two constructors at 6:15 and 6:53 and nothing
+/// until 11:25, its orders dropped as held with a finished product of its own on the site, 9-24 constructors
+/// guarding the two factories round it; game 01's, with the same counts and more room, made one every twenty
+/// seconds). The program's assist factor is build power, not bodies.
+const ASSIST_GUARDS: usize = 6;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
@@ -107,8 +115,10 @@ pub(crate) const AFFORD_SECONDS: f64 = 90.0;
 /// T-COMMIT: a factory type the program wants at all within this long, whose products include one that nothing
 /// standing, framed or ordered makes, is started whole: the program builds fractions of a factory for minutes (0.3
 /// of a lab in the first minute of the ceiling, 0.3 of an advanced plant from 7:00 for every moho it makes), and a
-/// fraction of a factory makes nothing in the engine.
-const COMMIT_WITHIN: f64 = 180.0;
+/// fraction of a factory makes nothing in the engine. Five minutes: within three the Armada plans' vehicle plant,
+/// wanted at 0.5-0.9 by the end from 3:35, stayed under the threshold until 6:20 while the Cortex plans' whole
+/// advanced lab passed it at 4:17 (terr49: 566 / 623 at 20:00 against 733 / 800).
+const COMMIT_WITHIN: f64 = 300.0;
 const COMMIT_AT: f64 = 0.05;
 /// T-STRUCK: a unit type whose orders have come to nothing this many times, more often than its frames have begun,
 /// is struck from the palette for the rest of the game, and its remaining steps are passed over (terr1-nullai-comet-1:
@@ -477,7 +487,13 @@ impl Territory {
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(u, _)| u)
         });
-        if let Some(u) = class_pick && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, if commit.is_some() { "commit" } else { "class" }, commands) {
+        // A factory is placed by a builder at the base: a chaining constructor 2,000 elmos out took the tier-2 plant's
+        // commit and walked 88 s to place it (terr49 game 00, the plant begun 7:48, its first constructor at 9:00;
+        // game 03's stood from 4:34 and made 800 at 20:00 against 566), where the commander or a base builder is
+        // idle within seconds.
+        let factory_pick = class_pick.is_some_and(|u| self.game().units.list[u].role == Role::Factory);
+        let at_base = role == Role::Commander || builder.pos.dist2d(self.home) <= FACTORY_PLACER;
+        if let Some(u) = class_pick && (at_base || !factory_pick) && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, if commit.is_some() { "commit" } else { "class" }, commands) {
             return;
         }
         if role == Role::Factory {
@@ -586,6 +602,13 @@ impl Territory {
                 Kind::Reclaim => continue,
                 Kind::Assist => {
                     let Some(factory) = self.factory_making(u, builder.pos) else { continue };
+                    // Its maker's own product never guards it (a newborn guarding the factory it came from stands
+                    // on the pad whatever it is told first), and a factory takes ASSIST_GUARDS guards at most.
+                    let made_here = self.own.get(&factory).and_then(|f| self.unit_index(f.def)).is_some_and(|fi| self.game().units.list[fi].builds.contains(&unit));
+                    let guards = self.hands.orders.values().filter(|o| matches!(&o.what, What::Assist { factory: f, .. } if *f == factory)).count();
+                    if made_here || guards >= ASSIST_GUARDS {
+                        continue;
+                    }
                     if !self.energy_fits(u, unit) {
                         self.hands.energy_refused += 1;
                         *self.hands.energy_refused_by.entry(u).or_default() += 1;
@@ -636,8 +659,24 @@ impl Territory {
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
             return;
         }
-        if (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 && self.energy_budget(true) < 0.0 {
-            self.free_energy_building(id, unit, role, commands);
+        if (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 && self.energy_budget(true) < 0.0 && self.free_energy_building(id, unit, role, commands) {
+            return;
+        }
+        // Nothing to do: a builder standing in a factory's yard or exit lane steps beside it (the pad-keeper), so
+        // that a newborn with no order of its own does not hold the next product on the pad.
+        if role != Role::Factory {
+            self.clear_the_yard(id, unit, &builder, commands);
+        }
+    }
+
+    /// A mobile unit of ours in a standing factory's yard or exit lane is moved beside the factory for PAD_CLEAR.
+    fn clear_the_yard(&mut self, id: UnitId, unit: usize, builder: &OwnUnit, commands: &mut Vec<Command>) {
+        let blocking: Option<OwnUnit> = self.own.values().filter(|f| !f.being_built && f.id != id && self.role_of_def(f.def) == Some(Role::Factory)).find(|f| builder.pos.dist2d(f.pos) < FACTORY_YARD || exit_lane(f).contains(builder.pos)).cloned();
+        if let Some(f) = blocking {
+            let to = self.beside_factory(f.pos, id);
+            commands.push(Command::Move { unit: id, to, queue: false });
+            self.hands.orders.insert(id, Order { what: What::Assist { factory: f.id, until: self.frame + PAD_CLEAR }, given: self.frame, told: self.frame, arrived: None, step: None });
+            *self.hands.ordered.entry((unit, "yard")).or_default() += 1;
         }
     }
 

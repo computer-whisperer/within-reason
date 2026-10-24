@@ -262,10 +262,13 @@ impl Territory {
                     ));
                     m += 60.0;
                 }
-                // The factory kinds the program ends with, since the kinds decide the tier-2 line.
-                let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.1}", units.list[*u].name, plan.count_at(*u, end))).collect();
+                // The factory kinds the program ends with, since the kinds decide the tier-2 line, with each kind's count
+                // at +1, +3 and +5 minutes (T-COMMIT fires on the count within COMMIT_WITHIN: in terr49 the Armada plans
+                // wanted 0.5-0.9 of a vehicle plant at the end from 3:35 and the commit came at 6:20, the Cortex plans a
+                // whole advanced lab from 4:17 and the commit at 4:55).
+                let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.2}/{:.2}/{:.2}/{:.1}", units.list[*u].name, plan.count_at(*u, plan.t0 + 60.0), plan.count_at(*u, plan.t0 + 180.0), plan.count_at(*u, plan.t0 + 300.0), plan.count_at(*u, end))).collect();
                 let rings: Vec<String> = plan.rings.iter().enumerate().map(|(k, r)| format!("r{k} {} spots to {:.0} at {:.0} ({:.2}/s)", r.spots, r.bound, r.distance, r.metal)).collect();
-                self.log(format_args!("targets: {} | factory kinds at the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
+                self.log(format_args!("targets: {} | factory kinds at +1/+3/+5 min/the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
                 self.hands.targets = Some(plan.clone());
                 self.seed_committed();
                 return;

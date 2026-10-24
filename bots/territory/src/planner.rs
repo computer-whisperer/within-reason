@@ -58,6 +58,43 @@ pub(crate) struct Planner {
     pending: Option<mpsc::Receiver<Planned>>,
 }
 
+/// The factory kinds the program may plan once a factory stands or is committed: the line the first lab opened. A
+/// basic factory kind only if one of it stands or is committed; an advanced one only if a constructor of the
+/// line's factories builds it, and so on up the line. None before the first factory: the program chooses the
+/// line. The program on its own wants the vehicle line's advanced plant (0.5-0.9 of one by the end from 3:35 in
+/// terr49's Armada games) through a vehicle lab it plans 0.1 of, while the bot's lab is a bot lab whose
+/// constructors cannot build it; the advanced bot lab, its second choice, passed the commit threshold at 6:20
+/// against the Cortex games' 4:17, and those made 733-846 at 20:00 against 566-731.
+fn factory_line(game: &Game, state: &State) -> Option<Vec<usize>> {
+    let units = &game.units;
+    let basic = units.basic_extraction();
+    let is_upgrade = |u: usize| units.list[u].extracts_metal > basic * 1.5;
+    let advanced = |f: usize| units.list[f].builds.iter().any(|p| units.list[*p].builds.iter().any(|b| is_upgrade(*b)));
+    // A standing factory is a builder of the state (it has build power), a framed or ordered one a commitment.
+    let mut line: Vec<usize> = state.builders.iter().map(|b| b.unit).chain(state.committed.iter().map(|c| c.unit)).filter(|u| units.list[*u].role == Role::Factory).collect();
+    line.sort_unstable();
+    line.dedup();
+    if line.is_empty() {
+        return None;
+    }
+    // Up the line: the factories the line's constructors build, advanced ones only, to a fixpoint.
+    loop {
+        let before = line.len();
+        let reachable: Vec<usize> = line
+            .iter()
+            .flat_map(|f| units.list[*f].builds.iter().copied())
+            .flat_map(|c| units.list[c].builds.iter().copied())
+            .filter(|f| units.list[*f].role == Role::Factory && advanced(*f) && !line.contains(f))
+            .collect();
+        line.extend(reachable);
+        line.sort_unstable();
+        line.dedup();
+        if line.len() == before {
+            return Some(line);
+        }
+    }
+}
+
 fn search_of(request: &Request) -> Search {
     Search {
         objective: Objective::Made { terminal: request.terminal },
@@ -75,7 +112,14 @@ fn run(game: &Game, palette: &Palette, request: Request, budget: Duration, threa
     let began = Instant::now();
     let answer = match &request.lp {
         Some(options) => {
-            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).filter(|u| game.units.list[*u].role == Role::Factory || game.units.list[*u].metal_cost <= request.affordable).collect();
+            let line = factory_line(game, &request.state);
+            let offer: Vec<usize> = palette
+                .mobile
+                .iter()
+                .chain(palette.factory.iter())
+                .filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None })
+                .filter(|u| if game.units.list[*u].role == Role::Factory { line.as_ref().is_none_or(|l| l.contains(u)) } else { game.units.list[*u].metal_cost <= request.affordable })
+                .collect();
             match lp::solve(&game.units, &request.scenario, &request.state, &offer, options) {
                 Ok(plan) => Answer::Lp(plan),
                 Err(e) => {
