@@ -157,3 +157,18 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   2,357 from the bot's seed-1 start) and at 10, 15 and 20 with the hands' walk; what the hands owe it next, in
   the marks' order: the extractor chain (the 5:00 mark is the hands' alone: 36 s an extractor against their 65),
   the farm's placing with the turret cap as the arm, the reclaim order. The bot's defaults are unchanged.
+- 2026-10-24 evening, the hands (the user: "let's work on improving the territory bot to match"), one batch each,
+  read from the two records first: his constructors chain the spots every 31 s with a 528-elmo step and six of his
+  nine do nothing else, the bot's every 62 s with a 1,110 step and solars between. T-CHAIN (terr46: 5:00 up 3-7 in
+  three games, the chains to 45-64 s and 712-1,207 elmos, half the way, the rest contention and the metal); the
+  program's energy margin from 4:00 (terr47: its own 5:00 is 50 without the margin, 40 with it, 48 with it from
+  4:00; the bot 36-39 at 5:00); the pros' plant after three extractors tested and refused by the program and the
+  engine alike (terr48: 32-34); T-OPENING, the commander's first minute on the spots within 500 of home (terr49:
+  45.6 / 47.9 / 38.7 / 41.0 at 5:00 against terr45's 33.0-38.7, every game up, the first batch above 45; the
+  program prices the commander's every extractor at one walk of 16 s where these cost six). The bot stands at its
+  plan's honest 5:00 now: the plan's 48 counts a tenth of an advanced fusion as 300 energy a second where the hands
+  build thirteen to seventeen solars, as he did. The mid-game then took two games of terr49 (20:00 566 / 623
+  against 733 / 800): the tier-2 plant committed at 6:20 in both Armada games against 4:55 in both Cortex games,
+  and in game 00 to a constructor 2,000 elmos out that walked 88 s to place it; the lab idle while it was framed.
+  Next: the plant's commit (its timing by the plan's own counts, its placer a builder at the base), then the farm
+  and the reclaim order.

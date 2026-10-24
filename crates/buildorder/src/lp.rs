@@ -54,6 +54,14 @@ pub struct LpOptions {
     /// game 01: the energy at its cap at 12:00 with the income the usage, and the plant's constructors refused
     /// twenty times in the minute). The margin is the room the overshoot lives in.
     pub energy_margin: f64,
+    /// The game second the margin applies from (the bucket starting at or after it): the margin is for the mid-game's
+    /// stalls, and in the opening it priced the plan's first extractors against solars the commander had no time
+    /// for (the program's own 5:00 is 50 without it and 40 with it from the first bucket).
+    pub margin_from: f64,
+    /// No factory begun before this game second: the pros' opening puts three extractors before the plant (K-open-
+    /// comet-pro-order; thebluegecko's at 1:01), where the program's fractional lab produces fractional constructors
+    /// from its first bucket and so opens lab-first. 0 leaves the program free.
+    pub factory_from: f64,
     /// Build power mobile builders may put on factory products, as a multiple of the factories' own (the yard
     /// clears between units).
     pub assist_factor: f64,
@@ -126,6 +134,8 @@ impl Default for LpOptions {
             terminal: 0.0,
             energy_reserve: 0.2,
             energy_margin: 0.0,
+            margin_from: 0.0,
+            factory_from: 0.0,
             assist_factor: 2.0,
             help_factor: 3.0,
             nanos_per_factory: 6.0,
@@ -622,6 +632,20 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             row += 1;
         }
     }
+    // No factory before `factory_from`: the factory columns hold what stands until the bucket that starts at or
+    // after it.
+    if options.factory_from > 0.0 {
+        for &i in &factory_columns {
+            for t in 1..t_n {
+                if state.t0 + starts[t] > options.factory_from {
+                    break;
+                }
+                put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+                b.push(n0[i]);
+                row += 1;
+            }
+        }
+    }
     // A Frames column counts its frames at most.
     for i in 0..columns.len() {
         if let Some((_, n, _)) = frame_of(i) {
@@ -786,6 +810,9 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     // what is left.
     if options.energy_margin > 0.0 {
         for t in 1..buckets {
+            if state.t0 + starts[t] < options.margin_from {
+                continue;
+            }
             for (p, pair) in pairs.iter().enumerate() {
                 if pair.energy_per_power != 0.0 {
                     put(row, x_at(p, t), (1.0 + options.energy_margin) * pair.energy_per_power, &mut rows_i, &mut cols, &mut vals);

@@ -172,6 +172,8 @@ impl Territory {
             terminal: o.terminal,
             energy_reserve: o.energy_reserve,
             energy_margin: o.energy_margin,
+            margin_from: o.margin_from,
+            factory_from: o.factory_from,
             assist_factor: o.assist_factor,
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,

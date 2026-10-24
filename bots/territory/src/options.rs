@@ -10,6 +10,9 @@ pub(crate) struct Options {
     pub energy_reserve: f64,
     /// The program's energy margin: production over the build draw, as a share of the draw (`buildorder::lp`).
     pub energy_margin: f64,
+    /// The game second the margin applies from, and the second before which the program plans no factory.
+    pub margin_from: f64,
+    pub factory_from: f64,
     /// Wall for a re-plan beside the game, and for the first plan on the engine thread.
     pub budget_ms: u64,
     pub first_budget_ms: u64,
@@ -41,6 +44,9 @@ pub(crate) struct Options {
     /// standing building down for its metal (off until the hands give the order).
     pub max_nanos: f64,
     pub reclaim: bool,
+    /// T-CHAIN: a constructor out among the spots takes extractor flows only while it has them (`chain=off` for the
+    /// control).
+    pub chain: bool,
     pub assist_factor: f64,
     pub walk_extractor: f64,
     pub walk_base: f64,
@@ -60,6 +66,8 @@ impl Default for Options {
             terminal: 0.0,
             energy_reserve: 0.2,
             energy_margin: 0.25,
+            margin_from: 240.0,
+            factory_from: 0.0,
             budget_ms: 400,
             first_budget_ms: 1000,
             threads: 4,
@@ -79,6 +87,7 @@ impl Default for Options {
             nanos_per_factory: 6.0,
             max_nanos: 0.0,
             reclaim: false,
+            chain: true,
             assist_factor: 2.0,
             walk_extractor: 65.0,
             walk_base: 3.0,
@@ -105,6 +114,8 @@ impl Options {
                 "terminal" => options.terminal = value.parse().unwrap_or(options.terminal),
                 "reserve" => options.energy_reserve = value.parse().unwrap_or(options.energy_reserve),
                 "emargin" => options.energy_margin = value.parse().unwrap_or(options.energy_margin),
+                "emargin_from" => options.margin_from = value.parse().unwrap_or(options.margin_from),
+                "factory_from" => options.factory_from = value.parse().unwrap_or(options.factory_from),
                 "budget" => options.budget_ms = value.parse().unwrap_or(options.budget_ms),
                 "first" => options.first_budget_ms = value.parse().unwrap_or(options.first_budget_ms),
                 "threads" => options.threads = value.parse().unwrap_or(options.threads),
@@ -124,6 +135,7 @@ impl Options {
                 "nanos" => options.nanos_per_factory = value.parse().unwrap_or(options.nanos_per_factory),
                 "maxnanos" => options.max_nanos = value.parse().unwrap_or(options.max_nanos),
                 "reclaim" => options.reclaim = on,
+                "chain" => options.chain = on,
                 "assist" => options.assist_factor = value.parse().unwrap_or(options.assist_factor),
                 "walk_extractor" => options.walk_extractor = value.parse().unwrap_or(options.walk_extractor),
                 "walk_base" => options.walk_base = value.parse().unwrap_or(options.walk_base),
@@ -141,9 +153,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, reclaim={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
-            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, if self.reclaim { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
+            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.factories, self.constructors,
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
         )
     }
 }

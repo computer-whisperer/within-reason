@@ -57,6 +57,13 @@ const PENDING_SITE: f32 = 70.0;
 /// its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to his commander
 /// 7,300 elmos from home, two games of four lost).
 pub(crate) const COMMANDER_LEASH: f32 = 1500.0;
+/// T-OPENING: in the game's first minute the commander takes the free spots within this of home before anything
+/// else, nearest first: the pros' opening (K-open-comet-pro-order; thebluegecko's extractors at 0:03, 0:10 and 0:25
+/// beside his start, the plant at 1:01), where the plan's lab-first opening put the bot's first three at 0:52,
+/// 1:06 and 1:23 (terr47). The program prices the commander's every extractor at one walk (16 s); the spots beside
+/// the start cost it six, and on three of them fifty seconds earlier it is a thousand metal by 5:00.
+const OPENING_SPOTS: f32 = 500.0;
+const OPENING: i32 = MINUTE;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
@@ -377,6 +384,13 @@ impl Territory {
         let Some(unit) = self.unit_index(builder.def) else { return };
         let now = self.frame as f64 / SECOND as f64;
         let ahead = now + LEAD;
+        // T-OPENING: the commander's first minute is the spots beside the start.
+        if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && self.free_spot(builder.pos, None, Some((self.home, OPENING_SPOTS)), None).is_some() {
+            let cost = self.game().units.list[extractor].build_time;
+            if self.order_one(id, unit, role, extractor, cost, Some(self.ring_of_pos(self.home)), "opening", commands) {
+                return;
+            }
+        }
         let shortfalls = self.shortfalls(ahead);
         // T-COMMIT: a factory type the program wants at all within the window, among whose products is one the
         // program wants that no factory standing, framed or ordered makes, is started whole, before anything else:
@@ -400,11 +414,13 @@ impl Territory {
             // constructor kinds, a lab and a vehicle plant were committed in the first minute, and the commander
             // built both and assisted them to 5:00 on an income of seven).
             let pending_factory = self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, frame, .. } if units.list[*unit].role == Role::Factory && frame.is_none_or(|f| self.own.get(&f).is_some_and(|u| u.being_built))));
+            // No factory before `factory_from` (the arm; the program holds its factory columns to the same second).
+            let too_early = now < self.options.factory_from;
             targets
                 .types
                 .iter()
                 .copied()
-                .filter(|_| !pending_factory)
+                .filter(|_| !pending_factory && !too_early)
                 .filter(|f| units.list[*f].role == Role::Factory && def.builds.contains(f) && !self.hands.struck.contains(f))
                 .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(&tier(*p)) && wanted_soon(*p)))
                 .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
@@ -485,10 +501,6 @@ impl Territory {
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
             return;
         }
-        // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them.
-        if self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
-            return;
-        }
         // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
         // the unit's cost first, and at a share tied the one the plan wants sooner (its share at a third of the
         // lead: terr24, two solars and two extractors wanted by one minute tied, and unit order put the solars
@@ -537,6 +549,21 @@ impl Territory {
             let (sa, sb) = (share(a), share(b));
             sb.0.total_cmp(&sa.0).then(sb.1.total_cmp(&sa.1))
         });
+        // T-CHAIN: a constructor out among the spots (past BESIDE from home) chains them: while an extractor or
+        // upgrade flow of its own has credit it takes no other order, so that a solar at the base does not walk it
+        // home between two spots. Read from thebluegecko's record against the bot's (2026-10-24): his constructors
+        // began an extractor every 31 s with a step of 528 elmos, six of his nine doing nothing else; the bot's every
+        // 62 s with a step of 1,110, solars, advanced solars and turrets between (terr45 game 00); and the program's
+        // own 5:00 is 62, his figure, at a walk of 36 s an extractor against 50 at the hands' realized 65.
+        let chain = self.options.chain && role == Role::Builder && builder.pos.dist2d(self.home) > BESIDE && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
+        if chain {
+            flows.retain(|f| matches!(f.1, Class::Ring(_)));
+        }
+        // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them; a chaining
+        // constructor leaves the stall's solar to the builders at the base.
+        if !chain && self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
+            return;
+        }
         for (u, class, kind, _, cost, _) in flows {
             match kind {
                 Kind::Direct => {
