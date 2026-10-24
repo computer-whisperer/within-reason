@@ -78,6 +78,22 @@ pub struct LpOptions {
     /// and converters placed inside their reach, 39 and 28 turrets within 300 of a frame at its placing). The
     /// farm's size is the base's ground, which the program cannot see; the number is the arm.
     pub max_nanos: f64,
+    /// Under the farm (`max_nanos` above zero) and when above zero itself, a turret helps only a turret or a building
+    /// of this much build time or more: the farm's turrets reach the core's frames (fusions, advanced fusions,
+    /// advanced converters, the turrets beside them) and nothing beside the builders or at the spots. Without it the
+    /// program prices a basic converter at the placer's forty-first share, four seconds, where the hands pay 27 s
+    /// and a walk for every one, and floods them (terr57: 257-310 a game). Off by default: at 20,000 with the
+    /// turrets themselves excluded, the program bought more constructors from the first minutes for the dearer
+    /// placing (13-14 at 5:00 against 10-12, the extractors 13-16 against 17-22) and fewer turrets, and sent the
+    /// constructors to help the core's frames in their place; terr58 fell at every mark (5:00 32-39 against 36-46,
+    /// 20:00 796-892 against 818-912).
+    pub farm_big: f64,
+    /// The metal in the bank at the horizon counts in the objective as metal made. Off by default: without it
+    /// spending is free at the end and the program dumps the bank into whatever is quickest (terr61 game 00's plan
+    /// from 15:00: 423 solars and 435 basic converters in its last two minutes), but with it the program hoards
+    /// instead, since metal kept reads as income while the marks are income (terr64: turrets 22-39 against 58-92,
+    /// fusions 7-11 against 16-28, 43,000-76,000 metal kept, 20:00 846-876 against terr62's 881-980).
+    pub bank: bool,
     /// Whether the program may take a standing building down for its metal. The engine returns a reclaimed unit's
     /// metal whole in the second the reclaim ends and none of its energy, for the unit's build time at the
     /// reclaimer's power (his advanced plant, 28,000, in about seven seconds under the turrets round it). Off for
@@ -140,6 +156,8 @@ impl Default for LpOptions {
             help_factor: 3.0,
             nanos_per_factory: 6.0,
             max_nanos: 0.0,
+            farm_big: 0.0,
+            bank: false,
             reclaim: false,
             walk_extractor: 65.0,
             walk_base: 3.0,
@@ -445,7 +463,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
                 Kind::Direct
             } else if mobile(b) && def.role != Role::Factory && products.contains(&u) {
                 Kind::Assist
-            } else if def.role == Role::Nano && !is_extractor(u) && builders.iter().chain(std::iter::once(&commander)).any(|x| units.list[*x].builds.contains(&u)) {
+            } else if def.role == Role::Nano && !is_extractor(u) && (options.max_nanos <= 0.0 || options.farm_big <= 0.0 || def.role == units.list[u].role || units.list[u].build_time >= options.farm_big) && builders.iter().chain(std::iter::once(&commander)).any(|x| units.list[*x].builds.contains(&u)) {
                 Kind::Help
             } else {
                 continue;
@@ -893,6 +911,9 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         for t in 0..buckets {
             q[c_at(k, t)] -= units.list[columns[i].unit].conv_efficiency;
         }
+    }
+    if options.bank {
+        q[m_at(buckets)] -= 1.0;
     }
     for (p, pair) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Reclaim) {
         for t in 0..buckets {

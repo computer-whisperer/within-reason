@@ -103,6 +103,15 @@ impl Territory {
         if !self.options.soldiers {
             palette.factory.retain(|i| matches!(i, Item::Build(u) if game.units.list[*u].role == Role::Builder));
         }
+        // The line arm: the factories the program may open with, by their names' ends (the air plants in both).
+        let kept: Option<&[&str]> = match self.options.line.as_str() {
+            "vehicle" => Some(&["vp", "avp", "ap", "aap"]),
+            "bot" => Some(&["lab", "alab", "ap", "aap"]),
+            _ => None,
+        };
+        if let Some(kept) = kept {
+            palette.mobile.retain(|i| !matches!(i, Item::Build(u) if game.units.list[*u].role == Role::Factory && !kept.iter().any(|k| game.units.list[*u].name.ends_with(k))));
+        }
         let names = |items: &[Item]| items.iter().map(|i| match i { Item::Build(u) => game.units.list[*u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() }).collect::<Vec<_>>().join(" ");
         let (mobile, factory) = (names(&palette.mobile), names(&palette.factory));
         self.ground = Some(game.ground());
@@ -181,6 +190,8 @@ impl Territory {
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,
             max_nanos: o.max_nanos,
+            farm_big: o.farm_big,
+            bank: o.bank,
             reclaim: o.reclaim,
             walk_extractor: o.walk_extractor,
             walk_base: o.walk_base,
@@ -250,15 +261,18 @@ impl Territory {
                 while m <= planned.horizon {
                     let t = planned.t0 + m;
                     by_minute.push(format!(
-                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} conv{:.0} eco{:.0} inc{:.0} bank{:.0}/{:.0}",
+                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} mmkr{:.0} makr{:.0} afus{:.0} fus{:.0} eco{:.0} inc{:.0} bank{:.0}/{:.0}",
                         m / 60.0,
                         self.plan_count(plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
                         self.plan_count(plan, t, &|u| u.extracts_metal > basic * 1.5),
                         self.plan_count(plan, t, &|u| u.role == Role::Builder),
                         self.plan_count(plan, t, &|u| u.role == Role::Factory),
                         self.plan_count(plan, t, &|u| u.role == Role::Nano),
-                        self.plan_count(plan, t, &|u| u.conv_capacity > 0.0),
-                        self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
+                        self.plan_count(plan, t, &|u| u.conv_capacity >= 500.0),
+                        self.plan_count(plan, t, &|u| u.conv_capacity > 0.0 && u.conv_capacity < 500.0),
+                        self.plan_count(plan, t, &|u| u.energy_make >= 2000.0),
+                        self.plan_count(plan, t, &|u| u.energy_make >= 500.0 && u.energy_make < 2000.0),
+                        self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && u.energy_make < 500.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
                         plan.income_at(t),
                         plan.metal_at(t),
                         plan.energy_at(t)

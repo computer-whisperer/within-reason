@@ -23,6 +23,12 @@ pub(crate) struct Options {
     pub all_spots: bool,
     /// Soldiers on the factories' palette (the territory stage); off, the factories make builders only.
     pub soldiers: bool,
+    /// The basic factories the program may open with: `vehicle` (the default: vehicle and air plants, thebluegecko's
+    /// line, whose constructors move at 54 against the bot lab's 36 and whose advanced constructor builds at 290
+    /// against 210; terr62 against terr61 on Comet: 15:00 367-423 against 322-357, 20:00 881-980 against 825-908,
+    /// the mohos 70-73 by 20:00 against 60-62, and 5:00 down 2-7 with the advanced plant committed at 3:48-4:33),
+    /// `bot` (bot labs and air plants) or `any` (the program's own choice, which was the lab by its prices).
+    pub line: String,
     /// Queues the search may write for factories and constructors not yet standing; the program's caps (constructors per tier).
     pub factories: usize,
     pub constructors: usize,
@@ -43,6 +49,10 @@ pub(crate) struct Options {
     /// The farm: turrets at most as a number (0: the bound per factory), and whether the program may take a
     /// standing building down for its metal (off until the hands give the order).
     pub max_nanos: f64,
+    /// Under the farm, the build time from which a turret may help a building (the core's frames); 0 is off.
+    pub farm_big: f64,
+    /// The metal bank at the horizon counted as metal made (no free spending at the end; off: it hoarded, terr64).
+    pub bank: bool,
     pub reclaim: bool,
     /// T-CHAIN: a constructor out among the spots takes extractor flows only while it has them (`chain=off` for the
     /// control).
@@ -62,7 +72,7 @@ pub(crate) struct Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
-            end: 1200.0,
+            end: 1500.0,
             terminal: 0.0,
             energy_reserve: 0.2,
             energy_margin: 0.25,
@@ -74,6 +84,7 @@ impl Default for Options {
             replan: 30 * 30,
             all_spots: false,
             soldiers: false,
+            line: "vehicle".to_string(),
             factories: 4,
             constructors: 40,
             dump: true,
@@ -86,6 +97,8 @@ impl Default for Options {
             help_factor: 40.0,
             nanos_per_factory: 6.0,
             max_nanos: 300.0,
+            farm_big: 0.0,
+            bank: false,
             reclaim: false,
             chain: true,
             assist_factor: 2.0,
@@ -122,6 +135,7 @@ impl Options {
                 "replan" => options.replan = value.parse::<i32>().map_or(options.replan, |s| s * 30),
                 "spots" => options.all_spots = value == "all",
                 "soldiers" => options.soldiers = on,
+                "line" => options.line = value.to_string(),
                 "factories" => options.factories = value.parse().unwrap_or(options.factories),
                 "constructors" => options.constructors = value.parse().unwrap_or(options.constructors),
                 "dump" => options.dump = on,
@@ -134,6 +148,8 @@ impl Options {
                 "help" => options.help_factor = value.parse().unwrap_or(options.help_factor),
                 "nanos" => options.nanos_per_factory = value.parse().unwrap_or(options.nanos_per_factory),
                 "maxnanos" => options.max_nanos = value.parse().unwrap_or(options.max_nanos),
+                "farmbig" => options.farm_big = value.parse().unwrap_or(options.farm_big),
+                "bank" => options.bank = on,
                 "reclaim" => options.reclaim = on,
                 "chain" => options.chain = on,
                 "assist" => options.assist_factor = value.parse().unwrap_or(options.assist_factor),
@@ -153,9 +169,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
-            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
+            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
         )
     }
 }

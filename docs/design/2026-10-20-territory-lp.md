@@ -432,3 +432,11 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   mark is theirs alone), the farm's placing (turrets in a block, tier-2 frames inside their reach, the turret cap
   as the arm), and the reclaim order (`ReclaimUnit`, which the protocol carries and the bot has never sent).
   The bot's defaults since the farm (terr54, 2026-10-24 night): `maxnanos=300`, `help=40`; `reclaim=off` still.
+- 2026-10-24 late night, three options from the scaling arc, each measured once and two left off: `farm_big`
+  (a turret's help only on a turret or a building of that much build time; at 20,000 the program bought constructors
+  from the first minute for the dearer placing and lost every mark, terr58), `bank` (the metal bank at the horizon
+  counted as made, to stop the end-of-horizon dump of 400 solars and converters into the last buckets; it hoarded
+  instead, since metal kept read as income while the marks are income, terr64), and the horizon at 25:00 in a game of
+  20 (`end=1500`, on: the program invests for the rate, his composition stood at 20:00, the marks unmoved, terr65).
+  The pair for a turret on a factory (Assist is for mobile builders) is the program's next want: his 29 turrets on the
+  advanced plant at 10:00 made a constructor every 20 s.

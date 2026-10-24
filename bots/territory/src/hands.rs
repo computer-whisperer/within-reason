@@ -233,6 +233,10 @@ pub(crate) struct Hands {
     /// Build orders given since the last log line, by type and the dispatch rule that gave them.
     pub ordered: BTreeMap<(usize, &'static str), usize>,
     pub nano_told: BTreeMap<UnitId, i32>,
+    /// Per turret, the frame it was last put on and the frame (of the clock) it was told: the turrets' power counts
+    /// on a frame when a helper picks the frame to finish (`power_on`; terr60 counted it in the Frames credits too,
+    /// which left the plan's turret help short of the turrets in reach for the constructors to make up).
+    pub nano_frame: BTreeMap<UnitId, (UnitId, i32)>,
     /// Per builder, the frames it has begun (frame, unit): what a plan searched from an older snapshot has to skip.
     pub begun_log: BTreeMap<UnitId, Vec<(i32, usize)>>,
     /// Per unit type: orders that came to nothing, and frames begun (T-STRUCK).
@@ -266,6 +270,7 @@ impl Default for Hands {
             no_site: BTreeMap::new(),
             ordered: BTreeMap::new(),
             nano_told: BTreeMap::new(),
+            nano_frame: BTreeMap::new(),
             begun_log: BTreeMap::new(),
             failures: BTreeMap::new(),
             successes: BTreeMap::new(),
@@ -580,10 +585,13 @@ impl Territory {
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
             return;
         }
-        // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
-        // the unit's cost first, and at a share tied the one the plan wants sooner (its share at a third of the
-        // lead: terr24, two solars and two extractors wanted by one minute tied, and unit order put the solars
-        // first); this builder's part is to build it or to guard the factory that makes it.
+        // The credits by unit type over every builder type's flows (turret help apart), the largest in power-seconds
+        // first, and at a credit tied the one the plan wants sooner (its credit at a third of the lead: terr24, two
+        // solars and two extractors wanted by one minute tied, and unit order put the solars first); this builder's
+        // part is to build it or to guard the factory that makes it. In power-seconds, not units of the type: by
+        // units a cheap type was always first (terr57-58: the plan's turrets and converters, five to seventy units
+        // behind, ahead of its upgrades at five, and the upgrades it wanted at 12-17 a minute came at 5-10, the base
+        // constructors on turrets while the chains alone took the spots).
         // By column: a whole unit's flow is built or assisted, a ring's is an extractor on a spot of that ring, and a
         // Frames column's is help on a frame of the type (the program's finishing work, in place of the dearest
         // frame), its commitment read live from the power standing on those frames.
@@ -594,9 +602,13 @@ impl Territory {
             let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64)> = BTreeMap::new();
             // A reclaim flow (the program taking a building down for its metal) is no build; the hands give no reclaim
             // order yet, and the bot's arm leaves the program without the column until they do. The turrets' help
-            // counts toward a column's planned power (T-FARM): with the turrets doing forty times the placer's work on
-            // a farm frame, a whole unit that waited for half its cost in the placers' own flows would wait minutes.
-            for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory) {
+            // counts toward a whole unit's planned power (T-FARM): with the turrets doing forty times the placer's
+            // work on a farm frame, a whole unit that waited for half its cost in the placers' own flows would wait
+            // minutes. Not toward a Frames column's: there the turrets' planned help, less the turrets that reach
+            // the frame, read as power for constructors to make up, and 14-27 of them walked to advanced fusion
+            // frames at 16-17 min that twenty turrets stood on (terr59-60); the turrets go to every frame in their
+            // reach on their own (run_nanos), and the constructors' part is the plan's own mobile power on the type.
+            for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory && !(f.class == Class::Frames && units.list[f.builder].role == Role::Nano)) {
                 let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
                 e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
                 e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
@@ -625,11 +637,7 @@ impl Territory {
                 })
                 .collect()
         };
-        flows.sort_by(|a, b| {
-            let share = |f: &(usize, Class, Kind, f64, f64, f64)| (f.3 / f.4.max(1.0), f.5 / f.4.max(1.0));
-            let (sa, sb) = (share(a), share(b));
-            sb.0.total_cmp(&sa.0).then(sb.1.total_cmp(&sa.1))
-        });
+        flows.sort_by(|a, b| b.3.total_cmp(&a.3).then(b.5.total_cmp(&a.5)));
         // T-CHAIN: a constructor out among the spots (past BESIDE from home) chains them: while an extractor or
         // upgrade flow of its own has credit it takes no other order, so that a solar at the base does not walk it
         // home between two spots. Read from thebluegecko's record against the bot's (2026-10-24): his constructors
@@ -928,7 +936,7 @@ impl Territory {
                 let since = (o.arrived.unwrap_or(o.given) as f64 / SECOND as f64).max(t0);
                 Some(w * ((now - since).max(0.0) + LEAD))
             })
-            .sum()
+            .sum::<f64>()
     }
 
     /// The frame of `u` that finishes soonest with `builder`'s power added to what is on it.
@@ -954,13 +962,16 @@ impl Territory {
     /// Build power on a frame: its builder's and its helpers'.
     fn power_on(&self, frame: UnitId) -> f64 {
         let units = &self.game().units;
-        self.hands
+        let builders: f64 = self
+            .hands
             .orders
             .iter()
             .filter(|(_, o)| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame))
             .filter_map(|(id, _)| self.unit_index(self.own.get(id)?.def))
             .map(|b| units.list[b].worker_time)
-            .sum()
+            .sum();
+        let turrets: f64 = self.hands.nano_frame.iter().filter(|(_, (f, _))| *f == frame).filter_map(|(nano, _)| self.unit_index(self.own.get(nano)?.def)).map(|b| units.list[b].worker_time).sum();
+        builders + turrets
     }
 
     /// A cheap energy building of the program's types this builder builds, the most energy for the metal: what a
@@ -1416,8 +1427,11 @@ impl Territory {
             farm_slots(origin, origin, FARM_EXTENT, false).into_iter().filter(|p| free(*p)).max_by(|a, b| reach(*a).cmp(&reach(*b)).then_with(|| nearer(*b, *a, home)))
         } else {
             // Beside its builder, as the simulator charges it: the slots nearest home were the pad-keeper's ground
-            // and the commander's, and the solars walked 500-1,000 out round them (terr55-56). A 48-elmo footprint
-            // takes half a slot.
+            // and the commander's, and the solars walked 500-1,000 out round them (terr55-56). Not in the turrets'
+            // reach outside the core (terr63-64): the turrets fill the core from home's side, so the ground they
+            // reach outside it is the base's own, full of the early solars, the lanes and the spots, and no
+            // converter found such a slot in two batches; a converter beside its builder costs it 6 s and 29 s of
+            // building. A 48-elmo footprint takes half a slot.
             let from = self.own.get(&builder).map_or(home, |u| u.pos);
             let positions = |p: Vec3| if half <= 24.0 { vec![Vec3 { x: p.x - FARM_PAIR, ..p }, Vec3 { x: p.x + FARM_PAIR, ..p }] } else { vec![p] };
             farm_slots(origin, from, FARM_EXTENT, false).into_iter().filter(|p| p.dist2d(origin) > FARM_CORE).flat_map(positions).filter(|p| free(*p)).min_by(|a, b| nearer(*a, *b, from))
@@ -1438,6 +1452,9 @@ impl Territory {
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
         let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
         let in_ring = |i: usize| ring.is_none_or(|k| self.ring_of_pos(spots[i]) == k);
+        // Nearest, with no heading kept: a turn penalty on the distance (the spot's distance over again for the
+        // share of a turn back from the line out of home through the builder) moved neither the chains' step nor
+        // their interval in terr59 (673-1,008 elmos and 42-59 s against terr57's 791-1,071 and 46-56).
         self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
     }
 
@@ -1540,12 +1557,15 @@ impl Territory {
                     .map(|u| u.id)
             });
             if let Some(frame) = frame {
-                self.hands.nano_told.insert(nano, self.frame);
+                let now = self.frame;
+                self.hands.nano_told.insert(nano, now);
+                self.hands.nano_frame.entry(nano).and_modify(|e| if e.0 != frame { *e = (frame, now) }).or_insert((frame, now));
                 commands.push(Command::Repair { unit: nano, target: frame, queue: false });
                 continue;
             }
             let Some(factory) = self.nearest_factory(at).filter(|f| f.pos.dist2d(at) < NANO_REACH).map(|f| f.id) else { continue };
             self.hands.nano_told.insert(nano, self.frame);
+            self.hands.nano_frame.remove(&nano);
             commands.push(Command::Guard { unit: nano, target: factory });
         }
     }
@@ -1593,7 +1613,7 @@ impl Territory {
             let word = match &order.what {
                 What::Build { def, frame, .. } => format!("{}{}", self.def(*def).map_or("?", |d| d.name.as_str()), if frame.is_some() { "" } else { "(walking)" }),
                 What::Assist { .. } => "assist".to_string(),
-                What::Help { .. } => "help".to_string(),
+                What::Help { frame } => format!("help:{}", self.own.get(frame).and_then(|f| self.def(f.def)).map_or("?", |d| d.name.as_str())),
             };
             *counts.entry(format!("{kind}:{word}")).or_default() += 1;
         }
