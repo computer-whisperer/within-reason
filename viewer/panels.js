@@ -441,9 +441,9 @@
 
     section(box, "The pick", gate.components.length ? (gate.planned ? null : "worlds were composed; no plan row followed (the pick failed, or is not logged yet)") : "the gate flagged nothing: no worlds, no pick");
     gate.components.forEach((c, j) => {
-      const verdict = c.taken == null ? "no answer" : c.taken ? `took w${c.candidate}` : c.candidate ? `kept w1 over w${c.candidate}` : "kept w1";
+      const verdict = c.taken == null ? "no answer" : c.taken ? `took w${c.candidate}` : c.candidate === 1 ? "drew w1" : c.candidate ? `kept w1 over w${c.candidate}` : "kept w1";
       const block = el("div", "step plan");
-      block.append(el("div", "step-title", `${gate.components.length > 1 || c.actors ? `component ${j + 1}${c.actors ? `: ${c.actors.join(", ")}` : ""} · ` : ""}${verdict}${c.confidence != null ? ` at ${Number(c.confidence).toFixed(2)}` : ""}${c.sampledP != null ? ` (the candidate's noul ${Number(c.sampledP).toFixed(2)})` : ""}`));
+      block.append(el("div", "step-title", `${gate.components.length > 1 || c.actors ? `component ${j + 1}${c.actors ? `: ${c.actors.join(", ")}` : ""} · ` : ""}${verdict}${c.confidence != null ? ` at ${Number(c.confidence).toFixed(2)}` : ""}${c.sampledP != null ? ` (drawn at ${Number(c.sampledP).toFixed(2)} of the mass)` : ""}`));
       c.lines.forEach((text, i) => {
         const world = el("div", `world${c.taken && c.candidate === i + 1 ? " picked" : ""}${c.candidate === i + 1 ? " candidate" : ""}`);
         world.append(el("span", "id", `w${i + 1} `), el("span", "words", text));

@@ -91,7 +91,7 @@ def main():
         if plays:
             out.append("PLAYS " + " | ".join(plays))
         if plan and "split" in plan:
-            parts = "; ".join(f"{'+'.join(c['actors'])}: {'took' if c.get('taken') else 'kept w1 over'} w{c['candidate']} of {c['changes']} at {c.get('confidence')}" for c in plan["split"])
+            parts = "; ".join(f"{'+'.join(c['actors'])}: {'took w%d' % c['candidate'] if c.get('taken') else 'drew w1' if c.get('candidate') == 1 else 'kept w1 over w%d' % c['candidate']} of {c['changes']} at {c.get('confidence')}" for c in plan["split"])
             out.append(f"PICK split [{parts}] changed={[c[:50] for c in plan.get('changed') or []]}")
         elif plan:
             probs = ((pick_call or {}).get("answers") or {}).get("worlds.pick", {}).get("probabilities", {})

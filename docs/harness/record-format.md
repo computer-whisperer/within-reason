@@ -162,7 +162,12 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   `confidence` and `candidate`; and on the audited share of picks with two actors or more the joint pick's two calls
   are logged as before and an audit line reads `{"layer": "split", "split": [move ids taken], "joint": [move ids of
   the joint pick's world], "joint_confidence", "fault"}` (a fault: the two sets differ). `WITHIN_REASON_SPLIT_AUDIT`
-  sets that share (default 0.02).
+  sets that share (default 0.02). **From 2026-10-24** (`docs/design/2026-10-24-pick-rework.md`): the pick is one Choice over every
+  world, world 1 among them, and the world is drawn by its probability. Under `split` the questions are `worlds.c<j>.pick`
+  alone, each a Choice over `w1` and the component's changes (a component with one change is a two-option Choice); a
+  part's `candidate` is the world drawn (1 is `w1`, with `taken` false) and `confidence` the Choice's. Without `split`
+  the `plan` line carries `pick` (the world drawn), `sampled_p` and `confidence`, no `candidate`. The split audit's joint
+  pick is one call and its row carries `joint_p` beside `joint_confidence`.
   Later layers, as the logs of 2026-10-04 stand (read off `crates/bot/src/brain/pianist/mod.rs` and the logs): the
   pass line's `layers` holds `news`, `same`, `again`, `fuse`, `openers`, `places`, `near`, each {`on`, `skipped`,
   `audited`}. The `places` layer: the gate asks `<place>.place` once a place, a move whose place said no carries

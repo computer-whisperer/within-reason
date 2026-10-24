@@ -670,3 +670,20 @@ weapon id reached the AI as -1 (then only the deaths-beside rule would tell a bl
 weapon a range (then it would read as a gun from out of sight).
 **Used by.** H-REPORT-BLAST-CAUSE; the briefs' anti-nuke passages (the user, 2026-10-19).
 
+
+### K-mech-a-column-anneals-and-a-turn-churns
+**Claim.** Units have acceleration, deceleration and a turn radius, so an army is not a point with a speed: a body of
+one speed told to move far churns for a while and then settles into a working column with every unit at full speed;
+the same column told to turn around loses that order and spends a fair time churning, each unit running through its
+turn radius and bumping into the others before it accelerates back the way it came. A turn therefore costs time and
+formation on its own, beyond the ground given up, and two courses rated alike to commit to are not alike to switch to
+from each other.
+**Evidence.** The user's observation from play, 2026-10-24 (`docs/design/2026-10-24-pick-rework.md` §2). The hands'
+side of it in the logs: a group ordered again each second does not move (rework-series-2 game 3, group_B
+15:28-15:39: eight `gather` picks in twelve seconds, the tail 625-691 behind throughout; the arrival test ended each
+one, `groups.rs`).
+**Status.** the user's observation, 2026-10-24; unmeasured (the engine's acceleration, braking and turn rates per unit
+type are in the unit defs, and the record's positions would show the churn's length).
+**Would be wrong if.** A recorded column's reversal shows its units back at full speed within a second or two of the
+order, with no bunching.
+**Used by.** the pick rework's state words (`docs/design/2026-10-24-pick-rework.md` §6, not built).

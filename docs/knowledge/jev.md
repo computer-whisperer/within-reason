@@ -1550,7 +1550,9 @@ stayed 0.10-0.12 and the builds' 0.46-0.54, and the order Jev gives the near-dup
 picks under five framings).
 **Status.** answered 2026-09-29 by the pick in two stages (H-HANDS-ONE-PASS amended): offline a build on 29 of the 92
 idle-factory seconds against 9, w1 8 against 44 (§4). Recheck in player-27: w1's share of picks, builds while the
-store is full, the candidate's sampled probability (the mass under 0.05 was 0.26 of a median pick).
+store is full, the candidate's sampled probability (the mass under 0.05 was 0.26 of a median pick). **2026-10-24:** the two stages are gone; the pick is one Choice over
+every world, world 1 among them, drawn by probability (K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them):
+under a draw w1's share is its chance, and the plurality of this claim cannot return.
 
 ### K-hands-one-change-a-second-starved-the-merge
 **Claim.** With every world one actor's change from world 1, a plan that needs several actors to move in one second
@@ -1947,7 +1949,9 @@ and 6:21, which keep the body's course, held at 0.62-0.73 and 0.72-0.76; a switc
 at 0.62-0.69. As with the shell move's under-fire sentence
 (K-jev-the-cost-of-leaving-a-fight-under-fire-said-on-the-shell-move-stops-the-switch).
 **Status.** demonstrated offline on four picks of one minute (2026-10-03 night, the numbers in the test sentences
-estimated by hand); built as words, unmeasured in play. The margin was not built (the user).
+estimated by hand); built as words, unmeasured in play. The margin was not built (the user). **2026-10-24:** stage two is deleted
+(K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them); the whole pick is now the draw this claim's first
+sentence describes, by the user's word.
 **Would be wrong if.** The measured counts read differently from the estimated ones, or the sentence, standing on
 every move of a body that has turned twice, holds it where a turn is right.
 **Used by.** [[H-HANDS-TURNS]].
@@ -2347,3 +2351,25 @@ H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES (the already-on-it words, the name with th
 "What the hands do on their own" section carrying `rules.md` whole (`strategist/mod.rs` `with_hands_rules`), the
 brief's hands bullet. Not built, the user's rulings (2026-10-17): a detachment made of the units the player names
 ("the naive solution will be far too fragile"), an exact-detachment tool for the player later.
+
+### K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them
+**Claim.** The pick is one Choice over every world with world 1 (nothing changes) among the options, the world drawn
+by its probability; no stage asks a change against the course, and the rules text no longer tells Jev to change only
+when a move is clearly better. The user's rulings of 2026-10-24: the right policy is a function of the state at that
+frame, the policy of t-1 does not enter directly, and where Jev rates several courses alike, alternation between them
+is acceptable; any move-based hysteresis is the wrong lever. What should stop a body turning back under fire is the
+state said right (the fire on each path, the odds as the body will meet them, the turn's own cost), not a hold.
+**Evidence.** Nine games of 2026-10-23/24 (rework-series-2 x3, rework-ladder +10/+35/+50, three human games on Comet;
+`run/hands_thrash.py`, scratch decompositions; `docs/design/2026-10-24-pick-rework.md` §1): 42-64% of group picks
+within 10 s of the group's last, worst minutes of 9-20 picks on one group; of 1,195 quick picks 96 re-picks, 109
+A-B-A, 990 switches; the played move's rating a median 0.58, the gap to the next candidate 0.01; stage two took
+changes at a median confidence 0.31-0.49, 60-76% under 0.5, declined 3,216 of 5,313 group candidates, and a 0.5
+confidence bar would have held 53-72% of quick picks and 44-70% of spaced ones; in two-change components stage one
+drew the minority 34% of the time. The 2026-09-29 fault (K-hands-a-plurality-over-near-duplicates-picks-nothing) was
+a plurality over the top, not a wording preference, and a draw does not have it.
+**Status.** ruled and built 2026-10-24; expected to play worse before the state words of the design's §6 exist (the
+user: acceptable, "for how it reveals the actual underlying issues"). First game pick-one-1.
+**Would be wrong if.** With world 1 drawn by its share the groups' quick-pick share rises far past the nine games' and
+the game shows the course lost to draws of a few hundredths' mass where the state words were right; or w1 takes a
+share far above its old stage-two acceptance and the bot stalls (then the wording privileges it after all).
+**Used by.** [[H-HANDS-ONE-PASS]] (amended 2026-10-24).

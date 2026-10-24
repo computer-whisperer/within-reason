@@ -74,7 +74,7 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 | `places`: a place opens its moves at 0.3 and closes under 0.2 | `PLACE_BAR = 0.3`, `PLACE_CLOSE = 0.2` | `P/layers.rs` |
 | `fuse`: a decode reading under 0.3 removes the move until the next packet (never the extractor move, 2026-10-16); the forbidden mark of a detachment, a rover of one, and the whole-group attack or shelling of a party of aircraft (the `Air` reading, 2026-10-16) is on at 0.8 and off under 0.2, by the highest of the move's readings | `FUSE = 0.3`, `ON = 0.8`, `OFF = 0.2` | `P/decode.rs` |
 | What goes to the pick: the change and the move at 0.5; an idle actor's best at 0.3 | `FLAG = 0.5`, `IDLE_BAR = 0.3` | `P/compose.rs` |
-| The pick: the candidate is sampled by probability, then asked against "nothing changes"; played at any confidence | | `P/compose.rs` |
+| The pick: one Choice over the worlds, world 1 among them; the world is drawn by its probability, nothing holds the course (the user, 2026-10-24; two stages until then) | | `P/compose.rs` |
 | Audits: 2% of what a layer skips is asked anyway and never played | `AUDIT_SHARE = 0.02` | `P/layers.rs`, `P/decode.rs` |
 | Failures: a failed gate leaves every course standing; in realtime an answer older than 3 s is dropped | `STALE_FRAMES` 3 s | `P/mod.rs` |
 

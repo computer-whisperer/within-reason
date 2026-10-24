@@ -1,8 +1,9 @@
 //! The pass over the menus (`docs/design/2026-10-01-hands-rebuild.md` §4, H-HANDS-ONE-PASS): a gate of nouls asks
 //! whether each actor should change course, whether each enemy party needs answering, and whether each move is the
-//! move; the best-rated moves are joined into worlds, each with its consequence in words; and the pick is two
-//! questions, the best of the changes and then that change against changing nothing. A world gives every actor
-//! exactly one move, so nothing is settled between menus.
+//! move; the best-rated moves are joined into worlds, each with its consequence in words; and the pick is one
+//! Choice over the worlds, world 1 (nothing changes) among them, the world drawn by its probability
+//! (`docs/design/2026-10-24-pick-rework.md`). A world gives every actor exactly one move, so nothing is settled
+//! between menus.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -366,8 +367,8 @@ fn worlds_over(menus: &[Menu], per_menu: &[Vec<(f64, usize)>], cap: usize) -> Ve
     out
 }
 
-/// A component's worlds in a split pick: world 1 and at most this many changes, each of which is asked against
-/// world 1 in the same request.
+/// A component's worlds in a split pick: world 1 and at most this many changes, one Choice over them all in the
+/// same request.
 const SPLIT_CAP: usize = 9;
 
 /// One component of a split pick (the `split` layer, H-HANDS-LAYERS): the actors whose candidate changes touch
@@ -457,45 +458,31 @@ fn split(menus: &[Menu], per_menu: &[Vec<(f64, usize)>], said: &Lines) -> Vec<Co
         .collect()
 }
 
-/// The split pick's questions, all for one request: per component a Choice over its changes (when it has more
-/// than one) and, for every change, that change against the component's "nothing changes".
+/// The split pick's questions, all for one request: per component one Choice over its worlds, world 1 among them.
 pub(super) fn split_questions(components: &[Component]) -> BTreeMap<String, Question> {
-    let mut out = BTreeMap::new();
-    for (j, c) in components.iter().enumerate() {
-        if c.lines.len() > 2 {
-            out.insert(format!("worlds.c{j}.pick"), stage_one(&c.lines));
-        }
-        for k in 1..c.lines.len() {
-            out.insert(format!("worlds.c{j}.w{}", k + 1), stage_two(&c.lines, k));
-        }
-    }
-    out
+    components.iter().enumerate().filter(|(_, c)| c.lines.len() >= 2).map(|(j, c)| (format!("worlds.c{j}.pick"), pick_question(&c.lines))).collect()
 }
 
-/// The split pick read back: per component the candidate (sampled from its Choice, or its one change) and that
-/// change's own question against "nothing changes"; the world of every change taken, and a record per component.
+/// The split pick read back: per component the world drawn from its Choice by probability (world 1 drawn is a draw
+/// like any other, and changes nothing); the world of every change drawn, and a record per component (`candidate`
+/// is the world drawn, 1 for world 1).
 pub(super) fn split_pick(answers: &BTreeMap<String, Answer>, components: &[Component], menus: &[Menu], draw: &mut dyn FnMut() -> f64) -> (World, Vec<Value>) {
     let mut world: World = vec![0; menus.len()];
     let mut parts = Vec::new();
     for (j, c) in components.iter().enumerate() {
-        let candidate = if c.lines.len() == 2 { Some((1, 1.0)) } else { sample(answers, &format!("worlds.c{j}.pick"), c.lines.len(), draw()) };
-        let Some((k, p)) = candidate else { continue };
-        let taken = match answers.get(&format!("worlds.c{j}.w{}", k + 1)) {
-            Some(Answer::Choice { choice, confidence, .. }) => Some((*choice == format!("w{}", k + 1), *confidence)),
-            _ => None,
-        };
-        if let Some((true, _)) = taken {
-            for (mi, ti) in c.worlds[k].iter().enumerate().filter(|(_, ti)| **ti != 0) {
+        let Some(drawn) = picked(answers, &format!("worlds.c{j}.pick"), c.lines.len(), draw()) else { continue };
+        if drawn.world != 0 {
+            for (mi, ti) in c.worlds[drawn.world].iter().enumerate().filter(|(_, ti)| **ti != 0) {
                 world[mi] = *ti;
             }
         }
         parts.push(json!({
             "actors": c.menus.iter().map(|mi| menus[*mi].name.as_str()).collect::<Vec<_>>(),
             "changes": c.lines.len() - 1,
-            "candidate": k + 1,
-            "sampled_p": p,
-            "taken": taken.map(|(t, _)| t),
-            "confidence": taken.map(|(_, c)| c),
+            "candidate": drawn.world + 1,
+            "sampled_p": drawn.p,
+            "taken": drawn.world != 0,
+            "confidence": drawn.confidence,
         }));
     }
     (world, parts)
@@ -627,29 +614,31 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
     format!("{}.", parts.join(". "))
 }
 
-/// The pick is two questions (the user, 2026-09-29, after the offline replay of player-26: with a median 96
-/// worlds a pick, near-duplicate combinations split the mass and "nothing changes" took the plurality 142 of 315
-/// picks; two stages built a factory 29 of 92 idle seconds against 9). Stage one: a Choice over the deviations
-/// alone, its answer sampled, not taken at the top (the user's ruling: the mass a change holds across the worlds
-/// it sits in is its chance of being the candidate). Stage two: a plain Choice between world 1 and the candidate.
+/// The pick is one Choice over every world, world 1 among them, and the world is drawn by its probability, never
+/// taken at the top (the user, 2026-10-24, `docs/design/2026-10-24-pick-rework.md`: "if jev is telling our bot
+/// engine that ten different courses of action are all similarly good at a given frame, then sampled alternation
+/// between them should be acceptable"; "any kind of move-based hysteresis is the wrong lever, and we should remove
+/// that final gate altogether"). Until then the pick was two stages (the user's ruling of 2026-09-29, after
+/// player-26: with a median 96 near-duplicate joint worlds the mass split and "nothing changes" took the plurality
+/// 142 of 315 picks when the top was taken, K-hands-a-plurality-over-near-duplicates-picks-nothing): a sampled
+/// Choice over the deviations alone, then world 1 against the candidate, taken at any confidence. That second stage
+/// was the only hold on the course and held 61% of the group candidates of nine games (2026-10-23/24) while
+/// separating nothing (a 0.5 confidence bar would have held quick and spaced picks alike). Under a draw, world 1's
+/// share of the mass is its chance and no more, so the plurality fault cannot return; the wording names world 1 as
+/// one world among the rest and privileges it in nothing.
 const COMMON: &str = "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.";
 
-/// Stage one: the deviations alone, keyed by their world numbers.
-pub(super) fn stage_one(lines: &[String]) -> Question {
-    let instructions = json!(format!("{COMMON} Every option is a change from what stands (w1, not offered here): one or more actors' courses changed, the line saying only those changes and what they alter. Pick the best of the changes; whether to change at all is asked next."));
-    Question::Choice { instructions, criteria: lines.iter().enumerate().skip(1).map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
+/// The pick's one question: every world under its number, world 1 first.
+pub(super) fn pick_question(lines: &[String]) -> Question {
+    let instructions = json!(format!("{COMMON} w1: every actor keeps the course its entry under `actors` describes, and the idle ones stay as they are. Every other option changes one or more actors' courses, its line saying only what it changes from w1 and what that alters. Pick the best world this second."));
+    Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
 
-/// Stage two: world 1 against the candidate, under its own world number.
-pub(super) fn stage_two(lines: &[String], candidate: usize) -> Question {
-    let instructions = json!(format!("{COMMON} w1 changes nothing: every actor keeps its course and the idle ones stay idle. The other option is the best change on offer this second, its line saying only what it changes from w1 and what that alters. Pick one."));
-    Question::Choice { instructions, criteria: BTreeMap::from([("w1".to_string(), json!(lines[0])), (format!("w{}", candidate + 1), json!(lines[candidate]))]) }
-}
-
-/// A world drawn from a Choice's probabilities with a uniform draw in `u` (0 to 1): the index and its probability.
+/// A world drawn from a Choice's probabilities with a uniform draw in `u` (0 to 1): the index (0 is world 1) and its
+/// probability. Keys outside `w1`..`w<worlds>` are not drawn.
 pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64) -> Option<(usize, f64)> {
     let Some(Answer::Choice { probabilities, choice, .. }) = answers.get(key) else { return None };
-    let index = |k: &str| k.strip_prefix('w').and_then(|n| n.parse::<usize>().ok()).filter(|n| (2..=worlds).contains(n)).map(|n| n - 1);
+    let index = |k: &str| k.strip_prefix('w').and_then(|n| n.parse::<usize>().ok()).filter(|n| (1..=worlds).contains(n)).map(|n| n - 1);
     let total: f64 = probabilities.iter().filter(|(k, _)| index(k).is_some()).map(|(_, p)| p).sum();
     if total <= 0.0 {
         return index(choice).map(|i| (i, 1.0));
@@ -667,6 +656,25 @@ pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usiz
     last
 }
 
+/// The world a pick's answer draws, with the Choice's confidence.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct Picked {
+    /// The world's index: 0 is world 1.
+    pub world: usize,
+    /// Its share of the answer's mass.
+    pub p: f64,
+    pub confidence: f64,
+}
+
+pub(super) fn picked(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64) -> Option<Picked> {
+    let (world, p) = sample(answers, key, worlds, u)?;
+    let confidence = match answers.get(key) {
+        Some(Answer::Choice { confidence, .. }) => *confidence,
+        _ => 0.0,
+    };
+    Some(Picked { world, p, confidence })
+}
+
 /// A uniform draw in 0 to 1 from the standard library's random hasher seed (no `rand` dependency).
 pub(super) fn draw() -> f64 {
     use std::hash::{BuildHasher, Hasher};
@@ -674,40 +682,21 @@ pub(super) fn draw() -> f64 {
     (h >> 11) as f64 / (1u64 << 53) as f64
 }
 
-/// The two calls of the pick, made in place: stage one over the deviations (skipped when there is one), its answer
-/// sampled into the candidate, then stage two. Each stage's request and answer come back for the log.
+/// The pick's call, made in place: one Choice over the worlds (none when world 1 stands alone), the world drawn from
+/// its probabilities. The request and the answer come back for the log.
 pub(super) struct PickRun {
-    pub stage_one: Option<(jev::Request, Result<jev::Response, jev::Error>)>,
-    pub candidate: Option<(usize, f64)>,
-    pub stage_two: Option<(jev::Request, Result<jev::Response, jev::Error>)>,
+    pub call: Option<(jev::Request, Result<jev::Response, jev::Error>)>,
+    pub picked: Option<Picked>,
 }
 
 pub(super) fn run_pick(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, state: &Value, lines: &[String], u: f64) -> PickRun {
     if lines.len() < 2 {
-        return PickRun { stage_one: None, candidate: None, stage_two: None };
+        return PickRun { call: None, picked: None };
     }
-    let (stage_one, candidate) = if lines.len() == 2 {
-        (None, Some((1, 1.0)))
-    } else {
-        let request = jev::Request { state: state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), stage_one(lines))]) };
-        let result = ask(&request);
-        let candidate = result.as_ref().ok().and_then(|r| sample(&r.answers, "worlds.pick", lines.len(), u));
-        (Some((request, result)), candidate)
-    };
-    let stage_two = candidate.map(|(c, _)| {
-        let request = jev::Request { state: state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), stage_two(lines, c))]) };
-        let result = ask(&request);
-        (request, result)
-    });
-    PickRun { stage_one, candidate, stage_two }
-}
-
-/// The picked world's index and the pick's confidence.
-pub(super) fn pick(answers: &BTreeMap<String, Answer>, worlds: &[World]) -> Option<(usize, f64)> {
-    match answers.get("worlds.pick") {
-        Some(Answer::Choice { choice, confidence, .. }) => choice.strip_prefix('w').and_then(|n| n.parse::<usize>().ok()).filter(|n| (1..=worlds.len()).contains(n)).map(|n| (n - 1, *confidence)),
-        _ => None,
-    }
+    let request = jev::Request { state: state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), pick_question(lines))]) };
+    let result = ask(&request);
+    let picked = result.as_ref().ok().and_then(|r| picked(&r.answers, "worlds.pick", lines.len(), u));
+    PickRun { call: Some((request, result)), picked }
 }
 
 /// What follows a gate: what it flagged, each actor's best-rated moves, and, when something opened, the worlds,
@@ -932,22 +921,22 @@ mod tests {
         assert_eq!(components[2].lines.len(), 2);
         assert!(components[2].lines[0].contains("plant_5 idle, doing nothing, with its next move, the make_armflash, not ordered, while the metal store reads 340 of 500 stored") && !components[2].lines[0].contains("party_"), "{}", components[2].lines[0]);
         let questions = split_questions(&components);
-        assert_eq!(questions.keys().map(String::as_str).collect::<Vec<_>>(), ["worlds.c0.pick", "worlds.c0.w2", "worlds.c0.w3", "worlds.c0.w4", "worlds.c0.w5", "worlds.c0.w6", "worlds.c1.pick", "worlds.c1.w2", "worlds.c1.w3", "worlds.c2.w2"]);
-        // Read back: the groups' candidate is sampled from their Choice and taken; the builders' is declined; the
-        // plant's one change needs no first stage and is taken.
+        assert_eq!(questions.keys().map(String::as_str).collect::<Vec<_>>(), ["worlds.c0.pick", "worlds.c1.pick", "worlds.c2.pick"], "one Choice a component, world 1 among its options");
+        let Question::Choice { criteria, .. } = &questions["worlds.c2.pick"] else { panic!("a choice") };
+        assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w1", "w2"], "a component with one change is a two-option Choice");
+        // Read back: each component's world is drawn from its Choice by its share: the groups draw their joint
+        // world, the builders draw world 1 (nothing changes for them), the plant draws its one change.
         let choice = |pick: &str, p: &[(&str, f64)]| Answer::Choice { choice: pick.to_string(), confidence: 0.7, probabilities: p.iter().map(|(k, v)| (k.to_string(), *v)).collect() };
         let joint = groups.worlds.iter().position(|w| w[0] == 1 && w[1] == 1).expect("A attacks and B sends") + 1;
         let answers: BTreeMap<String, Answer> = [
-            ("worlds.c0.pick".to_string(), choice(&format!("w{joint}"), &[(&format!("w{joint}"), 1.0)])),
-            (format!("worlds.c0.w{joint}"), choice(&format!("w{joint}"), &[("w1", 0.3), (&format!("w{joint}"), 0.7)])),
-            ("worlds.c1.pick".to_string(), choice("w2", &[("w2", 1.0)])),
-            ("worlds.c1.w2".to_string(), choice("w1", &[("w1", 0.7), ("w2", 0.3)])),
-            ("worlds.c2.w2".to_string(), choice("w2", &[("w1", 0.3), ("w2", 0.7)])),
+            ("worlds.c0.pick".to_string(), choice(&format!("w{joint}"), &[("w1", 0.2), (&format!("w{joint}"), 0.8)])),
+            ("worlds.c1.pick".to_string(), choice("w1", &[("w1", 0.7), ("w2", 0.2), ("w3", 0.1)])),
+            ("worlds.c2.pick".to_string(), choice("w2", &[("w1", 0.3), ("w2", 0.7)])),
         ]
         .into();
         let (world, parts) = split_pick(&answers, &components, &menus, &mut || 0.5);
         assert_eq!(world, vec![1, 1, 0, 0, 1, 0]);
-        assert_eq!(parts.iter().map(|p| p["taken"].as_bool()).collect::<Vec<_>>(), vec![Some(true), Some(false), Some(true)]);
+        assert_eq!(parts.iter().map(|p| (p["candidate"].as_u64(), p["taken"].as_bool())).collect::<Vec<_>>(), vec![(Some(joint as u64), Some(true)), (Some(1), Some(false)), (Some(2), Some(true))]);
     }
 
     /// World 1's line: the cost of changing nothing. An idle actor is named with the move the gate rated best for
@@ -1074,25 +1063,22 @@ mod tests {
         assert!(!line_of(0.6).0.contains("forbid"), "under the bar");
     }
 
-    /// The pick's two stages: stage one offers the deviations alone and its answer is sampled by the mass the
-    /// worlds hold; stage two is world 1 against the candidate under its own number, which `pick` reads back.
+    /// The pick is one Choice over every world, world 1 among them, and the world is drawn by the mass the answer
+    /// gives it; a stray key beyond the worlds is not drawn; the draw carries the Choice's confidence.
     #[test]
-    fn the_pick_samples_stage_one_and_asks_world_one_against_the_candidate() {
+    fn the_pick_is_one_draw_over_the_worlds_with_world_one_among_them() {
         let lines: Vec<String> = ["Nothing changes", "As w1, and: a", "As w1, and: b", "As w1, and: c"].iter().map(|s| s.to_string()).collect();
-        let Question::Choice { criteria, .. } = stage_one(&lines) else { panic!("a choice") };
-        assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w2", "w3", "w4"]);
-        let answers = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::from([("w2".to_string(), 0.5), ("w3".to_string(), 0.3), ("w4".to_string(), 0.2)]), confidence: 0.5 })]);
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.10), Some((1, 0.5)));
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.55), Some((2, 0.3)));
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.95), Some((3, 0.2)));
-        // A stray key for world 1 or beyond the worlds is not drawn.
-        let stray = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.9), ("w9".to_string(), 0.05), ("w3".to_string(), 0.05)]), confidence: 0.9 })]);
-        assert_eq!(sample(&stray, "worlds.pick", 4, 0.5), Some((2, 0.05)));
-        let Question::Choice { criteria, .. } = stage_two(&lines, 2) else { panic!("a choice") };
-        assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w1", "w3"]);
-        let worlds: Vec<World> = vec![vec![0], vec![1], vec![2], vec![3]];
-        assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w3".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((2, 0.6)));
-        assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((0, 0.6)));
+        let Question::Choice { criteria, instructions } = pick_question(&lines) else { panic!("a choice") };
+        assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w1", "w2", "w3", "w4"]);
+        let text = instructions.as_str().unwrap();
+        assert!(text.contains("w1: every actor keeps the course") && text.ends_with("Pick the best world this second."), "{text}");
+        let answers = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.4), ("w2".to_string(), 0.3), ("w3".to_string(), 0.2), ("w4".to_string(), 0.1)]), confidence: 0.5 })]);
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.10), Some((0, 0.4)), "world 1 is drawn by its share like any other");
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.55), Some((1, 0.3)));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.95), Some((3, 0.1)));
+        assert_eq!(picked(&answers, "worlds.pick", 4, 0.55), Some(Picked { world: 1, p: 0.3, confidence: 0.5 }));
+        let stray = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w9".into(), probabilities: BTreeMap::from([("w9".to_string(), 0.9), ("w3".to_string(), 0.1)]), confidence: 0.9 })]);
+        assert_eq!(sample(&stray, "worlds.pick", 4, 0.5), Some((2, 0.1)), "a key beyond the worlds is not drawn");
         assert!((0.0..1.0).contains(&draw()));
     }
 

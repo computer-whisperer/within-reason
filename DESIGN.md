@@ -154,7 +154,8 @@ The hands as rebuilt on 2026-10-02 (`docs/design/2026-10-01-hands-rebuild.md`): 
 micro engine); one menu per actor and one move per actor a second, a move being a verb from a short fixed list and
 what it is aimed at (`pianist/menu.rs`); code chooses neither what a move is aimed at nor for whom, and reads the
 packet only for names; enemy parties are questions, never menus; a gate of nouls, worlds joined from the best-rated
-moves, and a pick in two stages (`compose.rs`); what Jev must remember is printed in each actor's entry (the
+moves, and a pick that is one Choice over the worlds with the course among them, the world drawn by its probability
+(`compose.rs`; two stages until 2026-10-24, `docs/design/2026-10-24-pick-rework.md`); what Jev must remember is printed in each actor's entry (the
 registers); and every saving on what is asked is a layer with a switch and an audit (`layers.rs`, `--hands-layers`).
 
 ### The game's snapshot (2026-10-21)
