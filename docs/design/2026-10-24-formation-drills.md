@@ -353,8 +353,27 @@ the Janus arrive at 54 s.
     to all 25 s against 17, since the slow types lose the same share of a longer walk and the passage adds its queue.
 
 Other maps probed at 2,000 and 1.3 with one duel: Great Divide offers 2,755 on foot (1.38, (301,1238) to (648,3208)),
-Altored Divide 3,462 (1.73, (2928,5316) to (1928,7048)), Comet Catcher nothing (the best 1.20; a flat map). Their
-baselines follow.
+Altored Divide 3,462 (1.73, (2928,5316) to (1928,7048)), Comet Catcher nothing (the best 1.20; a flat map).
+
+The two maps' baselines (`*-duel-drill-around-{great,altored}-*`, 64 duels, all arrived), 8 duels an arm:
+
+| map, detour | arm | first / median / last s | route_s | at contact, deep x wide | ramp half / all s |
+|---|---|---|---|---|---|
+| Great Divide, 2,755 (1.38) | 12 Blitz, off / on | 25 / 27 / 30 and 26 / 29 / 34 | 27 | 471 x 55 and 693 x 211 | 1.5 / 4.7 and 2.4 / 6.9 |
+| Great Divide | the mix, off / on | 25 / 34 / 51 and 26 / 35 / 53 | 51 | 1286 x 305 and 1260 x 479 | 8.6 / 23.8 and 8.7 / 23.3 |
+| Altored Divide, 3,462 (1.73) | 12 Blitz, off / on | 32 / 34 / 36 and 32 / 35 / 40 | 34 | 392 x 56 and 501 x 144 | 1.8 / 3.9 and 1.6 / 5.0 |
+| Altored Divide | the mix, off / on | 32 / 45 / 62 and 33 / 46 / 62 | 64 | 1384 x 356 and 1363 x 336 | 11.4 / 25.6 and 12.0 / 25.2 |
+
+The Blitz series on Great Divide (deep x wide every three seconds): lane off 256x177, 280x182, 273x87, 279x35,
+270x49, 281x29, 273x54, 286x25, 287x30; lane on 95x355, 434x122, 552x70, 861x37, 900x305, 792x400, 800x385, 896x292,
+936x247, 829x227, 632x256, 174x401.
+
+15. **On a passage the lane's march costs depth and time.** With the lane off the Blitz column files through Great
+    Divide's passage 270-290 deep and arrives at 30 s; with it on the same column is 861-936 deep from 12 to 27 s and
+    arrives at 34, the per-unit slots at the destination pulling the units through at different times, and the width
+    at contact (211) is the destination's ranks half re-formed. Altored Divide the same way, 392 x 56 against
+    501 x 144 and 36 against 40 s. Items 12-14 hold on both maps (route_s within 1-3 s of the last arrival; the mix
+    24-26 s to all either way).
 
 The bars for the terrain cases: the last arrival within `route_s` plus 3 s; the width at contact no less than the
 formation's; and the measure a route-following arm is judged on is the seconds between the passage's exit and the
