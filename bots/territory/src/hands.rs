@@ -574,8 +574,9 @@ impl Territory {
         if role == Role::Factory {
             return;
         }
-        // A factory's frame first (FACTORY_HELPERS), on the producers' budget.
-        let factory_frame: Option<UnitId> = {
+        // A factory's frame first (FACTORY_HELPERS), on the producers' budget; builders at the base only (terr70: one
+        // to three constructors 2,000 out walked 45-100 s to the plant's frame and back out to the spots).
+        let factory_frame: Option<UnitId> = if builder.pos.dist2d(self.home) > FACTORY_PLACER { None } else {
             let units = &self.game().units;
             self.own
                 .values()
@@ -590,6 +591,7 @@ impl Territory {
         if let Some(frame) = factory_frame {
             commands.push(Command::Repair { unit: id, target: frame, queue: false });
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+            self.note_order(id, &What::Help { frame }, "plant-frame");
             return;
         }
         // The credits by unit type over every builder type's flows (turret help apart), the largest in power-seconds
@@ -653,9 +655,19 @@ impl Territory {
         // began an extractor every 31 s with a step of 528 elmos, six of his nine doing nothing else; the bot's every
         // 62 s with a step of 1,110, solars, advanced solars and turrets between (terr45 game 00); and the program's
         // own 5:00 is 62, his figure, at a walk of 36 s an extractor against 50 at the hands' realized 65.
-        let chain = self.options.chain && role == Role::Builder && builder.pos.dist2d(self.home) > BESIDE && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
+        let far = self.options.chain && role == Role::Builder && builder.pos.dist2d(self.home) > BESIDE;
+        let chain = far && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
         if chain {
             flows.retain(|f| matches!(f.1, Class::Ring(_)));
+        } else if far {
+            // The far end of the chain: with no extractor flow in credit at this instant, a constructor out among the
+            // spots keeps the rings' flows and the cheap buildings it places beside itself (a solar for the energy the
+            // plan is short of) and takes no turret, guard or frame at the base; after the flows, the nearest free
+            // spot or upgrade nearer than home (chain_on). Not ahead of the stall's solar and the flows (terr71: the
+            // extractors ran to 26-35 by 7:00 against 21-24 and the energy sat at zero from 5:00 to 7:00 in three
+            // games, 5:00 down to 26-32 in two).
+            let units = &self.game().units;
+            flows.retain(|f| matches!(f.1, Class::Ring(_)) || (f.2 == Kind::Direct && units.list[f.0].speed == 0.0 && units.list[f.0].role != Role::Nano && units.list[f.0].build_time < FARM_BIG));
         }
         // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them; a chaining
         // constructor leaves the stall's solar to the builders at the base.
@@ -677,6 +689,7 @@ impl Territory {
                     if let Some(frame) = self.frame_to_finish(u, unit) {
                         commands.push(Command::Repair { unit: id, target: frame, queue: false });
                         self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+                        self.note_order(id, &What::Help { frame }, "flows");
                         return;
                     }
                 }
@@ -706,16 +719,22 @@ impl Territory {
                         let to = self.beside_factory(f.pos, id);
                         commands.push(Command::Move { unit: id, to, queue: false });
                         self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + PAD_CLEAR }, given: self.frame, told: self.frame, arrived: None, step: None });
+                        self.note_order(id, &What::Assist { factory, until: self.frame + PAD_CLEAR }, "pad");
                         return;
                     }
                     commands.push(Command::Guard { unit: id, target: factory });
                     self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + ASSIST_CHUNK }, given: self.frame, told: self.frame, arrived: None, step: None });
+                    self.note_order(id, &What::Assist { factory, until: self.frame + ASSIST_CHUNK }, "flows");
                     if class != Class::Frames {
                         *self.hands.committed.entry((u, class)).or_default() += self.game().units.list[unit].worker_time * ASSIST_CHUNK as f64 / SECOND as f64;
                     }
                     return;
                 }
             }
+        }
+        // The far end of the chain: the nearest free spot of any ring, or an upgrade, nearer than home (chain_on).
+        if far && self.chain_on(id, unit, role, &builder, commands) {
+            return;
         }
         if self.energy_class(id, unit, role, ahead, "energy", commands) {
             return;
@@ -739,6 +758,7 @@ impl Territory {
         if let Some(frame) = frame {
             commands.push(Command::Repair { unit: id, target: frame, queue: false });
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+            self.note_order(id, &What::Help { frame }, if self.in_stall() { "stall-frame" } else { "dearest" });
             return;
         }
         if (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 && self.energy_budget(true) < 0.0 && self.free_energy_building(id, unit, role, commands) {
@@ -758,6 +778,7 @@ impl Territory {
             let to = self.beside_factory(f.pos, id);
             commands.push(Command::Move { unit: id, to, queue: false });
             self.hands.orders.insert(id, Order { what: What::Assist { factory: f.id, until: self.frame + PAD_CLEAR }, given: self.frame, told: self.frame, arrived: None, step: None });
+            self.note_order(id, &What::Assist { factory: f.id, until: self.frame + PAD_CLEAR }, "yard");
             *self.hands.ordered.entry((unit, "yard")).or_default() += 1;
         }
     }
@@ -1052,6 +1073,7 @@ impl Territory {
         let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
         let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt, ring) else { return false };
         commands.push(command);
+        self.note_order(id, &what, why);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
         *self.hands.committed.entry((u, ring.map_or(Class::Whole, Class::Ring))).or_default() += cost;
         *self.hands.ordered.entry((u, why)).or_default() += 1;
@@ -1242,6 +1264,7 @@ impl Territory {
             let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
             if let Some((command, what)) = self.give(id, unit, role, step, attempt, None) {
                 commands.push(command);
+                self.note_order(id, &what, "queue");
                 self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: from_queue.then_some(next - 1) });
                 return;
             }
@@ -1309,16 +1332,7 @@ impl Territory {
                     BuildSite { near, search_radius: 900.0, min_dist: 8, placements: vec![Placement { facing: self.facing_enemy(), keep_out }], exact: false }
                 } else if self.is_upgrade(unit) {
                     // Over the standing basic extractor nearest the builder with nothing ordered over it.
-                    let ordered: Vec<Vec3> = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, near, .. } if self.is_upgrade(*unit) => Some(*near), _ => None }).collect();
-                    let standing = self
-                        .own
-                        .values()
-                        .filter(|u| !u.being_built && u.id != id)
-                        .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < COMMANDER_LEASH)
-                        .filter(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i)))
-                        .filter(|u| ring.is_none_or(|k| self.ring_of_pos(u.pos) == k))
-                        .filter(|u| !ordered.iter().any(|o| o.dist2d(u.pos) < SPOT_TAKEN))
-                        .min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)))?;
+                    let standing = self.basic_to_upgrade(builder.pos, id, role, ring)?;
                     // Logged to the hundredth: the game's "Deny Invalid Mex Orders" rule allows an extractor over
                     // ours only at its exact position, and every Cortex order was dropped in terr1-nullai-comet-1.
                     self.log(format_args!("upgrade: {} over unit {} at ({:.2},{:.2}) by unit {}", target.name, standing.id.0, standing.pos.x, standing.pos.z, id.0));
@@ -1503,6 +1517,56 @@ impl Territory {
         (wanted, plant)
     }
 
+    /// The standing basic extractor nearest `from` with nothing ordered over it (not the builder itself; the
+    /// commander's within its leash; in ring `ring` when given): what an upgrade goes over.
+    fn basic_to_upgrade(&self, from: Vec3, id: UnitId, role: Role, ring: Option<usize>) -> Option<OwnUnit> {
+        let units = &self.game().units;
+        let ordered: Vec<Vec3> = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, near, .. } if self.is_upgrade(*unit) => Some(*near), _ => None }).collect();
+        self.own
+            .values()
+            .filter(|u| !u.being_built && u.id != id)
+            .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < COMMANDER_LEASH)
+            .filter(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i)))
+            .filter(|u| ring.is_none_or(|k| self.ring_of_pos(u.pos) == k))
+            .filter(|u| !ordered.iter().any(|o| o.dist2d(u.pos) < SPOT_TAKEN))
+            .min_by(|a, b| a.pos.dist2d(from).total_cmp(&b.pos.dist2d(from)))
+            .cloned()
+    }
+
+    /// T-CHAIN at the far end: a constructor out among the spots takes the nearest free spot, or the nearest basic
+    /// extractor it can upgrade, whichever is nearer, when it is nearer than home and the program's count of the
+    /// type at the horizon runs past what stands or is ordered; a turret, a guard or a frame at the base can wait
+    /// for a builder at the base. terr70's order lines (the standing code, minutes 4-15): constructors beyond 2,000
+    /// of home were given 17-30 guard chunks a game (a 77-90 s walk for a 20 s chunk), 8-13 turrets on the farm
+    /// (98-127 s), and 3-10 frames to help at the base; 31-46 turn-arounds a game and 55-74 constructor-minutes
+    /// of walking toward home.
+    fn chain_on(&mut self, id: UnitId, unit: usize, role: Role, builder: &OwnUnit, commands: &mut Vec<Command>) -> bool {
+        let Some(targets) = self.hands.targets.as_ref() else { return false };
+        let end = targets.t0 + targets.starts[targets.buckets];
+        let shortfalls = self.shortfalls(end);
+        let wants = |u: usize| shortfalls.iter().any(|(v, short)| *v == u && *short > START_AT);
+        let home = builder.pos.dist2d(self.home);
+        let (extractor, upgrade) = {
+            let units = &self.game().units;
+            (units.extractor(unit).filter(|u| wants(*u)), units.list[unit].builds.iter().copied().find(|u| self.is_upgrade(*u)).filter(|u| wants(*u)))
+        };
+        let mut picks: Vec<(f32, usize)> = Vec::new();
+        if let Some(u) = extractor && let Some(spot) = self.free_spot(builder.pos, None, None, None) && self.hello.metal_spots[spot].dist2d(builder.pos) < home {
+            picks.push((self.hello.metal_spots[spot].dist2d(builder.pos), u));
+        }
+        if let Some(u) = upgrade && let Some(basic) = self.basic_to_upgrade(builder.pos, id, role, None) && basic.pos.dist2d(builder.pos) < home {
+            picks.push((basic.pos.dist2d(builder.pos), u));
+        }
+        picks.sort_by(|a, b| a.0.total_cmp(&b.0));
+        for (_, u) in picks {
+            let cost = self.game().units.list[u].build_time;
+            if self.order_one(id, unit, role, u, cost, None, "chain", commands) {
+                return true;
+            }
+        }
+        false
+    }
+
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
     /// with `leash`, within that radius of that point.
     fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
@@ -1671,6 +1735,23 @@ impl Territory {
             .chain(pending)
             .chain(spots)
             .collect()
+    }
+
+    /// One line per order given to a builder (the chain study, 2026-10-25: which orders walk a far constructor home):
+    /// what, how far the builder stands from its target and from home, and the rule that gave it.
+    fn note_order(&self, id: UnitId, what: &What, rule: &str) {
+        let name = |d: UnitDefId| self.def(d).map_or("?", |d| d.name.as_str());
+        let builder = self.own.get(&id);
+        let (text, target) = match what {
+            What::Build { def, near, .. } => (format!("build {} at ({:.0},{:.0})", name(*def), near.x, near.z), Some(*near)),
+            What::Assist { factory, until } => {
+                let verb = if *until - self.frame <= PAD_CLEAR { "pad-clear by" } else { "assist" };
+                (format!("{verb} unit {} ({})", factory.0, self.own.get(factory).map_or("?", |f| name(f.def))), self.own.get(factory).map(|f| f.pos))
+            }
+            What::Help { frame } => (format!("help unit {} ({})", frame.0, self.own.get(frame).map_or("?", |f| name(f.def))), self.own.get(frame).map(|f| f.pos)),
+        };
+        let (off, home) = builder.map_or((0.0, 0.0), |b| (target.map_or(0.0, |t| b.pos.dist2d(t)), b.pos.dist2d(self.home)));
+        self.log(format_args!("order: unit {} {}: {text}, {off:.0} off, {home:.0} from home ({rule})", id.0, builder.map_or("?", |b| name(b.def))));
     }
 
     /// The builders' orders counted by kind, for the jobs line.
