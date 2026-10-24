@@ -463,3 +463,56 @@ fn the_linear_program_takes_an_idle_building_down_for_its_metal_when_allowed() {
     assert!(plan.made > plain.made + 50.0, "the lab's metal bought extractors: {} against {}", plan.made, plain.made);
     assert!(plan.metal.iter().all(|m| *m >= -1e-6));
 }
+
+/// A standing advanced lab with six construction turrets standing beside it, its constructor and extractors
+/// offered, forty spots to take and the stocks full, so that the constructors' pace binds: with `nano_assist` at ten
+/// the turrets' 1,200 build power goes on the lab's products through an Assist flow of the turret type (the lab's
+/// own power and the commander's guard at twice it besides), and the first minute makes clearly more constructors
+/// than without the option, when the turrets have nothing to do (their Help pairs are bounded by the mobile
+/// builders' direct power on a column, and nothing offered is a building they could help). The pair is for an
+/// advanced factory's products only: a basic lab under the same option gets none (terr67-68: offered on every
+/// factory, the program pumped basic constructors and held the advanced plant to 8:00). thebluegecko's ramp: 29
+/// turrets within 400 of his advanced plant by 10:00, an advanced constructor every 6-8 s.
+#[test]
+fn the_linear_program_puts_turrets_on_a_factorys_products_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..40).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots, Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let lab = units.index("armalab").unwrap();
+    let ck = units.index("armack").unwrap();
+    let nano = units.index("armnanotc").unwrap();
+    let offer = vec![mex, ck];
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    state.standing.push(Standing { unit: lab, site: HOME, pays: 0.0 });
+    for _ in 0..6 {
+        state.standing.push(Standing { unit: nano, site: HOME, pays: 0.0 });
+    }
+    // One factory at most: the commander would otherwise build labs from the stock, fractions that produce from
+    // the first bucket (19.6 constructors in the first minute without the cap).
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, ..Default::default() };
+    let with = LpOptions { nano_assist: 10.0, ..without.clone() };
+    let plain = solve(units, &scenario, &state, &offer, &without).unwrap();
+    let plan = solve(units, &scenario, &state, &offer, &with).unwrap();
+    let (before, after) = (plain.count_at(ck, 60.0), plan.count_at(ck, 60.0));
+    let own = units.list[lab].worker_time;
+    let most = 60.0 * 3.0 * own / units.list[ck].build_time;
+    assert!(before < most + 0.1, "without the option the lab and the commander's guard make at most {most:.1} constructors a minute: {before}");
+    assert!(after > 1.5 * before, "with it the turrets' power is on the products: {after} against {before}");
+    let assisted: f64 = plan.flows.iter().filter(|f| f.kind == Kind::Assist && f.builder == nano && f.unit == ck).map(|f| f.per_bucket.iter().sum::<f64>()).sum();
+    assert!(assisted > 1_000.0, "an Assist flow of the turret type on the constructor: {assisted}");
+    assert!(plain.flows.iter().all(|f| !(f.kind == Kind::Assist && f.builder == nano)), "no such flow without the option");
+    assert!(plan.made > plain.made, "the constructors took the spots sooner: {} against {}", plan.made, plain.made);
+    // The basic lab's products get no pair.
+    let basic = units.index("armlab").unwrap();
+    state.standing.retain(|s| s.unit != lab);
+    state.standing.push(Standing { unit: basic, site: HOME, pays: 0.0 });
+    let basic_plan = solve(units, &scenario, &state, &[mex, units.index("armck").unwrap()], &with).unwrap();
+    assert!(basic_plan.flows.iter().all(|f| !(f.kind == Kind::Assist && f.builder == nano)), "no turret assist on a basic lab's products");
+}

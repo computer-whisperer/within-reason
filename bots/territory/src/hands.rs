@@ -33,6 +33,13 @@ const FIRST_ORDERS: i32 = 3 * SECOND;
 pub(crate) const NANO_REACH: f32 = 400.0;
 /// A construction turret is asked for this far behind its factory: outside the yard's keep-out, inside its reach.
 const NANO_BEHIND: f32 = 250.0;
+/// T-PLANT: a turret the program's factory assist asks for goes round a factory, on a 16-grid point within this of
+/// its centre (outside the yard and the exit lane with the rest of keep_out): the turret's reach is 400 to the
+/// product on the pad; thebluegecko's 29 stood 97-362 from his advanced plant's centre, behind it and to its sides.
+const PLANT_RING: f32 = 330.0;
+/// Seconds ahead the program's turret assist is read over, for how many turrets the plants want: a turret is a
+/// walk and 18-59 s of building away.
+const PLANT_LEAD: f64 = 120.0;
 /// Nothing is placed within this of a factory's centre: a site tested against an open yard passes and the engine
 /// then drops the order (terr15-lp-nullai-comet-1: seven second labs and 48 construction turrets dropped against
 /// the first lab, its yard open round a constructor's frame).
@@ -608,7 +615,9 @@ impl Territory {
             // the frame, read as power for constructors to make up, and 14-27 of them walked to advanced fusion
             // frames at 16-17 min that twenty turrets stood on (terr59-60); the turrets go to every frame in their
             // reach on their own (run_nanos), and the constructors' part is the plan's own mobile power on the type.
-            for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory && !(f.class == Class::Frames && units.list[f.builder].role == Role::Nano)) {
+            // Nor the turrets' assist on a factory (T-PLANT): in a product's credit it would send constructors to guard
+            // the plant in the turrets' place; the plant's turrets are placed from those flows (farm_site).
+            for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory && !(units.list[f.builder].role == Role::Nano && (f.class == Class::Frames || f.kind == Kind::Assist))) {
                 let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
                 e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
                 e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
@@ -1387,7 +1396,8 @@ impl Territory {
     }
 
     /// The farm's slot for `unit` (T-FARM): a turret's the free turret slot of the core nearest home (past the
-    /// core, the nearest outside it), a big building's the free building slot with the most turrets (standing or
+    /// core, the nearest outside it; first, while the program's factory assist asks for turrets at a plant, the free
+    /// grid point within PLANT_RING of that plant nearest its centre, T-PLANT), a big building's the free building slot with the most turrets (standing or
     /// framed) in reach and nearest home among those, a cheap building's the free building slot nearest its
     /// `builder` outside the core. Free: ground the footprint
     /// can take, not in a factory's yard or lane, not a dead slot, and FARM_GAP clear of every standing building,
@@ -1420,7 +1430,31 @@ impl Territory {
         // The core fills from home's side (terr55-56: filled from its centre, 800 out, every turret and frame cost
         // its builder the walk there, 29-37 s a base order against terr53's, and 10:00 fell 20 in all eight games).
         let slot = if turret {
-            farm_slots(origin, origin, FARM_EXTENT, true).into_iter().filter(|p| free(*p)).min_by(|a, b| (a.dist2d(origin) > FARM_CORE, a.dist2d(home)).partial_cmp(&(b.dist2d(origin) > FARM_CORE, b.dist2d(home))).unwrap())
+            // T-PLANT: round the factory the program's turret assist asks for, while it asks for more turrets than
+            // stand or are ordered within reach of a factory; else the farm's.
+            let plant = self.plant_turrets_wanted().1.and_then(|centre| {
+                let grid = |v: f32| (v / 16.0).floor() * 16.0 + 8.0;
+                let n = (PLANT_RING / 16.0).ceil() as i32;
+                let candidates: Vec<Vec3> = (-n..=n)
+                    .flat_map(|i| (-n..=n).map(move |j| (i, j)))
+                    .map(|(i, j)| Vec3 { x: grid(centre.x) + 16.0 * i as f32, y: centre.y, z: grid(centre.z) + 16.0 * j as f32 })
+                    .filter(|p| p.dist2d(centre) < PLANT_RING)
+                    .collect();
+                let slot = candidates.iter().copied().filter(|p| free(*p)).min_by(|a, b| nearer(*a, *b, centre).then_with(|| nearer(*a, *b, home)));
+                match slot {
+                    Some(p) => self.log(format_args!("plant: turret slot ({:.0},{:.0}), {:.0} from the plant at ({:.0},{:.0})", p.x, p.z, p.dist2d(centre), centre.x, centre.z)),
+                    None => {
+                        let ground = candidates.iter().filter(|p| !self.farm_ground(**p, half)).count();
+                        let laned = candidates.iter().filter(|p| lanes.iter().any(|l| l.contains(**p))).count();
+                        let held = candidates.iter().filter(|p| taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half + FARM_GAP)).count();
+                        let crowded = candidates.iter().filter(|p| mobile.iter().any(|q| q.dist2d(**p) < half + FARM_MOBILE)).count();
+                        let dead = candidates.iter().filter(|p| self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(**p) < FARM_GAP)).count();
+                        self.log(format_args!("plant: no turret slot within {PLANT_RING:.0} of ({:.0},{:.0}): {} points, {ground} off the ground, {laned} in a yard or lane, {held} by footprints, {crowded} by mobile units, {dead} dead", centre.x, centre.z, candidates.len()));
+                    }
+                }
+                slot
+            });
+            plant.or_else(|| farm_slots(origin, origin, FARM_EXTENT, true).into_iter().filter(|p| free(*p)).min_by(|a, b| (a.dist2d(origin) > FARM_CORE, a.dist2d(home)).partial_cmp(&(b.dist2d(origin) > FARM_CORE, b.dist2d(home))).unwrap()))
         } else if big {
             let turrets: Vec<Vec3> = self.own.values().filter(|u| self.role_of_def(u.def) == Some(Role::Nano)).map(|u| u.pos).collect();
             let reach = |p: Vec3| turrets.iter().filter(|t| t.dist2d(p) < NANO_REACH).count();
@@ -1437,6 +1471,36 @@ impl Territory {
             farm_slots(origin, from, FARM_EXTENT, false).into_iter().filter(|p| p.dist2d(origin) > FARM_CORE).flat_map(positions).filter(|p| free(*p)).min_by(|a, b| nearer(*a, *b, from))
         }?;
         Some(BuildSite { near: slot, search_radius: FARM_SEARCH, min_dist: 0, placements: vec![Placement { facing: self.facing_enemy(), keep_out: lanes }], exact: true })
+    }
+
+    /// T-PLANT: the program's turret assist over the next PLANT_LEAD seconds (its Assist flows of the turret type) as
+    /// turrets of the type's power, and the factory those turrets should stand round while that runs half a turret
+    /// ahead of the turrets standing, framed or ordered within reach of a factory: the factory standing or framed
+    /// (the program counts a committed plant as standing, T-COMMIT, and its turrets are placed from its frame)
+    /// nearest home among those making the product the program puts the most turret power on.
+    pub(crate) fn plant_turrets_wanted(&self) -> (f64, Option<Vec3>) {
+        let Some(targets) = self.hands.targets.as_ref() else { return (0.0, None) };
+        let units = &self.game().units;
+        let until = self.frame as f64 / SECOND as f64 + PLANT_LEAD;
+        let span = (until - targets.t0).max(1.0);
+        let mut by_product: BTreeMap<usize, f64> = BTreeMap::new();
+        let mut seen: BTreeSet<(usize, usize, Class)> = BTreeSet::new();
+        for f in targets.flows.iter().filter(|f| f.kind == Kind::Assist && units.list[f.builder].role == Role::Nano) {
+            if seen.insert((f.builder, f.unit, f.class)) {
+                *by_product.entry(f.unit).or_default() += targets.planned_power_class(f.builder, f.unit, f.class, until) / (units.list[f.builder].worker_time * span);
+            }
+        }
+        let wanted: f64 = by_product.values().sum();
+        let plants: Vec<&OwnUnit> = self.own.values().filter(|u| self.role_of_def(u.def) == Some(Role::Factory)).collect();
+        let at_a_plant = |p: Vec3| plants.iter().any(|f| f.pos.dist2d(p) < NANO_REACH);
+        let standing = self.own.values().filter(|u| self.role_of_def(u.def) == Some(Role::Nano) && at_a_plant(u.pos)).count();
+        let ordered = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, near, frame: None, .. } if units.list[*unit].role == Role::Nano && at_a_plant(*near))).count();
+        if wanted < (standing + ordered) as f64 + START_AT {
+            return (wanted, None);
+        }
+        let Some((&product, _)) = by_product.iter().max_by(|a, b| a.1.total_cmp(b.1)) else { return (wanted, None) };
+        let plant = plants.iter().filter(|f| self.unit_index(f.def).is_some_and(|fi| units.list[fi].builds.contains(&product))).min_by(|a, b| a.pos.dist2d(self.home).total_cmp(&b.pos.dist2d(self.home))).map(|f| f.pos);
+        (wanted, plant)
     }
 
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
@@ -1545,6 +1609,15 @@ impl Territory {
         let nanos: Vec<(UnitId, Vec3)> = self.own.values().filter(|u| !u.being_built && u.idle && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos)).collect();
         for (nano, at) in nanos {
             if self.hands.nano_told.get(&nano).is_some_and(|told| self.frame - told < GRACE) {
+                continue;
+            }
+            // T-PLANT: with the program's turret assist on, a turret within reach of a factory at work is the factory's.
+            if self.options.nano_assist > 0.0
+                && let Some(factory) = self.own.values().filter(|f| !f.being_built && !f.idle && self.role_of_def(f.def) == Some(Role::Factory) && f.pos.dist2d(at) < NANO_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|f| f.id)
+            {
+                self.hands.nano_told.insert(nano, self.frame);
+                self.hands.nano_frame.remove(&nano);
+                commands.push(Command::Guard { unit: nano, target: factory });
                 continue;
             }
             // With the program's targets a turret helps the dearest building frame in its reach, as the program

@@ -58,6 +58,9 @@ pub(crate) struct Options {
     /// control).
     pub chain: bool,
     pub assist_factor: f64,
+    /// The program's turret assist on the factories, as a multiple of their own power (T-PLANT; 0: no pair, and the
+    /// turrets' power is for frames only).
+    pub nano_assist: f64,
     pub walk_extractor: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
@@ -102,6 +105,7 @@ impl Default for Options {
             reclaim: false,
             chain: true,
             assist_factor: 2.0,
+            nano_assist: 0.0,
             walk_extractor: 65.0,
             walk_base: 3.0,
             walk_factory: 40.0,
@@ -153,6 +157,7 @@ impl Options {
                 "reclaim" => options.reclaim = on,
                 "chain" => options.chain = on,
                 "assist" => options.assist_factor = value.parse().unwrap_or(options.assist_factor),
+                "nanoassist" => options.nano_assist = value.parse().unwrap_or(options.nano_assist),
                 "walk_extractor" => options.walk_extractor = value.parse().unwrap_or(options.walk_extractor),
                 "walk_base" => options.walk_base = value.parse().unwrap_or(options.walk_base),
                 "walk_factory" => options.walk_factory = value.parse().unwrap_or(options.walk_factory),
@@ -169,9 +174,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
             if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
         )
     }
 }

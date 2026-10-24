@@ -65,6 +65,13 @@ pub struct LpOptions {
     /// Build power mobile builders may put on factory products, as a multiple of the factories' own (the yard
     /// clears between units).
     pub assist_factor: f64,
+    /// Build power construction turrets may put on factory products, as a multiple of the factories' own; 0 gives
+    /// the turrets no assist pair. thebluegecko's ramp (against InactiveAI, 2026-10-21): 29 turrets within 400 of
+    /// his advanced vehicle plant by 10:00, 9.7 times its 600, and an advanced constructor finished every 6-8 s
+    /// from 9:25 (16,000 build time at 6,400: 2.5 s of work and the pad's roll-off), fifteen by 10:15. Without the
+    /// pair the program had nothing for a turret to do before the farm's big frames at 12:00 (terr57-66: one or
+    /// two turrets at 10:00 against his 29).
+    pub nano_assist: f64,
     /// Build power construction turrets may put on a column in a bucket, as a multiple of what mobile builders
     /// put on it directly: a turret helps frames in its reach and starts none, so without this bound the program
     /// buys turrets as free build power and runs a converter spiral to 4,000 metal a second (the first solve on
@@ -153,6 +160,7 @@ impl Default for LpOptions {
             margin_from: 0.0,
             factory_from: 0.0,
             assist_factor: 2.0,
+            nano_assist: 0.0,
             help_factor: 3.0,
             nanos_per_factory: 6.0,
             max_nanos: 0.0,
@@ -434,6 +442,13 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     let builders: Vec<usize> = types.iter().copied().filter(|u| units.list[*u].worker_time > 0.0).collect();
     let factories: Vec<usize> = types.iter().copied().filter(|u| units.list[*u].role == Role::Factory).collect();
     let products: Vec<usize> = types.iter().copied().filter(|u| factories.iter().any(|f| units.list[*f].builds.contains(u))).collect();
+    // An advanced factory makes a constructor that builds an extractor upgrade; the turrets' assist is for its
+    // products only (thebluegecko's 29 turrets were the advanced plant's; offered on every factory the program
+    // pumped basic constructors from the first plant instead and held the advanced plant at a fraction to 7:48-9:00,
+    // terr67-68: 38-50 basic constructors by 10:00 against 29-36 and the same extractors, 15:00 down 50-100 in all
+    // eight games).
+    let advanced_factory = |f: usize| units.list[f].builds.iter().any(|c| units.list[*c].builds.iter().any(|u| is_upgrade(*u)));
+    let advanced_products: Vec<usize> = types.iter().copied().filter(|u| factories.iter().any(|f| advanced_factory(*f) && units.list[*f].builds.contains(u))).collect();
     let mobile = |b: usize| units.list[b].speed > 0.0;
     // The walk a mobile builder loses per unit of a column: the overhead by kind, plus the ring's distance at its speed.
     let walk = |b: usize, i: usize| -> f64 {
@@ -463,6 +478,10 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
                 Kind::Direct
             } else if mobile(b) && def.role != Role::Factory && products.contains(&u) {
                 Kind::Assist
+            } else if def.role == Role::Nano && products.contains(&u) {
+                // A turret's assist on an advanced factory, under its own row (its Help pair here was bounded to
+                // nothing: row 3b counts no factory's direct power).
+                if options.nano_assist > 0.0 && advanced_products.contains(&u) { Kind::Assist } else { continue }
             } else if def.role == Role::Nano && !is_extractor(u) && (options.max_nanos <= 0.0 || options.farm_big <= 0.0 || def.role == units.list[u].role || units.list[u].build_time >= options.farm_big) && builders.iter().chain(std::iter::once(&commander)).any(|x| units.list[*x].builds.contains(&u)) {
                 Kind::Help
             } else {
@@ -697,16 +716,32 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         }
         power_rows.push((bt, rows_of));
     }
-    // 3. Assist: sum over assisting pairs <= A dt sum_f bp[f] n[f, t].
-    for t in 0..buckets {
-        for (p, _) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Assist) {
-            put(row, x_at(p, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+    // 3. Assist: sum over assisting pairs <= A dt sum_f bp[f] n[f, t]; the mobile builders' row and the turrets' row
+    // apart, each with its factor (the yard clears between units for the mobile guards; the turrets stand round the
+    // plant, 29 on his at 10:00). The turrets' row counts the advanced factories standing or committed (n0), not
+    // the plan's fractions: against n[f, t] a tenth of an advanced plant with ten times its power in turrets round it was a
+    // whole plant's production for a tenth of its price, and terr67 held the advanced plant at a fraction from 4:00
+    // to 7:50-9:00 (terr66's commits 3:48-4:33) while buying the turrets, which stood idle at the farm; a turret
+    // stands round a plant that exists.
+    let standing_factory_power: f64 = factory_columns.iter().filter(|&&i| advanced_factory(columns[i].unit)).map(|&i| n0[i] * units.list[columns[i].unit].worker_time).sum();
+    for (factor, turrets) in [(options.assist_factor, false), (options.nano_assist, true)] {
+        if turrets && factor <= 0.0 {
+            continue;
         }
-        for &i in &factory_columns {
-            put(row, n_at(i, t), -options.assist_factor * units.list[columns[i].unit].worker_time * dt_of(t), &mut rows_i, &mut cols, &mut vals);
+        for t in 0..buckets {
+            for (p, _) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Assist && mobile(p.builder) != turrets) {
+                put(row, x_at(p, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+            }
+            if turrets {
+                b.push(factor * standing_factory_power * dt_of(t));
+            } else {
+                for &i in &factory_columns {
+                    put(row, n_at(i, t), -factor * units.list[columns[i].unit].worker_time * dt_of(t), &mut rows_i, &mut cols, &mut vals);
+                }
+                b.push(0.0);
+            }
+            row += 1;
         }
-        b.push(0.0);
-        row += 1;
     }
     // 3b. Help: per column and bucket, the turrets' power on it <= H times the mobile builders' direct power on it.
     for i in 0..columns.len() {

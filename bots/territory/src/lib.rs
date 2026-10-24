@@ -187,6 +187,7 @@ impl Territory {
             margin_from: o.margin_from,
             factory_from: o.factory_from,
             assist_factor: o.assist_factor,
+            nano_assist: o.nano_assist,
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,
             max_nanos: o.max_nanos,
@@ -343,7 +344,12 @@ impl Territory {
         let busy = turrets.iter().filter(|u| !u.idle).count();
         let frames: Vec<Vec3> = self.own.values().filter(|u| u.being_built && self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
         let unreached = frames.iter().filter(|f| !turrets.iter().any(|t| t.pos.dist2d(**f) < hands::NANO_REACH)).count();
-        self.log(format_args!("turrets: {} standing, {busy} busy; frames {} of which {unreached} beyond every turret's reach", turrets.len(), frames.len()));
+        // T-PLANT: the turrets within reach of a factory (his 29 by 10:00).
+        let plants: Vec<Vec3> = self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).map(|u| u.pos).collect();
+        let at_plants = turrets.iter().filter(|t| plants.iter().any(|p| p.dist2d(t.pos) < hands::NANO_REACH)).count();
+        let (wanted, plant) = self.plant_turrets_wanted();
+        let plant = plant.map_or("none".to_string(), |p| format!("({:.0},{:.0})", p.x, p.z));
+        self.log(format_args!("turrets: {} standing, {busy} busy, {at_plants} at the plants, the program's assist {wanted:.1} turrets, placing at {plant}; frames {} of which {unreached} beyond every turret's reach", turrets.len(), frames.len()));
         self.log(format_args!("jobs: {}", self.jobs_line()));
         let energy = self.energy_line();
         self.log(format_args!("energy: {energy}"));

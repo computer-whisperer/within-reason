@@ -440,3 +440,14 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   20 (`end=1500`, on: the program invests for the rate, his composition stood at 20:00, the marks unmoved, terr65).
   The pair for a turret on a factory (Assist is for mobile builders) is the program's next want: his 29 turrets on the
   advanced plant at 10:00 made a constructor every 20 s.
+- 2026-10-25, the turrets' assist (`nano_assist`, `--nano-assist`; T-PLANT in the bot's README): a turret's Assist
+  pair on the products of an advanced factory (one whose constructors build an extractor upgrade), under its own row
+  bounded by F times the power of the advanced factories standing or committed (`n0`), not the plan's fractions.
+  Three readings in the engine (terr67-69): against the plan's fractional factories a tenth of an advanced plant with
+  ten times its power in turrets was a whole plant's production for a tenth of its price, and the plan held the plant
+  at a fraction to 8:00; on every factory's products it pumped basic constructors from the vehicle plant (38-50 by
+  10:00 against 29-36) and the engine's extractors did not follow (the constant extractor walk prices the eightieth
+  spot as the first); on advanced plants' products only, the plan asks for 1-2 turrets' worth at 10:00 and 3-6 at
+  14:00 against his 29, since its advanced constructors (one every 16-20 s) are what its metal and upgrade pace want.
+  The marks level; the arm off by default. The test: an advanced lab with six turrets makes 7.5 constructors in a
+  minute with the option against 3.2 without, and a basic lab gets no pair.
