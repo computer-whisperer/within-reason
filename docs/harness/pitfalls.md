@@ -221,3 +221,17 @@ and an empty working directory; and its answer is checked for a coding agent's l
 reads it. The shape asked for is another matter: under the player's prompt every answer was a debrief and none took
 the DECIDED / NEXT PLAYER / WISHED shape (ten of ten, a retry asking for it included), so the tool reports the shape
 in its header line and keeps the debrief.
+
+## The checkout is a worktree of a bare repository, and the arena embeds its path at compile time (2026-10-24)
+
+Since 2026-10-24 the repository is `~/workspace/within-reason/within-reason.git` (bare) and the tree is its worktree
+`within-reason.main`, like the user's other projects; a side worktree goes beside it as
+`within-reason.<branch>` (`git -C ~/workspace/within-reason/within-reason.git worktree add ../within-reason.<branch> -b <branch> main`).
+The git-ignored working data (`upstream/`, `run/engines/`, `run/data/`, `run/matches/`, `target/`, 33 GB in all) lives
+only in the main worktree; a fresh worktree has none of it and needs its own `run/data` (install_ai.sh) and engine.
+`crates/arena/src/harness.rs` fixes `REPO` from `CARGO_MANIFEST_DIR` when it is compiled, so a binary built in one
+place looks for the briefs, the scripts and the matches directory there for ever, and cargo does not count the
+directory's name as a change (the move of 2026-10-24 recompiled six crates and left the arena with the old path):
+after a move or in a new worktree, `touch crates/arena/src/harness.rs && cargo build --release` before any arena
+run, or the arena quietly reads the old tree. Claude Code keys the session transcripts by the working directory (`within-reason.main`) and the auto-memory by the repository's git
+directory (`within-reason.git`), under `~/sync/claude/projects/`, which both accounts share.

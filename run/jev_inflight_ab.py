@@ -8,15 +8,15 @@ usage: run/jev_inflight_ab.py run/matches/<batch>/00 [repeat]      (the key is r
 """
 import jevlog
 import json,sys,re,os,copy,collections,statistics as S
-sys.path.insert(0,'/home/christian/workspace/playground/bar_bots/run')
-from jev_ab import ask, URL
+from jev_ab import ask, URL  # beside this file, on the path as the script's own directory
+ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FPS=30
 d=sys.argv[1]; REPEAT=int(sys.argv[2]) if len(sys.argv)>2 else 3
 key=None
 for line in open(os.path.expanduser('~/.config/within-reason/jev.env')):
     if line.startswith('TYPESAFE_API_KEY='): key=line.split('=',1)[1].strip().strip('"')
 assert key
-RULES=re.sub(r'<</?\w+>>','',open('/home/christian/workspace/playground/bar_bots/crates/bot/src/brain/pianist/rules.md').read()).strip()  # the kind marks (diet.rs `rules_for`) are never sent
+RULES=re.sub(r'<</?\w+>>','',open(os.path.join(ROOT,'crates/bot/src/brain/pianist/rules.md')).read()).strip()  # the kind marks (diet.rs `rules_for`) are never sent
 def clock(f): return f"{f//FPS//60}:{f//FPS%60:02d}"
 st=[json.loads(l) for l in open(d+'/strategist-0.jsonl')]
 turns=[];cur=None

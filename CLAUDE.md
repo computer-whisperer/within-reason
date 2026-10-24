@@ -1,4 +1,4 @@
-# Within Reason (repo formerly `bar_bots`; the local checkout directory may still carry that name)
+# Within Reason (formerly `bar_bots`; since 2026-10-24 a bare repository with worktrees: `~/workspace/within-reason/within-reason.git`, the tree in `within-reason.main`)
 
 AI players for Beyond All Reason (Recoil engine): a Rust AI shim loaded by the engine, a Rust bot process that decides,
 and an arena that runs headless batches against the stock BARb AI.
