@@ -254,3 +254,17 @@ units that killed it, so the drill read as a side with no weapon dealing 66,727 
 fortification wall (8,900 health, a blast of nothing) is never fired at: a fight order ignores walls
 (K-mech-a-fight-order-ignores-walls). The target is the gantry (`armshltx`, 16,000 health, a blast of 1,330 over
 420), which outlasts the ramp and is fired at. The death blasts are in `upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua`.
+
+## A demo of a cheat-spawned duel does not replay (2026-10-24)
+
+The duel harness (and every scenario and drill in it) spawns its armies through the AI cheat interface
+(`Command::GiveUnit`, the engine's `COMMAND_CHEATS_GIVE_ME_NEW_UNIT`). `CAICheats::CreateUnit` calls
+`unitLoader->LoadUnit` on the host's simulation directly (`rts/ExternalAI/AICheats.cpp`): no network message, so the
+demo never carries the spawn. A replay re-simulates the game from the recorded net stream, in which only the start
+script's commanders and the AI's orders exist, so the client shows two commanders standing, no other units, and
+checksum and desync warnings every few seconds (the recorded sync checksums include the units the replay lacks).
+Seen the night the drill demos were copied into the user's client. What does replay: a synced console action, such
+as `/give`, which the engine sends as a `CommandMessage` over the net (`Game.cpp` `ActionPressed`), recorded and
+re-executed; a LuaUI widget in the match's write dir can issue it (`Spring.SendCommands`), told what to give by a
+chat line from the AI (`Command::Say`), which would make every duel demo watchable and end the desync warnings. Not
+built; the per-second log (`seconds/*.jsonl`) is the duels' record meanwhile.
