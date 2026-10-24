@@ -237,3 +237,13 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   15:00 404-517, 20:00 962-1,007. The gap to his 5:00: his seven constructors by 3:16 against the hands' by 4:00
   (his plant, fed and guarded, one every 17 s; the hands' one every 27-30 s on a stock at zero from 2:00 to 3:30)
   and his third extractor at 0:25 (the hands' third spot is 562 out) compounding from there.
+- 2026-10-25, the start (the user: "set the games to place the start point matching his -- or at least on a triple
+  to even things out"). Comet Catcher Remake has no triple: the best starts hold two spots within 250 and a third at
+  500-640; his start (941,2534, read from the replay's record) has 166, 251 and 537, the arena's south-west start
+  118, 312, 562 and 631. The benchmark runs from his start and InactiveAI's from here (`arena --starts
+  941,2534:6899,684`). The bot had taken his start from the other start box's centre, which with pinned starts is
+  the seat's box, not the start: as the second seat its two nearest spots fell inside the dead radius round "his
+  start" (terr84: no extractor in the first minute, 17 a second at 5:00); it now trusts the boxes only while its own
+  holds its commander, else mirrors home through the map's centre (terr85). From his start the hands' opening reads
+  level or a little under the south-west's (5:00 43.3 / 38.7 / 41.0 / 38.7; 6:00 68.6 / 54.8 / 64.0 / 61.7; 20:00
+  942-1,020): his 62 at 5:00 is not the map's.

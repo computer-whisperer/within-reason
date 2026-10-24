@@ -92,8 +92,15 @@ impl Territory {
         self.home = commander.pos;
         let ours = self.hello.ally_team;
         let map = Vec3 { x: self.hello.map.width, y: 0.0, z: self.hello.map.height };
-        // His start box when the script gives one, else our start mirrored through the map's centre.
-        self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
+        // His start box when the script's boxes are the starts (ours holds our commander), else our start mirrored
+        // through the map's centre: with the starts pinned (`arena --starts`, StartPosType 3) the boxes are the
+        // seats' and say nothing of where he stands (terr84: as the second seat our box was the east and his box's
+        // centre lay 550 from our own commander, whose two nearest spots then fell inside the dead radius round
+        // "his start": no extractor in the first minute and 17 a second at 5:00).
+        let boxes = &self.hello.start_boxes;
+        let mirror = Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z };
+        let ours_holds_home = boxes.iter().any(|b| b.ally_team == ours && b.contains(self.home));
+        self.enemy_home = if ours_holds_home { boxes.iter().find(|b| b.ally_team != ours).map_or(mirror, |b| b.centre()) } else { mirror };
         let Some(game) = Game::from_hello(&self.hello, commander.def, (self.home.x as f64, self.home.z as f64)) else {
             self.log(format_args!("the commander's type {} is not in the unit table: nothing will be built", commander.def.0));
             return;
