@@ -186,12 +186,27 @@ small for T1 units that die in one fight; it is not a reason to change rules now
 **Claim.** Buildings explode when killed and can chain: energy storage and fusion blasts are large, converters and wind
 turbines are fragile (167-220 hp). Advice: spread generators and converters rather than packing them, and keep converters
 away from labs.
-**Status.** reported (2026-09-19); health values supported from local source
+**Status.** reported (2026-09-19); health values supported from local source; measured 2026-10-24 on the drill bench: an
+advanced fusion given as a weaponless target died once under a mixed column and its blast wiped the twelve units that
+killed it (66,727 damage dealt by a side with no weapon, 8 of 8 duels). The blasts from `weapons/Unit_Explosions.lua`:
+`customfusionexplo` (armafus) 10,600 damage over 1,280; `fusionExplosion` (armfus) smaller; `hugeBuildingexplosiongeneric`
+(the gantry, the plasma deflector) 1,330 over 420; `largeBuildingExplosionGeneric` (the plants) 670 over 340;
+`mediumBuildingExplosionGeneric` (storages, radars) less; the walls' `WallExplosionMetal` 0 over 36.
 **Evidence.** https://www.beyondallreason.info/guide/important-knowledge-on-advanced-mechanics (energy storage self-destruct
 1280 damage in 260 AoE); https://www.crdhq.com/articles/bar-new-player-guide-getting-started. `armmakr.lua` (health 167),
 `armwin.lua` (196).
 **Would be wrong if.** Raids on our generator field in logs killed only what they shot at.
 **Used by.** (candidate: building placement keeps ≥ 1 footprint gap between converters/turbines)
+
+### K-mech-a-fight-order-ignores-walls
+**Claim.** A unit on a fight (attack-move) order fires at enemy units and buildings in its reach but never at a wall:
+twelve Blitz, Stout and Janus fight-ordered onto a fortification wall (armfort, 8,900 health) walked to it, stood by
+it and fired no shot in 240 s, where the same column onto a gantry opened fire at 19 s. Killing a wall takes an
+explicit attack order on it.
+**Evidence.** The drill bench, 2026-10-24 (`duel --drill into --target armfort`, one duel: no shot, timeout; `--target
+armshltx` the same minute: engaged at 35 s). BARb's start-up script un-ignores walls for its own squads
+(K-barb-wall-decoy), which is the other side of the same fact.
+**Status.** observed (2026-10-24, one duel each way). Used by: the drill bench's choice of target (design D9).
 
 ### K-mech-builder-trip-overhead
 **Claim.** A mobile builder's time from finishing one building to laying the next frame is the straight-line walk (distance

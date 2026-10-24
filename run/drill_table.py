@@ -12,7 +12,9 @@ first), a reverse's recovery after the turn, a gather's units produced and media
 and the body's shape at contact (design D8: the second the first unit arrives at the goal in force): its depth along
 the heading and width across it, and the engagement ramp, each unit's depth behind the leader over its type's speed,
 the median over the body and the largest. The shape comes from `duels.csv` when the batch has the columns and is
-derived from the per-second log otherwise. `--types` adds, from the
+derived from the per-second log otherwise. An `into` drill (D9, a target on the goal) adds the first shot from the
+first order, the shot ramp from it to the median unit's first shot and the last's, and the target's deaths. `--types`
+adds, from the
 per-second logs (`seconds/*.jsonl`, the drill's meta line first), each type's own arrival at the goal and speed share
 before the median arrival, which is where a mixed column's stringing shows (type speeds from the unit glossary,
 `crates/bot/data/units.json`). A reverse's per-type arrival is at the start after the turn (the way back); its speed
@@ -221,11 +223,11 @@ def main():
         groups = {}
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
-        head = "| " + " | ".join(by) + " | n | arrived (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s |"
+        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) |"
         print(head)
-        print("|" + "---|" * (len(by) + 12))
+        print("|" + "---|" * (len(by) + 14))
         for key, rs in sorted(groups.items()):
-            arrived = sum(1 for r in rs if r.get("reason") == "arrived")
+            arrived = sum(1 for r in rs if r.get("reason") in ("arrived", "engaged"))
             timeouts = sum(1 for r in rs if r.get("reason") == "timeout")
             cells = [
                 str(len(rs)),
@@ -249,6 +251,13 @@ def main():
                         shapes.append(shape)
             cells.append(f"{fmt(mean(s[0] for s in shapes))} x {fmt(mean(s[1] for s in shapes))}" if shapes else "-")
             cells.append(f"{fmt(mean(s[2] for s in shapes), 1)} / {fmt(mean(s[3] for s in shapes), 1)}" if shapes else "-")
+            first_shot = mean(number(r.get("first_shot_s")) for r in rs)
+            cells.append(fmt(first_shot))
+            if first_shot is None:
+                cells.append("-")
+            else:
+                deaths = mean(number(r.get("target_deaths")) for r in rs)
+                cells.append(f"{fmt(mean(number(r.get('shot_ramp_half_s')) for r in rs), 1)} / {fmt(mean(number(r.get('shot_ramp_all_s')) for r in rs), 1)} ({fmt(deaths, 1)})")
             print("| " + " | ".join(key) + " | " + " | ".join(cells) + " |")
             if types:
                 per = {}
@@ -258,7 +267,7 @@ def main():
                         for k in p:
                             p[k].append(v[k])
                 for name, p in sorted(per.items()):
-                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | |")
+                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | | | |")
         print()
 
 

@@ -14,8 +14,8 @@ duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
-duel --drill walk|reverse|gather --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12]
-     [--lab armvp] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] ...
+duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12]
+     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
 run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types]   one row per arm of a drill batch
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
@@ -249,8 +249,9 @@ each hunt's start; `WITHIN_REASON_MICRO_DEBUG=1` adds the lane's claims, drops a
 
 ## The drill bench: one army, one order, measured (2026-10-24)
 
-`duel --drill walk|reverse|gather` (`crates/arena/src/bin/duel/drill.rs`; `docs/design/2026-10-24-formation-drills.md`
-§3) is the micro engine's movement bench: no enemy, no model, the lane on or off over one order. The army is
+`duel --drill walk|reverse|gather|into` (`crates/arena/src/bin/duel/drill.rs`; `docs/design/2026-10-24-formation-drills.md`
+§3) is the micro engine's movement bench: no enemy but an `into` drill's one target, no model, the lane on or off over
+one order. The army is
 `--ours` (a plain name with `--count`, or a mixed force as written), spawned in its `--formation` at the west end of
 a strip `--distance` long (default 2,000) and given one order to the east end: a fight (the hands' advance) or
 `--order move` (the hands' walk). Nothing more goes out but `--reissue S`, the same order to every living unit every
@@ -260,8 +261,13 @@ own arrival number). **reverse** gives the same order back to the start `--turn-
 the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it
 builds) and a free fusion for its energy (`--economy fed` unless `--economy bare` is given: the engine's cheat gives
 metal only, see pitfalls.md); each soldier it makes is adopted into the army as it appears within 400 of the lab and sent to the goal at
-once; it ends when the whole list has been made and has arrived. A drill that has not ended at `--time-limit`
-(240 s; a gather 480) is a `timeout`.
+once; it ends when the whole list has been made and has arrived. **into** is the walk with an enemy structure
+standing on the goal (`--target`, default `armshltx`, the gantry: 16,000 health and no weapon, so the engagement is
+unconfounded by deaths; not a generator, whose death blast is the biggest weapon on the field, and not a wall, which a
+fight order ignores, see pitfalls.md; `armllt` or `armbeamer` for a turret, which a dozen units kill in about a second, so its fire comes in lives):
+the target is side `y`'s one unit, given again the tick after it dies and its deaths counted; every unit's first shot
+is recorded and the drill ends when every living mobile unit has fired (`engaged`). A drill that has not ended at
+`--time-limit` (240 s; a gather 480) is a `timeout`.
 
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
@@ -283,9 +289,11 @@ of its type's speed: every army spawns facing south and turns a quarter first, a
 shape at contact, the second the first unit arrives at the goal in force (design D8, `drill.rs` `Shape`): `depth_contact`
 (the leading unit's projection on the heading less the rearmost's), `width_contact` (the extent across the heading),
 `ramp_half_s` and `ramp_all_s` (each unit's depth behind the leader over its type's speed, the time until it fires beside
-the leader against a front: the median over the body and the largest). The per-second
+the leader against a front: the median over the body and the largest; for an `into`, contact is the first shot), and
+for an `into` `first_shot_s` (from the first order), `shot_ramp_half_s` and `shot_ramp_all_s` (seconds from the first
+unit's first shot to the median unit's and the last's: the ramp measured instead of predicted) and `target_deaths`. The per-second
 log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
-formation, lane, fight, turn_at_s, reissue_s}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
+formation, lane, fight, turn_at_s, reissue_s, target, target_at}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
 and, for a gather, `stores` (the team's metal and energy as current, income, usage, storage), so
 `run/drill_table.py --types` can give each type its own arrival and speed share, which is where a mixed column's
 stringing shows, and derive the contact shape for a batch from before the columns existed. The duel's own instruments run too: `speed_x`

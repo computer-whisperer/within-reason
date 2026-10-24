@@ -245,3 +245,12 @@ first baselines: metal topped up as asked, the energy store at 0 from 30 s on, t
 harness team comes from `--economy fed` (a free fusion beside the commander); the duel's gather drill is fed by
 default. The host now logs a refused command that names no unit (`[wreason ai=N] GiveResource {..} refused: -2`),
 which was silent before.
+
+## A weaponless target for the bench is neither a generator nor a wall (2026-10-24)
+
+The `into` drill's first target was the advanced fusion (8,300 health, no weapon): a bomb. Under the mixed column the
+Blitzes alone had it down before the Janus arrived and its death blast (10,600 damage over 1,280) wiped the twelve
+units that killed it, so the drill read as a side with no weapon dealing 66,727 damage and every duel timed out. The
+fortification wall (8,900 health, a blast of nothing) is never fired at: a fight order ignores walls
+(K-mech-a-fight-order-ignores-walls). The target is the gantry (`armshltx`, 16,000 health, a blast of 1,330 over
+420), which outlasts the ramp and is fired at. The death blasts are in `upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua`.

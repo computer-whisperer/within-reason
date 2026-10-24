@@ -131,6 +131,38 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   start after the turn), which is when a front at the goal would be met: `depth_contact`, `width_contact`,
   `ramp_half_s`, `ramp_all_s`. Read beside `speed_share`: a body that forms by stopping shows it there. A gather's
   contact shape is the stream's first unit alone and says nothing; its measure is the next drill's.
+- **D9. The target drill, `into`** (the user, 2026-10-24: "how much of the army group is able to engage with an enemy
+  at once"; the geometry of D8 is a prediction, the shots are the fact). The walk with an enemy structure standing on
+  the goal (`--target`, default `armshltx`, the Experimental Gantry: 16,000 health and no weapon, so the ramp is
+  unconfounded by deaths; `armllt` or `armbeamer` for the turret variant, where the cost of arriving in pieces is in
+  the duel's fire columns) and the fight order to the goal. Two targets tried first and rejected the same night: the
+  advanced fusion (8,300 health) is a bomb, its death blast 10,600 damage over 1,280, and in the mixed column's
+  batches the Blitzes alone had it down before the Janus arrived and the blast wiped the army (66,727 damage dealt
+  by a side with no weapon, 8 of 8 timeouts); the fortification wall (8,900 health) is never fired at, since a fight
+  order ignores walls (K-mech-a-fight-order-ignores-walls). The gantry's own blast is 1,330 over 420 and it has the
+  health to outlast the ramp. The target is given to side `y` at the goal and given again the tick after it dies, so the
+  fire never runs out of a target; its deaths are counted. Every unit's first shot is recorded (once a second, from the
+  shots the fire instrument already counts): `first_shot_s` from the first order, and the **shot ramp**, the seconds
+  from the first unit's first shot to the median unit's and to the last's (`shot_ramp_half_s`, `shot_ramp_all_s`),
+  which is D8's ramp measured instead of predicted. Contact for the shape is the first shot. The drill ends when every
+  living mobile unit has fired (`engaged`) or at the time limit. The lane on side `x` meets the target at its
+  horizon (700) and forms as it would on a party, which is the lane's shape at contact under the measure.
+- **D10. Terrain cases** (the user, 2026-10-24: "I would also make sure to add cases here where the army has to
+  navigate around terrain"). Two ways to place a drill off the strip. `--from X,Z --to X,Z` runs any drill between two
+  chosen points on any map: the army spawns at `from` in its formation facing `to`, the strip chooser is not consulted,
+  and the ends' ground height is read from the heightmap. `--around R` asks the chooser for a detour instead of a strip:
+  pairs `--distance` apart as the crow flies whose walking distance for the force's movement class (the terrain crate's
+  field over the passable cells, `terrain::Field`) is at least `R` times the straight line (default 1.3), both ends on
+  dry passable ground holding the formation (its extent plus the margin, relief 48) and clear of the commanders, ranked
+  by detour, `--sites` of them taken apart from each other; when none is found the message says the best detour the map
+  offers at that distance. Three new columns: `straight`, `walk` (the field's distance) and `route_s`, the walk over the
+  slowest type's speed, which is the arrival the engine's own path would give if it took the field's; read against
+  `arrive_last_s`. The heading for the shape (D8) becomes the body's: the centroid's displacement over the last second
+  when it moved 10 or more, the axis to the goal in force otherwise, in the director and the reader alike (on a strip
+  the two agree). What the terrain cases show is the file at the passage and the time after its exit until the body is
+  abreast again, in the per-second `shape`; the first cases come from the maps on disk under `run/data/maps`
+  (Quicksilver, Comet Catcher, Great Divide, Cape Violet, Altored Divide, Isidis Crack among them), chosen by the
+  chooser, not named from memory.
 
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
@@ -255,6 +287,42 @@ The bars for drills 1-3 in these terms: a pure column's ramp to all at contact w
 contact no less than the formation's at the order; a mixed column's ramp to half and to all are the measures to
 shrink from 7.1 and 17.1 s with the width kept and the last arrival within 3 s of the slowest type's walk; a
 reverse's shape at the first unit back within the walk's.
+
+**The target drill (D9, 2026-10-24 night; batches `*-duel-drill-into-{gantry,llt}-*`, 48 duels, every one engaged):**
+the walk with a structure on the goal, every unit's first shot recorded. A first pair of batches against the advanced
+fusion is superseded (its death blast wiped the column, D9).
+
+| target | arm | shot ramp half / all s | geometry's ramp (D8) | target deaths | our value left | seconds |
+|---|---|---|---|---|---|---|
+| gantry | 12 Blitz, lane off | 1.6 / 11.6 | 0.8 / 1.4 | 1.1 | 0.53 | 55 |
+| gantry | 12 Blitz, lane on | 0.8 / 2.4 | 0.6 / 1.2 | 0 | 1.00 | 21 |
+| gantry | the mix, lane off | 5.1 / 20.4 | 7.1 / 18.2 | 0.5 | 0.90 | 39 |
+| gantry | the mix, lane on | 5.2 / 21.4 | 7.4 / 17.8 | 0.9 | 0.94 | 41 |
+| laser turret | the mix, lane off | 5.6 / 21.2 | 7.4 / 18.7 | 12.8 | 0.63 | 40 |
+| laser turret | the mix, lane on | 5.9 / 20.1 | 7.4 / 17.9 | 14.8 | 0.65 | 40 |
+
+Units firing each second from the first shot, the mix on the gantry, one duel: lane off 2, 5, 6, 6, 5, 6, 8, 8, 9, 8,
+9, 8, 8, 9, 9, 9, 10 (the six Blitzes by +1, the Stouts from +6, the Janus from +16); lane on 1, 6, 6, 6, 6, 6, 10, 9,
+10, 9, 8, 10, 10 (the Stouts from +6, then ten).
+
+9. **The ball blocks its own rear.** Twelve Blitzes with the lane off reach the gantry 138 deep and 73 wide, which the
+   geometry reads as everyone firing within 1.4 s; half are, at 1.6 s, but the last fires 11.6 s after the first,
+   standing behind friends with no line of fire. The gantry dies under them in the meantime and its blast (1,330 over
+   420) takes 47% of their value. With the lane on the same twelve arrive in ranks (125 x 370) and all fire within
+   2.4 s; nothing dies. This is the shape instrument's muzzled-by-a-friend finding
+   (K-engine-a-shot-is-refused-across-a-friend) in ramp terms, and the first measured gain of the lane's shape at
+   contact on this bench.
+10. **For a column arriving in pieces the formation at contact changes nothing.** The mix fires half at 5 s and all at
+    20-21 s with the lane off or on, on the gantry or the turret: the stringing is the whole story. Against the
+    geometry's 7 / 18 the half comes sooner (the Stouts' and Janus's longer reach) and the last later (the last unit's
+    turn into a slot at contact costs it 2-3 s), so D8 predicts the ramp to within a few seconds and the shots decide.
+11. **The turret prices the pieces.** A laser turret that dies in about a second to a dozen units and is given again
+    lives 13-15 times in the 20 s it takes the mix to engage, and takes 35-37% of the column's value; the lane on
+    does not change that.
+
+The bars for drill 4 (`into`) from these: a pure column's shot ramp to all within 2.5 s of its first shot (the lane's
+2.4) and no target death before everyone has fired; a mixed column's shot ramp to half and to all are the measures a
+pacing arm must shrink from 5 and 20 s, read with the turret's cost (value left 0.63-0.65).
 
 ## 6. Open for the user
 

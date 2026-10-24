@@ -536,7 +536,7 @@ impl Director {
                     log = format!("m{:02}-s{index}-d{:02}-rep{}{}.jsonl", self.match_index, result.sequence, result.job.rep, result.seed.map_or(String::new(), |s| format!("-seed{s}")));
                     let mut lines = std::mem::take(&mut duel.log);
                     if let Some(drill) = &duel.drill {
-                        lines.insert(0, drill_meta(drill, &duel.armies[0]).to_string());
+                        lines.insert(0, drill_meta(drill, &duel.armies[0], &duel.armies[1]).to_string());
                     }
                     if let Err(e) = std::fs::write(dir.join(&log), lines.join("\n") + "\n") {
                         eprintln!("match {}: could not write {log}: {e}", self.match_index);
@@ -589,7 +589,11 @@ impl Director {
         let queue = self.batch.queue.lock().unwrap();
         let mut max_slope = 1.0f32;
         let raid_defs: Vec<String> = if self.batch.raid { raid::BUILDINGS.iter().map(|s| s.to_string()).collect() } else { Vec::new() };
-        let drill_defs: Vec<String> = self.batch.drill.as_ref().filter(|d| d.kind == drill::Kind::Gather).map(|d| vec![d.lab.clone()]).unwrap_or_default();
+        let drill_defs: Vec<String> = self.batch.drill.as_ref().map(|d| match d.kind {
+            drill::Kind::Gather => vec![d.lab.clone()],
+            drill::Kind::Into => vec![d.target.clone()],
+            drill::Kind::Walk | drill::Kind::Reverse => Vec::new(),
+        }).unwrap_or_default();
         for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
             match self.defs.get(&name) {
                 None => self.fatal = Some(format!("the game has no unit called {name}")),
@@ -754,8 +758,15 @@ impl Director {
                 let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
                 form_x.places(start, true, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)).collect()
             };
+            // `into`: the target stands on the goal for side `y`, given again when it dies (`drill_target`).
+            let target: Vec<Spawn> = if options.kind == drill::Kind::Into {
+                drill.target = Some(0);
+                vec![Self::spawn(&self.defs[&options.target], drill.goal, None)]
+            } else {
+                Vec::new()
+            };
             drill_state = Some(drill);
-            [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], Vec::new(), None, centre, LaneMode::Off)]
+            [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], target, None, centre, LaneMode::Off)]
         } else if self.batch.raid {
             // The raid (`raid.rs`): `x` the pickets at the station with the strip's buildings, `y` the raiders
             // beyond the far end. Its `x` is never sized against `y`.
@@ -1302,6 +1313,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 } else if settled && let Some(drill) = duel.drill.as_mut() {
                     if side == 0 {
                         drill_orders(drill, army, tick, rules, frame, commands);
+                    } else {
+                        drill_target(drill, army, tick, frame, commands);
                     }
                 } else if settled && let Some(raid) = duel.raid.as_mut() {
                     raid_orders(raid, army, enemy, tick, side, rules, commands, &mut commitments);
@@ -1372,11 +1385,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 // script fires it, and the missile flies for thirteen seconds after.
                 let script_pending = scenario
                     && rules.script.is_some_and(|s| duel.armies[0].next_row < s.rows.len() || duel.armies[0].last_row_frame.is_some_and(|f| frame - f < STALEMATE));
-                let walking = duel.armies[0].alive.keys().filter(|u| duel.armies[0].spawn_of.get(u).is_some_and(|&i| duel.armies[0].spawns[i].mobile)).count();
+                let walking: Vec<usize> = (duel.armies[0].alive.keys()).filter_map(|u| duel.armies[0].spawn_of.get(u).copied()).filter(|&i| duel.armies[0].spawns[i].mobile).collect();
                 let reason = if let Some(drill) = &duel.drill {
-                    // A drill ends on arrival or the time limit alone (`drill.rs`).
-                    if drill.done(walking) {
-                        Some("arrived")
+                    // A drill ends on arrival (an `into`: when everyone has fired) or the time limit alone (`drill.rs`).
+                    if drill.done(&walking) {
+                        Some(if drill.kind == drill::Kind::Into { "engaged" } else { "arrived" })
                     } else if frame - advance_at >= rules.time_limit * FPS {
                         Some("timeout")
                     } else {
@@ -1728,15 +1741,54 @@ fn drill_sample(duel: &mut Duel, frame: i32, defs: &HashMap<UnitDefId, UnitDefIn
         })
         .collect();
     let expected = drill.expected(walkers.len());
-    drill.sample(frame, &walkers, expected);
+    // Who fired this second (the counts the per-second line drains after this).
+    let shooters: Vec<usize> = army.second_shots.keys().filter_map(|u| army.spawn_of.get(u).copied()).collect();
+    drill.sample(frame, &walkers, expected, &shooters);
+}
+
+/// `into`: keeps the target standing on the goal for side `y`. The tick it is found dead its death is counted and
+/// it is given again at its place; the new unit is adopted into the army's books as it appears (the spawn phase's
+/// `claim` runs only while spawning), and a give that shows nothing within 2 s is repeated.
+fn drill_target(drill: &mut Drill, army: &mut Army, tick: &Tick, frame: i32, commands: &mut Vec<Command>) {
+    let Some(i) = drill.target else { return };
+    let (def, at) = (army.spawns[i].def, army.spawns[i].at);
+    let stands = army.unit_of.get(&i).is_some_and(|u| army.alive.contains_key(u));
+    if stands {
+        drill.target_stood = true;
+        drill.target_given = None;
+        return;
+    }
+    if drill.target_stood {
+        drill.target_stood = false;
+        drill.target_deaths += 1;
+    }
+    let fresh = (tick.snapshot.own_units.iter()).find(|u| u.def == def && !u.being_built && !army.units.contains(&u.id) && u.pos.dist2d(at) <= drill::AT_THE_LAB);
+    if let Some(unit) = fresh {
+        army.units.insert(unit.id);
+        army.spawn_of.insert(unit.id, i);
+        army.unit_of.insert(i, unit.id);
+        army.start.insert(unit.id, 1.0);
+        army.seen_at.insert(unit.id, unit.pos);
+        army.alive.insert(unit.id, 1.0);
+        army.max_health.insert(unit.id, unit.max_health);
+        drill.target_stood = true;
+        drill.target_given = None;
+        return;
+    }
+    if drill.target_given.is_none_or(|f| frame - f > 2 * FPS) {
+        commands.push(Command::GiveUnit { def, at });
+        drill.target_given = Some(frame);
+    }
 }
 
 /// The first line of a drill's per-second log: the kind, the strip's ends, what the units are by index, the arms.
-fn drill_meta(drill: &Drill, army: &Army) -> Value {
+fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
+    let target = drill.target.and_then(|i| other.spawns.get(i));
     json!({ "meta": {
         "drill": drill.kind.label(), "start": [drill.start.x.round(), drill.start.z.round()], "goal": [drill.goal.x.round(), drill.goal.z.round()],
         "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f / FPS),
+        "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
     } })
 }
 

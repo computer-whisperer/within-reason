@@ -43,6 +43,8 @@ pub enum Kind {
     Walk,
     Reverse,
     Gather,
+    /// The walk into an enemy structure standing on the goal (design D9).
+    Into,
 }
 
 impl Kind {
@@ -51,6 +53,7 @@ impl Kind {
             "walk" => Some(Kind::Walk),
             "reverse" => Some(Kind::Reverse),
             "gather" => Some(Kind::Gather),
+            "into" => Some(Kind::Into),
             _ => None,
         }
     }
@@ -60,6 +63,7 @@ impl Kind {
             Kind::Walk => "walk",
             Kind::Reverse => "reverse",
             Kind::Gather => "gather",
+            Kind::Into => "into",
         }
     }
 }
@@ -78,6 +82,9 @@ pub struct Options {
     pub turn_at: i32,
     /// `gather`: the plant that builds the force (`--lab`).
     pub lab: String,
+    /// `into`: the structure on the goal (`--target`; the gantry by default: 16,000 health, no weapon, a death blast of
+    /// 1,330 over 420 where a fusion's is 10,600 over 1,280, and units fire at it where they ignore a wall).
+    pub target: String,
 }
 
 /// What a drill measured, for `duels.csv` (`report.rs`); empty outside a drill.
@@ -98,6 +105,12 @@ pub struct Score {
     pub width_contact: Option<f32>,
     pub ramp_half_s: Option<f32>,
     pub ramp_all_s: Option<f32>,
+    /// `into` (design D9): the first shot from the first order, the shot ramp from it to the median unit's first
+    /// shot and the last's, and the target's deaths.
+    pub first_shot_s: Option<f32>,
+    pub shot_ramp_half_s: Option<f32>,
+    pub shot_ramp_all_s: Option<f32>,
+    pub target_deaths: u32,
 }
 
 /// One living mobile unit as the sampler sees it: its spawn index, id, place and its type's speed (elmos a second).
@@ -180,6 +193,13 @@ pub struct Drill {
     /// arrived at the goal in force (cleared at a reverse's turn, like the arrivals).
     pub shape: Option<Shape>,
     pub shape_at_contact: Option<Shape>,
+    /// `into`: the target's spawn index in army `y`, whether it stood at the last tick, the frame of a pending give
+    /// after a death, its deaths, and per spawn index of `x` the frame of the unit's first shot.
+    pub target: Option<usize>,
+    pub target_stood: bool,
+    pub target_given: Option<i32>,
+    pub target_deaths: u32,
+    pub first_shot: HashMap<usize, i32>,
 }
 
 impl Drill {
@@ -212,6 +232,11 @@ impl Drill {
             stores: None,
             shape: None,
             shape_at_contact: None,
+            target: None,
+            target_stood: false,
+            target_given: None,
+            target_deaths: 0,
+            first_shot: HashMap::new(),
         }
     }
 
@@ -255,10 +280,19 @@ impl Drill {
         Vec3 { x: self.toward.x - behind.x, y: 0.0, z: self.toward.z - behind.z }
     }
 
-    /// Once a second: speeds, arrivals, the spin-up and recovery clocks, the spread at the median arrival, and the
-    /// body's shape (kept at contact). `expected` is how many units the drill waits for (`expected`).
-    pub fn sample(&mut self, frame: i32, walkers: &[Walker], expected: usize) {
+    /// Contact: the first unit at the goal in force, or for `into` the first shot.
+    pub fn contact(&self) -> bool {
+        if self.kind == Kind::Into { !self.first_shot.is_empty() } else { !self.arrived.is_empty() }
+    }
+
+    /// Once a second: speeds, arrivals, first shots (`shooters`: the spawn indices that fired this second), the
+    /// spin-up and recovery clocks, the spread at the median arrival, and the body's shape (kept at contact).
+    /// `expected` is how many units the drill waits for (`expected`).
+    pub fn sample(&mut self, frame: i32, walkers: &[Walker], expected: usize, shooters: &[usize]) {
         self.shape = Shape::of(walkers, self.heading());
+        for &i in shooters {
+            self.first_shot.entry(i).or_insert(frame);
+        }
         let mut shares: Vec<f32> = Vec::new();
         let mut now: HashMap<UnitId, Vec3> = HashMap::new();
         for w in walkers {
@@ -275,7 +309,7 @@ impl Drill {
             }
         }
         self.last = now;
-        if self.shape_at_contact.is_none() && !self.arrived.is_empty() {
+        if self.shape_at_contact.is_none() && self.contact() {
             self.shape_at_contact = self.shape;
         }
         if !shares.is_empty() {
@@ -316,9 +350,10 @@ impl Drill {
     }
 
     /// Whether the drill is over: every unit it waits for has arrived at the goal in force (after the turn, for a
-    /// reverse; the whole list produced and arrived, for a gather).
-    pub fn done(&self, walking: usize) -> bool {
-        let expected = self.expected(walking);
+    /// reverse; the whole list produced and arrived, for a gather), or for `into` every living mobile unit
+    /// (`walking`, by spawn index) has fired.
+    pub fn done(&self, walking: &[usize]) -> bool {
+        let expected = self.expected(walking.len());
         if expected == 0 || self.last_order.is_none() {
             return false;
         }
@@ -326,6 +361,7 @@ impl Drill {
             Kind::Reverse => self.turned.is_some() && self.arrived.len() >= expected,
             Kind::Gather => self.appeared.len() >= expected && self.arrived.len() >= expected,
             Kind::Walk => self.arrived.len() >= expected,
+            Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
         }
     }
 
@@ -337,6 +373,8 @@ impl Drill {
         let at = |i: usize| arrivals.get(i).map(|f| seconds(*f));
         let arrive = if arrivals.is_empty() { [None; 3] } else { [at(0), at(arrivals.len() / 2), at(arrivals.len() - 1)] };
         let speed_share = (!self.shares_before_median.is_empty()).then(|| self.shares_before_median.iter().sum::<f32>() / self.shares_before_median.len() as f32);
+        let mut shots: Vec<i32> = self.first_shot.values().copied().collect();
+        shots.sort();
         let mut joins: Vec<f32> = self.appeared.iter().filter_map(|(i, appeared)| self.arrived.get(i).map(|a| (a - appeared) as f32 / FPS as f32)).collect();
         joins.sort_by(f32::total_cmp);
         Score {
@@ -353,6 +391,10 @@ impl Drill {
             width_contact: self.shape_at_contact.map(|s| s.width),
             ramp_half_s: self.shape_at_contact.map(|s| s.ramp_half_s),
             ramp_all_s: self.shape_at_contact.map(|s| s.ramp_all_s),
+            first_shot_s: shots.first().map(|f| seconds(*f)),
+            shot_ramp_half_s: shots.first().map(|f| (shots[shots.len() / 2] - f) as f32 / FPS as f32),
+            shot_ramp_all_s: shots.first().zip(shots.last()).map(|(f, l)| (l - f) as f32 / FPS as f32),
+            target_deaths: self.target_deaths,
         }
     }
 }
@@ -366,7 +408,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, turn_at: 20 * FPS, lab: "armvp".into() }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into() }
     }
 
     /// A walk: two units at full speed arrive 30 and 31 seconds in; the median arrival takes the shape; the score
@@ -378,12 +420,12 @@ mod tests {
         drill.last_order = Some(0);
         let walkers = |t: i32| vec![Walker { index: 0, id: UnitId(1), at: at(3500.0 + 100.0 * t as f32, 1000.0), speed: 100.0 }, Walker { index: 1, id: UnitId(2), at: at(3500.0 + 97.0 * t as f32, 1064.0), speed: 100.0 }];
         for t in 0..=32 {
-            drill.sample(t * FPS, &walkers(t), 2);
+            drill.sample(t * FPS, &walkers(t), 2, &[]);
             if t < 27 {
-                assert!(!drill.done(2));
+                assert!(!drill.done(&[0, 1]));
             }
         }
-        assert!(drill.done(2));
+        assert!(drill.done(&[0, 1]));
         let score = drill.score(0);
         assert_eq!(score.arrive.map(|a| a.map(|s| s.round() as i32)), [Some(27), Some(28), Some(28)]);
         assert_eq!(score.spin_up_s, Some(1.0));
@@ -395,6 +437,23 @@ mod tests {
         assert_eq!(score.width_contact.map(f32::round), Some(64.0));
         assert!(score.ramp_all_s.is_some_and(|r| (r - 0.81).abs() < 0.01), "{:?}", score.ramp_all_s);
         assert_eq!(score.ramp_half_s, score.ramp_all_s);
+    }
+
+    /// A walk into a target: the drill ends when every living unit has fired; the first shot and the shot ramp are
+    /// scored, and contact for the shape is the first shot.
+    #[test]
+    fn an_into_ends_when_everyone_has_fired_and_scores_the_shot_ramp() {
+        let mut drill = Drill::new(&options(Kind::Into), at(5000.0, 1000.0), Vec::new());
+        drill.last_order = Some(0);
+        let walkers = vec![Walker { index: 0, id: UnitId(1), at: at(6100.0, 1000.0), speed: 100.0 }, Walker { index: 1, id: UnitId(2), at: at(5900.0, 1064.0), speed: 100.0 }];
+        drill.sample(20 * FPS, &walkers, 2, &[0]);
+        assert!(!drill.done(&[0, 1]));
+        assert_eq!(drill.shape_at_contact.map(|s| s.depth), Some(200.0));
+        drill.sample(21 * FPS, &walkers, 2, &[]);
+        drill.sample(23 * FPS, &walkers, 2, &[1]);
+        assert!(drill.done(&[0, 1]));
+        let score = drill.score(0);
+        assert_eq!((score.first_shot_s, score.shot_ramp_half_s, score.shot_ramp_all_s), (Some(20.0), Some(3.0), Some(3.0)));
     }
 
     /// The shape against a heading: depth along it from the leader back, width across it, the ramp each unit's depth
@@ -428,13 +487,13 @@ mod tests {
         drill.turn(20 * FPS);
         assert!(drill.arrived.is_empty() && drill.toward == drill.start && !drill.turn_due(40 * FPS));
         let walker = |x: f32| vec![Walker { index: 0, id: UnitId(1), at: at(x, 1000.0), speed: 100.0 }];
-        drill.sample(21 * FPS, &walker(5500.0), 1);
-        drill.sample(22 * FPS, &walker(5450.0), 1);
-        drill.sample(23 * FPS, &walker(5350.0), 1);
-        assert!(!drill.done(1));
+        drill.sample(21 * FPS, &walker(5500.0), 1, &[]);
+        drill.sample(22 * FPS, &walker(5450.0), 1, &[]);
+        drill.sample(23 * FPS, &walker(5350.0), 1, &[]);
+        assert!(!drill.done(&[0]));
         assert_eq!(drill.recover, Some(23 * FPS));
-        drill.sample(24 * FPS, &walker(3700.0), 1);
-        assert!(drill.done(1));
+        drill.sample(24 * FPS, &walker(3700.0), 1, &[]);
+        assert!(drill.done(&[0]));
         assert_eq!(drill.score(0).recover_s, Some(3.0));
     }
 
@@ -447,10 +506,10 @@ mod tests {
         assert!(!drill.reissue_due(69) && drill.reissue_due(70));
         drill.appeared.insert(0, 0);
         drill.arrived.insert(0, 30);
-        assert!(!drill.done(1));
+        assert!(!drill.done(&[0]));
         drill.appeared.insert(1, 60);
         drill.arrived.insert(1, 120);
-        assert!(drill.done(2));
+        assert!(drill.done(&[0, 1]));
         let score = drill.score(0);
         assert_eq!((score.produced, score.join_median_s), (2, Some(2.0)));
     }
