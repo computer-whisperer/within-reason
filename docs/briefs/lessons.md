@@ -417,6 +417,98 @@ status: live
 **"shhh dont say that, your oponent will know what faction you are playing and where you spawned"** (thebluegecko,
 the opponent of the Great Divide 2v1, 1:12, after our player had announced "south-east seat here, Cortex").
 
+### The unit sheet (thebluegecko, 2026-10-23)
+
+The glossary sheet (`run/glossary_sheet.py`, one row a unit with our numbers and our prose) went to the experienced
+players for their opinions; thebluegecko filled 24 Armada tier-1 rows in the columns "what it is for, when to build
+it, when not", "beats / loses to" and "tips, micro, mistakes", and used the verdict column for more of the same.
+Verbatim, grouped by subject; the unit named is the row he wrote in.
+
+<!--meta
+id: L-sheet-labs
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+status: live
+-->
+On the vehicle plant: **"default lab choice on solar maps"**; **"very small numbers of bots tend to beat veh, but in
+larger groups the veh start to have a dps density advantage. Lower e cost tends to give a large army value advantage
+starting around 4-6 minutes. Veh cons move faster than bot cons, making veh cons prefered on maps with widely spread
+mexes"**. On the bot lab: **"1 of two most common starting labs, better on low e cost maps. bots are generaly weaker
+than veh in a straight fight due to e cost implying the veh player will have a higher army value afor the first big
+fight,"**. On the aircraft plant: **"fighters are the strongest anti bomber per cost. bombers are the lowest cost way
+to destory oponents E production after the map is split, or if ground forces are hard to push through. This means most
+pro players make air lab around 30m/s on many maps. Stronger on maps with low e cost"**. On the hovercraft platform:
+**"good vs mexes on some maps, loses to every other kind of unit. Can supprise players who forget it exists because of
+how bad the units are per cost. E cost is very high for the impact."** and **"air units can also reach an island, will
+be faster, and give options to bomb and use figs for anti bomber. air cons are considered stronger than hover cons on
+most maps."** On the amphibious complex: **"units are weaker than non-anphib equivalents on land"**. On the seaplane
+platform: **"very high e cost makes this an option only with a dedicated plan, or a low e cost map. gunships are very
+good at com snipe, torp aircraft of all kinds are very strong vs boats and can attack underwater mexes"**. On the
+construction turret: **"cheaper than a second lab for increasing spend"**.
+
+<!--meta
+id: L-sheet-economy
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+status: live
+-->
+On the radar tower: **"often considered the second most critical building after a mex, this lets you see oponent's
+units coming in time to block them, saving your mexes from raids. Build on outside edges of your base. If not metal
+starved, prioritize over even mexes for defensive desision making value"**. On the energy converter: **"a great way to
+prevent wasted e and stil get value, making too many is a common trap for new players. On solar maps, eat the solar
+instead. lower BP, lower opertunity cost"**. On the solar collector: **"when e stalling this is generally the answer,
+but on most maps not what you want to use to scale e into the mid or late game. lowest build power cost per e, so good
+if you are floating metal and cannot pay the e cost for more BP. Can also eat and build without loss, a way to store
+metal. Can make many of these, then eat to fund first fusion."** On the advanced solar: **"if playing on a solar map
+and planning on air or T2, if you already have an e store you can make these rather that solar to scale if you are
+exessing e. A better investment in that case than an e converter. Doing this is one of the reasons to make an e
+store."** On the tidal generator: **"considered good when tidal is ~10 higher than wind."**
+
+<!--meta
+id: L-sheet-raids
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+status: live
+-->
+On the Blitz: **"some of the best raiding in the game, 2 can beat an LLT with flanking damage, making stopping them
+require units and enough radar to see them coming. Or many more LLTs, which slows expantion. Can also beat grunts and
+pawns per cost if you can get close."** On the Rover: **"building a few throughout the game to check if the oponent
+has mexes without LLT cover is a good investment if you have the amp to control them."** On the light mine: **"good vs
+basic bots med mines are better for veh"**; the medium mine: **"most common choice, many players do not use these
+because of the AMP it takes. place them where you expect oposing light and med tanks to drive"** and **"Mine use might
+be a palce where an AI has an edge over a human player due to being faster"**; the heavy mine: **"good vs T2 and med
+tanks, too costly to cover the map, but good for spots you expect the oponent to move through."**
+
+<!--meta
+id: L-sheet-fighting
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+status: live
+-->
+On the Rocketeer: **"with good micro 15 rockets can beat 15 thugs. Rocketeers are good vs LLTs. Thug/Mace have better
+stats per cost though. It is just the little bit of extra range that makes the rockets with with strong micro."** On
+the Shellshocker: **"you almost never want more than 1 to 3 of these. most players never build them in 1v1. They have
+some use in 8v8, or on maps with a choke point. The shot takes too long to land so will miss vs units."** On the Tick:
+**"These can also be used for vision late game. It may also cost less to absorbe a high single target damage shot with
+a tick vs having the same shot hit a stronger unit. These become critical to T2 and T3 artillary battles. Important
+enough some players make Janus just to fight the ticks."** On the Gauntlet: **"very rare unit, good for any place you
+need to hold, where the oponent is making 3+ ACLTs"**. On the Harpoon (torpedo launcher): **"lower range than
+destroyers, this is best used to slow an oponent rather then stop them. Units are stronger vs static in the sea than
+on land due to this range difference."**
+
+<!--meta
+id: L-sheet-surprises
+layer: lesson
+sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+status: live
+-->
+On the Banshee: **"when loseing a game, rather than try and recover by matching a stronger oponent, making 8+ banshee
+and sniping the oposing com is a strong option if suprise can be maintained. A com cannot build aa fast enough to stop
+8 banshees if you shoot the aa that is building then refocus the com each time. might even work with as few as 6, but
+15 starts to be a pretty safe way win a otherwise lost game."** On the Twilight (the tier-1 extractor that
+self-destructs with a stun): **"a well timed Twilight self destruct can turn the tide of a game if you stun one of the
+first few oposing armies, giving you a chance to counter attack unblocked, or attack the frozen amy"**.
+
 ### Said by less experienced players
 
 Lobby ratings 19 to 25, or unknown: worth hearing, weighed below the lines above.

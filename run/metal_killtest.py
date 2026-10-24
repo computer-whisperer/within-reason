@@ -33,6 +33,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       (the report's "wrecks:" line in the first strategist file: turns, the largest field, how many were marked not
       safe), and income above the extractors' yield by minute (the cache's exact seat income less the extractor
       proxy: reclaim, conversion and the commander's own 2).
+  run/metal_killtest.py reach <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--side-cache run/data/reach_killtest.jsonl] [--workers 4]
+      Reach and the nest (docs/briefs/derived/reach.md): every engagement of the model-played 1v1s as
+      run/analyze_match.py --json finds them, the record's first sight of his advanced factory, our first radar and
+      the scouts built, kept per game in the side cache; then the odds model (does the metal on the spot five seconds
+      before the first death, a turret counted at k times its metal, call who lost less soldier metal?), our assaults
+      on his posts (his turrets 1,000+ on the spot, our soldiers 500+, his side: the exchange, the posts that fell,
+      the disasters and what stood behind them), and the sight clocks.
 
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
@@ -842,6 +849,157 @@ def reclaim(caches, min_minutes):
         print(f"  minutes with more than 6 a second above the extractors' yield: {hot} of {minutes} ({100 * hot / max(minutes, 1):.0f}%)")
 
 
+
+# ---- reach and the nest (docs/briefs/derived/reach.md)
+HERE = os.path.dirname(os.path.abspath(__file__))
+UNITS_JSON = os.path.join(os.path.dirname(HERE), "crates", "bot", "data", "units.json")
+RADARS = {"armrad", "corrad", "legrad"}
+SCOUTS = {"armfav", "corfav", "legfav", "armflea"}
+SIGHT_EV_RE = re.compile(r'"k":"(finished|enemy_seen|created)"')
+TURRET_NAMES = {"armllt", "armbeamer", "armhlt", "armguard", "armclaw", "corllt", "corhllt", "corhlt", "corpun", "cormaw", "corexp", "armanni", "cordoom", "armpb", "corvipe", "armdl", "cordl"}
+NOT_SOLDIER = ("extractor", "turret", "collector", "factory", "radar", "storage", "converter", "constructor", "commander", "construction", "generator", "jammer", "camera", "mine", "silo", "anti-nuke", "wall", "lab", "plant", "nano", "fusion", "geothermal", "tower", "launcher", "platform", "gantry", "complex", "shield", "pinpointer", "sonar", "gun", "battery", "cannon", "assist", "resurrection", "decoy")
+
+
+def reach_one(r):
+    """One game: analyze_match's engagements (a subprocess, so a hung archive file costs one game, not the run), our
+    first radar, the first sight of his advanced factory, the scouts built."""
+    key = r["dir"]
+    d = where(key)
+    eng = None
+    try:
+        p = subprocess.run(["timeout", "600", sys.executable, os.path.join(HERE, "analyze_match.py"), d, "--json"], capture_output=True, text=True)
+        if p.returncode == 0 and p.stdout.strip():
+            eng = json.loads(p.stdout)["engagements"]
+    except Exception:
+        eng = None
+    radar = lab_seen = None
+    scouts = 0
+    records = sorted(glob.glob(d + "/record-*.jsonl"))
+    text = read_text(records[0]) if records else None
+    if text:
+        lines = iter(text.splitlines(True))
+        try:
+            defs = json.loads(next(lines))["unit_defs"]
+        except (ValueError, KeyError, StopIteration):
+            defs = []
+        for line in lines:
+            if '"t":"ev"' not in line or not SIGHT_EV_RE.search(line):
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            idx = ev.get("d")
+            name = defs[idx]["name"] if isinstance(idx, int) and 0 <= idx < len(defs) else None
+            k = ev.get("k")
+            if k == "finished" and radar is None and name in RADARS:
+                radar = ev["f"]
+            elif k == "created" and name in SCOUTS:
+                scouts += 1
+            elif k == "enemy_seen" and lab_seen is None and name in ADVANCED_PLANTS:
+                lab_seen = ev["f"]
+    return {"dir": key, "label": r.get("label"), "outcome": r["outcome"], "minutes": r["minutes"], "bonus": r.get("enemy_bonus") or 0,
+            "opponent": r.get("opponent"), "engagements": eng, "radar": radar, "scouts": scouts, "his_lab_seen": lab_seen}
+
+
+def reach(caches, side_cache, min_minutes, workers):
+    from concurrent.futures import ThreadPoolExecutor
+    rows = [r for r in load(caches) if r["minutes"] >= min_minutes and population(r) == "1v1 model"]
+    done = {}
+    if os.path.exists(side_cache):
+        with open(side_cache) as f:
+            for line in f:
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue
+                if j.get("engagements") is not None:
+                    done[j["dir"]] = j
+    todo = [r for r in rows if r["dir"] not in done]
+    if todo:
+        print(f"reading {len(todo)} games ({len(done)} in the side cache)", file=sys.stderr)
+        with ThreadPoolExecutor(workers) as ex, open(side_cache, "a") as out:
+            for res in ex.map(reach_one, todo):
+                out.write(json.dumps(res) + "\n")
+                out.flush()
+                done[res["dir"]] = res
+    games = [done[r["dir"]] for r in rows if r["dir"] in done]
+    placed = {}  # his advanced factory's placement, from the tier-2 side cache when it exists
+    tier2_cache = os.path.join(os.path.dirname(HERE), "run", "data", "tier2_killtest.jsonl")
+    if os.path.exists(tier2_cache):
+        with open(tier2_cache) as f:
+            for line in f:
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue
+                if "skip" not in j:
+                    placed[j["dir"]] = j["his"]["seen"]
+    defs = {}
+    try:
+        data = json.load(open(UNITS_JSON))
+        units = data if isinstance(data, list) else data.get("units", data)
+        defs = {u["name"]: u for u in units} if isinstance(units, list) else units
+    except Exception:
+        pass
+    metal_of = lambda n: (defs.get(n) or {}).get("metal") or 0
+    soldier = lambda n: bool((defs.get(n) or {}).get("class")) and not any(b in defs[n]["class"] for b in NOT_SOLDIER)
+    eng = []
+    for g in games:
+        for e in g["engagements"] or []:
+            e["army_lost"] = {s: sum(metal_of(k) * v for k, v in e["lost"][s].items() if soldier(k)) for s in ("ours", "theirs")}
+            eng.append(e)
+    print(f"== {len(games)} model-played 1v1s of {min_minutes} minutes or more, {len(eng)} engagements")
+    fights = [e for e in eng if e["present_before"]["our_fighter_value"] >= 300 and e["present_before"]["their_fighter_value"] >= 300 and e["army_lost"]["ours"] + e["army_lost"]["theirs"] >= 300]
+    print(f"\nthe odds model: {len(fights)} fights with 300+ of soldiers on each side five seconds before the first death and 300+ of soldier metal lost; the commander counted 400")
+    for k in (0, 1, 2, 3, 4):
+        right = n = r2 = n2 = 0
+        for e in fights:
+            p = e["present_before"]
+            wo = p["our_fighter_value"] + k * p["our_turret_value"] + (400 if p["our_commander_present"] else 0)
+            wt = p["their_fighter_value"] + k * p["their_turret_value"] + (400 if p["their_commander_present"] else 0)
+            lo, lt = e["army_lost"]["ours"], e["army_lost"]["theirs"]
+            if wo == wt or lo == lt or min(wo, wt) <= 0:
+                continue
+            n += 1
+            right += (wo > wt) == (lo < lt)
+            if max(wo, wt) / min(wo, wt) >= 2:
+                n2 += 1
+                r2 += (wo > wt) == (lo < lt)
+        print(f"  a turret at {k}x its metal: the heavier side lost less soldier metal in {right} of {n} ({100 * right / max(n, 1):.0f}%); beyond two to one {r2} of {n2} ({100 * r2 / max(n2, 1):.0f}%)")
+    bins, share = Counter(), Counter()
+    for e in fights:
+        p = e["present_before"]
+        wo = p["our_fighter_value"] + p["our_turret_value"] + (400 if p["our_commander_present"] else 0)
+        wt = p["their_fighter_value"] + p["their_turret_value"] + (400 if p["their_commander_present"] else 0)
+        ratio = wo / max(wt, 1)
+        b = "ours 2x+" if ratio >= 2 else ("ours 1.3-2x" if ratio >= 1.3 else ("level" if ratio > 0.77 else ("his 1.3-2x" if ratio > 0.5 else "his 2x+")))
+        bins[b] += 1
+        share[b] += e["army_lost"]["ours"] / (e["army_lost"]["ours"] + e["army_lost"]["theirs"])
+    print("  our share of the soldier metal lost by the weight on the spot (turret 1x): " + "; ".join(f"{b} {share[b] / bins[b]:.0%} ({bins[b]})" for b in ("ours 2x+", "ours 1.3-2x", "level", "his 1.3-2x", "his 2x+") if bins[b]))
+    print("  by where: " + "; ".join(f"{w} {sum(e['army_lost']['ours'] / (e['army_lost']['ours'] + e['army_lost']['theirs']) for e in fights if e['where'] == w) / max(1, sum(1 for e in fights if e['where'] == w)):.0%} ({sum(1 for e in fights if e['where'] == w)})" for w in ("at our base", "in our half", "in their half", "at their base")))
+    posts = [e for e in eng if e["present_before"]["their_turret_value"] >= 1000 and e["present_before"]["our_fighter_value"] >= 500 and e["where"] in ("in their half", "at their base")]
+    lo, lt = sum(e["value_lost"]["ours"] for e in posts), sum(e["value_lost"]["theirs"] for e in posts)
+    fell = lambda e: sum(v for k, v in e["lost"]["theirs"].items() if k in TURRET_NAMES) >= max(1, e["present_before"]["their_turrets"] // 2)
+    print(f"\nour assaults on his posts (his turrets 1,000+ on the spot, our soldiers 500+, his side): {len(posts)} in {len(set(id(g) for g in games for e in g['engagements'] or [] if e in posts))} games; we lost {lo}, he lost {lt} (exchange {lt / max(lo, 1):.2f}); the post lost half its turrets in {sum(1 for e in posts if fell(e))}")
+    for lab, cond in (("his soldiers 500+ behind the turrets", lambda e: e["present_before"]["their_fighter_value"] >= 500), ("no soldiers of his there", lambda e: e["present_before"]["their_fighter_value"] < 500), ("our body spread under 150", lambda e: e["present_before"]["our_fighters_spread"] < 150), ("spread 150 to 300", lambda e: 150 <= e["present_before"]["our_fighters_spread"] < 300), ("spread 300+", lambda e: e["present_before"]["our_fighters_spread"] >= 300)):
+        ss = [e for e in posts if cond(e)]
+        if ss:
+            print(f"  {lab}: {len(ss)}, exchange {sum(e['value_lost']['theirs'] for e in ss) / max(1, sum(e['value_lost']['ours'] for e in ss)):.2f}")
+    dis = [e for e in posts if e["value_lost"]["ours"] >= 2000 and e["value_lost"]["theirs"] < e["value_lost"]["ours"] / 2]
+    gauntlet = lambda e: "armguard" in e["killers_of_ours"] or "corpun" in e["killers_of_ours"] or "armguard" in e["lost"]["theirs"] or "corpun" in e["lost"]["theirs"]
+    print(f"  the disasters (we lost 2,000+ and twice what he lost): {len(dis)}, {sum(e['value_lost']['ours'] for e in dis)} of the assaults' {lo}; his soldiers 500+ there in {sum(1 for e in dis if e['present_before']['their_fighter_value'] >= 500)}, his commander in {sum(1 for e in dis if e['present_before']['their_commander_present'])}, a Gauntlet fired or died in {sum(1 for e in dis if gauntlet(e))}")
+    print("  what he lost in the assaults (top): " + ", ".join(f"{k} {v}" for k, v in sum((Counter(e["lost"]["theirs"]) for e in posts), Counter()).most_common(8)))
+    killers = sum((Counter(e["killers_of_ours"]) for e in eng), Counter())
+    total = sum(killers.values())
+    print("  killers of ours, every engagement (attributed): " + ", ".join(f"{k} {100 * v / max(total, 1):.0f}%" for k, v in killers.most_common(8)))
+    seen = [g for g in games if placed.get(g["dir"]) is not None]
+    ever = [g for g in seen if g["his_lab_seen"] is not None]
+    print(f"\nsight: his advanced factory was placed in {len(seen)} games and entered our picture in {len(ever)}, {quart([(g['his_lab_seen'] - placed[g['dir']]) / (60 * FPS) for g in ever], '{:.1f}')} min after placement; in won games {sum(1 for g in ever if g['outcome'] == 'Win')} of {sum(1 for g in seen if g['outcome'] == 'Win')}, in lost {sum(1 for g in ever if g['outcome'] != 'Win')} of {sum(1 for g in seen if g['outcome'] != 'Win')}")
+    radar = [g["radar"] / (60 * FPS) for g in games if g["radar"] is not None]
+    print(f"  our first radar stood in {len(radar)} of {len(games)} games at {quart(radar, '{:.1f}')} min, by 3:00 in {sum(1 for x in radar if x <= 3)}; scouts built a game {quart([g['scouts'] for g in games])}, none in {sum(1 for g in games if g['scouts'] == 0)}")
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -849,7 +1007,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -866,6 +1024,8 @@ def main():
         tier2(positional, opt("--side-cache", "run/data/tier2_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int))
     elif cmd == "reclaim":
         reclaim(positional, opt("--min-minutes", 14, int))
+    elif cmd == "reach":
+        reach(positional, opt("--side-cache", "run/data/reach_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 4, int))
     else:
         pool_windows(opt("--min-os", 0.0), opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
 

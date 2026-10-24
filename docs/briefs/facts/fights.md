@@ -107,7 +107,7 @@ Juno, mines and crawling bombs do not, and hurt their own side's units in the bl
 <!--meta
 id: F-fight-sight
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Misc/LosHandler.cpp:83-162, upstream/RecoilEngine/rts/Sim/Misc/LosMap.cpp:16, 545, 654, upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:480-491, upstream/RecoilEngine/rts/Sim/Misc/LosHandler.h:273-283, 324-325 (radar error 96, factor 2), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:131, 1494-1504, 2314, 2331 (targfac), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:492 (isTargetingUpgrade), upstream/Beyond-All-Reason/units/ArmBuildings/LandUtil/armtarg.lua, CorBuildings/LandUtil/cortarg.lua, Legion/Utilities/legtarg.lua (the Pinpointers; the user pointed to them 2026-10-22 after a grep for the engine's internal name missed the Lua key)], game: 54199a0d, claims: [K-mech-under-the-water-is-sonar-and-torpedoes]}
+sources: {code: [upstream/Beyond-All-Reason/units/ArmBuildings/LandUtil/armrad.lua, armarad.lua, CorBuildings/LandUtil/corrad.lua, upstream/Beyond-All-Reason/units/armcom.lua, corcom.lua (radardistance, sightdistance), upstream/RecoilEngine/rts/Sim/Misc/LosHandler.cpp:83-162, upstream/RecoilEngine/rts/Sim/Misc/LosMap.cpp:16, 545, 654, upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:480-491, upstream/RecoilEngine/rts/Sim/Misc/LosHandler.h:273-283, 324-325 (radar error 96, factor 2), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:131, 1494-1504, 2314, 2331 (targfac), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:492 (isTargetingUpgrade), upstream/Beyond-All-Reason/units/ArmBuildings/LandUtil/armtarg.lua, CorBuildings/LandUtil/cortarg.lua, Legion/Utilities/legtarg.lua (the Pinpointers; the user pointed to them 2026-10-22 after a grep for the engine's internal name missed the Lua key)], game: 54199a0d, claims: [K-mech-under-the-water-is-sonar-and-torpedoes]}
 status: live
 -->
 ### Sight, radar, sonar
@@ -120,7 +120,10 @@ whose position is blurred by a random offset of up to 96 elmos. Each powered Pin
 metal and 7,200 energy, 100 energy a second to run, anywhere on the map) halves that offset for the whole side: one
 makes it 48, two 24. Jammers hide what is within their circle from radar; stealth units never show on radar; under water a unit is
 seen by sonar alone, in a plain circle, and is hit only by torpedoes and by weapons made for water, the commander's
-sea laser among them.
+sea laser among them. The distances: the radar tower (60 metal) sees 2,100 by radar and 680 by sight, the advanced
+radar tower (400) 3,500 and 1,000, the commander 700 by radar and 450 by sight; the unit tables carry every unit's
+sight (a scout car 635, a Blitz and a Stout 350, the light laser tower 494, the Gauntlet 455, whose gun reaches 1,220:
+it fires on what radar shows it).
 
 <!--meta
 id: F-fight-ground

@@ -187,8 +187,14 @@ per-role manifests (BARb and Apex for the arena, the people for lobby games) and
 Each meta document went to a skeptical Opus reader after it was written; their findings are applied in the commit after
 the first. Derivations written: `derived/metal.md` and `derived/lead.md` (2026-10-22) and `derived/tier2.md`
 (2026-10-23, D-tier2-sprint, with its kill-test `run/metal_killtest.py tier2`; drafted on the user's steer of that
-evening that the derivations stay lean, ideas with worked arithmetic rather than rules, and kept out of the manifest
-until he has read it). No episode document exists yet (the episode sweep's rows are written:
+evening that the derivations stay lean, ideas with worked arithmetic rather than rules; in the manifest since he read
+it the same evening) and `derived/reach.md` (2026-10-23 night, D-reach-nests, with `run/metal_killtest.py reach` over
+every engagement of the model-played games: the old odds model retired, the spot's metal calling the soldier
+exchange in 48 to 60 percent of 3,296 fights; our 729 assaults on his posts traded 1.4 to one; his advanced factory
+in our picture in 8 percent of the lost games; kept out of the manifest until he has read it). The reclaim
+arithmetic went into tier2.md, metal.md and lead.md the same evening (`run/metal_killtest.py reclaim`: an area
+reclaim ordered in 22 of 236 model-played games), and thebluegecko's 24 unit-sheet rows into lessons.md verbatim
+(L-sheet-*). No episode document exists yet (the episode sweep's rows are written:
 docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),
