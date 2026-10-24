@@ -376,3 +376,11 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
   so the relaxation costs one transient of three quarters of the energy storage, not a steady-state error. The
   verifier measures it.
+- 2026-10-24: the energy margin. The reserve (a share of the energy storage in stock) does not keep the hands out
+  of a stall: storage is eight seconds of the mid-game's usage, and the hands' overshoot is a flow, whole units
+  started where the plan runs fractions (terr38, `reserve=0.5`: every game stalled as before). A new row from the
+  second bucket, (1 + margin) times the build draw at most the bucket's production with the converters on what is
+  left (`energy_margin`, `emargin=0.25` the bot's default, `--energy-margin` on the CLI, 0 for the ceiling): the
+  plan buys its energy a quarter ahead of its draw and the hands' overshoot lives in the quarter. terr42: 133 /
+  142 / 193 / 124 at 10:00 against 131 / 137 / 174 / 75 with the hands' stall rules alone and 112 / 110 / 95 / 112
+  before them; 20:00 unchanged, about 750.

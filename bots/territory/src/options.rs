@@ -8,6 +8,8 @@ pub(crate) struct Options {
     pub terminal: f64,
     /// The share of the energy storage the program keeps in stock, and the hands' energy budget counts from.
     pub energy_reserve: f64,
+    /// The program's energy margin: production over the build draw, as a share of the draw (`buildorder::lp`).
+    pub energy_margin: f64,
     /// Wall for a re-plan beside the game, and for the first plan on the engine thread.
     pub budget_ms: u64,
     pub first_budget_ms: u64,
@@ -53,6 +55,7 @@ impl Default for Options {
             end: 1200.0,
             terminal: 0.0,
             energy_reserve: 0.2,
+            energy_margin: 0.25,
             budget_ms: 400,
             first_budget_ms: 1000,
             threads: 4,
@@ -95,6 +98,7 @@ impl Options {
                 "end" => options.end = value.parse().unwrap_or(options.end),
                 "terminal" => options.terminal = value.parse().unwrap_or(options.terminal),
                 "reserve" => options.energy_reserve = value.parse().unwrap_or(options.energy_reserve),
+                "emargin" => options.energy_margin = value.parse().unwrap_or(options.energy_margin),
                 "budget" => options.budget_ms = value.parse().unwrap_or(options.budget_ms),
                 "first" => options.first_budget_ms = value.parse().unwrap_or(options.first_budget_ms),
                 "threads" => options.threads = value.parse().unwrap_or(options.threads),
@@ -129,8 +133,8 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
-            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.factories, self.constructors,
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, assist={:.0}, walk={:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}",
+            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.factories, self.constructors,
             self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.assist_factor, self.walk_extractor, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead
         )
     }

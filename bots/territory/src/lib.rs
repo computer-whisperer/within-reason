@@ -171,6 +171,7 @@ impl Territory {
             max_factories: o.factories as f64,
             terminal: o.terminal,
             energy_reserve: o.energy_reserve,
+            energy_margin: o.energy_margin,
             assist_factor: o.assist_factor,
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,

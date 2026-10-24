@@ -105,3 +105,22 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   cross with forty queues), while the ceiling sits within a tenth of the flagship. The two gaps as decision 7 meant
   them: the model error is small; the search regret is the gap. Next: a chain-seeded restart beside the warm start
   (`Palette::chain_seed`), or a longer search at a lower cadence; then the tier-2 hands calibration.
+- 2026-10-24, in the `territory` worktree (the user: continue iterating; first get it running and verify the
+  worktree layout): terr37, terr36's code as a control, 811 / 724 / 691 / 779 at 20:00 against 691 / 695 / 729 /
+  693, nothing broken, and the two batches put one batch's 20:00 noise at about ±60. Then the mid-game, read from
+  the energy curve: every game of every batch stalled on energy two to five minutes between 5:00 and 11:00, the
+  extractors' output a quarter down and every build at half speed through it, half the constructors on advanced
+  solars of 5,000 energy. The program's reserve was not the lever (terr38, half the storage: no change; a reserve
+  is a stock and the hands' overshoot is a flow). The budget was: it credited every frame as finishing inside the
+  window at full speed, and in a stall the frames crawl (terr39: the credit at the stall share, half the games
+  fixed; terr40: one budget in a stall, since a producer's own net read ninety seconds of income as free; terr41:
+  no credit at all in a stall). terr41: 131 / 137 / 174 / 75 at 10:00 against terr37's 112 / 110 / 95 / 112. Then
+  the program's energy margin (production a quarter over the build draw from the second bucket, `emargin`,
+  terr42): the first batch whose worst game at 10:00 is above 120 (133 / 142 / 193 / 124), 20:00 unchanged at
+  about 750 (the late bank, 30,000-39,000 unspent, is what stands between 750 and the flagship's 802 now, and
+  between that and the ceiling's 1,650). Crediting the production of energy frames about to stand cut the
+  refusals (terr43: 34-47 a game against 84-202) and let the stalls back in (terr43, terr44: the frames taken at
+  full speed while the metal stood at zero), so it is out again and the frames' realized pace is the next step for
+  both credits; a guard on a factory's exit lane moves aside first (terr43 game 01: the plant blocked from 7:06 to
+  11:42, 526 at 20:00; terr44: no factory order held). The `ordered:` line names the
+  dispatch rule behind every order, which is how each of these was read within a minute of the batch.

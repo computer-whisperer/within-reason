@@ -137,6 +137,16 @@ enum Review {
     Failed(&'static str),
 }
 
+/// A frame under way, as the energy budget reads it (T-ENERGY).
+struct FrameDraw {
+    /// A producer's or a factory's frame (the producers' budget counts these alone).
+    own: bool,
+    /// Energy a second its builders draw on it at full speed.
+    rate: f64,
+    /// Energy left to pay on it.
+    left: f64,
+}
+
 /// A queue index meaning "no queue in the plan": a constructor past the plan's queues takes the nearest free spot.
 const NO_QUEUE: usize = usize::MAX;
 
@@ -160,8 +170,8 @@ pub(crate) struct Hands {
     pub type_refused: BTreeMap<usize, i32>,
     /// The frames of the "no site" drops of each type within the window (NO_SITE_STRIKES).
     pub no_site: BTreeMap<usize, Vec<i32>>,
-    /// Build orders given since the last log line, by type.
-    pub ordered: BTreeMap<usize, usize>,
+    /// Build orders given since the last log line, by type and the dispatch rule that gave them.
+    pub ordered: BTreeMap<(usize, &'static str), usize>,
     pub nano_told: BTreeMap<UnitId, i32>,
     /// Per builder, the frames it has begun (frame, unit): what a plan searched from an older snapshot has to skip.
     pub begun_log: BTreeMap<UnitId, Vec<(i32, usize)>>,
@@ -207,6 +217,12 @@ impl Default for Hands {
             energy_refused_by: BTreeMap::new(),
         }
     }
+}
+
+/// A factory's exit lane: the strip its products leave by, 400 out from its centre the way it faces, 120 to each side.
+fn exit_lane(plant: &OwnUnit) -> Lane {
+    let (dx, dz) = [(0.0, 1.0), (1.0, 0.0), (0.0, -1.0), (-1.0, 0.0)][plant.facing.rem_euclid(4) as usize];
+    Lane { from: plant.pos, to: Vec3 { x: plant.pos.x + dx * 400.0, y: plant.pos.y, z: plant.pos.z + dz * 400.0 }, half_width: 120.0 }
 }
 
 /// The simulator's `base_site`: a golden-angle spiral around home.
@@ -445,7 +461,7 @@ impl Territory {
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(u, _)| u)
         });
-        if let Some(u) = class_pick && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands) {
+        if let Some(u) = class_pick && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, if commit.is_some() { "commit" } else { "class" }, commands) {
             return;
         }
         if role == Role::Factory {
@@ -470,7 +486,7 @@ impl Territory {
             return;
         }
         // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them.
-        if self.in_stall() && self.energy_class(id, unit, role, ahead, commands) {
+        if self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
             return;
         }
         // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
@@ -526,7 +542,7 @@ impl Territory {
                         Class::Ring(k) => Some(k),
                         _ => None,
                     };
-                    if self.order_one(id, unit, role, u, cost, ring, commands) {
+                    if self.order_one(id, unit, role, u, cost, ring, "flows", commands) {
                         return;
                     }
                 }
@@ -545,10 +561,12 @@ impl Territory {
                         continue;
                     }
                     // Its own product inside its yard is on or beside the pad (the advanced vehicle plant's pad lies
-                    // past 100 from its centre: terr32 game 01, three orders held two minutes each); the commander and
-                    // the rest guard from where they stand.
+                    // past 100 from its centre: terr32 game 01, three orders held two minutes each), and any guard on
+                    // the exit lane stands where the products must leave (terr43 game 01: the plant's first product
+                    // stood finished on the pad from 7:06 to 11:42 behind the lab's constructors guarding from the
+                    // exit, the plant's orders dropped as held twice); the rest guard from where they stand.
                     let own_product = |f: &OwnUnit| self.unit_index(f.def).is_some_and(|fi| self.game().units.list[fi].builds.contains(&unit));
-                    if let Some(f) = self.own.get(&factory) && own_product(f) && builder.pos.dist2d(f.pos) < FACTORY_YARD {
+                    if let Some(f) = self.own.get(&factory) && ((own_product(f) && builder.pos.dist2d(f.pos) < FACTORY_YARD) || exit_lane(f).contains(builder.pos)) {
                         let to = self.beside_factory(f.pos, id);
                         commands.push(Command::Move { unit: id, to, queue: false });
                         self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + PAD_CLEAR }, given: self.frame, told: self.frame, arrived: None, step: None });
@@ -563,7 +581,7 @@ impl Territory {
                 }
             }
         }
-        if self.energy_class(id, unit, role, ahead, commands) {
+        if self.energy_class(id, unit, role, ahead, "energy", commands) {
             return;
         }
         // No credit: the largest count shortfall of a type it builds, in build-power-seconds; then the dearest frame.
@@ -576,7 +594,7 @@ impl Territory {
                 .max_by(|a, b| (a.1 * units.list[a.0].build_time).total_cmp(&(b.1 * units.list[b.0].build_time)))
                 .map(|(u, _)| *u)
         };
-        if let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands) {
+        if let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, "count", commands) {
             return;
         }
         // T-ENERGY: in a stall the help goes to the energy frame that finishes soonest with this builder on it, else
@@ -607,23 +625,29 @@ impl Territory {
         let units = &self.game().units;
         let e = &self.energy;
         let w = AFFORD_SECONDS;
+        // In a stall there is one budget: a producer's net counts only its own kind's draw, and with the stock at
+        // zero the consumers take the whole income, so ninety seconds of it read as free (terr39 game 03, 8:00:
+        // the stock at zero, the usage the income, a producers' budget of 28,890, and the stall class itself put
+        // six advanced solars of 4,000 energy on it; the stall ran from 8:00 to 10:00).
+        let producer = producer && !self.in_stall();
         // The frames in the budget's own class: every frame for the consumers, the producers' and factories' own
         // for them. Their draw now, and what of it is credited back because the frame finishes inside the window.
-        let (drawing, finishing) = self
-            .own
-            .values()
-            .filter(|u| u.being_built)
-            .filter_map(|u| {
-                let i = self.unit_index(u.def)?;
-                let def = &units.list[i];
-                if producer && !(self.is_energy(i) || def.role == Role::Factory) {
-                    return None;
-                }
-                let rate = self.power_on(u.id) * def.energy_cost / def.build_time.max(1.0);
-                let left = def.energy_cost * (1.0 - (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
-                Some((rate, (rate * w - left).max(0.0)))
-            })
-            .fold((0.0, 0.0), |(d, f), (rate, fin)| (d + rate, f + fin));
+        // Nothing is credited in a stall: there the income is the whole draw whatever the frames ask, a frame that
+        // finishes frees nothing (the others speed up to take it), and a new frame only slows them all. Credited
+        // at full speed, fifteen advanced solar frames read as 33,000 of budget with the stock at one and every
+        // advanced solar fitted (terr37-lp-nullai-comet-1 game 00, 7:00-10:00); credited at the stall share of
+        // their draw, twenty-two frames still read as 16,000 and eleven more were started (terr40 game 00, 8:00).
+        // Not credited either: the production of energy frames about to stand. The budget reads the minute's income
+        // and not the fusions a minute from standing, and once refused 370 orders in a minute as two stood (terr41
+        // game 01, 12:00-13:00); credited at the frames' full-speed pace it let the stalls back in (terr43, terr44:
+        // the metal at zero in those minutes slows the frames too). The frames' realized pace is the honest rate,
+        // and the next step.
+        let frames = self.frames_draw();
+        let stalled = self.in_stall();
+        let (drawing, finishing) = frames
+            .iter()
+            .filter(|f| !producer || f.own)
+            .fold((0.0, 0.0), |(d, fin), f| (d + f.rate, fin + if stalled { 0.0 } else { (f.rate * w - f.left).max(0.0) }));
         let pending: f64 = self
             .hands
             .orders
@@ -645,21 +669,53 @@ impl Territory {
         (e.current as f64 - self.options.energy_reserve * e.storage as f64) + w * net + finishing - pending
     }
 
-    /// The budget line for the log: the consumers' and the producers' budgets, and the refusals by type since the
-    /// last line.
+    /// Every frame under way: whether it is a producer's or a factory's, its energy draw a second at full speed
+    /// with the power standing on it, and the energy left to pay on it.
+    fn frames_draw(&self) -> Vec<FrameDraw> {
+        let units = &self.game().units;
+        self.own
+            .values()
+            .filter(|u| u.being_built)
+            .filter_map(|u| {
+                let i = self.unit_index(u.def)?;
+                let def = &units.list[i];
+                let rate = self.power_on(u.id) * def.energy_cost / def.build_time.max(1.0);
+                let left = def.energy_cost * (1.0 - (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
+                Some(FrameDraw { own: self.is_energy(i) || def.role == Role::Factory, rate, left })
+            })
+            .collect()
+    }
+
+    /// The share of their draw the frames run at: one while the stock is above the stall line, else what the
+    /// engine's usage is of the draw they ask for (the engine shares a stall over every build alike).
+    fn stall_share(&self, frames: &[FrameDraw]) -> f64 {
+        let asked: f64 = frames.iter().map(|f| f.rate).sum();
+        if !self.in_stall() || asked <= 0.0 { 1.0 } else { (self.energy.usage as f64 / asked).min(1.0) }
+    }
+
+    /// The budget line for the log: the consumers' and the producers' budgets, the stall share, and the refusals
+    /// by type since the last line.
     pub(crate) fn energy_line(&mut self) -> String {
         let units = &self.game().units;
         let refused: Vec<String> = self.hands.energy_refused_by.iter().map(|(u, n)| format!("{}:{n}", units.list[*u].name)).collect();
         self.hands.energy_refused_by.clear();
-        format!("budget {:.0}/{:.0} refused {}", self.energy_budget(false), self.energy_budget(true), if refused.is_empty() { "-".to_string() } else { refused.join(" ") })
+        let share = self.stall_share(&self.frames_draw());
+        format!("budget {:.0}/{:.0} share {share:.2} refused {}", self.energy_budget(false), self.energy_budget(true), if refused.is_empty() { "-".to_string() } else { refused.join(" ") })
     }
 
-    /// The build orders given since the last log line, by type, most first.
+    /// The build orders given since the last log line, by type, most first, with the rule that gave each (commit,
+    /// class, stall, flows, energy, count, free: T-DISPATCH's order).
     pub(crate) fn ordered_line(&mut self) -> String {
         let units = &self.game().units;
-        let mut ordered: Vec<(usize, usize)> = self.hands.ordered.iter().map(|(u, n)| (*u, *n)).collect();
+        let mut by_type: BTreeMap<usize, (usize, Vec<String>)> = BTreeMap::new();
+        for ((u, why), n) in &self.hands.ordered {
+            let e = by_type.entry(*u).or_default();
+            e.0 += n;
+            e.1.push(format!("{why}:{n}"));
+        }
+        let mut ordered: Vec<(usize, usize, Vec<String>)> = by_type.into_iter().map(|(u, (n, ways))| (u, n, ways)).collect();
         ordered.sort_by(|a, b| b.1.cmp(&a.1));
-        let line = if ordered.is_empty() { "-".to_string() } else { ordered.iter().map(|(u, n)| format!("{}:{n}", units.list[*u].name)).collect::<Vec<_>>().join(" ") };
+        let line = if ordered.is_empty() { "-".to_string() } else { ordered.iter().map(|(u, n, ways)| format!("{}:{n}({})", units.list[*u].name, ways.join(" "))).collect::<Vec<_>>().join(" ") };
         self.hands.ordered.clear();
         line
     }
@@ -787,7 +843,7 @@ impl Territory {
                 .max_by(|a, b| (units.list[*a].energy_make / units.list[*a].metal_cost.max(1.0)).total_cmp(&(units.list[*b].energy_make / units.list[*b].metal_cost.max(1.0))))
         };
         match pick {
-            Some(u) if role != Role::Factory => self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands),
+            Some(u) if role != Role::Factory => self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, "free", commands),
             _ => false,
         }
     }
@@ -801,7 +857,7 @@ impl Territory {
     /// backstop (terr19: read by every idle builder it put the first constructors on four advanced solars by 4:31;
     /// terr20: two orders by constructors alone left the energy at zero to 8:00). A whole unit's shortfall starts
     /// one (terr24: at half a unit, three solars where the plan wanted two).
-    fn energy_class(&mut self, id: UnitId, unit: usize, role: Role, ahead: f64, commands: &mut Vec<Command>) -> bool {
+    fn energy_class(&mut self, id: UnitId, unit: usize, role: Role, ahead: f64, why: &'static str, commands: &mut Vec<Command>) -> bool {
         let energy: Option<(usize, f64)> = {
             let units = &self.game().units;
             let def = &units.list[unit];
@@ -822,14 +878,14 @@ impl Territory {
                 .map(|u| (u, units.list[u].build_time))
         };
         match energy {
-            Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, None, commands),
+            Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, None, why, commands),
             _ => false,
         }
     }
 
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
     /// when the hands pass it over (not affordable, no site, the cap, a struck type).
-    fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, ring: Option<usize>, commands: &mut Vec<Command>) -> bool {
+    fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, ring: Option<usize>, why: &'static str, commands: &mut Vec<Command>) -> bool {
         if !self.affordable(u) || self.hands.type_refused.get(&u).is_some_and(|until| self.frame < *until) {
             return false;
         }
@@ -843,7 +899,7 @@ impl Territory {
         commands.push(command);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
         *self.hands.committed.entry((u, ring.map_or(Class::Whole, Class::Ring))).or_default() += cost;
-        *self.hands.ordered.entry(u).or_default() += 1;
+        *self.hands.ordered.entry((u, why)).or_default() += 1;
         true
     }
 
@@ -1285,13 +1341,7 @@ impl Territory {
         self.own
             .values()
             .filter(|u| self.role_of_def(u.def) == Some(Role::Factory))
-            .flat_map(|plant| {
-                let (dx, dz) = [(0.0, 1.0), (1.0, 0.0), (0.0, -1.0), (-1.0, 0.0)][plant.facing.rem_euclid(4) as usize];
-                [
-                    Lane { from: plant.pos, to: Vec3 { x: plant.pos.x + dx * 400.0, y: plant.pos.y, z: plant.pos.z + dz * 400.0 }, half_width: 120.0 },
-                    Lane { from: plant.pos, to: plant.pos, half_width: FACTORY_YARD },
-                ]
-            })
+            .flat_map(|plant| [exit_lane(plant), Lane { from: plant.pos, to: plant.pos, half_width: FACTORY_YARD }])
             .chain(pending)
             .collect()
     }

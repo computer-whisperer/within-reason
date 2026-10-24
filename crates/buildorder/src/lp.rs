@@ -42,6 +42,12 @@ pub struct LpOptions {
     /// stands): a plan that spends energy to the edge is a plan the hands' whole units cannot follow without a
     /// stall (terr25-lp-nullai-comet-1: energy at zero from 12:00 to 15:00 in three games of four).
     pub energy_reserve: f64,
+    /// Energy production a bucket must exceed the build draw by, as a share of the draw, from the second bucket
+    /// (converters take what is left): the hands start whole units where the plan runs fractions, and a plan whose
+    /// production is exactly its draw is one their overshoot stalls, or one the energy budget refuses at (terr40
+    /// game 01: the energy at its cap at 12:00 with the income the usage, and the plant's constructors refused
+    /// twenty times in the minute). The margin is the room the overshoot lives in.
+    pub energy_margin: f64,
     /// Build power mobile builders may put on factory products, as a multiple of the factories' own (the yard
     /// clears between units).
     pub assist_factor: f64,
@@ -102,6 +108,7 @@ impl Default for LpOptions {
             max_factories: 4.0,
             terminal: 0.0,
             energy_reserve: 0.2,
+            energy_margin: 0.0,
             assist_factor: 2.0,
             help_factor: 3.0,
             nanos_per_factory: 6.0,
@@ -723,6 +730,29 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         }
         b.push(slack - options.energy_reserve * base_energy_storage);
         row += 1;
+    }
+    // The energy margin: (1 + margin) sum ce x[p, t] + sum c[k, t] - dt sum er n[i, t] <= dt const_energy from the
+    // second bucket: the bucket's production covers its build draw with the margin to spare, the converters on
+    // what is left.
+    if options.energy_margin > 0.0 {
+        for t in 1..buckets {
+            for (p, pair) in pairs.iter().enumerate() {
+                if pair.energy_per_power != 0.0 {
+                    put(row, x_at(p, t), (1.0 + options.energy_margin) * pair.energy_per_power, &mut rows_i, &mut cols, &mut vals);
+                }
+            }
+            for k in 0..converters.len() {
+                put(row, c_at(k, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+            }
+            for i in 0..columns.len() {
+                let rate = energy_rate(i);
+                if rate != 0.0 {
+                    put(row, n_at(i, t), -dt_of(t) * rate, &mut rows_i, &mut cols, &mut vals);
+                }
+            }
+            b.push(dt_of(t) * const_energy);
+            row += 1;
+        }
     }
     // 6. Conversion: c[k, t] - dt cc n[k, t] <= 0.
     for (k, &i) in converters.iter().enumerate() {

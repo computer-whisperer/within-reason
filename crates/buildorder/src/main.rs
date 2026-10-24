@@ -21,7 +21,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
-  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--assist 2] [--help-factor 3]
+  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--assist 2] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
                        [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5] [--commander-reach 1500] [--rings 1] [--ring-overhead 5]
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--csv FILE]
@@ -303,6 +303,7 @@ fn linear_program(args: &Args) {
         max_factories: args.number("--max-factories", 4.0),
         terminal: args.number("--terminal", 0.0),
         energy_reserve: args.number("--energy-reserve", 0.2),
+        energy_margin: args.number("--energy-margin", 0.0),
         assist_factor: args.number("--assist", 2.0),
         help_factor: args.number("--help-factor", 3.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
