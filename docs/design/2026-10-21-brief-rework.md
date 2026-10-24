@@ -306,8 +306,9 @@ representativeness; eight of them still to beat) and the BARb findings of energy
 piece, the same night: `derived/surprise.md` (D-surprise-weapons: his nuke recording as the heuristic, the two clocks of
 the silo and the anti-nuke worked from the facts, 5.5 to 1 and 6.7 to 1 in metal with the interceptor reloading faster;
 BARb's anti-nuke clock, the +20 silo, the 8v8 AIs' 12-minute nuke and the people who never build one; the Banshee snipe
-in numbers, the Twilight's EMP blast from the game's explosion table; our two silo games as the tests), out of the
-manifest until read. The sheet's 24 rows audited against the derivations: all quoted in lessons.md; the vehicle plant,
+in numbers, the Twilight's EMP blast from the game's explosion table; our two silo games as the tests), read by the
+user the next morning ("good: admit it") and in the manifest after labs.md since 2026-10-24 (22 documents, the
+player's prompt 83,200 words, brief_check exit 0). The sheet's 24 rows audited against the derivations: all quoted in lessons.md; the vehicle plant,
 bot lab, air plant, Blitz, Rover and radar rows were already in labs.md, raids.md, reach.md and energy.md; the mines went
 into raids.md (consider item 7), the Rocketeer, Gauntlet and Tick rows into reach.md (consider item 6), the construction
 turret row's metal column against the recording's energy column into energy.md, the Banshee, Twilight and hovercraft

@@ -4,7 +4,7 @@ layer: derived
 premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-energy-second, F-fight-big-weapons, F-fight-sight, F-eco-build, F-eco-energy, F-unit-armsilo, F-unit-corsilo, F-unit-armamd, F-unit-corfmd, F-unit-armkam, F-unit-armfig, F-unit-armrl, F-unit-armap, F-unit-armcom, F-unit-armamex, F-unit-armhp, M-barb-hard-aggressive-comet, M-barb-bonus, M-barb-sparring, M-format-team-small, M-format-8v8, M-gecko-vs-us-comet]
 lessons: [L-gecko-nuke-surprise, L-sheet-surprises, L-sheet-labs, L-energy-converters, L-gecko-bots-vs-vehicles]
 sources: {people: [thebluegecko, the user], dates: [2026-10-09, 2026-10-23, 2026-10-24], relay: thebluegecko's recording on nukes (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the second recording) and his sheet rows on the Banshee, the Twilight and the hovercraft platform; our two silo games and the +20 ladder game from the ledger (docs/experiments.md: nuke-1-medium, nuke-2-hard, rework-ladder-20-1); the Twilight's blast from the game's Unit_Explosions.lua (empblast: radius 400, paralyzer, 15 seconds, 4,450)}
-status: draft, checked against the ledger and the facts; no kill-test tool of its own (the games are three)
+status: in the manifest since 2026-10-24 (the user read it and admitted it); checked against the ledger and the facts; no kill-test tool of its own (the games are three)
 -->
 ### Weapons of surprise
 
