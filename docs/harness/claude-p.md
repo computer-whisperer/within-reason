@@ -15,6 +15,10 @@ claude -p --model claude-opus-5 \
 ```
 (The probe used a toy server named `bar`; the bot's real server is named `wreason`, so its tools are `mcp__wreason__*`.)
 Run it from an empty directory. The init message confirmed: `tools = [mcp__bar__observe, mcp__bar__set_directive]` and nothing else.
+Every model call of ours that is not a coding session takes this shape, the one-shot ones too (`run/debrief.py` since
+2026-10-24): without `--setting-sources ""`, `--system-prompt` and the empty directory the model reads both CLAUDE.md
+files and the checkout and answers as a coding agent, tool calls written as text when it has no tools
+(docs/harness/pitfalls.md, 2026-10-23).
 - **Do NOT use `--bare`.** Its help text: auth is strictly `ANTHROPIC_API_KEY`; OAuth and keychain are never read — so it
   cannot run on the subscription. (A documentation agent recommended it; wrong for us.)
 - The Agent SDK needs an API key; the CLI under subscription login does not. CLI it is.

@@ -206,3 +206,18 @@ milliseconds. On 2026-10-22 nine `results.jsonl`, 35 records and 31 truth files 
 `run/metal_killtest.py extract` ran. Read archive files through `timeout` (the tool's `read_text`, `timeout 60 head -c N
 <file>`), skip and count a file that does not answer, and never loop over the archive with plain `open()` in a process
 you need back.
+
+## A `claude -p` from the checkout without its own system prompt answers as Claude Code (2026-10-23)
+
+`run/debrief.py` asked the player's debrief with `claude -p --tools ""` from the checkout under the default system
+prompt, so the model read both CLAUDE.md files and the repository as its working directory and took itself for a coding
+agent with no tools: five of nineteen entries in the rework live-edge store carried a tool call written as text ("I'll
+look at how previous debriefs in this repo are written ... `<invoke name="Bash">`", or a bare `ls` in a code fence,
+done in 5 to 7 s) and eleven a long document in a shape of its own, not the DECIDED / NEXT PLAYER / WISHED shape
+asked for; only three were in shape. The text passed as non-empty output into the inbox and the entry, and the next
+player of the series read it. Every model call that is not a coding session takes the launch docs/harness/claude-p.md
+verifies: `--setting-sources ""`, `--system-prompt` (or `--system-prompt-file`), `--tools ""`, `--strict-mcp-config`,
+and an empty working directory; and its answer is checked for a coding agent's leavings before anything downstream
+reads it. The shape asked for is another matter: under the player's prompt every answer was a debrief and none took
+the DECIDED / NEXT PLAYER / WISHED shape (ten of ten, a retry asking for it included), so the tool reports the shape
+in its header line and keeps the debrief.

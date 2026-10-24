@@ -427,7 +427,7 @@ side by side, never the words alone: the **report** of each game in plain number
 (result, both sides' extractors, income and army by minute, each side's army in the other's half, extractors lost and
 where, his first soldier in our half, his first kill, his advanced factory, air plant, silo and anti-nuke, and ours),
 and the **words**: the player's and the commander's own notes and closing sentences from the game, and the player's
-debrief for the next player (`run/debrief.py`, kept). No inference by the tool, no categories: the derived articles'
+debrief for the next player (`run/debrief.py`, kept; since 2026-10-24 asked as the player under its own system prompt and checked for its shape before it is written, after five entries of tool calls written as text). No inference by the tool, no categories: the derived articles'
 tests run offline on the curves; the live edge shows what happened and what the previous player believed, labelled as
 whose it is, so the next player can check a belief against the curves in a glance. The user's reasons: the live edge
 is temporary by definition, so a misread has bounded regret and ages out by default, and inside a three-game series a
@@ -437,7 +437,7 @@ the live edge into a lesson, a worked example or a derivation without naming the
 
 **The loop closes without anyone.** When a match ends, the arena (and `run/human_game.sh` after the bot leaves) runs
 `run/live_edge.py close <match dir>`: it writes the entry (report and words) into the store `run/data/live-edge/<brief>/` (one a brief since 2026-10-23: a player's words written under one brief are not the next brief's episodes)
-(git-ignored working data) and appends a row to its `index.jsonl` (match, date, build, map, opponent key, result).
+(git-ignored working data) and writes a row into its `index.jsonl` (match, date, build, map, opponent key, result; one a match, so closing again replaces the entry and the row).
 When a bot session starts, the bot reads the store named by `WITHIN_REASON_LIVE_EDGE`, keys the game by its map and
 its enemy seats from the hello (a person's name; an AI's short name, version and profile; the seat's bonus), takes the
 entries of the same key within fourteen days, newest first, at most three, and appends them to the player's and the

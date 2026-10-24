@@ -7,7 +7,8 @@ debrief for the next player from run/debrief.py). No inference, no categories: t
   run/live_edge.py close <match dir> [--no-debrief] [--store DIR]
       Write the entry into the store (default run/data/live-edge/<brief>/, the brief from WITHIN_REASON_BRIEF, else
       rework: one store a brief, since a player's words written under one brief are not the next brief's episodes)
-      and append its row to the store's index.jsonl.
+      and write its row into the store's index.jsonl (closing a match again replaces its entry and its row: the
+      repair of a bad debrief is the same command).
       The arena runs this when a flagship player match ends; run/human_game.sh after the bot leaves.
   run/live_edge.py text <match dir> [--no-debrief]
       Print the entry, write nothing.
@@ -35,6 +36,7 @@ import analyze_match  # noqa: E402
 FPS = 30
 DAYS = 14
 MOST = 3
+MOST_DEBRIEF = 6000  # characters of the debrief in the entry, cut at a line; the whole stays in the inbox file
 ARMY = {"army", "aircraft", "hover", "ship"}
 ADVANCED_FACTORIES = {"armalab", "armavp", "armaap", "armasy", "coralab", "coravp", "coraap", "corasy", "legalab", "legavp", "legaap", "legasy"}
 AIR_PLANTS = {"armap", "corap", "legap", "armplat", "corplat"}
@@ -112,12 +114,16 @@ def our_seats(header):
 
 
 def end_row(match_dir, record):
+    """The record's `end` row (the bot leaving a game with people: the frame, our units standing, why). Its keys come
+    sorted (`f`, `own_units`, `t`, `why`), so the row is found by its content, not by how the line starts."""
     for line in open(os.path.join(match_dir, record), errors="replace"):
-        if line.startswith('{"t": "end"') or line.startswith('{"t":"end"'):
+        if '"end"' in line:
             try:
-                return json.loads(line)
+                r = json.loads(line)
             except ValueError:
-                pass
+                continue
+            if r.get("t") == "end":
+                return r
     return None
 
 
@@ -287,21 +293,26 @@ def words_of(path, who, first=8, last=20, closings=8):
 
 
 def debrief(match_dir):
-    """Runs run/debrief.py on the match and returns its answer (the file it wrote, without the two header lines)."""
+    """Runs run/debrief.py on the match and returns its answer (the file it wrote, without the two header lines). The
+    tool checks the answer and exits 2 when the model wrote something other than a debrief twice: then the entry says
+    "No debrief" with the reason, and nothing of the rejected text reaches the next player."""
+    import debrief as debrief_tool
     env = dict(os.environ)
     cmd = [sys.executable, os.path.join(REPO, "run", "debrief.py"), match_dir]
     if env.get("WITHIN_REASON_CLAUDE_CONFIG_DIR"):
         cmd += ["--claude-config-dir", env["WITHIN_REASON_CLAUDE_CONFIG_DIR"]]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=420)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     except subprocess.TimeoutExpired:
-        return None, "the debrief did not answer within 420 s"
-    written = os.path.join(REPO, "docs", "briefs", "inbox", f"{os.path.basename(os.path.dirname(match_dir))}.md")
+        return None, "the debrief did not answer within 600 s"
+    written = debrief_tool.inbox_path(match_dir)
     if proc.returncode != 0 or not os.path.exists(written):
         return None, f"the debrief failed ({proc.returncode}): {(proc.stderr or proc.stdout).strip()[-300:]}"
     text = open(written, errors="replace").read().split("\n", 3)
-    body = text[3] if len(text) > 3 else ""
-    return body.strip()[:6000], None
+    body = (text[3] if len(text) > 3 else "").strip()
+    if len(body) > MOST_DEBRIEF:
+        body = body[:MOST_DEBRIEF].rsplit("\n", 1)[0] + "\n[cut: the whole is in the inbox file]"
+    return body, None
 
 
 def entry(match_dir, with_debrief=True):
@@ -380,8 +391,20 @@ def close(match_dir, store, with_debrief):
     with open(path, "w") as f:
         f.write(text)
     row["file"] = path
-    with open(os.path.join(store, "index.jsonl"), "a") as f:
-        f.write(json.dumps(row) + "\n")
+    # One row a match: closing again (a repaired debrief) replaces the row, since the bot would show a doubled one twice.
+    index = os.path.join(store, "index.jsonl")
+    rows = []
+    if os.path.isfile(index):
+        for line in open(index):
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if r.get("id") != row["id"]:
+                rows.append(r)
+    rows.append(row)
+    with open(index, "w") as f:
+        f.writelines(json.dumps(r) + "\n" for r in rows)
     shown = os.path.relpath(path, REPO) if path.startswith(REPO + os.sep) else path
     print(f"live edge: {row['id']} ({row['result']}, {row['minutes']} min) on {row['map']} against {row['key'] or 'nobody'} -> {shown}")
 

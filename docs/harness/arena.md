@@ -193,4 +193,17 @@ bot.log says what it found). `--no-live-edge` leaves the store unread for an A/B
 is games run one after another (`--parallel 1`); matches running in parallel do not see each other. Design:
 docs/design/2026-10-21-brief-rework.md §11.
 
+The debrief inside (`run/debrief.py`) is asked as the player, not as Claude Code: an empty working directory,
+`--setting-sources ""` so neither the checkout's nor the account's CLAUDE.md is read, no tools, and a system prompt of
+its own, the way the bot launches the player's sessions (docs/harness/claude-p.md). The answer is checked before it is
+written: tool-call markup, a code fence, a shell line or an "I'll look" preamble reject it; one retry with the reason,
+then `debrief-rejected.txt` in the match directory, nothing in the inbox and "No debrief" with the reason in the
+entry. The DECIDED / NEXT PLAYER / WISHED shape is asked for and the header line says whether the answer is in it;
+it is not required, since under the player's prompt ten of ten answers were debriefs and none was in the shape, a
+retry asking for it included (2026-10-24). Until 2026-10-24 the call ran from the checkout under the default system
+prompt and the model took itself for a coding agent (docs/harness/pitfalls.md, 2026-10-23). Closing a match again
+(`run/live_edge.py close <match> --store <store>`) replaces its entry and its index row, so a bad entry is repaired
+with the command that wrote it. The inbox file is `docs/briefs/inbox/<batch>.md` for a batch's match 00 and
+`<batch>__<NN>.md` for its other matches (before 2026-10-24 every match of a series overwrote the one file).
+
 Checked in live-edge-series-1 (2026-10-23, three games one after another with `--parallel 1`): every close ran by itself in about 42 s, debrief included; game two's bot carried one entry and game three's two; the players cited them (docs/design/2026-10-21-brief-rework.md §11 "The check run").
