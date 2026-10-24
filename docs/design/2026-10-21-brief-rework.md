@@ -195,10 +195,18 @@ in our picture in 8 percent of the lost games; in the manifest since he read it)
 night, D-raid-answer, with `run/metal_killtest.py raids`, the raid ledger over 7,078 extractors lost in the
 model-played games: our loss rates are the pool's winners' and losers', the games' length is the difference, what
 stood near a lost extractor avenged and did not save, and the turret and radar counts of a game move its losses by a
-few; kept out of the manifest until he has read it). The reclaim
+few; kept out of the manifest until he has read it) and `derived/labs.md` (2026-10-23 night, D-lab-choice, with
+`run/metal_killtest.py openers`: the pool's Comet sides re-cut by first factory, as thebluegecko asked, since the
+pressure block's winner-against-loser clocks follow the factory; the bot sides won half the mixed duels on three solars
+more and 0.64 of the army at 5:00; our vehicle opener won 35 percent against BARb's bot lab and 65 against its vehicle
+plant with twice its army at 4:00 to 6:00 and nothing forward; kept out of the manifest until he has read it; the
+re-cut itself is live in pool.md as M-pool-openers). The reclaim
 arithmetic went into tier2.md, metal.md and lead.md the same evening (`run/metal_killtest.py reclaim`: an area
-reclaim ordered in 22 of 236 model-played games), and thebluegecko's 24 unit-sheet rows into lessons.md verbatim
-(L-sheet-*). No episode document exists yet (the episode sweep's rows are written:
+reclaim ordered in 22 of 236 model-played games), thebluegecko's 24 unit-sheet rows into lessons.md verbatim
+(L-sheet-*), and his spoken accounts of the same night (recorded by the user, transcribed locally, in
+docs/knowledge/_inbox/gecko-*-2026-10-23.md) into lessons.md as L-gecko-bots-vs-vehicles, L-gecko-three-resources,
+L-gecko-nuke-surprise and L-gecko-one-more-con; he read metal.md aloud and corrected its guess at the order after metal
+(energy second, build power third), applied in metal.md's bends the same night. No episode document exists yet (the episode sweep's rows are written:
 docs/studies/2026-10-22-episode-sweep/).
 
 Ground-up, not edited in place: editing preserves hidden assumptions (the repository's own delete-then-rebuild rule),

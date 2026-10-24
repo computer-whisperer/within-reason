@@ -69,7 +69,7 @@ commander (50) and the bots go round; a Pawn's wreck and every heap block nothin
 id: F-map-metal
 layer: fact
 premises: [F-eco-extractors]
-sources: {code: [upstream/RecoilEngine/rts/Map/MetalMap.cpp:29-44, upstream/Beyond-All-Reason/common/upgets/api_resource_spot_finder.lua:24-60, 120-200 (the strips, IsBuildingPositionValid: the radius plus one square of slack), 232-300 (GetSpotsMetal, the spot's worth), 300-330 (mex_count game rules), upstream/Beyond-All-Reason/luarules/gadgets/cmd_mex_denier.lua:30-100 (the duplicate check is per ally team), upstream/RecoilEngine/rts/Map/MapInfo.cpp:106-107 (maxMetal, extractorRadius), crates/ai-host/src/engine.rs:119-160 (the game's list, the squares per spot), crates/bot-protocol/src/messages.rs:88-93, 156-170, run/data/maps/*.sd7 mapinfo.lua], game: 54199a0d, claims: [K-maps-quicksilver-spot-value-and-wind]}
+sources: {code: [upstream/RecoilEngine/rts/Map/MetalMap.cpp:29-44, upstream/Beyond-All-Reason/common/upgets/api_resource_spot_finder.lua:24-60, 120-200 (the strips, IsBuildingPositionValid: the radius plus one square of slack), 232-300 (GetSpotsMetal, the spot's worth), 300-330 (mex_count game rules), upstream/Beyond-All-Reason/luarules/gadgets/cmd_mex_denier.lua:30-100 (the duplicate check is per ally team), upstream/RecoilEngine/rts/Map/MapInfo.cpp:106-107 (maxMetal, extractorRadius), crates/ai-host/src/engine.rs:119-160 (the game's list, the squares per spot), crates/bot-protocol/src/messages.rs:88-93, 156-170, run/data/maps/*.sd7 mapinfo.lua, run/metal_killtest.py (spot_spacing: the nearest-neighbour distances over a record's metal_spots)], game: 54199a0d, claims: [K-maps-quicksilver-spot-value-and-wind]}
 status: live
 -->
 ### Metal spots and where an extractor may stand
@@ -81,7 +81,10 @@ and its worth is the sum of its squares; the spot list the reports number (spot_
 read from its game rules, so our numbers, the replay cards' and the players' snapping widget's agree. Spots differ
 within a map where their clusters do: a tier-1 extractor draws 2.30 a second on every Comet Catcher spot but 1.83 to
 3.18 on All That Glitters, 0.49 to 2.00 on Mithril Mountain, 1.45 to 2.58 on Eclipsed (the sheet lists each map's
-lowest, median and highest). An extractor draws from every metal square within the map's extractor radius of it
+lowest, median and highest). Spots also differ in how they lie: Comet Catcher's 80 stand 400 / 476 / 595 elmos from their
+nearest neighbour (quartiles), the closest pair 229 apart, four spots with a neighbour within 300, and a start has four
+within 650 of it (the metal spots of a Comet record of ours, `run/metal_killtest.py openers`), so the map has pairs
+where the team maps played as duels have triples, and a constructor's walk between spots is part of every spot's price. An extractor draws from every metal square within the map's extractor radius of it
 (Comet Catcher, Quicksilver and Altored Divide 120; Cape Violet, Great Divide, Gecko Isle and Carrot Mountains 90;
 Feast of Hades 80; Isidis Crack 75; Center Command, Mithril Mountain and All That Glitters 50; Gasbag Grabens 40), so
 the radius sets how far off a spot's centre an extractor may sit and still take the whole spot: the game refuses any

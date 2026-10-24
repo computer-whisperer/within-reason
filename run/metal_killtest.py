@@ -48,6 +48,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       parties' sizes, the answers and their pay rate, the rebuilds, and the turrets and radar of a game against its
       losses.
 
+  run/metal_killtest.py openers <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--min-os 40] [--side-cache run/data/opener_killtest.jsonl] [--workers 8]
+      The lab choice (docs/briefs/derived/labs.md): the pool's duels re-cut by each side's first factory (bots, vehicles,
+      air, from the card's factory unit), the clocks M-pool-pressure reads (the first soldier in his half, the first kill,
+      the first extractor lost) by opener and by result within the opener, both armies by the minute, towers and solars
+      by 5:00 and 8:00, the second factory, and the mixed duels one by one; then our model-played 1v1s with both first
+      factories read (ours from the record, his from the truth file; the side cache) by the pair, and the Comet games
+      against BARb, whose lab is dice, split by his factory.
 What is measured for our games. Our side is the first record's `own` and `al` lists at the sample nearest the minute;
 his is the truth file's list (every enemy unit, every two seconds). Income is the extractor income: each finished
 extractor's nearest spot's worth (the header's `metal_spots`) times its `extracts_metal`, times the side's bonus
@@ -1126,6 +1133,246 @@ def raids(caches, side_cache, min_minutes, workers):
             print(f"  {lab}: {len(ss)} games, extractors lost before 8:00 {quart([early(g) for g in ss])}, by 16:00 {quart([early(g) + mid(g) for g in ss if g['minutes'] >= 16])}, won {sum(1 for g in ss if g['outcome'] == 'Win')}")
 
 
+# ---- the lab choice -------------------------------------------------------------------------------------------------
+
+FACTORY_KIND = {"armvp": "vehicles", "corvp": "vehicles", "legvp": "vehicles", "armlab": "bots", "corlab": "bots", "leglab": "bots",
+                "armap": "air", "corap": "air", "legap": "air", "armhp": "hover", "corhp": "hover", "armsy": "ships", "corsy": "ships"}
+LLT_ONLY = ("armllt", "corllt", "leglht")  # the pool's "light turrets" count (run/pro_baseline.py), narrower than LIGHT_TURRETS
+RAIDER_CLASS = {"armfav": "scout car", "corfav": "scout car", "armflash": "raider tank", "corgator": "raider tank", "armpw": "raider bot",
+                "corak": "raider bot", "armflea": "scout bot", "corthud": "line bot", "armham": "line bot", "armstump": "line tank",
+                "corraid": "line tank", "armcom": "commander", "corcom": "commander"}
+
+
+def card_secs(c):
+    if not c:
+        return None
+    m, s = c.split(":")
+    return int(m) * 60 + int(s)
+
+
+def clock(s):
+    return "-" if s is None else f"{int(s) // 60}:{int(s) % 60:02d}"
+
+
+def cquart(xs):
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return "-"
+    n = len(xs)
+    return " / ".join(clock(v) for v in (xs[n // 4], xs[n // 2], xs[(3 * n) // 4])) + f" (n={n})"
+
+
+def nquart(xs, fmt="{:.0f}"):
+    xs = [x for x in xs if x is not None]
+    return "-" if not xs else quart(xs, fmt) + f" (n={len(xs)})"
+
+
+def pool_opener_sides(min_os, map_name):
+    """Every side of the pool's duels with a result, with its first factory's kind (from the card's unit name; the
+    `kind` field is empty in the older cards) and the clocks and counts the lab-choice article reads."""
+    def kind(f):
+        f = f or {}
+        return f.get("kind") or FACTORY_KIND.get(f.get("unit"), f.get("unit"))
+    out = []
+    for card, teams, m, os_by, duration in pool_duels(min_os):
+        if map_name and m != map_name:
+            continue
+        for i, t in enumerate(teams):
+            o = teams[1 - i]
+            facs = t.get("factories") or []
+            cur = {c["minute"]: c for c in t["curves"]}
+            ocur = {c["minute"]: c for c in o["curves"]}
+            bo = t.get("build_order") or []
+            press = t.get("pressure") or {}
+            fel = t.get("first_extractor_lost") or {}
+            second = facs[1] if len(facs) > 1 else None
+            out.append({"id": card["id"][:8], "map": m, "dur": duration, "won": bool(t.get("won")), "side": t.get("side"), "os": os_by.get(t["team"], 0),
+                        "opener": kind(facs[0] if facs else None), "his_opener": kind((o.get("factories") or [None])[0]),
+                        "started": card_secs((facs[0] if facs else {}).get("started")),
+                        "cross": card_secs((press.get("first_soldier_in_his_half") or {}).get("clock")),
+                        "cross_unit": (press.get("first_soldier_in_his_half") or {}).get("unit"),
+                        "kill": card_secs((press.get("first_his_building_killed") or {}).get("clock")),
+                        "mexkill": card_secs((press.get("first_his_extractor_killed") or {}).get("clock")),
+                        "lost": card_secs(fel.get("clock")), "lost_by": fel.get("by"),
+                        "ext": {mn: (cur.get(mn) or {}).get("extractors") for mn in (4, 6, 8, 12)},
+                        "army": {mn: (cur.get(mn) or {}).get("army_metal") for mn in (4, 5, 6, 7, 8, 10)},
+                        "his_army": {mn: (ocur.get(mn) or {}).get("army_metal") for mn in (4, 5, 6, 7, 8, 10)},
+                        "inhalf": {mn: (cur.get(mn) or {}).get("army_metal_in_his_half") for mn in (3, 4, 6)},
+                        "eincome": {mn: (cur.get(mn) or {}).get("energy_income") for mn in (3, 5, 8)},
+                        "income": {mn: (cur.get(mn) or {}).get("metal_income") for mn in (5, 8, 12)},
+                        "cons": {mn: (cur.get(mn) or {}).get("constructors") for mn in (3, 5, 8)},
+                        "llt5": sum(1 for b in bo if b["unit"] in LLT_ONLY and card_secs(b["clock"]) < 300),
+                        "llt8": sum(1 for b in bo if b["unit"] in LLT_ONLY and card_secs(b["clock"]) < 480),
+                        "solars5": sum(1 for b in bo if b["unit"] in ("armsolar", "corsolar", "legsolar") and card_secs(b["clock"]) < 300),
+                        "air": card_secs(next((f.get("started") for f in facs if kind(f) == "air"), None)),  # the older cards lack first_air_plant
+                        "second": kind(second) if second else None, "second_at": card_secs(second.get("started")) if second else None})
+    return out
+
+
+def report_pool_openers(label, sides):
+    print(f"\n== {label}: {len(sides)} sides, {sum(1 for s in sides if s['won'])} won")
+    print("first factory by faction: " + ", ".join(f"{k[0]} {k[1]} {v}" for k, v in sorted(Counter((s["side"], s["opener"]) for s in sides).items(), key=str)))
+    pairs = sorted(set((s["opener"], s["his_opener"]) for s in sides), key=str)
+    print("the matchup (mine against his), won: " + "; ".join(f"{a} v {b} {sum(1 for s in sides if (s['opener'], s['his_opener']) == (a, b) and s['won'])} of {sum(1 for s in sides if (s['opener'], s['his_opener']) == (a, b))}" for a, b in pairs))
+    for kind in ("vehicles", "bots", "air"):
+        K = [s for s in sides if s["opener"] == kind]
+        if not K:
+            continue
+        W = [s for s in K if s["won"]]
+        L = [s for s in K if not s["won"]]
+        print(f"\n-- {kind}: {len(K)} sides, {len(W)} won; OS {nquart([s['os'] for s in K])}; the factory started {cquart([s['started'] for s in K])}")
+        print(f"   first soldier in his half: all {cquart([s['cross'] for s in K])}, won {cquart([s['cross'] for s in W])}, lost {cquart([s['cross'] for s in L])}; the unit " + ", ".join(f"{k} {v}" for k, v in Counter(s["cross_unit"] for s in K).most_common()))
+        print(f"   first building of his killed: all {cquart([s['kill'] for s in K])}, won {cquart([s['kill'] for s in W])}, lost {cquart([s['kill'] for s in L])}; first extractor of his {cquart([s['mexkill'] for s in K])}, never {sum(1 for s in K if s['mexkill'] is None)}")
+        print(f"   first extractor of ours lost: {cquart([s['lost'] for s in K])}; to " + ", ".join(f"{k} {v}" for k, v in Counter(RAIDER_CLASS.get(s["lost_by"], s["lost_by"] or "unnamed") for s in K).most_common()))
+        for mn in (4, 6, 8, 12):
+            print(f"   extractors at {mn}:00: all {nquart([s['ext'][mn] for s in K])}, won {nquart([s['ext'][mn] for s in W])}, lost {nquart([s['ext'][mn] for s in L])}")
+        for mn in (4, 5, 6, 7, 8, 10):
+            print(f"   army metal at {mn}:00: mine {nquart([s['army'][mn] for s in K])}, his {nquart([s['his_army'][mn] for s in K])}, mine over his {nquart([s['army'][mn] / s['his_army'][mn] for s in K if s['army'][mn] and s['his_army'][mn]], '{:.2f}')}")
+        print("   army metal in his half at 3 / 4 / 6: " + " | ".join(nquart([s["inhalf"][mn] for s in K]) for mn in (3, 4, 6)))
+        print("   energy income at 3 / 5 / 8: " + " | ".join(nquart([s["eincome"][mn] for s in K]) for mn in (3, 5, 8)) + "; metal income at 5 / 8 / 12: " + " | ".join(nquart([s["income"][mn] for s in K]) for mn in (5, 8, 12)))
+        print("   constructors at 3 / 5 / 8: " + " | ".join(nquart([s["cons"][mn] for s in K]) for mn in (3, 5, 8)))
+        print(f"   solars by 5:00 {nquart([s['solars5'] for s in K])}; light laser towers by 5:00 {nquart([s['llt5'] for s in K])}, by 8:00 {nquart([s['llt8'] for s in K])} (won {nquart([s['llt8'] for s in W])}, lost {nquart([s['llt8'] for s in L])})")
+        print(f"   an air plant in {sum(1 for s in K if s['air'] is not None)} of {len(K)} at {cquart([s['air'] for s in K])}; the second factory " + ", ".join(f"{k or 'none'} {v}" for k, v in Counter(s["second"] for s in K).most_common()) + f", started {cquart([s['second_at'] for s in K])}")
+        print(f"   the game lasted {cquart([s['dur'] for s in K])}")
+    mixed = [s for s in sides if s["opener"] == "bots" and s["his_opener"] == "vehicles"]
+    if mixed:
+        print(f"\n-- the mixed duels seen from the bot side ({len(mixed)}, {sum(1 for s in mixed if s['won'])} won): id, map, length, result, OS, faction, first soldier across, first kill, first extractor lost, extractors 4/6/8, army 5:00 and 7:00 mine/his, towers by 5/8, second factory")
+        for s in sorted(mixed, key=lambda s: s["dur"]):
+            print(f"   {s['id']} {s['map'][:13]:13s} {clock(s['dur']):>5s} {'won ' if s['won'] else 'lost'} OS {s['os']:.0f} {s['side']} across {clock(s['cross'])} kill {clock(s['kill'])} lost {clock(s['lost'])} "
+                  f"ext {s['ext'][4]}/{s['ext'][6]}/{s['ext'][8]} army {s['army'][5]}/{s['his_army'][5]} {s['army'][7]}/{s['his_army'][7]} towers {s['llt5']}/{s['llt8']} 2nd {s['second']}@{clock(s['second_at'])}")
+        over = [(s, s["his_army"][7] / s["army"][7]) for s in mixed if s["army"][7] and s["his_army"][7]]  # the vehicle side's army over the bot side's at 7:00
+        hi = [s for s, x in over if x >= 1.5]
+        lo = [s for s, x in over if x < 1.5]
+        print(f"   the vehicle side at 1.5 times the bot side's army or more at 7:00: {len(hi)} duels, the vehicle side won {sum(1 for s in hi if not s['won'])}; below it {len(lo)}, the bot side won {sum(1 for s in lo if s['won'])}")
+
+
+def openers_one(r):
+    """One game of ours: both sides' first factory (ours from the record's first created factory, his from the truth
+    file's first row holding one), with the frame and the faction."""
+    key = r["dir"]
+    d = where(key)
+    out = {"dir": key, "label": r.get("label"), "outcome": r["outcome"], "minutes": r["minutes"], "bonus": r.get("enemy_bonus") or 0,
+           "opponent": r.get("opponent"), "map": r.get("map"), "ours": None, "ours_f": None, "his": None, "his_f": None, "his_side": None, "read": False}
+    recs = sorted(glob.glob(d + "/record-*.jsonl"))
+    truths = sorted(glob.glob(d + "/truth-*.jsonl"))
+    if not recs or not truths:
+        return out
+    try:
+        with open(recs[0]) as fh:
+            defs = json.loads(fh.readline()).get("unit_defs") or []
+            for line in fh:
+                if '"created"' not in line:
+                    continue
+                e = json.loads(line)
+                if e.get("t") != "ev" or e.get("k") != "created":
+                    continue
+                idx = e.get("d")
+                name = defs[idx]["name"] if isinstance(idx, int) and 0 <= idx < len(defs) else None
+                if name in FACTORY_KIND:
+                    out["ours"], out["ours_f"] = FACTORY_KIND[name], e.get("f")
+                    break
+        p = subprocess.run(["timeout", "120", "grep", "-m", "1", "-E", "|".join(FACTORY_KIND), truths[0]], capture_output=True, text=True)
+        if p.stdout:
+            row = json.loads(p.stdout)
+            for u in row.get("enemy") or []:
+                name = u[1] if isinstance(u, list) else u.get("name")
+                if name in FACTORY_KIND:
+                    out["his"], out["his_f"], out["his_side"] = FACTORY_KIND[name], row.get("f"), name[:3]
+                    break
+        out["read"] = True
+    except (OSError, ValueError, IndexError, TypeError):
+        pass
+    return out
+
+
+def spot_spacing(map_name, starts_by_dir):
+    """The map's metal spots from the latest record of ours on it (the header's metal_spots): each spot's distance to
+    its nearest neighbour (quartiles, the closest pair), how many have a neighbour within 300 (a triple's spacing), and
+    how many stand within 650 of our start (the cache row's `starts`)."""
+    best = None
+    for p in sorted(glob.glob("run/matches/*/00/record-*.jsonl")):
+        try:
+            h = json.loads(open(p).readline())
+        except (OSError, ValueError):
+            continue
+        if (h.get("map") or {}).get("name") == map_name and h.get("metal_spots"):
+            best = (p, h)
+    if not best:
+        return f"{map_name}: no record with metal spots"
+    p, h = best
+    pts = [(sp["x"], sp["z"]) if isinstance(sp, dict) else (sp[0], sp[1]) for sp in h["metal_spots"]]
+    nn = sorted(min(math.dist(a, b) for b in pts if b is not a) for a in pts)
+    start_xz = starts_by_dir.get(os.path.dirname(p))  # the cache row's starts.ours; the record header carries no start
+    near = sum(1 for q in pts if math.dist(start_xz, q) <= 650) if start_xz else "?"
+    return (f"{map_name}: {len(pts)} spots, nearest neighbour {quart(nn)} elmos, the closest pair {nn[0]:.0f}, {sum(1 for d in nn if d <= 300)} spots with a neighbour within 300, "
+            f"{near} within 650 of our start (from {os.path.dirname(p)})")
+
+
+def openers(caches, side_cache, min_minutes, workers, min_os):
+    from concurrent.futures import ThreadPoolExecutor
+    comet = "Comet Catcher Remake 1.8"
+    print("spot spacing: " + spot_spacing(comet, {r["dir"]: tuple((r.get("starts") or {}).get("ours") or ()) or None for r in load(caches)}))
+    report_pool_openers(f"the pool's duels on Comet at OS {min_os:g}+", pool_opener_sides(min_os, comet))
+    report_pool_openers("every carded duel, any map, any OS", pool_opener_sides(0, None))
+    # ours
+    rows = [r for r in load(caches) if population(r) == "1v1 model"]
+    done = {}
+    if os.path.exists(side_cache):
+        with open(side_cache) as f:
+            for line in f:
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue
+                if j.get("read"):
+                    done[j["dir"]] = j
+    todo = [r for r in rows if r["dir"] not in done]
+    if todo:
+        print(f"\nreading {len(todo)} games ({len(done)} in the side cache)", file=sys.stderr)
+        with ThreadPoolExecutor(workers) as ex, open(side_cache, "a") as out:
+            for res in ex.map(openers_one, todo):
+                out.write(json.dumps(res) + "\n")
+                out.flush()
+                done[res["dir"]] = res
+    at_by = {r["dir"]: r["at"] for r in rows}
+    games = [done[r["dir"]] for r in rows if r["dir"] in done and done[r["dir"]]["ours"] and done[r["dir"]]["his"]]
+    print(f"\n== our model-played 1v1s: {len(games)} with both first factories read; ours " + ", ".join(f"{k} {v}" for k, v in Counter(g["ours"] for g in games).most_common())
+          + "; his " + ", ".join(f"{k} {v}" for k, v in Counter(g["his"] for g in games).most_common()) + f" (his bot labs by faction: " + ", ".join(f"{k} {v}" for k, v in Counter(g["his_side"] for g in games if g["his"] == "bots").most_common()) + ")")
+    print(f"   placed: ours at minute {nquart([g['ours_f'] / 1800 for g in games if g['ours_f']], '{:.2f}')}; his first seen at " + "; ".join(f"{k} {nquart([g['his_f'] / 1800 for g in games if g['his'] == k and g['his_f']], '{:.2f}')}" for k in ("bots", "vehicles")))
+
+    def val(g, mn, side, key):
+        a = at_by[g["dir"]].get(str(mn))
+        return None if not a else a[side].get(key)
+
+    def ratio(g, mn):
+        a, b = val(g, mn, "ours", "army"), val(g, mn, "theirs", "army")
+        return a / b if a and b else None
+
+    def pair_table(label, G):
+        print(f"\n-- {label}: {len(G)} games")
+        for k in sorted(set((g["ours"], g["his"]) for g in G), key=str):
+            gg = [g for g in G if (g["ours"], g["his"]) == k]
+            w = sum(1 for g in gg if g["outcome"] == "Win")
+            print(f"   ours {k[0]:8s} his {k[1]:8s}: won {w} of {len(gg)} ({100 * w / len(gg):.0f}%); length {nquart([g['minutes'] for g in gg])}; our army over his at 4 / 5 / 6 / 7 / 8: "
+                  + " | ".join(nquart([ratio(g, mn) for g in gg], "{:.2f}") for mn in (4, 5, 6, 7, 8)))
+    pair_table("every game without a bonus, any map and opponent", [g for g in games if not g["bonus"]])
+    G = [g for g in games if not g["bonus"] and "BARb" in (g["opponent"] or "") and (g["map"] or "") == comet and g["minutes"] >= min_minutes]
+    pair_table(f"Comet against BARb without a bonus, {min_minutes}+ minutes (his lab is dice, F-barb-how-it-decides)", G)
+    print("\n-- the same games, ours a vehicle plant, by his first factory (both sides by the minute: his army, ours, ours over his; his extractors, ours; his army forward, ours forward)")
+    for k in ("bots", "vehicles"):
+        gg = [g for g in G if g["ours"] == "vehicles" and g["his"] == k]
+        print(f"   his {k}: {len(gg)} games, won {sum(1 for g in gg if g['outcome'] == 'Win')}; batches " + ", ".join(f"{a} {b}" for a, b in Counter((g["label"] or "?").rsplit("-", 1)[0] for g in gg).most_common(5)))
+        for mn in (3, 4, 5, 6, 7, 8, 10, 12):
+            print(f"     {mn:2d}:00  army his {quart([v for v in (val(g, mn, 'theirs', 'army') for g in gg) if v is not None])}, ours {quart([v for v in (val(g, mn, 'ours', 'army') for g in gg) if v is not None])}, "
+                  f"ours over his {quart([x for x in (ratio(g, mn) for g in gg) if x], '{:.2f}')} | extractors his {quart([v for v in (val(g, mn, 'theirs', 'extractors') for g in gg) if v is not None])}, "
+                  f"ours {quart([v for v in (val(g, mn, 'ours', 'extractors') for g in gg) if v is not None])} | forward his {quart([v for v in (val(g, mn, 'theirs', 'army_forward') for g in gg) if v is not None])}, "
+                  f"ours {quart([v for v in (val(g, mn, 'ours', 'army_forward') for g in gg) if v is not None])}")
+    gg = [g for g in G if g["ours"] == "bots"]
+    print(f"\n-- our own bot-lab games on Comet against BARb ({len(gg)}; won {sum(1 for g in gg if g['outcome'] == 'Win')}); batches " + ", ".join(f"{a} {b}" for a, b in Counter((g["label"] or "?").rsplit("-", 1)[0] for g in gg).most_common(8)))
+    allbots = [g for g in games if g["ours"] == "bots"]
+    print(f"   all our bot-lab games, any map and opponent: {len(allbots)}, won {sum(1 for g in allbots if g['outcome'] == 'Win')}; batches " + ", ".join(f"{a} {b}" for a, b in Counter((g["label"] or "?").rsplit("-", 1)[0] for g in allbots).most_common(8)))
+
+
 def opt(name, default, cast=float):
     if name in sys.argv:
         return cast(sys.argv[sys.argv.index(name) + 1])
@@ -1133,7 +1380,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids", "openers"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -1154,6 +1401,8 @@ def main():
         reach(positional, opt("--side-cache", "run/data/reach_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 4, int))
     elif cmd == "raids":
         raids(positional, opt("--side-cache", "run/data/raid_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 6, int))
+    elif cmd == "openers":
+        openers(positional, opt("--side-cache", "run/data/opener_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int), opt("--min-os", 40.0))
     else:
         pool_windows(opt("--min-os", 0.0), opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
 

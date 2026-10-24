@@ -96,7 +96,7 @@ Incisors 67-76% from 6:00 to 10:00, Brutes 37% at 14:00 and 63% at 18:00, with P
 id: M-pool-pressure
 layer: meta
 premises: [F-map-grid, F-unit-armfav, F-unit-corfav]
-lessons: [L-raid-first-handful, L-raid-naked-mexes, L-raid-keep-moving]
+lessons: [L-raid-first-handful, L-raid-naked-mexes, L-raid-keep-moving, L-gecko-bots-vs-vehicles]
 population: the Comet pool at OS 40+ (80 sides)
 map: Comet Catcher Remake 1.8
 dates: 2026-10-03 (the pressure fields), 2026-10-17
@@ -111,7 +111,9 @@ middle at 1:22 / 1:40 / 1:49, a Rover in 37 of 41 sides, 26 to 44 s after it was
 at 1:54 and kills a building of his at 2:18 / 2:48 / 4:13 (an extractor at 3:04). Cortex, whose Rascals come after a
 constructor, crosses at 2:16 / 2:48 / 3:23 and kills at 3:33 / 4:35 / 5:35. All but one of 80 sides killed a building
 of his. Over both factions the winners cross 40 s earlier than the losers and have 78 of their 280 army metal in his half
-at 3:00 against the losers' 43 of 334 (Armada's winners alone cross 5 s later than its losers). The players' reason, relayed by the user: the space of what the opponent may be doing is too broad
+at 3:00 against the losers' 43 of 334 (Armada's winners alone cross 5 s later than its losers). Cut by the first factory
+instead (M-pool-openers), the gap is 20 s within the vehicle openers and none within the bot openers, which cross 76 s
+later and win as often: the clock follows the factory, as thebluegecko warned (L-gecko-bots-vs-vehicles). The players' reason, relayed by the user: the space of what the opponent may be doing is too broad
 to leave unpressed, and pressure is what stops an extremely greedy opening (the lessons on raids).
 
 **Extractors are lost at 1.5 to 2 a game-minute, by winners too.** The first extractor falls at 4:21 for Armada (2:36 /
@@ -122,6 +124,47 @@ two before 8:00; a side re-takes 7.5 spots a game at 40+. The raids are met by t
 holding the army home, as far as the cards can tell (they carry no positions): light turrets by 8:00 are 7 / 10 / 13
 for Armada (winners 11, losers 9) and 5 / 7 / 8 for Cortex (8 against 5), and in the OS 25+ survey the fights of the
 first five minutes fall half in each side's own half, which is raiding both ways, not a battle.
+
+<!--meta
+id: M-pool-openers
+layer: meta
+premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-eco-energy]
+lessons: [L-gecko-bots-vs-vehicles, L-sheet-labs]
+population: the Comet pool at OS 40+ (80 sides: 64 opened a vehicle plant, 16 a bot lab); every carded duel (150 sides) where said
+map: Comet Catcher Remake 1.8
+dates: 2026-10-23
+ground: card
+sources: {code: [run/metal_killtest.py openers (the pool half: the kind from the card's first factory unit, the cards' kind field being empty before 2026-10-13), run/data/replays/manifest.jsonl], note: the re-cut thebluegecko asked for (L-gecko-bots-vs-vehicles at 1:37: the winner-against-loser clocks follow the factory)}
+status: live
+-->
+### The same pool by the first factory
+
+**Sixteen of the eighty sides opened a bot lab, fifteen of them Cortex, and they won 7 of their 16 duels against a
+vehicle plant** (13 of 24 over every carded duel); the vehicle plant against itself 24 of 48. The bot sides are not
+weaker players (OS 43 / 44 / 45 against 42 / 43 / 45) and their factory starts earlier (0:37 against 0:51).
+
+**The clocks of the pressure block follow the factory.** The bot sides' first soldier crosses at 2:48 / 3:05 / 3:33 (a
+Grunt in 15 of 16), the vehicle sides' at 1:36 / 1:49 / 2:29; the first building of his killed at 5:04 against 3:19,
+the first extractor at 5:12 against 3:41. Within the vehicle openers the winners cross 20 s before the losers (1:45
+against 2:05) and kill at the same minute (3:19 against 3:27); within the bot openers winners and losers cross and kill
+at the same clocks (3:05 and 3:02; 5:04 and 4:48). The bot sides carry nothing into his half at 3:00 (0 / 0 / 43
+against 0 / 78 / 146) and more at 6:00 (258 / 344 / 645 against 62 / 266 / 533), and lose their first extractor earlier
+(3:33 against 4:15), to a scout car or a raider tank in 14 of 16.
+
+**The bot sides buy energy and spots, the vehicle sides army.** At 5:00 the bot sides stand 10 / 10 / 11 solars where
+the vehicle sides stand 6 / 7 / 9, make 251 energy a second against 190 on the same metal income (23), and hold 0.51 /
+0.64 / 0.99 of the other side's army metal; 0.60 / 0.71 / 0.79 at 6:00, 0.52 / 0.79 / 1.09 at 7:00, 0.89 at 8:00 and
+0.86 at 10:00. Extractors 8 / 12 / 18 / 27 at 4, 6, 8 and 12 minutes against 7 / 11 / 15 / 24; constructors 6 at 8:00
+against 5. Light laser towers 2 by 5:00 and 5 by 8:00 against the vehicle sides' 4 and 9. The bot sides' second factory
+is a vehicle plant in 11 of 16, started 4:58 / 6:19 / 7:39; the vehicle sides' second comes at 8:33 (a vehicle plant 27,
+a bot lab 15, an air plant 5 of 47). An air plant was built by 4 of the 16 bot sides (8:28 to 15:09) and 18 of the 64
+vehicle sides (10:44 / 11:55 / 14:32). In the sixteen mixed duels the vehicle side that held 1.5 times the bot side's
+army at 7:00 won 6 of 7; where it did not, the bot side won 6 of 9. The bot sides' games last 12:05 at the median
+against 14:31.
+
+What this cut cannot separate: the bot openers are Cortex in 15 of 16 and the vehicle openers Armada in 40 of 64, so
+faction and factory move together (a Grunt walks at 81 a second and a Rover at 168 whatever the lab); and sixteen sides
+is a small population, to be said wherever a number above is used.
 
 <!--meta
 id: M-pool-expansion
