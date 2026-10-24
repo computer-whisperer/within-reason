@@ -86,7 +86,9 @@ pub(crate) struct Options {
     /// An advanced plant's frame (one whose constructors build an upgrade) calls its helpers from constructors within
     /// this of home; a basic factory's from FACTORY_PLACER (hands.rs).
     pub plant_helpers_from: f32,
-    /// T-OPENING (hands.rs): the commander's first minute is the free spots within this of home.
+    /// T-OPENING (hands.rs): the commander's first minute is the free spots within this of home; where it holds
+    /// three, his opening (the solars before the plant). 600 since terr87: his start's third spot is 537 from it and
+    /// the south-west start's 562 (500 before, two spots at either).
     pub opening_spots: f32,
     /// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1:
     /// following its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to
@@ -143,7 +145,7 @@ impl Default for Options {
             commit_at: 0.05,
             commit_afford: 45.0,
             plant_helpers_from: 4000.0,
-            opening_spots: 500.0,
+            opening_spots: 600.0,
             com_leash: 700.0,
         }
     }

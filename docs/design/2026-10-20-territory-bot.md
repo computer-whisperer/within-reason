@@ -247,3 +247,17 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   holds its commander, else mirrors home through the map's centre (terr85). From his start the hands' opening reads
   level or a little under the south-west's (5:00 43.3 / 38.7 / 41.0 / 38.7; 6:00 68.6 / 54.8 / 64.0 / 61.7; 20:00
   942-1,020): his 62 at 5:00 is not the map's.
+- 2026-10-25, his opening (the user: "Does the LP actually prefer a 2 mex start still on that location?
+  thebluegecko's better start at that location tells us something must be wrong"). The program never chose the two
+  spots: T-OPENING's radius did. Asked, the program's fluid opening from his start is a third of a lab, solars and
+  no commander spot (the commander's extractor priced at one 40-s walk whatever the distance, so its 166 and 251
+  read as 1,500 out); the annealer's is one spot, the plant and three solars; and the simulator, given his order
+  against the two-spot order with everything after held the same, prefers the two (41 against 50 at 5:00) and
+  leaves 500-2,000 metal idle under his, since none of the three guards the plant on the bank as he does. In the
+  hands his order stands (terr86-89): three spots, solars before the plant while the supply is under its draw,
+  the plant at 1:17 guarded on the metal and energy budgets, five constructors by 2:42 as his, and the constructors
+  chaining spots from the start for three minutes (the first constructor's first order had been the plan's solar).
+  From his start: 5:00 47.9 / 45.6 / 47.9 / 50.2 against the two-spot opening's 43.3 / 38.7 / 41.0 / 38.7, 6:00 and
+  10:00 up in all four games too. What is wrong, then: the models price the commander's near spots as far ones and
+  value no bank, so they never propose his order; and at 3:00 his 20 a second against the hands' 13.5 is his eight
+  extractors against five, the constructors' first spots 740-1,040 out against his 300-500.

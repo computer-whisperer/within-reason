@@ -73,6 +73,17 @@ const PENDING_SITE: f32 = 70.0;
 /// of 900, stalled fourteen seconds, has it at 1:07; the annealer's five-minute opening is one spot, the factory at
 /// once, then the solars.
 const OPENING: i32 = MINUTE;
+/// The opening's energy: before the first factory stands, the commander's solars while the energy income, the
+/// energy buildings ordered or framed counted, is under that factory's draw at the commander's power (his three
+/// solars before the plant at 1:01: 90 a second against the vehicle plant's 1,550 over 19 s). Off unless the
+/// opening takes three spots (`opening_spots` past the third): with two spots the plant at 0:32 stands (terr77-80).
+const OPENING_PLANT: i32 = 2 * MINUTE;
+/// To this second a constructor with a spot's credit chains spots at the base too, as the far ones do (T-CHAIN): his
+/// constructors built nothing but extractors to 5:35 and his commander every solar; the hands' first constructor took
+/// the plan's own solar at 1:53 and its first extractor at 2:48 against his first constructor's 1:56 (terr87). Three
+/// minutes, not five: shut at 5:00 the window let five minutes of unbuilt energy credit spill into the constructors
+/// at once, 16-19 solar orders to them in 5:00-8:00 against 12-13 and 8:00 down 7 in all four games (terr88).
+const OPENING_CHAIN: i32 = 3 * MINUTE;
 /// A factory's commit or class pick goes to a builder within this of home (T-COMMIT).
 const FACTORY_PLACER: f32 = 1000.0;
 /// T-FARM: every static building but an extractor or a factory goes on one lattice, the farm, laid from an origin
@@ -514,6 +525,23 @@ impl Territory {
                 .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(&tier(*p)) && wanted_soon(*p)))
                 .max_by(|a, b| targets.count_at(*a, now + within).total_cmp(&targets.count_at(*b, now + within)))
         };
+        // The opening's energy (OPENING_PLANT): his solars before the plant, when the opening takes three spots.
+        if role == Role::Commander && self.frame < OPENING_PLANT && self.opening_three() && let Some(f) = commit {
+            let solar: Option<(usize, f64)> = {
+                let units = &self.game().units;
+                let factories_standing = self.own.values().any(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].role == Role::Factory));
+                let draw = units.list[f].energy_cost / (units.list[f].build_time / units.list[unit].worker_time.max(1.0));
+                // The supply counted from the buildings, not the engine's income, which lags a finished solar by
+                // seconds and bought a fourth where three cover the plant (terr86, the plant twelve seconds later).
+                let standing: f64 = self.own.values().filter(|u| !u.being_built).filter_map(|u| self.unit_index(u.def)).filter(|i| self.is_energy(*i)).map(|i| units.list[i].energy_make).sum();
+                let pending: f64 = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, .. } if self.is_energy(*unit) => Some(units.list[*unit].energy_make), _ => None }).sum();
+                let supply = units.list[unit].energy_make + standing + pending;
+                if !factories_standing && supply < draw { self.opening_energy(unit).map(|u| (u, units.list[u].build_time)) } else { None }
+            };
+            if let Some((solar, cost)) = solar && self.order_one(id, unit, role, solar, cost, None, "opening", commands) {
+                return;
+            }
+        }
         // The classes: the factories as a whole for a mobile builder; a factory's products by role.
         let class_pick: Option<usize> = commit.or_else(|| {
             let units = &self.game().units;
@@ -669,7 +697,7 @@ impl Territory {
         // solar beside the plant (terr75-81, 1:43-1:49, the first extractor at 2:33 against his first constructor's
         // at 1:56), where the commander's solars stand a minute later anyway.
         let spots_credit = self.options.chain && role == Role::Builder && flows.iter().any(|f| matches!(f.1, Class::Ring(_)) && f.2 == Kind::Direct);
-        let chain = far && spots_credit;
+        let chain = (far || self.frame < OPENING_CHAIN) && spots_credit;
         if chain {
             flows.retain(|f| matches!(f.1, Class::Ring(_)));
         } else if far {
@@ -726,6 +754,12 @@ impl Territory {
                     // eight constructors by 4:53 against terr76's nine by 4:51 and 5:00 down 2-7 in three games).
                     let budget = self.metal.current as f64 + self.metal.income as f64 * f64::from(ASSIST_CHUNK / SECOND);
                     if budget < 2.0 * self.game().units.list[u].metal_cost {
+                        continue;
+                    }
+                    // And the energy stock half the product's: a guarded plant draws a constructor's 1,950 in eleven
+                    // seconds (terr86 game 02: the stock at 361 at 2:00, the first constructor sent to a solar; his
+                    // guard ran at 1:21-1:35 on a full stock and again from 2:49).
+                    if (self.energy.current as f64) < self.game().units.list[u].energy_cost / 2.0 {
                         continue;
                     }
                     if !self.energy_fits(u, unit) {
@@ -1102,6 +1136,25 @@ impl Territory {
         *self.hands.committed.entry((u, ring.map_or(Class::Whole, Class::Ring))).or_default() += cost;
         *self.hands.ordered.entry((u, why)).or_default() += 1;
         true
+    }
+
+    /// Whether the opening's radius holds three spots or more: his opening, with the solars before the plant.
+    fn opening_three(&self) -> bool {
+        self.hello.metal_spots.iter().filter(|s| s.dist2d(self.home) < self.options.opening_spots).count() >= 3
+    }
+
+    /// The program's best energy building this builder builds, by energy a second per metal: the opening's solar.
+    fn opening_energy(&self, unit: usize) -> Option<usize> {
+        let units = &self.game().units;
+        let def = &units.list[unit];
+        let targets = self.hands.targets.as_ref().expect("dispatching");
+        let worth = |u: usize| units.list[u].energy_make / units.list[u].metal_cost.max(1.0);
+        targets
+            .types
+            .iter()
+            .copied()
+            .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u) && self.energy_fits(*u, unit))
+            .max_by(|a, b| worth(*a).total_cmp(&worth(*b)))
     }
 
     /// Whether the stock and `AFFORD_SECONDS` of income cover a unit's metal cost.
