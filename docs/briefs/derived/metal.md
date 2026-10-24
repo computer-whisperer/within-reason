@@ -2,7 +2,7 @@
 id: D-metal-is-the-game
 layer: derived
 premises: [F-map-metal, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-conversion, F-eco-build, F-eco-reclaim, F-eco-consequences, M-pool-tier2-and-wrecks, M-pool-pressure, M-pool-expansion, M-pool-closing, M-format-8v8, M-barb-bonus]
-lessons: [L-reclaim-spread, L-metal-first]
+lessons: [L-reclaim-spread, L-metal-first, L-gecko-three-resources, L-gecko-one-more-con]
 sources: {people: [thebluegecko, the user], dates: [2026-10-22], relay: the user's paraphrase of thebluegecko in the brief-rework discussion; the user's framing of the section as an honest derivation of a surface heuristic}
 status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py over 1,752 games of ours and the pool's 38 duels past 12:00: the income gap at 12:00 calls the result better than the army gap in every population; the inversions are our unconverted leads and the kills)
 -->
@@ -48,8 +48,12 @@ adds ten extractors between 8:00 and 12:00 where the loser adds five (the Armada
 three and a half minutes later.
 
 **Where it bends.** Four places, each a dispute with the heuristic as stated, and a fifth for team games.
-(1) Not metal but metal spent: the second thing in thebluegecko's order, which the relay lost, is probably build
-power, since income nobody turns into anything is the bank. (2) The sign: denying his metal counts as much as gaining
+(1) The order's middle, which the relay had lost, is energy, not build power: thebluegecko, reading this
+(L-gecko-three-resources), "next level down heuristics, not a disagreement": three resources, metal the basic one,
+energy second ("how much you've got, and how you get it", bought at a price in metal and build power that differs by
+map), build power third ("how fast you can spend", and it costs a lot of energy: a construction turret is 3,200 energy
+on 230 metal, F-eco-build), so where energy is dear a second factory off the commander replaces the construction
+turrets. Income nobody turns into anything is still the bank; the order says what the spending is bought with. (2) The sign: denying his metal counts as much as gaining
 ours, and the measure is the ratio of the incomes, not ours alone; the AIs' lane seats cutting the people's income
 from 2:05 in 8v8 is metal-first play with the sign flipped. (3) The horizon: an advanced extractor repays in four
 times an extractor's time, a tier-2 sprint is metal now for metal later, and "what gets more metal" says nothing
@@ -60,7 +64,9 @@ labs dont make more metal"), which is why the gifts go to the one seat that comp
 give five times what the lost sides give.
 
 **When to depart from the line.** When his raiders are about to cut more income than the next extractor adds (the
-raid answer); when a lead in army metal is being held while his spots stand, since army depreciates and income
+raid answer; thebluegecko's reading of this line, L-gecko-one-more-con: assume the raiders will be there by the time a
+reasonable build could have brought them, since "raiders cost less than another expanding con", and build one
+constructor more than him, not two); when a lead in army metal is being held while his spots stand, since army depreciates and income
 compounds (the unconverted lead); when his income is gone (go and kill); and in a team, when the seat's metal
 compounds faster in a neighbour's hands.
 

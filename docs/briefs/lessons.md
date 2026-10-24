@@ -464,6 +464,85 @@ measuring, like who gets the first mexes [mechs] and when, winner versus loser, 
 winner versus loser, are skewed because the answer is dependent on which player is using which factory and not
 necessarily predictive of who ends up winning."**
 
+### Reading the brief (thebluegecko, spoken, 2026-10-23)
+
+He read the derived articles as they stood on 2026-10-23 and answered them aloud; the user recorded it and we
+transcribed it locally (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, three recordings). The lines are the
+model's hearing, with "mexes" written for its "mechs"; the speaker reading is ours, unchecked against the audio.
+
+<!--meta
+id: L-gecko-three-resources
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: a voice conversation the user recorded and we transcribed locally (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the first recording), him reading metal.md's "Where it bends"; the bracketed corrections and the speaker reading are ours}
+status: live
+-->
+On the metal article's dispute over what comes second after metal (0:02): **"This is next level down heuristics, not a
+disagreement, only now we have to add. The next most important thing after the metal is the e. E costs different
+amounts of metal and e to generate. You'd like to spend as little for as much e as you can get. And you've got to
+balance e spend, build power spend, and metal spend to get that e."** ... **"on many maps where the wind is kind of
+middling good, but you've got a triple to start, you want to open mexes [mechs], mexes, mexes, solar, wind, wind.
+Because if you want to open wind instead, you've got to go mexes, mexes, wind. That's going to delay your mexes. And
+it's worth putting the solar up just to get that other mex out faster ... The math doesn't quite work out that way. It
+comes out to pretty close to a tie. But then having the solar helps when the wind goes down, and that's where the
+difference is, I think. That plus speed."** ... **"There is a high OS player named Koochie [as heard] who thinks of wind
+as a luxury. Or maybe BP is a luxury. Koochie builds solar on maps other players build wind. With the idea that if you
+can make solar, it takes less BP. If you have to build less BP to get your army out, that's less time before you can
+build the army. And more army you can have earlier. And army is all about tempo."** ... **"Metal is most important.
+Second is your e, how much you've got, and how you get it. And one of the reasons that e is so important is because BP
+costs a high amount of e. You can think of the game as having three resources. Metal, e, and BP. Metal is the basic
+resource. Everything grows from it. E is sort of like a luxury resource. It's the resource that grows out of having
+more metal and spending it. BP is how fast you can spend. Plus walk time and all that trouble. But BP tends to cost a
+lot of e. There are some maps where e is very expensive, where you have to build just solar. Where rather than
+building a bunch of con turrets, you tend to build a second factory. Maybe one con turret into a factory. Maybe even
+none. Because you can build that factory off of your com after walking to take more metal. And it costs less e. So it
+saves you from having to build solar."**
+
+<!--meta
+id: L-gecko-nuke-surprise
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: the same evening's second recording (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md); the speaker reading is ours}
+status: live
+-->
+**"It's possible to build enough nukes to overpower a number of anti-nukes. It just scales. It just scales worse. The
+anti-nukes are denser in every way. They are cheaper, they're smaller, they reload faster, they cost less to reload. So
+an anti-nuke versus nuke escalation results in anti-nuke winning. So the nuke is a weapon of surprise."** And, on what
+else reaches past a defended front (our reading of the exchange): **"There are certain uses of spybots and air ledger
+bombers [as heard]."**
+
+<!--meta
+id: L-gecko-one-more-con
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: the same evening's third recording (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md), him reading metal.md's "When to depart from the line"; the speaker reading is ours}
+status: live
+-->
+On the metal article's "when his raiders are about to cut more income than the next extractor adds" (0:00): **"when
+your enemy is building metal extractors, you raid them to stop them. Of course, both players know this, and the game
+is adversarial. So, you have to keep an idea of what is possible for your opponent to do running throughout the game.
+... could they switch into 10 banshees and kill my com, and end the game no matter how far ahead I am. And so if you
+see the enemy stop building army, you know that that's a possibility to think of. ... If you think of how long it
+would take off of a reasonable build to get raiders to your side of the map, you should probably assume there will be
+raiders there. Because that's generally good play. Raiders cost less than another expanding con, and so you can do
+more damage to your opponent if you build raiders and they don't. It is generally good to have guessed what your
+opponent is doing, and built one more constructor than them. So if one player opens up with a lab and some E, and one
+or no mexes, and goes straight into, say, a Blitz or two, and some raiders, and the other player opens two cons, the
+two-con player is probably behind. But if the con-building player builds one con, they're probably quite a bit ahead.
+And that keeps scaling. If one player builds four cons, the player that builds five cons is ahead. Four cons to six
+cons, the player with the four cons is probably ahead because the units they build will beat the player that has the
+six cons."** Asked whether that is the map's meta or a read of the player: **"Yeah, and it's different by player, too.
+So I know that Within Reason's [within reasons] historical versions don't harass me really, really early. And so I tend
+to open with another con or two more than I would when playing against a human player."** ... **"There's an old adage.
+It comes from a completely different game and game genre. But it's applicable here ... You want to either be very
+slightly slower than your opponent or significantly faster. If you're very slightly slower, then you can kind of
+incrementally grind out an advantage because you've invested slightly more into income. And the disparity between army
+is not so great that the disparity just kills you for the crime of having invested more than your opponent into income.
+If, on the other hand, you are significantly faster than your opponent, then you've made it so that disparity in army
+spending is enough to just murder them for the crime of having invested X amount more than you into generating more
+income."** (slower is slightly more income rather than army: the user's reading, which he confirmed.) **"One of the
+funny things that happens in those grunt versus blitz games is the blitz player gets twice as much army and can't
+always win with it because there's LLTs that are efficient on the other side of the map they have to trade into. So the
+bot player just has to survive until a few pounders come out. And the game kind of resettles despite the 2x army value
+lead."**
+
 ### The unit sheet (thebluegecko, 2026-10-23)
 
 The glossary sheet (`run/glossary_sheet.py`, one row a unit with our numbers and our prose) went to the experienced

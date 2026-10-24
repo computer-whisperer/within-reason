@@ -2,7 +2,7 @@
 id: D-lead-convert-it
 layer: derived
 premises: [D-metal-is-the-game, F-eco-extractors, F-eco-reclaim, F-eco-consequences, F-fight-consequences, F-fight-range, M-pool-closing, M-pool-fights, M-pool-tier2-and-wrecks, M-barb-hard-aggressive-comet, M-barb-bonus]
-lessons: [L-lead-use-it, L-lead-together]
+lessons: [L-lead-use-it, L-lead-together, L-gecko-one-more-con]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-22], relay: the lessons' chat lines; the user's framing of the unconverted lead as a catch-all for harness bugs, poor army movement and wrong tempo recognition, to be kept apart by name}
 status: live, checked (the kill-test run 2026-10-22 with run/metal_killtest.py windows and pool-windows over 2,467 games with a result: a surplus kept home wins a third to 41% in every population, sent 71% to 82%; the quantity was narrowed in the running, see the tests)
 -->
@@ -62,7 +62,13 @@ spots and the map, not the kill, while tier 2 comes. Against a bonus opponent hi
 and every clock above runs faster, so the window is shorter than it looks. In a team the surplus is the side's and
 has to arrive at one place at one time, which is the whole of Irishstud14's complaint in game 3. And the raid trade:
 in the pool five sides killed three or more of his extractors during their window and lost anyway, the raiders
-buying extractors while his main body took theirs.
+buying extractors while his main body took theirs. And the toll: thebluegecko on the Grunt-against-Blitz duels
+(L-gecko-one-more-con), "the blitz player gets twice as much army and can't always win with it because there's LLTs
+that are efficient on the other side of the map they have to trade into", the game resettling while the bot player
+waits for Pounders. By the square law twice the metal in Blitzes is 1.9 to 1 against Pawns in the open and 0.8 to 1
+against the same Pawns beside three Sentries (the lab article has the arithmetic), so the surplus is spent where it is
+one: his spots, his constructors, his soldiers in the open. His adage for the whole: be very slightly slower than him
+or significantly faster, and significantly is two to one in the open.
 
 **When to depart from the line.** When the surplus is the wrong instrument for what covers his spots (raiders against
 turrets), spend it on his outer spots and bring the right one. When the neighbour's lane is breaking, the side's
