@@ -103,7 +103,15 @@ struct Instance<L: Transport> {
     events: Vec<Event>,
     /// Units to create once the export has let go of the instance table (see `engine::Spawner`).
     spawns: Vec<(UnitDefId, Vec3)>,
+    /// The frame `/cheat 1` went out (the host's first update), which `/give` needs (`engine::Spawner::give`): spawns
+    /// are held until `CHEAT_LAG` frames after it, when the flag has come back from the server; and the last frame
+    /// seen.
+    cheats_sent_at: Option<i32>,
+    frame: i32,
 }
+
+/// Frames from `/cheat 1` to the first `/give`: the command comes back from the server within a frame in a local game.
+const CHEAT_LAG: i32 = 2;
 
 // SAFETY: the engine only calls the exports from its own thread; the raw callback pointer
 // inside `Engine` never leaves that thread. The mutex only guards the instance table.
@@ -115,6 +123,13 @@ impl<L: Transport> Instance<L> {
     }
 
     fn update(&mut self, frame: i32) {
+        self.frame = frame;
+        if self.cheats_sent_at.is_none() {
+            if let Err(code) = self.engine.console("/cheat 1") {
+                self.log(format!("/cheat 1 refused: {code}"));
+            }
+            self.cheats_sent_at = Some(frame);
+        }
         if frame % HEARTBEAT_INTERVAL == 0 {
             self.log(format_args!("heartbeat f={frame}"));
             // For the arena's referee, which may call a settled game (`WITHIN_REASON_BALANCE`).
@@ -392,6 +407,8 @@ impl<L: Transport> Host<L> {
                     .map(std::io::BufWriter::new),
                 events: Vec::new(),
                 spawns: Vec::new(),
+                cheats_sent_at: None,
+                frame: -1,
             };
             instance.log("init");
             // Hello at init, before the people place their starts and long before the first update: the player takes
@@ -422,9 +439,13 @@ impl<L: Transport> Host<L> {
                 if !data.is_null() {
                     unsafe { instance.handle_event(topic as sys::EventTopic, data) };
                 }
-                (instance.engine.spawner(), std::mem::take(&mut instance.spawns))
+                // Spawns wait for the cheat flag (`/cheat 1` from the first update) to have come back from the server.
+                let ready = instance.cheats_sent_at.is_some_and(|f| instance.frame >= f + CHEAT_LAG);
+                let spawns = if ready { std::mem::take(&mut instance.spawns) } else { Vec::new() };
+                (instance.engine.spawner(), spawns)
             };
-            // The table is unlocked here: the engine re-enters this function with the new unit's events.
+            // The table is unlocked here, as it was when the cheat interface re-entered this function with the
+            // new unit's events; the synced `/give` brings the unit a frame or two on instead.
             for (def, at) in spawns {
                 if let Err(code) = spawner.give(def, at) {
                     eprintln!("[wreason ai={skirmish_ai_id}] give unit def={} at ({:.0},{:.0}) refused: {code}", def.0, at.x, at.z);

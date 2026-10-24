@@ -43,11 +43,19 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   to its socket, and one director sees both sides whole. The heuristic brain is not involved. The shim runs in lockstep
   (`WITHIN_REASON_LOCKSTEP`), so orders land on the frame they were decided for at any game speed; results at speed 50
   and 200 agree (below).
-- **Spawning** is the AI interface's cheat `COMMAND_CHEATS_GIVE_ME_NEW_UNIT` (`Command::GiveUnit`). The engine honours
-  it without `/cheat` because the game is hosted locally with one player (`CAICheats::OnlyPassiveCheats`,
-  `rts/ExternalAI/AICheats.cpp:34`); it would silently do nothing in a multiplayer game. The engine delivers the new
-  unit's events from inside that call, so the shim issues it after letting go of its instance table
-  (`engine::Spawner`) — issued under the lock, the first spawn deadlocks the engine.
+- **Spawning** (`Command::GiveUnit`) is the synced console command `/give 1 <unit> <team> @x,0,z`, sent as the AI's
+  text: the engine takes an AI's text that starts with a slash as a command (`CAICallback::SendTextMsg`,
+  `CGame::ProcessCommandText`) and a synced one travels as a `CommandMessage` over the net, so it is in the demo and
+  a replay re-simulates the spawn (checked 2026-10-24 by `run/replay_match.py` on a drill's demo: the twelve Blitzes
+  appear at frame 120 and walk, no desync). `/give` needs the game's cheat flag, so the shim sends `/cheat 1` from
+  its first update (the game logs "Cheating is enabled!" at frame 0) and holds spawns two frames, since the unsynced
+  give executor refuses locally until the flag has come back from the server (`UnsyncedActionExecutor.h`). Until
+  2026-10-24 spawning was the AI interface's cheat `COMMAND_CHEATS_GIVE_ME_NEW_UNIT`, a direct call on the host's
+  simulation that no demo carried (pitfalls.md): a replay showed the commanders alone with desync warnings. The
+  shim still issues spawns after letting go of its instance table (`engine::Spawner`), as the cheat's re-entry
+  required; the given unit now appears a frame or two on. Spawn positions and the baselines' numbers did not move
+  (walk-blitz-off 18 / 19 / 19 s, contact 90 x 114 against 89 x 116). The gather's metal top-up (`GiveResource`)
+  stays the AI cheat, host-local, so a gather's demo still desyncs on its resources.
 - **Sites** are chosen from `Hello.terrain`: 1440 x 640 elmo rectangles, every cell dry and within the least agile
   listed unit's slope limit, at most 16 elmos of relief, 900 from each other and from both commanders
   (`sites.rs`). Quicksilver gives two. Each site runs its own sequence of duels, so a match fights two at a time.

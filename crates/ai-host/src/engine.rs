@@ -72,23 +72,47 @@ impl Engine {
 }
 
 impl Spawner {
-    /// A finished unit of type `def` at `at` for this AI's team; `Err` carries the engine's result code. Cheat
-    /// access is on for this one command only, as in [`Engine::enemy_census`].
+    /// A finished unit of type `def` at `at` for this AI's team, by the synced console command `/give` sent as the
+    /// AI's text: the engine takes an AI's text that starts with a slash as a command (`CAICallback::SendTextMsg`,
+    /// `CGame::ProcessCommandText`) and wraps a synced one as a `CommandMessage` over the net, so the spawn is in the
+    /// demo and a replay re-simulates it. Until 2026-10-24 this was the AI cheat interface's `GiveMeNewUnit`, which
+    /// loads the unit on the host's simulation directly, so a demo of a duel showed two commanders standing and
+    /// desync warnings (docs/harness/pitfalls.md). `/give` needs the game's cheat flag, which [`Engine::console`]'s
+    /// `/cheat 1` sets from the host's first update; the flag comes back from the server a frame on, and the unsynced
+    /// give executor refuses locally until it has (`UnsyncedActionExecutor.h`), so the host holds spawns until then
+    /// (`lib.rs` `CHEAT_LAG`). The unit appears when the command comes back from the server, not within this call, so
+    /// `Err` says only that the engine refused the text. A single unit is placed at the position itself, facing south
+    /// (`CUnitLoader::GiveUnits`).
     pub fn give(self, def: UnitDefId, at: Vec3) -> Result<(), i32> {
-        let mut pos = [at.x, at.y, at.z];
-        let mut command = sys::SGiveMeNewUnitCheatCommand { unitDefId: def.0, pos_posF3: pos.as_mut_ptr(), ret_newUnitId: -1 };
-        call!(self, Cheats_setEnabled(true));
-        let code = call!(self, Engine_handleCommand(
-            sys::COMMAND_TO_ID_ENGINE, -1, sys::COMMAND_CHEATS_GIVE_ME_NEW_UNIT as c_int, std::ptr::from_mut(&mut command).cast::<c_void>()
-        ));
-        call!(self, Cheats_setEnabled(false));
-        if code == 0 { Ok(()) } else { Err(code) }
+        let team = call!(self, SkirmishAI_getTeamId());
+        let name_ptr = call!(self, UnitDef_getName(def.0));
+        let name = if name_ptr.is_null() { String::new() } else { unsafe { CStr::from_ptr(name_ptr) }.to_string_lossy().into_owned() };
+        if name.is_empty() {
+            return Err(-1);
+        }
+        console(self.ai_id, self.callback, &format!("/give 1 {name} {team} @{:.1},0,{:.1}", at.x, at.z))
     }
+}
+
+/// A console command sent as this AI's text (`CAICallback::SendTextMsg` takes a line that starts with a slash as a
+/// command and nothing else from an AI). A synced one travels as a `CommandMessage` over the net and is recorded.
+fn console(ai_id: c_int, callback: *const sys::SSkirmishAICallback, line: &str) -> Result<(), i32> {
+    let text = CString::new(line).unwrap_or_default();
+    let mut command = sys::SSendTextMessageCommand { text: text.as_ptr(), zone: 0 };
+    let code = unsafe {
+        ((*callback).Engine_handleCommand.expect("Engine_handleCommand"))(ai_id, sys::COMMAND_TO_ID_ENGINE, -1, sys::COMMAND_SEND_TEXT_MESSAGE as c_int, std::ptr::from_mut(&mut command).cast::<c_void>())
+    };
+    if code == 0 { Ok(()) } else { Err(code) }
 }
 
 impl Engine {
     pub fn spawner(&self) -> Spawner {
         Spawner { ai_id: self.ai_id, callback: self.callback }
+    }
+
+    /// A console command as this AI's text (see [`console`]); `/cheat 1` is what the spawner needs.
+    pub fn console(&self, line: &str) -> Result<(), i32> {
+        console(self.ai_id, self.callback, line)
     }
 
     /// # Safety

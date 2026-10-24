@@ -51,9 +51,10 @@ Replays recorded before that: `run/fix_replay.py <match dir>` writes a `.fixed.s
 
 `COMMAND_CHEATS_GIVE_ME_NEW_UNIT` creates the unit before it returns, and the engine delivers the unit's events to
 `handleEvent` from inside that call. The shim's exports hold the instance table's mutex, so issuing it from inside an
-export hung the engine at the first spawn (watchdog stack trace through `Mutex::lock_contended`). The shim now queues
-spawns and issues them after unlocking (`engine::Spawner`). Ordinary unit orders travel through the network layer and
-do not re-enter. Any future synchronous engine call (other cheats, Lua calls) needs the same treatment.
+export hung the engine at the first spawn (watchdog stack trace through `Mutex::lock_contended`). The shim queued
+spawns and issued them after unlocking (`engine::Spawner`), and still does, though since 2026-10-24 the spawn is the
+synced `/give` (next entry but one), which does not re-enter. Ordinary unit orders travel through the network layer
+and do not re-enter. Any future synchronous engine call (other cheats, Lua calls) needs the same treatment.
 
 ## Hold fire keeps the target a weapon already has; units heal when left alone
 
@@ -265,6 +266,12 @@ script's commanders and the AI's orders exist, so the client shows two commander
 checksum and desync warnings every few seconds (the recorded sync checksums include the units the replay lacks).
 Seen the night the drill demos were copied into the user's client. What does replay: a synced console action, such
 as `/give`, which the engine sends as a `CommandMessage` over the net (`Game.cpp` `ActionPressed`), recorded and
-re-executed; a LuaUI widget in the match's write dir can issue it (`Spring.SendCommands`), told what to give by a
-chat line from the AI (`Command::Say`), which would make every duel demo watchable and end the desync warnings. Not
-built; the per-second log (`seconds/*.jsonl`) is the duels' record meanwhile.
+re-executed. Built the same night, and simpler than a widget: the engine takes an AI's text that starts with a slash
+as a console command (`CAICallback::SendTextMsg` calls `CGame::ProcessCommandText`), so `engine::Spawner::give`
+sends `/give 1 <unit> <team> @x,0,z` as the AI's text and the shim sends `/cheat 1` from its first update. Two things
+found building it: the unsynced give executor checks the cheat flag locally (`UnsyncedActionExecutor.h`), and the
+flag set by `/cheat 1` comes back from the server a frame later, so a `/give` in the same frame as the `/cheat` is
+refused without a log line (the first smoke's `spawn_failed`); the shim holds spawns two frames (`lib.rs`
+`CHEAT_LAG`). Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
+to the goal, no desync in the replay's infolog; the baselines' numbers did not move. The gather's metal top-up is
+still the AI's resource cheat, so a gather's demo desyncs on its resources; everything else in a duel replays.
