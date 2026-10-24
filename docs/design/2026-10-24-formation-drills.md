@@ -117,6 +117,20 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   host); the duel binary's and the drill's tests pass; the smoke numbers are in `docs/harness/duels.md`.
 - **D7. The baselines are run before any lane change**: the lane off and on, pure and mixed columns, two spawn
   shapes. Their numbers are the bars the group arc is judged against.
+- **D8. The depth and width measure** (the user, 2026-10-24, after the baselines: "I would measure the columns by how
+  much of the army group is able to engage with an enemy at once, while maintaining speed. A column is much more
+  dangerous if it is moving in formation abreast rather than single-file"; "Go, start with the depth and width
+  measure"). Each second the units are projected onto the body's heading (on a strip, the axis from the end behind to
+  the goal in force; on terrain, to come, the centroid's velocity): the body's **depth** is the leading unit's
+  projection less the rearmost's, its **width** the extent across the heading. Against an enemy front the units come
+  into reach in depth order at their own speed, so each unit's depth behind the leader over its type's speed is the
+  time until it is firing beside the leader: the **ramp to half** is the median of those times over the army, the
+  **ramp to all** the largest. No bar in any of it: positions, the axis and the glossary's speeds. Logged every second
+  (`shape: [depth, width, ramp_half_s, ramp_all_s]` on the per-second line) and summarised in `duels.csv` at
+  **contact**, the second the first unit arrives at the goal in force (for a reverse, the first unit back at the
+  start after the turn), which is when a front at the goal would be met: `depth_contact`, `width_contact`,
+  `ramp_half_s`, `ramp_all_s`. Read beside `speed_share`: a body that forms by stopping shows it there. A gather's
+  contact shape is the stream's first unit alone and says nothing; its measure is the next drill's.
 
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
@@ -206,6 +220,40 @@ first-to-last gap is the measure to shrink from 17 s, and an arm counts as pacin
 last arrival slipping past the slowest type's 35 s by more than 3 s; a reverse recovers within 4 s and keeps a
 nearest friend of 55-90 after the turn; a gather's joiners arrive within their type's walk plus 3 s of appearing
 (Blitz 20 s, Stout 26, Janus 34), and the body at the goal keeps 55-90 as they come.
+
+**Re-read with the depth and width measure (D8, 2026-10-24 night),** derived by `run/drill_table.py` from the same
+sixteen batches' per-second logs (the director's own columns agree with the derivation to the elmo on a check duel:
+88 x 115, ramp 0.6 / 0.9):
+
+| drill | arm | at contact, deep x wide | ramp half / all s |
+|---|---|---|---|
+| walk | 12 Blitz, off / on | 88 x 116 / 122 x 371 | 0.6 / 0.9 and 0.6 / 1.2 |
+| walk | 12 Stout, off / on | 82 x 193 / 68 x 372 | 0.9 / 1.1 and 0.9 / 0.9 |
+| walk | the mix, off / on (move and reissue the same) | 923 x 187 / 927 x 335 | 7.1 / 17.1 and 7.2 / 17.2 |
+| reverse | 12 Blitz, off / on | 105 x 98 / 87 x 359 | 0.7 / 1.0 and 0.6 / 0.9 |
+| reverse | the mix, off / on | 313 x 121 / 136 x 326 | 2.7 / 3.1 and 1.2 / 1.4 |
+| gather | (the stream's first unit; says nothing) | 1463 x 25 | 14.5 / 14.5 |
+
+And the series, one duel each, every two seconds: twelve Blitzes with the lane off go 64 x 318 at 2 s, 87 x 167 at
+10 s, 94 x 105 at 20 s; with the lane on 64 x 330, 159 x 379, 157 x 362; the mix with the lane off 99 x 317, 507 x
+255, 994 x 180; with the lane on 106 x 318, 512 x 332, 997 x 336.
+
+6. **One goal point funnels a line into a file.** Every unit walks its own straight line to the same point, so the
+   width falls in step with the distance left: 320 at the order, 167 halfway, 105-116 at the goal for twelve
+   Blitzes, while the depth holds near the two ranks' 88. The "ball" at arrival is this funnel's end. The games'
+   advance is one point for the whole group, so a line abreast at the order is two wide at contact
+   (K-engine-one-goal-point-funnels-a-line-into-a-file).
+7. **The lane's per-unit destinations hold the width the whole way** (335-381 against the formation's 320), at a
+   cost in depth (64 to 160 for the Blitzes, the ramp to all 0.9 to 1.2 s): the march's ranks at the destination
+   are what keeps six abreast, and it is the only thing in the stack today that does.
+8. **The mixed column's depth grows at the speed difference,** 47 elmos a second, to 923 at contact: half the army
+   is 7 s behind the leader when the leader meets a front, the last 17 s. A pacing arm is judged on these two numbers
+   with the width kept.
+
+The bars for drills 1-3 in these terms: a pure column's ramp to all at contact within 1.2 s and its width at
+contact no less than the formation's at the order; a mixed column's ramp to half and to all are the measures to
+shrink from 7.1 and 17.1 s with the width kept and the last arrival within 3 s of the slowest type's walk; a
+reverse's shape at the first unit back within the walk's.
 
 ## 6. Open for the user
 

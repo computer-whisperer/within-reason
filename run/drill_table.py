@@ -7,9 +7,12 @@ One row per arm (by default the army, its spawn formation and its lane mode) fro
 first, median and last arrival (seconds from the first order), the spread (root mean square from the army's centre)
 and the median nearest-friend distance at the median arrival, the speed share (each unit's speed over the second as a
 share of its type's, averaged over units and seconds up to the median arrival, a unit counted until its own arrival),
-the spin-up (seconds until the median
-unit is at 90% of its type's speed: every army spawns facing south and turns first), a reverse's recovery after the
-turn, and a gather's units produced and median seconds from appearance to arrival. `--types` adds, from the
+the spin-up (seconds until the median unit is at 90% of its type's speed: every army spawns facing south and turns
+first), a reverse's recovery after the turn, a gather's units produced and median seconds from appearance to arrival,
+and the body's shape at contact (design D8: the second the first unit arrives at the goal in force): its depth along
+the heading and width across it, and the engagement ramp, each unit's depth behind the leader over its type's speed,
+the median over the body and the largest. The shape comes from `duels.csv` when the batch has the columns and is
+derived from the per-second log otherwise. `--types` adds, from the
 per-second logs (`seconds/*.jsonl`, the drill's meta line first), each type's own arrival at the goal and speed share
 before the median arrival, which is where a mixed column's stringing shows (type speeds from the unit glossary,
 `crates/bot/data/units.json`). A reverse's per-type arrival is at the start after the turn (the way back); its speed
@@ -62,9 +65,8 @@ def type_speeds():
     return {name: (entry or {}).get("speed") or 0.0 for name, entry in data.items() if isinstance(entry, dict)}
 
 
-def per_type(batch, row, speeds):
-    """From one duel's per-second log: each type's median arrival at the goal and mean speed share before the army's
-    median arrival. None when the log is missing."""
+def read_log(batch, row):
+    """The duel's per-second log as (meta, seconds), or None."""
     log = row.get("log")
     if not log:
         return None
@@ -85,6 +87,64 @@ def per_type(batch, row, speeds):
                 seconds.append(r)
     if meta is None or not seconds:
         return None
+    return meta, seconds
+
+
+def shape_of(points, heading):
+    """(depth, width, ramp_half, ramp_all) of [(x, z, speed)] against a heading, as `drill.rs` `Shape::of`."""
+    hx, hz = heading
+    norm = (hx * hx + hz * hz) ** 0.5
+    if not points or norm <= 0:
+        return None
+    hx, hz = hx / norm, hz / norm
+    along = [x * hx + z * hz for x, z, _ in points]
+    across = [z * hx - x * hz for x, z, _ in points]
+    lead = max(along)
+    ramps = sorted((lead - p) / s for p, (_, _, s) in zip(along, points) if s and s > 0)
+    if not ramps:
+        return None
+    return lead - min(along), max(across) - min(across), ramps[len(ramps) // 2], ramps[-1]
+
+
+def contact_shape(batch, row, speeds):
+    """The shape at contact derived from the log: the first second any mobile unit is within ARRIVED of the goal in
+    force (for a reverse, the start, after the turn), over the mobile units present that second."""
+    read = read_log(batch, row)
+    if read is None:
+        return None
+    meta, seconds = read
+    names = meta.get("x", [])
+    start, goal = meta.get("start"), meta.get("goal")
+    if start is None or goal is None:
+        return None
+    after = None
+    toward, behind = goal, start
+    if meta.get("drill") == "reverse":
+        toward, behind = start, goal
+        after = meta.get("turn_at_s")
+    heading = (toward[0] - behind[0], toward[1] - behind[1])
+    for r in seconds:
+        t = r["t"]
+        if after is not None and t <= after:
+            continue
+        points = []
+        for index, x, z, _health in r.get("x", []):
+            name = names[index] if index < len(names) else ""
+            speed = speeds.get(name) or 0.0
+            if speed > 0:
+                points.append((x, z, speed))
+        if any(((x - toward[0]) ** 2 + (z - toward[1]) ** 2) ** 0.5 <= ARRIVED for x, z, _ in points):
+            return shape_of(points, heading)
+    return None
+
+
+def per_type(batch, row, speeds):
+    """From one duel's per-second log: each type's median arrival at the goal and mean speed share before the army's
+    median arrival. None when the log is missing."""
+    read = read_log(batch, row)
+    if read is None:
+        return None
+    meta, seconds = read
     names = meta.get("x", [])
     goal = meta.get("goal")
     # A reverse arrives back at the start, after its turn.
@@ -145,7 +205,7 @@ def main():
     if not batches:
         print(__doc__)
         sys.exit(2)
-    speeds = type_speeds() if types else {}
+    speeds = type_speeds()
     for batch in batches:
         rows = rows_of(batch)
         meta = {}
@@ -161,9 +221,9 @@ def main():
         groups = {}
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
-        head = "| " + " | ".join(by) + " | n | arrived (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s |"
+        head = "| " + " | ".join(by) + " | n | arrived (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s |"
         print(head)
-        print("|" + "---|" * (len(by) + 10))
+        print("|" + "---|" * (len(by) + 12))
         for key, rs in sorted(groups.items()):
             arrived = sum(1 for r in rs if r.get("reason") == "arrived")
             timeouts = sum(1 for r in rs if r.get("reason") == "timeout")
@@ -179,6 +239,16 @@ def main():
                 fmt(mean(number(r.get("produced")) for r in rs)),
                 fmt(mean(number(r.get("join_median_s")) for r in rs)),
             ]
+            shapes = []
+            for r in rs:
+                if r.get("depth_contact"):
+                    shapes.append(tuple(number(r.get(c)) for c in ("depth_contact", "width_contact", "ramp_half_s", "ramp_all_s")))
+                else:
+                    shape = contact_shape(batch, r, speeds)
+                    if shape:
+                        shapes.append(shape)
+            cells.append(f"{fmt(mean(s[0] for s in shapes))} x {fmt(mean(s[1] for s in shapes))}" if shapes else "-")
+            cells.append(f"{fmt(mean(s[2] for s in shapes), 1)} / {fmt(mean(s[3] for s in shapes), 1)}" if shapes else "-")
             print("| " + " | ".join(key) + " | " + " | ".join(cells) + " |")
             if types:
                 per = {}
@@ -188,7 +258,7 @@ def main():
                         for k in p:
                             p[k].append(v[k])
                 for name, p in sorted(per.items()):
-                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | |")
+                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | |")
         print()
 
 

@@ -722,6 +722,17 @@ median / last in every arm, each type at 0.94-0.96 of its speed, spread 359-387 
 **Status.** measured (2026-10-24); the stringing the games show (player-32, the pick rework's games) is this. What
 holds a mixed body together is the next arc's question (the group API's pacing arms, measured against this number).
 
+### K-engine-one-goal-point-funnels-a-line-into-a-file
+**Claim.** Units given one move or fight order to the same point each walk their own straight line to it, so a body
+abreast narrows in step with the distance left and arrives as a file two wide: twelve Blitzes in ranks of six at 64
+are 320 wide at the order, 167 halfway along a 2,000 walk and 105-116 at the goal, their depth holding near the two
+ranks' 88 throughout. The ball a group makes at its destination is this funnel's end. A per-unit destination in
+ranks (the lane's march rewrite) holds the width the whole way (335-381) at a cost in depth (64 to 160).
+**Evidence.** The drill bench's baselines read with the depth and width measure, 2026-10-24 (`duel --drill walk`,
+8 duels an arm, lane off and on, the per-second `shape`; `docs/design/2026-10-24-formation-drills.md` §5, D8).
+**Status.** measured (2026-10-24). The hands' advance is one point for the whole group (`execute.rs`), so a group
+told to advance abreast meets a front two wide; what holds a body's width on the move is the next arc's question.
+
 ### K-engine-slow-guard-paces-a-guarder-to-its-guardee
 **Claim.** The engine's one native pacing is slow guard: a unit guarding a slower moving unit, once within the game's
 `guardMovingProximityGoal` of it (BAR's `modrules.lua`: 200), has its wanted maximum speed set to the guardee's speed

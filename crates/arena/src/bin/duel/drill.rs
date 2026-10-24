@@ -15,7 +15,11 @@
 //! the mean over units and seconds up to the median arrival, a unit counted until its own arrival; positions a second
 //! apart under-read a turning unit a little), the first second the median share reaches `UP_TO_SPEED` after the order (`spin_up_s`: every army spawns
 //! facing south and turns first, and every arm shares that turn) and after a reverse's turn (`recover_s`), the units
-//! a gather's lab made (`produced`) and the median seconds from a unit's appearance to its arrival (`join_median_s`).
+//! a gather's lab made (`produced`) and the median seconds from a unit's appearance to its arrival (`join_median_s`),
+//! and the body's shape against its heading (`Shape`, design D8): its depth and width, and the engagement ramp, each
+//! unit's depth behind the leader over its type's speed (the median of those over the army and the largest), logged
+//! every second and kept at contact, the second the first unit arrives at the goal in force (`depth_contact`,
+//! `width_contact`, `ramp_half_s`, `ramp_all_s`).
 //! The director's side (`director.rs` `drill_orders`, `drill_sample`) owns the army; this module owns the geometry,
 //! the clock and the score.
 
@@ -89,6 +93,11 @@ pub struct Score {
     pub recover_s: Option<f32>,
     pub produced: u32,
     pub join_median_s: Option<f32>,
+    /// The body's shape at contact (design D8).
+    pub depth_contact: Option<f32>,
+    pub width_contact: Option<f32>,
+    pub ramp_half_s: Option<f32>,
+    pub ramp_all_s: Option<f32>,
 }
 
 /// One living mobile unit as the sampler sees it: its spawn index, id, place and its type's speed (elmos a second).
@@ -97,6 +106,39 @@ pub struct Walker {
     pub id: UnitId,
     pub at: Vec3,
     pub speed: f32,
+}
+
+/// The body's shape against its heading one second (design D8): the leading unit's projection on the heading less
+/// the rearmost's, the extent across it, and the engagement ramp, each unit's depth behind the leader over its type's
+/// speed, as the median over the army and the largest.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Shape {
+    pub depth: f32,
+    pub width: f32,
+    pub ramp_half_s: f32,
+    pub ramp_all_s: f32,
+}
+
+impl Shape {
+    /// Of these units along `heading` (any non-zero vector); `None` with nobody.
+    pub fn of(walkers: &[Walker], heading: Vec3) -> Option<Shape> {
+        let norm = (heading.x * heading.x + heading.z * heading.z).sqrt();
+        if walkers.is_empty() || norm <= 0.0 {
+            return None;
+        }
+        let (hx, hz) = (heading.x / norm, heading.z / norm);
+        let along: Vec<f32> = walkers.iter().map(|w| w.at.x * hx + w.at.z * hz).collect();
+        let across: Vec<f32> = walkers.iter().map(|w| w.at.z * hx - w.at.x * hz).collect();
+        let lead = along.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        let depth = lead - along.iter().copied().fold(f32::INFINITY, f32::min);
+        let width = across.iter().copied().fold(f32::NEG_INFINITY, f32::max) - across.iter().copied().fold(f32::INFINITY, f32::min);
+        let mut ramps: Vec<f32> = walkers.iter().zip(&along).filter(|(w, _)| w.speed > 0.0).map(|(w, p)| (lead - p) / w.speed).collect();
+        if ramps.is_empty() {
+            return None;
+        }
+        ramps.sort_by(f32::total_cmp);
+        Some(Shape { depth, width, ramp_half_s: ramps[ramps.len() / 2], ramp_all_s: ramps[ramps.len() - 1] })
+    }
 }
 
 /// One drill's state and measurements, per duel.
@@ -134,6 +176,10 @@ pub struct Drill {
     /// `gather`: the team's stores at the last tick, [metal current, income, usage, storage, energy current, income,
     /// usage, storage] (the per-second log's `stores`; a starved lab shows here).
     pub stores: Option<[f32; 8]>,
+    /// The body's shape this second (the per-second log's `shape`), and at contact: the second the first unit
+    /// arrived at the goal in force (cleared at a reverse's turn, like the arrivals).
+    pub shape: Option<Shape>,
+    pub shape_at_contact: Option<Shape>,
 }
 
 impl Drill {
@@ -164,6 +210,8 @@ impl Drill {
             median_arrival: None,
             spread_at_median: None,
             stores: None,
+            shape: None,
+            shape_at_contact: None,
         }
     }
 
@@ -179,6 +227,7 @@ impl Drill {
 
     /// The turn: the goal in force becomes the start, the arrivals start afresh.
     pub fn turn(&mut self, frame: i32) {
+        self.shape_at_contact = None;
         self.toward = self.start;
         self.turned = Some(frame);
         self.arrived.clear();
@@ -200,9 +249,16 @@ impl Drill {
         }
     }
 
-    /// Once a second: speeds, arrivals, the spin-up and recovery clocks, and the spread at the median arrival.
-    /// `expected` is how many units the drill waits for (`expected`).
+    /// The body's heading on the strip: from the end behind to the goal in force.
+    pub fn heading(&self) -> Vec3 {
+        let behind = if self.toward == self.goal { self.start } else { self.goal };
+        Vec3 { x: self.toward.x - behind.x, y: 0.0, z: self.toward.z - behind.z }
+    }
+
+    /// Once a second: speeds, arrivals, the spin-up and recovery clocks, the spread at the median arrival, and the
+    /// body's shape (kept at contact). `expected` is how many units the drill waits for (`expected`).
     pub fn sample(&mut self, frame: i32, walkers: &[Walker], expected: usize) {
+        self.shape = Shape::of(walkers, self.heading());
         let mut shares: Vec<f32> = Vec::new();
         let mut now: HashMap<UnitId, Vec3> = HashMap::new();
         for w in walkers {
@@ -219,6 +275,9 @@ impl Drill {
             }
         }
         self.last = now;
+        if self.shape_at_contact.is_none() && !self.arrived.is_empty() {
+            self.shape_at_contact = self.shape;
+        }
         if !shares.is_empty() {
             shares.sort_by(f32::total_cmp);
             let median = shares[shares.len() / 2];
@@ -290,6 +349,10 @@ impl Drill {
             recover_s: self.recover.zip(self.turned).map(|(r, t)| (r - t) as f32 / FPS as f32),
             produced: self.appeared.len() as u32,
             join_median_s: joins.get(joins.len() / 2).copied(),
+            depth_contact: self.shape_at_contact.map(|s| s.depth),
+            width_contact: self.shape_at_contact.map(|s| s.width),
+            ramp_half_s: self.shape_at_contact.map(|s| s.ramp_half_s),
+            ramp_all_s: self.shape_at_contact.map(|s| s.ramp_all_s),
         }
     }
 }
@@ -327,6 +390,30 @@ mod tests {
         assert!(score.speed_share.is_some_and(|s| s > 0.95 && s <= 1.0), "{:?}", score.speed_share);
         assert!(score.nn_arrival.is_some_and(|nn| nn > 60.0 && nn < 130.0), "{:?}", score.nn_arrival);
         assert_eq!(score.recover_s, None);
+        // Contact at 27 s: the second unit is 81 behind and one rank across; at 100 a second it is 0.8 s from firing.
+        assert_eq!(score.depth_contact.map(f32::round), Some(81.0));
+        assert_eq!(score.width_contact.map(f32::round), Some(64.0));
+        assert!(score.ramp_all_s.is_some_and(|r| (r - 0.81).abs() < 0.01), "{:?}", score.ramp_all_s);
+        assert_eq!(score.ramp_half_s, score.ramp_all_s);
+    }
+
+    /// The shape against a heading: depth along it from the leader back, width across it, the ramp each unit's depth
+    /// over its own speed (the median and the largest over the body).
+    #[test]
+    fn the_shape_is_taken_against_the_heading() {
+        let walkers = vec![
+            Walker { index: 0, id: UnitId(1), at: at(0.0, 0.0), speed: 100.0 },
+            Walker { index: 1, id: UnitId(2), at: at(-100.0, 50.0), speed: 50.0 },
+            Walker { index: 2, id: UnitId(3), at: at(-200.0, -50.0), speed: 100.0 },
+        ];
+        let east = Shape::of(&walkers, at(1.0, 0.0)).unwrap();
+        assert_eq!((east.depth, east.width), (200.0, 100.0));
+        assert_eq!((east.ramp_half_s, east.ramp_all_s), (2.0, 2.0));
+        let north = Shape::of(&walkers, at(0.0, 1.0)).unwrap();
+        assert_eq!((north.depth, north.width), (100.0, 200.0));
+        assert_eq!((north.ramp_half_s, north.ramp_all_s), (0.5, 1.0));
+        assert_eq!(Shape::of(&[], at(1.0, 0.0)), None);
+        assert_eq!(Shape::of(&walkers, at(0.0, 0.0)), None);
     }
 
     /// A reverse: the turn is due `turn_at` after the first order, the goal in force becomes the start, the arrivals

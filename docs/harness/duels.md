@@ -279,11 +279,16 @@ unit's speed over the second as a share of its type's, averaged over units and s
 unit counted until its own arrival; positions a second apart under-read a turning unit a little), `spin_up_s` (seconds until the median unit is at 90%
 of its type's speed: every army spawns facing south and turns a quarter first, and every arm shares that turn),
 `recover_s` (a reverse: seconds from the turn until the median unit is back at 90%), `produced` and `join_median_s`
-(a gather: the units the lab made, and the median seconds from a unit's appearance to its arrival). The per-second
+(a gather: the units the lab made, and the median seconds from a unit's appearance to its arrival), and the body's
+shape at contact, the second the first unit arrives at the goal in force (design D8, `drill.rs` `Shape`): `depth_contact`
+(the leading unit's projection on the heading less the rearmost's), `width_contact` (the extent across the heading),
+`ramp_half_s` and `ramp_all_s` (each unit's depth behind the leader over its type's speed, the time until it fires beside
+the leader against a front: the median over the body and the largest). The per-second
 log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
-formation, lane, fight, turn_at_s, reissue_s}}` and, for a gather, `stores` on every line (the team's metal and
-energy as current, income, usage, storage), so `run/drill_table.py --types` can give each type its own arrival and speed
-share, which is where a mixed column's stringing shows. The duel's own instruments run too: `speed_x`
+formation, lane, fight, turn_at_s, reissue_s}}` with `shape: [depth, width, ramp_half_s, ramp_all_s]` on every line
+and, for a gather, `stores` (the team's metal and energy as current, income, usage, storage), so
+`run/drill_table.py --types` can give each type its own arrival and speed share, which is where a mixed column's
+stringing shows, and derive the contact shape for a batch from before the columns existed. The duel's own instruments run too: `speed_x`
 is the whole drill's mean speed (there is no first damage), the fire and shape columns stay empty.
 
 Checked (drill-smoke, 2026-10-24): eight Blitzes at 56 in one rank, lane off, 1,500 east: arrived 14 / 14 / 14 s,

@@ -162,11 +162,12 @@ fn main() -> io::Result<()> {
                 let d = &result.drill;
                 let s = |v: Option<f32>| v.map_or("-".to_string(), |v| format!("{v:.0}"));
                 println!(
-                    "[{n}/{total}] drill {}: {}x{} ({}, lane {}){}: {} {:.0}s; arrived first/median/last {}/{}/{} s, spread {}, nearest friend {}, speed share {}, spin-up {} s{}{}",
+                    "[{n}/{total}] drill {}: {}x{} ({}, lane {}){}: {} {:.0}s; arrived first/median/last {}/{}/{} s, spread {}, nearest friend {}, speed share {}, spin-up {} s, at contact {} deep x {} wide, ramp {}/{} s{}{}",
                     d.kind, result.count[0], result.job.x, result.formation[0], result.lane[0],
                     result.seed.map_or(String::new(), |s| format!(" seed {s}")), result.reason, result.seconds,
                     s(d.arrive[0]), s(d.arrive[1]), s(d.arrive[2]), s(d.spread_arrival), s(d.nn_arrival),
                     d.speed_share.map_or("-".to_string(), |v| format!("{v:.2}")), s(d.spin_up_s),
+                    s(d.depth_contact), s(d.width_contact), d.ramp_half_s.map_or("-".to_string(), |v| format!("{v:.1}")), d.ramp_all_s.map_or("-".to_string(), |v| format!("{v:.1}")),
                     d.recover_s.map_or(String::new(), |v| format!(", recovered {v:.0} s after the turn")),
                     if d.kind == "gather" { format!(", produced {}, join median {} s", d.produced, s(d.join_median_s)) } else { String::new() }
                 );

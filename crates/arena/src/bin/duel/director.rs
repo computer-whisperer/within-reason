@@ -1343,10 +1343,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     }
                 } else if frame >= duel.next_sample {
                     duel.next_sample += FPS;
+                    // The drill's sample first, so the line carries this second's shape.
+                    drill_sample(duel, frame, rules.defs);
                     if scenario || duel.drill.is_some() {
                         log_second(duel, frame, advance_at);
                     }
-                    drill_sample(duel, frame, rules.defs);
                     sample_fire(&mut duel.armies, frame);
                     if first_damage.is_none() {
                         sample_speed(&mut duel.armies);
@@ -1631,6 +1632,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     });
     if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {
         line["stores"] = json!(stores.iter().map(|v| v.round()).collect::<Vec<_>>());
+    }
+    if let Some(shape) = duel.drill.as_ref().and_then(|d| d.shape) {
+        let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
+        line["shape"] = json!([shape.depth.round(), shape.width.round(), tenth(shape.ramp_half_s), tenth(shape.ramp_all_s)]);
     }
     duel.log.push(line.to_string());
     for (k, at) in LEFT_AT.iter().enumerate() {
