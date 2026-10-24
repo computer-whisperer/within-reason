@@ -157,7 +157,7 @@ pub(crate) struct Move {
     pub order: Order,
     /// The move as a world's line and a question say it.
     pub words: String,
-    /// The move in a few words, for world 1's line and the registers: "the advance to spot_46".
+    /// The move in a few words, for world 1's line: "the advance to spot_46".
     pub said: String,
     /// The party the move is aimed at: it is asked as an answer to that party, and the party's `answer` opens it.
     pub party: Option<String>,
@@ -259,10 +259,6 @@ pub(crate) struct Menu {
     pub queue_ahead: bool,
     /// The course in force by kind ("fight_to", "build", "idle"), for the news rule and the gate's signature.
     pub course: &'static str,
-    /// The course's key as a move would have it ("go_spot_30"), for the registers.
-    pub course_key: String,
-    /// The course in words, without its clocks: "advances to spot_46, fighting on the way".
-    pub course_words: String,
     /// The party the course in force is aimed at.
     pub aimed_at: Option<String>,
     /// Where the actor stands against that party, while the party is in the picture.
@@ -307,16 +303,6 @@ impl Menu {
     }
 }
 
-/// What an actor last chose (the registers, law 8): printed in its entry, never acted on.
-#[derive(Clone, Debug)]
-pub(crate) struct Register {
-    pub frame: i32,
-    /// The move in a few words, with what it left: "the walk to spot_30, leaving its attack on party_7".
-    pub words: String,
-    /// The key of the course the pick took the actor from: a move with this key undoes the pick, and says so.
-    pub left: String,
-}
-
 /// Where an actor whose course is aimed at a party stands against it this second: measured on the ground, never
 /// read off its task (H-HANDS-STANDING). player-35 7:53-8:28: nine Blitzes whose task read "attacking party_17"
 /// stood with no order 1,000 to 1,500 from the Tick for 35 s while world 1 said "met by group_W" and the party's
@@ -332,15 +318,7 @@ pub(crate) struct Standing {
     pub idle: usize,
     /// Whether the actor's fastest outpaces the party's slowest; none while the party's speed is unknown.
     pub catches: Option<bool>,
-    /// Seconds since the actor was given this course, when that is `YOUNG` or less: an order that has had no time
-    /// to arrive is on its way, not failing (player-58, 5:55-5:59: a body ordered at a party a second before was
-    /// described "told to attack it, but nothing of it has the party in reach", and was turned four times in
-    /// five seconds).
-    pub young: Option<i32>,
 }
-
-/// An order this many seconds old or younger is said to be on its way.
-const YOUNG: i32 = 8;
 
 impl Standing {
     /// Whether anything of the actor has the party in reach: the one case in which the party is "met".
@@ -353,8 +331,10 @@ impl Standing {
         if self.met() {
             return if self.of == 1 { "it has the party in reach".to_string() } else { format!("{} of its {} soldiers have the party in reach", self.in_reach, self.of) };
         }
+        // Its units' orders are the state: with none idle it is on its way (until 2026-10-24 the order's age said
+        // so, "it took this course N s ago"; the policy of t-1 does not enter the words).
         let idle = match (self.idle, self.of) {
-            (0, _) => "",
+            (0, _) => ", on its way",
             (_, 1) => ", standing with no order",
             (i, n) if i == n => ", every one of them standing with no order",
             _ => ", some of them standing with no order",
@@ -365,10 +345,7 @@ impl Standing {
             None => "",
         };
         let who = if self.of == 1 { "it is".to_string() } else { format!("the nearest of its {} soldiers is", self.of) };
-        match self.young {
-            Some(seconds) => format!("it took this course {seconds} s ago and is on its way ({who} {} away{idle}): it has not had the time to arrive{catches}", self.way),
-            None => format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way),
-        }
+        format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way)
     }
 }
 
@@ -651,7 +628,7 @@ impl Brain {
         let their_slowest = members.iter().filter_map(|e| e.def).filter_map(|d| self.world.def(d)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
         let our_fastest = units.iter().filter_map(|u| def(u)).map(|d| d.speed).fold(0.0, f32::max);
         let catches = their_slowest.is_finite().then_some(our_fastest > their_slowest);
-        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches, young: None }
+        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches }
     }
 
     /// A group's course without its clocks: its kind, its key as a move would have it, its words, and the party
@@ -661,7 +638,7 @@ impl Brain {
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         match &group.task {
             GroupTask::Hold { picked: true, .. } => ("hold", "hold".to_string(), format!("holds at {at}"), None),
-            GroupTask::Hold { committed, .. } => ("idle", String::new(), format!("stands at {at} with no order{}", if *committed { ", fighting everything there since it arrived by advancing" } else { "" }), None),
+            GroupTask::Hold { committed, .. } => ("idle", String::new(), format!("stands at {at} with no order{}", if *committed { ", fighting everything there, turrets included" } else { "" }), None),
             GroupTask::Move { .. } if group.gathering => ("gather", "gather".to_string(), "gathers on its front".to_string(), None),
             // The key is the shell move's own (`shell_party_N`, `shell_spot_N`), so the menu leaves out the shell the
             // group is already on (player-49 11:20-11:22: an empty key left it on the menu, it was picked each
@@ -867,8 +844,6 @@ impl Brain {
         let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
         let (course, course_key, course_words, aimed_at) = self.group_course(group, picture);
         let idle = course == "idle";
-        let register = pianist.registers.get(&name);
-        let undoes = |key: &str| if register.is_some_and(|r| !r.left.is_empty() && r.left == key) { "; this undoes its last pick" } else { "" };
         // The fight it is in, said once and repeated on every move that keeps it or leaves it: the odds for the
         // part of the group in reach, what the group lost in the last seconds, whether the party can follow.
         let fight: Option<(&Party, String)> = near_party.map(|p| {
@@ -897,10 +872,7 @@ impl Brain {
         let keeps = fight.as_ref().map_or(String::new(), |(_, words)| format!("; near {words}"));
         // Where it stands against the party its course is aimed at, on the course's own words: a group told to
         // attack is not thereby fighting.
-        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| {
-            let age = (scene.frame - group.last_order) / FRAMES_PER_SECOND;
-            Standing { young: (age <= YOUNG).then_some(age), ..self.standing(&body.core, p, enemies) }
-        });
+        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| self.standing(&body.core, p, enemies));
         let against_words = against.as_ref().map_or(String::new(), |s| format!(": {}", s.words()));
         let stands = |to: Vec3| {
             fight.as_ref().map_or(String::new(), |(p, words)| {
@@ -933,7 +905,7 @@ impl Brain {
         };
 
         // Hold and gather.
-        push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}{}", undoes("hold")), format!("the hold at {at}"), None, false);
+        push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}"), format!("the hold at {at}"), None, false);
         if !air && units.len() >= 2 && !group.roving() {
             let tail = if body.whole < HERE {
                 "it stands together already"
@@ -964,7 +936,7 @@ impl Brain {
             push(
                 format!("go_{}", place.name),
                 Order::Go(place.name.clone()),
-                format!("{name} walks to {} ({way}) without stopping to fight on the way{}{}{leaves}{}", place.name, self.end_words(scene, place, &body.core, true, near_party), stands(place.at), undoes(&format!("go_{}", place.name))),
+                format!("{name} walks to {} ({way}) without stopping to fight on the way{}{}{leaves}", place.name, self.end_words(scene, place, &body.core, true, near_party), stands(place.at)),
                 format!("the walk to {}", place.name),
                 None,
                 false,
@@ -973,7 +945,7 @@ impl Brain {
                 push(
                     format!("fight_to_{}", place.name),
                     Order::FightTo(place.name.clone()),
-                    format!("{name} advances to {} ({way}), fighting on the way{}{}{leaves}{}", place.name, self.end_words(scene, place, &body.core, true, near_party), stands(place.at), undoes(&format!("fight_to_{}", place.name))),
+                    format!("{name} advances to {} ({way}), fighting on the way{}{}{leaves}", place.name, self.end_words(scene, place, &body.core, true, near_party), stands(place.at)),
                     format!("the advance to {}", place.name),
                     None,
                     false,
@@ -984,7 +956,7 @@ impl Brain {
             push(
                 format!("fight_to_{}", place.name),
                 Order::Raid(place.name.clone()),
-                format!("{name} attacks his buildings at {} ({}), fighting on the way: {words}{}{}{leaves}{}", place.name, way_words(body.front.dist2d(place.at), speed), self.end_words(scene, place, &body.core, false, near_party), stands(place.at), undoes(&format!("fight_to_{}", place.name))),
+                format!("{name} attacks his buildings at {} ({}), fighting on the way: {words}{}{}{leaves}", place.name, way_words(body.front.dist2d(place.at), speed), self.end_words(scene, place, &body.core, false, near_party), stands(place.at)),
                 format!("the attack on his buildings at {}", place.name),
                 None,
                 false,
@@ -1043,8 +1015,8 @@ impl Brain {
                 .iter()
                 .filter(|g| g.name != group.name && !g.members.is_empty())
                 .filter_map(|g| match &g.task {
-                    GroupTask::Hunt(h) if h.party == party.name => Some(format!("group_{} ({} soldiers) has hunted it for {} s", g.name, g.members.len(), (scene.frame - h.since) / FRAMES_PER_SECOND)),
-                    GroupTask::Engage { party: ids, since, .. } if ids.iter().any(|id| party.ids.contains(id)) => Some(format!("group_{} ({} soldiers) has attacked it for {} s", g.name, g.members.len(), (scene.frame - since) / FRAMES_PER_SECOND)),
+                    GroupTask::Hunt(h) if h.party == party.name => Some(format!("group_{} ({} soldiers) is hunting it", g.name, g.members.len())),
+                    GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)) => Some(format!("group_{} ({} soldiers) is attacking it", g.name, g.members.len())),
                     _ => None,
                 })
                 .collect();
@@ -1062,7 +1034,7 @@ impl Brain {
             let fighting_it = fight.as_ref().is_some_and(|(p, _)| p.name == party.name);
             let detachments_work = theirs > 0.0 && ours >= theirs * WHOLE_GROUP_OVER && armed.len() > 2 && !fighting_it;
             if !detachments_work || every_detachment_forbidden {
-                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{already}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), party.air);
+                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{already}{leaves}", way_words(distance, speed)), format!("the attack on {}", party.name), Some(party), party.air);
             }
             if !air && !long_reach.is_empty() {
                 // What the switch does to a group fighting this party under fire, as a fact on the move
@@ -1133,7 +1105,7 @@ impl Brain {
             let way = way_words(body.at.dist2d(*other_at), speed);
             // The group it split from is its way back (the user, 2026-10-17: a detachment's return is a pick; the
             // body it left is the first place to say).
-            let back = if group.parent.as_deref() == Some(other.name.as_str()) { format!("; the group it split from {} s ago", (scene.frame - group.born) / FRAMES_PER_SECOND) } else { String::new() };
+            let back = if group.parent.as_deref() == Some(other.name.as_str()) { "; the group it split from".to_string() } else { String::new() };
             if other.domain == group.domain {
                 let both: Vec<&OwnUnit> = units.iter().chain(theirs.iter()).copied().collect();
                 push(
@@ -1155,7 +1127,7 @@ impl Brain {
                 push(
                     key.clone(),
                     Order::Follow(Ward::Group(other.name.clone())),
-                    format!("{name} follows group_{} ({}, {way}; it {other_course}): it stays beside it wherever it goes, a group of its own, and fights what comes at it{}{leaves}{}", other.name, self.composition_words(theirs), stands(*other_at), undoes(&key)),
+                    format!("{name} follows group_{} ({}, {way}; it {other_course}): it stays beside it wherever it goes, a group of its own, and fights what comes at it{}{leaves}", other.name, self.composition_words(theirs), stands(*other_at)),
                     format!("following group_{}", other.name),
                     None,
                     false,
@@ -1170,7 +1142,7 @@ impl Brain {
                 push(
                     key.clone(),
                     Order::Follow(Ward::Builder(ward.id)),
-                    format!("{name} follows {ward_name} ({}; it {ward_course}): it stays beside it wherever it goes and fights what comes at it{}{leaves}{}", way_words(body.front.dist2d(ward.pos), speed), stands(ward.pos), undoes(&key)),
+                    format!("{name} follows {ward_name} ({}; it {ward_course}): it stays beside it wherever it goes and fights what comes at it{}{leaves}", way_words(body.front.dist2d(ward.pos), speed), stands(ward.pos)),
                     format!("following {ward_name}"),
                     None,
                     false,
@@ -1189,7 +1161,7 @@ impl Brain {
             push(
                 "rove".into(),
                 Order::Rove,
-                format!("{name} roves: its soldiers scout his side on their own, {ROVE_WORDS}; a pick of yours brings it back{keeps}{leaves}{}", undoes("rove")),
+                format!("{name} roves: its soldiers scout his side on their own, {ROVE_WORDS}; a pick of yours brings it back{keeps}{leaves}"),
                 "roving whole".into(),
                 None,
                 false,
@@ -1224,7 +1196,7 @@ impl Brain {
                 push(
                     key.clone(),
                     Order::RoveWithin(region.name.clone()),
-                    format!("{name} roves within {} ({cells}): its soldiers look only at places inside it, {ROVE_WORDS} there; a pick of yours brings it back{keeps}{leaves}{}", region.name, undoes(&key)),
+                    format!("{name} roves within {} ({cells}): its soldiers look only at places inside it, {ROVE_WORDS} there; a pick of yours brings it back{keeps}{leaves}", region.name),
                     format!("roving within {}", region.name),
                     None,
                     false,
@@ -1246,7 +1218,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
-        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
     }
 
     /// What of ours the D-gun may destroy if fired now at `targets` (the party's members inside its reach), and the
@@ -1335,8 +1307,6 @@ impl Brain {
                 format!("; {how} {words}")
             })
         };
-        let register = pianist.registers.get(&name);
-        let undoes = |key: &str| if register.is_some_and(|r| !r.left.is_empty() && r.left == key) { "; this undoes its last pick" } else { "" };
         let mut moves = vec![Move::new("stay".into(), Order::Stay, stay_words, "its course".into(), None, false)];
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>| {
             if key != course_key {
@@ -1520,11 +1490,11 @@ impl Brain {
         // The moves that take a builder out of danger, which a listed builder has too: go, follow, attack, D-gun.
         for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE) {
             let key = format!("go_{}", place.name);
-            push(key.clone(), Order::Go(place.name.clone()), format!("{name} walks to {} ({}{}) and waits there{}{}{leaves}{}", place.name, way_words(unit.pos.dist2d(place.at), speed), what_stands(place), near_words(place), stands(place.at), undoes(&key)), format!("the walk to {}", place.name), None);
+            push(key.clone(), Order::Go(place.name.clone()), format!("{name} walks to {} ({}{}) and waits there{}{}{leaves}", place.name, way_words(unit.pos.dist2d(place.at), speed), what_stands(place), near_words(place), stands(place.at)), format!("the walk to {}", place.name), None);
         }
         for (group, at, theirs, group_course) in &scene.groups {
             let key = format!("follow_group_{}", group.name);
-            push(key.clone(), Order::Follow(Ward::Group(group.name.clone())), format!("{name} follows group_{} ({}, {}; it {group_course}): it walks beside it wherever it goes{}{leaves}{}", group.name, self.composition_words(theirs), way_words(unit.pos.dist2d(*at), speed), stands(*at), undoes(&key)), format!("following group_{}", group.name), None);
+            push(key.clone(), Order::Follow(Ward::Group(group.name.clone())), format!("{name} follows group_{} ({}, {}; it {group_course}): it walks beside it wherever it goes{}{leaves}", group.name, self.composition_words(theirs), way_words(unit.pos.dist2d(*at), speed), stands(*at)), format!("following group_{}", group.name), None);
         }
         let armed = self.world.def(unit.def).is_some_and(|d| d.weapon_count > 0);
         let dgun = self.dgun_reach(unit.def);
@@ -1542,7 +1512,7 @@ impl Brain {
             let their_reach = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.reach).fold(0.0, f32::max);
             let range = if their_reach > reach { "; it outranges this unit: it is hit on the way in and lands nothing unless the party stands" } else { "" };
             let key = format!("attack_{}", party.name);
-            push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party));
+            push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}{leaves}", way_words(distance, speed)), format!("the attack on {}", party.name), Some(party));
             // The D-gun reaches what stands inside its reach: beyond it the commander cannot fire it, and walking
             // in is the attack above (rebuild-smoke-1: the shot was picked five times at parties 900 away).
             let targets = self.dgun_targets(party, unit, enemies);
@@ -1571,7 +1541,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
-        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
     }
 
     /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
@@ -1657,7 +1627,7 @@ impl Brain {
             ));
         }
         let idle_words = format!("{name} idle, doing nothing");
-        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
     }
 }
 
@@ -1687,7 +1657,7 @@ pub(super) mod tests {
     pub(crate) fn menu(name: &str, kind: Kind, idle: bool, moves: Vec<Move>) -> Menu {
         let mut all = vec![mv("stay", Order::Stay, None)];
         all.extend(moves);
-        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
+        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
     }
 
     /// The D-gun's warning covers the cone the target can swing the line through before the shot lands, not the line
@@ -1737,9 +1707,8 @@ pub(super) mod tests {
         parties[0].metal = 270.0;
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let (body, hunters): (Vec<UnitId>, Vec<UnitId>) = (ours.iter().take(12).map(|u| u.id).collect(), ours.iter().skip(12).map(|u| u.id).collect());
-        let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::Hold { committed: false, picked: false }, 0);
         a.parent = Some("B".into());
-        a.born = 60;
         pianist.groups.push(a);
         let hunt = Hunt { quarry: UnitId(1), party: "party_12".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 150, last_seen: 150, at: at(4400.0, 1640.0) };
         pianist.groups.push(Group::new("B".into(), Domain::Ground, hunters, GroupTask::Hunt(hunt), 150));
@@ -1752,10 +1721,10 @@ pub(super) mod tests {
         let menus = brain.menus(&tick, &kit, &picture);
         let menu = menus.iter().find(|m| m.name == "group_A").expect("the group's menu");
         let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").expect("a detachment of two");
-        assert!(send.words.contains("already on it: group_B (2 soldiers) has hunted it for 5 s"), "{}", send.words);
+        assert!(send.words.contains("already on it: group_B (2 soldiers) is hunting it"), "{}", send.words);
         assert!(send.words.contains("heading east") && send.words.contains("; toward his ") && send.words.contains("(reach ") && send.words.contains("whose reach begins"), "{}", send.words);
         let join = menu.moves.iter().find(|m| m.key == "join_group_B").expect("the way back");
-        assert!(join.words.contains("the group it split from 8 s ago"), "{}", join.words);
+        assert!(join.words.contains("the group it split from") && !join.words.contains("s ago"), "{}", join.words);
     }
 
     /// when the decode has read the instructions as forbidding every detachment the group could send, the
@@ -1775,7 +1744,7 @@ pub(super) mod tests {
         parties[0].at = at(6400.0, 3400.0);
         parties[0].metal = 270.0;
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
@@ -1817,7 +1786,7 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
         pianist.decode.reads.insert("group_A|place|east_half".into(), 0.3);
         pianist.layers.fuse = true;
         brain.pianist = Some(pianist);
@@ -1849,13 +1818,14 @@ pub(super) mod tests {
         let one = menu.moves.iter().find(|m| m.key == "rove_1_east_half").unwrap();
         assert!(one.forbiddable && matches!(&one.order, Order::RoveOneWithin(r) if r == "east_half"));
         // Roving within it: that is the course; the plain rove is the way out of the region.
-        brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Rove { since: 0, within: Some("east_half".into()) }, 0);
+        brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Rove { within: Some("east_half".into()) }, 0);
         let menus = brain.menus(&tick, &kit, &picture);
         let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
-        assert_eq!((menu.course, menu.course_key.as_str()), ("rove", "rove_east_half"));
+        assert_eq!(menu.course, "rove");
+        assert!(!menu.moves.iter().any(|m| m.key == "rove_east_half"), "the course's own move is left out: {:?}", menu.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert!(keys.contains(&"rove") && !keys.contains(&"rove_east_half") && !keys.contains(&"rove_1_east_half"), "{keys:?}");
-        assert!(menu.course_words.starts_with("roves within east_half: "), "{}", menu.course_words);
+        assert!(menu.moves[0].words.contains(" roves within east_half: "), "{}", menu.moves[0].words);
     }
 
     /// A roving group keeps a menu (the rework of docs/design/2026-10-07-rove-approval.md): its course is the rove
@@ -1868,8 +1838,8 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { since: 0, within: None }, 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { since: 0, committed: false, picked: true }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { within: None }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
@@ -1888,7 +1858,7 @@ pub(super) mod tests {
         let menu = menus.iter().find(|m| m.name == "group_A").expect("the roving group's menu");
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert_eq!(keys, ["stay", "hold", "go_spot_30", "fight_to_spot_30", "join_group_B", "follow_group_B"], "no gather, nothing aimed at party_12, no rove or rove_1 while roving");
-        assert!(!menu.idle && menu.course == "rove" && menu.course_key == "rove", "{} {}", menu.course, menu.course_key);
+        assert!(!menu.idle && menu.course == "rove" && !menu.moves.iter().any(|m| m.key == "rove"), "{}", menu.course);
         let words = |key: &str| menu.moves.iter().find(|m| m.key == key).unwrap().words.clone();
         assert!(words("stay").starts_with("group_A roves: its Blitz at spot_40 (E3) is on its way to look at spot_30"), "{}", words("stay"));
         assert!(words("hold").ends_with("; leaves its roving"), "{}", words("hold"));
@@ -1905,8 +1875,8 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { since: 0, committed: false, picked: true }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
@@ -1946,23 +1916,16 @@ pub(super) mod tests {
         let core: Vec<&OwnUnit> = tick.snapshot.own_units.iter().take(14).collect();
         let standing = brain.standing(&core, &picture.parties[0], &tick.snapshot.enemies);
         assert_eq!((standing.in_reach, standing.of, standing.idle, standing.catches), (0, 14, 0, Some(true)), "{standing:?}");
-        assert!(standing.words().starts_with("nothing of it has the party in reach (the nearest of its 14 soldiers is near, ") && standing.words().ends_with("; it is faster than the party"), "{}", standing.words());
-        // An order a few seconds old is on its way, not failing.
-        let young = Standing { young: Some(2), ..standing.clone() };
-        assert!(young.words().starts_with("it took this course 2 s ago and is on its way (the nearest of its 14 soldiers is near, ") && young.words().contains("it has not had the time to arrive"), "{}", young.words());
+        // Its units have orders: on its way, a fact of the orders, not of the order's age (2026-10-24).
+        assert!(standing.words().starts_with("nothing of it has the party in reach (the nearest of its 14 soldiers is near, ") && standing.words().contains(" away, on its way)") && standing.words().ends_with("; it is faster than the party"), "{}", standing.words());
         let beside = super::super::fixtures::own(901, 1, at(4420.0, 1240.0));
         assert_eq!(brain.standing(&[&beside], &picture.parties[0], &tick.snapshot.enemies).words(), "it has the party in reach");
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
         let other = menus.iter().find(|m| m.name == "group_B").expect("the other group's menu");
         assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "gather" || m.key == "rove_1"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
-        // A move that would take the group back to the course its last pick left says so.
-        brain.pianist.as_mut().unwrap().registers.insert("group_A".into(), Register { frame: 240, words: "picked the hold at spot_40, leaving its course (walks to spot_30)".into(), left: "go_spot_30".into() });
-        let menus = brain.menus(&tick, &kit, &picture);
-        let back = menus[0].moves.iter().find(|m| m.key == "go_spot_30").unwrap();
-        assert!(back.words.ends_with("; this undoes its last pick"), "{}", back.words);
         // A shelling group's course carries the shell move's own key, so the menu leaves that move out.
         for (place, key) in [("standoff from party_12", "shell_party_12"), ("standoff from his buildings at spot_47", "shell_spot_47")] {
-            let mut shelling = Group::new("S".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Move { to: at(4000.0, 2000.0), place: place.into(), fight: true, since: 0 }, 0);
+            let mut shelling = Group::new("S".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Move { to: at(4000.0, 2000.0), place: place.into(), fight: true }, 0);
             shelling.shelling = true;
             let (course, course_key, ..) = brain.group_course(&shelling, &picture);
             assert_eq!((course, course_key.as_str()), ("shell", key));

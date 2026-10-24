@@ -1,7 +1,8 @@
 //! The executor of the pass (`docs/design/2026-10-01-hands-rebuild.md`, law 7): a picked world's moves become
-//! orders through the actuators (build sites, walking, fight orders, the engine's hunt), a task is remembered, the
-//! actor's register says what it chose and what it left, and the decision goes into the record with its source
-//! (`plan` for a pick, `list` for a step of the player's list). Code carries a picked move to its end and says the
+//! orders through the actuators (build sites, walking, fight orders, the engine's hunt), a task is remembered, and
+//! the decision goes into the record with its source (`plan` for a pick, `list` for a step of the player's list);
+//! nothing of the pick is kept for Jev's words (the last-pick register went 2026-10-24: the policy of t-1 does not
+//! enter the words). Code carries a picked move to its end and says the
 //! end; it never starts, changes or stops one by itself.
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitId, Vec3};
@@ -12,7 +13,7 @@ use super::super::economy::Plan;
 use super::super::roster::Kit;
 use super::compose::World;
 use super::groups::Ward;
-use super::menu::{His, Kind, Menu, Order, Register, Site};
+use super::menu::{His, Kind, Menu, Order, Site};
 use super::picture::{Party, Picture, clock};
 use super::{Group, GroupTask, Task};
 
@@ -44,8 +45,8 @@ fn at_the_orders_site(on: Option<usize>, near: Vec3, spot: Option<usize>, place:
 pub(super) const FRAME_HELP: f32 = 900.0;
 
 impl Brain {
-    /// Puts a picked world in force: every actor's move other than `stay` is executed, and its register is
-    /// written. Returns what changed, for the log and the `done` lines.
+    /// Puts a picked world in force: every actor's move other than `stay` is executed. Returns what changed, for
+    /// the log and the `done` lines.
     pub(super) fn apply_world(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, menus: &[Menu], world: &World, commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, &'static str, String, String)> = Vec::new();
@@ -60,8 +61,6 @@ impl Brain {
                 Kind::Group(name) => self.execute_group(tick, picture, name, &m.order, commands),
             };
             if let Some(did) = did {
-                let left = if menu.idle { String::new() } else { format!(", leaving its course ({})", menu.course_words) };
-                self.pianist.as_mut().expect("pianist mode").registers.insert(menu.name.clone(), Register { frame, words: format!("picked {}{left}", m.said), left: menu.course_key.clone() });
                 done.push((menu.name.clone(), menu.kind.word(), menu.id(m), did));
             }
         }
@@ -327,7 +326,7 @@ impl Brain {
             Order::Hold => {
                 let group = &mut pianist.groups[index];
                 commands.extend(group.hold_orders(&units));
-                group.set_task(GroupTask::Hold { since: frame, committed: false, picked: true }, frame);
+                group.set_task(GroupTask::Hold { committed: false, picked: true }, frame);
                 group.last_order = frame;
                 did = Some("hold where it stands".into());
             }
@@ -344,7 +343,7 @@ impl Brain {
                     let to = self.snap_for(walker, body.front);
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
-                    group.set_task(GroupTask::Move { to, place: "its front".into(), fight: false, since: frame }, frame);
+                    group.set_task(GroupTask::Move { to, place: "its front".into(), fight: false }, frame);
                     group.gathering = true;
                     group.last_order = frame;
                     did = Some("gather on its front".into());
@@ -357,7 +356,7 @@ impl Brain {
                     let group = &mut pianist.groups[index];
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| if fight { Command::Fight { unit: *id, to, queue: false } } else { Command::Move { unit: *id, to, queue: false } }));
-                    group.set_task(GroupTask::Move { to, place: p.name.clone(), fight, since: frame }, frame);
+                    group.set_task(GroupTask::Move { to, place: p.name.clone(), fight }, frame);
                     group.last_order = frame;
                     did = Some(format!("{} to {}", if fight { "advance" } else { "walk" }, p.name));
                 }
@@ -397,7 +396,7 @@ impl Brain {
                         let to = if self.artillery(u) { standoff } else { screen };
                         commands.push(Command::Fight { unit: u.id, to, queue: false });
                     }
-                    group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {what}"), fight: true, since: frame }, frame);
+                    group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {what}"), fight: true }, frame);
                     group.shelling = true;
                     group.last_order = frame;
                     did = Some(format!("shell {what} from their reach with {} long-reach soldiers, {} between", long.len(), units.len() - long.len()));
@@ -455,7 +454,7 @@ impl Brain {
                     let name = pianist.new_group_name();
                     did = Some(format!("a {} leaves as group_{name} and roves{}", self.name(scout.def), within.as_ref().map_or(String::new(), |w| format!(" within {w}"))));
                     let parent_name = pianist.groups[index].name.clone();
-                    let group = Group::new(name, domain, vec![scout.id], GroupTask::Rove { since: frame, within }, frame).split_from(&parent_name);
+                    let group = Group::new(name, domain, vec![scout.id], GroupTask::Rove { within }, frame).split_from(&parent_name);
                     pianist.groups.push(group);
                 }
             }
@@ -476,7 +475,7 @@ impl Brain {
                     Some(region) => format!("roves within {region}: its soldiers look only at places inside it, kill what they find unguarded there and keep out of every reach"),
                     None => "roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach".to_string(),
                 });
-                group.set_task(GroupTask::Rove { since: frame, within }, frame);
+                group.set_task(GroupTask::Rove { within }, frame);
                 group.last_order = frame;
             }
             _ => {}

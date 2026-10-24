@@ -99,6 +99,34 @@ text ("choose a move only when it is clearly better than the course"), a hystere
   pick" (t-1 in words, §6), the young-order words, what counts as news, the idle actor's bar and the "not ordered"
   sentence, the gather arrival, every clause of §4.
 
+## 3b. Built (step 2): the t-1 words out
+
+The user, after pick-one-1 was launched: "let's pick a set (or all) of the t-1 leakage terms to strip and run again."
+The set stripped is every word that says what we chose or how long we have been doing it; what stays is state, and
+the sequence position the instructions are read against. Deleted:
+
+- the `last_pick` line in every actor's entry, "this undoes its last pick" on a move's line, and with them the
+  `Register`, `register_words` and the pianist's registers;
+- the young order's age ("it took this course N s ago and is on its way ...: it has not had the time to arrive"):
+  the standing words now say "nothing of it has the party in reach (the nearest ... away, on its way)" when its
+  units have orders and "..., standing with no order" when they do not, a fact of the orders this second;
+- every clock on a course in the entries: "holding here on your pick for N s" (now "holding here"), "standing with no
+  order for N s ... since it arrived by advancing" (now "standing with no order, fighting everything here, turrets
+  included"), "advancing to X: ..., for N s", "told to attack X at Y, N s ago", "following W for N s", "hunting P
+  since N s ago", "roving since N s ago", "gathering on its front for N s"; the builders' "since N s ago" and
+  "ordered N s ago" on every task; the chase's "for N s"; on other groups' lines "has attacked it for N s" (now "is
+  attacking it"); a detachment's "the group it split from N s ago" and "split from it in the last N s";
+- the rules' "A group already walking away from such a party carries on with its walk";
+- the dead fields behind them: `GroupTask`'s `since` on Hold, Move, Engage and Rove, `Group::born`, `Menu`'s
+  `course_key` and `course_words`.
+
+Kept, as state or as the instructions' sequence position: `reached` and `met`; the `losses` window of 30 s with the
+last loss's age (a measurement of the fire, and the player's instruction is dated against it); the stall and stuck
+clocks ("has not got nearer its goal for N s", "its moves have failed since N s ago", "standing at the site ... for
+N s with nothing started": the state of a failing order); the build frame's percentage; the `player` line's clocks
+(the player's turn, not our policy). Left for the gate review: the `change` question's "nothing has changed" (§4
+row 2), a reference to the course's start.
+
 ## 4. The gate and the worlds, clause by clause (the review; the user's to rule)
 
 Read from `compose.rs`, `menu.rs`, `layers.rs`, `mod.rs` on 2026-10-24. "Suspect" marks a clause that can by itself
@@ -134,15 +162,15 @@ mirror, lockstep at speed 50, the rework brief, layers `news,same,fuse,openers,s
 the final stage will likely cause our performance to drop, but I think that is acceptable for how it reveals the actual
 underlying issues." What to read in it: `run/hands_thrash.py` (the quick-pick share and the worst minute, against the
 table of §1), the share of picks that drew w1, the group traces at the fights (`run/hands_window.py`), and which of
-§4's clauses the alternation runs through when the gate no longer hides it.
+§4's clauses the alternation runs through when the gate no longer hides it. `pick-one-2`: the same line with the t-1
+words out (§3b), launched when pick-one-1 ends; read the same way, against pick-one-1.
 
 ## 6. Next, under the principle
 
 1. The state words of §2 (the fire on each path, the odds as the body will meet them, the turn's cost as this
    second's body), replayed offline on the recorded thrash windows before a game: does the walk back fall under 0.5
    while the body is deep in the band and the re-advance fall under 0.5 while it walks out, at the control's drift.
-2. The t-1 words out: the register line, "this undoes its last pick", "it took this course N s ago" (the prediction
-   "has not had the time to arrive" is state and stays, said from distance and speed).
+2. The t-1 words out: built the same evening (§3b); the game pick-one-2.
 3. An arrival is a hold by the pick's own end, not idleness; the "not ordered" sentence for a newborn or where the
    packet names a next stop.
 4. The gather arrival (§1).

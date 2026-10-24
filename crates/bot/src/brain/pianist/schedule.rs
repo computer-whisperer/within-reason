@@ -73,7 +73,7 @@ impl Brain {
         // its quarry) is an event once per thing: the group is asked, its `chase` line saying what (H-HANDS-CHASE).
         let mut chase_met: HashSet<(String, String)> = HashSet::new();
         for group in pianist.groups.iter().filter(|g| matches!(g.task, super::groups::GroupTask::Hunt(_) | super::groups::GroupTask::Engage { .. })) {
-            let Some(met) = self.chase_met(group, own, &pianist.parties, &[], tick.frame) else { continue };
+            let Some(met) = self.chase_met(group, own, &pianist.parties, &[]) else { continue };
             for key in met.keys {
                 let pair = (group.name.clone(), key.clone());
                 if !pianist.chase_met.contains(&pair) {

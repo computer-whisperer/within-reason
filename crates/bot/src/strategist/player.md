@@ -96,7 +96,7 @@ hands alternate between going home and building every time they are asked, and e
 Jev is nearly stateless: a "now" in the packet is true every second until your next packet, long after the thing
 is done. "group_O fights to spot_23 now, then spot_18" sent the army back to spot_23 after it had passed it and
 fought beyond it (player-49 12:48: the advance to spot_23 rated 0.70, the next stop 0.29). What Jev does know of
-the past is each actor's entry: the places it `reached` with the clock, its `last_pick`, what it `met`. So a
+the past is each actor's entry: the places it `reached` with the clock, what it `met`. So a
 sentence can lean on those and on nothing else: write a way as places in order with no "now" and say it never goes
 back to a place it has reached; the next leg is taken surely only while the group stands at a stop it has reached,
 and after a fight between stops Jev's rating of the next stop stays under the bar (the same game, replayed without
@@ -167,8 +167,7 @@ STALLING: one solar; banking or in balance: no solar, ever"); a positive conditi
 sentence holds ("never at spot_43"). A group with nothing ordered is told, in the plan that changes nothing, which
 move Jev itself rated best for it, so a way written as places in order ("spot_49, then spot_46, then spot_40") is
 walked leg by leg from what the group has reached while it stands at a stop (between stops, see the "now" paragraph above). Each actor's entry carries what the hands remember for it, since
-Jev remembers nothing: `reached` (the named places it has come to, with the clock), `last_pick` (what the hands last
-chose for it, what that left, and how long ago), and in your report `best_rated` (the two moves Jev rated best for
+Jev remembers nothing: `reached` (the named places it has come to, with the clock), and in your report `best_rated` (the two moves Jev rated best for
 it when it was last asked, with the ratings; 0.5 and over goes to the pick). When `best_rated` is not what your
 paragraph for that actor means, the paragraph is not being read as you meant it: rewrite it. When a group's entry
 carries `reads`, the hands are reading each packet once for whose places are whose (a saving that is switched on or

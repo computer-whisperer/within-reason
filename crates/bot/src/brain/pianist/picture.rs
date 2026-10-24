@@ -1039,10 +1039,10 @@ impl Brain {
     /// (`schedule.rs`) that asks for it (the user, 2026-10-17: "a hunting party is able to be recalled by jev when
     /// it encounters something unexpected"; predict-sweep-1 seed 8 7:58: a detachment of four followed a raider
     /// into two Pounders; sightings-player-1 6:23: Blitzes sent after single Pawns died under the turret they ran to).
-    pub(super) fn chase_met(&self, group: &super::Group, own: &[OwnUnit], parties: &[Party], places: &[Place], frame: i32) -> Option<ChaseMet> {
-        let (what, target, party_name, since) = match &group.task {
-            GroupTask::Hunt(h) => ("hunting", h.at, h.party.clone(), h.since),
-            GroupTask::Engage { party, at, since, .. } => ("attacking", *at, parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or(String::new(), |p| p.name.clone()), *since),
+    pub(super) fn chase_met(&self, group: &super::Group, own: &[OwnUnit], parties: &[Party], places: &[Place]) -> Option<ChaseMet> {
+        let (what, target, party_name) = match &group.task {
+            GroupTask::Hunt(h) => ("hunting", h.at, h.party.clone()),
+            GroupTask::Engage { party, at, .. } => ("attacking", *at, parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or(String::new(), |p| p.name.clone())),
             _ => return None,
         };
         let units = group.units(own);
@@ -1109,7 +1109,7 @@ impl Brain {
             }
             _ => String::new(),
         };
-        Some(ChaseMet { words: format!("{what} {quarry} ({len:.0} ahead of the front) for {} s{leash}; {}; any other pick ends the chase", (frame - since) / FRAMES_PER_SECOND, parts.join("; ")), keys })
+        Some(ChaseMet { words: format!("{what} {quarry} ({len:.0} ahead of the front){leash}; {}; any other pick ends the chase", parts.join("; ")), keys })
     }
 
     /// Enemy parties at our extractors, for a group's entry: which spot, how far from the group.
@@ -1149,11 +1149,12 @@ impl Brain {
     }
 
     pub(super) fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32, own: &[OwnUnit]) -> String {
-        let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
+        // No "since" or "ordered N s ago" on a task (2026-10-24: the policy of t-1 does not enter the words); the
+        // frame's percentage and the standing-at-the-site clock are the state of the build, and stay.
         match task {
             None if unit.idle => "idle, waiting for an order".into(),
             None => "finishing an order".into(),
-            Some(Task::Build { def, near, started, ordered, frame: own_frame, .. }) => {
+            Some(Task::Build { def, near, started, frame: own_frame, .. }) => {
                 let what = self.short_words(*def);
                 let walk = unit.pos.dist2d(*near);
                 if *started {
@@ -1164,24 +1165,24 @@ impl Brain {
                     let percent = frame_unit.map(|u| u.health / u.max_health.max(1.0) * 100.0);
                     // Its name once it stands, so a list or a `produce` for it can be staged now.
                     let named = frame_unit.and_then(|u| self.future_name(u)).map_or(String::new(), |n| format!("; it will be {n}: a `queue` or `produce` for it now waits for it to stand"));
-                    format!("building a {what} at {} ({}), ordered {}{named}", self.place_words(places, *near), percent.map_or("its frame is gone".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
+                    format!("building a {what} at {} ({}){named}", self.place_words(places, *near), percent.map_or("its frame is gone".to_string(), |p| format!("{p:.0} % built")))
                 } else if walk > 120.0 {
-                    format!("walking to build a {what} at {}, {walk:.0} to go, ordered {}", self.place_words(places, *near), ago(*ordered))
+                    format!("walking to build a {what} at {}, {walk:.0} to go", self.place_words(places, *near))
                 } else if let Some(since) = self.pianist.as_ref().and_then(|p| p.at_site.get(&unit.id).copied()).filter(|s| frame - s >= 3 * FRAMES_PER_SECOND) {
-                    format!("standing at the site of a {what} at {} for {} s with nothing started, ordered {}", self.place_words(places, *near), (frame - since) / FRAMES_PER_SECOND, ago(*ordered))
+                    format!("standing at the site of a {what} at {} for {} s with nothing started", self.place_words(places, *near), (frame - since) / FRAMES_PER_SECOND)
                 } else {
-                    format!("about to build a {what} at {}, ordered {}", self.place_words(places, *near), ago(*ordered))
+                    format!("about to build a {what} at {}", self.place_words(places, *near))
                 }
             }
-            Some(Task::Assist { lab, since }) => format!("helping lab_{} build, since {}", lab.0, ago(*since)),
-            Some(Task::Reclaim { at, since }) => format!("taking apart wrecks at {}, since {}", self.place_words(places, *at), ago(*since)),
-            Some(Task::ReclaimUnit { target, since }) => format!("taking apart our {} on the player's order, since {}", self.known_units.get(target).map_or("unit".to_string(), |(def, _)| format!("{}_{}", self.name(*def), target.0)), ago(*since)),
-            Some(Task::Repair { target, since }) => format!("repairing our {}, since {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def)), ago(*since)),
+            Some(Task::Assist { lab, .. }) => format!("helping lab_{} build", lab.0),
+            Some(Task::Reclaim { at, .. }) => format!("taking apart wrecks at {}", self.place_words(places, *at)),
+            Some(Task::ReclaimUnit { target, .. }) => format!("taking apart our {} on the player's order", self.known_units.get(target).map_or("unit".to_string(), |(def, _)| format!("{}_{}", self.name(*def), target.0))),
+            Some(Task::Repair { target, .. }) => format!("repairing our {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def))),
             // The engine has dropped its order when the unit stands idle short of the place: said here until the
             // housekeeping ends the task.
-            Some(Task::Walk { place, to, since }) => format!("walking to {place}, {:.0} to go, since {}", unit.pos.dist2d(*to), ago(*since)),
-            Some(Task::Follow { group, since, .. }) => format!("following group_{group}, since {}", ago(*since)),
-            Some(Task::Attack { party, to, since }) => format!("attacking {party}, {:.0} from it, since {}", unit.pos.dist2d(*to), ago(*since)),
+            Some(Task::Walk { place, to, .. }) => format!("walking to {place}, {:.0} to go", unit.pos.dist2d(*to)),
+            Some(Task::Follow { group, .. }) => format!("following group_{group}"),
+            Some(Task::Attack { party, to, .. }) => format!("attacking {party}, {:.0} from it", unit.pos.dist2d(*to)),
         }
     }
 
@@ -1779,9 +1780,6 @@ impl Brain {
                     format!("draws about {:.0} energy and {:.1} metal a second at full speed on what it builds now", d.energy, d.metal)
                 });
             }
-            if let Some(words) = pianist.register_words(&name, frame) {
-                entry["last_pick"] = json!(words);
-            }
             actors.insert(name, entry);
         }
         let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.roving()).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
@@ -1801,7 +1799,6 @@ impl Brain {
             let Some(body) = group.body(own, toward) else { continue };
             let centre = body.at;
             let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-            let ago = |since: i32| format!("{} s", (frame - since) / FRAMES_PER_SECOND);
             let shape = |to: Vec3| {
                 let n = body.core.len();
                 let tail_short = body.tail.dist2d(to);
@@ -1812,22 +1809,24 @@ impl Brain {
                 }
             };
             let doing = match &group.task {
-                GroupTask::Hold { since, picked: true, .. } => format!("holding here on your pick for {}", ago(*since)),
-                GroupTask::Hold { since, committed, .. } => format!("standing with no order for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
-                GroupTask::Move { since, .. } if group.gathering => format!("gathering on its front for {}: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len() + body.stragglers.len(), super::groups::STRUNG_OUT, body.whole),
-                GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
+                // No clocks on a course and no "on your pick" (2026-10-24: the policy of t-1 does not enter the words;
+                // `docs/design/2026-10-24-pick-rework.md` §6).
+                GroupTask::Hold { picked: true, .. } => "holding here".to_string(),
+                GroupTask::Hold { committed, .. } => format!("standing with no order{}", if *committed { ", fighting everything here, turrets included" } else { "" }),
+                GroupTask::Move { .. } if group.gathering => format!("gathering on its front: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len() + body.stragglers.len(), super::groups::STRUNG_OUT, body.whole),
+                GroupTask::Move { to, place, fight, .. } => format!("{} to {place}: {}", if *fight { "advancing" } else { "walking" }, shape(*to)),
                 // Told to attack is not attacking: the entry says where the group stands against the party
                 // (H-HANDS-STANDING).
-                GroupTask::Engage { party, at, since, target, .. } => {
+                GroupTask::Engage { party, at, target, .. } => {
                     let aimed = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id)));
                     let name = aimed.map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     let standing = aimed.map_or(String::new(), |p| format!(": {}", self.standing(&body.core, p, &snapshot.enemies).words()));
-                    format!("told to attack {name}{} at {}, {} ago{standing}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
+                    format!("told to attack {name}{} at {}{standing}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at))
                 }
-                GroupTask::Follow { name: ward, since, at, .. } => format!("following {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
-                GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
+                GroupTask::Follow { name: ward, at, .. } => format!("following {ward} ({:.0} from it)", body.at.dist2d(*at)),
+                GroupTask::Hunt(hunt) => format!("hunting {} (its quarry {} at {})", hunt.party, if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
                 // What each rover is doing this second; the menu's course words are these (`group_course`).
-                GroupTask::Rove { since, within } => format!("roving{} since {} ago: {}", within.as_ref().map_or(String::new(), |w| format!(" within {w}")), ago(*since), self.rover_words(group, own, &snapshot.enemies, &places)),
+                GroupTask::Rove { within, .. } => format!("roving{}: {}", within.as_ref().map_or(String::new(), |w| format!(" within {w}")), self.rover_words(group, own, &snapshot.enemies, &places)),
             };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
             // losses since the player's last orders, which is what it asked about.
@@ -1850,17 +1849,14 @@ impl Brain {
                 "health": health,
                 "doing": doing,
             });
-            // The registers (law 8): the named places it has reached and what it has met since the last, and what it
-            // last chose; Jev reads where it is on the way its instructions describe from these.
+            // The registers: the named places it has reached and what it has met since the last; Jev reads where it
+            // is on the way its instructions describe from these (the last pick is no register since 2026-10-24).
             if !group.reached.is_empty() {
                 entry["reached"] = json!(group.reached.iter().map(|(p, f)| format!("{p} ({})", clock(*f))).collect::<Vec<_>>().join(", "));
             }
             // What it fired lately and what of that was seen to land (H-HANDS-FIRING-LINE).
             if let Some(words) = self.firing_words(&group.members) {
                 entry["firing"] = json!(words);
-            }
-            if let Some(words) = pianist.register_words(&format!("group_{}", group.name), frame) {
-                entry["last_pick"] = json!(words);
             }
             if let Some((f, words)) = &group.met {
                 entry["met"] = json!(format!("since its last stop: {words} ({})", clock(*f)));
@@ -1925,17 +1921,16 @@ impl Brain {
             let children: Vec<&super::Group> = pianist.groups.iter().filter(|g| g.parent.as_deref() == Some(group.name.as_str()) && !g.members.is_empty()).collect();
             if !children.is_empty() {
                 let soldiers: usize = children.iter().map(|g| g.members.len()).sum();
-                let oldest = children.iter().map(|g| frame - g.born).max().unwrap_or(0) / FRAMES_PER_SECOND;
                 entry["detachments_out"] = json!(format!(
-                    "{} group{} of {soldiers} soldiers split from it in the last {} s, still out: {}",
-                    children.len(), if children.len() == 1 { "" } else { "s" }, oldest,
+                    "{} group{} of {soldiers} soldiers split from it, still out: {}",
+                    children.len(), if children.len() == 1 { "" } else { "s" },
                     children.iter().map(|g| format!("group_{} ({})", g.name, g.members.len())).collect::<Vec<_>>().join(", ")
                 ));
             }
             if let Some(parent) = &group.parent {
-                entry["split_from"] = json!(format!("group_{parent}, {} ago", ago(group.born)));
+                entry["split_from"] = json!(format!("group_{parent}"));
             }
-            if let Some(chase) = self.chase_met(group, own, &parties, &places, frame) {
+            if let Some(chase) = self.chase_met(group, own, &parties, &places) {
                 entry["chase"] = json!(chase.words);
             }
             let stuck: Vec<&OwnUnit> = units.iter().filter(|u| self.stuck.contains_key(&u.id)).copied().collect();
@@ -2144,18 +2139,18 @@ mod tests {
         let quarry = at(4950.0, 1700.0);
         let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: ours.iter().map(|u| (u.id, u.pos)).collect(), since: 0, last_seen: 0, at: quarry };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
-        let met = brain.chase_met(&group, &ours, &parties, &[], 300).expect("the chase meets the turrets and the Centurions");
-        assert!(met.words.starts_with("hunting party_99 (") && met.words.contains("for 10 s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
+        let met = brain.chase_met(&group, &ours, &parties, &[]).expect("the chase meets the turrets and the Centurions");
+        assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
         assert!(met.words.contains("its reach begins") && met.words.contains("ahead of the front") && met.words.contains("beside the chase: party_12 (3 armwar, 810 metal)") && met.words.ends_with("any other pick ends the chase"), "{}", met.words);
         assert!(met.keys.iter().any(|k| k == "turret 10") && met.keys.iter().any(|k| k == "party_12"), "{:?}", met.keys);
-        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
-        assert!(brain.chase_met(&holding, &ours, &parties, &[], 300).is_none());
+        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
+        assert!(brain.chase_met(&holding, &ours, &parties, &[]).is_none());
         // Chasing away from the turrets, with the Centurions out of reach: nothing met.
         let away = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
         let mut far = parties.clone();
         far[0].at = at(6000.0, 6000.0);
-        assert!(brain.chase_met(&group, &ours, &far, &[], 300).is_none());
+        assert!(brain.chase_met(&group, &ours, &far, &[]).is_none());
     }
 
     /// A party's turrets count against a group only where they reach it: a group out of their reach meets the party

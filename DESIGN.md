@@ -156,7 +156,8 @@ what it is aimed at (`pianist/menu.rs`); code chooses neither what a move is aim
 packet only for names; enemy parties are questions, never menus; a gate of nouls, worlds joined from the best-rated
 moves, and a pick that is one Choice over the worlds with the course among them, the world drawn by its probability
 (`compose.rs`; two stages until 2026-10-24, `docs/design/2026-10-24-pick-rework.md`); what Jev must remember is printed in each actor's entry (the
-registers); and every saving on what is asked is a layer with a switch and an audit (`layers.rs`, `--hands-layers`).
+registers `reached` and `met`; the last-pick register and every clock on a course retired 2026-10-24: the policy of t-1
+does not enter Jev's words); and every saving on what is asked is a layer with a switch and an audit (`layers.rs`, `--hands-layers`).
 
 ### The game's snapshot (2026-10-21)
 

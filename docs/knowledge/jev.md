@@ -1951,7 +1951,8 @@ at 0.62-0.69. As with the shell move's under-fire sentence
 **Status.** demonstrated offline on four picks of one minute (2026-10-03 night, the numbers in the test sentences
 estimated by hand); built as words, unmeasured in play. The margin was not built (the user). **2026-10-24:** stage two is deleted
 (K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them); the whole pick is now the draw this claim's first
-sentence describes, by the user's word.
+sentence describes, by the user's word. **2026-10-24 (later):** the young order's age is gone as well (the t-1 words
+out): what stands is the state form, "nothing of it has the party in reach (..., on its way)".
 **Would be wrong if.** The measured counts read differently from the estimated ones, or the sentence, standing on
 every move of a body that has turned twice, holds it where a turn is right.
 **Used by.** [[H-HANDS-TURNS]].

@@ -231,8 +231,6 @@ pub struct Pianist {
     /// The parties in the picture at the last pass: a new one is an event.
     parties_seen: BTreeSet<String>,
     pub(super) events: BTreeSet<String>,
-    /// The registers (law 8): what each actor last chose, when, and what it left; printed in its entry.
-    pub(super) registers: BTreeMap<String, menu::Register>,
     /// The two moves the gate last rated best for each actor, for the player's report.
     pub(super) rated: compose::Rated,
     /// The names of the places a move can be aimed at as of the last picture (`menu::named_places`): a group that
@@ -650,7 +648,6 @@ impl Pianist {
             undo: None,
             parties_seen: BTreeSet::new(),
             events: BTreeSet::new(),
-            registers: BTreeMap::new(),
             rated: compose::Rated::new(),
             named: BTreeSet::new(),
             hunt_events: Vec::new(),
@@ -732,12 +729,6 @@ impl Pianist {
 
     pub(super) fn recent(&self, frame: i32) -> Vec<String> {
         self.recent.iter().filter(|(f, _)| frame - f < RECENT_FRAMES).map(|(f, text)| format!("{} {text}", picture::clock(*f))).collect()
-    }
-
-    /// An actor's register as its entry prints it: "14:02 picked the walk to spot_30, leaving its course (attacks
-    /// party_7); 6 s ago".
-    pub(super) fn register_words(&self, actor: &str, frame: i32) -> Option<String> {
-        self.registers.get(actor).map(|r| format!("{} {}; {} s ago", picture::clock(r.frame), r.words, (frame - r.frame) / FRAMES_PER_SECOND))
     }
 
     /// Whether this builder's list waits this second (H-HANDS-SCRIPT, 2026-10-01): the pick sent it away from an
@@ -894,9 +885,8 @@ impl Brain {
             pianist.named = menu::named_places(&picture.places, instructions, &pianist.scripts).into_iter().map(|p| p.name.clone()).collect();
             pianist.places = picture.places.clone();
             pianist.parties = picture.parties.clone();
-            // The registers and the gate's ratings of actors that are gone go with them.
+            // The gate's ratings of actors that are gone go with them.
             let actors = picture.state["actors"].as_object();
-            pianist.registers.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
             pianist.rated.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
         }
         self.play_lists(tick, kit, &picture, commands);
