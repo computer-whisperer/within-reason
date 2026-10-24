@@ -114,7 +114,18 @@ within 350 of the air plant), an advanced air plant at 11:56 whose ten advanced 
 advanced fusions (a median of 39 turrets within 300 when placed) and 162 advanced converters (28), the first
 converter of the game at 13:50; no basic converter at all. The spend: metal under five percent of its storage 257 s
 of 1,303 and at its cap 149 s (the last two minutes); 79 constructors from 14:00 and 304 turrets at 20:00, 61,000
-of build power against the bot's 17,000-18,000. Against this the flagship's and the bot's late economies are
+of build power against the bot's 17,000-18,000. The reclaim (the user's correction, 2026-10-24: the first
+reading missed it): each tier's capital is taken back to fund the next, at the moments the metal is the constraint.
+The plant, its nine constructors out at 3:46, is reclaimed by the commander at 4:41 (570 metal whole, no energy;
+the stock 929 at the time, the advanced plant's 2,600 begun 54 s later); the advanced plant, its fifteenth
+constructor out at 10:14 and a sixteenth cancelled, is reclaimed by the turrets round it in about seven seconds at
+10:22 (2,600 back on a stock of 956; the air plant begun 10:27 and 41 turrets in the next minute); 17 of the 25
+solars go to the constructor aircraft from 13:44 to 14:41 (2,550) as the fusions stand, the first six of them where
+the farm then goes (20, 20, 18, 13 turret frames later within 150 elmos of them, and the advanced fusions); the four
+advanced solars go to the turrets at 15:01-15:26 (1,480), advanced fusions on their ground. 7,200 metal in all
+before 20:00, a seventieth of what he made, each lump five to twelve seconds of his income at the time: the point is
+the moment and the ground, not the sum. The engine returns the metal whole in the second the reclaim ends (booked
+as income) and none of the energy. Against this the flagship's and the bot's late economies are
 basic converters on solars and fusions (the flagship 80 basic + 35 advanced converters, 4 fusions, 2 turrets; the
 bot 200-235 basic converters, 116-163 solars, 13-16 fusions, 3-6 advanced converters, 21-24 turrets a game), which
 is also what the program's ceiling is made of (717 basic converters, 74 fusions, 24 turrets at 20:00 under

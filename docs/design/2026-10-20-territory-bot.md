@@ -140,6 +140,14 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   converters and 17 advanced fusions, so the late mark is the room the arms give the program (the turret cap of
   six a factory, decision 1's caps) before it is the hands'; (3) the energy: an energy storage at 4:06, a fusion
   begun by the first advanced constructor at 6:57, four by 10:10, four advanced solars in all, and the stock
-  under five percent of storage for 66 s in the whole game. Nothing built from it yet; the order proposed to the
+  under five percent of storage for 66 s in the whole game; (4) the reclaim, which the first reading missed (the
+  user): the plant reclaimed by the commander at 4:41 once its nine constructors are out (570 metal, 54 s before
+  the advanced plant), the advanced plant by its turrets at 10:22 once its fifteen are out (2,600, the air plant
+  and the farm's first turrets on it), 17 solars by the aircraft at 13:44-14:41 as the fusions stand (2,550, the
+  first six where the farm goes), the four advanced solars at 15:01-15:26 (1,480): the metal of a tier's
+  infrastructure is a loan the next tier repays, returned whole and at once, no energy, at a cost of the
+  reclaimer's time. For the program this is a column the model has not got: a standing unit taken down for its
+  metal and its ground; for the hands an order the protocol already carries (ReclaimUnit) and the bot never
+  gives. Nothing built from it yet; the order proposed to the
   user: the turret cap and the frames' site in the hands (a farm: turrets in a block, tier-2 frames placed inside
   their reach), the opening prefix, the constructor count.

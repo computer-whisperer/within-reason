@@ -10,8 +10,11 @@ record; its side is run/territory_curves.py from its own lines.
 
 --minutes prints every minute (income, extractors by tier, constructors, converters, both stocks); --shape adds
 the builders by type per minute, the kinds each builder type began, the tier-2 clocks (begun -> done, per minute),
-how many nano turrets stood within 300 elmos of each tier-2 frame when it was placed, and what the builders and
-turrets were building at the marks (the record's `bp` rows, replay records from 2026-10-13 on).
+how many nano turrets stood within 300 elmos of each tier-2 frame when it was placed, the reclaims (our own
+units destroyed with one of our builders named as the attacker, which is how the engine reports a reclaim; the
+metal comes back whole in the second it ends, booked as income, no energy; the frames cancelled; what was built
+later on the reclaimed ground), and what the builders and turrets were building at the marks (the record's `bp`
+rows, replay records from 2026-10-13 on).
 """
 import collections, json, math, sys
 
@@ -162,6 +165,22 @@ def main():
         w = sorted(r[0] for r in rows)
         d = sorted(r[1] for r in rows)
         print(f"  {suffix:>6} n={len(rows):>3} nanos {w[0]} / {w[len(w) // 2]} / {w[-1]}  distance {d[len(d) // 2]:.0f} / {d[-1]:.0f}")
+    destroyed = [e for e in events if e.get("k") == "destroyed"]
+    builders = {i for i, d in enumerate(defs) if d.get("build_speed", 0) > 0}
+    # Our own builder named as the attacker: a reclaim. An enemy builder (his commander shooting, his death blast) is not.
+    reclaims = [e for e in destroyed if e.get("by_d", -1) in builders and e.get("by") in udef]
+    cancelled = [e for e in destroyed if e.get("by_d", -1) < 0 and e["u"] not in finished and not name[e["d"]].endswith("mex")]
+    metal_back = sum(defs[e["d"]]["metal"] for e in reclaims if e["u"] in finished)
+    print(f"reclaims {len(reclaims)} ({metal_back:,} metal of finished units back), frames cancelled {len(cancelled)}:")
+    by_type = collections.defaultdict(list)
+    for e in reclaims:
+        by_type[(name[e["d"]], name[e["by_d"]])].append(e)
+    for (unit, by), es in sorted(by_type.items(), key=lambda kv: kv[1][0]["f"]):
+        later = collections.Counter(name[x["d"]] for e in es for x in created if x["f"] > e["f"] and math.hypot(x["x"] - e["x"], x["z"] - e["z"]) < 150)
+        when = clock(es[0]["f"]) if len(es) == 1 else f"{clock(es[0]['f'])}-{clock(es[-1]['f'])}"
+        print(f"  {unit:>10} x{len(es):<3} {defs[es[0]['d']]['metal'] * len(es):>6} M by {by:<10} {when:<12} built later within 150: " + (", ".join(f"{k} {v}" for k, v in later.most_common(4)) or "-"))
+    if cancelled:
+        print("  cancelled: " + " ".join(f"{clock(e['f'])} {name[e['d']]}" for e in cancelled[:12]) + (" ..." if len(cancelled) > 12 else ""))
     if any(s.get("bp") for s in samples):
         print("building at the marks (builder type -> target, count; then idle builders):")
         for m in marks:
