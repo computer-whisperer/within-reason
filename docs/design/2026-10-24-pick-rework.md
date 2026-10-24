@@ -165,6 +165,20 @@ table of §1), the share of picks that drew w1, the group traces at the fights (
 §4's clauses the alternation runs through when the gate no longer hides it. `pick-one-2`: the same line with the t-1
 words out (§3b), launched when pick-one-1 ends; read the same way, against pick-one-1.
 
+**pick-one-1 (f51a2a0): WON 24:24** (`docs/experiments.md`). A change drawn in 64% of the components with a candidate
+(groups 69%, against stage two's 39% taken before), w1 drawn in 36% at a median mass of 0.55. Groups: 380 picks in 24
+minutes, 40% within 10 s of the group's last (inside the nine games' band, at its low end), worst minute 14; of 153
+quick picks 19 re-picks, 12 A-B-A, 122 switches. What the gate's removal reveals: **68% of group picks were of an idle
+group** (22-57% before), §4 row 3: an arrived body is asked every gate at the 0.3 bar and a change is drawn two times in
+three; the gather arrival (§1) makes it a loop (group_Z at spot_27, 20:02-20:23: gather drawn at 0.06 of the mass and
+re-drawn five times, w1 three times between, a walk of 337 to the spot it stood at, gather again, an advance at 0.53).
+A body of six shredded into three detachments of two by `send` draws at 0.41-0.70 of the mass in fifteen seconds
+(group_B, 5:14-5:27). Quick picks of a group hit this second: 47 of 380; the advance/retreat alternation is the
+minority. Group verbs played: join 119, go 99, fight to 61, attack 49, send 36, gather 28, hold 13, follow 13, shell 3.
+Evenness: the quick picks' played rating median 0.55, the spaced picks' 0.66 (gap 0.03): the draw plays the decisive
+gates well and the idle ones by lot. The lead (4,012 against 2,135 at 12:00, 8,262 against 2,654 at 16:00) went
+unconverted until the push of 20:50; 21 extractors lost to raids. Jev $0.72, the rate of the series.
+
 ## 6. Next, under the principle
 
 1. The state words of §2 (the fire on each path, the odds as the body will meet them, the turn's cost as this
