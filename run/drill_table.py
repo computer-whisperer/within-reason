@@ -15,7 +15,8 @@ the median over the body and the largest. The shape comes from `duels.csv` when 
 derived from the per-second log otherwise. An `into` drill (D9, a target on the goal) adds the first shot from the
 first order, the shot ramp from it to the median unit's first shot and the last's, and the target's deaths. A terrain case (D10) adds the walk on foot against the crow's distance and `route_s`, the walk
 over the slowest type's speed. The heading for a derived shape is the body's: the centroid's displacement over the
-second when it is 10 or more, the axis to the goal in force otherwise, as in the director. `--types`
+second when it is 10 or more, the axis to the goal in force otherwise, as in the director. `--seconds` prints the first duel's median unit speed each second and, when the army is the lane's declared group
+(`--lane on|ranks`), the group's pace, formed count and exceptions by cause each second. `--types`
 adds, from the
 per-second logs (`seconds/*.jsonl`, the drill's meta line first), each type's own arrival at the goal and speed share
 before the median arrival, which is where a mixed column's stringing shows (type speeds from the unit glossary,
@@ -175,6 +176,25 @@ def speeds_by_second(batch, row, speeds):
     return out
 
 
+def group_by_second(batch, row):
+    """From one duel's per-second log: the lane's group each second as (pace, formed, exceptions by cause), when the
+    log carries a `group` (the army a declared group, `--lane on|ranks`)."""
+    read = read_log(batch, row)
+    if read is None:
+        return None
+    _meta, log = read
+    out = []
+    for r in log:
+        g = r.get("group")
+        if not g:
+            continue
+        causes = {}
+        for _index, cause, _s in g.get("exceptions", []):
+            causes[cause] = causes.get(cause, 0) + 1
+        out.append((g.get("pace"), len(g.get("formed", [])), causes, g.get("arrived"), g.get("engaged")))
+    return out or None
+
+
 def per_type(batch, row, speeds):
     """From one duel's per-second log: each type's median arrival at the goal and mean speed share before the army's
     median arrival. None when the log is missing."""
@@ -315,6 +335,13 @@ def main():
                     series = speeds_by_second(batch, r, speeds)
                     if series:
                         print(f"|   first duel, median speed each second: {' '.join(fmt(v) for v in series)} |")
+                    group = group_by_second(batch, r)
+                    if group:
+                        cells_g = []
+                        for pace, formed, causes, arrived, engaged in group:
+                            tag = "".join(f" {c[0]}{n}" for c, n in sorted(causes.items()))
+                            cells_g.append(f"{fmt(pace)}/{formed}{tag}{'*' if arrived else ''}{'!' if engaged else ''}")
+                        print(f"|   first duel, group each second as pace/formed [a=away b=behind f=fled j=joining s=stuck; * arrived, ! engaged]: {' '.join(cells_g)} |")
         print()
 
 

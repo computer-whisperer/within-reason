@@ -7,7 +7,7 @@ records who is left. It exists to fill the matchup table the brain and the LLM c
 ```
 duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--reps 4] [--budget 1200 | --count N] [--parallel 2] [--sites 3] [--duels-per-match 45] [--time-limit 240]
-     [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed 50] [--map NAME]
+     [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed 50] [--map NAME]
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
      [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
@@ -15,7 +15,7 @@ duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase 
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
-     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] ...
+     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
 run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types] [--seconds]   one row per arm of a drill batch
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
@@ -269,7 +269,13 @@ D11: a unit whose goal is always `L` ahead); with `--pace P` (elmos a second) ea
 slot, its spawn place carried along the axis by `--lead` plus `P` times the seconds since the first order (since the
 turn, for a reverse) and no further than the goal, the formation translated rigidly at the pace (D11's second test,
 K-engine-a-slot-moving-at-a-pace-paces-the-unit). `run/drill_table.py --seconds` prints the first duel's median unit
-speed each second, for a pace's steadiness. **walk** ends when every living unit is within 300 of the goal (the hands'
+speed each second, for a pace's steadiness, and the lane's group each second when there is one. With `--lane on` the
+army is the lane's one declared group (H-MICRO-GROUP: `Lane::set_group("army", ...)` with the drill's order, a Go for
+a move and a FightTo for a fight, the route one point): the anchor walks at 0.9 of the slowest type's speed and every
+unit is sent to its slot every tick, the director's own per-unit orders to the units dropped (so `--reissue`, `--lead`
+and `--pace` are lane-off arms); `--lane ranks` is the same group with its march off, the slots standing at the
+destination. The per-second log carries the group's `anchor`, `heading`, `pace`, `full_pace`, `formed` (spawn
+indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'
 own arrival number). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
 12, before the fast units arrive) and ends when everyone is back. **gather** gives an `--lab` (default `armvp`) at
 the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it

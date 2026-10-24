@@ -13,7 +13,7 @@ use std::time::Instant;
 use serde_json::{Value, json};
 
 use bot_protocol::{Command, Event, Hello, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
-use micro::{Commitment, Lane, Stats, View};
+use micro::{Commitment, Footwork, GroupKind, GroupOrder, Lane, Stats, View};
 
 use crate::drill::{self, Drill, Walker};
 use crate::fire::{self, Fire, Tally};
@@ -309,6 +309,7 @@ impl Army {
             lane: (lane_mode != LaneMode::Off).then(|| {
                 let mut lane = Lane::default();
                 lane.tuning = form_tuning();
+                lane.pacing = pacing_tuning();
                 lane
             }),
             lane_mode,
@@ -871,6 +872,17 @@ impl Director {
     }
 }
 
+/// H-MICRO-GROUP's numbers for the lane: `WITHIN_REASON_PACING=fraction[,cadence_frames]` (the bench's arms), else
+/// the lane's own.
+fn pacing_tuning() -> micro::Pacing {
+    let default = micro::Pacing::default();
+    let Ok(value) = std::env::var("WITHIN_REASON_PACING") else { return default };
+    let mut parts = value.split(',').map(|p| p.trim().to_string());
+    let fraction = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.fraction);
+    let cadence = parts.next().and_then(|p| p.parse::<i32>().ok()).unwrap_or(default.cadence);
+    micro::Pacing { fraction, cadence, ..default }
+}
+
 /// H-MICRO-FORM-SPACING's numbers for the lane: `WITHIN_REASON_FORM_SPACING=factor,max` (the harness's search), else
 /// the lane's own.
 fn form_tuning() -> micro::FormTuning {
@@ -1374,6 +1386,40 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let mut all: HashMap<UnitId, Commitment> = members.iter().map(|u| (*u, Commitment::All)).collect();
                 all.extend(commitments);
                 lane.set_commitments(all, HashMap::new());
+                // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
+                // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
+                // the enemy's centre; a raid, a chase, a scripted or tracked side and a drill's target side order
+                // their units one by one as before. `--lane ranks` is the
+                // group without pacing: the slots stand at the destination.
+                let plain_fight = duel.drill.is_none() && duel.raid.is_none() && rules.chase.is_none() && script.is_none() && !on_track;
+                let group = match duel.drill.as_mut() {
+                    Some(drill) if side == 0 && drill.last_order.is_some() => {
+                        let kind = if drill.fight { GroupKind::FightTo } else { GroupKind::Go };
+                        // A gather under the group is the host's protocol, not the lane's: a hold at the rally until
+                        // the whole list stands there in formation (the group state's `arrived`), then the order to
+                        // the goal; what Jev would do from the state's words.
+                        let total: usize = drill.wanted.iter().map(|(_, n)| *n as usize).sum();
+                        let gathering = drill.kind == drill::Kind::Gather && drill.gathered_at.is_none();
+                        // Formed with nobody out of slot: `arrived` alone let the hold end with the last unit still
+                        // walking from the lab (an exception beyond the threshold does not count against arrival).
+                        if gathering && drill.appeared.len() >= total && lane.group_state("army").is_some_and(|s| s.arrived && s.exceptions.is_empty()) {
+                            drill.gathered_at = Some(frame);
+                        }
+                        if drill.kind == drill::Kind::Gather && drill.gathered_at.is_none() {
+                            Some(GroupOrder { kind: GroupKind::Hold, route: vec![drill.rally()] })
+                        } else {
+                            Some(GroupOrder { kind, route: vec![drill.toward] })
+                        }
+                    }
+                    Some(_) => None,
+                    None if plain_fight => Some(GroupOrder { kind: GroupKind::FightTo, route: vec![enemy_centroid] }),
+                    None => None,
+                };
+                if let Some(order) = group {
+                    let living: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile)).collect();
+                    let footwork = Footwork { march: army.lane_mode != LaneMode::Ranks, ..Footwork::default() };
+                    lane.set_group("army", living, order, footwork, Commitment::All);
+                }
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
                 // quarry is gone from them; `enemy.units` keeps the dead).
                 let enemy_alive: HashSet<UnitId> = enemy.alive.keys().copied().collect();
@@ -1691,6 +1737,19 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
         line["shape"] = json!([shape.depth.round(), shape.width.round(), tenth(shape.ramp_half_s), tenth(shape.ramp_all_s)]);
     }
+    // The lane's group this second (design §2): the anchor, its heading and pace, who is formed, who is out of slot
+    // and why (by spawn index), whether it has arrived and what it stands on.
+    if let Some(state) = x.lane.as_ref().and_then(|l| l.group_state("army")) {
+        let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
+        let index = |u: &UnitId| x.spawn_of.get(u).map_or(-1, |i| *i as i64);
+        line["group"] = json!({
+            "anchor": [state.anchor.x.round(), state.anchor.z.round()], "heading": [tenth(state.heading.0), tenth(state.heading.1)],
+            "pace": state.pace.round(), "full_pace": state.full_pace.round(),
+            "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
+            "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
+            "arrived": state.arrived, "engaged": state.engaged.map(|u| u.0),
+        });
+    }
     duel.log.push(line.to_string());
     for (k, at) in LEFT_AT.iter().enumerate() {
         if t == *at {
@@ -1838,6 +1897,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f as f32 / FPS as f32), "lead": drill.lead, "pace": drill.pace,
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
+        "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
     } })
 }
 

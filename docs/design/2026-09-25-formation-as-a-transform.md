@@ -1,5 +1,13 @@
 # Target design: the formation as a transform of the order, not a control loop
 
+**Reversed 2026-10-24 night** (`2026-10-24-formation-drills.md` §2, the user's ruling): the formation is a loop again,
+an anchor walking the route at the group's pace with every member sent to its moving slot every tick. Chose-because:
+the drill bench showed the transform holds width at arrival and nothing else (a passage files the body and the ranks
+return only in the last six seconds; a mixed column is one column a speed). Rejected-because, what this document's
+evidence was: a 150-elmo lead that braked units, and orders costing shots at contact; the first was a parameter (the
+engine's brake zone now does the pacing on purpose), the second holds only at contact, where the loop is silent. The
+evidence below on spacing, standing at contact and the rear at the ends stands and is kept in the arc.
+
 Written 2026-09-25 by Claude (Fable 5.1) before any code, at the user's direction after the chaser fix ("if that was
 the formation system trying to run then it was very broken and just changing some coefficients probably isn't the
 full answer"). Re-derives what H-MICRO-FORM is for from the record and the harness, and says what it should do

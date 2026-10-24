@@ -196,6 +196,9 @@ pub struct Drill {
     pub wanted: Vec<(UnitDefId, u32)>,
     pub queued: bool,
     pub appeared: HashMap<usize, i32>,
+    /// Under the lane's group a gather is a hold at the rally (`rally`) until the whole list stands there in
+    /// formation, then the order to the goal: the frame the hold ended.
+    pub gathered_at: Option<i32>,
     /// Where each unit stood at the last once-a-second sample.
     last: HashMap<UnitId, Vec3>,
     /// The median speed share each second, from the first order.
@@ -253,6 +256,7 @@ impl Drill {
             wanted,
             queued: false,
             appeared: HashMap::new(),
+            gathered_at: None,
             last: HashMap::new(),
             shares: Vec::new(),
             shares_before_median: Vec::new(),
@@ -316,6 +320,13 @@ impl Drill {
             return self.toward;
         }
         Vec3 { x: at.x + dx * lead, y: self.toward.y, z: at.z + dz * lead }
+    }
+
+    /// A gather's rally under the lane's group: `AT_THE_LAB` along the axis from the start, clear of the lab's yard.
+    pub fn rally(&self) -> Vec3 {
+        let axis = self.axis();
+        let length = (axis.x * axis.x + axis.z * axis.z).sqrt().max(1.0);
+        Vec3 { x: self.start.x + axis.x / length * AT_THE_LAB, y: self.start.y, z: self.start.z + axis.z / length * AT_THE_LAB }
     }
 
     /// Whether the reverse's turn is due: `turn_at` after the first order, once.

@@ -11,7 +11,7 @@
 //!             timed script, side 1 on its recorded track)
 //!        --seeds a,b,c: every duel `--reps` times under each engine seed (`FixedRNGSeed`), not only the match's own.
 //!        A side of a pairing is a unit name (the count from --budget/--count) or a mixed force `name*count+name*count`.
-//!        --lane off|old|on per side: whether the control lane (`crates/micro`) drives the army over the director's orders.
+//!        --lane off|old|on|ranks per side: whether the control lane (`crates/micro`) drives the army as a declared group over the director's orders (`ranks`: the group without pacing).
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
 
 mod director;
@@ -563,7 +563,7 @@ fn parse_args() -> io::Result<Options> {
     }
     // `X` or `X/Y`: the lane for the first army of each pairing, and for the second (default off).
     let (lane_x, lane_y) = lanes.split_once('/').unwrap_or((lanes.as_str(), "off"));
-    let parse_lane = |text: &str| LaneMode::parse(text).unwrap_or_else(|| usage(&format!("--lane: {text} is not off, old or on")));
+    let parse_lane = |text: &str| LaneMode::parse(text).unwrap_or_else(|| usage(&format!("--lane: {text} is not off, old, on or ranks")));
     options.lanes = [parse_lane(lane_x), parse_lane(lane_y)];
     if options.pairs.is_empty() {
         usage("no pairings: give --units, --ours with --theirs, --pairs, or --scenario");
@@ -586,9 +586,9 @@ fn parse_args() -> io::Result<Options> {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
+    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
-       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
+       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)

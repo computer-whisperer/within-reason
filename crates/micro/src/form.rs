@@ -1,6 +1,9 @@
-//! Body geometry for H-MICRO-FORM (`docs/design/2026-09-28-body-shape.md`, after
-//! `docs/design/2026-09-25-formation-micro.md`): which soldiers make a body, where a body's slots lie, and who takes
-//! which slot. Pure functions over positions; the lane (`lib.rs`) decides what order each slot becomes.
+//! Formation geometry for H-MICRO-FORM (`docs/design/2026-09-28-body-shape.md`, after
+//! `docs/design/2026-09-25-formation-micro.md`): where a group's slots lie, on the march and at contact, and who takes
+//! which slot. Pure functions over positions; the group (`group.rs`) carries the anchor the march's ranks hang from,
+//! and the lane (`lib.rs`) decides what order each slot becomes. Which soldiers make a group is the host's
+//! declaration (`Lane::set_group`), not an inference here (bodies by chaining went 2026-10-24,
+//! `docs/design/2026-10-24-formation-drills.md` §2).
 //!
 //! A shape is slots round a reference from four numbers: the spacing `s`, the width and ranks (the march), the
 //! curvature and the pitch (contact). On the march a body stands in ranks across its heading. At contact it stands on
@@ -11,8 +14,9 @@
 //! stands on further arcs round the target's sides, never in a queue behind the first.
 //!
 //! The pros give a group one point per unit on a nearly straight line about two hulls apart, fight in bodies of about
-//! six, and keep raiders and line units apart (`docs/knowledge/formations.md`, K-form-*); a ball loses to a few area
-//! units, worse the bigger and tighter it is (K-units-duel-spacing-decides-area-damage).
+//! six, and keep raiders and line units apart (`docs/knowledge/formations.md`, K-form-*; the last is the host's
+//! choice of groups now); a ball loses to a few area units, worse the bigger and tighter it is
+//! (K-units-duel-spacing-decides-area-damage).
 
 use std::f32::consts::PI;
 
@@ -32,12 +36,6 @@ pub const SPACING_MAX: f32 = 160.0;
 /// travel). Further ranks stand `RANK_GAP` behind, offset half a spacing.
 pub const FILES: usize = 6;
 pub const RANK_GAP: f32 = 96.0;
-/// Units under one order this close to each other are one body (chained).
-pub const BODY_LINK: f32 = 400.0;
-/// Two group orders whose points are this close are the same order.
-pub const GROUP_POINT: f32 = 48.0;
-/// A type with a reach up to this is a raider (short-range, fast); the survey's short / long split at 250 / 300.
-pub const RAIDER_REACH: f32 = 250.0;
 /// `m`: a slot stands this far inside the body's reach of its target (the engine's range test and ours disagree
 /// within 20 at the edge).
 pub const REACH_MARGIN: f32 = 20.0;
@@ -48,33 +46,6 @@ pub const PARTY_LINK: f32 = 150.0;
 pub const STATIC_MARGIN: f32 = 40.0;
 /// The pitches tried to keep the arc out of other buildings' reach, as angles about the target (radians).
 const PITCHES: [f32; 9] = [0.0, 0.26, -0.26, 0.52, -0.52, 0.79, -0.79, 1.05, -1.05];
-
-/// The group order a soldier stands under, as far as bodies care: what kind, and where or at whom.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Order {
-    Fight(Vec3),
-    Move(Vec3),
-    Attack(UnitId),
-}
-
-impl Order {
-    fn same_group(self, other: Order) -> bool {
-        match (self, other) {
-            (Order::Fight(a), Order::Fight(b)) | (Order::Move(a), Order::Move(b)) => a.dist2d(b) <= GROUP_POINT,
-            (Order::Attack(a), Order::Attack(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-/// A soldier as bodies see it.
-#[derive(Clone, Copy, Debug)]
-pub struct Member {
-    pub id: UnitId,
-    pub pos: Vec3,
-    pub raider: bool,
-    pub order: Order,
-}
 
 /// An armed enemy as a shape sees it: where, whether it walks, how far it shoots.
 #[derive(Clone, Copy, Debug)]
@@ -113,51 +84,6 @@ pub fn spacing_for(area: f32, factor: f32, max: f32) -> f32 {
     (area * factor).clamp(HULL_SPACING, max.max(HULL_SPACING))
 }
 
-
-/// Bodies: members under the same group order and of the same class, chained within `BODY_LINK`. Bodies of one are
-/// not returned. A body is not cut by its size here: at contact its count against the arc at its reach decides how
-/// many arcs it stands on (`contact_slots`).
-pub fn bodies(members: &[Member]) -> Vec<Vec<Member>> {
-    let n = members.len();
-    let mut parent: Vec<usize> = (0..n).collect();
-    fn root(parent: &mut [usize], i: usize) -> usize {
-        let mut r = i;
-        while parent[r] != r {
-            r = parent[r];
-        }
-        let mut i = i;
-        while parent[i] != r {
-            let next = parent[i];
-            parent[i] = r;
-            i = next;
-        }
-        r
-    }
-    for i in 0..n {
-        for j in i + 1..n {
-            let (a, b) = (&members[i], &members[j]);
-            if a.raider == b.raider && a.order.same_group(b.order) && a.pos.dist2d(b.pos) <= BODY_LINK {
-                let (ra, rb) = (root(&mut parent, i), root(&mut parent, j));
-                if ra != rb {
-                    parent[ra] = rb;
-                }
-            }
-        }
-    }
-    let mut groups: Vec<Vec<Member>> = Vec::new();
-    let mut of_root: Vec<Option<usize>> = vec![None; n];
-    for (i, member) in members.iter().enumerate() {
-        let r = root(&mut parent, i);
-        match of_root[r] {
-            Some(g) => groups[g].push(*member),
-            None => {
-                of_root[r] = Some(groups.len());
-                groups.push(vec![*member]);
-            }
-        }
-    }
-    groups.into_iter().filter(|g| g.len() >= 2).collect()
-}
 
 /// The direction along which the points lie longest (their major axis).
 fn major_axis(points: &[Vec3]) -> (f32, f32) {
@@ -435,41 +361,11 @@ mod tests {
         Vec3 { x, y: 0.0, z }
     }
 
-    fn member(id: i32, x: f32, z: f32, raider: bool, order: Order) -> Member {
-        Member { id: UnitId(id), pos: at(x, z), raider, order }
-    }
-
     fn foe(id: i32, x: f32, z: f32, mobile: bool, reach: f32) -> Foe {
         Foe { id: UnitId(id), pos: at(x, z), mobile, reach }
     }
 
     const STOUT: f32 = 350.0;
-
-    #[test]
-    fn raiders_and_line_units_under_one_order_are_two_bodies() {
-        let go = Order::Fight(at(2000.0, 500.0));
-        let members = [
-            member(1, 0.0, 0.0, true, go),
-            member(2, 50.0, 0.0, true, go),
-            member(3, 0.0, 100.0, false, go),
-            member(4, 60.0, 100.0, false, go),
-            // A lone unit, and one under another order: neither is in a body.
-            member(5, 900.0, 900.0, false, go),
-            member(6, 30.0, 50.0, false, Order::Move(at(0.0, 0.0))),
-        ];
-        let mut bodies = bodies(&members);
-        bodies.sort_by_key(|b| b[0].id.0);
-        assert_eq!(bodies.len(), 2);
-        assert_eq!(bodies[0].iter().map(|m| m.id.0).collect::<Vec<_>>(), vec![1, 2]);
-        assert_eq!(bodies[1].iter().map(|m| m.id.0).collect::<Vec<_>>(), vec![3, 4]);
-    }
-
-    #[test]
-    fn a_big_body_is_not_cut_by_its_size() {
-        let go = Order::Fight(at(3000.0, 320.0));
-        let members: Vec<Member> = (0..25).map(|i| member(i, 100.0, i as f32 * 50.0, false, go)).collect();
-        assert_eq!(bodies(&members).len(), 1);
-    }
 
     #[test]
     fn spacing_is_the_hull_without_area_and_two_radii_with_it_up_to_the_cap() {

@@ -25,7 +25,7 @@ The regime: `crates/micro` is the one place where code deciding live is already 
 the flagship rule, `docs/code-decisions.md`). The drills run with no model. The exit into the flagship is words: the
 hands read the lane's group state, the moves stay Jev's.
 
-## 1. Where groups are in the stack today
+## 1. Where groups are in the stack today (at the arc's start, 2026-10-24 evening; the lane's row is §2's since the night's build)
 
 | layer | what it holds | what it decides |
 |---|---|---|
@@ -62,8 +62,9 @@ cadence, so the engine's own movement does the following. The host never orders 
 
 **The properties the loop holds** (the contract the hands and the duel director rely on):
 
-1. Pace: the anchor moves at the slowest type's speed in the declared group times a fraction under one, so a lagging
-   unit of that type can regain its slot.
+1. Pace: the anchor moves at the slowest type's speed in the declared group (the fraction 1.0, ruled by the bench the
+   night it was built: a lagging unit of that type regains its slot because the anchor is held back by its formed
+   members, not because the pace leaves a margin; 0.9 cost a pure column 4 s and met no bar the 1.0 missed).
 2. Shape: the template across the heading, never wider than the standable ground across the route.
 3. Coherence: every member within a tolerance of its slot, or an exception.
 4. Integrity at contact: the anchor stops at reach, the formed body takes the arc, and the loop falls silent for any
@@ -474,6 +475,38 @@ and the mixed column translated rigidly at 49 arrives 34 / 36 / 37 over 2,000 wi
 7.1 / 17.1; at the Janus's full 54 the Janus (0.95) never regains its slot and the column arrives 31 / 33 / 36, 194
 deep. §5's bar for the mixed column (the ramp shrunk, the width kept, the last arrival within 3 s of the slowest
 type's walk) is met by the first arm, walking at the Janus's pace; the bars for the lane's own arm are these numbers.
+
+**The group built and benched (H-MICRO-GROUP, 2026-10-24 night; `crates/micro/src/group.rs`, the lane's `set_group`
+/ `clear_group` / `group_state`, the duel director as the first host, `--lane on` the paced group and `--lane ranks`
+the group with its march off; batches `*-duel-group-*`, ledger rows group-* and group2-*):** the mix under the paced
+group at the fraction 0.9 arrives 36 / 38 / 40 with every type within 36-40, 102 x 352 at contact, ramp 1.3 / 1.9,
+twelve formed every second at the pace 49, against the unpaced 18 / 25 / 35, 932 x 183, 7.2 / 17.2; `ranks` gives the
+old march's end state (the mix 18 / 25 / 36 at 924 x 347; the Blitz column 18 / 19 / 20 at 94 x 339); the pure Blitz
+column paced costs 4 s for nothing (22 / 22 / 23 against 18 / 19 / 19), the fraction's price with no slower type to
+hold slots for; the reverse holds the formation through the turn (recovery 6.0 s against 4.0, the anchor slowed from
+49 to 41 for four seconds). Two faults found and fixed the same night: the gather's anchor left the lab with its first
+unit (the host's protocol was missing, not the lane's: the director now holds the group at the rally, `AT_THE_LAB`
+along the axis, until the whole list stands there formed, then gives the order, which is what Jev would do from the
+state's words), and a fighting group's march orders were Moves, so units walked on to slots on the gantry's footprint
+and the shot ramp to all was 6.0 s (Fights now, as the old march gave). The 12 v 12 Blitz-Stout fight is lost either
+way and read worse under the group at 0.9 (y's value left 0.68-0.78 against 0.58-0.66); the fraction 1.0 arm
+(`WITHIN_REASON_PACING=fraction[,cadence]`) and the Fights are the next row's question. The lane keeps no formed /
+exception books at contact (the slots are the arc's then); the flagship's hands declare no group yet, so H-MICRO-FORM
+is inert there until their migration.
+
+**The second bench the same night (ledger row group2-*):** the fraction 1.0 beats 0.9 everywhere, because the drag
+rule holds the anchor to a lagging member and a margin on the pace buys nothing: the mix 33 / 35 / 37 (every type
+34-37, twelve formed every second, the anchor at the Janus's 54 after a dip to 44 during the spin-up), 135 x 352,
+ramp 1.4 / 2.5, which meets §5's bar for the mixed column; the Blitz column 20 / 20 / 21; the gantry under Fights at
+1.0 first shot 21 s, shot ramp 0.8 / 1.8 (the bar 2.5 met; 1.2 / 2.8 at 0.9; 6.0 under Moves). `Pacing::fraction`
+is 1.0 from here. The gather holds at the rally and forms the list as it comes (one joiner at a time, each an exception
+for about four seconds), then walks as one; its first run ended the hold with the last unit still walking from the lab
+(`arrived` ignores exceptions beyond the threshold), so the director's condition asks for no exceptions too. The
+Blitz-Stout fight stays worse under the group than unpaced (y's value left 0.71-0.79 against 0.62), a matchup lost
+either way; the regression check is the body-shape study's own arms (Stouts against Fatboys and Bulls at 5,400, E3
+900 against the director) against their numbers (+0.462, +0.366, +0.292 under the old lane). **Run the same night
+(ledger row regress-*):** Fatboys 8-0 at +0.47, Bulls 8-0 at +0.27, E3 24-0 at +0.36, the attack-move arms at -0.55,
+-0.32 and +0.31 as the study had them. The contact arc under the group loses nothing the old march had.
 
 ## 6. Open for the user
 

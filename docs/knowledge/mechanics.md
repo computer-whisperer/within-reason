@@ -766,6 +766,10 @@ median / last in every arm, each type at 0.94-0.96 of its speed, spread 359-387 
 `docs/design/2026-10-24-formation-drills.md` §5). A pure column of either type arrives first to last within 1-2 s.
 **Status.** measured (2026-10-24); the stringing the games show (player-32, the pick rework's games) is this. What
 holds a mixed body together is the next arc's question (the group API's pacing arms, measured against this number).
+**Amended 2026-10-24 night (the lane's group, H-MICRO-GROUP; ledger rows group-*, group2-*).** Under one declared
+group whose slots all move with an anchor at the slowest type's speed, the same column arrives 33 / 35 / 37 with every
+type within 34-37, twelve formed every second, 135 deep x 352 wide at contact and a ramp of 1.4 / 2.5 s, against 18 /
+25 / 35, 932 x 183 and 7.2 / 17.2 under one order; the price is the Janus's pace for everyone.
 
 ### K-engine-one-goal-point-funnels-a-line-into-a-file
 **Claim.** Units given one move or fight order to the same point each walk their own straight line to it, so a body
@@ -780,6 +784,10 @@ the same `to`); in the flagship's games the lane's march (H-MICRO-FORM, on unles
 six at the destination, which is why a body arrives in ranks there and not in a ball. The funnel is what the order
 alone does, to any unit the lane does not hold, and to the harness with the lane off; what holds a body's width on
 the move at a chosen depth is the next arc's question.
+**Amended 2026-10-24 night (H-MICRO-GROUP).** A slot per unit that moves with the group's anchor holds the width the
+whole way: twelve Blitzes in ranks of six at 64 arrive 98 deep x 352 wide at contact under the paced group (320 at the
+order), where one goal point gave 89 x 116 and the old march's destination ranks (`--lane ranks` now) 94 x 339. The
+march rewrite this entry's status describes is gone with the group: a host that declares no group gets the funnel.
 
 ### K-engine-slow-guard-paces-a-guarder-to-its-guardee
 **Claim.** The engine's one native pacing is slow guard: a unit guarding a slower moving unit, once within the game's

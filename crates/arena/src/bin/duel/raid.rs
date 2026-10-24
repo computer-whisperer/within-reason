@@ -27,7 +27,7 @@ pub const RAIDER_START: f32 = 1400.0;
 const STATION_OFFSET: f32 = (RAIDER_START - 1.5 * STRIP_SPACING) / 2.0;
 /// A raider this near a building of ours is at it (the standing rule's `at_structure`).
 pub const AT_STRUCTURE: f32 = 250.0;
-/// The standing raider rules reach this far from the station (`micro::RAIDER_REACH` in the bot).
+/// The standing raider rules reach this far from the station (the bot's own `RAIDER_REACH` in `brain/threats.rs`).
 pub const TRIGGER_REACH: f32 = 1200.0;
 /// The hunt's leash from where the hunters stood when it began.
 pub const LEASH: f32 = 900.0;

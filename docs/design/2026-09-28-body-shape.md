@@ -1,5 +1,9 @@
 # Target design: the body's shape (stage 1 of the micro answer)
 
+**Amended 2026-10-24 night** (`2026-10-24-formation-drills.md` §2): the body is a group the host declares, not units
+chained under one order, and its march is the anchor's paced slots (H-MICRO-GROUP); the shape at contact below stands
+as written, per group.
+
 **The ruling (the user, 2026-09-28).** "The answer in human play to most of this is various pitches and concaves of
 a line formation, and the fact that we don't do that in practice is part of the problem." Agreed as stage 1 of the
 micro answer after the TAS study (`docs/studies/2026-09-28-tas-e3.md`) and the body-size and splash study

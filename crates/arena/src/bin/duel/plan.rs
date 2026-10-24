@@ -35,8 +35,11 @@ pub enum LaneMode {
     Off,
     /// The lane without H-MICRO-FORM: the bot's lane as it was before the formation behaviour.
     Old,
-    /// The whole lane.
+    /// The whole lane: the army a declared group, paced.
     On,
+    /// The whole lane with the group's march off: the slots stand at the destination (the old march's end state,
+    /// without its form-up rank).
+    Ranks,
 }
 
 impl LaneMode {
@@ -45,6 +48,7 @@ impl LaneMode {
             "off" => Some(LaneMode::Off),
             "old" => Some(LaneMode::Old),
             "on" => Some(LaneMode::On),
+            "ranks" => Some(LaneMode::Ranks),
             _ => None,
         }
     }
@@ -54,6 +58,7 @@ impl LaneMode {
             LaneMode::Off => "off",
             LaneMode::Old => "old",
             LaneMode::On => "on",
+            LaneMode::Ranks => "ranks",
         }
     }
 }
