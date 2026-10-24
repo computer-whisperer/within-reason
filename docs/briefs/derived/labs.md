@@ -1,8 +1,8 @@
 <!--meta
 id: D-lab-choice
 layer: derived
-premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-corlevlr, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-eco-energy, F-eco-build, F-eco-conversion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-gecko-duels, D-lead-convert-it, D-reach-nests, D-raid-answer]
-lessons: [L-gecko-bots-vs-vehicles, L-sheet-labs, L-gecko-one-more-con, L-gecko-three-resources]
+premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-corlevlr, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-eco-energy, F-eco-build, F-eco-conversion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-barb-sparring, M-gecko-duels, D-lead-convert-it, D-reach-nests, D-raid-answer]
+lessons: [L-gecko-bots-vs-vehicles, L-sheet-labs, L-sheet-raids, L-gecko-one-more-con, L-gecko-three-resources]
 sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: his spoken account of a vehicle opener against a bot opener, recorded by the user and transcribed locally (L-gecko-bots-vs-vehicles), his unit-sheet rows on the labs (L-sheet-labs), his reading of the metal article aloud (L-gecko-one-more-con); the user's request that the derivations stay lean, ideas with their arithmetic and no doctrine}
 status: draft, checked (run/metal_killtest.py openers, 2026-10-23: the pool's 80 Comet sides by first factory and our 280 model-played duels with both first factories read; the numbers in the tests)
 -->
@@ -133,7 +133,8 @@ the Grunt is the better unit by the square law (74 x 280 over 43 squared against
 spend the free fire against, and "Blowdeer [as heard] stays on Grunts for kind of a long time trying to make that
 snowball happen". The vehicle side's own switch is the Incisor, 230 of reach, 820 health, 94 a second for 120 metal,
 level with the Blitz per metal and 50 longer: a Blitz closing at 16 a second takes 3.1 seconds of fire, 40% of
-itself, before it answers, "just a better unit than the Blitz"; and "on some maps, mash Pounder for the defensive
+itself, before it answers, "just a better unit than the Blitz"; the Blitz's own row says the same from the other side,
+it "can also beat grunts and pawns per cost if you can get close" (L-sheet-raids); and "on some maps, mash Pounder for the defensive
 value" (315 of reach, 1,400 health, 106 a second for 220 metal, too slow at 40 to raid). None of this is in the
 pool's cut, whose bot sides are Cortex Grunts in 15 of 16; the Grunt's reach may be part of why they win half the
 mixed duels.
@@ -165,5 +166,6 @@ sides' constructors read): in the pool the winners stand one constructor ahead a
 ahead by one, 9 by two or more, 10 level, 8 behind) and the losers one behind; in our 242 model-played games the more
 ahead the better against BARb (at 6:00, behind won 32 of 109, level 19 of 44, one ahead 18 of 37, two 14 of 22, three
 or more 19 of 30), with no sign of his "four beats six", because BARb does not punish the extra constructor the way he
-says he does against us (M-gecko-vs-us-comet); against its bot lab we stand behind in constructors in 75 of 95 games
+says he does against us (M-gecko-vs-us-comet; BARb is the sparring partner, not the opponent the adage is about,
+M-barb-sparring); against its bot lab we stand behind in constructors in 75 of 95 games
 at 6:00 (its 7 to our 5) and won 22 of those, against its vehicle plant ahead in 37 of 53 and won 26 of them.

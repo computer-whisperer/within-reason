@@ -1,7 +1,7 @@
 <!--meta
 id: D-energy-second
 layer: derived
-premises: [D-metal-is-the-game, D-lab-choice, D-tier2-sprint, F-eco-store, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-map-weather, F-map-catalogue, F-map-consequences, F-unit-armsolar, F-unit-armwin, F-unit-armadvsol, F-unit-armtide, F-unit-armfus, F-unit-armestor, F-unit-armmakr, F-unit-armnanotc, F-unit-armap, M-pool-energy-and-power, M-pool-openers, M-pool-opening, M-gecko-vs-us-comet]
+premises: [D-metal-is-the-game, D-lab-choice, D-tier2-sprint, F-eco-store, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-map-weather, F-map-catalogue, F-map-consequences, F-unit-armsolar, F-unit-armwin, F-unit-armadvsol, F-unit-armtide, F-unit-armfus, F-unit-armestor, F-unit-armmakr, F-unit-armnanotc, F-unit-armap, M-pool-energy-and-power, M-pool-openers, M-pool-opening, M-gecko-vs-us-comet, M-barb-sparring]
 lessons: [L-gecko-three-resources, L-opening-solars, L-opening-solar-cap, L-energy-converters, L-energy-nanos, L-energy-priority, L-sheet-economy, L-sheet-labs, L-gecko-bots-vs-vehicles]
 sources: {people: [thebluegecko, Koochie (as heard), Irishstud14, the user], dates: [2026-09-27, 2026-10-23, 2026-10-24], relay: thebluegecko reading metal.md's "Where it bends" aloud (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the first recording), his unit sheet rows, the 3v1 chat lines; the prices are arithmetic on the facts; the habits are the pool's and our own games' (run/metal_killtest.py energy)}
 status: draft, checked (run/metal_killtest.py energy, 2026-10-24: the pool's 84 sides and 242 model-played games of ours)
@@ -52,7 +52,9 @@ empty store with metal banked says energy.
   second more, ten solars or 1,550 metal, before its first unit.
 - *Build power costs energy, which is his order.* A construction turret is 230 metal and 3,200 energy for 200 of
   build; a bot lab 500 metal and 950 energy for 150 of build that also makes soldiers; a construction vehicle 135
-  metal and 1,950 energy for 90. Two turrets' energy, 6,400, is five and a third minutes of one solar, or 50 metal of
+  metal and 1,950 energy for 90. His sheet's "cheaper than a second lab for increasing spend" (L-sheet-labs) is the metal
+  column, 230 against 500, and his recording's second factory is the energy column, 950 against 3,200; the map's
+  energy price says which column counts. Two turrets' energy, 6,400, is five and a third minutes of one solar, or 50 metal of
   turbines on a windy map and 250 metal of solars on Comet. That is why the order after metal is energy and then build
   power, and why where energy is dear "rather than building a bunch of con turrets, you tend to build a second
   factory. Maybe one con turret into a factory ... you can build that factory off of your comm after walking to take
@@ -130,7 +132,8 @@ against 12.0 at 8:00 (Comet, no bonus, fourteen minutes or more: 8.8 against 10.
 income itself higher in the winners (190 against 170 at 5:00, 321 against 260 at 8:00, 570 against 390 at 12:00),
 in proportion to the metal. The kill-test as named: had energy been the binding constraint, the winners would show
 the higher energy per metal and the fewer stalls; they show the lower ratio and the more stalls in every cut, so the
-energy follows the metal and the spending, which is his order. What the tests cannot do: the pool is one solar map
+energy follows the metal and the spending, which is his order. Our half is played against BARb, a sparring partner
+whose habits are not the people's (M-barb-sparring); the pool's half says the same. What the tests cannot do: the pool is one solar map
 and four sides of one wind map, so the price list's middle band is arithmetic, not habit; and no game of ours yet
 carries a turn that named the next draw and bought its generator first, which is the test that matters, when the
 episode index exists.

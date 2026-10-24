@@ -80,6 +80,26 @@ status: live
   +20; 4,126 of army at 10:00 at +20 against hard_aggressive's 1,379-3,040).
 
 <!--meta
+id: M-barb-sparring
+layer: meta
+premises: [M-barb-bonus, M-barb-team, M-pool-closing]
+sources: {people: [the user], dates: [2026-10-24], relay: the user's ruling on reading the energy article's BARb findings}
+status: live
+-->
+### What BARb is for
+
+The user (2026-10-24): BARb is not a worthy opponent in a 1v1; it is the best sparring partner we have outside human
+matches. With a resource bonus it gives us a fair fight again, at a cost to representativeness: the tempo patterns of a
+bonus game do not line up with human play (his income runs 1.5 times by handicap at +50 and every clock of the lead
+article runs faster, M-barb-bonus, where the people's duels close at 12:39 at the median, M-pool-closing). There are
+still BARb configurations to work towards beating, primarily eight of them at once (M-barb-team), and he does not
+expect that to take much more time. What follows for the articles: a finding about BARb (its lab's dice in
+D-lab-choice, the extra constructor it never punishes and the stalls that go with winning in D-energy-second, its
+anti-nuke clock below) is a finding about the sparring partner and says nothing about the people until the pool or a
+human game says the same; where the two disagree, the pool's and the people's figures are the ones to play by, and
+BARb's are the ones to measure the harness against.
+
+<!--meta
 id: M-barb-hard-aggressive-comet
 layer: meta
 premises: [F-barb-how-it-decides, F-barb-profiles]
@@ -158,9 +178,9 @@ layer: meta
 premises: [F-eco-multipliers, M-barb-hard-aggressive-comet]
 population: BARb hard_aggressive with a lobby bonus (the engine's team Handicap, an income multiplier) in 1v1s on Comet Catcher against the flagship, 2026-10-19; hard at +0, +10 and +20, 2026-10-20
 map: Comet Catcher Remake 1.8
-dates: 2026-10-19, 2026-10-20
+dates: 2026-10-19, 2026-10-20, 2026-10-23
 ground: truth and the ledger
-sources: {code: [docs/experiments.md, run/matches/1792433593-barb-ladder-50-1, run/matches/1792475322-barb-hard-10-1], claims: [K-opp-barb-hard-vs-hard-aggressive]}
+sources: {code: [docs/experiments.md, run/matches/1792433593-barb-ladder-50-1, run/matches/1792475322-barb-hard-10-1, run/matches/1792787383-rework-ladder-20-1], claims: [K-opp-barb-hard-vs-hard-aggressive]}
 status: live
 -->
 ### With a bonus
@@ -171,7 +191,11 @@ evens the score at about +15 to +20. Every loss in the +20 to +50 band had one s
 in one game) and the gantry (Basilicas, Pulsars, a Thor) past 25:00; at +100 and +150 we were never level; the wins all
 ended by 25:00. The largest unconverted lead of the
 ladder was 10.4 times his army at 13:00 and 3 times at 30:00, standing in front of his line until the timeout. hard at
-+10 and +20 was won both times (21:14, 21:16): it spent its bonus in construction turrets and attacks that lost.
++10 and +20 was won both times (21:14, 21:16): it spent its bonus in construction turrets and attacks that lost. The rework brief's ladder (2026-10-23, rework-ladder-10-1 to -50-1 on the +0 series' seeds; three games
+lost to the account's rate limit): +10 2-0-1, +20 a timeout, +35 1-2, +50 0-2, the wins faster (12:40 to 18:05) and the
+losses the same shape, every one a lead of 1.8 to 4.9 times somewhere in 12:00 to 20:00 with his advanced lab never seen;
+at +20 its own silo, never seen, landed on 14,075 metal of our home at 39:33, the first tier-3 unit (a Marauder) having
+been seen at 28:50.
 
 <!--meta
 id: M-barb-team

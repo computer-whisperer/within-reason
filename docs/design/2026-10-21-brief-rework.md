@@ -299,8 +299,20 @@ stalling more than the losers and running the lower energy per metal of income i
 metal and the spending; the pool's figures went into M-pool-energy-and-power. labs.md gained the Grunt-concave bend
 (the bot player's range against the Blitz, the Incisor, the Pounder) and the constructor adage's test (the pool's
 winners one ahead at 5:00; against BARb the more constructors ahead the better, no "four beats six"), people.md the
-line on how thebluegecko reads us (a con or two more because our old versions never harassed him early). Not written:
-the nuke article (L-gecko-nuke-surprise, the +20 silo) and the matchup article (the sheet is 24 rows).
+line on how thebluegecko reads us (a con or two more because our old versions never harassed him early). The user read the energy article the same night ("this looks good to include") and it is in the manifest after
+metal.md (21 documents, the player's prompt 80,500 words); his framing of BARb went in as barb.md's M-barb-sparring (not a
+worthy 1v1 opponent, the best sparring partner outside human matches; a bonus buys a fair fight at the cost of
+representativeness; eight of them still to beat) and the BARb findings of energy.md and labs.md cite it. The second
+piece, the same night: `derived/surprise.md` (D-surprise-weapons: his nuke recording as the heuristic, the two clocks of
+the silo and the anti-nuke worked from the facts, 5.5 to 1 and 6.7 to 1 in metal with the interceptor reloading faster;
+BARb's anti-nuke clock, the +20 silo, the 8v8 AIs' 12-minute nuke and the people who never build one; the Banshee snipe
+in numbers, the Twilight's EMP blast from the game's explosion table; our two silo games as the tests), out of the
+manifest until read. The sheet's 24 rows audited against the derivations: all quoted in lessons.md; the vehicle plant,
+bot lab, air plant, Blitz, Rover and radar rows were already in labs.md, raids.md, reach.md and energy.md; the mines went
+into raids.md (consider item 7), the Rocketeer, Gauntlet and Tick rows into reach.md (consider item 6), the construction
+turret row's metal column against the recording's energy column into energy.md, the Banshee, Twilight and hovercraft
+rows into surprise.md; the amphibious, seaplane and Harpoon rows wait on a water article. Not written: the matchup
+article (the sheet is 24 Armada tier-1 rows).
 
 ## 7. Measurement
 

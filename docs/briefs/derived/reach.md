@@ -1,7 +1,7 @@
 <!--meta
 id: D-reach-nests
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, F-fight-range, F-fight-sight, F-fight-health, F-fight-accuracy, F-fight-big-weapons, F-fight-consequences, F-map-grid, F-unit-armllt, F-unit-armbeamer, F-unit-armhlt, F-unit-armguard, F-unit-armclaw, F-unit-armrad, F-unit-armfav, F-unit-armflash, F-unit-armstump, F-unit-armrock, F-unit-armfboy, M-barb-hard-aggressive-comet, M-pool-closing, M-pool-fights]
+premises: [D-metal-is-the-game, D-lead-convert-it, F-fight-range, F-fight-sight, F-fight-health, F-fight-accuracy, F-fight-big-weapons, F-fight-consequences, F-map-grid, F-unit-armllt, F-unit-armbeamer, F-unit-armhlt, F-unit-armguard, F-unit-armclaw, F-unit-armrad, F-unit-armfav, F-unit-armflash, F-unit-armstump, F-unit-armrock, F-unit-armfboy, M-barb-hard-aggressive-comet, M-pool-closing, M-pool-fights, F-unit-armflea, F-unit-armham]
 lessons: [L-lead-together, L-fight-sight, L-raid-rovers, L-sheet-raids, L-sheet-economy, L-sheet-fighting]
 sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-27, 2026-09-28, 2026-10-23], relay: the user's reviews of 2026-09-27/28 (never chase into unseen ground; go in as one body or not at all; a radar at the strip's edge by minute three), thebluegecko's unit sheet of 2026-10-23 (the Blitz, the Rover, the radar, the Gauntlet rows), Irishstud14's lines on arriving together; the old brief's odds model ("a turret counts about three times its metal, nine in ten") traced by the annotation study to a 2026-09-19 fit on the heuristic bot's games and re-derived here}
 status: live, checked (run/metal_killtest.py reach, 2026-10-23: 5,977 engagements of 236 model-played 1v1s, their sight events and radar clocks; correlations across our own games, said so in the tests)
@@ -86,6 +86,18 @@ Not "the metal on the spot": the tests below retire that one.
    our own: a Rocketeer's 475 over the Sentry's 430 (his sheet: "good vs LLTs"), a Mauser's 820 over the Beamer and the
    Overwatch, bombers or a Basilica over a Gauntlet, which nothing tier 2 on the ground out-ranges; or his builders and
    his economy, which stand wherever his turrets are not.
+
+6. *The sheet's three answers to a tower (L-sheet-fighting).* The Rocketeer: 475 of reach against the Sentry's 430,
+   "good vs LLTs ... It is just the little bit of extra range that makes the rockets [work] with strong micro"; fifteen
+   of them (1,800 metal, 620 a second together) stand 45 outside a Sentry's circle and kill it in a second without a
+   shot back, and against fifteen Maces (380 of reach, 46 of speed to the Rocketeer's 50.7) keep the distance, "with
+   good micro 15 rockets can beat 15 thugs", though "Thug/Mace have better stats per cost". The Gauntlet as ours:
+   "very rare unit, good for any place you need to hold, where the oponent is making 3+ ACLTs": 1,250 metal, fifteen
+   Sentries' worth, for a circle of 1,220 that outreaches every tier-1 gun, so where a place has to be held the toll of
+   this article runs the other way. The Tick: "These can also be used for vision late game. It may also cost less to
+   absorbe a high single target damage shot with a tick vs having the same shot hit a stronger unit. These become
+   critical to T2 and T3 artillary battles": 21 metal that sees 600, and a shell meant for a Stout (225 metal) spent
+   on it.
 
 **Where it bends.** BARb puts a turret beside nearly every extractor (11 at 8:00, 21 at 12:00, 35 at 20:00), so against
 it every raid is item 2 in small: two Blitzes per Sentry, four with a loss of none. A person's posts come with his

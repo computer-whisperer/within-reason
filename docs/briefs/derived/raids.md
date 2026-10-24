@@ -1,7 +1,7 @@
 <!--meta
 id: D-raid-answer
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, F-eco-extractors, F-eco-build, F-eco-consequences, F-fight-range, F-fight-sight, F-fight-consequences, F-unit-armllt, F-unit-armbeamer, F-unit-armrad, F-unit-armfav, F-unit-armflea, F-unit-armpw, F-unit-armflash, F-unit-armstump, F-unit-corak, F-unit-corfav, F-barb-how-it-decides, M-barb-hard-aggressive-comet, M-pool-pressure, M-pool-energy-and-power, M-gecko-alone-vs-barb, M-u6bkep]
+premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, F-eco-extractors, F-eco-build, F-eco-consequences, F-fight-range, F-fight-sight, F-fight-consequences, F-unit-armllt, F-unit-armbeamer, F-unit-armrad, F-unit-armfav, F-unit-armflea, F-unit-armpw, F-unit-armflash, F-unit-armstump, F-unit-corak, F-unit-corfav, F-barb-how-it-decides, M-barb-hard-aggressive-comet, M-pool-pressure, M-pool-energy-and-power, M-gecko-alone-vs-barb, M-u6bkep, F-unit-armmine1, F-unit-armmine2, F-unit-armmine3]
 lessons: [L-raid-naked-mexes, L-raid-keep-moving, L-raid-first-handful, L-raid-rovers, L-mex-half-the-map, L-sheet-raids, L-sheet-economy]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-09-28, 2026-10-03, 2026-10-23], relay: the lessons' chat lines; the user's review of 2026-09-27 (a Rover cannot repel a Pawn, the fault was the army's stationing) and of player-57 (a body turning for a lone Rover kills nothing); thebluegecko's unit sheet of 2026-10-23 (the Blitz, the Rover, the radar, the mines)}
 status: live, checked (run/metal_killtest.py raids, 2026-10-23: the raid ledger of 236 model-played 1v1s, 7,078 extractors lost; correlations across our own games, and the ledger holds only the extractors that died, said so in the tests)
@@ -80,6 +80,14 @@ of each (50 metal plus 2.3 a second until the spot stands again), and what stood
    across the map by 3:00 (M-pool-pressure, L-raid-first-handful); a raid of ours that stops moving gives him the
    minute to answer (L-raid-keep-moving). The raid tax is level between sides that both raid; it is ruinous to the side
    that only receives.
+
+7. *Mines where his raiders drive.* His sheet (L-sheet-raids): the light mine (7 metal) "good vs basic bots", the
+   medium (25) "most common choice, many players do not use these because of the AMP it takes. place them where you
+   expect oposing light and med tanks to drive", the heavy (50) "good vs T2 and med tanks, too costly to cover the map,
+   but good for spots you expect the oponent to move through"; and "Mine use might be a palce where an AI has an edge
+   over a human player due to being faster". Why it may work here: a raider's roads into a cluster are few, a medium mine
+   is under a third of a Sentry's metal and draws nothing, and what stops people is the attention it takes, which the
+   hands have. Unmeasured: no game of ours has laid one.
 
 **Where it bends.** Against a person the raider leaves when outmatched and comes back, and the picket's standing is
 the whole of the answer; against BARb its gate does the picket's work once a turret stands. Blitz pairs beat a
