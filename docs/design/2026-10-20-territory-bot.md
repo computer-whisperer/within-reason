@@ -124,3 +124,22 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   both credits; a guard on a factory's exit lane moves aside first (terr43 game 01: the plant blocked from 7:06 to
   11:42, 526 at 20:00; terr44: no factory order held). The `ordered:` line names the
   dispatch rule behind every order, which is how each of these was read within a minute of the batch.
+- 2026-10-24 evening, the benchmark example (the user: "I have a new example. Look in my game client's replays
+  for the comet catcher game between thebluegecko and InactiveAI on oct 21st"): his lobby game of 2026-10-21
+  (Cortex, OS 34, 21:42) replayed through the headless engine (`run/matches/1792859881-replay-gecko-inactiveai-
+  comet-2026-10-21`, `run/eco_marks.py` the reader, new): income 62 / 213 / 651 / 1,706 at 5 / 10 / 15 / 20 and
+  2,270 at 21:00, twice the flagship's metal made at every mark and twice the bot's income from 10:00. The
+  README's paragraph has the shape; what it says for this design: (1) the opening is three extractors before
+  anything and the constructors on extractors only (26 at 5:00 with nine constructors; the bot's hands put a solar
+  first at 0:07 and the lab at 0:24, the first extractor at 0:52, and its lab makes 43-45 constructors a game
+  where his made nine), and the program's own 5:00 is 21 extractors, so the early marks are the model's (its walk
+  constant of 65 s an extractor is the bot's realized walk, his was 55 s with the build); (2) the late economy is
+  advanced fusions and advanced converters built in a nano farm of 300 turrets fed by air constructors, no basic
+  converter at all, where the flagship, the bot and the program's ceiling are all basic converters on solars and
+  fusions; the same program with `--nanos-per-factory 80` answers 2,046 at 20:00 with 114 turrets, 77 advanced
+  converters and 17 advanced fusions, so the late mark is the room the arms give the program (the turret cap of
+  six a factory, decision 1's caps) before it is the hands'; (3) the energy: an energy storage at 4:06, a fusion
+  begun by the first advanced constructor at 6:57, four by 10:10, four advanced solars in all, and the stock
+  under five percent of storage for 66 s in the whole game. Nothing built from it yet; the order proposed to the
+  user: the turret cap and the frames' site in the hands (a farm: turrets in a block, tier-2 frames placed inside
+  their reach), the opening prefix, the constructor count.

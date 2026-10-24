@@ -94,6 +94,35 @@ the map with fourteen constructor queues. With the whole map and forty queues (t
 | seed 3 Cortex | 72 / 14 / 165 | 77 / 13 / 188 | 78 / 18 / 199 | 170 / 428 / 738 | 0 |
 | seed 4 Cortex | 49 / 13 / 115 | 76 / 18 / 225 | 76 / 16 / 321 | 157 / 414 / 661 | 24 |
 | the flagship, seed 1 | 68 / 28 / 177 | 78 / 87 / 463 | 78 / 97 / 802 | | 77 |
+| thebluegecko, 2026-10-21 (a lobby replay, Cortex) | 74 / 21 / 213 | 77 / 79 / 651 | 78 / 79 / 1,706 | | 78 |
+
+**thebluegecko on the same task** (the user's example, 2026-10-24: his lobby game against InactiveAI on Comet Catcher
+of 2026-10-21, OS 34, Cortex, 21:42 of game; replayed through the headless engine as
+`run/matches/1792859881-replay-gecko-inactiveai-comet-2026-10-21`, read with `run/eco_marks.py record-0.jsonl
+--shape`): income 62 / 213 / 651 / 1,706 at 5 / 10 / 15 / 20 and 2,270 at 21:00, metal made 6,641 / 44,876 /
+169,059 / 498,724 (the flagship 4,936 / 32,146 / 125,131 / 331,583; the bot 3,925-4,195 / 24,117-29,041 /
+87,921-100,588 / 239,716-268,562). The shape, in four parts. The opening: three extractors before anything (0:03,
+0:10, 0:25), three solars, the plant at 1:01, nine constructors from it by 3:46 and then nothing more from it all
+game; the nine build extractors and little else (73 of his 78 first-tier extractors, 26 standing at 5:00 against the
+flagship's 15 and the bot's 14 with eleven to fifteen constructors) while the commander builds the solars (14 of 25);
+an energy storage at 4:06. Tier 2: the advanced vehicle plant begun 5:35 on 1,871 banked, standing 6:18; its
+first constructor (6:42) begins a fusion at 6:57 (standing 7:54, with turrets) and the first moho at 7:20; four
+fusions by 10:10, four advanced solars in all; mohos ten to twelve a minute from 9:00 to 14:00 by fourteen advanced
+constructors; energy under five percent of storage for 66 s in all (minutes 5-7) and never after. The farm: an air
+plant at 10:27 whose 46 constructor aircraft build 276 of his 311 nano turrets in a block south of the base (181
+within 350 of the air plant), an advanced air plant at 11:56 whose ten advanced aircraft lay the frames in it: 30
+advanced fusions (a median of 39 turrets within 300 when placed) and 162 advanced converters (28), the first
+converter of the game at 13:50; no basic converter at all. The spend: metal under five percent of its storage 257 s
+of 1,303 and at its cap 149 s (the last two minutes); 79 constructors from 14:00 and 304 turrets at 20:00, 61,000
+of build power against the bot's 17,000-18,000. Against this the flagship's and the bot's late economies are
+basic converters on solars and fusions (the flagship 80 basic + 35 advanced converters, 4 fusions, 2 turrets; the
+bot 200-235 basic converters, 116-163 solars, 13-16 fusions, 3-6 advanced converters, 21-24 turrets a game), which
+is also what the program's ceiling is made of (717 basic converters, 74 fusions, 24 turrets at 20:00 under
+`nanos-per-factory` 6): with the turret cap at 80 a factory the same program answers 2,046 at 20:00 (114 turrets,
+77 advanced converters, 17 advanced fusions), 1,936 with a hundred constructors a tier, and 50 / 262 at 5 / 10
+whatever the room, so the late mark is the room's and the early marks are the model's (gecko's 26 extractors at
+5:00 against the program's own 21). The program's walk constant of 65 s an extractor is the bot's own realized
+median (terr33: 56-66 s); his nine constructors took 55 s an extractor including the build.
 
 **With the linear program as the planner** (T-LP, terr13-lp-nullai-comet-1, the same seeds and room): income 27-34 /
 98-110 / 135-142 / 230-237 at 5 / 10 / 15 / 20, one lab until 10:00, 10-11 constructors at 5:00, 36-42 frames begun
@@ -128,7 +157,7 @@ the stall rules of T-ENERGY, the program's energy margin and the exit-lane rule)
 705-858 at 5 / 10 / 15 / 20 on the same seeds, the worst game at 10:00 above 120 for the second batch running
 (terr36 to terr41 had a worst game of 75-101 at 10:00, terr37's control 95-112), the energy stalls that ran two to
 five minutes in every game of every earlier batch down to one-minute touches of zero. The 20:00 mark is where it
-was, 700-860 against the flagship's 802 (terr37 691-811, terr36 691-729), since the late game is the bank's:
+was, 700-860 against the flagship's 802 and thebluegecko's 1,706 (terr37 691-811, terr36 691-729), since the late game is the bank's:
 30,000-37,000 metal unspent at 20:00 in every game, the plan asking a hundred converters a minute and the hands
 giving 25-50. The day's reading of the mid-game, from the `ordered:` and `energy:` lines: the plan runs at its
 energy edge by construction, the hands start whole units, and every overshoot was a stall the budget either did
