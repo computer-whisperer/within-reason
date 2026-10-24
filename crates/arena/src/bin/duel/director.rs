@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 use bot_protocol::{Command, Event, Hello, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use micro::{Commitment, Lane, Stats, View};
 
+use crate::drill::{self, Drill, Walker};
 use crate::fire::{self, Fire, Tally};
 use crate::plan::{Force, Job, LaneMode, Sizing};
 use crate::raid::{self, Raid};
@@ -124,6 +125,8 @@ pub struct Batch {
     pub theirs: Control,
     /// `--economy fed`: each team gets a `FEEDER`.
     pub fed: bool,
+    /// `duel --drill`: every job is a drill of this kind (`drill.rs`), `x` the army and `y` nobody.
+    pub drill: Option<drill::Options>,
     /// Where a scenario's per-second logs go (`<batch>/seconds/`).
     pub log_dir: Option<PathBuf>,
     pub on_result: Box<dyn Fn(&DuelResult) + Send + Sync>,
@@ -178,8 +181,10 @@ pub struct DuelResult {
     pub seed: Option<u32>,
     /// Each side's value left at `LEFT_AT` seconds after the first orders (the end's, for a fight over sooner).
     pub left_at: [[f32; 2]; 2],
-    /// The per-second log's file name under `seconds/` (a scenario's), or empty.
+    /// The per-second log's file name under `seconds/` (a scenario's or a drill's), or empty.
     pub log: String,
+    /// The drill's score (`drill.rs`); empty outside a drill.
+    pub drill: drill::Score,
 }
 
 /// One unit to give.
@@ -376,6 +381,8 @@ struct Duel {
     wreckage: Option<[f32; 4]>,
     /// The raid scenario's state (`raid.rs`), when this duel is one.
     raid: Option<Raid>,
+    /// The drill's state (`drill.rs`), when this duel is one.
+    drill: Option<Drill>,
     /// A scenario's per-second log, one JSON line a second from the first orders; written out when it is decided.
     log: Vec<String>,
     /// Script rows issued or skipped since the last log line.
@@ -527,7 +534,10 @@ impl Director {
                     && !duel.log.is_empty()
                 {
                     log = format!("m{:02}-s{index}-d{:02}-rep{}{}.jsonl", self.match_index, result.sequence, result.job.rep, result.seed.map_or(String::new(), |s| format!("-seed{s}")));
-                    let lines = std::mem::take(&mut duel.log);
+                    let mut lines = std::mem::take(&mut duel.log);
+                    if let Some(drill) = &duel.drill {
+                        lines.insert(0, drill_meta(drill, &duel.armies[0]).to_string());
+                    }
                     if let Err(e) = std::fs::write(dir.join(&log), lines.join("\n") + "\n") {
                         eprintln!("match {}: could not write {log}: {e}", self.match_index);
                     }
@@ -579,17 +589,59 @@ impl Director {
         let queue = self.batch.queue.lock().unwrap();
         let mut max_slope = 1.0f32;
         let raid_defs: Vec<String> = if self.batch.raid { raid::BUILDINGS.iter().map(|s| s.to_string()).collect() } else { Vec::new() };
-        for name in queue.iter().flat_map(|job| [&job.x, &job.y]).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs) {
+        let drill_defs: Vec<String> = self.batch.drill.as_ref().filter(|d| d.kind == drill::Kind::Gather).map(|d| vec![d.lab.clone()]).unwrap_or_default();
+        for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
             match self.defs.get(&name) {
                 None => self.fatal = Some(format!("the game has no unit called {name}")),
                 Some(def) => max_slope = max_slope.min(def.move_class.map_or(1.0, |class| class.max_slope)),
             }
         }
+        if let Some(options) = &self.batch.drill {
+            // The strip the largest army of the batch walks in its formation (`drill.rs`).
+            let mut footprint = Footprint { length: 0.0, width: 0.0, relief: sites::DRILL_RELIEF };
+            for job in queue.iter() {
+                if let Some([x, _]) = self.sized(job) {
+                    let strip = Footprint::strip(options.distance, self.batch.shapes[job.shape][0], x.iter().map(|(_, n)| n).sum());
+                    footprint.length = footprint.length.max(strip.length);
+                    footprint.width = footprint.width.max(strip.width);
+                }
+            }
+            drop(queue);
+            let commanders: Vec<Vec3> = self.commanders.values().copied().collect();
+            let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, footprint);
+            if sites.is_empty() {
+                // What the map offers: the flattest strip of that size, else the longest dry passable strip of that width
+                // (shorter by 320 at a time), for the choice of distance or map.
+                let nearest_commander = |at: Vec3| commanders.iter().map(|c| c.dist2d(at)).fold(f32::INFINITY, f32::min);
+                let offered = match sites::least_relief(&hello.terrain, max_slope, footprint) {
+                    Some((r, at)) => format!("the flattest such strip rises {r}, centred at ({:.0},{:.0}), {:.0} from the nearest commander (the gap is {:.0})", at.x, at.z, nearest_commander(at), sites::COMMANDER_GAP),
+                    None => {
+                        let mut length = footprint.length - 320.0;
+                        let longest = loop {
+                            if length < 640.0 {
+                                break None;
+                            }
+                            if let Some((r, _)) = sites::least_relief(&hello.terrain, max_slope, Footprint { length, ..footprint }) {
+                                break Some((length, r));
+                            }
+                            length -= 320.0;
+                        };
+                        longest.map_or("no dry passable strip of that width at any length".to_string(), |(l, r)| format!("the longest dry passable strip of that width is {l:.0} (rising {r})"))
+                    }
+                };
+                self.fatal = Some(format!("no strip of {:.0} x {:.0} within {} of relief for the drill found on {}: {offered}", footprint.length, footprint.width, footprint.relief, hello.map.name));
+                return;
+            }
+            let at: Vec<String> = sites.iter().map(|s| format!("({:.0},{:.0})", s.centre.x, s.centre.z)).collect();
+            eprintln!("match {}: drill strip(s) of {:.0} x {:.0} at {}", self.match_index, footprint.length, footprint.width, at.join(" "));
+            self.fields = Some(sites.into_iter().map(|site| Field { site, duel: None, fought: 0, abandoned: false }).collect());
+            return;
+        }
         if self.batch.raid {
             drop(queue);
             let (length, width) = raid::Layout::footprint();
             let commanders: Vec<Vec3> = self.commanders.values().copied().collect();
-            let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, Footprint { length, width });
+            let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, Footprint { length, width, relief: sites::MAX_RELIEF });
             if sites.is_empty() {
                 self.fatal = Some(format!("no flat site of {length:.0} x {width:.0} for the raid found on {}", hello.map.name));
             }
@@ -634,6 +686,17 @@ impl Director {
         let (x, y) = (Force::parse(&job.x), Force::parse(&job.y));
         let metal = |force: &Force| -> Option<f32> { force.parts.iter().map(|(n, c)| Some(self.defs.get(n)?.metal_cost * *c as f32)).sum() };
         let cost = |force: &Force| -> Option<f32> { Some(self.defs.get(&force.parts[0].0)?.metal_cost) };
+        if job.y == crate::plan::NOBODY {
+            // A drill's army alone (`drill.rs`): a plain name takes the batch's count (or the budget's worth of it), a
+            // mixed force stands as written.
+            let force = if x.is_plain() {
+                let (n, _) = self.batch.sizing.counts(cost(&x)?, cost(&x)?);
+                vec![(x.parts[0].0.clone(), n)]
+            } else {
+                x.parts
+            };
+            return Some([force, Vec::new()]);
+        }
         Some(match (x.is_plain(), y.is_plain()) {
             (true, true) => {
                 let (nx, ny) = self.batch.sizing.counts(cost(&x)?, cost(&y)?);
@@ -668,7 +731,32 @@ impl Director {
         self.duel_budget -= 1;
         let teams = [job.x_team(), 1 - job.x_team()];
         let mut raid_state = None;
-        let armies = if self.batch.raid {
+        let mut drill_state = None;
+        let armies = if let Some(options) = &self.batch.drill {
+            // A drill (`drill.rs`): `x` at the west end of the strip in its formation (a gather: its lab there, the
+            // force as the lab's list), `y` nobody.
+            let [force_x, _] = self.sized(&job)?;
+            let [form_x, _] = self.batch.shapes[job.shape];
+            let terrain = &self.hello.as_ref().expect("hello precedes ticks").terrain;
+            let centre = field.site.centre;
+            let wanted: Vec<(UnitDefId, u32)> = force_x.iter().map(|(n, c)| (self.defs[n].id, *c)).collect();
+            let mut drill = Drill::new(options, centre, wanted);
+            let place = |at: Vec3| Vec3 { x: at.x, y: ground(terrain, at.x, at.z), z: at.z };
+            drill.start = place(drill.start);
+            drill.goal = place(drill.goal);
+            drill.toward = drill.goal;
+            let start = drill.start;
+            let spawns: Vec<Spawn> = if options.kind == drill::Kind::Gather {
+                drill.lab = Some(0);
+                vec![Self::spawn(&self.defs[&options.lab], start, None)]
+            } else {
+                let count: u32 = force_x.iter().map(|(_, n)| n).sum();
+                let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
+                form_x.places(start, true, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)).collect()
+            };
+            drill_state = Some(drill);
+            [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], Vec::new(), None, centre, LaneMode::Off)]
+        } else if self.batch.raid {
             // The raid (`raid.rs`): `x` the pickets at the station with the strip's buildings, `y` the raiders
             // beyond the far end. Its `x` is never sized against `y`.
             let [force_x, force_y] = self.sized(&job)?;
@@ -723,6 +811,7 @@ impl Director {
             shape_due: Vec::new(),
             wreckage: None,
             raid: raid_state,
+            drill: drill_state,
             log: Vec::new(),
             notes: Vec::new(),
             left_at: [None; 2],
@@ -1210,6 +1299,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     script_orders(army, enemy, script, rules.script_delay, frame, &mut duel.notes, commands);
                 } else if on_track {
                     track_orders(army, rules.track, frame, commands);
+                } else if settled && let Some(drill) = duel.drill.as_mut() {
+                    if side == 0 {
+                        drill_orders(drill, army, tick, rules, frame, commands);
+                    }
                 } else if settled && let Some(raid) = duel.raid.as_mut() {
                     raid_orders(raid, army, enemy, tick, side, rules, commands, &mut commitments);
                 } else if settled {
@@ -1245,14 +1338,15 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             } else {
                 if duel.next_sample <= advance_at {
                     duel.next_sample = advance_at + FPS;
-                    if scenario {
+                    if scenario || duel.drill.is_some() {
                         log_second(duel, frame, advance_at);
                     }
                 } else if frame >= duel.next_sample {
                     duel.next_sample += FPS;
-                    if scenario {
+                    if scenario || duel.drill.is_some() {
                         log_second(duel, frame, advance_at);
                     }
+                    drill_sample(duel, frame, rules.defs);
                     sample_fire(&mut duel.armies, frame);
                     if first_damage.is_none() {
                         sample_speed(&mut duel.armies);
@@ -1277,7 +1371,17 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 // script fires it, and the missile flies for thirteen seconds after.
                 let script_pending = scenario
                     && rules.script.is_some_and(|s| duel.armies[0].next_row < s.rows.len() || duel.armies[0].last_row_frame.is_some_and(|f| frame - f < STALEMATE));
-                let reason = if duel.armies.iter().any(|a| a.alive.is_empty()) {
+                let walking = duel.armies[0].alive.keys().filter(|u| duel.armies[0].spawn_of.get(u).is_some_and(|&i| duel.armies[0].spawns[i].mobile)).count();
+                let reason = if let Some(drill) = &duel.drill {
+                    // A drill ends on arrival or the time limit alone (`drill.rs`).
+                    if drill.done(walking) {
+                        Some("arrived")
+                    } else if frame - advance_at >= rules.time_limit * FPS {
+                        Some("timeout")
+                    } else {
+                        None
+                    }
+                } else if duel.armies.iter().any(|a| a.alive.is_empty()) {
                     Some("wiped")
                 } else if raid_over {
                     Some("raid_over")
@@ -1514,7 +1618,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     };
     let (hits_on_x, hits_on_y) = (std::mem::take(&mut x.second_hits), std::mem::take(&mut y.second_hits));
     let left = [x.value_left(), y.value_left()];
-    let line = json!({
+    let mut line = json!({
         "t": t,
         "left": [(f64::from(left[0]) * 1000.0).round() / 1000.0, (f64::from(left[1]) * 1000.0).round() / 1000.0],
         "x": units(x),
@@ -1525,6 +1629,9 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         "rounds": {"x": rounds(x), "y": rounds(y)},
         "orders": std::mem::take(&mut duel.notes),
     });
+    if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {
+        line["stores"] = json!(stores.iter().map(|v| v.round()).collect::<Vec<_>>());
+    }
     duel.log.push(line.to_string());
     for (k, at) in LEFT_AT.iter().enumerate() {
         if t == *at {
@@ -1536,6 +1643,98 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
 /// The raid scenario's orders for one side this tick (`raid.rs`): the raiders' script for side 1, the picket's
 /// standing raider rule for side 0, whose hunts go to the lane as commitments when the lane is on.
 #[allow(clippy::too_many_arguments)]
+/// A drill's orders (`drill.rs`): the one order to every mobile unit when the army is first ordered, a reverse's turn,
+/// the re-issue; for a gather the lab's list under the resource cheat (metal topped up while it builds; energy is
+/// the feeder's), and
+/// each new soldier of the list adopted into the army as it appears at the lab and sent on at once.
+fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, frame: i32, commands: &mut Vec<Command>) {
+    let mobile: Vec<UnitId> = army.alive.keys().copied().filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile)).collect();
+    let order_all = |drill: &mut Drill, commands: &mut Vec<Command>| {
+        drill.last_order = Some(frame);
+        commands.extend(mobile.iter().map(|&u| drill.order(u)));
+    };
+    if drill.kind == drill::Kind::Gather {
+        let Some(lab) = drill.lab.and_then(|i| army.unit_of.get(&i).copied()) else { return };
+        let lab_at = army.seen_at.get(&lab).copied().unwrap_or(drill.start);
+        let total: usize = drill.wanted.iter().map(|(_, n)| *n as usize).sum();
+        let (m, e) = (&tick.snapshot.metal, &tick.snapshot.energy);
+        drill.stores = Some([m.current, m.income, m.usage, m.storage, e.current, e.income, e.usage, e.storage]);
+        if drill.appeared.len() < total {
+            // Metal only: the engine's resource cheat gives metal and never energy (a `break` outside the metal
+            // branch's braces in SSkirmishAICallbackImpl.cpp, 2026.07.04 and the 2026.09 pre-release alike; measured
+            // 2026-10-24, the energy store at 0 from 30 s on; pitfalls.md), so a gather's energy is `--economy fed`.
+            let top_up = |r: &bot_protocol::Resource| if r.current < drill::TOP_UP_UNDER * r.storage { r.storage - r.current } else { 0.0 };
+            let metal = top_up(m);
+            if metal > 0.0 {
+                commands.push(Command::GiveResource { metal, energy: 0.0 });
+            }
+        }
+        if !drill.queued {
+            drill.queued = true;
+            drill.last_order = Some(frame);
+            for (def, n) in &drill.wanted {
+                commands.extend((0..*n).map(|_| Command::Build { unit: lab, def: *def, site: None, queue: false }));
+            }
+        }
+        let wanted: Vec<UnitDefId> = drill.wanted.iter().map(|(d, _)| *d).collect();
+        let new: Vec<&bot_protocol::OwnUnit> = (tick.snapshot.own_units.iter())
+            .filter(|u| !u.being_built && !army.units.contains(&u.id) && wanted.contains(&u.def) && u.pos.dist2d(lab_at) <= drill::AT_THE_LAB)
+            .collect();
+        for unit in new {
+            let Some(def) = rules.defs.get(&unit.def) else { continue };
+            army.spawns.push(Director::spawn(def, unit.pos, None));
+            let i = army.spawns.len() - 1;
+            army.units.insert(unit.id);
+            army.spawn_of.insert(unit.id, i);
+            army.unit_of.insert(i, unit.id);
+            army.start.insert(unit.id, 1.0);
+            army.seen_at.insert(unit.id, unit.pos);
+            army.alive.insert(unit.id, 1.0);
+            army.max_health.insert(unit.id, unit.max_health);
+            drill.appeared.insert(i, frame);
+            commands.push(drill.order(unit.id));
+        }
+        if drill.reissue_due(frame) {
+            order_all(drill, commands);
+        }
+        return;
+    }
+    if drill.last_order.is_none() || drill.reissue_due(frame) {
+        order_all(drill, commands);
+    } else if drill.turn_due(frame) {
+        drill.turn(frame);
+        order_all(drill, commands);
+    }
+}
+
+/// The drill's once-a-second sample (`drill.rs` `sample`): every living mobile unit of the army with its type's speed.
+fn drill_sample(duel: &mut Duel, frame: i32, defs: &HashMap<UnitDefId, UnitDefInfo>) {
+    let Some(drill) = duel.drill.as_mut() else { return };
+    let army = &duel.armies[0];
+    if army.ordered_at.is_none() {
+        return;
+    }
+    let walkers: Vec<Walker> = (army.alive.keys())
+        .filter_map(|u| {
+            let i = *army.spawn_of.get(u)?;
+            let spawn = &army.spawns[i];
+            let at = *army.seen_at.get(u)?;
+            spawn.mobile.then(|| Walker { index: i, id: *u, at, speed: defs.get(&spawn.def).map_or(0.0, |d| d.speed) })
+        })
+        .collect();
+    let expected = drill.expected(walkers.len());
+    drill.sample(frame, &walkers, expected);
+}
+
+/// The first line of a drill's per-second log: the kind, the strip's ends, what the units are by index, the arms.
+fn drill_meta(drill: &Drill, army: &Army) -> Value {
+    json!({ "meta": {
+        "drill": drill.kind.label(), "start": [drill.start.x.round(), drill.start.z.round()], "goal": [drill.goal.x.round(), drill.goal.z.round()],
+        "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
+        "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f / FPS),
+    } })
+}
+
 fn raid_orders(raid: &mut Raid, army: &mut Army, enemy: &Army, tick: &Tick, side: usize, rules: &Rules, commands: &mut Vec<Command>, commitments: &mut HashMap<UnitId, Commitment>) {
     let mobile = |a: &Army, i: usize| a.spawns[i].mobile;
     if side == 1 {
@@ -1691,6 +1890,7 @@ fn conclude(duel: &mut Duel, started: i32, frame: i32, first_damage: Option<i32>
             [at[0], at[1]]
         }),
         log: String::new(),
+        drill: duel.drill.as_ref().map_or_else(drill::Score::default, |d| d.score(started)),
     };
     duel.phase = Phase::Clearing { since: frame, sweep: Sweep::Survivors };
     result

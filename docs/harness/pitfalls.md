@@ -235,3 +235,13 @@ directory's name as a change (the move of 2026-10-24 recompiled six crates and l
 after a move or in a new worktree, `touch crates/arena/src/harness.rs && cargo build --release` before any arena
 run, or the arena quietly reads the old tree. Claude Code keys the session transcripts by the working directory (`within-reason.main`) and the auto-memory by the repository's git
 directory (`within-reason.git`), under `~/sync/claude/projects/`, which both accounts share.
+
+## The engine's resource cheat gives metal and never energy (2026-10-24)
+
+`COMMAND_CHEATS_GIVE_ME_RESOURCE` (`Command::GiveResource` in our protocol) returns -2 and gives nothing for energy:
+in `rts/ExternalAI/SSkirmishAICallbackImpl.cpp` the `break` after the metal branch sits outside its braces, so the
+energy branch is never reached (2026.07.04 and the 2026.09 pre-release source alike). Measured in the gather drill's
+first baselines: metal topped up as asked, the energy store at 0 from 30 s on, the lab at half pace. Energy for a
+harness team comes from `--economy fed` (a free fusion beside the commander); the duel's gather drill is fed by
+default. The host now logs a refused command that names no unit (`[wreason ai=N] GiveResource {..} refused: -2`),
+which was silent before.

@@ -987,6 +987,22 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
                 }
                 result
             }
+            Command::GiveResource { metal, energy } => {
+                // Cheat access for this one command, as `Spawner::give` has it; the engine ignores it outside a
+                // locally hosted single-player game.
+                let mut result = Ok(());
+                call!(self, Cheats_setEnabled(true));
+                for (resource, amount) in [(self.metal, metal), (self.energy, energy)] {
+                    if amount > 0.0 && resource >= 0 {
+                        let mut c = sys::SGiveMeResourceCheatCommand { resourceId: resource, amount };
+                        if let Err(code) = self.handle(sys::COMMAND_CHEATS_GIVE_ME_RESOURCE, &mut c) {
+                            result = Err(code);
+                        }
+                    }
+                }
+                call!(self, Cheats_setEnabled(false));
+                result
+            }
             Command::SendUnits { ref units, to_team } => {
                 let mut ids: Vec<c_int> = units.iter().map(|u| u.0).collect();
                 let mut c = sys::SSendUnitsCommand { unitIds: ids.as_mut_ptr(), unitIds_size: ids.len() as c_int, receivingTeamId: to_team, ret_sentUnits: 0 };

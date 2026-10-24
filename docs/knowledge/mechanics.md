@@ -462,7 +462,19 @@ with a goal over 300 away) the speed share by orders received in the second is 0
 0 / 1 / 2 / 3 / 4+, the fast types worst (Rovers 0.87 / 0.44 / 0.33): each order to a goal within the unit's braking
 distance restarts the approach. The lead a slot sends a unit to should be seconds of its speed, not a fixed 150
 (`form::lead_for`), and a chase's goal should lie past the enemy, not short of it.
-**Used by.** H-MICRO-FLEE, H-MICRO-FORM (the lead and the Close point).
+**Amended 2026-10-24 (the mechanism, from the engine's source).** The brake is not it: `GroundMoveType::ChangeSpeed`
+brakes within `v^2 / (2 x maxdec)` of the goal, 30 to 50 elmos for our tanks, and only when the order is the last
+in the queue. What caps a unit short of a near goal is the end-of-path rule in the same function: while the unit's
+current waypoint is its goal (a short order has one waypoint) its target speed is at most the goal distance times
+pi over the frames a full turn takes, so `speed <= distance x turnrate x 0.001438` elmos a second: a Stout (turnrate
+340) at a goal 100 ahead runs at 49 of 75 and is free of the cap beyond 153, a Blitz (544) at 78 of 101 and free
+beyond 130, a Rover (653) free beyond 179, a Janus (271) beyond 139. The measured 28 to 30 for Stouts after a lane
+step within 130 is that cap. The same rule is a pacing law: a goal placed `wanted speed / (turnrate x 0.001438)`
+ahead of a unit and re-issued before it gets there holds it at that speed (the drill bench's lead-law arm,
+`docs/design/2026-10-24-formation-drills.md` §2). `WAIT_FOR_PATH` is 0 in this Recoil: a unit is not held for its
+path. Vehicles slow for turns only beyond `turninplaceanglelimit` (90 degrees for every unit read), to a tenth of
+their speed while they turn.
+**Used by.** H-MICRO-FLEE, H-MICRO-FORM (the lead and the Close point); the drill bench's pacing arms.
 
 ### K-hands-a-turret-being-built-read-as-a-threat
 **Claim.** Until 2026-09-28 nothing on our side knew whether an enemy building was finished: the shim read
@@ -682,8 +694,46 @@ from each other.
 side of it in the logs: a group ordered again each second does not move (rework-series-2 game 3, group_B
 15:28-15:39: eight `gather` picks in twelve seconds, the tail 625-691 behind throughout; the arrival test ended each
 one, `groups.rs`).
-**Status.** the user's observation, 2026-10-24; unmeasured (the engine's acceleration, braking and turn rates per unit
-type are in the unit defs, and the record's positions would show the churn's length).
+**Status.** the user's observation, 2026-10-24; the per-unit floor computed the same evening from BAR's defs through
+the engine's speed code (brake at `maxdec`, the 180 at `turnrate`, the climb back at `maxacc`; the turn itself at a
+tenth of speed for a vehicle, `turninplace` with a 90-degree limit): Rover 3.4 s, Blitz 4.5, Stout 5.9, Bull 5.6,
+Luger 6.7, Janus 7.4, Pawn 1.3, the commander 1.2; bots turn on a dime, the vehicle opener churns. Measured
+2026-10-24 on the drill bench (`duel --drill reverse`, twelve in ranks of six at 64 turned back 10 s into a 2,000
+walk, 8 duels an arm, `docs/design/2026-10-24-formation-drills.md` §5): the median unit is back at 90% of its speed
+4.0 s after the turn in every arm, pure Blitz or the Blitz/Stout/Janus mix, lane off or on (a moving column's
+front turns while its rear still travels, so it beats the standing floor); the turn costs 8-13% of the whole
+drill's speed share, the slowest type the most (Janus 0.75 of its speed against the Blitz's 0.88, 0.67 with the lane
+on); the spread after the turn is the spread before. The annealing half: a pure column is at full speed 3 s after
+the order and stays there, so the churn is the turn's, not the walk's.
 **Would be wrong if.** A recorded column's reversal shows its units back at full speed within a second or two of the
 order, with no bunching.
-**Used by.** the pick rework's state words (`docs/design/2026-10-24-pick-rework.md` §6, not built).
+**Used by.** the pick rework's state words (`docs/design/2026-10-24-pick-rework.md` §6, not built); the drill bench.
+
+### K-engine-a-mixed-column-under-one-order-is-one-column-a-speed
+**Claim.** Units given the same move or fight order each walk at their own full speed, so a body of several types
+arrives as one column per type, the gap between the first and the last the distance over the speed difference: over
+2,000 a Blitz (101) arrives 7 s before a Stout (75) and 17 s before a Janus (54). Nothing in the engine and nothing
+in today's lane holds them together; re-issuing the order or giving a fight instead of a move changes nothing, since
+the goal and so the path are unchanged.
+**Evidence.** The drill bench's baselines, 2026-10-24 (`duel --drill walk`, 6 Blitz + 4 Stout + 2 Janus in ranks of
+six at 64, 2,000 east, 8 duels an arm, lane off and on, `--order move`, `--reissue 2`: arrival 18 / 25 / 35 s first /
+median / last in every arm, each type at 0.94-0.96 of its speed, spread 359-387 at the median arrival;
+`docs/design/2026-10-24-formation-drills.md` §5). A pure column of either type arrives first to last within 1-2 s.
+**Status.** measured (2026-10-24); the stringing the games show (player-32, the pick rework's games) is this. What
+holds a mixed body together is the next arc's question (the group API's pacing arms, measured against this number).
+
+### K-engine-slow-guard-paces-a-guarder-to-its-guardee
+**Claim.** The engine's one native pacing is slow guard: a unit guarding a slower moving unit, once within the game's
+`guardMovingProximityGoal` of it (BAR's `modrules.lua`: 200), has its wanted maximum speed set to the guardee's speed
+at that moment and is given its own position plus the guardee's velocity times `guardMovingIntervalMultiplier`
+(2.13 s) as its goal, so it moves parallel at the guardee's pace and keeps its offset; out of range it intercepts the
+guardee's predicted position at full speed and the cap is lifted. The cap is set once on entering range and lifted
+only on leaving it, so the pace corrects by the guarder drifting out and back. Guard is not fight: the guarder
+attacks only whoever hit its guardee within the last 40 frames, then returns to guarding; the guardee's death ends
+every guard on it at once.
+**Status.** conjectured from the engine's source (`MobileCAI::ExecuteGuard`, `StartSlowGuard`, `StopSlowGuard`;
+`ModInfo.cpp` defaults and BAR's `gamedata/modrules.lua` guard block), 2026-10-24; untested in a game or the harness.
+We use guard for nanos and builder assists, never for soldiers.
+**Would be wrong if.** A column of Blitzes guarding a Stout on a 2,000 walk arrived strung out as a plain column does,
+or converged into a ball at the pacesetter.
+**Used by.** nothing yet; a pacing arm of the drill bench (`docs/design/2026-10-24-formation-drills.md` §2, §4).

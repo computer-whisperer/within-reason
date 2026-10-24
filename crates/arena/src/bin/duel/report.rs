@@ -12,7 +12,8 @@ pub const HEADER: &str = "match,site,sequence,x,y,rep,x_end,x_team,n_x,n_y,metal
 contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x,damage_taken_y,spread_x,spread_y,\
 form_x,form_y,reach_s_x,reach_s_y,shots_x,shots_y,muzzled_line_x,muzzled_line_y,muzzled_edge_x,muzzled_edge_y,\
 muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y,health_err_x,health_err_y,\
-lane_x,lane_y,nn_x,nn_y,fol_in_x,fol_in_y,fol_blocked_x,fol_blocked_y,xf_x,xf_y,engaged_s_x,engaged_s_y,queued_s_x,queued_s_y,blocked_s_x,blocked_s_y,speed_x,speed_y,extractors_lost,first_kill_s,hunters_lost,hunts,seed,left30_x,left30_y,left60_x,left60_y,log";
+lane_x,lane_y,nn_x,nn_y,fol_in_x,fol_in_y,fol_blocked_x,fol_blocked_y,xf_x,xf_y,engaged_s_x,engaged_s_y,queued_s_x,queued_s_y,blocked_s_x,blocked_s_y,speed_x,speed_y,extractors_lost,first_kill_s,hunters_lost,hunts,seed,left30_x,left30_y,left60_x,left60_y,log,\
+drill,arrive_first_s,arrive_median_s,arrive_last_s,spread_arrival,nn_arrival,speed_share,spin_up_s,recover_s,produced,join_median_s";
 
 pub fn row(r: &DuelResult) -> String {
     let [fx, fy] = &r.fire;
@@ -32,7 +33,8 @@ pub fn row(r: &DuelResult) -> String {
         + &format!(
             ",{},{:.3},{:.3},{:.3},{:.3},{}",
             r.seed.map_or(String::new(), |s| s.to_string()), r.left_at[0][0], r.left_at[0][1], r.left_at[1][0], r.left_at[1][1], r.log
-        );
+        )
+        + &drill_cells(&r.drill);
     format!(
         "{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{},{},{:.1},{},{},{},{:.3},{:.3},{:.0},{:.0},{:.0},{:.0}",
         r.match_index, r.site, r.sequence, r.job.x, r.job.y, r.job.rep,
@@ -42,6 +44,16 @@ pub fn row(r: &DuelResult) -> String {
         r.survivors[0], r.survivors[1], r.value_left[0], r.value_left[1], r.damage_taken[0], r.damage_taken[1],
         r.spread_at_contact[0], r.spread_at_contact[1],
     ) + "," + &fire + "," + &shape
+}
+
+/// The drill's columns (`drill.rs` `Score`), empty outside a drill.
+fn drill_cells(d: &crate::drill::Score) -> String {
+    let opt = |v: Option<f32>| v.map_or(String::new(), |v| format!("{v:.1}"));
+    let share = d.speed_share.map_or(String::new(), |v| format!("{v:.3}"));
+    format!(
+        ",{},{},{},{},{},{},{share},{},{},{},{}",
+        d.kind, opt(d.arrive[0]), opt(d.arrive[1]), opt(d.arrive[2]), opt(d.spread_arrival), opt(d.nn_arrival), opt(d.spin_up_s), opt(d.recover_s), d.produced, opt(d.join_median_s)
+    )
 }
 
 /// One pairing (in one pair of formations) seen from its first unit's side.

@@ -15,6 +15,7 @@
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
 
 mod director;
+mod drill;
 mod fire;
 mod plan;
 mod raid;
@@ -85,6 +86,8 @@ struct Options {
     seeds: Vec<u32>,
     /// `--economy fed`: a free fusion for each team (`director.rs` `FEEDER`).
     fed: bool,
+    /// `--drill`: every job a drill (`drill.rs`), `--ours` the army and nobody on the other side.
+    drill: Option<drill::Options>,
 }
 
 fn main() -> io::Result<()> {
@@ -118,6 +121,7 @@ fn main() -> io::Result<()> {
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
             "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
             "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
+            "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f / drill::FPS), "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab })),
             "argv": std::env::args().collect::<Vec<_>>(),
             "disabled": std::env::var("WITHIN_REASON_DISABLE").ok(), "form_spacing": std::env::var("WITHIN_REASON_FORM_SPACING").ok(),
         }))?,
@@ -126,7 +130,7 @@ fn main() -> io::Result<()> {
     let csv_path = batch_dir.join("duels.csv");
     fs::write(&csv_path, format!("{}\n", report::HEADER))?;
     let csv = Mutex::new(OpenOptions::new().append(true).open(&csv_path)?);
-    let log_dir = options.scenario.is_some().then(|| batch_dir.join("seconds"));
+    let log_dir = (options.scenario.is_some() || options.drill.is_some()).then(|| batch_dir.join("seconds"));
     if let Some(dir) = &log_dir {
         fs::create_dir_all(dir)?;
     }
@@ -148,11 +152,26 @@ fn main() -> io::Result<()> {
         script_delay: options.script_delay,
         theirs: options.theirs,
         fed: options.fed,
+        drill: options.drill.clone(),
         log_dir,
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+            if !result.drill.kind.is_empty() {
+                let d = &result.drill;
+                let s = |v: Option<f32>| v.map_or("-".to_string(), |v| format!("{v:.0}"));
+                println!(
+                    "[{n}/{total}] drill {}: {}x{} ({}, lane {}){}: {} {:.0}s; arrived first/median/last {}/{}/{} s, spread {}, nearest friend {}, speed share {}, spin-up {} s{}{}",
+                    d.kind, result.count[0], result.job.x, result.formation[0], result.lane[0],
+                    result.seed.map_or(String::new(), |s| format!(" seed {s}")), result.reason, result.seconds,
+                    s(d.arrive[0]), s(d.arrive[1]), s(d.arrive[2]), s(d.spread_arrival), s(d.nn_arrival),
+                    d.speed_share.map_or("-".to_string(), |v| format!("{v:.2}")), s(d.spin_up_s),
+                    d.recover_s.map_or(String::new(), |v| format!(", recovered {v:.0} s after the turn")),
+                    if d.kind == "gather" { format!(", produced {}, join median {} s", d.produced, s(d.join_median_s)) } else { String::new() }
+                );
+                return;
+            }
             let muzzled = |i: usize| 100.0 * result.fire[i].muzzled_seconds() as f32 / result.fire[i].reach_seconds.max(1) as f32;
             println!(
                 "[{n}/{total}] {}x{} ({}, lane {}) vs {}x{} ({}, lane {}){}: {} ({}) {:.0}s, left {:.0}% / {:.0}% (at 30 s {:.0}% / {:.0}%), muzzled {:.0}% / {:.0}%, nearest friend {:.0} / {:.0}",
@@ -363,9 +382,13 @@ fn parse_args() -> io::Result<Options> {
         theirs: Control::Director,
         seeds: Vec::new(),
         fed: false,
+        drill: None,
     };
+    let mut drill_kind: Option<drill::Kind> = None;
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, turn_at: 12 * drill::FPS, lab: "armvp".into() };
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
+    let mut economy_given = false;
     let mut map_given = false;
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
     let (mut ours, mut theirs) = (Vec::new(), Vec::new());
@@ -397,11 +420,14 @@ fn parse_args() -> io::Result<Options> {
             "--seeds" => {
                 options.seeds = list(value()).iter().map(|s| s.parse().unwrap_or_else(|_| usage("--seeds takes numbers"))).collect();
             }
-            "--economy" => match value().as_str() {
-                "fed" => options.fed = true,
-                "bare" => options.fed = false,
-                _ => usage("--economy is bare or fed"),
-            },
+            "--economy" => {
+                economy_given = true;
+                match value().as_str() {
+                    "fed" => options.fed = true,
+                    "bare" => options.fed = false,
+                    _ => usage("--economy is bare or fed"),
+                }
+            }
             "--pairs" => {
                 for pair in list(value()) {
                     let (x, y) = pair.split_once(':').unwrap_or_else(|| usage("--pairs takes x:y,x:y"));
@@ -443,8 +469,40 @@ fn parse_args() -> io::Result<Options> {
                 options.pairs.push((scenario.sides[0].name.clone(), scenario.sides[1].name.clone()));
                 options.scenario = Some(scenario);
             }
+            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse or gather"))),
+            "--distance" => drill_opts.distance = number(value()) as f32,
+            "--order" => {
+                drill_opts.fight = match value().as_str() {
+                    "fight" => true,
+                    "move" => false,
+                    _ => usage("--order is fight or move"),
+                }
+            }
+            "--reissue" => drill_opts.reissue = Some(number(value()) as i32 * drill::FPS).filter(|f| *f > 0),
+            "--turn-at" => drill_opts.turn_at = number(value()) as i32 * drill::FPS,
+            "--lab" => drill_opts.lab = value(),
             "--label" => options.label = value(),
             _ => usage(&format!("unknown argument {flag}")),
+        }
+    }
+    if let Some(kind) = drill_kind {
+        // A drill (`drill.rs`): `--ours` names the army (a gather: the list its lab builds), nobody on the other side,
+        // on the duel's map (Quicksilver offers a 3,200 strip, Comet Catcher 1,920); a gather gets the time its list
+        // takes to build and the feeder's energy (the resource cheat gives metal only; `director.rs` `drill_orders`).
+        if ours.is_empty() {
+            usage("--drill needs --ours (the army, or the list a gather's lab builds)");
+        }
+        if !theirs.is_empty() {
+            usage("--drill fights nobody: no --theirs");
+        }
+        options.drill = Some(drill::Options { kind, ..drill_opts });
+        options.pairs = ours.drain(..).map(|o| (o, plan::NOBODY.to_string())).collect();
+        options.boxes = script::DRILL_BOXES;
+        if !time_limit_given {
+            options.time_limit = if kind == drill::Kind::Gather { 480 } else { 240 };
+        }
+        if kind == drill::Kind::Gather && !economy_given {
+            options.fed = true;
         }
     }
     if options.raid {
@@ -500,6 +558,8 @@ fn parse_args() -> io::Result<Options> {
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
+       duel --drill walk|reverse|gather --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12] [--lab armvp] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
+            (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

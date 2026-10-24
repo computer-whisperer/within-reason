@@ -247,6 +247,8 @@ impl<L: Transport> Instance<L> {
                 | Command::Repair { unit, .. }
                 | Command::SelfDestruct { unit }) = command
                 else {
+                    // No unit to report it against: say so here (a refused resource cheat was silent until 2026-10-24).
+                    self.log(format!("{command:?} refused: {code}"));
                     continue;
                 };
                 self.events.push(Event::CommandRejected { unit, code });

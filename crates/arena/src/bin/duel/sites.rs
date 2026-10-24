@@ -16,9 +16,12 @@ const MARGIN: f32 = 120.0;
 const SITE_GAP: f32 = 900.0;
 /// No site this close to a commander, who shoots at what comes near and whose death ends the game; tier-1 units
 /// see about 500 elmos.
-const COMMANDER_GAP: f32 = 900.0;
+pub const COMMANDER_GAP: f32 = 900.0;
 /// Most the ground may rise or fall within a site, in elmos (height lends range to ballistic weapons).
-const MAX_RELIEF: i32 = 16;
+pub const MAX_RELIEF: i32 = 16;
+/// A drill's strip may rise or fall this much: a walk needs ground every listed unit can cross (the slope check
+/// stands), not a firing range's flatness; a flat map's 3,840-elmo strip at 16 found no site (drill-smoke, 2026-10-24).
+pub const DRILL_RELIEF: i32 = 48;
 /// Candidate rectangles are tried every this many cells.
 const STRIDE: usize = 4;
 
@@ -32,18 +35,31 @@ pub struct Site {
 pub struct Footprint {
     pub length: f32,
     pub width: f32,
+    /// Most the ground may rise or fall within it, in elmos.
+    pub relief: i32,
 }
 
 impl Footprint {
     /// The least rectangle that holds both armies of every duel named: `(formation, count)` per army.
     pub fn holding(armies: impl IntoIterator<Item = (Formation, u32)>) -> Footprint {
-        let mut footprint = Footprint { length: LENGTH, width: WIDTH };
+        let mut footprint = Footprint { length: LENGTH, width: WIDTH, relief: MAX_RELIEF };
         for (formation, count) in armies {
             let (across, depth) = formation.extent(count);
             footprint.length = footprint.length.max(SEPARATION + 2.0 * (depth + MARGIN));
             footprint.width = footprint.width.max(across + 2.0 * MARGIN);
         }
         footprint
+    }
+}
+
+impl Footprint {
+    /// The strip a drill walks (`drill.rs`): `distance` from the start to the goal, the formation's depth and a margin
+    /// behind the start, the arrival radius and a margin beyond the goal, and the formation's width across. Comet
+    /// Catcher's longest dry passable strip of 640 is 1,920 and Quicksilver's 3,200 (drill-smoke, 2026-10-24), so the
+    /// standard walk is 2,000 on Quicksilver.
+    pub fn strip(distance: f32, formation: Formation, count: u32) -> Footprint {
+        let (across, depth) = formation.extent(count);
+        Footprint { length: (distance + depth + 2.0 * MARGIN + 300.0).max(LENGTH), width: (across + 2.0 * MARGIN).max(WIDTH), relief: DRILL_RELIEF }
     }
 }
 
@@ -128,7 +144,7 @@ impl Site {
 
 /// Up to `wanted` sites of `footprint`. `max_slope` is the engine slope value (0-1) the least agile listed unit manages.
 pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize, footprint: Footprint) -> Vec<Site> {
-    let Footprint { length, width: across } = footprint;
+    let Footprint { length, width: across, relief } = footprint;
     let (width, height) = (terrain.width as usize, terrain.height as usize);
     if width == 0 || terrain.heights.len() != width * height {
         return Vec::new();
@@ -147,7 +163,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                         continue 'candidate;
                     }
                     (low, high) = (low.min(h), high.max(h));
-                    if high - low > MAX_RELIEF {
+                    if high - low > relief {
                         continue 'candidate;
                     }
                 }
@@ -190,6 +206,40 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
         }
     }
     best
+}
+
+/// The least relief of any dry rectangle of `footprint` every listed unit can cross, whatever `footprint.relief` says,
+/// and that rectangle's centre: what the map offers, for the message when no site is found (the commander gap is not
+/// applied here, so a strip found here and not by `choose` fails on it). `None` when no rectangle is dry and passable.
+pub fn least_relief(terrain: &Terrain, max_slope: f32, footprint: Footprint) -> Option<(i32, Vec3)> {
+    let (width, height) = (terrain.width as usize, terrain.height as usize);
+    if width == 0 || terrain.heights.len() != width * height {
+        return None;
+    }
+    let (length_cells, width_cells) = ((footprint.length / terrain.cell) as usize, (footprint.width / terrain.cell) as usize);
+    let slope_limit = (max_slope * 255.0) as u8;
+    let mut least: Option<(i32, Vec3)> = None;
+    for z0 in (0..height.saturating_sub(width_cells)).step_by(STRIDE) {
+        'candidate: for x0 in (0..width.saturating_sub(length_cells)).step_by(STRIDE) {
+            let (mut low, mut high) = (i32::MAX, i32::MIN);
+            for z in z0..z0 + width_cells {
+                for x in x0..x0 + length_cells {
+                    let index = z * width + x;
+                    let h = i32::from(terrain.heights[index]);
+                    if terrain.slopes[index] > slope_limit || h < 5 {
+                        continue 'candidate;
+                    }
+                    (low, high) = (low.min(h), high.max(h));
+                    if least.is_some_and(|(l, _)| high - low >= l) {
+                        continue 'candidate;
+                    }
+                }
+            }
+            let centre = Vec3 { x: (x0 as f32 + length_cells as f32 / 2.0) * terrain.cell, y: (low + high) as f32 / 2.0, z: (z0 as f32 + width_cells as f32 / 2.0) * terrain.cell };
+            least = Some((high - low, centre));
+        }
+    }
+    least
 }
 
 /// Distance from `point` to the site rectangle of `footprint` centred on `centre`.

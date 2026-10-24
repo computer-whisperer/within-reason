@@ -342,6 +342,7 @@ impl Recorder {
                 Command::Say { ref text } => json!(["say", text]),
                 Command::Attack { unit, target, .. } => json!(["attack", unit.0, target.0]),
                 Command::GiveUnit { def, at } => json!(["give", self.def(Some(def)), at.x as i32, at.z as i32]),
+                Command::GiveResource { metal, energy } => json!(["give_resource", metal as i32, energy as i32]),
                 Command::SelfDestruct { unit } => json!(["selfdestruct", unit.0]),
                 Command::MoveState { unit, state } => json!(["movestate", unit.0, state]),
                 Command::FireState { unit, state } => json!(["firestate", unit.0, state]),

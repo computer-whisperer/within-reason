@@ -8,6 +8,9 @@ pub const CORNERS: [StartBox; 4] = [[0.0, 0.0, 0.3, 0.3], [0.7, 0.0, 1.0, 0.3], 
 
 /// The duels' boxes: north-west against south-east.
 pub const DUEL_BOXES: [StartBox; 2] = [CORNERS[0], CORNERS[3]];
+/// A drill's boxes (`drill.rs`): both commanders along the north edge, so the strip's chooser has the south two
+/// thirds of the map clear of them (a 2,540 strip on Quicksilver failed the commander gap under `DUEL_BOXES`).
+pub const DRILL_BOXES: [StartBox; 2] = [CORNERS[0], CORNERS[1]];
 
 /// The two corners farthest from a point (fractions of the map): where the commanders stand out of a scenario's way.
 pub fn farthest_corners(x: f32, z: f32) -> [StartBox; 2] {

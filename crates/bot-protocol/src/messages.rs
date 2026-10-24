@@ -592,6 +592,9 @@ pub enum Command {
     /// Cheat: a finished unit of type `def` appears at `at`, owned by this AI's team. For the duel harness
     /// (`docs/harness/duels.md`); the engine honours it only in a game hosted locally with a single player.
     GiveUnit { def: UnitDefId, at: Vec3 },
+    /// Cheat: this much metal and energy into the team's stores, honoured where `GiveUnit` is. For the drill bench's
+    /// producing lab (`docs/design/2026-10-24-formation-drills.md`, D5).
+    GiveResource { metal: f32, energy: f32 },
     /// Starts the unit's self-destruct countdown (a second order cancels it).
     SelfDestruct { unit: UnitId },
     /// Attack one unit of theirs: the turret first, deliberately, when a raid or an answer is priced against it.

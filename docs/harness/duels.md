@@ -14,6 +14,10 @@ duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
+duel --drill walk|reverse|gather --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--turn-at 12]
+     [--lab armvp] [--count N] [--formation X] [--lane off|old|on] [--reps N] [--seeds a,b] [--time-limit S] ...
+                                       the drill bench (below): one army walks a strip, no enemy, measured
+run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types]   one row per arm of a drill batch
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
@@ -242,6 +246,52 @@ score in its last four columns: `extractors_lost`, `first_kill_s` (seconds from 
 killed), `hunters_lost` (pickets dead), and `hunts` (each hunt's quarry, end and timing: `armflea:leash@3s+7s` began 3 s
 in and ended by the leash 7 s later; `open` never ended). The harness prints a `raid f=N: 2 hunters after ...` line at
 each hunt's start; `WITHIN_REASON_MICRO_DEBUG=1` adds the lane's claims, drops and ends.
+
+## The drill bench: one army, one order, measured (2026-10-24)
+
+`duel --drill walk|reverse|gather` (`crates/arena/src/bin/duel/drill.rs`; `docs/design/2026-10-24-formation-drills.md`
+§3) is the micro engine's movement bench: no enemy, no model, the lane on or off over one order. The army is
+`--ours` (a plain name with `--count`, or a mixed force as written), spawned in its `--formation` at the west end of
+a strip `--distance` long (default 2,000) and given one order to the east end: a fight (the hands' advance) or
+`--order move` (the hands' walk). Nothing more goes out but `--reissue S`, the same order to every living unit every
+S seconds (the hands' re-send, as an arm). **walk** ends when every living unit is within 300 of the goal (the hands'
+own arrival number). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
+12, before the fast units arrive) and ends when everyone is back. **gather** gives an `--lab` (default `armvp`) at
+the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it
+builds) and a free fusion for its energy (`--economy fed` unless `--economy bare` is given: the engine's cheat gives
+metal only, see pitfalls.md); each soldier it makes is adopted into the army as it appears within 400 of the lab and sent to the goal at
+once; it ends when the whole list has been made and has arrived. A drill that has not ended at `--time-limit`
+(240 s; a gather 480) is a `timeout`.
+
+The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
+margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
+ground, not a firing range's 16), and 900 from both commanders, who start along the north edge for a drill
+(`script::DRILL_BOXES`) so the chooser has the south of the map. What the maps offer at width 640: Quicksilver's
+longest dry passable strip is 3,200 (a 2,000 walk of twelve in ranks of six needs 2,604), Comet Catcher's 1,920 (a
+walk of 1,300 at most). When no strip is found the match's message says the flattest one's relief and place against
+the commanders, or the longest strip of that width.
+
+Measured once a second from the first order (`drill.rs` `sample`) and written to `duels.csv` after `log`:
+`drill` (the kind), `arrive_first_s` / `arrive_median_s` / `arrive_last_s` (seconds from the first order to each
+unit's first second within 300 of the goal in force), `spread_arrival` (root mean square from the army's centre) and
+`nn_arrival` (the median nearest-friend distance) at the second the median unit arrived, `speed_share` (each mobile
+unit's speed over the second as a share of its type's, averaged over units and seconds up to the median arrival, a
+unit counted until its own arrival; positions a second apart under-read a turning unit a little), `spin_up_s` (seconds until the median unit is at 90%
+of its type's speed: every army spawns facing south and turns a quarter first, and every arm shares that turn),
+`recover_s` (a reverse: seconds from the turn until the median unit is back at 90%), `produced` and `join_median_s`
+(a gather: the units the lab made, and the median seconds from a unit's appearance to its arrival). The per-second
+log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
+formation, lane, fight, turn_at_s, reissue_s}}` and, for a gather, `stores` on every line (the team's metal and
+energy as current, income, usage, storage), so `run/drill_table.py --types` can give each type its own arrival and speed
+share, which is where a mixed column's stringing shows. The duel's own instruments run too: `speed_x`
+is the whole drill's mean speed (there is no first damage), the fire and shape columns stay empty.
+
+Checked (drill-smoke, 2026-10-24): eight Blitzes at 56 in one rank, lane off, 1,500 east: arrived 14 / 14 / 14 s,
+spread 41, nearest friend 24 (the ball at the goal), speed share 0.96, spin-up 3 s; twelve in ranks of six at 64,
+2,000 east: 19 / 19 / 19 s, spread 50, nearest friend 24, speed share 0.99. The baselines of 2026-10-24 (sixteen
+batches, lane off and on, pure and mixed columns, a reverse and a fed gather, 128 duels) are the table in
+`docs/design/2026-10-24-formation-drills.md` §5: a pure column walks perfectly, a mixed column arrives one column a
+speed (18 / 25 / 35 s), a reverse recovers in 4 s, the lane's one effect with nobody in sight is ranks at arrival.
 
 ## Checks made (2026-09-19)
 | Check | Batch | Result |

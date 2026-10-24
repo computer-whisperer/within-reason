@@ -25,6 +25,9 @@ impl Force {
     }
 }
 
+/// The second side of a drill's job: nobody (`duel --drill`, `drill.rs`).
+pub const NOBODY: &str = "none";
+
 /// Whether the control lane (`crates/micro`) drives an army's units over the director's orders (`--lane`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LaneMode {
