@@ -120,6 +120,10 @@ heavier dependency). Decided at step 2 by measuring both on the same problem.
   of the bot's own games (the age of each order at its frame, by type: extractors 5-20 s with the far spots, base
   buildings 2-5 s, the tier-2 projects 50-120 s today). The far spots cost more walk than the near ones; the mean
   overhead is right for the plan's shape and wrong at the margin. The verifier (below) measures what that costs.
+  The commander's extractor walk is the exception since terr90 (2026-10-25): the bot derives it every plan from the
+  free spots within its leash, their mean distance at its speed plus the ring overhead, and bounds its extractors by
+  their number (`commander_spots`, one row over its Direct pairs on the basic extractor's ring columns), so the
+  commander's spots are priced as what stands free near home rather than at one walk for the whole map.
 - **Builder-second granularity.** A unit built by several builders in parallel is exact; a single builder on a
   5-minute project is exact; the model cannot say which builder stands where, and does not need to.
 - **Stalls and priority.** The LP never stalls; the engine shares a stall over every build. The hands run ahead

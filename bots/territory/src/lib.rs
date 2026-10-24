@@ -179,6 +179,12 @@ impl Territory {
         let horizon = (self.options.end - state.t0).max(HORIZON_LEAST);
         let start = self.warm_start(&builders);
         let o = &self.options;
+        // The commander's spots: the free ones within its leash, the program's pair priced at their mean walk and
+        // bounded by their number (his commander's two at 1,007 and 1,215 at 2:06-2:13 and none after; one walk of
+        // 40 for the whole map gave it none after the opening's, terr76-89).
+        let spots = &self.hello.metal_spots;
+        let near: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let commander_speed = self.game().units.list[self.game().commander].speed.max(1.0);
         let lp = o.lp.then(|| LpOptions {
             dt: o.dt,
             mid_from: o.mid_from,
@@ -206,7 +212,8 @@ impl Territory {
             walk_upgrade: o.walk_upgrade,
             walk_base: o.walk_base,
             walk_factory: o.walk_factory,
-            commander_walk_extractor: o.commander_walk_extractor,
+            commander_walk_extractor: o.ring_overhead + near.iter().sum::<f64>() / near.len().max(1) as f64 / commander_speed,
+            commander_spots: near.len() as f64,
             commander_walk_base: o.commander_walk_base,
             commander_walk_factory: o.commander_walk_factory,
             commander_reach: o.com_leash as f64,

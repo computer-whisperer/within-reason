@@ -71,7 +71,6 @@ pub(crate) struct Options {
     pub walk_upgrade: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
-    pub commander_walk_extractor: f64,
     pub commander_walk_base: f64,
     pub commander_walk_factory: f64,
     /// The program's distance rings for extractors (one: the walk a constant), and the overhead beside a ring's walk.
@@ -92,7 +91,10 @@ pub(crate) struct Options {
     pub opening_spots: f32,
     /// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1:
     /// following its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to
-    /// his commander 7,300 elmos from home, two games of four lost); the program's `commander_reach` too.
+    /// his commander 7,300 elmos from home, two games of four lost); the program's `commander_reach` too, and the
+    /// radius of the free spots the program prices and bounds its extractors by (`commander_spots`). 700 since
+    /// terr76; 1,300 reaches his commander's two spots at 1,007 and 1,215 (2:06-2:13 in his record) and was tried in
+    /// terr90-92: one spot a trip and level (terr91), or the pair with the plant unguarded and worse (terr92).
     pub com_leash: f32,
 }
 
@@ -136,7 +138,6 @@ impl Default for Options {
             walk_upgrade: 40.0,
             walk_base: 3.0,
             walk_factory: 40.0,
-            commander_walk_extractor: 40.0,
             commander_walk_base: 5.0,
             commander_walk_factory: 9.0,
             rings: 1,
@@ -197,7 +198,6 @@ impl Options {
                 "walk_late_from" => options.walk_late_from = value.parse().unwrap_or(options.walk_late_from),
                 "walk_base" => options.walk_base = value.parse().unwrap_or(options.walk_base),
                 "walk_factory" => options.walk_factory = value.parse().unwrap_or(options.walk_factory),
-                "com_walk_extractor" => options.commander_walk_extractor = value.parse().unwrap_or(options.commander_walk_extractor),
                 "com_walk_base" => options.commander_walk_base = value.parse().unwrap_or(options.commander_walk_base),
                 "com_walk_factory" => options.commander_walk_factory = value.parse().unwrap_or(options.commander_walk_factory),
                 "rings" => options.rings = value.parse().unwrap_or(options.rings),
@@ -216,9 +216,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}",
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, nanoassist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}",
             if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_extractor, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.nano_assist, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash
         )
     }
 }

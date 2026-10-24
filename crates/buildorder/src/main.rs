@@ -23,8 +23,8 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        dearest frame in reach unless --nanos-to-factory)
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--margin-from 0] [--factory-from 0] [--assist 2] [--nano-assist 0] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-nanos 0] [--farm-big 0] [--bank] [--reclaim] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
-                       [--walk-extractor 15] [--walk-upgrade 40] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--rings 1] [--ring-overhead 5]
-                       [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--csv FILE]
+                       [--walk-extractor 15] [--walk-upgrade 40] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--commander-spots N] [--rings 1] [--ring-overhead 5]
+                       [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--from SECONDS (with --game: from the record's state then)] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
@@ -279,9 +279,20 @@ fn optimize(args: &Args) {
 /// The linear program from the empty start (docs/design/2026-10-20-territory-lp.md): the plan by minute, the counts at
 /// the end, the prices.
 fn linear_program(args: &Args) {
-    let game = game(args);
+    // `--from S` with `--game`: the program asked from the record's own state at second S (`Replay::state_at`, the
+    // snapshot the calibrate subcommand replays from), else from the start.
+    let from: f64 = args.number("--from", 0.0);
+    let replay = (from > 0.0).then(|| record::read(args.value("--game").unwrap_or_else(|| die("--from needs --game RECORD.jsonl")), from + 5.0).unwrap_or_else(|e| die(&e)));
+    let owned;
+    let game: &Game = match &replay {
+        Some(r) => &r.game,
+        None => {
+            owned = game(args);
+            &owned
+        }
+    };
     let units = &game.units;
-    let scenario = scenario(&game, args);
+    let scenario = scenario(game, args);
     let water = game.terrain.heights.iter().any(|h| *h < 0);
     let mut palette = Palette::roster(units, game.commander, None, water, &also(&game, args));
     if args.has("--builders-only") {
@@ -322,10 +333,15 @@ fn linear_program(args: &Args) {
         commander_walk_base: args.number("--commander-walk-base", 5.0),
         commander_walk_factory: args.number("--commander-walk-factory", 9.0),
         commander_reach: args.number("--commander-reach", 1500.0),
+        commander_spots: args.number("--commander-spots", f64::INFINITY),
         rings: args.number("--rings", 1.0) as usize,
         ring_overhead: args.number("--ring-overhead", 5.0),
     };
-    let plan = lp::solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap_or_else(|e| die(&e));
+    let state = match &replay {
+        Some(r) => r.state_at(from, &scenario).unwrap_or_else(|| die(&format!("no sample at {from} s"))).0,
+        None => State::start(&scenario),
+    };
+    let plan = lp::solve(units, &scenario, &state, &offer, &options).unwrap_or_else(|e| die(&e));
     println!(
         "# {} from {:.0},{:.0}: {} types, {} buckets ({} s to {} s), {} spots, {} variables, {} rows, {} in {:.0} ms; metal made {:.0}, objective {:.0}",
         game.side(), game.home.0, game.home.1, plan.types.len(), plan.buckets, plan.lengths[0], plan.lengths[plan.buckets - 1], scenario.spots.len(), plan.variables, plan.rows, plan.status, plan.solve_time * 1000.0, plan.made, plan.objective

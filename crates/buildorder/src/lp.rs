@@ -116,8 +116,11 @@ pub struct LpOptions {
     /// hands' exactly; at 15 it is 25 and 59, thebluegecko's 26 and 62 (terr73-75). The territory bot grows the
     /// extractor's walk with the plan's t0 (its `walk_late`, 40 at 10:00: at one 15-s walk the plans from 10:00
     /// wanted 21-24 constructors against 25-28 and 20:00 read 40-70 under); here the defaults are a plan from the
-    /// start. The commander's at 40: at 16 the program gave it nine spots by 5:00 and the hands walked it 1,950 out
-    /// for the fifth (terr72-75); at 40, two spots and ten solars, his commander's day (terr76).
+    /// start. The commander's the territory bot derives every plan from the free spots within its leash, their mean
+    /// distance at its speed plus the ring overhead, and bounds its extractors by their number (`commander_spots`):
+    /// one walk for the whole map gave it either nine spots by 5:00 with the fifth 1,950 out (16, terr72-75) or
+    /// none after the opening's (40, terr76-89), where his commander took two at 1,007 and 1,215 at 2:06-2:13 and
+    /// none after.
     pub walk_extractor: f64,
     pub walk_upgrade: f64,
     pub walk_base: f64,
@@ -127,6 +130,10 @@ pub struct LpOptions {
     pub commander_walk_factory: f64,
     /// The commander takes extractors in rings whose mean distance from home is within this (the hands' leash).
     pub commander_reach: f64,
+    /// The commander's basic extractors over the horizon at most: the free spots within its leash, counted by the
+    /// bot every plan (unbounded here); with its extractor walk their mean, the pair prices the commander's spots
+    /// as what stands free near home rather than one walk for the whole map.
+    pub commander_spots: f64,
     /// Distance rings the spots fall in, by quantile from home, each with a like number of spots. With one ring an
     /// extractor's walk is the constant `walk_extractor`; with more, `ring_overhead` plus the ring's mean distance
     /// from home at the builder's speed. Three rings priced the far ring at 177 s where the hands' realized walk
@@ -184,6 +191,7 @@ impl Default for LpOptions {
             commander_walk_base: 5.0,
             commander_walk_factory: 9.0,
             commander_reach: 1500.0,
+            commander_spots: f64::INFINITY,
             rings: 1,
             ring_overhead: 5.0,
         }
@@ -676,6 +684,23 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
                 put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
             }
             b.push(cap.max(standing));
+            row += 1;
+        }
+    }
+    // The commander's extractors at most `commander_spots` over the horizon: its Direct pairs on the basic
+    // extractor's ring columns, in units of the unit (x / cost), summed over every bucket.
+    if options.commander_spots.is_finite() {
+        let mut any = false;
+        for (p, pair) in pairs.iter().enumerate() {
+            if pair.builder == commander && pair.kind == Kind::Direct && matches!(columns[pair.column].class, Class::Ring(_)) && !is_upgrade(columns[pair.column].unit) {
+                any = true;
+                for t in 0..buckets {
+                    put(row, x_at(p, t), 1.0 / pair.cost, &mut rows_i, &mut cols, &mut vals);
+                }
+            }
+        }
+        if any {
+            b.push(options.commander_spots.max(0.0));
             row += 1;
         }
     }

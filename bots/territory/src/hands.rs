@@ -693,6 +693,18 @@ impl Territory {
         // 62 s with a step of 1,110, solars, advanced solars and turrets between (terr45 game 00); and the program's
         // own 5:00 is 62, his figure, at a walk of 36 s an extractor against 50 at the hands' realized 65.
         let far = self.options.chain && role == Role::Builder && builder.pos.dist2d(self.home) > BESIDE;
+        // The commander out at a spot chains like a constructor: past BESIDE from home with a free spot within its
+        // leash nearer than home, it takes that before any guard or frame at the base (terr90, the leash at 1,300:
+        // the program's spots for it came one at a time and the guard's credit walked it 568-953 home between them,
+        // in game 00 out and back twice; his commander's two at 1,007 and 1,215 lie 210 apart and were one trip,
+        // 1:40-2:57). Inert at the default leash of 700, where no spot past the opening's three is in reach: with
+        // the leash at 1,300 the trip was one spot (terr91, level: the second constructor takes the pair's nearer
+        // spot at 2:06, before the commander sets out) or, sent ahead of the guard and the solars, the pair and then
+        // a third spot 1,850 away with the plant unguarded to 3:00 (terr92, 5:00 down 7-18 in all four games).
+        let com_far = role == Role::Commander
+            && builder.pos.dist2d(self.home) > BESIDE
+            && self.free_spot(builder.pos, None, Some((self.home, self.options.com_leash)), None).is_some_and(|i| self.hello.metal_spots[i].dist2d(builder.pos) < builder.pos.dist2d(self.home));
+        let far = far || com_far;
         // A constructor with a spot's credit, at the base too: a new constructor's first order was the stall's
         // solar beside the plant (terr75-81, 1:43-1:49, the first extractor at 2:33 against his first constructor's
         // at 1:56), where the commander's solars stand a minute later anyway.
@@ -1628,7 +1640,8 @@ impl Territory {
             (units.extractor(unit).filter(|u| wants(*u)), units.list[unit].builds.iter().copied().find(|u| self.is_upgrade(*u)).filter(|u| wants(*u)))
         };
         let mut picks: Vec<(f32, usize)> = Vec::new();
-        if let Some(u) = extractor && let Some(spot) = self.free_spot(builder.pos, None, None, None) && self.hello.metal_spots[spot].dist2d(builder.pos) < home {
+        let leash = (role == Role::Commander).then_some((self.home, self.options.com_leash));
+        if let Some(u) = extractor && let Some(spot) = self.free_spot(builder.pos, None, leash, None) && self.hello.metal_spots[spot].dist2d(builder.pos) < home {
             picks.push((self.hello.metal_spots[spot].dist2d(builder.pos), u));
         }
         if let Some(u) = upgrade && let Some(basic) = self.basic_to_upgrade(builder.pos, id, role, None) && basic.pos.dist2d(builder.pos) < home {
@@ -1644,23 +1657,25 @@ impl Territory {
         false
     }
 
+    /// A spot refused lately, with an extractor standing on it, or with one ordered to it.
+    pub(crate) fn spot_taken(&self, i: usize) -> bool {
+        let at = self.hello.metal_spots[i];
+        self.hands.refused.get(&i).is_some_and(|until| self.frame < *until)
+            || self.own.values().any(|u| self.unit_index(u.def).is_some_and(|x| self.game().units.list[x].extracts_metal > 0.0) && u.pos.dist2d(at) < SPOT_TAKEN)
+            || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && near.dist2d(at) < SPOT_TAKEN))
+    }
+
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
     /// with `leash`, within that radius of that point.
     fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
         let spots = &self.hello.metal_spots;
-        let taken = |i: usize| {
-            let at = spots[i];
-            self.hands.refused.get(&i).is_some_and(|until| self.frame < *until)
-                || self.own.values().any(|u| self.unit_index(u.def).is_some_and(|x| self.game().units.list[x].extracts_metal > 0.0) && u.pos.dist2d(at) < SPOT_TAKEN)
-                || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && near.dist2d(at) < SPOT_TAKEN))
-        };
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
         let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
         let in_ring = |i: usize| ring.is_none_or(|k| self.ring_of_pos(spots[i]) == k);
         // Nearest, with no heading kept: a turn penalty on the distance (the spot's distance over again for the
         // share of a turn back from the line out of home through the builder) moved neither the chains' step nor
         // their interval in terr59 (673-1,008 elmos and 42-59 s against terr57's 791-1,071 and 46-56).
-        self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
+        self.spots.iter().copied().filter(|i| !self.spot_taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
     }
 
     /// Factories standing or ordered, so a plan cannot start more than it has queues for (the simulator's rule).
