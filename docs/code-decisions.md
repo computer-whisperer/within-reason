@@ -54,7 +54,7 @@ removed changes its row here.
 | Help only for factories and started builds; take apart only the first 3 wreck fields of 100 metal or more; repair only buildings and the commander under 70% | `WRECK_FIELDS = 3`, `FIELD_METAL = 100`, `DAMAGED = 0.7` | `P/menu.rs` | none |
 | A group against a party: the whole-group attack withheld when we outweigh it four times with more than two armed, unless the decode reads every detachment of the ladder as forbidden by the instructions (then it is offered beside them; 2026-10-16); detachments of 1, 2, 4, 8 only; shelling only with artillery; a raid or shelling of a place only with his buildings within 500; no advance where his buildings stand | `WHOLE_GROUP_OVER = 4.0`, `LADDER = [1, 2, 4, 8]`, `HIS_AT = 500` | `P/menu.rs` | H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES; the rest none |
 | Air groups: no gather, advance, shelling, detachment, follow or scout | | `P/menu.rs` | H-HANDS-DOMAINS |
-| A builder against a party: attack only if armed, D-gun only with a unit inside its reach | | `P/menu.rs` | H-HANDS-DGUN |
+| A builder against a party: attack only if armed, D-gun only with a unit inside its reach; the warning of what of ours the shot may take spans the target's swing in the delay | `DGUN_DELAY = 36` frames, `DGUN_SPLASH = 28`, `RADAR_SPEED = 101` | `P/menu.rs` | H-HANDS-DGUN, H-HANDS-DGUN-LINE |
 | What reaches the pick: 2 moves an actor, 255 worlds, 9 changes a component, clashing worlds dropped | `DEPTH = 2`, `CAP = 255`, `SPLIT_CAP = 9`, `LINE_CHARS = 40,000` | `P/compose.rs` | H-HANDS-ONE-PASS |
 | What a party is: mobile enemies chained within 400; the party in an actor's entry is the nearest within 800 | `PARTY_RADIUS = 400`, `NEAR = 800` (menu) | `P/picture.rs`, `P/menu.rs` | H-HANDS-PARTY-NAMES |
 

@@ -575,7 +575,23 @@ on it: in player-55 at 3:35 the commander D-gunned a Rover beside our vehicle pl
 constructor on its pad were destroyed (19,824 of friendly-fire damage by the commander in that second; the plant's
 `destroyed` event names the commander). Production stood until the plant was rebuilt.
 **Status.** demonstrated (2026-10-03, `run/matches/1791061704-player-55-experience/00/record-0.jsonl`); the move's
-words now name what of ours the line crosses.
+words named what of ours the line to the nearest member crossed, within half a footprint and 24, from player-56.
+**Amended 2026-10-24.** The line check missed both friendly kills since: the shot does not run along the line to where
+the target stands when Jev picks, because the target moves until the impact (33 and 39 frames from the gate to the
+first kill: Jev's answer of 12 to 18, the turret's aim, the fireball's flight at 10 a frame). In
+`1792809574-human/00` seat 1 at 7:21 (Boreal Falls, the user's 2v3) a Blitz 239 away moved 84 before the shot, which
+took our advanced vehicle plant and an advanced constructor that stood 17 and 2 outside the band; in
+`1792547311-human/00` seat 1 at 14:52 (SD-129) a Raider 78 away circled the commander and the shot went ninety degrees
+off the checked line through a Moho and an advanced solar (the words had named both 75 frames earlier and dropped
+them as the Raider moved on). The engine's part: the fireball (collision radius 10, the DGun type's default) keeps
+flying and exploding through everything to the weapon's range (`noexplode`, `TraveledRange`), each explosion a radius
+of 18 (`areaofeffect = 36` is a diameter, `WeaponDef.cpp` scales it by 0.5) with 99,999 damage falling to 15 % at the
+rim, measured to the collision volume's surface (`GameHelper.cpp` DoExplosionDamage); the shot fires at the unit's
+position when the turret has aimed, and does not track after. The words now span the cone the target can swing the
+line through (`ours_in_the_shot`); `run/dgun_line.py` replays every recorded shot: the cone names all four victims
+and warns on two of the nine clean shots (the second shot at the same circling Raider a second later, and an
+extractor beside the commander on the second Boreal shot), and Jev re-asked with its words drops the shot from 0.59
+to 0.33 and 0.66 to 0.11. Not yet seen in a game.
 **Would be wrong if.** The plant died to something else in the same second; the record's attacker is the commander.
 **Used by.** [[H-HANDS-DGUN-LINE]].
 

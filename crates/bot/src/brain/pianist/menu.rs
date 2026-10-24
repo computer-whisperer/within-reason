@@ -44,6 +44,26 @@ const FINISH_REACH: f32 = 1500.0;
 const FIELD_METAL: f32 = 100.0;
 /// The D-gun's shot costs this much energy.
 const DGUN_ENERGY: f32 = 500.0;
+/// Frames from the picture Jev picks on to the D-gun's impact: Jev's answer (12 to 18 measured), the turret's aim and
+/// the shot's flight at 10 a frame; 33 and 39 from the gate to the first kill in the two friendly-fire incidents
+/// (1792809574-human seat 1 at 7:21, 1792547311-human seat 1 at 14:52; `run/dgun_line.py`).
+const DGUN_DELAY: f32 = 36.0;
+/// How far beyond a unit's own half-width the shot's lethal corridor reaches: the disintegrator's damage radius (its
+/// areaofeffect 36 is a diameter, `WeaponDef.cpp` scales it by 0.5) plus the fireball's collision radius (the DGun
+/// type's default collisionSize 10). Anything whose collision volume comes within it dies.
+const DGUN_SPLASH: f32 = 18.0 + 10.0;
+/// The speed given a D-gun target whose type is unknown (a radar contact): a Blitz's, the fast raider the shot is
+/// mostly asked against.
+const RADAR_SPEED: f32 = 101.0;
+
+/// What `ours_in_the_shot` finds: the kinds of ours the shot may take, the farthest the targets can move before it
+/// lands, the nearest target's distance, and whether that swing exceeds the distance (the line may then run anywhere).
+struct DGunShot {
+    ours: Vec<String>,
+    swing: f32,
+    distance: f32,
+    anywhere: bool,
+}
 /// A group this many times a party's metal is offered detachments against it, not its whole-group attack.
 const WHOLE_GROUP_OVER: f32 = 4.0;
 /// A region the decode reads as the group's at this or over is on its menu to rove within (the user's bar,
@@ -1229,27 +1249,53 @@ impl Brain {
         Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
     }
 
-    /// What of ours stands on a D-gun shot's line from `shooter` towards `target`, out to the weapon's reach: the
-    /// shot runs on past its target. A unit is on the line when the line passes within half its footprint and a
-    /// margin of its centre.
-    fn ours_on_the_line(&self, shooter: &OwnUnit, target: Vec3, reach: f32, own: &[OwnUnit]) -> Vec<String> {
-        const MARGIN: f32 = 24.0;
-        let (dx, dz) = (target.x - shooter.pos.x, target.z - shooter.pos.z);
-        let length = dx.hypot(dz);
-        if length < 1.0 {
-            return Vec::new();
-        }
-        let (ux, uz) = (dx / length, dz / length);
+    /// What of ours the D-gun may destroy if fired now at `targets` (the party's members inside its reach), and the
+    /// swing behind it. The shot runs its whole reach past the target, and the target moves between the picture Jev
+    /// picks on and the impact (`DGUN_DELAY` frames at its speed), so the line is not the one to where it stands:
+    /// every ray from the shooter within the swing's angle at the target's distance is a line the shot may take, and
+    /// the whole circle when the swing exceeds the distance. A unit of ours is named when some ray of that cone
+    /// passes within half its footprint, its own travel in the delay and the splash of its centre, out to the reach
+    /// plus half its footprint. A target of unknown type (a radar contact) is given `fallback_speed`.
+    fn ours_in_the_shot(&self, shooter: &OwnUnit, targets: &[&EnemyUnit], fallback_speed: f32, reach: f32, own: &[OwnUnit]) -> DGunShot {
+        use std::f32::consts::{FRAC_PI_2, PI};
         let mut kinds: BTreeMap<String, usize> = BTreeMap::new();
-        for other in own.iter().filter(|o| o.id != shooter.id) {
-            let (ox, oz) = (other.pos.x - shooter.pos.x, other.pos.z - shooter.pos.z);
-            let along = ox * ux + oz * uz;
-            let half = self.world.def(other.def).map_or(16.0, |d| d.footprint.0.max(d.footprint.1) as f32 * 4.0);
-            if along > 0.0 && along < reach + half && (ox * uz - oz * ux).abs() < half + MARGIN {
-                *kinds.entry(self.short_words(other.def)).or_default() += 1;
+        let mut named: BTreeSet<UnitId> = BTreeSet::new();
+        let mut shot = DGunShot { ours: Vec::new(), swing: 0.0, distance: f32::MAX, anywhere: false };
+        for target in targets {
+            let speed = target.def.and_then(|d| self.world.def(d)).map_or(fallback_speed, |d| d.speed);
+            let swing = speed * DGUN_DELAY / FRAMES_PER_SECOND as f32;
+            let (dx, dz) = (target.pos.x - shooter.pos.x, target.pos.z - shooter.pos.z);
+            let distance = dx.hypot(dz);
+            if distance < 1.0 {
+                continue;
+            }
+            shot.swing = shot.swing.max(swing);
+            shot.distance = shot.distance.min(distance);
+            shot.anywhere |= swing >= distance;
+            let cone = if swing >= distance { PI } else { (swing / distance).asin() };
+            let bearing = dz.atan2(dx);
+            for other in own.iter().filter(|o| o.id != shooter.id) {
+                if named.contains(&other.id) {
+                    continue;
+                }
+                let (ox, oz) = (other.pos.x - shooter.pos.x, other.pos.z - shooter.pos.z);
+                let rho = ox.hypot(oz);
+                let half = self.world.def(other.def).map_or(16.0, |d| d.footprint.0.max(d.footprint.1) as f32 * 4.0);
+                if rho < 1.0 || rho > reach + half {
+                    continue;
+                }
+                let width = half + other.vel.x.hypot(other.vel.z) * DGUN_DELAY + DGUN_SPLASH;
+                let off = ((oz.atan2(ox) - bearing + PI).rem_euclid(2.0 * PI) - PI).abs();
+                let delta = (off - cone).max(0.0);
+                let nearest = if delta < FRAC_PI_2 { rho * delta.sin() } else { rho };
+                if nearest <= width {
+                    named.insert(other.id);
+                    *kinds.entry(self.short_words(other.def)).or_default() += 1;
+                }
             }
         }
-        kinds.into_iter().map(|(kind, n)| if n > 1 { format!("{n} {kind}") } else { kind }).collect()
+        shot.ours = kinds.into_iter().map(|(kind, n)| if n > 1 { format!("{n} {kind}") } else { kind }).collect();
+        shot
     }
 
     fn builder_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
@@ -1499,16 +1545,24 @@ impl Brain {
             push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party));
             // The D-gun reaches what stands inside its reach: beyond it the commander cannot fire it, and walking
             // in is the attack above (rebuild-smoke-1: the shot was picked five times at parties 900 away).
-            let inside = self.dgun_targets(party, unit, enemies).len();
+            let targets = self.dgun_targets(party, unit, enemies);
+            let inside = targets.len();
             if dgun > 0.0 && inside > 0 {
                 let energy = if scene.tick.snapshot.energy.current >= DGUN_ENERGY { "the energy for it is stored" } else { "the energy store is too low for it now" };
                 // The shot destroys everything on its line, ours too (player-55 at 3:35: the commander D-gunned a
-                // Rover beside our vehicle plant and the plant and the constructor on its pad went with it).
-                let target = self.dgun_targets(party, unit, enemies).into_iter().next();
-                let crossed = target.map(|t| self.ours_on_the_line(unit, t.pos, dgun, own)).filter(|c| !c.is_empty());
-                let energy = match &crossed {
-                    Some(ours) => format!("{energy}; THE SHOT'S LINE CROSSES OUR OWN {}: the D-gun destroys everything on its line, ours as well", ours.join(", ")),
-                    None => energy.to_string(),
+                // Rover beside our vehicle plant and the plant and the constructor on its pad went with it), and the
+                // line is not the one to where the target stands now, since it moves before the shot lands
+                // (1792809574-human seat 1 at 7:21: a Blitz 239 away moved 84 and the shot took our advanced plant and
+                // an advanced constructor that stood 17 and 2 outside the old line's band; 1792547311-human seat 1 at
+                // 14:52: a Raider 78 away circled the commander and the shot went ninety degrees off the checked line
+                // through a Moho and an advanced solar). The words name what the swing may cover (H-HANDS-DGUN-LINE).
+                let shot = self.ours_in_the_shot(unit, &targets, quarry_speed.unwrap_or(RADAR_SPEED), dgun, own);
+                let energy = if shot.ours.is_empty() {
+                    energy.to_string()
+                } else if shot.anywhere {
+                    format!("{energy}; THE TARGET IS TOO CLOSE AND TOO FAST TO AIM PAST OUR OWN {}: it moves about {:.0} before the shot lands, from {:.0} away, so the line may run anywhere inside the reach, and the D-gun destroys everything on its line, ours as well", shot.ours.join(", "), shot.swing, shot.distance)
+                } else {
+                    format!("{energy}; THE SHOT'S LINE MAY CROSS OUR OWN {}: the target moves about {:.0} before the shot lands, and the D-gun destroys everything on its line, ours as well", shot.ours.join(", "), shot.swing)
                 };
                 push(format!("dgun_{}", party.name), Order::DGun(party.name.clone()), format!("{name} D-guns the nearest unit of {party_words}: {inside} of its {} stand on the ground inside the D-gun's reach; one shot kills; {energy}{leaves}", party.ids.len()), format!("the D-gun on {}", party.name), Some(party));
             }
@@ -1634,6 +1688,34 @@ pub(super) mod tests {
         let mut all = vec![mv("stay", Order::Stay, None)];
         all.extend(moves);
         Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
+    }
+
+    /// The D-gun's warning covers the cone the target can swing the line through before the shot lands, not the line
+    /// to where it stands: a Blitz 240 away moves 121 in the delay, so a unit of ours 13 degrees off the line is
+    /// named and one 60 degrees off is not, unless it is itself driving toward the line; a Raider 78 away can be
+    /// anywhere before the shot lands, and everything inside the reach is named, nothing beyond it (1792809574-human
+    /// 7:21 and 1792547311-human 14:52, replayed by `run/dgun_line.py`).
+    #[test]
+    fn the_d_gun_warning_covers_the_cone_the_target_can_swing_the_line_through() {
+        use super::super::fixtures::{at, brain_of, enemy, own};
+        let brain = brain_of(&["armcom", "armflash", "corraid", "armacv"]);
+        let polar = |r: f32, degrees: f32| at(r * degrees.to_radians().cos(), r * degrees.to_radians().sin());
+        let commander = own(1, 1, at(0.0, 0.0));
+        let near = own(2, 4, polar(215.0, 13.0));
+        let wide = own(3, 4, polar(129.0, 60.0));
+        let mut driving = own(4, 4, polar(129.0, 60.0));
+        driving.vel = at(0.0, -1.8);
+        let far = own(5, 4, polar(300.0, 60.0));
+        let blitz = enemy(10, 2, at(240.0, 0.0));
+        let shot = brain.ours_in_the_shot(&commander, &[&blitz], 101.0, 250.0, &[commander.clone(), near.clone(), wide.clone(), far.clone()]);
+        assert_eq!(shot.ours.len(), 1, "{:?}", shot.ours);
+        assert!(shot.ours[0].contains("armacv") && !shot.ours[0].starts_with('2'), "{:?}", shot.ours);
+        assert!((shot.swing - 121.2).abs() < 1.0 && !shot.anywhere, "swing {} anywhere {}", shot.swing, shot.anywhere);
+        let shot = brain.ours_in_the_shot(&commander, &[&blitz], 101.0, 250.0, &[commander.clone(), driving]);
+        assert_eq!(shot.ours.len(), 1, "driving into the cone: {:?}", shot.ours);
+        let raider = enemy(11, 3, at(0.0, -78.0));
+        let shot = brain.ours_in_the_shot(&commander, &[&raider], 72.0, 250.0, &[commander.clone(), near, wide, far]);
+        assert!(shot.anywhere && shot.ours.len() == 1 && shot.ours[0].starts_with("2 "), "{:?} anywhere {}", shot.ours, shot.anywhere);
     }
 
     /// A party the body outweighs four times is a detachment's work, and the whole-group attack is off the menu;

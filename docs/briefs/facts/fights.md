@@ -166,7 +166,10 @@ status: live
 ### The D-gun, the nuke, the anti-nuke, the shield
 
 The commander's D-gun reaches 250 (Cortex's 262), costs 500 energy a shot, fires every 0.9 seconds and deletes anything it hits except
-another commander, which it does not scratch; a side at zero energy has no D-gun.
+another commander, which it does not scratch; a side at zero energy has no D-gun. The shot flies on through whatever
+it hits to the end of its reach, bursting 18 around each thing it touches, so everything on the line dies, ours as
+well; it is aimed at where the target stands as it fires and does not turn after, and a fast raider beside our own
+buildings moves a Blitz's length or more while the shot is coming.
 
 A silo costs 8,100 metal and 90,000 energy and takes 178,500 of build time (five minutes at 600 power). Each missile
 costs 1,000 metal and 125,000 energy and takes 120 seconds to stockpile; the silo fills itself to ten without being
