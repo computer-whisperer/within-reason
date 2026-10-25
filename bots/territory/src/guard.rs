@@ -47,6 +47,11 @@ enum Why {
 pub(crate) struct Guard {
     /// His armed mobile ground units seen (the army shown): metal and the frame last seen.
     shown: BTreeMap<UnitId, (f32, i32)>,
+    /// His units seen destroyed. The engine keeps a dying unit in its list while its death animation runs, and the
+    /// host's enemy list does not leave it out: counted again from those sightings, his bots stood in the army shown
+    /// five minutes after their death (terr280: 3,836 of 4,064 dead at 15:00 of game 02). Kept for the game: the
+    /// engine gives a unit's id out again only once every other id has been used (`SimObjectIDPool::FreeID`, delayed).
+    dead: BTreeSet<UnitId>,
     /// The guard's type, chosen again when the factory types standing change.
     kind: Option<(Vec<usize>, Option<usize>)>,
     /// Where the guard is sent and why, and the frame it last answered a raid.
@@ -66,12 +71,13 @@ struct Raid {
 
 impl Territory {
     /// Every hands tick: his armed mobile ground units in sight remembered at their metal (a radar dot of one seen
-    /// before keeps it counted), and those not seen for SHOWN_FOR forgotten.
+    /// before keeps it counted), never one seen destroyed, and those not seen for SHOWN_FOR forgotten.
     pub(crate) fn observe_army(&mut self) {
         let frame = self.frame;
         let seen: Vec<(UnitId, Option<f32>)> = self
             .enemies
             .iter()
+            .filter(|e| !self.guard.dead.contains(&e.id))
             .filter_map(|e| match e.def.and_then(|d| self.def(d)) {
                 Some(info) if info.speed > 0.0 && info.weapon_count > 0 && info.reach > 0.0 && info.build_options.is_empty() && info.move_class.is_some() => Some((e.id, Some(info.metal_cost))),
                 Some(_) => None,
@@ -93,9 +99,10 @@ impl Territory {
         self.guard.shown.retain(|_, (_, at)| frame - *at <= SHOWN_FOR);
     }
 
-    /// A unit of his seen destroyed is no longer in the army shown.
+    /// A unit of his seen destroyed is no longer in the army shown, and is not counted again.
     pub(crate) fn army_lost(&mut self, enemy: UnitId) {
         self.guard.shown.remove(&enemy);
+        self.guard.dead.insert(enemy);
     }
 
     /// The army he has shown, in metal.

@@ -326,8 +326,8 @@ alone) and terr226-231 (no defence):
   their death (terr280, a probe): the engine sends the death event and keeps the dying unit in its active list while
   its death script runs, the host's enemy list does not leave it out, and the next sighting counts it for five more
   minutes. His bots, whose death animation lasts, are counted again nearly every time (Grunt 31 of 37, Hammer 28 of
-  31); his vehicles almost never (Incisor 0 of 21). At 15:00 of one game 3,836 of the 4,064 shown was dead. Not
-  fixed: the guard's results above are with it.
+  31); his vehicles almost never (Incisor 0 of 21). At 15:00 of one game 3,836 of the 4,064 shown was dead. The
+  results above are with it; fixed in the bot since (a unit seen destroyed is never counted again), below.
 - *Nothing changes where nobody attacks.* Against NullAI no soldier is made in 24 games and every start and mark is
   inside the pooled range (terr274-279).
 
@@ -349,3 +349,21 @@ alone) and terr226-231 (no defence):
 - *Not even fights.* Answering at twice the raid's weight, or with every free soldier, left the soldiers' losses where
   they were (1,119), so the conjecture that nearest-first sends just enough soldiers to lose half is wrong.
 - Held on `territory-stations`; `territory` keeps the guard at the base.
+
+**The overcount fixed, the guard run twice (terr293-304).** The user, 2026-10-25: "Fix it in the bot, then rerun the
+guard twice." A unit of his seen destroyed is never counted again (the engine gives an id out again only once every
+other id has been used, so a dead id stays dead for the game).
+
+| | lost of 24 | the win line | twice his at 15:00 | 20:00 | soldiers lost | other units lost |
+|---|---|---|---|---|---|---|
+| with the overcount (terr268-273) | 4 | 20 | 15 | 18 | 927 | 1,628 |
+| fixed, first run (terr293-298) | 3 | 17 | 16 | 16 | 826 | 1,811 |
+| fixed, second run (terr299-304) | 4 | 20 | 16 | 18 | 903 | 1,771 |
+
+- *The fix moves nothing measurable.* Two runs of one build spread 17-20 on the win line and 3-4 lost, which holds
+  the overcount's 20 and 4 and the first stations' 17 and 3 (terr281-286); the stations at twice the raid's weight
+  (15, terr287-292) fall two under it.
+- *The army shown is now short of his army*, never over it at 10:00 or 15:00 (91 readings, one equal), a median 0.63
+  and 0.66 of what he has on the map (0.84 with the overcount). The guard is sized to what came to us.
+- *Great Divide is the start that loses*: three games of four in each run, at 9.9-18.5 minutes; the other five lose
+  one game of 40 over the two runs.
