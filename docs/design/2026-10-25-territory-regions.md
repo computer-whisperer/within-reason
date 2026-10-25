@@ -249,7 +249,7 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
 3. **The lag instrument.** Lags logged at every dispatch, one bench run, under the current cascade. Done
    (e13bcd2, T-LAGS, terr157-162): the turrets the column most behind on every start, at 5:00 and again late (14-73
    units on Comet from his start at 15:00-19:00, while the cascade built metal makers and walked constructors home);
-   the cascade's order the rule's pick in 4-50 % of orders, under 30 % in most start-minutes.
+   the cascade's order the rule's pick in 2-50 % of orders, under 30 % in most start-minutes.
 4. **The hands rebuilt as matching.** The cascade's ranking and fallbacks deleted, the lag rule in their place.
    `BESIDE`, `FACTORY_PLACER` and `plant_helpers_from` become walk times. Measured in two forms, not kept
    (terr163-174; the code on branch `territory-matching-step4`, f97c321). Both under the standing build at 5:00 on
