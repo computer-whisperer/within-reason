@@ -1,10 +1,11 @@
 # The territory bot off Comet: regions, territory as an input, builders matched to located work (proposal, 2026-10-25)
 
-A proposal, not built. The user, 2026-10-25: "Let's work on making this more general -- the point was to start with
-building a bot that can ramp economy effectively, then teach it to defend territory, then attack. How canned is the
-current economy growth build? We will need to find a way to let it adapt to different terrain and allowed territory
-expansion, so it may need a deep redesign." Then "Run the baseline with those maps", "Start with the placement and
-enemy-location fixes" (built, 983ab1b), and "let's write that redesign document".
+Accepted 2026-10-25 ("Decided" at the end), built step by step (status under "Steps"). The user, 2026-10-25: "Let's work
+on making this more general -- the point was to start with building a bot that can ramp economy effectively, then teach
+it to defend territory, then attack. How canned is the current economy growth build? We will need to find a way to let
+it adapt to different terrain and allowed territory expansion, so it may need a deep redesign." Then "Run the baseline
+with those maps", "Start with the placement and enemy-location fixes" (built, 983ab1b), and "let's write that redesign
+document".
 
 The planner stays a linear program over the simulator's accounting (`docs/design/2026-10-20-territory-lp.md`). What
 changes is how space enters it, how territory enters it, and how the hands turn its plan into orders. Three parts:
@@ -204,30 +205,33 @@ Six starts, four seeds each, 24 games, about six minutes:
 - Mithril Mountain;
 - Quicksilver.
 
-A script runs them and a reader prints per start (both to be written at step 0; this session ran them from
-throwaway scripts): the marks at 5, 10, 15 and 20, the deaths to his weapons, the plant and advanced plant times,
-the factory sites, the commander's range, and the planner's forecast from the start under the bot's own settings.
+`run/territory_bench.sh FIRST TAG` runs them, one batch a start labelled `terrN-TAG-START`, and
+`run/territory_bench.py TAG...` prints per start: the marks at 5, 10, 15 and 20, the 20:00 mark as a share of the
+planner's forecast, the deaths to his weapons, the plant and advanced plant times, the factory sites, the commander's
+farthest from home, and the planner's forecast from the start under the bot's own settings (the first plan's
+`targets:` line). Given several tags it reads the last against the pooled games of the others.
 
 - **Targets.** On Comet from his start, his curve (62 / 213 / 651 / 1,706) stays the target. Elsewhere there is no
   record of a strong player against InactiveAI, so the planner's own forecast from the start is the yardstick. With
   regions it becomes a fair one, since it then sees each start's ground.
-- **Noise.** Measured so far: on Comet ±4-5 at 5:00 and ±60 at 20:00 per game. On Glitters the same build read 310
-  and 961 at 20:00 in one seed (terr117, terr120), the late float. Step 0 measures every start's spread with one
-  repeat.
-- **What counts.** A change counts when it moves the bench without moving any start outside its spread, not when it
-  moves Comet alone.
+- **Noise.** Measured at step 0 (terr133-138: the standing build again, on terr127-132's seeds). The repeat's median
+  of four left the first run's range of four at 9 of the 24 start-marks, and moved by up to 1.8 at 5:00, 9 at 10:00,
+  47 at 15:00 and 65 at 20:00. One game of the same seed moved by up to 134 at 20:00 (Comet from his start, seed 4:
+  1,080 and 946). One run's four games are not the spread; the pooled games of every run of the standing build are.
+- **What counts.** A change counts when it moves the bench and no start's median falls below the pooled range of
+  the standing build's games, not when it moves Comet alone. At four seeds a start's median has to move more than
+  the run-to-run gaps above to be read as moved at all; the 5:00 and 10:00 marks are the sharp ones.
 
 ## Steps
 
 Each step one bench run (two where a lever is new), its ledger rows, its register rows; what it deletes, deleted.
 
-0. **The bench.** The script and the reader, and one repeat of the current state to measure each start's spread. No
-   change to the bot.
+0. **The bench.** Done (terr133-138): the script and the reader, and one repeat of the standing build, which
+   measured the spread above. No change to the bot.
 1. **Regions computed and logged.** A `regions:` line at the start: each region's spots, metal, centre, walking times
-   and status. Offline, `buildorder lp --hello DUMP --regions`, to show the two Comet starts now price apart and the
-   program's 5:00 on each. No change to the bot's decisions.
+   and status. Offline, `buildorder regions --hello DUMP`, the same for any dump. No change to the bot's decisions.
 2. **The planner over regions.** Extractor columns per region, prices derived, the commander's columns on its
-   regions. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
+   regions. Offline first, the two Comet starts priced apart and the program's 5:00 on each, before the bench. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
    `rings`, `ring_overhead`, `com_leash` and `commander_walk_*` as arms. The hands take the region's spot.
 3. **The lag instrument.** Lags logged at every dispatch, one bench run, under the current cascade.
 4. **The hands rebuilt as matching.** The cascade's ranking and fallbacks deleted, the lag rule in their place.
@@ -249,15 +253,16 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
 - **Regions could be wrong in shape.** A radius by walking time can still cut across a chokepoint. The `regions:` line
   and the viewer let us look before the planner relies on them.
 
-## Open for the user
+## Decided
 
-- **Order.** I recommend the planner over regions first (steps 1-2): it is the root, since the planner cannot see the
-  map, and the hands' matching reads its regions. The other order, hands first (steps 3-4), would go after the
-  measured losses sooner: the turrets on Comet, and the float on the windy maps.
-- **The stage-1 territory policy on the bench.** Every region not dead (today's ceiling against NullAI), or our half
-  by walking distance (closer to a real 1v1).
-- **Targets off Comet.** The planner's own forecast as the yardstick, or a survey of public replays for strong
-  players' economy curves on these maps (the replay survey tools exist, though those games are against people, not
-  InactiveAI).
-- **Region size.** By walking time (about 20 s of a constructor), or by spot count.
-- **Weight.** Comet from his start as the primary target with the other starts as guards, or all six equal.
+The user, 2026-10-25, on the questions this section asked: "Your leans sound reasonable, so lets begin."
+
+- **Order.** The planner over regions first (steps 1-2), then the lag instrument and the hands (steps 3-4).
+- **The stage-1 territory policy on the bench.** Every region not dead, as today against NullAI. The proposal stated
+  no lean on this one; this one keeps the bench comparable with every batch before it, and our half by walking
+  distance enters as an arm at step 5.
+- **Targets off Comet.** The planner's own forecast from the start under the bot's settings (the first plan's
+  `targets:` line). On Comet from his start his curve stays the target.
+- **Region size.** By walking time: about 20 s of a basic constructor's walk.
+- **Weight.** All six starts by the rule under "What counts": a change counts when it moves the bench and no start
+  falls below its spread. Comet from his start is not weighted above the others.
