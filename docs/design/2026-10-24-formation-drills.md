@@ -600,6 +600,38 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   **Order:** (1), (2), (3), (4), each committed with its ledger rows; then the migration design (the task mapping,
   Follow, the words, the record's group line) as a written proposal for the user to rule on.
 
+- **D19. The trail closes** (item 19; the user, 2026-10-25: "Good. Continue with the next chunk", on my proposal to fix
+  it before the migration design). At a pace fraction of one a member walks no faster than its slot, so a trail once
+  opened past the engine's following distance closes only by the drag, which eases the anchor from a lag of 128 to a
+  stop at 300: at a lag of 140 the anchor holds 0.93 of full pace and the body closes at six elmos a second, or not at
+  all against the small losses of every bend; three laps of one binary ran 208 / 202 / 190 s at formed 0.65 / 0.75 /
+  0.96 on which mode the first set-down left them in. **The rule:** the body's lag is its formed-once members'
+  median distance behind their slots along the heading (not the furthest one's, which is the drag's and the stop's);
+  when it exceeds the formed band the anchor walks at `Pacing::closing` (0.85) of its pace until the median is back
+  under the band less a quarter of it (hysteresis), so a trail of 60 past the band closes in about five seconds and a
+  formed body pays nothing. Chose this over a drag from the following distance up (the distance is the type's and
+  unmeasured: a drag from 64 held twenty Pawns at 0.90 by following alone), over a fraction under one always (0.9 cost
+  a pure column 4 s with nothing bought) and over a set-down that spares the units ahead of their new slots (the units
+  ahead at a 30-50 degree turn are the outer flank's, inherent to the turn, and the re-deal already gives them the
+  nearest slots). Test: a body 140 behind its slots walks the anchor at the closing share times the drag; formed again
+  within the band less a quarter, at the pace. Measured by six laps of the plain circuit against six of the binary
+  before (circuit18b, circuit20-base), the fed circuit's three, and the detour arms for no regression.
+  **Measured and rejected the same morning (circuit21-*, assault9-*):** six laps 210 / 209 / 207 / 213 / 209 / 193 s
+  (mean 207) at formed 0.75 / 0.76 / 0.82 / 0.76 / 0.73 / 0.92 (mean 0.79) against the six before, 208 / 202 / 190 /
+  195 / 203 / 198 (mean 199) at 0.65 / 0.75 / 0.96 / 0.92 / 0.73 / 0.80 (mean 0.80); the fed circuit 205 / 200 / 195
+  at 0.70 / 0.73 / 0.79; the detour +0.53 against +0.59, the flat strip +0.63 against +0.64. The rule fired about
+  nine times a lap and closed nothing: the median lag at full pace sits at 100-140, which is the engine's following
+  distance behind a slot moving at the Pawn's full speed, not a trail that opened; slowing the anchor brought the
+  body under the band, the pace resumed and the distance opened again, seven seconds a lap for the toggling. The code
+  is removed (the tree carries no `closing`). **What item 19 is, then:** the formed band (128) and the drag (from 128)
+  measure a member against a slot it can only trail by the following distance, which is the type's and the pace's
+  (72-86 for a Pawn at 80, 100-140 at 87, about twice for a Stout) and unmeasured by the group; the laps' bimodality
+  is whether a set-down happened to leave the body inside or outside that band. The fix is the lead that D14 left
+  open: the slot order placed the following distance ahead of the slot, or the band measured from the trail the body
+  actually holds (its median lag on a straight at full pace, learned in the first seconds of a march), so that a
+  following body is formed by definition and the drag starts where the body falls behind its own trail. Not built in
+  this arc; the migration design (`2026-10-25-hands-migration.md`) carries it as the engine's open item.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
