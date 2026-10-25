@@ -185,6 +185,15 @@ impl Territory {
         let spots = &self.hello.metal_spots;
         let near: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
         let commander_speed = self.game().units.list[self.game().commander].speed.max(1.0);
+        // The plants' rings (T-PLANT): per factory type, the turrets its plants' rings hold, the program's bound on
+        // the turrets' assist on that type's products.
+        let mut plant_rings: Vec<(usize, f64)> = Vec::new();
+        for (unit, _, standing, free) in self.plant_rings() {
+            match plant_rings.iter_mut().find(|(u, _)| *u == unit) {
+                Some(entry) => entry.1 += (standing + free) as f64,
+                None => plant_rings.push((unit, (standing + free) as f64)),
+            }
+        }
         let lp = o.lp.then(|| LpOptions {
             dt: o.dt,
             mid_from: o.mid_from,
@@ -200,7 +209,7 @@ impl Territory {
             margin_from: o.margin_from,
             factory_from: o.factory_from,
             assist_factor: o.assist_factor,
-            nano_assist: o.nano_assist,
+            plant_rings: plant_rings.clone(),
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,
             max_nanos: o.max_nanos,
@@ -365,7 +374,9 @@ impl Territory {
         let at_plants = turrets.iter().filter(|t| plants.iter().any(|p| p.dist2d(t.pos) < hands::NANO_REACH)).count();
         let (wanted, plant) = self.plant_turrets_wanted();
         let plant = plant.map_or("none".to_string(), |p| format!("({:.0},{:.0})", p.x, p.z));
-        self.log(format_args!("turrets: {} standing, {busy} busy, {at_plants} at the plants, the program's assist {wanted:.1} turrets, placing at {plant}; frames {} of which {unreached} beyond every turret's reach", turrets.len(), frames.len()));
+        let rings: Vec<String> = self.plant_rings().iter().map(|(u, c, s, f)| format!("{} ({:.0},{:.0}) {s} of {} in its ring", self.game().units.list[*u].name, c.x, c.z, s + f)).collect();
+        let rings = if rings.is_empty() { "none".to_string() } else { rings.join(", ") };
+        self.log(format_args!("turrets: {} standing, {busy} busy, {at_plants} at the plants, the program's assist {wanted:.1} turrets, placing at {plant}; frames {} of which {unreached} beyond every turret's reach; rings: {rings}", turrets.len(), frames.len()));
         self.log(format_args!("jobs: {}", self.jobs_line()));
         let energy = self.energy_line();
         self.log(format_args!("energy: {energy}"));

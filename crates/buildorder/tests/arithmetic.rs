@@ -497,7 +497,8 @@ fn the_linear_program_puts_turrets_on_a_factorys_products_when_allowed() {
     // One factory at most: the commander would otherwise build labs from the stock, fractions that produce from
     // the first bucket (19.6 constructors in the first minute without the cap).
     let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, ..Default::default() };
-    let with = LpOptions { nano_assist: 10.0, ..without.clone() };
+    // The ring bound (terr96): the advanced lab's ring holds the six turrets standing.
+    let with = LpOptions { plant_rings: vec![(lab, 6.0)], ..without.clone() };
     let plain = solve(units, &scenario, &state, &offer, &without).unwrap();
     let plan = solve(units, &scenario, &state, &offer, &with).unwrap();
     let (before, after) = (plain.count_at(ck, 60.0), plan.count_at(ck, 60.0));

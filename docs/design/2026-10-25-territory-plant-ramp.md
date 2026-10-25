@@ -150,6 +150,16 @@ by 10:00 (his 29), advanced constructors finished by 10:15 (his 15), the first u
 If the ring bound alone changes nothing (1), that is the expected result and not a reason to stop: it is the cap;
 the value comes with 2.
 
+**Batch 1, measured (terr96, 2026-10-25; the user: "Start with batch 1 alone, and the mobile guard's cap stays until
+the pad is calibrated").** Built as above: `LpOptions.plant_rings` and the per-factory-type row in place of
+`nano_assist`; the hands' `plant_rings` counting each plant's ring by packing turrets into it as `farm_site` would;
+the `turrets:` line carrying the rings; `run/plant_cadence.py`. The hands count the advanced plant's ring at 24-34
+turrets (his 29 within 400) and the vehicle plant's at 14-37, shrinking as the base fills round it; four turrets were
+placed in the ring and no search failed. The program's demand did not move: no turret assist to 10:00, 1.5-3.6
+turrets' worth at 10:00-12:00, 3-4 turrets at the advanced plant by 12:00-14:00; the plant's cadence 28 s a
+constructor at 6:00-8:00 and 12 s by 12:00, as before. The marks level with terr95 (5:00 50-57, 10:00 156-241, 15:00
+464-490, 20:00 975-1,081). The cap is honest; the demand is batch 2's.
+
 ## What could go wrong
 
 - terr67's shape, the advanced plant held at a fraction while turrets are bought for it: guarded by counting

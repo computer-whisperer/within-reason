@@ -65,13 +65,16 @@ pub struct LpOptions {
     /// Build power mobile builders may put on factory products, as a multiple of the factories' own (the yard
     /// clears between units).
     pub assist_factor: f64,
-    /// Build power construction turrets may put on factory products, as a multiple of the factories' own; 0 gives
-    /// the turrets no assist pair. thebluegecko's ramp (against InactiveAI, 2026-10-21): 29 turrets within 400 of
-    /// his advanced vehicle plant by 10:00, 9.7 times its 600, and an advanced constructor finished every 6-8 s
-    /// from 9:25 (16,000 build time at 6,400: 2.5 s of work and the pad's roll-off), fifteen by 10:15. Without the
-    /// pair the program had nothing for a turret to do before the farm's big frames at 12:00 (terr57-66: one or
-    /// two turrets at 10:00 against his 29).
-    pub nano_assist: f64,
+    /// The plants' rings: per factory type standing or committed, the construction turrets its plants' rings hold,
+    /// the turrets standing or framed within the ring plus the free ring points a turret could take, as the hands
+    /// count them every plan (T-PLANT): the bound on the turrets' assist on that type's products, a turret's power
+    /// times the count. Empty: no turret assist pair. thebluegecko's ramp (against InactiveAI, 2026-10-21): 29
+    /// turrets within 400 of his advanced vehicle plant by 10:00, 9.7 times its 600, and an advanced constructor
+    /// finished every 6-8 s from 9:25 (16,000 build time at 6,400: 2.5 s of work and the pad's roll-off), fifteen by
+    /// 10:15. Before terr96 the bound was a multiple of the plants' own power (`nano_assist`; a turret in the model
+    /// is power with no reach to run out of, so the first solves bought 285-441 of them, and under the multiple the
+    /// program asked for one or two turrets' worth at 10:00, terr67-69; `docs/design/2026-10-25-territory-plant-ramp.md`).
+    pub plant_rings: Vec<(usize, f64)>,
     /// Build power construction turrets may put on a column in a bucket, as a multiple of what mobile builders
     /// put on it directly: a turret helps frames in its reach and starts none, so without this bound the program
     /// buys turrets as free build power and runs a converter spiral to 4,000 metal a second (the first solve on
@@ -176,7 +179,7 @@ impl Default for LpOptions {
             margin_from: 0.0,
             factory_from: 0.0,
             assist_factor: 2.0,
-            nano_assist: 0.0,
+            plant_rings: Vec::new(),
             help_factor: 3.0,
             nanos_per_factory: 6.0,
             max_nanos: 0.0,
@@ -499,7 +502,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             } else if def.role == Role::Nano && products.contains(&u) {
                 // A turret's assist on an advanced factory, under its own row (its Help pair here was bounded to
                 // nothing: row 3b counts no factory's direct power).
-                if options.nano_assist > 0.0 && advanced_products.contains(&u) { Kind::Assist } else { continue }
+                if advanced_products.contains(&u) && options.plant_rings.iter().any(|(f, capacity)| *capacity > 0.0 && units.list[*f].builds.contains(&u)) { Kind::Assist } else { continue }
             } else if def.role == Role::Nano && !is_extractor(u) && (options.max_nanos <= 0.0 || options.farm_big <= 0.0 || def.role == units.list[u].role || units.list[u].build_time >= options.farm_big) && builders.iter().chain(std::iter::once(&commander)).any(|x| units.list[*x].builds.contains(&u)) {
                 Kind::Help
             } else {
@@ -751,30 +754,37 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         }
         power_rows.push((bt, rows_of));
     }
-    // 3. Assist: sum over assisting pairs <= A dt sum_f bp[f] n[f, t]; the mobile builders' row and the turrets' row
-    // apart, each with its factor (the yard clears between units for the mobile guards; the turrets stand round the
-    // plant, 29 on his at 10:00). The turrets' row counts the advanced factories standing or committed (n0), not
-    // the plan's fractions: against n[f, t] a tenth of an advanced plant with ten times its power in turrets round it was a
-    // whole plant's production for a tenth of its price, and terr67 held the advanced plant at a fraction from 4:00
-    // to 7:50-9:00 (terr66's commits 3:48-4:33) while buying the turrets, which stood idle at the farm; a turret
-    // stands round a plant that exists.
-    let standing_factory_power: f64 = factory_columns.iter().filter(|&&i| advanced_factory(columns[i].unit)).map(|&i| n0[i] * units.list[columns[i].unit].worker_time).sum();
-    for (factor, turrets) in [(options.assist_factor, false), (options.nano_assist, true)] {
-        if turrets && factor <= 0.0 {
+    // 3. Assist, the mobile builders: sum over their assisting pairs <= A dt sum_f bp[f] n[f, t] (the yard clears
+    // between units for the guards).
+    for t in 0..buckets {
+        for (p, _) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Assist && mobile(p.builder)) {
+            put(row, x_at(p, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+        }
+        for &i in &factory_columns {
+            put(row, n_at(i, t), -options.assist_factor * units.list[columns[i].unit].worker_time * dt_of(t), &mut rows_i, &mut cols, &mut vals);
+        }
+        b.push(0.0);
+        row += 1;
+    }
+    // 3a. Assist, the turrets: per factory type and bucket, the turrets' power on its products at most a turret's
+    // power times the turrets its plants' rings hold (`plant_rings`: the hands' count of the turrets standing or
+    // framed within PLANT_RING of each plant standing or committed, plus the free ring points, packed as the hands
+    // would pack them; his 29 within 400 of his advanced plant). On the plants standing or committed, never the
+    // plan's fractions: against n[f, t] a tenth of an advanced plant with ten times its power in turrets round it
+    // was a whole plant's production for a tenth of its price, and terr67 held the advanced plant at a fraction from
+    // 4:00 to 7:50-9:00 while buying the turrets, which stood idle at the farm; a turret stands round a plant that
+    // exists.
+    let turret_power: f64 = types.iter().copied().filter(|u| units.list[*u].role == Role::Nano).map(|u| units.list[u].worker_time).fold(0.0, f64::max);
+    for (f, capacity) in &options.plant_rings {
+        let turret_pairs: Vec<usize> = pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Assist && !mobile(p.builder) && units.list[*f].builds.contains(&columns[p.column].unit)).map(|(p, _)| p).collect();
+        if turret_pairs.is_empty() {
             continue;
         }
         for t in 0..buckets {
-            for (p, _) in pairs.iter().enumerate().filter(|(_, p)| p.kind == Kind::Assist && mobile(p.builder) != turrets) {
+            for &p in &turret_pairs {
                 put(row, x_at(p, t), 1.0, &mut rows_i, &mut cols, &mut vals);
             }
-            if turrets {
-                b.push(factor * standing_factory_power * dt_of(t));
-            } else {
-                for &i in &factory_columns {
-                    put(row, n_at(i, t), -factor * units.list[columns[i].unit].worker_time * dt_of(t), &mut rows_i, &mut cols, &mut vals);
-                }
-                b.push(0.0);
-            }
+            b.push(turret_power * capacity * dt_of(t));
             row += 1;
         }
     }

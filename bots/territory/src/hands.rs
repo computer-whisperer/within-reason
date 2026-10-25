@@ -1549,6 +1549,69 @@ impl Territory {
         !self.hello.metal_spots.iter().any(|s| s.dist2d(p) < SPOT_TAKEN + half)
     }
 
+    /// What a site must clear (T-FARM): the footprints standing or pending (position, half-width), the factories'
+    /// yards and exit lanes, and the mobile units' positions.
+    fn site_blockers(&self) -> (Vec<(Vec3, f32)>, Vec<Lane>, Vec<Vec3>) {
+        let units = &self.game().units;
+        let footprint = |fp: (i32, i32)| fp.0.max(fp.1) as f32 * 4.0;
+        let mut taken: Vec<(Vec3, f32)> = self.own.values().filter_map(|u| self.def(u.def).filter(|d| d.speed == 0.0).map(|d| (u.pos, footprint(d.footprint)))).collect();
+        taken.extend(self.hands.orders.values().filter_map(|o| match &o.what {
+            What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some((*near, footprint(self.hello.unit_defs[*unit].footprint))),
+            _ => None,
+        }));
+        let mobile: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.pos).collect();
+        (taken, self.keep_out(false), mobile)
+    }
+
+    /// Whether a footprint of half-width `half` can stand at `p` (T-FARM): ground it can take, not a dead slot, not
+    /// in a yard or lane, FARM_GAP clear of every footprint, FARM_MOBILE clear of every mobile unit.
+    fn site_free(&self, p: Vec3, half: f32, taken: &[(Vec3, f32)], lanes: &[Lane], mobile: &[Vec3]) -> bool {
+        self.farm_ground(p, half)
+            && !self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(p) < FARM_GAP)
+            && !lanes.iter().any(|l| l.contains(p))
+            && !taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half + FARM_GAP)
+            && !mobile.iter().any(|q| q.dist2d(p) < half + FARM_MOBILE)
+    }
+
+    /// T-PLANT: each plant standing, framed or ordered (the program counts a committed plant as standing) with the
+    /// construction turrets within PLANT_RING of its centre and the further turrets its ring could take, packed as
+    /// the hands pack them (the free 16-grid point nearest the centre, then the next clear of it, until none is
+    /// free): the ring's capacity, the program's bound on the turrets' assist on that plant's products
+    /// (`LpOptions::plant_rings`; his 29 within 400 of his advanced plant).
+    pub(crate) fn plant_rings(&self) -> Vec<(usize, Vec3, usize, usize)> {
+        let units = &self.game().units;
+        let Some(turret) = (0..units.list.len()).find(|&i| units.list[i].role == Role::Nano) else { return Vec::new() };
+        let fp = self.hello.unit_defs[turret].footprint;
+        let half = fp.0.max(fp.1) as f32 * 4.0;
+        let (taken, lanes, mobile) = self.site_blockers();
+        let mut plants: Vec<(usize, Vec3)> = self.own.values().filter_map(|u| self.unit_index(u.def).filter(|i| units.list[*i].role == Role::Factory).map(|i| (i, u.pos))).collect();
+        plants.extend(self.hands.orders.values().filter_map(|o| match &o.what {
+            What::Build { unit, near, frame: None, .. } if units.list[*unit].role == Role::Factory => Some((*unit, *near)),
+            _ => None,
+        }));
+        let turrets: Vec<Vec3> = self.own.values().filter(|u| self.role_of_def(u.def) == Some(Role::Nano)).map(|u| u.pos).collect();
+        let grid = |v: f32| (v / 16.0).floor() * 16.0 + 8.0;
+        let n = (PLANT_RING / 16.0).ceil() as i32;
+        plants
+            .into_iter()
+            .map(|(unit, centre)| {
+                let standing = turrets.iter().filter(|t| t.dist2d(centre) < PLANT_RING).count();
+                let candidates: Vec<Vec3> = (-n..=n)
+                    .flat_map(|i| (-n..=n).map(move |j| (i, j)))
+                    .map(|(i, j)| Vec3 { x: grid(centre.x) + 16.0 * i as f32, y: centre.y, z: grid(centre.z) + 16.0 * j as f32 })
+                    .filter(|p| p.dist2d(centre) < PLANT_RING)
+                    .collect();
+                let mut packed = taken.clone();
+                let mut free = 0;
+                while let Some(p) = candidates.iter().copied().filter(|p| self.site_free(*p, half, &packed, &lanes, &mobile)).min_by(|a, b| a.dist2d(centre).total_cmp(&b.dist2d(centre))) {
+                    packed.push((p, half));
+                    free += 1;
+                }
+                (unit, centre, standing, free)
+            })
+            .collect()
+    }
+
     /// The farm's slot for `unit` (T-FARM): a turret's the free turret slot of the core nearest home (past the
     /// core, the nearest outside it; first, while the program's factory assist asks for turrets at a plant, the free
     /// grid point within PLANT_RING of that plant nearest its centre, T-PLANT), a big building's the free building slot with the most turrets (standing or
@@ -1564,21 +1627,8 @@ impl Territory {
         let (turret, big) = (kind.role == Role::Nano, kind.build_time >= FARM_BIG);
         let footprint = |fp: (i32, i32)| fp.0.max(fp.1) as f32 * 4.0;
         let half = footprint(self.hello.unit_defs[unit].footprint);
-        let units = &self.game().units;
-        let mut taken: Vec<(Vec3, f32)> = self.own.values().filter_map(|u| self.def(u.def).filter(|d| d.speed == 0.0).map(|d| (u.pos, footprint(d.footprint)))).collect();
-        taken.extend(self.hands.orders.values().filter_map(|o| match &o.what {
-            What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some((*near, footprint(self.hello.unit_defs[*unit].footprint))),
-            _ => None,
-        }));
-        let lanes = self.keep_out(false);
-        let mobile: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.pos).collect();
-        let free = |p: Vec3| {
-            self.farm_ground(p, half)
-                && !self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(p) < FARM_GAP)
-                && !lanes.iter().any(|l| l.contains(p))
-                && !taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half + FARM_GAP)
-                && !mobile.iter().any(|q| q.dist2d(p) < half + FARM_MOBILE)
-        };
+        let (taken, lanes, mobile) = self.site_blockers();
+        let free = |p: Vec3| self.site_free(p, half, &taken, &lanes, &mobile);
         let home = self.home;
         let nearer = |a: Vec3, b: Vec3, to: Vec3| a.dist2d(to).total_cmp(&b.dist2d(to));
         // The core fills from home's side (terr55-56: filled from its centre, 800 out, every turret and frame cost
@@ -1814,12 +1864,14 @@ impl Territory {
     /// simulator's `nanos_help_frames` is off to match).
     pub(crate) fn run_nanos(&mut self, commands: &mut Vec<Command>) {
         let nanos: Vec<(UnitId, Vec3)> = self.own.values().filter(|u| !u.being_built && u.idle && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos)).collect();
+        let plant_assist = self.plant_turrets_wanted().0 > START_AT;
         for (nano, at) in nanos {
             if self.hands.nano_told.get(&nano).is_some_and(|told| self.frame - told < GRACE) {
                 continue;
             }
-            // T-PLANT: with the program's turret assist on, a turret within reach of a factory at work is the factory's.
-            if self.options.nano_assist > 0.0
+            // T-PLANT: while the program asks turret assist at a plant, a turret within reach of a factory at work is
+            // the factory's.
+            if plant_assist
                 && let Some(factory) = self.own.values().filter(|f| !f.being_built && !f.idle && self.role_of_def(f.def) == Some(Role::Factory) && f.pos.dist2d(at) < NANO_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|f| f.id)
             {
                 self.hands.nano_told.insert(nano, self.frame);
