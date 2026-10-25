@@ -499,6 +499,45 @@ impl Palette {
         Palette { mobile, factory: from_factory, constructor, factory_unit, turrets: turret.into_iter().collect() }
     }
 
+    /// The factories of one line only (the territory bot's `line` arm, by the names' ends): "vehicle" keeps the
+    /// vehicle plants, "bot" the bot labs, the air plants in both; any other line keeps every factory. The first
+    /// factory and its constructor follow the line.
+    pub fn keep_line(&mut self, units: &Units, commander: usize, line: &str) {
+        let kept: &[&str] = match line {
+            "vehicle" => &["vp", "avp", "ap", "aap"],
+            "bot" => &["lab", "alab", "ap", "aap"],
+            _ => return,
+        };
+        self.mobile.retain(|i| !matches!(i, Item::Build(u) if units.list[*u].role == Role::Factory && !kept.iter().any(|k| units.list[*u].name.ends_with(k))));
+        let first = units.list[commander]
+            .builds
+            .iter()
+            .copied()
+            .filter(|u| units.list[*u].role == Role::Factory && self.mobile.contains(&Item::Build(*u)))
+            .min_by(|a, b| units.list[*a].metal_cost.total_cmp(&units.list[*b].metal_cost));
+        if let Some(f) = first
+            && let Some(c) = units.cheapest(f, |u| u.role == Role::Builder && u.builds.contains(&f))
+        {
+            (self.factory_unit, self.constructor) = (f, c);
+        }
+    }
+
+    /// Our builder types this palette can make, the commander first: every constructor a factory on offer makes.
+    pub fn builders(&self, units: &Units, commander: usize) -> Vec<usize> {
+        let factories: Vec<usize> = self.mobile.iter().filter_map(|i| match i { Item::Build(u) if units.list[*u].role == Role::Factory => Some(*u), _ => None }).collect();
+        let mut out = vec![commander];
+        for item in &self.factory {
+            if let Item::Build(u) = item
+                && units.list[*u].role == Role::Builder
+                && factories.iter().any(|f| units.list[*f].builds.contains(u))
+                && !out.contains(u)
+            {
+                out.push(*u);
+            }
+        }
+        out
+    }
+
     fn pick(&self, kind: QueueKind, rng: &mut Rng) -> Step {
         let list = if kind == QueueKind::Factory { &self.factory } else { &self.mobile };
         Step { item: list[rng.below(list.len())], site: None }

@@ -76,12 +76,19 @@ impl Field {
     /// a cell, [`IMPASSABLE`] where the class cannot go; a threat penalty is the caller's to add). A step costs its
     /// length times the mean of the two cells' rates. `None` when no origin is near passable ground.
     pub fn from_costs(terrain: &Terrain, costs: &[u32], origins: &[Vec3]) -> Option<Field> {
+        Field::from_costs_within(terrain, costs, origins, f32::INFINITY)
+    }
+
+    /// As `from_costs`, searched no farther than `limit` effective elmos: the ground beyond it is left unreached,
+    /// the cheap form when only the near ground is asked about (a region's spots, each a field of its own).
+    pub fn from_costs_within(terrain: &Terrain, costs: &[u32], origins: &[Vec3], limit: f32) -> Option<Field> {
         let (width, height) = (terrain.width as usize, terrain.height as usize);
         if width == 0 || costs.len() != width * height {
             return None;
         }
         let passable = |index: usize| costs[index] != IMPASSABLE;
         let mut field = Field { cell: terrain.cell, width, height, cost: vec![UNREACHABLE; width * height] };
+        let bound = (f64::from(limit) / f64::from(terrain.cell) * 10.0).min(f64::from(UNREACHABLE - 1)) as u32;
         let mut queue = BinaryHeap::new();
         for origin in origins {
             if let Some(start) = field.nearest(*origin, passable) {
@@ -113,7 +120,7 @@ impl Field {
                 }
                 let rate = (u64::from(costs[index]) + u64::from(costs[next])) / 2;
                 let total = (u64::from(cost) + step * rate / 10).min(u64::from(UNREACHABLE - 1)) as u32;
-                if total < field.cost[next] {
+                if total < field.cost[next] && total <= bound {
                     field.cost[next] = total;
                     queue.push(Reverse((total, next)));
                 }
@@ -462,6 +469,18 @@ mod weighted {
         assert!(field.reaches(at(5.5 * 16.0, 10.5 * 16.0)));
         assert!(!field.reaches(at(-8.0, 24.0)), "off the map");
     }
+
+    #[test]
+    fn a_bounded_field_stops_at_its_limit_and_agrees_inside_it() {
+        let terrain = flat(64, 4);
+        let costs = vec![10u32; 64 * 4];
+        let origin = at(8.0, 8.0);
+        let full = Field::from_costs(&terrain, &costs, &[origin]).unwrap();
+        let near = Field::from_costs_within(&terrain, &costs, &[origin], 300.0).unwrap();
+        let (inside, outside) = (at(16.0 * 15.5, 8.0), at(16.0 * 40.5, 8.0));
+        assert_eq!(near.distance(inside), full.distance(inside));
+        assert!(full.reaches(outside) && !near.reaches(outside) && near.distance(outside).is_none());
+    }
 }
 
 #[cfg(test)]
@@ -482,6 +501,13 @@ mod field_timing {
             assert!(Field::from(&terrain, &passable, origin).is_some());
         }
         eprintln!("44 fields: {:.0} ms", started.elapsed().as_secs_f64() * 1000.0);
+        let costs = vec![10u32; (width * height) as usize];
+        let started = std::time::Instant::now();
+        for i in 0..44 {
+            let origin = Vec3 { x: (i * 150) as f32, y: 0.0, z: (i * 100) as f32 };
+            assert!(Field::from_costs_within(&terrain, &costs, &[origin], 1100.0).is_some());
+        }
+        eprintln!("44 fields within 1,100: {:.0} ms", started.elapsed().as_secs_f64() * 1000.0);
     }
 }
 

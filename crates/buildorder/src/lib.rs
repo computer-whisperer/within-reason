@@ -6,6 +6,7 @@ pub mod game;
 pub mod lp;
 pub mod plan;
 pub mod record;
+pub mod regions;
 pub mod sim;
 pub mod start;
 pub mod units;

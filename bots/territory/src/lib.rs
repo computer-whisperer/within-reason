@@ -21,6 +21,7 @@ use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Res
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
 use buildorder::lp::LpOptions;
+use buildorder::regions::{Regions, REGION_SECONDS};
 use buildorder::plan::{Item, Plan};
 use buildorder::units::Role;
 
@@ -106,23 +107,32 @@ impl Territory {
         if !self.options.soldiers {
             palette.factory.retain(|i| matches!(i, Item::Build(u) if game.units.list[*u].role == Role::Builder));
         }
-        // The line arm: the factories the program may open with, by their names' ends (the air plants in both).
-        let kept: Option<&[&str]> = match self.options.line.as_str() {
-            "vehicle" => Some(&["vp", "avp", "ap", "aap"]),
-            "bot" => Some(&["lab", "alab", "ap", "aap"]),
-            _ => None,
-        };
-        if let Some(kept) = kept {
-            palette.mobile.retain(|i| !matches!(i, Item::Build(u) if game.units.list[*u].role == Role::Factory && !kept.iter().any(|k| game.units.list[*u].name.ends_with(k))));
-        }
+        // The line arm: the factories the program may open with.
+        palette.keep_line(&game.units, game.commander, &self.options.line);
         let names = |items: &[Item]| items.iter().map(|i| match i { Item::Build(u) => game.units.list[*u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() }).collect::<Vec<_>>().join(" ");
         let (mobile, factory) = (names(&palette.mobile), names(&palette.factory));
+        let builders = palette.builders(&game.units, game.commander);
+        let line_constructor = palette.constructor;
         self.ground = Some(game.ground());
         let game = Arc::new(game);
         self.game = Some(game.clone());
         self.planner = Some(planner::Planner::new(game, palette));
         let scenario = self.scenario();
         self.spots = self.spot_indices(&scenario);
+        // The map's spots in regions, each within REGION_SECONDS' walk of the line's first constructor (step 1 of
+        // `docs/design/2026-10-25-territory-regions.md`: logged, not yet planned over).
+        let began = std::time::Instant::now();
+        let game = self.game.clone().expect("made above");
+        let radius = REGION_SECONDS * game.units.list[line_constructor].speed;
+        let regions = Regions::new(&game, &builders, radius);
+        self.log(format_args!(
+            "regions: {} over {} spots within {radius:.0} ({REGION_SECONDS:.0} s of {}) in {} ms: {}",
+            regions.list.len(),
+            game.spots.len(),
+            game.units.list[line_constructor].name,
+            began.elapsed().as_millis(),
+            regions.describe(&game, &builders, &self.spots).join(" | ")
+        ));
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
         // first plan worth 35,000 against the 86,000 found 28 s later). Every place a plan walks to: the spots,

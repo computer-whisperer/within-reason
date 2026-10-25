@@ -27,6 +27,10 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--from SECONDS (with --game: from the record's state then)] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
+  buildorder regions   --game RECORD.jsonl | --hello DUMP.json [--line vehicle|bot|any] [--seconds 20] [--csv FILE]
+                       (the map's spots in regions, docs/design/2026-10-25-territory-regions.md: each region's spots
+                       within --seconds' walk of the line's first constructor, and the seconds an extractor there costs
+                       each of our builder types; the csv a row a spot: its region and its place in the region's order)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
                        (plan words: unit names without the faction prefix, assist, help; help puts the builder's power on the dearest frame)
   buildorder walks     RECORD.jsonl... [--minutes 6]      (builders' ways between builds: recorded against predicted)
@@ -467,6 +471,48 @@ fn linear_program(args: &Args) {
     }
 }
 
+/// The map's spots in regions, as the territory bot logs them at its start.
+fn regions(args: &Args) {
+    let game = game(args);
+    let units = &game.units;
+    let water = game.terrain.heights.iter().any(|h| *h < 0);
+    let mut palette = Palette::roster(units, game.commander, None, water, &also(&game, args));
+    palette.keep_line(units, game.commander, &args.text("--line", "vehicle"));
+    let builders = palette.builders(units, game.commander);
+    let seconds: f64 = args.number("--seconds", buildorder::regions::REGION_SECONDS);
+    let radius = seconds * units.list[palette.constructor].speed;
+    let began = std::time::Instant::now();
+    let regions = buildorder::regions::Regions::new(&game, &builders, radius);
+    let took = began.elapsed();
+    let mut sizes: Vec<usize> = regions.list.iter().map(|r| r.spots.len()).collect();
+    sizes.sort_unstable();
+    println!(
+        "{} regions over {} spots within {radius:.0} ({seconds:.0} s of {} at {:.1}/s), {} movement classes, in {} ms; spots a region: median {}, at most {}",
+        regions.list.len(),
+        game.spots.len(),
+        units.list[palette.constructor].name,
+        units.list[palette.constructor].speed,
+        regions.classes.len(),
+        took.as_millis(),
+        sizes.get(sizes.len() / 2).copied().unwrap_or(0),
+        sizes.last().copied().unwrap_or(0)
+    );
+    let all: Vec<usize> = (0..game.spots.len()).collect();
+    for line in regions.describe(&game, &builders, &all) {
+        println!("  {line}");
+    }
+    if let Some(path) = args.value("--csv") {
+        let mut out = String::from("spot,x,z,region,order,centre\n");
+        for (r, region) in regions.list.iter().enumerate() {
+            for (k, s) in region.spots.iter().enumerate() {
+                let (x, z) = game.spots[*s].0;
+                let _ = writeln!(out, "{s},{x:.0},{z:.0},{r},{k},{}", u8::from(region.centre == *s));
+            }
+        }
+        std::fs::write(path, out).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+    }
+}
+
 fn run_plan(args: &Args) {
     let game = game(args);
     let units = &game.units;
@@ -617,6 +663,7 @@ fn main() {
         Some("optimize") => optimize(&args),
         Some("simulate") => run_plan(&args),
         Some("lp") => linear_program(&args),
+        Some("regions") => regions(&args),
         Some("calibrate") => calibrate(&args),
         Some("walks") => walks(&args),
         _ => die("missing or unknown command"),

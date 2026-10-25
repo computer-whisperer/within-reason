@@ -228,8 +228,10 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
 
 0. **The bench.** Done (terr133-138): the script and the reader, and one repeat of the standing build, which
    measured the spread above. No change to the bot.
-1. **Regions computed and logged.** A `regions:` line at the start: each region's spots, metal, centre, walking times
-   and status. Offline, `buildorder regions --hello DUMP`, the same for any dump. No change to the bot's decisions.
+1. **Regions computed and logged.** Done (terr139-144, T-REGIONS): a `regions:` line at the start, each region's
+   spots, metal, centre, tour and the seconds an extractor there costs each builder type; offline,
+   `buildorder regions --hello DUMP`. The walks between regions and the status wait for the steps that read them (4
+   and 5). No change to the bot's decisions, and the bench inside the pooled range.
 2. **The planner over regions.** Extractor columns per region, prices derived, the commander's columns on its
    regions. Offline first, the two Comet starts priced apart and the program's 5:00 on each, before the bench. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
    `rings`, `ring_overhead`, `com_leash` and `commander_walk_*` as arms. The hands take the region's spot.
