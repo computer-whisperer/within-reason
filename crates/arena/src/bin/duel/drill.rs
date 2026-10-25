@@ -68,6 +68,12 @@ pub const TOP_UP_UNDER: f32 = 0.6;
 pub const HEADING_MOVED: f32 = 10.0;
 /// `assault` (D16): the defence's buildings stand this far apart in one rank across the approach, centred on the goal.
 pub const DEFENCE_SPACING: f32 = 128.0;
+/// D21: the churned structure's sites stand this far past the formation's half-width off the axis; the crosser is
+/// sent when the army's centroid is within this of its crossing point along the axis, to this far past the strip's
+/// other side.
+pub const CHURN_OFF: f32 = 160.0;
+pub const CROSSER_TRIGGER: f32 = 500.0;
+pub const CROSSER_BEYOND: f32 = 1200.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -145,6 +151,40 @@ pub struct Options {
     /// `assault`: `--theirs` on the march (design D18): side `y`'s mobile units get a Fight order toward the army's
     /// start when the army's first orders go out (and at the re-issue cadence), under `--lane x/y`'s second mode.
     pub advance: bool,
+    /// D21, the live faults as arms (`docs/design/2026-10-24-formation-drills.md`): a rear party `--behind FORCE@D`
+    /// spawned `D` behind the start, members from the first order; `--scatter D` pushes every spawn place back along
+    /// the axis by its share of `D`; `--churn S` gives side `x` a structure (`churn_def`) every `S` frames beside the
+    /// start, the one standing self-destructed first; `--stall T,S` holds the rearmost formed member out of the group
+    /// for `S` frames from `T` frames after the first order; `--crosser NAME@D,W` is side `y`'s one unit `D` along the
+    /// axis and `W` off it, sent across the strip when the army comes.
+    pub behind: Vec<(String, u32)>,
+    pub behind_distance: f32,
+    pub scatter: f32,
+    pub churn: Option<i32>,
+    pub churn_def: String,
+    pub stall: Option<(i32, i32)>,
+    pub crosser: Option<(String, f32, f32)>,
+}
+
+/// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
+/// and of a pending give, and the cadence.
+pub struct Churn {
+    pub def: UnitDefId,
+    pub sites: [Vec3; 2],
+    pub standing: Option<UnitId>,
+    pub next: usize,
+    pub last: Option<i32>,
+    pub given: Option<i32>,
+    pub every: i32,
+}
+
+/// D21's crosser: its spawn index in army `y`, where it crosses (along the axis from the start, off it), and whether
+/// it has been sent.
+pub struct Crosser {
+    pub index: usize,
+    pub along: f32,
+    pub across: f32,
+    pub sent: bool,
 }
 
 /// What a drill measured, for `duels.csv` (`report.rs`); empty outside a drill.
@@ -186,6 +226,11 @@ pub struct Score {
     pub joined: u32,
     /// Members the host took out of the group as stragglers (`STRAGGLER_PATIENCE`).
     pub left_behind: u32,
+    /// D21: member-elmos walked away from the goal along the axis over those walked toward it, the elmos the anchor
+    /// moved against its heading summed over ticks, and the seconds the group's pace was 0 while marching.
+    pub backtrack_share: Option<f32>,
+    pub anchor_back: f32,
+    pub stopped_s: u32,
 }
 
 /// One living mobile unit as the sampler sees it: its spawn index, id, place and its type's speed (elmos a second).
@@ -310,13 +355,35 @@ pub struct Drill {
     pub slowest: f32,
     /// The body's centroid at the last sample, for the heading (its displacement over the second when 10 or more).
     last_centroid: Option<Vec3>,
+    /// D21's arms: the churned structure, the stall (frames from the first order, for how long), the member held
+    /// (id, until which frame) and whether the stall has been done, and the crosser.
+    pub churn: Option<Churn>,
+    pub stall: Option<(i32, i32)>,
+    pub stalled: Option<(UnitId, i32)>,
+    pub stall_done: bool,
+    pub crosser: Option<Crosser>,
+    /// D21's measures: member-elmos along the axis toward the goal and away from it (this second's away in
+    /// `back_second`); the anchor's steps against its heading, from the anchor and heading last noted; the group's
+    /// pace, arrived and engaged as last noted and the seconds the pace was 0 on the march; the orders to the army
+    /// this second with the ticks that had none, and the last whole second's.
+    pub forward: f32,
+    pub back: f32,
+    pub back_second: f32,
+    pub anchor_back: f32,
+    last_anchor: Option<(Vec3, (f32, f32))>,
+    group_pace: Option<(f32, bool, bool)>,
+    pub stopped_s: u32,
+    orders_second: (u32, u32),
+    pub orders_last_second: (u32, u32),
 }
 
 impl Drill {
     /// The strip's ends from the site's centre: the start `distance / 2` west of it, the goal as far east.
     pub fn new(options: &Options, centre: Vec3, wanted: Vec<(UnitDefId, u32)>) -> Drill {
-        let start = Vec3 { x: centre.x - options.distance / 2.0, ..centre };
-        let goal = Vec3 { x: centre.x + options.distance / 2.0, ..centre };
+        // The strip holds the walk and a rear party's `behind_distance` (D21): the goal at the east end of that span.
+        let span = options.distance + options.behind_distance;
+        let goal = Vec3 { x: centre.x + span / 2.0, ..centre };
+        let start = Vec3 { x: goal.x - options.distance, ..centre };
         Drill {
             kind: options.kind,
             fight: options.fight,
@@ -367,6 +434,20 @@ impl Drill {
             walk: None,
             slowest: 0.0,
             last_centroid: None,
+            churn: None,
+            stall: options.stall,
+            stalled: None,
+            stall_done: false,
+            crosser: None,
+            forward: 0.0,
+            back: 0.0,
+            back_second: 0.0,
+            anchor_back: 0.0,
+            last_anchor: None,
+            group_pace: None,
+            stopped_s: 0,
+            orders_second: (0, 0),
+            orders_last_second: (0, 0),
         }
     }
 
@@ -398,6 +479,29 @@ impl Drill {
     /// stands at the route's end with no exceptions (a circuit ends on that word; `sample` takes the share).
     pub fn note_group(&mut self, formed: usize, members: usize, done: bool) {
         self.group = Some((formed, members, done));
+    }
+
+    /// D21: the group's anchor, heading, pace and standing this tick. A step of the anchor against its heading is
+    /// summed in `anchor_back` (a snap back onto the body shows here, a march never does); the pace and standing are
+    /// kept for the second's `stopped_s`.
+    pub fn note_anchor(&mut self, anchor: Vec3, heading: (f32, f32), pace: f32, arrived: bool, engaged: bool) {
+        if let Some((last, h)) = self.last_anchor {
+            let step = (anchor.x - last.x) * h.0 + (anchor.z - last.z) * h.1;
+            if step < 0.0 {
+                self.anchor_back -= step;
+            }
+        }
+        self.last_anchor = Some((anchor, heading));
+        self.group_pace = Some((pace, arrived, engaged));
+    }
+
+    /// D21: how many commands went to the army this tick (the per-second line's `orders`: the count and the ticks
+    /// with none, the burst-and-silence shape).
+    pub fn note_orders(&mut self, count: usize) {
+        self.orders_second.0 += count as u32;
+        if count == 0 {
+            self.orders_second.1 += 1;
+        }
     }
 
     /// The paced slot of a unit spawned at `spawned`: its place in the formation carried from the end behind along the
@@ -507,6 +611,11 @@ impl Drill {
         }
         let mut shares: Vec<f32> = Vec::new();
         let mut now: HashMap<UnitId, Vec3> = HashMap::new();
+        // D21: each member's step along the axis toward the goal in force since the last sample, forward and back.
+        let axis = self.axis();
+        let norm = (axis.x * axis.x + axis.z * axis.z).sqrt();
+        let unit = if norm > 0.0 { (axis.x / norm, axis.z / norm) } else { (0.0, 0.0) };
+        self.back_second = 0.0;
         for w in walkers {
             // A unit that has arrived stands; its share counts until then.
             if let Some(last) = self.last.get(&w.id)
@@ -515,12 +624,30 @@ impl Drill {
             {
                 shares.push((last.dist2d(w.at) / w.speed).min(1.5));
             }
+            if let Some(last) = self.last.get(&w.id) {
+                let step = (w.at.x - last.x) * unit.0 + (w.at.z - last.z) * unit.1;
+                if step >= 0.0 {
+                    self.forward += step;
+                } else {
+                    self.back -= step;
+                    self.back_second -= step;
+                }
+            }
             now.insert(w.id, w.at);
             if self.kind != Kind::Circuit && w.at.dist2d(self.toward) <= ARRIVED {
                 self.arrived.entry(w.index).or_insert(frame);
             }
         }
         self.last = now;
+        if let Some((pace, arrived, engaged)) = self.group_pace
+            && pace == 0.0
+            && !arrived
+            && !engaged
+            && self.last_order.is_some()
+        {
+            self.stopped_s += 1;
+        }
+        self.orders_last_second = std::mem::take(&mut self.orders_second);
         if self.kind == Kind::Circuit {
             self.sample_circuit(frame, walkers);
         }
@@ -666,6 +793,9 @@ impl Drill {
             formed_share: (!self.formed_shares.is_empty()).then(|| self.formed_shares.iter().sum::<f32>() / self.formed_shares.len() as f32),
             joined: self.joined.len() as u32,
             left_behind: self.left_behind.len() as u32,
+            backtrack_share: (self.forward > 0.0).then(|| self.back / self.forward),
+            anchor_back: self.anchor_back,
+            stopped_s: self.stopped_s,
         }
     }
 }
@@ -679,7 +809,42 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None }
+    }
+
+    /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back
+    /// (the share is back over forward); the anchor's step against its heading sums in `anchor_back` (a march never
+    /// adds, a snap onto the body does); a second with the pace at 0 while marching is a stopped second; the orders
+    /// each tick count with the ticks that had none.
+    #[test]
+    fn a_walk_counts_backtracking_the_anchors_snaps_and_stopped_seconds() {
+        let mut drill = Drill::new(&options(Kind::Walk), at(2500.0, 1000.0), Vec::new());
+        drill.last_order = Some(0);
+        drill.first_order = Some(0);
+        let walkers = |x: f32| vec![Walker { index: 0, id: UnitId(1), at: at(x, 1000.0), speed: 100.0 }];
+        drill.sample(0, &walkers(1100.0), 1, &[]);
+        drill.sample(30, &walkers(1200.0), 1, &[]);
+        drill.sample(60, &walkers(1160.0), 1, &[]);
+        assert!((drill.forward - 100.0).abs() < 0.01 && (drill.back - 40.0).abs() < 0.01, "{} / {}", drill.forward, drill.back);
+        assert!((drill.back_second - 40.0).abs() < 0.01);
+        // The anchor marches 10 a tick east, then snaps 400 west: only the snap counts.
+        drill.note_anchor(at(1500.0, 1000.0), (1.0, 0.0), 100.0, false, false);
+        drill.note_anchor(at(1510.0, 1000.0), (1.0, 0.0), 100.0, false, false);
+        drill.note_anchor(at(1110.0, 1000.0), (1.0, 0.0), 100.0, false, false);
+        assert!((drill.anchor_back - 400.0).abs() < 0.01, "{}", drill.anchor_back);
+        // Pace 0 on the march is a stopped second; arrived or engaged it is not.
+        drill.note_anchor(at(1110.0, 1000.0), (1.0, 0.0), 0.0, false, false);
+        drill.sample(90, &walkers(1160.0), 1, &[]);
+        drill.note_anchor(at(1110.0, 1000.0), (1.0, 0.0), 0.0, true, false);
+        drill.sample(120, &walkers(1160.0), 1, &[]);
+        assert_eq!(drill.stopped_s, 1);
+        drill.note_orders(8);
+        drill.note_orders(0);
+        drill.note_orders(0);
+        drill.sample(150, &walkers(1160.0), 1, &[]);
+        assert_eq!(drill.orders_last_second, (8, 2));
+        let score = drill.score(0);
+        assert!((score.backtrack_share.unwrap() - 0.4).abs() < 0.01 && score.anchor_back == 400.0 && score.stopped_s == 1);
     }
 
     /// A circuit (D12): a core unit's passes of the lab's corner count with hysteresis (the start inside it counts

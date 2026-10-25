@@ -378,6 +378,23 @@ against formation 3 of 8 at -0.11 +- 0.10 (even, as a mirror should be). On the 
 survivors pass each other and stand at the other's end, nobody meets), the margins +0.48 (formed) and +0.34 (trickle)
 standing as the measure.
 
+**The live faults as arms (design D21, 2026-10-25).** Five options reproduce, with no model, what migration-2-2's record
+showed the lane doing in a game: `--behind FORCE@D` spawns a rear party `D` behind the start, one rank across, members
+of the group from the first order (the strip grows by `D`); `--scatter D` pushes every spawn place back along the axis by
+its share of `D`, a column with no formed member; `--churn S` gives side `x` a structure (`--churn-def`, default
+`armsolar`) every `S` seconds at one of two sites beside the start, the one standing self-destructed first, so the
+ground's structure hash changes as a base under construction changes it (the per-second line's `churn` says whether one
+stands); `--stall T,S` holds the rearmost formed member out of the declared group for `S` seconds from `T` seconds after
+the first order, a Stop each tick, then it is a member again (`stalled` in the line and in `orders`); `--crosser
+NAME@D,W` is side `y`'s one unit `D` along the axis from the start and `W` off it, sent `W + 1,200` past the other side
+when the army's centroid comes within 500 of `D`. The measures, in `duels.csv` and `run/drill_table.py`:
+`backtrack_share` (member-elmos walked away from the goal along the axis over those walked toward it, from the
+once-a-second positions), `anchor_back` (elmos the anchor moved against its heading, summed over ticks: a march never
+adds, a snap onto the body does) and `stopped_s` (seconds at pace 0 while marching, not arrived and not engaged); the
+per-second line carries `back` (that second's backward member-elmos) and `sent` (commands to the army that second, ticks
+with none), which `--seconds` prints as back/sent-silent with `c` and `s` marks. The meta line carries `churn_s`,
+`stall_s` and `crosser`.
+
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
 ground, not a firing range's 16), and 900 from both commanders, who start along the north edge for a drill

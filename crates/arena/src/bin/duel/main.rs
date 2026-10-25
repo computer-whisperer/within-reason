@@ -388,7 +388,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -495,6 +495,36 @@ fn parse_args() -> io::Result<Options> {
             "--to" => drill_opts.to = Some(point(&value())),
             "--around" => drill_opts.around = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--around takes a ratio, such as 1.3"))),
             "--advance" => drill_opts.advance = true,
+            // D21's arms (`docs/design/2026-10-24-formation-drills.md`).
+            "--behind" => {
+                let text = value();
+                let (force, distance) = text.split_once('@').unwrap_or_else(|| usage("--behind takes name*count[+...]@DISTANCE, such as armpw*4@1600"));
+                let force = plan::Force::parse(force);
+                if force.parts.iter().any(|(_, c)| *c == 0) {
+                    usage("--behind takes name*count[+...]@DISTANCE");
+                }
+                drill_opts.behind = force.parts;
+                drill_opts.behind_distance = distance.parse::<f32>().unwrap_or_else(|_| usage("--behind's distance is elmos, such as 1600"));
+            }
+            "--scatter" => drill_opts.scatter = value().parse::<f32>().unwrap_or_else(|_| usage("--scatter takes elmos, such as 1200")),
+            "--churn" => {
+                let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--churn takes seconds, such as 5"));
+                drill_opts.churn = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f > 0);
+            }
+            "--churn-def" => drill_opts.churn_def = value(),
+            "--stall" => {
+                let text = value();
+                let (at, for_s) = text.split_once(',').unwrap_or_else(|| usage("--stall takes AT,FOR in seconds, such as 8,6"));
+                let parse = |t: &str| t.trim().parse::<f32>().unwrap_or_else(|_| usage("--stall takes AT,FOR in seconds, such as 8,6"));
+                drill_opts.stall = Some(((parse(at) * drill::FPS as f32).round() as i32, (parse(for_s) * drill::FPS as f32).round() as i32));
+            }
+            "--crosser" => {
+                let text = value();
+                let (name, rest) = text.split_once('@').unwrap_or_else(|| usage("--crosser takes NAME@ALONG,ACROSS, such as armfav@700,500"));
+                let (along, across) = rest.split_once(',').unwrap_or_else(|| usage("--crosser takes NAME@ALONG,ACROSS, such as armfav@700,500"));
+                let parse = |t: &str| t.trim().parse::<f32>().unwrap_or_else(|_| usage("--crosser's places are elmos, such as 700,500"));
+                drill_opts.crosser = Some((name.to_string(), parse(along), parse(across)));
+            }
             "--distance" => drill_opts.distance = number(value()) as f32,
             "--order" => {
                 drill_opts.fight = match value().as_str() {

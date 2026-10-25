@@ -182,6 +182,24 @@ def speeds_by_second(batch, row, speeds):
     return out
 
 
+def extras_by_second(batch, row):
+    """D21: from one duel's per-second log, each second's backward member-elmos and the orders sent with the ticks
+    that sent none, marked `c` when the churned structure stood and `s` when a member was stalled; None when the log
+    carries no `sent`."""
+    read = read_log(batch, row)
+    if read is None:
+        return None
+    _meta, log = read
+    out = []
+    for r in log:
+        sent = r.get("sent")
+        if sent is None:
+            continue
+        marks = ("c" if r.get("churn") else "") + ("s" if r.get("stalled") is not None else "")
+        out.append(f"{fmt(r.get('back'))}/{sent[0]}-{sent[1]}{marks}")
+    return out or None
+
+
 def group_by_second(batch, row):
     """From one duel's per-second log: the lane's group each second as (pace, formed, exceptions by cause), when the
     log carries a `group` (the army a declared group, `--lane on|ranks`)."""
@@ -290,7 +308,7 @@ def main():
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
         assault = meta.get("kind") == "assault"
-        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind |"
+        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind | backtrack | anchor back | stopped s |"
         if assault:
             # D16: the duel's judge and fire columns beside the drill's.
             head += " taken / wiped / timeout | taken s | margin (value left x - y) | lost before shot | shots per reach s | muzzled share | friend on line |"
@@ -335,6 +353,10 @@ def main():
             cells.append(fmt(mean(number(r.get("formed_share")) for r in rs), 2))
             cells.append(fmt(mean(number(r.get("joined")) for r in rs), 1))
             cells.append(fmt(mean(number(r.get("left_behind")) for r in rs), 1))
+            # D21: member-elmos back over forward, the anchor's elmos against its heading, seconds at pace 0.
+            cells.append(fmt(mean(number(r.get("backtrack_share")) for r in rs), 2))
+            cells.append(fmt(mean(number(r.get("anchor_back")) for r in rs)))
+            cells.append(fmt(mean(number(r.get("stopped_s")) for r in rs), 1))
             if assault:
                 taken = sum(1 for r in rs if r.get("reason") == "taken")
                 wiped = sum(1 for r in rs if r.get("reason") == "wiped")
@@ -371,6 +393,9 @@ def main():
                             tag = "".join(f" {c[0]}{n}" for c, n in sorted(causes.items()))
                             cells_g.append(f"{fmt(pace)}/{formed}{tag}{'*' if arrived else ''}{'!' if engaged else ''}")
                         print(f"|   first duel, group each second as pace/formed [a=away b=behind f=fled j=joining s=stuck; * arrived, ! engaged]: {' '.join(cells_g)} |")
+                    extras = extras_by_second(batch, r)
+                    if extras:
+                        print(f"|   first duel, each second as back/sent-silent [backward member-elmos; orders sent, ticks with none; c = structure churned standing, s = a member stalled]: {' '.join(extras)} |")
         print()
 
 

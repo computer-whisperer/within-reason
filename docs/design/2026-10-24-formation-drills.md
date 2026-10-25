@@ -683,6 +683,111 @@ engine, not a guess):
    arrives later), and twenty units ordered on one frame request twenty paths. Whatever that costs is in the
    measurement, as it is in a game.
 
+- **D21. The live faults as drills** (the user, 2026-10-25, watching migration-2-2's replay: "The first scenario I see
+  at 7:29 shows a group mid-field, possibly trying to advance to the enemy, but doubling back every few seconds
+  whenever a new unit gets close. Let's focus on that flaw first, and any other structural defects you see"; then,
+  on the plan of drills that reproduce the faults before the fix: "Go ahead with the drill"). What the record showed
+  (`docs/design/2026-10-25-hands-migration.md`, migration-2-2): group_B held one order 7:06-7:42 and walked a
+  five-second sawtooth, its members ordered 300-430 backwards every fifth second, 800 elmos of progress in 35 s at a
+  speed of 101; over the game 3,611 marching group-seconds at a formed share of 0.26, the anchor over 300 from its body
+  44% of the time, 215 backward anchor snaps, 192 of them within 5 s of a structure or wreck changing somewhere on the
+  map. The chain, each link read in the code: a group declared from a dispersed body has every member "joining";
+  only a member that has once stood in a slot drags the anchor (`formed_once`), so nothing holds it and it marches at
+  full pace from the first tick; the slots sit the lead ahead of an anchor moving at the members' own speed, so an
+  equal-speed member never closes on one and never becomes formed; any footprint change anywhere rebuilds the ground
+  no sooner than every 5 s (`STRUCTURES_CADENCE`) and marks the group dirty; on dirty, an anchor over `REJOIN_WAY`
+  from the centroid of *all* members (the far joiners included; `reanchor` uses the formed-once body, the dirty path
+  in `tick` every walker) is set down on that centroid, hundreds behind the head, and the head is ordered back. Two
+  more shapes in the same game: an anchor held to a stop by one in-body member over 300 behind (B4 22:24: 46 orders to
+  points 1,082 away, then pace 0 for four seconds, every member re-ordered on the same tick when it moved again: the
+  burst-and-silence the user saw), and a contact that ends (A1 26:49: 32 Moves to contact slots 570 away, 3.5 s of
+  silence, 28 Fights back to the march slots). None of the drills so far started a body unformed, stalled a formed
+  member, or passed an enemy by: the walks spawn in formation, the circuit's joiners come one at a time from a lab
+  behind a body already formed.
+
+  Four arms on the walk drill (and the circuit where they apply), the director's alone, nothing in the lane:
+  - `--behind FORCE@D`: a rear party of the army spawned `D` behind the start along the axis, one rank across,
+    members of the group and of the army's books from the first order (the strip grows by `D`; with `--from/--to`
+    the party stands `D` behind the start unchecked). The hands' case: a group declared with joiners far away.
+  - `--scatter D`: every member's spawn place pushed back along the axis by `D * i / (n - 1)`, so the body is a
+    column `D` long with no formed member and the anchor set down on its centroid. The 7:29 case: everyone joining.
+  - `--churn S`: every `S` seconds side `x` is given a structure (`--churn-def`, default `armsolar`) at one of two
+    sites beside the start off the axis, the one standing self-destructed first, so the ground's structure hash
+    changes each time as a base under construction changes it. The dirty clock, isolated.
+  - `--stall T,S`: `T` seconds after the first order the rearmost formed member is taken out of the declared group
+    for `S` seconds and given a Stop each tick (a flee claim or a fight does this to a member in a game), then is a
+    member again, formed-once and far behind. The held anchor.
+  - `--crosser NAME@D,W`: side `y`'s one mobile unit (default a Rover) stands `D` along the axis from the start and
+    `W` off it; when the army's centroid is within 500 of `D` along the axis it is sent across the strip to `W + 1,200`
+    on the other side and keeps going. The contact that comes and goes.
+  Measures, in the score and `duels.csv`: `backtrack_share` (member-elmos walked away from the goal along the axis
+  over member-elmos walked toward it, from the once-a-second positions), `anchor_back` (elmos the anchor moved
+  against its heading, summed over ticks), `stopped_s` (seconds the group's pace was 0 while marching, not arrived
+  and not engaged); in the per-second line `back` (that second's backward member-elmos), `orders` as
+  `[commands to the army this second, ticks with none]`, `churn` (the structure standing), `stalled` (the index held),
+  and `drill_meta` carries the arms. `run/drill_table.py` prints the three.
+
+  Predictions written before the first run, each a kill-test of one link: (1) `--churn 5` alone on a formed body is
+  harmless: `anchor_back` under 50, formed share within 0.03 of the plain walk. (2) `--behind armpw*4@1600` alone:
+  the four never formed and the anchor never waits (arrival of the eight as the plain walk's, the four 15 s later),
+  `anchor_back` under 50. (3) `--behind armpw*4@1600 --churn 5`: the sawtooth: `anchor_back` over 1,000, the
+  backtrack share over 0.3, the eight's arrival at least 1.5x the plain walk's. (4) `--scatter 1200 --churn 5`:
+  formed share under 0.3 over the first 30 s. (5) `--stall 8,6`: `stopped_s` of 3 or more and at least three ticks
+  with no orders in each of those seconds. (6) `--crosser armfav@700,500`: backtrack share over 0.1 with the
+  contact's two bursts in the per-second orders. A prediction that fails names a link the chain does not have, and
+  the fix (the next decision) is to be measured on these same arms.
+
+  Run (d21-a0..a4, 2026-10-25 afternoon, twelve Pawns in ranks of six, 1,200 on Quicksilver, three duels an arm):
+  (1) holds: churn alone, formed 0.99, anchor back 0, arrival 13 s as the plain walk's (0.97, 0, 13 s). (2) half
+  holds: the four never formed and the anchor never waited (the twelve arrived at 12-13 s, the four at 28 s, anchor
+  back 0), but *nobody* formed: `Group::new` sets the anchor on the centroid of every member, 350 behind the front
+  twelve, whose order points (slot plus the lead of 300) then stood 50 behind them, so they rode 300 ahead of their
+  slots the whole way, overshot the goal by 300 when the anchor stopped, and walked back: 1,005-1,068 member-elmos a
+  second for three seconds, the backtrack share 0.12 on a walk that should have none. The declaration-time face of
+  the defect, with no churn at all. (3) fails: no sawtooth, anchor back 0. The arithmetic: the all-member centroid
+  sits `(k / n) * D` behind the anchor for `k` of `n` members `D` behind, less the `300 * (n - k) / n` the front riders
+  are ahead: 350 - 225 = 125 here, under `REJOIN_WAY` (400), so the dirty tick never set the anchor down. In
+  migration-2-2 group_B had three of eleven about 1,800 behind (490 - 220 = 270) *and* a body that had walked back
+  toward slots behind it (the Blitzes' lead is learned, near 0, so their order points were their slots, 500 behind
+  them at 7:10). (4) fails in letter, formed 0.48: the front eight walked back onto their slots in three seconds
+  (347 member-elmos) and were formed from then on; the rearmost four, behind their slots at the slots' own speed,
+  never were; the median arrival 19 s against 12, and the same 1,400 member-elmos of overshoot and return at the
+  goal. Second slice (d21-a5/a6): six of eighteen 1,800 behind on an 800 walk (pull 600 - 200 = 400 at the start, 600
+  once the front twelve have walked back onto their slots), without and with churn. Predictions: (3b) without churn,
+  backtrack share over 0.2 (the twelve walk 300 back onto slots behind them, then ride) and anchor back 0; (3c) with
+  churn, anchor back over 1,000 and the twelve's arrival at least 1.5x the 800 walk's 9 s.
+  Run: (3b) holds in shape, backtrack 0.15 (the twelve walked back onto points 140 behind them, not 300: the lead of
+  300 put their order points there) and anchor back 0; (3c) fails, anchor back 0: the rear six walk at the anchor's
+  own speed and stay 1,450 behind it while the twelve ride 115 ahead, the centroid 387 behind, under 400. Eight behind
+  (d21-a7, pull about 650, group debug on): the ground rebuilt on every churn ("the structures changed", a PLAN after
+  each, twelve in a duel), and at the first rebuild after the start a RE-DEAL that set the anchor back 312 and sent
+  the twelve 1,037 member-elmos backwards in one second; one snap only, since the Pawns then ride 300 ahead again and
+  the centroid stays inside 400. The chain's every link is now seen in a drill; what the Pawn-only arms cannot show is
+  the *repetition*, because the Pawn is the pace type and its lead of 300 keeps the body ahead of its slots. In the
+  game the body was Blitzes, a faster type whose lead is learned from 0, so each snap put their order points on slots
+  behind them and they walked back onto them faster than the anchor advanced; then the anchor ran on, the rear's pull
+  put the centroid over 400 behind it again, and the next rebuild snapped it back. Arm d21-a9: twelve Blitzes with six
+  Pawns 1,800 behind (the Pawns the pace type) and churn 5, against d21-a10 without churn. Predictions: (3d) a9 anchor
+  back over 1,000 with three or more snaps, backtrack share over 0.3, the Blitzes' arrival over 1.5x a10's; (3e) a10
+  anchor back 0 and the Blitzes formed within 10 s (they close on slots behind them).
+  Run (d21-a9 / a10, two duels each): **the sawtooth reproduced.** With churn the anchor snapped back onto the body
+  at seconds 5, 10 and 15 (anchor back 798 against 0 without churn), the Blitzes formed at 4 s, were broken, formed
+  again at 9 s and 13 s and broken again, the backtrack share 0.34 against 0.29, their arrival 23-24 s against 14-15
+  (1.6x; a Blitz walks 800 in about 7 s alone: even the control pays double for walking 440 back onto slots placed by
+  the rear party's pull and then marching at the Pawns' pace). (3d) holds in every term but the count (two whole snaps
+  and a third broken by the drag, 798 not 1,000); (3e) holds (formed at 4 s, anchor back 0). Six RE-DEAL lines in a
+  duel's debug. **What the arms show, arm by arm:** the declaration on the all-member centroid puts the anchor behind
+  the head (every `--behind` and `--scatter` arm: formed 0 for the whole walk at the lead of 300, or a walk back onto
+  the slots for a type with a lead of 0); the lead carries the pace type 300 past its slots and the goal, and back
+  (every rear-party arm's 1,000 member-elmos a second for three seconds at the goal); the churn's rebuild marks the
+  group dirty, and dirty with the far pull over 400 snaps the anchor onto the centroid (a7 once, a9 three times); an
+  in-body member over 300 behind stops the anchor and every member is re-ordered on one tick when it moves again (b1,
+  stopped 3-4 s, silent ticks 9-10 of 10); a contact that ends sets the anchor down on the body and re-deals (c1:
+  pace 0 two seconds, formed 0 to 11 over six seconds, the arrival 14 s against 12). The fix is the next decision; its
+  bars are these arms: a0 unchanged, a1 unchanged, a2/a5/a8 the twelve formed within 5 s and arriving as a0 with
+  backtrack under 0.02 and no overshoot at the goal, a3/a6/a7/a9 anchor back 0, b1 stopped under 2 s, c1 the formed
+  share back to 12 within 3 s of the contact's end.
+
 ## 4. The drills, in order, with the bars the baselines will set
 
 | # | drill | what it measures | the bar proposed (the baselines replace it) |
