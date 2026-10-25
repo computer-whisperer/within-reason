@@ -279,6 +279,10 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   fourth spot and the plant stands 27 s later (5:00 34-41 against 48-55); the late economy floats on a windy map
   (Mithril game 00 at its metal cap 8:00-20:00 on 45-51 wind generators a minute); the spots under water are walked
   to and never taken (Quicksilver).
+- 2026-10-25, the redesign proposed, not built (`docs/design/2026-10-25-territory-regions.md`; the user: "let's
+  write that redesign document"): regions of spots with walks measured on the map's ground in the planner, territory
+  as a per-region input (the ground for stage 2's cover and stage 3's attack), and the hands rebuilt as matching
+  builders to located work by the plan's lag net of the walk; a six-start bench; steps and open questions there.
 - 2026-10-25, the placement and his start (the user: "Start with the placement and enemy-location fixes"; README
   T-SITES, T-SCENARIO): his start from the script when the lobby fixed the starts, else BAR's own guess for an
   unplaced seat in his box (`his_start.rs`, 1-4 elmos from where he stood in all twenty baseline games; the map's
