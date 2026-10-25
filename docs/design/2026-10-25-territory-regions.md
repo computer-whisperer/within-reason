@@ -233,7 +233,18 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
    `buildorder regions --hello DUMP`. The walks between regions and the status wait for the steps that read them (4
    and 5). No change to the bot's decisions, and the bench inside the pooled range.
 2. **The planner over regions.** Extractor columns per region, prices derived, the commander's columns on its
-   regions. Offline first, the two Comet starts priced apart and the program's 5:00 on each, before the bench. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
+   regions. Offline first, the two Comet starts priced apart and the program's 5:00 on each, before the bench.
+   Measured in two forms, not kept as it stands (terr145-156; the code on branch `territory-regions-step2`,
+   2eab7f8). Offline the regions do not price the two Comet starts apart (51 and 50 at 5:00 in the first plan),
+   and the program is two to three times the size (93-345 ms a plan against 100-177). The first form, the
+   commander given the home region to 1,250 and trips from home, fell under the pooled range on both Comet
+   starts at 5:00-15:00: the commander left the plant's guard at 2:00, and the far regions priced at the trip
+   from home cost about twice their realized walk. The second, the commander's extractors within 700 and trips
+   from the nearest region held, holds 5:00 at every start; Comet from his start at 15:00, Mithril at 15:00-20:00
+   and Quicksilver at 10:00-15:00 fall under it, the first plans alike in shape and lower from 8:00. The
+   realized walk per region (`run/territory_region_walks.py`) against the price: 0.79-0.93 on Comet and
+   Quicksilver, 1.14-1.30 on Mithril and Great Divide, where the tour, walked on the commander's ground, misses
+   the vehicles' detours. The decision on how to go on is the user's. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
    `rings`, `ring_overhead`, `com_leash` and `commander_walk_*` as arms. The hands take the region's spot.
 3. **The lag instrument.** Lags logged at every dispatch, one bench run, under the current cascade.
 4. **The hands rebuilt as matching.** The cascade's ranking and fallbacks deleted, the lag rule in their place.
