@@ -171,8 +171,9 @@ they begin when the spots run out and the metal allows, 7:45-9:00 in the hands a
 count, where his begin at 7:00 and run 1, 2, 5, 10 a minute: the same shape a minute later. The price is kept as the
 honest one. What holds the program's demand for the plant's turrets down is therefore not answered by this proposal's
 second change, and change 3 is a cap, not a demand. Open, and to read before another batch: where the plan's metal
-goes in minutes 10-15 against where his went (his 311 turrets in the farm by 15:00 against the plan's 47, his
-advanced fusions and converters' timing), with `run/eco_marks.py --shape` on his record and the plan's `targets:`
+goes in minutes 10-15 against where his went (his record, read 2026-10-24 by the created events: 157 turrets begun by
+15:00, 112 standing, and 311 by 20:00, against the plan's 47 at 15:00; 46 constructor aircraft from an air plant at 10:27
+building most of them; his advanced fusions and converters' timing), with `run/eco_marks.py --shape` on his record and the plan's `targets:`
 lines.
 
 ## What could go wrong
