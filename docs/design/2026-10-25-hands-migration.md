@@ -242,3 +242,19 @@ pace; the small groups that stayed together 0.61-0.70; the first minutes' holds 
 formed share at contact was 0.46 against the drills' 0.94. The five engine
 fixes above are not in this game's binary; the next game measures them. The ledger row carries the numbers; the
 review's findings are its amendment.
+
+### Chunk 3, the build decisions and build (2026-10-25)
+
+1. **Declared:** a ground group engaging a party (`GroupTask::Engage`, not shelling) joins `Group::declared`. With a
+   named target (`target: Some`) it is the lane's `Attack(target)` with the route `[at]`; without one, `FightTo` with
+   the route `[at]`, `at` following the party's centre each tick (a point moved under 48 is taken silently by the
+   lane, D14; `REPLAN_MOVED` plans the way again at 128). Commitment `Priced { turrets: [], commander: metal >= party }`
+   as before; the player's footwork.
+2. **Dies for these groups:** the per-unit Attack and Fight in `engage_group`, the Attack re-issued when a lost target
+   is found again, and the follow steps of H-HANDS-ATTACK-FOLLOWS (`sent`, `follow_step`): the lane's Attack retargets
+   on the target's sightings and the re-declared route carries the party's centre. Air groups keep all of it.
+3. **Stays:** the party's sighting book (`at`, `last_seen`), the lost rule (a ground group holds after 6 s out of
+   sight, at the anchor), the words (`doing`, the `standing` line, the `chase` line), the odds.
+4. **Why now:** the review of migration-2-1 read 55% of the main body's joining as whole-body re-forms after an attack
+   or a join; an attacking group undeclared in chunk 2 lost its formation at every attack pick and re-formed as a fresh
+   group after. With the attack declared, the group's `Group` persists across hold, walk and attack.

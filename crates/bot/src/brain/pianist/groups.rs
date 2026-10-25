@@ -220,7 +220,7 @@ impl Group {
     /// walking, not shelling (shell is the hands' until its chunk). Its members get their orders from the lane's
     /// group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
     pub(crate) fn declared(&self) -> bool {
-        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. }) && !self.shelling
+        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. }) && !self.shelling
     }
 
     /// The group's name in the lane.
@@ -671,7 +671,7 @@ impl Brain {
                             *last_seen = frame;
                             *searched = false;
                             *at = e.pos;
-                            if found_again {
+                            if found_again && !declared {
                                 group.last_order = frame;
                                 commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false }));
                             }
@@ -693,7 +693,8 @@ impl Brain {
                         // The attack follows the party (H-HANDS-ATTACK-FOLLOWS): the fight order was to where it
                         // stood at the pick, and a party that moves on left the group standing there with no order
                         // while its task still read "attacking" (player-35 7:53-8:28).
-                        if let Some(to) = follow_step(now, *sent) {
+                        // A declared group's route carries the party's centre each tick (the lane's, chunk 3).
+                        if !declared && let Some(to) = follow_step(now, *sent) {
                             *sent = to;
                             group.last_order = frame;
                             commands.extend(units.iter().filter(|u| !group.joining.contains_key(&u.id)).map(|u| Command::Fight { unit: u.id, to, queue: false }));
@@ -886,17 +887,18 @@ impl Brain {
         Hunt { quarry: quarry.0, party: party.name.clone(), anchors: hunters.iter().map(|u| (u.id, u.pos)).collect(), since: frame, last_seen: frame, at: quarry.1 }
     }
 
-    /// The whole group engages the party: released, sent to fight at it, its task the engagement.
+    /// The whole group engages the party: its task the engagement; an undeclared group (air) released and sent to
+    /// fight at it, a declared one left to the lane's Attack or FightTo (the migration design, chunk 3).
     pub(super) fn engage_group(group: &mut Group, party: &Party, own: &[OwnUnit], target: Option<UnitId>, frame: i32, commands: &mut Vec<Command>) -> String {
         let units = group.units(own);
-        commands.extend(group.release_orders(&units));
-        match target {
-            Some(t) => commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false })),
-            None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
-        }
-        // The leash's anchor is the body's place, as the leash measures it (`tick_groups`: "the body's place, not
         group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, sent: party.at, last_seen: frame, target, searched: false }, frame);
-        group.last_order = frame;
+        if !group.declared() {
+            commands.extend(group.release_orders(&units));
+            match target {
+                Some(t) => commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false })),
+                None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
+            }
+        }
         format!("attack {} ({}) with the whole group", party.name, party.composition)
     }
 }
@@ -1040,7 +1042,8 @@ mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, mut ours, mut enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
+        // An air group: undeclared, the hands' path (a ground attack is the lane's since chunk 3: the test below).
+        let mut group = Group::new("A".into(), Domain::Air, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
         let mut commands = Vec::new();
         Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
         // The last two are still on their way, far behind, sent to where a member stood then.
@@ -1080,6 +1083,40 @@ mod tests {
         brain.keep_groups(&tick(150, &ours, &enemies), &kit, &mut commands);
         assert!(matches!(commands[..], [Command::Fight { unit, to, .. }] if unit == joiners[0] && (to.x - 5102.0).abs() < 2.0), "{commands:?}");
         assert!(!brain.pianist.as_ref().unwrap().groups[0].joining.contains_key(&joiners[0]));
+    }
+
+    /// A ground group's attack is the lane's (chunk 3): the hands set the task and order no member, the party's
+    /// sightings move the task's `at`, and a party out of sight for six seconds ends it in a hold.
+    #[test]
+    fn a_ground_attack_is_declared_and_the_hands_order_nobody() {
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, mut enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
+        let mut commands = Vec::new();
+        Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
+        assert!(commands.is_empty(), "no order of the hands' for a declared attack: {commands:?}");
+        assert!(group.declared() && matches!(group.task, GroupTask::Engage { .. }));
+        pianist.groups.push(group);
+        brain.pianist = Some(pianist);
+        let none = UnitDefId(99);
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32, ours: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.to_vec(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None, sensors: None } };
+        // The party runs 600 east: the task's `at` follows, no Fight is issued.
+        for e in enemies.iter_mut().take(3) {
+            e.pos.x += 600.0;
+        }
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(90, &ours, &enemies), &kit, &mut commands);
+        assert!(!commands.iter().any(|c| matches!(c, Command::Fight { .. } | Command::Attack { .. })), "{commands:?}");
+        let at = match &brain.pianist.as_ref().unwrap().groups[0].task { GroupTask::Engage { at, .. } => *at, t => panic!("{t:?}") };
+        assert!((at.x - 5102.0).abs() < 2.0, "the task follows the party: {at:?}");
+        // Out of sight for six seconds: a hold.
+        let gone: Vec<bot_protocol::EnemyUnit> = enemies.iter().skip(3).cloned().collect();
+        brain.keep_groups(&tick(120, &ours, &gone), &kit, &mut Vec::new());
+        brain.keep_groups(&tick(300, &ours, &gone), &kit, &mut Vec::new());
+        assert!(matches!(brain.pianist.as_ref().unwrap().groups[0].task, GroupTask::Hold { .. }), "{:?}", brain.pianist.as_ref().unwrap().groups[0].task);
     }
 
     /// A roving group is the lane's: the hands keep up no order for it, its joiners are its own, and its course word

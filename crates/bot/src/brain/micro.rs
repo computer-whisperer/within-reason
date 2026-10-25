@@ -78,12 +78,15 @@ impl Brain {
                         let within = within.as_ref().and_then(|name| self.region_of(name));
                         declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()), Footwork::raw(), Commitment::All));
                     }
-                    // A formation (chunk 2): the hold about its point, the walk or the advance to its place; the lane
+                    // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
+                    // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane
                     // paths the anchor there and places every member (H-MICRO-GROUP).
-                    super::pianist::GroupTask::Hold { at, .. } | super::pianist::GroupTask::Move { to: at, .. } if group.declared() => {
+                    super::pianist::GroupTask::Hold { at, .. } | super::pianist::GroupTask::Move { to: at, .. } | super::pianist::GroupTask::Engage { at, .. } if group.declared() => {
                         let kind = match &group.task {
                             super::pianist::GroupTask::Move { fight: true, .. } => micro::GroupKind::FightTo,
                             super::pianist::GroupTask::Move { .. } => micro::GroupKind::Go,
+                            super::pianist::GroupTask::Engage { target: Some(t), .. } => micro::GroupKind::Attack(*t),
+                            super::pianist::GroupTask::Engage { .. } => micro::GroupKind::FightTo,
                             _ => micro::GroupKind::Hold,
                         };
                         let members: Vec<UnitId> = group.members.iter().copied().filter(|id| !group.waiting.iter().any(|(_, w)| w == id)).collect();
