@@ -51,7 +51,6 @@ const LOSS_WAKE_SHARE: f32 = 0.25;
 pub(crate) struct Hunt {
     pub quarry: UnitId,
     pub party: String,
-    pub from: Vec3,
     /// Where each hunter stood when the hunt began: the leash is measured from there, hunter by hunter (the
     /// impedance tally, 2026-10-16: measured from the hunters' centre, a detachment cut from a strung-out body or
     /// sent from afar tripped it on its first tick, 174 of 395 leash ends "after 0 s" in 23 games).
@@ -795,7 +794,8 @@ impl Brain {
     /// and, for a hunt that ended without a kill, the failure to remember (the party and why).
     pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, cloaks: bool, commands: &mut Vec<Command>) -> Option<(String, Option<(String, String)>)> {
         let GroupTask::Hunt(hunt) = &mut group.task else { return None };
-        if hunt.quarry != event.quarry {
+        // The event names the lane's group, `group_<name>` (D15): two groups hunting one quarry end one at a time.
+        if hunt.quarry != event.quarry || event.group != format!("group_{}", group.name) {
             return None;
         }
         let (party, since) = (hunt.party.clone(), hunt.since);
@@ -873,7 +873,7 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
-        Hunt { quarry: quarry.0, party: party.name.clone(), from: centre, anchors: hunters.iter().map(|u| (u.id, u.pos)).collect(), since: frame, last_seen: frame, at: quarry.1 }
+        Hunt { quarry: quarry.0, party: party.name.clone(), anchors: hunters.iter().map(|u| (u.id, u.pos)).collect(), since: frame, last_seen: frame, at: quarry.1 }
     }
 
     /// The whole group engages the party: released, sent to fight at it, its task the engagement.
@@ -954,6 +954,8 @@ mod tests {
         let (_, ours, enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
+        // The fixture named A by hand; the next name the pianist gives is B (two groups named A matched one event).
+        pianist.next_group = 1;
         let hunters: Vec<UnitId> = ours.iter().take(3).map(|u| u.id).collect();
         let mut commands = Vec::new();
         let did = Brain::start_hunt(&mut pianist, 0, &hunters, &parties[0], &ours, &enemies, 30, &mut commands).expect("a hunt");
@@ -973,7 +975,9 @@ mod tests {
         assert_eq!(pianist.groups.len(), 2);
         assert!(matches!(pianist.groups[0].task, GroupTask::Hunt(_)));
         // The engine says the quarry is lost: the hunting group holds where it stands, and the failure is returned.
-        let event = micro::HuntEvent { quarry, why: "lost" };
+        // The event names the lane's group (D15), so the parent, hunting the same quarry, is not ended by it.
+        let event = micro::HuntEvent { group: format!("group_{}", pianist.groups[1].name), quarry, why: "lost" };
+        assert!(Brain::hunt_event(&mut pianist.groups[0], &event, &ours, 200, false, &mut commands).is_none());
         let (text, failed) = Brain::hunt_event(&mut pianist.groups[1], &event, &ours, 200, false, &mut commands).expect("the end");
         assert!(text.contains("holds where it is"), "{text}");
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));

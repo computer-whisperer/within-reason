@@ -389,6 +389,59 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
     a lead, the slot order placed the type's following distance ahead of the slot so the unit stands in the slot,
     which needs the turn rate from the defs or an online measure, and is the next decision for the user.
 
+- **D15. The control surface cut** (the user, 2026-10-24 night, after the re-deal: "audit and make cut or extend
+  decisions on the current control surface of the micro engine (what claude, jev, and the other bots have to control
+  units)"; the proposal ruled "Agreed with the proposed order. The flagship's current state is not a problem: focus on
+  building a good engine and we will attach the hands to it when it is ready"). The surface found, by layer: the
+  engine's commands (Move, Fight, Attack, Stop, Guard, FireState, MoveState; nothing to cut); the lane's per-unit API
+  (`note_standing_orders`, `set_commitments` with a `Commitment` and a `Footwork` per soldier); the group API
+  (`set_group`, `clear_group`, `group_state`; kinds Go, FightTo, Attack, Hold; a route; a state); the hosts (the hands
+  with 1,200 lines of their own body model, the duel director, the distilled bot per unit with the lane off by
+  default, the territory bot with no soldier in the lane). Since the group build (39a4238) only declared groups form,
+  and only the director declares them: the flagship's soldiers walk as a blob under the three reflexes; the user ruled
+  that acceptable until the hands attach. **Cut:** (1) `Footwork` is the three reflexes, flee, fan and kite. `form`
+  is gone (a declared group forms by definition; a host that wants the reflexes without the group declares none, the
+  `old` arm) and `march` is the order's (`GroupOrder::march`; false puts the slots at the route's end at once, the
+  `ranks` arm). The player's `lane` tool offers the three. (2) `Commitment` is the threat set alone (None, Priced,
+  All). A hunt and a rove are kinds of group: `GroupKind::Hunt(HuntOrder { quarry, leash, lost_frames, since })` and
+  `GroupKind::Rove { within }`. The lane runs a hunt group raw, every member an Attack on the quarry each tick, the
+  leash measured for each member from where it stood when the lane first ran it under the hunt (the hands' rule since
+  2026-10-16: from the hunters' centre, a detachment cut from a strung-out body tripped it on its first tick);
+  `since` is the frame the host began the hunt, so a hunt picked again on the same quarry after an end is a new order
+  and not the silent re-declaration; the end event names the group. `View::rove_within` is cut: the region is the
+  order's. (3) `set_commitments` stays as the per-unit surface for loose soldiers (the hands' until their migration,
+  the distilled bot's) and dies with the migration; the hands declare their hunting and roving groups through
+  `set_group` from here, which attaches two kinds to the API that exists and is not the migration. (4) Rot:
+  `docs/code-decisions.md` §5 carried the deleted form-up march and said `march` was read by nothing; the `lane`
+  tool's text offered `form` and `march` as rules that did nothing in the flagship. **Deferred to the assault drill's
+  evidence (D16):** a shape in the order (files, a standoff), contact words in the state (who is in reach, who is
+  muzzled, the arc's fill), a fire state. Chose the fold over keeping Hunt and Rove as commitments because a
+  commitment that also means "the lane owns this unit" is two things under one name, and a group of one declaration
+  is the whole surface Jev's words will map onto.
+- **D16. The assault drill, `--drill assault`** (the user, 2026-10-24 night: "scale up the micro drills to a move and
+  fight scenario. Marching to and attacking into various defensive structure under different formation control
+  modes"). `duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move]
+  [--lane off|old|ranks|on] [--formation ranks6@64] [--from X,Z --to X,Z | --around R]`: side `x` spawns `distance`
+  from the goal in its formation facing it (the strip chooser, or D10's placements); side `y` is the defence
+  `--theirs` names as a force (`armllt*2+armbeamer`), stood in one rank across the approach centred on the goal at
+  `DEFENCE_SPACING` (128) in list order, given once (an `into` target is given again; a position falls once). The
+  first order is the walk's (the Fight to the goal; under the lane the group's FightTo). The duel ends when `y` is
+  wiped (`taken`), `x` is wiped (`wiped`) or at the time limit; the stalemate rule does not apply (a defence and a
+  body out of its reach are quiet by nature). Measured by the duel's own columns (value left on both sides, the
+  margin, survivors, the fire instrument: in-reach seconds, shots, muzzled seconds by cause, friends on the line) and
+  the drill's (the formed share, the shape at contact, `first_shot_s`, the shot ramp to half and all, `taken_s` from
+  the first order to the last defence's death, `lost_before_shot`: units of `x` dead before their own first shot, the
+  price of arriving in pieces). **The reference is the bound, not a TAS:** the plain duel of the same forces
+  (`duel --ours FORCE --theirs DEFENCE`, the sides `SEPARATION` 1,100 apart, both attack-moving) is the fight with the
+  approach nearly removed, and the assault's margin against it is the approach's price; TAS scripts for two positions
+  after, when the slice says which. **The first slice,** baselines before any lane change (D7's rule): forces
+  `armflash*12` (1,320 metal) and `armstump*10` (2,250); defences `armhlt` (440 metal, reach 620), `armguard` (1,250,
+  reach 1,220, area fire, outranges every tier-1 soldier) and `armllt*2+armbeamer` (360, reaches 430 and 490, the
+  defended expansion); distance 2,500 (outside every reach); the four lane modes; 8 duels an arm: 24 arms and 6
+  bounds, on Quicksilver's strips. The slice is chosen so the formation matters (twelve to twenty units) and the
+  metal ratio runs from near even (the Blitzes against the Guardian, 1.06) to six to one (the Stouts against the
+  expansion); what it shows decides the second slice (counts, mixes, terrain by `--around`).
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 

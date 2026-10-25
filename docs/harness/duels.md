@@ -246,7 +246,7 @@ default map here, offers a handful; `sites::choose` finds them).
 
 The picket answers as the bot's standing raider rule does: a raider within 250 of a building of ours and within 1,200 of
 the station, with no hunt on it yet, gets the two nearest pickets faster than it (Rovers after a Tick, Blitzes or
-Rovers after a Pawn). **Lane on**: they go as a hunt, `micro::Commitment::Hunt { quarry, leash_from, leash: 900 }`
+Rovers after a Pawn). **Lane on**: they go as a hunt, a declared group of kind `Hunt` (`micro::HuntOrder { quarry, leash: 900, .. }`, the leash from where each hunter stood when the lane first ran it; design D15)
 set on the lane, which sends an attack by id every tick and reports the end (H-MICRO-HUNT); the leash is measured from
 where the hunters stood when the hunt began. **Lane off**: the hands' engage as it was before the hunt, a fight-to-point
 at the raider's place re-issued every two seconds, judged by the same ends in the director (the quarry dead, out of
@@ -275,7 +275,7 @@ speed each second, for a pace's steadiness, and the lane's group each second whe
 army is the lane's one declared group (H-MICRO-GROUP: `Lane::set_group("army", ...)` with the drill's order, a Go for
 a move and a FightTo for a fight, the route one point): the anchor walks at 0.9 of the slowest type's speed and every
 unit is sent to its slot every tick, the director's own per-unit orders to the units dropped (so `--reissue`, `--lead`
-and `--pace` are lane-off arms); `--lane ranks` is the same group with its march off, the slots standing at the
+and `--pace` are lane-off arms); `--lane ranks` is the same group with its order's `march` off, the slots standing at the
 destination. The per-second log carries the group's `anchor`, `heading`, `pace`, `full_pace`, `formed` (spawn
 indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'
 own arrival number). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default

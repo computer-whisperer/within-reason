@@ -2137,7 +2137,7 @@ mod tests {
         use super::super::fixtures::e3;
         let (brain, ours, _, parties) = e3();
         let quarry = at(4950.0, 1700.0);
-        let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: ours.iter().map(|u| (u.id, u.pos)).collect(), since: 0, last_seen: 0, at: quarry };
+        let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), anchors: ours.iter().map(|u| (u.id, u.pos)).collect(), since: 0, last_seen: 0, at: quarry };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
         let met = brain.chase_met(&group, &ours, &parties, &[]).expect("the chase meets the turrets and the Centurions");
         assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
@@ -2146,7 +2146,7 @@ mod tests {
         let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
         assert!(brain.chase_met(&holding, &ours, &parties, &[]).is_none());
         // Chasing away from the turrets, with the Centurions out of reach: nothing met.
-        let away = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
+        let away = Hunt { quarry: UnitId(77), party: "party_99".into(), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
         let mut far = parties.clone();
         far[0].at = at(6000.0, 6000.0);

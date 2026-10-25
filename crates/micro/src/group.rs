@@ -38,8 +38,9 @@ fn debug_on() -> bool {
     *ON.get_or_init(|| std::env::var_os("WITHIN_REASON_GROUP_DEBUG").is_some_and(|v| v != "0" && !v.is_empty()))
 }
 
-/// What a group is to do at its route's end.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// What a group is to do (design D15: every way the lane owns a set of units is a kind of group). The first four
+/// walk the order's route as a formation; a hunt and a rove have no anchor and no slots, and are run raw.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum GroupKind {
     /// Walk there and stand; nothing on the way is fought (the hands' walk, a Move).
     Go,
@@ -49,14 +50,44 @@ pub enum GroupKind {
     Attack(UnitId),
     /// Stand at the route's end in formation and fight what comes.
     Hold,
+    /// Every member attacks the quarry by id each tick until it is dead, lost or the leash is reached (H-MICRO-HUNT;
+    /// `lib.rs` `hunt`). The route is ignored.
+    Hunt(HuntOrder),
+    /// Every member is a rover (H-MICRO-ROVE, `rove.rs`): it evades, kills what it finds unguarded and looks at what
+    /// the host knows least, within the region when one is given (north-west and south-east corners). The route is
+    /// ignored.
+    Rove { within: Option<(Vec3, Vec3)> },
 }
 
-/// The host's order to a group: the kind and the route to walk, the goal its last point (one point for a straight
-/// line; the host's field gives the points round terrain).
+/// A hunt: the unit to kill, the leash beyond which the hunt ends (measured for each hunter from where it stood when
+/// the lane first ran it under this hunt), how long the quarry may be out of sight and radar before the hunt ends as
+/// "lost" (`HUNT_LOST_FRAMES` unless the host says longer: a quarry that cloaks is hidden where it stands, not gone),
+/// and the frame the host began it: a hunt picked again on the same quarry after an end is a new order, not the
+/// silent re-declaration.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HuntOrder {
+    pub quarry: UnitId,
+    pub leash: f32,
+    pub lost_frames: i32,
+    pub since: i32,
+}
+
+/// The host's order to a group: the kind, the route to walk, the goal its last point (one point for a straight line;
+/// the host's field gives the points round terrain), and whether to march it: `march` false puts the slots at the
+/// route's end at once and every member walks there at its own speed (the duel's `ranks` arm, the march's end state
+/// without its pacing).
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupOrder {
     pub kind: GroupKind,
     pub route: Vec<Vec3>,
+    pub march: bool,
+}
+
+impl GroupOrder {
+    /// A marching order of this kind along this route.
+    pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
+        GroupOrder { kind, route, march: true }
+    }
 }
 
 /// Why a member is out of its slot.
@@ -217,7 +248,7 @@ impl Group {
     /// formation); a point moved less is taken silently. A new membership re-deals the slots too.
     pub fn update(&mut self, members: Vec<UnitId>, order: GroupOrder) {
         let moved = order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED);
-        if order.kind != self.order.kind || moved {
+        if order.kind != self.order.kind || order.march != self.order.march || moved {
             self.order = order;
             self.leg = 0;
             self.arrived = false;
@@ -358,9 +389,10 @@ impl Group {
     }
 
     /// One tick: the pace from the walkers' types, the anchor held back by its formed members and advanced along the
-    /// route (unless stopped, or `march` is off, when it stands at the route's end), the slots dealt, formed and
+    /// route (unless stopped, or the order's `march` is off, when it stands at the route's end), the slots dealt, formed and
     /// exceptions told apart. Returns each walker's slot. `spacing` is the lane's for this tick.
-    pub fn tick(&mut self, frame: i32, walkers: &[Walker], spacing: f32, pacing: &Pacing, march: bool) -> &HashMap<UnitId, Vec3> {
+    pub fn tick(&mut self, frame: i32, walkers: &[Walker], spacing: f32, pacing: &Pacing) -> &HashMap<UnitId, Vec3> {
+        let march = self.order.march;
         let dt = self.last_frame.map_or(0.0, |f| (frame - f).max(0) as f32 / 30.0);
         self.last_frame = Some(frame);
         self.spacing = spacing;
@@ -564,7 +596,7 @@ mod tests {
         let mut frame = 0;
         while frame < frames {
             frame += step;
-            let slots = group.tick(frame, walkers, 64.0, pacing, true).clone();
+            let slots = group.tick(frame, walkers, 64.0, pacing).clone();
             for w in walkers.iter_mut() {
                 let s = slots[&w.id];
                 w.pos = at(s.x - group.heading.0 * 20.0, s.z - group.heading.1 * 20.0);
@@ -577,8 +609,8 @@ mod tests {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
         w[1].speed = 54.0;
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(3000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
         let start = group.anchor;
         march(&mut group, &mut w, 300, 3, &pacing);
         // Ten seconds at the slowest type's 54 = 540 elmos east, on the axis.
@@ -596,8 +628,8 @@ mod tests {
     fn the_anchor_arrives_and_stops_at_the_end_with_everyone_in_slot() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(400.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(400.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
         march(&mut group, &mut w, 600, 3, &pacing);
         assert!(group.at_end());
         assert_eq!(group.pace, 0.0);
@@ -609,13 +641,13 @@ mod tests {
     fn a_member_behind_its_slot_slows_the_anchor_and_far_behind_stops_it() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(5000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
         // Unit 2 lags 200 behind its slot: the anchor walks at less than the pace.
-        let slots = group.tick(3, &w, 64.0, &pacing, true).clone();
+        let slots = group.tick(3, &w, 64.0, &pacing).clone();
         w[0].pos = at(slots[&UnitId(1)].x - 20.0, -32.0);
         w[1].pos = at(slots[&UnitId(2)].x - 200.0, 32.0);
-        group.tick(6, &w, 64.0, &pacing, true);
+        group.tick(6, &w, 64.0, &pacing);
         assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
         let state = group.state(&w);
         assert_eq!(state.exceptions.len(), 1);
@@ -623,17 +655,17 @@ mod tests {
         // 400 behind: the cause Away, and the anchor stops for it (it never outruns its body); within 96 again it
         // is formed again.
         w[1].pos = at(slots[&UnitId(2)].x - 400.0, 32.0);
-        group.tick(9, &w, 64.0, &pacing, true);
+        group.tick(9, &w, 64.0, &pacing);
         assert_eq!(group.pace, 0.0, "the anchor waits for a member of its body a map behind");
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away);
-        let slots = group.tick(12, &w, 64.0, &pacing, true).clone();
+        let slots = group.tick(12, &w, 64.0, &pacing).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 200.0, 32.0);
-        group.tick(15, &w, 64.0, &pacing, true);
+        group.tick(15, &w, 64.0, &pacing);
         assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away, "still away until within the rejoin distance");
-        let slots = group.tick(18, &w, 64.0, &pacing, true).clone();
+        let slots = group.tick(18, &w, 64.0, &pacing).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 20.0, 32.0);
-        group.tick(21, &w, 64.0, &pacing, true);
+        group.tick(21, &w, 64.0, &pacing);
         assert!(group.state(&w).exceptions.is_empty());
     }
 
@@ -641,12 +673,12 @@ mod tests {
     fn a_new_route_turns_the_anchor_where_it_stands_and_redeals_the_slots() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0), (3, -96.0, 0.0)], 100.0);
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2), UnitId(3)], GroupOrder { kind: GroupKind::Go, route: vec![at(3000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2), UnitId(3)], GroupOrder::new(GroupKind::Go, vec![at(3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
         march(&mut group, &mut w, 150, 3, &pacing);
         let before = group.anchor;
-        group.update(group.members.clone(), GroupOrder { kind: GroupKind::Go, route: vec![at(-3000.0, 0.0)] });
-        let slots = group.tick(153, &w, 64.0, &pacing, true).clone();
+        group.update(group.members.clone(), GroupOrder::new(GroupKind::Go, vec![at(-3000.0, 0.0)]));
+        let slots = group.tick(153, &w, 64.0, &pacing).clone();
         assert!(group.anchor.dist2d(before) < 15.0, "no jump: one tick's walk at most");
         assert!(group.heading.0 < -0.99);
         // The rear unit of the march east is now the front rank's: nobody crosses the formation.
@@ -666,13 +698,13 @@ mod tests {
         let pacing = Pacing::default();
         let mut w = two_ranks_of_six();
         let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
-        let mut group = Group::new("a", members, GroupOrder { kind: GroupKind::Go, route: vec![at(200.0, 0.0), at(-3000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(200.0, 0.0), at(-3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
         // To the point with everyone in its slot each tick (the engine's following, without the trail), until the
         // anchor passes it and turns back west.
         let mut frame = 0;
         let mut turned = None;
         while frame < 150 {
-            let slots = group.tick(frame, &w, 64.0, &pacing, true).clone();
+            let slots = group.tick(frame, &w, 64.0, &pacing).clone();
             if group.heading.0 < 0.0 {
                 turned = Some(slots);
                 break;
@@ -690,13 +722,13 @@ mod tests {
         }
         assert!((group.anchor.x - w[6].pos.x).abs() < 5.0, "the old rear rank is the new front: anchor {:?}, rear at {:?}", group.anchor, w[6].pos);
         assert!(group.state(&w).exceptions.is_empty());
-        group.tick(frame + 3, &w, 64.0, &pacing, true);
+        group.tick(frame + 3, &w, 64.0, &pacing);
         assert!((group.pace - group.full_pace).abs() < 0.01, "nobody lags, so the anchor walks on at full pace: {} of {}", group.pace, group.full_pace);
         // Ten behind the slots after that tick's walk: within the drag band, all formed.
         for u in w.iter_mut() {
             u.pos = at(u.pos.x - 10.0, u.pos.z);
         }
-        group.tick(frame + 6, &w, 64.0, &pacing, true);
+        group.tick(frame + 6, &w, 64.0, &pacing);
         assert_eq!(group.state(&w).formed.len(), 12);
     }
 
@@ -707,12 +739,12 @@ mod tests {
         let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
         // East through (100, 0) to (300, 0), then south: a right angle at the second point (the first point has no
         // leg into it and is not carried). Two ranks: half the depth is 48.
-        let mut group = Group::new("a", members, GroupOrder { kind: GroupKind::Go, route: vec![at(100.0, 0.0), at(300.0, 0.0), at(300.0, 3000.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(100.0, 0.0), at(300.0, 0.0), at(300.0, 3000.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
         let mut frame = 0;
         let mut turned = None;
         while frame < 300 {
             let before: Vec<Vec3> = w.iter().map(|u| u.pos).collect();
-            let slots = group.tick(frame, &w, 64.0, &pacing, true).clone();
+            let slots = group.tick(frame, &w, 64.0, &pacing).clone();
             if group.heading.1 > 0.5 {
                 turned = Some((before, slots));
                 break;
@@ -736,7 +768,7 @@ mod tests {
         assert!(worst < 170.0, "the worst walk {worst}: {travel:?}");
         assert!(travel.iter().filter(|d| **d <= pacing.formed_within).count() >= 8, "{travel:?}");
         // The next point is straight ahead: no second swing a tick later.
-        group.tick(frame + 3, &w, 64.0, &pacing, true);
+        group.tick(frame + 3, &w, 64.0, &pacing);
         assert!(group.heading.1 > 0.98, "{:?}", group.heading);
     }
 
@@ -745,15 +777,15 @@ mod tests {
         let pacing = Pacing::default();
         let mut w = two_ranks_of_six();
         let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
-        let mut group = Group::new("a", members.clone(), GroupOrder { kind: GroupKind::Go, route: vec![at(5000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
-        let before = group.tick(3, &w, 64.0, &pacing, true).clone();
+        let mut group = Group::new("a", members.clone(), GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        let before = group.tick(3, &w, 64.0, &pacing).clone();
         let anchor_before = group.anchor;
         let mut with_joiner = members.clone();
         with_joiner.push(UnitId(13));
         group.update(with_joiner, group.order.clone());
         w.push(Walker { id: UnitId(13), pos: at(-900.0, 0.0), speed: 100.0, moving: 100.0, fleeing: false });
-        let after = group.tick(6, &w, 64.0, &pacing, true).clone();
+        let after = group.tick(6, &w, 64.0, &pacing).clone();
         let walked = group.anchor.x - anchor_before.x;
         for id in &members {
             let (a, b) = (before[id], after[id]);
@@ -766,8 +798,9 @@ mod tests {
     fn march_off_puts_the_slots_at_the_destination_at_once() {
         let pacing = Pacing::default();
         let w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(2000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        let slots = group.tick(0, &w, 64.0, &pacing, false).clone();
+        let order = GroupOrder { march: false, ..GroupOrder::new(GroupKind::Go, vec![at(2000.0, 0.0)]) };
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], order, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        let slots = group.tick(0, &w, 64.0, &pacing).clone();
         assert!(group.at_end());
         assert!((slots[&UnitId(1)].x - 2000.0).abs() < 1.0);
         assert_eq!(group.pace, 0.0);
@@ -778,12 +811,12 @@ mod tests {
     fn a_joiner_is_an_exception_until_it_first_reaches_a_slot() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
-        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(3000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
-        group.tick(0, &w, 64.0, &pacing, true);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
         march(&mut group, &mut w, 60, 3, &pacing);
         group.update(vec![UnitId(1), UnitId(2), UnitId(3)], group.order.clone());
         w.push(Walker { id: UnitId(3), pos: at(-900.0, 0.0), speed: 100.0, moving: 100.0, fleeing: false });
-        group.tick(63, &w, 64.0, &pacing, true);
+        group.tick(63, &w, 64.0, &pacing);
         let state = group.state(&w);
         assert_eq!(state.exceptions.len(), 1);
         assert_eq!(state.exceptions[0].0, UnitId(3));

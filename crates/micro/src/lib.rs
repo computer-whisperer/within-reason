@@ -7,9 +7,11 @@
 //! §2) is the lane's whole: an anchor walks the host's route at the group's pace, every member is sent to its slot
 //! every tick, the exceptions are reported with a cause, and the host's per-unit orders to members are dropped. The
 //! group's shape at contact is centred on a target: the host's when it named one (an Attack), else the lane picks
-//! the nearest soldier of theirs in the open (`form::contact`). The other
-//! exception is a rover (`rove.rs`, H-MICRO-ROVE): a unit the host hands over whole, which chooses where to look and
-//! what to kill itself.
+//! the nearest soldier of theirs in the open (`form::contact`). A hunt (H-MICRO-HUNT) and a rove (`rove.rs`,
+//! H-MICRO-ROVE) are kinds of group too (design D15): the hunters attack one unit by id every tick until it is dead,
+//! lost or the leash is reached; a rover chooses where to look and what to kill itself. Soldiers in no declared
+//! group are the host's, order by order, under the three reflexes (flee, fan, kite: `Footwork`) and a threat set
+//! (`Commitment`) the host gives per unit (`set_commitments`).
 //!
 //! The host is a [`View`]: unit definitions, each type's fighting numbers, the ground, and what it remembers of the
 //! enemy. H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
@@ -18,7 +20,7 @@ pub mod form;
 pub mod group;
 mod rove;
 
-pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, Pacing};
+pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
 pub use rove::{RoveEvent, RoveGoal, RoveReport, RoveWhat};
@@ -121,11 +123,12 @@ const LET_GO_FRAMES: i32 = 30 * 30;
 const AREA_HORIZON: f32 = 1500.0;
 /// A stance lasts at least this long: a change is an order, and an order costs shots.
 const FORM_FRAMES: i32 = 15;
-/// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt, unless its `Hunt` says longer (the host
-/// gives a quarry that cloaks more: it is hidden where it stands, not gone).
+/// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt, unless its `HuntOrder` says longer (the
+/// host gives a quarry that cloaks more: it is hidden where it stands, not gone).
 pub const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
 
-/// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
+/// What a soldier's group was priced against, so the lane knows which threats its host meant it to face: the threat
+/// set, and nothing else (design D15: a hunt and a rove are kinds of group, `GroupKind`).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum Commitment {
     /// Nothing: a unit on a Move, a scout, a raider waiting for the rest. It flees any threat.
@@ -135,41 +138,28 @@ pub enum Commitment {
     Priced { turrets: Vec<UnitId>, commander: bool },
     /// Everything (a committed wave, a commander's squad, a duel's army).
     All,
-    /// A hunter after one unit (H-MICRO-HUNT): it runs raw, under no footwork rule, and the lane's attack order
-    /// does the closing.
-    Hunt(Hunt),
-    /// A rover (H-MICRO-ROVE): the lane runs it whole, and the host's orders to it are dropped.
-    Rove,
 }
 
-/// One quarry for a set of hunters: the unit to kill, and the leash (from where the hunt began, or the group's
-/// station) beyond which the hunt ends.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Hunt {
-    pub quarry: UnitId,
-    pub leash_from: Vec3,
-    pub leash: f32,
-    /// Frames the quarry may be out of sight and radar before the hunt ends as "lost"; `HUNT_LOST_FRAMES` unless
-    /// the host says otherwise (a quarry that cloaks gets longer: the hunters walk to its last place meanwhile).
-    pub lost_frames: i32,
-}
-
-/// What the lane reports of a hunt: the hunt on `quarry` ended (`why`: "dead", "lost" (out of sight and radar
-/// 6 s), "leash"), reported once; the host clears the commitments. Whether a hunter can catch or survive its quarry
-/// is the hands' call, made in the state's words before the pick, never here (player-24: the engine's own "slower"
-/// drop ended 46 of 47 hunts in their first tick, against the hands' offer of a chase that drives the raider off).
+/// What the lane reports of a hunt: the hunt of group `group` on `quarry` ended (`why`: "dead", "lost" (out of sight
+/// and radar for the order's `lost_frames`), "leash"), reported once; the host changes or clears the group. Whether a
+/// hunter can catch or survive its quarry is the hands' call, made in the state's words before the pick, never here
+/// (player-24: the engine's own "slower" drop ended 46 of 47 hunts in their first tick, against the hands' offer of a
+/// chase that drives the raider off).
 #[derive(Clone, Debug, PartialEq)]
 pub struct HuntEvent {
+    pub group: String,
     pub quarry: UnitId,
     pub why: &'static str,
 }
 
-/// The lane's memory of one hunt.
+/// The lane's memory of one hunt group (by the group's name; dropped when the group's order changes or the group is
+/// cleared, so a hunt declared again is a new hunt).
 struct HuntState {
     started: i32,
-    /// The hunt's leash point: a commitment with another one is a new hunt on the same quarry (the raid's second
-    /// hunt after a leash end starts from where the hunters then stand).
-    leash_from: Vec3,
+    /// Where each hunter stood when the lane first ran it under this hunt: the leash is measured from there, hunter by
+    /// hunter (from the hunters' centre, a detachment cut from a strung-out body tripped it on its first tick: the
+    /// impedance tally of 2026-10-16, 174 of 395 leash ends "after 0 s").
+    anchors: HashMap<UnitId, Vec3>,
     /// The quarry's last sighting (sight or radar): place, velocity, frame.
     last_seen: Option<(Vec3, Vec3, i32)>,
     ended: Option<&'static str>,
@@ -181,7 +171,7 @@ impl Commitment {
     fn covers(&self, source: &Source) -> bool {
         match self {
             Commitment::None => false,
-            Commitment::All | Commitment::Hunt(_) | Commitment::Rove => true,
+            Commitment::All => true,
             Commitment::Priced { turrets, commander } => {
                 if source.commander {
                     *commander
@@ -195,40 +185,34 @@ impl Commitment {
     }
 }
 
-/// Which footwork rules apply to a group's soldiers (H-HANDS-LANE): the lane's five, the march that keeps an
-/// advancing group together, and the re-sending of an engaging group after its party. All on by default; `raw` is
-/// none, and the group's orders reach the engine as the host gave them. A roving group (H-MICRO-ROVE) is under no
-/// rule and no order of the host's: the lane runs its soldiers whole, by the `Rove` commitment, not by a setting here.
+/// Which of the lane's three reflexes apply to a soldier (H-HANDS-LANE): flee, fan and kite. All on by default; `raw`
+/// is none, and a loose soldier's orders reach the engine as the host gave them (a group's member still takes its
+/// slot). Whether a group forms is not a rule here
+/// (design D15): a declared group forms by definition, its pacing is its order's (`GroupOrder::march`), and a hunting
+/// or roving group is under no reflex and no order of the host's by its kind.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Footwork {
     pub flee: bool,
     pub fan: bool,
     pub kite: bool,
-    #[serde(default = "yes")]
-    pub form: bool,
-    pub march: bool,
-}
-
-fn yes() -> bool {
-    true
 }
 
 impl Default for Footwork {
     fn default() -> Footwork {
-        Footwork { flee: true, fan: true, kite: true, form: true, march: true }
+        Footwork { flee: true, fan: true, kite: true }
     }
 }
 
 impl Footwork {
-    pub const RULES: [&'static str; 5] = ["flee", "fan", "kite", "form", "march"];
+    pub const RULES: [&'static str; 3] = ["flee", "fan", "kite"];
 
     pub fn raw() -> Footwork {
-        Footwork { flee: false, fan: false, kite: false, form: false, march: false }
+        Footwork { flee: false, fan: false, kite: false }
     }
 
     /// The rules kept, by name.
     pub fn kept(&self) -> Vec<&'static str> {
-        let flags = [self.flee, self.fan, self.kite, self.form, self.march];
+        let flags = [self.flee, self.fan, self.kite];
         Footwork::RULES.iter().zip(flags).filter(|(_, on)| *on).map(|(name, _)| *name).collect()
     }
 
@@ -240,8 +224,6 @@ impl Footwork {
                 "flee" => footwork.flee = true,
                 "fan" => footwork.fan = true,
                 "kite" => footwork.kite = true,
-                "form" => footwork.form = true,
-                "march" => footwork.march = true,
                 other => return Err(format!("{other} is not a footwork rule; the rules are {}", Footwork::RULES.join(", "))),
             }
         }
@@ -306,12 +288,6 @@ pub trait View {
     /// without rovers).
     fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
         Vec::new()
-    }
-    /// The region a rover is told to stay within (the hands' `rove_<region>` move): the rectangle's north-west and
-    /// south-east corners, or none for free roving. The rover looks at nothing and attacks nothing outside the
-    /// region; it may pass through outside ground on its way.
-    fn rove_within(&self, _unit: UnitId) -> Option<(Vec3, Vec3)> {
-        None
     }
 }
 
@@ -499,8 +475,8 @@ pub struct Lane {
     seen: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
     /// Per minute, for the log: claims made, orders issued.
     counts: (u32, u32),
-    /// The hunts in progress, by quarry (H-MICRO-HUNT).
-    hunts: HashMap<UnitId, HuntState>,
+    /// The hunts in progress, by the hunting group's name (H-MICRO-HUNT).
+    hunts: HashMap<String, HuntState>,
     /// Each rover's memory (H-MICRO-ROVE).
     rovers: HashMap<UnitId, rove::Rover>,
     /// Enemy units some rover has already reported finding.
@@ -571,15 +547,18 @@ impl Lane {
         })
     }
 
-    /// The host declares a group (`docs/design/2026-10-24-formation-drills.md` §2): its members, its order (the kind
-    /// and the route, the goal last), the footwork its members are under (`march` off: no pacing, the slots stand at
-    /// the destination) and what it was priced against. Once per decision; the same call again with the same members
-    /// and order changes nothing, a new route turns the anchor where it stands, a new membership re-deals the slots.
-    /// The lane owns the members from here: the host's per-unit orders to them are dropped, and `clear_group` gives
-    /// them back.
+    /// The host declares a group (`docs/design/2026-10-24-formation-drills.md` §2, D15): its members, its order (the
+    /// kind, the route with the goal last, and whether to march it: `march` off puts the slots at the destination),
+    /// the reflexes its members are under and what it was priced against. Once per decision; the same call again with
+    /// the same members and order changes nothing, a new route turns the anchor where it stands, a new membership
+    /// re-deals the slots, a new order to a hunting group is a new hunt. The lane owns the members from here: the
+    /// host's per-unit orders to them are dropped, and `clear_group` gives them back.
     pub fn set_group(&mut self, name: &str, members: Vec<UnitId>, order: GroupOrder, footwork: Footwork, commitment: Commitment) {
         match self.groups.get_mut(name) {
             Some(d) => {
+                if d.order != order {
+                    self.hunts.remove(name);
+                }
                 d.members = members;
                 d.order = order;
                 d.footwork = footwork;
@@ -593,6 +572,7 @@ impl Lane {
 
     /// The group is no more: its members are the host's again (their claims dropped).
     pub fn clear_group(&mut self, name: &str) {
+        self.hunts.remove(name);
         if let Some(d) = self.groups.remove(name) {
             for id in d.members {
                 self.claims.remove(&id);
@@ -705,45 +685,60 @@ impl Lane {
         let fired = &mut out.fired;
 
         let mut soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_soldier)).collect();
-        // H-MICRO-ROVE before everything: a rover is the lane's alone, and nothing the host said to it this tick
-        // reaches the engine.
-        let rovers: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| matches!(self.commitment.get(&u.id), Some(Commitment::Rove))).collect();
-        self.rovers.retain(|id, _| rovers.iter().any(|u| u.id == *id));
-        if !rovers.is_empty() {
-            host.retain(|c| unit_of(c).is_none_or(|u| !rovers.iter().any(|r| r.id == u)));
-            for unit in &rovers {
-                self.claims.remove(&unit.id);
+        // H-MICRO-ROVE and H-MICRO-HUNT before everything: a rover or a hunter is a member of a declared group of
+        // that kind (design D15), the lane's alone, under no other rule and in no body, and nothing the host said to
+        // it this tick reaches the engine.
+        let mut owned: HashSet<UnitId> = HashSet::new();
+        let mut rovers: Vec<(&OwnUnit, Option<(Vec3, Vec3)>)> = Vec::new();
+        let mut hunts: Vec<(String, HuntOrder, Vec<&OwnUnit>)> = Vec::new();
+        for (name, d) in &self.groups {
+            match d.order.kind {
+                GroupKind::Rove { within } => {
+                    for u in soldiers.iter().filter(|u| d.members.contains(&u.id)) {
+                        rovers.push((*u, within));
+                        owned.insert(u.id);
+                    }
+                }
+                GroupKind::Hunt(order) => {
+                    let hunters: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| d.members.contains(&u.id)).collect();
+                    owned.extend(hunters.iter().map(|u| u.id));
+                    hunts.push((name.clone(), order, hunters));
+                }
+                _ => {}
             }
+        }
+        if !owned.is_empty() {
+            host.retain(|c| unit_of(c).is_none_or(|u| !owned.contains(&u)));
+            for id in &owned {
+                self.claims.remove(id);
+            }
+            soldiers.retain(|u| !owned.contains(&u.id));
+        }
+        self.rovers.retain(|id, _| rovers.iter().any(|(u, _)| u.id == *id));
+        if !rovers.is_empty() {
             self.rove(view, &rovers, snapshot.enemies.as_slice(), &sources, frame, commands, fired, &mut out.rove, debug);
-            soldiers.retain(|u| !rovers.iter().any(|r| r.id == u.id));
         }
-        // H-MICRO-HUNT first: a hunter is under no other rule and in no body.
-        let hunters: Vec<(&OwnUnit, Hunt)> = soldiers.iter().filter_map(|u| match self.commitment.get(&u.id) { Some(Commitment::Hunt(h)) => Some((*u, h.clone())), _ => None }).collect();
-        if !hunters.is_empty() || !self.hunts.is_empty() {
-            self.hunt(view, &hunters, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.hunts, debug);
-            soldiers.retain(|u| !hunters.iter().any(|(h, _)| h.id == u.id));
+        self.hunts.retain(|name, _| hunts.iter().any(|(n, ..)| n == name));
+        for (name, order, hunters) in &hunts {
+            self.hunt(view, name, hunters, order, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.hunts, debug);
         }
-        // Each soldier's footwork rules (a group's members under the group's), and the rules the host has switched
-        // off by ID (an ablation).
+        // Each soldier's reflexes (a group's members under the group's), and the rules the host has switched off by
+        // ID (an ablation).
         let mut footwork = self.footwork.clone();
         for d in self.groups.values() {
             footwork.extend(d.members.iter().map(|id| (*id, d.footwork)));
         }
-        let gate = Footwork {
-            flee: view.enabled(Rule::Flee.id()),
-            fan: view.enabled(Rule::Fan.id()),
-            kite: view.enabled(Rule::Kite.id()),
-            form: view.enabled(Rule::Form.id()),
-            march: true,
-        };
+        let gate = Footwork { flee: view.enabled(Rule::Flee.id()), fan: view.enabled(Rule::Fan.id()), kite: view.enabled(Rule::Kite.id()) };
+        let form_on = view.enabled(Rule::Form.id());
         let rules_of = |id: UnitId| {
             let f = footwork.get(&id).copied().unwrap_or_default();
-            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march }
+            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite }
         };
-        // H-MICRO-FORM's orders for every member of a declared group, decided first; the host's per-unit orders to
-        // members are dropped (the group is the lane's whole), and the free members take their slot orders last.
-        let form_orders = if gate.form { self.group_orders(view, tick.frame, &soldiers, snapshot.enemies.as_slice(), &sources) } else { HashMap::new() };
-        if gate.form && !self.groups.is_empty() {
+        // H-MICRO-FORM's orders for every member of a declared formation group, decided first; the host's per-unit
+        // orders to members are dropped (the group is the lane's whole), and the free members take their slot orders
+        // last. With the rule off (an ablation, the duel's `old` arm) the members are the host's, order by order.
+        let form_orders = if form_on { self.group_orders(view, tick.frame, &soldiers, snapshot.enemies.as_slice(), &sources) } else { HashMap::new() };
+        if form_on && !self.groups.is_empty() {
             let grouped: HashSet<UnitId> = self.groups.values().flat_map(|d| d.members.iter().copied()).collect();
             host.retain(|c| unit_of(c).is_none_or(|u| !grouped.contains(&u)));
         }
@@ -751,7 +746,8 @@ impl Lane {
         for unit in &soldiers {
             let near = sources.iter().any(|s| s.pos.dist2d(unit.pos) < HORIZON + s.reach);
             let rules = rules_of(unit.id);
-            if rules == Footwork::raw() {
+            // Raw: no reflex, the host's orders as given; a member of a formation group still takes its slot.
+            if rules == Footwork::raw() && !form_orders.contains_key(&unit.id) {
                 self.release(view, unit.id, frame, commands, debug);
                 continue;
             }
@@ -799,84 +795,78 @@ impl Lane {
         out
     }
 
-    /// H-MICRO-HUNT: every hunter is sent at its quarry by id every tick while the quarry is in sight or on radar,
-    /// and once to the last sighting (carried along its velocity) while it is not; the hunt ends when the quarry is
-    /// dead, out of sight and radar for six seconds, or any hunter has passed the leash. Each end is reported once;
-    /// the host clears the commitments (worlds-2: four Rovers at 168 never closed on a Pawn at 87 in 28 s under
-    /// fight-to-point orders re-issued at the party's last place, the flank slots 400-500 short of it every tick).
+    /// H-MICRO-HUNT for one declared group of kind `Hunt` (design D15): every member is sent at the quarry by id every
+    /// tick while the quarry is in sight or on radar, and once to the last sighting (carried along its velocity) while
+    /// it is not; the hunt ends when the quarry is dead, out of sight and radar for the order's `lost_frames`, or any
+    /// member has passed the leash from where it stood when the lane first ran it under this hunt. The end is reported
+    /// once, with the group's name; the host changes or clears the group (worlds-2: four Rovers at 168 never closed on
+    /// a Pawn at 87 in 28 s under fight-to-point orders re-issued at the party's last place, the flank slots 400-500
+    /// short of it every tick).
     #[allow(clippy::too_many_arguments)]
-    fn hunt(&mut self, view: &dyn View, hunters: &[(&OwnUnit, Hunt)], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<HuntEvent>, debug: bool) {
-        let quarries: Vec<UnitId> = hunters.iter().map(|(_, h)| h.quarry).collect();
-        self.hunts.retain(|q, _| quarries.contains(q));
-        let mut by_quarry: Vec<UnitId> = Vec::new();
-        for q in &quarries {
-            if !by_quarry.contains(q) {
-                by_quarry.push(*q);
-            }
+    fn hunt(&mut self, view: &dyn View, name: &str, hunters: &[&OwnUnit], order: &HuntOrder, enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<HuntEvent>, debug: bool) {
+        let quarry = order.quarry;
+        let mut state = self.hunts.remove(name).unwrap_or_else(|| HuntState { started: frame, anchors: HashMap::new(), last_seen: None, ended: None, sent_to_sighting: HashMap::new() });
+        if state.ended.is_some() {
+            self.hunts.insert(name.to_string(), state);
+            return;
         }
-        for quarry in by_quarry {
-            let leash_from = hunters.iter().find(|(_, h)| h.quarry == quarry).map(|(_, h)| h.leash_from).unwrap_or_default();
-            let fresh_state = || HuntState { started: frame, leash_from, last_seen: None, ended: None, sent_to_sighting: HashMap::new() };
-            if self.hunts.get(&quarry).is_some_and(|s| s.ended.is_some() && s.leash_from.dist2d(leash_from) > 1.0) {
-                self.hunts.insert(quarry, fresh_state());
+        for unit in hunters {
+            state.anchors.entry(unit.id).or_insert(unit.pos);
+        }
+        let seen = enemies.iter().find(|e| e.id == quarry);
+        if let Some(e) = seen {
+            state.last_seen = Some((e.pos, e.vel, frame));
+        }
+        let mut ended: Option<&'static str> = None;
+        if seen.is_none() && !view.enemy_known(quarry) {
+            ended = Some("dead");
+        } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= order.lost_frames {
+            ended = Some("lost");
+        } else if hunters.iter().any(|unit| state.anchors.get(&unit.id).is_some_and(|from| from.dist2d(unit.pos) > order.leash)) {
+            ended = Some("leash");
+        }
+        if let Some(why) = ended {
+            state.ended = Some(why);
+            for unit in hunters {
+                self.claims.remove(&unit.id);
             }
-            let state = self.hunts.entry(quarry).or_insert_with(fresh_state);
-            if state.ended.is_some() {
-                continue;
+            events.push(HuntEvent { group: name.to_string(), quarry, why });
+            if debug {
+                eprintln!("{} f={frame} micro: {name}'s hunt on {} ends ({why}) after {} s", view.label(), quarry.0, (frame - state.started) / FRAMES_PER_SECOND);
             }
-            let seen = enemies.iter().find(|e| e.id == quarry);
-            if let Some(e) = seen {
-                state.last_seen = Some((e.pos, e.vel, frame));
-            }
-            let mut ended: Option<&'static str> = None;
-            if seen.is_none() && !view.enemy_known(quarry) {
-                ended = Some("dead");
-            } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= hunters.iter().find(|(_, h)| h.quarry == quarry).map_or(HUNT_LOST_FRAMES, |(_, h)| h.lost_frames) {
-                ended = Some("lost");
-            } else if hunters.iter().any(|(unit, hunt)| hunt.quarry == quarry && hunt.leash_from.dist2d(unit.pos) > hunt.leash) {
-                ended = Some("leash");
-            }
-            if let Some(why) = ended {
-                state.ended = Some(why);
-                for (unit, _) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
-                    self.claims.remove(&unit.id);
-                }
-                events.push(HuntEvent { quarry, why });
+            self.hunts.insert(name.to_string(), state);
+            return;
+        }
+        for unit in hunters {
+            let fresh = !self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Hunt && c.target == Some(quarry));
+            if fresh {
+                fired.push(Rule::Hunt.id());
+                self.counts.0 += 1;
                 if debug {
-                    eprintln!("{} f={frame} micro: the hunt on {} ends ({why}) after {} s", view.label(), quarry.0, (frame - state.started) / FRAMES_PER_SECOND);
+                    eprintln!("{} f={frame} micro: {}#{} hunts {} ({name})", view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, quarry.0);
                 }
-                continue;
             }
-            for (unit, _) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
-                let fresh = !self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Hunt && c.target == Some(quarry));
-                if fresh {
-                    fired.push(Rule::Hunt.id());
-                    self.counts.0 += 1;
-                    if debug {
-                        eprintln!("{} f={frame} micro: {}#{} hunts {}", view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, quarry.0);
-                    }
+            match (seen, state.last_seen) {
+                (Some(e), _) => {
+                    self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame, stance: None, kind: None });
+                    self.counts.1 += 1;
+                    commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
                 }
-                match (seen, state.last_seen) {
-                    (Some(e), _) => {
-                        self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame, stance: None, kind: None });
+                (None, Some((pos, vel, at))) => {
+                    // Out of sight: once per sighting, to where it was heading.
+                    if state.sent_to_sighting.get(&unit.id) != Some(&at) {
+                        state.sent_to_sighting.insert(unit.id, at);
+                        let ahead = (frame - at) as f32;
+                        let to = view.snap(unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
+                        self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
                         self.counts.1 += 1;
-                        commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
+                        commands.push(Command::Move { unit: unit.id, to, queue: false });
                     }
-                    (None, Some((pos, vel, at))) => {
-                        // Out of sight: once per sighting, to where it was heading.
-                        if state.sent_to_sighting.get(&unit.id) != Some(&at) {
-                            state.sent_to_sighting.insert(unit.id, at);
-                            let ahead = (frame - at) as f32;
-                            let to = view.snap(unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
-                            self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
-                            self.counts.1 += 1;
-                            commands.push(Command::Move { unit: unit.id, to, queue: false });
-                        }
-                    }
-                    (None, None) => {}
                 }
+                (None, None) => {}
             }
         }
+        self.hunts.insert(name.to_string(), state);
     }
 
     /// H-MICRO-FLEE for one unit: `Some` when it owns the unit this tick (a step, or a hold at the edge). A threat
@@ -1097,6 +1087,9 @@ impl Lane {
         let names: Vec<String> = self.groups.keys().cloned().collect();
         for name in names {
             let Some(declared) = self.groups.get_mut(&name) else { continue };
+            if matches!(declared.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
+                continue;
+            }
             let walkers: Vec<group::Walker> = (declared.members.iter())
                 .filter_map(|id| {
                     let u = by_id.get(id)?;
@@ -1215,7 +1208,7 @@ impl Lane {
             // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was
             // 6.0 s under Moves, the units walking on to slots on the structure's footprint, against 0.8 under
             // Fights). Stopped slots are sent once, so a standing unit's Fight is never re-ordered.
-            let slots = group.tick(frame, &walkers, spacing, &self.pacing, declared.footwork.march).clone();
+            let slots = group.tick(frame, &walkers, spacing, &self.pacing).clone();
             let fights = group.order.kind != GroupKind::Go;
             for w in &walkers {
                 let Some(unit) = by_id.get(&w.id) else { continue };

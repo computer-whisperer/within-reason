@@ -6,7 +6,7 @@
 //!
 //! The picket answers as the standing raider rule of the bot does (a raider at a structure of ours within 1,200 of
 //! the station): the units faster than the raider, two at most, go after it. With the lane on they go as a hunt
-//! (H-MICRO-HUNT: `micro::Commitment::Hunt`, an attack by id every tick, the lane reporting the end); with the lane
+//! (H-MICRO-HUNT: a declared group of kind `Hunt`, an attack by id every tick, the lane reporting the end); with the lane
 //! off they go as the hands went before (a fight-to-point at the raider's place every two seconds), judged by the
 //! same ends (dead, out of sight six seconds, the 900 leash, a third of health) in the director. Either way a
 //! hunter whose hunt ended walks back to its place at the station.
@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 
 use bot_protocol::{Command, EnemyUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
-use micro::{Commitment, Hunt, HuntEvent};
+use micro::{GroupKind, GroupOrder, HuntEvent, HuntOrder};
 
 const FPS: i32 = 30;
 /// The buildings of the strip: the extractor and the constructor working at the far one.
@@ -203,7 +203,8 @@ impl Raid {
 
     /// Side 0's tick: the standing raider rule (a raider at a building of ours within the trigger reach, with no hunt
     /// on it yet) starts a hunt with the faster pickets; the lane-off arm's hunts are driven and judged here, the
-    /// lane-on arm's are handed to the lane as commitments (the return value) and end by its events. `pickets` are
+    /// lane-on arm's are handed to the lane as hunt groups (the return value: name, hunters, order; the director
+    /// declares them and clears the rest) and end by its events. `pickets` are
     /// side 0's living mobile soldiers with their type; `buildings` where the living extractors and constructor
     /// stand; `enemy_alive` whether a raider is alive (the director's truth, for "dead").
     #[allow(clippy::too_many_arguments)]
@@ -217,7 +218,7 @@ impl Raid {
         defs: &HashMap<UnitDefId, UnitDefInfo>,
         enemy_alive: &dyn Fn(UnitId) -> bool,
         commands: &mut Vec<Command>,
-    ) -> HashMap<UnitId, Commitment> {
+    ) -> Vec<(String, Vec<UnitId>, GroupOrder)> {
         let frame = tick.frame;
         let station = self.station;
         let hunting: Vec<UnitId> = self.hunts.iter().filter(|h| h.ended.is_none()).flat_map(|h| h.hunters.iter().copied()).collect();
@@ -246,7 +247,7 @@ impl Raid {
             eprintln!("raid f={frame}: {} hunters after {} ({}) at ({:.0},{:.0})", hunters.len(), e.id.0, def.name, e.pos.x, e.pos.z);
             self.hunts.push(HuntRun { quarry: e.id, quarry_name: def.name.clone(), hunters, started: frame, from, ended: None, last_seen: frame, resent: -1 });
         }
-        let mut commitments: HashMap<UnitId, Commitment> = HashMap::new();
+        let mut groups: Vec<(String, Vec<UnitId>, GroupOrder)> = Vec::new();
         let place_of = self.place_of.clone();
         for run in self.hunts.iter_mut().filter(|h| h.ended.is_none()) {
             let seen = enemies.iter().find(|e| e.id == run.quarry);
@@ -254,9 +255,8 @@ impl Raid {
                 run.last_seen = frame;
             }
             if lane_on {
-                for &h in &run.hunters {
-                    commitments.insert(h, Commitment::Hunt(Hunt { quarry: run.quarry, leash_from: run.from, leash: LEASH, lost_frames: micro::HUNT_LOST_FRAMES }));
-                }
+                let order = HuntOrder { quarry: run.quarry, leash: LEASH, lost_frames: micro::HUNT_LOST_FRAMES, since: run.started };
+                groups.push((format!("hunt_{}", run.quarry.0), run.hunters.clone(), GroupOrder::new(GroupKind::Hunt(order), Vec::new())));
                 continue;
             }
             // The lane-off arm: the hands' engage as it was, and the same ends judged here.
@@ -291,7 +291,7 @@ impl Raid {
                 commands.extend(run.hunters.iter().map(|&unit| Command::Fight { unit, to: e.pos, queue: false }));
             }
         }
-        commitments
+        groups
     }
 
     /// The lane's hunt events (the lane-on arm): a hunt's end sends the hunters back to their places at the station.

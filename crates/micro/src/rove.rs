@@ -10,7 +10,9 @@
 //! perimeter of the known enemy base"); his places seen this minute never rank ahead of the map's unseen ones: ranked
 //! there, a rover whose way into his base passed a turret's reach walked back and forth between the two edge spots it
 //! could reach, each the oldest seen in turn (the first human game of 2026-09-28). Being seen costs it nothing: only what can hit it counts. No host order
-//! reaches it (`lib.rs` `tick` drops them), so the hands' states cannot pull it off.
+//! reaches it (`lib.rs` `tick` drops them), so the hands' states cannot pull it off. A rover is a member of a declared
+//! group of kind `Rove` (design D15), whose order may confine it to a region: outside it the rover looks at nothing and
+//! attacks nothing, though it may pass through outside ground on its way.
 //!
 //! player-9-posing: three scouts sent at his base at G1-G2 never arrived: one pulled home by the hands at the first
 //! sight of his commander, one walked into two Pawns beside his lab, one diverted onto a hunt.
@@ -191,16 +193,15 @@ impl Lane {
 
     /// H-MICRO-ROVE, every tick, for every rover: evade, else attack, else look (the module's comment).
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
+    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[(&OwnUnit, Option<(Vec3, Vec3)>)], enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
         let danger_all: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
         let mut goals_of: HashMap<UnitDefId, Vec<RoveGoal>> = HashMap::new();
-        for unit in rovers {
+        for (unit, within) in rovers {
             // A torpedo shooter is no danger to a rover on land (the engine: water weapons reach only what is in the water).
             let danger: Vec<&Source> = danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect();
             let stats = view.stats(unit.def).unwrap_or_default();
             let sight = if stats.sight > 0.0 { stats.sight } else { DEFAULT_SIGHT };
-            // A region the host confines it to: nothing outside it is looked at or attacked.
-            let within = view.rove_within(unit.id);
+            // A region the order confines it to: nothing outside it is looked at or attacked.
             let inside = |p: Vec3| within.is_none_or(|(a, b)| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z);
             let name = view.def(unit.def).map_or("?", |d| d.name.as_str()).to_string();
             let mut rover = match self.rovers.remove(&unit.id) {
@@ -397,9 +398,9 @@ impl Lane {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Commitment, Footwork, Hunt, Stats};
+    use super::super::{Commitment, Footwork, Stats};
     use super::*;
-    use crate::{GroupKind, GroupOrder};
+    use crate::{GroupKind, GroupOrder, HuntOrder};
     use bot_protocol::{MoveClass, MoveKind, Snapshot, Tick, UnitDefInfo};
 
     const ROVER: UnitDefId = UnitDefId(1);
@@ -463,8 +464,6 @@ mod tests {
         goals: Vec<RoveGoal>,
         /// Ground nothing stands on: a point inside it snaps to its edge.
         pit: Option<(Vec3, f32)>,
-        /// The region every rover is confined to.
-        within: Option<(Vec3, Vec3)>,
     }
 
     impl Host {
@@ -476,7 +475,7 @@ mod tests {
                 def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
                 def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             ];
-            Host { defs, buildings: Vec::new(), goals, pit: None, within: None }
+            Host { defs, buildings: Vec::new(), goals, pit: None }
         }
     }
 
@@ -536,31 +535,27 @@ mod tests {
         fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
             self.goals.clone()
         }
-        fn rove_within(&self, _unit: UnitId) -> Option<(Vec3, Vec3)> {
-            self.within
-        }
     }
 
     fn goal(name: &str, x: f32, z: f32, seen: Option<i32>, theirs: bool) -> RoveGoal {
         RoveGoal { name: name.to_string(), at: at(x, z), seen, theirs }
     }
 
-    /// A rover confined to a region (the host's `rove_within`) looks at no place and attacks no unit outside it:
+    /// A rover confined to a region (the order's `within`) looks at no place and attacks no unit outside it:
     /// free, it takes the nearer unseen place and the unguarded extractor beside it; confined, it leaves both for
     /// the place inside the region.
     #[test]
     fn a_rover_confined_to_a_region_looks_and_attacks_inside_it_alone() {
         let goals = vec![goal("spot_1", 500.0, 500.0, None, false), goal("spot_2", 3000.0, 3000.0, None, false)];
         let extractor = enemy(50, EXTRACTOR, 1200.0, 1200.0);
-        let mut free = Lane::default();
-        free.set_commitments(HashMap::from([(UnitId(10), Commitment::Rove)]), HashMap::new());
+        let mut free = roving_lane(&[10]);
         let host = Host::new(goals.clone());
         let out = free.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor.clone()]), &mut Vec::new(), false);
         assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 50)), "free, it attacks the extractor beside it: {:?}", out.commands);
         let mut confined = Lane::default();
-        confined.set_commitments(HashMap::from([(UnitId(10), Commitment::Rove)]), HashMap::new());
-        let mut host = Host::new(goals);
-        host.within = Some((at(2000.0, 2000.0), at(4000.0, 4000.0)));
+        let within = Some((at(2000.0, 2000.0), at(4000.0, 4000.0)));
+        confined.set_group("scouts", vec![UnitId(10)], GroupOrder::new(GroupKind::Rove { within }, Vec::new()), Footwork::raw(), Commitment::All);
+        let host = Host::new(goals);
         let out = confined.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor]), &mut Vec::new(), false);
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "confined, the extractor outside is left: {:?}", out.commands);
         let report = confined.roving(UnitId(10)).expect("roving");
@@ -579,9 +574,10 @@ mod tests {
         Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { own_units: own, enemies, ..Snapshot::default() } }
     }
 
+    /// A lane with these units declared as one roving group (design D15).
     fn roving_lane(ids: &[i32]) -> Lane {
         let mut lane = Lane::default();
-        lane.set_commitments(ids.iter().map(|id| (UnitId(*id), Commitment::Rove)).collect(), HashMap::new());
+        lane.set_group("scouts", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw(), Commitment::All);
         lane
     }
 
@@ -619,9 +615,8 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
         let station = at(1000.0, 3600.0);
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder { kind: GroupKind::FightTo, route: vec![station] }, form_only, Commitment::All);
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![station]), Footwork::raw(), Commitment::All);
         let rovers = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         let orders_of = |commands: &[Command], unit: i32| commands.iter().filter_map(|c| match c { Command::Fight { unit: u, to, .. } | Command::Move { unit: u, to, .. } if u.0 == unit => Some(*to), _ => None }).collect::<Vec<Vec3>>();
         // Tick 1: a Pawn stands 500 east, inside the 700 horizon: the group forms on it.
@@ -660,8 +655,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder { kind: GroupKind::FightTo, route: vec![at(1000.0, 3600.0)] }, form_only, Commitment::All);
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![at(1000.0, 3600.0)]), Footwork::raw(), Commitment::All);
         let mut rovers = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         rovers.push(rover(20, 3000.0, 3000.0));
         let mut host_orders: Vec<Command> = ids.iter().chain([20].iter()).map(|id| Command::Stop { unit: UnitId(*id) }).collect();
@@ -684,14 +678,13 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
         // Five Pawns (87) and one Rover (168), together at x 1000; the goal 3,000 east.
         let mut body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect();
         for u in body.iter_mut().skip(1) {
             u.def = PAWN;
         }
         let goal = at(4000.0, 1000.0);
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder { kind: GroupKind::Go, route: vec![goal] }, marching, Commitment::None);
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw(), Commitment::None);
         let first_of = |commands: &[Command], id: i32| commands.iter().find_map(|c| match c { Command::Move { unit, to, queue: false } if unit.0 == id => Some(*to), _ => None });
         let out = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
         let rover_to = first_of(&out.commands, 10).expect("the Rover is ordered");
@@ -893,8 +886,8 @@ mod tests {
     fn a_hunter_no_faster_than_its_quarry_and_hurt_keeps_hunting() {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
-        let hunt = Hunt { quarry: UnitId(99), leash_from: at(2500.0, 2500.0), leash: 900.0, lost_frames: crate::HUNT_LOST_FRAMES };
-        lane.set_commitments([(UnitId(10), Commitment::Hunt(hunt))].into_iter().collect(), [(UnitId(10), Footwork::raw())].into_iter().collect());
+        let hunt = HuntOrder { quarry: UnitId(99), leash: 900.0, lost_frames: crate::HUNT_LOST_FRAMES, since: 30 };
+        lane.set_group("hunt", vec![UnitId(10)], GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw(), Commitment::All);
         let mut hunter = rover(10, 2500.0, 2500.0);
         hunter.health = 30.0;
         let out = lane.tick(&host, &tick(30, vec![hunter], vec![enemy(99, ROVER, 2800.0, 2500.0)]), &mut Vec::new(), false);

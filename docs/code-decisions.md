@@ -78,7 +78,14 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 | Audits: 2% of what a layer skips is asked anyway and never played | `AUDIT_SHARE = 0.02` | `P/layers.rs`, `P/decode.rs` |
 | Failures: a failed gate leaves every course standing; in realtime an answer older than 3 s is dropped | `STALE_FRAMES` 3 s | `P/mod.rs` |
 
-## 5. The micro engine (10 Hz, ground soldiers; the player's `lane` tool sets the rules a group)
+## 5. The micro engine (10 Hz, ground soldiers; the player's `lane` tool sets the reflexes a group's soldiers are under)
+
+Refreshed 2026-10-24 night against the code at design D15 (`docs/design/2026-10-24-formation-drills.md`). The lane's
+surface is two things: a declared group (`Lane::set_group`: members, an order of a kind with a route, the reflexes,
+the threat set), which the lane owns whole, and per-unit reflexes and a threat set for loose soldiers
+(`set_commitments`). **The flagship declares only its hunting and roving groups**; every other soldier of its is loose,
+so no formation forms in a flagship game until the hands' migration (the user, 2026-10-24 night: "The flagship's
+current state is not a problem: focus on building a good engine and we will attach the hands to it when it is ready").
 
 | Rule | What it decides | Main values | ID |
 |---|---|---|---|
@@ -86,11 +93,11 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 | Flee | Steps out of an unpriced threat, or when fire would kill it in 1.5 s and the side is outgunned | `HORIZON = 700`, `EXPOSURE_SECONDS = 1.5`, `ODDS_TO_STAY = 1.2` | H-MICRO-FLEE |
 | Fan | Sidesteps out of a D-gun's line | `DGUN_MARGIN = 260`, `DGUN_SHADOW = 48` | H-MICRO-FAN |
 | Kite | Out-reaching by 80 and no slower, steps back while reloading | `KITE_MARGIN = 80`, `KITE_EDGE = 15` | H-MICRO-KITE |
-| Form | Group orders become per-unit slots; at contact picks the body's target and stands on an arc at reach | `HULL_SPACING = 64`, `SPACING_MAX = 160`, `FILES = 6` | H-MICRO-FORM, -ARC, -SPACING |
-| March (inside form) | Forms up ahead, then ranks at the goal | `FORM_UP_SECONDS = 3`, `FORM_UP_LEAD = 300` | (H-ARMY-MARCH is deleted) |
+| Group | A declared group of kind Go, FightTo, Attack or Hold: an anchor walks the order's route at the slowest type's speed, held back by its body's lag; slots in ranks of six hung from it, re-dealt by least travel at a turn of 20° or more; members formed within 128, exceptions reported with a cause; `march` off in the order puts the slots at the destination | `FILES = 6`, `HULL_SPACING = 64`, `RANK_GAP = 96`, `REDEAL_TURN_DEG = 20`, `Pacing` (formed 128, drag 128, exception 300, rejoin 96) | H-MICRO-GROUP |
+| Form (at contact) | An armed enemy within 700 of the group's centre stops the anchor; the group picks the body's target (the host's for an Attack, else the nearest soldier in the open, else a building) and stands on an arc at reach, spaced wider against area fire | `HORIZON = 700`, `SPACING_MAX = 160`, `AREA_SPACING = 2` | H-MICRO-FORM, -ARC, -SPACING |
 | Pursuit let-go | Lets a chased target go | `PURSUIT = 600`, `LET_GO_FRAMES` 30 s | H-MICRO-FORM-PURSUIT |
-| Hunt | Attack by id each tick; its ends are in §2 | | H-MICRO-HUNT |
-| Rove | Evade, else kill what is unguarded, else look at the least-known place | `ATTACK_RADIUS = 1000`, `KILL_SECONDS = 45`, `LOOK_SHARE = 0.6` | H-MICRO-ROVE |
+| Hunt | A declared group of kind Hunt: attack by id each tick; its ends (dead, lost, the leash from where each hunter stood when the lane first ran it) are in §2 | `HUNT_LOST_FRAMES` 6 s | H-MICRO-HUNT |
+| Rove | A declared group of kind Rove: evade, else kill what is unguarded, else look at the least-known place, within the order's region if one | `ATTACK_RADIUS = 1000`, `KILL_SECONDS = 45`, `LOOK_SHARE = 0.6` | H-MICRO-ROVE |
 
 ## 6. Where a building goes, and when the player is woken
 
@@ -117,4 +124,5 @@ unit; shelled from out of sight 5 times in 15 s; a factory lane blocked 30 s.
   H-HANDS-ENGAGED-PICK-BAR, H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED.
 - Rows marked retired over code that runs: H-HANDS-MENU, H-MICRO-HUNT, H-REC-CREW.
 - H-MAP-ENEMY-START and H-MAP-ENEMY-CLUSTER still feed the base guess that the placement rules use.
-- The lane word `march` is carried and read by nothing; the march runs under `form`.
+- (Mended 2026-10-24 night, D15: the lane words `form` and `march` are gone; a group forms by definition and its
+  pacing is its order's.)

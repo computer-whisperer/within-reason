@@ -1710,7 +1710,7 @@ pub(super) mod tests {
         let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::Hold { committed: false, picked: false }, 0);
         a.parent = Some("B".into());
         pianist.groups.push(a);
-        let hunt = Hunt { quarry: UnitId(1), party: "party_12".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 150, last_seen: 150, at: at(4400.0, 1640.0) };
+        let hunt = Hunt { quarry: UnitId(1), party: "party_12".into(), anchors: Vec::new(), since: 150, last_seen: 150, at: at(4400.0, 1640.0) };
         pianist.groups.push(Group::new("B".into(), Domain::Ground, hunters, GroupTask::Hunt(hunt), 150));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };

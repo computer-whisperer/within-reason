@@ -1434,7 +1434,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 army.spread_at_contact = Some(army.dispersion);
             }
             let from = commands.len();
-            let mut commitments: HashMap<UnitId, Commitment> = HashMap::new();
+            // The raid's hunts, as groups for the lane (design D15).
+            let mut hunt_groups: Vec<(String, Vec<UnitId>, GroupOrder)> = Vec::new();
             // A scenario's side under a script (side 0) or on its track (side 1) takes no orders from the director.
             let script = rules.script.filter(|_| scenario && side == 0);
             let on_track = scenario && side == 1 && rules.theirs == Control::Track;
@@ -1458,7 +1459,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         drill_target(drill, army, tick, frame, commands);
                     }
                 } else if settled && let Some(raid) = duel.raid.as_mut() {
-                    raid_orders(raid, army, enemy, tick, side, rules, commands, &mut commitments);
+                    raid_orders(raid, army, enemy, tick, side, rules, commands, &mut hunt_groups);
                 } else if settled {
                     match rules.chase {
                         Some(interval) if first_damage.is_none() => chase_orders(army, enemy, tick, side, interval, rules.map, frame, commands),
@@ -1471,9 +1472,18 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let mut mine: Vec<Command> = commands.split_off(from);
                 let members = army.units.clone();
                 lane.note_standing_orders(&mine, frame, |u| members.contains(&u));
-                let mut all: HashMap<UnitId, Commitment> = members.iter().map(|u| (*u, Commitment::All)).collect();
-                all.extend(commitments);
+                let all: HashMap<UnitId, Commitment> = members.iter().map(|u| (*u, Commitment::All)).collect();
                 lane.set_commitments(all, HashMap::new());
+                if duel.raid.is_some() {
+                    for name in lane.group_names() {
+                        if !hunt_groups.iter().any(|(n, ..)| *n == name) {
+                            lane.clear_group(&name);
+                        }
+                    }
+                    for (name, hunters, order) in hunt_groups.drain(..) {
+                        lane.set_group(&name, hunters, order, Footwork::raw(), Commitment::All);
+                    }
+                }
                 // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
                 // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
                 // the enemy's centre; a raid, a chase, a scripted or tracked side and a drill's target side order
@@ -1505,17 +1515,17 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                             }
                         }
                         if drill.kind == drill::Kind::Gather && drill.gathered_at.is_none() {
-                            Some(GroupOrder { kind: GroupKind::Hold, route: vec![drill.rally()] })
+                            Some(GroupOrder::new(GroupKind::Hold, vec![drill.rally()]))
                         } else if drill.kind == drill::Kind::Circuit {
                             // The whole route as one order, never changed: the anchor turns at each corner without
                             // stopping (a route re-declared the same is taken silently).
-                            Some(GroupOrder { kind, route: drill.route.clone() })
+                            Some(GroupOrder::new(kind, drill.route.clone()))
                         } else {
-                            Some(GroupOrder { kind, route: vec![drill.toward] })
+                            Some(GroupOrder::new(kind, vec![drill.toward]))
                         }
                     }
                     Some(_) => None,
-                    None if plain_fight => Some(GroupOrder { kind: GroupKind::FightTo, route: vec![enemy_centroid] }),
+                    None if plain_fight => Some(GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid])),
                     None => None,
                 };
                 if let Some(order) = group {
@@ -1541,8 +1551,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         army.straggler_best.retain(|u, _| still.contains(u));
                     }
                     let living: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile) && !army.left_behind.contains(u)).collect();
-                    let footwork = Footwork { march: army.lane_mode != LaneMode::Ranks, ..Footwork::default() };
-                    lane.set_group("army", living, order, footwork, Commitment::All);
+                    // `--lane ranks`: the group with its march off, the slots standing at the destination.
+                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, ..order };
+                    lane.set_group("army", living, order, Footwork::default(), Commitment::All);
                 }
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
                 // quarry is gone from them; `enemy.units` keeps the dead).
@@ -1924,7 +1935,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
 }
 
 /// The raid scenario's orders for one side this tick (`raid.rs`): the raiders' script for side 1, the picket's
-/// standing raider rule for side 0, whose hunts go to the lane as commitments when the lane is on.
+/// standing raider rule for side 0, whose hunts go to the lane as hunt groups when the lane is on.
 #[allow(clippy::too_many_arguments)]
 /// A drill's orders (`drill.rs`): the one order to every mobile unit when the army is first ordered (a circuit's
 /// route as queued orders), a reverse's turn, the re-issue; for a gather or a circuit the lab's list under the
@@ -2080,7 +2091,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army, clearance: Option<(f32, 
     } })
 }
 
-fn raid_orders(raid: &mut Raid, army: &mut Army, enemy: &Army, tick: &Tick, side: usize, rules: &Rules, commands: &mut Vec<Command>, commitments: &mut HashMap<UnitId, Commitment>) {
+fn raid_orders(raid: &mut Raid, army: &mut Army, enemy: &Army, tick: &Tick, side: usize, rules: &Rules, commands: &mut Vec<Command>, hunt_groups: &mut Vec<(String, Vec<UnitId>, GroupOrder)>) {
     let mobile = |a: &Army, i: usize| a.spawns[i].mobile;
     if side == 1 {
         let alive_x = |i: usize| enemy.unit_of.get(&i).filter(|u| enemy.alive.contains_key(u)).and_then(|u| Some((*u, *enemy.seen_at.get(u)?)));
@@ -2103,7 +2114,7 @@ fn raid_orders(raid: &mut Raid, army: &mut Army, enemy: &Army, tick: &Tick, side
     let buildings: Vec<Vec3> = raid.extractors.iter().chain(std::iter::once(&raid.constructor)).filter_map(|i| army.unit_of.get(i)).filter(|u| army.alive.contains_key(u)).filter_map(|u| army.seen_at.get(u).copied()).collect();
     let enemy_alive = |id: UnitId| enemy.alive.contains_key(&id);
     let lane_on = army.lane.is_some();
-    commitments.extend(raid.picket_orders(tick, lane_on, &pickets, &buildings, tick.snapshot.enemies.as_slice(), rules.defs, &enemy_alive, commands));
+    hunt_groups.extend(raid.picket_orders(tick, lane_on, &pickets, &buildings, tick.snapshot.enemies.as_slice(), rules.defs, &enemy_alive, commands));
 }
 
 /// The chase instrument's orders: the second army runs from the first (a Move 1,500 along the line away from the
