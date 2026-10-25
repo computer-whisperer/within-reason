@@ -862,7 +862,7 @@ mod tests {
         assert!(text.contains(super::HANDS_RULES_MARK));
         let prompt: String = super::player_parts().unwrap().into_iter().map(|(_, text)| text).collect();
         let rules = crate::brain::pianist::hands_rules_whole();
-        assert!(rules.contains("A raider at one of our extractors is met by a small detachment") && rules.contains("A factory standing idle") && !rules.contains("<<"), "{rules}");
+        assert!(rules.contains("A raider at one of our extractors is answered by whatever drives it off soonest") && rules.contains("A factory standing idle") && !rules.contains("<<"), "{rules}");
         assert!(prompt.contains(&rules) && !prompt.contains(super::HANDS_RULES_MARK));
     }
 

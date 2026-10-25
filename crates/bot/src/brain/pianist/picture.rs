@@ -1104,8 +1104,9 @@ impl Brain {
         let quarry = if party_name.is_empty() { "its party".to_string() } else { party_name };
         let leash = match &group.task {
             GroupTask::Hunt(h) => {
-                let run = h.anchors.iter().filter_map(|(id, from)| units.iter().find(|u| u.id == *id).map(|u| u.pos.dist2d(*from))).fold(0.0, f32::max);
-                format!(", {run:.0} of its {:.0} leash run", super::groups::HUNT_LEASH)
+                // The quarry's run from where it stood when the hunt began, of the leash that lets it go.
+                let run = h.at.dist2d(h.from);
+                format!(", its quarry {run:.0} of the {:.0} it is let go at", super::groups::HUNT_LEASH)
             }
             _ => String::new(),
         };
@@ -2230,16 +2231,16 @@ mod tests {
         use super::super::fixtures::e3;
         let (brain, ours, _, parties) = e3();
         let quarry = at(4950.0, 1700.0);
-        let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), anchors: ours.iter().map(|u| (u.id, u.pos)).collect(), since: 0, last_seen: 0, at: quarry };
+        let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), from: quarry, since: 0, last_seen: 0, at: quarry };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
         let met = brain.chase_met(&group, &ours, &parties, &[]).expect("the chase meets the turrets and the Centurions");
-        assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
+        assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("it is let go at; ahead on the quarry's line: his "), "{}", met.words);
         assert!(met.words.contains("its reach begins") && met.words.contains("ahead of the front") && met.words.contains("beside the chase: party_12 (3 armwar, 810 metal)") && met.words.ends_with("any other pick ends the chase"), "{}", met.words);
         assert!(met.keys.iter().any(|k| k == "turret 10") && met.keys.iter().any(|k| k == "party_12"), "{:?}", met.keys);
         let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(bot_protocol::Vec3::default()), 0);
         assert!(brain.chase_met(&holding, &ours, &parties, &[]).is_none());
         // Chasing away from the turrets, with the Centurions out of reach: nothing met.
-        let away = Hunt { quarry: UnitId(77), party: "party_99".into(), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
+        let away = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(3400.0, 2600.0), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
         let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
         let mut far = parties.clone();
         far[0].at = at(6000.0, 6000.0);

@@ -298,3 +298,36 @@ Every new unit was joined to the main group at the lab, 3,000 behind the front (
 729 declared seconds, 17,180 of W4's 882). Not changed: the picks' cadence is Jev's (the menu rework ruling: alternation
 among like-rated courses is fine); whether the lane should ride out a re-declaration without a set-down, and whether a
 joiner belongs to the marching group at the lab or at the front, are the rulings to ask.
+
+### After migration-3-1: the hunt's leash and the raider sentence (the user, 2026-10-25 evening: "We can try the leash and the send words"). Written before the change.
+
+*What the record showed (the first detachment, 2:29-2:38).* Group A, three Rovers walking home strung out across the
+map, was offered two worlds against a Flea at our lab 2,800 away: nothing ("Left to nobody: party_1 ... killing our
+Vehicle Plant") or two Rovers hunting it ("far, about 20 s of walking ... they can catch it"). Jev took the hunt
+(0.72). The hunters drove 900 and the hunt ended on the leash, measured from where each hunter stood, 1,900 short of
+the Flea; the hunters held there with no order. The next offer carried "the last hunt of it ended without a kill: the
+leash of 900 from where it began reached" and Jev sent one of the two (0.76 against 0.20 for both). Nine seconds and
+four groups of one later, the Blitz born beside the Flea killed it. The same shape at 5:19-5:31 dissolved the six
+Blitzes: the player's packet said a lone raider "is answered by one or two of its Blitzes, never the whole group",
+the hunts were 30 s of walking from their parties, every tick's world line said "Not met: ... nothing of it has the
+party in reach ... on its way" and "Left to nobody", and the children (groups J, L) were offered sends of their own.
+
+*The two faults in the prompts.* (1) The rules text makes the detachment the answer to a raider ("A raider at one of
+our extractors is met by a small detachment (`send`), not the whole group"), and the only alternative world is
+"nothing, left to nobody": the rule applied is the send, at any distance, again after each failure. (2) The leash is
+measured from the hunters, so a hunt begun farther than 900 from its party cannot arrive, while sends are offered at
+any distance (the 2026-09-27 ruling took the reach off); the failure is then worded as the raider escaping.
+
+*The change.* (a) The leash bounds the chase, not the approach: the hunt ends when the quarry has moved more than
+`HUNT_LEASH` (900) from where it stood when the hunt began (its last sighting while out of sight), not when a hunter
+has. A hunter may approach from anywhere; a raider that runs 900 is let go. The micro engine keeps the rule
+(`HuntState.quarry_from`); the hands' `Hunt.anchors` (per-hunter starts, read only for the chase words) becomes
+`Hunt.from`, the quarry's start, and the chase words say how far the quarry has run of its leash; the end's word says
+"its quarry ran 900 from where the hunt began". Rejected: a send offered only when the hunters can reach the party
+inside the leash, since it removes moves by a code rule (the rebuild's law: a move is left out only when the unit
+cannot do it or it would change nothing). (b) The rules sentence: a detachment is the answer when it is the soonest,
+not the answer by default: "A raider at one of our extractors is answered by whatever drives it off soonest: a small
+detachment (`send`) when it arrives soonest, a group or the commander already beside the raider when they do; a
+detachment farther from the raider than what it is killing will last is no answer, and a hunt that ended is no
+reason for another from the same distance." Measured by the raid scenario before and after (the hunt primitive's own
+bench) and by the next pianist game's `run/hunts.py` (sends, repeats within 60 s, hunts by ending).

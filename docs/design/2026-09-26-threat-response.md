@@ -52,7 +52,9 @@ A commitment kind `Hunt` for a set of hunters on one quarry (a unit id):
 - **Only units faster than the quarry hunt** (the code knows every speed: Rover 168, Tick 132, Blitz 101, Pawn 87);
   a hunt with no faster unit in reach is not offered.
 - **Ends** when the quarry dies, is out of sight and radar for 6 s, or the leash (900 from where the hunt began, or the
-  group's station) is reached. The engine reports the end and its reason in its output so the brain can release the
+  group's station) is reached. *(2026-10-25 evening: the leash is the quarry's run from where it stood when the hunt
+  began, not the hunters' from where they stood: a hunt begun from afar may arrive, a raider that runs 900 is let go;
+  the hands-migration design, "After migration-3-1".)* The engine reports the end and its reason in its output so the brain can release the
   hunters. *(2026-09-29: the engine's own drops, a hunter under a third of its health or no faster than the quarry,
   are deleted: whether the hunters can catch or survive the quarry is the hands' call, said in the state's words.
   player-24: the "slower" drop ended 46 of 47 hunts in their first tick against the hands' offer of a chase that

@@ -145,7 +145,8 @@ pub enum Commitment {
 }
 
 /// What the lane reports of a hunt: the hunt of group `group` on `quarry` ended (`why`: "dead", "lost" (out of sight
-/// and radar for the order's `lost_frames`), "leash"), reported once; the host changes or clears the group. Whether a
+/// and radar for the order's `lost_frames`), "leash" (the quarry ran past the leash from where it stood when the hunt
+/// began)), reported once; the host changes or clears the group. Whether a
 /// hunter can catch or survive its quarry is the hands' call, made in the state's words before the pick, never here
 /// (player-24: the engine's own "slower" drop ended 46 of 47 hunts in their first tick, against the hands' offer of a
 /// chase that drives the raider off).
@@ -160,10 +161,12 @@ pub struct HuntEvent {
 /// cleared, so a hunt declared again is a new hunt).
 struct HuntState {
     started: i32,
-    /// Where each hunter stood when the lane first ran it under this hunt: the leash is measured from there, hunter by
-    /// hunter (from the hunters' centre, a detachment cut from a strung-out body tripped it on its first tick: the
-    /// impedance tally of 2026-10-16, 174 of 395 leash ends "after 0 s").
-    anchors: HashMap<UnitId, Vec3>,
+    /// Where the quarry stood when the lane first ran this hunt (its sighting, or its last sighting while out of
+    /// sight): the leash is the quarry's run from there, so a hunt bounds the chase and not the approach (until
+    /// 2026-10-25 evening it was measured from where each hunter stood, and a hunt begun farther than the leash from
+    /// its party ended 900 into the approach: migration-3-1, every hunt of the first ten minutes; before that from the
+    /// hunters' centre, 174 of 395 leash ends "after 0 s" in the impedance tally of 2026-10-16).
+    quarry_from: Option<Vec3>,
     /// The quarry's last sighting (sight or radar): place, velocity, frame.
     last_seen: Option<(Vec3, Vec3, i32)>,
     ended: Option<&'static str>,
@@ -887,32 +890,34 @@ impl Lane {
 
     /// H-MICRO-HUNT for one declared group of kind `Hunt` (design D15): every member is sent at the quarry by id every
     /// tick while the quarry is in sight or on radar, and once to the last sighting (carried along its velocity) while
-    /// it is not; the hunt ends when the quarry is dead, out of sight and radar for the order's `lost_frames`, or any
-    /// member has passed the leash from where it stood when the lane first ran it under this hunt. The end is reported
+    /// it is not; the hunt ends when the quarry is dead, out of sight and radar for the order's `lost_frames`, or the
+    /// quarry has run past the leash from where it stood when the lane first ran this hunt. The end is reported
     /// once, with the group's name; the host changes or clears the group (worlds-2: four Rovers at 168 never closed on
     /// a Pawn at 87 in 28 s under fight-to-point orders re-issued at the party's last place, the flank slots 400-500
     /// short of it every tick).
     #[allow(clippy::too_many_arguments)]
     fn hunt(&mut self, view: &dyn View, name: &str, hunters: &[&OwnUnit], order: &HuntOrder, enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<HuntEvent>, debug: bool) {
         let quarry = order.quarry;
-        let mut state = self.hunts.remove(name).unwrap_or_else(|| HuntState { started: frame, anchors: HashMap::new(), last_seen: None, ended: None, sent_to_sighting: HashMap::new() });
+        let mut state = self.hunts.remove(name).unwrap_or_else(|| HuntState { started: frame, quarry_from: None, last_seen: None, ended: None, sent_to_sighting: HashMap::new() });
         if state.ended.is_some() {
             self.hunts.insert(name.to_string(), state);
             return;
         }
-        for unit in hunters {
-            state.anchors.entry(unit.id).or_insert(unit.pos);
-        }
         let seen = enemies.iter().find(|e| e.id == quarry);
         if let Some(e) = seen {
             state.last_seen = Some((e.pos, e.vel, frame));
+        }
+        if state.quarry_from.is_none() {
+            state.quarry_from = state.last_seen.map(|(p, _, _)| p);
         }
         let mut ended: Option<&'static str> = None;
         if seen.is_none() && !view.enemy_known(quarry) {
             ended = Some("dead");
         } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= order.lost_frames {
             ended = Some("lost");
-        } else if hunters.iter().any(|unit| state.anchors.get(&unit.id).is_some_and(|from| from.dist2d(unit.pos) > order.leash)) {
+        } else if let (Some(from), Some((at, _, _))) = (state.quarry_from, state.last_seen)
+            && at.dist2d(from) > order.leash
+        {
             ended = Some("leash");
         }
         if let Some(why) = ended {

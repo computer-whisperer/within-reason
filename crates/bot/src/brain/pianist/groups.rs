@@ -39,25 +39,29 @@ const LOSS_WAKE_COUNT: usize = 2;
 const LOSS_WAKE_SHARE: f32 = 0.25;
 /// A hunt (`docs/design/2026-09-26-threat-response.md` §1; the user, 2026-09-29: a hunt is a group of its own, never
 /// part of the mass it left): the group's members attack one unit of a party by id, raw (no formation, no flee, no
-/// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the leash ends. Whether the
+/// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the quarry has run past the
+/// leash from where it stood when the hunt began (the chase is bounded, the approach is not). Whether the
 /// hunters can catch or survive the quarry is said in the state's words for the pick; the engine drops nobody. The
 /// group holds where the hunt ends; the merge back is a state Jev picks or the player asks for.
 #[derive(Clone, Debug)]
 pub(crate) struct Hunt {
     pub quarry: UnitId,
     pub party: String,
-    /// Where each hunter stood when the hunt began: the leash is measured from there, hunter by hunter (the
-    /// impedance tally, 2026-10-16: measured from the hunters' centre, a detachment cut from a strung-out body or
-    /// sent from afar tripped it on its first tick, 174 of 395 leash ends "after 0 s" in 23 games).
-    pub anchors: Vec<(UnitId, Vec3)>,
+    /// Where the quarry stood when the hunt began: the leash is its run from there (the engine's `quarry_from`; the
+    /// chase words read it). Until 2026-10-25 evening the leash was the hunters' run from where each stood, so a
+    /// hunt begun farther than the leash from its party ended 900 into the approach (migration-3-1: every hunt of
+    /// the first ten minutes, the sends repeated after each); before that the hunters' centre (the impedance tally,
+    /// 2026-10-16: 174 of 395 leash ends "after 0 s").
+    pub from: Vec3,
     pub since: i32,
     pub last_seen: i32,
     /// Where the quarry was last seen: the attack goes there when it is on radar only.
     pub at: Vec3,
 }
 
-/// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
-/// from the station ended on its first tick, 12 of 16 hunts one order long). The engine judges it (H-MICRO-HUNT).
+/// A hunt whose quarry has run this far from where it stood when the hunt began ends (threats-smoke-1: anchored on
+/// the group's station, a hunt begun 900 from the station ended on its first tick, 12 of 16 hunts one order long).
+/// The engine judges it (H-MICRO-HUNT).
 pub(crate) const HUNT_LEASH: f32 = 900.0;
 /// A follower is sent after its ward again when the ward has moved this far from where the follower was last sent.
 const FOLLOW_STEP: f32 = 150.0;
@@ -837,7 +841,7 @@ impl Brain {
             "dead" => "the quarry is dead".to_string(),
             "lost" if cloaks => format!("{party} hidden: it cloaks, and nothing of ours has seen it for {} s, its last place walked to", HUNT_HIDDEN_FRAMES / FRAMES_PER_SECOND),
             "lost" => format!("{party} out of sight for 6 s"),
-            "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
+            "leash" => format!("its quarry ran {HUNT_LEASH:.0} from where it stood when the hunt began, and was let go"),
             other => other.to_string(),
         };
         let failed = (event.why != "dead").then(|| (party.clone(), why.clone()));
@@ -900,7 +904,7 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
-        Hunt { quarry: quarry.0, party: party.name.clone(), anchors: hunters.iter().map(|u| (u.id, u.pos)).collect(), since: frame, last_seen: frame, at: quarry.1 }
+        Hunt { quarry: quarry.0, party: party.name.clone(), from: quarry.1, since: frame, last_seen: frame, at: quarry.1 }
     }
 
     /// The whole group engages the party: its task the engagement; an undeclared group (air) released and sent to
@@ -941,14 +945,15 @@ fn group_for_newcomer(named: Option<&str>, call: u64, factory_group: Option<(u64
 
 #[cfg(test)]
 mod tests {
-    /// A hunt's leash is anchored hunter by hunter, where each stood when it began: a hunter far from the others'
-    /// centre does not end the hunt on its first tick.
+    /// A hunt's leash is anchored on the quarry where it stood when the hunt began, not on the hunters: a hunt begun
+    /// far from its party is allowed to arrive.
     #[test]
-    fn a_hunt_anchors_its_leash_on_each_hunter() {
+    fn a_hunt_anchors_its_leash_on_the_quarry() {
         let (_, ours, enemies, parties) = e3();
         let hunters: Vec<&bot_protocol::OwnUnit> = ours.iter().take(3).collect();
         let hunt = Brain::hunt_of(&parties[0], &hunters, &enemies, 30);
-        assert_eq!(hunt.anchors, hunters.iter().map(|u| (u.id, u.pos)).collect::<Vec<_>>());
+        let quarry = enemies.iter().find(|e| e.id == hunt.quarry).expect("the quarry is in sight");
+        assert_eq!(hunt.from, quarry.pos);
         assert!(parties[0].ids.contains(&hunt.quarry));
     }
 
