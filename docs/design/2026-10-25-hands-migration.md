@@ -230,3 +230,11 @@ soldiers squeezed to a column of one at a pace of 15; a set-down anchor stands o
 room (`Ground::stand`). Arrived read true with every member an exception; it needs a member in the body. Seen and
 left: the hands' groups join and split constantly (sixty `join_group_G` and `send_N` picks in eight minutes), so the
 body G carried three to five joiners from across the map at all times; that is the pick's, not the lane's.
+
+**The game (migration-2-1): WON 20:32.** The record's `groups` is the instrument: 52 groups declared; the main body
+marched 372 s at a formed share of 0.28 and a pace share of 0.82 (the drills' straights 0.93-0.96), its exceptions
+mostly joiners (4,675 member-seconds) and away (1,780): the picks joined and split groups every eight seconds (join 66,
+send 56 in twenty minutes), so the body always carried joiners from across the map. The march itself held where the
+body was together (group_C 0.61 at 0.91 of pace; the first minutes' holds formed to the member). The five engine
+fixes above are not in this game's binary; the next game measures them. The ledger row carries the numbers; the
+review's findings are its amendment.
