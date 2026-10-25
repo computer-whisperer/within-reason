@@ -268,3 +268,16 @@ review's findings are its amendment.
    (`Priced { turrets: [], commander: false }`: it stands as a hold does); the player's footwork.
 2. **Dies for these groups:** the per-unit Fight at the pick and at each follow step. **Stays:** the ward's place book
    (`at`, moved by `follow_step`), the ward-gone rule (a hold at the anchor, said), air groups' path.
+
+### Chunk 5, the build decisions and build (2026-10-25; the ruling §5.1 (b))
+
+1. **Two declared groups from one pianist group.** A shelling group (`Group.shelling`, set by the shell move, kept
+   through the hold its walk arrives in) is declared to the lane as two formations: `group_<name>`, its artillery
+   (`Brain::artillery_def`: mobile, reach 600 or more, able to hit ground) at the standoff, and `group_<name>_screen`,
+   the rest, at the screen point (`Group.screen`, the shell move's second point, 0.55 of the artillery's reach from the
+   target where the standoff is 0.85). A walk: FightTo at each point; the hold after it: Hold at each anchor. A group
+   with no artillery, or nothing but artillery, is one formation at the standoff. The player's group stays one in the
+   menu and the picture; the entry gains a `screen` line (the screen's formation words) beside `formation`.
+2. **Dies for these groups:** the per-unit Fights of the shell move (the hands order nobody). **Stays:** the standoff
+   and screen placement (the hands' data), the arrival rule (the artillery's anchor at the standoff ends the walk in a
+   hold that keeps shelling, so the screen stays between), the menu's shell key and words.

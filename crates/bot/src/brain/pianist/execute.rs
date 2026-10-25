@@ -377,13 +377,16 @@ impl Brain {
                     let standoff = self.snap_for(walker, point(reach * STANDOFF));
                     let screen = self.snap_for(walker, point(reach * SCREEN));
                     commands.extend(group.release_orders(&units));
-                    for u in &units {
-                        let to = if self.artillery(u) { standoff } else { screen };
-                        commands.push(Command::Fight { unit: u.id, to, queue: false });
-                    }
                     group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {what}"), fight: true }, frame);
                     group.shelling = true;
-                    group.last_order = frame;
+                    group.screen = Some(screen);
+                    // A declared group's shell is the lane's two formations (chunk 5); an air group's the hands' orders.
+                    if !group.declared() {
+                        for u in &units {
+                            let to = if self.artillery(u) { standoff } else { screen };
+                            commands.push(Command::Fight { unit: u.id, to, queue: false });
+                        }
+                    }
                     did = Some(format!("shell {what} from their reach with {} long-reach soldiers, {} between", long.len(), units.len() - long.len()));
                 }
             }

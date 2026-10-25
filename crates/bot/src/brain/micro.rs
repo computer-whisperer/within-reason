@@ -91,7 +91,24 @@ impl Brain {
                             _ => micro::GroupKind::Hold,
                         };
                         let members: Vec<UnitId> = group.members.iter().copied().filter(|id| !group.waiting.iter().any(|(_, w)| w == id)).collect();
-                        declared.push((name, members, micro::GroupOrder::new(kind, vec![*at]), rules, commitment_of.clone()));
+                        // A shelling group is two formations (chunk 5): its artillery at the standoff, the rest at the
+                        // screen; the hold its walk arrives in keeps both where their anchors stand.
+                        let screen = group.screen.filter(|_| group.shelling);
+                        let (artillery, rest): (Vec<UnitId>, Vec<UnitId>) = members.iter().partition(|id| self.known_units.get(id).is_some_and(|(def, _)| self.artillery_def(*def)));
+                        if let Some(screen_at) = screen
+                            && !artillery.is_empty()
+                            && !rest.is_empty()
+                        {
+                            let screen_name = group.screen_lane_name();
+                            let screen_point = match kind {
+                                micro::GroupKind::Hold => self.lane.group_state(&screen_name).map_or(screen_at, |s| s.anchor),
+                                _ => screen_at,
+                            };
+                            declared.push((name, artillery, micro::GroupOrder::new(kind.clone(), vec![*at]), rules, commitment_of.clone()));
+                            declared.push((screen_name, rest, micro::GroupOrder::new(kind, vec![screen_point]), rules, commitment_of.clone()));
+                        } else {
+                            declared.push((name, members, micro::GroupOrder::new(kind, vec![*at]), rules, commitment_of.clone()));
+                        }
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
                     // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1). A quarry that cloaks is

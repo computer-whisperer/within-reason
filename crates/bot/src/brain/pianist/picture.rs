@@ -1860,6 +1860,12 @@ impl Brain {
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
                 entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
             }
+            // A shelling group's screen, the lane's second formation of it (chunk 5).
+            if group.shelling && let Some(state) = self.lane.group_state(&group.screen_lane_name()) {
+                let members = state.formed.len() + state.exceptions.len();
+                let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
+                entry["screen"] = json!(format!("its screen ({members} soldiers between the artillery and the target): {}", formation_words(state, members, Some("its screen point"), &self.place_words(&places, state.anchor), engaged.as_deref())));
+            }
             // The registers: the named places it has reached and what it has met since the last; Jev reads where it
             // is on the way its instructions describe from these (the last pick is no register since 2026-10-24).
             if !group.reached.is_empty() {

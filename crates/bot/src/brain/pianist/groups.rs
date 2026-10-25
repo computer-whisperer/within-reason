@@ -145,8 +145,10 @@ pub(crate) struct Group {
     /// `join_in`): (the plant, the soldier). Not sent after the body and not given the group's orders until
     /// `release_waiting` sends them.
     pub waiting: Vec<(UnitId, UnitId)>,
-    /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
+    /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`); `screen`
+    /// is where the rest stand, the lane's second formation of the group (the migration design, chunk 5).
     pub shelling: bool,
+    pub screen: Option<Vec3>,
     /// The named places its body has come within `ARRIVED` of, in order, with the frame: facts said in the picture
     /// and in `recent` and never acted on by code (the registers; docs/design/2026-09-28-routes-in-prose.md §4.2).
     pub reached: Vec<(String, i32)>,
@@ -213,19 +215,24 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), waiting: Vec::new(), shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), waiting: Vec::new(), shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new() }
     }
 
-    /// Whether the group is the lane's as a formation (the migration design, chunk 2): a ground group holding or
-    /// walking, not shelling (shell is the hands' until its chunk). Its members get their orders from the lane's
+    /// Whether the group is the lane's as a formation (the migration design, chunks 2-5): a ground group holding,
+    /// walking, attacking, following or shelling (two formations then). Its members get their orders from the lane's
     /// group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
     pub(crate) fn declared(&self) -> bool {
-        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. } | GroupTask::Follow { .. }) && !self.shelling
+        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. } | GroupTask::Follow { .. })
     }
 
     /// The group's name in the lane.
     pub(crate) fn lane_name(&self) -> String {
         format!("group_{}", self.name)
+    }
+
+    /// The lane's name for the shell's screen, the second formation of a shelling group.
+    pub(crate) fn screen_lane_name(&self) -> String {
+        format!("group_{}_screen", self.name)
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -401,6 +408,7 @@ impl Group {
         self.task = task;
         self.last_order = frame;
         self.shelling = false;
+        self.screen = None;
     }
 }
 
@@ -639,9 +647,14 @@ impl Brain {
                     // read a second after the order at the earliest: the state before it is the last task's.
                     if frame - group.last_order >= FRAMES_PER_SECOND && let Some(state) = lane_state.as_ref().filter(|s| s.arrived) {
                         // An arrival ends the order in a hold nobody picked, the anchor where it stands: the group
-                        // is idle and is asked.
+                        // is idle and is asked. A shell's hold keeps shelling: the screen stays between (chunk 5).
                         let (committed, at) = (*fight, state.anchor);
+                        let (shelling, screen) = (group.shelling, group.screen);
                         group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
+                        if shelling {
+                            group.shelling = true;
+                            group.screen = screen;
+                        }
                     }
                 }
                 GroupTask::Move { to, fight, .. } => {
@@ -1123,6 +1136,35 @@ mod tests {
         brain.keep_groups(&tick(120, &ours, &gone), &kit, &mut Vec::new());
         brain.keep_groups(&tick(300, &ours, &gone), &kit, &mut Vec::new());
         assert!(matches!(brain.pianist.as_ref().unwrap().groups[0].task, GroupTask::Hold { .. }), "{:?}", brain.pianist.as_ref().unwrap().groups[0].task);
+    }
+
+    /// A shelling group is two formations in the lane (chunk 5): its artillery at the standoff under the group's name,
+    /// the rest at the screen point under `_screen`; a plain walk is one.
+    #[test]
+    fn a_shelling_group_is_two_formations_in_the_lane() {
+        use super::super::fixtures::{at, brain_of};
+        let mut brain = brain_of(&["armart", "armflash"]);
+        assert!(brain.artillery_def(UnitDefId(1)) && !brain.artillery_def(UnitDefId(2)), "the Shellshocker is artillery, the Blitz is not");
+        for (id, def) in [(1, 1), (2, 1), (3, 2), (4, 2)] {
+            brain.known_units.insert(UnitId(id), (UnitDefId(def), at(1000.0 + 50.0 * id as f32, 1000.0)));
+        }
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::new("S".into(), Domain::Ground, (1..=4).map(UnitId).collect(), GroupTask::Move { to: at(3000.0, 1000.0), place: "standoff from party_1".into(), fight: true }, 0);
+        group.shelling = true;
+        group.screen = Some(at(3400.0, 1000.0));
+        pianist.groups.push(group);
+        brain.pianist = Some(pianist);
+        brain.note_commitments();
+        let mut names = brain.lane.group_names();
+        names.sort();
+        assert_eq!(names, ["group_S", "group_S_screen"]);
+        assert_eq!(brain.lane.group_members("group_S"), Some(&[UnitId(1), UnitId(2)][..]));
+        assert_eq!(brain.lane.group_members("group_S_screen"), Some(&[UnitId(3), UnitId(4)][..]));
+        // The shell ends (a walk picked): one formation of all four, the screen gone.
+        brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Move { to: at(3000.0, 1000.0), place: "spot_1".into(), fight: false }, 30);
+        brain.note_commitments();
+        assert_eq!(brain.lane.group_names(), ["group_S"]);
+        assert_eq!(brain.lane.group_members("group_S").map(|m| m.len()), Some(4));
     }
 
     /// A roving group is the lane's: the hands keep up no order for it, its joiners are its own, and its course word

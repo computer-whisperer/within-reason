@@ -673,6 +673,11 @@ impl Lane {
         self.groups.keys().cloned().collect()
     }
 
+    /// A declared group's members (the hosts' tests).
+    pub fn group_members(&self, name: &str) -> Option<&[UnitId]> {
+        self.groups.get(name).map(|d| d.members.as_slice())
+    }
+
     /// The group this unit is a member of.
     fn group_of(&self, unit: UnitId) -> Option<&str> {
         self.groups.iter().find(|(_, d)| d.members.contains(&unit)).map(|(name, _)| name.as_str())

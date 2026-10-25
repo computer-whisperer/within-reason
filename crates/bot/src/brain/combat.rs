@@ -82,7 +82,12 @@ impl Brain {
     /// hit the ground. A Crossbow (armjeth, anti-air only, reach 760) is not: human-12's group_T shelled four
     /// Centurions "with 6 long-reach soldiers" at 8:28-9:21 and nothing fired.
     pub(super) fn artillery(&self, unit: &OwnUnit) -> bool {
-        self.world.def(unit.def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0) && self.can_hit(unit.def, false)
+        self.artillery_def(unit.def)
+    }
+
+    /// `artillery`, by type (the shell's two declared groups split the members by it: the migration design, chunk 5).
+    pub(super) fn artillery_def(&self, def: UnitDefId) -> bool {
+        self.world.def(def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0) && self.can_hit(def, false)
     }
 
     /// Whether a unit of this type has a water weapon (a torpedo, a depth charge): the engine lets nothing else fire
