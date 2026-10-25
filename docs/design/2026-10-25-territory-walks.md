@@ -152,6 +152,14 @@ minutes beside what stood, every plan's own count at its snapshot matching the g
   window (the walks, priced since T-WALKS).
 - **Quicksilver's floating turrets** (`nanotcplat`) are planned and never ordered: 0 of 657-1,632 units a window.
 
+- **`farm_big` on the bench** (terr199-201; the user, 2026-10-25: "Let's try farm_big on both comet catcher and great
+  divide."): at 20,000 the marks are level with the pool on the three starts, none under it and noise-sized gains
+  (Comet from his start 46.8 / 177 / 520 / 1,117, the lobby's boxes 37.5 / 164 / 417 / 936, Great Divide 32.7 / 79.8 /
+  204 / 357, its 5:00 at the pool's top). On Great Divide the plan became one the hands can follow: the work delivered
+  over each plan's five minutes 0.63 at 5:00-11:00 and 0.57 at 11:00-18:00 against 0.41 and 0.36, the turrets 0.97
+  of the planned at 5:00-11:00 against 0.41; the wind generators, now the constructors' alone, still the largest late
+  shortfall (42 %, 0.14 of the planned). On Comet the plan swaps solars for fusions and the rest is as before.
+
 So the plan's growth runs through a farm of construction turrets: turrets as build power, their help on every farm
 building. The hands build that farm late and in part: the turrets wait for every larger column, the far constructors
 and the commander never take them, and the cheap farm buildings stand where no turret reaches. The matching hands
