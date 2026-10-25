@@ -14,7 +14,10 @@ the heading and width across it, and the engagement ramp, each unit's depth behi
 the median over the body and the largest. The shape comes from `duels.csv` when the batch has the columns and is
 derived from the per-second log otherwise. An `into` drill (D9, a target on the goal) adds the first shot from the
 first order, the shot ramp from it to the median unit's first shot and the last's, and the target's deaths. A terrain case (D10) adds the walk on foot against the crow's distance and `route_s`, the walk
-over the slowest type's speed. The heading for a derived shape is the body's: the centroid's displacement over the
+over the slowest type's speed. A circuit (D12, a deployed army round the map while a lab feeds it) adds the median
+deployed unit's laps, the formed share under the group (formed members over members, averaged over the seconds) and the
+fed units that joined the deployed body (`join s` is then from appearance to joining), and the members the director took out
+of the group as stragglers (no nearer their slot for 20 s). The heading for a derived shape is the body's: the centroid's displacement over the
 second when it is 10 or more, the axis to the goal in force otherwise, as in the director. `--seconds` prints the first duel's median unit speed each second and, when the army is the lane's declared group
 (`--lane on|ranks`), the group's pace, formed count and exceptions by cause each second. `--types`
 adds, from the
@@ -276,15 +279,16 @@ def main():
         except OSError:
             pass
         label = os.path.basename(os.path.normpath(batch))
-        print(f"## {label}: drill {meta.get('kind', '?')}, {meta.get('distance', '?')} elmos, order {meta.get('order', '?')}, reissue {('%g s' % meta['reissue_s']) if meta.get('reissue_s') else 'once'}{', lead ' + str(meta['lead']) if meta.get('lead') else ''}{', pace ' + str(meta['pace']) if meta.get('pace') else ''}, {len(rows)} duels")
+        circuit = f", {meta.get('laps')} lap(s), feed {meta.get('feed') or 'none'}" if meta.get('kind') == 'circuit' else f", {meta.get('distance', '?')} elmos"
+        print(f"## {label}: drill {meta.get('kind', '?')}{circuit}, order {meta.get('order', '?')}, reissue {('%g s' % meta['reissue_s']) if meta.get('reissue_s') else 'once'}{', lead ' + str(meta['lead']) if meta.get('lead') else ''}{', pace ' + str(meta['pace']) if meta.get('pace') else ''}, {len(rows)} duels")
         if not rows:
             continue
         groups = {}
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
-        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) |"
+        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind |"
         print(head)
-        print("|" + "---|" * (len(by) + 15))
+        print("|" + "---|" * (len(by) + 19))
         for key, rs in sorted(groups.items()):
             arrived = sum(1 for r in rs if r.get("reason") in ("arrived", "engaged"))
             timeouts = sum(1 for r in rs if r.get("reason") == "timeout")
@@ -320,6 +324,10 @@ def main():
             walk = mean(number(r.get("walk")) for r in rs)
             straight = mean(number(r.get("straight")) for r in rs)
             cells.append(f"{fmt(walk)} / {fmt(straight)} ({fmt(mean(number(r.get('route_s')) for r in rs))})" if walk is not None else "-")
+            cells.append(fmt(mean(number(r.get("laps")) for r in rs), 1))
+            cells.append(fmt(mean(number(r.get("formed_share")) for r in rs), 2))
+            cells.append(fmt(mean(number(r.get("joined")) for r in rs), 1))
+            cells.append(fmt(mean(number(r.get("left_behind")) for r in rs), 1))
             print("| " + " | ".join(key) + " | " + " | ".join(cells) + " |")
             if types:
                 per = {}
@@ -329,7 +337,7 @@ def main():
                         for k in p:
                             p[k].append(v[k])
                 for name, p in sorted(per.items()):
-                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | | | | |")
+                    print(f"|   {name} (speed {fmt(speeds.get(name))}) |" + " |" * (len(by) - 1) + f" {len(p['share'])} | | {fmt(mean(p['arrive_median']))} / {fmt(mean(p['arrive_last']))} | | | {fmt(mean(p['share']), 2)} | | | | | | | | | | | | | |")
             if seconds:
                 for r in rs[:1]:
                     series = speeds_by_second(batch, r, speeds)

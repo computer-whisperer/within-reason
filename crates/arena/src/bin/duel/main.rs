@@ -121,7 +121,7 @@ fn main() -> io::Result<()> {
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
             "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
             "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
-            "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f as f32 / drill::FPS as f32), "lead": d.lead, "pace": d.pace, "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab, "target": d.target, "from": d.from, "to": d.to, "around": d.around })),
+            "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f as f32 / drill::FPS as f32), "lead": d.lead, "pace": d.pace, "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab, "target": d.target, "from": d.from, "to": d.to, "around": d.around, "feed": d.feed.iter().map(|(n, c)| format!("{n}*{c}")).collect::<Vec<_>>().join("+"), "laps": d.laps, "circuit": d.circuit })),
             "argv": std::env::args().collect::<Vec<_>>(),
             "disabled": std::env::var("WITHIN_REASON_DISABLE").ok(), "form_spacing": std::env::var("WITHIN_REASON_FORM_SPACING").ok(),
         }))?,
@@ -169,7 +169,8 @@ fn main() -> io::Result<()> {
                     d.speed_share.map_or("-".to_string(), |v| format!("{v:.2}")), s(d.spin_up_s),
                     s(d.depth_contact), s(d.width_contact), d.ramp_half_s.map_or("-".to_string(), |v| format!("{v:.1}")), d.ramp_all_s.map_or("-".to_string(), |v| format!("{v:.1}")),
                     d.recover_s.map_or(String::new(), |v| format!(", recovered {v:.0} s after the turn")),
-                    if d.kind == "gather" { format!(", produced {}, join median {} s", d.produced, s(d.join_median_s)) } else { String::new() },
+                    if d.kind == "gather" { format!(", produced {}, join median {} s", d.produced, s(d.join_median_s)) } else { String::new() }
+                        + &if d.kind == "circuit" { format!(", laps {}, formed share {}, produced {}, joined {} (median {} s), left behind {}", d.laps, d.formed_share.map_or("-".to_string(), |v| format!("{v:.2}")), d.produced, d.joined, s(d.join_median_s), d.left_behind) } else { String::new() },
                     if d.kind == "into" { format!(", first shot {} s, shot ramp {}/{} s, target died {}x", s(d.first_shot_s), s(d.shot_ramp_half_s), s(d.shot_ramp_all_s), d.target_deaths) } else { String::new() }
                 );
                 return;
@@ -387,7 +388,8 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None };
+    let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
     let mut economy_given = false;
@@ -396,7 +398,7 @@ fn parse_args() -> io::Result<Options> {
     let point = |text: &str| -> (f32, f32) {
         let parts: Vec<f32> = text.split(',').filter_map(|p| p.trim().parse().ok()).collect();
         if parts.len() != 2 {
-            usage("--from and --to take X,Z in elmos");
+            usage("a point is X,Z in elmos (--from, --to, --circuit)");
         }
         (parts[0], parts[1])
     };
@@ -478,7 +480,16 @@ fn parse_args() -> io::Result<Options> {
                 options.pairs.push((scenario.sides[0].name.clone(), scenario.sides[1].name.clone()));
                 options.scenario = Some(scenario);
             }
-            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather or into"))),
+            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather, into or circuit"))),
+            "--feed" => {
+                let force = plan::Force::parse(&value());
+                if force.parts.iter().any(|(_, c)| *c == 0) {
+                    usage("--feed takes name*count[+name*count]");
+                }
+                drill_opts.feed = force.parts;
+            }
+            "--laps" => drill_opts.laps = number(value()).max(1),
+            "--circuit" => drill_opts.circuit = Some(value().split(';').map(point).collect()),
             "--target" => drill_opts.target = value(),
             "--from" => drill_opts.from = Some(point(&value())),
             "--to" => drill_opts.to = Some(point(&value())),
@@ -498,7 +509,10 @@ fn parse_args() -> io::Result<Options> {
             "--lead" => drill_opts.lead = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--lead takes elmos, such as 100"))).filter(|l| *l > 0.0),
             "--pace" => drill_opts.pace = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--pace takes elmos a second, such as 54"))).filter(|p| *p > 0.0),
             "--turn-at" => drill_opts.turn_at = number(value()) as i32 * drill::FPS,
-            "--lab" => drill_opts.lab = value(),
+            "--lab" => {
+                drill_opts.lab = value();
+                lab_given = true;
+            }
             "--label" => options.label = value(),
             _ => usage(&format!("unknown argument {flag}")),
         }
@@ -522,16 +536,28 @@ fn parse_args() -> io::Result<Options> {
         if drill_opts.from.is_some() && drill_opts.around.is_some() {
             usage("--from/--to or --around, not both");
         }
-        if drill_opts.from.is_some() {
+        if drill_opts.from.is_some() || kind == drill::Kind::Circuit {
             options.sites = 1;
         }
+        if kind == drill::Kind::Circuit && !lab_given {
+            // A circuit's default army is Pawns, so its lab is the bot lab.
+            drill_opts.lab = "armlab".into();
+        }
+        if kind != drill::Kind::Circuit && !drill_opts.feed.is_empty() {
+            usage("--feed, --laps and --circuit belong to --drill circuit");
+        }
+        let has_lab = kind == drill::Kind::Gather || (kind == drill::Kind::Circuit && !drill_opts.feed.is_empty());
         options.drill = Some(drill::Options { kind, ..drill_opts });
         options.pairs = ours.drain(..).map(|o| (o, plan::NOBODY.to_string())).collect();
         options.boxes = script::DRILL_BOXES;
         if !time_limit_given {
-            options.time_limit = if kind == drill::Kind::Gather { 480 } else { 240 };
+            options.time_limit = match kind {
+                drill::Kind::Gather => 480,
+                drill::Kind::Circuit => 600,
+                _ => 240,
+            };
         }
-        if kind == drill::Kind::Gather && !economy_given {
+        if has_lab && !economy_given {
             options.fed = true;
         }
     }
@@ -590,6 +616,8 @@ fn usage(problem: &str) -> ! {
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
        duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
+       duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
+            (a deployed army round the map while a lab feeds it: design D12)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

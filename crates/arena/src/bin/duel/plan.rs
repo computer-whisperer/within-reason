@@ -1,14 +1,18 @@
 //! Which duels to run: pairings, repetitions, and how many units make a fair fight.
 
 /// A side of a pairing: one unit type (its count from the batch's sizing), or a mixed force written
-/// `name*count+name*count`, spawned as written in list order (the first type stands in the front rank).
+/// `name*count+name*count`, spawned as written in list order (the first type stands in the front rank); `name*0` is
+/// a force of nobody (a circuit drill with no deployed army), not a plain name.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Force {
     pub parts: Vec<(String, u32)>,
+    /// Whether any count was written (`*`).
+    pub counted: bool,
 }
 
 impl Force {
     pub fn parse(spec: &str) -> Force {
+        let counted = spec.contains('*');
         let parts = spec
             .split('+')
             .map(|part| match part.split_once('*') {
@@ -16,12 +20,12 @@ impl Force {
                 None => (part.trim().to_string(), 0),
             })
             .collect();
-        Force { parts }
+        Force { parts, counted }
     }
 
     /// One type without a count: the batch's sizing decides how many.
     pub fn is_plain(&self) -> bool {
-        self.parts.len() == 1 && self.parts[0].1 == 0
+        self.parts.len() == 1 && !self.counted
     }
 }
 
@@ -179,6 +183,9 @@ mod tests {
     #[test]
     fn a_force_is_plain_or_mixed() {
         assert!(Force::parse("armstump").is_plain());
+        // A written zero is a force of nobody (a circuit with no deployed army), not a plain name.
+        let nobody = Force::parse("armpw*0");
+        assert!(!nobody.is_plain() && nobody.parts == vec![("armpw".to_string(), 0)]);
         let mixed = Force::parse("armflash*8+armstump*6");
         assert!(!mixed.is_plain());
         assert_eq!(mixed.parts, vec![("armflash".to_string(), 8), ("armstump".to_string(), 6)]);

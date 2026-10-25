@@ -104,14 +104,20 @@ struct Instance<L: Transport> {
     /// Units to create once the export has let go of the instance table (see `engine::Spawner`).
     spawns: Vec<(UnitDefId, Vec3)>,
     /// The frame `/cheat 1` went out (the host's first update), which `/give` needs (`engine::Spawner::give`): spawns
-    /// are held until `CHEAT_LAG` frames after it, when the flag has come back from the server; and the last frame
-    /// seen.
+    /// are held until `CHEAT_LAG` frames after it, when the flag has come back from the server, and the command goes
+    /// out again `CHEAT_RESEND` frames after the first, since the game has swallowed the first one (2026-10-24 night,
+    /// two engines starting together: no "Cheating is enabled!" in the infolog, every give refused, `spawn_failed`);
+    /// and the last frame seen.
     cheats_sent_at: Option<i32>,
     frame: i32,
 }
 
-/// Frames from `/cheat 1` to the first `/give`: the command comes back from the server within a frame in a local game.
-const CHEAT_LAG: i32 = 2;
+/// Frames from `/cheat 1` to the first `/give`: the command comes back from the server within a frame in a local game
+/// when it comes back at all; half a second covers the second sending too.
+const CHEAT_LAG: i32 = 15;
+/// `/cheat 1` again this many frames after the first, in case the game dropped the first (setting the flag twice is
+/// nothing).
+const CHEAT_RESEND: i32 = 8;
 
 // SAFETY: the engine only calls the exports from its own thread; the raw callback pointer
 // inside `Engine` never leaves that thread. The mutex only guards the instance table.
@@ -124,11 +130,11 @@ impl<L: Transport> Instance<L> {
 
     fn update(&mut self, frame: i32) {
         self.frame = frame;
-        if self.cheats_sent_at.is_none() {
+        if self.cheats_sent_at.is_none_or(|sent| frame == sent + CHEAT_RESEND) {
             if let Err(code) = self.engine.console("/cheat 1") {
                 self.log(format!("/cheat 1 refused: {code}"));
             }
-            self.cheats_sent_at = Some(frame);
+            self.cheats_sent_at.get_or_insert(frame);
         }
         if frame % HEARTBEAT_INTERVAL == 0 {
             self.log(format_args!("heartbeat f={frame}"));

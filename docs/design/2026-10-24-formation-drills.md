@@ -73,10 +73,19 @@ cadence, so the engine's own movement does the following. The host never orders 
    its slot. This replaces the hands' arrival test, the gather, the joiners and the stragglers, and it is what prices
    a fight: the formed body, with a joiner counted when it is in a slot.
 
-**Outliers and the anchor.** The anchor is held back by its formed members and released from its exceptions: a
-member behind its slot within the tolerance drags the pace; past the exception threshold it is reported and the
-anchor goes on; it rejoins when it is back inside the tolerance. Two thresholds with hysteresis, so the group never
-oscillates between waiting and leaving. Whether to wait for a real straggler stays Jev's, from the words.
+**Outliers and the anchor.** The anchor is held back by the members of its body: a member behind its slot drags the
+pace, to a stop at the exception threshold behind; past the threshold it is reported as away and is formed again
+when it is back inside the tolerance (two thresholds with hysteresis, so the report never flickers). **The anchor
+never outruns its body** (amended 2026-10-24 night on the first circuit's evidence, D12: under the law as first
+written, which released a member past the threshold and let the anchor go on, the anchor walked the crow line
+through ground the Pawns went round, every member fell past the threshold within twenty seconds, and the anchor
+walked the whole lap alone at full pace with twelve members a map behind it; a same-speed member released behind a
+full-pace anchor can never close, so the release was permanent for everyone. Chose: every member that has once been
+within the threshold of its slot holds the anchor by its lag however far behind it is, a fleeing member excepted, and
+a joiner holds nothing until it has come that near. Rejected: the release as written, because it made the common
+case, a whole body delayed by terrain, a group of nobody; and a formed-share threshold for walking on, because it is
+another arbitrary number.) What the group will not wait for, the host takes out of the group: whether to wait for a
+real straggler stays Jev's, from the words.
 
 **Reopened rulings, with the evidence** (decisions are fluid at an arc boundary, 2026-07-18):
 
@@ -249,6 +258,47 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   320, ramp 0.9 / 1.8), at 54 the Janus never regains its slot (31 / 33 / 36, 194 deep). The anchor rests on this:
   K-engine-a-slot-moving-at-a-pace-paces-the-unit.
 
+- **D12. The circuit with a feeder, `--drill circuit`** (the user, 2026-10-24 night, after the group's bench: "take a bot
+  lab producing pawns and have them auto-join a group. Said group should be on a circuit of locations throughout the
+  map, so this can test a real deployed army and feeder line"). A deployed army (`--ours`, spawned in its formation
+  beside a lab; `armpw*0` for none, when the group forms from the lab's first unit) walks a loop of points across the
+  map `--laps` times (default 1) while the lab (`--lab`, default `armlab`) builds `--feed name*count[+...]` under the
+  resource cheat (fed energy, as a gather), each new unit adopted into the army as it appears within 400 of the lab,
+  and so into the group: the lane's membership is the army's living mobile units, and a joiner is an exception with
+  the cause Joining until it first reaches a slot, walking straight to the slot across the map rather than round the
+  circuit, which is what a feeder line is. The circuit is `--circuit X,Z;X,Z;...` (the first point the lab's) or, by
+  default, the four corners of the rectangle inset a quarter of the map's width and height, south-west first (the
+  lab's), then south-east, north-east, north-west (the commanders stand along the north edge; a corner within 900 of
+  one is pushed away from it), each moved to the nearest cell the force can stand on and reach from the lab (one field
+  over the standable cells from the lab's corner; a corner nobody can reach from there is replaced by the nearest
+  reachable cell), the lab's corner on a flat square. The route is the loop from the lab's neighbour round to the lab,
+  `laps` times over, as one order: a group order re-declared the same is taken silently, so the anchor turns at each
+  corner without stopping and the formation never re-deals on a corner. Lane off, the baseline: each unit is given the
+  whole route as queued fight (or move) orders, the hands' way today, a joiner from the lab the same. Measured, both
+  arms alike: each deployed unit's passes of the lab's corner (within 400 after having been further: hysteresis, so
+  the start counts for nothing), its `laps`-th pass its arrival (`arrive_first_s` / `median` / `last` from the first
+  order; `laps` the median deployed unit's passes at the end, where a timeout shows a partial walk), against the laps
+  on foot over the type's speed (`route_s`); `produced` and `joined` (fed units that came within 300 of the deployed
+  body's centroid before the end) and `join_median_s` (a circuit: seconds from appearance to joining the body); under
+  the group `formed_share`, the formed members over the members, averaged over the seconds, which is the coherence the
+  user asked for in one number, and the per-second `group` series (pace, formed, exceptions by cause) for how the
+  joiners and the corners show. Ends when every deployed unit has walked its laps and (under the group) the group
+  stands at the route's end with no exceptions, or at the time limit (600 s). What it is for: the group's turning at
+  corners, its re-dealing when a member joins (a re-deal of the whole formation on each joiner is the risk: watch the
+  formed count at each appearance), whether a joiner at full speed ever closes on a group at full speed (only by the
+  corners' cuts and the straight walk across, so the lap and the lab's rate set the answer), and the terrain between
+  corners under the group, which the strip never showed.
+  **Built the same night, and what the first three runs taught** (ledger rows circuit-*): the route the host gives
+  must be the walked one (the corners alone sent the anchor through ground the Pawns went round: §2's law amended
+  above, the director now passes the field's way, a point every 256, and the lane-off baseline keeps the corners as
+  the hands' way); the deployed army must spawn on standable ground (two Pawns of a formation spawned off the lab's
+  square never moved, and under the amended law held the anchor for nine minutes), so the lab's square is 640 and the
+  army spawns 240 from the lab on it; and the amended law needs the host's one rule, which the director keeps as Jev
+  would from the state's words: an away or stuck member no nearer its slot for 20 s is taken out of the group
+  (`STRAGGLER_PATIENCE`, said and counted as `left_behind`). Found beside it: a written `name*0` read as a plain name
+  (the batch's count, 22 Pawns), the game swallowing one match's `/cheat 1` (pitfalls.md), and a stuck unit reported
+  as away (stuck is said first now).
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -277,6 +327,7 @@ engine, not a guess):
 | 5 | two bodies abreast into a party | the same, and the bodies' separation | not before 1-3 |
 | 6 | a chokepoint and a cliff on other maps (Great Divide's passages, Cape Violet's shore) | 1 and 2 on terrain | needs the terrain in the duel's view |
 | 7 | the raid answer from the stream while the bodies hold their course | the raid scenario's score with a producing lab behind the picket | after the group API |
+| 8 | circuit: a deployed army round the map while a lab feeds it (D12) | laps against the walk at the type's speed, the formed share, the joiners' time to the body, the formed count at each joiner and corner | the lap within 1.1 x the walk on foot over the type's speed; the formed share over 0.9 with no joiner; a joiner in the body within its own straight walk plus 10 s; no formed member knocked out of its slot by a joiner |
 
 Pacing arms for drills 1-3 once the group API exists: none (the march as today), the paced slot every tick and every
 second (D11: the lead law as first written does not pace; the slot moving at the pace does), slow guard on the slowest
@@ -512,6 +563,32 @@ every fight match since the synced spawner carried them (the sweep judged a wave
 its bombs down; `docs/harness/pitfalls.md`), so those margins were contaminated by about a tenth either way. With the
 sweep fixed: Fatboys 8-0 at +0.40 +- 0.09 (the study's +0.462 +- 0.113), Bulls 8-0 at +0.34 +- 0.07 (+0.366 +- 0.064),
 Fatboys attack-move 0-8 at -0.56 +- 0.11 (-0.515 +- 0.082): within the study's spreads.
+
+**The circuit with a feeder (D12, 2026-10-24 night; ledger rows circuit-*; `duel --drill circuit --ours armpw*12 --feed
+armpw*8 --laps 1` on Quicksilver, the default loop 15,450 on foot, 178 s for a Pawn at full speed).** The first run
+under the group was the law's failure in one picture: the director gave the anchor the four corners, the anchor walked
+the crow line east from the lab through ground the Pawns had to go round to the north, within twenty seconds every
+member was past the exception threshold, and the anchor, released from them all, walked the whole lap alone at 87
+with twelve Pawns a map behind it (formed share 0.07; the units arrived 168 / 169 / 172 s, as a stream). Two things
+changed on that evidence: the host passes the walked route (the field's way from corner to corner, a point every 256;
+§2's rule as ruled, which the director had not kept), and the law is amended so that the anchor never outruns its body
+(§2 above). The second runs found the harness faults listed under D12 (a swallowed `/cheat 1`, `name*0` as a plain
+name, two Pawns spawned on broken ground that the amended anchor then waited nine minutes for, which is the amended
+law's one hole and the host's rule now covers). **The third run, clean (circuit3-on against circuit3-off):** the group
+walks the lap as a body, formed share 0.81, every one of the eight fed Pawns joins the body (median 57 s from the lab),
+nothing left behind, and arrives 252 / 253 / 255 s as 339 x 288 with a ramp of 2.1 / 3.9 s; the lane-off baseline
+(the corners as queued orders, every unit on its own path) arrives 168 / 170 / 172 s as a stream 3,778 deep and 3,822
+wide, spread 1,774, ramp 2.7 / 43.4 s, and not one fed Pawn reaches the body. The group's price is the time: 1.42 x
+the walk at full speed against the stream's 0.96 x, and the per-second series says where it goes: the anchor stopped
+dead for 8 s at the first corner's passage and 4 s on the third leg (members behind through a file, the drag to zero),
+and at the corners the turn rotates the whole formation about the anchor at once, so that at the third corner 15 of 17
+members were behind their slots and the pace fell to 57-62 for several seconds; the start costs too (the slot deal
+against the spawn formation, 8 formed and the pace 6-20 at 10-25 s). Against §4's bars: the lap is not within 1.1 x
+the walk (1.42); the formed share is 0.81, not 0.9; every joiner joins; nothing is knocked out of its slot by a joiner
+that the series shows (the formed count does not dip at an appearance). What the circuit asks of the group next, in
+the order the series ranks them: a wheel at the corners (the slots should turn with the route's local direction, not
+jump with the anchor's heading at a point), the shape narrowed to the corridor at a passage, and the slot deal at the
+start.
 
 ## 6. Open for the user
 

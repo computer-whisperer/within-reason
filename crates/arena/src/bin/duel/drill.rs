@@ -6,7 +6,10 @@
 //! builds the force under the resource cheat, and every soldier it makes is adopted into the army as it appears and
 //! sent to the rally `distance` east. Nothing of the director's goes out between the order and the end but
 //! `reissue`, the same order to every living unit every so many frames (the hands' re-send, as an arm), and the lane
-//! runs over the orders as it does in a duel (`--lane`).
+//! runs over the orders as it does in a duel (`--lane`). **circuit** (design D12): a deployed army beside a lab walks
+//! a loop of points across the map `laps` times while the lab builds a feed list, each new unit adopted into the army
+//! as it appears (and so into the lane's group, a joiner; lane off, given the whole route as queued orders like
+//! everyone else); the loop `laps` times over is one route, one order.
 //!
 //! Measured once a second from the first order (the per-second log carries every position; `run/drill_table.py`
 //! reads it): each unit's first second within `ARRIVED` of its goal (the first, median and last arrival go to
@@ -19,7 +22,11 @@
 //! and the body's shape against its heading (`Shape`, design D8): its depth and width, and the engagement ramp, each
 //! unit's depth behind the leader over its type's speed (the median of those over the army and the largest), logged
 //! every second and kept at contact, the second the first unit arrives at the goal in force (`depth_contact`,
-//! `width_contact`, `ramp_half_s`, `ramp_all_s`).
+//! `width_contact`, `ramp_half_s`, `ramp_all_s`). A circuit counts each deployed unit's passes of the lab's corner
+//! (within `AT_THE_LAB` after having been further: the start counts for nothing), its `laps`-th pass its arrival, the
+//! median deployed unit's passes at the end (`laps`), the fed units that joined the deployed body (within `JOINED` of
+//! its centroid; `joined`, and `join_median_s` from appearance) and under the group the formed share, formed members
+//! over members averaged over the seconds (`formed_share`).
 //! The director's side (`director.rs` `drill_orders`, `drill_sample`) owns the army; this module owns the geometry,
 //! the clock and the score.
 
@@ -34,6 +41,16 @@ pub const ARRIVED: f32 = 300.0;
 pub const UP_TO_SPEED: f32 = 0.9;
 /// A soldier appearing within this of the gather's lab is the lab's output, adopted into the army.
 pub const AT_THE_LAB: f32 = 400.0;
+/// A circuit's deployed army spawns this far from the lab toward the walked route's first point, on the lab's flat
+/// square (`sites::circuit`), clear of the lab's yard; it starts inside the corner's `AT_THE_LAB`, which the passes'
+/// hysteresis counts for nothing.
+pub const CIRCUIT_SPAWN: f32 = 240.0;
+/// The director as host (D12): an away or stuck member that has come no nearer its slot for this long is taken out of
+/// the group, since the anchor waits for every member of its body (what Jev would decide from the state's words).
+pub const STRAGGLER_PATIENCE: i32 = 20 * FPS;
+/// A circuit's fed unit within this of the deployed body's centroid has joined it (the group's own `formed_within`
+/// is 128 of a slot; this is the arm-neutral measure).
+pub const JOINED: f32 = 300.0;
 /// The gather's stores are topped up to full whenever they fall under this share (the cheat gives nothing beyond the
 /// storage, and a tier-1 list costs more than the start's store holds).
 pub const TOP_UP_UNDER: f32 = 0.6;
@@ -47,6 +64,8 @@ pub enum Kind {
     Gather,
     /// The walk into an enemy structure standing on the goal (design D9).
     Into,
+    /// A deployed army round a loop of points while a lab feeds it (design D12).
+    Circuit,
 }
 
 impl Kind {
@@ -56,6 +75,7 @@ impl Kind {
             "reverse" => Some(Kind::Reverse),
             "gather" => Some(Kind::Gather),
             "into" => Some(Kind::Into),
+            "circuit" => Some(Kind::Circuit),
             _ => None,
         }
     }
@@ -66,6 +86,7 @@ impl Kind {
             Kind::Reverse => "reverse",
             Kind::Gather => "gather",
             Kind::Into => "into",
+            Kind::Circuit => "circuit",
         }
     }
 }
@@ -90,8 +111,14 @@ pub struct Options {
     pub pace: Option<f32>,
     /// `reverse`: frames after the first order at which the order goes back to the start (`--turn-at S`).
     pub turn_at: i32,
-    /// `gather`: the plant that builds the force (`--lab`).
+    /// `gather`, `circuit`: the plant that builds the force (`--lab`).
     pub lab: String,
+    /// `circuit`: the list the lab builds while the army walks (`--feed name*count+...`; empty: no lab), the laps
+    /// (`--laps`), and the loop's points in order, the lab's first (`--circuit X,Z;X,Z;...`; `None`: the map's
+    /// inset corners, `sites::circuit`).
+    pub feed: Vec<(String, u32)>,
+    pub laps: u32,
+    pub circuit: Option<Vec<(f32, f32)>>,
     /// Terrain cases (design D10): chosen ends on any map, or a detour of at least this ratio from the chooser.
     pub from: Option<(f32, f32)>,
     pub to: Option<(f32, f32)>,
@@ -129,6 +156,13 @@ pub struct Score {
     pub straight: f32,
     pub walk: Option<f32>,
     pub route_s: Option<f32>,
+    /// `circuit` (D12): the median deployed unit's passes of the lab's corner, the formed share under the group, and
+    /// the fed units that joined the deployed body.
+    pub laps: u32,
+    pub formed_share: Option<f32>,
+    pub joined: u32,
+    /// Members the host took out of the group as stragglers (`STRAGGLER_PATIENCE`).
+    pub left_behind: u32,
 }
 
 /// One living mobile unit as the sampler sees it: its spawn index, id, place and its type's speed (elmos a second).
@@ -199,6 +233,21 @@ pub struct Drill {
     /// Under the lane's group a gather is a hold at the rally (`rally`) until the whole list stands there in
     /// formation, then the order to the goal: the frame the hold ended.
     pub gathered_at: Option<i32>,
+    /// `circuit`: the route (the loop `laps` times over, the lab's corner last), the laps, the deployed units whose
+    /// passes count (`core`: the initial mobile spawns, or the first fed unit when there were none), each one's
+    /// (within the corner last second, passes), the frame each fed unit joined the deployed body, the formed share
+    /// each second, and the lane's group as last noted: (formed, members, arrived with no exceptions).
+    pub route: Vec<Vec3>,
+    /// The lane-off orders' route: the spawn point then the corners alone, `laps` times, queued (the hands' way).
+    pub corners_route: Vec<Vec3>,
+    pub laps: u32,
+    pub core: Vec<usize>,
+    passes: HashMap<usize, (bool, u32)>,
+    pub joined: HashMap<usize, i32>,
+    formed_shares: Vec<f32>,
+    group: Option<(usize, usize, bool)>,
+    /// Members the director took out of the group as stragglers, by spawn index.
+    pub left_behind: Vec<usize>,
     /// Where each unit stood at the last once-a-second sample.
     last: HashMap<UnitId, Vec3>,
     /// The median speed share each second, from the first order.
@@ -257,6 +306,15 @@ impl Drill {
             queued: false,
             appeared: HashMap::new(),
             gathered_at: None,
+            route: Vec::new(),
+            corners_route: Vec::new(),
+            laps: options.laps,
+            core: Vec::new(),
+            passes: HashMap::new(),
+            joined: HashMap::new(),
+            formed_shares: Vec::new(),
+            group: None,
+            left_behind: Vec::new(),
             last: HashMap::new(),
             shares: Vec::new(),
             shares_before_median: Vec::new(),
@@ -288,6 +346,24 @@ impl Drill {
             (None, None) => self.toward,
         };
         if self.fight { Command::Fight { unit, to, queue: false } } else { Command::Move { unit, to, queue: false } }
+    }
+
+    /// The drill's orders to one unit: a circuit's corners as queued orders (the first not queued: the hands' way of
+    /// walking a route today, and the lane-off baseline; the group gets the walked `route`), else the one `order`.
+    pub fn orders(&self, unit: UnitId, at: Vec3, spawned: Vec3, frame: i32) -> Vec<Command> {
+        if self.kind == Kind::Circuit {
+            let fight = self.fight;
+            return (self.corners_route.iter().enumerate())
+                .map(|(i, &to)| if fight { Command::Fight { unit, to, queue: i > 0 } } else { Command::Move { unit, to, queue: i > 0 } })
+                .collect();
+        }
+        vec![self.order(unit, at, spawned, frame)]
+    }
+
+    /// The lane's group as the director read it this tick: how many are formed of how many members, and whether it
+    /// stands at the route's end with no exceptions (a circuit ends on that word; `sample` takes the share).
+    pub fn note_group(&mut self, formed: usize, members: usize, done: bool) {
+        self.group = Some((formed, members, done));
     }
 
     /// The paced slot of a unit spawned at `spawned`: its place in the formation carried from the end behind along the
@@ -354,6 +430,7 @@ impl Drill {
     pub fn expected(&self, walking: usize) -> usize {
         match self.kind {
             Kind::Gather => self.wanted.iter().map(|(_, n)| *n as usize).sum(),
+            Kind::Circuit => self.core.len(),
             _ => walking,
         }
     }
@@ -405,11 +482,14 @@ impl Drill {
                 shares.push((last.dist2d(w.at) / w.speed).min(1.5));
             }
             now.insert(w.id, w.at);
-            if w.at.dist2d(self.toward) <= ARRIVED {
+            if self.kind != Kind::Circuit && w.at.dist2d(self.toward) <= ARRIVED {
                 self.arrived.entry(w.index).or_insert(frame);
             }
         }
         self.last = now;
+        if self.kind == Kind::Circuit {
+            self.sample_circuit(frame, walkers);
+        }
         if self.shape_at_contact.is_none() && self.contact() {
             self.shape_at_contact = self.shape;
         }
@@ -450,9 +530,43 @@ impl Drill {
         }
     }
 
+    /// A circuit's second (D12): each core unit's passes of the lab's corner (`goal`), with hysteresis, its `laps`-th
+    /// pass its arrival; each fed unit's joining the core's body; the group's formed share when the director has
+    /// noted one.
+    fn sample_circuit(&mut self, frame: i32, walkers: &[Walker]) {
+        let core_at: Vec<Vec3> = walkers.iter().filter(|w| self.core.contains(&w.index)).map(|w| w.at).collect();
+        let n = core_at.len() as f32;
+        let body = (!core_at.is_empty()).then(|| core_at.iter().fold(Vec3::default(), |c, p| Vec3 { x: c.x + p.x / n, y: 0.0, z: c.z + p.z / n }));
+        for w in walkers {
+            if self.core.contains(&w.index) {
+                let near = w.at.dist2d(self.goal) <= AT_THE_LAB;
+                let entry = self.passes.entry(w.index).or_insert((near, 0));
+                if near && !entry.0 {
+                    entry.1 += 1;
+                    if entry.1 >= self.laps {
+                        self.arrived.entry(w.index).or_insert(frame);
+                    }
+                }
+                entry.0 = near;
+            } else if self.appeared.contains_key(&w.index)
+                && !self.joined.contains_key(&w.index)
+                && let Some(body) = body
+                && w.at.dist2d(body) <= JOINED
+            {
+                self.joined.insert(w.index, frame);
+            }
+        }
+        if let Some((formed, members, _)) = self.group
+            && members > 0
+        {
+            self.formed_shares.push(formed as f32 / members as f32);
+        }
+    }
+
     /// Whether the drill is over: every unit it waits for has arrived at the goal in force (after the turn, for a
     /// reverse; the whole list produced and arrived, for a gather), or for `into` every living mobile unit
-    /// (`walking`, by spawn index) has fired.
+    /// (`walking`, by spawn index) has fired; for a circuit every core unit has walked its laps and, under a group, the
+    /// group stands at the route's end with no exceptions.
     pub fn done(&self, walking: &[usize]) -> bool {
         let expected = self.expected(walking.len());
         if expected == 0 || self.last_order.is_none() {
@@ -463,6 +577,10 @@ impl Drill {
             Kind::Gather => self.appeared.len() >= expected && self.arrived.len() >= expected,
             Kind::Walk => self.arrived.len() >= expected,
             Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
+            Kind::Circuit => {
+                let core: Vec<&usize> = self.core.iter().filter(|i| !self.left_behind.contains(i)).collect();
+                !core.is_empty() && core.iter().all(|i| self.arrived.contains_key(i)) && self.group.is_none_or(|(_, _, done)| done)
+            }
         }
     }
 
@@ -476,8 +594,12 @@ impl Drill {
         let speed_share = (!self.shares_before_median.is_empty()).then(|| self.shares_before_median.iter().sum::<f32>() / self.shares_before_median.len() as f32);
         let mut shots: Vec<i32> = self.first_shot.values().copied().collect();
         shots.sort();
-        let mut joins: Vec<f32> = self.appeared.iter().filter_map(|(i, appeared)| self.arrived.get(i).map(|a| (a - appeared) as f32 / FPS as f32)).collect();
+        // A gather's join is the arrival at the rally; a circuit's, reaching the deployed body.
+        let joined_at = |i: &usize| if self.kind == Kind::Circuit { self.joined.get(i) } else { self.arrived.get(i) };
+        let mut joins: Vec<f32> = self.appeared.iter().filter_map(|(i, appeared)| joined_at(i).map(|a| (a - appeared) as f32 / FPS as f32)).collect();
         joins.sort_by(f32::total_cmp);
+        let mut passes: Vec<u32> = self.core.iter().map(|i| self.passes.get(i).map_or(0, |p| p.1)).collect();
+        passes.sort_unstable();
         Score {
             kind: self.kind.label().to_string(),
             arrive,
@@ -499,6 +621,10 @@ impl Drill {
             straight: self.straight,
             walk: self.walk,
             route_s: self.walk.filter(|_| self.slowest > 0.0).map(|w| w / self.slowest),
+            laps: passes.get(passes.len() / 2).copied().unwrap_or(0),
+            formed_share: (!self.formed_shares.is_empty()).then(|| self.formed_shares.iter().sum::<f32>() / self.formed_shares.len() as f32),
+            joined: self.joined.len() as u32,
+            left_behind: self.left_behind.len() as u32,
         }
     }
 }
@@ -512,7 +638,49 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None }
+    }
+
+    /// A circuit (D12): a core unit's passes of the lab's corner count with hysteresis (the start inside it counts
+    /// for nothing), its second pass is its arrival at two laps; a fed unit joins when within 300 of the core's
+    /// centroid; the drill ends on the core's laps alone without a group and waits for the group's word with one;
+    /// lane off, the route goes out as queued orders.
+    #[test]
+    fn a_circuit_counts_passes_joiners_and_the_formed_share() {
+        let mut drill = Drill::new(&Options { laps: 2, ..options(Kind::Circuit) }, at(5000.0, 1000.0), Vec::new());
+        drill.goal = at(1000.0, 1000.0);
+        drill.toward = drill.goal;
+        drill.route = vec![at(3000.0, 1000.0), at(1000.0, 1000.0), at(3000.0, 1000.0), at(1000.0, 1000.0)];
+        drill.corners_route = drill.route.clone();
+        drill.core = vec![0];
+        drill.last_order = Some(0);
+        let walker = |x: f32| Walker { index: 0, id: UnitId(1), at: at(x, 1000.0), speed: 87.0 };
+        drill.sample(0, &[walker(1200.0)], 1, &[]);
+        drill.sample(FPS, &[walker(2000.0)], 1, &[]);
+        drill.sample(2 * FPS, &[walker(1300.0)], 1, &[]);
+        assert!(!drill.done(&[0]), "one pass of two");
+        drill.sample(3 * FPS, &[walker(2500.0)], 1, &[]);
+        drill.appeared.insert(1, 3 * FPS);
+        let fed = |x: f32| Walker { index: 1, id: UnitId(2), at: at(x, 1000.0), speed: 87.0 };
+        drill.sample(4 * FPS, &[walker(2000.0), fed(1000.0)], 1, &[]);
+        assert!(drill.joined.is_empty(), "a thousand from the core");
+        drill.sample(5 * FPS, &[walker(1200.0), fed(1400.0)], 1, &[]);
+        assert_eq!(drill.joined.get(&1), Some(&(5 * FPS)));
+        assert!(drill.done(&[0, 1]));
+        let score = drill.score(0);
+        assert_eq!((score.laps, score.joined, score.produced), (2, 1, 1));
+        assert_eq!(score.arrive[0].map(|s| s.round() as i32), Some(5));
+        assert_eq!(score.join_median_s, Some(2.0));
+        assert_eq!(score.formed_share, None);
+        drill.note_group(1, 2, false);
+        assert!(!drill.done(&[0, 1]), "the group's word is awaited");
+        drill.note_group(2, 2, true);
+        assert!(drill.done(&[0, 1]));
+        drill.sample(6 * FPS, &[walker(1200.0), fed(1400.0)], 1, &[]);
+        assert_eq!(drill.score(0).formed_share, Some(1.0));
+        let orders = drill.orders(UnitId(1), at(0.0, 0.0), at(0.0, 0.0), 0);
+        assert_eq!(orders.len(), 4);
+        assert!(matches!(orders[0], Command::Fight { queue: false, .. }) && matches!(orders[3], Command::Fight { queue: true, .. }));
     }
 
     #[test]

@@ -11,11 +11,17 @@
 //! held back by its formed members, so the slowest type regains a lost slot by the anchor waiting, not by a margin on
 //! the pace; the bench's 0.9 cost a pure column 4 s for nothing and met no bar the 1.0 missed), the shape (ranks of `form::FILES` across the
 //! heading; the contact arc is the lane's, `lib.rs`), coherence (a member within `formed_within` of its slot is
-//! formed; one behind it by more than `drag_from` slows the anchor; one further than `exception_at` from it is an
-//! exception, reported with a cause and released from the anchor, and rejoins within `rejoin_within`: two thresholds
-//! with hysteresis, so the group never oscillates between waiting and leaving), and arrival (the anchor at the
-//! route's end and every member that is not an exception in its slot). Whether to wait for a real straggler is the
-//! host's, from the state's words. Pure over positions; the lane decides what each slot becomes as an order.
+//! formed; one behind it by more than `drag_from` slows the anchor, to a stop at `exception_at` behind; one further
+//! than `exception_at` from its slot is an exception reported as away, and is formed again within `rejoin_within`:
+//! two thresholds with hysteresis, so the report never flickers), and arrival (the anchor at the route's end and
+//! every member that is not an exception in its slot). **The anchor never outruns its body** (2026-10-24 night, the
+//! first circuit on Quicksilver: the anchor walked the crow line through ground the Pawns went round, every member
+//! fell further than the threshold, and under the first law, which released them, the anchor walked the whole lap
+//! alone at full pace with twelve members a map behind it, which no same-speed member can ever close): every member
+//! that has been in the body once (within `exception_at` of its slot) holds the anchor by its lag however far behind
+//! it is, a fleeing member excepted; a joiner holds nothing until it has come that near. What the group will not wait
+//! for, the host takes out of the group: that is the host's decision, from the state's words. Pure over positions;
+//! the lane decides what each slot becomes as an order.
 
 use std::collections::HashMap;
 
@@ -55,7 +61,7 @@ pub enum Cause {
     Stuck,
     /// Behind its slot within the exception threshold: slows the anchor.
     Behind,
-    /// Further than the exception threshold: released, the anchor goes on without it.
+    /// Further than the exception threshold from its slot; once in the body, it holds the anchor like one behind.
     Away,
 }
 
@@ -75,6 +81,8 @@ pub struct GroupState {
     pub exceptions: Vec<(UnitId, Cause, f32)>,
     /// The anchor at the route's end and every member not an exception in its slot.
     pub arrived: bool,
+    /// Route points still ahead of the anchor (0 at the end: "two corners to go").
+    pub legs_left: usize,
     /// The contact target the group stands on, when engaged (the lane's arc).
     pub engaged: Option<UnitId>,
 }
@@ -90,11 +98,11 @@ pub struct Pacing {
     pub cadence: i32,
     /// A member this near its slot is formed (two hulls).
     pub formed_within: f32,
-    /// A formed member further behind its slot than this slows the anchor, to a stop at `exception_at`.
+    /// A member of the body further behind its slot than this slows the anchor, to a stop at `exception_at`.
     pub drag_from: f32,
-    /// A member further than this from its slot is an exception and released.
+    /// A member further than this from its slot is an exception (away); a joiner this near is in the body from then on.
     pub exception_at: f32,
-    /// An exception this near its slot rejoins.
+    /// An away member this near its slot is formed again.
     pub rejoin_within: f32,
 }
 
@@ -132,10 +140,13 @@ pub struct Group {
     pub leg: usize,
     /// Each member's slot index, sticky until the membership or the route changes.
     slot_of: HashMap<UnitId, usize>,
-    /// Members out of their slot beyond the exception threshold (released), with the frame it happened.
+    /// Members out of their slot beyond the exception threshold (away), with the frame it happened.
     away: HashMap<UnitId, i32>,
     /// Members that have been in a slot at least once since joining.
     formed_once: HashMap<UnitId, bool>,
+    /// Members that have been within the exception threshold of their slot at least once: the body, whose lag holds
+    /// the anchor.
+    in_body: HashMap<UnitId, bool>,
     /// Stopped by the lane: at contact the anchor stands.
     pub stopped: bool,
     pub arrived: bool,
@@ -169,6 +180,7 @@ impl Group {
             slot_of: HashMap::new(),
             away: HashMap::new(),
             formed_once: HashMap::new(),
+            in_body: HashMap::new(),
             stopped: false,
             arrived: false,
             engaged: None,
@@ -290,7 +302,8 @@ impl Group {
                 self.heading = form::heading(self.anchor, next);
             }
         }
-        // Who is where against last tick's slots: the drag on the anchor from formed members behind theirs.
+        // Who is where against last tick's slots: the drag on the anchor from the body's members behind theirs,
+        // however far (the anchor never outruns its body); a joiner is in the body once within the threshold.
         let h = self.heading;
         let mut max_lag = 0.0f32;
         for w in walkers {
@@ -303,7 +316,12 @@ impl Group {
                 }
             } else if off > pacing.exception_at {
                 self.away.insert(w.id, frame);
-            } else {
+            }
+            let in_body = self.in_body.entry(w.id).or_insert(false);
+            if off <= pacing.exception_at {
+                *in_body = true;
+            }
+            if *in_body && !w.fleeing {
                 let behind = (slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1;
                 max_lag = max_lag.max(behind);
             }
@@ -340,10 +358,12 @@ impl Group {
                 Some(Cause::Fled)
             } else if !*formed_once {
                 Some(Cause::Joining)
+            } else if w.moving < 5.0 {
+                // Said before away: a unit standing still a map from its slot is stuck first (the circuit's two
+                // Pawns given on bad ground never moved and were reported away for nine minutes).
+                Some(Cause::Stuck)
             } else if self.away.contains_key(&w.id) {
                 Some(Cause::Away)
-            } else if w.moving < 5.0 {
-                Some(Cause::Stuck)
             } else {
                 Some(Cause::Behind)
             };
@@ -362,7 +382,17 @@ impl Group {
     /// The report.
     pub fn state(&self, walkers: &[Walker]) -> GroupState {
         let formed = walkers.iter().filter(|w| !self.exceptions.iter().any(|(id, _, _)| *id == w.id)).map(|w| w.id).collect();
-        GroupState { anchor: self.anchor, heading: self.heading, pace: self.pace, full_pace: self.full_pace, formed, exceptions: self.exceptions.clone(), arrived: self.arrived, engaged: self.engaged }
+        GroupState {
+            anchor: self.anchor,
+            heading: self.heading,
+            pace: self.pace,
+            full_pace: self.full_pace,
+            formed,
+            exceptions: self.exceptions.clone(),
+            arrived: self.arrived,
+            legs_left: self.order.route.len().saturating_sub(self.leg),
+            engaged: self.engaged,
+        }
     }
 }
 
@@ -425,7 +455,7 @@ mod tests {
     }
 
     #[test]
-    fn a_member_behind_its_slot_slows_the_anchor_and_far_behind_is_released() {
+    fn a_member_behind_its_slot_slows_the_anchor_and_far_behind_stops_it() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
         let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(5000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
@@ -439,14 +469,16 @@ mod tests {
         let state = group.state(&w);
         assert_eq!(state.exceptions.len(), 1);
         assert_eq!(state.exceptions[0].1, Cause::Behind);
-        // 400 behind: released, the anchor back at the full pace, the cause Away; within 96 again it rejoins.
+        // 400 behind: the cause Away, and the anchor stops for it (it never outruns its body); within 96 again it
+        // is formed again.
         w[1].pos = at(slots[&UnitId(2)].x - 400.0, 32.0);
         group.tick(9, &w, 64.0, &pacing, true);
-        assert!((group.pace - group.full_pace).abs() < 0.01);
+        assert_eq!(group.pace, 0.0, "the anchor waits for a member of its body a map behind");
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away);
         let slots = group.tick(12, &w, 64.0, &pacing, true).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 150.0, 32.0);
         group.tick(15, &w, 64.0, &pacing, true);
+        assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away, "still away until within the rejoin distance");
         let slots = group.tick(18, &w, 64.0, &pacing, true).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 20.0, 32.0);

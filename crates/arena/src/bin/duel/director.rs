@@ -251,6 +251,10 @@ struct Army {
     fire: Fire,
     /// Units told to hold fire while a scenario is prepared.
     held: HashSet<UnitId>,
+    /// The host's straggler books for the declared group (`drill::STRAGGLER_PATIENCE`): per away or stuck member, the
+    /// fewest seconds to its slot seen and the frame it was seen; and the members taken out of the group.
+    straggler_best: HashMap<UnitId, (f32, i32)>,
+    left_behind: HashSet<UnitId>,
     /// Hurters this army's team gives, for the other army's units, and whether they have been given.
     hurters: Vec<Hurter>,
     hurters_given: bool,
@@ -307,6 +311,8 @@ impl Army {
             taken_from_enemy: 0.0,
             fire: Fire::default(),
             held: HashSet::new(),
+            straggler_best: HashMap::new(),
+            left_behind: HashSet::new(),
             hurters: Vec::new(),
             hurters_given: false,
             ordered_at: None,
@@ -590,7 +596,7 @@ impl Director {
                 .collect();
             let near = if near.is_empty() { "none".to_string() } else { near.join(" ") };
             eprintln!("match {}: scenario at ({x:.0},{z:.0}); commanders within 2000: {near}", self.match_index);
-            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None }, duel: None, fought: 0, abandoned: false }]);
+            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None, circuit: Vec::new(), circuit_route: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
             return;
         }
         let queue = self.batch.queue.lock().unwrap();
@@ -599,6 +605,7 @@ impl Director {
         let drill_defs: Vec<String> = self.batch.drill.as_ref().map(|d| match d.kind {
             drill::Kind::Gather => vec![d.lab.clone()],
             drill::Kind::Into => vec![d.target.clone()],
+            drill::Kind::Circuit => (!d.feed.is_empty()).then(|| d.lab.clone()).into_iter().chain(d.feed.iter().map(|(n, _)| n.clone())).collect(),
             drill::Kind::Walk | drill::Kind::Reverse => Vec::new(),
         }).unwrap_or_default();
         for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
@@ -626,13 +633,28 @@ impl Director {
             let terrain = &hello.terrain;
             let standable = sites::standable(terrain, max_slope);
             let walk_between = |a: Vec3, b: Vec3| terrain::Field::from_many(terrain, &standable, &[b]).and_then(|f| f.distance(a));
+            if options.kind == drill::Kind::Circuit {
+                // A circuit (design D12): the loop's points across the map, one site, the lab's corner its centre.
+                let sites::Circuit { corners: points, route, legs } = match sites::circuit(terrain, &standable, &commanders, options.circuit.as_deref()) {
+                    Ok(found) => found,
+                    Err(why) => {
+                        self.fatal = Some(format!("no circuit on {}: {why}", hello.map.name));
+                        return;
+                    }
+                };
+                let walk = legs.iter().try_fold(0.0f32, |sum, leg| leg.map(|l| sum + l));
+                let at: Vec<String> = (points.iter().zip(&legs)).map(|(p, l)| format!("({:.0},{:.0}) then {} on foot", p.x, p.z, l.map_or("no way".to_string(), |l| format!("{l:.0}")))).collect();
+                eprintln!("match {}: circuit of {} corners, {} a lap on foot, the walked route {} points: {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), route.len(), at.join("; "));
+                self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points, circuit_route: route }, duel: None, fought: 0, abandoned: false }]);
+                return;
+            }
             if let (Some(from), Some(to)) = (options.from, options.to) {
                 // Chosen ends on any map: one site, the chooser not consulted.
                 let (a, b) = (Vec3 { x: from.0, y: ground(terrain, from.0, from.1), z: from.1 }, Vec3 { x: to.0, y: ground(terrain, to.0, to.1), z: to.1 });
                 let walk = walk_between(a, b);
                 let mid = Vec3 { x: (a.x + b.x) / 2.0, y: 0.0, z: (a.z + b.z) / 2.0 };
                 eprintln!("match {}: drill from ({:.0},{:.0}) to ({:.0},{:.0}): {:.0} as the crow flies, {} on foot", self.match_index, a.x, a.z, b.x, b.z, a.dist2d(b), walk.map_or("no way".to_string(), |w| format!("{w:.0}")));
-                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk }, duel: None, fought: 0, abandoned: false }]);
+                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk, circuit: Vec::new(), circuit_route: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
             if let Some(ratio) = options.around {
@@ -796,11 +818,49 @@ impl Director {
             if drill.slowest.is_infinite() {
                 drill.slowest = 0.0;
             }
+            let circuit = options.kind == drill::Kind::Circuit;
+            if circuit {
+                // The lab on the loop's first corner (when there is a feed), the deployed army `CIRCUIT_SPAWN` along
+                // toward the walked route's first point; the group's route the spawn point then the lap walked on
+                // foot `laps` times over, the lab's corner last (the host's field gives the points round terrain,
+                // design §2); the lane-off orders the corners alone, queued, the hands' way today.
+                let points: Vec<Vec3> = field.site.circuit.iter().map(|p| place(*p)).collect();
+                let walked: Vec<Vec3> = field.site.circuit_route.iter().map(|p| place(*p)).collect();
+                let lab_at = points[0];
+                let next = walked.first().copied().unwrap_or(lab_at);
+                let h = micro::form::heading(lab_at, next);
+                drill.start = place(Vec3 { x: lab_at.x + h.0 * drill::CIRCUIT_SPAWN, y: 0.0, z: lab_at.z + h.1 * drill::CIRCUIT_SPAWN });
+                drill.goal = lab_at;
+                drill.toward = lab_at;
+                let laps_n = options.laps.max(1) as usize;
+                drill.route = std::iter::once(drill.start).chain((0..laps_n).flat_map(|_| walked.iter().copied())).collect();
+                let corners: Vec<Vec3> = points[1..].iter().chain(std::iter::once(&points[0])).copied().collect();
+                drill.corners_route = std::iter::once(drill.start).chain((0..laps_n).flat_map(|_| corners.iter().copied())).collect();
+                let laps = options.laps.max(1) as f32;
+                drill.straight = (0..points.len()).map(|i| points[i].dist2d(points[(i + 1) % points.len()])).sum::<f32>() * laps;
+                drill.walk = field.site.walk.map(|w| w * laps);
+                drill.wanted = options.feed.iter().map(|(n, c)| (self.defs[n].id, *c)).collect();
+                let feed_slowest = options.feed.iter().map(|(n, _)| self.defs[n].speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+                if feed_slowest.is_finite() && (drill.slowest == 0.0 || feed_slowest < drill.slowest) {
+                    drill.slowest = feed_slowest;
+                }
+            }
             let start = drill.start;
-            let heading = (drill.goal.x - start.x, drill.goal.z - start.z);
+            let heading = if circuit { (drill.route.get(1).map_or(0.0, |p| p.x - start.x), drill.route.get(1).map_or(0.0, |p| p.z - start.z)) } else { (drill.goal.x - start.x, drill.goal.z - start.z) };
             let spawns: Vec<Spawn> = if options.kind == drill::Kind::Gather {
                 drill.lab = Some(0);
                 vec![Self::spawn(&self.defs[&options.lab], start, None)]
+            } else if circuit {
+                let mut spawns = Vec::new();
+                if !options.feed.is_empty() {
+                    drill.lab = Some(0);
+                    spawns.push(Self::spawn(&self.defs[&options.lab], drill.goal, None));
+                }
+                let count: u32 = force_x.iter().map(|(_, n)| n).sum();
+                let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
+                spawns.extend(form_x.places_along(start, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)));
+                drill.core = spawns.iter().enumerate().filter(|(_, s)| s.mobile).map(|(i, _)| i).collect();
+                spawns
             } else {
                 let count: u32 = force_x.iter().map(|(_, n)| n).sum();
                 let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
@@ -1411,8 +1471,23 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         if gathering && drill.appeared.len() >= total && lane.group_state("army").is_some_and(|s| s.arrived && s.exceptions.is_empty()) {
                             drill.gathered_at = Some(frame);
                         }
+                        if let Some(state) = lane.group_state("army") {
+                            // The group's word for the drill's books: a circuit ends on it, and takes its formed share.
+                            drill.note_group(state.formed.len(), state.formed.len() + state.exceptions.len(), state.arrived && state.exceptions.is_empty());
+                        }
+                        for &u in &army.left_behind {
+                            if let Some(&i) = army.spawn_of.get(&u)
+                                && !drill.left_behind.contains(&i)
+                            {
+                                drill.left_behind.push(i);
+                            }
+                        }
                         if drill.kind == drill::Kind::Gather && drill.gathered_at.is_none() {
                             Some(GroupOrder { kind: GroupKind::Hold, route: vec![drill.rally()] })
+                        } else if drill.kind == drill::Kind::Circuit {
+                            // The whole route as one order, never changed: the anchor turns at each corner without
+                            // stopping (a route re-declared the same is taken silently).
+                            Some(GroupOrder { kind, route: drill.route.clone() })
                         } else {
                             Some(GroupOrder { kind, route: vec![drill.toward] })
                         }
@@ -1422,7 +1497,28 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     None => None,
                 };
                 if let Some(order) = group {
-                    let living: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile)).collect();
+                    // The host's straggler rule (design D12): the anchor waits for every member of its body, so an
+                    // away or stuck member that has come no nearer its slot for `STRAGGLER_PATIENCE` is taken out of
+                    // the group for good, and said (what Jev would decide from the state's words).
+                    if let Some(state) = lane.group_state("army") {
+                        let mut still: HashSet<UnitId> = HashSet::new();
+                        for &(u, cause, seconds) in &state.exceptions {
+                            if !matches!(cause, micro::Cause::Away | micro::Cause::Stuck) {
+                                continue;
+                            }
+                            still.insert(u);
+                            let best = army.straggler_best.entry(u).or_insert((seconds, frame));
+                            if seconds < best.0 - 0.5 {
+                                *best = (seconds, frame);
+                            } else if frame - best.1 >= drill::STRAGGLER_PATIENCE && army.left_behind.insert(u) {
+                                let index = army.spawn_of.get(&u).copied();
+                                eprintln!("[duel side {side}] f={frame} group: unit {} ({index:?}) left behind: {cause:?}, {seconds:.0} s to its slot, no nearer for {} s", u.0, (frame - best.1) / FPS);
+                                duel.notes.push(json!({"left_behind": index, "side": side, "cause": format!("{cause:?}").to_lowercase(), "seconds_to_slot": seconds.round(), "f": frame}));
+                            }
+                        }
+                        army.straggler_best.retain(|u, _| still.contains(u));
+                    }
+                    let living: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile) && !army.left_behind.contains(u)).collect();
                     let footwork = Footwork { march: army.lane_mode != LaneMode::Ranks, ..Footwork::default() };
                     lane.set_group("army", living, order, footwork, Commitment::All);
                 }
@@ -1793,7 +1889,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
             "pace": state.pace.round(), "full_pace": state.full_pace.round(),
             "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
-            "arrived": state.arrived, "engaged": state.engaged.map(|u| u.0),
+            "arrived": state.arrived, "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0),
         });
     }
     duel.log.push(line.to_string());
@@ -1807,10 +1903,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
 /// The raid scenario's orders for one side this tick (`raid.rs`): the raiders' script for side 1, the picket's
 /// standing raider rule for side 0, whose hunts go to the lane as commitments when the lane is on.
 #[allow(clippy::too_many_arguments)]
-/// A drill's orders (`drill.rs`): the one order to every mobile unit when the army is first ordered, a reverse's turn,
-/// the re-issue; for a gather the lab's list under the resource cheat (metal topped up while it builds; energy is
-/// the feeder's), and
-/// each new soldier of the list adopted into the army as it appears at the lab and sent on at once.
+/// A drill's orders (`drill.rs`): the one order to every mobile unit when the army is first ordered (a circuit's
+/// route as queued orders), a reverse's turn, the re-issue; for a gather or a circuit the lab's list under the
+/// resource cheat (metal topped up while it builds; energy is the feeder's), and each new soldier of the list adopted
+/// into the army as it appears at the lab and sent on at once (under the lane's group, a member from then on).
 fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, frame: i32, commands: &mut Vec<Command>) {
     let mobile: Vec<(UnitId, Vec3, Vec3)> = (army.alive.keys().copied())
         .filter_map(|u| {
@@ -1821,11 +1917,14 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
     let order_all = |drill: &mut Drill, commands: &mut Vec<Command>| {
         drill.last_order = Some(frame);
         drill.first_order.get_or_insert(frame);
-        commands.extend(mobile.iter().map(|&(u, at, spawned)| drill.order(u, at, spawned, frame)));
+        for &(u, at, spawned) in &mobile {
+            commands.extend(drill.orders(u, at, spawned, frame));
+        }
     };
-    if drill.kind == drill::Kind::Gather {
-        let Some(lab) = drill.lab.and_then(|i| army.unit_of.get(&i).copied()) else { return };
-        let lab_at = army.seen_at.get(&lab).copied().unwrap_or(drill.start);
+    // The lab (a gather's, a circuit's): its list under the resource cheat, each new unit adopted as it appears.
+    if let Some(lab_index) = drill.lab {
+        let Some(lab) = army.unit_of.get(&lab_index).copied() else { return };
+        let lab_at = army.seen_at.get(&lab).copied().unwrap_or(drill.goal);
         let total: usize = drill.wanted.iter().map(|(_, n)| *n as usize).sum();
         let (m, e) = (&tick.snapshot.metal, &tick.snapshot.energy);
         drill.stores = Some([m.current, m.income, m.usage, m.storage, e.current, e.income, e.usage, e.storage]);
@@ -1841,7 +1940,10 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
         }
         if !drill.queued {
             drill.queued = true;
-            drill.last_order = Some(frame);
+            if drill.kind == drill::Kind::Gather {
+                // A gather's army is the list: the group is declared from the queueing on (a hold at the rally).
+                drill.last_order = Some(frame);
+            }
             for (def, n) in &drill.wanted {
                 commands.extend((0..*n).map(|_| Command::Build { unit: lab, def: *def, site: None, queue: false }));
             }
@@ -1863,12 +1965,18 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
             army.max_health.insert(unit.id, unit.max_health);
             drill.appeared.insert(i, frame);
             drill.first_order.get_or_insert(frame);
-            commands.push(drill.order(unit.id, unit.pos, unit.pos, frame));
+            if drill.kind == drill::Kind::Circuit && drill.core.is_empty() {
+                // No deployed army: the lab's first unit is the core whose laps count.
+                drill.core.push(i);
+            }
+            commands.extend(drill.orders(unit.id, unit.pos, unit.pos, frame));
         }
-        if drill.reissue_due(frame) {
-            order_all(drill, commands);
+        if drill.kind == drill::Kind::Gather {
+            if drill.reissue_due(frame) {
+                order_all(drill, commands);
+            }
+            return;
         }
-        return;
     }
     if drill.last_order.is_none() || drill.reissue_due(frame) {
         order_all(drill, commands);
@@ -1944,6 +2052,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
+        "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
     } })
 }
 

@@ -271,8 +271,13 @@ as a console command (`CAICallback::SendTextMsg` calls `CGame::ProcessCommandTex
 sends `/give 1 <unit> <team> @x,0,z` as the AI's text and the shim sends `/cheat 1` from its first update. Two things
 found building it: the unsynced give executor checks the cheat flag locally (`UnsyncedActionExecutor.h`), and the
 flag set by `/cheat 1` comes back from the server a frame later, so a `/give` in the same frame as the `/cheat` is
-refused without a log line (the first smoke's `spawn_failed`); the shim holds spawns two frames (`lib.rs`
-`CHEAT_LAG`). Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
+refused without a log line (the first smoke's `spawn_failed`); the shim held spawns two frames (`lib.rs`
+`CHEAT_LAG`). **And the game can swallow the `/cheat 1` altogether** (2026-10-24 night, two engines started
+together: the infolog shows both AIs' `/cheat 1` lines at frame 0 and no "Cheating is enabled!" ever, then every
+`/give` refused with "cannot be executed (cheats required)" and the duel `spawn_failed`; the match beside it, started
+the same second, was fine), so the shim now sends `/cheat 1` again eight frames after the first and holds spawns
+fifteen frames (`CHEAT_RESEND`, `CHEAT_LAG`): half a second a match. Whether the first command is lost in the server's
+start or in the client's is not known; the second sending has not been seen to fail. Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
 to the goal, no desync in the replay's infolog; the baselines' numbers did not move. The gather's metal top-up is
 still the AI's resource cheat, so a gather's demo desyncs on its resources; everything else in a duel replays.
 

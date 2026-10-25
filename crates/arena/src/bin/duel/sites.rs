@@ -3,6 +3,7 @@
 //! so on a west-east axis both sides start side-on to the enemy and neither has its back turned.
 
 use bot_protocol::{Terrain, Vec3};
+use terrain::Field;
 
 /// Distance between the two armies' front ranks' centres; beyond every tier-1 weapon's range (artillery: ~710).
 pub const SEPARATION: f32 = 1100.0;
@@ -25,13 +26,18 @@ pub const DRILL_RELIEF: i32 = 48;
 /// Candidate rectangles are tried every this many cells.
 const STRIDE: usize = 4;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Site {
     pub centre: Vec3,
     /// A drill's chosen ends (start, goal) when the site is not a strip through `centre`: `--from/--to`, or a
     /// detour found by `choose_detour` (design D10). The walk between them on foot is `walk`.
     pub ends: Option<(Vec3, Vec3)>,
     pub walk: Option<f32>,
+    /// A circuit drill's corners in order, the lab's first, and the lap walked on foot between them (`circuit`,
+    /// design D12: the field's route from each corner to the next, thinned to every `ROUTE_STEP`, the corners
+    /// themselves in it, the lab's corner last); `walk` is then one lap on foot.
+    pub circuit: Vec<Vec3>,
+    pub circuit_route: Vec<Vec3>,
 }
 
 /// The rectangle a site must offer: `length` along the west-east axis, `width` across it.
@@ -216,7 +222,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 (s.centre.x - centre.x).abs() >= length + SITE_GAP || (s.centre.z - centre.z).abs() >= across + SITE_GAP
             });
             if clear && sites.len() < wanted {
-                sites.push(Site { centre: *centre, ends: None, walk: None });
+                sites.push(Site { centre: *centre, ends: None, walk: None, circuit: Vec::new(), circuit_route: Vec::new() });
             }
         }
         if sites.len() > best.len() {
@@ -328,10 +334,119 @@ pub fn choose_detour(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wan
         });
         if apart {
             let mid = Vec3 { x: (start.x + goal.x) / 2.0, y: 0.0, z: (start.z + goal.z) / 2.0 };
-            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk) });
+            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk), circuit: Vec::new(), circuit_route: Vec::new() });
         }
     }
     (sites, best_ratio)
+}
+
+/// A circuit's default corners as fractions of the map (design D12): south-west (the lab's), south-east, north-east,
+/// north-west, a quarter in from each edge; the commanders stand along the north edge for a drill.
+pub const CIRCUIT_CORNERS: [(f32, f32); 4] = [(0.25, 0.75), (0.75, 0.75), (0.75, 0.25), (0.25, 0.25)];
+/// The square a circuit's lab stands on, standable throughout within `DRILL_RELIEF`: the lab (48 by 48) and the deployed
+/// army spawned `drill::CIRCUIT_SPAWN` from it in ranks of six at 64 (320 across; two Pawns of a formation spawned on
+/// Quicksilver's broken ground off the square never moved).
+const LAB_SQUARE: f32 = 640.0;
+/// A circuit's walked route keeps a point of the field's every this far: the group's anchor walks it leg by leg
+/// (the field's cells are 8 elmos; the route is the host's, round the terrain).
+pub const ROUTE_STEP: f32 = 256.0;
+
+/// What `circuit` finds: the corners, the lap walked on foot between them (`Site::circuit_route`), and each leg's
+/// walk on foot.
+pub struct Circuit {
+    pub corners: Vec<Vec3>,
+    pub route: Vec<Vec3>,
+    pub legs: Vec<Option<f32>>,
+}
+
+/// A circuit's points (design D12): `wanted` (elmos, the first the lab's) or the map's inset corners, each pushed
+/// `COMMANDER_GAP` from any commander nearer than that, the lab's moved to the nearest cell holding a flat square, the
+/// rest to the nearest cell standable and reachable on foot from the lab's (one field from it); each leg's walk on
+/// foot, the last leg closing the loop; and the lap's route on foot, the field's way from each corner to the next
+/// thinned to `ROUTE_STEP`. `Err` says what was not found.
+pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wanted: Option<&[(f32, f32)]>) -> Result<Circuit, String> {
+    let (width, height) = (terrain.width as usize, terrain.height as usize);
+    if width == 0 || terrain.heights.len() != width * height || terrain.cell <= 0.0 {
+        return Err("no terrain".into());
+    }
+    let (w, h) = (width as f32 * terrain.cell, height as f32 * terrain.cell);
+    let mut points: Vec<Vec3> = match wanted {
+        Some(list) => list.iter().map(|&(x, z)| Vec3 { x, y: 0.0, z }).collect(),
+        None => CIRCUIT_CORNERS.iter().map(|&(fx, fz)| Vec3 { x: fx * w, y: 0.0, z: fz * h }).collect(),
+    };
+    if points.len() < 2 {
+        return Err("a circuit needs two points or more".into());
+    }
+    for p in &mut points {
+        for c in commanders {
+            let d = p.dist2d(*c);
+            if d < COMMANDER_GAP {
+                let (dx, dz) = if d > 1.0 { ((p.x - c.x) / d, (p.z - c.z) / d) } else { (0.0, 1.0) };
+                *p = Vec3 { x: c.x + dx * COMMANDER_GAP, y: 0.0, z: c.z + dz * COMMANDER_GAP };
+            }
+        }
+    }
+    let centre = |cx: usize, cz: usize| Vec3 { x: (cx as f32 + 0.5) * terrain.cell, y: 0.0, z: (cz as f32 + 0.5) * terrain.cell };
+    // The cell nearest `want` that `accept`s: rings of the lattice outward from it, the nearest of the first ring
+    // with one.
+    let nearest = |want: Vec3, accept: &dyn Fn(usize, usize) -> bool| -> Option<Vec3> {
+        let (wx, wz) = ((want.x / terrain.cell) as i64, (want.z / terrain.cell) as i64);
+        let stride = STRIDE as i64;
+        let mut r = 0i64;
+        while r <= width.max(height) as i64 {
+            let mut best: Option<(f32, Vec3)> = None;
+            let mut dz = -r;
+            while dz <= r {
+                let mut dx = -r;
+                while dx <= r {
+                    if dx.abs() == r || dz.abs() == r {
+                        let (cx, cz) = (wx + dx, wz + dz);
+                        if cx >= 0 && cz >= 0 && cx < width as i64 && cz < height as i64 {
+                            let at = centre(cx as usize, cz as usize);
+                            let d = at.dist2d(want);
+                            if best.is_none_or(|(b, _)| d < b) && accept(cx as usize, cz as usize) {
+                                best = Some((d, at));
+                            }
+                        }
+                    }
+                    dx += stride;
+                }
+                dz += stride;
+            }
+            if let Some((_, at)) = best {
+                return Some(at);
+            }
+            r += stride;
+        }
+        None
+    };
+    let lab = nearest(points[0], &|cx, cz| flat_square(terrain, standable, cx as i32, cz as i32, LAB_SQUARE, DRILL_RELIEF))
+        .ok_or_else(|| format!("no flat square of {LAB_SQUARE:.0} for the lab anywhere near ({:.0},{:.0})", points[0].x, points[0].z))?;
+    let field = Field::from_many(terrain, standable, &[lab]).ok_or("the lab's corner is on no passable ground")?;
+    let mut out = vec![lab];
+    for want in &points[1..] {
+        let at = nearest(*want, &|cx, cz| standable[cz * width + cx] && field.distance(centre(cx, cz)).is_some())
+            .ok_or_else(|| format!("no standable ground reachable from the lab near ({:.0},{:.0})", want.x, want.z))?;
+        out.push(at);
+    }
+    let mut legs = Vec::new();
+    let mut route = Vec::new();
+    for i in 0..out.len() {
+        let (from, to) = (out[i], out[(i + 1) % out.len()]);
+        let field = Field::from_many(terrain, standable, &[to]);
+        legs.push(field.as_ref().and_then(|f| f.distance(from)));
+        // The field's way from this corner down to the next, thinned; the next corner itself closes the leg.
+        let way = field.as_ref().map(|f| f.route(from)).unwrap_or_default();
+        let mut last = from;
+        for p in way {
+            if p.dist2d(last) >= ROUTE_STEP && p.dist2d(to) >= ROUTE_STEP {
+                route.push(p);
+                last = p;
+            }
+        }
+        route.push(to);
+    }
+    Ok(Circuit { corners: out, route, legs })
 }
 
 /// The least relief of any dry rectangle of `footprint` every listed unit can cross, whatever `footprint.relief` says,

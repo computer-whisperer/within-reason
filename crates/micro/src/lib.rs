@@ -1077,8 +1077,8 @@ impl Lane {
     /// slots, `form.rs` for the geometry; `docs/design/2026-10-24-formation-drills.md` §2). The spacing is the
     /// hull's, or wider against an area weapon of theirs in sight or remembered within 1,500 (H-MICRO-FORM-SPACING).
     /// On the march every member is sent to its slot, an offset from the anchor that walks the route at the group's
-    /// pace, a Move for a walking group and a Fight for one that fights; the anchor is held back by members behind their
-    /// slots and released from its exceptions (`Group::tick`). At contact (armed enemies within the horizon of the
+    /// pace, a Move for a walking group and a Fight for one that fights; the anchor is held back by the members of its
+    /// body behind their slots, however far (`Group::tick`). At contact (armed enemies within the horizon of the
     /// members' centre, for a group that fights) the anchor stands and the group takes a target (the host's for an
     /// Attack, else the nearest soldier of theirs in the open, else the nearest building) and the shape at its reach
     /// round the target's party: a concave on a point, a rank along a line, turned away from other buildings' reach

@@ -17,6 +17,8 @@ duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [
 duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
      [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
+duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
+                                       a deployed army round a loop across the map while a lab feeds it (below)
 run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types] [--seconds]   one row per arm of a drill batch
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
@@ -296,6 +298,36 @@ crow's, each end a flat square holding the formation and clear of the commanders
 the message says the best ratio the map offers. Quicksilver at 2,000 offers 1.37 (a Blitz column walked it as one
 file, 326 deep and 23 wide).
 
+**circuit** (design D12, 2026-10-24 night) is the deployed army with a feeder line: `--ours` (spawned in its formation
+240 from the lab toward the walked route's first point, on the lab's flat square; `armpw*0` for none, when the group
+forms from the lab's first unit: a written `*0` is a force of nobody, where a bare name takes the batch's count) walks a
+loop of points across the map `--laps` times while `--lab` (default `armlab`) builds `--feed name*count[+...]` under
+the resource cheat (fed energy as a gather; no `--feed`, no lab), each new unit adopted into the army as it appears
+within 400 of the lab and so, under `--lane on`, into the group as a joiner (an exception with the cause Joining until
+it first reaches a slot, walking straight to the slot across the map). The loop is `--circuit X,Z;X,Z;...` (the first
+point the lab's) or by default the four corners of the rectangle inset a quarter of the map's width and height,
+south-west first (the lab's), then south-east, north-east, north-west, each pushed 900 from any commander nearer, the
+lab's moved to the nearest cell holding a standable 640 square within 48 of relief (the lab and the deployed army on
+it: two Pawns of a formation spawned off it on Quicksilver's broken ground never moved), the rest to the nearest
+standable cell reachable on foot from the lab's (`sites::circuit`; the match's message gives the corners, each leg's
+walk on foot and the walked route's length). The group's route is the spawn point then the lap **walked on foot**
+`laps` times over, the lab's corner last: the field's way from each corner to the next, a point every 256, as one
+group order never changed, so the anchor turns at each point without stopping (the first run gave the anchor the
+corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the host's field gives
+the points round terrain). Lane off, each unit (a fed one too) is given the corners alone as queued fight or move
+orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
+(`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the
+group for good, said on stderr and in the per-second line's `orders` (`left_behind`), and counted (`left_behind`). Measured, both arms alike: each deployed unit's passes of the lab's corner (within 400 after
+having been further, so the start counts for nothing), its `laps`-th pass its arrival (`arrive_*_s`), `laps` (the median
+deployed unit's passes at the end; a timeout shows a partial walk), `produced`, `joined` (fed units that came within
+300 of the deployed body's centroid before the end) and `join_median_s` (from appearance to joining), `straight` and
+`walk` for the whole walk (the laps' legs on foot) with `route_s` the walk over the slowest type's speed, and under the
+group `formed_share` (formed members over members, averaged over the seconds) and `left_behind`. Ends when every
+deployed unit not left behind has walked its laps and, under the group, the group stands at the route's end with no
+exceptions (`arrived`), or at the time limit (600 s). The per-second `group` carries `legs_left` (route points still ahead of the anchor) too, and the meta
+line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800,5512), (5384,5384), (5624,2296),
+(1704,2024)), 178 s for a Pawn at full speed; the first leg walks 4,429 for 3,586 as the crow flies.
+
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
 ground, not a firing range's 16), and 900 from both commanders, who start along the north edge for a drill
@@ -320,7 +352,8 @@ the leader against a front: the median over the body and the largest; for an `in
 for an `into` `first_shot_s` (from the first order), `shot_ramp_half_s` and `shot_ramp_all_s` (seconds from the first
 unit's first shot to the median unit's and the last's: the ramp measured instead of predicted) and `target_deaths`;
 then `straight` (the crow's distance), `walk` (on foot, by the field) and `route_s` (the walk over the slowest type's
-speed, the arrival the engine's own path would give if it took the field's). The heading the shape is taken against is
+speed, the arrival the engine's own path would give if it took the field's); then a circuit's `laps`, `formed_share`,
+`joined` and `left_behind` (above). The heading the shape is taken against is
 the body's: the centroid's displacement over the second when it is 10 or more, the axis to the goal in force otherwise
 (on a strip the two agree). The per-second
 log is written as a scenario's (`seconds/`), with a first line `{"meta": {drill, start, goal, x: [type by index],
