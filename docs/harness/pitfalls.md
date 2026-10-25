@@ -10,7 +10,10 @@
   `/kill` on the autohost channel. (Retired 2026-09-19: the earlier claim that the stdout log is block-buffered. It is
   line-flushed; the first smoke test looked cut off at frame 31 because the engine prints almost nothing during play.)
 - **Factory build orders: SHIFT means "build five".** Enforced in the shim; see K-rules-factory-shift-means-five.
-- **The arena rebuilds the workspace at start.** Do not leave `crates/` half-edited while a batch is starting.
+- **The arena rebuilds the workspace at start.** Do not leave `crates/` half-edited while a batch is starting. A run of
+  several batches (`run/territory_bench.sh`'s six) rebuilds at each one, so an edit made while it runs reaches its later
+  batches (terr150, terr166-168); `WITHIN_REASON_KEEP_INSTALLED=1` makes `run/install_ai.sh` neither build nor install,
+  and the territory bench builds and installs once and sets it.
 - **A game runs from its snapshot, not the checkout** (since 2026-10-21; `crates/bot/src/texts.rs`): `bot --snapshot`
   copies the bot binary, every text and the reference tables to `run/matches/<batch>/snapshot/`, and the arena and
   `run/human_game.sh` run `snapshot/bot` with `WITHIN_REASON_TEXTS` pointing there. Edits and rebuilds in the checkout

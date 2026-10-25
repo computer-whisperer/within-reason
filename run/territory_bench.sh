@@ -16,6 +16,11 @@ first=$1
 tag=$2
 shift 2
 export WITHIN_REASON_TERRITORY=${WITHIN_REASON_TERRITORY:-spots=all,factories=4,constructors=40}
+# Build and install once, then keep what is installed for all six batches (the arena's install step otherwise builds
+# the checkout at each batch's start, and an edit made during the bench reached its later batches: terr150,
+# terr166-168).
+run/install_ai.sh > /dev/null || exit 1
+export WITHIN_REASON_KEEP_INSTALLED=1
 n=$first
 run() {
   start=$1

@@ -9,6 +9,12 @@
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 data="${1:-$root/run/data}"
+# WITHIN_REASON_KEEP_INSTALLED=1: neither build nor install; the libraries installed stay. run/territory_bench.sh
+# builds and installs once and sets it for its batches, so an edit or a build in the checkout during the bench's six
+# batches reaches none of them (terr150 and terr166-168 ran code edited after their bench began).
+if [ -n "${WITHIN_REASON_KEEP_INSTALLED:-}" ]; then
+    exit 0
+fi
 cargo build --release --manifest-path "$root/Cargo.toml"
 # install <shortName>/<version> <AIInfo.lua> <library>
 install() {

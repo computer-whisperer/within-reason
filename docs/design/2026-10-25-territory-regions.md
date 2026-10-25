@@ -246,9 +246,20 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
    Quicksilver, 1.14-1.30 on Mithril and Great Divide, where the tour, walked on the commander's ground, misses
    the vehicles' detours. The decision on how to go on is the user's. Deleted: `walk_extractor`, `walk_late`, `walk_late_from`, `walk_upgrade`, `advanced_walk_extractor`,
    `rings`, `ring_overhead`, `com_leash` and `commander_walk_*` as arms. The hands take the region's spot.
-3. **The lag instrument.** Lags logged at every dispatch, one bench run, under the current cascade.
+3. **The lag instrument.** Lags logged at every dispatch, one bench run, under the current cascade. Done
+   (e13bcd2, T-LAGS, terr157-162): the turrets the column most behind on every start, at 5:00 and again late (14-73
+   units on Comet from his start at 15:00-19:00, while the cascade built metal makers and walked constructors home);
+   the cascade's order the rule's pick in 4-50 % of orders, under 30 % in most start-minutes.
 4. **The hands rebuilt as matching.** The cascade's ranking and fallbacks deleted, the lag rule in their place.
-   `BESIDE`, `FACTORY_PLACER` and `plant_helpers_from` become walk times.
+   `BESIDE`, `FACTORY_PLACER` and `plant_helpers_from` become walk times. Measured in two forms, not kept
+   (terr163-174; the code on branch `territory-matching-step4`, f97c321). Both under the standing build at 5:00 on
+   every start and at 10:00 on five, inside at 20:00 on five (Comet from his start at its top); from 10:00 the hands
+   keep every column within seconds of the plan, where the cascade let the turrets fall tens of units behind. The
+   opening's loss is in the accounting: an extractor order charges its whole cost, the walk included, when given, so
+   the extractor column reads on plan or ahead while the solars it shares with the commander read behind, and the
+   constructors go to solars and turrets (Glitters game 00: 7 extractors from 4:00 to 5:00 with 8 constructors and
+   the metal spent). The second form put the cascade's opening window back (to 3:00, constructors on extractor items
+   only); it did not bring the openings back. The decision on how to go on is the user's.
 5. **Territory as an input.** Region status, the stage-1 policies, the dead radius as a status.
 6. **The opening.** T-OPENING deleted, if the plan over home's region reproduces it at 5:00 on the bench.
 7. **Later.** The factory line per map; the farm's capacity from the base's ground (`max_nanos`); then stage 2.
