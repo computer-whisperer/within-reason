@@ -170,6 +170,11 @@ impl Ground {
         self.index(pos).is_some_and(|i| self.passable[i])
     }
 
+    /// The room the ranks want, in elmos.
+    pub fn wanted(&self) -> f32 {
+        self.wanted
+    }
+
     /// The room about `pos`: its distance to the nearest impassable cell or the map's edge; none off the map.
     pub fn room_at(&self, pos: Vec3) -> f32 {
         self.index(pos).map_or(0.0, |i| self.room[i])

@@ -386,7 +386,12 @@ impl Group {
     /// nobody crosses the formation); a point moved less is taken silently. A new membership re-deals the slots too.
     pub fn update(&mut self, members: Vec<UnitId>, order: GroupOrder) {
         let moved = order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED);
-        if order.kind != self.order.kind || order.march != self.order.march || moved {
+        // A walk re-declared as an advance (or back) on the same route is the same march: the members' order kind
+        // changes, the anchor, the way and the deal stand (migration-2-1: Jev alternated `go` and `fight_to` on one
+        // place every second for a minute, and each re-dealt and re-planned the body).
+        let walk = |k: &GroupKind| matches!(k, GroupKind::Go | GroupKind::FightTo);
+        let kind_changed = order.kind != self.order.kind && !(walk(&order.kind) && walk(&self.order.kind));
+        if kind_changed || order.march != self.order.march || moved {
             self.order = order;
             self.leg = 0;
             self.arrived = false;
@@ -394,6 +399,7 @@ impl Group {
             self.dirty = true;
         } else {
             self.order.route = order.route;
+            self.order.kind = order.kind;
         }
         if members != self.members {
             for id in &members {
@@ -513,6 +519,7 @@ impl Group {
         let points = self.polyline();
         if points.len() < 2 {
             self.anchor = self.anchor_for(centroid, self.heading, count);
+            self.stand_anchor();
             return;
         }
         let (k, q) = (0..points.len() - 1)
@@ -521,6 +528,7 @@ impl Group {
             .expect("two points or more");
         if centroid.dist2d(q) > REJOIN_WAY {
             self.anchor = self.anchor_for(self.snap(centroid), self.heading, count);
+            self.stand_anchor();
             self.arrived = false;
             self.dirty = true;
             return;
@@ -529,6 +537,7 @@ impl Group {
             self.heading = form::heading(points[k], points[k + 1]);
         }
         self.anchor = self.on_way(self.anchor_for(centroid, self.heading, count), points[k], points[k + 1]);
+        self.stand_anchor();
         let end = points[points.len() - 1];
         self.leg = if k + 1 == self.way.len() && self.anchor.dist2d(end) <= ROUTE_MOVED { self.way.len() } else { k };
         self.arrived = false;
@@ -640,6 +649,22 @@ impl Group {
         } else {
             anchor
         };
+        self.stand_anchor();
+    }
+
+    /// An anchor set down on a cell with less than the ranks' room (the body's centroid fell on a structure or in a
+    /// base lane: migration-2-1, eleven soldiers squeezed to a column of one with 16 of room) stands on the nearest
+    /// cell with that room within twice it (`Ground::stand`); a cell with the room keeps the anchor.
+    fn stand_anchor(&mut self) {
+        let Some(ground) = &self.ground else { return };
+        if ground.room_at(self.anchor) >= ground.wanted() {
+            return;
+        }
+        if let Some(at) = ground.stand(self.anchor)
+            && ground.room_at(at) > ground.room_at(self.anchor)
+        {
+            self.anchor = Vec3 { y: self.anchor.y, ..at };
+        }
     }
 
     /// An Attack's goal follows its target: the route's end moves to `at`; an anchor that had arrived walks on when
@@ -741,6 +766,7 @@ impl Group {
                     self.heading = form::heading(centroid, first);
                 }
                 self.anchor = self.anchor_for(centroid, self.heading, walkers.len());
+                self.stand_anchor();
                 self.slot_of.clear();
                 // The old slots say nothing about this body: no drag and no "away" from them this tick.
                 self.slots.clear();
@@ -979,7 +1005,10 @@ impl Group {
                 }
             }
         }
-        self.arrived = self.at_end() && all_formed && !walkers.is_empty();
+        // Arrived: the anchor at the end and every member of the body in its slot, the body not empty (with every
+        // member an exception the old rule was vacuously true: migration-2-1's hold read arrived with three joiners).
+        let in_body = walkers.len() - self.exceptions.len();
+        self.arrived = self.at_end() && all_formed && in_body > 0;
         &self.slots
     }
 
@@ -1493,6 +1522,63 @@ mod tests {
         cut.tick(0, &w, 64.0, &pacing);
         assert_eq!(cut.state(&w).way, None, "no way on foot: {:?}", cut.way());
         assert_eq!(cut.state(&w).legs_left, 1, "the host's point stays ahead");
+    }
+
+    /// A walk re-declared as an advance on the same route keeps its anchor, its way and its deal; a new route does not.
+    #[test]
+    fn a_walk_redeclared_as_an_advance_keeps_the_march() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members.clone(), GroupOrder::new(GroupKind::Go, vec![at(3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        march(&mut group, &mut w, 150, 3, &pacing);
+        let (anchor, deal) = (group.anchor, group.slot_of.clone());
+        group.update(members.clone(), GroupOrder::new(GroupKind::FightTo, vec![at(3000.0, 0.0)]));
+        assert!(!group.dirty && group.slot_of == deal && group.anchor == anchor, "the march stands");
+        assert_eq!(group.order.kind, GroupKind::FightTo, "the order kind follows");
+        group.update(members, GroupOrder::new(GroupKind::FightTo, vec![at(3000.0, 2000.0)]));
+        assert!(group.dirty && group.slot_of.is_empty(), "a new route plans and deals afresh");
+    }
+
+    /// An anchor set down on a cell without the ranks' room (a factory's footprint under the body's centroid) stands
+    /// beside it where the room is.
+    #[test]
+    fn a_set_down_anchor_stands_where_the_ranks_have_room() {
+        let (w, h) = (128usize, 64usize);
+        let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let mut classes = Classes::default();
+        let (blocked, _) = crate::ground::structures(&terrain, &[crate::ground::Footprint::of(at(1200.0, 500.0), (10, 8), 0)]);
+        let ground = Arc::new(Ground::new(&terrain, &[classes.passable(&terrain, tank), blocked], wanted_room(64.0)).unwrap());
+        // Six walkers about the footprint, their centroid on it.
+        let walkers: Vec<Walker> = (0..6).map(|i| Walker { id: UnitId(i + 1), pos: at(1200.0 + 90.0 * ((i % 3) as f32 - 1.0), 500.0 + 70.0 * if i < 3 { -1.0 } else { 1.0 }), speed: 80.0, moving: 0.0, fleeing: false }).collect();
+        let mut group = Group::new("a", walkers.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Go, vec![at(3000.0, 500.0)]), &walkers.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.set_ground(Some(ground.clone()));
+        group.tick(3, &walkers, 64.0, &Pacing::default());
+        group.reanchor(&walkers);
+        assert!(ground.room_at(group.anchor) >= ground.wanted(), "the anchor on a cell with the ranks' room: {:?} has {}", group.anchor, ground.room_at(group.anchor));
+        assert!(group.anchor.dist2d(at(1200.0, 500.0)) < 2.0 * ground.wanted() + 64.0, "and near the body: {:?}", group.anchor);
+    }
+
+    /// A hold whose every member is an exception (the members walked off, or joiners not yet in slot) is not arrived.
+    #[test]
+    fn a_hold_with_nobody_in_slot_is_not_arrived() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Hold, vec![at(0.0, 0.0)]), &positions, 64.0);
+        for frame in [3, 6, 9] {
+            group.tick(frame, &w, 64.0, &pacing);
+        }
+        assert!(group.at_end() && group.state(&w).arrived, "the hold formed: {:?}", group.state(&w));
+        // Both members walk 900 off under some other order.
+        for u in w.iter_mut() {
+            u.pos = at(900.0, u.pos.z);
+        }
+        group.tick(12, &w, 64.0, &pacing);
+        let state = group.state(&w);
+        assert!(group.at_end() && state.formed.is_empty() && state.exceptions.len() == 2, "{state:?}");
+        assert!(!state.arrived, "nobody in slot: not arrived");
     }
 
     /// A hold declared at a point about the body hangs its ranks from the point and walks nowhere: arrived on the

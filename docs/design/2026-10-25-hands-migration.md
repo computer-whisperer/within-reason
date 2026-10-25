@@ -221,3 +221,12 @@ the hold declared about the hunters' centroid did order them (eight Fights a sec
 its anchor walked a body's depth from the ranks' centroid onto the point, dragging the slots and their leads off the
 hunters, who read "joining" for three seconds; a Hold's point is the anchor's place now (`Group::new`), and the hands
 pass the anchor when they have one (an arrival, a picked hold of a declared group).
+
+**From the game's minutes 6-14 (the record's `groups`, read while it ran), three more engine changes:** Jev alternated
+`go_spot_63` and `fight_to_spot_63` every second for a minute (the pick rework's alternation among like-rated courses),
+and each re-declaration re-dealt and re-planned the body; a walk and an advance on the same route are one march now
+(`Group::update`). A set-down among the base's buildings put the anchor on a cell with 16 of room and the eleven
+soldiers squeezed to a column of one at a pace of 15; a set-down anchor stands on the nearest cell with the ranks'
+room (`Ground::stand`). Arrived read true with every member an exception; it needs a member in the body. Seen and
+left: the hands' groups join and split constantly (sixty `join_group_G` and `send_N` picks in eight minutes), so the
+body G carried three to five joiners from across the map at all times; that is the pick's, not the lane's.
