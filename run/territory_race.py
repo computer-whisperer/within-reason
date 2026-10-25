@@ -13,7 +13,8 @@ For the newest batch of each start labelled terrN-TAG-START, game by game and po
   defence met it in 20 of 24 games, terr226-231);
 - the turrets and radars standing at 10 and 15 minutes (the `defence:` lines, T-COVER and T-RADAR);
 - the guard at 10 and 15 minutes (the `guard:` lines, T-GUARD): the army he has shown beside his army on the map
-  (the truth file), the guard's metal standing, and the soldiers ordered;
+  (the truth file), the guard's metal standing, and the soldiers ordered; with stations (T-STATIONS), how many stood
+  and the metal they left uncovered, and the soldiers' time by what they did (summed over the `guard:` lines);
 - our metal lost to his weapons by minute window and by kind (from the `died:` lines with death=Weapon);
 - his armed metal on the map at each mark (his commander apart), and the raids that killed: at each of our losses, his armed metal within
   NEAR of it then (the truth files, every 2 s), and its fastest unit;
@@ -37,6 +38,8 @@ DIED = re.compile(r"died: (\w+) unit \d+ at \((-?\d+),(-?\d+)\) death=Weapon")
 CELL = re.compile(r"r(\d+) (\d+) warn (\S+) ours (\d+)/(\d+)/(\d+)/(\d+) turrets (\d+)")
 DEFENCE = re.compile(r"defence: raid (\d+) .*?\| turrets (\d+) \((\d+) metal\), radars (\d+)")
 GUARD = re.compile(r"guard: shown (\d+) \((\d+) units\), wanted (\d+) \| guard (\d+) standing \((\d+) \S+\), (\d+) making, (\d+) ordered \| (.*)")
+STATIONS = re.compile(r"stations: (\d+) of at most (\d+) .*\| uncovered: (.*)")
+DOING = re.compile(r"(\d+) fighting \d+ raids, (\d+) holding, (\d+) retreating, (\d+) called home, (\d+) at stations")
 WIN_FROM = 900.0
 INCOME_MEAN = 30.0
 WIN = 2.0
@@ -68,7 +71,7 @@ def read(path):
     defs = {u["name"]: u for u in dump["hello"]["unit_defs"]}
     spots = [(s["x"], s["z"]) for s in dump["hello"]["metal_spots"]]
     home = tuple(dump["home"])
-    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None, "defence": [], "guard": [], "income": []}
+    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None, "defence": [], "guard": [], "stations": [], "doing": [0] * 5, "income": []}
     for line in open(f"{path}/engine.log", errors="replace"):
         m = OURS.search(line)
         if not m:
@@ -87,6 +90,14 @@ def read(path):
             d = GUARD.match(text)
             if d:
                 g["guard"].append((t, int(d.group(1)), int(d.group(4)), int(d.group(5)), int(d.group(7)), d.group(8)))
+                n = DOING.search(text)
+                if n:
+                    g["doing"] = [a + int(b) for a, b in zip(g["doing"], n.groups())]
+        elif text.startswith("stations: "):
+            d = STATIONS.match(text)
+            if d:
+                late = sum(int(c.split()[1]) for c in d.group(3).split(", ") if c != "-")
+                g["stations"].append((t, int(d.group(1)), late))
         elif text.startswith("regions of spots: "):
             g["of_spot"] = [int(r) for r in text.split(": ", 1)[1].split()]
         elif text.startswith("race: "):
@@ -171,6 +182,8 @@ def main():
         held_at = defaultdict(list)  # mark -> [ratio >= WIN there]
         defence = defaultdict(list)  # mark -> [(turrets, metal, radars)]
         guard = defaultdict(list)  # mark -> [(shown, his army, guard standing, soldiers, ordered)]
+        stations = defaultdict(list)  # mark -> [(stations, metal uncovered)]
+        doing = [0] * 5
         test = defaultdict(lambda: [0, 0, 0.0, 0.0, []])  # (held/open, home/away) -> [windows, with a loss, lost, standing, his metal]
         games = sorted(glob.glob(f"{batch}/[0-9][0-9]"))
         for path in games:
@@ -198,9 +211,13 @@ def main():
                 d = [row for row in g["defence"] if row[0] <= mark * 60]
                 if d and d[-1][0] > mark * 60 - 60:
                     defence[mark].append((d[-1][2], d[-1][3], d[-1][4]))
+                q = [row for row in g["stations"] if row[0] <= mark * 60]
+                if q and q[-1][0] > mark * 60 - 60:
+                    stations[mark].append((q[-1][1], q[-1][2]))
                 q = [row for row in g["guard"] if row[0] <= mark * 60]
                 if q and q[-1][0] > mark * 60 - 60:
                     guard[mark].append((q[-1][1], his_army(g, mark * 60) or 0, q[-1][2], q[-1][3], q[-1][4]))
+            doing = [a + b for a, b in zip(doing, g["doing"])]
             for t, name, x, z, metal in g["lost"]:
                 w = next((w for w in WINDOWS if w[0] <= t / 60 < w[1]), None)
                 if w:
@@ -244,8 +261,12 @@ def main():
         for mark in (10, 15):
             if defence[mark]:
                 print(f"   at {mark}:00 (games alive): turrets {' / '.join(str(t) for t, _, _ in defence[mark])} ({' / '.join(str(m) for _, m, _ in defence[mark])} metal), radars {' / '.join(str(r) for _, _, r in defence[mark])}")
+            if stations[mark]:
+                print(f"   stations at {mark}:00 (games alive): {' / '.join(str(n) for n, _ in stations[mark])}, metal uncovered {' / '.join(str(m) for _, m in stations[mark])}")
             if guard[mark]:
                 print(f"   guard at {mark}:00 (games alive): his army shown / on the map {' '.join(f'{s}/{a:.0f}' for s, a, _, _, _ in guard[mark])}; guard standing {' / '.join(str(m) for _, _, m, _, _ in guard[mark])} ({' / '.join(str(n) for _, _, _, n, _ in guard[mark])} soldiers), ordered {' / '.join(str(o) for *_, o in guard[mark])}")
+        if sum(doing):
+            print("   the soldiers' time (soldier-lines): " + ", ".join(f"{w} {n / sum(doing):.0%}" for w, n in zip(("fighting", "holding", "retreating", "called home", "at stations"), doing)))
         print("   lost to his weapons, metal summed over the games, by window and kind:")
         kinds = sorted({k for _, k in lost_by})
         for w in WINDOWS:

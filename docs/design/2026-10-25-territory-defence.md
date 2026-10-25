@@ -192,6 +192,38 @@ can beat, sized to what he has shown.
   and say which regions it leaves late); the guard pushing; scouting, so A is what came to us; the planner pricing
   the guard.
 
+## Step 3c: stations
+
+The user, 2026-10-25: "Look into the army-shown overcount first, then stations." The model's "mobile metal counts
+once": one guard answers one raid at a time, and the first form sent all of it across the map to a raid it matched
+whatever was at stake there (terr268 game 00: a raid of 480 on 50 metal at 13:30). Stations split the guard over the
+ground it has to answer for, and a raid takes the soldiers nearest it.
+
+- **The places.** Every 30 s, after the race line: for every region holding something of ours that his raid can
+  reach (a finite warning), its forward spot, the region's spot nearest its forward building (the building nearest
+  his start); and home.
+- **Cover.** A place covers a region when the guard's type walks from it to the region's forward building, less its
+  reach, at its speed, within the region's warning plus 15 s (the race's second column: help that ends a raid
+  soon, not help that saves the first building). The walk is the planner's ground, the commanders' (its fields
+  stand at the spots and at home, made once): vehicles climb less than bots, so it is short of their walk on steep
+  maps.
+- **How many.** The place covering the most standing metal not yet covered is a station, then the next, while metal
+  stays uncovered and the stations number fewer than the guard's metal over the raid seen (T-COVER's raid, at most
+  1,000): a station must match a raid alone. At least one.
+- **Shares.** The soldiers split over the stations in proportion to the metal each covers first, each at least one
+  while soldiers last; a soldier goes to the nearest station short of its share. Home's station stands at the base
+  point, another 200 from its spot toward home.
+- **The answer.** Every half second, the raids by stake (our building metal within 800): each takes the free soldiers
+  nearest it until their metal, with three times our turrets' metal reaching the raid, matches its weight; if all the
+  free soldiers cannot, none go. A raid near home's region (within 800 of its buildings) that all of them cannot
+  match calls every free soldier to the base point, where the turrets and the commander stand. A soldier that
+  answered a raid and is not taken again holds its last place 20 s; one taken off a raid while a raid is within 900
+  of it goes back to its station and is not free for 20 s (the retreat).
+- **The `stations:` line** every 30 s: each station's place, the regions and metal it covers, its share; the regions
+  holding something that no station covers. The `guard:` line's place becomes the soldiers' counts by state.
+- **Measured** against terr268-273 (the guard at the base), the overcount left as it is in both. Not kept: held on the
+  branch `territory-stations` (below, "Measured").
+
 ## What could go wrong
 
 - **The edge of sight is too pessimistic.** With no bound on where he could be, every building at the edge of our
@@ -290,7 +322,30 @@ alone) and terr226-231 (no defence):
   raid it matches whatever is at stake there ("raid 480 with 50 at stake", terr268 game 00 at 13:30).
 - *The army shown is not his army.* At 10:00 it is under what he has on the map in 17 of 24 games (240-2,591 against
   930-3,910): the guard sees what comes to us. At 15:00 it is over in 12 and under in 11, once twice his army (terr268
-  game 01: 4,600-6,000 from 12:30 against 2,000-2,900 on the map), which a unit forgotten only when seen destroyed
-  allows; not looked into.
+  game 01: 4,600-6,000 from 12:30 against 2,000-2,900 on the map). The overcount is his units counted again after
+  their death (terr280, a probe): the engine sends the death event and keeps the dying unit in its active list while
+  its death script runs, the host's enemy list does not leave it out, and the next sighting counts it for five more
+  minutes. His bots, whose death animation lasts, are counted again nearly every time (Grunt 31 of 37, Hammer 28 of
+  31); his vehicles almost never (Incisor 0 of 21). At 15:00 of one game 3,836 of the 4,064 shown was dead. Not
+  fixed: the guard's results above are with it.
 - *Nothing changes where nobody attacks.* Against NullAI no soldier is made in 24 games and every start and mark is
   inside the pooled range (terr274-279).
+
+**Step 3c, stations (terr281-292).** Two builds against the guard at the base (terr268-273), the overcount in all:
+
+| | lost of 24 | the win line | twice his at 15:00 | 20:00 | soldiers lost | other units lost |
+|---|---|---|---|---|---|---|
+| the guard at the base (terr268-273) | 4 | 20 | 15 | 18 | 927 | 1,628 |
+| stations (terr281-286) | 3 | 17 | 15 | 15 | 1,142 | 1,503 |
+| stations, raids answered at twice their weight (terr287-292) | 4 | 15 | 13 | 13 | 1,119 | 1,465 |
+
+- *Stations do not move the bench.* The win line is 17 and 15 against 20, inside what one build's repeats spread over
+  in step 3 (7-10 among builds that differed less), so not shown worse either; no start gains.
+- *They split the guard little.* One station at 10:00 in 46 of the 47 games with soldiers then (the guard's metal is
+  under twice the raid seen), one to four at 15:00. What changed for most of the game is where the one station
+  stands (the place covering the most metal, not always the base) and that each raid takes the soldiers nearest it.
+- *They spare buildings and spend soldiers*: other units lost 1,503 and 1,465 against 1,628, soldiers 1,142 and 1,119
+  against 927.
+- *Not even fights.* Answering at twice the raid's weight, or with every free soldier, left the soldiers' losses where
+  they were (1,119), so the conjecture that nearest-first sends just enough soldiers to lose half is wrong.
+- Held on `territory-stations`; `territory` keeps the guard at the base.
