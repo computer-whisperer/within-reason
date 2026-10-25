@@ -11,6 +11,7 @@ mod hands;
 mod his_start;
 mod options;
 mod planner;
+mod promise;
 mod snapshot;
 mod walks;
 mod work;
@@ -331,6 +332,7 @@ impl Territory {
                 let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.2}/{:.2}/{:.2}/{:.1}", units.list[*u].name, plan.count_at(*u, plan.t0 + 60.0), plan.count_at(*u, plan.t0 + 180.0), plan.count_at(*u, plan.t0 + 300.0), plan.count_at(*u, end))).collect();
                 let rings: Vec<String> = plan.rings.iter().enumerate().map(|(k, r)| format!("r{k} {} spots to {:.0} at {:.0} ({:.2}/s)", r.spots, r.bound, r.distance, r.metal)).collect();
                 self.log(format_args!("targets: {} | factory kinds at +1/+3/+5 min/the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
+                self.log_promise(plan);
                 self.hands.targets = Some(plan.clone());
                 self.seed_committed();
                 return;
@@ -504,6 +506,9 @@ impl Bot for Territory {
         }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             self.curve_line(&tick);
+        }
+        if tick.due() % promise::STANDING_LOG == 0 {
+            self.log_standing();
         }
         Commands(commands)
     }

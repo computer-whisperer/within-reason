@@ -4,8 +4,9 @@ The user, 2026-10-25, after the regions design's steps 2 and 4 were measured and
 problem and let's see if we can figure out what is going wrong." Then, on the three ways on offered below: "Let's
 try both -- go ahead".
 
-Measured the same day ("Measured" below): change 1 level with the bench and the promise unmoved, change 2 not kept.
-The walk prices were not the cause of the promise's failure, which stays open.
+Measured the same day ("Measured" below): change 1 level with the bench and the promise unmoved, kept; change 2 not
+kept. The walk prices were not the cause of the promise's failure, which stays open; understanding it comes before
+the next change.
 
 ## What is going wrong
 
@@ -104,8 +105,8 @@ On top of change 1, the walks the hands make that the plan cannot buy back:
   0.05, a basic constructor's help on the upgrades at 1.3-2.1. The promise kept stayed where it was (0.58-0.81,
   0.47-0.68 and 0.34-0.60); the marks inside the pool but Quicksilver's 10:00 (87.4 against 89.9-102, as in both
   benches before). **Walk prices are not what makes the promise fail**; the diagnosis above was wrong on that point.
-  The walking is real, and late in the game it is a symptom (change 2). Whether the change stays, level on the bench
-  and deleting the Comet-fitted walk ramp, is the user's call.
+  The walking is real, and late in the game it is a symptom (change 2). Kept, level on the bench and deleting the
+  Comet-fitted walk ramp (the user, 2026-10-25: "We can keep T-WALKS, but the original point stands of understanding the failure first").
 
 ## The instrument
 
