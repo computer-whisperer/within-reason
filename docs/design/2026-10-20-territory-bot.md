@@ -263,6 +263,22 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   fallback: the flows rank by power-seconds and the plant's guards and the moho help outrank the turrets until the
   spots run out. Next: instrument the credits at dispatch; the ranking (proportional service of the plan's flows
   rather than the largest first) is the turrets' lever, a design question.
+- 2026-10-25, the cross-map baseline (the user: "Let's work on making this more general ... How canned is the current
+  economy growth build? We will need to find a way to let it adapt to different terrain and allowed territory
+  expansion"; "Run the baseline with those maps"): the bot unchanged at aa48726 on Comet from the map's own starts,
+  Great Divide, All That Glitters, Mithril Mountain and Quicksilver, four seeds each (terr103-107;
+  `run/territory_geometry.py` reads each map's spots, spacing, water and farm ground from the dump). Against the
+  program's ceiling from each start the new starts read 0.47-0.61 at 5:00 (0.18-0.19 on Glitters north) and at 20:00
+  0.48-0.50 on Comet, 0.33-0.42 on Mithril and Quicksilver (Mithril game 00 0.11), 0.24-0.27 on Great Divide and
+  0.01-0.16 on Glitters, where thebluegecko's start on Comet reads 0.69-0.73 and 0.54-0.58. Hard failures: a vehicle plant facing a rock with its constructors
+  held on the pad and the commander leashed to five spots (Glitters north, 11.2 a second all game); an advanced plant
+  whose order cycled between two unreachable sites for fifteen minutes (Glitters south, one factory all game); his
+  start taken as his box's centre on a box the map's width, our constructors and then our commander in his
+  commander's range (Great Divide, a commanders' duel won and one lost at 16:00). Softer: the program prices both
+  Comet starts identically to the unit (one ring, a fixed walk), and from the map's own start the commander takes a
+  fourth spot and the plant stands 27 s later (5:00 34-41 against 48-55); the late economy floats on a windy map
+  (Mithril game 00 at its metal cap 8:00-20:00 on 45-51 wind generators a minute); the spots under water are walked
+  to and never taken (Quicksilver).
 - 2026-10-25, the plant ramp in the program (`docs/design/2026-10-25-territory-plant-ramp.md`; the user: "Proceed. Start with batch 1 alone, and the mobile guard's cap stays until the pad is calibrated"): the turrets' assist on a plant bounded by its ring's capacity as the hands count it (built, terr96: the ring 24-34 at the advanced plant, his 29; the program's demand unmoved, 3-4 turrets at the plant by 14:00; the marks level), the advanced constructor's spots priced from home (built, terr97: level, the premise wrong: the hands never sent one to a spot, and the plan's upgrades wait on the spots and the metal, not the price; kept as the honest price), and the pad's roll-off as the plant's own ceiling in place of the caps (not built: a cap, not a demand; what holds the program's demand down is open, the farm's timing against his the thing to read next).
 - 2026-10-24, the advanced constructors' count (the user: "Why are we making so many advanced constructors? Does the LP not model using a t1 constructor to help build a t2 mex?"; "Build it, one batch, with a low help factor"): the program had no pair for a basic constructor on an upgrade frame (a mobile builder's pairs were its build list and a factory's products), so every upgrade was priced on the advanced constructors alone and it bought 29-32 by 15:00 against his 15 (and 10 advanced aircraft). Built as `LpOptions.mobile_help` (row 3d, `mhelp` 0.35: his basic constructors' share of the moho frames' builder-seconds), the hands reading the help from this type's own flows and choosing the frame by the finish counted from the walk. terr98 invalid (the hands' flag read off any type's flows, the extractors fell to the count rule), terr99 the help bounced between nearly-finished frames and 20:00 fell in all four, terr100 level at every mark with 2-7 fewer advanced constructors by 20:00: kept as the honest model. The count is the plant's cadence and the upgrades' return, not their price in advanced power.
   thebluegecko's better start at that location tells us something must be wrong"). The program never chose the two
