@@ -331,3 +331,29 @@ detachment (`send`) when it arrives soonest, a group or the commander already be
 detachment farther from the raider than what it is killing will last is no answer, and a hunt that ended is no
 reason for another from the same distance." Measured by the raid scenario before and after (the hunt primitive's own
 bench) and by the next pianist game's `run/hunts.py` (sends, repeats within 60 s, hunts by ending).
+
+### After migration-3-1 (2): the opening (the user, 2026-10-25 evening: "Let's run a round of fixes for the opening next")
+
+*The solar started and cancelled (0:17-0:21).* The pre-game list queued its solar behind the second extractor at 0:17
+("next, queued: build a armsolar at home"), beside the commander. The player's 0:10 turn ended at 0:19 with a new list
+(its own solars, `back_yard` marked). The 2026-10-01 law dropped what the old list had queued behind the build in
+progress, but the engine had begun that solar the moment the extractor stood: the drop's Stop abandoned it at 3% built
+and the new list's solar went up 100 away. Fixed: a queued build the engine has begun is kept as the builder's started
+task and said (H-HANDS-QUEUE). Its site, 69 from where the plant later stood, is a separate note: the layout placed the
+pre-game solar "at home" before the plant's site was known; the hands keep later buildings out of the plant's lanes.
+
+*The solar the commander walked 970 for (1:38-2:50).* The player's own doing, twice over: it marked `back_yard` at
+(520, 5900), 970 west of home near the map's edge, and wrote "generators it builds go at back_yard" with two
+"armsolar back_yard low" steps after the assist. The commander left the plant it was helping at 1:38, walked 30 s,
+built the two solars, and was back at the plant at 2:50: 70 s of the opening's build power away from the plant, and
+the energy stall it was meant to answer (energy 524 of 1,250 at 2:00) met late. The hands already place a generator
+with no place beside the builder at home, else in the back field 150 behind home, out of every factory's exit lane
+(`economy.rs` `BACK_FIELD`, `GENERATOR_HOME`); the player's lesson "keep builders out of exit lanes" pushed it to a mark
+it did not need. Changed: the `queue` tool's text says so and what a far mark costs (the walk twice at every solar,
+this game's 70 s). Not changed, proposed for the brief (the user's): a line in the energy or opening sheet that the
+opening's generators stand at home behind the plant and that a `mark` for them is for a second block later.
+
+*The rest of the first three minutes, for the record:* extractors 0:02 and 0:08, the plant queued at 0:37 and standing
+by 1:00, the first Rover at 1:13, the third extractor at 0:57, the commander helping the plant 1:16-1:38 at low
+priority, a Sentry beside spot_73 at 2:23. The pool line the player wrote (extractor, extractor, solar, solar, plant,
+extractor, assist, two solars) is the brief's; its placing was the fault, not its order.

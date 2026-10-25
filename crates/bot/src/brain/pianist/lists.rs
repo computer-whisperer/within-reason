@@ -565,16 +565,29 @@ mod tests {
         pianist.list_replaced(cancelled, false);
         pianist.list_replaced(unlisted, false);
         assert!(!pianist.list_steps.contains_key(&replaced), "the old list's step no longer returns to a list");
-        assert!(pianist.take_queued(kept, "commander", 200).is_none());
+        assert!(pianist.take_queued(kept, "commander", 200, None).is_none());
         assert!(matches!(pianist.tasks.get(&kept), Some(Task::Build { started: false, ordered: 200, .. })));
         assert_eq!(pianist.list_steps.get(&kept), Some(&("extractor".to_string(), 200)));
-        assert!(pianist.take_queued(unlisted, "constructor_4", 200).is_none());
+        assert!(pianist.take_queued(unlisted, "constructor_4", 200, None).is_none());
         assert!(matches!(pianist.tasks.get(&unlisted), Some(Task::Build { started: false, .. })));
         for builder in [replaced, cancelled] {
-            assert!(matches!(pianist.take_queued(builder, "commander", 200), Some(Command::Stop { unit }) if unit == builder));
+            assert!(matches!(pianist.take_queued(builder, "commander", 200, None), Some(Command::Stop { unit }) if unit == builder));
             assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder) && !pianist.queued_steps.contains_key(&builder));
         }
         assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
+        // A queued build the engine has begun as the list was replaced is kept, its frame the task's (migration-3-1
+        // 0:19: the opening's solar dropped at 3% built); a begun frame of another type is not it.
+        let (begun, other) = (UnitId(5), UnitId(6));
+        queued(&mut pianist, begun);
+        queued(&mut pianist, other);
+        pianist.list_replaced(begun, true);
+        pianist.list_replaced(other, true);
+        let def = match pianist.queued.get(&begun) { Some(Task::Build { def, .. }) => *def, _ => unreachable!() };
+        let frame_pos = Vec3 { x: 100.0, y: 0.0, z: 200.0 };
+        assert!(pianist.take_queued(begun, "commander", 200, Some((UnitId(50), def, frame_pos))).is_none());
+        assert!(matches!(pianist.tasks.get(&begun), Some(Task::Build { started: true, frame: Some(UnitId(50)), near, .. }) if near.x == 100.0), "{:?}", pianist.tasks.get(&begun));
+        assert!(pianist.done.last().unwrap().contains("commander: kept the step 'extractor' its old list had queued"), "{:?}", pianist.done);
+        assert!(matches!(pianist.take_queued(other, "commander", 200, Some((UnitId(51), UnitDefId(def.0 + 1), frame_pos))), Some(Command::Stop { .. })));
     }
 
     /// A `reclaim` step names a wreck field by its grid cell (the richest there) or by a place (the nearest within

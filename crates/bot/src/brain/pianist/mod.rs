@@ -555,9 +555,27 @@ impl Pianist {
         self.tasks.iter().filter(|(_, t)| matches!(t, Task::Build { frame: Some(f), .. } if *f == unit)).map(|(id, _)| *id).collect()
     }
 
-    pub(super) fn take_queued(&mut self, builder: UnitId, name: &str, frame: i32) -> Option<Command> {
+    /// `begun`: the frame the engine has already begun for the queued build (its creation this tick), with its type
+    /// and place. A begun build is never dropped: the drop's Stop abandoned it (migration-3-1 0:19: the opening list's
+    /// solar, queued behind the second extractor, was begun by the engine the moment the extractor stood, and the
+    /// 0:10 turn's new list, landing the same second, dropped it at 3% built); a frame of another type is not the
+    /// queued build and is dropped as before.
+    pub(super) fn take_queued(&mut self, builder: UnitId, name: &str, frame: i32, begun: Option<(UnitId, UnitDefId, Vec3)>) -> Option<Command> {
         if !self.stale_queue.remove(&builder) {
             return self.promote(builder, frame);
+        }
+        if let Some((unit, def, pos)) = begun
+            && matches!(self.queued.get(&builder), Some(Task::Build { def: queued_def, .. }) if *queued_def == def)
+        {
+            let what = self.queued_steps.get(&builder).map_or("the build".to_string(), |step| format!("the step '{step}'"));
+            self.done.push(format!("{} {name}: kept {what} its old list had queued: the engine had begun it as you replaced or cancelled that list, so it finishes first and the new list follows", picture::clock(frame)));
+            let order = self.promote(builder, frame);
+            if let Some(Task::Build { started, frame: own_frame, near, .. }) = self.tasks.get_mut(&builder) {
+                *started = true;
+                *own_frame = Some(unit);
+                *near = pos;
+            }
+            return order;
         }
         self.queued.remove(&builder)?;
         let what = self.queued_steps.remove(&builder).map_or("the build".to_string(), |step| format!("the step '{step}'"));
@@ -1667,7 +1685,7 @@ impl Brain {
                         && *f != unit
                         && !own.iter().any(|u| u.id == *f)
                     {
-                        commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
+                        commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame, made.map(|(def, pos)| (unit, def, pos))));
                     }
                     // The builder's own frame of the type it was ordered: the task is started, keeps the frame's id,
                     // and its site is the frame, which stands where the engine put it, up to a building's width from
@@ -1703,7 +1721,13 @@ impl Brain {
                     // for the pass. By the frame's id: a neighbour's frame of the type finishing is not this build.
                     for builder in pianist.builders_of_frame(unit) {
                         if pianist.queued.contains_key(&builder) {
-                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
+                            // The queued build the engine began this very tick (its frame created as the finished
+                            // one stood or fell): kept, never dropped with the old list.
+                            let begun = tick.events.iter().find_map(|e| match e {
+                                bot_protocol::Event::UnitCreated { unit: made, builder: Some(b) } if *b == builder && *made != unit => own.iter().find(|u| u.id == *made).map(|u| (*made, u.def, u.pos)),
+                                _ => None,
+                            });
+                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame, begun));
                         } else {
                             pianist.tasks.remove(&builder);
                         }
@@ -1714,7 +1738,13 @@ impl Brain {
                     // queued order), or the builder is free for the pass.
                     for builder in pianist.builders_of_frame(unit) {
                         if pianist.queued.contains_key(&builder) {
-                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
+                            // The queued build the engine began this very tick (its frame created as the finished
+                            // one stood or fell): kept, never dropped with the old list.
+                            let begun = tick.events.iter().find_map(|e| match e {
+                                bot_protocol::Event::UnitCreated { unit: made, builder: Some(b) } if *b == builder && *made != unit => own.iter().find(|u| u.id == *made).map(|u| (*made, u.def, u.pos)),
+                                _ => None,
+                            });
+                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame, begun));
                         } else {
                             pianist.tasks.remove(&builder);
                         }
