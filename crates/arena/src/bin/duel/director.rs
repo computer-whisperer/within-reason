@@ -613,6 +613,8 @@ impl Director {
         let drill_defs: Vec<String> = self.batch.drill.as_ref().map(|d| match d.kind {
             drill::Kind::Gather => vec![d.lab.clone()],
             drill::Kind::Into => vec![d.target.clone()],
+            // An assault's defence is the queue's `y`, checked with the pairings below.
+            drill::Kind::Assault => Vec::new(),
             drill::Kind::Circuit => (!d.feed.is_empty()).then(|| d.lab.clone()).into_iter().chain(d.feed.iter().map(|(n, _)| n.clone())).collect(),
             drill::Kind::Walk | drill::Kind::Reverse => Vec::new(),
         }).unwrap_or_default();
@@ -813,8 +815,8 @@ impl Director {
         let mut drill_state = None;
         let armies = if let Some(options) = &self.batch.drill {
             // A drill (`drill.rs`): `x` at the west end of the strip in its formation (a gather: its lab there, the
-            // force as the lab's list), `y` nobody.
-            let [force_x, _] = self.sized(&job)?;
+            // force as the lab's list), `y` nobody (an assault: the defence on the goal, D16).
+            let [force_x, force_y] = self.sized(&job)?;
             let [form_x, _] = self.batch.shapes[job.shape];
             let terrain = &self.hello.as_ref().expect("hello precedes ticks").terrain;
             let centre = field.site.centre;
@@ -882,11 +884,20 @@ impl Director {
                 form_x.places_along(start, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, at, None)).collect()
             };
             // `into`: the target stands on the goal for side `y`, given again when it dies (`drill_target`).
-            let target: Vec<Spawn> = if options.kind == drill::Kind::Into {
-                drill.target = Some(0);
-                vec![Self::spawn(&self.defs[&options.target], drill.goal, None)]
-            } else {
-                Vec::new()
+            // `assault` (D16): the defence `--theirs` names, one rank across the approach centred on the goal at
+            // `DEFENCE_SPACING`, in list order, given once.
+            let target: Vec<Spawn> = match options.kind {
+                drill::Kind::Into => {
+                    drill.target = Some(0);
+                    vec![Self::spawn(&self.defs[&options.target], drill.goal, None)]
+                }
+                drill::Kind::Assault => {
+                    let count: u32 = force_y.iter().map(|(_, n)| n).sum();
+                    let defs: Vec<&UnitDefInfo> = force_y.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
+                    let rank = Formation { kind: FormationKind::Ranks(count.max(1)), spacing: drill::DEFENCE_SPACING };
+                    rank.places_along(drill.goal, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, place(at), None)).collect()
+                }
+                _ => Vec::new(),
             };
             drill_state = Some(drill);
             [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], target, None, centre, LaneMode::Off)]
@@ -1609,8 +1620,14 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     && rules.script.is_some_and(|s| duel.armies[0].next_row < s.rows.len() || duel.armies[0].last_row_frame.is_some_and(|f| frame - f < STALEMATE));
                 let walking: Vec<usize> = (duel.armies[0].alive.keys()).filter_map(|u| duel.armies[0].spawn_of.get(u).copied()).filter(|&i| duel.armies[0].spawns[i].mobile).collect();
                 let reason = if let Some(drill) = &duel.drill {
-                    // A drill ends on arrival (an `into`: when everyone has fired) or the time limit alone (`drill.rs`).
-                    if drill.done(&walking) {
+                    // A drill ends on arrival (an `into`: when everyone has fired) or the time limit alone (`drill.rs`);
+                    // an assault (D16) when the defence is wiped (`taken`), the army's mobile units are (`wiped`), or
+                    // at the time limit.
+                    if drill.kind == drill::Kind::Assault && duel.armies[1].alive.is_empty() {
+                        Some("taken")
+                    } else if drill.kind == drill::Kind::Assault && walking.is_empty() {
+                        Some("wiped")
+                    } else if drill.done(&walking) {
                         Some(if drill.kind == drill::Kind::Into { "engaged" } else { "arrived" })
                     } else if frame - advance_at >= rules.time_limit * FPS {
                         Some("timeout")
@@ -1628,6 +1645,19 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 } else {
                     None
                 };
+                if let (Some(reason), Some(drill)) = (reason, duel.drill.as_mut())
+                    && drill.kind == drill::Kind::Assault
+                {
+                    // The assault's own columns (D16): when the defence fell, and the army's units dead before their
+                    // own first shot.
+                    if reason == "taken" {
+                        drill.taken = Some(frame);
+                    }
+                    let x = &duel.armies[0];
+                    drill.lost_before_shot = (x.spawns.iter().enumerate())
+                        .filter(|(i, s)| s.mobile && !x.unit_of.get(i).is_some_and(|u| x.alive.contains_key(u)) && !drill.first_shot.contains_key(i))
+                        .count() as u32;
+                }
                 reason.map(|reason| conclude(duel, advance_at, frame, first_damage, reason))
             }
         }
@@ -2084,6 +2114,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army, clearance: Option<(f32, 
         "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f as f32 / FPS as f32), "lead": drill.lead, "pace": drill.pace,
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
+        "theirs": (drill.kind == drill::Kind::Assault).then(|| other.spawns.iter().map(|s| json!([s.name, s.at.x.round(), s.at.z.round()])).collect::<Vec<_>>()),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
@@ -2201,6 +2232,9 @@ fn conclude(duel: &mut Duel, started: i32, frame: i32, first_damage: Option<i32>
         ("wiped", [0, 0]) => "draw",
         ("wiped", [_, 0]) => "x",
         ("wiped", [0, _]) => "y",
+        // An assault (D16): the defence taken is the army's win; its mobile units wiped the defence's.
+        ("taken", _) => "x",
+        ("wiped", _) => "y",
         _ => "draw",
     };
     let label = |a: &Army| a.formation.map_or_else(|| "scenario".to_string(), |f| f.label());

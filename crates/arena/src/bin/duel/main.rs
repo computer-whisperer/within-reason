@@ -480,7 +480,7 @@ fn parse_args() -> io::Result<Options> {
                 options.pairs.push((scenario.sides[0].name.clone(), scenario.sides[1].name.clone()));
                 options.scenario = Some(scenario);
             }
-            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather, into or circuit"))),
+            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather, into, circuit or assault"))),
             "--feed" => {
                 let force = plan::Force::parse(&value());
                 if force.parts.iter().any(|(_, c)| *c == 0) {
@@ -524,8 +524,15 @@ fn parse_args() -> io::Result<Options> {
         if ours.is_empty() {
             usage("--drill needs --ours (the army, or the list a gather's lab builds)");
         }
-        if !theirs.is_empty() {
+        let assault = kind == drill::Kind::Assault;
+        if !assault && !theirs.is_empty() {
             usage("--drill fights nobody: no --theirs");
+        }
+        if assault && theirs.is_empty() {
+            usage("--drill assault needs --theirs DEFENCE (armed buildings with counts: armllt*2+armbeamer*1)");
+        }
+        if assault && ours.iter().chain(&theirs).any(|f| !plan::Force::parse(f).counted) {
+            usage("--drill assault takes both forces with counts (armflash*12 against armhlt*1): nothing is sized against the other side");
         }
         if (drill_opts.lead.is_some() || drill_opts.pace.is_some()) && drill_opts.reissue.is_none() {
             usage("--lead and --pace need --reissue (the cadence at which the point is re-placed)");
@@ -548,12 +555,17 @@ fn parse_args() -> io::Result<Options> {
         }
         let has_lab = kind == drill::Kind::Gather || (kind == drill::Kind::Circuit && !drill_opts.feed.is_empty());
         options.drill = Some(drill::Options { kind, ..drill_opts });
-        options.pairs = ours.drain(..).map(|o| (o, plan::NOBODY.to_string())).collect();
+        options.pairs = if assault { plan::cross(&ours, &theirs) } else { ours.drain(..).map(|o| (o, plan::NOBODY.to_string())).collect() };
+        if assault {
+            ours.clear();
+            theirs.clear();
+        }
         options.boxes = script::DRILL_BOXES;
         if !time_limit_given {
             options.time_limit = match kind {
                 drill::Kind::Gather => 480,
                 drill::Kind::Circuit => 600,
+                drill::Kind::Assault => 300,
                 _ => 240,
             };
         }
@@ -618,6 +630,8 @@ fn usage(problem: &str) -> ! {
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
             (a deployed army round the map while a lab feeds it: design D12)
+       duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|on|ranks] [--formation X] [--from X,Z --to X,Z | --around RATIO] ...
+            (the walk into a defence that shoots back, judged as a duel: design D16; both forces with counts, armflash*12 against armhlt*1)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

@@ -339,6 +339,21 @@ exceptions (`arrived`), or at the time limit (600 s). The per-second `group` car
 line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800,5512), (5384,5384), (5624,2296),
 (1704,2024)), 178 s for a Pawn at full speed; the first leg walks 4,429 for 3,586 as the crow flies.
 
+**assault** (design D16, 2026-10-24 night): the walk into a defence that shoots back, judged as a duel.
+`duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|ranks|on]
+[--formation ranks6@64] [--from X,Z --to X,Z | --around R]`: both forces written with counts (`armflash*12` against
+`armhlt*1`, nothing sized against the other side), the army spawned `--distance` from the goal in its formation facing
+it, the defence stood in one rank across the approach centred on the goal, 128 apart in list order, given once (an
+`into` target is given again; a position falls once). The duel ends when the defence is wiped (`taken`), the army's
+mobile units are (`wiped`) or at the time limit (300 s); no stalemate rule, since a defence and a body out of its reach
+are quiet by nature. `duels.csv` carries the duel's own columns (value left on both sides, survivors, the fire
+instrument for both) and the drill's (`taken_s`, `lost_before_shot`: units of the army dead before their own first
+shot, the price of arriving in pieces; `first_shot_s` and the shot ramp as `into`). The reference is the plain duel of
+the same forces (`duel --ours FORCE --theirs DEFENCE`, the sides 1,100 apart): the fight with the approach nearly
+removed, so the assault's margin against it is the approach's price. `run/drill_table.py` adds the judge's counts, the
+seconds to take the position, the margin, the units lost before firing, shots per in-reach second, the muzzled share and
+the friend-on-the-line share for an assault batch.
+
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable
 ground, not a firing range's 16), and 900 from both commanders, who start along the north edge for a drill

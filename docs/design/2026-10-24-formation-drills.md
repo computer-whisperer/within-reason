@@ -471,6 +471,7 @@ engine, not a guess):
 | 6 | a chokepoint and a cliff on other maps (Great Divide's passages, Cape Violet's shore) | 1 and 2 on terrain | needs the terrain in the duel's view |
 | 7 | the raid answer from the stream while the bodies hold their course | the raid scenario's score with a producing lab behind the picket | after the group API |
 | 8 | circuit: a deployed army round the map while a lab feeds it (D12) | laps against the walk at the type's speed, the formed share, the joiners' time to the body, the formed count at each joiner and corner | the lap within 1.1 x the walk on foot over the type's speed; the formed share over 0.9 with no joiner; a joiner in the body within its own straight walk plus 10 s; no formed member knocked out of its slot by a joiner |
+| 9 | assault: the walk into a defence that shoots back, judged as a duel (D16; the user's "move and fight scenario") | the position taken or not and in how long, the margin of value left against the plain duel's (the approach's price), units dead before their own first shot, the shot ramp, the fire instrument's in-reach and muzzled shares, the formed share at contact; under the four lane modes | the baselines set it: the first slice is 12 Blitz and 10 Stouts against an HLT, a Guardian and two LLTs with a Beamer at 2,500 |
 
 Pacing arms for drills 1-3 once the group API exists: none (the march as today), the paced slot every tick and every
 second (D11: the lead law as first written does not pace; the slot moving at the pace does), slow guard on the slowest

@@ -12,7 +12,10 @@ first), a reverse's recovery after the turn, a gather's units produced and media
 and the body's shape at contact (design D8: the second the first unit arrives at the goal in force): its depth along
 the heading and width across it, and the engagement ramp, each unit's depth behind the leader over its type's speed,
 the median over the body and the largest. The shape comes from `duels.csv` when the batch has the columns and is
-derived from the per-second log otherwise. An `into` drill (D9, a target on the goal) adds the first shot from the
+derived from the per-second log otherwise. An `assault` (D16, a defence on the goal, judged as a duel) adds the judge's
+counts (taken / wiped / timeout), the seconds to take the position, the margin of value left, the units dead before
+their own first shot, and the fire instrument's shots per in-reach second, muzzled share and friend-on-the-line share
+for the army. An `into` drill (D9, a target on the goal) adds the first shot from the
 first order, the shot ramp from it to the median unit's first shot and the last's, and the target's deaths. A terrain case (D10) adds the walk on foot against the crow's distance and `route_s`, the walk
 over the slowest type's speed. A circuit (D12, a deployed army round the map while a lab feeds it) adds the median
 deployed unit's laps, the formed share under the group (formed members over members, averaged over the seconds) and the
@@ -286,11 +289,15 @@ def main():
         groups = {}
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
+        assault = meta.get("kind") == "assault"
         head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind |"
+        if assault:
+            # D16: the duel's judge and fire columns beside the drill's.
+            head += " taken / wiped / timeout | taken s | margin (value left x - y) | lost before shot | shots per reach s | muzzled share | friend on line |"
         print(head)
-        print("|" + "---|" * (len(by) + 19))
+        print("|" + "---|" * (len(by) + 19 + (7 if assault else 0)))
         for key, rs in sorted(groups.items()):
-            arrived = sum(1 for r in rs if r.get("reason") in ("arrived", "engaged"))
+            arrived = sum(1 for r in rs if r.get("reason") in ("arrived", "engaged", "taken"))
             timeouts = sum(1 for r in rs if r.get("reason") == "timeout")
             cells = [
                 str(len(rs)),
@@ -328,6 +335,20 @@ def main():
             cells.append(fmt(mean(number(r.get("formed_share")) for r in rs), 2))
             cells.append(fmt(mean(number(r.get("joined")) for r in rs), 1))
             cells.append(fmt(mean(number(r.get("left_behind")) for r in rs), 1))
+            if assault:
+                taken = sum(1 for r in rs if r.get("reason") == "taken")
+                wiped = sum(1 for r in rs if r.get("reason") == "wiped")
+                cells.append(f"{taken} / {wiped} / {timeouts}")
+                cells.append(fmt(mean(number(r.get("taken_s")) for r in rs)))
+                margins = [number(r.get("value_left_x")) - number(r.get("value_left_y")) for r in rs if number(r.get("value_left_x")) is not None and number(r.get("value_left_y")) is not None]
+                cells.append(fmt(mean(margins), 2))
+                cells.append(fmt(mean(number(r.get("lost_before_shot")) for r in rs), 1))
+                reach = sum(number(r.get("reach_s_x")) or 0 for r in rs)
+                shots = sum(number(r.get("shots_x")) or 0 for r in rs)
+                muzzled = sum((number(r.get(c)) or 0) for r in rs for c in ("muzzled_line_x", "muzzled_edge_x", "muzzled_clear_x"))
+                cells.append(fmt(shots / reach, 2) if reach else "-")
+                cells.append(fmt(muzzled / reach, 2) if reach else "-")
+                cells.append(fmt(mean(number(r.get("fol_in_x")) for r in rs), 2))
             print("| " + " | ".join(key) + " | " + " | ".join(cells) + " |")
             if types:
                 per = {}

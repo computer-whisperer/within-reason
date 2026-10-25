@@ -13,7 +13,7 @@ contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x
 form_x,form_y,reach_s_x,reach_s_y,shots_x,shots_y,muzzled_line_x,muzzled_line_y,muzzled_edge_x,muzzled_edge_y,\
 muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y,health_err_x,health_err_y,\
 lane_x,lane_y,nn_x,nn_y,fol_in_x,fol_in_y,fol_blocked_x,fol_blocked_y,xf_x,xf_y,engaged_s_x,engaged_s_y,queued_s_x,queued_s_y,blocked_s_x,blocked_s_y,speed_x,speed_y,extractors_lost,first_kill_s,hunters_lost,hunts,seed,left30_x,left30_y,left60_x,left60_y,log,\
-drill,arrive_first_s,arrive_median_s,arrive_last_s,spread_arrival,nn_arrival,speed_share,spin_up_s,recover_s,produced,join_median_s,depth_contact,width_contact,ramp_half_s,ramp_all_s,first_shot_s,shot_ramp_half_s,shot_ramp_all_s,target_deaths,straight,walk,route_s,laps,formed_share,joined,left_behind";
+drill,arrive_first_s,arrive_median_s,arrive_last_s,spread_arrival,nn_arrival,speed_share,spin_up_s,recover_s,produced,join_median_s,depth_contact,width_contact,ramp_half_s,ramp_all_s,first_shot_s,shot_ramp_half_s,shot_ramp_all_s,target_deaths,straight,walk,route_s,laps,formed_share,joined,left_behind,taken_s,lost_before_shot";
 
 pub fn row(r: &DuelResult) -> String {
     let [fx, fy] = &r.fire;
@@ -51,12 +51,12 @@ fn drill_cells(d: &crate::drill::Score) -> String {
     let opt = |v: Option<f32>| v.map_or(String::new(), |v| format!("{v:.1}"));
     let share = d.speed_share.map_or(String::new(), |v| format!("{v:.3}"));
     format!(
-        ",{},{},{},{},{},{},{share},{},{},{},{},{},{},{},{},{},{},{},{},{:.0},{},{},{},{},{},{}",
+        ",{},{},{},{},{},{},{share},{},{},{},{},{},{},{},{},{},{},{},{},{:.0},{},{},{},{},{},{},{},{}",
         d.kind, opt(d.arrive[0]), opt(d.arrive[1]), opt(d.arrive[2]), opt(d.spread_arrival), opt(d.nn_arrival), opt(d.spin_up_s), opt(d.recover_s), d.produced, opt(d.join_median_s),
         opt(d.depth_contact), opt(d.width_contact), opt(d.ramp_half_s), opt(d.ramp_all_s),
         opt(d.first_shot_s), opt(d.shot_ramp_half_s), opt(d.shot_ramp_all_s), d.target_deaths,
         d.straight, d.walk.map_or(String::new(), |v| format!("{v:.0}")), opt(d.route_s),
-        d.laps, d.formed_share.map_or(String::new(), |v| format!("{v:.3}")), d.joined, d.left_behind
+        d.laps, d.formed_share.map_or(String::new(), |v| format!("{v:.3}")), d.joined, d.left_behind, opt(d.taken_s), d.lost_before_shot
     )
 }
 

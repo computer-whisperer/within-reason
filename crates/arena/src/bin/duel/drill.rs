@@ -9,7 +9,12 @@
 //! runs over the orders as it does in a duel (`--lane`). **circuit** (design D12): a deployed army beside a lab walks
 //! a loop of points across the map `laps` times while the lab builds a feed list, each new unit adopted into the army
 //! as it appears (and so into the lane's group, a joiner; lane off, given the whole route as queued orders like
-//! everyone else); the loop `laps` times over is one route, one order.
+//! everyone else); the loop `laps` times over is one route, one order. **assault** (design D16): the walk into a
+//! defence that shoots back, `--theirs` a force of armed buildings stood in one rank across the approach on the goal
+//! (`DEFENCE_SPACING` apart), given once; the duel's judge decides (the defence wiped: `taken`; the army's mobile units
+//! wiped: `wiped`; the time limit) and the duel's own columns (value left, the fire instrument) measure the fight,
+//! beside the drill's (`taken_s`, `lost_before_shot`: units dead before their own first shot, the price of arriving
+//! in pieces).
 //!
 //! Measured once a second from the first order (the per-second log carries every position; `run/drill_table.py`
 //! reads it): each unit's first second within `ARRIVED` of its goal (the first, median and last arrival go to
@@ -56,6 +61,8 @@ pub const JOINED: f32 = 300.0;
 pub const TOP_UP_UNDER: f32 = 0.6;
 /// The body's centroid must move this far in a second for its displacement to be the heading (design D10).
 pub const HEADING_MOVED: f32 = 10.0;
+/// `assault` (D16): the defence's buildings stand this far apart in one rank across the approach, centred on the goal.
+pub const DEFENCE_SPACING: f32 = 128.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -66,6 +73,8 @@ pub enum Kind {
     Into,
     /// A deployed army round a loop of points while a lab feeds it (design D12).
     Circuit,
+    /// The walk into a defence that shoots back, judged as a duel (design D16).
+    Assault,
 }
 
 impl Kind {
@@ -76,6 +85,7 @@ impl Kind {
             "gather" => Some(Kind::Gather),
             "into" => Some(Kind::Into),
             "circuit" => Some(Kind::Circuit),
+            "assault" => Some(Kind::Assault),
             _ => None,
         }
     }
@@ -87,6 +97,7 @@ impl Kind {
             Kind::Gather => "gather",
             Kind::Into => "into",
             Kind::Circuit => "circuit",
+            Kind::Assault => "assault",
         }
     }
 }
@@ -152,6 +163,10 @@ pub struct Score {
     pub shot_ramp_half_s: Option<f32>,
     pub shot_ramp_all_s: Option<f32>,
     pub target_deaths: u32,
+    /// `assault` (D16): seconds from the first order to the defence's last building dying, and the army's units dead
+    /// before their own first shot.
+    pub taken_s: Option<f32>,
+    pub lost_before_shot: u32,
     /// Terrain (design D10): the crow's distance, the walk on foot, and the walk over the slowest type's speed.
     pub straight: f32,
     pub walk: Option<f32>,
@@ -273,6 +288,10 @@ pub struct Drill {
     pub target_given: Option<i32>,
     pub target_deaths: u32,
     pub first_shot: HashMap<usize, i32>,
+    /// `assault`: the frame the defence fell, and the army's units dead before their own first shot (the director
+    /// counts them at the end).
+    pub taken: Option<i32>,
+    pub lost_before_shot: u32,
     /// The crow's distance from the start to the goal, the walk on foot over standable ground (the terrain crate's
     /// field; `None` when the goal is not reachable), and the slowest type's speed: `route_s` is the walk over it.
     pub straight: f32,
@@ -330,6 +349,8 @@ impl Drill {
             target_given: None,
             target_deaths: 0,
             first_shot: HashMap::new(),
+            taken: None,
+            lost_before_shot: 0,
             straight: options.distance,
             walk: None,
             slowest: 0.0,
@@ -457,9 +478,9 @@ impl Drill {
         }
     }
 
-    /// Contact: the first unit at the goal in force, or for `into` the first shot.
+    /// Contact: the first unit at the goal in force, or for `into` and `assault` the first shot.
     pub fn contact(&self) -> bool {
-        if self.kind == Kind::Into { !self.first_shot.is_empty() } else { !self.arrived.is_empty() }
+        if matches!(self.kind, Kind::Into | Kind::Assault) { !self.first_shot.is_empty() } else { !self.arrived.is_empty() }
     }
 
     /// Once a second: speeds, arrivals, first shots (`shooters`: the spawn indices that fired this second), the
@@ -489,6 +510,14 @@ impl Drill {
         self.last = now;
         if self.kind == Kind::Circuit {
             self.sample_circuit(frame, walkers);
+        }
+        // The formed share under a group (D12, D16): every second of a circuit; for the other drills every second
+        // until contact, when the slots become the arc's and the group's books stop.
+        if let Some((formed, members, _)) = self.group
+            && members > 0
+            && (self.kind == Kind::Circuit || !self.contact())
+        {
+            self.formed_shares.push(formed as f32 / members as f32);
         }
         if self.shape_at_contact.is_none() && self.contact() {
             self.shape_at_contact = self.shape;
@@ -556,17 +585,13 @@ impl Drill {
                 self.joined.insert(w.index, frame);
             }
         }
-        if let Some((formed, members, _)) = self.group
-            && members > 0
-        {
-            self.formed_shares.push(formed as f32 / members as f32);
-        }
     }
 
     /// Whether the drill is over: every unit it waits for has arrived at the goal in force (after the turn, for a
     /// reverse; the whole list produced and arrived, for a gather), or for `into` every living mobile unit
     /// (`walking`, by spawn index) has fired; for a circuit every core unit has walked its laps and, under a group, the
-    /// group stands at the route's end with no exceptions.
+    /// group stands at the route's end with no exceptions. An assault is never done by the drill: the duel's judge
+    /// ends it (the defence or the army wiped, the time limit).
     pub fn done(&self, walking: &[usize]) -> bool {
         let expected = self.expected(walking.len());
         if expected == 0 || self.last_order.is_none() {
@@ -577,6 +602,7 @@ impl Drill {
             Kind::Gather => self.appeared.len() >= expected && self.arrived.len() >= expected,
             Kind::Walk => self.arrived.len() >= expected,
             Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
+            Kind::Assault => false,
             Kind::Circuit => {
                 let core: Vec<&usize> = self.core.iter().filter(|i| !self.left_behind.contains(i)).collect();
                 !core.is_empty() && core.iter().all(|i| self.arrived.contains_key(i)) && self.group.is_none_or(|(_, _, done)| done)
@@ -618,6 +644,8 @@ impl Drill {
             shot_ramp_half_s: shots.first().map(|f| (shots[shots.len() / 2] - f) as f32 / FPS as f32),
             shot_ramp_all_s: shots.first().zip(shots.last()).map(|(f, l)| (l - f) as f32 / FPS as f32),
             target_deaths: self.target_deaths,
+            taken_s: self.taken.map(seconds),
+            lost_before_shot: self.lost_before_shot,
             straight: self.straight,
             walk: self.walk,
             route_s: self.walk.filter(|_| self.slowest > 0.0).map(|w| w / self.slowest),
