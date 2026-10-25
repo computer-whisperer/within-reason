@@ -108,6 +108,49 @@ On top of change 1, the walks the hands make that the plan cannot buy back:
   The walking is real, and late in the game it is a symptom (change 2). Kept, level on the bench and deleting the
   Comet-fitted walk ramp (the user, 2026-10-25: "We can keep T-WALKS, but the original point stands of understanding the failure first").
 
+## What the promise instrument shows
+
+The user, 2026-10-25: "We can keep T-WALKS, but the original point stands of understanding the failure first." One
+bench with T-PROMISE (terr193-198, no decision changed): each plan's count of every unit type at 0, 1, 2 and 5
+minutes beside what stood, every plan's own count at its snapshot matching the game's to a unit or two.
+
+- **How much.** The work delivered over each plan's five minutes, weighted by build time, is 0.36-0.69 of what it
+  promised (0.49-0.66 in minutes 1-5, 0.41-0.69 in 5-11, 0.36-0.58 in 11-18); finished units alone a little less, so
+  the plan counting work on frames as it is paid is not the gap.
+- **Where.** The shortfall by type, in build time: before 5:00 the energy (solars 40-45 % of it on Comet, wind
+  generators 25-58 % on the windy maps), extractors and turrets; at 5:00-11:00 upgrades (21-47 %, Great Divide's 3 %
+  apart), advanced fusions on Comet (37-46 %), wind generators on Great Divide, Mithril and Quicksilver (50-71 %),
+  turrets (13-24 %); at 11:00-18:00 advanced fusions
+  (56-68 % on Comet and Glitters) and advanced converters (21-27 % on Comet), wind generators on the other windy maps
+  (44-91 %). Built past the plan: constructors (1.1-1.5 of it, Great Divide's 5.3) and, on Comet, extractors and
+  solars in the middle game; basic converters late on Comet from his start (1.45).
+- **Turrets: dispatch.** Asked, ordered, came over the four games of a start: before 5:00 7-18 / 0 / 0 on every
+  start; at 5:00-11:00 the hands order 13-29 % of the turrets asked, after 11:00 18-33 %; about nine in ten of those
+  ordered stand. Who takes what at 4:00-11:00: the constructors out past BESIDE (600 from home; a third to two-thirds
+  of the orders) take extractors, wind generators, upgrades and help, and 0-8 turrets, since T-CHAIN keeps them off
+  the turrets; the commander takes energy and guards, never a turret; the constructors at the base take the larger
+  columns first, since the flows go largest in power-seconds first (Comet from his start: 102 guards on the
+  advanced plant, 49 solars, 47 upgrades, 31 turrets). terr102's reading of the code, now from the game.
+- **Cheap farm buildings: out of the turrets' reach.** From 11:00, 92-100 % of the wind generators' frames, 39-100 %
+  of the basic converters' and 55-100 % of the solars' went down with no turret within reach; the advanced fusions,
+  advanced converters and fusions had 11-29 turrets in reach. T-FARM puts the cheap rest on the slots nearest home
+  outside the core, and the program lets turrets help any building up to `help` (40) times the placer's power with no
+  reach (`farm_big` off: the program-side fix, turrets on big buildings only, lost every mark in terr58). On the
+  windy maps the program's energy is a wind farm the turrets finish; the game builds every wind generator at a
+  constructor's power, and late the hands order 17-55 % of those asked on Great Divide, Mithril and Quicksilver.
+- **The farm's big buildings: short with the turrets.** In reach of 11-29 turrets, they come at 0.25-0.65 of the
+  promise as the turrets do; on Comet they carry most of the late shortfall.
+- **Upgrades and extractors: execution.** Ordered at about the rate asked; 0.6-0.85 of the orders stand within the
+  window (the walks, priced since T-WALKS).
+- **Quicksilver's floating turrets** (`nanotcplat`) are planned and never ordered: 0 of 657-1,632 units a window.
+
+So the plan's growth runs through a farm of construction turrets: turrets as build power, their help on every farm
+building. The hands build that farm late and in part: the turrets wait for every larger column, the far constructors
+and the commander never take them, and the cheap farm buildings stand where no turret reaches. The matching hands
+(step 4) ordered the turrets as the plan asked, and their late game on Comet from his start was the strongest
+measured (592-717 gained from 15:00 to 20:00 against the cascade's 533); their opening fell for another reason (an
+extractor order's cost committed whole when given).
+
 ## The instrument
 
 `run/territory_bench.py` prints per start and tag the promise kept (realized over planned income growth over the next

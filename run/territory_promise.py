@@ -11,7 +11,9 @@ promised over 2 and 5 minutes, and the share of it that came, counting the frame
 ("work") and counting finished units only ("stood"). A spot is counted as the plan counts it: a basic extractor
 whether or not its upgrade has replaced it, the upgrade apart; `spots under upgrade` is how many spots had their
 basic extractor gone to an upgrade's frame (the engine takes the basic down when the frame goes up, the plan keeps
-its income). `at the plan's start` compares each plan's own count at its snapshot with the game's then.
+its income). `at the plan's start` compares each plan's own count at its snapshot with the game's then. `the shortfall
+by type` splits the work promised over 5 minutes and not done (in build time) among the types, a type done past its plan
+negative.
 """
 import glob, json, os, re, statistics, sys
 from bisect import bisect_left
@@ -152,6 +154,13 @@ def main():
                 print(f"     {k:14} {p2:11.1f} {r(w2, p2)} {r(s2, p2)} | {p5:10.1f} {r(w5, p5)} {r(s5, p5)} | {g[0] / g[2]:6.1f} / {g[1] / g[2]:6.1f}")
             # The work over every type the plans grew, in build-power-seconds of build time.
             print(f"     all, by build time: +1 {total[1] / total[0]:.2f} work {total[2] / total[0]:.2f} stood | +2 {total[4] / total[3]:.2f} / {total[5] / total[3]:.2f} | +5 {total[7] / total[6]:.2f} / {total[8] / total[6]:.2f}")
+            # Where the work promised over 5 minutes and not done lies: each type's planned less done, in build time,
+            # as a share of the whole shortfall (a type done past its plan counts against it).
+            short = {k: (acc[(w, 300, k)][0] - acc[(w, 300, k)][1]) * times.get(k, 0) for k in kinds if acc[(w, 300, k)][0] > 0}
+            missing = total[6] - total[7]
+            if missing > 0:
+                parts = sorted(short.items(), key=lambda kv: -abs(kv[1]))[:6]
+                print("     the shortfall over 5 min by type: " + ", ".join(f"{k} {v / missing:+.2f}" for k, v in parts))
         print()
 
 
