@@ -639,6 +639,36 @@ mod tests {
         assert!(state.heading.1 > 0.9, "facing the station, south: {:?}", state.heading);
     }
 
+    /// A formation re-declared as a rove loses its group and state (no reader sees a formed hold while the members
+    /// roam), and declared as a formation again it starts afresh on the body: every member is ordered to a slot
+    /// about where it stands on the first tick (migration-2-1: a hold's anchor kept through a 27 s rove had the
+    /// advance after it walk alone 4,000 from the members).
+    #[test]
+    fn a_rove_drops_the_formation_and_a_formation_after_it_starts_on_the_body() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12];
+        let members: Vec<UnitId> = ids.iter().map(|id| UnitId(*id)).collect();
+        let body = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 64.0 * i as f32, 1000.0)).collect::<Vec<_>>();
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(1064.0, 1000.0)]), Footwork::raw(), Commitment::All);
+        for f in 1..=10 {
+            lane.tick(&host, &tick(30 * f, body(1000.0), Vec::new()), &mut Vec::new(), false);
+        }
+        assert!(lane.group_state("a").is_some_and(|s| s.arrived), "a hold formed: {:?}", lane.group_state("a"));
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw(), Commitment::All);
+        lane.tick(&host, &tick(330, body(1000.0), Vec::new()), &mut Vec::new(), false);
+        assert!(lane.group_state("a").is_none(), "a roving group has no formation state");
+        // The rovers roam 3,000 east; told to advance north from there, the slots are about them, not at the old hold.
+        lane.set_group("a", members, GroupOrder::new(GroupKind::FightTo, vec![at(4064.0, -3000.0)]), Footwork::raw(), Commitment::All);
+        let out = lane.tick(&host, &tick(360, body(4000.0), Vec::new()), &mut Vec::new(), false);
+        let to: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Fight { to, .. } => Some(*to), _ => None }).collect();
+        assert_eq!(to.len(), 3, "every member ordered: {:?}", out.commands);
+        assert!(to.iter().all(|p| p.dist2d(at(4064.0, 1000.0)) < 500.0), "the orders about the body (the lead ahead at most): {to:?}");
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.anchor.dist2d(at(4064.0, 1000.0)) < 200.0, "the anchor on the body: {:?}", state.anchor);
+        assert!(state.exceptions.is_empty(), "{:?}", state.exceptions);
+    }
+
     /// The group is the lane's whole: the host's per-unit orders to its members are dropped, and a unit outside the
     /// group keeps its order (player-22, 22:21: 110 stops for 55 units in one row, when the host's stop was doubled).
     #[test]

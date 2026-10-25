@@ -633,6 +633,14 @@ impl Lane {
                 if d.order != order {
                     self.hunts.remove(name);
                 }
+                // A hunt or a rove is no formation: its group and state are dropped, so a formation declared later
+                // starts afresh on the body and no reader sees a formed hold while the members roam (migration-2-1:
+                // a group that roved 27 s kept its hold's anchor and state, and the advance picked after planned
+                // from that anchor 4,000 from its members and walked it alone).
+                if matches!(order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
+                    d.group = None;
+                    d.state = None;
+                }
                 d.members = members;
                 d.order = order;
                 d.footwork = footwork;

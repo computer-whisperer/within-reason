@@ -207,3 +207,13 @@ the `formation` line says the rest; no reinforcements or stragglers line). Arriv
 `met` are measured from the anchor. Kept as decided. Tests: a declared group's newcomer is a member with no order of
 the hands'; `join_in` on a declared group waits as before and its release is a membership; the undeclared paths
 (an air group in the tests) keep theirs. The pianist game: the ledger row.
+
+**Found in the game's first minutes (migration-2-1) and fixed the same hour (the engine):** a group re-declared as
+a rove kept its hold's `Group` and state in the lane (the lane skips hunts and roves, so nothing updated them), the
+record and the picture read a formed, arrived hold for 27 s while the Rovers roamed 4,000 away, and the advance
+picked after planned from that anchor and walked it alone with every member "away". Now a hunt or a rove drops the
+formation and its state (`Lane::set_group`), and a new order for a body standing over `REJOIN_WAY` from the anchor
+sets the anchor down on the body (`Group::tick`). Open from the same minutes: after the hunt's end at 2:32 the hold
+declared about the hunters' centroid sent no member an order for the three seconds before the next pick (the two
+hunters had a Stop from the hands' hunt end and stood off their slots as "joining"); to look at with the lane's
+debug trace in the next game.

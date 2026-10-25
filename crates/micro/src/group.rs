@@ -727,6 +727,22 @@ impl Group {
     /// told apart. Returns each walker's slot. `spacing` is the lane's for this tick.
     pub fn tick(&mut self, frame: i32, walkers: &[Walker], spacing: f32, pacing: &Pacing) -> &HashMap<UnitId, Vec3> {
         if self.dirty {
+            // A new order for a body that stands far from the anchor (its members walked off under another host
+            // order, or came back from a hunt) starts from the body: the anchor is set down on its centroid facing
+            // the first point, and the slots dealt afresh there.
+            if let Some(centroid) = form::centroid(walkers.iter().filter(|w| !w.fleeing).map(|w| w.pos))
+                && self.anchor.dist2d(centroid) > REJOIN_WAY
+            {
+                let first = self.order.route.first().copied().unwrap_or(centroid);
+                if first.dist2d(centroid) > 1.0 {
+                    self.heading = form::heading(centroid, first);
+                }
+                self.anchor = self.anchor_for(centroid, self.heading, walkers.len());
+                self.slot_of.clear();
+                // The old slots say nothing about this body: no drag and no "away" from them this tick.
+                self.slots.clear();
+                self.away.clear();
+            }
             self.plan();
         }
         let march = self.order.march;
@@ -1464,11 +1480,43 @@ mod tests {
                 closed.slopes[z * 128 + x] = 255;
             }
         }
+        // A fresh body west of the wall (the first one walked on): the point across it has no way.
+        let mut w = two_ranks_of_six();
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x + 400.0, u.pos.z + 300.0);
+        }
         let mut cut = Group::new("b", members, GroupOrder::new(GroupKind::Go, vec![at(1600.0, 300.0)]), &positions, 64.0);
         cut.set_ground(Some(ground_of(&closed)));
         cut.tick(0, &w, 64.0, &pacing);
         assert_eq!(cut.state(&w).way, None, "no way on foot: {:?}", cut.way());
         assert_eq!(cut.state(&w).legs_left, 1, "the host's point stays ahead");
+    }
+
+    /// A new order for a body standing far from the anchor (migration-2-1: the members roamed 4,000 away under a rove
+    /// while the hold's group was kept) starts from the body: the anchor is set down on the members, not walked
+    /// alone from where it was.
+    #[test]
+    fn a_new_order_for_a_body_far_from_the_anchor_starts_from_the_body() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let centroid = form::centroid(positions.iter().copied()).unwrap();
+        let mut group = Group::new("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![centroid]), &positions, 64.0);
+        march(&mut group, &mut w, 150, 3, &pacing);
+        assert!(group.arrived);
+        // The members walk 3,000 east under some other order; the group is told to advance north from there.
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x + 3000.0, u.pos.z);
+        }
+        group.update(members, GroupOrder::new(GroupKind::FightTo, vec![at(3000.0, -4000.0)]));
+        group.tick(153, &w, 64.0, &pacing);
+        let body = form::centroid(w.iter().map(|u| u.pos)).unwrap();
+        assert!(group.anchor.dist2d(body) < 200.0, "the anchor set down on the body: {:?} against {body:?}", group.anchor);
+        let state = group.state(&w);
+        // The ranks re-laid across the new heading: a member or two a step out of band, nobody away or joining.
+        assert!(state.exceptions.len() <= 2 && state.exceptions.iter().all(|(_, c, _)| *c == Cause::Behind), "the body about its slots: {:?}", state.exceptions);
+        assert!(state.heading.1 < -0.9, "facing north: {:?}", state.heading);
     }
 
     /// D17: a member whose slot lies across the wall from it is cut off (its walk is many times the straight line) and
