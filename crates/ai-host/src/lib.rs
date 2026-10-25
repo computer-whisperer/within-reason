@@ -79,7 +79,8 @@ const RECONNECT_INTERVAL: i32 = 30;
 const HEARTBEAT_INTERVAL: i32 = 30 * 30;
 /// Frames between census lines (`WITHIN_REASON_OBSERVE`): what the opponent owns, for studying how it plays.
 const CENSUS_INTERVAL: i32 = 60 * 30;
-/// Frames between ground-truth samples of the opponent's units (`WITHIN_REASON_OBSERVE` with `WITHIN_REASON_TRUTH_DIR`).
+/// Frames between ground-truth samples of the opponent's units and of both sides' metal income (`WITHIN_REASON_OBSERVE`
+/// with `WITHIN_REASON_TRUTH_DIR`).
 const TRUTH_INTERVAL: i32 = 2 * 30;
 /// Frames between looks at the map's features (wrecks); a multiple of the brain's interval.
 const WRECKS_INTERVAL: i32 = 3 * 30;
@@ -126,7 +127,8 @@ impl<L: Transport> Instance<L> {
         if frame % TRUTH_INTERVAL == 0 && let Some(truth) = &mut self.truth {
             use std::io::Write;
             let units = self.engine.enemy_truth();
-            let _ = writeln!(truth, "{{\"f\":{frame},\"enemy\":{units}}}").and_then(|()| truth.flush());
+            let (ours, theirs) = self.engine.metal_incomes();
+            let _ = writeln!(truth, "{{\"f\":{frame},\"enemy\":{units},\"income\":[{ours:.2},{theirs:.2}]}}").and_then(|()| truth.flush());
         }
         if frame % CENSUS_INTERVAL == 0 && std::env::var_os("WITHIN_REASON_OBSERVE").is_some() {
             let census = self.engine.enemy_census();

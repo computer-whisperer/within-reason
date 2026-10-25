@@ -778,6 +778,24 @@ impl Engine {
         format!("[{}]", rows.join(","))
     }
 
+    /// Metal income a second of our ally team's teams and of every other team's, summed (cheat access for theirs,
+    /// as the truth's units): the comparison of the two sides' economies, which the bot never sees.
+    pub fn metal_incomes(&mut self) -> (f32, f32) {
+        let ally_team = call!(self, Game_getMyAllyTeam());
+        call!(self, Cheats_setEnabled(true));
+        let (mut ours, mut theirs) = (0.0, 0.0);
+        for team in 0..call!(self, Game_getTeams()) {
+            let income = call!(self, Game_getTeamResourceIncome(team, self.metal)).max(0.0);
+            if call!(self, Game_getTeamAllyTeam(team)) == ally_team {
+                ours += income;
+            } else {
+                theirs += income;
+            }
+        }
+        call!(self, Cheats_setEnabled(false));
+        (ours, theirs)
+    }
+
     /// Our own units in the census format, for setting beside the enemy's.
     pub fn own_census(&mut self) -> String {
         let max = self.id_buf.len() as c_int;
