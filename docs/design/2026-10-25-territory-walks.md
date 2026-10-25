@@ -4,6 +4,9 @@ The user, 2026-10-25, after the regions design's steps 2 and 4 were measured and
 problem and let's see if we can figure out what is going wrong." Then, on the three ways on offered below: "Let's
 try both -- go ahead".
 
+Measured the same day ("Measured" below): change 1 level with the bench and the promise unmoved, change 2 not kept.
+The walk prices were not the cause of the promise's failure, which stays open.
+
 ## What is going wrong
 
 Read from the standing build's bench (terr157-162) and the matching hands' (terr169-174), every start:
@@ -74,6 +77,35 @@ On top of change 1, the walks the hands make that the plan cannot buy back:
 - **No basic constructor on the upgrade frames.** The program's mobile help on the upgrades (`mobile_help`, 0.35)
   set to 0: the help that walked two seconds for every one it worked.
 - **Judged by** the bench against change 1 alone (terr181-186), the same measures.
+
+## Measured
+
+- **Change 1, first form** (terr175-180, the measure by speed): the promise kept did not rise (0.59-0.79, 0.50-0.67
+  and 0.24-0.58 in minutes 1-5, 5-11 and 11-18, against the standing 0.59-0.90, 0.54-0.77 and 0.27-0.56); the marks
+  inside the pool, but Quicksilver's 10:00 and 20:00 by one unit. The plan paid the measure (help on the upgrades 2.38
+  against 2.42 measured), but the measure read the extractor's walk about 40 % low: the plan paid about 41 s an
+  extractor where the game took 51-66 (30-46 s from the order to the frame, then the frame's 20 s). Not a fair test of
+  the change; the second form measures by the order's state.
+- **Change 2** (terr181-186, on the first form): not kept, held on branch `territory-walks-cut` (f426d08) and
+  reverted (39e3afa). The constructors' walking after 10:00 halved (0.16-0.35 of their time against 0.29-0.52) and
+  became standing, 29 % of the constructors idle from 11:00 on Comet from his start and 11 % on Quicksilver; income
+  did not rise, Comet from his start fell under the pool at 20:00 (929 against 946-1,137) and Quicksilver at 10:00
+  (83.9 against 89.9-102). The walks home carried constructors to work: late in the game the constructors are not
+  what holds income.
+- **Ruled out on the way, from the logs:** latency (the promise kept stays level or falls with the horizon, where
+  a pipeline's delay would make it rise: Comet from his start at 3:00-6:00, 0.97 over one minute, 0.86 over two, 0.71
+  over three, 0.65 over five); idle constructors under the cascade (none: every one holds an order); work off the
+  plan (81-100 % of the constructors' order time to 10:00 is on the program's flows; the count rule and the walk home
+  take 30-60 % after 15:00).
+- **Change 1, second form** (terr187-192, the measure by the order's state): the measure now tracks the game (an
+  extractor's walk at 5:00-10:00 read 1.04-1.87 seconds a second of work against the order-to-frame time's
+  1.19-2.22, Quicksilver apart at 4.02 against 1.92), and the plan paid 10-25 % under it (the prior, and the age of
+  the measure a plan was solved on): a turret at about a second of walk a second of work where the constant priced
+  0.05, a basic constructor's help on the upgrades at 1.3-2.1. The promise kept stayed where it was (0.58-0.81,
+  0.47-0.68 and 0.34-0.60); the marks inside the pool but Quicksilver's 10:00 (87.4 against 89.9-102, as in both
+  benches before). **Walk prices are not what makes the promise fail**; the diagnosis above was wrong on that point.
+  The walking is real, and late in the game it is a symptom (change 2). Whether the change stays, level on the bench
+  and deleting the Comet-fitted walk ramp, is the user's call.
 
 ## The instrument
 
