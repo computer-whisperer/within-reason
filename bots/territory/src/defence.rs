@@ -5,14 +5,14 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
-use bot_protocol::{BuildSite, Command, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, EnemyUnit, UnitId, Vec3};
 use buildorder::units::Role;
 
 use crate::hands::{Order, What};
 use crate::{Territory, MINUTE, SECOND};
 
 /// His armed mobile units this near a building of ours are a raid on it.
-const RAID_NEAR: f32 = 800.0;
+pub(crate) const RAID_NEAR: f32 = 800.0;
 /// The raid wanted against is the largest seen over this long.
 const RAID_MEMORY: i32 = 5 * MINUTE;
 /// His commander and a moving radar dot weigh this much (the distilled bot's D-WEIGHT); a dot moving slower than
@@ -21,10 +21,10 @@ const COMMANDER_WEIGHT: f32 = 1800.0;
 const DOT_WEIGHT: f32 = 110.0;
 const DOT_MOVING: f32 = 0.3;
 /// At most this much raid is covered by turrets: his push (3,000-4,000 at 10:00 on the bench, terr208-219) is the
-/// guard's, which is a later step.
+/// guard's (T-GUARD).
 const COVER_MOST: f32 = 1000.0;
 /// A turret weighs its metal times this (D-WEIGHT's, until combatsim measures one).
-const TURRET_WEIGHT: f32 = 3.0;
+pub(crate) const TURRET_WEIGHT: f32 = 3.0;
 /// A turret goes this far from the building it covers toward his start; a radar this far behind its building.
 const TURRET_FORWARD: f32 = 120.0;
 const RADAR_BACK: f32 = 150.0;
@@ -35,7 +35,7 @@ const RADAR_SHARED: f32 = 1000.0;
 /// A radar is a type of this much radar range or more.
 const RADAR_LEAST: f32 = 1000.0;
 /// No defence order before this (the opening's commander and constructors are the plan's).
-const DEFENCE_FROM: i32 = 3 * MINUTE;
+pub(crate) const DEFENCE_FROM: i32 = 3 * MINUTE;
 /// A site is not taken with an armed unit of his within this of it (a light laser turret's reach), nor within the
 /// dead radius of his start. The builders' dead ground (1,000 of any armed unit of his in sight) forbade every site
 /// while a raid was seen, which is when one is wanted: Great Divide, terr222 game 00, a raid seen from 3:30 and no
@@ -72,7 +72,7 @@ pub(crate) struct Defence {
     table: Option<combatsim::Units>,
 }
 
-fn toward(from: Vec3, to: Vec3, by: f32) -> Vec3 {
+pub(crate) fn toward(from: Vec3, to: Vec3, by: f32) -> Vec3 {
     let d = from.dist2d(to);
     if d < 1.0 {
         return from;
@@ -93,20 +93,7 @@ impl Territory {
         let buildings: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
         let mut metal = 0.0;
         for e in &self.enemies {
-            let weight = match e.def.and_then(|d| self.def(d).map(|info| (d, info))) {
-                Some((d, info)) if info.speed > 0.0 && info.weapon_count > 0 && info.reach > 0.0 => {
-                    if self.role_of_def(d) == Some(Role::Commander) {
-                        COMMANDER_WEIGHT
-                    } else if info.build_options.is_empty() {
-                        info.metal_cost
-                    } else {
-                        0.0
-                    }
-                }
-                Some(_) => 0.0,
-                None if e.vel.x.hypot(e.vel.z) >= DOT_MOVING => DOT_WEIGHT,
-                None => 0.0,
-            };
+            let weight = self.his_weight(e);
             if weight > 0.0 && buildings.iter().any(|b| b.dist2d(e.pos) <= RAID_NEAR) {
                 metal += weight;
             }
@@ -118,28 +105,50 @@ impl Territory {
         }
     }
 
+    /// What a unit of his weighs in a raid: an armed mobile unit its metal, his commander COMMANDER_WEIGHT, a radar dot
+    /// moving DOT_WEIGHT; a constructor, a building or a dot standing still nothing.
+    pub(crate) fn his_weight(&self, e: &EnemyUnit) -> f32 {
+        match e.def.and_then(|d| self.def(d).map(|info| (d, info))) {
+            Some((d, info)) if info.speed > 0.0 && info.weapon_count > 0 && info.reach > 0.0 => {
+                if self.role_of_def(d) == Some(Role::Commander) {
+                    COMMANDER_WEIGHT
+                } else if info.build_options.is_empty() {
+                    info.metal_cost
+                } else {
+                    0.0
+                }
+            }
+            Some(_) => 0.0,
+            None if e.vel.x.hypot(e.vel.z) >= DOT_MOVING => DOT_WEIGHT,
+            None => 0.0,
+        }
+    }
+
     /// The raid the turrets are wanted against: the largest seen over RAID_MEMORY, at most COVER_MOST.
     fn raid(&self) -> f32 {
         self.defence.raids.iter().map(|(_, m)| *m).fold(0.0, f32::max).min(COVER_MOST)
     }
 
-    /// The builder type's turret (the most ground fighting strength per metal, √(damage a second × health) / metal
-    /// in combatsim's table; a weapon for aircraft alone fights nothing on the ground) and its radar (the cheapest).
+    /// A type's ground fighting strength per metal, √(damage a second × health) / metal in combatsim's table (a
+    /// force's strength goes with its numbers squared, so a type's worth per metal is the root); none for a type the
+    /// table lacks or that cannot fight on the ground (a weapon for aircraft alone, one for water, a stockpile).
+    pub(crate) fn strength(&mut self, u: usize) -> Option<f32> {
+        let table = self.defence.table.get_or_insert_with(combatsim::Units::default);
+        let info = &self.hello.unit_defs[u];
+        let unit = table.list.get(table.index(&info.name)?)?;
+        let dps = unit.dps();
+        (!info.water_only && info.stockpile_seconds == 0.0 && unit.reach() > 0.0 && dps > 0.0).then(|| (dps * unit.health).sqrt() / info.metal_cost.max(1.0))
+    }
+
+    /// The builder type's turret (the most ground fighting strength per metal) and its radar (the cheapest).
     fn kit(&mut self, builder: usize) -> (Option<usize>, Option<usize>) {
         if let Some(kit) = self.defence.kit.get(&builder) {
             return *kit;
         }
-        let table = self.defence.table.get_or_insert_with(combatsim::Units::default);
         let game = self.game.clone().expect("started");
         let units = &game.units;
-        let strength = |u: usize| -> Option<f32> {
-            let info = &self.hello.unit_defs[u];
-            let unit = table.list.get(table.index(&info.name)?)?;
-            let dps = unit.dps();
-            (units.list[u].role == Role::Turret && !info.water_only && info.stockpile_seconds == 0.0 && unit.reach() > 0.0 && dps > 0.0).then(|| (dps * unit.health).sqrt() / info.metal_cost.max(1.0))
-        };
         let builds = &units.list[builder].builds;
-        let turret = builds.iter().copied().filter_map(|u| strength(u).map(|s| (u, s))).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(u, _)| u);
+        let turret = builds.iter().copied().filter(|u| units.list[*u].role == Role::Turret).filter_map(|u| self.strength(u).map(|s| (u, s))).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(u, _)| u);
         let radar = builds
             .iter()
             .copied()

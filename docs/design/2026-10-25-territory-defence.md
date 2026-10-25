@@ -109,8 +109,9 @@ Each step its bench rows and its register rows; what it replaces, deleted.
    likelier in the open regions than in the held ones, the model is wrong and nothing gets built on it. With no army
    the commander is the only response, so step 2 tests the threat side most (warning times, his group sizes, where
    he goes); the response side is tested again at step 3.
-3. **Radar and turrets, first form** (below, "Step 3: radar and turrets"). The mobile army (a guard that answers
-   raids and pushes, stations, the planner seeing it as a draw on metal and factory time) comes after it.
+3. **Radar and turrets, first form** (below, "Step 3: radar and turrets"), then **the guard, first form** (below,
+   "Step 3b: the guard"): soldiers to the size of his army shown, at the base, answering the raids they match.
+   Stations, the guard pushing, and the planner seeing it as a draw on metal and factory time come after it.
 4. **Region status from the race.** Ours, contested, his. Construction respects it: cheap work may go into contested
    regions, dear work only into held ones. This is step 5 of the regions design, with the race as its source.
 5. **Cover in the planner.** The loss term: the program trades soldiers and turrets against extractors itself.
@@ -121,9 +122,12 @@ The user, 2026-10-25, on the choice between a guard with radar and turrets alone
 alone as the simpler variant. For this part of the project, I think we can consider it a win if we end up with double
 the enemy metal income at some point past the opening."
 
-- **The win.** Our metal income twice his at some point from 5:00, each the mean over 30 s, read from the truth file
-  (its `income` field, both sides' income through the engine with cheat access; the bot never sees his). The reader
-  gives each game's best ratio from 5:00 and when, and the ratio at 5, 10, 15 and 20 minutes.
+- **The win.** Our metal income twice his at some point from 15:00, each the mean over 30 s, read from the truth file
+  (its `income` field, both sides' income through the engine with cheat access; the bot never sees his); a game lost
+  before 15:00 is not a win. The reader gives each game's best ratio from 15:00 and when, and the ratio at 5, 10, 15
+  and 20 minutes. Amended by the user, 2026-10-25: "Let's make the win line start at 15:00". It started at 5:00, and
+  the bot without defence met that in 20 of 24 games (terr226-231): BARb medium makes 10-17 metal a second at 5:00,
+  so our income passes twice his before his raids take our economy apart.
 - **His raid, S.** What the bot has seen: the largest metal of his armed mobile units in sight within 800 of a
   building of ours, over the last five minutes; his commander at 1,800 and a moving radar dot at 110 (the distilled
   bot's D-WEIGHT), at most 1,000 (a raid; the push of 3,000-4,000 at 10:00 is the guard's). Nothing seen, nothing
@@ -146,6 +150,47 @@ the enemy metal income at some point past the opening."
 - **The planner** does not see turrets (its palette has none, and their frames are not its columns): a constructor on
   a turret is one it counts free. The promise (T-PROMISE) says what that costs.
 - **Measured** on the defence bench, and on the economy bench against NullAI, where the radars alone are built.
+
+## Step 3b: the guard
+
+The user, 2026-10-25, after step 3's results: "Let's make the win line start at 15:00 and start adding mobile guard
+units." The games radar and turrets still lose are lost to his army, 3,000-4,000 metal at 10:00, which the turrets'
+cover (at most 1,000 a region) is not sized for. The first form is one guard at the base that answers the raids it
+can beat, sized to what he has shown.
+
+- **His army shown, A.** Every armed mobile ground unit of his seen in sight (a weapon, a reach, no build menu, a
+  movement class: no aircraft, which the guard cannot hit; not his commander) counts its metal for five minutes after
+  it was last seen, sight or radar, and not at all once seen destroyed. A radar dot never identified counts nothing.
+- **The guard wanted, G**: A, from 3:00 (DEFENCE_FROM, as the turrets). Against NullAI nothing is shown and nothing
+  is made.
+- **Its type.** Among the products of our standing factories, the mobile ground unit that builds nothing with the most
+  ground fighting strength per metal, √(damage a second × health) / metal from combatsim's table, the turrets' measure:
+  Armada's Blitz (2.33; the Stout 1.70, the Rover 1.96, the advanced plant's best 1.32), Cortex's Incisor (2.31). Only
+  the factories that make it make soldiers, so the advanced plant keeps to the plan's constructors. The Blitz is also
+  fast (101), which a guard answering raids across our ground wants.
+- **Production.** A factory that makes the type makes one before the plan's products while the guard's metal (its
+  soldiers standing, the frames at full cost, and the orders not yet begun) is under G, under the affordability and
+  energy tests every order passes. The planner does not see soldiers; the factory time and metal they take show in
+  the next plan's snapshot.
+- **The base point.** The guard stands 400 from home toward his start, moved on by 200 while it lies in a factory's
+  yard or exit lane.
+- **The answer.** His units near our buildings as T-COVER sees them (armed mobile units within 800 of a building of
+  ours, his commander at 1,800, a moving radar dot at 110), in groups of units within 400 of one another, aircraft
+  apart. The guard fights to the group with the most of our building metal within 800 of it, among the groups it
+  matches: the guard's metal, plus three times the metal of our turrets with the group's centre in their reach, at
+  least the group's weight. With a raid near and none matched, the guard stays at the base point, where the turrets
+  and the commander stand with it, and answers nothing for 20 s if it had been answering (a retreat). With no raid
+  for 20 s it goes back to the base point.
+- **Orders.** A fight order (the engine's attack-move) to the place, to every soldier, given again when the place moves
+  by 200 or a soldier stands idle 5 s away from it.
+- **The `guard:` line** every 30 s: A and how many units it holds, G, the guard's metal standing and making, the
+  soldiers made, and where the guard is and why.
+- **The arm** `guard=on|off`, on by default.
+- **Measured** on the defence bench against terr256-261 (radar and turrets alone) and on the economy bench against
+  NullAI, where nothing should change.
+- **Left out of the first form.** Stations away from the base (the race line's response columns now count the guard,
+  and say which regions it leaves late); the guard pushing; scouting, so A is what came to us; the planner pricing
+  the guard.
 
 ## What could go wrong
 
@@ -198,13 +243,13 @@ the defence sites' own clearance; terr244-249 with the race's edge on the ground
 the largest uncovered piece when his start is in sight and no radar where our radar already covers), against the same
 build with `defence=off` (terr226-231), which logs both sides' income too.
 
-| | lost of 24 | twice his income at 5:00 | 10:00 | 15:00 | 20:00 | best ratio from 5:00 at 2 or more |
-|---|---|---|---|---|---|---|
-| without defence (terr226-231) | 22 | 9 | 10 | 2 | 0 | 20 |
-| terr220-225 | 13 | 9 | 12 | 9 | 5 | 18 |
-| terr232-237 | 15 | 11 | 10 | 9 | 8 | 20 |
-| terr244-249 | 14 | 6 | 8 | 5 | 3 | 16 |
-| terr256-261 | 13 | 6 | 10 | 6 | 4 | 17 |
+| | lost of 24 | twice his income at 5:00 | 10:00 | 15:00 | 20:00 | best ratio from 5:00 at 2 or more | from 15:00 (the win line since) |
+|---|---|---|---|---|---|---|---|
+| without defence (terr226-231) | 22 | 9 | 10 | 2 | 0 | 20 | 2 |
+| terr220-225 | 13 | 9 | 12 | 9 | 5 | 18 | 9 |
+| terr232-237 | 15 | 11 | 10 | 9 | 8 | 20 | 10 |
+| terr244-249 | 14 | 6 | 8 | 5 | 3 | 16 | 7 |
+| terr256-261 | 13 | 6 | 10 | 6 | 4 | 17 | 8 |
 
 (The two earlier benches without defence, terr208-213 and 214-219, lost 18 and 22; their truth files have no income.)
 
@@ -223,3 +268,29 @@ build with `defence=off` (terr226-231), which logs both sides' income too.
 - *What it does not do.* The games still lost are lost to his army, 3,000-4,000 at 10:00, which the turrets' cover
   (at most 1,000 a region) is not sized for: the guard's step. Our income at 20:00 in the games that live, 40-500 and
   most 100-300, is a fifth to a half of the NullAI bench's.
+
+**Step 3b, the guard (terr268-279).** The first form over radar and turrets, against terr256-261 (radar and turrets
+alone) and terr226-231 (no defence):
+
+| | lost of 24 | the win line (twice his from 15:00) | twice his at 15:00 | 20:00 |
+|---|---|---|---|---|
+| without defence (terr226-231) | 22 | 2 | 2 | 0 |
+| radar and turrets (terr256-261) | 13 | 8 | 6 | 4 |
+| with the guard (terr268-273) | 4 | 20 | 15 | 18 |
+
+- *Every start gains.* The win line per start: Comet from his start 4 of 4 (2), Comet's boxes 4 (3), Great Divide 2
+  (0), Glitters 4 (2), Mithril 3 (0), Quicksilver 3 (1). Great Divide keeps two games to the cap for the first time
+  on this bench, one of them at 2 metal a second at 20:00; the four games lost end at 15.8-17.2 minutes.
+- *The losses move to the soldiers.* Lost to his weapons, the guard apart, 205-340 units a start (four games) against
+  263-559; the guard loses 95-199 soldiers a start.
+- *Our income at 20:00* in the games that live is 2-570, half of them 210-450, against his 22-112; the NullAI bench's
+  medians are 350-1,000 by start.
+- *Where the guard was*, at the 30-second lines: answering a raid in 54-90 of a start's lines, holding the last raid's
+  place 13-26, back at the base after a raid it no longer matched 10-25, at the base 5-15. It crosses the map for a
+  raid it matches whatever is at stake there ("raid 480 with 50 at stake", terr268 game 00 at 13:30).
+- *The army shown is not his army.* At 10:00 it is under what he has on the map in 17 of 24 games (240-2,591 against
+  930-3,910): the guard sees what comes to us. At 15:00 it is over in 12 and under in 11, once twice his army (terr268
+  game 01: 4,600-6,000 from 12:30 against 2,000-2,900 on the map), which a unit forgotten only when seen destroyed
+  allows; not looked into.
+- *Nothing changes where nobody attacks.* Against NullAI no soldier is made in 24 games and every start and mark is
+  inside the pooled range (terr274-279).

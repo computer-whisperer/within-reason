@@ -48,7 +48,7 @@ const PLANT_LEAD: f64 = 120.0;
 /// Nothing is placed within this of a factory's centre: a site tested against an open yard passes and the engine
 /// then drops the order (terr15-lp-nullai-comet-1: seven second labs and 48 construction turrets dropped against
 /// the first lab, its yard open round a constructor's frame).
-const FACTORY_YARD: f32 = 200.0;
+pub(crate) const FACTORY_YARD: f32 = 200.0;
 /// A factory's own product inside its yard, told to guard it, walks off first and is given the guard this much
 /// later: a newborn guarding its own factory from the pad blocks the next unit (terr28-lp-nullai-comet-1, game 01:
 /// the plant's two orders held two minutes each from 9:45 with 28-37 guards standing, the income flat at 190 for
@@ -352,7 +352,7 @@ impl Default for Hands {
 }
 
 /// A factory's exit lane (LANE_LENGTH, LANE_HALF).
-fn exit_lane(plant: &OwnUnit) -> Lane {
+pub(crate) fn exit_lane(plant: &OwnUnit) -> Lane {
     lane_at(plant.pos, plant.facing)
 }
 
@@ -575,6 +575,10 @@ impl Territory {
         let Some(unit) = self.unit_index(builder.def) else { return };
         let now = self.frame as f64 / SECOND as f64;
         let ahead = now + LEAD;
+        // T-GUARD: a factory that makes the guard's type makes one before the plan's products while the guard is short.
+        if role == Role::Factory && self.guard_order(id, unit, commands) {
+            return;
+        }
         // T-OPENING: the commander's first minute is the spots beside the start, while the energy stock covers half
         // an extractor's.
         if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && (self.energy.current as f64) >= self.game().units.list[extractor].energy_cost / 2.0 && self.free_spot(builder.pos, None, Some((self.home, self.options.opening_spots)), None).is_some() {
@@ -1280,7 +1284,7 @@ impl Territory {
 
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
     /// when the hands pass it over (not affordable, no site, the cap, a struck type).
-    fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, ring: Option<usize>, why: &'static str, commands: &mut Vec<Command>) -> bool {
+    pub(crate) fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, ring: Option<usize>, why: &'static str, commands: &mut Vec<Command>) -> bool {
         if !self.affordable(u) || self.hands.type_refused.get(&u).is_some_and(|until| self.frame < *until) {
             return false;
         }

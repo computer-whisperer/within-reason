@@ -8,6 +8,7 @@
 //! names a unit; the search picks from the roster.
 
 mod defence;
+mod guard;
 mod hands;
 mod his_start;
 mod options;
@@ -67,6 +68,8 @@ pub(crate) struct Territory {
     pub race: race::Race,
     /// The turrets and radars wanted (T-COVER, T-RADAR).
     pub defence: defence::Defence,
+    /// The soldiers' guard (T-GUARD).
+    pub guard: guard::Guard,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -441,6 +444,7 @@ impl Bot for Territory {
             regions: None,
             race: race::Race::default(),
             defence: defence::Defence::default(),
+            guard: guard::Guard::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -489,6 +493,7 @@ impl Bot for Territory {
                     }
                     self.unit_lost(*unit);
                 }
+                Event::EnemyDestroyed { enemy, .. } => self.army_lost(*enemy),
                 _ => {}
             }
         }
@@ -517,8 +522,10 @@ impl Bot for Territory {
             self.measure_walks();
             self.log_walks();
             self.observe_raids();
+            self.observe_army();
             self.plan_defence();
             self.run_hands(&mut commands);
+            self.run_guard(&mut commands);
             self.run_nanos(&mut commands);
             self.run_priorities(&mut commands);
         }
@@ -533,6 +540,9 @@ impl Bot for Territory {
         }
         if tick.due() % defence::DEFENCE_LOG == 0 && tick.frame > 0 {
             self.log_defence();
+        }
+        if tick.due() % guard::GUARD_LOG == 0 && tick.frame > 0 {
+            self.log_guard();
         }
         Commands(commands)
     }
