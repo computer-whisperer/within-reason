@@ -28,7 +28,7 @@ pub struct Intent {
     pub enemy_start: Vec3,
 }
 
-pub use micro::Milling;
+pub use micro::{GroupState, Milling};
 
 #[derive(Default)]
 pub struct Journal {
@@ -36,6 +36,9 @@ pub struct Journal {
     pub rules: BTreeMap<&'static str, u32>,
     /// The lane's milling counters since the last drain.
     pub milling: Milling,
+    /// The lane's declared groups' states this tick, by the lane's group name (the record's `groups` field; the
+    /// migration design, chunk 1). Hunts and rovers are the lane's by other means and have no state.
+    pub groups: Vec<(String, GroupState)>,
     pub notes: Vec<Note>,
     pub intent: Intent,
 }

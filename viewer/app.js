@@ -708,6 +708,7 @@ const WV = (() => {
     const byId = new Map(state.own.map((u) => [u.id, u]));
     if (view.layers.marks) drawMarks(ctx, px, pz);
     if (view.layers.hands) drawHands(ctx, byId, px, pz);
+    if (view.layers.hands) drawRanks(ctx, state, px, pz);
 
     if (view.layers.orders && view.zoom < DETAIL_ZOOM) {
       ctx.lineWidth = 1;
@@ -859,6 +860,41 @@ const WV = (() => {
         ctx.fillText(`${g.name}${members.length > 1 ? ` (${members.length})` : ""} ${kind === "hold" ? "" : kind}`, x + 8, y + 9);
       }
     }
+    ctx.font = "11px system-ui";
+  }
+
+  /// The lane's declared groups (the sample's `groups`, docs/harness/record-format.md): the anchor as a diamond with
+  /// its heading, the heading's line as long as the pace's share of the full pace, and a line of the state: files,
+  /// formed of members, the exceptions by cause, the pace share, the points left and the way left (or "no way").
+  function drawRanks(ctx, state, px, pz) {
+    const match = view.match;
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    state.samples.forEach((sample, i) => {
+      if (!sample || !sample.groups || !inScope(i)) return;
+      const color = match.seats.length > 1 ? seatColor(i) : COLOR.jev;
+      for (const [name, g] of Object.entries(sample.groups)) {
+        const [x, y] = [px(g.anchor[0]), pz(g.anchor[1])];
+        const share = g.full_pace > 0 ? g.pace / g.full_pace : 0;
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y); ctx.closePath();
+        if (g.arrived) ctx.fill(); else ctx.stroke();
+        if (share > 0) {
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + g.heading[0] * 30 * share, y + g.heading[1] * 30 * share); ctx.stroke();
+        }
+        const causes = new Map();
+        for (const [, cause] of g.exceptions || []) causes.set(cause, (causes.get(cause) || 0) + 1);
+        const members = (g.formed || []).length + (g.exceptions || []).length;
+        const out = [...causes].map(([c, n]) => `${n} ${c}`).join(", ");
+        const way = g.way == null ? "no way" : `${Math.round(g.way)} to go`;
+        const state = g.engaged != null ? "engaged" : g.arrived ? "arrived" : g.pace > 0 ? `${Math.round(share * 100)}% pace` : "held";
+        ctx.fillText(`${name.replace(/^group_/, "")}: ${g.files} files, ${(g.formed || []).length}/${members} formed${out ? `, ${out}` : ""}; ${state}${g.legs_left > 1 ? `, ${g.legs_left} points` : ""}, ${way}`, x + 9, y - 10);
+      }
+    });
     ctx.font = "11px system-ui";
   }
 

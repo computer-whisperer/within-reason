@@ -142,6 +142,11 @@ pub struct GroupState {
     pub files: usize,
     /// The room about the anchor's cell on the group's ground, in elmos; `None` without a ground.
     pub room: Option<f32>,
+    /// The way left to the route's end, in elmos: from the anchor along the planned way (the host's points as given
+    /// without a ground). `None` when a leg of the route has no way on the group's ground (its point is off every
+    /// member's ground, or nothing joins the ground to it): the anchor walks straight at that point and the engine
+    /// does with each member what it can, and the hands can say "no way on foot" (the migration design §3.7).
+    pub way: Option<f32>,
 }
 
 /// The loop's numbers, each with a drill on the bench that sets it (design §2).
@@ -238,6 +243,8 @@ pub struct Group {
     way_from: Vec3,
     /// The route's end the way was planned to (an Attack's end moving `REPLAN_MOVED` plans again).
     planned_end: Option<Vec3>,
+    /// A leg of the last plan had no way on the ground (`Ground::way_found`), so its point is walked at straight.
+    no_way: bool,
     /// The way is to be planned again before the next step.
     dirty: bool,
     /// The way point the anchor walks to next; `way.len()` at the end.
@@ -292,6 +299,7 @@ impl Group {
             way,
             way_from: centroid,
             planned_end: order.route.last().copied(),
+            no_way: false,
             dirty: true,
             order,
             anchor: centroid,
@@ -370,6 +378,7 @@ impl Group {
         self.way_from = self.anchor;
         self.way.clear();
         self.way_host.clear();
+        self.no_way = false;
         match &self.ground {
             Some(ground) if self.order.march => {
                 let mut from = self.anchor;
@@ -378,7 +387,10 @@ impl Group {
                     // The route's end is where the body stands (D18: off a structure, with its room); the points
                     // between are passed through.
                     let point = if i == last { ground.stand(point).unwrap_or(point) } else { point };
-                    let leg = ground.way(from, point);
+                    let leg = ground.way_found(from, point).unwrap_or_else(|| {
+                        self.no_way = true;
+                        vec![point]
+                    });
                     let n = leg.len();
                     for (i, q) in leg.into_iter().enumerate() {
                         self.way.push(q);
@@ -397,13 +409,14 @@ impl Group {
         self.dirty = false;
         if debug_on() {
             eprintln!(
-                "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{} in {:.1} ms",
+                "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{}{} in {:.1} ms",
                 self.name,
                 self.anchor.x,
                 self.anchor.z,
                 self.order.route.len(),
                 self.way.len(),
                 if self.ground.is_some() { "" } else { " (no ground)" },
+                if self.no_way { " (a leg with no way: walked straight)" } else { "" },
                 started.elapsed().as_secs_f64() * 1000.0
             );
         }
@@ -419,6 +432,18 @@ impl Group {
     /// The way as a polyline: from where it was planned through its points.
     fn polyline(&self) -> Vec<Vec3> {
         std::iter::once(self.way_from).chain(self.way.iter().copied()).collect()
+    }
+
+    /// The way left from the anchor to the route's end along the planned way, in elmos (0 at the end).
+    fn way_ahead(&self) -> f32 {
+        let ahead = &self.way[self.leg.min(self.way.len())..];
+        let mut length = 0.0;
+        let mut from = self.anchor;
+        for &point in ahead {
+            length += from.dist2d(point);
+            from = point;
+        }
+        length
     }
 
     /// The members in the body: not fleeing, not away, not cut off, and in a slot once.
@@ -896,6 +921,7 @@ impl Group {
             engaged: self.engaged,
             files: self.files,
             room: self.room,
+            way: if self.no_way { None } else { Some(self.way_ahead()) },
         }
     }
 }
@@ -1242,6 +1268,40 @@ mod tests {
         march(&mut group, &mut w, 900, 3, &pacing);
         assert!(group.anchor.x > 1024.0 || group.anchor.z > 768.0, "past or under the wall after thirty seconds: {:?}", group.anchor);
         assert!(ground.passable_at(group.snap(group.anchor)), "the anchor stands on the ground: {:?}", group.anchor);
+    }
+
+    /// The state's `way`: the length left along the planned way, shrinking as the anchor walks; `None` when the
+    /// route's point lies across a wall the ground does not go round (the hands' "no way on foot").
+    #[test]
+    fn the_state_says_the_way_left_and_when_there_is_none() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x + 400.0, u.pos.z + 300.0);
+        }
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let mut group = Group::new("a", members.clone(), GroupOrder::new(GroupKind::Go, vec![at(1600.0, 300.0)]), &positions, 64.0);
+        group.set_ground(Some(ground_of(&walled())));
+        group.tick(0, &w, 64.0, &pacing);
+        let before = group.state(&w).way.expect("the way round the wall is found");
+        let straight = group.anchor.dist2d(at(1600.0, 300.0));
+        assert!(before > straight, "round the wall is longer than the crow line: {before} against {straight}");
+        march(&mut group, &mut w, 300, 3, &pacing);
+        let after = group.state(&w).way.expect("still found");
+        assert!(after < before - 200.0, "the way left shrinks as the anchor walks: {before} then {after}");
+        // The wall closed: the point across it has no way, and the state says so.
+        let mut closed = walled();
+        for z in 0..64 {
+            for x in 60..64 {
+                closed.slopes[z * 128 + x] = 255;
+            }
+        }
+        let mut cut = Group::new("b", members, GroupOrder::new(GroupKind::Go, vec![at(1600.0, 300.0)]), &positions, 64.0);
+        cut.set_ground(Some(ground_of(&closed)));
+        cut.tick(0, &w, 64.0, &pacing);
+        assert_eq!(cut.state(&w).way, None, "no way on foot: {:?}", cut.way());
+        assert_eq!(cut.state(&w).legs_left, 1, "the host's point stays ahead");
     }
 
     /// D17: a member whose slot lies across the wall from it is cut off (its walk is many times the straight line) and

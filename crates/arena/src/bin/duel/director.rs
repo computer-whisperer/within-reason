@@ -1995,7 +1995,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
             "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
             "arrived": state.arrived, "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0),
-            "files": state.files, "room": state.room.map(f32::round),
+            "files": state.files, "room": state.room.map(f32::round), "way": state.way.map(f32::round),
         });
     }
     duel.log.push(line.to_string());

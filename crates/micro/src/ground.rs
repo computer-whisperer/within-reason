@@ -205,14 +205,21 @@ impl Ground {
     }
 
     /// The way from `from` to `to` over the priced ground: the points after `from`, `to` (snapped) last, bending only
-    /// where the ground bends it. `[to]` alone when `to` is on no ground the body stands on, or cannot be walked to
-    /// from `from`: the straight line, and the engine does with each member what it can.
+    /// where the ground bends it. `[to]` alone when the ground gives none (`way_found`): the straight line, and the
+    /// engine does with each member what it can.
     pub fn way(&self, from: Vec3, to: Vec3) -> Vec<Vec3> {
-        let Some(goal) = self.snap(to) else { return vec![to] };
-        let Some(field) = Field::over_until(self.cell, self.width, self.height, &self.costs, &[goal], Some(from)) else { return vec![to] };
+        self.way_found(from, to).unwrap_or_else(|| vec![to])
+    }
+
+    /// `way`, or `None` when the ground gives none: `to` is on no ground the body stands on, or no walk over the ground
+    /// joins `from` to it (a cliff, a lake, the sea). The group's state says so (`GroupState::way`), so the hands can
+    /// say "no way on foot" instead of walking the body at it.
+    pub fn way_found(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
+        let goal = self.snap(to)?;
+        let field = Field::over_until(self.cell, self.width, self.height, &self.costs, &[goal], Some(from))?;
         let cells = field.route(from);
         if cells.is_empty() {
-            return vec![to];
+            return None;
         }
         let mut points = vec![from];
         points.extend(cells.into_iter().map(|p| Vec3 { y: to.y, ..p }).filter(|p| p.dist2d(goal) >= 1.0));
@@ -238,7 +245,7 @@ impl Ground {
             way.push(points[j]);
             i = j;
         }
-        way
+        Some(way)
     }
 
     /// Whether the body walks from `a` to `b` in a straight line with `needed` of room all the way (a sample a cell).
@@ -444,6 +451,8 @@ mod tests {
         let grid = classes.passable(&terrain, tank());
         let g = Ground::new(&terrain, &[grid], 96.0).unwrap();
         assert_eq!(g.way(at(200.0, 300.0), at(800.0, 300.0)), vec![at(800.0, 300.0)]);
+        assert!(g.way_found(at(200.0, 300.0), at(800.0, 300.0)).is_none(), "the ground says it has none");
+        assert!(g.way_found(at(200.0, 300.0), at(400.0, 300.0)).is_some(), "and a goal this side of the wall has one");
         assert!(!g.walk_within(at(200.0, 300.0), at(800.0, 300.0), 5000.0));
     }
 

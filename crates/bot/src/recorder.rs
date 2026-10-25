@@ -12,7 +12,7 @@ use std::path::Path;
 use bot_protocol::{Command, Event, Hello, Resource, Tick, UnitDefId, UnitId, Vec3};
 use serde_json::{Value, json};
 
-use crate::brain::journal::{Intent, Journal, Milling};
+use crate::brain::journal::{GroupState, Intent, Journal, Milling};
 
 pub const FORMAT_VERSION: u32 = 1;
 /// A state sample once a game second: the viewer interpolates between samples, and a 40-minute game stays
@@ -45,6 +45,8 @@ pub struct Recorder {
     rules: BTreeMap<&'static str, u32>,
     /// The control lane's milling counters since the last sample.
     milling: Milling,
+    /// The lane's declared groups as of the last tick (the sample's `groups`).
+    groups: Vec<(String, GroupState)>,
     damage: BTreeMap<UnitId, f32>,
     /// The weapon of each unit's last hit, for a `destroyed` row with no attacker named (a warhead, an explosion).
     /// Since the last sample, the fire instrument (`record-format.md`, the `s` line): damage each unit of ours dealt
@@ -99,6 +101,7 @@ impl Recorder {
                 next_sample: 0,
                 rules: BTreeMap::new(),
                 milling: Milling::default(),
+                groups: Vec::new(),
                 damage: BTreeMap::new(),
                 dealt: BTreeMap::new(),
                 shots: BTreeMap::new(),
@@ -167,6 +170,7 @@ impl Recorder {
             *self.rules.entry(rule).or_default() += n;
         }
         self.milling += journal.milling;
+        self.groups = journal.groups;
         for note in journal.notes {
             self.line(&json!({ "t": "d", "f": note.frame, "source": note.source, "kind": note.kind, "inputs": note.inputs, "outputs": note.outputs }));
         }
@@ -425,6 +429,10 @@ impl Recorder {
         if milling.claims > 0 {
             let _ = write!(self.buffer, ",\"lane\":[{},{:.0},{:.0},{}]", milling.claims, milling.path, milling.net, milling.reversals);
         }
+        if !self.groups.is_empty() {
+            let groups: serde_json::Map<String, Value> = self.groups.iter().map(|(name, state)| (name.clone(), group_json(state))).collect();
+            let _ = write!(self.buffer, ",\"groups\":{}", Value::Object(groups));
+        }
         self.buffer.push_str("}\n");
         if !self.rules.is_empty() {
             let rules = std::mem::take(&mut self.rules);
@@ -569,6 +577,61 @@ fn class(d: &bot_protocol::UnitDefInfo) -> &'static str {
     }
 }
 
+
+/// The lane's group this second, as the drill's per-second log has it (`docs/harness/duels.md`) but by unit id: the
+/// anchor, its heading, pace and full pace, who is formed, who is out of slot and why with the seconds to its slot
+/// at its own speed, whether it has arrived, the host's points left, the contact target, the files, the room about
+/// the anchor and the way left (null: no way on foot to the route's point).
+fn group_json(s: &GroupState) -> Value {
+    let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
+    let hundredth = |v: f32| (f64::from(v) * 100.0).round() / 100.0;
+    json!({
+        "anchor": [s.anchor.x.round(), s.anchor.z.round()], "heading": [hundredth(s.heading.0), hundredth(s.heading.1)],
+        "pace": s.pace.round(), "full_pace": s.full_pace.round(),
+        "formed": s.formed.iter().map(|u| u.0).collect::<Vec<_>>(),
+        "exceptions": s.exceptions.iter().map(|(u, cause, seconds)| json!([u.0, format!("{cause:?}").to_lowercase(), tenth(*seconds)])).collect::<Vec<_>>(),
+        "arrived": s.arrived, "legs_left": s.legs_left, "engaged": s.engaged.map(|u| u.0),
+        "files": s.files, "room": s.room.map(f32::round), "way": s.way.map(f32::round),
+    })
+}
+
+#[cfg(test)]
+mod group_tests {
+    use bot_protocol::{UnitId, Vec3};
+    use micro::{Cause, GroupState};
+
+    /// The sample's group object has the drill's keys, by unit id, with the way's length or null.
+    #[test]
+    fn the_group_line_has_the_drills_keys_by_unit_id() {
+        let state = GroupState {
+            anchor: Vec3 { x: 1200.4, y: 0.0, z: 800.6 },
+            heading: (0.7071, -0.7071),
+            pace: 86.6,
+            full_pace: 87.0,
+            formed: vec![UnitId(11), UnitId(12)],
+            exceptions: vec![(UnitId(13), Cause::Behind, 2.34), (UnitId(14), Cause::CutOff, 0.0)],
+            arrived: false,
+            legs_left: 2,
+            engaged: None,
+            files: 4,
+            room: Some(150.2),
+            way: None,
+        };
+        let line = super::group_json(&state);
+        assert_eq!(line["anchor"], serde_json::json!([1200.0, 801.0]));
+        assert_eq!(line["heading"], serde_json::json!([0.71, -0.71]));
+        assert_eq!(line["pace"], 87.0);
+        assert_eq!(line["formed"], serde_json::json!([11, 12]));
+        assert_eq!(line["exceptions"], serde_json::json!([[13, "behind", 2.3], [14, "cutoff", 0.0]]));
+        assert_eq!(line["legs_left"], 2);
+        assert!(line["engaged"].is_null());
+        assert_eq!(line["files"], 4);
+        assert_eq!(line["room"], 150.0);
+        assert!(line["way"].is_null(), "no way on foot is null");
+        let found = GroupState { way: Some(1234.6), ..state };
+        assert_eq!(super::group_json(&found)["way"], 1235.0);
+    }
+}
 
 #[cfg(test)]
 mod sense_tests {

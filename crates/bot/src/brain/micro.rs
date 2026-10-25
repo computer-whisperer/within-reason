@@ -130,6 +130,7 @@ impl Brain {
             self.fire(rule);
         }
         self.journal.milling += output.milling;
+        self.journal.groups = self.lane.group_names().into_iter().filter_map(|name| self.lane.group_state(&name).cloned().map(|state| (name, state))).collect();
         commands.extend(output.commands);
         // The hunts' word from the engine: a hunt ended (`groups.rs` `hunt_event`).
         if !output.hunts.is_empty()

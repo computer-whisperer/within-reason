@@ -1,4 +1,4 @@
-# The hands' migration to the group engine: a proposal (2026-10-25, draft 1, for the user's ruling)
+# The hands' migration to the group engine (2026-10-25; draft 1 ruled on the same day, in build)
 
 The micro engine's group (`docs/design/2026-10-24-formation-drills.md` §2, D14-D19; `crates/micro/src/group.rs`) is
 drilled and measured. The flagship's hands declare only two kinds of group to it (Hunt and Rove, D15); every other
@@ -98,7 +98,22 @@ and the register line:
 Jev's packet: the same facts, as today's body words are given, so the attack / retreat / shell calculus the user
 named reads one number set per group (formed share, pace share, exceptions) instead of a front, a tail and a fifth.
 
-## 5. Open for the user
+## 5. Rulings (the user, 2026-10-25, on draft 1: "Your leans are reasonable, so let's begin implementation")
+
+1. **Shell: (b).** Two groups the hands declare from one pianist group by reach; the player's group stays one in the
+   menu. Chose-because: no engine surface, the split is the hands' own data. Rejected-because: (a) loses the tiering
+   the standoff is for; (c) is the shape word D15 deferred, surface for one task.
+2. **Follow: the re-declared Go.** Chose-because: the hands already compute the beside-point, and the lane's re-plan
+   at 128 with its silent take of a route the same within 48 makes a creeping point cheap. Rejected-because: a
+   `Follow(UnitId)` kind is more surface for one task; reopen if the creeping point shows in the words as re-plans.
+3. **The words as §4**, with two departures made in the build: no held duration (the state carries none; the
+   exceptions' seconds are the time dimension), and the contact words name the target unit (the party is already the
+   entry's `doing` line).
+4. **The player's `lane` tool gains no `files` word in these chunks.**
+5. **Gather dies** in chunk 2 (§3's item 3; the §2 ruling of the drills design).
+6. **Measurement:** the first live measure is a pianist game against BARb hard_aggressive on Comet Catcher.
+
+The questions as they were asked, kept for the record:
 
 1. **Shell.** The standoff's two tiers (long reach at the standoff, the rest between) have no group word. Options:
    (a) a Go to the standoff for the whole group and let the contact arc place by reach when fired on (loses the
@@ -118,7 +133,7 @@ named reads one number set per group (formed share, pace share, exceptions) inst
    per-second `group` object: anchor, heading, pace, full_pace, files, room, formed, exceptions by cause, legs_left,
    arrived, engaged) written by `recorder.rs` for every declared group, and `run/view_match.py` reading it; the
    picture's words in §4 for Hunt and Rove groups (the two declared today) as the first live reading.
-2. **Hold, Go, FightTo:** chunk 3's deletions (1, 3, 4, 5, 6 for these tasks) then the mapping; one pianist game.
+2. **Hold, Go, FightTo:** §3's deletions (1, 3, 4, 5, 6 for these tasks) then the mapping; one pianist game.
 3. **Attack and FightTo-at-a-party** (Engage): the retarget path live; one pianist game with raids.
 4. **Follow**, by the ruling in §5.2.
 5. **Shell**, by the ruling in §5.1.
@@ -126,3 +141,20 @@ named reads one number set per group (formed share, pace share, exceptions) inst
 
 Each chunk: delete, wire, one pianist game on the arena target reviewed with `bar-review`, the ledger row, and the
 heuristics rows for H-HANDS-GROUP-BODY, H-HANDS-STRAGGLERS, H-HANDS-STALL, H-HANDS-JOINERS retired or amended.
+
+### Chunk 1, built 2026-10-25
+
+- `GroupState::way` (`crates/micro/src/group.rs`): the elmos left along the planned way from the anchor, `None` when
+  a leg of the route has no way on the group's ground (`Ground::way_found`, which `way` wraps; the leg is then walked
+  straight at its point as before). The duel's per-second `group` carries it too.
+- The record: the brain's journal carries the lane's group states each tick (`Journal::groups`), the recorder writes
+  them in every sample as `groups` keyed by the lane's group name with the drill's object by unit id
+  (`docs/harness/record-format.md`); the viewer draws them under the `hands` layer (the anchor, its heading at the
+  pace's share, a line of the state) from `viewer/app.js` `drawRanks`.
+- The words: `picture.rs` `formation_words` builds §4's sentences from a state, and the picture adds them as the
+  group entry's `formation` for every group whose lane state exists.
+- **A correction to the proposal:** the first live reading was to be Hunt and Rove groups, the two kinds declared
+  today. The lane's `group_orders` skips both (`lib.rs`: a hunt and a rove are the lane's by other means and form no
+  ranks), so they have no state, no record line and no words: nothing of chunk 1 is live until chunk 2 attaches a
+  kind. The words and the record line are tested on synthetic states (`picture.rs`, `recorder.rs`); the engine's
+  `way` on the walled map (`group.rs`) and in a drill run (the ledger).
