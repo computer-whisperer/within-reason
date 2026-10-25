@@ -563,6 +563,11 @@ pub enum Event {
     UnitGiven { unit: UnitId, from_team: i32, to_team: i32 },
     /// A unit of ours went to another team.
     UnitTaken { unit: UnitId, from_team: i32, to_team: i32 },
+    /// Metal and energy our allies' overflow put into our stock over the engine's last second (`Economy_getReceived`).
+    /// The engine's income leaves them out: the overflow goes straight to the stock (`CTeam::SlowUpdate`), so a bot
+    /// reading the income alone sees an ally's gift only as a rising stock. Sent once a second while either is above
+    /// zero.
+    Received { metal: f32, energy: f32 },
 }
 
 /// The bot's reply to a tick; also the credit that lets the shim send the next one.

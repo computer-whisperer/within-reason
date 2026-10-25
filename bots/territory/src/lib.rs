@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{AllyUnit, Bot, Command, Commands, Controller, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
 use buildorder::lp::LpOptions;
@@ -47,7 +47,13 @@ pub(crate) struct Territory {
     ground: Option<Arc<dyn Ground>>,
     pub(crate) planner: Option<planner::Planner>,
     pub home: Vec3,
+    /// His start nearest ours, which every direction toward him is taken to (T-SCENARIO); every enemy seat's start,
+    /// which the dead ground is drawn round (T-ALLIES).
     pub enemy_home: Vec3,
+    pub enemy_starts: Vec<Vec3>,
+    /// Our allies' units this tick, and each allied seat's start (T-ALLIES).
+    pub allies: Vec<AllyUnit>,
+    pub ally_starts: Vec<(i32, Vec3)>,
     pub frame: i32,
     pub own: BTreeMap<UnitId, OwnUnit>,
     /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
@@ -108,11 +114,24 @@ impl Territory {
     fn start(&mut self, tick: &Tick) {
         let Some(commander) = tick.snapshot.own_units.iter().find(|u| self.def(u.def).is_some_and(|d| !d.build_options.is_empty() && d.speed > 0.0)).cloned() else { return };
         self.home = commander.pos;
-        // His start (T-SCENARIO): the script's, else the game's own guess in his box, else the mirror. His box's
-        // centre, taken before, was 100-2,437 from where he stood on five maps (terr103-107), and with the starts
-        // pinned the script's own position went unread: every one of terr102's 45 deaths to his weapons came within
-        // 300 of his start, 2,320-3,160 from the point the dead radius was drawn round (his box's centre or the mirror).
-        let (enemy_home, source) = his_start::his_start(&self.hello, self.home);
+        // Our allies' starts (T-ALLIES): the script's, else where each allied seat's commander stands at the first tick.
+        let commander_of = |team: i32| self.allies.iter().find(|u| u.team == team && self.def(u.def).is_some_and(|d| !d.build_options.is_empty() && d.speed > 0.0 && d.name.ends_with("com"))).map(|u| u.pos);
+        self.ally_starts = self
+            .hello
+            .teams
+            .iter()
+            .filter(|t| t.ally_team == self.hello.ally_team && t.team != self.hello.team && t.controller != Controller::Gaia)
+            .filter_map(|t| t.start_pos.or_else(|| commander_of(t.team)).map(|at| (t.team, at)))
+            .collect();
+        // His starts (T-SCENARIO): the script's, else the game's own guess in his box, else the mirror; every enemy
+        // seat's (T-ALLIES). His box's centre, taken before, was 100-2,437 from where he stood on five maps
+        // (terr103-107), and with the starts pinned the script's own position went unread: every one of terr102's 45
+        // deaths to his weapons came within 300 of his start, 2,320-3,160 from the point the dead radius was drawn
+        // round (his box's centre or the mirror).
+        let placed: Vec<Vec3> = std::iter::once(self.home).chain(self.ally_starts.iter().map(|(_, at)| *at)).collect();
+        let starts = his_start::his_starts(&self.hello, self.home, &placed);
+        self.enemy_starts = starts.iter().map(|(at, _)| *at).collect();
+        let (enemy_home, source) = starts.iter().copied().min_by(|a, b| a.0.dist2d(self.home).total_cmp(&b.0.dist2d(self.home))).expect("one at least");
         self.enemy_home = enemy_home;
         let Some(game) = Game::from_hello(&self.hello, commander.def, (self.home.x as f64, self.home.z as f64)) else {
             self.log(format_args!("the commander's type {} is not in the unit table: nothing will be built", commander.def.0));
@@ -170,8 +189,11 @@ impl Territory {
         let warmed = began.elapsed();
         self.log(format_args!("ground: {} places walked in {} ms", places.len(), warmed.as_millis()));
         self.log(format_args!(
-            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
-            self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z, self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
+            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); every enemy start {}; allied starts {}; {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
+            self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z,
+            starts.iter().map(|(at, why)| format!("({:.0}, {:.0}) {why}", at.x, at.z)).collect::<Vec<_>>().join(", "),
+            if self.ally_starts.is_empty() { "none".to_string() } else { self.ally_starts.iter().map(|(team, at)| format!("team {team} ({:.0}, {:.0})", at.x, at.z)).collect::<Vec<_>>().join(", ") },
+            self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
         ));
         if self.options.dump {
             self.dump(commander.def);
@@ -432,6 +454,9 @@ impl Bot for Territory {
             planner: None,
             home: Vec3::default(),
             enemy_home: Vec3::default(),
+            enemy_starts: Vec::new(),
+            allies: Vec::new(),
+            ally_starts: Vec::new(),
             frame: 0,
             own: BTreeMap::new(),
             enemies: Vec::new(),
@@ -459,6 +484,7 @@ impl Bot for Territory {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
+        self.allies = tick.snapshot.allies.clone();
         self.metal = tick.snapshot.metal;
         self.energy = tick.snapshot.energy;
         if let Some(sensors) = &tick.snapshot.sensors {

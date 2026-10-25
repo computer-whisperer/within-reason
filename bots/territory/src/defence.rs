@@ -254,10 +254,10 @@ impl Territory {
         self.defence.wants = wants;
     }
 
-    /// A defence site may be taken: outside his start's dead radius, and no armed unit of his in sight within
+    /// A defence site may be taken: outside every enemy start's dead radius, and no armed unit of his in sight within
     /// SITE_CLEAR of it.
     fn site_clear(&self, p: Vec3) -> bool {
-        p.dist2d(self.enemy_home) > crate::snapshot::DEAD_SPOT
+        self.enemy_starts.iter().all(|s| s.dist2d(p) > crate::snapshot::DEAD_SPOT)
             && !self.enemies.iter().any(|e| e.pos.dist2d(p) <= SITE_CLEAR && e.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0))
     }
 

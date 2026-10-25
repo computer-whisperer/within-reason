@@ -10,6 +10,7 @@
 //!                                                               writes the game's experimentallegionfaction option; BARb and Apex both play Legion)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
+//!              [--ally-ai NAME:VERSION]   (the allied seats' AI in place of BARb, e.g. WRDistilled:0.1 beside --our-ai WRTerritory:0.1)
 //!              [--boxes standard|corners|north-south|west-east]   (where the ally teams start; default the lobby's boxes for the map)
 //!              [--our-ai NAME:VERSION]   (the AI on our seats; default WReason:0.1, the flagship, played by the bot process; a bot of
 //!                                         bots/ (WRTemplate:0.1) plays inside its library: no bot process, no bot.log, no record)
@@ -132,6 +133,8 @@ struct Options {
     corner: Option<bool>,
     ours: usize,
     allies: usize,
+    /// `--ally-ai NAME:VERSION`: the allied seats' AI, BARb when unset.
+    ally_ai: Option<String>,
     enemies: usize,
     free_for_all: bool,
     boxes: Boxes,
@@ -251,7 +254,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -330,6 +333,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         map: &options.map,
         our_ai: &options.our_ai,
         opponent: &options.opponent,
+        ally_ai: options.ally_ai.as_deref(),
         opponent_defaults: &opponent_defaults,
         barb_defaults: &option_defaults(repo, "BARb:stable"),
         our_bonus: options.our_bonus,
@@ -773,6 +777,7 @@ fn parse_args() -> Options {
         corner: None,
         ours: 1,
         allies: 0,
+        ally_ai: None,
         enemies: 1,
         free_for_all: false,
         boxes: Boxes::Standard,
@@ -910,6 +915,7 @@ fn parse_args() -> Options {
             }
             "--ours" => options.ours = value().parse().ok().filter(|n| *n >= 1).unwrap_or_else(|| usage("--ours takes 1 or more")),
             "--allies" => options.allies = value().parse().unwrap_or_else(|_| usage("--allies")),
+            "--ally-ai" => options.ally_ai = Some(value()),
             "--enemies" => options.enemies = value().parse().ok().filter(|n| *n >= 1).unwrap_or_else(|| usage("--enemies takes 1 or more")),
             "--boxes" => {
                 options.boxes = match value().as_str() {

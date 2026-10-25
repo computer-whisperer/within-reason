@@ -156,7 +156,7 @@ const FARM_MOBILE: f32 = 32.0;
 /// seconds). The program's assist factor is build power, not bodies.
 const ASSIST_GUARDS: usize = 6;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
-const SPOT_TAKEN: f32 = 100.0;
+pub(crate) const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
 /// A unit type the host found no site for this many times within the window is left alone for the window by every
@@ -1377,6 +1377,9 @@ impl Territory {
                 }
                 _ => Review::Done,
             },
+            // T-ALLIES: an ally's frame or extractor on the spot first, the walk there is for nothing (terr305 game 01:
+            // eleven extractor orders dropped after 9-48 s of walking, the ally's constructors there first).
+            What::Build { unit, frame: None, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && !self.is_upgrade(*unit) && self.ally_holds(*near) => Review::Failed("ally"),
             What::Build { frame: None, near, .. } => {
                 // Held: standing within reach of the site this long with no frame begun, from the first frame the
                 // builder stood that near; a builder still walking (an extractor 4,600 elmos out, terr3-nullai-comet-1
@@ -1995,6 +1998,7 @@ impl Territory {
         self.hands.refused.get(&i).is_some_and(|until| self.frame < *until)
             || self.own.values().any(|u| self.unit_index(u.def).is_some_and(|x| self.game().units.list[x].extracts_metal > 0.0) && u.pos.dist2d(at) < SPOT_TAKEN)
             || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && near.dist2d(at) < SPOT_TAKEN))
+            || self.ally_holds(at)
     }
 
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;

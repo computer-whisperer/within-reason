@@ -1,5 +1,6 @@
-//! Where his commander starts (T-SCENARIO): the script's position when the lobby fixed the starts, else where the
-//! game itself puts a seat nobody placed in its box, else our start mirrored through the map's centre.
+//! Where his commanders start (T-SCENARIO): the script's position when the lobby fixed the starts, else where the
+//! game itself puts a seat nobody placed in its box, else our start mirrored through the map's centre. Every enemy
+//! seat's, for a team game (T-ALLIES).
 //!
 //! The game's rule is BAR's `GuessOne` (`common/lib_startpoint_guesser.lua`, called by `game_initial_spawn.lua` at
 //! the game's start for every seat of a choose-in-game script with no start of its own, which is every AI's): the
@@ -11,24 +12,20 @@ use bot_protocol::{Controller, Hello, StartBox, Vec3};
 
 /// A start claims the spots within this of it, and within CLAIM_HEIGHT of its height (`claimRadius`, the D-gun's
 /// 250 times 2.3, and `claimHeight`).
-const CLAIM_RADIUS: f32 = 250.0 * 2.3;
+pub(crate) const CLAIM_RADIUS: f32 = 250.0 * 2.3;
 const CLAIM_HEIGHT: f32 = 300.0;
 /// Spots outside the box this near it count toward a spot's cluster (`walkRadius`).
 const WALK_RADIUS: f32 = 250.0 * 3.0;
 /// The start lies this far from the best spot toward its nearest free neighbour.
 const STEP: f32 = 120.0;
 
-/// His start and what it rests on.
-pub(crate) fn his_start(hello: &Hello, home: Vec3) -> (Vec3, &'static str) {
+/// Every enemy seat's start and what it rests on, in team order: the script's position when the lobby fixed the
+/// starts, else the game's own guess in the seat's box, each seat placed in turn with the starts placed before
+/// claiming their spots as the game places them, else our start mirrored. `placed` are the starts known already,
+/// ours and our allies'.
+pub(crate) fn his_starts(hello: &Hello, home: Vec3, placed: &[Vec3]) -> Vec<(Vec3, &'static str)> {
     let ours = hello.ally_team;
-    if let Some(at) = hello.teams.iter().filter(|t| t.ally_team != ours && t.controller != Controller::Gaia).find_map(|t| t.start_pos) {
-        return (at, "the script's");
-    }
     let mirror = Vec3 { x: hello.map.width - home.x, y: 0.0, z: hello.map.height - home.z };
-    // The boxes say where a seat starts only when the script has the game choose (startpostype 2).
-    let Some(his_box) = hello.start_boxes.iter().find(|b| b.ally_team != ours).filter(|_| hello.start_pos_type == Some(2)) else {
-        return (mirror, "our start mirrored");
-    };
     let terrain = &hello.terrain;
     let cell = |p: Vec3| {
         let (i, j) = ((p.x / terrain.cell).floor() as i64, (p.z / terrain.cell).floor() as i64);
@@ -39,10 +36,25 @@ pub(crate) fn his_start(hello: &Hello, home: Vec3) -> (Vec3, &'static str) {
     // here from the cell's slope value (1 - the normal's y, times 255) where the game tests four 5-elmo steps.
     let steep_limit = (1.0 - ((1.0f32 - 0.41221).acos() - 0.02).cos()) * 255.0;
     let steep = |p: Vec3| cell(p).and_then(|k| terrain.slopes.get(k)).is_some_and(|s| f32::from(*s) > steep_limit);
-    match guess(&hello.metal_spots, his_box, &[home], height, steep) {
-        Some(at) => (at, "the game's guess in his box"),
-        None => (his_box.centre(), "his box's centre"),
+    let mut placed = placed.to_vec();
+    let mut starts = Vec::new();
+    for team in hello.teams.iter().filter(|t| t.ally_team != ours && t.controller != Controller::Gaia) {
+        // The boxes say where a seat starts only when the script has the game choose (startpostype 2).
+        let start = match (team.start_pos, hello.start_boxes.iter().find(|b| b.ally_team == team.ally_team).filter(|_| hello.start_pos_type == Some(2))) {
+            (Some(at), _) => (at, "the script's"),
+            (None, Some(his_box)) => match guess(&hello.metal_spots, his_box, &placed, height, steep) {
+                Some(at) => (at, "the game's guess in his box"),
+                None => (his_box.centre(), "his box's centre"),
+            },
+            (None, None) => (mirror, "our start mirrored"),
+        };
+        placed.push(start.0);
+        starts.push(start);
     }
+    if starts.is_empty() {
+        starts.push((mirror, "our start mirrored"));
+    }
+    starts
 }
 
 /// BAR's `GuessOne` for a rectangular box: None where it gives up (no spot in the box or within WALK_RADIUS of it),

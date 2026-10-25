@@ -75,6 +75,10 @@ Socket path: `$WITHIN_REASON_SOCKET`, else `$XDG_RUNTIME_DIR/within-reason.sock`
 receiver's store); the engine answers with `Event::UnitGiven` to the new owner and `Event::UnitTaken` to the old.
 `Command::DGun { unit, target }` is `COMMAND_UNIT_D_GUN`, the commander's manual-fire weapon at one unit. All three are
 the player's `transfer` tool and the hands' D-gun state (`docs/design/2026-09-27-posing-changes.md` §12b, §8.1).
+`Event::Received { metal, energy }` (2026-10-25) is what allies' overflow put into our stock over the engine's last
+second (`Economy_getReceived`), sent once a second while above zero: the engine adds an ally's excess straight to the
+stock (`CTeam::SlowUpdate`, BAR's default without a sharing tax), and its income figure leaves it out. The distilled
+bot counts it as income (D-RECEIVED); the flagship's recorder passes over it.
 
 ### The silo (2026-10-09)
 `Command::FireAt { unit, at }` fires a command-fire weapon at a place: BAR's nuclear missile is `commandfire` (the

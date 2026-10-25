@@ -13,12 +13,14 @@ mod economy;
 mod lane;
 mod tier2;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use bot_protocol::{Bot, Command, Commands, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 
 pub(crate) const SECOND: i32 = 30;
 pub(crate) const MINUTE: i32 = 60 * SECOND;
+/// D-RECEIVED: what allies' overflow put into our stock counts as income at its mean over this long.
+const RECEIVED_WINDOW: i32 = 30 * SECOND;
 
 /// The units the rules name, for the faction the commander is of. `None` where the game has no such unit.
 #[derive(Default)]
@@ -65,6 +67,9 @@ pub(crate) struct Distilled {
     pub prev_own: BTreeMap<UnitId, OwnUnit>,
     /// This tick's metal income, for the rules that run without the tick (D-PRODUCTION).
     pub metal_income: f32,
+    /// D-RECEIVED: what our allies' overflow put into our stock, metal and energy, by the second it came, over
+    /// RECEIVED_WINDOW.
+    received: VecDeque<(i32, f32, f32)>,
     /// The lobby's income bonus for our seat as a multiplier (`Handicap=50` in our `[TEAMn]` of the start script is
     /// 1.5): what every side's army scales by, so the launch weights scale by it too (D-LAUNCH, 2026-10-13).
     pub income_multiplier: f32,
@@ -311,17 +316,39 @@ mod tests {
     }
 }
 
+impl Distilled {
+    /// D-RECEIVED: what allies' overflow put into our stock, metal and energy a second, over RECEIVED_WINDOW.
+    fn received_rate(&self) -> (f32, f32) {
+        let seconds = (RECEIVED_WINDOW / SECOND) as f32;
+        let sum = self.received.iter().fold((0.0, 0.0), |(m, e), (_, rm, re)| (m + rm, e + re));
+        (sum.0 / seconds, sum.1 / seconds)
+    }
+}
+
 impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
     }
 
-    fn tick(&mut self, tick: Tick) -> Commands {
+    fn tick(&mut self, mut tick: Tick) -> Commands {
         self.frame = tick.frame;
         self.prev_own = std::mem::take(&mut self.own);
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
+        // D-RECEIVED: what allies' overflow puts into the stock is income to every rule here (the engine's income
+        // leaves it out), at its mean over RECEIVED_WINDOW: a neighbour whose store sits full is an income.
+        for event in &tick.events {
+            if let Event::Received { metal, energy } = event {
+                self.received.push_back((tick.frame, *metal, *energy));
+            }
+        }
+        self.received.retain(|(at, _, _)| tick.frame - at < RECEIVED_WINDOW);
+        if self.options.received {
+            let (metal, energy) = self.received_rate();
+            tick.snapshot.metal.income += metal;
+            tick.snapshot.energy.income += energy;
+        }
         self.metal_income = tick.snapshot.metal.income;
         if !self.started {
             self.start(&tick);
@@ -368,11 +395,12 @@ impl Bot for Distilled {
             eprintln!("[distilled ai={}] f={} jobs: commander {} | constructors {}", self.hello.ai_id, tick.frame, self.commander_job(), self.constructor_jobs());
             let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} aa={} air_seen={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} aa={} air_seen={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} received {:.1}/{:.0}",
                 self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.count(self.kit.aa_turret), self.army.air_seen.map_or(0, |f| f / MINUTE), self.can_spend(),
                 self.army.home_guard.len(), self.army.strike.len(), self.army.raiders.len(), self.home_guard_weight(), self.launch_weight(), u8::from(self.field_won()), self.army.his_buildings.len(), self.economy.made(),
                 self.count(self.kit.advanced_plant), self.count(self.kit.advanced_constructor), self.count(self.kit.moho), self.count(self.kit.fusion), self.count(self.kit.advanced_fusion), self.count(self.kit.converter) + self.count(self.kit.advanced_converter), self.count(self.kit.assist), self.economy.t2_made, u8::from(self.plants_paused()), project, self.own.values().filter(|u| u.priority_low).count(),
-                tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage
+                tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage,
+                self.received_rate().0, self.received_rate().1
             );
         }
         Commands(commands)

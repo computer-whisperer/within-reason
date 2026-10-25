@@ -778,6 +778,11 @@ impl Engine {
         format!("[{}]", rows.join(","))
     }
 
+    /// What our allies' overflow put into our stock over the engine's last second, metal and energy.
+    pub fn received(&self) -> (f32, f32) {
+        (call!(self, Economy_getReceived(self.metal)), call!(self, Economy_getReceived(self.energy)))
+    }
+
     /// Metal income a second of our ally team's teams and of every other team's, summed (cheat access for theirs,
     /// as the truth's units): the comparison of the two sides' economies, which the bot never sees.
     pub fn metal_incomes(&mut self) -> (f32, f32) {

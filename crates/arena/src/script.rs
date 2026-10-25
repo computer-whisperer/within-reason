@@ -59,8 +59,10 @@ pub struct MatchSetup<'a> {
     pub map: &'a str,
     /// Our seats' AI, `ShortName:Version`: the flagship's library (`WReason:0.1`) or a bot of `bots/`.
     pub our_ai: &'a str,
-    /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`); allied seats are always BARb.
+    /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`).
     pub opponent: &'a str,
+    /// The allied seats' AI, `ShortName:Version`; `None` for BARb at the opponent's profile.
+    pub ally_ai: Option<&'a str>,
     pub opponent_profile: &'a str,
     /// The other options of the opponent's and of BARb's `AIOptions.lua` at their defaults, as `key=value; ` runs:
     /// a lobby writes every option, and an AI need not fall back to the default of one the script leaves out.
@@ -170,8 +172,12 @@ impl MatchSetup<'_> {
         let enemy_ally_team = |nth: usize| if nth == 0 { 1 - us } else { nth + 1 };
         let mut seats: Vec<Seat> = Vec::new();
         seats.extend((0..self.ours).map(|_| Seat { ai: ours.clone(), bonus: self.our_bonus, ally_team: us, side: self.our_side }));
-        // An allied BARb plays the other faction, so nothing of ours may assume an ally's units are our kind.
-        seats.extend((0..self.allies).map(|_| Seat { ai: barb.clone(), bonus: 0, ally_team: us, side: other_side }));
+        // An allied seat plays the other faction, so nothing of ours may assume an ally's units are our kind.
+        let ally = self.ally_ai.map_or(barb.clone(), |ai| {
+            let (name, version) = ai.split_once(':').unwrap_or((ai, "0.1"));
+            format!("ShortName={name}; Version={version};")
+        });
+        seats.extend((0..self.allies).map(|_| Seat { ai: ally.clone(), bonus: 0, ally_team: us, side: other_side }));
         seats.extend((0..self.enemies).map(|nth| Seat { ai: enemy.clone(), bonus: self.enemy_bonus, ally_team: enemy_ally_team(if self.free_for_all { nth } else { 0 }), side: other_side }));
         // Teams in ally-team order, as the 1v1 script always had them (team 0 is ally team 0's).
         seats.sort_by_key(|seat| seat.ally_team);
@@ -231,7 +237,7 @@ mod tests {
 
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
-            game: "g", map: "m", our_ai: "WReason:0.1", opponent: "BARb:stable", opponent_profile: "medium", opponent_defaults: "", barb_defaults: "", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
+            game: "g", map: "m", our_ai: "WReason:0.1", opponent: "BARb:stable", ally_ai: None, opponent_profile: "medium", opponent_defaults: "", barb_defaults: "", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
             ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", their_side: None, mirror: false, starts: Vec::new(), start_delay: 0,
         }
     }

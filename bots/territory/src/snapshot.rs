@@ -21,8 +21,19 @@ impl Territory {
     /// themselves a slot nearer his start at a time until his commander's laser reached them, 19-52 losses a game
     /// from 15:00, all within 350 of him (terr110).
     pub(crate) fn dead_ground(&self, p: Vec3) -> bool {
-        p.dist2d(self.enemy_home) <= DEAD_SPOT
+        self.enemy_starts.iter().any(|s| s.dist2d(p) <= DEAD_SPOT)
             || self.enemies.iter().any(|e| e.pos.dist2d(p) <= DEAD_SPOT && e.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0))
+    }
+
+    /// T-ALLIES: an extractor of an ally's stands or is framed on the spot at `p`.
+    pub(crate) fn ally_holds(&self, p: Vec3) -> bool {
+        self.allies.iter().any(|u| u.pos.dist2d(p) < crate::hands::SPOT_TAKEN && self.def(u.def).is_some_and(|d| d.extracts_metal > 0.0))
+    }
+
+    /// T-ALLIES: the spot at `p` is within an allied seat's start's claim (the game's own, `CLAIM_RADIUS`) while that
+    /// seat has units: his opening's, not ours to race him for.
+    pub(crate) fn ally_claims(&self, p: Vec3) -> bool {
+        self.ally_starts.iter().any(|(team, at)| at.dist2d(p) <= crate::his_start::CLAIM_RADIUS && self.allies.iter().any(|u| u.team == *team))
     }
 
     /// The amount of the metal spot under `pos`, 0 off any spot.
@@ -124,7 +135,7 @@ impl Territory {
         (state, builders.iter().map(|(u, _, _)| u.id).collect())
     }
 
-    /// The scenario a plan is priced in: our half of the spots (every spot with `spots=all`), nearest first;
+    /// The scenario a plan is priced in: every spot (our half with `spots=half`) but the dead and the allies', nearest first;
     /// constructors with an empty queue take the nearest free spot; construction turrets feed the first factory, as
     /// the hands have them do.
     pub(crate) fn scenario(&self) -> Scenario {
@@ -139,6 +150,11 @@ impl Territory {
         // The dead spots round his start (the user, 2026-10-20: NullAI's commander "automatically attacks anything
         // near it. There will be a dead spot of 2-3 mexes we will just have to ignore"; by a radius, his ruling).
         spots.retain(|s| !self.dead_ground(Vec3 { x: s.at.0 as f32, y: 0.0, z: s.at.1 as f32 }));
+        // T-ALLIES: not a spot an ally holds, nor one his start claims while his seat has units.
+        spots.retain(|s| {
+            let p = Vec3 { x: s.at.0 as f32, y: 0.0, z: s.at.1 as f32 };
+            !self.ally_holds(p) && !self.ally_claims(p)
+        });
         let mut scenario = game.scenario(spots, self.ground());
         scenario.constructors_default_to_extractors = true;
         scenario.nanos_help_frames = false;

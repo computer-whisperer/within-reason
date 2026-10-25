@@ -60,7 +60,7 @@ impl Territory {
     /// warn {seconds} ours {armed metal in reach at the warning and AFTER it} turrets {metal}`. The warning is the raid's
     /// walk from the nearest square neither sight nor radar covers, of the uncovered ground joined to his start's (with
     /// his start in sight, of the largest piece of uncovered ground), to its reach of the region's nearest building, at
-    /// RAID_SPEED; a frame counts at its progress. Our mobile armed units arrive at their own speed over their group's
+    /// RAID_SPEED; a frame counts at its progress. With several enemy seats, the ground joined to any of their starts. Our mobile armed units arrive at their own speed over their group's
     /// field, their reach short of that building; a turret counts when a building of the region stands in its reach.
     pub(crate) fn log_race(&mut self) {
         let began = Instant::now();
@@ -127,16 +127,21 @@ impl Territory {
                 sizes.push(size);
             }
         }
-        let (hx, hz) = ((self.enemy_home.x / cell) as i32, (self.enemy_home.z / cell) as i32);
-        let his_piece = if inside(hx, hz) && open[index(hx, hz)] {
-            Some(piece[index(hx, hz)])
-        } else {
-            (0..sizes.len()).max_by_key(|p| sizes[*p])
-        };
+        // His pieces: those holding an enemy start (every enemy seat's, T-ALLIES), else the largest.
+        let mut his_pieces: Vec<usize> = self
+            .enemy_starts
+            .iter()
+            .map(|s| ((s.x / cell) as i32, (s.z / cell) as i32))
+            .filter(|(hx, hz)| inside(*hx, *hz) && open[index(*hx, *hz)])
+            .map(|(hx, hz)| piece[index(hx, hz)])
+            .collect();
+        if his_pieces.is_empty() {
+            his_pieces.extend((0..sizes.len()).max_by_key(|p| sizes[*p]));
+        }
         let mut edge: Vec<Vec3> = Vec::new();
         for z in 0..height {
             for x in 0..width {
-                if his_piece.is_some_and(|p| piece[index(x, z)] == p) && AROUND.iter().any(|(dx, dz)| inside(x + dx, z + dz) && !open[index(x + dx, z + dz)]) {
+                if open[index(x, z)] && his_pieces.contains(&piece[index(x, z)]) && AROUND.iter().any(|(dx, dz)| inside(x + dx, z + dz) && !open[index(x + dx, z + dz)]) {
                     let (px, pz) = centre(x, z);
                     edge.push(Vec3 { x: px, y: 0.0, z: pz });
                 }

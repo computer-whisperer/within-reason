@@ -19,7 +19,9 @@ pub(crate) struct Options {
     pub threads: usize,
     /// Frames between re-plans.
     pub replan: i32,
-    /// Every spot on the map rather than our half: the ceiling against an opponent that does nothing.
+    /// Every spot on the map rather than our half (the default since 2026-10-25, the user: "free to expand territory
+    /// across the map as possible"; every bench ran with it set); a spot an ally holds or his start claims is left to
+    /// him either way (T-ALLIES).
     pub all_spots: bool,
     /// Soldiers on the program's factory palette; off, the program plans builders only (the guard's soldiers, T-GUARD,
     /// are made outside the plan).
@@ -124,7 +126,7 @@ impl Default for Options {
             first_budget_ms: 1000,
             threads: 4,
             replan: 30 * 30,
-            all_spots: false,
+            all_spots: true,
             soldiers: false,
             defence: true,
             guard: true,
