@@ -276,8 +276,20 @@ impl Group {
 
     /// The anchor set down again at the members' centroid (after contact, where the body stands is where the march
     /// resumes from), facing the next route point; the slots re-dealt where the members stand (the arc's places are
-    /// not the march's).
+    /// not the march's). A route the anchor had finished is taken up again when the body is set down short of its
+    /// end (assault2-mix12-hlt2llt2-around-ranks: with the march off the anchor stands at the end from the first tick,
+    /// so after a contact that ended with the last turret out of sight the body was set down 470 short of the goal,
+    /// every member formed round it, "arrived", and six of eight duels timed out there).
     pub fn reanchor(&mut self, centroid: Vec3) {
+        let len = self.order.route.len();
+        let anchor = self.anchor_for(centroid, self.heading, self.members.len());
+        if self.leg >= len
+            && let Some(end) = self.order.route.last()
+            && end.dist2d(anchor) > ROUTE_MOVED
+        {
+            self.leg = len - 1;
+            self.arrived = false;
+        }
         if let Some(next) = self.order.route.get(self.leg)
             && next.dist2d(centroid) > 1.0
         {
@@ -805,6 +817,40 @@ mod tests {
         assert!((slots[&UnitId(1)].x - 2000.0).abs() < 1.0);
         assert_eq!(group.pace, 0.0);
         assert!(!group.arrived);
+    }
+
+    /// After a contact that ended short of the goal the march resumes to it, with the march off too: the slots stand
+    /// at the destination again, not round the body where contact ended (the assault's detour arm, six timeouts).
+    #[test]
+    fn a_body_set_down_short_of_the_end_after_contact_walks_on() {
+        let pacing = Pacing::default();
+        let w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        for march in [false, true] {
+            let order = GroupOrder { march, ..GroupOrder::new(GroupKind::FightTo, vec![at(2000.0, 0.0)]) };
+            let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], order, &positions, 64.0);
+            group.tick(0, &w, 64.0, &pacing);
+            if !march {
+                assert!(group.at_end());
+            } else {
+                // Walk the anchor to the end.
+                group.leg = 1;
+                group.anchor = at(2000.0, 0.0);
+            }
+            group.stopped = true;
+            // Contact ended with the body 500 short of the goal.
+            let body = walkers(&[(1, 1500.0, -32.0), (2, 1500.0, 32.0)], 100.0);
+            group.stopped = false;
+            group.reanchor(form::centroid(body.iter().map(|w| w.pos)).unwrap());
+            assert!(!group.at_end() && !group.arrived, "the route is taken up again (march {march})");
+            let slots = group.tick(3, &body, 64.0, &pacing).clone();
+            let slot_x = slots[&UnitId(1)].x;
+            if march {
+                assert!(slot_x > 1500.0 && slot_x < 1700.0, "the anchor walks on from the body: {slot_x}");
+            } else {
+                assert!((slot_x - 2000.0).abs() < 1.0, "the slots stand at the destination again: {slot_x}");
+            }
+        }
     }
 
     #[test]

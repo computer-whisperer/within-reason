@@ -310,3 +310,13 @@ the rest sets off any bomb still standing and starts again; `WITHIN_REASON_SWEEP
 and wave's end. The fight arms re-run after it (ledger row regress2-*): on those wreck boxes nine bombs a wave,
 set down 3 to 12 frames after the give (once in two batches, 2 then 7: the engine sets a few units down a frame),
 every wave gone in a second with every bomb seen, none standing at any rest; thirty a wave took two to three seconds.
+
+## A rebuild of the duel binary during a batch script changes the arms after it (2026-10-25)
+
+Each arm of a batch script (`scratchpad/assault2.sh`: one `duel` invocation per arm, sequentially) starts the binary
+afresh, so `cargo build --release` in the middle of a slice puts the new code under every arm started after it and
+leaves the earlier arms on the old. On 2026-10-25 at 00:25 the build with the group's re-anchor fix and the duel
+view's memory of the enemy's buildings landed while the assault's second slice was on its bounds: the four
+`bound2-mix12-*-on` arms ran under the new binary, every other arm of the slice under the old (ledger row assault2-*).
+Build in another worktree, or wait for the slice; a slice's arms must share one binary, and the ledger row says the
+commit they ran at.

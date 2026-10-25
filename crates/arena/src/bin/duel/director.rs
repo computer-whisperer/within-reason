@@ -1077,6 +1077,10 @@ struct DuelView<'a> {
     side: usize,
     own: &'a HashSet<UnitId>,
     enemy: &'a HashSet<UnitId>,
+    /// The other army's living buildings (id, type, place): what the brain would remember of a defence it attacks.
+    /// Without it the lane forgot a turret the moment it was out of sight (the assault's detour arm: the last LLT 450
+    /// from the body after two kills was no foe, contact cleared and the group stood).
+    buildings: &'a [(UnitId, UnitDefId, Vec3)],
     mode: LaneMode,
 }
 
@@ -1110,11 +1114,11 @@ impl View for DuelView<'_> {
     }
 
     fn remembered_buildings(&self) -> Vec<(UnitId, UnitDefId, Vec3)> {
-        Vec::new()
+        self.buildings.to_vec()
     }
 
-    fn building_at(&self, _id: UnitId) -> Option<Vec3> {
-        None
+    fn building_at(&self, id: UnitId) -> Option<Vec3> {
+        self.buildings.iter().find(|(u, ..)| *u == id).map(|(_, _, at)| *at)
     }
 
     fn enemy_known(&self, id: UnitId) -> bool {
@@ -1569,7 +1573,16 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
                 // quarry is gone from them; `enemy.units` keeps the dead).
                 let enemy_alive: HashSet<UnitId> = enemy.alive.keys().copied().collect();
-                let view = DuelView { rules, team, side, own: &members, enemy: &enemy_alive, mode: army.lane_mode };
+                // The other side's living buildings, as the brain would remember them (the director's truth: a
+                // defence a drill attacks is known to its attacker).
+                let buildings: Vec<(UnitId, UnitDefId, Vec3)> = (enemy.alive.keys())
+                    .filter_map(|u| {
+                        let i = *enemy.spawn_of.get(u)?;
+                        let spawn = &enemy.spawns[i];
+                        (!spawn.mobile).then(|| (*u, spawn.def, enemy.seen_at.get(u).copied().unwrap_or(spawn.at)))
+                    })
+                    .collect();
+                let view = DuelView { rules, team, side, own: &members, enemy: &enemy_alive, buildings: &buildings, mode: army.lane_mode };
                 let output = lane.tick(&view, tick, &mut mine, std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some());
                 commands.extend(mine);
                 commands.extend(output.commands);
