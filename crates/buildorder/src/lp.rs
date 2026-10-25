@@ -124,14 +124,15 @@ pub struct LpOptions {
     /// the hands walked home between spots; chained spot to spot (terr72) a constructor's extractor frame comes
     /// 12-19 s after its order through 9:00 and its upgrade's 28-42 s from 10:00 (the far spots, the walk from
     /// the base). At 65 the program's own plan from the start was 18 extractors and 43 a second at 5:00, the
-    /// hands' exactly; at 15 it is 25 and 59, thebluegecko's 26 and 62 (terr73-75). The territory bot grows the
-    /// extractor's walk with the plan's t0 (its `walk_late`, 40 at 10:00: at one 15-s walk the plans from 10:00
-    /// wanted 21-24 constructors against 25-28 and 20:00 read 40-70 under); here the defaults are a plan from the
-    /// start. The commander's the territory bot derives every plan from the free spots within its leash, their mean
+    /// hands' exactly; at 15 it is 25 and 59, thebluegecko's 26 and 62 (terr73-75). The territory bot grew the
+    /// extractor's walk with the plan's t0 (`walk_late`, 40 at 10:00, terr83-174: at one 15-s walk the plans from
+    /// 10:00 wanted 21-24 constructors against 25-28 and 20:00 read 40-70 under) until the walks measured in the game
+    /// took its place (`walked`); here the defaults are a plan from the start. The commander's the territory bot derives every plan from the free spots within its leash, their mean
     /// distance at its speed plus the ring overhead, and bounds its extractors by their number (`commander_spots`):
     /// one walk for the whole map gave it either nine spots by 5:00 with the fifth 1,950 out (16, terr72-75) or
     /// none after the opening's (40, terr76-89), where his commander took two at 1,007 and 1,215 at 2:06-2:13 and
-    /// none after.
+    /// none after. A mobile builder's walks measured in the game (`walked`) take over from these, which stay as the
+    /// prior.
     pub walk_extractor: f64,
     pub walk_upgrade: f64,
     /// The advanced constructor's walk to a basic spot. The territory bot derives it every plan from the free spots'
@@ -160,6 +161,23 @@ pub struct LpOptions {
     /// 10:00 against 50-61).
     pub rings: usize,
     pub ring_overhead: f64,
+    /// The walks measured in the game (docs/design/2026-10-25-territory-walks.md): per mobile builder type and unit
+    /// type, the seconds its builders walked and worked on that type. A pair's cost is its work times one plus the
+    /// ratio of walking to working, the measured seconds blended with the constant walk above as a prior worth
+    /// `walk_prior` seconds of work. The constants priced a basic constructor's help on the upgrade frames at a
+    /// tenth of a second of walk a second of help where the hands walked two (terr157-162: 15-18 s to each frame,
+    /// then 8-10 s on it), and every plan's promise of the next two minutes came about half true.
+    pub walked: Vec<Walked>,
+    pub walk_prior: f64,
+}
+
+/// Seconds a mobile builder type walked to, and worked on, a unit type (its builds and its help on frames of it).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Walked {
+    pub builder: usize,
+    pub unit: usize,
+    pub walking: f64,
+    pub working: f64,
 }
 
 impl LpOptions {
@@ -214,6 +232,8 @@ impl Default for LpOptions {
             commander_spots: f64::INFINITY,
             rings: 1,
             ring_overhead: 5.0,
+            walked: Vec::new(),
+            walk_prior: 30.0,
         }
     }
 }
@@ -546,16 +566,22 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             if let Class::Ring(k) = column.class && b == commander && k > 0 && bounds[k - 1] > options.commander_reach {
                 continue;
             }
-            let cost = match column.class {
+            // The work: a whole unit's build time, or a frame's mean work left; the cost, the work and the walk at the
+            // ratio of walking to working (`walked` blended with the constant walk as its prior).
+            let work = match column.class {
                 Class::Frames => frame_of(i).map_or(units.list[u].build_time, |(_, n, left)| (left / n).max(1.0)),
-                _ => units.list[u].build_time + def.worker_time * walk(b, i),
+                _ => units.list[u].build_time,
             };
-            // A frame's work left draws metal and energy at the unit's own rate per build-power-second; a whole
-            // unit's at that rate thinned by the walk, so the walk's power draws nothing.
-            let (metal_per_power, energy_per_power) = match column.class {
-                Class::Frames => (units.list[u].metal_cost / units.list[u].build_time.max(1.0), units.list[u].energy_cost / units.list[u].build_time.max(1.0)),
-                _ => (units.list[u].metal_cost / cost, units.list[u].energy_cost / cost),
+            let prior = def.worker_time * walk(b, i) / units.list[u].build_time.max(1.0);
+            let ratio = match options.walked.iter().find(|w| w.builder == b && w.unit == u).filter(|_| mobile(b) && units.list[u].speed == 0.0) {
+                Some(w) => (w.walking + prior * options.walk_prior) / (w.working + options.walk_prior).max(1e-9),
+                None => prior,
             };
+            let cost = work * (1.0 + ratio);
+            // The work draws metal and energy at the unit's own rate per build-power-second, thinned by the walk, so
+            // the walk's power draws nothing.
+            let thinned = units.list[u].build_time.max(1.0) * (1.0 + ratio);
+            let (metal_per_power, energy_per_power) = (units.list[u].metal_cost / thinned, units.list[u].energy_cost / thinned);
             pairs.push(Pair { builder: b, column: i, kind, cost, metal_per_power, energy_per_power });
         }
     }

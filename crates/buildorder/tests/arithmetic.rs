@@ -556,3 +556,49 @@ fn the_linear_program_lets_basic_constructors_help_upgrades_when_allowed() {
     assert!(helped <= 0.35 * direct + 1.0, "bounded to the share of the starters' power: {helped} against {direct}");
     assert!(plan.count_at(moho, 300.0) >= plain.count_at(moho, 300.0) - 0.01, "no fewer upgrades with the help: {} against {}", plan.count_at(moho, 300.0), plain.count_at(moho, 300.0));
 }
+
+/// The walks measured in the game price their pair: the basic constructor's help on the upgrades, walked two seconds
+/// for every one worked (terr157-162: 15-18 s to a frame, then 8-10 s on it), costs the upgrade's build time times one
+/// plus that ratio blended with the constant's (`walk_prior` seconds of work at the constant walk of 40 s, a ratio of
+/// 0.24), and the program puts less help on it; the advanced constructor's own pair, unmeasured, keeps its constant
+/// price (the build time and 40 s of its power).
+#[test]
+fn the_linear_program_prices_a_pair_at_the_walks_measured_in_the_game() {
+    use buildorder::lp::{solve, Kind, LpOptions, Walked};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..20).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots.clone(), Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let moho = units.index("armmoho").unwrap();
+    let cv = units.index("armcv").unwrap();
+    let acv = units.index("armacv").unwrap();
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    for s in &spots {
+        state.standing.push(Standing { unit: mex, site: s.at, pays: 2.0 });
+    }
+    state.builders.push(StateBuilder { unit: acv, place: HOME, job: None });
+    for _ in 0..6 {
+        state.builders.push(StateBuilder { unit: cv, place: HOME, job: None });
+    }
+    let constant = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, mobile_help: 0.35, ..Default::default() };
+    let measured = LpOptions { walked: vec![Walked { builder: cv, unit: moho, walking: 200.0, working: 100.0 }], ..constant.clone() };
+    let plain = solve(units, &scenario, &state, &[mex, moho], &constant).unwrap();
+    let plan = solve(units, &scenario, &state, &[mex, moho], &measured).unwrap();
+    let cost = |plan: &buildorder::lp::LpPlan, kind: Kind, builder: usize| plan.flows.iter().find(|f| f.kind == kind && f.builder == builder && f.unit == moho).map(|f| f.cost);
+    let build = units.list[moho].build_time;
+    let prior = units.list[cv].worker_time * 40.0 / build;
+    let ratio = (200.0 + prior * 30.0) / (100.0 + 30.0);
+    let helped = cost(&plan, Kind::Help, cv).expect("a help flow at the measured price");
+    assert!((helped - build * (1.0 + ratio)).abs() < 1.0, "the help at the measured ratio {ratio:.2}: {helped} against {}", build * (1.0 + ratio));
+    let at_constant = cost(&plain, Kind::Help, cv).unwrap();
+    assert!((at_constant - (build + units.list[cv].worker_time * 40.0)).abs() < 1.0, "the help at the constant walk without a measurement: {at_constant}");
+    let direct = cost(&plan, Kind::Direct, acv).unwrap();
+    assert!((direct - (build + units.list[acv].worker_time * 40.0)).abs() < 1.0, "the unmeasured pair keeps its constant price: {direct}");
+    let power = |plan: &buildorder::lp::LpPlan| -> f64 { plan.flows.iter().filter(|f| f.kind == Kind::Help && f.builder == cv && f.unit == moho).map(|f| f.per_bucket.iter().sum::<f64>() / f.cost).sum() };
+    assert!(power(&plan) < power(&plain), "fewer upgrades' worth of help at the dearer price: {} against {}", power(&plan), power(&plain));
+}

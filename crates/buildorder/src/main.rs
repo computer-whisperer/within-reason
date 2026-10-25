@@ -350,6 +350,8 @@ fn linear_program(args: &Args) {
         commander_spots: args.number("--commander-spots", f64::INFINITY),
         rings: args.number("--rings", 1.0) as usize,
         ring_overhead: args.number("--ring-overhead", 5.0),
+        walked: Vec::new(),
+        walk_prior: 30.0,
     };
     let state = match &replay {
         Some(r) => r.state_at(from, &scenario).unwrap_or_else(|| die(&format!("no sample at {from} s"))).0,

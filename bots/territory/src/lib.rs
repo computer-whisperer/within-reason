@@ -12,6 +12,7 @@ mod his_start;
 mod options;
 mod planner;
 mod snapshot;
+mod walks;
 mod work;
 
 use std::collections::BTreeMap;
@@ -53,6 +54,8 @@ pub(crate) struct Territory {
     pub energy: Resource,
     pub options: options::Options,
     pub hands: hands::Hands,
+    /// The constructors' walks measured in the game, which the program prices its pairs from (T-WALKS).
+    pub walks: walks::Walks,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
     pub spots: Vec<usize>,
     /// Metal made so far: the engine's income integrated over the ticks.
@@ -229,8 +232,7 @@ impl Territory {
             farm_big: o.farm_big,
             bank: o.bank,
             reclaim: o.reclaim,
-            // The extractor's walk by the game's time: the near spots first, the far ones from the base later.
-            walk_extractor: o.walk_extractor + (o.walk_late - o.walk_extractor) * (state.t0 / o.walk_late_from.max(1.0)).clamp(0.0, 1.0),
+            walk_extractor: o.walk_extractor,
             walk_upgrade: o.walk_upgrade,
             advanced_walk_extractor: o.ring_overhead + free_far.iter().sum::<f64>() / free_far.len().max(1) as f64 / advanced_speed,
             walk_base: o.walk_base,
@@ -242,6 +244,9 @@ impl Territory {
             commander_reach: o.com_leash as f64,
             rings: o.rings,
             ring_overhead: o.ring_overhead,
+            // T-WALKS: the constructors' walks measured in the game; the constant walks above are the prior.
+            walked: self.walked(),
+            walk_prior: walks::WALK_PRIOR,
         });
         planner::Request {
             scenario,
@@ -419,6 +424,7 @@ impl Bot for Territory {
             energy: Resource::default(),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
+            walks: walks::Walks::default(),
             spots: Vec::new(),
             made: 0.0,
             last_frame: 0,
@@ -490,6 +496,8 @@ impl Bot for Territory {
             self.adopt_planned(planned);
         }
         if tick.due() % (SECOND / 2) == 0 {
+            self.measure_walks();
+            self.log_walks();
             self.run_hands(&mut commands);
             self.run_nanos(&mut commands);
             self.run_priorities(&mut commands);
