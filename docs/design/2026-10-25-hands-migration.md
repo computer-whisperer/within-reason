@@ -258,3 +258,13 @@ review's findings are its amendment.
 4. **Why now:** the review of migration-2-1 read 55% of the main body's joining as whole-body re-forms after an attack
    or a join; an attacking group undeclared in chunk 2 lost its formation at every attack pick and re-formed as a fresh
    group after. With the attack declared, the group's `Group` persists across hold, walk and attack.
+
+### Chunk 4, the build decisions and build (2026-10-25)
+
+1. **Declared:** a ground group following a ward (`GroupTask::Follow`) joins `Group::declared`, as a **`FightTo`** with
+   the route `[at]` (the ward's place as the hands last took it), re-declared as the ward moves (`follow_step`: 150).
+   Not the `Go` of §2's table and §5's ruling: today's follow orders are Fights, and under a Go the followers would walk
+   past whatever attacks the ward (the lane's contact arc stands for every kind but Go). Commitment as before
+   (`Priced { turrets: [], commander: false }`: it stands as a hold does); the player's footwork.
+2. **Dies for these groups:** the per-unit Fight at the pick and at each follow step. **Stays:** the ward's place book
+   (`at`, moved by `follow_step`), the ward-gone rule (a hold at the anchor, said), air groups' path.

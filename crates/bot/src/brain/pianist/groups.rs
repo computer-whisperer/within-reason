@@ -220,7 +220,7 @@ impl Group {
     /// walking, not shelling (shell is the hands' until its chunk). Its members get their orders from the lane's
     /// group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
     pub(crate) fn declared(&self) -> bool {
-        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. }) && !self.shelling
+        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. } | GroupTask::Follow { .. }) && !self.shelling
     }
 
     /// The group's name in the lane.
@@ -728,7 +728,10 @@ impl Brain {
                             if let Some(to) = follow_step(ward_at, *at) {
                                 *at = to;
                                 group.last_order = frame;
-                                commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                                // A declared group's route carries the ward's place (the lane's, chunk 4).
+                                if !declared {
+                                    commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                                }
                             }
                         }
                         None => {
@@ -1028,8 +1031,11 @@ mod tests {
         assert_eq!(follow_step(at(100.0), at(0.0)), None);
         assert_eq!(follow_step(at(200.0), at(0.0)), Some(at(200.0)));
         let soldier = own(1, 1, at(0.0));
-        let group = Group::new("A".into(), Domain::Ground, vec![soldier.id], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
+        let group = Group::new("A".into(), Domain::Air, vec![soldier.id], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
         assert!(matches!(group.rejoin_orders(&[&soldier])[..], [Command::Fight { to, .. }] if to.x == 300.0));
+        // A ground follower is the lane's (chunk 4): declared, a FightTo at the ward's place.
+        let ground = Group::new("B".into(), Domain::Ground, vec![soldier.id], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
+        assert!(ground.declared());
     }
 
     /// An attack on a party follows it, and a soldier on its way to join goes after the body and takes the group's

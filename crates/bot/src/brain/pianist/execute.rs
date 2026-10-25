@@ -419,8 +419,11 @@ impl Brain {
                     let to = self.snap_for(walker, at);
                     let group = &mut pianist.groups[index];
                     commands.extend(group.release_orders(&units));
-                    commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to, queue: false }));
                     group.set_task(GroupTask::Follow { ward: ward.clone(), name: ward_name.clone(), at: to, since: frame }, frame);
+                    // A declared group's follow is the lane's FightTo at the ward's place (chunk 4).
+                    if !group.declared() {
+                        commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to, queue: false }));
+                    }
                     group.last_order = frame;
                     did = Some(format!("follow {ward_name}"));
                 }

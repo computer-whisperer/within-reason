@@ -81,9 +81,10 @@ impl Brain {
                     // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
                     // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane
                     // paths the anchor there and places every member (H-MICRO-GROUP).
-                    super::pianist::GroupTask::Hold { at, .. } | super::pianist::GroupTask::Move { to: at, .. } | super::pianist::GroupTask::Engage { at, .. } if group.declared() => {
+                    super::pianist::GroupTask::Hold { at, .. } | super::pianist::GroupTask::Move { to: at, .. } | super::pianist::GroupTask::Engage { at, .. } | super::pianist::GroupTask::Follow { at, .. } if group.declared() => {
                         let kind = match &group.task {
-                            super::pianist::GroupTask::Move { fight: true, .. } => micro::GroupKind::FightTo,
+                            // A follower fights at the ward's place (chunk 4): a Go would walk past what attacks it.
+                            super::pianist::GroupTask::Move { fight: true, .. } | super::pianist::GroupTask::Follow { .. } => micro::GroupKind::FightTo,
                             super::pianist::GroupTask::Move { .. } => micro::GroupKind::Go,
                             super::pianist::GroupTask::Engage { target: Some(t), .. } => micro::GroupKind::Attack(*t),
                             super::pianist::GroupTask::Engage { .. } => micro::GroupKind::FightTo,
