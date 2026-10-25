@@ -316,6 +316,79 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   route's least room is in the match's message and the meta line; the corners' cost in the per-second series. The
   wheel at corners and the shape to the corridor are the redirection work after this, in the user's order.
 
+- **D14. The re-deal at the turn** (the user, 2026-10-24 night, after the clearance demo: "How do you think we should
+  handle wheeling? One improvement I can see directly from that last match is that turns could easily include slot
+  reallocations. A 90-degree or 180-degree turn could be very cheap with bots"; "Go ahead with the re-deal, all four
+  pieces"). Before this the slots were rigid offsets from the anchor and a member's slot index was sticky from the deal
+  to the next membership or route change, so at a corner every slot rotated at once about the anchor (the front rank's
+  centre) and each member chased its own slot round: the outer flank's slot moved 294-674 at the circuit's three big
+  corners (82-149 degrees), 1-5 of the 13-20 body members stayed formed, the anchor was held at 27-61 of full pace for
+  4-16 s, and the body took 4-51 s to be formed again; the same for Pawns, Flashes and Stouts (every one turns in
+  place in the engine, at 200, 90 and 56 degrees a second: the turn's cost was the slot jump, not the turn rate). Re-run
+  on the logged positions, a least-travel deal of the slots with the anchor set down so the new ranks lie over the body
+  put every body member within 128 of a slot at eight of the nine corners (16 of 18 at the ninth) and 9-17 of them
+  within the 64 drag band: a turn is a re-labelling of who stands where, and an about-face is free (the rear rank is
+  the front). Four pieces, built together: (1) **when**: the slots are re-dealt when the anchor passes a route point
+  whose heading change is `REDEAL_TURN` (30 degrees) or more, when the membership changes (as before), when the route
+  changes (as before) and when the anchor is set down after contact; between those the deal is sticky, so it never
+  flickers; (2) **where the anchor goes**: at such a turn it is set down so the body's ranks' centroid lies on the
+  body's centroid (the body: members in the body, not away, not fleeing; the slot count for the centroid is the body's,
+  not the members' with the joiners, or the anchor would stand a rank ahead of the body), and walks on to the next
+  point from there; (3) **the deal**: an exact least-cost assignment on squared distance (Kuhn-Munkres; twenty units,
+  microseconds) in place of the sort-and-swap, for the march's slots and the contact arc's alike, so a joiner takes the
+  slot the body can spare rather than the body re-sorting around it; (4) **the layout grows at the back**: full ranks
+  of `FILES` from the front and the remainder in the last rank, centred, in place of ranks as even as possible (13 were
+  5 / 5 / 3 and 12 were 6 / 6, so a joiner moved every slot); now a joiner adds a slot behind and the body's slots
+  stand, the partial rank's few shifting half a spacing at most. Chose the re-deal over the wheel (an arc at the
+  corner of radius at least the half-width with the pace capped at R / (R + w / 2) through it, or a smoothed heading)
+  because the wheel keeps each member's place in the rank, which is the human drill's constraint and not ours, and
+  pays for it in pace and in room outside the corner; the re-deal costs neither. Rejected a gain rule (re-deal
+  whenever a fresh deal would halve the worst slot distance) for the angle at a route point: more general, less
+  predictable, and the corners are where the gain is. What this does not touch: the vehicles' extra price along the
+  lap, which is not at the corners (the anchor's slow seconds after 30 s: Pawn 37 = 18 at corners + 10 after small
+  bends + 9 elsewhere; Stout 112 = 30 + 39 + 43; Flash 74 = 28 + 8 + 38), the small bends slowing every vehicle to its
+  turning speed and the passages; a smoothed heading or a straighter route is the follow-up, unread. Measured by the
+  circuit re-run for all three types (§5).
+
+  **Built and measured the same night, in six rounds (ledger rows circuit6-* to circuit12-*): the four pieces as
+  approved, then what the traces (`WITHIN_REASON_GROUP_DEBUG=1`, the group saying each re-deal, turn and slot jump on
+  stderr) changed about where two of them are placed, and two findings beside them.**
+  - *The carry.* Set down on the body at the point itself, the anchor left the body's centroid half its depth short
+    of the corner (the body stands behind its front), so the new ranks lay that far inside the new leg and the next
+    point, 256 on, stood nearly abreast of the anchor: the heading swung 60-85 degrees a second after every turn and
+    the body was knocked out of slot a second time (circuit6: Pawns 233 s against the sticky slots' 204). The anchor
+    now carries on past each intermediate point by the body's measured depth behind it (the mean of the body's
+    members along the heading, so the trail they walk behind their slots and the ranks they actually hold are in it;
+    from the rank count alone the centroid was still a hundred short), at most half way to the next point, and the
+    body's centroid turns at the point; the first point has no leg into it and is not carried. After the setting-down
+    the heading is taken again from where the anchor stands (taken from where it turned, the ranks swung 25-35 degrees
+    more a tick later).
+  - *The route.* The field's way is a chain of cell moves at multiples of 45 degrees; thinned to 256 it was a
+    staircase of 26-45 degree bends at most points (13-15 of 58-61 at 20 degrees or more), each snapping a four-rank
+    body's rear corners (370 from the anchor) by about 150, with no re-deal under 30 degrees; the per-second log's
+    headings were kept to a tenth, which made 26-degree turns out of none (now a hundredth). `sites::circuit` now
+    straightens each leg: from each point the furthest later one the body reaches in a straight line with the room it
+    wants all the way (a sample a cell), so a leg bends only where the ground bends it (Quicksilver's loop: 19 points
+    from 58, the four corners among them). The re-deal threshold is 20 degrees, not 30: a 23-degree snap moved 17 of
+    20 out of the band (circuit9), and a re-deal costs the body nothing.
+  - *Set down on the members, not the trail ahead of them* (tried and rejected). The body walks a trail behind its
+    slots (below); set down on the members, the slots stand on them and the body re-forms the trail in a few seconds
+    as it walks off at full pace. Setting the anchor down the trail ahead instead, to keep the trail across the turn,
+    put 19 of 20 out of the band at a 130-degree corner (the trail added to the re-deal's travel: pace 21, formed 1),
+    where on the members the same corner kept 20 formed with the pace rising 70 to 87 (circuit10 against circuit9b).
+  - *The body is those who have stood in a slot.* A joiner held the anchor from within 300 of its slot, so one
+    arriving 280 behind stalled the body to a pace of 16, twice a lap (circuit9); it holds nothing until it has been
+    formed once (`formed_once`, the one book; `in_body` is gone).
+  - *The drag starts at the formed band (128), not 64.* The finding behind the vehicles' price along the lap and a
+    tenth of every Pawn lap: a unit sent every tick to a point moving at the pace settles behind it by a distance of
+    the engine's (72-86 for a Pawn at 80, every rank the same, about twice that for a Stout by its turn rate), and the
+    drag from 64 made that natural trail alone hold twenty Pawns at 0.90 of full pace on a straight walk (the worst of
+    more members lags more: twelve at 0.98; the layout is not it, ranks of 5 / 5 / 5 / 5 walked 0.90 too:
+    walk-redeal-pawn20, walk-evenranks-pawn20). From 128, the band holds nothing it calls formed. Open after this: a
+    Stout's trail is past the band, so a Stout following perfectly is dragged and reported out of slot; the answer is
+    a lead, the slot order placed the type's following distance ahead of the slot so the unit stands in the slot,
+    which needs the turn rate from the defs or an online measure, and is the next decision for the user.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -617,6 +690,26 @@ from 159 to 49 and its stops from 13 s to 1; within 600 of the four corners the 
 8 / 33 / 9 / 13. What remains is the wheel: at the third corner the turn still knocks 13 of 14 members out of slot for
 a few seconds (8 away, 5 behind), the redirection work the user put next. The lap bar of 1.1 x is near; the formed
 share's 0.9 is not met.
+
+**The re-deal at the turn (D14, the same night; ledger rows circuit6-* to circuit12-*, walk-redeal-*):** built in
+six rounds, each measured (D14's amendment has the mechanisms and what the traces changed). The end state on the same
+drill: twenty Pawns with no feed walk the lap in 188 / 189 / 191 s, 1.085 x the walk on foot (the lap bar met), at a
+speed share of 0.94 and a formed share of 0.94, 8 slow seconds a lap, the three big corners (118-132 degrees) turned
+with 18-20 of 20 formed and the pace never under 66; fed, Pawns 196 / 198 / 199 (the sticky slots' 204, 1.13 x),
+Stouts 246 / 249 / 251 (270), Flashes 186 / 189 / 190 (200), every fed unit joined. The formed share with a feed fell
+to 0.75-0.77 (0.79-0.83) for a reason the bench found and the band must answer: a unit sent every tick to a point
+moving at the pace settles behind it by a distance of the engine's (72-86 for a Pawn at 80, every rank alike, about
+twice that for a Stout by its turn rate: `walk-redeal-pawn20` 0.89 of full speed, `walk-redeal-pawn12` 0.97, the old
+even layout the same), so with the drag from 64 a body of twenty Pawns was held at 0.90 of full pace by nothing but
+following, and with the drag moved to the formed band (128) it walks at full pace and trails at the band's edge, a
+Stout past it. The formed-share bar (0.9) is therefore not a formation question but a lead question: the slot order
+placed the type's following distance ahead of the slot, so the unit stands in the slot and the band means what it says
+(a lead measured from the units as they walk, or from the turn rate in the defs, which the protocol does not carry).
+That is the next decision for the user, with the shape to the corridor and the slot deal at the start behind it. Beside
+the group: the field's way thinned to 256 was a staircase of grid bends, straightened by line of sight (19 points from
+58); the per-second log's headings to a hundredth; the game swallows `/cheat 1` now and then, both sendings (four of
+nine matches), so an army of which nothing appeared in three seconds is given again under a fresh `/cheat 1`
+(pitfalls.md).
 
 ## 6. Open for the user
 

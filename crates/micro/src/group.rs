@@ -10,7 +10,10 @@
 //! What the loop holds: the pace (the slowest type's speed in the group times `Pacing::fraction`, 1.0: the anchor is
 //! held back by its formed members, so the slowest type regains a lost slot by the anchor waiting, not by a margin on
 //! the pace; the bench's 0.9 cost a pure column 4 s for nothing and met no bar the 1.0 missed), the shape (ranks of `form::FILES` across the
-//! heading; the contact arc is the lane's, `lib.rs`), coherence (a member within `formed_within` of its slot is
+//! heading, filled from the front; the contact arc is the lane's, `lib.rs`; the slots re-dealt by least travel with
+//! the anchor set down on the body when the anchor turns `REDEAL_TURN_DEG` or more at a route point, design D14: a
+//! turn is a re-labelling of who stands where and an about-face is free, where the slots rotating about the anchor
+//! with each member chasing its own knocked 13 of 14 out of slot at every corner of the circuit), coherence (a member within `formed_within` of its slot is
 //! formed; one behind it by more than `drag_from` slows the anchor, to a stop at `exception_at` behind; one further
 //! than `exception_at` from its slot is an exception reported as away, and is formed again within `rejoin_within`:
 //! two thresholds with hysteresis, so the report never flickers), and arrival (the anchor at the route's end and
@@ -18,8 +21,8 @@
 //! first circuit on Quicksilver: the anchor walked the crow line through ground the Pawns went round, every member
 //! fell further than the threshold, and under the first law, which released them, the anchor walked the whole lap
 //! alone at full pace with twelve members a map behind it, which no same-speed member can ever close): every member
-//! that has been in the body once (within `exception_at` of its slot) holds the anchor by its lag however far behind
-//! it is, a fleeing member excepted; a joiner holds nothing until it has come that near. What the group will not wait
+//! that has been in the body once (stood within `formed_within` of its slot) holds the anchor by its lag however far
+//! behind it is, a fleeing member excepted; a joiner holds nothing until it has stood in its slot. What the group will not wait
 //! for, the host takes out of the group: that is the host's decision, from the state's words. Pure over positions;
 //! the lane decides what each slot becomes as an order.
 
@@ -28,6 +31,12 @@ use std::collections::HashMap;
 use bot_protocol::{UnitId, Vec3};
 
 use crate::form;
+
+/// `WITHIN_REASON_GROUP_DEBUG=1`: the group says on stderr when it re-deals, turns, or its slots jump.
+fn debug_on() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("WITHIN_REASON_GROUP_DEBUG").is_some_and(|v| v != "0" && !v.is_empty()))
+}
 
 /// What a group is to do at its route's end.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,9 +107,13 @@ pub struct Pacing {
     pub cadence: i32,
     /// A member this near its slot is formed (two hulls).
     pub formed_within: f32,
-    /// A member of the body further behind its slot than this slows the anchor, to a stop at `exception_at`.
+    /// A member of the body further behind its slot than this slows the anchor, to a stop at `exception_at`. The
+    /// formed band (128): a unit sent every tick to a point moving at the pace settles behind it by a distance of
+    /// the engine's (72-86 for a Pawn at 80, about twice that for a Stout), so a drag from 64 held a body of twenty
+    /// Pawns at 0.90 of full pace on a straight walk with every rank the same distance behind (walk-redeal-pawn20),
+    /// a body of twelve at 0.98; the formed band holds nothing it calls formed.
     pub drag_from: f32,
-    /// A member further than this from its slot is an exception (away); a joiner this near is in the body from then on.
+    /// A member further than this from its slot is an exception (away).
     pub exception_at: f32,
     /// An away member this near its slot is formed again.
     pub rejoin_within: f32,
@@ -109,10 +122,15 @@ pub struct Pacing {
 /// A route point that moved less than this since the host's last order is the same point (an enemy's centre
 /// creeping; the host re-declaring every tick): the anchor's leg and the slots' deal stand.
 pub const ROUTE_MOVED: f32 = 48.0;
+/// A heading change at a route point of this many degrees or more re-deals the slots with the anchor set down on the
+/// body (D14); a smaller bend snaps the slots about the anchor and the deal stays. Twenty: a four-rank body's rear
+/// corners stand 370 from the anchor, so a snap of 23 degrees moved them 146 and put 17 of 20 out of the band
+/// (the circuit9 trace), while a re-deal that keeps the trail costs the body nothing.
+pub const REDEAL_TURN_DEG: f32 = 20.0;
 
 impl Default for Pacing {
     fn default() -> Pacing {
-        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING }
+        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: 2.0 * form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING }
     }
 }
 
@@ -138,15 +156,15 @@ pub struct Group {
     pub heading: (f32, f32),
     /// The route point the anchor walks to next; `route.len()` at the end.
     pub leg: usize,
-    /// Each member's slot index, sticky until the membership or the route changes.
+    /// Each member's slot index, sticky until the membership or the route changes, the anchor turns `REDEAL_TURN_DEG`
+    /// at a route point or is set down after contact.
     slot_of: HashMap<UnitId, usize>,
     /// Members out of their slot beyond the exception threshold (away), with the frame it happened.
     away: HashMap<UnitId, i32>,
-    /// Members that have been in a slot at least once since joining.
+    /// Members that have stood in a slot at least once since joining: the body, whose lag holds the anchor (a joiner
+    /// holds nothing until then; when it held from within the exception threshold, a joiner arriving at 280 behind
+    /// its slot stalled the whole body to a pace of 16, twice a lap: circuit9).
     formed_once: HashMap<UnitId, bool>,
-    /// Members that have been within the exception threshold of their slot at least once: the body, whose lag holds
-    /// the anchor.
-    in_body: HashMap<UnitId, bool>,
     /// Stopped by the lane: at contact the anchor stands.
     pub stopped: bool,
     pub arrived: bool,
@@ -180,7 +198,6 @@ impl Group {
             slot_of: HashMap::new(),
             away: HashMap::new(),
             formed_once: HashMap::new(),
-            in_body: HashMap::new(),
             stopped: false,
             arrived: false,
             engaged: None,
@@ -191,7 +208,7 @@ impl Group {
             slots: HashMap::new(),
             exceptions: Vec::new(),
         };
-        group.anchor = group.anchor_for(centroid, heading);
+        group.anchor = group.anchor_for(centroid, heading, group.members.len());
         group
     }
 
@@ -219,23 +236,85 @@ impl Group {
         }
     }
 
-    /// The anchor that puts the ranks' centroid at `centroid` facing `heading`.
-    fn anchor_for(&self, centroid: Vec3, heading: (f32, f32)) -> Vec3 {
-        let n = self.members.len().max(1);
-        let at_origin = form::slots(Vec3::default(), heading, n, self.spacing, form::FILES);
+    /// The anchor that puts the centroid of `count` ranks' slots at `centroid` facing `heading`.
+    fn anchor_for(&self, centroid: Vec3, heading: (f32, f32), count: usize) -> Vec3 {
+        let at_origin = form::slots(Vec3::default(), heading, count.max(1), self.spacing, form::FILES);
         let c0 = form::centroid(at_origin.iter().copied()).unwrap_or_default();
         Vec3 { x: centroid.x - c0.x, y: centroid.y, z: centroid.z - c0.z }
     }
 
     /// The anchor set down again at the members' centroid (after contact, where the body stands is where the march
-    /// resumes from), facing the next route point.
+    /// resumes from), facing the next route point; the slots re-dealt where the members stand (the arc's places are
+    /// not the march's).
     pub fn reanchor(&mut self, centroid: Vec3) {
         if let Some(next) = self.order.route.get(self.leg)
             && next.dist2d(centroid) > 1.0
         {
             self.heading = form::heading(centroid, *next);
         }
-        self.anchor = self.anchor_for(centroid, self.heading);
+        self.anchor = self.anchor_for(centroid, self.heading, self.members.len());
+        self.slot_of.clear();
+    }
+
+    /// The body's depth behind the anchor along the heading: the mean of its members' (in the body, not away, not
+    /// fleeing), or the layout's half depth for the members when nobody is in the body yet. The carry at a corner
+    /// (`target`) is measured, so the trail the members keep behind their slots (about fifty at pace, the brake zone)
+    /// and the ranks they actually hold are in it: from the rank count alone the body's centroid was still a hundred
+    /// short of the corner when the anchor turned (the circuit7-carry trace).
+    fn body_depth(&self, walkers: &[Walker]) -> f32 {
+        let h = self.heading;
+        let depths: Vec<f32> = walkers
+            .iter()
+            .filter(|w| !w.fleeing && !self.away.contains_key(&w.id) && self.formed_once.get(&w.id).copied().unwrap_or(false))
+            .map(|w| (self.anchor.x - w.pos.x) * h.0 + (self.anchor.z - w.pos.z) * h.1)
+            .collect();
+        if depths.is_empty() {
+            return (self.members.len().max(1).div_ceil(form::FILES) - 1) as f32 * form::RANK_GAP / 2.0;
+        }
+        (depths.iter().sum::<f32>() / depths.len() as f32).max(0.0)
+    }
+
+    /// The point the anchor walks to for `leg`: the route's point, carried on along its leg by `carry` (the body's
+    /// depth behind the anchor) when a point precedes it and another follows (at most half way to the next). The route is the body's centre line and
+    /// the anchor is its front: an anchor that turned at the point would leave the body's centroid half its depth
+    /// short of the corner, so the ranks set down over the body at the turn (D14) would lie that far inside the new
+    /// leg, the inside file in the wall the route kept its room from, and the next point, 256 on, nearly abreast of
+    /// the anchor, which swung the heading a second time a tick later (the first re-deal runs: 60-85 degrees, the
+    /// body knocked out of slot again). Carried on, the body's centroid turns at the point and the new ranks lie on
+    /// the new leg. The first point has no leg into it, so no carry.
+    fn target(&self, leg: usize, carry: f32) -> Vec3 {
+        let route = &self.order.route;
+        let point = route[leg];
+        let Some(next) = route.get(leg + 1) else { return point };
+        if leg == 0 || carry <= 0.0 {
+            return point;
+        }
+        let from = route[leg - 1];
+        if from.dist2d(point) < 1.0 {
+            return point;
+        }
+        let u = form::heading(from, point);
+        let carry = carry.min(point.dist2d(*next) / 2.0);
+        Vec3 { x: point.x + u.0 * carry, y: point.y, z: point.z + u.1 * carry }
+    }
+
+    /// The anchor set down so the body's ranks lie over the body (design D14: at a turn the slots are re-dealt where
+    /// the members stand, so the turn is a re-labelling and an about-face costs nobody a step). The body is the
+    /// members in it, not away and not fleeing, and the slot count is the body's: with the joiners' slots counted the
+    /// anchor would stand a rank ahead of the body. On the members themselves, not the trail they walked behind their
+    /// slots ahead of them: set down there everyone is formed at once and the body walks off at full pace, the trail
+    /// re-forming in a few seconds without drag (circuit9b, a 126-degree corner: pace 70 to 87, 20 formed throughout);
+    /// set down the trail ahead, the trail added to the re-deal's travel and a 130-degree corner put 19 of 20 out of
+    /// the band (circuit10: pace 21, formed 1). A body of nobody leaves the anchor where it is.
+    fn settle_on_body(&mut self, walkers: &[Walker]) {
+        let body: Vec<Vec3> = walkers
+            .iter()
+            .filter(|w| !w.fleeing && !self.away.contains_key(&w.id) && self.formed_once.get(&w.id).copied().unwrap_or(false))
+            .map(|w| w.pos)
+            .collect();
+        if let Some(centroid) = form::centroid(body.iter().copied()) {
+            self.anchor = self.anchor_for(centroid, self.heading, body.len());
+        }
     }
 
     /// An Attack's goal follows its target: the route's end moves to `at`; an anchor that had arrived walks on when
@@ -256,14 +335,14 @@ impl Group {
         self.leg >= self.order.route.len()
     }
 
-    /// The anchor walks `distance` along the route, leg by leg.
-    fn advance(&mut self, distance: f32) {
+    /// The anchor walks `distance` along the route, leg by leg, each intermediate point carried on by `carry`.
+    fn advance(&mut self, distance: f32, carry: f32) {
         let mut left = distance;
         while left > 0.0 && self.leg < self.order.route.len() {
-            let target = self.order.route[self.leg];
+            let target = self.target(self.leg, carry);
             let d = self.anchor.dist2d(target);
             if d <= left {
-                if d > 0.5 {
+                if d >= 1.0 {
                     self.heading = form::heading(self.anchor, target);
                 }
                 self.anchor = Vec3 { y: target.y, ..target };
@@ -285,25 +364,28 @@ impl Group {
         let dt = self.last_frame.map_or(0.0, |f| (frame - f).max(0) as f32 / 30.0);
         self.last_frame = Some(frame);
         self.spacing = spacing;
+        let carry = self.body_depth(walkers);
         let slowest = walkers.iter().map(|w| w.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
         self.full_pace = if slowest.is_finite() { slowest * pacing.fraction } else { 0.0 };
         if !march && !self.at_end() {
             // No pacing: the slots stand at the destination and every unit walks there at its own speed.
             if let Some(end) = self.order.route.last().copied() {
-                if end.dist2d(self.anchor) > 1.0 {
+                if end.dist2d(self.anchor) >= 1.0 {
                     self.heading = form::heading(self.anchor, end);
                 }
                 self.anchor = Vec3 { y: end.y, ..end };
             }
             self.leg = self.order.route.len();
         } else if self.leg < self.order.route.len() {
-            let next = self.order.route[self.leg];
-            if next.dist2d(self.anchor) > 0.5 {
+            let next = self.target(self.leg, carry);
+            // (`form::heading` says east for two points under 1.0 apart: a Hold at the body's own place spun the
+            // formation east at the route's end before every guard was 1.0.)
+            if next.dist2d(self.anchor) >= 1.0 {
                 self.heading = form::heading(self.anchor, next);
             }
         }
         // Who is where against last tick's slots: the drag on the anchor from the body's members behind theirs,
-        // however far (the anchor never outruns its body); a joiner is in the body once within the threshold.
+        // however far (the anchor never outruns its body); a joiner is in the body once it has stood in its slot.
         let h = self.heading;
         let mut max_lag = 0.0f32;
         for w in walkers {
@@ -317,8 +399,8 @@ impl Group {
             } else if off > pacing.exception_at {
                 self.away.insert(w.id, frame);
             }
-            let in_body = self.in_body.entry(w.id).or_insert(false);
-            if off <= pacing.exception_at {
+            let in_body = self.formed_once.entry(w.id).or_insert(false);
+            if off <= pacing.formed_within {
                 *in_body = true;
             }
             if *in_body && !w.fleeing {
@@ -329,18 +411,87 @@ impl Group {
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
         self.pace = if self.stopped || self.at_end() || !march { 0.0 } else { self.full_pace * held };
         if self.pace > 0.0 {
-            self.advance(self.pace * dt);
+            let (heading_before, leg_before) = (self.heading, self.leg);
+            self.advance(self.pace * dt, carry);
+            // A route point passed: facing the next, and at a turn of `REDEAL_TURN_DEG` or more the anchor is set
+            // down on the body and the slots re-dealt where the members stand (D14).
+            if self.leg > leg_before && self.leg < self.order.route.len() {
+                let next = self.target(self.leg, carry);
+                if next.dist2d(self.anchor) >= 1.0 {
+                    self.heading = form::heading(self.anchor, next);
+                }
+                let turn = heading_before.0 * self.heading.0 + heading_before.1 * self.heading.1;
+                if turn < REDEAL_TURN_DEG.to_radians().cos() {
+                    let before = self.anchor;
+                    // Set down on the body facing the next target from there, twice: the setting-down moves the
+                    // anchor, and the ranks are laid at the heading from where it stands (laid at the heading from
+                    // where it turned, they swung 25-35 degrees more a tick later: the circuit7-carry trace).
+                    for _ in 0..2 {
+                        self.settle_on_body(walkers);
+                        if next.dist2d(self.anchor) >= 1.0 {
+                            self.heading = form::heading(self.anchor, next);
+                        }
+                    }
+                    self.slot_of.clear();
+                    if debug_on() {
+                        let body = walkers.iter().filter(|w| !w.fleeing && !self.away.contains_key(&w.id) && self.formed_once.get(&w.id).copied().unwrap_or(false)).count();
+                        eprintln!(
+                            "[group {} f={frame}] TURN {:.0} deg at leg {}: anchor ({:.0},{:.0}) set down at ({:.0},{:.0}) on a body of {body} of {} (carry {carry:.0})",
+                            self.name,
+                            turn.clamp(-1.0, 1.0).acos().to_degrees(),
+                            self.leg,
+                            before.x,
+                            before.z,
+                            self.anchor.x,
+                            self.anchor.z,
+                            walkers.len()
+                        );
+                    }
+                }
+            }
         }
         // The slots, sticky by index; dealt by least travel when the deal is stale.
         let ids: Vec<UnitId> = walkers.iter().map(|w| w.id).collect();
         let n = ids.len();
         let slots = form::slots(self.anchor, self.heading, n.max(1), spacing, form::FILES);
-        if n > 0 && (self.slot_of.len() != n || ids.iter().any(|id| !self.slot_of.contains_key(id))) {
+        let stale = n > 0 && (self.slot_of.len() != n || ids.iter().any(|id| !self.slot_of.contains_key(id)));
+        if stale {
             let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
-            let deal = form::assign(&positions, &slots[..n], self.heading);
+            let deal = form::assign(&positions, &slots[..n]);
             self.slot_of = ids.iter().copied().zip(deal).collect();
         }
+        let previous = std::mem::take(&mut self.slots);
         self.slots = ids.iter().map(|id| (*id, slots[self.slot_of.get(id).copied().unwrap_or(0).min(n.saturating_sub(1))])).collect();
+        if debug_on() {
+            // Of the members that stood within the band of their slot last tick, how many have a slot elsewhere now
+            // (further than the anchor's own step and a half spacing), and the furthest.
+            let step = self.pace * dt;
+            let (mut unsettled, mut worst) = (0usize, 0.0f32);
+            for w in walkers {
+                if let (Some(p), Some(s)) = (previous.get(&w.id), self.slots.get(&w.id))
+                    && w.pos.dist2d(*p) <= pacing.formed_within
+                {
+                    let d = p.dist2d(*s);
+                    if d > step + 32.0 {
+                        unsettled += 1;
+                        worst = worst.max(d);
+                    }
+                }
+            }
+            if stale || unsettled > 0 {
+                eprintln!(
+                    "[group {} f={frame}] {} n={n} anchor=({:.0},{:.0}) heading=({:.2},{:.2}) leg={} carry={carry:.0} pace={:.0}; {unsettled} formed members' slots moved, the furthest {worst:.0} (the anchor's step {step:.0})",
+                    self.name,
+                    if stale { "RE-DEAL" } else { "SLOTS JUMPED" },
+                    self.anchor.x,
+                    self.anchor.z,
+                    self.heading.0,
+                    self.heading.1,
+                    self.leg,
+                    self.pace
+                );
+            }
+        }
         // Formed and exceptions, from this tick's slots.
         self.exceptions.clear();
         let mut all_formed = true;
@@ -460,10 +611,10 @@ mod tests {
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
         let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder { kind: GroupKind::Go, route: vec![at(5000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
         group.tick(0, &w, 64.0, &pacing, true);
-        // Unit 2 lags 150 behind its slot: the anchor walks at less than the pace.
+        // Unit 2 lags 200 behind its slot: the anchor walks at less than the pace.
         let slots = group.tick(3, &w, 64.0, &pacing, true).clone();
         w[0].pos = at(slots[&UnitId(1)].x - 20.0, -32.0);
-        w[1].pos = at(slots[&UnitId(2)].x - 150.0, 32.0);
+        w[1].pos = at(slots[&UnitId(2)].x - 200.0, 32.0);
         group.tick(6, &w, 64.0, &pacing, true);
         assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
         let state = group.state(&w);
@@ -476,7 +627,7 @@ mod tests {
         assert_eq!(group.pace, 0.0, "the anchor waits for a member of its body a map behind");
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away);
         let slots = group.tick(12, &w, 64.0, &pacing, true).clone();
-        w[1].pos = at(slots[&UnitId(2)].x - 150.0, 32.0);
+        w[1].pos = at(slots[&UnitId(2)].x - 200.0, 32.0);
         group.tick(15, &w, 64.0, &pacing, true);
         assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away, "still away until within the rejoin distance");
@@ -502,6 +653,113 @@ mod tests {
         let rear_before = w.iter().min_by(|a, b| a.pos.x.total_cmp(&b.pos.x)).unwrap().id;
         let front_slot_x = slots.values().map(|s| s.x).fold(f32::INFINITY, f32::min);
         assert!((slots[&rear_before].x - front_slot_x).abs() < 1.0);
+    }
+
+    /// Twelve in two ranks of six facing east, each at its slot: the front rank on x = 0, the rear 96 behind and offset.
+    fn two_ranks_of_six() -> Vec<Walker> {
+        let places: Vec<(i32, f32, f32)> = (0..12).map(|i| (i as i32 + 1, if i < 6 { 0.0 } else { -96.0 }, ((i % 6) as f32 - 2.5) * 64.0 + if i < 6 { 0.0 } else { 32.0 })).collect();
+        walkers(&places, 100.0)
+    }
+
+    #[test]
+    fn an_about_face_at_a_route_point_costs_the_body_no_step() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members, GroupOrder { kind: GroupKind::Go, route: vec![at(200.0, 0.0), at(-3000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        // To the point with everyone in its slot each tick (the engine's following, without the trail), until the
+        // anchor passes it and turns back west.
+        let mut frame = 0;
+        let mut turned = None;
+        while frame < 150 {
+            let slots = group.tick(frame, &w, 64.0, &pacing, true).clone();
+            if group.heading.0 < 0.0 {
+                turned = Some(slots);
+                break;
+            }
+            for u in w.iter_mut() {
+                u.pos = slots[&u.id];
+            }
+            frame += 3;
+        }
+        let slots = turned.expect("the anchor turned back within five seconds");
+        assert!(group.heading.0 < -0.99, "{:?}", group.heading);
+        // The walkers stand where last tick's slots were; the new slots lie on them (a degree of the approach's tilt).
+        for u in &w {
+            assert!(u.pos.dist2d(slots[&u.id]) < 5.0, "unit {:?} at {:?} would walk to {:?}", u.id, u.pos, slots[&u.id]);
+        }
+        assert!((group.anchor.x - w[6].pos.x).abs() < 5.0, "the old rear rank is the new front: anchor {:?}, rear at {:?}", group.anchor, w[6].pos);
+        assert!(group.state(&w).exceptions.is_empty());
+        group.tick(frame + 3, &w, 64.0, &pacing, true);
+        assert!((group.pace - group.full_pace).abs() < 0.01, "nobody lags, so the anchor walks on at full pace: {} of {}", group.pace, group.full_pace);
+        // Ten behind the slots after that tick's walk: within the drag band, all formed.
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x - 10.0, u.pos.z);
+        }
+        group.tick(frame + 6, &w, 64.0, &pacing, true);
+        assert_eq!(group.state(&w).formed.len(), 12);
+    }
+
+    #[test]
+    fn the_anchor_carries_on_past_a_corner_by_half_the_depth_so_the_body_turns_on_the_route() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        // East through (100, 0) to (300, 0), then south: a right angle at the second point (the first point has no
+        // leg into it and is not carried). Two ranks: half the depth is 48.
+        let mut group = Group::new("a", members, GroupOrder { kind: GroupKind::Go, route: vec![at(100.0, 0.0), at(300.0, 0.0), at(300.0, 3000.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        let mut frame = 0;
+        let mut turned = None;
+        while frame < 300 {
+            let before: Vec<Vec3> = w.iter().map(|u| u.pos).collect();
+            let slots = group.tick(frame, &w, 64.0, &pacing, true).clone();
+            if group.heading.1 > 0.5 {
+                turned = Some((before, slots));
+                break;
+            }
+            for u in w.iter_mut() {
+                u.pos = slots[&u.id];
+            }
+            frame += 3;
+        }
+        let (before, slots) = turned.expect("the anchor turned south");
+        // It turned 48 past the point, where the body's centroid stood on the corner.
+        let centroid = form::centroid(before.iter().copied()).unwrap();
+        assert!((centroid.x - 300.0).abs() < 15.0 && centroid.z.abs() < 20.0, "the body's centroid at the turn: {centroid:?}");
+        assert!((group.anchor.x - 300.0).abs() < 25.0, "the new ranks lie on the new leg: anchor {:?}", group.anchor);
+        // A right angle re-dealt where the body stands: a 320 x 96 body turned into a 96 x 320 one, so the flanks walk
+        // 130-160 (the least total squared travel, not the least worst) and two thirds of the body less than the
+        // formed band; the slots rotating about the anchor moved the outer flank's slot 300-670 on the circuit's
+        // corners. An about-face is free (the test above); a right angle is cheap in proportion to the body's depth.
+        let travel: Vec<f32> = w.iter().map(|u| u.pos.dist2d(slots[&u.id])).collect();
+        let worst = travel.iter().cloned().fold(0.0, f32::max);
+        assert!(worst < 170.0, "the worst walk {worst}: {travel:?}");
+        assert!(travel.iter().filter(|d| **d <= pacing.formed_within).count() >= 8, "{travel:?}");
+        // The next point is straight ahead: no second swing a tick later.
+        group.tick(frame + 3, &w, 64.0, &pacing, true);
+        assert!(group.heading.1 > 0.98, "{:?}", group.heading);
+    }
+
+    #[test]
+    fn a_joiner_takes_a_slot_behind_and_moves_no_body_slot() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members.clone(), GroupOrder { kind: GroupKind::Go, route: vec![at(5000.0, 0.0)] }, &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing, true);
+        let before = group.tick(3, &w, 64.0, &pacing, true).clone();
+        let anchor_before = group.anchor;
+        let mut with_joiner = members.clone();
+        with_joiner.push(UnitId(13));
+        group.update(with_joiner, group.order.clone());
+        w.push(Walker { id: UnitId(13), pos: at(-900.0, 0.0), speed: 100.0, moving: 100.0, fleeing: false });
+        let after = group.tick(6, &w, 64.0, &pacing, true).clone();
+        let walked = group.anchor.x - anchor_before.x;
+        for id in &members {
+            let (a, b) = (before[id], after[id]);
+            assert!((b.x - a.x - walked).abs() < 0.01 && (b.z - a.z).abs() < 0.01, "the joiner moved {id:?}'s slot from {a:?} to {b:?}");
+        }
+        assert!(after[&UnitId(13)].x < group.anchor.x - 2.0 * form::RANK_GAP + 0.01, "the joiner's slot is a third rank behind: {:?} with the anchor at {:?}", after[&UnitId(13)], group.anchor);
     }
 
     #[test]

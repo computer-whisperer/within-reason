@@ -277,7 +277,13 @@ together: the infolog shows both AIs' `/cheat 1` lines at frame 0 and no "Cheati
 `/give` refused with "cannot be executed (cheats required)" and the duel `spawn_failed`; the match beside it, started
 the same second, was fine), so the shim now sends `/cheat 1` again eight frames after the first and holds spawns
 fifteen frames (`CHEAT_RESEND`, `CHEAT_LAG`): half a second a match. Whether the first command is lost in the server's
-start or in the client's is not known; the second sending has not been seen to fail. Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
+start or in the client's is not known. **Later the same night both sendings were swallowed** (four of nine matches,
+one engine at a time as well as two: `/cheat 1` logged at frames 0 and 8, no "Cheating is enabled!", every give at
+frame 15 refused), so the director gives an army of which nothing at all has appeared three seconds after its gives
+again (`SPAWN_RETRY`; a unit given under the cheat appears within a second or two, so nothing in three is the refusal)
+and the shim sends `/cheat 1` again before any give arriving two seconds or more after its last sending
+(`CHEAT_REFRESH`), holding that give `CHEAT_LAG` as before. The retry is said on stderr ("nothing of the army appeared
+in 3 s: given again"); a match that needed it is otherwise the same match. Checked with `run/replay_match.py` on a drill's demo: the twelve Blitzes appear at frame 120 and walk
 to the goal, no desync in the replay's infolog; the baselines' numbers did not move. The gather's metal top-up is
 still the AI's resource cheat, so a gather's demo desyncs on its resources; everything else in a duel replays.
 

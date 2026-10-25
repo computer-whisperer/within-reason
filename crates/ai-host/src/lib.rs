@@ -106,8 +106,9 @@ struct Instance<L: Transport> {
     /// The frame `/cheat 1` went out (the host's first update), which `/give` needs (`engine::Spawner::give`): spawns
     /// are held until `CHEAT_LAG` frames after it, when the flag has come back from the server, and the command goes
     /// out again `CHEAT_RESEND` frames after the first, since the game has swallowed the first one (2026-10-24 night,
-    /// two engines starting together: no "Cheating is enabled!" in the infolog, every give refused, `spawn_failed`);
-    /// and the last frame seen.
+    /// two engines starting together: no "Cheating is enabled!" in the infolog, every give refused, `spawn_failed`),
+    /// and again before a give `CHEAT_REFRESH` frames after the last sending (the director's retried spawn); the
+    /// frame of the last sending.
     cheats_sent_at: Option<i32>,
     frame: i32,
 }
@@ -118,6 +119,9 @@ const CHEAT_LAG: i32 = 15;
 /// `/cheat 1` again this many frames after the first, in case the game dropped the first (setting the flag twice is
 /// nothing).
 const CHEAT_RESEND: i32 = 8;
+/// A give arriving this long after the last `/cheat 1` sends the command again first (a retried spawn: the game had
+/// swallowed both earlier sendings, 2026-10-24 night, four of nine matches).
+const CHEAT_REFRESH: i32 = 2 * 30;
 
 // SAFETY: the engine only calls the exports from its own thread; the raw callback pointer
 // inside `Engine` never leaves that thread. The mutex only guards the instance table.
@@ -249,6 +253,15 @@ impl<L: Transport> Instance<L> {
                 }
             }
             if let Command::GiveUnit { def, at } = command {
+                // A give long after the cheat command: `/cheat 1` again first, and the give waits `CHEAT_LAG` for
+                // it (the game swallows the command now and then, both sendings; the director gives an army of
+                // which nothing appeared again three seconds on, and that give needs a fresh flag).
+                if self.cheats_sent_at.is_some_and(|sent| self.frame - sent > CHEAT_REFRESH) {
+                    if let Err(code) = self.engine.console("/cheat 1") {
+                        self.log(format!("/cheat 1 refused: {code}"));
+                    }
+                    self.cheats_sent_at = Some(self.frame);
+                }
                 self.spawns.push((def, at));
                 continue;
             }

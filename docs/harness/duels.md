@@ -314,10 +314,17 @@ walk on foot and the walked route's length). The group's route is the spawn poin
 `laps` times over, the lab's corner last: the way from each corner to the next over the field priced by room
 (design D13: a cell costs the flat rate where the formation has its half-width and a hull of clearance from any wall or
 the map's edge, up to six times that at a wall, so a corner is rounded at that distance and a narrower corridor is
-walked down its middle; the corners are chosen with that room too; `terrain::clearance`, `clearance_costs`), a point
-every 256, as one group order never changed, so the anchor turns at each point without stopping (the first run gave the
-anchor the corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the host's
-field gives the points round terrain; the second hugged every corner). The match's message says the route's least room
+walked down its middle; the corners are chosen with that room too; `terrain::clearance`, `clearance_costs`), thinned
+to a point every 256 and then straightened (from each point the furthest later one the body reaches in a straight line
+with the room it wants all the way, so a leg bends only where the ground bends it: 19 points round Quicksilver from 58;
+design D14), as one group order never changed, so the anchor turns at each point without stopping (the first run gave
+the anchor the corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the
+host's field gives the points round terrain; the second hugged every corner; the third's thinned way was a staircase of
+26-45 degree bends that snapped a deep body's rear corners 150 at each). At a turn of 20 degrees or more the group
+re-deals its slots where the members stand (D14: the anchor carries on past the point by the body's depth, is set down
+on the body facing the next, and the slots are dealt by least travel), and `WITHIN_REASON_GROUP_DEBUG=1` has the group
+say each turn, re-deal and slot jump on stderr with the frame, the anchor, the heading and how many formed members'
+slots moved. The match's message says the route's least room
 against the room wanted, and the meta line carries `clearance` as [wanted, least]. Lane off, each unit (a fed one too) is given the corners alone as queued fight or move
 orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
 (`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the

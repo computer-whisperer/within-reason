@@ -1159,8 +1159,7 @@ impl Lane {
                 group.stopped = true;
                 group.engaged = Some(contact.target);
                 let (slots, _, _) = form::contact_slots(&contact, walkers.len(), spacing);
-                let h = form::heading(centre, contact.stadium.at(contact.facing));
-                let slot_of = form::assign(&positions, &slots, h);
+                let slot_of = form::assign(&positions, &slots);
                 // Against area fire the walk to the slot is a Move, which keeps the body spread and walking under
                 // the shells (25 Stouts against 4 Fatboys: +0.49 with Move, -0.37 with Fight); against direct fire a
                 // Fight, which stops to shoot at the first thing in reach (14 Blitzes on E3 r1250: -0.25 against

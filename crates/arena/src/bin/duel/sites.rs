@@ -438,24 +438,44 @@ pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wante
         let (cx, cz) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
         room.get(cz.min(height - 1) * width + cx.min(width - 1)).copied().unwrap_or(0.0)
     };
+    // Whether the body can walk from `a` to `b` in a straight line with the room it wants all the way (a sample a cell).
+    let straight = |a: Vec3, b: Vec3| -> bool {
+        let steps = (a.dist2d(b) / terrain.cell).ceil().max(1.0) as usize;
+        (0..=steps).all(|k| {
+            let t = k as f32 / steps as f32;
+            let (cx, cz) = (((a.x + (b.x - a.x) * t) / terrain.cell) as usize, ((a.z + (b.z - a.z) * t) / terrain.cell) as usize);
+            cx < width && cz < height && standable[cz * width + cx] && room[cz * width + cx] >= clearance
+        })
+    };
     let mut legs = Vec::new();
     let mut route = Vec::new();
     let mut least_clearance = f32::INFINITY;
     for i in 0..out.len() {
         let (from, to) = (out[i], out[(i + 1) % out.len()]);
-        // The walk on foot is the plain field's; the way is the priced field's, thinned, the next corner closing
-        // the leg.
+        // The walk on foot is the plain field's; the way is the priced field's, thinned, then straightened: from
+        // each point the furthest later one reached in a straight line with the room wanted, so a leg bends only
+        // where the ground bends it (the field's way is a chain of cell moves at multiples of 45 degrees, and thinned
+        // alone it was a staircase of 26-45 degree bends every point, each snapping a four-rank body's rear corners
+        // 150: the circuit7-carry trace); the next corner closes the leg.
         legs.push(Field::from_many(terrain, standable, &[to]).and_then(|f| f.distance(from)));
         let way = Field::from_costs(terrain, &costs, &[to]).map(|f| f.route(from)).unwrap_or_default();
-        let mut last = from;
+        let mut thinned = vec![from];
         for p in way {
             least_clearance = least_clearance.min(room_at(p));
-            if p.dist2d(last) >= ROUTE_STEP && p.dist2d(to) >= ROUTE_STEP {
-                route.push(p);
-                last = p;
+            if p.dist2d(*thinned.last().unwrap()) >= ROUTE_STEP && p.dist2d(to) >= ROUTE_STEP {
+                thinned.push(p);
             }
         }
-        route.push(to);
+        thinned.push(to);
+        let mut i = 0;
+        while i + 1 < thinned.len() {
+            let mut j = thinned.len() - 1;
+            while j > i + 1 && !straight(thinned[i], thinned[j]) {
+                j -= 1;
+            }
+            route.push(thinned[j]);
+            i = j;
+        }
     }
     Ok(Circuit { corners: out, route, legs, least_clearance })
 }

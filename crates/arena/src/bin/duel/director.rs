@@ -27,6 +27,11 @@ const FPS: i32 = 30;
 const SETTLE: i32 = FPS;
 /// An army that has not fully appeared by now never will (unknown unit, blocked ground).
 const SPAWN_ALLOWANCE: i32 = 10 * FPS;
+/// An army of which nothing at all has appeared this long after its gives is given again (the host sends `/cheat 1`
+/// again before them): the game swallows the cheat command now and then, both sendings, and refuses every give
+/// (four of nine matches one night; a unit given under the cheat appears within a second or two, so nothing in three
+/// is the refusal, not a slow setting-down).
+const SPAWN_RETRY: i32 = 3 * FPS;
 /// A fight nobody has been hurt in for this long is a stalemate (anti-air against anti-air).
 const STALEMATE: i32 = 60 * FPS;
 /// After the last unit is gone the field rests this long: explosions finish, wrecks settle.
@@ -360,7 +365,7 @@ impl Army {
 }
 
 enum Phase {
-    Spawning { since: i32, round: u8 },
+    Spawning { since: i32, round: u8, retried: i32 },
     /// A scenario's first-round units have appeared and hold fire; after `SETTLE` (they push each other apart as
     /// they appear) the hurters are placed by where they stand and given.
     Arming { since: i32, planned: bool },
@@ -934,7 +939,7 @@ impl Director {
         Some(Duel {
             job,
             armies,
-            phase: Phase::Spawning { since: -1, round: 1 },
+            phase: Phase::Spawning { since: -1, round: 1, retried: -1 },
             sequence: field.fought,
             next_sample: 0,
             shape_due: Vec::new(),
@@ -1278,13 +1283,20 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
     }
 
     let result = match &mut duel.phase {
-        Phase::Spawning { since, round } => {
+        Phase::Spawning { since, round, retried } => {
             if *since < 0 {
                 *since = frame;
             }
             let (since, round) = (*since, *round);
             let nobody_hurt = duel.armies.iter().all(|a| a.spawns.iter().all(|s| !s.hurt));
             let army = &mut duel.armies[side];
+            // Nothing of this army for `SPAWN_RETRY` frames: the gives were refused; given again.
+            let last_given = if *retried >= 0 { *retried } else { since };
+            if army.given >= round && army.unit_of.is_empty() && !army.spawns.is_empty() && frame - last_given >= SPAWN_RETRY {
+                eprintln!("[duel side {side}] nothing of the army appeared in {} s: given again", SPAWN_RETRY / FPS);
+                army.given = round - 1;
+                *retried = frame;
+            }
             if army.given < round {
                 // A duel, or a scenario with nobody to hurt, gives everything at once.
                 let everything = round >= 2 || !scenario || nobody_hurt;
@@ -1406,7 +1418,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             }
             let all_gone = duel.armies.iter().all(|a| a.hurters.iter().all(|h| h.gone));
             if all_gone || frame - since > PREPARE_ALLOWANCE {
-                duel.phase = Phase::Spawning { since: frame, round: 2 };
+                duel.phase = Phase::Spawning { since: frame, round: 2, retried: -1 };
             }
             None
         }
@@ -1893,9 +1905,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     // and why (by spawn index), whether it has arrived and what it stands on.
     if let Some(state) = x.lane.as_ref().and_then(|l| l.group_state("army")) {
         let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
+        let hundredth = |v: f32| (f64::from(v) * 100.0).round() / 100.0;
         let index = |u: &UnitId| x.spawn_of.get(u).map_or(-1, |i| *i as i64);
         line["group"] = json!({
-            "anchor": [state.anchor.x.round(), state.anchor.z.round()], "heading": [tenth(state.heading.0), tenth(state.heading.1)],
+            "anchor": [state.anchor.x.round(), state.anchor.z.round()], "heading": [hundredth(state.heading.0), hundredth(state.heading.1)],
             "pace": state.pace.round(), "full_pace": state.full_pace.round(),
             "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
