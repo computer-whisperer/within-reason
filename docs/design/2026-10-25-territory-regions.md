@@ -252,7 +252,7 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
    the cascade's order the rule's pick in 2-50 % of orders, under 30 % in most start-minutes.
 4. **The hands rebuilt as matching.** The cascade's ranking and fallbacks deleted, the lag rule in their place.
    `BESIDE`, `FACTORY_PLACER` and `plant_helpers_from` become walk times. Measured in two forms, not kept
-   (terr163-174; the code on branch `territory-matching-step4`, f97c321). Both under the standing build at 5:00 on
+   (terr163-174; the code was branch `territory-matching-step4`, f97c321, dropped 2026-10-25 on the user's word). Both under the standing build at 5:00 on
    every start and at 10:00 on five, inside at 20:00 on five (Comet from his start at its top); from 10:00 the hands
    keep every column within seconds of the plan, where the cascade let the turrets fall tens of units behind. The
    opening's loss is in the accounting: an extractor order charges its whole cost, the walk included, when given, so

@@ -87,7 +87,7 @@ On top of change 1, the walks the hands make that the plan cannot buy back:
   against 2.42 measured), but the measure read the extractor's walk about 40 % low: the plan paid about 41 s an
   extractor where the game took 51-66 (30-46 s from the order to the frame, then the frame's 20 s). Not a fair test of
   the change; the second form measures by the order's state.
-- **Change 2** (terr181-186, on the first form): not kept, held on branch `territory-walks-cut` (f426d08) and
+- **Change 2** (terr181-186, on the first form): not kept: f426d08 on `territory` (its branch `territory-walks-cut` dropped, the user's word) and
   reverted (39e3afa). The constructors' walking after 10:00 halved (0.16-0.35 of their time against 0.29-0.52) and
   became standing, 29 % of the constructors idle from 11:00 on Comet from his start and 11 % on Quicksilver; income
   did not rise, Comet from his start fell under the pool at 20:00 (929 against 946-1,137) and Quicksilver at 10:00

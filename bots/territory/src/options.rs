@@ -54,7 +54,11 @@ pub(crate) struct Options {
     /// The farm: turrets at most as a number (0: the bound per factory), and whether the program may take a
     /// standing building down for its metal (off until the hands give the order).
     pub max_nanos: f64,
-    /// Under the farm, the build time from which a turret may help a building (the core's frames); 0 is off.
+    /// Under the farm, the build time from which a turret may help a building (the core's frames); 0 is off. 20,000
+    /// since terr202 (the user, 2026-10-25: "make farm_big default"): the hands place the cheap rest out of every
+    /// turret's reach (92-100 % of the wind generators' frames in terr193-198), and with the turrets on them the
+    /// program built Great Divide's 2,056 wind generators nine in ten by the turrets; at 20,000 the marks were level
+    /// on both Comet starts and Great Divide and its plan one the hands follow (terr199-201).
     pub farm_big: f64,
     /// The metal bank at the horizon counted as metal made (no free spending at the end; off: it hoarded, terr64).
     pub bank: bool,
@@ -130,7 +134,7 @@ impl Default for Options {
             mobile_help: 0.35,
             nanos_per_factory: 6.0,
             max_nanos: 300.0,
-            farm_big: 0.0,
+            farm_big: 20_000.0,
             bank: false,
             reclaim: false,
             chain: true,

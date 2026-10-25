@@ -104,7 +104,8 @@ pub struct LpOptions {
     /// turrets themselves excluded, the program bought more constructors from the first minutes for the dearer
     /// placing (13-14 at 5:00 against 10-12, the extractors 13-16 against 17-22) and fewer turrets, and sent the
     /// constructors to help the core's frames in their place; terr58 fell at every mark (5:00 32-39 against 36-46,
-    /// 20:00 796-892 against 818-912).
+    /// 20:00 796-892 against 818-912). The territory bot runs it at 20,000 since terr202: level on both Comet starts
+    /// and Great Divide, where the turrets otherwise built nine in ten of the plan's wind generators (terr199-201).
     pub farm_big: f64,
     /// The metal in the bank at the horizon counts in the objective as metal made. Off by default: without it
     /// spending is free at the end and the program dumps the bank into whatever is quickest (terr61 game 00's plan
