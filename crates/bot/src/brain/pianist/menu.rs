@@ -105,8 +105,6 @@ pub(crate) enum Order {
     Stay,
     /// Every soldier stops where it is, and the group stays there until told otherwise.
     Hold,
-    /// The group closes up on its front.
-    Gather,
     /// To the place, running from everything on the way (a group), or walking there and waiting (a builder).
     Go(String),
     /// To the place, fighting everything on the way and there.
@@ -639,7 +637,6 @@ impl Brain {
         match &group.task {
             GroupTask::Hold { picked: true, .. } => ("hold", "hold".to_string(), format!("holds at {at}"), None),
             GroupTask::Hold { committed, .. } => ("idle", String::new(), format!("stands at {at} with no order{}", if *committed { ", fighting everything there, turrets included" } else { "" }), None),
-            GroupTask::Move { .. } if group.gathering => ("gather", "gather".to_string(), "gathers on its front".to_string(), None),
             // The key is the shell move's own (`shell_party_N`, `shell_spot_N`), so the menu leaves out the shell the
             // group is already on (player-49 11:20-11:22: an empty key left it on the menu, it was picked each
             // second and the whole group ordered again each time; 18 of group_O's 103 picks).
@@ -884,7 +881,6 @@ impl Brain {
         let leaves = match &group.task {
             GroupTask::Hold { picked: true, .. } => "; leaves its hold".to_string(),
             GroupTask::Hold { .. } => String::new(),
-            GroupTask::Move { .. } if group.gathering => "; stops gathering".to_string(),
             GroupTask::Move { place, .. } => format!("; abandons its way to {place}"),
             GroupTask::Engage { .. } => format!("; leaves {}", aimed_at.as_deref().unwrap_or("the party it was attacking")),
             GroupTask::Hunt(h) => format!("; leaves its hunt of {}", h.party),
@@ -904,20 +900,8 @@ impl Brain {
             }
         };
 
-        // Hold and gather.
+        // Hold (the gather move died with the hands' migration, chunk 2: the lane's pace and its joiners do its work).
         push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}"), format!("the hold at {at}"), None, false);
-        if !air && units.len() >= 2 && !group.roving() {
-            let tail = if body.whole < HERE {
-                "it stands together already"
-            } else if body.whole < super::groups::STRUNG_OUT {
-                "its tail is a little behind"
-            } else if body.whole < 2.0 * super::groups::STRUNG_OUT {
-                "its tail is strung out behind"
-            } else {
-                "its tail is far behind"
-            };
-            push("gather".into(), Order::Gather, format!("{name} gathers: its front stops and the rest close up on it ({tail}), and it holds there{keeps}{leaves}"), "gathering on its front".into(), None, false);
-        }
 
         // Go and fight to: every named place, both ways; a place where his buildings are known is attacked.
         for place in scene.named.iter().copied().filter(|p| p.at.dist2d(body.at) > HERE && self.reachable_for(walker, p.at)) {
@@ -1707,7 +1691,7 @@ pub(super) mod tests {
         parties[0].metal = 270.0;
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let (body, hunters): (Vec<UnitId>, Vec<UnitId>) = (ours.iter().take(12).map(|u| u.id).collect(), ours.iter().skip(12).map(|u| u.id).collect());
-        let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::Hold { committed: false, picked: false }, 0);
+        let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::idle_hold(Vec3::default()), 0);
         a.parent = Some("B".into());
         pianist.groups.push(a);
         let hunt = Hunt { quarry: UnitId(1), party: "party_12".into(), anchors: Vec::new(), since: 150, last_seen: 150, at: at(4400.0, 1640.0) };
@@ -1744,7 +1728,7 @@ pub(super) mod tests {
         parties[0].at = at(6400.0, 3400.0);
         parties[0].metal = 270.0;
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
@@ -1786,7 +1770,7 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
         pianist.decode.reads.insert("group_A|place|east_half".into(), 0.3);
         pianist.layers.fuse = true;
         brain.pianist = Some(pianist);
@@ -1839,7 +1823,7 @@ pub(super) mod tests {
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { within: None }, 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true, at: Vec3::default() }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
@@ -1875,8 +1859,8 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true, at: Vec3::default() }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
@@ -1896,7 +1880,7 @@ pub(super) mod tests {
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert_eq!(
             keys,
-            ["stay", "hold", "gather", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "rove_1"],
+            ["stay", "hold", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "rove_1"],
             "no walk home and none to spot_31, which the packet does not name; his turrets at spot_47 are a place to attack"
         );
         assert!(menu.idle && menu.course == "idle" && menu.near_party.as_deref() == Some("party_12"));
@@ -1922,7 +1906,7 @@ pub(super) mod tests {
         assert_eq!(brain.standing(&[&beside], &picture.parties[0], &tick.snapshot.enemies).words(), "it has the party in reach");
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
         let other = menus.iter().find(|m| m.name == "group_B").expect("the other group's menu");
-        assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "gather" || m.key == "rove_1"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
+        assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "rove_1"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
         // A shelling group's course carries the shell move's own key, so the menu leaves that move out.
         for (place, key) in [("standoff from party_12", "shell_party_12"), ("standoff from his buildings at spot_47", "shell_spot_47")] {
             let mut shelling = Group::new("S".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Move { to: at(4000.0, 2000.0), place: place.into(), fight: true }, 0);

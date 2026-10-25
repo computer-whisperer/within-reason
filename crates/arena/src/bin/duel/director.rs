@@ -1000,7 +1000,10 @@ fn pacing_tuning() -> micro::Pacing {
     let mut parts = value.split(',').map(|p| p.trim().to_string());
     let fraction = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.fraction);
     let cadence = parts.next().and_then(|p| p.parse::<i32>().ok()).unwrap_or(default.cadence);
-    micro::Pacing { fraction, cadence, ..default }
+    // The third and fourth fields (D20's bench): the lead in elmos and the drag's start.
+    let lead = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.lead);
+    let drag_from = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.drag_from);
+    micro::Pacing { fraction, cadence, lead, drag_from, ..default }
 }
 
 /// H-MICRO-FORM-SPACING's numbers for the lane: `WITHIN_REASON_FORM_SPACING=factor,max` (the harness's search), else

@@ -536,14 +536,14 @@ mod tests {
     /// move, a move with no place, a fused or held move and a closed actor's moves are not its to blank.
     #[test]
     fn a_move_at_a_place_waits_for_the_place() {
-        let group = || menu("group_A", Kind::Group("A".into()), true, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("fight_to_spot_9", Order::FightTo("spot_9".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1")), mv("gather", Order::Gather, None)]);
+        let group = || menu("group_A", Kind::Group("A".into()), true, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("fight_to_spot_9", Order::FightTo("spot_9".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1")), mv("hold", Order::Hold, None)]);
         let blanked = |menu: Menu, open: &[(&str, f64, i32)]| {
             let open: HashMap<String, PlaceSaid> = open.iter().map(|(k, p, f)| (k.to_string(), PlaceSaid { noul: *p, frame: *f, open: *p >= PLACE_BAR })).collect();
             let mut menus = vec![menu];
             let counts = places(&mut menus, &open, 330, &mut || 0.5);
             (menus[0].moves.iter().skip(1).map(|m| m.blanked).collect::<Vec<_>>(), counts)
         };
-        assert_eq!(blanked(group(), &[]), (vec![true, true, false, false], (2, 0)), "never asked: both places' moves wait; the party move and the gather do not");
+        assert_eq!(blanked(group(), &[]), (vec![true, true, false, false], (2, 0)), "never asked: both places' moves wait; the party move and the hold do not");
         assert_eq!(blanked(group(), &[("spot_4", 0.4, 300), ("spot_9", 0.1, 300)]), (vec![false, true, false, false], (1, 0)), "spot_4 said yes");
         assert_eq!(blanked(group(), &[("spot_4", 0.9, 330 - RE_ASK)]), (vec![true, true, false, false], (2, 0)), "a yes too old is no yes");
         let mut held = group();

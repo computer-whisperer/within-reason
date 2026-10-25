@@ -335,7 +335,7 @@ way when it stands off it by more than the spacing, and the slots are dealt by l
 `WITHIN_REASON_GROUP_DEBUG=1` has the group say each plan, turn, re-deal, change of files and slot jump on stderr. The
 per-second line's `group` carries `files` (the ranks' files this second, six in the open, fewer in a corridor) and
 `room` (the room about the anchor's cell), and from 2026-10-25 `way` (the elmos left along the planned way to the route's
-end, null when a route point has no way on foot over the group's ground: the hands' "no way on foot" word). Lane off, each unit (a fed one too) is given the corners alone as queued
+end, null when a route point has no way on foot over the group's ground: the hands' "no way on foot" word). Since D20 (2026-10-25) every member's march order is its slot carried its type's lead ahead at the pace's share (the pace type 300, a faster type its learned following distance) (`WITHIN_REASON_PACING=fraction,cadence,lead,drag` sets the pacing for a bench arm). Lane off, each unit (a fed one too) is given the corners alone as queued
 fight or move orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
 (`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the
 group for good, said on stderr and in the per-second line's `orders` (`left_behind`), and counted (`left_behind`). Measured, both arms alike: each deployed unit's passes of the lab's corner (within 400 after

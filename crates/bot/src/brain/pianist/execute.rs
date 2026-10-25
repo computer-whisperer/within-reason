@@ -324,30 +324,13 @@ impl Brain {
         let mut did: Option<String> = None;
         match order {
             Order::Hold => {
+                // The ranks stand about the lane's anchor when the group is the lane's, else the body's place.
+                let anchor = self.lane.group_state(&pianist.groups[index].lane_name()).map(|s| s.anchor);
                 let group = &mut pianist.groups[index];
+                let at = anchor.or_else(|| group.body(own, None).map(|b| b.at)).or(centre).unwrap_or(home);
+                group.set_task(GroupTask::Hold { committed: false, picked: true, at }, frame);
                 commands.extend(group.hold_orders(&units));
-                group.set_task(GroupTask::Hold { committed: false, picked: true }, frame);
-                group.last_order = frame;
                 did = Some("hold where it stands".into());
-            }
-            Order::Gather => {
-                // The group closes up on its front: toward its goal, else toward the nearest enemy, else its centre.
-                let group = &mut pianist.groups[index];
-                let toward = match &group.task {
-                    GroupTask::Move { to, .. } => Some(*to),
-                    GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
-                    GroupTask::Hunt(h) => Some(h.at),
-                    GroupTask::Hold { .. } | GroupTask::Rove { .. } => centre.and_then(|c| enemies.iter().map(|e| e.pos).min_by(|a, b| a.dist2d(c).total_cmp(&b.dist2d(c)))),
-                };
-                if let Some(body) = group.body(own, toward) {
-                    let to = self.snap_for(walker, body.front);
-                    commands.extend(group.release_orders(&units));
-                    commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
-                    group.set_task(GroupTask::Move { to, place: "its front".into(), fight: false }, frame);
-                    group.gathering = true;
-                    group.last_order = frame;
-                    did = Some("gather on its front".into());
-                }
             }
             Order::Go(place_name) | Order::FightTo(place_name) | Order::Raid(place_name) => {
                 let fight = !matches!(order, Order::Go(_));
@@ -355,9 +338,11 @@ impl Brain {
                     let to = self.snap_for(walker, p.at);
                     let group = &mut pianist.groups[index];
                     commands.extend(group.release_orders(&units));
-                    commands.extend(ids.iter().map(|id| if fight { Command::Fight { unit: *id, to, queue: false } } else { Command::Move { unit: *id, to, queue: false } }));
                     group.set_task(GroupTask::Move { to, place: p.name.clone(), fight }, frame);
-                    group.last_order = frame;
+                    // A declared group's walk is the lane's (its Go or FightTo); the hands order no member.
+                    if !group.declared() {
+                        commands.extend(ids.iter().map(|id| if fight { Command::Fight { unit: *id, to, queue: false } } else { Command::Move { unit: *id, to, queue: false } }));
+                    }
                     did = Some(format!("{} to {}", if fight { "advance" } else { "walk" }, p.name));
                 }
             }
@@ -415,9 +400,12 @@ impl Brain {
                     let to = pianist.groups[keep].body(own, None).map(|b| b.at).or(centre).unwrap_or(home);
                     let absorbed = pianist.groups.remove(gone);
                     let keep = if gone < keep { keep - 1 } else { keep };
-                    commands.extend(absorbed.members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
                     let body = &mut pianist.groups[keep];
-                    body.joining.extend(absorbed.members.iter().map(|id| (*id, to)));
+                    // Into a declared body they are members with slots; into any other, joiners sent to its place.
+                    if !body.declared() {
+                        commands.extend(absorbed.members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
+                        body.joining.extend(absorbed.members.iter().map(|id| (*id, to)));
+                    }
                     body.members.extend(absorbed.members);
                     did = Some(if larger { format!("take in group_{other}: its soldiers walk to this body, which keeps its name and its course") } else { format!("join group_{other}") });
                 }

@@ -632,6 +632,40 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   following body is formed by definition and the drag starts where the body falls behind its own trail. Not built in
   this arc; the migration design (`2026-10-25-hands-migration.md`) carries it as the engine's open item.
 
+- **D20. The lead** (item 19; the user, 2026-10-25, on the migration proposal that put it before chunk 2: "Your leans
+  are reasonable, so let's begin implementation"). **The rule:** a member's march order goes not to its slot but to
+  the slot carried ahead along the heading by its type's lead times the pace's share of the full pace (the slot
+  itself when the anchor stands), snapped to the ground (half the lead when the carried point is on none, the slot
+  when that is too); the slot stays the books' point (formed, the drag, the exceptions, the contact arc, the words).
+  The pace type (the slowest, whose speed is the pace) is sent `LEAD` (300) ahead; a faster type's lead is its
+  following distance, learned on the march as the median trail of its following members behind the points they were
+  sent to (3 s smoothing, members at 0.8 of their speed, the pace within 5% of full, the heading steady a second, no
+  deal that tick), 0 until learned. **Why:** a unit sent every tick to a point moving at its own speed settles 100-140
+  behind it inside the engine's brake zone and walks braking all the way (D19's finding: the following distance,
+  which the formed band and the drag then measured as a trail); sent to a point 300 ahead it is never in the brake
+  zone, walks at full speed, and the pace is the drag's alone: the anchor's slots move at the pace, a member that
+  falls behind its slot slows the anchor from 128 as before. The pace type can close no gap at a pace fraction of one,
+  so any lead past its following distance is the same to it and the clamp is the rule; a faster type walks to its
+  point and brakes there, so sent 300 ahead it would stand 300 less its following distance ahead of its slot, and its
+  lead must be that distance, which it can measure since it does close on its point (a true equilibrium, no drift). **Measured, six laps a side of the plain circuit:** the fixed lead 177 / 178 / 178 / 181 / 177 / 179 s
+  (mean 178) at formed 0.96 / 0.97 / 0.96 / 0.96 / 0.96 / 0.96 and speed share 1.00, against the binary before 190-213
+  (mean 199) at 0.65-0.96 (mean 0.80): the laps' bimodality is gone and the lap is the walking time. **Built first and
+  rejected the same hour, the learned lead:** each type's lead learned on the march as the median trail of its
+  following members behind the points they were sent to (3 s smoothing, members at 0.8 of their speed, pace within
+  5% of full, heading steady a second, clamped to 300). It lapped 185 / 185 / 186 / 185 / 186 / 186 at 0.92-0.93, and
+  the trace showed why it is not a measurement: on the first leg it read 124-155 (the following distance), and at
+  the first corner the body fell behind its sent points by the turn's seconds, the median trail rose, the lead
+  followed it, and at a pace fraction of one a unit cannot close a gap, so every trail at or beyond the following
+  distance is a fixed point of the learning; it sat at the clamp from the second leg on. The lead being at the clamp
+  is what made the lap fast, so the clamp is the pace type's rule; the learning stays for the faster types, whose
+  trail is an equilibrium. **Also measured and rejected, a drag from 48 with the fixed lead** (the lead absorbs the following distance, so the drag could start where a member truly lags): 180 / 180 /
+  182 / 180 / 187 / 178 at 0.93 / 0.90 / 0.93 / 0.92 / 0.77 / 0.93: the anchor eased too often and the body ran ahead
+  of its slots. Rejected before building: the band measured from the body's own trail (the units would stand a
+  following distance behind the ranks the anchor reports: the anchor, the contact arc and the words' "at" a fiction),
+  a lead from the definitions' turn rate (the protocol does not carry it, D14). At the route's end the pace is 0 and
+  the carried point is the slot, so the body stops in its ranks. The rest of the set, with the fixed lead: in the
+  ledger (circuit25-*, assault12-*). The bench knob: `WITHIN_REASON_PACING=fraction,cadence,lead,drag`.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -1025,8 +1059,8 @@ Ruled 2026-10-24 night (§2): the group API's shape, the gather's fate (it dies 
 behaviour do its work and its words become the group state), the commitment ladder's destination (the group order).
 Still open:
 
-- The numbers §2 names, set by the bench, not by hand: the pace fraction, the lead and the cadence (D11 first), the
-  slot tolerance and the exception threshold.
+- The numbers §2 names, set by the bench, not by hand: the pace fraction, the cadence (D11 first), the slot tolerance
+  and the exception threshold (the lead is learned on the march since D20, not set).
 - Whether the raider/line separation, the host's choice from here on, becomes a word to the player or a default of
   the hands.
 - The maps for drill 6 beyond Quicksilver, Great Divide and Altored Divide (Cape Violet's shore, Isidis Crack).

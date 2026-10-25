@@ -170,6 +170,8 @@ pub struct Pacing {
     pub exception_at: f32,
     /// An away member this near its slot is formed again.
     pub rejoin_within: f32,
+    /// The lead (D20) of the pace type: its march order is its slot carried this far ahead at the pace's share.
+    pub lead: f32,
 }
 
 /// A route point that moved less than this since the host's last order is the same point (an enemy's centre
@@ -193,12 +195,29 @@ pub const CUT_OFF_REJOIN: f32 = 1.5;
 /// The walk is only searched for a member within this of its slot (a member further away is an exception already,
 /// and the search's cost grows with the distance); its last verdict stands beyond it.
 const CUT_OFF_CHECK: f32 = 600.0;
+/// The lead (design D20): a member's march order goes to its slot carried ahead along the heading by its lead times
+/// the pace's share of the full pace; the slot stays the books' point. The pace type (the slowest, whose speed is the
+/// pace) is sent `LEAD` ahead: a unit sent to a point moving at its own speed settled 100-140 behind it inside the
+/// engine's brake zone and braked all the way (the trail every lap carried), and it can close no gap at a pace
+/// fraction of one, so any lead past its following distance is the same to it and the clamp keeps it out of the
+/// brake zone at full speed, paced by the drag alone (six laps 177-181 s at formed 0.96 against 185-186 at 0.93
+/// learned and 190-213 at 0.65-0.96 before). A faster type walks to the point it is sent to and brakes there, so its
+/// lead is its following distance, learned on the march: the median trail of its following members behind the
+/// points they were sent to, smoothed over `LEAD_TAU_S`, from members moving at `LEAD_MOVING` of their speed, at a
+/// pace within `LEAD_PACE` of full, the heading steady `LEAD_STEADY_FRAMES` (a turn of `LEAD_TURN_DEG` restarts the
+/// clock), 0 until learned (the slot itself: it stands its following distance behind it meanwhile).
+pub const LEAD: f32 = 300.0;
+const LEAD_TAU_S: f32 = 3.0;
+const LEAD_MOVING: f32 = 0.8;
+const LEAD_PACE: f32 = 0.95;
+const LEAD_STEADY_FRAMES: i32 = 30;
+const LEAD_TURN_DEG: f32 = 5.0;
 /// Frames between a member's walk searches (twice a second).
 const CUT_OFF_CADENCE: i32 = 15;
 
 impl Default for Pacing {
     fn default() -> Pacing {
-        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: 2.0 * form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING }
+        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: 2.0 * form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING, lead: LEAD }
     }
 }
 
@@ -280,6 +299,15 @@ pub struct Group {
     spacing: f32,
     /// Each member's slot this tick, snapped to the ground.
     slots: HashMap<UnitId, Vec3>,
+    /// Each member's march order this tick: its slot carried ahead by its type's lead at the pace's share (D20).
+    ordered: HashMap<UnitId, Vec3>,
+    /// The learned lead of each faster type, keyed by the type's speed (the walker's `speed` bits).
+    lead_of: HashMap<u32, f32>,
+    /// The heading the steadiness clock was started on and the frame it was started.
+    heading_ref: (f32, f32),
+    heading_since: i32,
+    /// The frame the slots were last dealt afresh (no lead is learned that tick).
+    dealt_at: i32,
     /// The exceptions this tick, as reported.
     exceptions: Vec<(UnitId, Cause, f32)>,
 }
@@ -321,6 +349,11 @@ impl Group {
             full_pace: 0.0,
             spacing,
             slots: HashMap::new(),
+            ordered: HashMap::new(),
+            lead_of: HashMap::new(),
+            heading_ref: heading,
+            heading_since: 0,
+            dealt_at: -1,
             exceptions: Vec::new(),
         };
         group.anchor = group.anchor_for(centroid, heading, group.members.len());
@@ -720,6 +753,8 @@ impl Group {
                 self.heading = form::heading(self.anchor, next);
             }
         }
+        // The faster types' leads learned (D20) from last tick's orders.
+        self.learn_lead(frame, walkers, spacing, dt, slowest);
         // Who is where against last tick's slots: the drag on the anchor from the body's members behind theirs,
         // however far (the anchor never outruns its body); a joiner is in the body once it has stood in its slot; a
         // cut-off member holds nothing (it cannot close by walking).
@@ -800,6 +835,7 @@ impl Group {
             let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
             let deal = form::assign(&positions, &slots[..n]);
             self.slot_of = ids.iter().copied().zip(deal).collect();
+            self.dealt_at = frame;
         }
         let previous = std::mem::take(&mut self.slots);
         self.slots = ids.iter().map(|id| (*id, slots[self.slot_of.get(id).copied().unwrap_or(0).min(n.saturating_sub(1))])).collect();
@@ -834,6 +870,28 @@ impl Group {
             }
         }
         self.cut_off.retain(|id, _| ids.contains(id));
+        // The march orders (D20): each slot carried ahead by its type's lead at the pace's share, on the ground (half
+        // the lead when the carried point is on none, the slot when that is too). The pace type's lead is `LEAD`;
+        // a faster type's is learned.
+        let share = if self.full_pace > 0.0 { (self.pace / self.full_pace).clamp(0.0, 1.0) } else { 0.0 };
+        self.ordered = walkers
+            .iter()
+            .map(|w| {
+                let slot = self.slots[&w.id];
+                let lead = if Self::pace_type(w, slowest) { pacing.lead } else { self.lead_of.get(&w.speed.to_bits()).copied().unwrap_or(0.0) } * share;
+                let carried = |lead: f32| Vec3 { x: slot.x + self.heading.0 * lead, y: slot.y, z: slot.z + self.heading.1 * lead };
+                let point = match &self.ground {
+                    _ if lead <= 0.0 => slot,
+                    None => carried(lead),
+                    Some(g) => g.snap(carried(lead)).or_else(|| g.snap(carried(lead / 2.0))).unwrap_or(slot),
+                };
+                (w.id, point)
+            })
+            .collect();
+        if self.heading.0 * self.heading_ref.0 + self.heading.1 * self.heading_ref.1 < LEAD_TURN_DEG.to_radians().cos() {
+            self.heading_ref = self.heading;
+            self.heading_since = frame;
+        }
         if debug_on() {
             // Of the members that stood within the band of their slot last tick, how many have a slot elsewhere now
             // (further than the anchor's own step and a half spacing), and the furthest.
@@ -924,6 +982,58 @@ impl Group {
             way: if self.no_way { None } else { Some(self.way_ahead()) },
         }
     }
+
+    /// The point a member is sent to on the march (D20): its slot carried ahead by its type's lead at the pace's
+    /// share; the slot itself before the first tick, when the anchor stands, or when the carried point is on no ground.
+    pub fn order_point(&self, id: UnitId) -> Option<Vec3> {
+        self.ordered.get(&id).or_else(|| self.slots.get(&id)).copied()
+    }
+
+    /// Whether a walker is of the pace type: the slowest, within a per cent.
+    fn pace_type(w: &Walker, slowest: f32) -> bool {
+        slowest.is_finite() && w.speed <= slowest * 1.01
+    }
+
+    /// The lead a faster type has learned (the tests' instrument).
+    #[cfg(test)]
+    fn learned_lead(&self, speed: f32) -> f32 {
+        self.lead_of.get(&speed.to_bits()).copied().unwrap_or(0.0)
+    }
+
+    /// D20: the faster types' leads learned from last tick's orders. At full pace (within `LEAD_PACE`) with the
+    /// heading steady for `LEAD_STEADY_FRAMES` and the slots not dealt afresh last tick, each faster type's following
+    /// members (in the body, not away, cut off or fleeing, moving at `LEAD_MOVING` of their speed, within half a
+    /// spacing of their slot across the heading) give the median of their distance behind the point they were sent
+    /// to along the heading; the type's lead moves toward it with the time constant `LEAD_TAU_S`. A faster type can
+    /// close on its point, so that trail is its following distance at this pace; the pace type cannot, so it is not
+    /// learned (its lead is `Pacing::lead`).
+    fn learn_lead(&mut self, frame: i32, walkers: &[Walker], spacing: f32, dt: f32, slowest: f32) {
+        if dt <= 0.0 || self.full_pace <= 0.0 || self.pace < LEAD_PACE * self.full_pace || frame - self.heading_since < LEAD_STEADY_FRAMES || self.dealt_at == self.last_frame.unwrap_or(-1) {
+            return;
+        }
+        let h = self.heading;
+        let mut trails: HashMap<u32, Vec<f32>> = HashMap::new();
+        for w in walkers {
+            let (Some(slot), Some(sent)) = (self.slots.get(&w.id), self.ordered.get(&w.id)) else { continue };
+            if Self::pace_type(w, slowest) || !self.formed_once.get(&w.id).copied().unwrap_or(false) || self.away.contains_key(&w.id) || self.cut_off.contains_key(&w.id) || w.fleeing || w.speed <= 0.0 || w.moving < LEAD_MOVING * w.speed {
+                continue;
+            }
+            let across = ((slot.x - w.pos.x) * h.1 - (slot.z - w.pos.z) * h.0).abs();
+            if across > spacing / 2.0 {
+                continue;
+            }
+            let trail = (sent.x - w.pos.x) * h.0 + (sent.z - w.pos.z) * h.1;
+            trails.entry(w.speed.to_bits()).or_default().push(trail.clamp(0.0, LEAD));
+        }
+        let gain = (dt / LEAD_TAU_S).min(1.0);
+        for (key, mut sample) in trails {
+            sample.sort_by(f32::total_cmp);
+            let median = sample[sample.len() / 2];
+            let lead = self.lead_of.entry(key).or_insert(0.0);
+            *lead += (median - *lead) * gain;
+        }
+    }
+
 }
 
 #[cfg(test)]
@@ -941,17 +1051,74 @@ mod tests {
     }
 
     fn march(group: &mut Group, walkers: &mut [Walker], frames: i32, step: i32, pacing: &Pacing) {
-        // Each tick every walker stands 20 behind its slot (the brake zone's trail), as the engine would have it.
-        let mut frame = 0;
-        while frame < frames {
+        march_trailing(group, walkers, frames, step, pacing, 20.0);
+    }
+
+    /// Each tick every walker walks toward the point it was sent to at its own speed and comes no nearer it than
+    /// `trail` (the brake zone's trail, as the engine would have it); a walker sent to a point moving at its speed
+    /// keeps its distance, a faster one closes to the trail.
+    fn march_trailing(group: &mut Group, walkers: &mut [Walker], frames: i32, step: i32, pacing: &Pacing, trail: f32) {
+        let mut frame = group.last_frame.unwrap_or(0);
+        let end = frame + frames;
+        while frame < end {
             frame += step;
-            let slots = group.tick(frame, walkers, 64.0, pacing).clone();
+            group.tick(frame, walkers, 64.0, pacing);
+            let dt = step as f32 / 30.0;
             for w in walkers.iter_mut() {
-                let s = slots[&w.id];
-                w.pos = at(s.x - group.heading.0 * 20.0, s.z - group.heading.1 * 20.0);
+                let s = group.order_point(w.id).unwrap();
+                let (dx, dz) = (s.x - w.pos.x, s.z - w.pos.z);
+                let dist = dx.hypot(dz);
+                let walk = (w.speed * dt).min((dist - trail).max(0.0));
+                if dist > 0.0 && walk > 0.0 {
+                    w.pos = at(w.pos.x + dx / dist * walk, w.pos.z + dz / dist * walk);
+                }
+                w.moving = w.speed;
             }
         }
     }
+
+    /// D20: the pace type is sent to its slot carried `LEAD` ahead at the pace's share (the slot itself when the anchor
+    /// stands); a faster type's lead is its following distance, learned on the march, so it stands in its slot too.
+    #[test]
+    fn the_pace_type_is_sent_the_lead_ahead_and_a_faster_types_lead_is_learned() {
+        let pacing = Pacing::default();
+        // Two ranks of six: the front rank at the fixture's 100 (the pace type), the rear rank a faster type at 120.
+        let mut w = two_ranks_of_six();
+        for u in w.iter_mut().skip(6) {
+            u.speed = 120.0;
+            u.moving = 120.0;
+        }
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(6000.0, 300.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        // The helper's brake trail is 40 here: the faster type closes to 40 behind its point.
+        march_trailing(&mut group, &mut w, 450, 3, &pacing, 40.0);
+        let (h0, h1) = group.heading;
+        let along = |a: Vec3, b: Vec3| (b.x - a.x) * h0 + (b.z - a.z) * h1;
+        for u in &w {
+            let (slot, sent) = (group.slots[&u.id], group.order_point(u.id).unwrap());
+            if u.speed <= 100.0 {
+                assert!((along(slot, sent) - LEAD).abs() < 1.0, "a pace-type member's point is the lead ahead of its slot: {}", along(slot, sent));
+            } else {
+                assert!((along(slot, sent) - 40.0).abs() < 6.0, "the faster type's point is its learned trail ahead: {}", along(slot, sent));
+            }
+        }
+        assert!((group.learned_lead(120.0) - 40.0).abs() < 6.0, "learned {}", group.learned_lead(120.0));
+        assert_eq!(group.learned_lead(100.0), 0.0, "the pace type learns nothing");
+        let off = w.iter().map(|u| u.pos.dist2d(group.slots[&u.id])).fold(0.0, f32::max);
+        assert!(off < 24.0, "every member about its slot (the lead still settling): {off}");
+        assert_eq!(group.state(&w).exceptions.len(), 0);
+        assert!((group.pace - group.full_pace).abs() < 0.01, "nothing drags: {} of {}", group.pace, group.full_pace);
+        // At the end the anchor stands and the carried point is the slot.
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let centroid = form::centroid(positions.iter().copied()).unwrap();
+        let mut done = Group::new("b", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Hold, vec![centroid]), &positions, 64.0);
+        // (The anchor is placed so the ranks' centroid is the body's, a few steps from the point: it walks them.)
+        march_trailing(&mut done, &mut w, 300, 3, &pacing, 20.0);
+        assert!(done.arrived && done.pace == 0.0, "arrived and standing: {} {}", done.arrived, done.pace);
+        let id = w[0].id;
+        assert_eq!(done.order_point(id), Some(done.slots[&id]));
+    }
+
 
     /// A flat 128 x 64 map at 16-elmo cells (2,048 x 1,024 elmos) with a cliff wall at x 960-1,024 from the north
     /// edge down to z 768: the way round it goes south of its end.

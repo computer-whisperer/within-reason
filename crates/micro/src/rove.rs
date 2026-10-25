@@ -631,7 +631,8 @@ mod tests {
         }
         let body = at(1840.0, 1020.0);
         assert!(!last.is_empty(), "the group is ordered on");
-        assert!(last.iter().all(|p| p.dist2d(at(x, 1000.0)) > 400.0 && p.dist2d(body) < 400.0), "the orders are slots by the body, not the Pawn: {last:?} (Pawn at {x})");
+        // The orders are the slots by the body carried the lead (300) south, toward the station (D20), not the Pawn.
+        assert!(last.iter().all(|p| p.dist2d(at(x, 1000.0)) > 400.0 && p.dist2d(body) < 650.0 && p.z - body.z > 150.0), "the orders are slots by the body carried the lead toward the station, not the Pawn: {last:?} (Pawn at {x})");
         let state = lane.group_state("a").expect("a state");
         assert_eq!(state.engaged, None);
         assert!(state.anchor.dist2d(body) < 300.0, "the anchor set down where the body stands: {:?}", state.anchor);

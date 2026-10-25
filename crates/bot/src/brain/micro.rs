@@ -43,12 +43,13 @@ impl Brain {
     }
 
     /// What each soldier is priced against in the lane: the pianist's groups' commitments and footwork, per unit; a
-    /// hunting or roving group is declared to the lane as a group of that kind (design D15: the two kinds the hands
-    /// attach to the group API before their migration; every other group's soldiers are loose soldiers to the lane
-    /// until then, so no formation forms for them).
+    /// hunting or roving group is declared to the lane as a group of that kind (design D15), and a ground group
+    /// holding or walking as a formation of kind Hold, Go or FightTo (the migration design, chunk 2: `Group::declared`;
+    /// its newcomers waiting beside their plant are left out until released). Every other group's soldiers (air,
+    /// engaging, following, shelling) are loose soldiers to the lane until their chunks.
     pub(super) fn note_commitments(&mut self) {
         let mut commitment: HashMap<UnitId, Commitment> = HashMap::new();
-        let mut declared: Vec<(String, Vec<UnitId>, micro::GroupOrder)> = Vec::new();
+        let mut declared: Vec<(String, Vec<UnitId>, micro::GroupOrder, Footwork, Commitment)> = Vec::new();
         // The pianist's groups (H-HANDS-GROUPS): one advancing (`fight_to`) is committed to everything, turrets and the
         // commander included, as a wave is: priced against no turret, a ball of eighty stood at the edge of the enemy
         // base's laser towers inside a Guardian's reach for five minutes while Jev said "continue" every ten seconds
@@ -70,12 +71,23 @@ impl Brain {
                     super::pianist::GroupTask::Hunt(_) | super::pianist::GroupTask::Rove { .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
-                let name = format!("group_{}", group.name);
+                let name = group.lane_name();
                 match &group.task {
                     // A roving group is the lane's whole (H-MICRO-ROVE), within the region the player marked, if one.
                     super::pianist::GroupTask::Rove { within } => {
                         let within = within.as_ref().and_then(|name| self.region_of(name));
-                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new())));
+                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()), Footwork::raw(), Commitment::All));
+                    }
+                    // A formation (chunk 2): the hold about its point, the walk or the advance to its place; the lane
+                    // paths the anchor there and places every member (H-MICRO-GROUP).
+                    super::pianist::GroupTask::Hold { at, .. } | super::pianist::GroupTask::Move { to: at, .. } if group.declared() => {
+                        let kind = match &group.task {
+                            super::pianist::GroupTask::Move { fight: true, .. } => micro::GroupKind::FightTo,
+                            super::pianist::GroupTask::Move { .. } => micro::GroupKind::Go,
+                            _ => micro::GroupKind::Hold,
+                        };
+                        let members: Vec<UnitId> = group.members.iter().copied().filter(|id| !group.waiting.iter().any(|(_, w)| w == id)).collect();
+                        declared.push((name, members, micro::GroupOrder::new(kind, vec![*at]), rules, commitment_of.clone()));
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
                     // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1). A quarry that cloaks is
@@ -84,7 +96,7 @@ impl Brain {
                     super::pianist::GroupTask::Hunt(h) => {
                         let lost_frames = if self.quarry_cloaks(h.quarry) { super::pianist::groups::HUNT_HIDDEN_FRAMES } else { micro::HUNT_LOST_FRAMES };
                         let order = micro::HuntOrder { quarry: h.quarry, leash: super::pianist::groups::HUNT_LEASH, lost_frames, since: h.since };
-                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Hunt(order), Vec::new())));
+                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Hunt(order), Vec::new()), Footwork::raw(), Commitment::All));
                     }
                     _ => {
                         for id in &group.members {
@@ -100,8 +112,8 @@ impl Brain {
                 self.lane.clear_group(&name);
             }
         }
-        for (name, members, order) in declared {
-            self.lane.set_group(&name, members, order, Footwork::raw(), Commitment::All);
+        for (name, members, order, footwork, commitment) in declared {
+            self.lane.set_group(&name, members, order, footwork, commitment);
         }
         self.lane.set_commitments(commitment, footwork);
     }

@@ -109,7 +109,7 @@ what it is aimed at, and every verb below is on the unit's menu every time it is
 or the picture name. Nothing else can be asked for; say what you wished you could order, in your closing sentence,
 whenever you hit that edge.
 - A group: `stay` (its course goes on); `hold` (every soldier stops where it stands, and the group stays there until
-  told otherwise); `gather` (it closes up on its front); `go` to a place (it walks there without stopping to fight,
+  told otherwise); `go` to a place (it walks there without stopping to fight,
   running from everything on the way); `fight to` a place (it advances there as a body, fighting everything on the
   way and there); `attack` a party in sight with the whole group, or his buildings at any place where some are
   known; `shell` either from its long-reach soldiers' reach with the rest as the screen (a group that has artillery);

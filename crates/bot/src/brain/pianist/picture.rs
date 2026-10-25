@@ -1797,7 +1797,10 @@ impl Brain {
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
             let toward = goal.or_else(|| parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
             let Some(body) = group.body(own, toward) else { continue };
-            let centre = body.at;
+            // A declared group (the lane's formation, the migration design chunk 2) is read from the lane's state:
+            // its place is the anchor, and the `formation` line below carries what the body words said.
+            let lane_state = if group.declared() { self.lane.group_state(&group.lane_name()) } else { None };
+            let centre = lane_state.map_or(body.at, |s| s.anchor);
             let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
             let shape = |to: Vec3| {
                 let n = body.core.len();
@@ -1813,7 +1816,7 @@ impl Brain {
                 // `docs/design/2026-10-24-pick-rework.md` §6).
                 GroupTask::Hold { picked: true, .. } => "holding here".to_string(),
                 GroupTask::Hold { committed, .. } => format!("standing with no order{}", if *committed { ", fighting everything here, turrets included" } else { "" }),
-                GroupTask::Move { .. } if group.gathering => format!("gathering on its front: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len() + body.stragglers.len(), super::groups::STRUNG_OUT, body.whole),
+                GroupTask::Move { place, fight, .. } if lane_state.is_some() => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                 GroupTask::Move { to, place, fight, .. } => format!("{} to {place}: {}", if *fight { "advancing" } else { "walking" }, shape(*to)),
                 // Told to attack is not attacking: the entry says where the group stands against the party
                 // (H-HANDS-STANDING).
@@ -1838,7 +1841,7 @@ impl Brain {
                 units.len(),
                 if lost_since_orders > 0 { format!(", {lost_since_orders} lost ({lost_metal_since:.0} metal) since the player's last orders") } else { String::new() }
             );
-            let at = if body.strung_out() {
+            let at = if body.strung_out() && lane_state.is_none() {
                 format!("front at {}; its tail is {:.0} behind at {}", self.place_words(&places, body.front), body.length, self.place_words(&places, body.tail))
             } else {
                 self.place_words(&places, centre)
@@ -1852,7 +1855,7 @@ impl Brain {
             // The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): one number set
             // per group. None until a kind is attached (chunk 2): a hunt and a rove are the lane's by other means
             // and form no ranks.
-            if let Some(state) = self.lane.group_state(&format!("group_{}", group.name)) {
+            if let Some(state) = lane_state {
                 let to = goal.map(|p| self.place_words(&places, p));
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
                 entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
@@ -1893,7 +1896,7 @@ impl Brain {
                     from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
                 ));
             }
-            if !body.stragglers.is_empty() {
+            if !body.stragglers.is_empty() && lane_state.is_none() {
                 let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
                 entry["stragglers"] = json!(format!("{} of its soldiers are stragglers, up to {farthest:.0} from the body; they are not in its fights yet", body.stragglers.len()));
             }
@@ -1920,9 +1923,6 @@ impl Brain {
                 let w = self.loss_words(&lost_lately, metal, near, &parties);
                 let last = lost_lately.iter().map(|(f, ..)| *f).max().unwrap_or(frame);
                 entry["losses"] = json!(format!("lost {} of its {} soldiers ({:.0} metal, {}{}) in the last 30 s, the last {} s ago: {}", w.count, units.len() + lost_lately.len(), w.metal, w.share, w.verdict, (frame - last) / FRAMES_PER_SECOND, w.to_whom));
-            }
-            if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
-                entry["progress"] = json!(format!("its body has not got nearer its goal for {seconds} s: stalled"));
             }
             // The army in pieces, said on both sides (escalate-6: 19 detachments and 15 splits in ten minutes, five to
             // nine groups alive, dying one by one; nothing in the picture counted them).
@@ -2230,7 +2230,7 @@ mod tests {
         assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
         assert!(met.words.contains("its reach begins") && met.words.contains("ahead of the front") && met.words.contains("beside the chase: party_12 (3 armwar, 810 metal)") && met.words.ends_with("any other pick ends the chase"), "{}", met.words);
         assert!(met.keys.iter().any(|k| k == "turret 10") && met.keys.iter().any(|k| k == "party_12"), "{:?}", met.keys);
-        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
+        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(bot_protocol::Vec3::default()), 0);
         assert!(brain.chase_met(&holding, &ours, &parties, &[]).is_none());
         // Chasing away from the turrets, with the Centurions out of reach: nothing met.
         let away = Hunt { quarry: UnitId(77), party: "party_99".into(), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };

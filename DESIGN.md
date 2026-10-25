@@ -42,10 +42,15 @@ tokens (`bots/README.md`).
 - `buildorder` — offline study tool, not part of the running system: a tier-1 economy simulator and a simulated-annealing
   build-order search over it (`docs/studies/build-order.md`). Depends on nothing else in the workspace.
 - `micro` — the control lane (2026-09-25): a `Lane` that turns a host's orders into per-unit footwork every tick
-  (flee, fan, kite, formation slots) over a `View` of the host; the bot's brain and the duel director both
-  implement the view, so the harness fights with the bot's own footwork (`docs/design/2026-09-25-formation-micro.md`).
-  The one unit it runs whole is a rover (2026-09-27, `rove.rs`, H-MICRO-ROVE): a group set to `rove` takes no host
-  order; the lane chooses where it looks and what unguarded thing it kills, and keeps it out of every reach.
+  (flee, fan, kite) over a `View` of the host, and runs the host's declared groups whole (`Lane::set_group`, since
+  2026-10-24: `docs/design/2026-10-24-formation-drills.md`): a formation of kind Hold, Go, FightTo or Attack is an
+  anchor the lane paths over the ground every member's class stands on, paced by its body's lag, with ranks of slots
+  hung from it and every member sent to its slot carried a lead ahead; a hunt (H-MICRO-HUNT) and a rove (`rove.rs`,
+  H-MICRO-ROVE) are groups too. The host names members, a kind and route points, and orders no member; it reads the
+  group's state (anchor, pace, formed, exceptions by cause, arrived, files, room, the way left). The bot's brain and
+  the duel director both implement the view, so the drills (`docs/harness/duels.md`) run the bot's own group control;
+  the flagship's hands declare their ground holds and walks since 2026-10-25 (`docs/design/2026-10-25-hands-migration.md`)
+  and attach the rest chunk by chunk.
 
 ## Protocol (credit-based, so the shim never blocks the sim)
 1. shim → bot `Hello { ai_id, team, ally_team, game_id, teams, start_boxes, frame, map, unit_defs, metal_spots, terrain }` once per

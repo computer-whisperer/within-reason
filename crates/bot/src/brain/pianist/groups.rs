@@ -32,11 +32,6 @@ const AIR_LOST_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// again); the end's word is "hidden", not "lost" (the user, 2026-10-18: "a cloakable quarry out of sight is hidden,
 /// not lost"; docs/code-decisions.md §2).
 pub(crate) const HUNT_HIDDEN_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
-/// H-HANDS-STALL: a moving group whose centre has not come this much closer to its goal in this long is stalled; the
-/// picture says so, and an advancing one wakes the player once (pianist-player-2: the ball stood five minutes short
-/// of the enemy base with the player reading "under fire" and nothing about the hands).
-const PROGRESS_STEP: f32 = 60.0;
-const STALL_FRAMES: i32 = 45 * FRAMES_PER_SECOND;
 /// H-HANDS-LOSS-WAKE: a group wakes the player once per turn when, since the player's last orders, it has lost this
 /// many soldiers or this share of its metal (upgrade-2: a unit loss woke nothing, and the ball shed pairs against the
 /// Hounds for 7 to 37 s until the timer; Jev's `needs_player` Noul was a constant 0.77 with noise, retired).
@@ -99,7 +94,9 @@ const ROVE_LOG: usize = 10;
 pub(crate) enum GroupTask {
     /// `committed`: the hold an advance arrives in, still committed to everything there (H-HANDS-GROUPS).
     /// `picked`: a hold Jev picked, which is a course; a hold an order ended in is none, and the group is idle.
-    Hold { committed: bool, picked: bool },
+    /// `at`: the point the ranks stand about (the lane's Hold route): the walk's end when an arrival ends in a hold,
+    /// the body's place when the hold is picked or the group forms (the migration design, chunk 2).
+    Hold { committed: bool, picked: bool, at: Vec3 },
     Move { to: Vec3, place: String, fight: bool },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
@@ -129,10 +126,6 @@ pub(crate) struct Group {
     pub members: Vec<UnitId>,
     pub task: GroupTask,
     pub last_order: i32,
-    /// The nearest the centre has been to a moving task's goal, and when it last got nearer (H-HANDS-STALL).
-    pub best_to_go: f32,
-    pub progressed: i32,
-    pub stall_warned: bool,
     /// The group this one was split from (a detachment, a split, a scout): said in the picture on both sides, so
     /// the player sees an army in pieces as it happens (escalate-6: seven detachments died one by one).
     pub parent: Option<String>,
@@ -151,8 +144,6 @@ pub(crate) struct Group {
     /// `join_in`): (the plant, the soldier). Not sent after the body and not given the group's orders until
     /// `release_waiting` sends them.
     pub waiting: Vec<(UnitId, UnitId)>,
-    /// Gathering: closing up on its front (the `gather` move); the walk there is its task.
-    pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
     pub shelling: bool,
     /// The named places its body has come within `ARRIVED` of, in order, with the frame: facts said in the picture
@@ -182,8 +173,6 @@ pub(crate) struct Body<'a> {
     pub tail: Vec3,
     /// From the front to the tail.
     pub length: f32,
-    /// From the front to the farthest member, stragglers counted: what a gather closes.
-    pub whole: f32,
     /// Where the body stands: the `BODY_SHARE`-th member from the front.
     pub at: Vec3,
     pub arrived: usize,
@@ -223,7 +212,19 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), waiting: Vec::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), waiting: Vec::new(), shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
+    }
+
+    /// Whether the group is the lane's as a formation (the migration design, chunk 2): a ground group holding or
+    /// walking, not shelling (shell is the hands' until its chunk). Its members get their orders from the lane's
+    /// group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
+    pub(crate) fn declared(&self) -> bool {
+        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. }) && !self.shelling
+    }
+
+    /// The group's name in the lane.
+    pub(crate) fn lane_name(&self) -> String {
+        format!("group_{}", self.name)
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -244,7 +245,6 @@ impl Group {
         let toward = toward.unwrap_or(centre);
         core.sort_by(|a, b| a.pos.dist2d(toward).total_cmp(&b.pos.dist2d(toward)));
         let place = |core: &[&OwnUnit]| core.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len() - 1)).map_or(centre, |u| u.pos);
-        let whole = core.first().zip(core.last()).map_or(0.0, |(front, tail)| front.pos.dist2d(tail.pos));
         let joining: Vec<&OwnUnit> = joining.into_iter().filter(|u| !core.iter().any(|c| c.id == u.id)).collect();
         let mut apart: Vec<&OwnUnit> = Vec::new();
         if stragglers {
@@ -258,7 +258,7 @@ impl Group {
         let tail = core.last().map_or(centre, |u| u.pos);
         let at = place(&core);
         let arrived = core.iter().filter(|u| u.pos.dist2d(toward) < ARRIVED).count();
-        Some(Body { length: front.dist2d(tail), whole, core, joining, stragglers: apart, front, tail, at, arrived })
+        Some(Body { length: front.dist2d(tail), core, joining, stragglers: apart, front, tail, at, arrived })
     }
 
     /// A newcomer (a plant's output) joins: of the body when it stands within the adopt radius of the body's place,
@@ -270,20 +270,31 @@ impl Group {
     /// 47 s while its group walked on, and the next newcomer was sent to it as the nearest member (human-27 1:47-2:34).
     /// Under `wait` (the plant, how many walk together, where to stand) a newcomer far from the body waits beside
     /// its plant instead, until `release_waiting` sends it with its fellows.
+    ///
+    /// A declared group (the lane's formation) walks no joiner: the newcomer is a member, the lane gives it a slot
+    /// from the next tick and says `joining` until it is formed; under `wait` it waits as any newcomer does, out of
+    /// the lane until released.
     pub(crate) fn admit(&mut self, unit: &OwnUnit, own: &[OwnUnit], snap: impl Fn(Vec3) -> Vec3, wait: Option<(UnitId, usize, Vec3)>) -> Vec<Command> {
+        let declared = self.declared();
         let body = self.body(own, None);
-        let adopted = body.as_ref().is_some_and(|b| b.at.dist2d(unit.pos) <= ADOPT_RADIUS);
+        let adopted = !declared && body.as_ref().is_some_and(|b| b.at.dist2d(unit.pos) <= ADOPT_RADIUS);
         self.members.push(unit.id);
         if adopted {
             return self.rejoin_orders(&[unit]);
         }
         if let Some((plant, n, beside)) = wait
             && n >= 2
+            && (declared || body.as_ref().is_none_or(|b| b.at.dist2d(unit.pos) > ADOPT_RADIUS))
         {
             let to = snap(beside);
-            self.joining.insert(unit.id, to);
+            if !declared {
+                self.joining.insert(unit.id, to);
+            }
             self.waiting.push((plant, unit.id));
             return vec![Command::Move { unit: unit.id, to, queue: false }];
+        }
+        if declared {
+            return Vec::new();
         }
         match self.nearest_of_body(unit, own) {
             Some(to) => {
@@ -309,6 +320,10 @@ impl Group {
         let mine: Vec<UnitId> = self.waiting.iter().filter(|(p, _)| *p == plant).map(|(_, id)| *id).collect();
         self.waiting.retain(|(p, _)| *p != plant);
         let mut commands = Vec::new();
+        if self.declared() {
+            // Members of the lane's group from the next tick: a slot each, no walk of the hands'.
+            return commands;
+        }
         for id in mine {
             let Some(unit) = own.iter().find(|u| u.id == id) else { continue };
             let Some(to) = self.nearest_of_body(unit, own) else { continue };
@@ -353,6 +368,10 @@ impl Group {
     /// The orders that make this group stand still: a stop for ground units; for aircraft, whose empty queue is a
     /// licence to hunt, hold position and a move to the centre (the domains design, decision 4).
     pub(crate) fn hold_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
+        if self.declared() {
+            // The lane's Hold keeps the ranks where they stand (the migration design, chunk 2).
+            return Vec::new();
+        }
         match self.domain {
             Domain::Air => {
                 let centre = centre_of(units).unwrap_or_default();
@@ -370,25 +389,24 @@ impl Group {
         }
     }
 
-    /// Game seconds since a moving group last got nearer its goal; `None` when it is not moving.
-    pub(crate) fn stalled_seconds(&self, frame: i32) -> Option<i32> {
-        matches!(self.task, GroupTask::Move { .. }).then(|| (frame - self.progressed) / FRAMES_PER_SECOND)
-    }
-
     pub(crate) fn units<'a>(&self, own: &'a [OwnUnit]) -> Vec<&'a OwnUnit> {
         own.iter().filter(|u| self.members.contains(&u.id)).collect()
     }
 }
 
 impl Group {
-    /// A new task starts the progress clock afresh.
+    /// A new task; a shell's standoff placement ends with it.
     pub(crate) fn set_task(&mut self, task: GroupTask, frame: i32) {
         self.task = task;
-        self.best_to_go = f32::INFINITY;
-        self.progressed = frame;
-        self.stall_warned = false;
-        self.gathering = false;
+        self.last_order = frame;
         self.shelling = false;
+    }
+}
+
+impl GroupTask {
+    /// The hold an order ends in, or a group forms in: nobody picked it, nothing is committed.
+    pub(crate) fn idle_hold(at: Vec3) -> GroupTask {
+        GroupTask::Hold { committed: false, picked: false, at }
     }
 }
 
@@ -463,7 +481,7 @@ impl Brain {
             for (domain, members) in by_domain {
                 let name = pianist.new_group_name();
                 let units: Vec<&OwnUnit> = given.iter().copied().filter(|u| members.contains(&u.id)).collect();
-                let group = Group::new(name.clone(), domain, members, GroupTask::Hold { committed: false, picked: false }, frame);
+                let group = Group::new(name.clone(), domain, members, GroupTask::idle_hold(centre_of(&units).unwrap_or_default()), frame);
                 commands.extend(group.hold_orders(&units));
                 pianist.groups.push(group);
                 pianist.done.push(format!("{} group_{name} formed from the {} soldiers given to this seat", super::picture::clock(frame), units.len()));
@@ -506,7 +524,7 @@ impl Brain {
                             if by_type { " (one group per unit type)" } else { "" }
                         ));
                     }
-                    let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { committed: false, picked: false }, frame);
+                    let group = Group::new(name, domain, vec![unit.id], GroupTask::idle_hold(unit.pos), frame);
                     commands.extend(group.hold_orders(&[unit]));
                     pianist.groups.push(group);
                 }
@@ -516,8 +534,7 @@ impl Brain {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.note(frame, text);
         }
-        // Standing orders, under each group's footwork rules (H-HANDS-LANE).
-        let mut stalled: Vec<String> = Vec::new();
+        // Standing orders, under each group's footwork rules (H-HANDS-LANE); a declared group's are the lane's.
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
         let mut follow_ends: Vec<String> = Vec::new();
@@ -582,7 +599,9 @@ impl Brain {
             let units: Vec<&OwnUnit> = units.into_iter().filter(|u| !group.waiting.iter().any(|(_, w)| *w == u.id)).collect();
             // The body's place, not the centre of every member: the stream still joining from the plants would drag
             // the centre home (player-10 18:20: a front at spot_40 with 34 waiting at the yard read "0 of 59 arrived").
-            let Some(centre) = group.body(own, goal).map(|b| b.at) else { continue };
+            // A declared group's place is its anchor, the lane's.
+            let lane_state = if group.declared() { self.lane.group_state(&group.lane_name()).cloned() } else { None };
+            let Some(centre) = lane_state.as_ref().map(|s| s.anchor).or_else(|| group.body(own, goal).map(|b| b.at)) else { continue };
             // The registers' facts: a named place (`menu::named_places`) the body comes within `ARRIVED` of is
             // reached, said in `recent` and asked about at once; the first enemies in sight since the last stop are
             // kept until the next. Code records; Jev picks the next move.
@@ -611,32 +630,33 @@ impl Brain {
                     group.met = Some((frame, words));
                 }
             }
-            // A gather ends when the tail is up, the stragglers with it, wherever the front then stands.
-            let together = group.gathering && group.body(own, None).is_some_and(|body| body.whole <= STRUNG_OUT);
+            let declared = group.declared();
             match &mut group.task {
                 GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
-                GroupTask::Move { to, fight, place, .. } => {
-                    // Arrival and "to go" by the members, not the centre: a group split by a cliff never got its
-                    // centre within 300 of its goal, so a fall-back walk stayed the base world for two minutes and
-                    // the player's new stations were shown as the default and never played (Cape Violet 9:40-11:17).
+                GroupTask::Move { to, fight, .. } if declared => {
+                    // The lane's arrival (the anchor at the way's end, every member not an exception in its slot),
+                    // read a second after the order at the earliest: the state before it is the last task's.
+                    if frame - group.last_order >= FRAMES_PER_SECOND && lane_state.as_ref().is_some_and(|s| s.arrived) {
+                        // An arrival ends the order in a hold nobody picked, about the walk's end: the group is idle
+                        // and is asked.
+                        let (committed, at) = (*fight, *to);
+                        group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
+                    }
+                }
+                GroupTask::Move { to, fight, .. } => {
+                    // An air group, or a shelling one, until their chunks: arrival by the members, not the centre (a
+                    // group split by a cliff never got its centre within 300 of its goal, so a fall-back walk stayed
+                    // the base world for two minutes and the player's new stations were shown as the default and
+                    // never played: Cape Violet 9:40-11:17).
                     let joining = group.joining.clone();
                     let moving: Vec<&OwnUnit> = units.iter().copied().filter(|u| !joining.contains_key(&u.id) && !self.stuck.contains_key(&u.id)).collect();
                     let core = if moving.is_empty() { units.clone() } else { moving };
                     let mut distances: Vec<f32> = core.iter().map(|u| u.pos.dist2d(*to)).collect();
                     distances.sort_by(f32::total_cmp);
                     let to_go = distances.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len().saturating_sub(1))).copied().unwrap_or(0.0);
-                    if to_go < group.best_to_go - PROGRESS_STEP {
-                        (group.best_to_go, group.progressed) = (to_go, frame);
-                    }
-                    if to_go < ARRIVED || together {
-                        // An arrival ends the order in a hold nobody picked: the group is idle and is asked.
-                        let committed = *fight;
-                        group.set_task(GroupTask::Hold { committed, picked: false }, frame);
-                    } else if *fight {
-                        if frame - group.progressed >= STALL_FRAMES && !group.stall_warned {
-                            group.stall_warned = true;
-                            stalled.push(format!("group_{} was told to advance to {place} and has not got nearer for {} s, {to_go:.0} short of it", group.name, (frame - group.progressed) / FRAMES_PER_SECOND));
-                        }
+                    if to_go < ARRIVED {
+                        let (committed, at) = (*fight, *to);
+                        group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
                     }
                 }
                 GroupTask::Engage { party, at, sent, last_seen, target, searched, .. } => {
@@ -656,7 +676,7 @@ impl Brain {
                             }
                         } else if air && frame - *last_seen > AIR_LOST_FRAMES {
                             commands.extend(group.hold_orders(&units));
-                            group.task = GroupTask::Hold { committed: false, picked: false };
+                            group.task = GroupTask::idle_hold(centre);
                         } else if air && frame - *last_seen > LOST_FRAMES && !*searched {
                             *searched = true;
                             group.last_order = frame;
@@ -664,7 +684,7 @@ impl Brain {
                             commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
                         } else if !air && frame - *last_seen > LOST_FRAMES {
                             commands.extend(group.hold_orders(&units));
-                            group.task = GroupTask::Hold { committed: false, picked: false };
+                            group.task = GroupTask::idle_hold(centre);
                         }
                     } else if let Some(now) = centre_of_enemies(&seen) {
                         *last_seen = frame;
@@ -679,7 +699,7 @@ impl Brain {
                         }
                     } else if frame - *last_seen > LOST_FRAMES {
                         commands.extend(group.hold_orders(&units));
-                        group.task = GroupTask::Hold { committed: false, picked: false };
+                        group.task = GroupTask::idle_hold(centre);
                     }
                 }
                 // The hunt's book: the quarry's last sighting for the words; the chase and its ends are the engine's
@@ -712,7 +732,7 @@ impl Brain {
                         None => {
                             follow_ends.push(format!("group_{} followed {ward_name} for {} s: {ward_name} is gone; the group holds where it is", group.name, (frame - *since) / FRAMES_PER_SECOND));
                             commands.extend(group.hold_orders(&units));
-                            group.task = GroupTask::Hold { committed: false, picked: false };
+                            group.task = GroupTask::idle_hold(centre);
                         }
                     }
                 }
@@ -730,13 +750,6 @@ impl Brain {
         for text in route_news {
             pianist.note(frame, text.clone());
             pianist.events.insert(text);
-        }
-        for text in stalled {
-            pianist.note(frame, text.clone());
-            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
-            if let Some(shared) = &self.strategist {
-                shared.trigger(text);
-            }
         }
         self.pianist = Some(pianist);
     }
@@ -801,7 +814,7 @@ impl Brain {
         let (party, since) = (hunt.party.clone(), hunt.since);
         let units = group.units(own);
         commands.extend(group.hold_orders(&units));
-        group.set_task(GroupTask::Hold { committed: false, picked: false }, frame);
+        group.set_task(GroupTask::idle_hold(centre_of(&units).unwrap_or_default()), frame);
         let why = match event.why {
             "dead" => "the quarry is dead".to_string(),
             "lost" if cloaks => format!("{party} hidden: it cloaks, and nothing of ours has seen it for {} s, its last place walked to", HUNT_HIDDEN_FRAMES / FRAMES_PER_SECOND),
@@ -845,10 +858,6 @@ impl Brain {
             let joining = std::mem::take(&mut group.joining);
             let waiting = std::mem::take(&mut group.waiting);
             group.members = ids;
-            group.best_to_go = f32::INFINITY;
-            group.progressed = frame;
-            group.stall_warned = false;
-            group.gathering = false;
             group.shelling = false;
             let did = format!("{} of group_{parent_name} hunt {} ({}) under its name; the {} left behind are group_{name}", group.members.len(), party.name, party.composition, rest.len());
             let mut left = Group::new(name, domain, rest, old_task, frame).split_from(&parent_name);
@@ -928,20 +937,20 @@ mod tests {
     use super::*;
 
     /// Sixteen soldiers together and four far behind: by the old measure the group is strung out; under the
-    /// `stragglers` layer the four are stragglers, out of the core, the body is not strung out, and the whole length a
-    /// gather closes still reaches them. A column with every soldier 100 behind the last stays strung out.
+    /// `stragglers` layer the four are stragglers, out of the core, and the body is not strung out, though it was
+    /// without the layer. A column with every soldier 100 behind the last stays strung out.
     #[test]
     fn a_few_far_behind_are_stragglers_and_the_body_is_not_strung_out() {
         let spot = |x: f32| Vec3 { x, y: 0.0, z: 1000.0 };
         let mut ours: Vec<OwnUnit> = (0..16).map(|i| own(i, 1, spot(3000.0 + 20.0 * i as f32))).collect();
         ours.extend((0..4).map(|i| own(16 + i, 1, spot(2000.0 - 300.0 * i as f32))));
-        let group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
+        let group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
         let toward = Some(spot(4000.0));
         let old = group.body_with(&ours, toward, false).expect("a body");
         assert!(old.strung_out() && old.stragglers.is_empty() && old.core.len() == 20);
         let body = group.body_with(&ours, toward, true).expect("a body");
         assert_eq!((body.stragglers.len(), body.core.len()), (4, 16));
-        assert!(!body.strung_out() && body.whole > STRUNG_OUT && body.whole == old.length, "{} {}", body.length, body.whole);
+        assert!(!body.strung_out() && old.length > STRUNG_OUT, "{} {}", body.length, old.length);
         let column: Vec<OwnUnit> = (0..20).map(|i| own(i, 1, spot(3000.0 - 100.0 * i as f32))).collect();
         let body = group.body_with(&column, toward, true).expect("a body");
         assert!(body.strung_out() && body.stragglers.len() == 4, "{} {}", body.length, body.stragglers.len());
@@ -953,7 +962,7 @@ mod tests {
     fn a_hunt_splits_its_hunters_into_a_group_of_their_own_and_ends_in_a_hold() {
         let (_, ours, enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
         // The fixture named A by hand; the next name the pianist gives is B (two groups named A matched one event).
         pianist.next_group = 1;
         let hunters: Vec<UnitId> = ours.iter().take(3).map(|u| u.id).collect();
@@ -1030,7 +1039,7 @@ mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, mut ours, mut enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
         let mut commands = Vec::new();
         Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
         // The last two are still on their way, far behind, sent to where a member stood then.
@@ -1079,7 +1088,7 @@ mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, _parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { committed: false, picked: false }, 0);
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
         group.joining.insert(ours[0].id, ours[0].pos);
         group.set_task(GroupTask::Rove { within: None }, 0);
         assert_eq!(group.course_word(), "roving");
@@ -1098,14 +1107,34 @@ mod tests {
         assert!(brain.journal.notes.iter().all(|n| n.source != "lane"));
     }
 
-    /// A newcomer admitted beside the body takes the task's order at once; one admitted far from it is sent to the
-    /// nearest member of the body's core, not to a member still joining (human-27 1:47-2:34: a Rascal adopted at the
-    /// yard with no order stood there 47 s while its group walked to spot_18, and the first Incisor was sent to it).
+    /// A declared group (a ground walk) walks no joiner: a newcomer near or far is a member with no order of the
+    /// hands', the lane's slot its walk (the migration design, chunk 2).
+    #[test]
+    fn a_declared_groups_newcomer_is_a_member_with_no_order_of_the_hands() {
+        use super::super::fixtures::{at, e3, own};
+        let (_brain, ours, _enemies, _parties) = e3();
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
+        assert!(group.declared());
+        let mut all = ours.clone();
+        for (id, pos) in [(700, at(ours[0].pos.x + 100.0, ours[0].pos.z)), (701, at(1000.0, 4000.0))] {
+            let newcomer = own(id, 1, pos);
+            all.push(newcomer.clone());
+            assert!(group.admit(&newcomer, &all, |p| p, None).is_empty(), "no order of the hands'");
+            assert!(group.members.contains(&newcomer.id) && !group.joining.contains_key(&newcomer.id));
+        }
+        assert!(group.hold_orders(&group.units(&all)).is_empty(), "the lane's Hold keeps the ranks");
+    }
+
+    /// An undeclared group (an air group here, until its chunk): a newcomer admitted beside the body takes the task's
+    /// order at once; one admitted far from it is sent to the nearest member of the body's core, not to a member
+    /// still joining (human-27 1:47-2:34: a Rascal adopted at the yard with no order stood there 47 s while its
+    /// group walked to spot_18, and the first Incisor was sent to it).
     #[test]
     fn a_newcomer_beside_the_body_takes_its_order_and_one_far_from_it_walks_to_the_core() {
         use super::super::fixtures::{at, e3, own};
         let (_brain, ours, _enemies, _parties) = e3();
-        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
+        let mut group = Group::new("A".into(), Domain::Air, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
+        assert!(!group.declared());
         let mut all = ours.clone();
         let beside = own(700, 1, at(ours[0].pos.x + 100.0, ours[0].pos.z));
         all.push(beside.clone());
@@ -1125,8 +1154,9 @@ mod tests {
     }
 
     /// `join_in`: a newcomer far from the body waits beside its plant, out of the exit lane on the side toward the
-    /// body, and is not sent after the body; `release_waiting` sends the plant's waiting newcomers together. One
-    /// beside the body is of it at once, `join_in` or not.
+    /// body, and is not sent after the body; `release_waiting` sends the plant's waiting newcomers together (an
+    /// undeclared group, an air one here) or, for a declared group, makes them members for the lane to place. One
+    /// beside an undeclared body is of it at once, `join_in` or not.
     #[test]
     fn newcomers_under_join_in_wait_beside_their_plant_and_walk_together() {
         use super::super::fixtures::{at, e3, own};
@@ -1135,7 +1165,19 @@ mod tests {
         assert_eq!(beside_lane(&lane, at(0.0, 2000.0)), at(820.0, 1000.0));
         assert_eq!(beside_lane(&lane, at(3000.0, 2000.0)), at(1180.0, 1000.0));
         let (_brain, ours, _enemies, _parties) = e3();
-        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
+        // A declared group: the wait as any newcomer's, the release a membership (no walk of the hands').
+        let mut declared = Group::new("D".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
+        let mut all = ours.clone();
+        let plant = UnitId(5);
+        let beside = at(900.0, 4000.0);
+        let newcomer = own(710, 1, at(1100.0, 4000.0));
+        all.push(newcomer.clone());
+        let orders = declared.admit(&newcomer, &all, |p| p, Some((plant, 3, beside)));
+        assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == newcomer.id && to == beside), "{orders:?}");
+        assert_eq!(declared.waiting, vec![(plant, UnitId(710))]);
+        assert!(declared.joining.is_empty());
+        assert!(declared.release_waiting(plant, &all, |_, to| to).is_empty() && declared.waiting.is_empty());
+        let mut group = Group::new("A".into(), Domain::Air, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false }, 0);
         let mut all = ours.clone();
         let plant = UnitId(5);
         let beside = at(900.0, 4000.0);

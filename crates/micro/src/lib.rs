@@ -1329,15 +1329,16 @@ impl Lane {
             // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was
             // 6.0 s under Moves, the units walking on to slots on the structure's footprint, against 0.8 under
             // Fights). Stopped slots are sent once, so a standing unit's Fight is never re-ordered.
-            let slots = group.tick(frame, &walkers, spacing, &self.pacing).clone();
+            group.tick(frame, &walkers, spacing, &self.pacing);
             let fights = group.order.kind != GroupKind::Go;
             for w in &walkers {
                 if !by_id.contains_key(&w.id) {
                     continue;
                 }
-                let slot = slots[&w.id];
-                let command = if fights { Command::Fight { unit: w.id, to: slot, queue: false } } else { Command::Move { unit: w.id, to: slot, queue: false } };
-                orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: slot, target: None });
+                // The slot carried ahead by the type's lead (D20), so the member stands in the slot.
+                let Some(to) = group.order_point(w.id) else { continue };
+                let command = if fights { Command::Fight { unit: w.id, to, queue: false } } else { Command::Move { unit: w.id, to, queue: false } };
+                orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: to, target: None });
             }
             declared.state = Some(group.state(&walkers));
         }

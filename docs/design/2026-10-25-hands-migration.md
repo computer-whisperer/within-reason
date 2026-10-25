@@ -11,7 +11,8 @@ member against a slot it can only trail by the engine's following distance (100-
 formed body reads as "behind" by chance of where its last set-down left it, and a lap of the circuit varies 190-213 s
 run to run. The lead (D14's open decision) is the fix: the band measured from the body's own trail, or the slot order
 placed the following distance ahead. It does not block chunk 1 (words and record) and should precede chunk 2, since
-the words would otherwise call a following body "behind".
+the words would otherwise call a following body "behind". **Built as D20 of the drills design (2026-10-25, after
+chunk 1): the slot order placed the type's lead ahead, the lead learned on the march.**
 
 ## 1. What the hands do today that the group replaces
 
@@ -158,3 +159,51 @@ heuristics rows for H-HANDS-GROUP-BODY, H-HANDS-STRAGGLERS, H-HANDS-STALL, H-HAN
   ranks), so they have no state, no record line and no words: nothing of chunk 1 is live until chunk 2 attaches a
   kind. The words and the record line are tested on synthetic states (`picture.rs`, `recorder.rs`); the engine's
   `way` on the walled map (`group.rs`) and in a drill run (the ledger).
+
+### Chunk 2, the build decisions (2026-10-25, written before the deletions)
+
+1. **Declared:** every ground group whose task is `Hold` or `Move` and that is not shelling (shell is chunk 5: a
+   shelling group's soldiers stay loose soldiers with the per-unit commitment, as today). Air groups, `Engage` and
+   `Follow` stay the hands' until their chunks. The members declared are the group's members less the newcomers
+   `waiting` beside their plant (`join_in`): the lane drops a host's order to a declared member, and the wait is the
+   hands' order.
+2. **The mapping as §2,** with one addition: `Hold` carries `at`, the point the ranks stand about. It is the walk's
+   `to` when an arrival ends in a hold (the lane's anchor is at the way's end, so the re-declared Hold plans from
+   there and is arrived at once; the slots are re-dealt by least travel where the body stands), the body's place when
+   Jev picks a hold or a group forms (a newcomer's own position for a group of one), the centre of the soldiers given
+   when a transfer forms a group. Commitment per §2's column; footwork the player's (`footwork_of`).
+3. **Dies, for these groups:** the per-unit Move / Fight / Stop in `execute_group` for Hold, Go and FightTo; the
+   joiners' walk (`joining` is not kept for a declared group: a newcomer admitted is a member with a slot from the
+   next tick, `Cause::Joining` in the state until formed; a newcomer under `join_in` waits as today and is declared
+   when released); the arrival by members (`to_go` under `ARRIVED` becomes `state.arrived`); the picture's body words
+   (front, tail, "K of M arrived", reinforcements, stragglers; replaced by the `formation` line); `reached` and `met`
+   measured from the anchor instead of the body's place.
+4. **Dies, for every group:** the gather move (`Order::Gather`, `gathering`, the menu's `gather`, the `together`
+   end of a walk) by the ruling; the stall rule H-HANDS-STALL whole (`PROGRESS_STEP`, `STALL_FRAMES`, `best_to_go`,
+   `progressed`, `stall_warned`, `stalled_seconds`, the picture's `progress` line and the wake): for a declared
+   group the state's pace at 0 while not arrived and not engaged is the "held" line of §4; an air group walking loses
+   the stall word (it never fired for one in the reviewed games).
+5. **Kept:** `Group::body` and its words for air groups and the undeclared tasks until their chunks; `waiting` and
+   `join_in`; split, join (the absorbed soldiers become members: slots, not `joining`, when the body is declared),
+   transfer; the loss wake; the registers' rule (`ARRIVED` on the anchor).
+6. **The reading:** a declared group's `at` is the anchor's place words; its `doing` for a walk is "advancing to
+   {place}" or "walking to {place}" and the `formation` line carries the rest (§4); Jev reads the same entry.
+7. **The measure:** one pianist game on the arena target (Opus 5.5 medium as the player, BARb hard_aggressive, Comet
+   Catcher), reviewed with `bar-review`; the record's `groups` and the viewer's ranks are the instrument; the formed
+   share, the pace share and the exceptions over the game's marches are the numbers kept, against the drills'
+   (a formed share near one on a straight at full pace after D20).
+
+### Chunk 2, built 2026-10-25 (after D20)
+
+As decided above. `Group::declared` (`groups.rs`) names the groups the lane runs; `note_commitments` (`brain/micro.rs`)
+declares them with the kind, the one-point route, the player's footwork and the §2 commitment, the waiting newcomers
+left out; `GroupTask::Hold` carries `at`. Gone: the per-unit Move / Fight / Stop for these groups (`execute_group`,
+`hold_orders`), the joiners' walk for them (`admit`, `release_waiting`, the join move), the stall rule whole
+(`PROGRESS_STEP`, `STALL_FRAMES`, `best_to_go`, `progressed`, `stall_warned`, `stalled_seconds`, the `progress` line,
+the wake), the gather move whole (`Order::Gather`, `gathering`, the menu's `gather` and its words, the player's prompt
+line), the body words for a declared group (its `at` is the anchor's place, its walk's `doing` is the place alone and
+the `formation` line says the rest; no reinforcements or stragglers line). Arrival for a declared walk is the lane's
+`arrived`, read a second after the order at the earliest (the state before that is the last task's); `reached` and
+`met` are measured from the anchor. Kept as decided. Tests: a declared group's newcomer is a member with no order of
+the hands'; `join_in` on a declared group waits as before and its release is a membership; the undeclared paths
+(an air group in the tests) keep theirs. The pianist game: the ledger row.
