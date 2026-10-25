@@ -48,7 +48,9 @@ pub(crate) struct Options {
     /// A mobile builder's help on the frames of an extractor upgrade it cannot start, as a share of the mobile starters'
     /// direct power on the type (`mhelp`; 0 off): the basic constructors on the moho frames, as thebluegecko's put
     /// 26 % of the builder-seconds there against his advanced constructors' 73 %. Without it the program priced every
-    /// upgrade on the advanced constructors alone and bought 29-32 of them by 15:00 against his 15 (terr97).
+    /// upgrade on the advanced constructors alone and bought 29-32 of them by 15:00 against his 15 (terr97). Off by
+    /// default since change 2 of docs/design/2026-10-25-territory-walks.md: the bot's basic constructors walked two
+    /// seconds to every upgrade frame for each second of help on it (terr157-162), where his stood among his spots.
     pub mobile_help: f64,
     pub nanos_per_factory: f64,
     /// The farm: turrets at most as a number (0: the bound per factory), and whether the program may take a
@@ -127,7 +129,7 @@ impl Default for Options {
             coarse_from: 300.0,
             coarse_dt: 120.0,
             help_factor: 40.0,
-            mobile_help: 0.35,
+            mobile_help: 0.0,
             nanos_per_factory: 6.0,
             max_nanos: 300.0,
             farm_big: 0.0,

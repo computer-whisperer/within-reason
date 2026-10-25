@@ -28,16 +28,14 @@ const WALKS_SHOWN: f64 = 5.0;
 pub(crate) struct Walks {
     /// Per (constructor type, unit type): seconds walking, seconds working.
     per: BTreeMap<(usize, usize), (f64, f64)>,
-    /// Per constructor type: seconds walking under an order for no unit (the cascade's walk home).
-    home: BTreeMap<usize, f64>,
     measured: Option<i32>,
     logged: i32,
 }
 
 impl Territory {
     /// Every hands tick: each constructor holding an order, walking or working, credited to its type and the order's
-    /// unit type (a build's type, a helped frame's type); a walk home walks for no unit; a guard on a factory is not
-    /// counted, as the program prices an assist with no walk.
+    /// unit type (a build's type, a helped frame's type); a guard on a factory is not counted, as the program prices an
+    /// assist with no walk.
     pub(crate) fn measure_walks(&mut self) {
         let last = self.walks.measured.replace(self.frame);
         let Some(last) = last else { return };
@@ -50,11 +48,8 @@ impl Territory {
             *walking *= keep;
             *working *= keep;
         }
-        for walking in self.walks.home.values_mut() {
-            *walking *= keep;
-        }
         let units = &self.game().units;
-        let mut walked: Vec<(usize, Option<usize>, bool)> = Vec::new();
+        let mut walked: Vec<(usize, usize, bool)> = Vec::new();
         for (id, order) in &self.hands.orders {
             let Some(builder) = self.own.get(id) else { continue };
             let Some(b) = self.unit_index(builder.def) else { continue };
@@ -63,49 +58,28 @@ impl Territory {
             }
             let moving = f64::from(builder.vel.x.hypot(builder.vel.z)) * f64::from(SECOND) > MOVING * units.list[b].speed;
             let unit = match &order.what {
-                What::Build { unit, .. } => Some(*unit),
+                What::Build { unit, .. } => *unit,
                 What::Help { frame } => match self.own.get(frame).and_then(|f| self.unit_index(f.def)) {
-                    Some(u) => Some(u),
+                    Some(u) => u,
                     None => continue,
                 },
-                What::Walk { .. } => None,
                 What::Assist { .. } => continue,
             };
             walked.push((b, unit, moving));
         }
-        for (b, unit, moving) in walked {
-            match unit {
-                Some(u) => {
-                    let entry = self.walks.per.entry((b, u)).or_default();
-                    if moving { entry.0 += dt } else { entry.1 += dt }
-                }
-                None if moving => *self.walks.home.entry(b).or_default() += dt,
-                None => {}
-            }
+        for (b, u, moving) in walked {
+            let entry = self.walks.per.entry((b, u)).or_default();
+            if moving { entry.0 += dt } else { entry.1 += dt }
         }
     }
 
-    /// The measured walks as the program takes them: a constructor type's walk home spread over its pairs by their
-    /// work.
+    /// The measured walks as the program takes them.
     pub(crate) fn walked(&self) -> Vec<Walked> {
-        let mut worked: BTreeMap<usize, f64> = BTreeMap::new();
-        for (&(b, _), &(_, working)) in &self.walks.per {
-            *worked.entry(b).or_default() += working;
-        }
-        self.walks
-            .per
-            .iter()
-            .map(|(&(builder, unit), &(walking, working))| {
-                let total = worked.get(&builder).copied().unwrap_or(0.0);
-                let home = self.walks.home.get(&builder).copied().unwrap_or(0.0);
-                let walking = walking + if total > 0.0 { home * working / total } else { 0.0 };
-                Walked { builder, unit, walking, working }
-            })
-            .collect()
+        self.walks.per.iter().map(|(&(builder, unit), &(walking, working))| Walked { builder, unit, walking, working }).collect()
     }
 
     /// T-WALKS every WALKS_LOG: per constructor type and unit type, most work first, the ratio of walking to working
-    /// measured (the walk home spread in), the seconds of work in the decayed sums, and the ratio the program's last
+    /// measured, the seconds of work in the decayed sums, and the ratio the program's last
     /// plan priced the pair at (its cost over the unit's build time, less one).
     pub(crate) fn log_walks(&mut self) {
         if self.frame < self.walks.logged + WALKS_LOG {
@@ -121,11 +95,10 @@ impl Territory {
             let flow = targets.flows.iter().find(|f| f.builder == w.builder && f.unit == w.unit && f.class != Class::Frames)?;
             Some(flow.cost / units.list[w.unit].build_time.max(1.0) - 1.0)
         };
-        let home: f64 = self.walks.home.values().sum();
         let line: Vec<String> = pairs
             .iter()
             .map(|w| format!("{}>{} {:.2} of {:.0} s (paid {})", units.list[w.builder].name, units.list[w.unit].name, w.walking / w.working, w.working, paid(w).map_or("-".to_string(), |r| format!("{r:.2}"))))
             .collect();
-        self.log(format_args!("walks: {} | walking home {home:.0} s", line.join(" | ")));
+        self.log(format_args!("walks: {}", line.join(" | ")));
     }
 }
