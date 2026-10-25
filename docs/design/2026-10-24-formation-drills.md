@@ -791,9 +791,11 @@ nine matches), so an army of which nothing appeared in three seconds is given ag
     the group does worse than no lane: the formed share before contact 0.21-0.37, the body filed through the passage
     walks as exceptions (its slots in ranks of six lie outside a corridor narrower than them), and it arrives in
     pieces over 19-33 s. The `ranks` timeouts there were a defect (the anchor set down on the body short of a finished
-    route; the view with no memory of a turret out of sight), fixed in f62739d and re-run as assault3-*. **What the
-    slice asks of the engine (step 3 of the ruled order, for the user):** the shape to the corridor, and a word for
-    the approach under long-range area fire.
+    route; the view with no memory of a turret out of sight), fixed in f62739d and re-run as assault3-*: the timeouts
+    gone (8 of 8 taken), every other arm within noise of slice 2, the detour's formed share 0.21 / 0.38 and ramps of
+    17 / 32 s unchanged, so the corridor is the group's problem and not the defects'. **What the slices ask of the
+    engine (step 3 of the ruled order, for the user):** the shape to the corridor, and a word for the approach under
+    long-range area fire.
 
 ## 6. Open for the user
 
