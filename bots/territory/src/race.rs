@@ -29,6 +29,9 @@ pub(crate) struct Race {
     pub sensors: Option<Sensors>,
     /// The movement cost layers, by the unit type whose class they were made for.
     costs: BTreeMap<UnitDefId, Vec<u32>>,
+    /// The last line's warning per region holding something of ours, in seconds (infinite where his raid cannot walk):
+    /// T-RADAR reads it.
+    pub warn: BTreeMap<usize, f32>,
 }
 
 fn same(a: &MoveClass, b: &MoveClass) -> bool {
@@ -45,9 +48,18 @@ struct Armed {
 }
 
 impl Territory {
+    /// The region of the spot nearest `p` (T-REGIONS): what stands of ours belongs to it.
+    pub(crate) fn region_of(&self, p: Vec3) -> Option<usize> {
+        let regions = self.regions.as_ref()?;
+        let spots = &self.game().spots;
+        let d = |s: usize| (spots[s].0.0 - f64::from(p.x)).hypot(spots[s].0.1 - f64::from(p.z));
+        (0..spots.len()).min_by(|a, b| d(*a).total_cmp(&d(*b))).map(|s| regions.of_spot[s])
+    }
+
     /// `race:` every RACE_LOG: the coverage, then per region with something of ours standing, `r{k} {metal standing}
     /// warn {seconds} ours {armed metal in reach at the warning and AFTER it} turrets {metal}`. The warning is the raid's
-    /// walk from the nearest square neither sight nor radar covers to its reach of the region's nearest building, at
+    /// walk from the nearest square neither sight nor radar covers, of the uncovered ground joined to his start's (with
+    /// his start in sight, of the largest piece of uncovered ground), to its reach of the region's nearest building, at
     /// RAID_SPEED; a frame counts at its progress. Our mobile armed units arrive at their own speed over their group's
     /// field, their reach short of that building; a turret counts when a building of the region stands in its reach.
     pub(crate) fn log_race(&mut self) {
@@ -57,13 +69,6 @@ impl Territory {
         let game = self.game.clone().expect("started");
         let terrain = &self.hello.terrain;
         let units = &game.units;
-        let of = |p: Vec3| -> usize {
-            let near = (0..game.spots.len()).min_by(|a, b| {
-                let d = |s: usize| (game.spots[s].0.0 - f64::from(p.x)).hypot(game.spots[s].0.1 - f64::from(p.z));
-                d(*a).total_cmp(&d(*b))
-            });
-            near.map_or(0, |s| regions.of_spot[s])
-        };
         let mut standing: Vec<Vec<(Vec3, f32)>> = vec![Vec::new(); regions.list.len()];
         let mut armed: Vec<Armed> = Vec::new();
         for u in self.own.values() {
@@ -71,31 +76,68 @@ impl Territory {
             let role = self.unit_index(u.def).map(|i| units.list[i].role);
             if d.speed == 0.0 {
                 let worth = if u.being_built { d.metal_cost * (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) } else { d.metal_cost };
-                standing[of(u.pos)].push((u.pos, worth));
+                if let Some(k) = self.region_of(u.pos) {
+                    standing[k].push((u.pos, worth));
+                }
             }
             if !u.being_built && d.weapon_count > 0 && d.reach > 0.0 && matches!(role, Some(Role::Commander | Role::Army | Role::Turret)) {
                 armed.push(Armed { pos: u.pos, metal: d.metal_cost, reach: d.reach, speed: d.speed, def: u.def });
             }
         }
-        // His approach: from every square at the edge of what we see or hear on radar.
+        // His approach: from the edge of the uncovered ground joined to his start's (four squares round), the ground he
+        // can have walked to unseen; not from the holes our coverage leaves inside itself (terr238-243: radar over
+        // 94-98 % of the map and the warning still 1-6 s, every hole counted). With his start in sight, from the largest
+        // piece of uncovered ground (terr250-255: our radar over his start against NullAI, the holes counted again and
+        // 4-35 radars a game).
         let covered = |x: f32, z: f32| sensors.los.at(x, z) || sensors.radar.at(x, z);
         let (cell, width, height) = (terrain.cell, terrain.width as i32, terrain.height as i32);
         let centre = |x: i32, z: i32| ((x as f32 + 0.5) * cell, (z as f32 + 0.5) * cell);
-        let mut edge: Vec<Vec3> = Vec::new();
+        let index = |x: i32, z: i32| (z * width + x) as usize;
+        let inside = |x: i32, z: i32| x >= 0 && z >= 0 && x < width && z < height;
+        let mut open = vec![false; (width * height).max(0) as usize];
         for z in 0..height {
             for x in 0..width {
                 let (px, pz) = centre(x, z);
-                if covered(px, pz) {
+                open[index(x, z)] = !covered(px, pz);
+            }
+        }
+        const AROUND: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        // The pieces of uncovered ground, each square labelled with its piece; his is his start's, else the largest.
+        let mut piece = vec![usize::MAX; open.len()];
+        let mut sizes: Vec<usize> = Vec::new();
+        for z in 0..height {
+            for x in 0..width {
+                if !open[index(x, z)] || piece[index(x, z)] != usize::MAX {
                     continue;
                 }
-                let beside_seen = [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dz)| {
-                    let (nx, nz) = (x + dx, z + dz);
-                    nx >= 0 && nz >= 0 && nx < width && nz < height && {
-                        let (qx, qz) = centre(nx, nz);
-                        covered(qx, qz)
+                let label = sizes.len();
+                let mut stack = vec![(x, z)];
+                piece[index(x, z)] = label;
+                let mut size = 0;
+                while let Some((px, pz)) = stack.pop() {
+                    size += 1;
+                    for (dx, dz) in AROUND {
+                        let (nx, nz) = (px + dx, pz + dz);
+                        if inside(nx, nz) && open[index(nx, nz)] && piece[index(nx, nz)] == usize::MAX {
+                            piece[index(nx, nz)] = label;
+                            stack.push((nx, nz));
+                        }
                     }
-                });
-                if beside_seen {
+                }
+                sizes.push(size);
+            }
+        }
+        let (hx, hz) = ((self.enemy_home.x / cell) as i32, (self.enemy_home.z / cell) as i32);
+        let his_piece = if inside(hx, hz) && open[index(hx, hz)] {
+            Some(piece[index(hx, hz)])
+        } else {
+            (0..sizes.len()).max_by_key(|p| sizes[*p])
+        };
+        let mut edge: Vec<Vec3> = Vec::new();
+        for z in 0..height {
+            for x in 0..width {
+                if his_piece.is_some_and(|p| piece[index(x, z)] == p) && AROUND.iter().any(|(dx, dz)| inside(x + dx, z + dz) && !open[index(x + dx, z + dz)]) {
+                    let (px, pz) = centre(x, z);
                     edge.push(Vec3 { x: px, y: 0.0, z: pz });
                 }
             }
@@ -150,6 +192,7 @@ impl Territory {
             })
             .collect();
         let mut cells: Vec<String> = Vec::new();
+        let mut warns: BTreeMap<usize, f32> = BTreeMap::new();
         for (k, here) in standing.iter().enumerate() {
             let metal: f32 = here.iter().map(|(_, w)| w).sum();
             if metal < 1.0 {
@@ -174,6 +217,7 @@ impl Territory {
                     }
                 }
             }
+            warns.insert(k, warn.unwrap_or(f32::INFINITY));
             let warn = warn.map_or("-".to_string(), |w| format!("{w:.0}"));
             let ours: Vec<String> = ours.iter().map(|m| format!("{m:.0}")).collect();
             cells.push(format!("r{k} {metal:.0} warn {warn} ours {} turrets {turrets:.0}", ours.join("/")));
@@ -187,5 +231,6 @@ impl Territory {
             began.elapsed().as_millis(),
             cells.join(" | ")
         ));
+        self.race.warn = warns;
     }
 }

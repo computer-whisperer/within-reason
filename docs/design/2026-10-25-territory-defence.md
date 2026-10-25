@@ -43,8 +43,10 @@ contested ground is where the clocks are close; his is where he answers first.
 **His force starts at the edge of our sight.** Not anywhere in the fog: our buildings see 270-490 elmos around them,
 3 to 5 s of a Flash's run; a radar (60 metal) sees 2,100, some 20 s. So scouting and radar are defence in this model,
 bought for the warning they add, which is how players use them. The edge is bounded by where his army could have got
-since we last saw it; without that bound all fog counts and everything is contested. (The first form has no bound:
-by minute 3 a raider can be anywhere on the bench's maps.)
+since we last saw it; without that bound all fog counts and everything is contested. (The built form bounds it by
+connection: the uncovered ground joined to his start's, or with his start in sight the largest piece of uncovered
+ground. Without it the holes our radar leaves inside its own coverage counted, and the warning stayed at 1-6 s with
+94-98 % of the map covered, terr238-243.)
 
 **The threat is two things.**
 
@@ -107,13 +109,43 @@ Each step its bench rows and its register rows; what it replaces, deleted.
    likelier in the open regions than in the held ones, the model is wrong and nothing gets built on it. With no army
    the commander is the only response, so step 2 tests the threat side most (warning times, his group sizes, where
    he goes); the response side is tested again at step 3.
-3. **The army, first form.** Soldiers to a size set by the measured S(t) and the number of stations; stations at the
-   perimeter's regions; the hands answer a raid with the station whose response is soonest; turrets where the race
-   says raids arrive before any station can. The planner sees the army as a draw on metal and factory time, so its
-   promise stays honest. Its details wait for steps 1-2's numbers.
+3. **Radar and turrets, first form** (below, "Step 3: radar and turrets"). The mobile army (a guard that answers
+   raids and pushes, stations, the planner seeing it as a draw on metal and factory time) comes after it.
 4. **Region status from the race.** Ours, contested, his. Construction respects it: cheap work may go into contested
    regions, dear work only into held ones. This is step 5 of the regions design, with the race as its source.
 5. **Cover in the planner.** The loss term: the program trades soldiers and turrets against extractors itself.
+
+## Step 3: radar and turrets
+
+The user, 2026-10-25, on the choice between a guard with radar and turrets alone: "Let's start with radar and turrets
+alone as the simpler variant. For this part of the project, I think we can consider it a win if we end up with double
+the enemy metal income at some point past the opening."
+
+- **The win.** Our metal income twice his at some point from 5:00, each the mean over 30 s, read from the truth file
+  (its `income` field, both sides' income through the engine with cheat access; the bot never sees his). The reader
+  gives each game's best ratio from 5:00 and when, and the ratio at 5, 10, 15 and 20 minutes.
+- **His raid, S.** What the bot has seen: the largest metal of his armed mobile units in sight within 800 of a
+  building of ours, over the last five minutes; his commander at 1,800 and a moving radar dot at 110 (the distilled
+  bot's D-WEIGHT), at most 1,000 (a raid; the push of 3,000-4,000 at 10:00 is the guard's). Nothing seen, nothing
+  wanted: against NullAI no turret is built.
+- **Turrets (T-COVER).** A region holding something of ours wants turrets while the turrets' weight there (their
+  metal times 3, D-WEIGHT's multiplier until combatsim measures one) is under S, and while its turrets' metal stays
+  under the metal of what they guard: never more turret than what it protects. The next turret goes to the region's
+  building with the least turret weight in reach (the one nearest his start on a tie), 120 toward his start. The type
+  is the one the builder makes with the most ground fighting strength per metal, √(damage a second × health) / metal
+  from combatsim's table (no anti-air turret: it cannot hit the ground): Armada's light laser turret (3.71), Cortex's
+  double light laser (3.76), Legion's light turret (4.52).
+- **Radar (T-RADAR).** A region holding something of ours whose warning (the race's, T-RACE) is under 8 s, whose
+  forward building (the one nearest his start) is out of our radar's coverage, and with no radar standing, framed or
+  ordered within 1,000 of that building, gets the cheapest radar the builder makes, 150 behind it toward home.
+- **Who builds.** From 3:00, a constructor with no order (the commander too, within its leash) takes the nearest
+  wanted site within 1,200 before the plan's flows (after T-COMMIT's factories); one order at a site at a time; not
+  within his start's dead radius or with an armed unit of his within 450 (the builders' dead ground, 1,000 of any armed
+  unit of his, forbade every site while raided, terr222). The energy budget and the stock's cover hold for these
+  orders as for any.
+- **The planner** does not see turrets (its palette has none, and their frames are not its columns): a constructor on
+  a turret is one it counts free. The promise (T-PROMISE) says what that costs.
+- **Measured** on the defence bench, and on the economy bench against NullAI, where the radars alone are built.
 
 ## What could go wrong
 
@@ -160,3 +192,34 @@ small: his metal within 800 of each loss, median 92-159 before 5:00 (one or two 
 What the numbers say for step 3: with a second's warning, defence that works is defence already standing where the
 raid arrives (a turret, or a guard stationed there) or warning bought (radar), and the raids it must meet are 100-400
 metal to 10:00 and about 1,000 after; his whole army, the push, is 3,000-4,000 at 10:00.
+
+**Step 3, radar and turrets (terr220-267).** Four builds against BARb medium (terr220-225 the first; terr232-237 with
+the defence sites' own clearance; terr244-249 with the race's edge on the ground joined to his start; terr256-261 with
+the largest uncovered piece when his start is in sight and no radar where our radar already covers), against the same
+build with `defence=off` (terr226-231), which logs both sides' income too.
+
+| | lost of 24 | twice his income at 5:00 | 10:00 | 15:00 | 20:00 | best ratio from 5:00 at 2 or more |
+|---|---|---|---|---|---|---|
+| without defence (terr226-231) | 22 | 9 | 10 | 2 | 0 | 20 |
+| terr220-225 | 13 | 9 | 12 | 9 | 5 | 18 |
+| terr232-237 | 15 | 11 | 10 | 9 | 8 | 20 |
+| terr244-249 | 14 | 6 | 8 | 5 | 3 | 16 |
+| terr256-261 | 13 | 6 | 10 | 6 | 4 | 17 |
+
+(The two earlier benches without defence, terr208-213 and 214-219, lost 18 and 22; their truth files have no income.)
+
+- *The win line as the user put it does not separate the builds.* BARb medium makes 10-17 metal a second at 5:00
+  and the bot 9-45, so our income is twice his at some point past 5:00 in 20 of 24 games without any defence,
+  before his raids take the economy apart. Read at a fixed mark it does: twice his at 15:00 in 5-9 games with radar
+  and turrets against 2 without, at 20:00 in 3-8 against none.
+- *Radar and turrets keep games alive.* 13-15 lost of 24 against 18-22. Mithril and Glitters lose zero to two games a
+  start against two to four, the Comet starts one to three against three to four; Great Divide is lost in every build
+  (sixteen Grunts at 5:00 against 0-6 turrets at 10:00), Quicksilver three or four in every build.
+- *The economy pays little where nobody attacks.* Against NullAI no turret is built, the radars are 2-17 a game, and
+  every start and mark is inside the pooled range (terr262-267).
+- *Radar works only with the edge bounded.* On the uncovered ground joined to his start the warning per region rose
+  from 1 s to a median 6-16 s from 5:00 on Comet, Glitters and Mithril (terr244-261). Quicksilver's stays at 1-2 s in
+  every build, not looked into.
+- *What it does not do.* The games still lost are lost to his army, 3,000-4,000 at 10:00, which the turrets' cover
+  (at most 1,000 a region) is not sized for: the guard's step. Our income at 20:00 in the games that live, 40-500 and
+  most 100-300, is a fifth to a half of the NullAI bench's.

@@ -13,7 +13,7 @@ use crate::Territory;
 /// building placed. NullAI's commander shoots whatever comes near and follows it (terr9-lp-nullai-comet-1: it walked
 /// to our base behind fleeing constructors, killed three there and died to ours, which ended a game at 16:00).
 /// Stage 2's reach field in its first form.
-const DEAD_SPOT: f32 = 1000.0;
+pub(crate) const DEAD_SPOT: f32 = 1000.0;
 
 impl Territory {
     /// Whether `p` is dead ground (DEAD_SPOT): for the spots the scenario keeps (T-SCENARIO) and every site the

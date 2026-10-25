@@ -7,6 +7,7 @@
 //! state, the plan with the most metal made to the game's end, the plan's next step for every builder. No rule
 //! names a unit; the search picks from the roster.
 
+mod defence;
 mod hands;
 mod his_start;
 mod options;
@@ -64,6 +65,8 @@ pub(crate) struct Territory {
     pub regions: Option<Regions>,
     /// The race of force per region, an instrument (T-RACE).
     pub race: race::Race,
+    /// The turrets and radars wanted (T-COVER, T-RADAR).
+    pub defence: defence::Defence,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -437,6 +440,7 @@ impl Bot for Territory {
             spots: Vec::new(),
             regions: None,
             race: race::Race::default(),
+            defence: defence::Defence::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -512,6 +516,8 @@ impl Bot for Territory {
         if tick.due() % (SECOND / 2) == 0 {
             self.measure_walks();
             self.log_walks();
+            self.observe_raids();
+            self.plan_defence();
             self.run_hands(&mut commands);
             self.run_nanos(&mut commands);
             self.run_priorities(&mut commands);
@@ -524,6 +530,9 @@ impl Bot for Territory {
         }
         if tick.due() % race::RACE_LOG == 0 && tick.frame > 0 {
             self.log_race();
+        }
+        if tick.due() % defence::DEFENCE_LOG == 0 && tick.frame > 0 {
+            self.log_defence();
         }
         Commands(commands)
     }

@@ -158,6 +158,7 @@ dependencies = [
  "ai-host",
  "bot-protocol",
  "buildorder",
+ "combatsim",
  "serde_json",
  "terrain",
 ]

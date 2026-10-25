@@ -725,6 +725,10 @@ impl Territory {
             self.note_order(id, &What::Help { frame }, "plant-frame");
             return;
         }
+        // T-COVER and T-RADAR: a turret or a radar wanted within reach, before the plan's flows.
+        if self.defence_order(id, unit, role, commands) {
+            return;
+        }
         // The credits by unit type over every builder type's flows (turret help apart), the largest in power-seconds
         // first, and at a credit tied the one the plan wants sooner (its credit at a third of the lead: terr24, two
         // solars and two extractors wanted by one minute tied, and unit order put the solars first); this builder's
@@ -1103,7 +1107,7 @@ impl Territory {
     /// budget, a factory on the producers' (the program takes a committed factory as standing, T-COMMIT, and its
     /// frame waited on the consumers' budget under one builder from 5:18 to 10:00 while ten built advanced solars
     /// beside it, terr28-lp-nullai-comet-1 game 03; exempt from both it drained the energy to zero, terr29).
-    fn energy_fits(&self, u: usize, builder: usize) -> bool {
+    pub(crate) fn energy_fits(&self, u: usize, builder: usize) -> bool {
         let def = &self.game().units.list[u];
         def.energy_cost <= ENERGY_FREE || self.energy_draw(u, builder) <= self.energy_budget(self.is_energy(u) || def.role == Role::Factory)
     }
@@ -1315,7 +1319,7 @@ impl Territory {
     }
 
     /// Whether the stock and `AFFORD_SECONDS` of income cover a unit's metal cost.
-    fn affordable(&self, u: usize) -> bool {
+    pub(crate) fn affordable(&self, u: usize) -> bool {
         self.game().units.list[u].metal_cost <= self.metal.current as f64 + self.metal.income as f64 * AFFORD_SECONDS
     }
 
@@ -2157,7 +2161,7 @@ impl Territory {
 
     /// One line per order given to a builder (the chain study, 2026-10-25: which orders walk a far constructor home):
     /// what, how far the builder stands from its target and from home, and the rule that gave it.
-    fn note_order(&self, id: UnitId, what: &What, rule: &str) {
+    pub(crate) fn note_order(&self, id: UnitId, what: &What, rule: &str) {
         let name = |d: UnitDefId| self.def(d).map_or("?", |d| d.name.as_str());
         let builder = self.own.get(&id);
         let (text, target) = match what {

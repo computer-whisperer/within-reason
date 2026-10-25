@@ -6,6 +6,12 @@ docs/design/2026-10-25-territory-defence.md).
 
 For the newest batch of each start labelled terrN-TAG-START, game by game and pooled:
 - the outcome and the minute it came;
+- the win line (the user, 2026-10-25: "double the enemy metal income at some point past the opening"): from the truth
+  file's `income` (both sides' metal income, since 2026-10-25), each side's mean over 30 s, our best ratio to his from
+  5:00 and when, the ratio at 5, 10, 15 and 20 minutes, and how many games were twice his at each of those marks
+  (a game over before a mark is not; the best ratio from 5:00 is met by the bot without defence in 20 of 24 games,
+  terr226-231, so the marks are what separate the builds);
+- the turrets and radars standing at 10 and 15 minutes (the `defence:` lines, T-COVER and T-RADAR);
 - our metal lost to his weapons by minute window and by kind (from the `died:` lines with death=Weapon);
 - his armed metal on the map at each mark (his commander apart), and the raids that killed: at each of our losses, his armed metal within
   NEAR of it then (the truth files, every 2 s), and its fastest unit;
@@ -27,6 +33,10 @@ RACE_WINDOW = 30.0
 OURS = re.compile(r"\[territory ai=\d+\] f=(\d+) (.*)")
 DIED = re.compile(r"died: (\w+) unit \d+ at \((-?\d+),(-?\d+)\) death=Weapon")
 CELL = re.compile(r"r(\d+) (\d+) warn (\S+) ours (\d+)/(\d+)/(\d+)/(\d+) turrets (\d+)")
+DEFENCE = re.compile(r"defence: raid (\d+) .*?\| turrets (\d+) \((\d+) metal\), radars (\d+)")
+OPENING_END = 300.0
+INCOME_MEAN = 30.0
+WIN = 2.0
 
 
 def kind(name, d):
@@ -55,7 +65,7 @@ def read(path):
     defs = {u["name"]: u for u in dump["hello"]["unit_defs"]}
     spots = [(s["x"], s["z"]) for s in dump["hello"]["metal_spots"]]
     home = tuple(dump["home"])
-    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None}
+    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None, "defence": [], "income": []}
     for line in open(f"{path}/engine.log", errors="replace"):
         m = OURS.search(line)
         if not m:
@@ -66,6 +76,10 @@ def read(path):
             if d:
                 name = d.group(1)
                 g["lost"].append((t, name, float(d.group(2)), float(d.group(3)), defs.get(name, {}).get("metal_cost", 0)))
+        elif text.startswith("defence: "):
+            d = DEFENCE.match(text)
+            if d:
+                g["defence"].append((t, int(d.group(1)), int(d.group(2)), int(d.group(3)), int(d.group(4))))
         elif text.startswith("regions of spots: "):
             g["of_spot"] = [int(r) for r in text.split(": ", 1)[1].split()]
         elif text.startswith("race: "):
@@ -84,8 +98,19 @@ def read(path):
                 continue
             units = [(n, x, z) for _, n, x, z, _, built in row["enemy"] if not built and armed(n, defs.get(n, {}))]
             g["truth"].append((row["f"] / 30.0, units))
+            if "income" in row:
+                g["income"].append((row["f"] / 30.0, row["income"][0], row["income"][1]))
     g["truth_times"] = [t for t, _ in g["truth"]]
     return g
+
+
+def incomes(g):
+    """Each side's metal income, the mean over the INCOME_MEAN seconds to each truth sample: [(t, ours, his)]."""
+    rows, out = g["income"], []
+    for i, (t, _, _) in enumerate(rows):
+        window = [r for r in rows[max(0, i - int(INCOME_MEAN / 2)):i + 1] if r[0] > t - INCOME_MEAN]
+        out.append((t, statistics.mean(r[1] for r in window), statistics.mean(r[2] for r in window)))
+    return out
 
 
 def his_near(g, t, x, z, radius=NEAR):
@@ -135,6 +160,9 @@ def main():
         raids = []  # (t, his metal near, fastest)
         army = defaultdict(list)
         warn_by = defaultdict(list)  # minute window -> warns
+        wins = []
+        held_at = defaultdict(list)  # mark -> [ratio >= WIN there]
+        defence = defaultdict(list)  # mark -> [(turrets, metal, radars)]
         test = defaultdict(lambda: [0, 0, 0.0, 0.0, []])  # (held/open, home/away) -> [windows, with a loss, lost, standing, his metal]
         games = sorted(glob.glob(f"{batch}/[0-9][0-9]"))
         for path in games:
@@ -146,6 +174,22 @@ def main():
             end = r.get("game_minutes", 0)
             lost = sum(m for *_, m in g["lost"])
             print(f"   game {idx:02}: {r.get('outcome', '?'):8} at {end:5.1f} min, {r.get('our_side', '?')}; lost to his weapons {len(g['lost'])} units, {lost:.0f} metal")
+            means = incomes(g)
+            if means:
+                after = [(t, o / h) for t, o, h in means if t >= OPENING_END and h > 0]
+                best = max(after, key=lambda x: x[1], default=None)
+                at = lambda m: next((f"{o:.0f}/{h:.0f}" for t, o, h in means if t >= m * 60), "-")
+                for m in MARKS:
+                    # A game over before the mark has not kept its ratio there.
+                    o_h = next(((o, h) for t, o, h in means if t >= m * 60), None)
+                    held_at[m].append(o_h is not None and o_h[1] > 0 and o_h[0] / o_h[1] >= WIN)
+                if best:
+                    wins.append(best[1] >= WIN)
+                    print(f"     income ours/his: {' '.join(f'{m}:00 {at(m)}' for m in MARKS)}; best ratio from 5:00 {best[1]:.2f} at {int(best[0] // 60)}:{int(best[0] % 60):02}{'  WIN' if best[1] >= WIN else ''}")
+            for mark in (10, 15):
+                d = [row for row in g["defence"] if row[0] <= mark * 60]
+                if d and d[-1][0] > mark * 60 - 60:
+                    defence[mark].append((d[-1][2], d[-1][3], d[-1][4]))
             for t, name, x, z, metal in g["lost"]:
                 w = next((w for w in WINDOWS if w[0] <= t / 60 < w[1]), None)
                 if w:
@@ -184,6 +228,11 @@ def main():
                         cell[2] += loss
                         cell[3] += metal
                         cell[4].append(his)
+        if wins:
+            print(f"   the win line (our income twice his from 5:00): {sum(wins)} of {len(wins)} games; twice his at " + ", ".join(f"{m}:00 {sum(held_at[m])}" for m in MARKS))
+        for mark in (10, 15):
+            if defence[mark]:
+                print(f"   at {mark}:00 (games alive): turrets {' / '.join(str(t) for t, _, _ in defence[mark])} ({' / '.join(str(m) for _, m, _ in defence[mark])} metal), radars {' / '.join(str(r) for _, _, r in defence[mark])}")
         print("   lost to his weapons, metal summed over the games, by window and kind:")
         kinds = sorted({k for _, k in lost_by})
         for w in WINDOWS:

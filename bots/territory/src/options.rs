@@ -23,6 +23,9 @@ pub(crate) struct Options {
     pub all_spots: bool,
     /// Soldiers on the factories' palette (the territory stage); off, the factories make builders only.
     pub soldiers: bool,
+    /// T-COVER and T-RADAR: turrets against the raids seen and radar where the warning is short (on by default; off
+    /// is the bot before them, with the race and the income logged, for the defence bench's comparison).
+    pub defence: bool,
     /// The basic factories the program may open with: `vehicle` (the default: vehicle and air plants, thebluegecko's
     /// line, whose constructors move at 54 against the bot lab's 36 and whose advanced constructor builds at 290
     /// against 210; terr62 against terr61 on Comet: 15:00 367-423 against 322-357, 20:00 881-980 against 825-908,
@@ -120,6 +123,7 @@ impl Default for Options {
             replan: 30 * 30,
             all_spots: false,
             soldiers: false,
+            defence: true,
             line: "vehicle".to_string(),
             factories: 4,
             constructors: 40,
@@ -179,6 +183,7 @@ impl Options {
                 "replan" => options.replan = value.parse::<i32>().map_or(options.replan, |s| s * 30),
                 "spots" => options.all_spots = value == "all",
                 "soldiers" => options.soldiers = on,
+                "defence" => options.defence = on,
                 "line" => options.line = value.to_string(),
                 "factories" => options.factories = value.parse().unwrap_or(options.factories),
                 "constructors" => options.constructors = value.parse().unwrap_or(options.constructors),
@@ -221,8 +226,8 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, mhelp={:.2}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}, com_low={}",
-            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, defence={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, mhelp={:.2}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}, com_low={}",
+            if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, if self.defence { "on" } else { "off" }, self.line, self.factories, self.constructors,
             self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.mobile_help, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash, if self.com_low_after { "after" } else { "guard" }
         )
     }
