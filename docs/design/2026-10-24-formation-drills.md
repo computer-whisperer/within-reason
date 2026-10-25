@@ -765,6 +765,36 @@ the group: the field's way thinned to 256 was a staircase of grid bends, straigh
 nine matches), so an army of which nothing appeared in three seconds is given again under a fresh `/cheat 1`
 (pitfalls.md).
 
+16. **The assault's first slice (D16, ledger row assault1-* and bound1-*): on a flat approach the fight is the plain
+    duel's, and the contact shape is what the modes differ by.** 12 Blitzes and 10 Stouts walked 2,500 into one HLT,
+    one Guardian and two LLTs with a Beamer under the four lane modes, 8 duels an arm, 288 duels, every position taken.
+    The approach's price against the bound (the same forces 1,100 apart) is within +-0.06 in every pairing: a pure
+    force arrives whole under every control. `old` equals `off` (the reflexes have nothing to do for a committed army
+    against buildings). The group's shape at contact pays where the defence's fire is area or doubled: Blitzes against
+    the Guardian +0.94 with 12 of 12 left under `ranks` and `on` against +0.55 with 9-10 left under `off` and `old`;
+    against the expansion +0.63 with 9.1 left against +0.54 with 7.6. Pacing (`on` against `ranks`) changes nothing
+    with a pure type, which is what D8's measure predicted: the pieces an army arrives in are a mixed force's and a
+    passage's, not a strip's. The defences were light (margins 0.53-0.96, no position held), so the second slice runs
+    heavier defences at ratios near one to two, the mixed force, and two terrain arms.
+
+17. **The assault's second slice (ledger row assault2-*, bound2-*): what the control modes buy and where the group
+    fails.** Heavier defences at ratios near one to two, the mix of 6 Blitz, 4 Stout and 2 Janus beside the pure
+    forces, two detour arms. (a) The contact shape (`ranks` and `on` alike against `off`) turns the Blitzes' loss to
+    two Pop-ups into a win (1 of 8 taken and 0.1 left to 8 of 8 and 5 left) and doubles what survives two Guardians
+    (6.1 to 11.2 of 12) or a Guardian with two LLTs (7.6 to 10); against direct fire alone (two HLTs, two LLTs) `on`
+    beats `ranks` even for a pure type (6.8 against 5.2 left). (b) Pacing (`on` against `ranks`) pays for the mix
+    against direct and burst fire: two HLTs with two LLTs 9.0 left against 6.0, the shot ramp 2.6 s against 11 (18.5
+    with the lane off), two Pop-ups 8 of 8 taken against 6 of 8; it costs under long-range area fire, where the paced
+    body walks at the Janus's pace under the Guardian's shells for 20 s longer than the pieces did (2.8 of 12 dead
+    before their own first shot against 1.4). (c) The approach's price against the plain duel is a few hundredths for
+    a pure force and up to -0.66 for the mix with the lane off (the Pop-ups), -0.21 under the lane. (d) On the detour
+    the group does worse than no lane: the formed share before contact 0.21-0.37, the body filed through the passage
+    walks as exceptions (its slots in ranks of six lie outside a corridor narrower than them), and it arrives in
+    pieces over 19-33 s. The `ranks` timeouts there were a defect (the anchor set down on the body short of a finished
+    route; the view with no memory of a turret out of sight), fixed in f62739d and re-run as assault3-*. **What the
+    slice asks of the engine (step 3 of the ruled order, for the user):** the shape to the corridor, and a word for
+    the approach under long-range area fire.
+
 ## 6. Open for the user
 
 Ruled 2026-10-24 night (§2): the group API's shape, the gather's fate (it dies as a move; the pace and the joiner
