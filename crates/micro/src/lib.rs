@@ -13,13 +13,17 @@
 //! group are the host's, order by order, under the three reflexes (flee, fan, kite: `Footwork`) and a threat set
 //! (`Commitment`) the host gives per unit (`set_commitments`).
 //!
-//! The host is a [`View`]: unit definitions, each type's fighting numbers, the ground, and what it remembers of the
-//! enemy. H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
+//! The host is a [`View`]: unit definitions, each type's fighting numbers, the terrain, and what it remembers of the
+//! enemy. The ground is the lane's own from the terrain (`ground.rs`, design D17): each class's passable grid for the
+//! reflexes' steps, and for a group the common ground its anchor's way is planned over, its slots snapped to and its
+//! files narrowed to. H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
 
 pub mod form;
+pub mod ground;
 pub mod group;
 mod rove;
 
+pub use ground::{ClassKey, Classes, Ground};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
@@ -27,7 +31,7 @@ pub use rove::{RoveEvent, RoveGoal, RoveReport, RoveWhat};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use bot_protocol::{Command, EnemyUnit, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Command, EnemyUnit, MoveClass, OwnUnit, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use serde::{Deserialize, Serialize};
 
 pub use threat::ThreatGrid;
@@ -261,11 +265,9 @@ pub trait View {
     fn stats(&self, def: UnitDefId) -> Option<Stats>;
     /// The threat grid's cell size and dimensions.
     fn grid_spec(&self) -> (f32, usize, usize);
-    /// One flag a cell in the grid's order: whether our soldiers can stand there; `None` when not known.
-    fn passable(&self) -> Option<&[bool]>;
-    /// The ground a unit of this type can reach nearest `pos` (its own movement class: a point a bot stands on can
-    /// be a slope no tank climbs); `pos` itself when the host cannot tell.
-    fn snap(&self, def: UnitDefId, pos: Vec3) -> Vec3;
+    /// The map's height and slope maps (the hello's), from which the lane builds its ground (design D17); `None`
+    /// when the engine sent none, and every point is then taken as given.
+    fn terrain(&self) -> Option<&Terrain>;
     fn home(&self) -> Vec3;
     /// Armed buildings of theirs the host remembers, in sight or not: id, type, place.
     fn remembered_buildings(&self) -> Vec<(UnitId, UnitDefId, Vec3)>;
@@ -487,6 +489,8 @@ pub struct Lane {
     groups: BTreeMap<String, Declared>,
     /// The group loop's numbers (a host may set them: the duel harness's arms).
     pub pacing: Pacing,
+    /// Each movement class's passable grid, from the host's terrain (design D17).
+    classes: ground::Classes,
 }
 
 /// A declared group: what the host said, and the group object once the lane has seen its members.
@@ -497,6 +501,8 @@ struct Declared {
     commitment: Commitment,
     group: Option<Group>,
     state: Option<GroupState>,
+    /// The classes and the room the group's ground was last built for.
+    ground_key: Option<(Vec<ClassKey>, i32)>,
 }
 
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
@@ -514,6 +520,24 @@ fn unit_of(command: &Command) -> Option<UnitId> {
     match *command {
         Command::Move { unit, .. } | Command::Fight { unit, .. } | Command::Attack { unit, .. } | Command::Stop { unit } => Some(unit),
         _ => None,
+    }
+}
+
+impl ground::Classes {
+    /// The ground a unit of this type stands on nearest `pos`, by its own movement class (a point a bot stands on can
+    /// be a slope no tank climbs); `pos` itself without terrain or for a type with no class (design D17).
+    fn snap_for(&mut self, view: &dyn View, def: UnitDefId, pos: Vec3) -> Vec3 {
+        match (view.terrain(), view.def(def).and_then(|d| d.move_class)) {
+            (Some(terrain), Some(class)) => self.snap(terrain, class, pos),
+            _ => pos,
+        }
+    }
+
+    /// Where a unit of this type can stand, one flag a terrain cell (the threat grid's order); `None` without terrain
+    /// or for a type with no class.
+    fn passable_for(&mut self, view: &dyn View, def: UnitDefId) -> Option<std::sync::Arc<Vec<bool>>> {
+        let (terrain, class) = (view.terrain()?, view.def(def)?.move_class?);
+        Some(self.passable(terrain, class))
     }
 }
 
@@ -565,7 +589,7 @@ impl Lane {
                 d.commitment = commitment;
             }
             None => {
-                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, group: None, state: None });
+                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, group: None, state: None, ground_key: None });
             }
         }
     }
@@ -857,7 +881,7 @@ impl Lane {
                     if state.sent_to_sighting.get(&unit.id) != Some(&at) {
                         state.sent_to_sighting.insert(unit.id, at);
                         let ahead = (frame - at) as f32;
-                        let to = view.snap(unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
+                        let to = self.classes.snap_for(view, unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
                         self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
                         self.counts.1 += 1;
                         commands.push(Command::Move { unit: unit.id, to, queue: false });
@@ -904,9 +928,9 @@ impl Lane {
         let enemies: Vec<EnemyUnit> = Vec::new();
         if let Some(why) = unpriced.map(|s| ("unpriced", s.id)).or(lethal.then_some(("lethal", UnitId(-1)))) {
             let goal = self.standing_goal(view, unit.id, &enemies).unwrap_or(view.home());
-            let passable = view.passable();
+            let passable = self.classes.passable_for(view, unit.def);
             let grid = self.grid.as_ref()?;
-            let cell = grid.lowest_within(unit.pos, STEP_RADIUS, passable, goal)?;
+            let cell = grid.lowest_within(unit.pos, STEP_RADIUS, passable.as_deref().map(Vec::as_slice), goal)?;
             let claim = self.claims.get(&unit.id);
             let fresh = !claimed;
             // The cell it has is nearly as safe as the best: keep it, rather than zigzag between equals.
@@ -931,7 +955,7 @@ impl Lane {
                 // The order goes further along the step's direction than the cell, so the unit is not held in the
                 // engine's braking zone; the cell is what the claim remembers.
                 let (dx, dz) = (cell.x - unit.pos.x, cell.z - unit.pos.z);
-                let to = view.snap(unit.def, Vec3 { x: unit.pos.x + dx * STEP_REACH, y: 0.0, z: unit.pos.z + dz * STEP_REACH });
+                let to = self.classes.snap_for(view, unit.def, Vec3 { x: unit.pos.x + dx * STEP_REACH, y: 0.0, z: unit.pos.z + dz * STEP_REACH });
                 self.claims.insert(unit.id, Claim { rule: Rule::Flee, sent_to: cell, target: None, frame, stance: None, kind: None });
                 commands.push(Command::Move { unit: unit.id, to, queue: false });
             }
@@ -985,7 +1009,7 @@ impl Lane {
                 let left = inside.iter().filter(|f| f.id != unit.id && f.pos.dist2d(unit.pos) < 2.0 * step_len && across(f) > across(unit)).count();
                 let right = inside.iter().filter(|f| f.id != unit.id && f.pos.dist2d(unit.pos) < 2.0 * step_len && across(f) < across(unit)).count();
                 let side = if left <= right { 1.0 } else { -1.0 };
-                let step = view.snap(unit.def, Vec3 { x: unit.pos.x + -uz * step_len * side, y: 0.0, z: unit.pos.z + ux * step_len * side });
+                let step = self.classes.snap_for(view, unit.def, Vec3 { x: unit.pos.x + -uz * step_len * side, y: 0.0, z: unit.pos.z + ux * step_len * side });
                 let fresh = claim.is_none_or(|c| c.rule != Rule::Fan);
                 let reorder = claim.is_none_or(|c| c.sent_to.dist2d(step) > REORDER_DISTANCE / 2.0 && frame - c.frame >= REORDER_FRAMES);
                 if fresh {
@@ -1053,7 +1077,7 @@ impl Lane {
         let (dx, dz) = (unit.pos.x - enemy.pos.x, unit.pos.z - enemy.pos.z);
         let len = dx.hypot(dz).max(1.0);
         let back = (reach - KITE_EDGE - distance).max(0.0) + KITE_STEP;
-        let step = view.snap(unit.def, Vec3 { x: unit.pos.x + dx / len * back, y: 0.0, z: unit.pos.z + dz / len * back });
+        let step = self.classes.snap_for(view, unit.def, Vec3 { x: unit.pos.x + dx / len * back, y: 0.0, z: unit.pos.z + dz / len * back });
         if claim.is_some_and(|c| c.0 == Rule::Kite && c.2.is_none() && c.1.dist2d(step) < REORDER_DISTANCE / 2.0 && frame - c.3 < REORDER_FRAMES) {
             return true;
         }
@@ -1112,6 +1136,20 @@ impl Lane {
             let spacing = form::spacing_for(area, self.tuning.factor, self.tuning.max);
             let group = declared.group.get_or_insert_with(|| Group::new(&name, declared.members.clone(), declared.order.clone(), &positions, spacing));
             group.update(declared.members.clone(), declared.order.clone());
+            // The group's ground (design D17): the cells every member's class stands on, priced for the ranks' room;
+            // built when the classes or the room change.
+            if let Some(terrain) = view.terrain() {
+                let mut classes: Vec<(ClassKey, MoveClass)> = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.def(u.def)?.move_class).map(|c| (ClassKey::of(c), c)).collect();
+                classes.sort_by_key(|(k, _)| *k);
+                classes.dedup_by_key(|(k, _)| *k);
+                let wanted = group::wanted_room(spacing);
+                let key = (classes.iter().map(|(k, _)| *k).collect::<Vec<_>>(), (wanted / 32.0).round() as i32);
+                if declared.ground_key.as_ref() != Some(&key) {
+                    let grids: Vec<std::sync::Arc<Vec<bool>>> = classes.iter().map(|(_, c)| self.classes.passable(terrain, *c)).collect();
+                    group.set_ground(Ground::new(terrain, &grids, wanted).map(std::sync::Arc::new));
+                    declared.ground_key = Some(key);
+                }
+            }
             // An Attack's goal follows its target's sightings.
             if let GroupKind::Attack(id) = group.order.kind
                 && let Some(at) = target_of(id)
@@ -1162,7 +1200,7 @@ impl Lane {
                 for (i, w) in walkers.iter().enumerate() {
                     let Some(unit) = by_id.get(&w.id) else { continue };
                     let unit_reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-                    let slot = view.snap(unit.def, slots[slot_of[i]]);
+                    let slot = group.snap(slots[slot_of[i]]);
                     let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                     let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
                     let claim = self.claims.get(&unit.id).filter(|c| c.rule == Rule::Form);
@@ -1202,7 +1240,7 @@ impl Lane {
             if group.stopped {
                 group.stopped = false;
                 group.engaged = None;
-                group.reanchor(centre);
+                group.reanchor(&walkers);
             }
             // A walking group's slot order is a Move; a fighting group's a Fight, which stops to shoot what is in
             // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was
@@ -1211,8 +1249,10 @@ impl Lane {
             let slots = group.tick(frame, &walkers, spacing, &self.pacing).clone();
             let fights = group.order.kind != GroupKind::Go;
             for w in &walkers {
-                let Some(unit) = by_id.get(&w.id) else { continue };
-                let slot = view.snap(unit.def, slots[&w.id]);
+                if !by_id.contains_key(&w.id) {
+                    continue;
+                }
+                let slot = slots[&w.id];
                 let command = if fights { Command::Fight { unit: w.id, to: slot, queue: false } } else { Command::Move { unit: w.id, to: slot, queue: false } };
                 orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: slot, target: None });
             }

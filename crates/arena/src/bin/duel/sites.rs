@@ -33,11 +33,10 @@ pub struct Site {
     /// detour found by `choose_detour` (design D10). The walk between them on foot is `walk`.
     pub ends: Option<(Vec3, Vec3)>,
     pub walk: Option<f32>,
-    /// A circuit drill's corners in order, the lab's first, and the lap walked on foot between them (`circuit`,
-    /// design D12: the field's route from each corner to the next, thinned to every `ROUTE_STEP`, the corners
-    /// themselves in it, the lab's corner last); `walk` is then one lap on foot.
+    /// A circuit drill's corners in order, the lab's first (`circuit`, design D12); `walk` is then one lap on foot.
+    /// The way between the corners is the lane's to plan over its ground (design D17; before it, the host's walked
+    /// route, `circuit_route`).
     pub circuit: Vec<Vec3>,
-    pub circuit_route: Vec<Vec3>,
 }
 
 /// The rectangle a site must offer: `length` along the west-east axis, `width` across it.
@@ -222,7 +221,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 (s.centre.x - centre.x).abs() >= length + SITE_GAP || (s.centre.z - centre.z).abs() >= across + SITE_GAP
             });
             if clear && sites.len() < wanted {
-                sites.push(Site { centre: *centre, ends: None, walk: None, circuit: Vec::new(), circuit_route: Vec::new() });
+                sites.push(Site { centre: *centre, ends: None, walk: None, circuit: Vec::new() });
             }
         }
         if sites.len() > best.len() {
@@ -334,7 +333,7 @@ pub fn choose_detour(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wan
         });
         if apart {
             let mid = Vec3 { x: (start.x + goal.x) / 2.0, y: 0.0, z: (start.z + goal.z) / 2.0 };
-            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk), circuit: Vec::new(), circuit_route: Vec::new() });
+            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk), circuit: Vec::new() });
         }
     }
     (sites, best_ratio)
@@ -347,26 +346,18 @@ pub const CIRCUIT_CORNERS: [(f32, f32); 4] = [(0.25, 0.75), (0.75, 0.75), (0.75,
 /// army spawned `drill::CIRCUIT_SPAWN` from it in ranks of six at 64 (320 across; two Pawns of a formation spawned on
 /// Quicksilver's broken ground off the square never moved).
 const LAB_SQUARE: f32 = 640.0;
-/// A circuit's walked route keeps a point of the field's every this far: the group's anchor walks it leg by leg
-/// (the field's cells are 8 elmos; the route is the host's, round the terrain).
-pub const ROUTE_STEP: f32 = 256.0;
-
-/// What `circuit` finds: the corners, the lap walked on foot between them (`Site::circuit_route`), each leg's walk on
-/// foot, and the least room the route has from a wall.
+/// What `circuit` finds: the corners and each leg's walk on foot.
 pub struct Circuit {
     pub corners: Vec<Vec3>,
-    pub route: Vec<Vec3>,
     pub legs: Vec<Option<f32>>,
-    pub least_clearance: f32,
 }
 
 /// A circuit's points (design D12): `wanted` (elmos, the first the lab's) or the map's inset corners, each pushed
 /// `COMMANDER_GAP` from any commander nearer than that, the lab's moved to the nearest cell holding a flat square, the
 /// rest to the nearest cell standable, reachable on foot from the lab's (one field from it) and with `clearance` of
-/// room from any wall; each leg's walk on foot, the last leg closing the loop; and the lap's route, the way from each
-/// corner to the next over the field priced by clearance (`terrain::clearance_costs`: flat where the body has
-/// `clearance` of room, dearer toward a wall, so a corner is rounded at that distance and a narrower corridor is
-/// walked down its middle; design D13), thinned to `ROUTE_STEP`. `Err` says what was not found.
+/// room from any wall (`terrain::clearance`, design D13); each leg's walk on foot, the last leg closing the loop. The
+/// way between the corners is the lane's (design D17: the group plans it over its own ground, priced by room). `Err`
+/// says what was not found.
 pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wanted: Option<&[(f32, f32)]>, clearance: f32) -> Result<Circuit, String> {
     let (width, height) = (terrain.width as usize, terrain.height as usize);
     if width == 0 || terrain.heights.len() != width * height || terrain.cell <= 0.0 {
@@ -427,57 +418,14 @@ pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wante
         .ok_or_else(|| format!("no flat square of {LAB_SQUARE:.0} for the lab anywhere near ({:.0},{:.0})", points[0].x, points[0].z))?;
     let field = Field::from_many(terrain, standable, &[lab]).ok_or("the lab's corner is on no passable ground")?;
     let room = terrain::clearance(terrain, standable);
-    let costs = terrain::clearance_costs(standable, &room, clearance);
     let mut out = vec![lab];
     for want in &points[1..] {
         let at = nearest(*want, &|cx, cz| standable[cz * width + cx] && room[cz * width + cx] >= clearance && field.distance(centre(cx, cz)).is_some())
             .ok_or_else(|| format!("no standable ground with {clearance:.0} of room reachable from the lab near ({:.0},{:.0})", want.x, want.z))?;
         out.push(at);
     }
-    let room_at = |p: Vec3| -> f32 {
-        let (cx, cz) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
-        room.get(cz.min(height - 1) * width + cx.min(width - 1)).copied().unwrap_or(0.0)
-    };
-    // Whether the body can walk from `a` to `b` in a straight line with the room it wants all the way (a sample a cell).
-    let straight = |a: Vec3, b: Vec3| -> bool {
-        let steps = (a.dist2d(b) / terrain.cell).ceil().max(1.0) as usize;
-        (0..=steps).all(|k| {
-            let t = k as f32 / steps as f32;
-            let (cx, cz) = (((a.x + (b.x - a.x) * t) / terrain.cell) as usize, ((a.z + (b.z - a.z) * t) / terrain.cell) as usize);
-            cx < width && cz < height && standable[cz * width + cx] && room[cz * width + cx] >= clearance
-        })
-    };
-    let mut legs = Vec::new();
-    let mut route = Vec::new();
-    let mut least_clearance = f32::INFINITY;
-    for i in 0..out.len() {
-        let (from, to) = (out[i], out[(i + 1) % out.len()]);
-        // The walk on foot is the plain field's; the way is the priced field's, thinned, then straightened: from
-        // each point the furthest later one reached in a straight line with the room wanted, so a leg bends only
-        // where the ground bends it (the field's way is a chain of cell moves at multiples of 45 degrees, and thinned
-        // alone it was a staircase of 26-45 degree bends every point, each snapping a four-rank body's rear corners
-        // 150: the circuit7-carry trace); the next corner closes the leg.
-        legs.push(Field::from_many(terrain, standable, &[to]).and_then(|f| f.distance(from)));
-        let way = Field::from_costs(terrain, &costs, &[to]).map(|f| f.route(from)).unwrap_or_default();
-        let mut thinned = vec![from];
-        for p in way {
-            least_clearance = least_clearance.min(room_at(p));
-            if p.dist2d(*thinned.last().unwrap()) >= ROUTE_STEP && p.dist2d(to) >= ROUTE_STEP {
-                thinned.push(p);
-            }
-        }
-        thinned.push(to);
-        let mut i = 0;
-        while i + 1 < thinned.len() {
-            let mut j = thinned.len() - 1;
-            while j > i + 1 && !straight(thinned[i], thinned[j]) {
-                j -= 1;
-            }
-            route.push(thinned[j]);
-            i = j;
-        }
-    }
-    Ok(Circuit { corners: out, route, legs, least_clearance })
+    let legs: Vec<Option<f32>> = (0..out.len()).map(|i| Field::from_many(terrain, standable, &[out[(i + 1) % out.len()]]).and_then(|f| f.distance(out[i]))).collect();
+    Ok(Circuit { corners: out, legs })
 }
 
 /// The least relief of any dry rectangle of `footprint` every listed unit can cross, whatever `footprint.relief` says,

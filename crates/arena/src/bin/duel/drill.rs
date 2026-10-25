@@ -248,13 +248,13 @@ pub struct Drill {
     /// Under the lane's group a gather is a hold at the rally (`rally`) until the whole list stands there in
     /// formation, then the order to the goal: the frame the hold ended.
     pub gathered_at: Option<i32>,
-    /// `circuit`: the route (the loop `laps` times over, the lab's corner last), the laps, the deployed units whose
+    /// `circuit`: the route (the spawn point then the corners, the loop `laps` times over, the lab's corner last;
+    /// the group's order and, lane off, the queued orders alike: the way between the corners is the lane's, design
+    /// D17), the laps, the deployed units whose
     /// passes count (`core`: the initial mobile spawns, or the first fed unit when there were none), each one's
     /// (within the corner last second, passes), the frame each fed unit joined the deployed body, the formed share
     /// each second, and the lane's group as last noted: (formed, members, arrived with no exceptions).
     pub route: Vec<Vec3>,
-    /// The lane-off orders' route: the spawn point then the corners alone, `laps` times, queued (the hands' way).
-    pub corners_route: Vec<Vec3>,
     pub laps: u32,
     pub core: Vec<usize>,
     passes: HashMap<usize, (bool, u32)>,
@@ -326,7 +326,6 @@ impl Drill {
             appeared: HashMap::new(),
             gathered_at: None,
             route: Vec::new(),
-            corners_route: Vec::new(),
             laps: options.laps,
             core: Vec::new(),
             passes: HashMap::new(),
@@ -370,11 +369,12 @@ impl Drill {
     }
 
     /// The drill's orders to one unit: a circuit's corners as queued orders (the first not queued: the hands' way of
-    /// walking a route today, and the lane-off baseline; the group gets the walked `route`), else the one `order`.
+    /// walking a route today, and the lane-off baseline; the group gets the same corners as one order), else the one
+    /// `order`.
     pub fn orders(&self, unit: UnitId, at: Vec3, spawned: Vec3, frame: i32) -> Vec<Command> {
         if self.kind == Kind::Circuit {
             let fight = self.fight;
-            return (self.corners_route.iter().enumerate())
+            return (self.route.iter().enumerate())
                 .map(|(i, &to)| if fight { Command::Fight { unit, to, queue: i > 0 } } else { Command::Move { unit, to, queue: i > 0 } })
                 .collect();
         }
@@ -679,7 +679,6 @@ mod tests {
         drill.goal = at(1000.0, 1000.0);
         drill.toward = drill.goal;
         drill.route = vec![at(3000.0, 1000.0), at(1000.0, 1000.0), at(3000.0, 1000.0), at(1000.0, 1000.0)];
-        drill.corners_route = drill.route.clone();
         drill.core = vec![0];
         drill.last_order = Some(0);
         let walker = |x: f32| Walker { index: 0, id: UnitId(1), at: at(x, 1000.0), speed: 87.0 };

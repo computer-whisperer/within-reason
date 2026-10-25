@@ -269,11 +269,6 @@ impl Brain {
         self.routes.as_ref().map(|r| r.passages.clone()).unwrap_or_default()
     }
 
-    /// Where our soldiers can stand, one flag per terrain cell (`Terrain` order); `None` without terrain data.
-    pub(super) fn passable(&self) -> Option<&[bool]> {
-        self.routes.as_ref().map(|r| r.passable.as_slice())
-    }
-
     /// Whether any builder class of ours reaches `pos`: an amphibious or hover constructor or a construction ship
     /// gets to an underwater spot our soldiers cannot walk to (Cape Violet, 2026-09-27: 28 of 72 spots under water,
     /// none of them a place, the Beavers' lists skipped as "not free").

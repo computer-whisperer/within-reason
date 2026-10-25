@@ -176,12 +176,17 @@ impl Field {
     /// a cell, [`IMPASSABLE`] where the class cannot go; a threat penalty is the caller's to add). A step costs its
     /// length times the mean of the two cells' rates. `None` when no origin is near passable ground.
     pub fn from_costs(terrain: &Terrain, costs: &[u32], origins: &[Vec3]) -> Option<Field> {
-        let (width, height) = (terrain.width as usize, terrain.height as usize);
-        if width == 0 || costs.len() != width * height {
+        Field::over(terrain.cell, terrain.width as usize, terrain.height as usize, costs, origins)
+    }
+
+    /// `from_costs` over a grid given by its dimensions (a caller that holds cost layers and no `Terrain`: the lane's
+    /// group ground).
+    pub fn over(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3]) -> Option<Field> {
+        if width == 0 || cell <= 0.0 || costs.len() != width * height {
             return None;
         }
         let passable = |index: usize| costs[index] != IMPASSABLE;
-        let mut field = Field { cell: terrain.cell, width, height, cost: vec![UNREACHABLE; width * height] };
+        let mut field = Field { cell, width, height, cost: vec![UNREACHABLE; width * height] };
         let mut queue = BinaryHeap::new();
         for origin in origins {
             if let Some(start) = field.nearest(*origin, passable) {

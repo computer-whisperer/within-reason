@@ -197,7 +197,7 @@ pub struct Terrain {
     pub metal: Vec<u8>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MoveKind {
     Tank,
     Bot,

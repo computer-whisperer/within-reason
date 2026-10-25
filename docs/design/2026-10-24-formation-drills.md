@@ -98,7 +98,9 @@ real straggler stays Jev's, from the words.
   contact, where the loop is silent.
 - The routing arc's "routes for accounting, the engine executes" (2026-09-20) is narrowed: the host passes the route
   with the group order and the lane places the anchor and the slots along it; the engine still paths each unit to its
-  slot. The lane does not depend on `terrain`; the hosts (the hands, the director) have the fields.
+  slot. ~~The lane does not depend on `terrain`; the hosts (the hands, the director) have the fields.~~ **Reversed
+  2026-10-25 (D17):** the lane owns the ground; the host names points and the lane paths the anchor between them over
+  the members' strictest passable grid, priced by room; the slots are snapped to it and the files narrowed to it.
 - Bodies by chaining (`form::bodies`) go: the host declares the group and the lane never splits a declared group. The
   raider/line separation (the pros keep them apart) becomes the host's choice, two groups or one.
 
@@ -441,6 +443,64 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   bounds, on Quicksilver's strips. The slice is chosen so the formation matters (twelve to twenty units) and the
   metal ratio runs from near even (the Blitzes against the Guardian, 1.06) to six to one (the Stouts against the
   expansion); what it shows decides the second slice (counts, mixes, terrain by `--around`).
+
+- **D17. The lane owns the ground** (the user, 2026-10-25, after watching the detour demo
+  (assault3-mix12-hlt2llt2-around-on): "The problem with that last one seems to be us trying to order the units
+  straight off a cliff, then eventually some of the units' orders happened to cross the no-travel area within the
+  cliff and caused them to path around it. Eventually the whole system broke, the units stuck on top of the cliff were
+  ordered to the bottom of the cliff, and the units that already went around were ordered directly at the enemy. Why
+  did our pathing break here? Are we not getting route information from the engine to inform our micro steps?"; on
+  the answer, "The circuit giving the route here is completely missing the point. Since we are replacing a direct
+  a->b order that the engine would normally handle pathing for, we have to be responsible for running the pathing, or
+  fetching the route from the engine through our shim"; "Go ahead with the lane owning the ground, all five pieces").
+  **What was found.** The assault and from/to drills gave the group a one-point route, the goal, and the group walked
+  the straight line into Quicksilver's cliff: in that match's first duel the order's route is empty, the start and
+  goal 2,500 apart as the crow flies and 3,466 on foot; the anchor walked the crow line at the Janus's pace, stopped
+  at the cliff's edge at 16 s (its slots on or past the cliff, every member "behind" them, the pacing holding it) and
+  stood forty seconds while the members went away one by one (the engine takes a unit ordered to an unreachable point
+  to the nearest reachable ground, and paths a unit round when the point itself is reachable: the trickle); the first
+  shot at 54 s was one Blitz that had gone round alone, which is contact: arc slots on the target and Fight orders to
+  them for everyone, the units that were round sent straight at the enemy; then the march resumed with the anchor set
+  down at the members' centroid, which for a body split by a cliff is a point nobody can walk to, and the Stouts' slots
+  from it lay at the cliff's foot. Only the circuit drill walked the terrain field for its route (D12, D13), so §2's
+  law "the host's field gives the points round terrain" was honoured by one host for one drill, and slice 2's finding
+  (d) measured a straight line into a cliff against the engine pathing each lane-off unit round it, not a formation in
+  a corridor (item 17 corrected). We take no route information from the engine: its path commands (`COMMAND_PATH_INIT`,
+  `GET_NEXT_WAYPOINT`, `GET_APPROXIMATE_LENGTH`) are in the vendored interface and nothing in the shim, the protocol
+  or the lane calls them; our ground is our own (the hello's height and slope maps at 16-elmo cells, the `terrain`
+  crate's fields), the hands have it for their soldiers, and the lane had none of it: the duel view returned no
+  passable grid and snapped nothing. **The responsibility.** A unit under the engine's direct order gets the engine's
+  pathfinder; the group replaces that order with an anchor and slots, so the anchor's walk between whatever points the
+  host names is the lane's to path. **Reversed:** §2's reopened ruling "the host passes the route with the group order
+  ... The lane does not depend on `terrain`; the hosts have the fields." Chose the lane owning the ground because the
+  group's pathing is the group's (the strictest movement class among its members, the formation's width, the room at
+  each point), which no host knows, and a host that must hand a walked route is a host that will not: the hands'
+  orders are a place or a unit, and so are Jev's words. The host may still name several points (a circuit, "go by the
+  ridge"); the lane paths each leg. Rejected: fetching the route from the engine through the shim, because its path
+  is for one movement type with no notion of a body's width and costs a protocol round trip of a tick a query; kept
+  as the later truth for reachability where the grid is blind (footprints: a tank does not fit where a bot does;
+  buildings and wrecks). **The five pieces:** (1) the lane takes the terrain from its host (`View::terrain`) and
+  builds each movement class's passable grid on first use (`micro::ground`); the host's `snap` and `passable` hooks
+  are cut, the lane snaps its own steps by the unit's class and its slots by the group's ground. (2) A group's ground
+  (`Ground`) is the cells every member's class can stand on, the room about each (D13's clearance transform) and the
+  way priced by that room for the formation's half-width plus a hull (`WANTED`: six files at the spacing, 224 at the
+  hull spacing); the way for each leg of the host's route is the priced field from the leg's point descended from the
+  anchor, thinned to `ROUTE_STEP` and straightened by line of sight with the room (the circuit's method, now the
+  lane's), and the anchor walks the way; re-planned when the order changes, the members' classes change, an Attack's
+  end has moved `REPLAN_MOVED`, or a set-down lands further than `REJOIN_WAY` from the way; without terrain the way is
+  the host's points, as before. (3) Every slot is snapped to the group's ground; a member whose slot has no standable
+  cell within six, or whose walk to it over the passable grid (a bounded search, twice a second) is more than
+  `CUT_OFF_FACTOR` (2) times the straight line, is an exception with the cause `CutOff` and holds the anchor by nothing,
+  formed again when its walk is within 1.5 times (hysteresis). (4) A set-down places the anchor on the way: the body's
+  centroid projected onto the nearest segment (after contact: any segment; at a turn: the new leg) and carried forward
+  so the ranks' centroid lies on that point, the leg that segment's end; never the centroid itself. (5) The files
+  narrow to the room at the anchor's cell (the half-width that fits with half a hull to spare, down to one file) and
+  widen when the room allows the next file with half a spacing to spare; a change of files re-deals the slots with the
+  anchor re-placed so the ranks' centroid stays; the state reports `files` and `room`. **Rot removed with it:** the
+  circuit's host-side walked route (`sites::circuit` returns corners and legs; `Site::circuit_route`,
+  `Drill::corners_route`, the meta's `clearance` and the director's `circuit_clearance` gone; the group gets the corners
+  as the lane-off arm does), `View::snap`, `View::passable`. **Measured** by the detour arms again (assault4-*), the
+  circuit again (circuit13-*: the lane's own way against the host's), and a flat assault arm for no regression.
 
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
@@ -788,14 +848,16 @@ nine matches), so an army of which nothing appeared in three seconds is given ag
     body walks at the Janus's pace under the Guardian's shells for 20 s longer than the pieces did (2.8 of 12 dead
     before their own first shot against 1.4). (c) The approach's price against the plain duel is a few hundredths for
     a pure force and up to -0.66 for the mix with the lane off (the Pop-ups), -0.21 under the lane. (d) On the detour
-    the group does worse than no lane: the formed share before contact 0.21-0.37, the body filed through the passage
-    walks as exceptions (its slots in ranks of six lie outside a corridor narrower than them), and it arrives in
-    pieces over 19-33 s. The `ranks` timeouts there were a defect (the anchor set down on the body short of a finished
+    the group does worse than no lane: the formed share before contact 0.21-0.37 and it arrives in pieces over
+    19-33 s. ~~The body filed through the passage walks as exceptions (its slots in ranks of six lie outside a corridor
+    narrower than them.)~~ **Corrected 2026-10-25 (D17, the user's review of the demo):** the group was given a
+    one-point route and walked the crow line into the cliff; the corridor was never tested. The `ranks` timeouts there were a defect (the anchor set down on the body short of a finished
     route; the view with no memory of a turret out of sight), fixed in f62739d and re-run as assault3-*: the timeouts
     gone (8 of 8 taken), every other arm within noise of slice 2, the detour's formed share 0.21 / 0.38 and ramps of
-    17 / 32 s unchanged, so the corridor is the group's problem and not the defects'. **What the slices ask of the
+    17 / 32 s unchanged, so the corridor is the group's problem and not the defects'. ~~**What the slices ask of the
     engine (step 3 of the ruled order, for the user):** the shape to the corridor, and a word for the approach under
-    long-range area fire.
+    long-range area fire.~~ **Corrected 2026-10-25:** what the detour asked for was the lane owning the ground (D17);
+    the shape to the corridor is its fifth piece; the word for the approach under area fire stays open.
 
 ## 6. Open for the user
 
@@ -808,3 +870,5 @@ Still open:
 - Whether the raider/line separation, the host's choice from here on, becomes a word to the player or a default of
   the hands.
 - The maps for drill 6 beyond Quicksilver, Great Divide and Altored Divide (Cape Violet's shore, Isidis Crack).
+- The engine's pathing through the shim as the truth for reachability where the grid is blind (footprints,
+  buildings, wrecks), deferred by D17; a word for the approach under long-range area fire (item 17).

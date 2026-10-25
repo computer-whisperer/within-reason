@@ -3,14 +3,14 @@
 //! soldiers' standing orders, which the army rules give at one hertz (`army.rs`). The lane never re-prices a fight;
 //! it spends a unit's order on staying alive, shooting well and standing in its slot. What it reads of this bot is
 //! `LaneView`; the fighting numbers come from the combat simulator's table (`crates/combatsim/data/units.json`), as
-//! the flagship's do. Off unless the arm `lane=on` says so: as wired here (no ground snapped, no cell impassable,
-//! the commitments by body) it moved neither the exchange nor the result (apex-v029-distilled-comet-10, 1-14-1 over
+//! the flagship's do. Off unless the arm `lane=on` says so: as wired here (the commitments by body; the ground the
+//! lane's own from the hello since design D17, before which nothing was snapped) it moved neither the exchange nor the result (apex-v029-distilled-comet-10, 1-14-1 over
 //! sixteen cold games against 3-12-1 without it, ours 12-24 dead by 10:00 for his 5-20 either way).
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use bot_protocol::{Command, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Command, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use combatsim::sim::Rules;
 use micro::{Commitment, Lane, Stats, View};
 
@@ -68,12 +68,9 @@ impl View for LaneView<'_> {
         }
     }
 
-    fn passable(&self) -> Option<&[bool]> {
-        None
-    }
-
-    fn snap(&self, _def: UnitDefId, pos: Vec3) -> Vec3 {
-        pos
+    fn terrain(&self) -> Option<&Terrain> {
+        let terrain = &self.bot.hello.terrain;
+        (terrain.width > 0 && terrain.cell > 0.0).then_some(terrain)
     }
 
     fn home(&self) -> Vec3 {

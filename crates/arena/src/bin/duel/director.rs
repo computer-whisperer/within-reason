@@ -445,8 +445,6 @@ pub struct Director {
     fed: HashSet<i32>,
     /// First sighting of each team's own units: the commander.
     commanders: HashMap<i32, Vec3>,
-    /// A circuit's route clearance: wanted and the route's least (D13), for the per-second log's meta line.
-    circuit_clearance: Option<(f32, f32)>,
     fields: Option<Vec<Field>>,
     pub last_tick: Instant,
     pub finished: bool,
@@ -467,7 +465,6 @@ impl Director {
             seed,
             fed: HashSet::new(),
             commanders: HashMap::new(),
-            circuit_clearance: None,
             fields: None,
             last_tick: Instant::now(),
             finished: false,
@@ -557,7 +554,7 @@ impl Director {
                     log = format!("m{:02}-s{index}-d{:02}-rep{}{}.jsonl", self.match_index, result.sequence, result.job.rep, result.seed.map_or(String::new(), |s| format!("-seed{s}")));
                     let mut lines = std::mem::take(&mut duel.log);
                     if let Some(drill) = &duel.drill {
-                        lines.insert(0, drill_meta(drill, &duel.armies[0], &duel.armies[1], self.circuit_clearance).to_string());
+                        lines.insert(0, drill_meta(drill, &duel.armies[0], &duel.armies[1]).to_string());
                     }
                     if let Err(e) = std::fs::write(dir.join(&log), lines.join("\n") + "\n") {
                         eprintln!("match {}: could not write {log}: {e}", self.match_index);
@@ -604,7 +601,7 @@ impl Director {
                 .collect();
             let near = if near.is_empty() { "none".to_string() } else { near.join(" ") };
             eprintln!("match {}: scenario at ({x:.0},{z:.0}); commanders within 2000: {near}", self.match_index);
-            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None, circuit: Vec::new(), circuit_route: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
+            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None, circuit: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
             return;
         }
         let queue = self.batch.queue.lock().unwrap();
@@ -647,11 +644,12 @@ impl Director {
             let walk_between = |a: Vec3, b: Vec3| terrain::Field::from_many(terrain, &standable, &[b]).and_then(|f| f.distance(a));
             if options.kind == drill::Kind::Circuit {
                 // A circuit (design D12): the loop's points across the map, one site, the lab's corner its centre;
-                // the route keeps the formation's half-width and a hull from the walls where it can (D13): the
-                // group's ranks are six files at the hull spacing, or the spawn formation's width if wider.
+                // the corners are placed with the formation's half-width and a hull of room from the walls (D13: the
+                // group's ranks are six files at the hull spacing, or the spawn formation's width if wider); the way
+                // between them is the lane's to plan over its ground (D17).
                 let group_across = (micro::form::FILES as f32 - 1.0) * micro::form::HULL_SPACING;
                 let clearance = across.max(group_across) / 2.0 + micro::form::HULL_SPACING;
-                let sites::Circuit { corners: points, route, legs, least_clearance } = match sites::circuit(terrain, &standable, &commanders, options.circuit.as_deref(), clearance) {
+                let sites::Circuit { corners: points, legs } = match sites::circuit(terrain, &standable, &commanders, options.circuit.as_deref(), clearance) {
                     Ok(found) => found,
                     Err(why) => {
                         self.fatal = Some(format!("no circuit on {}: {why}", hello.map.name));
@@ -660,9 +658,8 @@ impl Director {
                 };
                 let walk = legs.iter().try_fold(0.0f32, |sum, leg| leg.map(|l| sum + l));
                 let at: Vec<String> = (points.iter().zip(&legs)).map(|(p, l)| format!("({:.0},{:.0}) then {} on foot", p.x, p.z, l.map_or("no way".to_string(), |l| format!("{l:.0}")))).collect();
-                eprintln!("match {}: circuit of {} corners, {} a lap on foot, the walked route {} points with {least_clearance:.0} of room at the least ({clearance:.0} wanted): {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), route.len(), at.join("; "));
-                self.circuit_clearance = Some((clearance, least_clearance));
-                self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points, circuit_route: route }, duel: None, fought: 0, abandoned: false }]);
+                eprintln!("match {}: circuit of {} corners placed with {clearance:.0} of room, {} a lap on foot: {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), at.join("; "));
+                self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
             if let (Some(from), Some(to)) = (options.from, options.to) {
@@ -671,7 +668,7 @@ impl Director {
                 let walk = walk_between(a, b);
                 let mid = Vec3 { x: (a.x + b.x) / 2.0, y: 0.0, z: (a.z + b.z) / 2.0 };
                 eprintln!("match {}: drill from ({:.0},{:.0}) to ({:.0},{:.0}): {:.0} as the crow flies, {} on foot", self.match_index, a.x, a.z, b.x, b.z, a.dist2d(b), walk.map_or("no way".to_string(), |w| format!("{w:.0}")));
-                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk, circuit: Vec::new(), circuit_route: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
+                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk, circuit: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
             if let Some(ratio) = options.around {
@@ -838,21 +835,19 @@ impl Director {
             let circuit = options.kind == drill::Kind::Circuit;
             if circuit {
                 // The lab on the loop's first corner (when there is a feed), the deployed army `CIRCUIT_SPAWN` along
-                // toward the walked route's first point; the group's route the spawn point then the lap walked on
-                // foot `laps` times over, the lab's corner last (the host's field gives the points round terrain,
-                // design §2); the lane-off orders the corners alone, queued, the hands' way today.
+                // toward the next corner; the route the spawn point then the corners `laps` times over, the lab's
+                // corner last, the group's one order and the lane-off queued orders alike (the way between the
+                // corners is the lane's to plan over its ground, design D17).
                 let points: Vec<Vec3> = field.site.circuit.iter().map(|p| place(*p)).collect();
-                let walked: Vec<Vec3> = field.site.circuit_route.iter().map(|p| place(*p)).collect();
                 let lab_at = points[0];
-                let next = walked.first().copied().unwrap_or(lab_at);
+                let next = points.get(1).copied().unwrap_or(lab_at);
                 let h = micro::form::heading(lab_at, next);
                 drill.start = place(Vec3 { x: lab_at.x + h.0 * drill::CIRCUIT_SPAWN, y: 0.0, z: lab_at.z + h.1 * drill::CIRCUIT_SPAWN });
                 drill.goal = lab_at;
                 drill.toward = lab_at;
                 let laps_n = options.laps.max(1) as usize;
-                drill.route = std::iter::once(drill.start).chain((0..laps_n).flat_map(|_| walked.iter().copied())).collect();
                 let corners: Vec<Vec3> = points[1..].iter().chain(std::iter::once(&points[0])).copied().collect();
-                drill.corners_route = std::iter::once(drill.start).chain((0..laps_n).flat_map(|_| corners.iter().copied())).collect();
+                drill.route = std::iter::once(drill.start).chain((0..laps_n).flat_map(|_| corners.iter().copied())).collect();
                 let laps = options.laps.max(1) as f32;
                 drill.straight = (0..points.len()).map(|i| points[i].dist2d(points[(i + 1) % points.len()])).sum::<f32>() * laps;
                 drill.walk = field.site.walk.map(|w| w * laps);
@@ -1101,12 +1096,8 @@ impl View for DuelView<'_> {
         (t.cell, t.width as usize, t.height as usize)
     }
 
-    fn passable(&self) -> Option<&[bool]> {
-        None
-    }
-
-    fn snap(&self, _def: UnitDefId, pos: Vec3) -> Vec3 {
-        pos
+    fn terrain(&self) -> Option<&Terrain> {
+        (self.rules.terrain.width > 0 && self.rules.terrain.cell > 0.0).then_some(self.rules.terrain)
     }
 
     fn home(&self) -> Vec3 {
@@ -1956,7 +1947,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         line["shape"] = json!([shape.depth.round(), shape.width.round(), tenth(shape.ramp_half_s), tenth(shape.ramp_all_s)]);
     }
     // The lane's group this second (design §2): the anchor, its heading and pace, who is formed, who is out of slot
-    // and why (by spawn index), whether it has arrived and what it stands on.
+    // and why (by spawn index), whether it has arrived and what it stands on, its files and the room about it (D17).
     if let Some(state) = x.lane.as_ref().and_then(|l| l.group_state("army")) {
         let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
         let hundredth = |v: f32| (f64::from(v) * 100.0).round() / 100.0;
@@ -1967,6 +1958,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
             "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
             "arrived": state.arrived, "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0),
+            "files": state.files, "room": state.room.map(f32::round),
         });
     }
     duel.log.push(line.to_string());
@@ -2120,7 +2112,7 @@ fn drill_target(drill: &mut Drill, army: &mut Army, tick: &Tick, frame: i32, com
 }
 
 /// The first line of a drill's per-second log: the kind, the strip's ends, what the units are by index, the arms.
-fn drill_meta(drill: &Drill, army: &Army, other: &Army, clearance: Option<(f32, f32)>) -> Value {
+fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
     let target = drill.target.and_then(|i| other.spawns.get(i));
     json!({ "meta": {
         "drill": drill.kind.label(), "start": [drill.start.x.round(), drill.start.z.round()], "goal": [drill.goal.x.round(), drill.goal.z.round()],
@@ -2131,7 +2123,6 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army, clearance: Option<(f32, 
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
-        "clearance": clearance.map(|(wanted, least)| [wanted.round(), least.round()]),
     } })
 }
 

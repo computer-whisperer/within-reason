@@ -243,8 +243,9 @@ impl Lane {
             if let Some(s) = threat {
                 // From anything as fast as it, toward home; else round the threat toward where it was going.
                 let prefer = if s.mobile && s.speed >= stats.speed { view.home() } else { rover.goal.as_ref().map_or(view.home(), |g| g.look) };
+                let passable = self.classes.passable_for(view, unit.def);
                 let cell = match self.grid.as_ref() {
-                    Some(grid) => grid.lowest_within_by(unit.pos, STEP_RADIUS, view.passable(), prefer, &|c| depth(&danger, c, STEP_RADIUS)),
+                    Some(grid) => grid.lowest_within_by(unit.pos, STEP_RADIUS, passable.as_deref().map(Vec::as_slice), prefer, &|c| depth(&danger, c, STEP_RADIUS)),
                     None => None,
                 }
                 .unwrap_or_else(|| {
@@ -266,7 +267,7 @@ impl Lane {
                 let reorder = rover.evading.is_none_or(|(sent, at)| (sent.dist2d(cell) > REORDER_DISTANCE || arrived) && frame - at >= REORDER_FRAMES);
                 if reorder {
                     // Stretched past the cell so the engine does not brake short of it, unless that runs into a margin.
-                    let far = view.snap(unit.def, Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
+                    let far = self.classes.snap_for(view, unit.def, Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
                     let to = if depth(&danger, far, 0.0) > depth(&danger, cell, 0.0) { cell } else { far };
                     rover.evading = Some((cell, frame));
                     rover.sent = Some((Order::Move(to), frame));
@@ -327,11 +328,11 @@ impl Lane {
 
             // 3. Look at the place we know least.
             let goals = goals_of.entry(unit.def).or_insert_with(|| view.rove_goals(unit.def));
-            let look_at = |at: Vec3| -> Vec3 {
+            let mut look_at = |at: Vec3| -> Vec3 {
                 let (dx, dz) = (unit.pos.x - at.x, unit.pos.z - at.z);
                 let d = dx.hypot(dz);
                 let short = (sight * LOOK_SHARE).min(d);
-                if d < 1.0 { at } else { view.snap(unit.def, Vec3 { x: at.x + dx / d * short, y: 0.0, z: at.z + dz / d * short }) }
+                if d < 1.0 { at } else { self.classes.snap_for(view, unit.def, Vec3 { x: at.x + dx / d * short, y: 0.0, z: at.z + dz / d * short }) }
             };
             if let Some(goal) = rover.goal.as_mut() {
                 let now = goals.iter().find(|g| g.name == goal.name);
@@ -462,8 +463,6 @@ mod tests {
         defs: Vec<UnitDefInfo>,
         buildings: Vec<(UnitId, UnitDefId, Vec3)>,
         goals: Vec<RoveGoal>,
-        /// Ground nothing stands on: a point inside it snaps to its edge.
-        pit: Option<(Vec3, f32)>,
     }
 
     impl Host {
@@ -475,7 +474,7 @@ mod tests {
                 def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
                 def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             ];
-            Host { defs, buildings: Vec::new(), goals, pit: None }
+            Host { defs, buildings: Vec::new(), goals }
         }
     }
 
@@ -496,17 +495,8 @@ mod tests {
         fn grid_spec(&self) -> (f32, usize, usize) {
             (16.0, 256, 256)
         }
-        fn passable(&self) -> Option<&[bool]> {
+        fn terrain(&self) -> Option<&bot_protocol::Terrain> {
             None
-        }
-        fn snap(&self, _def: UnitDefId, pos: Vec3) -> Vec3 {
-            match self.pit {
-                Some((centre, radius)) if pos.dist2d(centre) < radius => {
-                    let d = pos.dist2d(centre).max(1.0);
-                    Vec3 { x: centre.x + (pos.x - centre.x) / d * radius, y: pos.y, z: centre.z + (pos.z - centre.z) / d * radius }
-                }
-                _ => pos,
-            }
         }
         fn home(&self) -> Vec3 {
             at(200.0, 200.0)

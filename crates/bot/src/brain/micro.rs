@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use bot_protocol::{Command, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Command, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use combatsim::sim::Rules;
 pub use micro::{Commitment, Footwork, Lane, Stats, View};
 
@@ -215,12 +215,9 @@ impl View for BrainView<'_> {
         }
     }
 
-    fn passable(&self) -> Option<&[bool]> {
-        self.brain.passable()
-    }
-
-    fn snap(&self, def: UnitDefId, pos: Vec3) -> Vec3 {
-        self.brain.snap_for(self.brain.walker_of(def), pos)
+    fn terrain(&self) -> Option<&Terrain> {
+        let terrain = &self.brain.world.hello.terrain;
+        (terrain.width > 0 && terrain.cell > 0.0).then_some(terrain)
     }
 
     fn home(&self) -> Vec3 {

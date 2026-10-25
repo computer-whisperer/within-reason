@@ -7,4 +7,5 @@ description = "The control lane: per-unit footwork (flee, fan, kite, formation s
 
 [dependencies]
 bot-protocol = { path = "../bot-protocol" }
+terrain = { path = "../terrain" }
 serde = { version = "1", features = ["derive"] }
