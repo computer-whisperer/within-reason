@@ -279,6 +279,19 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   fourth spot and the plant stands 27 s later (5:00 34-41 against 48-55); the late economy floats on a windy map
   (Mithril game 00 at its metal cap 8:00-20:00 on 45-51 wind generators a minute); the spots under water are walked
   to and never taken (Quicksilver).
+- 2026-10-25, the placement and his start (the user: "Start with the placement and enemy-location fixes"; README
+  T-SITES, T-SCENARIO): his start from the script when the lobby fixed the starts, else BAR's own guess for an
+  unplaced seat in his box (`his_start.rs`, 1-4 elmos from where he stood in all twenty baseline games; the map's
+  `mapinfo.lua` starts are not where the game puts an AI); factory sites the bot chooses, the ground its products
+  reach from home and an exit lane they can drive, four facings and four turns, a site the engine refused set aside;
+  the commander's cheap buildings and help frames within 1,250 of home or the farm's core; dead ground for every
+  site, not the spots alone; the yard's beside point across the lane the plant faces. Four rounds (terr108-132) and a
+  repeat; round three's ranking by the builder's walk rejected. Kept, terr127-132: Comet from his start 20:00 up in
+  all four (1,056-1,107), no death to his weapons there or on Great Divide, both plants on Glitters in every game
+  (870-995 at 20:00 against 11-310), Great Divide 277-371 with no duel, Mithril's stalled game recovered;
+  Quicksilver down in all four (382-426 against 433-499), three spots inside the radius round his real start.
+  Open: Comet's Armada games 2-7 under at 5:00 from his start in every round (the exit lane measured from the
+  plant's centre one suspect), Mithril's 5:00 under by the program's changed plan, the late float on the windy maps.
 - 2026-10-25, the plant ramp in the program (`docs/design/2026-10-25-territory-plant-ramp.md`; the user: "Proceed. Start with batch 1 alone, and the mobile guard's cap stays until the pad is calibrated"): the turrets' assist on a plant bounded by its ring's capacity as the hands count it (built, terr96: the ring 24-34 at the advanced plant, his 29; the program's demand unmoved, 3-4 turrets at the plant by 14:00; the marks level), the advanced constructor's spots priced from home (built, terr97: level, the premise wrong: the hands never sent one to a spot, and the plan's upgrades wait on the spots and the metal, not the price; kept as the honest price), and the pad's roll-off as the plant's own ceiling in place of the caps (not built: a cap, not a demand; what holds the program's demand down is open, the farm's timing against his the thing to read next).
 - 2026-10-24, the advanced constructors' count (the user: "Why are we making so many advanced constructors? Does the LP not model using a t1 constructor to help build a t2 mex?"; "Build it, one batch, with a low help factor"): the program had no pair for a basic constructor on an upgrade frame (a mobile builder's pairs were its build list and a factory's products), so every upgrade was priced on the advanced constructors alone and it bought 29-32 by 15:00 against his 15 (and 10 advanced aircraft). Built as `LpOptions.mobile_help` (row 3d, `mhelp` 0.35: his basic constructors' share of the moho frames' builder-seconds), the hands reading the help from this type's own flows and choosing the frame by the finish counted from the walk. terr98 invalid (the hands' flag read off any type's flows, the extractors fell to the count rule), terr99 the help bounced between nearly-finished frames and 20:00 fell in all four, terr100 level at every mark with 2-7 fewer advanced constructors by 20:00: kept as the honest model. The count is the plant's cadence and the upgrades' return, not their price in advanced power.
   thebluegecko's better start at that location tells us something must be wrong"). The program never chose the two

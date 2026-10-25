@@ -159,6 +159,7 @@ dependencies = [
  "bot-protocol",
  "buildorder",
  "serde_json",
+ "terrain",
 ]
 
 [[package]]

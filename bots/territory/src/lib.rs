@@ -8,6 +8,7 @@
 //! names a unit; the search picks from the roster.
 
 mod hands;
+mod his_start;
 mod options;
 mod planner;
 mod snapshot;
@@ -90,17 +91,12 @@ impl Territory {
     fn start(&mut self, tick: &Tick) {
         let Some(commander) = tick.snapshot.own_units.iter().find(|u| self.def(u.def).is_some_and(|d| !d.build_options.is_empty() && d.speed > 0.0)).cloned() else { return };
         self.home = commander.pos;
-        let ours = self.hello.ally_team;
-        let map = Vec3 { x: self.hello.map.width, y: 0.0, z: self.hello.map.height };
-        // His start box when the script's boxes are the starts (ours holds our commander), else our start mirrored
-        // through the map's centre: with the starts pinned (`arena --starts`, StartPosType 3) the boxes are the
-        // seats' and say nothing of where he stands (terr84: as the second seat our box was the east and his box's
-        // centre lay 550 from our own commander, whose two nearest spots then fell inside the dead radius round
-        // "his start": no extractor in the first minute and 17 a second at 5:00).
-        let boxes = &self.hello.start_boxes;
-        let mirror = Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z };
-        let ours_holds_home = boxes.iter().any(|b| b.ally_team == ours && b.contains(self.home));
-        self.enemy_home = if ours_holds_home { boxes.iter().find(|b| b.ally_team != ours).map_or(mirror, |b| b.centre()) } else { mirror };
+        // His start (T-SCENARIO): the script's, else the game's own guess in his box, else the mirror. His box's
+        // centre, taken before, was 100-2,437 from where he stood on five maps (terr103-107), and with the starts
+        // pinned the script's own position went unread: every one of terr102's 45 deaths to his weapons came within
+        // 300 of his start, 2,320-3,160 from the point the dead radius was drawn round (his box's centre or the mirror).
+        let (enemy_home, source) = his_start::his_start(&self.hello, self.home);
+        self.enemy_home = enemy_home;
         let Some(game) = Game::from_hello(&self.hello, commander.def, (self.home.x as f64, self.home.z as f64)) else {
             self.log(format_args!("the commander's type {} is not in the unit table: nothing will be built", commander.def.0));
             return;
@@ -125,7 +121,7 @@ impl Territory {
         let game = Arc::new(game);
         self.game = Some(game.clone());
         self.planner = Some(planner::Planner::new(game, palette));
-        let scenario = self.scenario(tick);
+        let scenario = self.scenario();
         self.spots = self.spot_indices(&scenario);
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
@@ -146,7 +142,7 @@ impl Territory {
         let warmed = began.elapsed();
         self.log(format_args!("ground: {} places walked in {} ms", places.len(), warmed.as_millis()));
         self.log(format_args!(
-            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}); {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
+            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
             self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z, self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
         ));
         if self.options.dump {
@@ -173,7 +169,7 @@ impl Territory {
 
     fn request(&mut self, tick: &Tick) -> planner::Request {
         // The spots in play follow his seen units (the dead spots, decision 4 and stage 2's first form).
-        let scenario = self.scenario(tick);
+        let scenario = self.scenario();
         self.spots = self.spot_indices(&scenario);
         let (state, builders) = self.snapshot(tick);
         let horizon = (self.options.end - state.t0).max(HORIZON_LEAST);
