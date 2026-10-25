@@ -15,8 +15,12 @@ use crate::{Territory, MINUTE, SECOND};
 /// The sums decay with this time constant, in seconds: the extractors' walk grows as the near spots go (a median 12-20
 /// s an extractor to 5:00, 23-74 s from 5:00 to 10:00, terr157-162).
 const WALK_MEMORY: f64 = 120.0;
-/// A constructor moving faster than this share of its top speed is walking; a builder stands while it builds.
-const MOVING: f64 = 0.2;
+/// A helper is on its frame within its build distance of the frame's edge, read as the frame's half-diagonal and this
+/// much besides. The constructors' moving time (faster than a fifth of their top speed) was a first measure, and it
+/// read 0.81-1.58 seconds of walk to a second of an extractor's work where the order-to-frame time read 1.5-2.3
+/// (terr175-180, 5:00-10:00: 30-46 s from the order to the frame, then the frame's 20 s): a builder turning, slowed or
+/// standing short of its site is not working either.
+const ON_FRAME_SLACK: f32 = 16.0;
 /// The constant walk counts as this many seconds of work beside the measured (`LpOptions::walk_prior`).
 pub(crate) const WALK_PRIOR: f64 = 30.0;
 /// The `walks:` line every this many frames.
@@ -36,8 +40,9 @@ pub(crate) struct Walks {
 
 impl Territory {
     /// Every hands tick: each constructor holding an order, walking or working, credited to its type and the order's
-    /// unit type (a build's type, a helped frame's type); a walk home walks for no unit; a guard on a factory is not
-    /// counted, as the program prices an assist with no walk.
+    /// unit type: a build walks until its frame stands and works on it after; help walks until the helper is in reach
+    /// of the frame; a walk home walks for no unit. A guard on a factory is not counted, as the program prices an
+    /// assist with no walk.
     pub(crate) fn measure_walks(&mut self) {
         let last = self.walks.measured.replace(self.frame);
         let Some(last) = last else { return };
@@ -61,26 +66,27 @@ impl Territory {
             if units.list[b].role != Role::Builder {
                 continue;
             }
-            let moving = f64::from(builder.vel.x.hypot(builder.vel.z)) * f64::from(SECOND) > MOVING * units.list[b].speed;
-            let unit = match &order.what {
-                What::Build { unit, .. } => Some(*unit),
-                What::Help { frame } => match self.own.get(frame).and_then(|f| self.unit_index(f.def)) {
-                    Some(u) => Some(u),
-                    None => continue,
-                },
-                What::Walk { .. } => None,
+            let (unit, walking) = match &order.what {
+                What::Build { unit, frame, .. } => (Some(*unit), frame.is_none()),
+                What::Help { frame } => {
+                    let Some(f) = self.own.get(frame) else { continue };
+                    let Some(u) = self.unit_index(f.def) else { continue };
+                    let (fx, fz) = self.def(f.def).map_or((0, 0), |d| d.footprint);
+                    let reach = units.list[b].build_distance as f32 + 4.0 * (fx as f32).hypot(fz as f32) + ON_FRAME_SLACK;
+                    (Some(u), builder.pos.dist2d(f.pos) > reach)
+                }
+                What::Walk { .. } => (None, true),
                 What::Assist { .. } => continue,
             };
-            walked.push((b, unit, moving));
+            walked.push((b, unit, walking));
         }
-        for (b, unit, moving) in walked {
+        for (b, unit, walking) in walked {
             match unit {
                 Some(u) => {
                     let entry = self.walks.per.entry((b, u)).or_default();
-                    if moving { entry.0 += dt } else { entry.1 += dt }
+                    if walking { entry.0 += dt } else { entry.1 += dt }
                 }
-                None if moving => *self.walks.home.entry(b).or_default() += dt,
-                None => {}
+                None => *self.walks.home.entry(b).or_default() += dt,
             }
         }
     }
@@ -121,7 +127,7 @@ impl Territory {
             let flow = targets.flows.iter().find(|f| f.builder == w.builder && f.unit == w.unit && f.class != Class::Frames)?;
             Some(flow.cost / units.list[w.unit].build_time.max(1.0) - 1.0)
         };
-        let home: f64 = self.walks.home.values().sum();
+        let home: f64 = self.walks.home.values().sum::<f64>() + 0.0;
         let line: Vec<String> = pairs
             .iter()
             .map(|w| format!("{}>{} {:.2} of {:.0} s (paid {})", units.list[w.builder].name, units.list[w.unit].name, w.walking / w.working, w.working, paid(w).map_or("-".to_string(), |r| format!("{r:.2}"))))

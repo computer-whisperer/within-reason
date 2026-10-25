@@ -23,8 +23,13 @@ Read from the standing build's bench (terr157-162) and the matching hands' (terr
   then help 8-10 s (two-thirds of the order walking; 199-873 such orders in four games), priced at 40 s of walk per
   whole upgrade's help (165 s of a constructor's work): about eight times too cheap. Turrets: a median 9-35 s of walk,
   priced 3 s. Walks home (the cascade's): not priced. Extractors: priced 15 s rising to 40 s at 10:00, which fits
-  Comet's median (27 s at 5:00-10:00) but not its tail (p75 50 s) or Great Divide's 74 s. Walks between the base
-  and the field are small; the walking is among field jobs and round the base.
+  Comet's median (27 s at 5:00-10:00) but not its tail (p75 50 s) or Great Divide's 74 s.
+- **Where the walking goes.** By where the builder stood at an order and at its next (the base within 1,500 of home;
+  the farm's origin lies 800-1,200 out): field to field is the largest leg to 15:00 (Comet from his start, 18 and 50
+  constructor-minutes a game in 5:00-10:00 and 10:00-15:00); out to the field, back to the base and the walks home
+  together are a third of the walking from 10:00 and about 60 % at 15:00-20:00 (terr157, 160, 162). A first reading
+  that took the order line's "from home" for the site's (it is the builder's) had the legs between base and field
+  small; it was wrong.
 
 The matching hands moved the shortfall from the turrets (the cascade's) to the opening's extractors; their lag read
 the columns "on plan" because it counts orders given, not work done. The regions priced the extractors' walks,
@@ -36,9 +41,12 @@ the plan on Comet and 0.65 on Great Divide (the plan's fractional factory, among
 The bot measures, as it plays, each mobile builder type's walking against its work, per unit type it works on, and
 the next plan prices each pair from it.
 
-- **The measure.** At every hands tick, every constructor holding an order: moving (faster than a fifth of its top
-  speed) is walking, else working, credited to its builder type and the unit type of the order (a build: the type it
-  builds; help on a frame: the frame's type). A walk home (the cascade's) is walking for no unit: its seconds are
+- **The measure.** At every hands tick, every constructor holding an order, credited to its builder type and the
+  unit type of the order (a build: the type it builds; help on a frame: the frame's type): a build walks until its
+  frame stands and works after; help walks until the helper is within its build distance of the frame's edge. (The
+  first form, terr175-186, counted moving faster than a fifth of top speed as walking and read the extractor's walk
+  at 0.81-1.58 seconds a second of work where the order-to-frame time read 1.5-2.3: turning, slowing and standing
+  short of the site are not work either.) A walk home (the cascade's) is walking for no unit: its seconds are
   spread over the builder type's pairs in proportion to their work. Guards on a factory are not counted (the program
   prices an assist with no walk, and the guards were 0-11 % of the samples). The sums decay with a time constant of
   WALK_MEMORY (120 s), so the prices follow the game (the extractors' walk grows as the near spots go).
