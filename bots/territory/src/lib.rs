@@ -185,6 +185,11 @@ impl Territory {
         let spots = &self.hello.metal_spots;
         let near: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
         let commander_speed = self.game().units.list[self.game().commander].speed.max(1.0);
+        // The advanced constructor's spots priced from home (the plant ramp's second change, terr97): born at the
+        // plant, it reaches a free spot at the free spots' mean distance from home, not at a constructor's chain
+        // walk, so from the minute the free spots lie far its upgrade beside home wins, as his did from 7:00.
+        let free_far: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i)).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let advanced_speed = self.game().units.list.iter().filter(|d| d.role == Role::Builder && d.builds.iter().any(|u| self.is_upgrade(*u))).map(|d| d.speed).fold(0.0, f64::max).max(1.0);
         // The plants' rings (T-PLANT): per factory type, the turrets its plants' rings hold, the program's bound on
         // the turrets' assist on that type's products.
         let mut plant_rings: Vec<(usize, f64)> = Vec::new();
@@ -219,6 +224,7 @@ impl Territory {
             // The extractor's walk by the game's time: the near spots first, the far ones from the base later.
             walk_extractor: o.walk_extractor + (o.walk_late - o.walk_extractor) * (state.t0 / o.walk_late_from.max(1.0)).clamp(0.0, 1.0),
             walk_upgrade: o.walk_upgrade,
+            advanced_walk_extractor: o.ring_overhead + free_far.iter().sum::<f64>() / free_far.len().max(1) as f64 / advanced_speed,
             walk_base: o.walk_base,
             walk_factory: o.walk_factory,
             commander_walk_extractor: o.ring_overhead + near.iter().sum::<f64>() / near.len().max(1) as f64 / commander_speed,

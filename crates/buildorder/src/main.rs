@@ -23,7 +23,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        dearest frame in reach unless --nanos-to-factory)
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--margin-from 0] [--factory-from 0] [--assist 2] [--plant-rings armavp:30,..] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-nanos 0] [--farm-big 0] [--bank] [--reclaim] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
-                       [--walk-extractor 15] [--walk-upgrade 40] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--commander-spots N] [--rings 1] [--ring-overhead 5]
+                       [--walk-extractor 15] [--walk-upgrade 40] [--advanced-walk-extractor 15] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--commander-spots N] [--rings 1] [--ring-overhead 5]
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--from SECONDS (with --game: from the record's state then)] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
@@ -335,6 +335,7 @@ fn linear_program(args: &Args) {
         reclaim: args.has("--reclaim"),
         walk_extractor: args.number("--walk-extractor", 15.0),
         walk_upgrade: args.number("--walk-upgrade", 40.0),
+        advanced_walk_extractor: args.number("--advanced-walk-extractor", 15.0),
         walk_base: args.number("--walk-base", 3.0),
         walk_factory: args.number("--walk-factory", 40.0),
         commander_walk_extractor: args.number("--commander-walk-extractor", 40.0),

@@ -126,6 +126,13 @@ pub struct LpOptions {
     /// none after.
     pub walk_extractor: f64,
     pub walk_upgrade: f64,
+    /// The advanced constructor's walk to a basic spot. The territory bot derives it every plan from the free spots'
+    /// mean distance from home at its speed plus the ring overhead (the proposal's second change, terr97): born at
+    /// the plant, it reaches a free spot across the map, not at a constructor's chain walk, so from the minute the
+    /// free spots lie far its upgrade beside home wins, as his did from 7:00 (mohos 1, 2, 5 and 10 in minutes 7-10
+    /// while his basic constructors placed 7, 11, 4 and 2 extractors). Priced as a constructor's chain walk the
+    /// plan's upgrades waited for the last spot, 11:00.
+    pub advanced_walk_extractor: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
     pub commander_walk_extractor: f64,
@@ -188,6 +195,7 @@ impl Default for LpOptions {
             reclaim: false,
             walk_extractor: 15.0,
             walk_upgrade: 40.0,
+            advanced_walk_extractor: 15.0,
             walk_base: 3.0,
             walk_factory: 40.0,
             commander_walk_extractor: 40.0,
@@ -480,7 +488,15 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         let com = b == commander;
         match columns[i].class {
             Class::Ring(_) if rings_n == 1 => {
-                if com { options.commander_walk_extractor } else if is_upgrade(u) { options.walk_upgrade } else { options.walk_extractor }
+                if com {
+                    options.commander_walk_extractor
+                } else if is_upgrade(u) {
+                    options.walk_upgrade
+                } else if units.list[b].builds.iter().any(|v| is_upgrade(*v)) {
+                    options.advanced_walk_extractor
+                } else {
+                    options.walk_extractor
+                }
             }
             Class::Ring(k) => options.ring_overhead + rings[k].distance / units.list[b].speed.max(1.0),
             _ if units.list[u].role == Role::Factory => {

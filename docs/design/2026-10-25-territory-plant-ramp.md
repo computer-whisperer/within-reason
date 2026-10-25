@@ -160,6 +160,21 @@ turrets' worth at 10:00-12:00, 3-4 turrets at the advanced plant by 12:00-14:00;
 constructor at 6:00-8:00 and 12 s by 12:00, as before. The marks level with terr95 (5:00 50-57, 10:00 156-241, 15:00
 464-490, 20:00 975-1,081). The cap is honest; the demand is batch 2's.
 
+**Batch 2, measured (terr97), and its premise corrected.** Built as above (`LpOptions.advanced_walk_extractor`,
+derived from every free spot's mean distance at the advanced constructor's speed). Level: 5:00 48-55, 10:00 156-195,
+15:00 440-520, 20:00 1,010-1,033; the first upgrade frame 7:24-9:07 against terr96's 7:46-8:59; the program's turret
+demand as in terr96; the plan's forecast from the start unchanged to the digit. The premise of change 2 was wrong on
+two counts, read from the orders by builder type: the hands never sent an advanced constructor to a basic spot before
+the change either (its first job is a fusion in minute 6, then upgrades, fusions, help on advanced fusion frames and
+guard chunks on the vehicle plant), and the plan's upgrades do not wait for the last spot because of the walk price:
+they begin when the spots run out and the metal allows, 7:45-9:00 in the hands and from 11:00 in the plan's own
+count, where his begin at 7:00 and run 1, 2, 5, 10 a minute: the same shape a minute later. The price is kept as the
+honest one. What holds the program's demand for the plant's turrets down is therefore not answered by this proposal's
+second change, and change 3 is a cap, not a demand. Open, and to read before another batch: where the plan's metal
+goes in minutes 10-15 against where his went (his 311 turrets in the farm by 15:00 against the plan's 47, his
+advanced fusions and converters' timing), with `run/eco_marks.py --shape` on his record and the plan's `targets:`
+lines.
+
 ## What could go wrong
 
 - terr67's shape, the advanced plant held at a fraction while turrets are bought for it: guarded by counting
