@@ -233,8 +233,12 @@ body G carried three to five joiners from across the map at all times; that is t
 
 **The game (migration-2-1): WON 20:32.** The record's `groups` is the instrument: 52 groups declared; the main body
 marched 372 s at a formed share of 0.28 and a pace share of 0.82 (the drills' straights 0.93-0.96), its exceptions
-mostly joiners (4,675 member-seconds) and away (1,780): the picks joined and split groups every eight seconds (join 66,
-send 56 in twenty minutes), so the body always carried joiners from across the map. The march itself held where the
-body was together (group_C 0.61 at 0.91 of pace; the first minutes' holds formed to the member). The five engine
+mostly joiners (4,675 member-seconds) and away (1,780). The review read 55% of the joining as whole-body re-forms after
+an attack or a join: an attacking group is undeclared in this chunk, so the lane drops its formation and the hold or
+walk after it starts a fresh group whose every member is a joiner until formed (about 12 s each time); chunk 3 removes
+that boundary. The rest is the picks' churn (join 66, send 56 in twenty minutes: a join or a split every nine seconds),
+which carried joiners from across the map. The march itself held where the body was together (group_C 0.61 at 0.91 of
+pace; the small groups that stayed together 0.61-0.70; the first minutes' holds formed to the member); the median
+formed share at contact was 0.46 against the drills' 0.94. The five engine
 fixes above are not in this game's binary; the next game measures them. The ledger row carries the numbers; the
 review's findings are its amendment.
