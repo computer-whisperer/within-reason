@@ -45,7 +45,7 @@ use crate::form;
 use crate::ground::Ground;
 
 /// `WITHIN_REASON_GROUP_DEBUG=1`: the group says on stderr when it re-deals, turns, plans or its slots jump.
-fn debug_on() -> bool {
+pub(crate) fn debug_on() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| std::env::var_os("WITHIN_REASON_GROUP_DEBUG").is_some_and(|v| v != "0" && !v.is_empty()))
 }
@@ -366,13 +366,18 @@ impl Group {
     /// priced field from the leg's point, descended, thinned and straightened), the host's point ending it; the
     /// host's points themselves without a ground, or with the march off (the slots stand at the end regardless).
     fn plan(&mut self) {
+        let started = std::time::Instant::now();
         self.way_from = self.anchor;
         self.way.clear();
         self.way_host.clear();
         match &self.ground {
             Some(ground) if self.order.march => {
                 let mut from = self.anchor;
-                for &point in &self.order.route {
+                let last = self.order.route.len().saturating_sub(1);
+                for (i, &point) in self.order.route.iter().enumerate() {
+                    // The route's end is where the body stands (D18: off a structure, with its room); the points
+                    // between are passed through.
+                    let point = if i == last { ground.stand(point).unwrap_or(point) } else { point };
                     let leg = ground.way(from, point);
                     let n = leg.len();
                     for (i, q) in leg.into_iter().enumerate() {
@@ -392,13 +397,14 @@ impl Group {
         self.dirty = false;
         if debug_on() {
             eprintln!(
-                "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{}",
+                "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{} in {:.1} ms",
                 self.name,
                 self.anchor.x,
                 self.anchor.z,
                 self.order.route.len(),
                 self.way.len(),
-                if self.ground.is_some() { "" } else { " (no ground)" }
+                if self.ground.is_some() { "" } else { " (no ground)" },
+                started.elapsed().as_secs_f64() * 1000.0
             );
         }
     }
@@ -497,7 +503,14 @@ impl Group {
     /// inside the new leg, the inside file in the wall the way kept its room from, and the next point, 256 on, nearly
     /// abreast of the anchor, which swung the heading a second time a tick later (the first re-deal runs: 60-85
     /// degrees, the body knocked out of slot again). Carried on, the body's centroid turns at the point and the new
-    /// ranks lie on the new leg.
+    /// ranks lie on the new leg. The carry stops at the ground's edge (design D18): the way bends where the ground
+    /// bends it, so a bend's incoming leg points at the wall the way turned for, and the carried target is walked from
+    /// the point in half-cell steps only as far as the body's ground goes (an anchor on a cliff hung every slot off
+    /// it). Not at the room's edge: tried first, that cut the carry to nothing at every bend by a wall, the anchor
+    /// turned with the body's centroid short of the corner (D14's first fault again), and the set-down's re-deal cost
+    /// the body a second it never recovered at a pace fraction of one (circuit15: 202 s against 191, formed 0.72
+    /// against 0.93, the trail behind the anchor 120 against 60 for whole legs). The room is read for the files only
+    /// off the carry (`carrying`).
     fn target(&self, leg: usize, carry: f32) -> Vec3 {
         let point = self.way[leg];
         let Some(next) = self.way.get(leg + 1) else { return point };
@@ -510,7 +523,40 @@ impl Group {
         }
         let u = form::heading(from, point);
         let carry = carry.min(point.dist2d(*next) / 2.0);
-        Vec3 { x: point.x + u.0 * carry, y: point.y, z: point.z + u.1 * carry }
+        let along = |d: f32| Vec3 { x: point.x + u.0 * d, y: point.y, z: point.z + u.1 * d };
+        let Some(ground) = &self.ground else { return along(carry) };
+        if !ground.passable_at(point) {
+            return along(carry);
+        }
+        let step = ground.cell() / 2.0;
+        let mut fits = 0.0f32;
+        let mut d = step;
+        while d <= carry {
+            if !ground.passable_at(along(d)) {
+                return along(fits);
+            }
+            fits = d;
+            d += step;
+        }
+        if ground.passable_at(along(carry)) { along(carry) } else { along(fits) }
+    }
+
+    /// Whether the anchor is on a carry: past the current leg's point along the leg, walking on to the carried target
+    /// while the body comes up to the point (design D18). The anchor is then not where the body is, and the room at
+    /// its cell says nothing about the body's: read there, the room of whatever lay beyond the fourth corner's bend
+    /// collapsed the files to two a few seconds before every such turn (circuit14: 187 to 91; D17's first circuit,
+    /// worse, before its files fix).
+    fn carrying(&self) -> bool {
+        if self.leg >= self.way.len() {
+            return false;
+        }
+        let point = self.way[self.leg];
+        let from = if self.leg == 0 { self.way_from } else { self.way[self.leg - 1] };
+        if from.dist2d(point) < 1.0 {
+            return false;
+        }
+        let u = form::heading(from, point);
+        (self.anchor.x - point.x) * u.0 + (self.anchor.z - point.z) * u.1 > 0.0
     }
 
     /// The anchor set down at a turn so the body's ranks lie over the body (design D14: at a turn the slots are
@@ -585,9 +631,14 @@ impl Group {
     /// to spare (hysteresis). A change re-deals the slots and moves the anchor not at all: the front keeps its place
     /// and the extra ranks file in behind it (re-placed to keep the ranks' centroid, a collapse to one file threw the
     /// anchor 768 forward onto a cliff: circuit13). An anchor with no ground within the snap distance (the target
-    /// carried past a bend can lie on a cliff for a few ticks) says nothing about the room and keeps the files.
+    /// carried past a bend can lie on a cliff for a few ticks) says nothing about the room and keeps the files, and so
+    /// does an anchor on a carry (D18, `carrying`).
     fn fit_files(&mut self, spacing: f32) {
         let Some(ground) = &self.ground else { return };
+        // On a carry the anchor is not where the body is (design D18).
+        if self.carrying() {
+            return;
+        }
         let Some(on_ground) = ground.snap(self.anchor) else { return };
         let room = ground.room_at(on_ground);
         self.room = Some(room);
@@ -1196,6 +1247,25 @@ mod tests {
     /// D17: a member whose slot lies across the wall from it is cut off (its walk is many times the straight line) and
     /// holds the anchor by nothing; a member whose slot is on the wall gets the slot snapped beside it.
     #[test]
+    fn a_route_ending_on_a_structure_ends_where_the_body_has_room() {
+        // A flat map with a factory of 80 x 64 at (1,200, 500): a Go to the factory's centre plans its end off it with
+        // the room the ranks want, not against its wall with room for one file.
+        let (w, h) = (128usize, 64usize);
+        let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let mut classes = Classes::default();
+        let (blocked, _) = crate::ground::structures(&terrain, &[crate::ground::Footprint::of(at(1200.0, 500.0), (10, 8), 0)]);
+        let ground = Arc::new(Ground::new(&terrain, &[classes.passable(&terrain, tank), blocked], wanted_room(64.0)).unwrap());
+        let mut group = Group::new("a", vec![UnitId(1)], GroupOrder::new(GroupKind::Go, vec![at(1200.0, 500.0)]), &[at(200.0, 500.0)], 64.0);
+        group.set_ground(Some(ground.clone()));
+        group.plan();
+        let end = *group.way.last().unwrap();
+        assert!(ground.room_at(end) >= wanted_room(64.0), "the end has the body's room: {end:?} with {:.0}", ground.room_at(end));
+        assert!(end.dist2d(at(1200.0, 500.0)) < 2.0 * wanted_room(64.0) + 64.0, "and stands near the factory: {end:?}");
+        assert_eq!(group.state(&walkers(&[(1, 200.0, 500.0)], 100.0)).legs_left, 1);
+    }
+
+    #[test]
     fn a_member_across_the_cliff_from_its_slot_is_cut_off_and_holds_nothing() {
         let pacing = Pacing::default();
         let terrain = walled();
@@ -1230,6 +1300,50 @@ mod tests {
     /// D17: a change of files moves the anchor not at all, and an anchor off the ground (the carried target past a
     /// bend on a cliff) keeps its files instead of reading the room as none (circuit13: a collapse to one file threw
     /// the anchor 768 forward onto the cliff and cut every member off).
+    #[test]
+    fn the_carry_past_a_bend_stops_at_the_grounds_edge_and_runs_whole_in_the_open() {
+        // A bend just south-west of the wall's end, its incoming leg pointing north-east into the wall: carried the
+        // body's depth regardless the target would stand inside the wall (x 1,079, z 492); the line enters the wall
+        // at x 960, 134 along.
+        let (start, corner, end) = (at(700.0, 1250.0), at(900.0, 850.0), at(1700.0, 100.0));
+        let mut group = Group::new("a", vec![UnitId(1)], GroupOrder::new(GroupKind::Go, vec![corner, end]), &[start], 64.0);
+        group.spacing = 64.0;
+        let whole = group.target(0, 400.0);
+        assert!((whole.dist2d(corner) - 400.0).abs() < 0.5, "without a ground the whole carry: {whole:?}");
+        let ground = ground_of(&walled());
+        group.set_ground(Some(ground.clone()));
+        let stopped = group.target(0, 400.0);
+        let carried = stopped.dist2d(corner);
+        assert!((100.0..134.0).contains(&carried), "the carry stopped at the wall: {carried:.0} ({stopped:?})");
+        assert!(ground.passable_at(stopped));
+        // The same bend far from any wall carries the whole depth.
+        let (start, corner, end) = (at(200.0, 900.0), at(400.0, 700.0), at(800.0, 100.0));
+        let mut open = Group::new("b", vec![UnitId(1)], GroupOrder::new(GroupKind::Go, vec![corner, end]), &[start], 64.0);
+        open.spacing = 64.0;
+        open.set_ground(Some(ground));
+        let target = open.target(0, 200.0);
+        assert!((target.dist2d(corner) - 200.0).abs() < 0.5, "in the open the whole carry: {target:?}");
+    }
+
+    #[test]
+    fn the_files_hold_while_the_anchor_is_on_a_carry() {
+        // The anchor past the way's point along the leg is carrying; short of it, or on the next leg, it is not; and
+        // on a carry into the wall's room the files stay six.
+        let (start, corner, end) = (at(300.0, 850.0), at(800.0, 850.0), at(800.0, 100.0));
+        let mut group = Group::new("a", vec![UnitId(1)], GroupOrder::new(GroupKind::Go, vec![corner, end]), &[start], 64.0);
+        group.spacing = 64.0;
+        group.set_ground(Some(ground_of(&walled())));
+        group.anchor = at(700.0, 850.0);
+        assert!(!group.carrying());
+        group.anchor = at(900.0, 850.0);
+        assert!(group.carrying());
+        group.fit_files(64.0);
+        assert_eq!(group.files, form::FILES);
+        group.leg = 1;
+        group.anchor = at(800.0, 700.0);
+        assert!(!group.carrying());
+    }
+
     #[test]
     fn a_change_of_files_keeps_the_anchor_and_an_anchor_off_the_ground_keeps_its_files() {
         let pacing = Pacing::default();

@@ -316,7 +316,15 @@ way between the corners is the lane's** (design D17, 2026-10-25): the group plan
 cells every member's class stands on, priced by room: a cell costs the flat rate where the formation has its half-width
 and a hull of clearance from any wall or the map's edge, up to six times that at a wall, so a corner is rounded at that
 distance and a narrower corridor is walked down its middle), straightened by line of sight with the room the way kept,
-so a leg bends only where the ground bends it, and the anchor turns at each bend without stopping. (Before D17 the host
+so a leg bends only where the ground bends it, and the anchor turns at each bend without stopping. Since D18 (2026-10-25)
+the ground also carries what stands on it (every unit of ours or theirs without speed by its footprint, the wrecks the
+snapshot names), the route's end is where the body has its room (a structure on it puts the stand off it), the field
+for a leg stops at the leg's start, and the fed circuit's lab stands `drill::LAB_OFFSET` (320) from its corner on
+standable ground with `LAB_ROOM` (112) of room, the candidate farthest from the spawn and the approach (`Site::lab_at`; the
+match's message names it), rather than on the corner (on it, the body stood off the lab and the corner's arrival went
+unmet: circuit16/17-pawn12feed8-on timed out; toward the loop's inside it stood in the spawn's ground). **A circuit lap is
+noisy run to run** (circuit18b: 208 / 202 / 190 s, formed 0.65 / 0.75 / 0.96 under one binary; design item 19), so a
+circuit comparison needs `--reps 3` or more. (Before D17 the host
 walked that route and handed it in the order, thinned to a point every 256: the first run gave the anchor the corners
 alone and it walked the crow line through ground the Pawns went round; the second hugged every corner; the third's
 thinned way was a staircase of 26-45 degree bends that snapped a deep body's rear corners 150 at each; the fourth,
@@ -341,8 +349,8 @@ line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800
 (1704,2024)), 178 s for a Pawn at full speed; the first leg walks 4,429 for 3,586 as the crow flies.
 
 **assault** (design D16, 2026-10-24 night): the walk into a defence that shoots back, judged as a duel.
-`duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|ranks|on]
-[--formation ranks6@64] [--from X,Z --to X,Z | --around R]`: both forces written with counts (`armflash*12` against
+`duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|ranks|on[/off|on]]
+[--formation ranks6@64] [--from X,Z --to X,Z | --around R] [--advance]`: both forces written with counts (`armflash*12` against
 `armhlt*1`, nothing sized against the other side), the army spawned `--distance` from the goal in its formation facing
 it, the defence stood in one rank across the approach centred on the goal, 128 apart in list order, given once (an
 `into` target is given again; a position falls once). The group's order is the goal alone, as the hands' would be: on
@@ -356,6 +364,18 @@ the same forces (`duel --ours FORCE --theirs DEFENCE`, the sides 1,100 apart): t
 removed, so the assault's margin against it is the approach's price. `run/drill_table.py` adds the judge's counts, the
 seconds to take the position, the margin, the units lost before firing, shots per in-reach second, the muzzled share and
 the friend-on-the-line share for an assault batch.
+
+**`--advance` (design D18, 2026-10-25): theirs on the march.** Side `y`'s mobile units, spawned in their rank at the goal
+as a defence is, get a Fight order toward the army's start when the army's first orders go out (and at `--reissue`'s
+cadence), under `--lane x/y`'s second mode: `off` is the engine's fight-move (a trickle), `on` their own group fighting
+to the start (a formation against a formation). The judge is the assault's (`taken` when theirs are all dead, `wiped`
+when ours are, the time limit otherwise), and the measures too; `drill_meta` carries `advance` and `lane_theirs`. The
+first slice (advance1-*, the mix of 6 Blitz + 4 Stout + 2 Janus against its mirror on the flat strip, 8 duels an arm):
+the formed body against the trickle takes it 6 of 8 at +0.22 with 3.4 left (formed 0.91 at contact, the first shot at
+16 s, the ramp 0.9 / 1.8 s); the trickle against the trickle 1 of 8 at -0.07, `ranks` 2 of 8 at -0.04, formation
+against formation 3 of 8 at -0.11 +- 0.10 (even, as a mirror should be). On the detour both arms time out at 300 s (the
+survivors pass each other and stand at the other's end, nobody meets), the margins +0.48 (formed) and +0.34 (trickle)
+standing as the measure.
 
 The strip (`sites::Footprint::strip`) is the distance plus the formation's depth and the arrival radius with
 margins, 640 across, dry and passable for every listed unit, within 48 elmos of relief (a walk needs crossable

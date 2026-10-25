@@ -601,7 +601,7 @@ impl Director {
                 .collect();
             let near = if near.is_empty() { "none".to_string() } else { near.join(" ") };
             eprintln!("match {}: scenario at ({x:.0},{z:.0}); commanders within 2000: {near}", self.match_index);
-            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None, circuit: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
+            self.fields = Some(vec![Field { site: Site { centre, ends: None, walk: None, circuit: Vec::new(), lab_at: None }, duel: None, fought: 0, abandoned: false }]);
             return;
         }
         let queue = self.batch.queue.lock().unwrap();
@@ -659,7 +659,36 @@ impl Director {
                 let walk = legs.iter().try_fold(0.0f32, |sum, leg| leg.map(|l| sum + l));
                 let at: Vec<String> = (points.iter().zip(&legs)).map(|(p, l)| format!("({:.0},{:.0}) then {} on foot", p.x, p.z, l.map_or("no way".to_string(), |l| format!("{l:.0}")))).collect();
                 eprintln!("match {}: circuit of {} corners placed with {clearance:.0} of room, {} a lap on foot: {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), at.join("; "));
-                self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points }, duel: None, fought: 0, abandoned: false }]);
+                // The lab's place (D18): `LAB_OFFSET` from its corner on standable ground with the lab's room, the
+                // candidate farthest from the spawn (`CIRCUIT_SPAWN` toward the next corner) and the approach's end.
+                let lab_at = {
+                    let room = terrain::clearance(terrain, &standable);
+                    let cell_of = |p: Vec3| ((p.x / terrain.cell) as i64, (p.z / terrain.cell) as i64);
+                    let room_at = |p: Vec3| {
+                        let (x, z) = cell_of(p);
+                        (x >= 0 && z >= 0 && x < terrain.width as i64 && z < terrain.height as i64).then(|| room[z as usize * terrain.width as usize + x as usize]).unwrap_or(0.0)
+                    };
+                    let corner = points[0];
+                    let next = points.get(1).copied().unwrap_or(corner);
+                    let last = points.last().copied().unwrap_or(corner);
+                    let h = micro::form::heading(corner, next);
+                    let spawn = Vec3 { x: corner.x + h.0 * drill::CIRCUIT_SPAWN, y: 0.0, z: corner.z + h.1 * drill::CIRCUIT_SPAWN };
+                    let a = micro::form::heading(corner, last);
+                    let approach = Vec3 { x: corner.x + a.0 * drill::CIRCUIT_SPAWN, y: 0.0, z: corner.z + a.1 * drill::CIRCUIT_SPAWN };
+                    (0..16)
+                        .map(|i| {
+                            let t = i as f32 / 16.0 * std::f32::consts::TAU;
+                            Vec3 { x: corner.x + t.cos() * drill::LAB_OFFSET, y: 0.0, z: corner.z + t.sin() * drill::LAB_OFFSET }
+                        })
+                        .filter(|c| room_at(*c) >= drill::LAB_ROOM)
+                        .max_by(|p, q| p.dist2d(spawn).min(p.dist2d(approach)).total_cmp(&q.dist2d(spawn).min(q.dist2d(approach))))
+                };
+                if let Some(at) = lab_at {
+                    eprintln!("match {}: the lab at ({:.0},{:.0}), {:.0} of room", self.match_index, at.x, at.z, terrain::clearance(terrain, &standable)[(at.z / terrain.cell) as usize * terrain.width as usize + (at.x / terrain.cell) as usize]);
+                } else {
+                    eprintln!("match {}: no place for the lab {:.0} from its corner with {:.0} of room; it stands on the corner", self.match_index, drill::LAB_OFFSET, drill::LAB_ROOM);
+                }
+                self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points, lab_at }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
             if let (Some(from), Some(to)) = (options.from, options.to) {
@@ -668,7 +697,7 @@ impl Director {
                 let walk = walk_between(a, b);
                 let mid = Vec3 { x: (a.x + b.x) / 2.0, y: 0.0, z: (a.z + b.z) / 2.0 };
                 eprintln!("match {}: drill from ({:.0},{:.0}) to ({:.0},{:.0}): {:.0} as the crow flies, {} on foot", self.match_index, a.x, a.z, b.x, b.z, a.dist2d(b), walk.map_or("no way".to_string(), |w| format!("{w:.0}")));
-                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk, circuit: Vec::new() }, duel: None, fought: 0, abandoned: false }]);
+                self.fields = Some(vec![Field { site: Site { centre: mid, ends: Some((a, b)), walk, circuit: Vec::new(), lab_at: None }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
             if let Some(ratio) = options.around {
@@ -866,7 +895,9 @@ impl Director {
                 let mut spawns = Vec::new();
                 if !options.feed.is_empty() {
                     drill.lab = Some(0);
-                    spawns.push(Self::spawn(&self.defs[&options.lab], drill.goal, None));
+                    // The lab stands beside its corner (`Site::lab_at`, D18), on the corner when no place was found.
+                    let lab_at = field.site.lab_at.map_or(drill.goal, place);
+                    spawns.push(Self::spawn(&self.defs[&options.lab], lab_at, None));
                 }
                 let count: u32 = force_x.iter().map(|(_, n)| n).sum();
                 let defs: Vec<&UnitDefInfo> = force_x.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
@@ -894,8 +925,10 @@ impl Director {
                 }
                 _ => Vec::new(),
             };
+            // `--advance` (D18): theirs march, under the second lane mode; a standing defence takes no lane.
+            let lane_y = if drill.advance { self.batch.lanes[1] } else { LaneMode::Off };
             drill_state = Some(drill);
-            [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], target, None, centre, LaneMode::Off)]
+            [Army::new(teams[0], spawns, Some(form_x), start, self.batch.lanes[0]), Army::new(teams[1], target, None, centre, lane_y)]
         } else if self.batch.raid {
             // The raid (`raid.rs`): `x` the pickets at the station with the strip's buildings, `y` the raiders
             // beyond the far end. Its `x` is never sized against `y`.
@@ -1461,6 +1494,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 } else if settled && let Some(drill) = duel.drill.as_mut() {
                     if side == 0 {
                         drill_orders(drill, army, tick, rules, frame, commands);
+                    } else if drill.advance {
+                        drill_advance(drill, army, frame, commands);
                     } else {
                         drill_target(drill, army, tick, frame, commands);
                     }
@@ -1530,6 +1565,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                             Some(GroupOrder::new(kind, vec![drill.toward]))
                         }
                     }
+                    // `--advance` (D18): theirs as one group fighting to the army's start, once the army has its orders.
+                    Some(drill) if side == 1 && drill.advance && drill.last_order.is_some() => Some(GroupOrder::new(GroupKind::FightTo, vec![drill.start])),
                     Some(_) => None,
                     None if plain_fight => Some(GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid])),
                     None => None,
@@ -2079,6 +2116,29 @@ fn drill_sample(duel: &mut Duel, frame: i32, defs: &HashMap<UnitDefId, UnitDefIn
 /// `into`: keeps the target standing on the goal for side `y`. The tick it is found dead its death is counted and
 /// it is given again at its place; the new unit is adopted into the army's books as it appears (the spawn phase's
 /// `claim` runs only while spawning), and a give that shows nothing within 2 s is repeated.
+/// `assault --advance` (design D18): side `y`'s mobile units fight toward the army's start from the frame the army's
+/// first orders went out, the order again at the drill's re-issue cadence (`--reissue`; once without it). Under
+/// `--lane x/on` the lane rewrites these into its group's slots as it does the army's.
+fn drill_advance(drill: &mut Drill, army: &Army, frame: i32, commands: &mut Vec<Command>) {
+    if drill.last_order.is_none() {
+        return;
+    }
+    let due = match (drill.advance_order, drill.reissue) {
+        (None, _) => true,
+        (Some(last), Some(every)) => frame - last >= every,
+        (Some(_), None) => false,
+    };
+    if !due {
+        return;
+    }
+    drill.advance_order = Some(frame);
+    for (&unit, &i) in &army.spawn_of {
+        if army.spawns[i].mobile && army.alive.contains_key(&unit) {
+            commands.push(Command::Fight { unit, to: drill.start, queue: false });
+        }
+    }
+}
+
 fn drill_target(drill: &mut Drill, army: &mut Army, tick: &Tick, frame: i32, commands: &mut Vec<Command>) {
     let Some(i) = drill.target else { return };
     let (def, at) = (army.spawns[i].def, army.spawns[i].at);
@@ -2120,6 +2180,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f as f32 / FPS as f32), "lead": drill.lead, "pace": drill.pace,
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
         "theirs": (drill.kind == drill::Kind::Assault).then(|| other.spawns.iter().map(|s| json!([s.name, s.at.x.round(), s.at.z.round()])).collect::<Vec<_>>()),
+        "advance": drill.advance, "lane_theirs": other.lane_mode.label(),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,

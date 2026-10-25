@@ -182,6 +182,14 @@ impl Field {
     /// `from_costs` over a grid given by its dimensions (a caller that holds cost layers and no `Terrain`: the lane's
     /// group ground).
     pub fn over(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3]) -> Option<Field> {
+        Self::over_until(cell, width, height, costs, origins, None)
+    }
+
+    /// `over`, stopped once the cell at `until` is settled (design D18): the route from there descends through cells
+    /// settled before it (Dijkstra settles in cost order), so the field is exact for that route and the search is
+    /// bounded by the way's cost rather than the map (a plan of five legs over All That Glitters took 92 ms whole).
+    /// Cells beyond are unreachable to `distance` and `route`.
+    pub fn over_until(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3], until: Option<Vec3>) -> Option<Field> {
         if width == 0 || cell <= 0.0 || costs.len() != width * height {
             return None;
         }
@@ -197,9 +205,13 @@ impl Field {
         if queue.is_empty() {
             return None;
         }
+        let stop = until.and_then(|p| field.nearest(p, passable));
         while let Some(Reverse((cost, index))) = queue.pop() {
             if cost > field.cost[index] {
                 continue;
+            }
+            if stop == Some(index) {
+                break;
             }
             let (x, z) = ((index % width) as i32, (index / width) as i32);
             for (dx, dz, step) in [(1, 0, 10u64), (-1, 0, 10), (0, 1, 10), (0, -1, 10), (1, 1, 14), (1, -1, 14), (-1, 1, 14), (-1, -1, 14)] {
@@ -496,6 +508,43 @@ pub fn sketch(terrain: &Terrain, passable: &[bool], field: &Field, size: usize) 
 #[cfg(test)]
 mod weighted {
     use super::*;
+
+    /// The field stopped at a cell gives that cell the whole field's route and distance: a settled cell's route
+    /// descends through cells settled before it (design D18). Pseudo-random walls and prices, many pairs.
+    #[test]
+    fn the_field_stopped_at_its_start_routes_as_the_whole_field_does() {
+        let (w, h) = (96usize, 64usize);
+        let mut seed = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        let mut compared = 0;
+        for _ in 0..6 {
+            let costs: Vec<u32> = (0..w * h)
+                .map(|_| {
+                    let r = next() % 100;
+                    if r < 18 { IMPASSABLE } else if r < 60 { 10 } else { 10 + (r as u32 - 60) * 2 }
+                })
+                .collect();
+            for _ in 0..40 {
+                let p = |n: u64| Vec3 { x: ((n % w as u64) as f32 + 0.5) * 16.0, y: 0.0, z: (((n / w as u64) % h as u64) as f32 + 0.5) * 16.0 };
+                let (from, to) = (p(next()), p(next()));
+                let Some(whole) = Field::over(16.0, w, h, &costs, &[to]) else { continue };
+                let bounded = Field::over_until(16.0, w, h, &costs, &[to], Some(from)).unwrap();
+                let (a, b) = (whole.route(from), bounded.route(from));
+                if a.is_empty() {
+                    continue;
+                }
+                assert_eq!(a, b, "from {from:?} to {to:?}");
+                assert_eq!(whole.distance(from), bounded.distance(from));
+                compared += 1;
+            }
+        }
+        assert!(compared > 100, "{compared}");
+    }
 
     fn flat(width: u32, height: u32) -> Terrain {
         Terrain { cell: 16.0, width, height, heights: vec![50; (width * height) as usize], metal: Vec::new(), slopes: vec![0; (width * height) as usize] }

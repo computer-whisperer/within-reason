@@ -388,7 +388,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -494,6 +494,7 @@ fn parse_args() -> io::Result<Options> {
             "--from" => drill_opts.from = Some(point(&value())),
             "--to" => drill_opts.to = Some(point(&value())),
             "--around" => drill_opts.around = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--around takes a ratio, such as 1.3"))),
+            "--advance" => drill_opts.advance = true,
             "--distance" => drill_opts.distance = number(value()) as f32,
             "--order" => {
                 drill_opts.fight = match value().as_str() {
@@ -530,6 +531,9 @@ fn parse_args() -> io::Result<Options> {
         }
         if assault && theirs.is_empty() {
             usage("--drill assault needs --theirs DEFENCE (armed buildings with counts: armllt*2+armbeamer*1)");
+        }
+        if drill_opts.advance && !assault {
+            usage("--advance is the assault's: theirs march on the army's start");
         }
         if assault && ours.iter().chain(&theirs).any(|f| !plan::Force::parse(f).counted) {
             usage("--drill assault takes both forces with counts (armflash*12 against armhlt*1): nothing is sized against the other side");
@@ -630,8 +634,9 @@ fn usage(problem: &str) -> ! {
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
             (a deployed army round the map while a lab feeds it: design D12)
-       duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|on|ranks] [--formation X] [--from X,Z --to X,Z | --around RATIO] ...
-            (the walk into a defence that shoots back, judged as a duel: design D16; both forces with counts, armflash*12 against armhlt*1)
+       duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|on|ranks[/off|on]] [--formation X] [--from X,Z --to X,Z | --around RATIO] [--advance] ...
+            (the walk into a defence that shoots back, judged as a duel: design D16; both forces with counts, armflash*12 against armhlt*1;
+             --advance: theirs march on the army's start under the second lane mode, design D18)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

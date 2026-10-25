@@ -23,7 +23,7 @@ pub mod ground;
 pub mod group;
 mod rove;
 
-pub use ground::{ClassKey, Classes, Ground};
+pub use ground::{ClassKey, Classes, Footprint, Ground};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
@@ -31,7 +31,7 @@ pub use rove::{RoveEvent, RoveGoal, RoveReport, RoveWhat};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use bot_protocol::{Command, EnemyUnit, MoveClass, OwnUnit, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Command, EnemyUnit, MoveClass, OwnUnit, Snapshot, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3, Wreck};
 use serde::{Deserialize, Serialize};
 
 pub use threat::ThreatGrid;
@@ -491,7 +491,14 @@ pub struct Lane {
     pub pacing: Pacing,
     /// Each movement class's passable grid, from the host's terrain (design D17).
     classes: ground::Classes,
+    /// The wrecks the snapshot last carried (it carries them every few seconds; between, the last list stands), for
+    /// the groups' grounds (design D18).
+    wrecks: Vec<Wreck>,
 }
+
+/// A group's ground is rebuilt for a change of structures no sooner than this after the last build (frames); a
+/// change of classes or room rebuilds it at once (design D18).
+const STRUCTURES_CADENCE: i32 = 150;
 
 /// A declared group: what the host said, and the group object once the lane has seen its members.
 struct Declared {
@@ -501,8 +508,51 @@ struct Declared {
     commitment: Commitment,
     group: Option<Group>,
     state: Option<GroupState>,
-    /// The classes and the room the group's ground was last built for.
+    /// The classes and the room the group's ground was last built for, the structures' hash, and the frame.
     ground_key: Option<(Vec<ClassKey>, i32)>,
+    ground_structures: u64,
+    ground_frame: i32,
+}
+
+impl Lane {
+    /// What stands on the ground this tick (design D18): every unit of ours without speed by its type's footprint
+    /// and facing (built or being built: both block), every unit of theirs in the snapshot with a known type and no
+    /// speed (its facing unknown: the longer side both ways), the host's remembered buildings not in the snapshot,
+    /// and the wrecks last carried (a wreck with a type to raise by that type's footprint, one without by a cell).
+    /// Mobile units are nobody's structure: ours are the body, theirs the contact arc's.
+    fn structure_footprints(&self, view: &dyn View, snapshot: &Snapshot, cell: f32) -> Vec<ground::Footprint> {
+        let mut out: Vec<ground::Footprint> = Vec::new();
+        for u in &snapshot.own_units {
+            if let Some(d) = view.def(u.def)
+                && d.speed <= 0.0
+            {
+                out.push(ground::Footprint::of(u.pos, d.footprint, u.facing));
+            }
+        }
+        let mut seen: HashSet<UnitId> = HashSet::new();
+        for e in &snapshot.enemies {
+            if let Some(d) = e.def.and_then(|def| view.def(def))
+                && d.speed <= 0.0
+            {
+                seen.insert(e.id);
+                out.push(ground::Footprint::facing_unknown(e.pos, d.footprint));
+            }
+        }
+        for (id, def, at) in view.remembered_buildings() {
+            if !seen.contains(&id)
+                && let Some(d) = view.def(def)
+            {
+                out.push(ground::Footprint::facing_unknown(at, d.footprint));
+            }
+        }
+        for w in &self.wrecks {
+            match w.resurrects_into.and_then(|def| view.def(def)) {
+                Some(d) => out.push(ground::Footprint::facing_unknown(w.pos, d.footprint)),
+                None => out.push(ground::Footprint::cell(w.pos, cell)),
+            }
+        }
+        out
+    }
 }
 
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
@@ -589,7 +639,7 @@ impl Lane {
                 d.commitment = commitment;
             }
             None => {
-                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, group: None, state: None, ground_key: None });
+                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, group: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
             }
         }
     }
@@ -700,6 +750,9 @@ impl Lane {
         }
         let frame = tick.frame;
         let snapshot = &tick.snapshot;
+        if let Some(wrecks) = &snapshot.wrecks {
+            self.wrecks = wrecks.clone();
+        }
         self.standing.retain(|id, _| snapshot.own_units.iter().any(|u| u.id == *id));
         self.claims.retain(|id, _| snapshot.own_units.iter().any(|u| u.id == *id));
         out.milling = self.track_milling(&snapshot.own_units);
@@ -761,7 +814,7 @@ impl Lane {
         // H-MICRO-FORM's orders for every member of a declared formation group, decided first; the host's per-unit
         // orders to members are dropped (the group is the lane's whole), and the free members take their slot orders
         // last. With the rule off (an ablation, the duel's `old` arm) the members are the host's, order by order.
-        let form_orders = if form_on { self.group_orders(view, tick.frame, &soldiers, snapshot.enemies.as_slice(), &sources) } else { HashMap::new() };
+        let form_orders = if form_on { self.group_orders(view, tick.frame, snapshot, &soldiers, &sources) } else { HashMap::new() };
         if form_on && !self.groups.is_empty() {
             let grouped: HashSet<UnitId> = self.groups.values().flat_map(|d| d.members.iter().copied()).collect();
             host.retain(|c| unit_of(c).is_none_or(|u| !grouped.contains(&u)));
@@ -1100,8 +1153,18 @@ impl Lane {
     /// enemy in reach stands (no order: a unit walking to its slot walks on); one with nothing in reach walks to its
     /// arc slot and waits there. When contact clears the anchor is set down where the body stands and the march
     /// resumes. The formed and exception books are not kept at contact (the slots are the arc's then).
-    fn group_orders(&mut self, view: &dyn View, frame: i32, soldiers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source]) -> HashMap<UnitId, FormOrder> {
+    fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, FormOrder> {
         let mut orders = HashMap::new();
+        let enemies: &[EnemyUnit] = snapshot.enemies.as_slice();
+        // What stands on the ground this tick (design D18), marked once for every group's ground.
+        let structures = view.terrain().filter(|_| self.groups.values().any(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }))).map(|terrain| {
+            let footprints = self.structure_footprints(view, snapshot, terrain.cell);
+            let largest = footprints.iter().map(|f| (f.half_x * 2.0, f.half_z * 2.0, f.at)).max_by(|a, b| (a.0 * a.1).total_cmp(&(b.0 * b.1)));
+            if group::debug_on() && !footprints.is_empty() && footprints.len() <= 8 && frame % 300 == 0 {
+                eprintln!("[lane f={frame}] STRUCTURES {}", footprints.iter().map(|f| format!("{:.0} x {:.0} at ({:.0},{:.0})", f.half_x * 2.0, f.half_z * 2.0, f.at.x, f.at.z)).collect::<Vec<_>>().join("; "));
+            }
+            (ground::structures(terrain, &footprints), footprints.len() - self.wrecks.len(), self.wrecks.len(), largest)
+        });
         let pursuit_on = view.enabled("H-MICRO-FORM-PURSUIT");
         let spacing_on = view.enabled("H-MICRO-FORM-SPACING");
         self.let_go.borrow_mut().retain(|_, until| *until > frame);
@@ -1144,10 +1207,30 @@ impl Lane {
                 classes.dedup_by_key(|(k, _)| *k);
                 let wanted = group::wanted_room(spacing);
                 let key = (classes.iter().map(|(k, _)| *k).collect::<Vec<_>>(), (wanted / 32.0).round() as i32);
-                if declared.ground_key.as_ref() != Some(&key) {
-                    let grids: Vec<std::sync::Arc<Vec<bool>>> = classes.iter().map(|(_, c)| self.classes.passable(terrain, *c)).collect();
+                let (blocked, hash) = structures.as_ref().map_or((None, 0), |((grid, hash), ..)| (Some(grid.clone()), *hash));
+                let classes_changed = declared.ground_key.as_ref() != Some(&key);
+                let structures_changed = hash != declared.ground_structures && frame - declared.ground_frame >= STRUCTURES_CADENCE;
+                if classes_changed || structures_changed {
+                    let started = std::time::Instant::now();
+                    let mut grids: Vec<std::sync::Arc<Vec<bool>>> = classes.iter().map(|(_, c)| self.classes.passable(terrain, *c)).collect();
+                    let marked = blocked.as_ref().map_or(0, |g| g.iter().filter(|b| !**b).count());
+                    grids.extend(blocked);
                     group.set_ground(Ground::new(terrain, &grids, wanted).map(std::sync::Arc::new));
                     declared.ground_key = Some(key);
+                    declared.ground_structures = hash;
+                    declared.ground_frame = frame;
+                    if group::debug_on() {
+                        let (units, wrecks, largest) = structures.as_ref().map_or((0, 0, None), |(_, u, w, l)| (*u, *w, *l));
+                        eprintln!(
+                            "[group {name} f={frame}] GROUND {} x {} cells for {} class(es) wanting {wanted:.0} of room, {marked} cells under {units} unit footprints and {wrecks} wrecks{}, {} in {:.1} ms",
+                            terrain.width,
+                            terrain.height,
+                            classes.len(),
+                            largest.map_or(String::new(), |(x, z, at)| format!(" (the largest {x:.0} x {z:.0} at ({:.0},{:.0}))", at.x, at.z)),
+                            if classes_changed { "the classes or the room changed" } else { "the structures changed" },
+                            started.elapsed().as_secs_f64() * 1000.0
+                        );
+                    }
                 }
             }
             // An Attack's goal follows its target's sightings.

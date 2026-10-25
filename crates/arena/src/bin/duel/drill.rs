@@ -42,6 +42,11 @@ use bot_protocol::{Command, UnitDefId, UnitId, Vec3};
 pub const FPS: i32 = 30;
 /// A unit within this of its goal has arrived (the hands' own arrival number, `pianist/groups.rs` `ARRIVED`).
 pub const ARRIVED: f32 = 300.0;
+/// A circuit's lab stands this far from its corner toward the loop's inside (design D18): the corner is the route's
+/// end, and a body stands off a structure by the room it wants (224 at the spacing of 64) plus the lab's half (48).
+pub const LAB_OFFSET: f32 = 320.0;
+/// The room the lab's place must have: its half (48) and a hull.
+pub const LAB_ROOM: f32 = 112.0;
 /// The median unit at this share of its type's speed is up to speed.
 pub const UP_TO_SPEED: f32 = 0.9;
 /// A soldier appearing within this of the gather's lab is the lab's output, adopted into the army.
@@ -137,6 +142,9 @@ pub struct Options {
     /// `into`: the structure on the goal (`--target`; the gantry by default: 16,000 health, no weapon, a death blast of
     /// 1,330 over 420 where a fusion's is 10,600 over 1,280, and units fire at it where they ignore a wall).
     pub target: String,
+    /// `assault`: `--theirs` on the march (design D18): side `y`'s mobile units get a Fight order toward the army's
+    /// start when the army's first orders go out (and at the re-issue cadence), under `--lane x/y`'s second mode.
+    pub advance: bool,
 }
 
 /// What a drill measured, for `duels.csv` (`report.rs`); empty outside a drill.
@@ -292,6 +300,9 @@ pub struct Drill {
     /// counts them at the end).
     pub taken: Option<i32>,
     pub lost_before_shot: u32,
+    /// `assault --advance` (D18): theirs march on the army's start; the frame their order last went out.
+    pub advance: bool,
+    pub advance_order: Option<i32>,
     /// The crow's distance from the start to the goal, the walk on foot over standable ground (the terrain crate's
     /// field; `None` when the goal is not reachable), and the slowest type's speed: `route_s` is the walk over it.
     pub straight: f32,
@@ -350,6 +361,8 @@ impl Drill {
             first_shot: HashMap::new(),
             taken: None,
             lost_before_shot: 0,
+            advance: options.advance,
+            advance_order: None,
             straight: options.distance,
             walk: None,
             slowest: 0.0,
@@ -666,7 +679,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None }
     }
 
     /// A circuit (D12): a core unit's passes of the lab's corner count with hysteresis (the start inside it counts

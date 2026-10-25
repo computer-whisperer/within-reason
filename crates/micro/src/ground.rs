@@ -13,11 +13,14 @@
 //! the room (the circuit drill's method before this, in `sites.rs`, the host's job no longer; its thinning to a point
 //! every 256 before the straightening is gone: it dropped the corner at a wall's end and the straightening then
 //! joined two points across the wall).
-//! The grid knows nothing of footprints, buildings or wrecks: the engine's own pathing through the shim is the later
-//! truth where that matters (D17's deferral).
+//! The terrain grid knows nothing of what stands on it, so the lane overlays the structures it sees (design D18): every
+//! unit of ours or theirs without speed by its type's footprint, the host's remembered buildings out of sight, and the
+//! wrecks the snapshot carries (`structures`: one more grid AND-ed into a group's ground, rebuilt when the marked
+//! cells change). The engine's own pathing through the shim stays the later truth where that is not enough.
 
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use bot_protocol::{MoveClass, MoveKind, Terrain, Vec3};
@@ -59,6 +62,68 @@ impl Classes {
         let grid = self.passable(terrain, class);
         nearest(terrain.cell, terrain.width as usize, terrain.height as usize, &grid, pos).map_or(pos, |index| centre(terrain.cell, terrain.width as usize, index, pos.y))
     }
+}
+
+/// A structure standing on the ground: its centre and its half extents in elmos along x and z, after its facing.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Footprint {
+    pub at: Vec3,
+    pub half_x: f32,
+    pub half_z: f32,
+}
+
+impl Footprint {
+    /// A type's footprint (8-elmo squares, x by z before facing) stood at `at` with the engine's facing (0 south,
+    /// 1 east, 2 north, 3 west: the odd facings swap the sides).
+    pub fn of(at: Vec3, footprint: (i32, i32), facing: i32) -> Footprint {
+        let (x, z) = (footprint.0.max(1) as f32 * 4.0, footprint.1.max(1) as f32 * 4.0);
+        let (half_x, half_z) = if facing % 2 == 1 { (z, x) } else { (x, z) };
+        Footprint { at, half_x, half_z }
+    }
+
+    /// A type's footprint stood at `at` facing who knows where: the longer side both ways.
+    pub fn facing_unknown(at: Vec3, footprint: (i32, i32)) -> Footprint {
+        let half = footprint.0.max(footprint.1).max(1) as f32 * 4.0;
+        Footprint { at, half_x: half, half_z: half }
+    }
+
+    /// Something of one cell (a wreck of no known type).
+    pub fn cell(at: Vec3, cell: f32) -> Footprint {
+        Footprint { at, half_x: cell / 2.0, half_z: cell / 2.0 }
+    }
+}
+
+/// The cells no structure stands on (design D18), one flag a terrain cell, with a hash of the cells marked (the
+/// ground's key: a change of what stands where is a change of ground). A footprint marks every cell it touches.
+pub fn structures(terrain: &Terrain, footprints: &[Footprint]) -> (Arc<Vec<bool>>, u64) {
+    let (width, height, cell) = (terrain.width as usize, terrain.height as usize, terrain.cell);
+    let mut grid = vec![true; width * height];
+    let mut marked: Vec<usize> = Vec::new();
+    if width > 0 && height > 0 && cell > 0.0 {
+        for f in footprints {
+            let span = |lo: f32, hi: f32, n: usize| -> std::ops::RangeInclusive<usize> {
+                let a = (lo / cell).floor().max(0.0) as usize;
+                let b = ((hi - 0.01) / cell).floor().max(0.0) as usize;
+                a.min(n - 1)..=b.min(n - 1)
+            };
+            if f.at.x + f.half_x <= 0.0 || f.at.z + f.half_z <= 0.0 || f.at.x - f.half_x >= width as f32 * cell || f.at.z - f.half_z >= height as f32 * cell {
+                continue;
+            }
+            for z in span(f.at.z - f.half_z, f.at.z + f.half_z, height) {
+                for x in span(f.at.x - f.half_x, f.at.x + f.half_x, width) {
+                    let i = z * width + x;
+                    if grid[i] {
+                        grid[i] = false;
+                        marked.push(i);
+                    }
+                }
+            }
+        }
+    }
+    marked.sort_unstable();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    marked.hash(&mut hasher);
+    (Arc::new(grid), hasher.finish())
 }
 
 /// A group's ground: where every member's class can stand, the room about each cell and the way's price.
@@ -115,12 +180,36 @@ impl Ground {
         nearest(self.cell, self.width, self.height, &self.passable, pos).map(|index| centre(self.cell, self.width, index, pos.y))
     }
 
+    /// Where the body stands for a point: the cell nearest `pos` with the room the body wants, within twice that room
+    /// (design D18: a route's end on or beside a structure, a factory the army is sent to, put the anchor against it
+    /// with room for one file and the body in a column twenty deep; the body stands off it instead). `snap` when no
+    /// cell that near has the room.
+    pub fn stand(&self, pos: Vec3) -> Option<Vec3> {
+        let reach = (2.0 * self.wanted / self.cell).ceil() as i32;
+        let (cx, cz) = ((pos.x / self.cell) as i32, (pos.z / self.cell) as i32);
+        let mut best: Option<(i32, usize)> = None;
+        for dz in -reach..=reach {
+            for dx in -reach..=reach {
+                let (x, z) = (cx + dx, cz + dz);
+                if x < 0 || z < 0 || x >= self.width as i32 || z >= self.height as i32 {
+                    continue;
+                }
+                let index = z as usize * self.width + x as usize;
+                let apart = dx * dx + dz * dz;
+                if self.passable[index] && self.room[index] >= self.wanted && best.is_none_or(|(d, _)| apart < d) {
+                    best = Some((apart, index));
+                }
+            }
+        }
+        best.map(|(_, index)| centre(self.cell, self.width, index, pos.y)).or_else(|| self.snap(pos))
+    }
+
     /// The way from `from` to `to` over the priced ground: the points after `from`, `to` (snapped) last, bending only
     /// where the ground bends it. `[to]` alone when `to` is on no ground the body stands on, or cannot be walked to
     /// from `from`: the straight line, and the engine does with each member what it can.
     pub fn way(&self, from: Vec3, to: Vec3) -> Vec<Vec3> {
         let Some(goal) = self.snap(to) else { return vec![to] };
-        let Some(field) = Field::over(self.cell, self.width, self.height, &self.costs, &[goal]) else { return vec![to] };
+        let Some(field) = Field::over_until(self.cell, self.width, self.height, &self.costs, &[goal], Some(from)) else { return vec![to] };
         let cells = field.route(from);
         if cells.is_empty() {
             return vec![to];
@@ -269,6 +358,59 @@ mod tests {
         let mut classes = Classes::default();
         let grid = classes.passable(&terrain, tank());
         Ground::new(&terrain, &[grid], wanted).expect("ground")
+    }
+
+    /// A flat 64 x 64 map at 16-elmo cells.
+    fn flat() -> Terrain {
+        let (w, h) = (64usize, 64usize);
+        Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() }
+    }
+
+    #[test]
+    fn a_structure_on_the_way_bends_the_way_round_it_and_a_slot_on_it_snaps_beside_it() {
+        let terrain = flat();
+        let mut classes = Classes::default();
+        let tanks = classes.passable(&terrain, tank());
+        // A factory of 8 x 6 squares (64 x 48 elmos about its centre) facing east at the map's middle: 80 x 64.
+        let lab = Footprint::of(at(512.0, 512.0), (8, 6), 1);
+        assert_eq!((lab.half_x, lab.half_z), (24.0, 32.0));
+        let (blocked, hash) = structures(&terrain, &[lab]);
+        let (_, same) = structures(&terrain, &[lab]);
+        let (_, other) = structures(&terrain, &[Footprint::of(at(528.0, 512.0), (8, 6), 1)]);
+        assert_eq!(hash, same);
+        assert_ne!(hash, other);
+        // The cells it touches: x 488-536 is cells 30-33, z 480-544 is cells 30-33 (544 lands on a boundary: 33 last).
+        let marked: Vec<usize> = blocked.iter().enumerate().filter(|(_, b)| !**b).map(|(i, _)| i).collect();
+        assert_eq!(marked.len(), 16, "{marked:?}");
+        assert!(marked.contains(&(30 * 64 + 30)) && marked.contains(&(33 * 64 + 33)) && !marked.contains(&(34 * 64 + 33)));
+        let bare = Ground::new(&terrain, &[tanks.clone()], 96.0).unwrap();
+        let built = Ground::new(&terrain, &[tanks, blocked], 96.0).unwrap();
+        let straight = bare.way(at(100.0, 520.0), at(900.0, 520.0));
+        assert!(straight.iter().all(|p| (p.z - 520.0).abs() < 1.0), "on bare ground the way is the line: {straight:?}");
+        let round = built.way(at(100.0, 520.0), at(900.0, 520.0));
+        assert!(round.iter().any(|p| (p.z - 520.0).abs() > 64.0), "the way bends round the factory: {round:?}");
+        assert!(round.iter().all(|p| built.passable_at(*p)));
+        let stand = built.stand(at(512.0, 512.0)).expect("a stand near the factory");
+        assert!(built.room_at(stand) >= 96.0 && stand.dist2d(at(512.0, 512.0)) < 200.0, "the body stands off the factory with its room: {stand:?} ({:.0})", built.room_at(stand));
+        assert!((bare.stand(at(512.0, 512.0)).unwrap().dist2d(at(512.0, 512.0))) < 12.0, "on bare ground the stand is the point's cell");
+        let beside = built.snap(at(512.0, 512.0)).expect("ground beside the factory");
+        assert!(!marked.contains(&((beside.z / 16.0) as usize * 64 + (beside.x / 16.0) as usize)), "{beside:?}");
+        assert!(beside.dist2d(at(512.0, 512.0)) < 80.0);
+        // A wreck of no type marks one cell; one of a type, that type's footprint the longer side both ways.
+        let (one, _) = structures(&terrain, &[Footprint::cell(at(200.0, 200.0), 16.0)]);
+        assert_eq!(one.iter().filter(|b| !**b).count(), 1);
+        let (wide, _) = structures(&terrain, &[Footprint::facing_unknown(at(200.0, 200.0), (6, 2))]);
+        assert_eq!(wide.iter().filter(|b| !**b).count(), 9, "48 about 200 is 152-248: cells 9-15, three a side");
+    }
+
+    #[test]
+    fn the_way_stopped_at_its_start_is_the_whole_fields_way() {
+        let g = ground(96.0);
+        let (from, to) = (at(200.0, 300.0), at(850.0, 300.0));
+        let whole = Field::over(g.cell, g.width, g.height, &g.costs, &[g.snap(to).unwrap()]).unwrap().route(from);
+        let bounded = Field::over_until(g.cell, g.width, g.height, &g.costs, &[g.snap(to).unwrap()], Some(from)).unwrap().route(from);
+        assert_eq!(whole, bounded);
+        assert!(whole.len() > 40, "{}", whole.len());
     }
 
     #[test]

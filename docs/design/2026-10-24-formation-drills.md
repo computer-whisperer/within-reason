@@ -505,6 +505,101 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   as the lane-off arm does), `View::snap`, `View::passable`. **Measured** by the detour arms again (assault4-*), the
   circuit again (circuit13-*: the lane's own way against the host's), and a flat assault arm for no regression.
 
+- **D18. Before the hands: the carry at the room's edge, structures in the ground, the cost on a large map, a moving
+  enemy** (the user, 2026-10-25, after the D17 demos: "What do you think is left in scope before we try this with the
+  real hands stack?"; on the answer, "Agreed, let's implement 4, 1, 3, 2"). The drills proved the engine on one shape of
+  problem: one group, static defences, terrain the grid can see. A live game breaks each at once. Four pieces, built
+  and measured in this order, each on the existing drills before the next.
+  (1) **The carry stops at the ground's edge, and the files hold on a carry** (item 18's open defect). `Group::target`
+  carries a way point on along its incoming leg by the body's depth so the body's centroid, not its front, turns at the
+  point (D14). The way bends where the ground bends it, so the incoming leg of a bend points at the very wall the way
+  turned for, and the carried target runs toward it: the anchor walks into narrowing room, the files narrow for a few
+  seconds before the turn (room 187 to 91 at circuit14's fourth corner), and for a few ticks the target can lie on the
+  cliff itself (the files fix of D17 guards that). ~~Now the carry is walked from the point in half-cell steps over the
+  group's ground and stops at the last step the current ranks fit, with room at least the ranks' half-width plus half
+  a hull.~~ **Tried first and reversed the same morning (circuit15-pawn20-nofeed-on):** stopping the carry at the
+  room's edge cut it to nothing at every bend by a wall (the straightened way's bends sit where the line of sight
+  touches the room limit, so the room falls from the point on), the anchor turned with the body's centroid short of the
+  corner, which is D14's first fault again, and each set-down's re-deal cost the body a second: at a pace fraction of
+  one the trail behind the anchor never closes, so it stood at 120 instead of 60 for whole legs, the lap took 202 s
+  against 191 and the formed share fell to 0.72 from 0.93, with 1,045 behind-seconds against 203. The defect was never
+  the carry's geometry but `fit_files` reading the room at the anchor's cell while the anchor is on a carry, where it
+  is not where the body is. Now: the carry runs on as before and stops only at the ground's edge (walked from the
+  point in half-cell steps while the body's ground continues; an anchor on a cliff hung every slot off it), and the
+  files are not fitted while the anchor is on a carry (`Group::carrying`: past the current leg's point along the leg);
+  the slots a carry lays over the cliff snap beside it or cut their member off for the second it lasts, as D17 has it.
+  Chose this over the room's edge and over no carry at a wall's bend (the carry is what keeps the new ranks on the new
+  leg: D14's trace). Tests: a corner before a wall carries as far as the ground and a corner in the open the whole
+  depth; an anchor past the point is carrying and keeps its files, short of it or on the next leg it is not.
+  **Corrected the same morning (circuit18b, three reps of one binary: 208 / 202 / 190 s, formed 0.65 / 0.75 / 0.96):**
+  the lap's run-to-run noise is as large as the difference circuit15 was judged on, so that measurement did not
+  establish the room cap's cost; what stands against the room cap is the mechanism, visible in its FILES and TURN
+  trace by construction (the carry cut to nothing at every bend by a wall, the anchor turning short of the corner),
+  and what stands for the ground's edge is that it keeps D14's measured geometry. The trail that never closes is a
+  general mode of the engine, item 19, not the cap's doing. Circuit comparisons need reps from here on.
+  (2) **Structures in the ground.** The ground is terrain only: a live army leaves a base of our own buildings, walks
+  past wrecks and fights into his; the way runs through them, slots land on them, and the cut-off check never fires
+  since to us that cell is ground. The engine paths each unit round them, so nothing breaks hard, but the body
+  arrives in pieces where a factory stands on the way. Now the lane overlays what it sees: every own unit with no
+  speed (built or being built) by its type's footprint and facing; every enemy unit in the snapshot with a known type
+  and no speed (facing unknown: the footprint's longer side both ways); the host's remembered buildings out of sight;
+  a wreck with a type to raise by that type's footprint, a wreck without by one cell. The footprint (8-elmo squares) is
+  marked on the 16-elmo cells it touches. The structure grid is one more grid AND-ed into the ground, and the ground's
+  key carries a hash of the structure cells, so a change rebuilds it, at most every `STRUCTURES_CADENCE` (150 frames)
+  for structures alone (a class or room change rebuilds at once). A rebuild re-plans the way (as `set_ground` does).
+  Not in it: enemy mobile units (the contact arc's), our own mobile units (the body itself), units of allies (not in
+  the snapshot the lane reads). Chose the lane reading the snapshot itself over a new `View` method (the snapshot is in
+  every host's tick already; the hands' `remembered_buildings` covers the one thing the snapshot lacks), and a
+  footprint overlay over the engine's path query (D17's deferral stands: the query is per type and a round trip, and
+  the footprint is what the engine's own blocking map holds for a structure). Test: a factory on the way bends the way
+  round it and a slot on it snaps beside it; a wreck with a type is marked by that type's footprint. **Built and
+  measured (circuit16-*, assault7-*, circuit17-*): one finding beside it.** The fed circuit's lab stands on the corner
+  the route ends on, and once the lab was ground the way's end snapped to the cell beside it, the room there read 16,
+  the files fell to one two seconds before the end and the body stood in a column twenty deep behind an anchor that
+  never reported arrival (the lap itself 191 s as before, 8 of 8 joined). So a route's end is now where the body
+  stands: the cell nearest the host's last point with the room the ranks want, within twice that room (`Ground::stand`;
+  the points between are passed through as before), which is what a live "go to the factory" needs. The drill then
+  still timed out, since its own arrival is the corner's 300 and the body stands 224 off the lab, so the harness moves
+  the lab 320 inside its corner (`drill::LAB_OFFSET`); the measure stays the corner's. Quicksilver's circuit had 0 cells
+  under structures without a lab, 85 under the lab and one other footprint; Glitters' had 22 rock features named as
+  wrecks (86 cells), which rebuilt the ground once on the lap.
+  (3) **The cost on a large map.** `Ground::new` runs the clearance transform and the cost layer over the whole grid,
+  and each leg of `Group::plan` runs `Field::over` from the goal over every reachable cell: on Quicksilver's grid that
+  is nothing, on All That Glitters (15,360 x 10,240, 960 x 640 cells) a plan is hundreds of thousands of cells a leg,
+  several legs a plan, in the lane's tick, on every re-plan (a new order, a class change, a set-down off the way, a
+  structure change). The lane's tick is in the bot's lockstep with the engine. Measured first: the ground build and
+  each plan timed under `WITHIN_REASON_GROUP_DEBUG` (the PLAN line carries milliseconds), a circuit and an assault on
+  Glitters beside Quicksilver's. The budget is a plan under 30 ms (the lane ticks at 10 Hz, three ticks' worth leaves
+  the bot's own work its share). Over it, the field stops when it has reached the way's start (`Field::over` with a
+  `until` cell: the route from there needs no cell dearer), which bounds a plan by the leg's length and the detour's
+  width rather than the map; still over it, the structure cadence stretches. Not built before the number says so.
+  **Measured and built (circuit17-*, circuit18-*):** Quicksilver's ground 4.7-7.5 ms and plan 36 ms whole, Glitters'
+  (384 x 640 cells) 6.8 ms and 92 ms whole for 19-21 way points; bounded at the way's start, 17 ms and 38-39 ms, the
+  way identical (a property test: the route and the distance from the stop cell equal the whole field's over
+  pseudo-random walls and prices). Glitters' plan stays over the 30 ms budget by a third; a plan is rare (a new
+  order, a class change, a set-down off the way, a structure change at the 5 s cadence), so the cadence is left as it
+  is and the number is noted.
+  (4) **A moving enemy, `--theirs` on the march.** Every assault fought turrets; the contact arc and the set-down were
+  built for a front that stands still. `--advance` on an assault drill gives side `y`'s mobile units, spawned in their
+  rank at the goal as the defence is, a Fight order toward the army's start when the army's first orders go out and
+  at the drill's re-issue cadence, under `--lane x/y`'s second mode (off: the engine fight-moves them; `on`: their own
+  group of `FightTo` the start, a formation against a formation). The drill ends as the assault does (the judge: the
+  defence wiped is `taken`, the army dead is lost); the measures are the assault's (the shape at contact, the shot
+  ramp, `lost_before_shot`, the value margin), the arms the mix and the Blitzes against a column of theirs of about
+  even metal, `off`, `ranks` and `on` for ours, with and without the detour. What it answers: whether a formed body
+  meeting a moving front keeps its shape through contact (the arc on a target that moves, the Attack's end moving 128
+  re-planning the way) or folds into the trickle fight the arc was built to stop. Chose a Fight order for theirs over
+  BARb in the seat (a scripted advance is the same every rep; BARb's is not, and the drill measures ours). Measured
+  by the margin and the shot ramp against the static defence's, and the formed share at contact. **Measured
+  (advance1-*, the mix against its mirror, 8 duels an arm):** the formed body meeting the trickle takes it 6 of 8 at
+  +0.22 +- 0.08 with 3.4 of 12 left, formed 0.91 at contact, the first shot at 16 s and the ramp 0.9 / 1.8 s; the
+  trickle against the trickle 1 of 8 at -0.07, `ranks` 2 of 8 at -0.04, the formation against the formation 3 of 8 at
+  -0.11 +- 0.10, even as a mirror should be. The shape holds through a contact that moves. On the detour both arms time
+  out at 300 s, the survivors having passed each other to the other side's end (+0.48 formed, +0.34 trickle): the
+  margin is the measure there, and a mirror on a detour wants a shorter time limit.
+  **Order:** (1), (2), (3), (4), each committed with its ledger rows; then the migration design (the task mapping,
+  Follow, the words, the record's group line) as a written proposal for the user to rule on.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -880,6 +975,17 @@ nine matches), so an army of which nothing appeared in three seconds is given ag
     circuit 191 s with all eight joining at 0.81 formed (circuit12: 199 s, 0.77). **Left for the engine:** the carry
     past a corner runs toward whatever lies beyond it and narrows the files for a few seconds before the turn (room
     187 to 91 at the fourth corner), so the carried target should stop at the room's edge; the lead (D14) stays open.
+
+19. **The trail that never closes (2026-10-25, circuit18b: three reps of one binary, 208 / 202 / 190 s, formed 0.65 /
+    0.75 / 0.96, behind-seconds 1,417 / 1,021 / 138).** A lap either stays formed or, in the two seconds after one of its
+    set-downs, the body falls from a step ahead of the anchor to 100-140 behind it and stays there for whole legs: at a
+    pace fraction of one a member walks no faster than its slot, the drag starts at 128 and eases the anchor only a
+    few per cent at a lag of 140, so a trail once opened past the following distance (72-86 for a Pawn) closes at a
+    few elmos a second or not at all. Which mode a lap falls into is chaos (the same binary, the same spawn). This is
+    the noise every one-run circuit comparison of D14-D18 sat in; the assault arms ran 8 reps and stand. For the
+    engine: a pace that closes a trail (the drag from the following distance up, or a fraction under one while the
+    body lags, or a set-down that puts the anchor on the body's front rather than its centroid when the body is
+    formed), measured on three reps or more.
 
 ## 6. Open for the user
 

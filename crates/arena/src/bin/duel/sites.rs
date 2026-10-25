@@ -37,6 +37,10 @@ pub struct Site {
     /// The way between the corners is the lane's to plan over its ground (design D17; before it, the host's walked
     /// route, `circuit_route`).
     pub circuit: Vec<Vec3>,
+    /// A fed circuit's lab: `drill::LAB_OFFSET` from the lab's corner, on standable ground with room for the lab,
+    /// away from the spawn and the approach (design D18: on the corner itself the lab was ground the body stood
+    /// off, and the corner's arrival went unmet). None when no such place, and the lab stands on the corner.
+    pub lab_at: Option<Vec3>,
 }
 
 /// The rectangle a site must offer: `length` along the west-east axis, `width` across it.
@@ -221,7 +225,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 (s.centre.x - centre.x).abs() >= length + SITE_GAP || (s.centre.z - centre.z).abs() >= across + SITE_GAP
             });
             if clear && sites.len() < wanted {
-                sites.push(Site { centre: *centre, ends: None, walk: None, circuit: Vec::new() });
+                sites.push(Site { centre: *centre, ends: None, walk: None, circuit: Vec::new(), lab_at: None });
             }
         }
         if sites.len() > best.len() {
@@ -333,7 +337,7 @@ pub fn choose_detour(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wan
         });
         if apart {
             let mid = Vec3 { x: (start.x + goal.x) / 2.0, y: 0.0, z: (start.z + goal.z) / 2.0 };
-            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk), circuit: Vec::new() });
+            sites.push(Site { centre: mid, ends: Some((start, goal)), walk: Some(walk), circuit: Vec::new(), lab_at: None });
         }
     }
     (sites, best_ratio)
