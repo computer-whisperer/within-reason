@@ -169,6 +169,16 @@ const LEAD: f64 = 45.0;
 /// T-DISPATCH: a class of lumpy things (the factories as a whole; a factory's products of one role) starts a unit
 /// when the program's count of the class runs this far ahead of what stands, is framed or is ordered.
 const START_AT: f64 = 0.5;
+/// T-DISPATCH: a constructor's no-credit fallbacks (the count rule, whose sites are the farm's, and the dearest
+/// frame) reach as far as it walks in LEAD seconds, and the farm must be in reach for either; with nothing, it walks
+/// to the farm's core under a Walk order that ends there or after this many frames, so the walker is offered the
+/// flows and the count on the way. The count rule had no reach: a constructor that had finished the last spot on the far side took the farm's turret
+/// 4,500-7,300 elmos off and walked 87-144 s, and its order covered the count and the column's credit meanwhile,
+/// so the constructors standing at the farm took moho jobs; the turrets the plan wanted eleven more of within a
+/// minute at 10:15 stood 2 at 10:00 and 3 at 11:00, the metal at its cap from 10:00 to 12:00 in all four games
+/// (terr100 game 00: 7,040 / 7,050 and 10,514 / 11,000; terr97 the same), his 29 turrets standing at 10:00 on a
+/// bank spent to 88. The dearest rule sent helpers to the advanced fusion frame from 5,700-6,800 elmos the same way.
+const WALK_STEP: i32 = 15 * SECOND;
 /// What stands within this of a dropped order's site is named in its log line (the held extractor orders).
 const ON_SITE: f32 = 80.0;
 /// A unit starts only when the metal stock and this many seconds of income cover its metal cost: the program builds
@@ -198,6 +208,9 @@ pub(crate) enum What {
     Build { unit: usize, def: UnitDefId, near: Vec3, frame: Option<UnitId> },
     Assist { factory: UnitId, until: i32 },
     Help { frame: UnitId },
+    /// The walk of a constructor with no work where it stands to the farm's core (WALK_STEP): `to` is the farm's
+    /// origin. No count and no credit is covered by it.
+    Walk { to: Vec3 },
 }
 
 #[derive(Clone, Debug)]
@@ -878,7 +891,13 @@ impl Territory {
         if self.energy_class(id, unit, role, ahead, "energy", commands) {
             return;
         }
-        // No credit: the largest count shortfall of a type it builds, in build-power-seconds; then the dearest frame.
+        // No credit: a constructor's fallbacks reach as far as it walks in LEAD seconds (WALK_STEP): the largest count
+        // shortfall of a type it builds, in build-power-seconds, with the farm in reach, since the count rule's sites
+        // are the farm's; then the dearest frame in reach, with the farm in reach; with nothing, the walk to the farm.
+        // The commander keeps the fallbacks ungated (it is never far long).
+        let reach = (self.game().units.list[unit].speed * LEAD) as f32;
+        let farm = self.farm_origin();
+        let farm_in_reach = role != Role::Builder || builder.pos.dist2d(farm) <= reach;
         let fallback: Option<usize> = {
             let units = &self.game().units;
             let def = &units.list[unit];
@@ -888,12 +907,13 @@ impl Territory {
                 .max_by(|a, b| (a.1 * units.list[a.0].build_time).total_cmp(&(b.1 * units.list[b.0].build_time)))
                 .map(|(u, _)| *u)
         };
-        if let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, "count", commands) {
+        if farm_in_reach && let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, "count", commands) {
             return;
         }
         // T-ENERGY: in a stall the help goes to the energy frame that finishes soonest with this builder on it, else
-        // to the dearest frame the energy budget allows a helper on; with none, and the budget refusing, a solar.
-        let frame = if self.in_stall() { self.energy_frame_to_finish(unit) } else { self.dearest_frame(unit) };
+        // to the dearest frame in reach the energy budget allows a helper on; with none, and the budget refusing, a
+        // solar.
+        let frame = if self.in_stall() { self.energy_frame_to_finish(unit) } else if farm_in_reach { self.dearest_frame(unit, builder.pos, reach) } else { None };
         if let Some(frame) = frame {
             commands.push(Command::Repair { unit: id, target: frame, queue: false });
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
@@ -901,6 +921,16 @@ impl Territory {
             return;
         }
         if (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 && self.energy_budget(true) < 0.0 && self.free_energy_building(id, unit, role, commands) {
+            return;
+        }
+        // Nothing to do out here: a constructor walks to the farm's core, where every frame of the farm is in its reach
+        // (terr101: the walk ended at the reach's rim and far constructors helped the metal makers beside them out on
+        // the map, 226 orders of seconds each in game 00, where before they walked to the advanced fusions).
+        if role == Role::Builder && builder.pos.dist2d(farm) > FARM_CORE {
+            commands.push(Command::Move { unit: id, to: farm, queue: false });
+            self.hands.orders.insert(id, Order { what: What::Walk { to: farm }, given: self.frame, told: self.frame, arrived: None, step: None });
+            self.note_order(id, &What::Walk { to: farm }, "home");
+            *self.hands.ordered.entry((unit, "home")).or_default() += 1;
             return;
         }
         // Nothing to do: a builder standing in a factory's yard or exit lane steps beside it (the pad-keeper), so
@@ -1100,6 +1130,7 @@ impl Territory {
                 What::Build { unit, .. } => *unit == u,
                 What::Help { frame } => frame_unit(frame) == Some(u),
                 What::Assist { factory, .. } => factory_making_u(factory),
+                What::Walk { .. } => false,
             })
             .filter_map(|(id, o)| {
                 let kind = self.unit_index(self.own.get(id)?.def)?;
@@ -1339,6 +1370,10 @@ impl Territory {
                 }
                 _ => Review::Done,
             },
+            // Over in the farm's core, or after a step of the walk, so the flows and the count are offered on the way.
+            What::Walk { to } => {
+                if builder.pos.dist2d(*to) <= FARM_CORE || age >= WALK_STEP { Review::Done } else { Review::Keep }
+            }
         }
     }
 
@@ -1358,6 +1393,7 @@ impl Territory {
             }
             What::Assist { .. } => "assist".to_string(),
             What::Help { .. } => "help".to_string(),
+            What::Walk { .. } => "walk".to_string(),
         };
         self.log(format_args!("dropped: unit {} {what} after {:.1} s: {why}", id.0, (self.frame - order.given) as f32 / SECOND as f32));
         if let What::Build { unit, near, .. } = &order.what
@@ -1463,7 +1499,7 @@ impl Territory {
                 if role == Role::Factory {
                     return None;
                 }
-                let frame = self.dearest_frame(builder_unit)?;
+                let frame = self.dearest_frame(builder_unit, builder.pos, (units.list[builder_unit].speed * LEAD) as f32)?;
                 Some((Command::Repair { unit: id, target: frame, queue: false }, What::Help { frame }))
             }
             Item::Build(unit) => {
@@ -1825,16 +1861,16 @@ impl Territory {
         self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).min_by(|a, b| a.pos.dist2d(from).total_cmp(&b.pos.dist2d(from)))
     }
 
-    /// The building frame with the most metal still to build per builder on it, one more counted (a factory's pad
-    /// is not a frame), among those the energy budget allows `builder` on: the help spreads over the frames rather
+    /// The building frame within `reach` of `from` with the most metal still to build per builder on it, one more
+    /// counted (a factory's pad is not a frame), among those the energy budget allows `builder` on: the help spreads over the frames rather
     /// than piling on the dearest (terr22-lp-nullai-comet-1: 48 constructors on one frame at 20:00 while five
     /// fusions stood with a builder each, and the program's power on fusions, committed to those frames, never
     /// cleared for new ones).
-    fn dearest_frame(&self, builder: usize) -> Option<UnitId> {
+    fn dearest_frame(&self, builder: usize, from: Vec3, reach: f32) -> Option<UnitId> {
         let helpers = |frame: UnitId| self.hands.orders.values().filter(|o| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame)).count() as f32;
         self.own
             .values()
-            .filter(|u| u.being_built)
+            .filter(|u| u.being_built && u.pos.dist2d(from) <= reach)
             .filter_map(|u| {
                 let d = self.def(u.def)?;
                 let i = self.unit_index(u.def)?;
@@ -1975,6 +2011,7 @@ impl Territory {
                 (format!("{verb} unit {} ({})", factory.0, self.own.get(factory).map_or("?", |f| name(f.def))), self.own.get(factory).map(|f| f.pos))
             }
             What::Help { frame } => (format!("help unit {} ({})", frame.0, self.own.get(frame).map_or("?", |f| name(f.def))), self.own.get(frame).map(|f| f.pos)),
+            What::Walk { to } => (format!("walk home to ({:.0},{:.0})", to.x, to.z), Some(*to)),
         };
         let (off, home) = builder.map_or((0.0, 0.0), |b| (target.map_or(0.0, |t| b.pos.dist2d(t)), b.pos.dist2d(self.home)));
         self.log(format_args!("order: unit {} {}: {text}, {off:.0} off, {home:.0} from home ({rule})", id.0, builder.map_or("?", |b| name(b.def))));
@@ -1994,6 +2031,7 @@ impl Territory {
                 What::Build { def, frame, .. } => format!("{}{}", self.def(*def).map_or("?", |d| d.name.as_str()), if frame.is_some() { "" } else { "(walking)" }),
                 What::Assist { .. } => "assist".to_string(),
                 What::Help { frame } => format!("help:{}", self.own.get(frame).and_then(|f| self.def(f.def)).map_or("?", |d| d.name.as_str())),
+                What::Walk { .. } => "walk".to_string(),
             };
             *counts.entry(format!("{kind}:{word}")).or_default() += 1;
         }
