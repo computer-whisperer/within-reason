@@ -309,24 +309,25 @@ point the lab's) or by default the four corners of the rectangle inset a quarter
 south-west first (the lab's), then south-east, north-east, north-west, each pushed 900 from any commander nearer, the
 lab's moved to the nearest cell holding a standable 640 square within 48 of relief (the lab and the deployed army on
 it: two Pawns of a formation spawned off it on Quicksilver's broken ground never moved), the rest to the nearest
-standable cell reachable on foot from the lab's (`sites::circuit`; the match's message gives the corners, each leg's
-walk on foot and the walked route's length). The group's route is the spawn point then the lap **walked on foot**
-`laps` times over, the lab's corner last: the way from each corner to the next over the field priced by room
-(design D13: a cell costs the flat rate where the formation has its half-width and a hull of clearance from any wall or
-the map's edge, up to six times that at a wall, so a corner is rounded at that distance and a narrower corridor is
-walked down its middle; the corners are chosen with that room too; `terrain::clearance`, `clearance_costs`), thinned
-to a point every 256 and then straightened (from each point the furthest later one the body reaches in a straight line
-with the room it wants all the way, so a leg bends only where the ground bends it: 19 points round Quicksilver from 58;
-design D14), as one group order never changed, so the anchor turns at each point without stopping (the first run gave
-the anchor the corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the
-host's field gives the points round terrain; the second hugged every corner; the third's thinned way was a staircase of
-26-45 degree bends that snapped a deep body's rear corners 150 at each). At a turn of 20 degrees or more the group
-re-deals its slots where the members stand (D14: the anchor carries on past the point by the body's depth, is set down
-on the body facing the next, and the slots are dealt by least travel), and `WITHIN_REASON_GROUP_DEBUG=1` has the group
-say each turn, re-deal and slot jump on stderr with the frame, the anchor, the heading and how many formed members'
-slots moved. The match's message says the route's least room
-against the room wanted, and the meta line carries `clearance` as [wanted, least]. Lane off, each unit (a fed one too) is given the corners alone as queued fight or move
-orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
+standable cell reachable on foot from the lab's with the formation's room from any wall (`sites::circuit`,
+`terrain::clearance`, design D13; the match's message gives the corners and each leg's walk on foot). The group's
+route is the spawn point then the corners `laps` times over, the lab's corner last, as one order never changed; **the
+way between the corners is the lane's** (design D17, 2026-10-25): the group plans each leg over its own ground (the
+cells every member's class stands on, priced by room: a cell costs the flat rate where the formation has its half-width
+and a hull of clearance from any wall or the map's edge, up to six times that at a wall, so a corner is rounded at that
+distance and a narrower corridor is walked down its middle), straightened by line of sight with the room the way kept,
+so a leg bends only where the ground bends it, and the anchor turns at each bend without stopping. (Before D17 the host
+walked that route and handed it in the order, thinned to a point every 256: the first run gave the anchor the corners
+alone and it walked the crow line through ground the Pawns went round; the second hugged every corner; the third's
+thinned way was a staircase of 26-45 degree bends that snapped a deep body's rear corners 150 at each; the fourth,
+straightened, 19 points round Quicksilver from 58. The thinning dropped the corner at a wall's end when the lane took
+the method over, and is gone.) At a turn of 20 degrees or more the group re-deals its slots where the members stand
+(D14: the anchor carries on past the point by the body's depth, is set down on the body facing the next, put onto the
+way when it stands off it by more than the spacing, and the slots are dealt by least travel), and
+`WITHIN_REASON_GROUP_DEBUG=1` has the group say each plan, turn, re-deal, change of files and slot jump on stderr. The
+per-second line's `group` carries `files` (the ranks' files this second, six in the open, fewer in a corridor) and
+`room` (the room about the anchor's cell). Lane off, each unit (a fed one too) is given the corners alone as queued
+fight or move orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
 (`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the
 group for good, said on stderr and in the per-second line's `orders` (`left_behind`), and counted (`left_behind`). Measured, both arms alike: each deployed unit's passes of the lab's corner (within 400 after
 having been further, so the start counts for nothing), its `laps`-th pass its arrival (`arrive_*_s`), `laps` (the median
@@ -344,7 +345,9 @@ line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800
 [--formation ranks6@64] [--from X,Z --to X,Z | --around R]`: both forces written with counts (`armflash*12` against
 `armhlt*1`, nothing sized against the other side), the army spawned `--distance` from the goal in its formation facing
 it, the defence stood in one rank across the approach centred on the goal, 128 apart in list order, given once (an
-`into` target is given again; a position falls once). The duel ends when the defence is wiped (`taken`), the army's
+`into` target is given again; a position falls once). The group's order is the goal alone, as the hands' would be: on
+a detour (`--around`) the lane plans the way round the terrain itself (design D17; until 2026-10-25 the group walked the
+crow line into Quicksilver's cliff, and slice 2's detour finding measured that, not a corridor). The duel ends when the defence is wiped (`taken`), the army's
 mobile units are (`wiped`) or at the time limit (300 s); no stalemate rule, since a defence and a body out of its reach
 are quiet by nature. `duels.csv` carries the duel's own columns (value left on both sides, survivors, the fire
 instrument for both) and the drill's (`taken_s`, `lost_before_shot`: units of the army dead before their own first

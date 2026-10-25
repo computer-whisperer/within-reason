@@ -495,8 +495,11 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   centroid projected onto the nearest segment (after contact: any segment; at a turn: the new leg) and carried forward
   so the ranks' centroid lies on that point, the leg that segment's end; never the centroid itself. (5) The files
   narrow to the room at the anchor's cell (the half-width that fits with half a hull to spare, down to one file) and
-  widen when the room allows the next file with half a spacing to spare; a change of files re-deals the slots with the
-  anchor re-placed so the ranks' centroid stays; the state reports `files` and `room`. **Rot removed with it:** the
+  widen when the room allows the next file with half a spacing to spare; a change of files re-deals the slots and
+  moves the anchor not at all (the front keeps its place, the extra ranks file in behind; re-placed to keep the ranks'
+  centroid, a collapse to one file threw the anchor 768 forward onto a cliff in the first circuit under D17, and an
+  anchor with no ground within the snap distance keeps its files rather than reading the room as none); the state
+  reports `files` and `room`. **Rot removed with it:** the
   circuit's host-side walked route (`sites::circuit` returns corners and legs; `Site::circuit_route`,
   `Drill::corners_route`, the meta's `clearance` and the director's `circuit_clearance` gone; the group gets the corners
   as the lane-off arm does), `View::snap`, `View::passable`. **Measured** by the detour arms again (assault4-*), the

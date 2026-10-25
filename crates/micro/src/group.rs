@@ -582,10 +582,14 @@ impl Group {
 
     /// The files the ranks are laid in for the room at the anchor's cell (design D17): the half-width that fits with
     /// half a hull to spare, down to one file; widened only when the room allows the next file with half a spacing
-    /// to spare (hysteresis). A change re-deals the slots with the anchor re-placed so the ranks' centroid stays.
-    fn fit_files(&mut self, n: usize, spacing: f32) {
+    /// to spare (hysteresis). A change re-deals the slots and moves the anchor not at all: the front keeps its place
+    /// and the extra ranks file in behind it (re-placed to keep the ranks' centroid, a collapse to one file threw the
+    /// anchor 768 forward onto a cliff: circuit13). An anchor with no ground within the snap distance (the target
+    /// carried past a bend can lie on a cliff for a few ticks) says nothing about the room and keeps the files.
+    fn fit_files(&mut self, spacing: f32) {
         let Some(ground) = &self.ground else { return };
-        let room = ground.room_at(ground.snap(self.anchor).unwrap_or(self.anchor));
+        let Some(on_ground) = ground.snap(self.anchor) else { return };
+        let room = ground.room_at(on_ground);
         self.room = Some(room);
         let fits = |room: f32| ((((room - form::HULL_SPACING / 2.0).max(0.0)) * 2.0 / spacing).floor() as usize + 1).clamp(1, form::FILES);
         let now = fits(room);
@@ -600,10 +604,8 @@ impl Group {
         if files == self.files {
             return;
         }
-        let centroid = form::centroid(form::slots(self.anchor, self.heading, n.max(1), spacing, self.files).into_iter()).unwrap_or(self.anchor);
         let before = self.files;
         self.files = files;
-        self.anchor = self.anchor_for(centroid, self.heading, n);
         self.slot_of.clear();
         if debug_on() {
             eprintln!("[group {}] FILES {before} -> {files} with {room:.0} of room at ({:.0},{:.0})", self.name, self.anchor.x, self.anchor.z);
@@ -711,7 +713,7 @@ impl Group {
         }
         // The shape to the room (D17), on the march.
         if march && !self.stopped && !self.at_end() {
-            self.fit_files(walkers.len(), spacing);
+            self.fit_files(spacing);
         }
         // The slots, sticky by index; dealt by least travel when the deal is stale.
         let ids: Vec<UnitId> = walkers.iter().map(|w| w.id).collect();
@@ -1223,6 +1225,35 @@ mod tests {
         let slots = group.tick(24, &w, 64.0, &pacing).clone();
         let ground = ground_of(&terrain);
         assert!(slots.values().all(|s| ground.passable_at(*s)), "{slots:?}");
+    }
+
+    /// D17: a change of files moves the anchor not at all, and an anchor off the ground (the carried target past a
+    /// bend on a cliff) keeps its files instead of reading the room as none (circuit13: a collapse to one file threw
+    /// the anchor 768 forward onto the cliff and cut every member off).
+    #[test]
+    fn a_change_of_files_keeps_the_anchor_and_an_anchor_off_the_ground_keeps_its_files() {
+        let pacing = Pacing::default();
+        let terrain = corridor();
+        let mut w = two_ranks_of_six();
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x + 800.0, u.pos.z + 512.0);
+        }
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(1700.0, 512.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.set_ground(Some(ground_of(&terrain)));
+        group.tick(0, &w, 64.0, &pacing);
+        // The anchor in the corridor's mouth, where the room is the corridor's: the files narrow, the anchor stays.
+        group.anchor = at(968.0, 512.0);
+        let before = group.anchor;
+        group.tick(3, &w, 64.0, &pacing);
+        assert!(group.state(&w).files <= 3, "{:?}", group.state(&w));
+        assert!(group.anchor.dist2d(before) < 10.0, "the anchor walked one tick at most: {:?} from {before:?}", group.anchor);
+        // The anchor off the ground with none within six cells (off the map here; the carried target past a bend on
+        // a cliff in the game): the files stand.
+        let files = group.state(&w).files;
+        group.anchor = at(-500.0, 512.0);
+        group.tick(6, &w, 64.0, &pacing);
+        assert_eq!(group.state(&w).files, files);
     }
 
     /// D17: in a corridor 192 wide the ranks narrow to the files that fit (three at 64) and widen again in the open.
