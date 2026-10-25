@@ -167,11 +167,14 @@ heuristics rows for H-HANDS-GROUP-BODY, H-HANDS-STRAGGLERS, H-HANDS-STALL, H-HAN
    `Follow` stay the hands' until their chunks. The members declared are the group's members less the newcomers
    `waiting` beside their plant (`join_in`): the lane drops a host's order to a declared member, and the wait is the
    hands' order.
-2. **The mapping as §2,** with one addition: `Hold` carries `at`, the point the ranks stand about. It is the walk's
-   `to` when an arrival ends in a hold (the lane's anchor is at the way's end, so the re-declared Hold plans from
-   there and is arrived at once; the slots are re-dealt by least travel where the body stands), the body's place when
-   Jev picks a hold or a group forms (a newcomer's own position for a group of one), the centre of the soldiers given
-   when a transfer forms a group. Commitment per §2's column; footwork the player's (`footwork_of`).
+2. **The mapping as §2,** with one addition: `Hold` carries `at`, where the lane's anchor stands for the hold (the
+   ranks hang from it; the lane's `Group::new` puts a Hold's anchor at its one point, so a hold about a body walks
+   nowhere). It is the anchor as it is when an arrival ends in a hold or Jev picks a hold of a declared group (the
+   re-declared Hold is arrived at once; the slots are re-dealt by least travel where the body stands), the body's
+   place when a group forms or the hold is picked for one not yet declared (a newcomer's own position for a group of
+   one), the centre of the soldiers given when a transfer forms a group. Commitment per §2's column; footwork the
+   player's (`footwork_of`). (First written as "the walk's `to`": migration-2-1 showed a hold about the hunters'
+   centroid walking its anchor a body's depth onto the point.)
 3. **Dies, for these groups:** the per-unit Move / Fight / Stop in `execute_group` for Hold, Go and FightTo; the
    joiners' walk (`joining` is not kept for a declared group: a newcomer admitted is a member with a slot from the
    next tick, `Cause::Joining` in the state until formed; a newcomer under `join_in` waits as today and is declared
@@ -213,7 +216,8 @@ a rove kept its hold's `Group` and state in the lane (the lane skips hunts and r
 record and the picture read a formed, arrived hold for 27 s while the Rovers roamed 4,000 away, and the advance
 picked after planned from that anchor and walked it alone with every member "away". Now a hunt or a rove drops the
 formation and its state (`Lane::set_group`), and a new order for a body standing over `REJOIN_WAY` from the anchor
-sets the anchor down on the body (`Group::tick`). Open from the same minutes: after the hunt's end at 2:32 the hold
-declared about the hunters' centroid sent no member an order for the three seconds before the next pick (the two
-hunters had a Stop from the hands' hunt end and stood off their slots as "joining"); to look at with the lane's
-debug trace in the next game.
+sets the anchor down on the body (`Group::tick`). A second reading of the same minutes: after the hunt's end at 2:32
+the hold declared about the hunters' centroid did order them (eight Fights a second, the record's `cmd` rows), but
+its anchor walked a body's depth from the ranks' centroid onto the point, dragging the slots and their leads off the
+hunters, who read "joining" for three seconds; a Hold's point is the anchor's place now (`Group::new`), and the hands
+pass the anchor when they have one (an arrival, a picked hold of a declared group).

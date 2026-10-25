@@ -94,8 +94,9 @@ const ROVE_LOG: usize = 10;
 pub(crate) enum GroupTask {
     /// `committed`: the hold an advance arrives in, still committed to everything there (H-HANDS-GROUPS).
     /// `picked`: a hold Jev picked, which is a course; a hold an order ended in is none, and the group is idle.
-    /// `at`: the point the ranks stand about (the lane's Hold route): the walk's end when an arrival ends in a hold,
-    /// the body's place when the hold is picked or the group forms (the migration design, chunk 2).
+    /// `at`: where the lane's anchor stands for the hold (its Hold route; the ranks hang from it): the anchor as it is
+    /// when an arrival ends in a hold or a hold is picked, the body's place when the group forms (the migration
+    /// design, chunk 2).
     Hold { committed: bool, picked: bool, at: Vec3 },
     Move { to: Vec3, place: String, fight: bool },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
@@ -636,10 +637,10 @@ impl Brain {
                 GroupTask::Move { to, fight, .. } if declared => {
                     // The lane's arrival (the anchor at the way's end, every member not an exception in its slot),
                     // read a second after the order at the earliest: the state before it is the last task's.
-                    if frame - group.last_order >= FRAMES_PER_SECOND && lane_state.as_ref().is_some_and(|s| s.arrived) {
-                        // An arrival ends the order in a hold nobody picked, about the walk's end: the group is idle
-                        // and is asked.
-                        let (committed, at) = (*fight, *to);
+                    if frame - group.last_order >= FRAMES_PER_SECOND && let Some(state) = lane_state.as_ref().filter(|s| s.arrived) {
+                        // An arrival ends the order in a hold nobody picked, the anchor where it stands: the group
+                        // is idle and is asked.
+                        let (committed, at) = (*fight, state.anchor);
                         group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
                     }
                 }

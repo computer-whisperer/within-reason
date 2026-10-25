@@ -314,11 +314,14 @@ pub struct Group {
 
 impl Group {
     /// A new group: the anchor placed so the ranks' centroid is the members' (`positions`), facing the route's first
-    /// point.
+    /// point; a Hold's one point is where the anchor stands (the ranks hang from it), so a hold declared about a body
+    /// walks nowhere (migration-2-1: a hold about the hunters' centroid walked its anchor a body's depth onto the
+    /// point and dragged the ranks off the hunters).
     pub fn new(name: &str, members: Vec<UnitId>, order: GroupOrder, positions: &[Vec3], spacing: f32) -> Group {
         let centroid = form::centroid(positions.iter().copied()).unwrap_or_else(|| order.route.first().copied().unwrap_or_default());
         let first = order.route.first().copied().unwrap_or(centroid);
         let heading = if first.dist2d(centroid) > 1.0 { form::heading(centroid, first) } else { (1.0, 0.0) };
+        let hold_at = (order.kind == GroupKind::Hold && order.route.len() == 1).then_some(first);
         let way = order.route.clone();
         let mut group = Group {
             name: name.to_string(),
@@ -356,7 +359,7 @@ impl Group {
             dealt_at: -1,
             exceptions: Vec::new(),
         };
-        group.anchor = group.anchor_for(centroid, heading, group.members.len());
+        group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, heading, group.members.len()));
         group.way_from = group.anchor;
         group
     }
@@ -1492,6 +1495,25 @@ mod tests {
         assert_eq!(cut.state(&w).legs_left, 1, "the host's point stays ahead");
     }
 
+    /// A hold declared at a point about the body hangs its ranks from the point and walks nowhere: arrived on the
+    /// first tick, the pace 0.
+    #[test]
+    fn a_hold_at_the_bodys_point_walks_nowhere() {
+        let pacing = Pacing::default();
+        let w = two_ranks_of_six();
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let point = at(10.0, 0.0);
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Hold, vec![point]), &positions, 64.0);
+        assert_eq!(group.anchor, point, "the anchor stands at the hold's point");
+        // The first tick plans (no time has passed), the second finds the anchor on the point, the third reports the
+        // pace at the end.
+        for frame in [3, 6, 9] {
+            group.tick(frame, &w, 64.0, &pacing);
+        }
+        assert!(group.at_end() && group.pace == 0.0, "nothing to walk: {} {}", group.at_end(), group.pace);
+        assert!(group.anchor.dist2d(point) < 1.0, "the anchor stayed: {:?}", group.anchor);
+    }
+
     /// A new order for a body standing far from the anchor (migration-2-1: the members roamed 4,000 away under a rove
     /// while the hold's group was kept) starts from the body: the anchor is set down on the members, not walked
     /// alone from where it was.
@@ -1514,8 +1536,8 @@ mod tests {
         let body = form::centroid(w.iter().map(|u| u.pos)).unwrap();
         assert!(group.anchor.dist2d(body) < 200.0, "the anchor set down on the body: {:?} against {body:?}", group.anchor);
         let state = group.state(&w);
-        // The ranks re-laid across the new heading: a member or two a step out of band, nobody away or joining.
-        assert!(state.exceptions.len() <= 2 && state.exceptions.iter().all(|(_, c, _)| *c == Cause::Behind), "the body about its slots: {:?}", state.exceptions);
+        // The ranks re-laid across the new heading: a few members a step out of band, nobody away or joining.
+        assert!(state.exceptions.len() <= 4 && state.exceptions.iter().all(|(_, c, _)| *c == Cause::Behind), "the body about its slots: {:?}", state.exceptions);
         assert!(state.heading.1 < -0.9, "facing north: {:?}", state.heading);
     }
 

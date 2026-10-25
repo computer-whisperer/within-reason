@@ -669,6 +669,31 @@ mod tests {
         assert!(state.exceptions.is_empty(), "{:?}", state.exceptions);
     }
 
+    /// A hunt that ends into a hold (the hands' way: a Stop to each hunter, then the group re-declared as a Hold about
+    /// the hunters): the lane orders every former hunter to a slot on the hold's first tick, Stop or no Stop.
+    #[test]
+    fn a_hunt_ending_in_a_hold_orders_the_hunters_into_their_slots() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let members = vec![UnitId(10), UnitId(11)];
+        let hunt = HuntOrder { quarry: UnitId(99), leash: 2000.0, lost_frames: crate::HUNT_LOST_FRAMES, since: 30 };
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw(), Commitment::All);
+        let hunters = |x: f32| vec![rover(10, x, 1000.0), rover(11, x + 200.0, 1150.0)];
+        let out = lane.tick(&host, &tick(30, hunters(2500.0), vec![enemy(99, ROVER, 2800.0, 1000.0)]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 99)), "{:?}", out.commands);
+        // The quarry is gone; the host (told by the lane's event, in the game) stops the hunters and declares the
+        // hold about them.
+        lane.tick(&host, &tick(60, hunters(2600.0), Vec::new()), &mut Vec::new(), false);
+        let mut host_orders: Vec<Command> = members.iter().map(|id| Command::Stop { unit: *id }).collect();
+        lane.note_standing_orders(&host_orders, 63, |_| true);
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(2700.0, 1075.0)]), Footwork::raw(), Commitment::All);
+        let out = lane.tick(&host, &tick(63, hunters(2600.0), Vec::new()), &mut host_orders, false);
+        let ordered: Vec<i32> = out.commands.iter().filter_map(|c| match c { Command::Fight { unit, .. } | Command::Move { unit, .. } => Some(unit.0), _ => None }).collect();
+        assert_eq!(ordered.len(), 2, "every former hunter sent to a slot on the hold's first tick: {:?} (host orders left {:?})", out.commands, host_orders);
+        let state = lane.group_state("a").expect("a hold's state");
+        assert!(state.anchor.dist2d(at(2700.0, 1075.0)) < 300.0, "the anchor about the hunters: {:?}", state.anchor);
+    }
+
     /// The group is the lane's whole: the host's per-unit orders to its members are dropped, and a unit outside the
     /// group keeps its order (player-22, 22:21: 110 stops for 55 units in one row, when the host's stop was doubled).
     #[test]
