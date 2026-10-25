@@ -12,6 +12,7 @@ mod his_start;
 mod options;
 mod planner;
 mod snapshot;
+mod work;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

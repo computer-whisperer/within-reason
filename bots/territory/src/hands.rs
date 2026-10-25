@@ -136,7 +136,7 @@ const FARM_EXTENT: f32 = 1600.0;
 /// The host's search round a slot: the build grid's snap and no more, so that a building lands in its slot.
 const FARM_SEARCH: f32 = 24.0;
 /// A building of this much build time or more goes where the turrets are.
-const FARM_BIG: f64 = 20_000.0;
+pub(crate) const FARM_BIG: f64 = 20_000.0;
 /// A slot the host found no site at is left alone this long (something the bot does not see stands there).
 const FARM_DEAD: i32 = 2 * MINUTE;
 /// The engine's slope value (255 is vertical) the ground under a slot's footprint may have, and the gap kept
@@ -183,10 +183,10 @@ const ENERGY_FREE: f64 = 500.0;
 /// next rather than what it wanted at the last whole bucket. Not shorter: the program's counts ramp from the
 /// snapshot, and every re-solve restarts the ramp, so a target read 20 s ahead never crossed its threshold for
 /// anything the program wanted slowly (terr6-lp-nullai-comet-1: no factory in four games, the commander alone).
-const LEAD: f64 = 45.0;
+pub(crate) const LEAD: f64 = 45.0;
 /// T-DISPATCH: a class of lumpy things (the factories as a whole; a factory's products of one role) starts a unit
 /// when the program's count of the class runs this far ahead of what stands, is framed or is ordered.
-const START_AT: f64 = 0.5;
+pub(crate) const START_AT: f64 = 0.5;
 /// T-DISPATCH: a constructor's no-credit fallbacks (the count rule, whose sites are the farm's, and the dearest
 /// frame) reach as far as it walks in LEAD seconds, and the farm must be in reach for either; with nothing, it walks
 /// to the farm's core under a Walk order that ends there or after this many frames, so the walker is offered the
@@ -311,6 +311,10 @@ pub(crate) struct Hands {
     /// Per unit, the priority flag last sent and the frame (T-PRIORITY), and whether the commander has guarded yet.
     pub priority_sent: BTreeMap<UnitId, (bool, i32)>,
     pub commander_guarded: bool,
+    /// T-LAGS: the matching rule's view at the last dispatch (the builder, the frame), written after the order that
+    /// dispatch gave, and the frame of the last `lags:` line.
+    pub lag_note: std::cell::RefCell<Option<(UnitId, i32, String)>>,
+    pub lag_logged: i32,
 }
 
 impl Default for Hands {
@@ -344,6 +348,8 @@ impl Default for Hands {
             energy_refused_by: BTreeMap::new(),
             priority_sent: BTreeMap::new(),
             commander_guarded: false,
+            lag_note: std::cell::RefCell::new(None),
+            lag_logged: i32::MIN / 2,
         }
     }
 }
@@ -445,6 +451,7 @@ impl Territory {
 
     /// Every half second: each builder's order reviewed, and the next step given to one that has none.
     pub(crate) fn run_hands(&mut self, commands: &mut Vec<Command>) {
+        self.log_lags();
         let mut builders: Vec<(UnitId, Role)> = self
             .own
             .values()
@@ -571,6 +578,9 @@ impl Territory {
         let Some(unit) = self.unit_index(builder.def) else { return };
         let now = self.frame as f64 / SECOND as f64;
         let ahead = now + LEAD;
+        if role != Role::Factory {
+            self.note_lags(id, unit, role, &builder);
+        }
         // T-OPENING: the commander's first minute is the spots beside the start, while the energy stock covers half
         // an extractor's.
         if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && (self.energy.current as f64) >= self.game().units.list[extractor].energy_cost / 2.0 && self.free_spot(builder.pos, None, Some((self.home, self.options.opening_spots)), None).is_some() {
@@ -1146,7 +1156,7 @@ impl Territory {
     /// orders building them, the help on them, and the guards on a factory making one, each at its builder's
     /// power from when it arrived. The live commitment of a Frames column; with `by`, the builders of that type
     /// only (the helpers' own commitment, for a type that cannot start `u`).
-    fn frames_power(&self, u: usize, t0: f64, by: Option<usize>) -> f64 {
+    pub(crate) fn frames_power(&self, u: usize, t0: f64, by: Option<usize>) -> f64 {
         let units = &self.game().units;
         let now = self.frame as f64 / SECOND as f64;
         let frame_unit = |frame: &UnitId| self.own.get(frame).and_then(|f| self.unit_index(f.def));
@@ -1177,7 +1187,7 @@ impl Territory {
     /// builder gets there is passed over (terr99: chosen by the finish alone, the help on the moho frames went to the
     /// one nearest done, 2,000-3,800 elmos off; it finished within 3.5 s, the order ended with it and the next
     /// nearest done was given, 50 frames a constructor in five minutes and none reached).
-    fn frame_to_finish(&self, u: usize, builder: usize, from: Vec3) -> Option<UnitId> {
+    pub(crate) fn frame_to_finish(&self, u: usize, builder: usize, from: Vec3) -> Option<UnitId> {
         let units = &self.game().units;
         let mine = units.list[builder].worker_time;
         let speed = units.list[builder].speed.max(1.0);
@@ -1322,7 +1332,7 @@ impl Territory {
     }
 
     /// The standing factory nearest `from` that makes `u`.
-    fn factory_making(&self, u: usize, from: Vec3) -> Option<UnitId> {
+    pub(crate) fn factory_making(&self, u: usize, from: Vec3) -> Option<UnitId> {
         let units = &self.game().units;
         self.own
             .values()
@@ -1928,7 +1938,7 @@ impl Territory {
 
     /// The standing basic extractor nearest `from` with nothing ordered over it (not the builder itself; the
     /// commander's within its leash; in ring `ring` when given): what an upgrade goes over.
-    fn basic_to_upgrade(&self, from: Vec3, id: UnitId, role: Role, ring: Option<usize>) -> Option<OwnUnit> {
+    pub(crate) fn basic_to_upgrade(&self, from: Vec3, id: UnitId, role: Role, ring: Option<usize>) -> Option<OwnUnit> {
         let units = &self.game().units;
         let ordered: Vec<Vec3> = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, near, .. } if self.is_upgrade(*unit) => Some(*near), _ => None }).collect();
         self.own
@@ -1987,7 +1997,7 @@ impl Territory {
 
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
     /// with `leash`, within that radius of that point.
-    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
+    pub(crate) fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
         let spots = &self.hello.metal_spots;
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
         let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
@@ -2167,6 +2177,13 @@ impl Territory {
         };
         let (off, home) = builder.map_or((0.0, 0.0), |b| (target.map_or(0.0, |t| b.pos.dist2d(t)), b.pos.dist2d(self.home)));
         self.log(format_args!("order: unit {} {}: {text}, {off:.0} off, {home:.0} from home ({rule})", id.0, builder.map_or("?", |b| name(b.def))));
+        let note = self.hands.lag_note.borrow_mut().take();
+        if let Some((unit, frame, note)) = note
+            && unit == id
+            && frame == self.frame
+        {
+            self.log(format_args!("lag: unit {} would take {note}", id.0));
+        }
     }
 
     /// The builders' orders counted by kind, for the jobs line.

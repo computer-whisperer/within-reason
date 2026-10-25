@@ -271,6 +271,12 @@ Each step one bench run (two where a lever is new), its ledger rows, its registe
 The user, 2026-10-25, on the questions this section asked: "Your leans sound reasonable, so lets begin."
 
 - **Order.** The planner over regions first (steps 1-2), then the lag instrument and the hands (steps 3-4).
+  Reopened after step 2's two forms (the user, 2026-10-25: "Agreed with hands first, regions kept -- proceed"):
+  the hands next (steps 3-4), the regions kept (step 1 computes them for the hands' located work), the program
+  over regions held on branch `territory-regions-step2` until the hands follow a plan well enough that an honest
+  one should pay. Chosen because the lag instrument measures where the middle game loses under either program, and
+  the honest program's lower plans were followed into lower games (terr151-156); planner-first rejected for now
+  because two forms of it fell under the bench at 10:00-20:00 on three starts.
 - **The stage-1 territory policy on the bench.** Every region not dead, as today against NullAI. The proposal stated
   no lean on this one; this one keeps the bench comparable with every batch before it, and our half by walking
   distance enters as an arm at step 5.
