@@ -440,6 +440,8 @@ pub struct Director {
     fed: HashSet<i32>,
     /// First sighting of each team's own units: the commander.
     commanders: HashMap<i32, Vec3>,
+    /// A circuit's route clearance: wanted and the route's least (D13), for the per-second log's meta line.
+    circuit_clearance: Option<(f32, f32)>,
     fields: Option<Vec<Field>>,
     pub last_tick: Instant,
     pub finished: bool,
@@ -460,6 +462,7 @@ impl Director {
             seed,
             fed: HashSet::new(),
             commanders: HashMap::new(),
+            circuit_clearance: None,
             fields: None,
             last_tick: Instant::now(),
             finished: false,
@@ -549,7 +552,7 @@ impl Director {
                     log = format!("m{:02}-s{index}-d{:02}-rep{}{}.jsonl", self.match_index, result.sequence, result.job.rep, result.seed.map_or(String::new(), |s| format!("-seed{s}")));
                     let mut lines = std::mem::take(&mut duel.log);
                     if let Some(drill) = &duel.drill {
-                        lines.insert(0, drill_meta(drill, &duel.armies[0], &duel.armies[1]).to_string());
+                        lines.insert(0, drill_meta(drill, &duel.armies[0], &duel.armies[1], self.circuit_clearance).to_string());
                     }
                     if let Err(e) = std::fs::write(dir.join(&log), lines.join("\n") + "\n") {
                         eprintln!("match {}: could not write {log}: {e}", self.match_index);
@@ -619,6 +622,7 @@ impl Director {
             // needs off the strip (design D10).
             let mut footprint = Footprint { length: 0.0, width: 0.0, relief: sites::DRILL_RELIEF };
             let mut square = 0.0f32;
+            let mut across = 0.0f32;
             for job in queue.iter() {
                 if let Some([x, _]) = self.sized(job) {
                     let count = x.iter().map(|(_, n)| n).sum();
@@ -626,6 +630,7 @@ impl Director {
                     footprint.length = footprint.length.max(strip.length);
                     footprint.width = footprint.width.max(strip.width);
                     square = square.max(Footprint::drill_square(self.batch.shapes[job.shape][0], count));
+                    across = across.max(self.batch.shapes[job.shape][0].extent(count).0);
                 }
             }
             drop(queue);
@@ -634,8 +639,12 @@ impl Director {
             let standable = sites::standable(terrain, max_slope);
             let walk_between = |a: Vec3, b: Vec3| terrain::Field::from_many(terrain, &standable, &[b]).and_then(|f| f.distance(a));
             if options.kind == drill::Kind::Circuit {
-                // A circuit (design D12): the loop's points across the map, one site, the lab's corner its centre.
-                let sites::Circuit { corners: points, route, legs } = match sites::circuit(terrain, &standable, &commanders, options.circuit.as_deref()) {
+                // A circuit (design D12): the loop's points across the map, one site, the lab's corner its centre;
+                // the route keeps the formation's half-width and a hull from the walls where it can (D13): the
+                // group's ranks are six files at the hull spacing, or the spawn formation's width if wider.
+                let group_across = (micro::form::FILES as f32 - 1.0) * micro::form::HULL_SPACING;
+                let clearance = across.max(group_across) / 2.0 + micro::form::HULL_SPACING;
+                let sites::Circuit { corners: points, route, legs, least_clearance } = match sites::circuit(terrain, &standable, &commanders, options.circuit.as_deref(), clearance) {
                     Ok(found) => found,
                     Err(why) => {
                         self.fatal = Some(format!("no circuit on {}: {why}", hello.map.name));
@@ -644,7 +653,8 @@ impl Director {
                 };
                 let walk = legs.iter().try_fold(0.0f32, |sum, leg| leg.map(|l| sum + l));
                 let at: Vec<String> = (points.iter().zip(&legs)).map(|(p, l)| format!("({:.0},{:.0}) then {} on foot", p.x, p.z, l.map_or("no way".to_string(), |l| format!("{l:.0}")))).collect();
-                eprintln!("match {}: circuit of {} corners, {} a lap on foot, the walked route {} points: {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), route.len(), at.join("; "));
+                eprintln!("match {}: circuit of {} corners, {} a lap on foot, the walked route {} points with {least_clearance:.0} of room at the least ({clearance:.0} wanted): {}", self.match_index, points.len(), walk.map_or("no way".to_string(), |w| format!("{w:.0}")), route.len(), at.join("; "));
+                self.circuit_clearance = Some((clearance, least_clearance));
                 self.fields = Some(vec![Field { site: Site { centre: points[0], ends: None, walk, circuit: points, circuit_route: route }, duel: None, fought: 0, abandoned: false }]);
                 return;
             }
@@ -2043,7 +2053,7 @@ fn drill_target(drill: &mut Drill, army: &mut Army, tick: &Tick, frame: i32, com
 }
 
 /// The first line of a drill's per-second log: the kind, the strip's ends, what the units are by index, the arms.
-fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
+fn drill_meta(drill: &Drill, army: &Army, other: &Army, clearance: Option<(f32, f32)>) -> Value {
     let target = drill.target.and_then(|i| other.spawns.get(i));
     json!({ "meta": {
         "drill": drill.kind.label(), "start": [drill.start.x.round(), drill.start.z.round()], "goal": [drill.goal.x.round(), drill.goal.z.round()],
@@ -2053,6 +2063,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
+        "clearance": clearance.map(|(wanted, least)| [wanted.round(), least.round()]),
     } })
 }
 

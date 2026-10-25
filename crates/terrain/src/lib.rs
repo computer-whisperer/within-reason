@@ -42,6 +42,106 @@ pub fn costs(terrain: &Terrain, class: MoveClass) -> Vec<u32> {
         .collect()
 }
 
+/// Each cell's distance to the nearest impassable cell or the map's edge, in elmos (an exact Euclidean distance
+/// transform, Felzenszwalb and Huttenlocher's, two separable passes over squared distances): how much room a body has
+/// about a point. A formation of half-width `w` fits where the clearance is `w` or more.
+pub fn clearance(terrain: &Terrain, passable: &[bool]) -> Vec<f32> {
+    let (width, height) = (terrain.width as usize, terrain.height as usize);
+    if width == 0 || passable.len() != width * height {
+        return Vec::new();
+    }
+    const FAR: f32 = 1.0e12;
+    // Columns first: for each cell the squared distance along its column to the nearest blocked cell.
+    let mut sq = vec![FAR; width * height];
+    let mut f = vec![0.0f32; height.max(width)];
+    let mut d = vec![0.0f32; height.max(width)];
+    for x in 0..width {
+        for z in 0..height {
+            f[z] = if passable[z * width + x] { FAR } else { 0.0 };
+        }
+        distance_transform_1d(&f[..height], &mut d[..height]);
+        for z in 0..height {
+            sq[z * width + x] = d[z];
+        }
+    }
+    // Then rows, over the columns' result.
+    for z in 0..height {
+        f[..width].copy_from_slice(&sq[z * width..(z + 1) * width]);
+        distance_transform_1d(&f[..width], &mut d[..width]);
+        for x in 0..width {
+            // The map's edge is a wall too.
+            let to_edge = (x as f32 + 0.5).min(width as f32 - x as f32 - 0.5).min(z as f32 + 0.5).min(height as f32 - z as f32 - 0.5);
+            sq[z * width + x] = d[x].min(to_edge * to_edge);
+        }
+    }
+    sq.into_iter().map(|s| s.sqrt() * terrain.cell).collect()
+}
+
+/// One pass of the squared distance transform: `d[q] = min over p of (q - p)^2 + f[p]` (the lower envelope of the
+/// parabolas rooted at each `p`).
+fn distance_transform_1d(f: &[f32], d: &mut [f32]) {
+    let n = f.len();
+    if n == 0 {
+        return;
+    }
+    let mut v = vec![0usize; n];
+    let mut z = vec![0.0f32; n + 1];
+    let mut k = 0usize;
+    v[0] = 0;
+    z[0] = f32::NEG_INFINITY;
+    z[1] = f32::INFINITY;
+    for q in 1..n {
+        loop {
+            let p = v[k];
+            let s = ((f[q] + (q * q) as f32) - (f[p] + (p * p) as f32)) / (2.0 * (q as f32 - p as f32));
+            if s <= z[k] && k > 0 {
+                k -= 1;
+                continue;
+            }
+            if s <= z[k] {
+                // k == 0 and the new parabola is below everywhere left of it: it replaces the first.
+                v[0] = q;
+                z[0] = f32::NEG_INFINITY;
+                z[1] = f32::INFINITY;
+                break;
+            }
+            k += 1;
+            v[k] = q;
+            z[k] = s;
+            z[k + 1] = f32::INFINITY;
+            break;
+        }
+    }
+    k = 0;
+    for q in 0..n {
+        while z[k + 1] < q as f32 {
+            k += 1;
+        }
+        let p = v[k];
+        d[q] = (q as f32 - p as f32).powi(2) + f[p];
+    }
+}
+
+/// The flat rate where a cell's clearance is `wanted` or more, rising to `WALL_COST` at a wall, [`IMPASSABLE`] where
+/// the class cannot go: a field over these keeps a body's route `wanted` from the walls where there is room (a corner
+/// is rounded at that distance) and down the middle of a corridor narrower than that.
+pub const WALL_COST: f32 = 60.0;
+pub fn clearance_costs(passable: &[bool], clearance: &[f32], wanted: f32) -> Vec<u32> {
+    passable
+        .iter()
+        .zip(clearance)
+        .map(|(&ok, &room)| {
+            if !ok {
+                return IMPASSABLE;
+            }
+            if wanted <= 0.0 || room >= wanted {
+                return 10;
+            }
+            (10.0 + (WALL_COST - 10.0) * (1.0 - room / wanted)).round() as u32
+        })
+        .collect()
+}
+
 pub fn passable(terrain: &Terrain, class: MoveClass) -> Vec<bool> {
     let max_slope = (class.max_slope * 255.0).round() as i32;
     terrain
@@ -398,6 +498,39 @@ mod weighted {
 
     fn at(x: f32, z: f32) -> Vec3 {
         Vec3 { x, y: 0.0, z }
+    }
+
+    /// The clearance is the distance to the nearest wall or edge; a route priced by it keeps off a corner.
+    #[test]
+    fn the_clearance_prices_the_walls_and_a_route_rounds_a_corner_at_a_distance() {
+        // A 40 x 40 flat map (16-elmo cells) with a wall across the middle from the west edge to column 24.
+        let terrain = flat(40, 40);
+        let mut passable = vec![true; 1600];
+        for x in 0..24 {
+            passable[20 * 40 + x] = false;
+        }
+        let room = clearance(&terrain, &passable);
+        // Beside the wall, one cell: 16; three cells up, 48; the far corner of the map, half a cell from two edges: 8.
+        assert!((room[19 * 40 + 10] - 16.0).abs() < 0.01, "{}", room[19 * 40 + 10]);
+        assert!((room[17 * 40 + 10] - 48.0).abs() < 0.01, "{}", room[17 * 40 + 10]);
+        assert!((room[39 * 40 + 39] - 8.0).abs() < 0.01, "{}", room[39 * 40 + 39]);
+        // The wall's end at column 24: the cell diagonal from it has root-two cells of room.
+        assert!((room[19 * 40 + 24] - 16.0 * 2f32.sqrt()).abs() < 0.01, "{}", room[19 * 40 + 24]);
+        // Costs: flat where the room is 64 or more, 60 at the wall itself's neighbour (room 16: 10 + 50 * 0.75).
+        let costs = clearance_costs(&passable, &room, 64.0);
+        assert_eq!(costs[10 * 40 + 10], 10);
+        assert_eq!(costs[19 * 40 + 10], 48);
+        assert_eq!(costs[20 * 40 + 10], IMPASSABLE);
+        // From south of the wall to north of it round its end: the plain route hugs the end (passes within a cell of
+        // it), the priced route keeps about the wanted room from it.
+        let (from, to) = (at(8.0 * 16.0 + 8.0, 30.0 * 16.0 + 8.0), at(8.0 * 16.0 + 8.0, 10.0 * 16.0 + 8.0));
+        let plain = Field::from_many(&terrain, &passable, &[to]).unwrap().route(from);
+        let priced = Field::from_costs(&terrain, &costs, &[to]).unwrap().route(from);
+        let end = at(23.0 * 16.0 + 8.0, 20.0 * 16.0 + 8.0);
+        let nearest = |route: &[Vec3]| route.iter().map(|p| p.dist2d(end)).fold(f32::INFINITY, f32::min);
+        assert!(nearest(&plain) < 24.0, "{}", nearest(&plain));
+        assert!(nearest(&priced) > 48.0, "{}", nearest(&priced));
+        assert!(!priced.is_empty() && priced.last().unwrap().dist2d(to) < 12.0);
     }
 
     #[test]

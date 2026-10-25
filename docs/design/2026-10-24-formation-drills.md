@@ -299,6 +299,23 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   (the batch's count, 22 Pawns), the game swallowing one match's `/cheat 1` (pitfalls.md), and a stuck unit reported
   as away (stuck is said first now).
 
+- **D13. Route clearance** (the user, 2026-10-24 night, after watching the circuit demos: "I regularly see artifacts
+  where a formation rounding a sharp corner gets bogged down and creeps around it rather than leaving enough margin to
+  maneuver... For route clearance, we should definitely add some automatic allocation for an army rounding a point.
+  Once we have that working, we should put effort into optimizing formation redirections as a whole"). The host's
+  route is planned over a field priced by room: each cell's clearance is its distance to the nearest impassable cell
+  or the map's edge (`terrain::clearance`, an exact distance transform), and a cell costs the flat rate where the body
+  has the room it wants and up to six times that at a wall (`terrain::clearance_costs`), so the cheapest way rounds a
+  corner at about the wanted distance and walks a corridor narrower than that down its middle rather than along one
+  wall. The room wanted is the formation's half-width plus a hull: for the group's six files at 64, 224. The field's
+  cell route hugged every corner and edge before this (the shortest path is tangent to the obstacle), so the inner
+  file's slots lay inside the wall at each corner and the formation crept round. Chose a priced field over a dilated
+  obstacle map because the dilated map has no way through a corridor narrower than the formation and would need a
+  second plan for the fallback; the priced field is one plan with the fallback in it. The corners themselves are
+  chosen with that room. The lane-off baseline keeps the corners alone, as before. Measured by the circuit (§5): the
+  route's least room is in the match's message and the meta line; the corners' cost in the per-second series. The
+  wheel at corners and the shape to the corridor are the redirection work after this, in the user's order.
+
 **What the bench must get right to be accurate for movement** (each a fault found in the survey or a property of the
 engine, not a guess):
 
@@ -589,6 +606,17 @@ that the series shows (the formed count does not dip at an appearance). What the
 the order the series ranks them: a wheel at the corners (the slots should turn with the route's local direction, not
 jump with the anchor's heading at a point), the shape narrowed to the corridor at a passage, and the slot deal at the
 start.
+
+**Route clearance (D13, the same night; ledger row circuit4-clearance-on):** the user, watching the two demos, named
+the corner creep and asked for automatic room for an army rounding a point. With the route priced by clearance (the
+formation's half-width plus a hull, 224; Quicksilver's loop then has 204 of room at its narrowest, one spot) the same
+drill arrives 200 / 202 / 204 s against 252 / 253 / 255: 1.15 x the full-speed walk (176 s on the priced loop) against
+1.42 x, with the formed share 0.83 against 0.81, the speed share 0.91 against 0.76, every fed Pawn joining (median 51 s),
+nothing left behind, 286 x 288 at the end with a ramp of 2.2 / 3.3 s. The anchor's seconds under 0.8 of full pace fall
+from 159 to 49 and its stops from 13 s to 1; within 600 of the four corners the slow seconds are 7 / 4 / 4 / 4 against
+8 / 33 / 9 / 13. What remains is the wheel: at the third corner the turn still knocks 13 of 14 members out of slot for
+a few seconds (8 away, 5 behind), the redirection work the user put next. The lap bar of 1.1 x is near; the formed
+share's 0.9 is not met.
 
 ## 6. Open for the user
 

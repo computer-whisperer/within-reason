@@ -311,10 +311,14 @@ lab's moved to the nearest cell holding a standable 640 square within 48 of reli
 it: two Pawns of a formation spawned off it on Quicksilver's broken ground never moved), the rest to the nearest
 standable cell reachable on foot from the lab's (`sites::circuit`; the match's message gives the corners, each leg's
 walk on foot and the walked route's length). The group's route is the spawn point then the lap **walked on foot**
-`laps` times over, the lab's corner last: the field's way from each corner to the next, a point every 256, as one
-group order never changed, so the anchor turns at each point without stopping (the first run gave the anchor the
-corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the host's field gives
-the points round terrain). Lane off, each unit (a fed one too) is given the corners alone as queued fight or move
+`laps` times over, the lab's corner last: the way from each corner to the next over the field priced by room
+(design D13: a cell costs the flat rate where the formation has its half-width and a hull of clearance from any wall or
+the map's edge, up to six times that at a wall, so a corner is rounded at that distance and a narrower corridor is
+walked down its middle; the corners are chosen with that room too; `terrain::clearance`, `clearance_costs`), a point
+every 256, as one group order never changed, so the anchor turns at each point without stopping (the first run gave the
+anchor the corners alone and it walked the crow line through ground the Pawns went round: design §2's law, the host's
+field gives the points round terrain; the second hugged every corner). The match's message says the route's least room
+against the room wanted, and the meta line carries `clearance` as [wanted, least]. Lane off, each unit (a fed one too) is given the corners alone as queued fight or move
 orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
 (`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the
 group for good, said on stderr and in the per-second line's `orders` (`left_behind`), and counted (`left_behind`). Measured, both arms alike: each deployed unit's passes of the lab's corner (within 400 after

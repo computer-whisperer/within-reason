@@ -351,20 +351,23 @@ const LAB_SQUARE: f32 = 640.0;
 /// (the field's cells are 8 elmos; the route is the host's, round the terrain).
 pub const ROUTE_STEP: f32 = 256.0;
 
-/// What `circuit` finds: the corners, the lap walked on foot between them (`Site::circuit_route`), and each leg's
-/// walk on foot.
+/// What `circuit` finds: the corners, the lap walked on foot between them (`Site::circuit_route`), each leg's walk on
+/// foot, and the least room the route has from a wall.
 pub struct Circuit {
     pub corners: Vec<Vec3>,
     pub route: Vec<Vec3>,
     pub legs: Vec<Option<f32>>,
+    pub least_clearance: f32,
 }
 
 /// A circuit's points (design D12): `wanted` (elmos, the first the lab's) or the map's inset corners, each pushed
 /// `COMMANDER_GAP` from any commander nearer than that, the lab's moved to the nearest cell holding a flat square, the
-/// rest to the nearest cell standable and reachable on foot from the lab's (one field from it); each leg's walk on
-/// foot, the last leg closing the loop; and the lap's route on foot, the field's way from each corner to the next
-/// thinned to `ROUTE_STEP`. `Err` says what was not found.
-pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wanted: Option<&[(f32, f32)]>) -> Result<Circuit, String> {
+/// rest to the nearest cell standable, reachable on foot from the lab's (one field from it) and with `clearance` of
+/// room from any wall; each leg's walk on foot, the last leg closing the loop; and the lap's route, the way from each
+/// corner to the next over the field priced by clearance (`terrain::clearance_costs`: flat where the body has
+/// `clearance` of room, dearer toward a wall, so a corner is rounded at that distance and a narrower corridor is
+/// walked down its middle; design D13), thinned to `ROUTE_STEP`. `Err` says what was not found.
+pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wanted: Option<&[(f32, f32)]>, clearance: f32) -> Result<Circuit, String> {
     let (width, height) = (terrain.width as usize, terrain.height as usize);
     if width == 0 || terrain.heights.len() != width * height || terrain.cell <= 0.0 {
         return Err("no terrain".into());
@@ -423,22 +426,30 @@ pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wante
     let lab = nearest(points[0], &|cx, cz| flat_square(terrain, standable, cx as i32, cz as i32, LAB_SQUARE, DRILL_RELIEF))
         .ok_or_else(|| format!("no flat square of {LAB_SQUARE:.0} for the lab anywhere near ({:.0},{:.0})", points[0].x, points[0].z))?;
     let field = Field::from_many(terrain, standable, &[lab]).ok_or("the lab's corner is on no passable ground")?;
+    let room = terrain::clearance(terrain, standable);
+    let costs = terrain::clearance_costs(standable, &room, clearance);
     let mut out = vec![lab];
     for want in &points[1..] {
-        let at = nearest(*want, &|cx, cz| standable[cz * width + cx] && field.distance(centre(cx, cz)).is_some())
-            .ok_or_else(|| format!("no standable ground reachable from the lab near ({:.0},{:.0})", want.x, want.z))?;
+        let at = nearest(*want, &|cx, cz| standable[cz * width + cx] && room[cz * width + cx] >= clearance && field.distance(centre(cx, cz)).is_some())
+            .ok_or_else(|| format!("no standable ground with {clearance:.0} of room reachable from the lab near ({:.0},{:.0})", want.x, want.z))?;
         out.push(at);
     }
+    let room_at = |p: Vec3| -> f32 {
+        let (cx, cz) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
+        room.get(cz.min(height - 1) * width + cx.min(width - 1)).copied().unwrap_or(0.0)
+    };
     let mut legs = Vec::new();
     let mut route = Vec::new();
+    let mut least_clearance = f32::INFINITY;
     for i in 0..out.len() {
         let (from, to) = (out[i], out[(i + 1) % out.len()]);
-        let field = Field::from_many(terrain, standable, &[to]);
-        legs.push(field.as_ref().and_then(|f| f.distance(from)));
-        // The field's way from this corner down to the next, thinned; the next corner itself closes the leg.
-        let way = field.as_ref().map(|f| f.route(from)).unwrap_or_default();
+        // The walk on foot is the plain field's; the way is the priced field's, thinned, the next corner closing
+        // the leg.
+        legs.push(Field::from_many(terrain, standable, &[to]).and_then(|f| f.distance(from)));
+        let way = Field::from_costs(terrain, &costs, &[to]).map(|f| f.route(from)).unwrap_or_default();
         let mut last = from;
         for p in way {
+            least_clearance = least_clearance.min(room_at(p));
             if p.dist2d(last) >= ROUTE_STEP && p.dist2d(to) >= ROUTE_STEP {
                 route.push(p);
                 last = p;
@@ -446,7 +457,7 @@ pub fn circuit(terrain: &Terrain, standable: &[bool], commanders: &[Vec3], wante
         }
         route.push(to);
     }
-    Ok(Circuit { corners: out, route, legs })
+    Ok(Circuit { corners: out, route, legs, least_clearance })
 }
 
 /// The least relief of any dry rectangle of `footprint` every listed unit can cross, whatever `footprint.relief` says,
