@@ -862,6 +862,25 @@ nine matches), so an army of which nothing appeared in three seconds is given ag
     long-range area fire.~~ **Corrected 2026-10-25:** what the detour asked for was the lane owning the ground (D17);
     the shape to the corridor is its fifth piece; the word for the approach under area fire stays open.
 
+18. **The lane owning the ground (D17, ledger rows assault4-*, circuit13-*, circuit14-*, assault5-*): the group walks
+    a one-point order round the cliff as a body, is level with no lane on the detour's value and ahead on survivors,
+    costs its pace in time, and the lane's own way matches the host's route it replaces.** The mix's detour under
+    `on`: 8 of 8 taken, +0.57 / +0.59 (two runs of 8), 7.1-7.2 of 12 left, 1.0 dead before their own first shot, the
+    formed share before contact 0.91, the first shot at 71-72 s with 10 of 12 formed, the shot ramp 1 / 6 s; `ranks`
+    +0.60 with 6.0 left and `off` +0.57 with 5.8, both arriving in pieces (the first shot at 34 s, ramps 16-18 s).
+    Slice 3's `on` had formed 0.38, the ramp 32 s, 4.1 dead before firing, +0.38. The Blitzes' detour under `on`:
+    +0.34, 5.5-5.6 left, formed 0.65-0.74, the ramp 2 s; `ranks` +0.36 and 5.6; `off` +0.25 and 4.0. **The paced
+    body's price is time:** its first shot comes 8 s (the mix) to 13 s (the Blitzes) after the pieces', the way priced
+    by room being a tenth longer than the walk on foot and the anchor held 7-14 s by lagging members at the bends. The
+    flat strip is unchanged (+0.66 against slice 2's +0.64). **The circuit:** under the first build the lap regressed
+    (240 s against circuit12's 191, formed 0.80 against 0.94) by a defect of the fifth piece (the anchor's target
+    carried past a bend lay on a cliff, the room read as none, the files collapsed to one, and re-placing the anchor to
+    keep the ranks' centroid threw it 768 forward onto the cliff: the amendment in D17); fixed, the lap is 191 s at
+    0.93 formed with no member cut off, the anchor's path 16,548 against the host's route's 16,256, and the fed
+    circuit 191 s with all eight joining at 0.81 formed (circuit12: 199 s, 0.77). **Left for the engine:** the carry
+    past a corner runs toward whatever lies beyond it and narrows the files for a few seconds before the turn (room
+    187 to 91 at the fourth corner), so the carried target should stop at the room's edge; the lead (D14) stays open.
+
 ## 6. Open for the user
 
 Ruled 2026-10-24 night (§2): the group API's shape, the gather's fate (it dies as a move; the pace and the joiner
