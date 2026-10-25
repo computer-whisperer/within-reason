@@ -12,6 +12,7 @@ mod his_start;
 mod options;
 mod planner;
 mod promise;
+mod race;
 mod snapshot;
 mod walks;
 mod work;
@@ -59,6 +60,10 @@ pub(crate) struct Territory {
     pub walks: walks::Walks,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
     pub spots: Vec<usize>,
+    /// The map's spots in regions (T-REGIONS), made at the start.
+    pub regions: Option<Regions>,
+    /// The race of force per region, an instrument (T-RACE).
+    pub race: race::Race,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -138,6 +143,8 @@ impl Territory {
             began.elapsed().as_millis(),
             regions.describe(&game, &builders, &self.spots).join(" | ")
         ));
+        self.log(format_args!("regions of spots: {}", regions.of_spot.iter().map(|r| r.to_string()).collect::<Vec<_>>().join(" ")));
+        self.regions = Some(regions);
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
         // first plan worth 35,000 against the 86,000 found 28 s later). Every place a plan walks to: the spots,
@@ -428,6 +435,8 @@ impl Bot for Territory {
             hands: hands::Hands::default(),
             walks: walks::Walks::default(),
             spots: Vec::new(),
+            regions: None,
+            race: race::Race::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -444,6 +453,9 @@ impl Bot for Territory {
         self.enemies = tick.snapshot.enemies.clone();
         self.metal = tick.snapshot.metal;
         self.energy = tick.snapshot.energy;
+        if let Some(sensors) = &tick.snapshot.sensors {
+            self.race.sensors = Some(sensors.clone());
+        }
         if !self.started {
             self.start(&tick);
             if !self.started {
@@ -509,6 +521,9 @@ impl Bot for Territory {
         }
         if tick.due() % promise::STANDING_LOG == 0 {
             self.log_standing();
+        }
+        if tick.due() % race::RACE_LOG == 0 && tick.frame > 0 {
+            self.log_race();
         }
         Commands(commands)
     }
