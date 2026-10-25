@@ -17,13 +17,17 @@
 //! formed; one behind it by more than `drag_from` slows the anchor, to a stop at `exception_at` behind; one further
 //! than `exception_at` from its slot is an exception reported as away, and is formed again within `rejoin_within`:
 //! two thresholds with hysteresis, so the report never flickers), and arrival (the anchor at the route's end and
-//! every member that is not an exception in its slot). **The anchor never outruns its body** (2026-10-24 night, the
-//! first circuit on Quicksilver: the anchor walked the crow line through ground the Pawns went round, every member
-//! fell further than the threshold, and under the first law, which released them, the anchor walked the whole lap
-//! alone at full pace with twelve members a map behind it, which no same-speed member can ever close): every member
-//! that has been in the body once (stood within `formed_within` of its slot) holds the anchor by its lag however far
-//! behind it is, a fleeing member excepted; a joiner holds nothing until it has stood in its slot. What the group will not wait
-//! for, the host takes out of the group: that is the host's decision, from the state's words.
+//! every member that is not an exception in its slot). **The anchor is placed, re-aimed and paced from the body the
+//! group actually has, and nothing else moves it** (design D22, 2026-10-25, from migration-2-2's sawtooth and the D21
+//! drills): the body is the members within `exception_at` of their slots, not fleeing and not cut off, and every one
+//! of them holds the anchor by its lag from the first tick (no history gate: a group declared from a dispersed body
+//! is held by whoever stands near the anchor); a declaration or a set-down after a new order puts the anchor on the
+//! densest cluster of members (`dense_centroid`), never on the centroid of everyone, which far joiners pull hundreds
+//! behind the head; a ground rebuild or a target's move plans the way again and leaves the anchor where it stands.
+//! A member beyond `exception_at` is an exception (joining if never yet in the body, away if once in it) that holds
+//! nothing: what the group will not wait for is the host's decision, from the state's words, as leaving it is (until
+//! D22 a member once in the body held the anchor however far behind, and a member delayed six seconds stopped the
+//! whole body for three; the first circuit's anchor walking a lap alone is kept off by the dense body and the drag).
 //!
 //! **The ground is the group's** (design D17, 2026-10-25, the user: "Since we are replacing a direct a->b order that
 //! the engine would normally handle pathing for, we have to be responsible for running the pathing"): the lane hands
@@ -36,7 +40,7 @@
 //! after. Without a ground (the host sent no terrain; the unit tests) the way is the host's points and nothing is
 //! snapped, as before D17. Pure over positions; the lane decides what each slot becomes as an order.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use bot_protocol::{UnitId, Vec3};
@@ -188,6 +192,14 @@ pub const REDEAL_TURN_DEG: f32 = 20.0;
 /// A body set down after contact further than this from its way is not put back on it: the way is planned again
 /// from where the body stands (a chase that ended far off the route).
 pub const REJOIN_WAY: f32 = 400.0;
+
+/// The centroid of the densest cluster of `positions` (design D22): the one with the most others within `REJOIN_WAY`
+/// of it, and those others. Where a declaration or a set-down puts the anchor: the centroid of everyone put it
+/// hundreds behind the head whenever joiners were far (migration-2-2 7:06; the D21 rear-party arms).
+pub fn dense_centroid(positions: &[Vec3]) -> Option<Vec3> {
+    let best = positions.iter().max_by_key(|p| positions.iter().filter(|q| q.dist2d(**p) <= REJOIN_WAY).count())?;
+    form::centroid(positions.iter().copied().filter(|q| q.dist2d(*best) <= REJOIN_WAY))
+}
 /// A member whose walk to its slot is more than this many times the straight line is cut off (design D17), and is
 /// formed again when its walk is within `CUT_OFF_REJOIN` times (hysteresis, so the report never flickers).
 pub const CUT_OFF_FACTOR: f32 = 2.0;
@@ -283,10 +295,13 @@ pub struct Group {
     /// member's walk was last searched.
     cut_off: HashMap<UnitId, i32>,
     cut_checked: HashMap<UnitId, i32>,
-    /// Members that have stood in a slot at least once since joining: the body, whose lag holds the anchor (a joiner
-    /// holds nothing until then; when it held from within the exception threshold, a joiner arriving at 280 behind
-    /// its slot stalled the whole body to a pace of 16, twice a lap: circuit9).
-    formed_once: HashMap<UnitId, bool>,
+    /// Members that have been formed (within `formed_within` of a slot) at least once since joining, for the word
+    /// alone (joining against away or stuck, D22); the body that holds the anchor is who stands within `exception_at`
+    /// of a slot now.
+    been_formed: HashSet<UnitId>,
+    /// A set-down on the body is due at the next tick (a new order, D22 change 3): with the anchor over `REJOIN_WAY`
+    /// from the densest cluster, it is put there.
+    reaim: bool,
     /// Stopped by the lane: at contact the anchor stands.
     pub stopped: bool,
     pub arrived: bool,
@@ -318,7 +333,9 @@ impl Group {
     /// walks nowhere (migration-2-1: a hold about the hunters' centroid walked its anchor a body's depth onto the
     /// point and dragged the ranks off the hunters).
     pub fn new(name: &str, members: Vec<UnitId>, order: GroupOrder, positions: &[Vec3], spacing: f32) -> Group {
-        let centroid = form::centroid(positions.iter().copied()).unwrap_or_else(|| order.route.first().copied().unwrap_or_default());
+        // The anchor on the densest cluster of members (D22), never on the centroid of everyone: far joiners at a
+        // declaration pulled it hundreds behind the head (migration-2-2 7:06; the D21 rear-party arms, formed 0).
+        let centroid = dense_centroid(positions).unwrap_or_else(|| order.route.first().copied().unwrap_or_default());
         let first = order.route.first().copied().unwrap_or(centroid);
         let heading = if first.dist2d(centroid) > 1.0 { form::heading(centroid, first) } else { (1.0, 0.0) };
         let hold_at = (order.kind == GroupKind::Hold && order.route.len() == 1).then_some(first);
@@ -343,7 +360,8 @@ impl Group {
             away: HashMap::new(),
             cut_off: HashMap::new(),
             cut_checked: HashMap::new(),
-            formed_once: HashMap::new(),
+            been_formed: HashSet::new(),
+            reaim: false,
             stopped: false,
             arrived: false,
             engaged: None,
@@ -397,16 +415,12 @@ impl Group {
             self.arrived = false;
             self.slot_of.clear();
             self.dirty = true;
+            self.reaim = true;
         } else {
             self.order.route = order.route;
             self.order.kind = order.kind;
         }
         if members != self.members {
-            for id in &members {
-                if !self.members.contains(id) {
-                    self.formed_once.entry(*id).or_insert(false);
-                }
-            }
             self.members = members;
             self.slot_of.clear();
         }
@@ -417,6 +431,10 @@ impl Group {
     /// host's points themselves without a ground, or with the march off (the slots stand at the end regardless).
     fn plan(&mut self) {
         let started = std::time::Instant::now();
+        // The host points already passed (D22): a re-plan mid-route walks on from the point the anchor was walking
+        // to (until then a ground rebuilt on a structure change planned from the route's first point, so a
+        // circuit's anchor would have turned back for a passed corner).
+        let passed = self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count().min(self.order.route.len().saturating_sub(1));
         self.way_from = self.anchor;
         self.way.clear();
         self.way_host.clear();
@@ -425,7 +443,7 @@ impl Group {
             Some(ground) if self.order.march => {
                 let mut from = self.anchor;
                 let last = self.order.route.len().saturating_sub(1);
-                for (i, &point) in self.order.route.iter().enumerate() {
+                for (i, &point) in self.order.route.iter().enumerate().skip(passed) {
                     // The route's end is where the body stands (D18: off a structure, with its room); the points
                     // between are passed through.
                     let point = if i == last { ground.stand(point).unwrap_or(point) } else { point };
@@ -442,7 +460,7 @@ impl Group {
                 }
             }
             _ => {
-                self.way = self.order.route.clone();
+                self.way = self.order.route[passed..].to_vec();
                 self.way_host = vec![true; self.way.len()];
             }
         }
@@ -488,11 +506,11 @@ impl Group {
         length
     }
 
-    /// The members in the body: not fleeing, not away, not cut off, and in a slot once.
+    /// The members in the body (D22): with a slot, within `exception_at` of it (not away), not fleeing, not cut off.
     fn body(&self, walkers: &[Walker]) -> Vec<Vec3> {
         walkers
             .iter()
-            .filter(|w| !w.fleeing && !self.away.contains_key(&w.id) && !self.cut_off.contains_key(&w.id) && self.formed_once.get(&w.id).copied().unwrap_or(false))
+            .filter(|w| !w.fleeing && self.slots.contains_key(&w.id) && !self.away.contains_key(&w.id) && !self.cut_off.contains_key(&w.id))
             .map(|w| w.pos)
             .collect()
     }
@@ -507,14 +525,11 @@ impl Group {
     /// round it, "arrived", and six of eight duels timed out there). A body further than `REJOIN_WAY` from the way
     /// (a chase that ended far off the route) has the way planned again from where it stands.
     pub fn reanchor(&mut self, walkers: &[Walker]) {
-        let body = self.body(walkers);
-        let (centroid, count) = match form::centroid(body.iter().copied()) {
-            Some(c) => (c, body.len()),
-            None => match form::centroid(walkers.iter().map(|w| w.pos)) {
-                Some(c) => (c, walkers.len()),
-                None => return,
-            },
-        };
+        // The densest cluster of members (D22), not the body by the march's slots: those are stale after a chase (the
+        // D21 crosser arm on the first D22 build: the set-down on the few still near their old slots put seven of
+        // twelve over 300 from the new ones, away for four seconds), and never the centroid of everyone.
+        let Some(centroid) = dense_centroid(&walkers.iter().filter(|w| !w.fleeing).map(|w| w.pos).collect::<Vec<_>>()) else { return };
+        let count = walkers.len();
         self.slot_of.clear();
         let points = self.polyline();
         if points.len() < 2 {
@@ -536,8 +551,17 @@ impl Group {
         if points[k].dist2d(points[k + 1]) >= 1.0 {
             self.heading = form::heading(points[k], points[k + 1]);
         }
-        self.anchor = self.on_way(self.anchor_for(centroid, self.heading, count), points[k], points[k + 1]);
+        // On the body, not pulled onto the way (D22: the way's projection stood up to `REJOIN_WAY` from a body that
+        // chased off the axis, and with the anchor no longer waiting for away members, nine of twelve were out of
+        // reach of their slots for five seconds on the D21 crosser arm); the anchor walks to the way's next point
+        // from here, and a split body's cluster is on one side of the cliff, snapped to ground.
+        self.anchor = self.anchor_for(self.snap(centroid), self.heading, count);
         self.stand_anchor();
+        // The march's clock starts again here: the group is not ticked while it is in contact, and with the last
+        // frame left from before it the first tick after advanced the anchor by the whole contact's length at the
+        // pace (the D21 crosser arm: 340 ahead of a body set down on itself, every member behind, five seconds to
+        // re-form; hidden until D22 by the away members' hold).
+        self.last_frame = None;
         let end = points[points.len() - 1];
         self.leg = if k + 1 == self.way.len() && self.anchor.dist2d(end) <= ROUTE_MOVED { self.way.len() } else { k };
         self.arrived = false;
@@ -756,9 +780,14 @@ impl Group {
     pub fn tick(&mut self, frame: i32, walkers: &[Walker], spacing: f32, pacing: &Pacing) -> &HashMap<UnitId, Vec3> {
         if self.dirty {
             // A new order for a body that stands far from the anchor (its members walked off under another host
-            // order, or came back from a hunt) starts from the body: the anchor is set down on its centroid facing
-            // the first point, and the slots dealt afresh there.
-            if let Some(centroid) = form::centroid(walkers.iter().filter(|w| !w.fleeing).map(|w| w.pos))
+            // order, or came back from a hunt) starts from the body: the anchor is set down on its densest cluster
+            // facing the first point, and the slots dealt afresh there. On a new order alone (D22 change 3): a ground
+            // rebuild or a target's move plans the way again and leaves the anchor where it stands (migration-2-2:
+            // the rebuild on any footprint change, every 5 s, set the anchor down on a centroid the far joiners held
+            // behind the head, 215 times in a game).
+            let reaim = std::mem::take(&mut self.reaim);
+            if reaim
+                && let Some(centroid) = dense_centroid(&walkers.iter().filter(|w| !w.fleeing).map(|w| w.pos).collect::<Vec<_>>())
                 && self.anchor.dist2d(centroid) > REJOIN_WAY
             {
                 let first = self.order.route.first().copied().unwrap_or(centroid);
@@ -800,8 +829,9 @@ impl Group {
         }
         // The faster types' leads learned (D20) from last tick's orders.
         self.learn_lead(frame, walkers, spacing, dt, slowest);
-        // Who is where against last tick's slots: the drag on the anchor from the body's members behind theirs,
-        // however far (the anchor never outruns its body); a joiner is in the body once it has stood in its slot; a
+        // Who is where against last tick's slots: the drag on the anchor from the body's members behind theirs (D22:
+        // the body is whoever stands within `exception_at` of a slot, from the first tick; a member beyond it, a
+        // joiner still on its way or one that fell away, holds nothing, and is the host's to wait for or leave); a
         // cut-off member holds nothing (it cannot close by walking).
         let h = self.heading;
         let mut max_lag = 0.0f32;
@@ -816,11 +846,10 @@ impl Group {
             } else if off > pacing.exception_at {
                 self.away.insert(w.id, frame);
             }
-            let in_body = self.formed_once.entry(w.id).or_insert(false);
             if off <= pacing.formed_within {
-                *in_body = true;
+                self.been_formed.insert(w.id);
             }
-            if *in_body && !w.fleeing && !self.cut_off.contains_key(&w.id) {
+            if !self.away.contains_key(&w.id) && !w.fleeing && !self.cut_off.contains_key(&w.id) {
                 let behind = (slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1;
                 max_lag = max_lag.max(behind);
             }
@@ -919,11 +948,15 @@ impl Group {
         // the lead when the carried point is on none, the slot when that is too). The pace type's lead is `LEAD`;
         // a faster type's is learned.
         let share = if self.full_pace > 0.0 { (self.pace / self.full_pace).clamp(0.0, 1.0) } else { 0.0 };
+        // The lead shrinks over the last lead's length of the way (D22 change 4), so nobody is sent past the route's
+        // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back).
+        let left = self.way_ahead();
         self.ordered = walkers
             .iter()
             .map(|w| {
                 let slot = self.slots[&w.id];
-                let lead = if Self::pace_type(w, slowest) { pacing.lead } else { self.lead_of.get(&w.speed.to_bits()).copied().unwrap_or(0.0) } * share;
+                let base = if Self::pace_type(w, slowest) { pacing.lead } else { self.lead_of.get(&w.speed.to_bits()).copied().unwrap_or(0.0) };
+                let lead = if base > 0.0 { base * share * (left / base).clamp(0.0, 1.0) } else { 0.0 };
                 let carried = |lead: f32| Vec3 { x: slot.x + self.heading.0 * lead, y: slot.y, z: slot.z + self.heading.1 * lead };
                 let point = match &self.ground {
                     _ if lead <= 0.0 => slot,
@@ -975,16 +1008,15 @@ impl Group {
             let slot = self.slots[&w.id];
             let off = w.pos.dist2d(slot);
             let formed = off <= pacing.formed_within;
-            let formed_once = self.formed_once.entry(w.id).or_insert(false);
             if formed {
-                *formed_once = true;
+                self.been_formed.insert(w.id);
             }
             let cut_off = self.cut_off.contains_key(&w.id);
             let cause = if formed && !self.away.contains_key(&w.id) && !cut_off {
                 None
             } else if w.fleeing {
                 Some(Cause::Fled)
-            } else if !*formed_once {
+            } else if !self.been_formed.contains(&w.id) {
                 Some(Cause::Joining)
             } else if cut_off {
                 Some(Cause::CutOff)
@@ -1063,7 +1095,7 @@ impl Group {
         let mut trails: HashMap<u32, Vec<f32>> = HashMap::new();
         for w in walkers {
             let (Some(slot), Some(sent)) = (self.slots.get(&w.id), self.ordered.get(&w.id)) else { continue };
-            if Self::pace_type(w, slowest) || !self.formed_once.get(&w.id).copied().unwrap_or(false) || self.away.contains_key(&w.id) || self.cut_off.contains_key(&w.id) || w.fleeing || w.speed <= 0.0 || w.moving < LEAD_MOVING * w.speed {
+            if Self::pace_type(w, slowest) || self.away.contains_key(&w.id) || self.cut_off.contains_key(&w.id) || w.fleeing || w.speed <= 0.0 || w.moving < LEAD_MOVING * w.speed {
                 continue;
             }
             let across = ((slot.x - w.pos.x) * h.1 - (slot.z - w.pos.z) * h.0).abs();
@@ -1170,6 +1202,114 @@ mod tests {
 
     /// A flat 128 x 64 map at 16-elmo cells (2,048 x 1,024 elmos) with a cliff wall at x 960-1,024 from the north
     /// edge down to z 768: the way round it goes south of its end.
+    /// D22 change 1: a group declared from a dispersed body (a formed body at the front, two joiners far behind) puts
+    /// its anchor on the densest cluster, and the far joiners hold nothing from the first tick: the body marches at
+    /// the pace from the start.
+    #[test]
+    fn a_declaration_from_a_dispersed_body_puts_the_anchor_on_the_dense_cluster() {
+        let pacing = Pacing::default();
+        let w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0), (3, -64.0, -32.0), (4, -64.0, 32.0), (5, -1800.0, 0.0), (6, -2000.0, 0.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        assert!((dense_centroid(&positions).unwrap().x + 32.0).abs() < 1.0, "{:?}", dense_centroid(&positions));
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &positions, 64.0);
+        assert!(group.anchor.x > -100.0, "the anchor is on the front four, not on the centroid of six ({})", group.anchor.x);
+        group.tick(0, &w, 64.0, &pacing);
+        group.tick(3, &w, 64.0, &pacing);
+        assert!((group.pace - group.full_pace).abs() < 0.01, "the far joiners hold nothing: pace {} of {}", group.pace, group.full_pace);
+        let state = group.state(&w);
+        // The two far members are joiners with the walk ahead of them (the front four, dealt into a rank of six from
+        // their block, may be joiners for a second too).
+        assert_eq!(state.exceptions.iter().filter(|(_, c, s)| *c == Cause::Joining && *s > 10.0).count(), 2, "{:?}", state.exceptions);
+    }
+
+    /// D22 change 3: a ground set again (the structures changed) plans the way again and leaves the anchor where it
+    /// stands, even with the centroid of everyone far behind it; a new order sets it down on the body.
+    #[test]
+    fn a_ground_rebuild_leaves_the_anchor_and_a_new_order_sets_it_down() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0), (3, -1800.0, 0.0), (4, -2000.0, 0.0)], 100.0);
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        march(&mut group, &mut w, 60, 3, &pacing);
+        let before = group.anchor;
+        group.set_ground(None);
+        group.tick(63, &w, 64.0, &pacing);
+        assert!(group.anchor.dist2d(before) < 20.0, "a rebuild moved the anchor {} ", group.anchor.dist2d(before));
+        // Every member walked off 1,000 east and the host orders again: the march starts from the body.
+        for walker in w.iter_mut() {
+            walker.pos.x += 1000.0;
+        }
+        group.update(w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::FightTo, vec![at(6000.0, 0.0)]));
+        group.tick(66, &w, 64.0, &pacing);
+        assert!((group.anchor.x - 1000.0 - before.x).abs() < 200.0, "set down on the body: {} from {}", group.anchor.x, before.x);
+    }
+
+    /// D22 change 4: the lead shrinks over the last lead's length of the way, so the order point never passes the
+    /// route's end.
+    #[test]
+    fn the_lead_shrinks_at_the_routes_end() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let end = at(500.0, 0.0);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![end]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        let mut furthest = f32::MIN;
+        let mut frame = 3;
+        while !group.at_end() && frame < 600 {
+            group.tick(frame, &w, 64.0, &pacing);
+            for walker in w.iter_mut() {
+                let point = group.order_point(walker.id).unwrap();
+                furthest = furthest.max(point.x);
+                let d = walker.pos.dist2d(point);
+                let step = (walker.speed * 0.1).min(d);
+                if d > 0.0 {
+                    walker.pos = Vec3 { x: walker.pos.x + (point.x - walker.pos.x) / d * step, y: 0.0, z: walker.pos.z + (point.z - walker.pos.z) / d * step };
+                }
+            }
+            frame += 3;
+        }
+        assert!(furthest <= end.x + 64.0 + 1.0, "an order point passed the end by {}", furthest - end.x);
+    }
+
+    /// D22: a re-plan mid-route (a ground set again) walks on from the route point the anchor was walking to; the
+    /// points passed are not walked again.
+    #[test]
+    fn a_replan_mid_route_does_not_walk_back_to_a_passed_point() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(400.0, 0.0), at(400.0, 3000.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        // Past the first point and on the second leg.
+        march(&mut group, &mut w, 300, 3, &pacing);
+        assert_eq!(group.leg, 1, "on the second leg");
+        let before = group.anchor;
+        group.set_ground(None);
+        group.tick(303, &w, 64.0, &pacing);
+        assert_eq!(group.way(), &[at(400.0, 3000.0)], "the way is the second point alone: {:?}", group.way());
+        assert!(group.anchor.dist2d(before) < 20.0);
+    }
+
+    /// The first tick after a contact's set-down moves the anchor one tick's pace at most, however long the contact
+    /// was (the group is not ticked in contact, so the clock starts again at the set-down).
+    #[test]
+    fn the_first_tick_after_a_contact_starts_the_clock_again() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::FightTo, vec![at(3000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        march(&mut group, &mut w, 60, 3, &pacing);
+        // Ninety frames of contact: no ticks; the body chased 200 east.
+        for walker in w.iter_mut() {
+            walker.pos.x += 200.0;
+        }
+        group.stopped = true;
+        group.stopped = false;
+        group.reanchor(&w);
+        let set_down = group.anchor;
+        group.tick(153, &w, 64.0, &pacing);
+        assert!(group.anchor.dist2d(set_down) <= 100.0 * 0.1 + 1.0, "the anchor leapt {} after the set-down", group.anchor.dist2d(set_down));
+    }
+
     fn walled() -> Terrain {
         let (w, h) = (128usize, 64usize);
         let mut slopes = vec![0u8; w * h];
@@ -1237,7 +1377,7 @@ mod tests {
     }
 
     #[test]
-    fn a_member_behind_its_slot_slows_the_anchor_and_far_behind_stops_it() {
+    fn a_member_behind_its_slot_slows_the_anchor_and_one_away_holds_nothing() {
         let pacing = Pacing::default();
         let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
         let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
@@ -1251,16 +1391,17 @@ mod tests {
         let state = group.state(&w);
         assert_eq!(state.exceptions.len(), 1);
         assert_eq!(state.exceptions[0].1, Cause::Behind);
-        // 400 behind: the cause Away, and the anchor stops for it (it never outruns its body); within 96 again it
+        // 400 behind: the cause Away, and the anchor walks on at the pace (D22: a member beyond the exception
+        // threshold is the host's to wait for or leave, not the engine's to stop everyone for); within 96 again it
         // is formed again.
         w[1].pos = at(slots[&UnitId(2)].x - 400.0, 32.0);
         group.tick(9, &w, 64.0, &pacing);
-        assert_eq!(group.pace, 0.0, "the anchor waits for a member of its body a map behind");
+        assert!((group.pace - group.full_pace).abs() < 0.01, "an away member holds nothing: pace {} of {}", group.pace, group.full_pace);
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away);
         let slots = group.tick(12, &w, 64.0, &pacing).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 200.0, 32.0);
         group.tick(15, &w, 64.0, &pacing);
-        assert!(group.pace > 0.0 && group.pace < group.full_pace * 0.7, "pace {} of {}", group.pace, group.full_pace);
+        assert!((group.pace - group.full_pace).abs() < 0.01, "still away, still holding nothing");
         assert_eq!(group.state(&w).exceptions[0].1, Cause::Away, "still away until within the rejoin distance");
         let slots = group.tick(18, &w, 64.0, &pacing).clone();
         w[1].pos = at(slots[&UnitId(2)].x - 20.0, 32.0);
@@ -1432,13 +1573,19 @@ mod tests {
             group.stopped = false;
             group.reanchor(&body);
             assert!(!group.at_end() && !group.arrived, "the route is taken up again (march {march})");
-            assert!(group.anchor.z.abs() < 1.0, "set down on the way, not at the body's centroid: {:?}", group.anchor);
+            // D22: set down on the body, not pulled onto the way (the anchor walks to the way's end from here).
+            assert!((group.anchor.z - 100.0).abs() < 1.0, "set down on the body: {:?}", group.anchor);
             let slots = group.tick(3, &body, 64.0, &pacing).clone();
             let slot_x = slots[&UnitId(1)].x;
             if march {
-                assert!(slot_x > 1500.0 && slot_x < 1700.0, "the anchor walks on from the body: {slot_x}");
+                // The slot is at the body on the first tick (the clock starts again at the set-down) and walks on.
+                assert!(slot_x > 1450.0 && slot_x < 1700.0, "the anchor walks on from the body: {slot_x}");
+                let slots = group.tick(33, &body, 64.0, &pacing).clone();
+                assert!(slots[&UnitId(1)].x > slot_x + 50.0, "the anchor walks on: {} from {slot_x}", slots[&UnitId(1)].x);
             } else {
-                assert!((slot_x - 2000.0).abs() < 1.0, "the slots stand at the destination again: {slot_x}");
+                // The rank faces the end from the body's place (D22: the anchor is set down on the body, 100 off the
+                // way, so the heading is not exactly east): the slot is within the rank's half-width of the end.
+                assert!(slots[&UnitId(1)].dist2d(at(2000.0, 0.0)) < 48.0, "the slots stand at the destination again: {:?}", slots[&UnitId(1)]);
             }
         }
     }

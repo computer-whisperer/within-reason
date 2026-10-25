@@ -273,8 +273,8 @@ turn, for a reverse) and no further than the goal, the formation translated rigi
 K-engine-a-slot-moving-at-a-pace-paces-the-unit). `run/drill_table.py --seconds` prints the first duel's median unit
 speed each second, for a pace's steadiness, and the lane's group each second when there is one. With `--lane on` the
 army is the lane's one declared group (H-MICRO-GROUP: `Lane::set_group("army", ...)` with the drill's order, a Go for
-a move and a FightTo for a fight, the route one point): the anchor walks at 0.9 of the slowest type's speed and every
-unit is sent to its slot every tick, the director's own per-unit orders to the units dropped (so `--reissue`, `--lead`
+a move and a FightTo for a fight, the route one point): the anchor walks at the slowest type's speed (`Pacing::fraction` 1.0 since D20) and every
+unit is sent to its slot carried its lead ahead every tick, the director's own per-unit orders to the units dropped (so `--reissue`, `--lead`
 and `--pace` are lane-off arms); `--lane ranks` is the same group with its order's `march` off, the slots standing at the
 destination. The per-second log carries the group's `anchor`, `heading`, `pace`, `full_pace`, `formed` (spawn
 indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'

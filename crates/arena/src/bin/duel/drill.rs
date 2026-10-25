@@ -740,7 +740,9 @@ impl Drill {
         match self.kind {
             Kind::Reverse => self.turned.is_some() && self.arrived.len() >= expected,
             Kind::Gather => self.appeared.len() >= expected && self.arrived.len() >= expected,
-            Kind::Walk => self.arrived.len() >= expected,
+            // Under a group, the group's word ends it too: a formation of twenty is four ranks deep and its rear rank
+            // stands at the arrival radius (d22-a7: one Pawn at 300.08 from the goal, formed and arrived, timed out).
+            Kind::Walk => self.arrived.len() >= expected || self.group.is_some_and(|(_, members, done)| done && members >= expected),
             Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
             Kind::Assault => false,
             Kind::Circuit => {

@@ -240,3 +240,22 @@ field is the raider's class).
 re-orders in it (then the cause is the strung-out body itself or the centre-based contact test, both left as they are).
 **Used by.** H-MICRO-FORM (the 2026-10-03 amendment). Open: "engaged" is judged from the body's centre, so a strung-out
 body whose head is in contact still marches; a strung-out body is not gathered before it forms.
+
+### K-group-an-anchor-placed-by-far-members-sawtooths-the-march
+**Claim** (2026-10-25, from migration-2-2 and the D21 drills). A formation whose anchor is placed or re-aimed from the
+centroid of every member, far joiners included, and whose members hold the anchor only after they have once stood in a
+slot, walks a sawtooth whenever (a) a third or so of the members are far behind and (b) something marks the group dirty
+on a clock: the anchor is set down hundreds behind the head, the head walks back onto slots behind it, the anchor runs
+on at full pace with nobody holding it, and the next dirty tick repeats it. In a game the clock is the ground rebuild on
+any structure or wreck changing anywhere (every 5 s, 82% of five-second windows), and the far members are the joiners
+every pick makes. The pace type's lead of 300 masks the repetition (it rides ahead of its slots) but not the first
+set-down; a faster type with a learned lead of 0 shows the full sawtooth.
+**Evidence.** migration-2-2 (`run/matches/1792944804-migration-2-2`): group_B 7:06-7:42 under one order, the anchor
+set down 300-640 behind the head every fifth second, members ordered 300-430 backwards, 800 elmos in 35 s at speed 101;
+3,611 marching group-seconds at formed 0.26, 215 backward snaps, 192 within 5 s of a footprint change. Drills (ledger
+d21-*): twelve Blitzes with six Pawns 1,800 behind and a structure churned every 5 s snapped at 5, 10 and 15 s (anchor
+back 798, arrival 23 s against 14 without churn); Pawn-only arms placed the anchor 350-440 behind the head at the
+declaration (formed 0 for the walk) and snapped once at a pull over 400; churn on a formed body did nothing.
+**Would be wrong if.** Under D22 (the anchor on the densest cluster, the drag from everyone within 300, no set-down on a
+rebuild) the same arms still show the snaps, or a game shows the sawtooth with the anchor placed on its body.
+**Used by.** H-MICRO-GROUP (the D22 amendment); design D21, D22.

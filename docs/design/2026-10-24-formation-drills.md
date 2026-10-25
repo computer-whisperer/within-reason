@@ -788,6 +788,69 @@ engine, not a guess):
   backtrack under 0.02 and no overshoot at the goal, a3/a6/a7/a9 anchor back 0, b1 stopped under 2 s, c1 the formed
   share back to 12 within 3 s of the contact's end.
 
+- **D22. The anchor's invariant** (the user, 2026-10-25, on the fix proposed from D21's arms: "Good work, let's try
+  your suggested fixes"). The invariant: *the anchor is placed, re-aimed and paced from the body the group actually
+  has, and nothing else moves it.* The body is the members within `exception_at` (300) of their slots, not fleeing
+  and not cut off; everyone else is an exception (joining if never yet in the body, away if once in it, stuck, cut
+  off, fled) that the state reports and the host decides about. Four changes, each against one link D21 showed:
+  1. **Declaration and re-aim from the dense body, never the all-member centroid.** `Group::new` and the set-down
+     after a new order put the anchor on the centroid of the densest cluster of members: the member with the most
+     others within `REJOIN_WAY` (400) of it, and those others. Far joiners at a declaration no longer drag the anchor
+     back behind the head (a2-a10: formed 0 for a whole walk; the game's 7:06 declaration).
+  2. **The drag reads every body member, with no formed-once gate.** `formed_once` goes; a member within 300 of its
+     slot holds the anchor by its lag (from `drag_from` 128 to a stop at 300) from the first tick. A member beyond 300
+     is an exception and does not hold the anchor: the straggler is the host's to wait for or leave (the user's
+     framing: the formation modelled, the exceptions flagged), not the engine's to stop everyone for (b1: pace 0 for
+     3-4 s and the burst when it moved). `been_formed` (formed once, within 64) stays for the word alone: joining until then, away or stuck after; a member 75 off its slot on the first tick is a joiner that holds the anchor.
+  3. **A ground rebuild re-plans the way and leaves the anchor where it stands.** The dirty tick's far set-down is
+     gone; the set-down on the body happens on the events that mean it: a new order (`update`, a changed kind or
+     route), a contact's end (`reanchor`), a hunt's or rove's end. Churn was the game's clock (a7, a9: one and three
+     snaps; the game's 215).
+  4. **The lead shrinks over the last lead's length of the way.** The order point is the slot carried `lead * min(1,
+     way_left / lead)`, so nobody is sent past the route's end (every rear-party arm's 300 of overshoot and three
+     seconds walking back at the goal; the game's bodies "staggering over" a point and returning).
+  Not changed: the pace fraction (1.0) and the lead itself (D20), the re-deal at a turn (D14), the contact arc, the
+  straggler rule (the host's). The bars are D21's arms (plain and churn unchanged; the rear-party arms with the body
+  formed within 5 s and arriving as the plain walk, backtrack under 0.02, no overshoot; anchor back 0 everywhere;
+  the stall's stop under 2 s; the crosser's formed count back within 3 s of the contact's end) and the standing
+  drills (circuit laps and formed share, the detour assault's margin) unchanged. Then a pianist game on the target
+  line. Open beside this arc: the fuse layer's decode call in place on the tick thread in realtime
+  (`pianist/mod.rs:1213`).
+
+  **Built and measured 2026-10-25 afternoon, four builds (ledger d22-*, d22b-*, d22c-*, d22d-*).** The four changes
+  as written, and three more the arms forced out of the same mechanism: (5) the set-down after a contact is on the
+  body itself, not pulled onto the way's line (`on_way`: on the crosser arm the projection stood up to 400 from a body
+  that had chased off the axis, and with the anchor no longer waiting for away members nine of twelve were out of
+  reach of their slots for five seconds); (6) the march's clock restarts at a contact's set-down (the group is not
+  ticked while engaged, and with the last frame left from before the contact the first tick after advanced the anchor
+  by the whole contact's length at the pace: 340 ahead of a body set down on itself, every member behind, five seconds
+  to re-form; hidden until D22 by the away members' hold); (7) a re-plan mid-route walks on from the route point the
+  anchor was walking to (`plan` planned from the route's first point, so a ground rebuilt mid-lap would have turned a
+  circuit's anchor back for a passed corner: not seen in a drill, since no structure changes mid-lap there, but a
+  live game rebuilds every 5 s). The harness: a walk under a group ends on the group's word too (a formation of twenty
+  stands four ranks deep and its rear rank at the arrival radius: one Pawn at 300.08 timed out). Against the bars:
+
+  | arm | before (D21) | after (D22, final build) | bar |
+  |---|---|---|---|
+  | plain walk | 12/12/13 s, formed 0.97, anchor back 0 | 12/12/13, 1.00, 0 | unchanged: met |
+  | churn alone | unchanged | unchanged | met |
+  | 4 of 16 1,400 behind | formed 0 all walk; 300 overshoot, 1,000 member-elmos back a second for 3 s | six formed at once, twelve by 10 s; arrival 12/13 as the plain walk; backtrack 0; no overshoot | arriving as the plain walk, backtrack 0, no overshoot: met; "formed within 5 s": eleven of twelve |
+  | 4 of 16 + churn | the same, no snap | the same as without churn, anchor back 0 | met |
+  | 8 of 20 + churn | one snap (anchor back 312) | anchor back 0, the twelve 7/8 s, the group's word at 28 s | met |
+  | 12 Blitzes, 6 Pawns 1,800 behind + churn | snaps at 5, 10, 15 s; anchor back 798; backtrack 0.34; arrival 23-24 s | anchor back 0; backtrack 0; formed by 4 s; arrival 7/8 s (the control the same) | met |
+  | stall 6 s at 6 s | pace 0 for 3-4 s, 9-10 silent ticks a second, then a ramp | the held member an exception, the anchor never stopped (stopped 0), the eleven at 12/13 s, the straggler at 19 s as before | met |
+  | crosser | contact 4 s, then pace 0 two seconds, formed 0 to 11 over six seconds, arrival 14 | contact 4 s, then nine formed at once and eleven a second later, no away, formed share 0.97 against 0.74-0.76, arrival 13/14/17 | met (within 1 s) |
+  | plain circuit, 20 Pawns | 177-181 s at 0.93-0.97 | 181-183 at 0.93 | inside the lap noise |
+  | fed circuit, 12 + 8 | 179-182 at 0.78-0.81, 8 joined | 175-181 at 0.77-0.80, 8 joined | unchanged |
+  | detour assault, 4 duels | +0.58 to +0.63, 7.8 left, first shot 64 s | +0.57 / +0.58 / +0.58 / +0.57, 4 of 4 taken, 1.0-1.8 lost before firing, first shot 49-50 s | unchanged (the earlier first shot of 64 s on one batch stands unexplained; 50 on all four D22 builds) |
+
+  Noted, not changed: `anchor_back` on a circuit counts the D14 set-downs at the corners (641 on a lap of four), so
+  it is a walk's instrument; after a one-point route is arrived the state reads a pace of 87 for one sample at each
+  ground rebuild (the re-plan sets the leg to 0 and the anchor advances the elmo left before `at_end`), harmless
+  and unfixed; a straggler beyond 300 at the pace's own speed never closes on its own (the stall arm's member arrived
+  only because the body stopped at the goal), which is the host's decision by design (the hands' words; the duel's
+  straggler rule). Next: the pianist game on the target line with chunks 3-5 and D22 in one binary.
+
 ## 4. The drills, in order, with the bars the baselines will set
 
 | # | drill | what it measures | the bar proposed (the baselines replace it) |
