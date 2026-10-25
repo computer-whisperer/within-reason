@@ -138,6 +138,14 @@ minutes beside what stood, every plan's own count at its snapshot matching the g
   reach (`farm_big` off: the program-side fix, turrets on big buildings only, lost every mark in terr58). On the
   windy maps the program's energy is a wind farm the turrets finish; the game builds every wind generator at a
   constructor's power, and late the hands order 17-55 % of those asked on Great Divide, Mithril and Quicksilver.
+- **The program counts on it.** Offline, Great Divide's first plan under the bot's settings (`buildorder lp --hello`
+  on terr195 game 00's dump, `--line vehicle --help-factor 40 --mobile-help 0.35 --max-nanos 300`; 50 / 127 / 375 /
+  861 at 5, 10, 15 and 20:00 against the bot's own first plan's 45 / 140-144 / 329-350 / 827-905): 2,056 wind
+  generators by 20:00, 90 % of the build power on them the turrets' help (1,912 of the units), and 455 of its 472
+  solars and 240 of its 293 basic converters the same way; on Comet from his start 635 of its 679 solars. With
+  `--farm-big 20000` (turrets on buildings of that much build time only) the plan builds 803 wind generators with its
+  constructors (forty, the cap) and puts the turrets on fusions and advanced fusions, and its forecast barely moves:
+  Great Divide 50 / 126 / 398 / 792, Comet from his start 57 / 186 / 789 / 1,483 against 57 / 186 / 745 / 1,459.
 - **The farm's big buildings: short with the turrets.** In reach of 11-29 turrets, they come at 0.25-0.65 of the
   promise as the turrets do; on Comet they carry most of the late shortfall.
 - **Upgrades and extractors: execution.** Ordered at about the rate asked; 0.6-0.85 of the orders stand within the

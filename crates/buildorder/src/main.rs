@@ -302,6 +302,10 @@ fn linear_program(args: &Args) {
     if args.has("--builders-only") {
         palette.factory.retain(|i| matches!(i, buildorder::plan::Item::Build(u) if units.list[*u].role == buildorder::units::Role::Builder));
     }
+    // `--line vehicle|bot`: the factory line the territory bot plays (its `line` arm), as `regions` takes it.
+    if let Some(line) = args.value("--line") {
+        palette.keep_line(units, game.commander, &line);
+    }
     // `--affordable M`: the types costing at most M metal, as the territory bot offers the program what its hands
     // could start now (the stock and ninety seconds of income).
     let affordable: f64 = args.number("--affordable", f64::INFINITY);
@@ -400,6 +404,33 @@ fn linear_program(args: &Args) {
         let mut at: Vec<(f64, String)> = plan.columns.iter().enumerate().map(|(i, c)| (plan.counts[i][t], format!("{}{}", units.list[c.unit].name, class_name(c.class)))).filter(|(n, _)| *n > 0.05).collect();
         at.sort_by(|a, b| b.0.total_cmp(&a.0));
         println!("at {minute:.0}:00: {}", at.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
+    }
+    // `--power N`: for the N unit types the plan puts the most build power on, that power split by builder type and how
+    // it is spent (built, helped, assisted), in build-power-seconds over the horizon and as units of the type.
+    if let Some(n) = args.value("--power").and_then(|v| v.parse::<usize>().ok()) {
+        let mut by_unit: Vec<(usize, f64)> = Vec::new();
+        for f in &plan.flows {
+            let total: f64 = f.per_bucket.iter().sum();
+            match by_unit.iter_mut().find(|(u, _)| *u == f.unit) {
+                Some(e) => e.1 += total,
+                None => by_unit.push((f.unit, total)),
+            }
+        }
+        by_unit.sort_by(|a, b| b.1.total_cmp(&a.1));
+        for (u, total) in by_unit.into_iter().take(n) {
+            let mut parts: Vec<(f64, String)> = plan
+                .flows
+                .iter()
+                .filter(|f| f.unit == u)
+                .map(|f| {
+                    let power: f64 = f.per_bucket.iter().sum();
+                    (power, format!("{} {:?} {:.0} ({:.1} units)", units.list[f.builder].name, f.kind, power, power / f.cost))
+                })
+                .filter(|(p, _)| *p > 1.0)
+                .collect();
+            parts.sort_by(|a, b| b.0.total_cmp(&a.0));
+            println!("power on {}: {:.0} | {}", units.list[u].name, total, parts.into_iter().map(|(_, s)| s).collect::<Vec<_>>().join(", "));
+        }
     }
     // What the plan takes down for its metal, by unit type and minute (`--reclaim`).
     let mut reclaimed: Vec<(usize, String, Vec<(usize, f64)>)> = Vec::new();
