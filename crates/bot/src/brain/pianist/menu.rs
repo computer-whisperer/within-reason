@@ -1390,7 +1390,7 @@ impl Brain {
                 }
                 // Where the base layout has it: said, since "beside itself" is not where a factory or a generator
                 // far from home goes.
-                let plan = self.place_planned(def, unit, own, kit);
+                let plan = self.place_planned(def, unit, own);
                 let anchor = match &plan {
                     super::super::economy::Plan::Extractor(at) | super::super::economy::Plan::Near(_, at) | super::super::economy::Plan::Beside(_, at) => *at,
                 };
@@ -1700,7 +1700,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A holds.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
         let menus = brain.menus(&tick, &kit, &picture);
         let menu = menus.iter().find(|m| m.name == "group_A").expect("the group's menu");
@@ -1733,7 +1733,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
         let keys = |brain: &Brain, picture: &Picture| -> Vec<String> { brain.menus(&tick, &kit, picture).iter().find(|m| m.name == "group_A").expect("the group's menu").moves.iter().map(|m| m.key.clone()).collect() };
         let before = keys(&brain, &picture);
@@ -1777,7 +1777,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture {
             rules: String::new(),
             state: serde_json::json!({ "instructions": "group_A: roves within east_half.", "actors": {}, "places": {} }),
@@ -1830,7 +1830,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
         let picture = Picture {
             rules: String::new(),
@@ -1867,7 +1867,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
         let picture = Picture {
             rules: String::new(),

@@ -197,10 +197,8 @@ pub struct Kit {
     pub lab: UnitDefId,
     pub turret: UnitDefId,
     pub constructor: UnitDefId,
-    /// The vehicle plant and the constructor it makes.
-    pub plant: UnitDefId,
+    /// The constructor the vehicle plant makes (factories themselves are known by `World::is_factory_def`).
     pub vehicle_constructor: UnitDefId,
-    pub advanced_lab: UnitDefId,
     pub advanced_constructor: UnitDefId,
     pub advanced_extractor: UnitDefId,
     pub raider: UnitDefId,
@@ -216,11 +214,6 @@ impl Kit {
         def == self.extractor || def == self.advanced_extractor
     }
 
-    /// Any factory: the bot lab, the vehicle plant, the advanced bot lab.
-    pub fn is_factory(&self, def: UnitDefId) -> bool {
-        def == self.lab || def == self.plant || def == self.advanced_lab
-    }
-
 }
 
 impl Roster {
@@ -234,9 +227,7 @@ impl Roster {
             lab: id(self.lab)?,
             turret: id(self.turret)?,
             constructor: id(self.constructor)?,
-            plant: id(self.plant)?,
             vehicle_constructor: id(self.vehicle_constructor)?,
-            advanced_lab: id(self.advanced_lab)?,
             advanced_constructor: id(self.advanced_constructor)?,
             advanced_extractor: id(self.advanced_extractor)?,
             raider: id(self.raider)?,

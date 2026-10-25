@@ -357,3 +357,39 @@ opening's generators stand at home behind the plant and that a `mark` for them i
 by 1:00, the first Rover at 1:13, the third extractor at 0:57, the commander helping the plant 1:16-1:38 at low
 priority, a Sentry beside spot_73 at 2:23. The pool line the player wrote (extractor, extractor, solar, solar, plant,
 extractor, assist, two solars) is the brief's; its placing was the fault, not its order.
+
+### migration-4-1, the first game of D23, the quarry leash, the raider sentence and the opening fixes (2026-10-25 evening)
+
+`run/matches/1792968638-migration-4-1`, commit 02eb1f3, the target line on seed 20 as migration-3-1. **WON 19:33**
+(migration-3-1: a slow win the cap took at 40:00). The ledger row has the numbers; what they say for the migration:
+
+- **The march.** No body of 40 formed this game (the player kept the plant's groups by type and merged them late),
+  so the scale shape is unmeasured. The bodies of 13-15 marched at formed 0.41 / 0.24 against 0.17 / 0.36 / 0.31 for
+  migration-3-1's bodies of 46 / 25 / 16; the bodies of 4-6 at 0.42-0.76. Joining is still the largest exception
+  (D 3,598 member-seconds of 13,000): the lab's units join at the lab and walk the whole way as joiners, the
+  feeder by another name. The anchor never went back to the lab (D23's gate); whether the engine should wait for
+  joiners or the hands should declare them a group of their own at the lab is the open ruling (formation-drills §6).
+- **The sends.** Halved per minute (36 in 19.5 min against 100 in 40), repeats a third (19 against 53), no hunt
+  ended on the leash (8 of 30 before), two soldiers lost hunting (5). The chain at 5:00 is unchanged in shape:
+  group_D's nine Blitzes were sent in twelve pieces over three minutes at Rovers that outrun them, every send but
+  the first a repeat or "already on it", and at 7:52 the player forbade detachments outright. The reworded raider
+  sentence ("whatever drives it off soonest ... a detachment farther from the raider than what it is killing will
+  last is no answer") did not stop Jev picking the send against a Rover 2,800 away. The `send` words themselves
+  still say nothing about the quarry's speed against the hunters' (hunts.py marks 32 of 36 as "outruns them" from
+  the definitions); that and the children's sends are the Jev A/B's arms (`run/jev_ab.py` over this game's and
+  migration-3-1's send moments), not another sentence on the user's word.
+- **The opening.** Solar 2 is fixed (no far mark: the `queue` text held). Solar 1 is not: the list was replaced
+  18 frames before the engine created the frame, the drop's Stop went out, the frame was created anyway 0.6 s
+  later and the new list placed a second solar beside it. The begun-frame check (`take_queued`'s `begun`) reads
+  the tick's own `UnitCreated` events, so it cannot see a frame that comes after the Stop. Two remedies, neither
+  built: (a) a `Build` step with no place adopts the builder's own unfinished frame of its type when one stands
+  within reach (the engine's frame is ours; `own` has it with `being_built`), which also covers a frame left by any
+  other road; (b) the stale drop issues no Stop at all when the builder is within build range of the queued site,
+  letting the frame come and then keeping it. (a) is the general one and the one to propose.
+- **The advanced plant** at 6:32 decayed at 0% by the player's own three list replacements in 15 s, two with `stop`
+  steps; the hands' line said each time that the build in progress was dropped. The player read it as a bad site.
+  A brief line is the remedy if it recurs (the `queue` tool's answer already says "its build in progress dropped").
+- **Found by the game, fixed after it:** the bot's minute line and the generator's nearest-lab placement counted
+  factories by the kit's three defs (bot lab, vehicle plant, advanced bot lab), so the advanced vehicle plant was
+  never a factory to them ("labs 1" all game with two standing). Both now use the world's predicate (a still unit
+  with a build list), as every other caller does; `Kit::is_factory` is gone.

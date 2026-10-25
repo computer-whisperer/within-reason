@@ -55,8 +55,8 @@ pub(super) enum Plan {
 }
 
 impl Brain {
-    pub(super) fn place_planned(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], kit: &Kit) -> Plan {
-        let lab = own.iter().filter(|u| kit.is_factory(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
+    pub(super) fn place_planned(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> Plan {
+        let lab = own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
         // By what the definition is (a factory, a defence, a construction turret), so every building the game has
         // places (docs/design/2026-09-22-full-roster.md, decision 3).
         let info = self.world.def(def);
@@ -205,13 +205,13 @@ impl Brain {
             {
                 (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() })
             }
-            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit), placements: placements(anchor) }),
+            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id), placements: placements(anchor) }),
             Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, placements: placements(anchor) }),
         })
     }
 
     /// The gap, in build squares, a new building keeps from its neighbours: wide enough for units to walk through.
-    fn gap_around(&self, def: UnitDefId, _kit: &Kit) -> i32 {
+    fn gap_around(&self, def: UnitDefId) -> i32 {
         // Any factory: the hover platform and the aircraft plant have exit lanes like the lab's.
         if self.world.is_factory_def(def) { LAB_GAP } else { BUILDING_GAP }
     }
@@ -234,9 +234,9 @@ mod tests {
     fn a_silo_and_an_anti_nuke_are_placed_in_the_back_field_and_a_turret_on_the_line() {
         let brain = brain_of(&["armsilo", "armamd", "armllt", "armck"]);
         let id = UnitDefId(4);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &ROSTERS[0] };
         let builder = own(1, 4, Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
-        let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder), &kit) {
+        let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder)) {
             Plan::Near(_, at) | Plan::Beside(_, at) => at,
             Plan::Extractor(at) => at,
         };

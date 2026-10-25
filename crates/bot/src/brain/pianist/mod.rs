@@ -2003,7 +2003,7 @@ mod frame_tests {
 
     fn kit() -> Kit {
         let none = UnitDefId(99);
-        Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: UnitDefId(2), plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] }
+        Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: UnitDefId(2), vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] }
     }
 
     fn frame(id: i32, def: i32, pos: Vec3, share: f32) -> OwnUnit {
@@ -2090,7 +2090,7 @@ mod stop_tests {
     #[test]
     fn a_stop_spares_a_frame_begun_after_the_report_and_names_what_it_drops() {
         let id = UnitDefId(9);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let run = |created: i32| -> (Vec<Command>, Vec<String>, bool) {
             let mut brain = brain_of(&["armcv", "armsolar"]);
             brain.kit = Some(kit);

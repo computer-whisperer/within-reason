@@ -618,7 +618,7 @@ mod tests {
         assert_eq!(brain.wreck_field_at("Z9", &places), None);
         // The steps, played by a unit of the fixture (no build options: it can make nothing itself).
         let id = UnitDefId(3);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({}), places, parties };
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let unit = &ours[0];
@@ -784,7 +784,7 @@ mod finish_tests {
         let mut brain = brain_of(&["armcv", "armsolar"]);
         let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 62.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }, own(21, 2, at(1200.0, 1000.0))];
         let id = UnitDefId(9);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let name = "constructor_1".to_string();

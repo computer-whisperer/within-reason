@@ -932,6 +932,11 @@ engine, not a guess):
   at formed 0.94, the fed circuit 174-178 s at 0.79 with 7.7 of 8 joined, the detour assault 4 of 4 taken at +0.62
   (at 2,500 where D22's batch walked 2,000; the first shot 64 s against 49 is the longer walk). Held throughout.
 
+  **Live, migration-4-1 (2026-10-25 evening, WON 19:33, the D23 binary):** no re-aim to the lab and no set-down on
+  stragglers read in the record; the bodies of 13-15 marched at formed 0.41 / 0.24 (migration-3-1's bodies of
+  46 / 25 / 16 at 0.17 / 0.36 / 0.31), joining the largest exception still (the lab's units walk the whole way as
+  joiners). No body of 40 formed, so shapes 3 and 4 (files to one, the mostly-away body) are unmeasured live.
+
 ## 4. The drills, in order, with the bars the baselines will set
 
 | # | drill | what it measures | the bar proposed (the baselines replace it) |

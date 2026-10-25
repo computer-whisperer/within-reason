@@ -140,7 +140,7 @@ impl Brain {
                 did = build(Plan::Extractor(self.world.hello.metal_spots[*i]), Some(*i));
             }
             Order::Build(def, Site::Planned) => {
-                let plan = self.place_planned(*def, unit, own, kit);
+                let plan = self.place_planned(*def, unit, own);
                 did = build(plan, None);
             }
             // A tier-2 extractor goes over the extractor of ours at the place; one already upgrading there is

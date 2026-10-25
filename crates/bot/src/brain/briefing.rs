@@ -1557,7 +1557,7 @@ mod frame_loss_tests {
     fn an_unfinished_frame_is_told_a_decay_from_a_kill_and_counted_at_its_peak() {
         let mut brain = brain_of(&["armcom", "armsolar"]);
         let none = UnitDefId(99);
-        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         let builders = || vec![own(10, 1, at(1000.0, 950.0)), own(11, 1, at(3000.0, 950.0))];
         let with = |frames: Vec<OwnUnit>| builders().into_iter().chain(frames).collect::<Vec<_>>();
         // Four frames rise: 20 and 23 reach 70 %, 21 reaches 60 %, 22 reaches 30 %.
@@ -1606,7 +1606,7 @@ mod frame_loss_tests {
             }
         }
         let none = UnitDefId(99);
-        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         // Solars 20 to 23 near the Juggernaut (500) at (1150, 1050), 23 far from it; the commander (10) and solar 24 far away.
         let ours = || vec![own(10, 1, at(5000.0, 5000.0)), own(20, 2, at(1000.0, 1000.0)), own(21, 2, at(1100.0, 1000.0)), own(22, 2, at(1200.0, 1000.0)), own(23, 2, at(3000.0, 1000.0)), own(24, 2, at(5100.0, 5000.0))];
         let mut first = tick(30, ours(), Vec::new());
@@ -1660,7 +1660,7 @@ mod frame_loss_tests {
             }
         }
         let none = UnitDefId(99);
-        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         // The fusion (40) at (1000, 1000) with solars 22, 23 and 25 beside it; the Janus (30), the constructor (31)
         // and solars 20, 21 far off together; solar 24 alone.
         let ours = || {

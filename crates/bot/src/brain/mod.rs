@@ -681,7 +681,7 @@ impl Brain {
                 "[ai {}] f={} ({:.0} min) metal {:.0} (+{:.1}/-{:.1}) energy {:.0}/{:.0} (+{:.0}/-{:.0}) | mex {} labs {} cons {} army {} | enemies visible {}",
                 self.ai(), tick.frame, tick.frame as f32 / 1800.0, s.metal.current, s.metal.income, s.metal.usage,
                 s.energy.current, s.energy.storage, s.energy.income, s.energy.usage,
-                count(kit.extractor) + count(kit.advanced_extractor), count(kit.lab) + count(kit.plant) + count(kit.advanced_lab), count(kit.constructor) + count(kit.vehicle_constructor) + count(kit.advanced_constructor),
+                count(kit.extractor) + count(kit.advanced_extractor), s.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(), count(kit.constructor) + count(kit.vehicle_constructor) + count(kit.advanced_constructor),
                 s.own_units.iter().filter(|u| self.is_army(u, kit)).count(), s.enemies.len()
             );
             if !self.stuck_cells.is_empty() {
