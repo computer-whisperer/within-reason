@@ -9,6 +9,11 @@
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 data="${1:-$root/run/data}"
+# WITHIN_REASON_KEEP_INSTALLED=1: neither build nor install (a bench of several batches built and installed once; every
+# arena and duel start runs this script, so without it a source edit during a batch is compiled into its later arms).
+if [ "${WITHIN_REASON_KEEP_INSTALLED:-}" = 1 ]; then
+    exit 0
+fi
 cargo build --release --manifest-path "$root/Cargo.toml"
 # install <shortName>/<version> <AIInfo.lua> <library>
 install() {

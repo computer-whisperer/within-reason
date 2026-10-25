@@ -387,7 +387,7 @@ ground's structure hash changes as a base under construction changes it (the per
 stands); `--stall T,S` holds the rearmost formed member out of the declared group for `S` seconds from `T` seconds after
 the first order, a Stop each tick, then it is a member again (`stalled` in the line and in `orders`); `--crosser
 NAME@D,W` is side `y`'s one unit `D` along the axis from the start and `W` off it, sent `W + 1,200` past the other side
-when the army's centroid comes within 500 of `D`. The measures, in `duels.csv` and `run/drill_table.py`:
+when the army's centroid comes within 500 of `D`; `--nudge S` (D23) re-declares the walk's goal every `S` seconds moved 60 across the axis, alternating sides, the hands' follow steps and party moves as a changed order to the lane (`nudge_s` in the meta); `--late S` (D23) keeps the rear party of `--behind` out of the group and unordered until `S` seconds after the first order, then declares it in, the lab's fresh units joining a group already marching (`late_s`; a rear party in the group from the first order is the body at the declaration when it outnumbers the front, so the re-aim toward it needs the late join). The measures, in `duels.csv` and `run/drill_table.py`:
 `backtrack_share` (member-elmos walked away from the goal along the axis over those walked toward it, from the
 once-a-second positions), `anchor_back` (elmos the anchor moved against its heading, summed over ticks: a march never
 adds, a snap onto the body does) and `stopped_s` (seconds at pace 0 while marching, not arrived and not engaged); the

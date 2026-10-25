@@ -876,6 +876,62 @@ engine, not a guess):
   declarations in three seconds at 20:16-20:19), each shell a split into two new groups and a merge back; a group's
   reach of the picks is Jev's. The hands' chunk 6 and the fixes for the four shapes await the user's word (§6).
 
+- **D23. The anchor is placed by the body it has** (the user, 2026-10-25 evening, on the four shapes: "we obviously
+  should not be counting the feeder units as part of the army group when re-aiming. We already count them as
+  exceptions elsewhere, why do they influence the re-aim of the forward group?"; "Let's start with the fixes to 1 and
+  2 directly"). Written before the change.
+  *The fault:* the three placements of the anchor (`Group::new`, the re-aim on a new order in `tick`, the set-down
+  after a contact in `reanchor`) feed `dense_centroid` every member's position, filtered for fleeing alone; the
+  joining word (never yet formed) is computed afterwards for the report and never consulted. So the lab's cluster of
+  fresh joiners is the densest when it outnumbers the front (16:47), five members strung out with none within 400 of
+  another are a tie that `max_by_key` resolves to the last in the list (5:55, the one at the lab), and a body that
+  flees after a fight is invisible to the set-down, which lands on the stragglers (20:18, 20:26).
+  *The rule:* the body for a placement is the members that have been formed once and are not cut off, where they
+  stand now, fleeing or away included (a fleeing body is still the body, and the re-aim exists to bring the anchor
+  back to a body it lost). With no such member (a fresh declaration; `Group::new` has no history) every member not
+  cut off. Over that set the densest cluster, ties toward the route's first point (the forward one). The re-aim on a
+  new order fires only when no body member stands within `REJOIN_WAY` of the anchor (the anchor has lost its body),
+  not when the densest cluster is far (a body in reach of the anchor keeps it; a Hold or a follow step on a formed
+  group moves nothing). Joiners are what they are reported as: exceptions walking to their slots, with no say in
+  where the group is.
+  *Reproduction, before the change:* `--scatter 2200` on six Pawns (440 apart, none within 400 of another: the tie),
+  and two new arms: `--nudge S`, the walk's goal re-declared every `S` seconds moved 60 across the axis (the hands'
+  follow steps and party moves: a changed order, `reaim`), and `--late S`, the rear party of `--behind` kept out of
+  the group and unordered until `S` seconds after the first order, then declared in (the lab's fresh units joining a
+  group already marching); the arm `--behind armpw*8@1800 --late 4 --nudge 5` on six Pawns walking 800, the rear
+  eight joining at 4 s and the first changed order at 5 s. First tried without `--late` (the rear party in the group
+  from the first order): a rear party of eight is the densest cluster at the declaration against a front of six, so
+  the anchor was placed on it at once (formed 8, the front six the exceptions, arrival 24-29 s for a 9 s walk,
+  before and after alike), and a nudge changed nothing: that arm measures the declaration, not the re-aim. Bars: the
+  strung-out walk's anchor placed at the front member (anchor back 0, backtrack 0), the front arriving as a plain walk
+  of the same length (the rest are joiners by the rule, so the formed share is low by construction); the late-joined
+  walk's anchor never set down on the rear party (anchor back 0; D22 is expected to put it back about 2,200 at the
+  5 s nudge), the front six arriving as the plain walk; the fleeing set-down by unit test (a fleeing body and one
+  straggler, a new order: the anchor on the body). Standing drills and the D21/D22 arms unchanged.
+  **Built and measured 2026-10-25 evening (ledger d23-*).** `Group::placement` (the members once formed and not cut
+  off, fleeing or away included; everyone not cut off when nobody has formed yet), `body_in_reach` (a body member
+  within `REJOIN_WAY` of the anchor), `dense_centroid(positions, toward)` with the forward tiebreak; `Group::new`
+  over everyone toward the route's first point, the re-aim over the placement toward it, `reanchor` over the placement
+  toward the way's end. Tests: the strung-out declaration (both list orders), the new order with the joiners' cluster
+  behind (anchor within 40 of where it stood, four joiners), the new order with the body fleeing (set-down and
+  `reanchor` on the body). Micro 79 tests. The arms, before (D22) and after (D23), six Pawns, three duels each:
+
+  | arm | before (D22) | after (D23) | bar |
+  |---|---|---|---|
+  | plain walk 1,200 | 12 / 12 / 12 s, formed 1.00 | 12 / 12 / 13 s, formed 1.00 | unchanged |
+  | scatter 2,200 (440 apart, the tie) | 32 / 32 / 38 s, formed 0.17, backtrack 0.12, anchor back 65 | 13 / 28 / 39 s, formed 0.08, backtrack 0, anchor back 0 | the anchor at the front, the front arriving as a plain walk: met; the rest joiners by the rule |
+  | nudge 5 alone | 12 / 12 / 13 s, formed 0.99, back 0 | 12 / 12 / 13 s, formed 1.00, back 0 | unchanged |
+  | behind 8@1,800, walk 800, members from the start | 24 / 28 / 29 s, formed 0.57, backtrack 0.15 (the rear party is the body at the declaration: 8 > 6) | the same | not the game's shape; unchanged by design |
+  | late 4 (the eight join at 4 s) | 7 / 31 / 32 s, formed 0.81, back 0 | the same | a join alone moves nothing: unchanged |
+  | late 4 + nudge 5 (the re-declared order with the lab's cluster behind) | 29 / 31 / 32 s, formed 0.55, backtrack 0.18, anchor back 2,130 | 7 / 31 / 32 s, formed 0.81, backtrack 0.01, anchor back 37 | the anchor never set down on the rear party, the front arriving as without the re-declaration: met |
+
+  The front's arrival under late 4 + nudge 5 is 7 s on D23 against 29 on D22: the re-aim to the joiners cost the front
+  22 s on an 800 walk, the game's 5:55 in miniature. Regression (ledger d23-c1 .. d23-assault): the crosser 13 / 14 /
+  16 s at formed 0.98, the Blitz body with the Pawn rear party and churn 7 / 8 / 15 s with anchor back 0, the twelve
+  Pawns with eight behind and churn 7 / 8 / 21 s with 0, the stall arm stopped 0 s, the plain circuit of twenty 175-179 s
+  at formed 0.94, the fed circuit 174-178 s at 0.79 with 7.7 of 8 joined, the detour assault 4 of 4 taken at +0.62
+  (at 2,500 where D22's batch walked 2,000; the first shot 64 s against 49 is the longer walk). Held throughout.
+
 ## 4. The drills, in order, with the bars the baselines will set
 
 | # | drill | what it measures | the bar proposed (the baselines replace it) |

@@ -320,3 +320,10 @@ view's memory of the enemy's buildings landed while the assault's second slice w
 `bound2-mix12-*-on` arms ran under the new binary, every other arm of the slice under the old (ledger row assault2-*).
 Build in another worktree, or wait for the slice; a slice's arms must share one binary, and the ledger row says the
 commit they ran at.
+Worse (2026-10-25 evening): the `duel` binary itself runs `run/install_ai.sh` at every start, a full `cargo build
+--release`, so a *source edit* during a batch is compiled into every arm started after it with no build of yours at all
+(the d23 before-batch: `group.rs` edited at 17:37:50, the arm started at 17:38:38 compiled micro and ran the new code;
+each arm's log opens with its Compiling lines, which say what it rebuilt). No Rust edits while a batch runs. A
+before/after over one source file is a script that copies the old file in, runs the before arms, copies the new file
+back and runs the after arms (`cmp` at the end). `WITHIN_REASON_KEEP_INSTALLED=1` (install_ai.sh, from this evening)
+skips the build and the install for a bench that built and installed once; it does not make an edited checkout safe.

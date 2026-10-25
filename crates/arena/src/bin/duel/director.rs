@@ -932,7 +932,10 @@ impl Director {
                     let defs: Vec<&UnitDefInfo> = options.behind.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
                     let behind_at = Vec3 { x: start.x - axis.0 * options.behind_distance, y: 0.0, z: start.z - axis.1 * options.behind_distance };
                     let rank = Formation { kind: FormationKind::Ranks(count.max(1)), spacing: form_x.spacing };
+                    let first_rear = spawns.len();
                     spawns.extend(rank.places_along(behind_at, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, place(at), None)));
+                    // D23 `--late`: the rear party's indices, out of the group until `late` after the first order.
+                    drill.rear = (first_rear..spawns.len()).collect();
                 }
                 spawns
             };
@@ -1631,7 +1634,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                             // stopping (a route re-declared the same is taken silently).
                             Some(GroupOrder::new(kind, drill.route.clone()))
                         } else {
-                            Some(GroupOrder::new(kind, vec![drill.toward]))
+                            // D23 `--nudge`: the goal moved across the axis every `nudge` frames, a changed order.
+                            Some(GroupOrder::new(kind, vec![drill.nudged_goal(frame)]))
                         }
                     }
                     // `--advance` (D18): theirs as one group fighting to the army's start, once the army has its orders.
@@ -1663,7 +1667,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         army.straggler_best.retain(|u, _| still.contains(u));
                     }
                     let stalled = duel.drill.as_ref().and_then(|d| d.stalled.map(|(u, _)| u));
-                    let living: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile) && !army.left_behind.contains(u) && Some(*u) != stalled).collect();
+                    // D23 `--late`: the rear party is nobody's until its time, then joins the marching group.
+                    let waiting: Vec<usize> = duel.drill.as_ref().filter(|d| d.rear_waits(frame)).map(|d| d.rear.clone()).unwrap_or_default();
+                    let living: Vec<UnitId> = (army.alive.keys().copied())
+                        .filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile && !waiting.contains(&i)) && !army.left_behind.contains(u) && Some(*u) != stalled)
+                        .collect();
                     // `--lane ranks`: the group with its march off, the slots standing at the destination.
                     let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, ..order };
                     lane.set_group("army", living, order, Footwork::default(), Commitment::All);
@@ -2107,10 +2115,15 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
             spawn.mobile.then(|| (u, army.seen_at.get(&u).copied().unwrap_or(drill.start), spawn.at))
         })
         .collect();
+    // D23 `--late`: the rear party stands unordered until it joins the group (the lane orders it from then).
+    let rear: Vec<UnitId> = if drill.late.is_some() { mobile.iter().map(|m| m.0).filter(|u| army.spawn_of.get(u).is_some_and(|i| drill.rear.contains(i))).collect() } else { Vec::new() };
     let order_all = |drill: &mut Drill, commands: &mut Vec<Command>| {
         drill.last_order = Some(frame);
         drill.first_order.get_or_insert(frame);
         for &(u, at, spawned) in &mobile {
+            if rear.contains(&u) {
+                continue;
+            }
             commands.extend(drill.orders(u, at, spawned, frame));
         }
     };
@@ -2338,7 +2351,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
-        "churn_s": drill.churn.as_ref().map(|c| c.every / FPS), "stall_s": drill.stall.map(|(a, b)| [a / FPS, b / FPS]),
+        "churn_s": drill.churn.as_ref().map(|c| c.every / FPS), "stall_s": drill.stall.map(|(a, b)| [a / FPS, b / FPS]), "nudge_s": drill.nudge.map(|f| f / FPS), "late_s": drill.late.map(|f| f / FPS),
         "crosser": drill.crosser.as_ref().map(|c| json!([other.spawns.get(c.index).map(|s| s.name.clone()), c.along.round(), c.across.round()])),
     } })
 }

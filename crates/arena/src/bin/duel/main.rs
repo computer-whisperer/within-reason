@@ -388,7 +388,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -512,6 +512,14 @@ fn parse_args() -> io::Result<Options> {
                 drill_opts.churn = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f > 0);
             }
             "--churn-def" => drill_opts.churn_def = value(),
+            "--late" => {
+                let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--late takes seconds, such as 4"));
+                drill_opts.late = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f >= 0);
+            }
+            "--nudge" => {
+                let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--nudge takes seconds, such as 5"));
+                drill_opts.nudge = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f > 0);
+            }
             "--stall" => {
                 let text = value();
                 let (at, for_s) = text.split_once(',').unwrap_or_else(|| usage("--stall takes AT,FOR in seconds, such as 8,6"));

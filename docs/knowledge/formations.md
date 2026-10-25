@@ -259,3 +259,28 @@ declaration (formed 0 for the walk) and snapped once at a pull over 400; churn o
 **Would be wrong if.** Under D22 (the anchor on the densest cluster, the drag from everyone within 300, no set-down on a
 rebuild) the same arms still show the snaps, or a game shows the sawtooth with the anchor placed on its body.
 **Used by.** H-MICRO-GROUP (the D22 amendment); design D21, D22.
+
+### K-group-a-placement-that-counts-joiners-or-ignores-the-fleeing-puts-the-anchor-with-the-stragglers
+**Claim** (2026-10-25 evening, from migration-3-1 and the D23 drills). A formation whose anchor is placed from the
+positions of every member (joiners included) or of every member not fleeing is put with whoever is densest or still
+standing, not with the body that marched: with a feeder joining fresh units at the lab, the lab's cluster outnumbers a
+small front and a re-declared order (a follow step, a party that moved, a Hold) re-aims the anchor to the lab; with
+members strung out along a road none within 400 of another, the tie goes to an arbitrary member; with the body fleeing
+after a fight, a new order's set-down goes to the two or three stragglers not fleeing, and the body, done fleeing, is
+"away" from slots a map behind it. The placement has to read the body the group had (members once formed, where they
+stand now, fleeing or away included), everyone only when nobody has formed yet, ties toward the goal, and a new order
+must move nothing while a body member is within reach of the anchor.
+**Evidence.** migration-3-1 (`run/matches/1792955667-migration-3-1`): 16:44 and 16:47 the anchor of a one-member march
+re-aimed onto the four fresh units at the lab (back 913); 5:55 a Hold on five Blitzes strung out resolved to the one at
+the lab, the two at the enemy's edge marked away, the march restarted from the lab at 6:00 and reached the front at
+6:30; 20:18 and 20:26 set-downs with 20 of 23 fleeing went 1,500-1,850 to the stragglers, nobody formed 20:26-20:49.
+Drills (ledger d23-*): six Pawns walking 800 with eight joining 1,800 behind at 4 s and the goal re-declared at 5 s:
+under D22 anchor back 2,130, backtrack 0.18, the front arriving at 29 s; under D23 anchor back 37, backtrack 0.01, the
+front at 7 s as without the re-declaration; the join alone moved nothing on either (membership is not an order). Six
+Pawns 440 apart: D22 anchor back 65 and backtrack 0.12; D23 the anchor at the front member, 0 and 0, the front
+arriving at 13 s as a plain walk (the rest joiners the whole way, formed share 0.08: what the host must decide to
+wait for).
+**Would be wrong if.** A game under D23 shows the anchor set down away from its formed members on a new order, or a
+formed body re-aimed onto a joiners' cluster; or the strung-out walk's forward placement loses more than it gains (a
+host that wanted the group gathered gets a front that walks on alone).
+**Used by.** H-MICRO-GROUP (the D23 amendment); design D23.

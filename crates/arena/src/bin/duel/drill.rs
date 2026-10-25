@@ -74,6 +74,8 @@ pub const DEFENCE_SPACING: f32 = 128.0;
 pub const CHURN_OFF: f32 = 160.0;
 pub const CROSSER_TRIGGER: f32 = 500.0;
 pub const CROSSER_BEYOND: f32 = 1200.0;
+/// D23 `--nudge`: how far across the axis the goal is moved at each re-declaration (over `ROUTE_MOVED` 48).
+pub const NUDGE: f32 = 60.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -164,6 +166,12 @@ pub struct Options {
     pub churn_def: String,
     pub stall: Option<(i32, i32)>,
     pub crosser: Option<(String, f32, f32)>,
+    /// D23: the walk's goal re-declared every this many frames moved `NUDGE` across the axis, alternating sides
+    /// (`--nudge S`): the hands' follow steps and party moves, a changed order to the lane.
+    pub nudge: Option<i32>,
+    /// D23: the rear party (`--behind`) stands out of the group, unordered, until this many frames after the first
+    /// order, then joins it (`--late S`): the lab's fresh units declared into a group already marching.
+    pub late: Option<i32>,
 }
 
 /// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
@@ -362,6 +370,11 @@ pub struct Drill {
     pub stalled: Option<(UnitId, i32)>,
     pub stall_done: bool,
     pub crosser: Option<Crosser>,
+    /// D23 `--nudge`: frames between the goal's re-declarations, or `None`.
+    pub nudge: Option<i32>,
+    /// D23 `--late`: frames after the first order until the rear party joins, and the rear party's spawn indices.
+    pub late: Option<i32>,
+    pub rear: Vec<usize>,
     /// D21's measures: member-elmos along the axis toward the goal and away from it (this second's away in
     /// `back_second`); the anchor's steps against its heading, from the anchor and heading last noted; the group's
     /// pace, arrived and engaged as last noted and the seconds the pace was 0 on the march; the orders to the army
@@ -439,6 +452,9 @@ impl Drill {
             stalled: None,
             stall_done: false,
             crosser: None,
+            nudge: options.nudge,
+            late: options.late,
+            rear: Vec::new(),
             forward: 0.0,
             back: 0.0,
             back_second: 0.0,
@@ -574,6 +590,26 @@ impl Drill {
     }
 
     /// The drill's axis: from the end behind to the goal in force.
+    /// D23 `--nudge`: the goal as declared at `frame`, moved `NUDGE` across the axis to one side or the other every
+    /// `nudge` frames since the first order (the goal itself without the arm).
+    pub fn nudged_goal(&self, frame: i32) -> Vec3 {
+        let (Some(every), Some(first)) = (self.nudge, self.first_order) else { return self.toward };
+        let step = (frame - first).max(0) / every.max(1);
+        let side = if step % 2 == 0 { 1.0 } else { -1.0 };
+        let axis = self.axis();
+        let norm = axis.x.hypot(axis.z).max(1.0);
+        Vec3 { x: self.toward.x - axis.z / norm * NUDGE * side, y: self.toward.y, z: self.toward.z + axis.x / norm * NUDGE * side }
+    }
+
+    /// D23 `--late`: whether the rear party still stands out of the group at `frame`.
+    pub fn rear_waits(&self, frame: i32) -> bool {
+        match (self.late, self.first_order) {
+            (Some(late), Some(first)) => frame < first + late,
+            (Some(_), None) => true,
+            _ => false,
+        }
+    }
+
     pub fn axis(&self) -> Vec3 {
         let behind = if self.toward == self.goal { self.start } else { self.goal };
         Vec3 { x: self.toward.x - behind.x, y: 0.0, z: self.toward.z - behind.z }
@@ -811,7 +847,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back
