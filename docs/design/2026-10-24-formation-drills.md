@@ -851,6 +851,31 @@ engine, not a guess):
   only because the body stopped at the goal), which is the host's decision by design (the hands' words; the duel's
   straggler rule). Next: the pianist game on the target line with chunks 3-5 and D22 in one binary.
 
+  **Live, migration-3-1 (2026-10-25 evening, `run/matches/1792955667-migration-3-1`, timeout at 40:00; the three
+  bodies of size marched 741 / 630 / 566 s at formed 0.17 / 0.36 / 0.31, 0.29 / 0.46 / 0.45 counting the body alone
+  without joiners; 38 / 19 / 5 anchor snaps; 286 / 197 / 121 s with more than half the body away or fled).** The
+  ground-rebuild sawtooth is gone (no snap without a new order). Four shapes the drills never had, each read from the
+  record of the 26-member group Z2 (`run/group_march.py`, the sample's `groups`, the `d` lines):
+  - *The lab's cluster is the densest.* The hands join every new unit to the group at the lab, 3,000 behind; a
+    re-declared order (a follow step, an attack party that moved) sets `reaim`, and when the fresh joiners at the lab
+    outnumber the front the dense centroid is theirs: 16:44 the anchor left its one marching member for the joiner,
+    16:47 it went to the lab's four (anchor back 913), the front member away. The D22 rule with a feeder is the D21
+    sawtooth by another road.
+  - *A set-down with the body fleeing lands on the stragglers.* `reanchor` and the `reaim` path read the non-fleeing
+    members only; at 20:18 (a shell split, 6 of 8 artillery fleeing) and 20:26 (a go with 20 of 23 fleeing) the anchor
+    went 1,500-1,850 to the two or three not fleeing, near home, and marched from there while the body, done fleeing,
+    stood away for a minute (20:26 to 20:49 nobody formed).
+  - *Files to one with 46 members.* W4's and Z2's bodies of 40-48 tanks: at 24:15 the room at the anchor's cell took
+    the files to 1, the column 46 ranks of 64 deep (1,800 elmos), every slot flung 300-1,700, 27 members behind
+    then 25 away; the anchor marched on at full pace (away holds nothing) and the body closed only after the files
+    came back to 6 at 24:21, 40 s later. The narrowing was sized for twelve.
+  - *The anchor leaves a body that is mostly away.* The D22 straggler rule read at the scale of a body: in 197 of
+    Z2's 583 marching seconds (286 of W4's 741) more than half the non-joining members were away or fled while the
+    anchor walked at the pace. The anchor was over 600 from its body's centroid in 121 of Z2's marching seconds.
+  Not the engine's: the hands re-declare the group every 10-40 s (follow, fight-to, attack, shell, go, hunt; four
+  declarations in three seconds at 20:16-20:19), each shell a split into two new groups and a merge back; a group's
+  reach of the picks is Jev's. The hands' chunk 6 and the fixes for the four shapes await the user's word (§6).
+
 ## 4. The drills, in order, with the bars the baselines will set
 
 | # | drill | what it measures | the bar proposed (the baselines replace it) |
@@ -1234,3 +1259,10 @@ Still open:
 - The maps for drill 6 beyond Quicksilver, Great Divide and Altored Divide (Cape Violet's shore, Isidis Crack).
 - The engine's pathing through the shim as the truth for reachability where the grid is blind (footprints,
   buildings, wrecks), deferred by D17; a word for the approach under long-range area fire (item 17).
+- From migration-3-1 (D22's four live shapes, above): the dense centroid against a feeder's cluster at the lab (the
+  body that marched, not the biggest cluster; or joiners excluded until once formed); the set-down while the body
+  flees (the fleeing members' places are the body's; or no set-down until the flee ends); a depth bound on the files
+  (never a column deeper than the body's width allows; narrowing read for the lead ranks only); the pace held when
+  the body is mostly away (a body share below which the anchor waits, or the away members ordered to close). Which
+  of these the engine owns and which are the hands' (the straggler wait; joining at the lab against joining at the
+  front) is the next ruling.

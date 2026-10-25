@@ -281,3 +281,20 @@ review's findings are its amendment.
 2. **Dies for these groups:** the per-unit Fights of the shell move (the hands order nobody). **Stays:** the standoff
    and screen placement (the hands' data), the arrival rule (the artillery's anchor at the standoff ends the walk in a
    hold that keeps shelling, so the screen stays between), the menu's shell key and words.
+
+### migration-3-1, the first game with chunks 3-5 and D22 (2026-10-25 evening)
+
+The arena target line on seed 20 (`run/matches/1792955667-migration-3-1`, da41bd6, claude2, +3.0 points of the 7-day
+window): timeout at 40:00, undecided. 137 declared groups; three bodies of size (W4 46 tanks, Z2 25, R6 16) marched
+741 / 630 / 566 s at formed 0.17 / 0.36 / 0.31 (migration-2-2's bodies: 0.29 / 0.39 / 0.19), 0.29 / 0.46 / 0.45
+counting the body without the joiners streaming from the lab. The economy: 34 extractors at 24:00, 23 from 32:00; metal
+banked at 9,000-10,800 from 24:00 to 32:00 with one lab; twelve solars lost at home to Pawns at 10:00. Formation
+findings and the engine's open items in the formation-drills design (D22, "Live, migration-3-1"; §6). The hands' part,
+read from Z2's `d` lines: the group was re-declared every 10-40 s (follow K1 → fight_to → attack → shell → fight_to
+shelling → attack → attack → go → attack → attack → go → send 2 → shell → attack → go → go ... 35 changes in 10 min),
+four declarations in the three seconds 20:16-20:19; each shell split the lane's group in two new ones (`group_Z2` the
+artillery, `group_Z2_screen`) and the next pick merged them, a set-down each way (20:18, anchor 1,850 from the body).
+Every new unit was joined to the main group at the lab, 3,000 behind the front (joining 5,861 member-seconds of Z2's
+729 declared seconds, 17,180 of W4's 882). Not changed: the picks' cadence is Jev's (the menu rework ruling: alternation
+among like-rated courses is fine); whether the lane should ride out a re-declaration without a set-down, and whether a
+joiner belongs to the marching group at the lab or at the front, are the rulings to ask.
