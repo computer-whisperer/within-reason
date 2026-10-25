@@ -216,6 +216,7 @@ impl Territory {
             assist_factor: o.assist_factor,
             plant_rings: plant_rings.clone(),
             help_factor: o.help_factor,
+            mobile_help: o.mobile_help,
             nanos_per_factory: o.nanos_per_factory,
             max_nanos: o.max_nanos,
             farm_big: o.farm_big,

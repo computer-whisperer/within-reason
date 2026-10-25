@@ -38,9 +38,12 @@ works from the next one, which is conservative by half a bucket on average.
   (`Palette::roster` with soldiers off); later the soldiers and turrets of the territory stage. The commander is in
   `U` as a builder type with a fixed count of one.
 - `B ⊆ U`: the builder types: the commander, each mobile builder, each factory, the construction turret.
-- `can(b, u)`: `b` builds `u` (the build options). Two additions to the raw options, both of which the engine allows:
-  a mobile builder assists any product of a standing factory (a guard order), and a construction turret helps any
-  frame in its reach, which the model takes as everything but extractors and their upgrades (those stand afield).
+- `can(b, u)`: `b` builds `u` (the build options). Three additions to the raw options, all of which the engine allows:
+  a mobile builder assists any product of a standing factory (a guard order), a construction turret helps any
+  frame in its reach, which the model takes as everything but extractors and their upgrades (those stand afield),
+  and, under `mobile_help`, a mobile builder helps the frames of an extractor it cannot start (the basic constructor
+  on the moho's; before terr98-100 every upgrade was priced on the advanced constructors' power alone, and the program
+  bought twice his count of them; with the pair a few fewer and the marks level).
 - Per unit type `u`: metal cost `cm[u]`, energy cost `ce[u]`, build time `bt[u]` (build-power-seconds), build power
   `bp[u]` (0 for non-builders), net constant energy `em[u]` (production less upkeep: a solar +20, an extractor -3,
   a tier-2 extractor -20, a fusion +750), wind cap `wc[u]`, metal and energy storage `sm[u]`, `se[u]`, converter
@@ -72,7 +75,11 @@ works from the next one, which is conservative by half a bucket on average.
    factories' own: `Σ_{b mobile} Σ_{u a product} x[b, u, t] ≤ A · Σ_f bp[f] · n[f, t] · Δ`, `A = 2` to start (the
    yard clears between units; the distilled bot's games showed three turrets on one plant did not spend). The
    construction turret's power is bounded by what stands in its reach only through the same factor on its own
-   capacity; geometry is the hands'.
+   capacity; geometry is the hands'. A mobile builder's help on the upgrade frames it cannot start is at most `M` times the
+   mobile starters' direct power on the column (3d, `mobile_help`; 0.35 to start: thebluegecko's basic constructors
+   put 26 % of the builder-seconds on his moho frames, his advanced 73 %; terr100 level at every mark with 2-7 fewer
+   advanced constructors by 20:00, the hands' frame chooser counting the walk from terr100; terr98-99 invalid, the
+   hands' faults, `bots/territory/README.md` T-DISPATCH).
 4. **Metal.** `m[t+1] ≤ m[t] + Δ · (im[t]) + cf · c[t] - Σ_u cm[u] · Σ_b x[b, u, t] / bt'[b, u]` with the income
    `im[t] = Σ_u mm[u] · n[u, t] + Σ_u ex[u] · ā · n[u, t]` over the extractor types, `ā` the mean amount of the
    spots in play (the refinement for maps with unequal spots: a variable `z[k, t]` per spot, ordered nearest first,

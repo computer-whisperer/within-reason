@@ -80,6 +80,14 @@ pub struct LpOptions {
     /// buys turrets as free build power and runs a converter spiral to 4,000 metal a second (the first solve on
     /// terr5-all's seed 1: 441 turrets, 2,900 converters).
     pub help_factor: f64,
+    /// Build power a mobile builder may put on the frames of an extractor upgrade it cannot start (the basic
+    /// constructor on the moho's), per column and bucket, as a multiple of the mobile starters' direct power on it; 0 is no such
+    /// pair. Without it every upgrade is priced on the advanced constructors' power alone and the program buys the
+    /// constructors that implies: 29-32 by 15:00 against thebluegecko's 15 (terr97). His basic constructors put
+    /// 26 % of the builder-seconds on his moho frames, his advanced 73 % (his record of 2026-10-21, the per-second
+    /// builder targets): 0.35 of the starters' power. Extractors only: the farm's frames are the turrets' (row 3b),
+    /// and a basic constructor's share there would be a walk for a hundredth of the work (terr59's help flood).
+    pub mobile_help: f64,
     /// Construction turrets at most, per factory standing: a turret's reach holds a few frames round a factory and
     /// no more (the first solves bought 285-441 turrets).
     pub nanos_per_factory: f64,
@@ -188,6 +196,7 @@ impl Default for LpOptions {
             assist_factor: 2.0,
             plant_rings: Vec::new(),
             help_factor: 3.0,
+            mobile_help: 0.0,
             nanos_per_factory: 6.0,
             max_nanos: 0.0,
             farm_big: 0.0,
@@ -515,6 +524,13 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
                 Kind::Direct
             } else if mobile(b) && def.role != Role::Factory && products.contains(&u) {
                 Kind::Assist
+            } else if options.mobile_help > 0.0 && mobile(b) && b != commander && def.role != Role::Factory && is_upgrade(u) && builders.iter().any(|x| mobile(*x) && units.list[*x].builds.contains(&u)) {
+                // A mobile builder on the frame of an extractor upgrade it cannot start (the engine lets any builder
+                // repair any frame): the basic constructor's help on the mohos, bounded by row 3d to `mobile_help` of
+                // the mobile starters' direct power on the column. The walk is the upgrade's (the closure above).
+                // Upgrades only: on the basic extractor the pair would be the advanced constructor's, a dear builder
+                // walking to a cheap frame.
+                Kind::Help
             } else if def.role == Role::Nano && products.contains(&u) {
                 // A turret's assist on an advanced factory, under its own row (its Help pair here was bounded to
                 // nothing: row 3b counts no factory's direct power).
@@ -806,7 +822,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     }
     // 3b. Help: per column and bucket, the turrets' power on it <= H times the mobile builders' direct power on it.
     for i in 0..columns.len() {
-        let helping: Vec<usize> = pairs.iter().enumerate().filter(|(_, p)| p.column == i && p.kind == Kind::Help).map(|(p, _)| p).collect();
+        let helping: Vec<usize> = pairs.iter().enumerate().filter(|(_, p)| p.column == i && p.kind == Kind::Help && !mobile(p.builder)).map(|(p, _)| p).collect();
         if helping.is_empty() {
             continue;
         }
@@ -820,6 +836,27 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             }
             b.push(0.0);
             row += 1;
+        }
+    }
+    // 3d. Mobile help: per column and bucket, the power of the mobile builders that cannot start the type <= M times
+    // the mobile starters' direct power on it (his basic constructors' share of the moho frames, 0.35).
+    if options.mobile_help > 0.0 {
+        for i in 0..columns.len() {
+            let helping: Vec<usize> = pairs.iter().enumerate().filter(|(_, p)| p.column == i && p.kind == Kind::Help && mobile(p.builder)).map(|(p, _)| p).collect();
+            if helping.is_empty() {
+                continue;
+            }
+            let direct: Vec<usize> = pairs.iter().enumerate().filter(|(_, p)| p.column == i && p.kind == Kind::Direct && mobile(p.builder)).map(|(p, _)| p).collect();
+            for t in 0..buckets {
+                for &p in &helping {
+                    put(row, x_at(p, t), 1.0, &mut rows_i, &mut cols, &mut vals);
+                }
+                for &p in &direct {
+                    put(row, x_at(p, t), -options.mobile_help, &mut rows_i, &mut cols, &mut vals);
+                }
+                b.push(0.0);
+                row += 1;
+            }
         }
     }
     // 3c. Turrets: a number at most (the farm), else per factory: sum_nano n[nano, t] - N sum_f n[f, t] <= 0.

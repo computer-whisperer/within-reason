@@ -45,6 +45,11 @@ pub(crate) struct Options {
     /// The program's bounds: turret help as a multiple of direct power, turrets a factory, the assist factor; the
     /// walk overheads in seconds a unit for a mobile builder (an extractor's besides the walk to its ring).
     pub help_factor: f64,
+    /// A mobile builder's help on the frames of an extractor upgrade it cannot start, as a share of the mobile starters'
+    /// direct power on the type (`mhelp`; 0 off): the basic constructors on the moho frames, as thebluegecko's put
+    /// 26 % of the builder-seconds there against his advanced constructors' 73 %. Without it the program priced every
+    /// upgrade on the advanced constructors alone and bought 29-32 of them by 15:00 against his 15 (terr97).
+    pub mobile_help: f64,
     pub nanos_per_factory: f64,
     /// The farm: turrets at most as a number (0: the bound per factory), and whether the program may take a
     /// standing building down for its metal (off until the hands give the order).
@@ -126,6 +131,7 @@ impl Default for Options {
             coarse_from: 300.0,
             coarse_dt: 120.0,
             help_factor: 40.0,
+            mobile_help: 0.35,
             nanos_per_factory: 6.0,
             max_nanos: 300.0,
             farm_big: 0.0,
@@ -186,6 +192,7 @@ impl Options {
                 "coarse_from" => options.coarse_from = value.parse().unwrap_or(options.coarse_from),
                 "coarse_dt" => options.coarse_dt = value.parse().unwrap_or(options.coarse_dt),
                 "help" => options.help_factor = value.parse().unwrap_or(options.help_factor),
+                "mhelp" => options.mobile_help = value.parse().unwrap_or(options.mobile_help),
                 "nanos" => options.nanos_per_factory = value.parse().unwrap_or(options.nanos_per_factory),
                 "maxnanos" => options.max_nanos = value.parse().unwrap_or(options.max_nanos),
                 "farmbig" => options.farm_big = value.parse().unwrap_or(options.farm_big),
@@ -218,9 +225,9 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}, com_low={}",
+            "planner={}, end={:.0}, terminal={:.0}, reserve={:.2}, emargin={:.2}/{:.0}, factory_from={:.0}, budget={}, first={}, threads={}, replan={}, spots={}, soldiers={}, line={}, factories={}, constructors={}, dt={:.0}/{:.0}/{:.0}, help={:.0}, mhelp={:.2}, nanos={:.0}, maxnanos={:.0}, farmbig={:.0}, bank={}, reclaim={}, chain={}, assist={:.0}, walk={:.0}>{:.0}@{:.0}/{:.0}/{:.0}/{:.0}, com_walk={:.0}/{:.0}, rings={}/{:.0}, commit={:.0}/{:.2}/{:.0}, plant_helpers_from={:.0}, opening={:.0}, com_leash={:.0}, com_low={}",
             if self.lp { "lp" } else { "anneal" }, self.end, self.terminal, self.energy_reserve, self.energy_margin, self.margin_from, self.factory_from, self.budget_ms, self.first_budget_ms, self.threads, self.replan / 30, if self.all_spots { "all" } else { "half" }, if self.soldiers { "on" } else { "off" }, self.line, self.factories, self.constructors,
-            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash, if self.com_low_after { "after" } else { "guard" }
+            self.dt, self.mid_dt, self.coarse_dt, self.help_factor, self.mobile_help, self.nanos_per_factory, self.max_nanos, self.farm_big, if self.bank { "on" } else { "off" }, if self.reclaim { "on" } else { "off" }, if self.chain { "on" } else { "off" }, self.assist_factor, self.walk_extractor, self.walk_late, self.walk_late_from, self.walk_upgrade, self.walk_base, self.walk_factory, self.commander_walk_base, self.commander_walk_factory, self.rings, self.ring_overhead, self.commit_within, self.commit_at, self.commit_afford, self.plant_helpers_from, self.opening_spots, self.com_leash, if self.com_low_after { "after" } else { "guard" }
         )
     }
 }

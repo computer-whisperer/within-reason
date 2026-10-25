@@ -517,3 +517,42 @@ fn the_linear_program_puts_turrets_on_a_factorys_products_when_allowed() {
     let basic_plan = solve(units, &scenario, &state, &[mex, units.index("armck").unwrap()], &with).unwrap();
     assert!(basic_plan.flows.iter().all(|f| !(f.kind == Kind::Assist && f.builder == nano)), "no turret assist on a basic lab's products");
 }
+
+/// With `mobile_help` the program puts a basic constructor's power on the upgrade frames it cannot start, bounded to
+/// that share of the advanced constructors' direct power on the type (terr98; thebluegecko's basic constructors
+/// put 26 % of the builder-seconds on his moho frames, his advanced 73 %). Off, no such flow.
+#[test]
+fn the_linear_program_lets_basic_constructors_help_upgrades_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..20).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots.clone(), Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let moho = units.index("armmoho").unwrap();
+    let cv = units.index("armcv").unwrap();
+    let acv = units.index("armacv").unwrap();
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    for s in &spots {
+        state.standing.push(Standing { unit: mex, site: s.at, pays: 2.0 });
+    }
+    state.builders.push(StateBuilder { unit: acv, place: HOME, job: None });
+    for _ in 0..6 {
+        state.builders.push(StateBuilder { unit: cv, place: HOME, job: None });
+    }
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, ..Default::default() };
+    let with = LpOptions { mobile_help: 0.35, ..without.clone() };
+    let plain = solve(units, &scenario, &state, &[mex, moho], &without).unwrap();
+    let plan = solve(units, &scenario, &state, &[mex, moho], &with).unwrap();
+    let power = |plan: &buildorder::lp::LpPlan, kind: Kind, builder: usize| -> f64 { plan.flows.iter().filter(|f| f.kind == kind && f.builder == builder && f.unit == moho).map(|f| f.per_bucket.iter().sum::<f64>()).sum() };
+    assert!(plain.flows.iter().all(|f| !(f.kind == Kind::Help && f.builder == cv)), "no help of the basic constructor without the option");
+    let (helped, direct) = (power(&plan, Kind::Help, cv), power(&plan, Kind::Direct, acv));
+    assert!(direct > 1_000.0, "the advanced constructor upgrades: {direct}");
+    assert!(helped > 100.0, "the basic constructors help the upgrades: {helped}");
+    assert!(helped <= 0.35 * direct + 1.0, "bounded to the share of the starters' power: {helped} against {direct}");
+    assert!(plan.count_at(moho, 300.0) >= plain.count_at(moho, 300.0) - 0.01, "no fewer upgrades with the help: {} against {}", plan.count_at(moho, 300.0), plain.count_at(moho, 300.0));
+}

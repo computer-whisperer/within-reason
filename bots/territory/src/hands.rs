@@ -696,7 +696,7 @@ impl Territory {
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let units = &self.game().units;
             let def = &units.list[unit];
-            let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64)> = BTreeMap::new();
+            let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64, f64, f64)> = BTreeMap::new();
             // A reclaim flow (the program taking a building down for its metal) is no build; the hands give no reclaim
             // order yet, and the bot's arm leaves the program without the column until they do. The turrets' help
             // counts toward a whole unit's planned power (T-FARM): with the turrets doing forty times the placer's
@@ -708,15 +708,27 @@ impl Territory {
             // Nor the turrets' assist on a factory (T-PLANT): in a product's credit it would send constructors to guard
             // the plant in the turrets' place; the plant's turrets are placed from those flows (farm_site).
             for f in targets.flows.iter().filter(|f| f.kind != Kind::Reclaim && units.list[f.unit].role != Role::Factory && !(units.list[f.builder].role == Role::Nano && (f.class == Class::Frames || f.kind == Kind::Assist))) {
-                let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
+                let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX, 0.0, 0.0));
                 e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
                 e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
                 e.2 = e.2.min(f.cost);
+                // This type's own help on a type it cannot start (the basic constructor on the moho frames,
+                // LpOptions::mobile_help): its planned power alone, since the column's total is the starters' and
+                // the helper cannot deliver it, against this type's own commitment on the frames. Any type's help
+                // flow on the column would turn every type's direct flow on it into help (terr98: the advanced
+                // constructor's and the turrets' help flows made the constructors' extractor flows help, and the
+                // extractors fell to the count rule, 5:00 at 29-32 against 48-55).
+                if f.kind == Kind::Help && f.builder == unit {
+                    e.3 += targets.planned_power_class(unit, f.unit, f.class, ahead);
+                    e.4 += targets.planned_power_class(unit, f.unit, f.class, now + LEAD / 3.0);
+                }
             }
             per_column
                 .into_iter()
-                .filter_map(|((u, class), (planned, soon, cost))| {
-                    let kind = if class == Class::Frames && units.list[u].speed == 0.0 {
+                .filter_map(|((u, class), (planned, soon, cost, own_help, own_help_soon))| {
+                    let help = own_help > 0.0;
+                    let (planned, soon) = if help { (own_help, own_help_soon) } else { (planned, soon) };
+                    let kind = if (class == Class::Frames || help) && units.list[u].speed == 0.0 {
                         Kind::Help
                     } else if def.builds.contains(&u) {
                         Kind::Direct
@@ -725,13 +737,19 @@ impl Territory {
                     } else {
                         return None;
                     };
-                    let committed = if class == Class::Frames { self.frames_power(u, targets.t0) } else { self.hands.committed.get(&(u, class)).copied().unwrap_or(0.0) };
+                    let committed = if help {
+                        self.frames_power(u, targets.t0, Some(unit))
+                    } else if class == Class::Frames {
+                        self.frames_power(u, targets.t0, None)
+                    } else {
+                        self.hands.committed.get(&(u, class)).copied().unwrap_or(0.0)
+                    };
                     let credit = planned - committed;
                     // A whole unit starts at half its cost of credit; help on frames at any. With the frames in their
                     // own column the standing orders no longer seed the whole-unit credits, and on any credit the
                     // hands started an advanced fusion at every re-plan (terr31: four in minute thirteen, 39,000
                     // metal, the upgrades refused by the consumers' budget for three minutes, the metal at zero).
-                    let enough = if class == Class::Frames { credit > 0.0 } else { credit >= START_AT * cost };
+                    let enough = if class == Class::Frames || help { credit > 0.0 } else { credit >= START_AT * cost };
                     enough.then_some((u, class, kind, credit, cost, soon - committed))
                 })
                 .collect()
@@ -790,7 +808,7 @@ impl Territory {
                     }
                 }
                 Kind::Help => {
-                    if let Some(frame) = self.frame_to_finish(u, unit) {
+                    if let Some(frame) = self.frame_to_finish(u, unit, builder.pos) {
                         commands.push(Command::Repair { unit: id, target: frame, queue: false });
                         self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
                         self.note_order(id, &What::Help { frame }, "flows");
@@ -1068,8 +1086,9 @@ impl Territory {
 
     /// Build-power-seconds standing on the frames of `u` since the plan's start `t0`, the lead ahead counted: the
     /// orders building them, the help on them, and the guards on a factory making one, each at its builder's
-    /// power from when it arrived. The live commitment of a Frames column.
-    fn frames_power(&self, u: usize, t0: f64) -> f64 {
+    /// power from when it arrived. The live commitment of a Frames column; with `by`, the builders of that type
+    /// only (the helpers' own commitment, for a type that cannot start `u`).
+    fn frames_power(&self, u: usize, t0: f64, by: Option<usize>) -> f64 {
         let units = &self.game().units;
         let now = self.frame as f64 / SECOND as f64;
         let frame_unit = |frame: &UnitId| self.own.get(frame).and_then(|f| self.unit_index(f.def));
@@ -1083,23 +1102,35 @@ impl Territory {
                 What::Assist { factory, .. } => factory_making_u(factory),
             })
             .filter_map(|(id, o)| {
-                let w = units.list[self.unit_index(self.own.get(id)?.def)?].worker_time;
+                let kind = self.unit_index(self.own.get(id)?.def)?;
+                if by.is_some_and(|b| b != kind) {
+                    return None;
+                }
+                let w = units.list[kind].worker_time;
                 let since = (o.arrived.unwrap_or(o.given) as f64 / SECOND as f64).max(t0);
                 Some(w * ((now - since).max(0.0) + LEAD))
             })
             .sum::<f64>()
     }
 
-    /// The frame of `u` that finishes soonest with `builder`'s power added to what is on it.
-    fn frame_to_finish(&self, u: usize, builder: usize) -> Option<UnitId> {
+    /// The frame of `u` that finishes soonest with `builder`'s power added to what is on it, counted from `from`:
+    /// the walk first, then the work left on arrival at the power then on it. A frame that finishes before the
+    /// builder gets there is passed over (terr99: chosen by the finish alone, the help on the moho frames went to the
+    /// one nearest done, 2,000-3,800 elmos off; it finished within 3.5 s, the order ended with it and the next
+    /// nearest done was given, 50 frames a constructor in five minutes and none reached).
+    fn frame_to_finish(&self, u: usize, builder: usize, from: Vec3) -> Option<UnitId> {
         let units = &self.game().units;
         let mine = units.list[builder].worker_time;
+        let speed = units.list[builder].speed.max(1.0);
         self.own
             .values()
             .filter(|f| f.being_built && self.unit_index(f.def) == Some(u))
-            .map(|f| {
+            .filter_map(|f| {
                 let left = units.list[u].build_time * (1.0 - (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
-                (f.id, left / (self.power_on(f.id) + mine))
+                let on = self.power_on(f.id);
+                let walk = from.dist2d(f.pos) as f64 / speed;
+                let done_alone = if on > 0.0 { left / on } else { f64::INFINITY };
+                (walk < done_alone).then(|| (f.id, walk + (left - on * walk) / (on + mine)))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(id, _)| id)

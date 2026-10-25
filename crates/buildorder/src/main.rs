@@ -21,7 +21,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
-  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--margin-from 0] [--factory-from 0] [--assist 2] [--plant-rings armavp:30,..] [--help-factor 3]
+  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--margin-from 0] [--factory-from 0] [--assist 2] [--plant-rings armavp:30,..] [--help-factor 3] [--mobile-help 0]
                        [--nanos-per-factory 6] [--max-nanos 0] [--farm-big 0] [--bank] [--reclaim] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
                        [--walk-extractor 15] [--walk-upgrade 40] [--advanced-walk-extractor 15] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--commander-spots N] [--rings 1] [--ring-overhead 5]
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--from SECONDS (with --game: from the record's state then)] [--csv FILE]
@@ -328,6 +328,7 @@ fn linear_program(args: &Args) {
                 .collect()
         }),
         help_factor: args.number("--help-factor", 3.0),
+        mobile_help: args.number("--mobile-help", 0.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
         max_nanos: args.number("--max-nanos", 0.0),
         farm_big: args.number("--farm-big", 0.0),

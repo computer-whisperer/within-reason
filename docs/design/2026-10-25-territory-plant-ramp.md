@@ -176,6 +176,17 @@ goes in minutes 10-15 against where his went (his record, read 2026-10-24 by the
 building most of them; his advanced fusions and converters' timing), with `run/eco_marks.py --shape` on his record and the plan's `targets:`
 lines.
 
+### The advanced constructors' count, terr98-100
+
+One reading of where the metal goes was made the same day: the program bought 29-32 advanced constructors by 15:00
+against his 15, because it had no pair for a basic constructor on an upgrade frame and priced every upgrade on the
+advanced constructors alone (his basic constructors put 26 % of the builder-seconds on his moho frames). The pair,
+bounded to 0.35 of the starters' direct power (`mhelp`), moved the count by 2-7 at 20:00 and no mark (terr100, after
+two batches lost to the hands: the help flag and the frame chooser, `bots/territory/README.md` T-DISPATCH). The
+count is the plant's cadence and the upgrades' return: the plan takes an advanced constructor whenever the plant can
+make one. His fifteen are a choice, the plant reclaimed at 10:22 with the metal going to the farm, 46 basic
+aircraft and 10 advanced ones; that choice is the next thing to price.
+
 ## What could go wrong
 
 - terr67's shape, the advanced plant held at a fraction while turrets are bought for it: guarded by counting
