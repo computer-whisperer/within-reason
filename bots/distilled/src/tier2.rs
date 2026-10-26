@@ -82,11 +82,13 @@ pub(crate) struct Options {
     pub raiders: bool,
     /// `received=off`: what allies' overflow puts into the stock is not counted as income (D-RECEIVED, 2026-10-25).
     pub received: bool,
+    /// `air=off`: no aircraft plant, so no fighters and no bombers; the Nettles stay (`air.rs`, 2026-10-25).
+    pub air: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true, received: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true, received: true, air: true }
     }
 }
 
@@ -109,6 +111,7 @@ impl Options {
                 ("lane", v) => options.lane = v == "on",
                 ("raid", v) => options.raiders = v != "off",
                 ("received", v) => options.received = v != "off",
+                ("air", v) => options.air = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -117,7 +120,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             if self.field_gate { "field" } else { "income" },
             if self.fusion_first { "fusion" } else { "mohos" },
@@ -126,7 +129,8 @@ impl Options {
             if self.pause_t1 { "on" } else { "off" },
             if self.lane { "on" } else { "off" },
             if self.raiders { "on" } else { "off" },
-            if self.received { "on" } else { "off" }
+            if self.received { "on" } else { "off" },
+            if self.air { "on" } else { "off" }
         )
     }
 }
