@@ -111,7 +111,8 @@ Each step its bench rows and its register rows; what it replaces, deleted.
    he goes); the response side is tested again at step 3.
 3. **Radar and turrets, first form** (below, "Step 3: radar and turrets"), then **the guard, first form** (below,
    "Step 3b: the guard"): soldiers to the size of his army shown, at the base, answering the raids they match.
-   Stations, the guard pushing, and the planner seeing it as a draw on metal and factory time come after it.
+   Stations, the guard pushing, and the planner seeing it as a draw on metal and factory time come after it; then
+   **air cover** (below, "Step 3d: air"), the second threat vector on the same model.
 4. **Region status from the race.** Ours, contested, his. Construction respects it: cheap work may go into contested
    regions, dear work only into held ones. This is step 5 of the regions design, with the race as its source.
 5. **Cover in the planner.** The loss term: the program trades soldiers and turrets against extractors itself.
@@ -223,6 +224,77 @@ ground it has to answer for, and a raid takes the soldiers nearest it.
   holding something that no station covers. The `guard:` line's place becomes the soldiers' counts by state.
 - **Measured** against terr268-273 (the guard at the base), the overcount left as it is in both. Not kept: held on the
   branch `territory-stations` (below, "Measured").
+
+## Step 3d: air
+
+The user, 2026-10-25, after the eight-seat game on All That Glitters Extended (our six seats against thebluegecko
+and u6bkep): "Territory bot first: it seems like air is a natural extension of the existing paradigm. Air is a
+second threat vector that follows much of the same concern and rules as the ground threat vector, but with different
+units that can defend against it." On the approach below: "Agreed with the approach. apex-ai can build heavy air, so
+that is an option for test enemy."
+
+In that game his aircraft were first seen at 27:00: at least 23 Wasps (corape, the tier-2 gunship, 370 metal) and five
+Dragons (corcrwh, 5,100), counted by attacker in the territory seats' logs. Aircraft killed 771 of our units after
+28:00 (ground units 1,474), and a Dragon killed one territory seat's commander. The territory bot built nothing
+against them: aircraft are left out of the army shown, the raids and the turret choice, and no anti-air turret has
+ground strength.
+
+**What carries over.** The currency (metal, three times for a turret), the raid and the push, his force shown with
+its memory and the dead left out, the cover per region no dearer than what it guards, the type by strength per metal
+from combatsim's table, whose units carry their damage and reach against aircraft. Two ledgers, a unit counted in
+each by what it hits.
+
+**What changes.**
+
+- *The race collapses.* Aircraft fly the straight line at 150-300 a second over any ground, and nothing bounds where
+  they come from: a Wasp crosses a radar's 2,100 in 13 s. The answer is what stands in reach when they arrive, or
+  fighters; a ground anti-air vehicle (the Whistler, 55) cannot follow a gunship (159). So air cover is T-COVER's
+  shape, and the guard's has only fighters for its counterpart.
+- *The largest raid lags.* His air went from nothing to 34,000 metal within minutes of 27:00; sized to the raids at
+  our buildings, the first strike is unanswered. Air cover is sized to his whole air force shown, as the guard is to
+  his army.
+- *Turrets count everywhere, his air too.* His air strikes one place with all of it, so a place is held against it
+  only when its own anti-air matches it: an answer smaller than that loses its turrets with what they stood by.
+  Covering 95-118 extractors across the map is out of reach; the turrets go where our metal is dense, and the far
+  extractors are cheap to lose and rebuild (the model's "who leads").
+- *Concentrated.* Gunships focus fire; turrets spread one to a building die one at a time. They overlap round the
+  densest point instead, and face no side.
+
+**The first form.**
+
+- **His air shown, B.** Every armed aircraft of his (a weapon, a reach, no build menu, no movement class) seen in
+  sight or radar counts its metal for five minutes after it was last seen, and not at all once seen destroyed: the
+  guard's rules (a radar dot of one seen before keeps it counted; one never identified counts nothing).
+- **Anti-air types.** A turret type is anti-air when combatsim's table gives it more damage a second against aircraft
+  than against the ground. Its air strength is √(damage a second against aircraft × health) / metal (the bot's
+  table: the Armada's Chainsaw 2.22, the Cortex Eradicator 2.08, the Nettle and Thistle 1.87, the Ferret 1.75, the
+  flak 1.13-1.14). Ground cover (T-COVER, the turrets the guard counts when it matches a raid, and the race's armed
+  metal) counts no anti-air turret, and his aircraft are no part of the ground raid T-COVER is sized to; air cover
+  counts only them.
+- **Air cover (T-AIR).** From 3:00, as the turrets. A region holding something of ours wants an anti-air turret while
+  its anti-air weight (their metal times 3) is under B, and only when the whole answer, B over 3, is no more metal than
+  what the region guards (the same buildings T-COVER counts): a region is answered whole or not at all. The regions
+  are offered in the order of the metal they guard, home and the farm first. The next turret goes beside the
+  region's building with the most of our metal within reach against aircraft (the shortest reach among the types our
+  builders make). The want carries the region's shortfall (B over 3 less its anti-air metal, never less than the
+  cheapest type any builder of ours makes), and the builder's type is its best per metal among those costing no
+  more than that; a builder with none leaves the want to one that has (below, terr324-325). A site is not refused
+  for his aircraft near it. Against NullAI and BARb medium nothing flies and nothing is built.
+- **Who builds.** As T-COVER: a builder with no order takes the nearest wanted site within its reach (the commander
+  within its leash) before the plan's flows, the energy budget and the stock's cover holding as for any order.
+- **The `air:` line** every 30 s: B and its units by type; each region answered, with its anti-air weight and turrets;
+  the regions passed over as smaller than the answer.
+- **The arm** `air=on|off`, on by default.
+- **The air bench.** The defence bench's six starts and four seeds against Apex v0.3.3 held to its "Mass air" team
+  strategy (`--opponent Apex:v0.3.3 --profile standard --opponent-option apex_plan_force=5`), to 25:00, played out.
+  In the smoke (terr317, Comet, two games) his armed aircraft came at 14:00, Shadow bombers to twenty by 21:00 and
+  three Dragons by 22:00 in one game (16,800 metal); a Shadow killed our commander at 21:49 in the other; he keeps a
+  ground army too (air took 12,500-26,400 metal of ours a game, ground 44,000-54,000). It reads the outcome and when,
+  our commander's killer, our metal lost to aircraft and to the ground, his air metal by minute (the truth files) and
+  our anti-air metal. Today's bot first, then T-AIR; and the economy bench against NullAI, where nothing should change.
+- **Left out of the first form.** Fighters, the air guard (an air plant and the control of aircraft); his air plants
+  seen as warning before any aircraft; the Whistler; range in the measure (every candidate turret outranges the
+  gunships, 765-1,200 against 410-575); the planner pricing anti-air.
 
 ## What could go wrong
 
@@ -367,3 +439,38 @@ other id has been used, so a dead id stays dead for the game).
   and 0.66 of what he has on the map (0.84 with the overcount). The guard is sized to what came to us.
 - *Great Divide is the start that loses*: three games of four in each run, at 9.9-18.5 minutes; the other five lose
   one game of 40 over the two runs.
+
+**Step 3d, air cover (terr317-331).** Against Apex v0.3.3 held to its "Mass air" team strategy, the defence bench's
+six starts and four seeds to 25:00. The baseline is the bot as it stood (21128be, terr318-323); T-AIR is the first
+form with the type fitted to the shortfall (terr326-331).
+
+| | won | lost | to the cap | the win line | his aircraft on the map, metal a game (median) | our metal lost to aircraft a game (median; all 24) | to the ground (median) |
+|---|---|---|---|---|---|---|---|
+| baseline (terr318-323) | 1 | 20 | 3 | 5 | 3,125 | 11,108 (308,124) | 9,294 |
+| T-AIR (terr326-331) | 2 | 6 | 16 | 11 | 4,425 | 1,293 (109,641) | 14,541 |
+
+- *Air stops deciding games.* Lost to aircraft per game: Comet from his start 12,900-30,100 to 0-4,700, Comet's
+  boxes 17,500-32,600 to 1,100-22,900, Glitters 700-29,600 to 1,200-37,200 (one game, below), Mithril 0-14,600 to 0-3,800.
+  Three commanders logged killed by bombers in the baseline (two Stormbringers, a Hailstorm), none with T-AIR. A loss is the
+  engine's game over at our commander's death; the bot's last lines often do not reach the log, so the killer of
+  most commanders is unknown.
+- *Not because he flew less.* His armed aircraft ever seen on the map (distinct ids in the truth files, every 2 s)
+  came to 4,425 metal a game against 3,125, partly because the games ran longer. The anti-air killed it: on the map
+  at 20:00 he held 0-3,525 against T-AIR, up to 5,550 in the baseline.
+- *Cheap.* Our anti-air at 20:00 in the games alive was 0-5,940 metal with frames and orders (most under 2,000), at
+  25:00 80-7,010; most of it 80-metal Nettles and Thistles (the most, 63 turrets for 7,010 metal).
+- *Sized wrongly, it overspends.* With the builder's best type per metal whatever the shortfall (terr324, Comet, two
+  games), two bombers seen (300, an answer of 100) bought a 750-820 metal turret in every region, 5,300-8,600 metal a
+  game; with its cheapest type as the fallback when none fit (terr325), the advanced constructors put their 820-metal
+  flak where 250 was wanted. Hence the fitted type, and the want left to a builder that fits.
+- *Where it fails.* Glitters game 03 lost 37,200 to aircraft and the game at 21:30: at 20:00 the air shown was 1,440
+  against 3,525 on the map, and our anti-air 1,370. The air shown is what came to us, as the army shown is (a median
+  0.65 of his army): a strike bigger than any seen arrives against an answer sized to the last.
+- *Great Divide is still lost on the ground* (three of four, at 12-21 minutes, as against BARb medium), and the losses
+  to the ground rise with the longer games.
+- *A confound.* Apex keeps a record of exchanges between games, and the arena carries it from batch to batch
+  (`run/data/opponent-state/Apex-v0.3.3`): it loaded 72 cells at the baseline's first batch and 158 at T-AIR's last,
+  so T-AIR met the more experienced Apex. Comparisons from here start every arm from one saved record.
+- *Nothing changes where nobody flies*, by construction: BARb medium flew nothing in terr299-304, NullAI never flies,
+  and with no air shown T-AIR wants nothing; the ground counts lose only anti-air turrets, which are then not built.
+  Neither bench was rerun.

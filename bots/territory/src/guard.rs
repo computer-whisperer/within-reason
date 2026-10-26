@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use bot_protocol::{Command, UnitId, Vec3};
 use buildorder::units::Role;
 
-use crate::defence::{toward, DEFENCE_FROM, RAID_NEAR, TURRET_WEIGHT};
+use crate::defence::{flies, toward, DEFENCE_FROM, RAID_NEAR, TURRET_WEIGHT};
 use crate::hands::{exit_lane, What, FACTORY_YARD};
 use crate::{Territory, MINUTE, SECOND};
 
@@ -70,38 +70,46 @@ struct Raid {
 }
 
 impl Territory {
-    /// Every hands tick: his armed mobile ground units in sight remembered at their metal (a radar dot of one seen
-    /// before keeps it counted), never one seen destroyed, and those not seen for SHOWN_FOR forgotten.
+    /// Every hands tick: his armed mobile units in sight remembered at their metal, the ground ones in the army shown
+    /// and the aircraft in the air shown (T-AIR); a radar dot of one seen before keeps it counted, never one seen
+    /// destroyed, and those not seen for SHOWN_FOR forgotten.
     pub(crate) fn observe_army(&mut self) {
         let frame = self.frame;
-        let seen: Vec<(UnitId, Option<f32>)> = self
+        let seen: Vec<(UnitId, Option<(f32, bool)>)> = self
             .enemies
             .iter()
             .filter(|e| !self.guard.dead.contains(&e.id))
             .filter_map(|e| match e.def.and_then(|d| self.def(d)) {
-                Some(info) if info.speed > 0.0 && info.weapon_count > 0 && info.reach > 0.0 && info.build_options.is_empty() && info.move_class.is_some() => Some((e.id, Some(info.metal_cost))),
+                Some(info) if info.speed > 0.0 && info.weapon_count > 0 && info.reach > 0.0 && info.build_options.is_empty() => Some((e.id, Some((info.metal_cost, flies(info))))),
                 Some(_) => None,
                 None => Some((e.id, None)),
             })
             .collect();
-        for (id, metal) in seen {
-            match metal {
-                Some(m) => {
+        for (id, seen) in seen {
+            match seen {
+                Some((m, false)) => {
                     self.guard.shown.insert(id, (m, frame));
                 }
+                Some((m, true)) => {
+                    self.air.shown.insert(id, (m, frame));
+                }
                 None => {
-                    if let Some(entry) = self.guard.shown.get_mut(&id) {
-                        entry.1 = frame;
+                    for shown in [&mut self.guard.shown, &mut self.air.shown] {
+                        if let Some(entry) = shown.get_mut(&id) {
+                            entry.1 = frame;
+                        }
                     }
                 }
             }
         }
         self.guard.shown.retain(|_, (_, at)| frame - *at <= SHOWN_FOR);
+        self.air.shown.retain(|_, (_, at)| frame - *at <= SHOWN_FOR);
     }
 
-    /// A unit of his seen destroyed is no longer in the army shown, and is not counted again.
+    /// A unit of his seen destroyed is no longer in the army or the air shown, and is not counted again.
     pub(crate) fn army_lost(&mut self, enemy: UnitId) {
         self.guard.shown.remove(&enemy);
+        self.air.shown.remove(&enemy);
         self.guard.dead.insert(enemy);
     }
 
@@ -251,7 +259,8 @@ impl Territory {
             if units.list[i].speed > 0.0 {
                 continue;
             }
-            if units.list[i].role == Role::Turret && !u.being_built {
+            // An anti-air turret is no help against the ground (T-AIR's); it is one of the buildings at stake.
+            if units.list[i].role == Role::Turret && !self.is_anti_air(i) && !u.being_built {
                 turrets.push((u.pos, self.hello.unit_defs[i].reach, units.list[i].metal_cost as f32));
             } else {
                 buildings.push((u.pos, units.list[i].metal_cost as f32));

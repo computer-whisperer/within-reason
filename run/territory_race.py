@@ -15,8 +15,13 @@ For the newest batch of each start labelled terrN-TAG-START, game by game and po
 - the guard at 10 and 15 minutes (the `guard:` lines, T-GUARD): the army he has shown beside his army on the map
   (the truth file), the guard's metal standing, and the soldiers ordered; with stations (T-STATIONS), how many stood
   and the metal they left uncovered, and the soldiers' time by what they did (summed over the `guard:` lines);
-- our metal lost to his weapons by minute window and by kind (from the `died:` lines with death=Weapon);
-- his armed metal on the map at each mark (his commander apart), and the raids that killed: at each of our losses, his armed metal within
+- our metal lost to his weapons by minute window and by kind (from the `died:` lines with death=Weapon), and by
+  killer: his aircraft, his ground units, or a blast (a weapon no unit owns: a commander's or a fusion's death);
+- our commander's death, its minute and its killer;
+- with the `air:` lines (T-AIR), at 15, 20 and 25 minutes: the air he has shown beside his air on the map, and our
+  anti-air turrets standing and their metal (standing, framed and ordered);
+- his armed metal on the map at each mark (his commander apart) and the part of it that flies (T-AIR, the air bench:
+  docs/design/2026-10-25-territory-defence.md, step 3d), and the raids that killed: at each of our losses, his armed metal within
   NEAR of it then (the truth files, every 2 s), and its fastest unit;
 - with the bot's `race:` lines (T-RACE), the warning per region by minute and the kill test: every region and
   30-second window with his armed metal near the region's spots, split by whether our armed metal in reach 15 s after
@@ -29,16 +34,19 @@ import bisect, glob, json, os, re, statistics, sys
 from collections import defaultdict
 
 STARTS = ["comet-his-start", "comet-boxes", "great-divide", "glitters", "mithril", "quicksilver"]
-WINDOWS = ((0, 5), (5, 10), (10, 15), (15, 20))
+WINDOWS = ((0, 5), (5, 10), (10, 15), (15, 20), (20, 25))
 MARKS = (5, 10, 15, 20)
+# His air on the map at these (the air bench runs to 25:00).
+AIR_MARKS = (15, 20, 25)
 NEAR = 800.0
 RACE_WINDOW = 30.0
 OURS = re.compile(r"\[territory ai=\d+\] f=(\d+) (.*)")
-DIED = re.compile(r"died: (\w+) unit \d+ at \((-?\d+),(-?\d+)\) death=Weapon")
+DIED = re.compile(r"died: (\w+) unit \d+ at \((-?\d+),(-?\d+)\) death=Weapon\(Weapon \{ name: \"(\w+)\"")
 CELL = re.compile(r"r(\d+) (\d+) warn (\S+) ours (\d+)/(\d+)/(\d+)/(\d+) turrets (\d+)")
 DEFENCE = re.compile(r"defence: raid (\d+) .*?\| turrets (\d+) \((\d+) metal\), radars (\d+)")
 GUARD = re.compile(r"guard: shown (\d+) \((\d+) units\), wanted (\d+) \| guard (\d+) standing \((\d+) \S+\), (\d+) making, (\d+) ordered \| (.*)")
 STATIONS = re.compile(r"stations: (\d+) of at most (\d+) .*\| uncovered: (.*)")
+AIR = re.compile(r"air: shown (\d+) \((\d+) units.*?answer (\d+) \| anti-air (\d+) standing of (\d+) \((\d+) metal\)")
 DOING = re.compile(r"(\d+) fighting \d+ raids, (\d+) holding, (\d+) retreating, (\d+) called home, (\d+) at stations")
 WIN_FROM = 900.0
 INCOME_MEAN = 30.0
@@ -63,6 +71,19 @@ def armed(name, d):
     return d.get("weapon_count", 0) > 0 and d.get("reach", 0) > 0 and d.get("speed", 0) > 0 and (not d.get("build_options") or name.endswith("com"))
 
 
+def flies(d):
+    return d.get("speed", 0) > 0 and d.get("move_class") is None
+
+
+def killer(weapon, defs):
+    """What fired a weapon: its unit is the name before the first underscore (`corcrwh_krowlaserh`); a weapon of no
+    unit is a blast (`commanderexplosion`, `customfusionexplo`)."""
+    d = defs.get(weapon.split("_")[0])
+    if d is None:
+        return "blast"
+    return "aircraft" if flies(d) else "ground"
+
+
 def read(path):
     dump = glob.glob(f"{path}/territory-*.json")
     if not dump:
@@ -71,7 +92,7 @@ def read(path):
     defs = {u["name"]: u for u in dump["hello"]["unit_defs"]}
     spots = [(s["x"], s["z"]) for s in dump["hello"]["metal_spots"]]
     home = tuple(dump["home"])
-    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None, "defence": [], "guard": [], "stations": [], "doing": [0] * 5, "income": []}
+    g = {"defs": defs, "spots": spots, "home": home, "lost": [], "race": [], "of_spot": None, "defence": [], "guard": [], "stations": [], "doing": [0] * 5, "income": [], "commander": None, "air": []}
     for line in open(f"{path}/engine.log", errors="replace"):
         m = OURS.search(line)
         if not m:
@@ -80,8 +101,10 @@ def read(path):
         if text.startswith("died: "):
             d = DIED.match(text)
             if d:
-                name = d.group(1)
-                g["lost"].append((t, name, float(d.group(2)), float(d.group(3)), defs.get(name, {}).get("metal_cost", 0)))
+                name, by = d.group(1), killer(d.group(4), defs)
+                g["lost"].append((t, name, float(d.group(2)), float(d.group(3)), defs.get(name, {}).get("metal_cost", 0), by))
+                if kind(name, defs.get(name, {})) == "commander" and g["commander"] is None:
+                    g["commander"] = (t, d.group(4).split("_")[0], by)
         elif text.startswith("defence: "):
             d = DEFENCE.match(text)
             if d:
@@ -93,6 +116,10 @@ def read(path):
                 n = DOING.search(text)
                 if n:
                     g["doing"] = [a + int(b) for a, b in zip(g["doing"], n.groups())]
+        elif text.startswith("air: shown"):
+            d = AIR.match(text)
+            if d:
+                g["air"].append((t, int(d.group(1)), int(d.group(4)), int(d.group(6))))
         elif text.startswith("stations: "):
             d = STATIONS.match(text)
             if d:
@@ -146,12 +173,13 @@ def his_near(g, t, x, z, radius=NEAR):
     return metal, fastest
 
 
-def his_army(g, t):
+def his_army(g, t, air=False):
+    """His armed metal on the map at the truth sample nearest t, his commander apart; with `air`, only what flies."""
     times = g["truth_times"]
     if not times or t > times[-1] + 2:
         return None
     i = min(bisect.bisect_left(times, t), len(times) - 1)
-    return sum(g["defs"].get(n, {}).get("metal_cost", 0) for n, _, _ in g["truth"][i][1] if not n.endswith("com"))
+    return sum(g["defs"].get(n, {}).get("metal_cost", 0) for n, _, _ in g["truth"][i][1] if not n.endswith("com") and (not air or flies(g["defs"].get(n, {}))))
 
 
 def main():
@@ -175,6 +203,9 @@ def main():
                 results[r["index"]] = r
         print(f"== {start} ({os.path.basename(batch)})")
         lost_by = defaultdict(float)  # (window, kind) -> metal
+        lost_to = defaultdict(float)  # (window, killer) -> metal
+        air = defaultdict(list)
+        anti_air = defaultdict(list)  # mark -> [(shown, his air on the map, turrets standing, metal)]
         raids = []  # (t, his metal near, fastest)
         army = defaultdict(list)
         warn_by = defaultdict(list)  # minute window -> warns
@@ -193,8 +224,11 @@ def main():
             idx = int(os.path.basename(path))
             r = results.get(idx, {})
             end = r.get("game_minutes", 0)
-            lost = sum(m for *_, m in g["lost"])
-            print(f"   game {idx:02}: {r.get('outcome', '?'):8} at {end:5.1f} min, {r.get('our_side', '?')}; lost to his weapons {len(g['lost'])} units, {lost:.0f} metal")
+            lost = sum(row[4] for row in g["lost"])
+            by = {k: sum(row[4] for row in g["lost"] if row[5] == k) for k in ("aircraft", "ground", "blast")}
+            com = g["commander"]
+            com_text = f"; commander killed at {int(com[0] // 60)}:{int(com[0] % 60):02} by {com[1]} ({com[2]})" if com else ""
+            print(f"   game {idx:02}: {r.get('outcome', '?'):8} at {end:5.1f} min, {r.get('our_side', '?')}; lost to his weapons {len(g['lost'])} units, {lost:.0f} metal (aircraft {by['aircraft']:.0f}, ground {by['ground']:.0f}, blasts {by['blast']:.0f}){com_text}")
             means = incomes(g)
             if means:
                 after = [(t, o / h) for t, o, h in means if t >= WIN_FROM and h > 0]
@@ -218,15 +252,23 @@ def main():
                 if q and q[-1][0] > mark * 60 - 60:
                     guard[mark].append((q[-1][1], his_army(g, mark * 60) or 0, q[-1][2], q[-1][3], q[-1][4]))
             doing = [a + b for a, b in zip(doing, g["doing"])]
-            for t, name, x, z, metal in g["lost"]:
+            for t, name, x, z, metal, by in g["lost"]:
                 w = next((w for w in WINDOWS if w[0] <= t / 60 < w[1]), None)
                 if w:
                     lost_by[(w, kind(name, g["defs"].get(name, {})))] += metal
+                    lost_to[(w, by)] += metal
                 raids.append((t,) + his_near(g, t, x, z))
             for mark in MARKS:
                 a = his_army(g, mark * 60)
                 if a is not None:
                     army[mark].append(a)
+            for mark in AIR_MARKS:
+                a = his_army(g, mark * 60, air=True)
+                if a is not None:
+                    air[mark].append(a)
+                q = [row for row in g["air"] if row[0] <= mark * 60]
+                if q and q[-1][0] > mark * 60 - 60:
+                    anti_air[mark].append((q[-1][1], a or 0, q[-1][2], q[-1][3]))
             # The race and the kill test.
             if g["race"] and g["of_spot"]:
                 members = defaultdict(list)
@@ -245,7 +287,7 @@ def main():
                             continue
                         state = "held" if ours[1] + turrets >= his else "open"
                         loss = 0.0
-                        for lt, name, x, z, m in g["lost"]:
+                        for lt, name, x, z, m, _ in g["lost"]:
                             if t < lt <= t + RACE_WINDOW and g["defs"].get(name, {}).get("speed", 0) == 0:
                                 near = min(g["spots"], key=lambda s: (s[0] - x) ** 2 + (s[1] - z) ** 2)
                                 if g["of_spot"][g["spots"].index(near)] == rgn:
@@ -271,9 +313,16 @@ def main():
         kinds = sorted({k for _, k in lost_by})
         for w in WINDOWS:
             text = ", ".join(f"{k} {lost_by[(w, k)]:.0f}" for k in kinds if lost_by[(w, k)] > 0)
-            print(f"     {w[0]:2}-{w[1]:2} min: {text or '-'}")
+            to = ", ".join(f"{k} {lost_to[(w, k)]:.0f}" for k in ("aircraft", "ground", "blast") if lost_to[(w, k)] > 0)
+            print(f"     {w[0]:2}-{w[1]:2} min: {text or '-'}{f'; to {to}' if to else ''}")
         text = " | ".join(f"{m}:00 {statistics.median(army[m]):.0f} ({len(army[m])} games)" for m in MARKS if army[m])
         print(f"   his armed metal on the map, his commander apart (median): {text or '-'}")
+        text = " | ".join(f"{m}:00 {' / '.join(f'{a:.0f}' for a in air[m])}" for m in AIR_MARKS if air[m] and any(air[m]))
+        if text:
+            print(f"   of it flying, by game: {text}")
+        for mark in AIR_MARKS:
+            if anti_air[mark]:
+                print(f"   air at {mark}:00 (games alive): his air shown / on the map {' '.join(f'{s}/{a:.0f}' for s, a, _, _ in anti_air[mark])}; anti-air standing {' / '.join(str(n) for _, _, n, _ in anti_air[mark])} ({' / '.join(str(m) for *_, m in anti_air[mark])} metal with frames and orders)")
         if raids:
             for w in WINDOWS:
                 here = [r for r in raids if w[0] <= r[0] / 60 < w[1]]

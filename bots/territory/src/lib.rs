@@ -8,6 +8,7 @@
 //! names a unit; the search picks from the roster.
 
 mod defence;
+mod air;
 mod guard;
 mod hands;
 mod his_start;
@@ -76,6 +77,7 @@ pub(crate) struct Territory {
     pub defence: defence::Defence,
     /// The soldiers' guard (T-GUARD).
     pub guard: guard::Guard,
+    pub air: air::Air,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -180,6 +182,7 @@ impl Territory {
         let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
         let origin = self.farm_origin();
         self.log_reach(&builders);
+        self.init_air();
         let mut slots = hands::farm_slots(origin, origin, 500.0, false);
         slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
         places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
@@ -471,6 +474,7 @@ impl Bot for Territory {
             race: race::Race::default(),
             defence: defence::Defence::default(),
             guard: guard::Guard::default(),
+            air: air::Air::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -551,6 +555,7 @@ impl Bot for Territory {
             self.observe_raids();
             self.observe_army();
             self.plan_defence();
+            self.plan_air();
             self.run_hands(&mut commands);
             self.run_guard(&mut commands);
             self.run_nanos(&mut commands);
@@ -570,6 +575,9 @@ impl Bot for Territory {
         }
         if tick.due() % guard::GUARD_LOG == 0 && tick.frame > 0 {
             self.log_guard();
+        }
+        if tick.due() % air::AIR_LOG == 0 && tick.frame > 0 {
+            self.log_air();
         }
         Commands(commands)
     }
