@@ -117,6 +117,8 @@ joining roles, the offsets, the abreast count, the slots' assignment, the drag b
 
 - The cap's default: 24 (six files by four ranks, under 300 deep) against 32.
 - Contact per company (built) against contact as one army (every company takes the arc together).
+- From companies-2: a muster at a slow plant releases ones and twos at the patience, each walking the map alone;
+  and the picture's company words read to the player as stragglers holding the march (it lifted the cap twice).
 - (Settled by the rework: abreast counts, gaps and the slaved anchor's pathing died with the slaving.)
 
 ## 8. Built (2026-10-25 night)
@@ -190,6 +192,11 @@ Chunks A to D are built in one sitting; E (the live game) follows.
     519 s against the army's 183. The travelling-together problem, first shape (§9).
   - regression at cap 0: plain 12 in 13-13.8 s at 0.93-1.0, the fed circuit (8) 178 s at 0.81: unchanged.
 
+- **Live, companies-2 (WON 27:01).** While capped (to 20:02) the main body's largest company stood formed 0.73, the
+  group over the game 0.44; the player lifted the cap twice, reading the picture's far companies as stragglers holding
+  the march, and the one formation that followed read 0 of 31 formed at times. The companies beside the main one were
+  ones and twos released from far musters at the patience (slow plants never fill a release of 24), walking alone.
+
 ## 9. Open after the build
 
 - Travelling together (the user: a later problem). Its first shape is the feed: a released muster takes the army's
@@ -199,5 +206,7 @@ Chunks A to D are built in one sitting; E (the live game) follows.
 - The cap's default (24) against the drills: on the 640 strip one block of 48 is still 4 s faster.
 - An assault with companies against a defended position: companies reach contact one after another.
 - The ground is the declaration's, built from every member's class: a company of bots is priced by the tanks' room.
+- From companies-2: a muster at a slow plant releases ones and twos at the patience, each walking the map alone;
+  and the picture's company words read to the player as stragglers holding the march (it lifted the cap twice).
 - (Settled by the rework: the column's price, the slaved company's way, `WAIT_FOR`, the fold into the lead and the cap
   change's re-partition.)
