@@ -346,6 +346,35 @@ not the cards). Income above the extractors' yield (reclaim and resurrection) in
 of the losers'.
 
 <!--meta
+id: M-pool-air
+layer: meta
+population: duels between people at OS 40 and above on Comet Catcher Remake 1.8 (40 games, 80 sides)
+map: Comet Catcher Remake 1.8
+dates: games 2026-08-09 to 2026-09-23; cut 2026-10-25 night from the cards re-cut over the archived records (the death events name the killer's type)
+ground: card (built by type, the air plant's clock, the income by minute) and record (every death with its killer's type)
+sources: {code: [run/replays/card.py, /ceph/christian/within-reason/run/matches-archive (the replay records), run/data/replays/manifest.jsonl]}
+status: live
+-->
+### Air in the pool
+
+**The plant.** An air plant was built by 22 of the 80 sides, begun at 10:06 / 11:48 / 14:42 (quartiles) at a metal
+income of 46 / 62 / 82, 3.1 / 4.6 / 7.4 minutes after the side first reached 30 a second (which the sides did at 7:00
+at the median, 66 of 80). Of the 44 sides that reached 30 and played five minutes more, 20 built one, 10 of them within
+five minutes of reaching it. The games end at 12:00 at the median; in the games that lasted 15 minutes or more, 17 of 30
+sides built one.
+
+**What they made.** Of the 22: fighters 13 (a median of 10), gunships (Banshees) 13 (15), bombers 5 (9), air
+constructors 5 (3). Ground anti-air was built at all by 32 of the 150 sides of the wider set (the duels at any rating on
+four maps).
+
+**What the bombers did.** Bombers killed something in six of the 75 duels of the wider set, every kill from 12:00 on,
+32 of 69 kills solars or advanced solars, 10 construction turrets, 5 resurrection bots, the rest extractors, turrets and units; the
+side that bombed won all six, five of them on the higher income at 10:00 and one on the lower (67 against 86). The
+largest pass of one bomber killed six in about twenty seconds; the field raids were waves of nine to fifteen, one
+killing 19 solars in a minute at 16:00 of a 21-minute game. Sides with an air plant that reached 30 and played on won 12
+of 20, those without 12 of 24.
+
+<!--meta
 id: M-pool-limits
 layer: meta
 population: the pool's own limits
@@ -359,8 +388,9 @@ status: live
 
 The cards carry no unit positions over time, so "held back" against "chasing" cannot be read, and a raid's answer is
 inferred from turret counts and fight cells. The killer of the first extractor is unnamed on 10 of 58 sides. A resign's
-self-destruct is counted among the winner's kills, so a hunted commander and a resign look alike at the end. Tier 2,
-air and the sea are nearly absent (no side opened with an aircraft plant; four advanced factories in 80 sides). The
+self-destruct is counted among the winner's kills, so a hunted commander and a resign look alike at the end. Tier 2
+and the sea are nearly absent (four advanced factories in 80 sides) and air is late (no side opened with an aircraft
+plant; 22 of 80 built one, at 11:48 at the median: M-pool-air). The
 numbers are nine game versions from test-30922 to test-31383 (we play test-31677) and one map; the map sheet carries the walks and
 spot counts that let a number be carried to another map, and the derivations say which numbers travel. Team games with
 people are not in the pool at all: what the people we play do in them is the people document.

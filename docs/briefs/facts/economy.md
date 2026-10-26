@@ -67,7 +67,8 @@ status: live
 ### Energy: generators
 
 A solar collector makes 20 a second while open. It closes when hit and reopens about ten seconds after the last
-hit (eight of waiting, then the dishes' turn), making nothing meanwhile; a solar field under fire is dark. An
+hit (eight of waiting, then the dishes' turn), making nothing meanwhile and taking half damage while closed; a solar
+field under fire is dark. An
 advanced solar makes 80, costs 350 metal and 5,000 energy to build, and does not close. A wind turbine makes the
 current wind strength, capped at 25: the wind wanders between the map's minimum and maximum, picking a new target
 every fifteen seconds and blending toward it, and the walk favours the top of the range, so a turbine averages about

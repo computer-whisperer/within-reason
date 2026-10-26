@@ -145,7 +145,7 @@ jostled among tanks in our records.
 <!--meta
 id: F-fight-death
 layer: fact
-sources: {code: [upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua:193-205 (windboom), 209-220 (metalmaker), 238-250 (advmetalmaker), 269-283 (energystorage), 675-689 (fusionExplosion), 753 (customfusionexplo, the advanced fusion's, same numbers as 737-752), 841-856 (commanderexplosion), 991-1000 (smallBuildingExplosionGeneric, the solar's), upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armsilo.lua (nuclear_missile), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:525-531], game: 54199a0d, claims: [K-mech-commander-blast, K-mech-buildings-explode, K-mech-missile-and-blast-deaths-unattributed]}
+sources: {code: [upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua:193-205 (windboom), 130-145 (nanoboom, the construction turret's), 209-220 (metalmaker), 238-250 (advmetalmaker), 269-283 (energystorage), 675-689 (fusionExplosion), 753 (customfusionexplo, the advanced fusion's, same numbers as 737-752), 841-856 (commanderexplosion), 991-1000 (smallBuildingExplosionGeneric, the solar's), upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armsilo.lua (nuclear_missile), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:525-531], game: 54199a0d, claims: [K-mech-commander-blast, K-mech-buildings-explode, K-mech-missile-and-blast-deaths-unattributed]}
 status: live
 -->
 ### Death blasts
@@ -154,7 +154,8 @@ What a death leaves to reclaim is in the economy's section on wrecks: worn down,
 or nothing. Some deaths also explode. A commander's death does 5,000 damage at its centre falling to nothing at 350
 elmos, to friend and foe alike; an energy storage 980 to 210; a fusion 2,650 to 240; an advanced fusion 10,600 to
 640; a nuclear missile 12,500 to 640 (2,500 to a commander). A converter bursts for 660 to 105, an advanced converter
-1,220 to 160, a solar or a wind turbine 89 to 90. Blasts chain where such buildings stand together, and our records
+1,220 to 160, a solar or a wind turbine 89 to 90, a construction turret 530 to 64 to construction turrets alone (11 to
+anything else; three quarters at its rim). Blasts chain where such buildings stand together, and our records
 often carry no attacker for a unit a blast or a missile kills.
 
 <!--meta

@@ -86,16 +86,22 @@ def main():
     limit = int(opt("--limit", "0")) or None
     only_map = opt("--map", None)
     rows = [json.loads(l) for l in open(manifest) if l.strip()]
-    # A line whose match directory has no records (an earlier failed run) is replayed again.
-    for r in rows:
-        if r.get("match") and not os.path.exists(os.path.join(REPO, r["match"], "record-0.jsonl")):
-            shutil.rmtree(os.path.join(REPO, r["match"]), ignore_errors=True)
-            r.pop("match", None)
-            r.pop("card", None)
     have = installed_versions()
     def ai_ok(r):
         kinds = {p.get("ai") for p in r.get("players", []) if p.get("ai")}
         return ais is None or (ais == "any" and kinds) or (ais == "none" and not kinds) or ais in kinds
+    # A line of this batch's scope whose match directory has neither records nor a card (an earlier failed run) is
+    # replayed again. A directory with a card and no records is a carded game whose records went to the archive: kept
+    # (2026-10-25 night, this step unscoped and blind to cards deleted all 248 card directories of the pool at the
+    # start of a Comet batch; rebuilt from the archive).
+    for r in rows:
+        if not r.get("match") or (only_map is not None and r.get("map_script") != only_map) or not ai_ok(r):
+            continue
+        here = os.path.join(REPO, r["match"])
+        if not os.path.exists(os.path.join(here, "record-0.jsonl")) and not os.path.exists(os.path.join(here, "card.json")):
+            shutil.rmtree(here, ignore_errors=True)
+            r.pop("match", None)
+            r.pop("card", None)
     todo = [r for r in rows if r.get("keep") and r.get("demo") and not r.get("match") and (only_map is None or r.get("map_script") == only_map) and ai_ok(r)]
     skipped = [r for r in todo if r["game_version"] not in have]
     todo = [r for r in todo if r["game_version"] in have][:limit]

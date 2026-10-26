@@ -105,6 +105,11 @@ pub fn sheet(input: &Input) -> Value {
     let field = |class: MoveClass, from: Vec3| seed(class, from).and_then(|(at, _)| Field::from_costs(ground, &costs(ground, class), &[at]));
 
     let mut classes = Vec::new();
+    // The spots some surface class (walking, driving, hovering, sailing) builds from some start: reachable ground
+    // within about a constructor's build distance (110-150) of the spot, the field's own snap (96) from the spot or a
+    // point 24 beside it. The rest are the air's alone (an air constructor's).
+    let mut on_foot = vec![false; spots.len()];
+    let around = |s: Vec3| [(0.0, 0.0), (24.0, 0.0), (-24.0, 0.0), (0.0, 24.0), (0.0, -24.0)].map(|(dx, dz)| Vec3 { x: s.x + dx, y: s.y, z: s.z + dz });
     for (label, units) in CLASSES {
         let Some(class) = units.iter().find_map(|u| mover(u)).map(|m| m.class) else { continue };
         let open = passable(ground, class).iter().filter(|ok| **ok).count() as f32 / cells.max(1) as f32;
@@ -113,6 +118,11 @@ pub fn sheet(input: &Input) -> Value {
             classes.push(json!({ "class": label, "ground_it_can_stand_on": format!("{:.0}%", open * 100.0), "from_our_start": "no ground on this map it can stand on" }));
             continue;
         };
+        for f in from.iter().flatten() {
+            for (i, (s, _)) in spots.iter().enumerate() {
+                on_foot[i] |= around(*s).iter().any(|p| f.distance(*p).is_some());
+            }
+        }
         let off = starts.first().and_then(|(_, p)| seed(class, *p)).map(|(_, d)| d).filter(|d| *d > ground.cell * 6.0);
         let mut to = Vec::new();
         for ((whose, p), far) in starts.iter().zip(&from).skip(1) {
@@ -167,7 +177,10 @@ pub fn sheet(input: &Input) -> Value {
         "size": [map_w as i32, map_h as i32],
         "wind": [input.wind.0, input.wind.1], "tidal": input.tidal,
         "under_water": format!("{:.0}%", water * 100.0), "ground_height": [low, high],
-        "spots": { "count": spots.len(), "metal_a_second_each_low_median_high": [values.first(), values.get(values.len() / 2), values.last()] },
+        "spots": {
+            "count": spots.len(), "metal_a_second_each_low_median_high": [values.first(), values.get(values.len() / 2), values.last()],
+            "by_air_only": (spots.iter().zip(&on_foot)).filter(|(_, reached)| !**reached).map(|((s, _), _)| json!({ "cell": cell_name(*s), "x": s.x as i32, "z": s.z as i32 })).collect::<Vec<_>>(),
+        },
         "starts": starts.iter().map(|(who, p)| json!({
             "whose": who, "x": p.x as i32, "z": p.z as i32, "cell": cell_name(*p),
             "straight_from_ours": ours.map(|o| ((p.x - o.x).hypot(p.z - o.z)) as i32),
@@ -205,6 +218,12 @@ pub fn markdown(s: &Value) -> String {
             })
             .unwrap_or_default(),
     );
+    if let Some(air) = s["spots"]["by_air_only"].as_array().filter(|a| !a.is_empty()) {
+        let mut cells: Vec<String> = air.iter().map(|p| text(&p["cell"])).collect();
+        cells.sort();
+        cells.dedup();
+        out += &format!("- {} of the spots are built by air alone: no unit that walks, drives, hovers or sails reaches within a constructor's build distance of them from a start (in {}).\n\n", air.len(), cells.join(", "));
+    }
     out += "| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |\n|---|---|---|---|---|---|---|---|\n";
     for c in s["classes"].as_array().into_iter().flatten() {
         let Some(to) = c["to_each_other_start"].as_array() else {
@@ -215,6 +234,10 @@ pub fn markdown(s: &Value) -> String {
             Value::Null => text(&c["ground_it_can_stand_on"]),
             d => format!("{} (the nearest {} from our start)", text(&c["ground_it_can_stand_on"]), text(d)),
         };
+        // One start: the row without the walk to another.
+        if to.is_empty() {
+            out += &format!("| {} | {} | {} | | | | | |\n", text(&c["class"]), ground, text(&c["spots_it_reaches_from_our_start"]));
+        }
         for t in to {
             let seconds = t["seconds"].as_object().map(|o| o.iter().map(|(u, t)| format!("{u} {}", text(t))).collect::<Vec<_>>().join(", ")).unwrap_or_default();
             let narrow = match &t["the_ways_at_their_tightest"] {

@@ -315,6 +315,22 @@ turret row's metal column against the recording's energy column into energy.md, 
 rows into surprise.md; the amphibious, seaplane and Harpoon rows wait on a water article. Not written: the matchup
 article (the sheet is 24 Armada tier-1 rows).
 
+**The air article (2026-10-25 night; the user: "air labs are common in most human matches ... air is not optional
+... I want you to do most of the analysis and derivation honestly", with the parts the replay pool shows as a meta
+section).** `derived/air.md` (D-air-not-optional: the sheet's aircraft-plant row, u6bkep's "figs" and "pre emptively
+go air" and Irishstud14's "either bomb or t2" as the heuristic; the plant's fee and the fighter's 1.9 air damage a
+second per metal against the turrets' 0.83-0.85, with the turret's better figure per energy and the coverage argument;
+one Stormbringer's pass worked from the unit files and the engine's falloff from the surface: packed solars darkened,
+not killed, 13-16 a pass at 260-320 energy a second; turbines 4-11 a pass; a converter block under 54 apart and a
+construction turret block under 32 apart (the user's addition) lost whole to the chain; the wave round a front; air
+constructors and SD-129's 25 of 148 spots by air alone, the map sheet's new line; his air in our games), out of the
+manifest until the user reads it. With it `M-pool-air` (the 40 OS-40 Comet duels re-cut from the archived records: 22
+of 80 sides built an air plant, at 62 of income at the median, 3-7 minutes after 30; bombers in six of 75 duels, the
+bomber's side won all six) and a paragraph of `M-gecko-team` (the Glitters lobby game: their tier-2 gunships against
+our six seats with no air plant); facts gained the construction turret's burst (F-fight-death) and the solar's half
+damage closed (F-eco-energy). The relay's figure checked: "around 30" is where the plant begins, at about twice that
+income in the long games, not where most build it. The 8v8 team pool's air cut is not done.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. (2026-10-23: the control that

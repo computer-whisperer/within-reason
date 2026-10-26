@@ -212,10 +212,10 @@ id: M-gecko-team
 layer: meta
 premises: [F-eco-build, F-eco-extractors]
 lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-energy-nanos]
-population: thebluegecko with u6bkep (and Covariance once) against three or four seats of ours: Eclipsed 2026-10-11, human-31 Comet 10-11, Flats and Forests 10-11, Gecko Isle 10-12 and 10-19, Azurite Shores 10-18, Center Command 10-19, Gasbag Grabens 10-20, Project SD-129 10-20
-dates: 2026-10-11 to 2026-10-20
+population: thebluegecko with u6bkep (and Covariance once) against three or four seats of ours: Eclipsed 2026-10-11, human-31 Comet 10-11, Flats and Forests 10-11, Gecko Isle 10-12 and 10-19, Azurite Shores 10-18, Center Command 10-19, Gasbag Grabens 10-20, Project SD-129 10-20; with five bot seats beside ours on All That Glitters Extended 10-25 (the air paragraph)
+dates: 2026-10-11 to 2026-10-25
 ground: record for Center Command (the engine replay's records and truth files, no card) with the ledger's reading; review (the review skill's model review) and sightings for SD-129; model for the rest; person for the user's rulings
-sources: {code: [run/matches/1792466765-replay-center-command-2v4b, run/matches/1792460593-human, run/matches/1792547311-human/00/review.md, docs/experiments.md, docs/studies/2026-10-22-episode-sweep/episodes.jsonl], claims: [K-t2-people-share-advanced-constructors-across-factions, K-t2-moho-frames-finished-by-tier-1-build-power, K-t2-people-eat-each-plant-for-the-next, K-opp-people-nuke-late-or-never]}
+sources: {code: [run/matches/1792466765-replay-center-command-2v4b, run/matches/1792460593-human, run/matches/1792547311-human/00/review.md, run/matches/1792971120-human/00/record-1.jsonl (sightings), docs/experiments.md, docs/studies/2026-10-22-episode-sweep/episodes.jsonl], claims: [K-t2-people-share-advanced-constructors-across-factions, K-t2-moho-frames-finished-by-tier-1-build-power, K-t2-people-eat-each-plant-for-the-next, K-opp-people-nuke-late-or-never]}
 status: live
 -->
 ### thebluegecko and u6bkep as a team
@@ -254,6 +254,13 @@ Persecutor that out-ranged our last base.
 **Nukes.** No silo in 21 minutes of Center Command on 31 to 34 mohos and two fusions (truth); none seen in any other
 game (floors). The user's ruling of 2026-10-20 (person): they nuke very late or never, while BARb and Apex have clocks
 of their own (the opponent documents).
+
+**Their air, All That Glitters Extended 2026-10-25 (sightings: our seat's record of everything in sight or on
+radar).** Our flagship and five bot seats against the two of them. Their air was tier 2 and late: air constructors
+from 26:57 (30 in sight at once at most), Wasp gunships from 27:17 (62 at once), Dragons from 37:07 (10). Our six seats
+built no air plant in 44 minutes; the anti-air came after the Wasps and was all ground. Three of our commanders died to
+Tzars and Shivas from 39:57, the last three under the gunships from 42:07 (read from what was in our
+seat's sight round each when it died, not from the killer: the bot seats write no record).
 
 <!--meta
 id: M-u6bkep
