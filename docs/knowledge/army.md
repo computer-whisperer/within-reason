@@ -479,9 +479,10 @@ seen and no aircraft came in a run of games.
 ### K-army-air-plant-by-30-income
 **Claim.** By 30 metal a second of income an aircraft plant is obligatory: from there on fighters, bombers and the
 rest of the air are part of a side's play, whether or not the enemy has flown.
-**Status.** stated by the user 2026-10-25 ("by 30 metal/s an air lab is considered obligatory"), as knowledge from
-experienced players not yet in this base; unmeasured.
-**Evidence.** The user's words. The timing it meets in our games: the distilled bot's income reached 30 a second at
+**Status.** stated by the user 2026-10-25 ("by 30 metal/s an air lab is considered obligatory"), and already in the
+base as thebluegecko's unit sheet (L-sheet-labs, 2026-10-23: "most pro players make air lab around 30m/s on many maps.
+Stronger on maps with low e cost"; cited by the derived brief, D-energy-second); unmeasured.
+**Evidence.** The user's words and the sheet. The timing it meets in our games: the distilled bot's income reached 30 a second at
 7-11 min against Apex v0.3.2 on Comet and 7-12 against BARb hard_aggressive (dist14-site-*), and Apex's first armed
 aircraft were seen at 10-14 min, so a plant at 30 stands before his air comes. An Aircraft Plant is 650 metal (630
 Cortex), 22 s of that income.
@@ -497,8 +498,10 @@ turret guards 765 round itself where the fighters guard every place and gather o
 cannot hit aircraft at all and a Dragon does 95 a second, so fighters lose little to gunships. A plant of 150 build
 power makes a Falcon every 23 s and draws 124 energy a second doing it: fighters come as fast as build power and
 energy allow.
-**Status.** stated by the user 2026-10-25 ("once up, fighters are apparently the cheapest anti-air by far"); the
-arithmetic from `glossary/units.csv`; unmeasured.
+**Status.** stated by the user 2026-10-25 ("once up, fighters are apparently the cheapest anti-air by far"), and
+thebluegecko's sheet (L-sheet-labs: "fighters are the strongest anti bomber per cost. bombers are the lowest cost way
+to destroy opponents E production after the map is split"); the arithmetic from `glossary/units.csv`; measured in the
+distilled bot's air bench (dist15-40: our metal lost to aircraft per metal of his air built 2.38 to 0.70).
 **Evidence.** The user's words; the glossary's figures. To kill in ten seconds what was seen of the eight-seat game's
 air at 27:00 (23 Wasps and 5 Dragons, 34,000 metal and 119,000 health) takes about 86 Falcons (6,300 metal); the
 territory bot's turret answer (T-AIR) holds a third of the air shown, 11,300 metal, in every region it guards.
