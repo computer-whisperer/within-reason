@@ -170,7 +170,8 @@ fn main() -> io::Result<()> {
                     s(d.depth_contact), s(d.width_contact), d.ramp_half_s.map_or("-".to_string(), |v| format!("{v:.1}")), d.ramp_all_s.map_or("-".to_string(), |v| format!("{v:.1}")),
                     d.recover_s.map_or(String::new(), |v| format!(", recovered {v:.0} s after the turn")),
                     if d.kind == "gather" { format!(", produced {}, join median {} s", d.produced, s(d.join_median_s)) } else { String::new() }
-                        + &if d.kind == "circuit" { format!(", laps {}, formed share {}, produced {}, joined {} (median {} s), left behind {}", d.laps, d.formed_share.map_or("-".to_string(), |v| format!("{v:.2}")), d.produced, d.joined, s(d.join_median_s), d.left_behind) } else { String::new() },
+                        + &if d.kind == "circuit" { format!(", laps {}, formed share {}, produced {}, joined {} (median {} s), left behind {}", d.laps, d.formed_share.map_or("-".to_string(), |v| format!("{v:.2}")), d.produced, d.joined, s(d.join_median_s), d.left_behind) } else { String::new() }
+                        + &if d.companies > 1 { format!(", {} companies (their formed share {})", d.companies, d.company_formed.map_or("-".to_string(), |v| format!("{v:.2}"))) } else { String::new() },
                     if d.kind == "into" { format!(", first shot {} s, shot ramp {}/{} s, target died {}x", s(d.first_shot_s), s(d.shot_ramp_half_s), s(d.shot_ramp_all_s), d.target_deaths) } else { String::new() }
                 );
                 return;
@@ -388,7 +389,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0 };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -512,6 +513,7 @@ fn parse_args() -> io::Result<Options> {
                 drill_opts.churn = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f > 0);
             }
             "--churn-def" => drill_opts.churn_def = value(),
+            "--cap" => drill_opts.cap = number(value()) as usize,
             "--late" => {
                 let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--late takes seconds, such as 4"));
                 drill_opts.late = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f >= 0);
@@ -668,7 +670,7 @@ fn parse_args() -> io::Result<Options> {
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
-       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
+       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
             (a deployed army round the map while a lab feeds it: design D12)

@@ -1755,7 +1755,7 @@ impl Brain {
                 let rally = pianist.rally.get(&(unit.id, None)).map(|(c, g)| (*c, format!("group_{g}")));
                 // Under `by_type`: the groups per unit type this factory has founded.
                 let by_type: Vec<String> = pianist.rally.iter().filter(|((f, def), _)| *f == unit.id && def.is_some()).map(|((_, def), (_, g))| format!("{} group_{g}", self.name(def.unwrap()))).collect();
-                let join_in = allowance.as_ref().and_then(|a| a.join_in).map_or(String::new(), |n| format!("; its new soldiers wait beside it and walk to their group {n} together (`join_in`)"));
+                let join_in = allowance.as_ref().and_then(|a| a.join_in).map_or(String::new(), |n| format!("; its new soldiers muster beside it and walk to their group {n} together (`join_in`)"));
                 entry["output_joins"] = json!(match (named.as_deref(), rally) {
                     (Some("new"), Some((founded, g))) if founded == call => format!("{g}, the fresh group your `produce` asked for, founded by its first soldier{join_in}"),
                     (Some("new"), _) => format!("a fresh group of this factory's own from the next soldier (`produce` ... group){join_in}"),
@@ -1860,6 +1860,10 @@ impl Brain {
                 let to = goal.map(|p| self.place_words(&places, p));
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
                 entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
+                // The companies (the companies design §4), when the army is more than one or a muster stands.
+                if state.companies.len() > 1 || state.companies.iter().any(|c| c.role == micro::Role::Mustering) {
+                    entry["companies"] = json!(company_words(state, self.company_of(&group.name), &|p| self.place_words(&places, p)));
+                }
             }
             // A shelling group's screen, the lane's second formation of it (chunk 5).
             if group.shelling && let Some(state) = self.lane.group_state(&group.screen_lane_name()) {
@@ -1886,19 +1890,8 @@ impl Brain {
                     *m.entry(plant).or_default() += 1;
                     m
                 });
-                let waiting: BTreeMap<String, usize> = group.waiting.iter().fold(BTreeMap::new(), |mut m, (plant, _)| {
-                    *m.entry(self.actor_name(*plant)).or_default() += 1;
-                    m
-                });
-                let waiting_words = waiting
-                    .iter()
-                    .map(|(plant, n)| {
-                        let asked = self.allowed_units(plant).and_then(|a| a.join_in).unwrap_or(0);
-                        format!("; {n} of them wait beside {plant} until {asked} stand, to walk together (its `join_in`)")
-                    })
-                    .collect::<String>();
                 entry["reinforcements"] = json!(format!(
-                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet{waiting_words}",
+                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet",
                     body.joining.len(),
                     from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
                 ));
@@ -2140,6 +2133,40 @@ impl Brain {
 /// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
 /// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the unit the arc
 /// stands on, when it does. A column (two files or fewer) says the ground narrowed it.
+/// The army's companies (the companies design §4): how many of up to the cap, and each by role: the lead and where
+/// it stands, a slaved company by its place beside or behind the lead, a joining one by what it has left to walk, a
+/// muster by its plant's place and what releases it.
+pub(crate) fn company_words(state: &micro::GroupState, cap: usize, place: &dyn Fn(Vec3) -> String) -> String {
+    use micro::Role;
+    let lead = state.companies.iter().find(|c| c.role == Role::Lead);
+    let mut parts: Vec<String> = Vec::new();
+    for c in &state.companies {
+        let formed = format!("{} of {} formed", c.formed, c.members);
+        parts.push(match c.role {
+            Role::Lead => format!("the lead, {} ({formed}) at {}", c.members, place(c.anchor)),
+            Role::Slaved => {
+                let rel = lead.map_or(String::new(), |l| {
+                    let (dx, dz) = (c.anchor.x - l.anchor.x, c.anchor.z - l.anchor.z);
+                    let along = dx * state.heading.0 + dz * state.heading.1;
+                    let across = -dx * state.heading.1 + dz * state.heading.0;
+                    let side = if across.abs() >= along.abs() { if across > 0.0 { "left of" } else { "right of" } } else if along < 0.0 { "behind" } else { "ahead of" };
+                    format!(" {:.0} {side} the lead", dx.hypot(dz))
+                });
+                format!("one of {} ({formed}){rel}", c.members)
+            }
+            Role::Joining => format!("one of {} joining the army, {} to go", c.members, c.at.map_or("-".to_string(), |p| format!("{:.0}", p.dist2d(c.anchor)))),
+            Role::Mustering => format!(
+                "{} mustering at {} (they leave at {} or after {} s)",
+                c.members,
+                c.at.map_or("their plant".to_string(), place),
+                cap.max(1),
+                micro::army::MUSTER_PATIENCE / 30
+            ),
+        });
+    }
+    format!("{} compan{} of up to {cap}: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
+}
+
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();
@@ -2207,6 +2234,7 @@ mod tests {
             files: 6,
             room: Some(300.0),
             way: Some(2345.0),
+            companies: Vec::new(),
         };
         let words = super::formation_words(&state, 8, Some("spot_3 (D4)"), "(C4)", None);
         assert_eq!(words, "advancing to spot_3 (D4) in ranks of 6, 3 of 8 formed, 2 behind (the farthest 10 s), 1 joining, 1 cut off by the ground; walking at 80% of its pace, 3 points to go, 2345 on its way");

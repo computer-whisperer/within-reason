@@ -15,7 +15,7 @@ duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase 
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
-     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on|ranks] [--reps N] [--seeds a,b] [--time-limit S] ...
+     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
 duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
                                        a deployed army round a loop across the map while a lab feeds it (below)
@@ -464,3 +464,10 @@ Without `--lane`, no micro beyond the `line` formation (no kiting, no retreat, n
 targeting); no terrain, no support (radar, repair, turrets behind the line), one army size. Both sides charge: a
 unit that would normally hold at its range and be approached is tested as an attacker too. See the caveats in
 K-units-duel-caveats.
+
+**`--cap N`** (the companies design, `docs/design/2026-10-25-companies.md`, 2026-10-25 night) declares the drill's army
+with a company cap: the lane partitions it into companies of at most N (one lead on the way, the rest slaved beside or
+behind it as the ground's room allows), and a gather's or circuit's rally is the muster, where fed units gather and
+leave as a company when N stand or after the muster's patience. The report's `companies` is the most the army had at
+once and `company_formed` the mean of the marching companies' own formed shares; `WITHIN_REASON_GROUP_DEBUG=1` prints
+FOUNDED / RELEASE / SLAVED / MERGE lines. 0 (the default) is one formation, the drill as before.

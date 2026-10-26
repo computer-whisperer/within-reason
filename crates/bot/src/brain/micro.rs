@@ -45,7 +45,7 @@ impl Brain {
     /// What each soldier is priced against in the lane: the pianist's groups' commitments and footwork, per unit; a
     /// hunting or roving group is declared to the lane as a group of that kind (design D15), and a ground group
     /// holding or walking as a formation of kind Hold, Go or FightTo (the migration design, chunk 2: `Group::declared`;
-    /// its newcomers waiting beside their plant are left out until released). Every other group's soldiers (air,
+    /// its order carries the company cap and the muster points: the companies design §4). Every other group's soldiers (air,
     /// engaging, following, shelling) are loose soldiers to the lane until their chunks.
     pub(super) fn note_commitments(&mut self) {
         let mut commitment: HashMap<UnitId, Commitment> = HashMap::new();
@@ -90,7 +90,12 @@ impl Brain {
                             super::pianist::GroupTask::Engage { .. } => micro::GroupKind::FightTo,
                             _ => micro::GroupKind::Hold,
                         };
-                        let members: Vec<UnitId> = group.members.iter().copied().filter(|id| !group.waiting.iter().any(|(_, w)| w == id)).collect();
+                        let members: Vec<UnitId> = group.members.clone();
+                        // The companies (the companies design §4): the player's cap for the group, the muster points
+                        // of the plants feeding it and their `join_in` as the count that walks together.
+                        let cap = self.company_of(&group.name);
+                        let (musters, release) = pianist.musters.get(&group.name).cloned().unwrap_or_default();
+                        let company = |order: micro::GroupOrder| micro::GroupOrder { cap, musters: musters.clone(), release, ..order };
                         // A shelling group is two formations (chunk 5): its artillery at the standoff, the rest at the
                         // screen; the hold its walk arrives in keeps both where their anchors stand.
                         let screen = group.screen.filter(|_| group.shelling);
@@ -104,10 +109,10 @@ impl Brain {
                                 micro::GroupKind::Hold => self.lane.group_state(&screen_name).map_or(screen_at, |s| s.anchor),
                                 _ => screen_at,
                             };
-                            declared.push((name, artillery, micro::GroupOrder::new(kind.clone(), vec![*at]), rules, commitment_of.clone()));
-                            declared.push((screen_name, rest, micro::GroupOrder::new(kind, vec![screen_point]), rules, commitment_of.clone()));
+                            declared.push((name, artillery, company(micro::GroupOrder::new(kind.clone(), vec![*at])), rules, commitment_of.clone()));
+                            declared.push((screen_name, rest, company(micro::GroupOrder::new(kind, vec![screen_point])), rules, commitment_of.clone()));
                         } else {
-                            declared.push((name, members, micro::GroupOrder::new(kind, vec![*at]), rules, commitment_of.clone()));
+                            declared.push((name, members, company(micro::GroupOrder::new(kind, vec![*at])), rules, commitment_of.clone()));
                         }
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
@@ -137,6 +142,14 @@ impl Brain {
             self.lane.set_group(&name, members, order, footwork, commitment);
         }
         self.lane.set_commitments(commitment, footwork);
+    }
+
+    /// The player's company cap for a pianist group (`lane` tool, `company`; the companies design §4): the group's
+    /// own, else `all`, else `COMPANY_CAP`; 0 lifts it.
+    pub(super) fn company_of(&self, group: &str) -> usize {
+        let Some(shared) = &self.strategist else { return super::pianist::groups::COMPANY_CAP };
+        let company = shared.company.lock().unwrap();
+        company.get(&format!("group_{group}")).or_else(|| company.get("all")).copied().unwrap_or(super::pianist::groups::COMPANY_CAP)
     }
 
     /// The player's footwork setting for a pianist group (H-HANDS-LANE): the group's own, else `all`, else every rule.

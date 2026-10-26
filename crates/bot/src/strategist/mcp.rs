@@ -181,13 +181,13 @@ fn tool_list() -> Value {
               "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows (a build whose frame began after the report you read is finished first even so, since your stop was written before it stood; the hands' line says which). Steps: \"finish <handle>\" (resume an unfinished structure of ours by the handle the report's `unfinished structures` line gives, whoever began it: it is this builder's own build from then on, finished first before any later list), \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home, out of every factory's exit lane either way (the builder walks: the pros' solars are at base; a generator at a place you mark is walked to and back from, so a mark far from the plant costs the commander that walk twice at every solar: migration-3-1 marked one 970 from home and the commander left the plant it was helping for 70 s per pair), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). A step may carry the word \"low\" (\"assist 90 low\", \"armsolar low\"): on that step the builder draws only the team's surplus and stands still in a metal stall, so the other builders' work comes first; the pros set their commander low while it guards the plant or builds a solar in the opening while the constructors claim spots, and high again for a build of its own. Plants and construction turrets are low always, as every human's are; a step without the word is high. Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building: the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step naming a building this builder cannot make, or a turret, radar or jammer with no place, is refused here; a step that cannot be done when its turn comes (the spot taken, a place unknown) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
-              "description": "Which footwork reflexes your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all three, the default), or a list of the reflexes to keep. The reflexes: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting here never takes a group off its rove: the way back is a pick too, so name the group's new job in the packet. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
-              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
+              "description": "Which footwork reflexes your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all three, the default), or a list of the reflexes to keep. The reflexes: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting here never takes a group off its rove: the way back is a pick too, so name the group's new job in the packet. A setting stands until you change it; the group's picture entry shows it when it is not the default. A group's soldiers march as companies of at most `company` (24 unless you set it: six files by four ranks); pass {\"rules\": ..., \"company\": N} to set it (0 lifts the cap, one formation): the lead company walks the way, the others hang beside or behind it as the ground allows, a plant's new soldiers muster beside the plant and walk to the army as a company of their own, and the army waits for a company that falls behind as it waits for a soldier.",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite"] } }, { "type": "object", "properties": { "rules": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite"] } } ] }, "company": { "type": "integer", "minimum": 0, "maximum": 64 } } } ] }, "description": "Group name (group_A) or \"all\" to its setting: the footwork, or {\"rules\": ..., \"company\": N}." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates, a grid cell (\"E7\": its centre), or a range of cells (\"E1-H8\": the rectangle from E1 to H8, a region whose point is its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. A region is also where a group can be told to rove: a packet that names it for a group puts `rove_<region>` and `rove_1_<region>` on that group's menu (its soldiers look only at places inside the region), so \"the Rovers rove in his half\" is a mark of his half and a packet naming it. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
-              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers wait beside the plant, out of its lane, and walk to their group four together, never alone; null lifts it): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers muster beside the plant, out of its lane, and walk to their group four together as a company of their own; unset, they walk when a company's worth stands, or after a wait: see the `lane` tool's `company`): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "transfer",
               "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become; a constructor or factory of another faction builds its own faction's things there (write them by their own names or by role words). A standing transfer, {\"from\": \"t2\", \"to\": \"t5\", \"keep_metal\": 100, \"keep_energy\": 2000}, has t2's hands send t5 everything above those amounts in t2's store every second until {\"from\": \"t2\", \"standing\": false} lifts it; one keep or both. This is how a seat feeds a sprint: a one-shot send moves a surplus, and a seat spending as it earns never has one (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat and passed on), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
@@ -688,30 +688,58 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to \"raw\", \"on\" or a list of the rules to keep")?;
             // Roving is the hands' `rove` move, a pick, since 2026-10-07, and any later pick the way back since
             // 2026-10-08 (docs/design/2026-10-07-rove-approval.md): this tool is footwork only.
-            let mut parsed: Vec<(String, super::shared::Footwork)> = Vec::new();
+            let mut parsed: Vec<(String, Option<super::shared::Footwork>, Option<usize>)> = Vec::new();
+            let footwork_of = |name: &str, value: &Value| -> Result<super::shared::Footwork, String> {
+                match value {
+                    Value::String(s) if s == "raw" => Ok(super::shared::Footwork::raw()),
+                    Value::String(s) if s == "on" => Ok(super::shared::Footwork::default()),
+                    Value::String(s) if s == "rove" => Err(format!("{name}: roving is your hands' `rove` move (or `rove_1` for one soldier), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
+                    Value::Array(items) => {
+                        let names: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: rule names are strings"))).collect::<Result<_, _>>()?;
+                        super::shared::Footwork::keeping(&names)
+                    }
+                    _ => Err(format!("{name}: \"raw\", \"on\" or a list of rules to keep")),
+                }
+            };
             for (name, value) in settings {
                 if name != "all" && !name.starts_with("group_") {
                     return Err(format!("{name}: settings are by group name (group_A) or \"all\""));
                 }
-                let footwork = match value {
-                    Value::String(s) if s == "raw" => super::shared::Footwork::raw(),
-                    Value::String(s) if s == "on" => super::shared::Footwork::default(),
-                    Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move (or `rove_1` for one soldier), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
-                    Value::Array(items) => {
-                        let names: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: rule names are strings"))).collect::<Result<_, _>>()?;
-                        super::shared::Footwork::keeping(&names)?
+                // The object form: the footwork under `rules` and the company cap under `company` (the companies
+                // design §4), either or both.
+                let (footwork, company) = match value {
+                    Value::Object(fields) => {
+                        let footwork = fields.get("rules").map(|v| footwork_of(name, v)).transpose()?;
+                        let company = match fields.get("company") {
+                            None => None,
+                            Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
+                                Some(n) if n <= 64 => Some(n as usize),
+                                _ => return Err(format!("{name}: company is a whole number of soldiers a company holds at most, 1 to 64, or 0 for no cap")),
+                            },
+                        };
+                        if footwork.is_none() && company.is_none() {
+                            return Err(format!("{name}: the object form takes rules and/or company"));
+                        }
+                        (footwork, company)
                     }
-                    _ => return Err(format!("{name}: \"raw\", \"on\" or a list of rules to keep")),
+                    other => (Some(footwork_of(name, other)?), None),
                 };
-                parsed.push((name.clone(), footwork));
+                parsed.push((name.clone(), footwork, company));
             }
             let mut lane = shared.lane.lock().unwrap();
+            let mut companies = shared.company.lock().unwrap();
             let mut said: Vec<String> = Vec::new();
-            for (name, footwork) in parsed {
-                said.push(format!("{name}: {}", footwork.words().unwrap_or_else(|| "all footwork rules (the default)".to_string())));
-                lane.insert(name.clone(), footwork);
+            for (name, footwork, company) in parsed {
+                if let Some(footwork) = footwork {
+                    said.push(format!("{name}: {}", footwork.words().unwrap_or_else(|| "all footwork rules (the default)".to_string())));
+                    lane.insert(name.clone(), footwork);
+                }
+                if let Some(n) = company {
+                    said.push(if n == 0 { format!("{name}: no company cap, one formation") } else { format!("{name}: companies of up to {n} soldiers") });
+                    companies.insert(name.clone(), n);
+                }
             }
-            Ok(format!("footwork set; {}", said.join("; ")))
+            Ok(format!("lane set; {}", said.join("; ")))
         }
         "mark" => {
             let marks = arguments.as_object().filter(|o| !o.is_empty()).ok_or("mark takes an object: place name to [x, z], a grid cell such as \"E7\", or null to forget it")?;
@@ -845,8 +873,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             None => None,
                             Some(Value::Null) => Some(None),
                             Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
-                                Some(n) if (2..=16).contains(&n) => Some(Some(n as usize)),
-                                _ => return Err(format!("{name}: join_in is a whole number of 2 to 16 (how many new soldiers walk to their group together), or null")),
+                                Some(n) if (1..=64).contains(&n) => Some(Some(n as usize)),
+                                _ => return Err(format!("{name}: join_in is a whole number of 1 to 64 (how many new soldiers muster beside the plant and walk to their group together), or null for the group's company cap")),
                             },
                         };
                         if units.is_none() && group.is_none() && join_in.is_none() {
@@ -1200,7 +1228,7 @@ mod tests {
         assert!(said.contains("one group per unit type") && said.contains("walk to their group 4 together"), "{said}");
         let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
         assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), Some(4), 2));
-        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": 1 } }), &shared).unwrap_err().contains("2 to 16"));
+        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": 0 } }), &shared).unwrap_err().contains("1 to 64"));
         assert!(call_tool("produce", &json!({ "plant_7": { "join_in": null } }), &shared).unwrap().contains("as each is made"));
         let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
         assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), None, 2), "the rest of the allowance stands");
@@ -1383,6 +1411,14 @@ mod tests {
         // Roving is the hands' move, never a setting (2026-10-07), and the way back is a pick (2026-10-08).
         assert!(call_tool("lane", &json!({ "group_B": "rove" }), &shared).unwrap_err().contains("`rove` move"));
         assert!(!shared.lane.lock().unwrap().contains_key("group_B"));
+        // The object form sets the company cap (the companies design §4), with or without the footwork.
+        let said = call_tool("lane", &json!({ "group_A": { "rules": ["kite"], "company": 16 }, "group_C": { "company": 0 } }), &shared).unwrap();
+        assert!(said.contains("group_A: companies of up to 16") && said.contains("group_C: no company cap"), "{said}");
+        assert_eq!(shared.lane.lock().unwrap()["group_A"], Footwork { flee: false, fan: false, kite: true });
+        assert_eq!(shared.company.lock().unwrap()["group_A"], 16);
+        assert_eq!(shared.company.lock().unwrap()["group_C"], 0);
+        assert!(call_tool("lane", &json!({ "group_A": { "company": 100 } }), &shared).is_err());
+        assert!(call_tool("lane", &json!({ "group_A": {} }), &shared).is_err());
     }
 
     #[test]

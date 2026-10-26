@@ -552,6 +552,62 @@ mod tests {
         assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
     }
 
+    /// The companies design (`docs/design/2026-10-25-companies.md`): forty-eight Pawns declared at a cap of 24 march
+    /// as two companies, the second slaved behind or beside the lead, and both are formed within ten seconds; the
+    /// state reads the army at the top and the companies under it.
+    #[test]
+    fn a_capped_group_marches_as_companies() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let mut body: Vec<OwnUnit> = (0..48).map(|i| { let mut u = rover(100 + i, 1000.0 - (i / 6) as f32 * 96.0, 1000.0 + (i % 6) as f32 * 64.0); u.def = PAWN; u }).collect();
+        let ids: Vec<UnitId> = body.iter().map(|u| u.id).collect();
+        let goal = at(6000.0, 1160.0);
+        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]).with_cap(24), Footwork::raw(), Commitment::None);
+        let mut sent: HashMap<UnitId, Vec3> = HashMap::new();
+        let mut log = Vec::new();
+        for step in 0..200 {
+            let frame = 30 + 3 * step;
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            for c in &out.commands {
+                if let Command::Move { unit, to, .. } = c {
+                    sent.insert(*unit, *to);
+                }
+            }
+            // Each unit walks 87 a second toward its last order.
+            for u in body.iter_mut() {
+                if let Some(to) = sent.get(&u.id) {
+                    let d = u.pos.dist2d(*to);
+                    let step = (87.0f32 * 0.1).min(d);
+                    if d > 0.1 {
+                        u.pos = Vec3 { x: u.pos.x + (to.x - u.pos.x) / d * step, y: 0.0, z: u.pos.z + (to.z - u.pos.z) / d * step };
+                        u.vel = at((to.x - u.pos.x) / d * 2.9, (to.z - u.pos.z) / d * 2.9);
+                    }
+                }
+            }
+            if step % 10 == 9 {
+                let s = lane.group_state("a").expect("a state");
+                log.push(format!(
+                    "{}s anchor ({:.0},{:.0}) pace {:.0} formed {} of 48 arrived {} | {}",
+                    (frame - 30) / 30,
+                    s.anchor.x,
+                    s.anchor.z,
+                    s.pace,
+                    s.formed.len(),
+                    s.arrived,
+                    s.companies.iter().map(|c| format!("{} {} at ({:.0},{:.0}) formed {}/{}", c.role.word(), c.members, c.anchor.x, c.anchor.z, c.formed, c.members)).collect::<Vec<_>>().join("; ")
+                ));
+            }
+        }
+        let text = log.join("\n");
+        let s = lane.group_state("a").expect("a state");
+        assert_eq!(s.companies.len(), 2, "{text}");
+        assert!(s.companies.iter().any(|c| c.role == crate::Role::Lead) && s.companies.iter().any(|c| c.role == crate::Role::Slaved), "{text}");
+        // By ten seconds both companies are formed.
+        let ten = &log[9];
+        assert!(s.formed.len() >= 40, "formed at the end: {}\n{text}", s.formed.len());
+        assert!(ten.contains("formed 2") || ten.contains("formed 3") || ten.contains("formed 4"), "{text}");
+    }
+
     fn rover(id: i32, x: f32, z: f32) -> OwnUnit {
         OwnUnit { id: UnitId(id), def: ROVER, pos: at(x, z), vel: at(0.0, 0.0), health: 105.0, max_health: 105.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false }
     }

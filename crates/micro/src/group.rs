@@ -100,12 +100,24 @@ pub struct GroupOrder {
     pub kind: GroupKind,
     pub route: Vec<Vec3>,
     pub march: bool,
+    /// Members a company holds at most (`docs/design/2026-10-25-companies.md` §2); 0: no cap, one company.
+    pub cap: usize,
+    /// Where newcomers far from the army gather (the plants' beside-lane points, a drill's lab) until `release` of
+    /// them stand, then walk to the army as a company.
+    pub musters: Vec<Vec3>,
+    /// How many mustered newcomers walk together; none: the cap.
+    pub release: Option<usize>,
 }
 
 impl GroupOrder {
     /// A marching order of this kind along this route.
     pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
-        GroupOrder { kind, route, march: true }
+        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None }
+    }
+
+    /// The same order with a company cap.
+    pub fn with_cap(self, cap: usize) -> GroupOrder {
+        GroupOrder { cap, ..self }
     }
 }
 
@@ -156,6 +168,8 @@ pub struct GroupState {
     /// member's ground, or nothing joins the ground to it): the anchor walks straight at that point and the engine
     /// does with each member what it can, and the hands can say "no way on foot" (the migration design §3.7).
     pub way: Option<f32>,
+    /// The army's companies (`docs/design/2026-10-25-companies.md` §2): empty for a formation read alone.
+    pub companies: Vec<crate::army::CompanyState>,
 }
 
 /// The loop's numbers, each with a drill on the bench that sets it (design §2).
@@ -340,6 +354,20 @@ pub struct Group {
     dealt_at: i32,
     /// The exceptions this tick, as reported.
     exceptions: Vec<(UnitId, Cause, f32)>,
+    /// The worst lag of its own body behind their slots at the last tick.
+    pub lag: f32,
+    /// The median member's distance from its slot at the last tick.
+    pub median_off: f32,
+    /// The army's measure of a company (the companies design): the worst lag behind its slot, along the heading, of
+    /// any member within the joiner's reach of its slot (`exception_at` plus the layout's depth), fleeing and cut-off
+    /// members apart. Wider than the body's own drag: a company just slaved has every member in `away`, and a member
+    /// at the same speed as the slot never closes on it unless the lead waits.
+    pub band_lag: f32,
+    /// A lag the army adds to the lead's (its slaved companies' worst): dragged like its own members'.
+    pub external_lag: f32,
+    /// Slaved (the companies design): the anchor is set from outside each tick, no way of its own; the pace the
+    /// members' lead is carried by is the lead company's.
+    carry_pace: Option<f32>,
 }
 
 impl Group {
@@ -391,6 +419,11 @@ impl Group {
             heading_since: 0,
             dealt_at: -1,
             exceptions: Vec::new(),
+            lag: 0.0,
+            median_off: 0.0,
+            band_lag: 0.0,
+            external_lag: 0.0,
+            carry_pace: None,
         };
         group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, heading, group.members.len()));
         group.way_from = group.anchor;
@@ -412,6 +445,49 @@ impl Group {
     /// The way the anchor walks this order by, as planned (the tests' instrument).
     pub fn way(&self) -> &[Vec3] {
         &self.way
+    }
+
+    pub fn files(&self) -> usize {
+        self.files
+    }
+
+    /// The membership alone: a changed one re-deals the slots.
+    pub fn set_members(&mut self, members: Vec<UnitId>) {
+        if members != self.members {
+            self.members = members;
+            self.slot_of.clear();
+        }
+    }
+
+    /// The members' order kind alone (a slaved company fights or walks as the army does).
+    pub fn set_kind(&mut self, kind: GroupKind) {
+        self.order.kind = kind;
+    }
+
+    /// Slaved to an army's lead (`docs/design/2026-10-25-companies.md` §2): the anchor and heading are the lead's
+    /// offset, set every tick before the tick; no way of its own (at its end from the first tick: no pace, the slots
+    /// hang from the anchor, arrival is being formed up); the members' lead is carried at the lead company's pace.
+    pub fn slave(&mut self, anchor: Vec3, heading: (f32, f32), pace: f32) {
+        self.anchor = anchor;
+        self.heading = heading;
+        self.way.clear();
+        self.way_host.clear();
+        self.way_from = anchor;
+        self.planned_end = None;
+        self.leg = 0;
+        self.dirty = false;
+        self.reaim = false;
+        self.carry_pace = Some(pace);
+    }
+
+    /// Its own way again (a slaved company made the lead, a muster released): planned at the next tick.
+    pub fn unslave(&mut self) {
+        self.carry_pace = None;
+        self.dirty = true;
+    }
+
+    pub fn slaved(&self) -> bool {
+        self.carry_pace.is_some()
     }
 
     /// The host's order again: a new kind, a route of another length or a point moved `ROUTE_MOVED` re-aims the
@@ -616,6 +692,11 @@ impl Group {
     /// (`target`) is measured, so the trail the members keep behind their slots (about fifty at pace, the brake zone)
     /// and the ranks they actually hold are in it: from the rank count alone the body's centroid was still a hundred
     /// short of the corner when the anchor turned (the circuit7-carry trace).
+    /// The layout's depth: the ranks the members fill, `RANK_GAP` apart.
+    pub fn layout_depth(&self) -> f32 {
+        (self.members.len().max(1).div_ceil(self.files.max(1)) - 1) as f32 * form::RANK_GAP
+    }
+
     fn body_depth(&self, walkers: &[Walker]) -> f32 {
         let h = self.heading;
         let depths: Vec<f32> = self.body(walkers).iter().map(|p| (self.anchor.x - p.x) * h.0 + (self.anchor.z - p.z) * h.1).collect();
@@ -873,15 +954,28 @@ impl Group {
         // cut-off member holds nothing (it cannot close by walking).
         let h = self.heading;
         let mut max_lag = 0.0f32;
+        // A member that has never formed is of the body once it stands within the layout's depth beyond the exception
+        // distance of its slot (design 2026-10-25-companies.md §3, D24): it drags the anchor like any member behind,
+        // and the anchor waits for it. Further off it is a joiner and holds nothing (D22: a joiner a map away froze
+        // the body for minutes). The Glitters lobby game: a hundred joiners 2,000-5,500 behind, every one in `away`,
+        // the anchor at full pace with one to twenty formed.
+        let joiner_reach = pacing.exception_at + self.layout_depth();
+        let mut offs: Vec<f32> = Vec::with_capacity(walkers.len());
+        let mut band_lag = 0.0f32;
         for w in walkers {
             let Some(slot) = self.slots.get(&w.id) else { continue };
             let off = w.pos.dist2d(*slot);
+            offs.push(off);
+            if off <= joiner_reach && !w.fleeing && !self.cut_off.contains_key(&w.id) {
+                band_lag = band_lag.max((slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1);
+            }
             let away = self.away.contains_key(&w.id);
+            let limit = if self.been_formed.contains(&w.id) { pacing.exception_at } else { joiner_reach };
             if away {
                 if off <= pacing.rejoin_within {
                     self.away.remove(&w.id);
                 }
-            } else if off > pacing.exception_at {
+            } else if off > limit {
                 self.away.insert(w.id, frame);
             }
             if off <= pacing.formed_within {
@@ -891,6 +985,17 @@ impl Group {
                 let behind = (slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1;
                 max_lag = max_lag.max(behind);
             }
+        }
+        // The army's drag (the companies design): a slaved company's body behind their slots holds the lead as its
+        // own members do.
+        self.lag = max_lag;
+        self.band_lag = band_lag;
+        offs.sort_by(f32::total_cmp);
+        self.median_off = offs.get(offs.len() / 2).copied().unwrap_or(0.0);
+        // The army's lag releases at `rejoin_within`, where a member comes out of `away`, not at `drag_from`: a
+        // company trailing between the two would hold the lead at nearly full pace and never close (the march test).
+        if self.external_lag > pacing.rejoin_within {
+            max_lag = max_lag.max(self.external_lag + (pacing.drag_from - pacing.rejoin_within));
         }
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
         self.pace = if self.stopped || self.at_end() || !march { 0.0 } else { self.full_pace * held };
@@ -985,7 +1090,11 @@ impl Group {
         // The march orders (D20): each slot carried ahead by its type's lead at the pace's share, on the ground (half
         // the lead when the carried point is on none, the slot when that is too). The pace type's lead is `LEAD`;
         // a faster type's is learned.
-        let share = if self.full_pace > 0.0 { (self.pace / self.full_pace).clamp(0.0, 1.0) } else { 0.0 };
+        // The lead is for the pace at the type's speed, where a member never catches the carried point and settles
+        // behind its slot by the engine's lag; at a held pace it does catch it and sits that far ahead of its slot,
+        // out of the formed band (the companies march test: the lead company's 24 all away at pace 54, the carried
+        // point 186 ahead). The share's fourth power keeps the carry under the formed band below 0.8 of the pace.
+        let share = if self.full_pace > 0.0 { (self.carry_pace.unwrap_or(self.pace) / self.full_pace).clamp(0.0, 1.0).powi(4) } else { 0.0 };
         // The lead shrinks over the last lead's length of the way (D22 change 4), so nobody is sent past the route's
         // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back).
         let left = self.way_ahead();
@@ -1075,10 +1184,12 @@ impl Group {
                 }
             }
         }
-        // Arrived: the anchor at the end and every member of the body in its slot, the body not empty (with every
-        // member an exception the old rule was vacuously true: migration-2-1's hold read arrived with three joiners).
+        // Arrived: the anchor at the end and every member of the body in its slot, the body at least half the members
+        // (with every member an exception the old rule was vacuously true: migration-2-1's hold read arrived with three
+        // joiners; closed one unit wide, it read arrived eight times in the Glitters lobby game with one formed member
+        // at the way's end and a hundred in `away`; D24).
         let in_body = walkers.len() - self.exceptions.len();
-        self.arrived = self.at_end() && all_formed && in_body > 0;
+        self.arrived = self.at_end() && all_formed && in_body * 2 >= walkers.len();
         &self.slots
     }
 
@@ -1098,6 +1209,7 @@ impl Group {
             files: self.files,
             room: self.room,
             way: if self.no_way { None } else { Some(self.way_ahead()) },
+            companies: Vec::new(),
         }
     }
 
@@ -1825,6 +1937,56 @@ mod tests {
         let state = group.state(&w);
         assert!(group.at_end() && state.formed.is_empty() && state.exceptions.len() == 2, "{state:?}");
         assert!(!state.arrived, "nobody in slot: not arrived");
+    }
+
+    /// D24 (docs/design/2026-10-25-companies.md §3): a joiner within the exception distance plus the layout's depth of
+    /// its slot is of the body: it drags the anchor and the march is not arrived while it walks in; a joiner further
+    /// off holds nothing (D22). The Glitters lobby game: a hundred joiners in `away` and the anchor at full pace.
+    #[test]
+    fn a_joiner_within_reach_drags_the_anchor_and_a_far_one_holds_nothing() {
+        let pacing = Pacing::default();
+        // Four formed at the front, one newcomer 400 behind (within 300 + the two ranks' 96), one 1,800 behind.
+        let w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0), (3, -64.0, -32.0), (4, -64.0, 32.0), (5, -400.0, 0.0), (6, -1800.0, 0.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &positions, 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        group.tick(3, &w, 64.0, &pacing);
+        assert!(group.pace < 0.5 * group.full_pace, "the near joiner drags the anchor: pace {} of {}", group.pace, group.full_pace);
+        let state = group.state(&w);
+        let joining: Vec<&(UnitId, Cause, f32)> = state.exceptions.iter().filter(|(_, c, _)| *c == Cause::Joining).collect();
+        assert!(joining.iter().any(|(id, ..)| *id == UnitId(5)) && joining.iter().any(|(id, ..)| *id == UnitId(6)), "both are joiners by cause: {:?}", state.exceptions);
+        // Without the near one, the far one alone holds nothing.
+        let w2: Vec<Walker> = w.iter().filter(|w| w.id != UnitId(5)).cloned().collect();
+        let positions2: Vec<Vec3> = w2.iter().map(|w| w.pos).collect();
+        let mut alone = Group::new("b", w2.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]), &positions2, 64.0);
+        alone.tick(0, &w2, 64.0, &pacing);
+        alone.tick(3, &w2, 64.0, &pacing);
+        assert!((alone.pace - alone.full_pace).abs() < 0.01, "the far joiner holds nothing: pace {} of {}", alone.pace, alone.full_pace);
+    }
+
+    /// D24: a hold with one member in slot and many away is not arrived; with half or more in slot it is.
+    #[test]
+    fn arrival_needs_half_the_members_in_the_body() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -96.0), (2, 0.0, -32.0), (3, 0.0, 32.0), (4, 0.0, 96.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Hold, vec![at(0.0, 0.0)]), &positions, 64.0);
+        for frame in [3, 6, 9] {
+            group.tick(frame, &w, 64.0, &pacing);
+        }
+        assert!(group.at_end() && group.state(&w).arrived, "the hold formed: {:?}", group.state(&w));
+        // Three of four walk 900 off: one in slot is not arrived.
+        for u in w.iter_mut().skip(1) {
+            u.pos = at(900.0, u.pos.z);
+        }
+        group.tick(12, &w, 64.0, &pacing);
+        let state = group.state(&w);
+        assert!(state.formed.len() == 1 && !state.arrived, "one of four in slot: not arrived; {state:?}");
+        // Two of four back in slot: arrived.
+        w[1].pos = group.slots[&UnitId(2)];
+        group.tick(15, &w, 64.0, &pacing);
+        let state = group.state(&w);
+        assert!(state.formed.len() == 2 && state.arrived, "two of four in slot: arrived; {state:?}");
     }
 
     /// A hold declared at a point about the body hangs its ranks from the point and walks nowhere: arrived on the

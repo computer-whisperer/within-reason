@@ -172,6 +172,8 @@ pub struct Options {
     /// D23: the rear party (`--behind`) stands out of the group, unordered, until this many frames after the first
     /// order, then joins it (`--late S`): the lab's fresh units declared into a group already marching.
     pub late: Option<i32>,
+    /// The companies design (`--cap N`): members a company of the army holds at most; 0 for one formation.
+    pub cap: usize,
 }
 
 /// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
@@ -234,6 +236,10 @@ pub struct Score {
     pub joined: u32,
     /// Members the host took out of the group as stragglers (`STRAGGLER_PATIENCE`).
     pub left_behind: u32,
+    /// The companies design (`--cap`): the most companies the army had at once, and the mean over the ticks of the
+    /// companies' own formed shares (the lead's, the slaved and the joining; a muster is not marching).
+    pub companies: u32,
+    pub company_formed: Option<f32>,
     /// D21: member-elmos walked away from the goal along the axis over those walked toward it, the elmos the anchor
     /// moved against its heading summed over ticks, and the seconds the group's pace was 0 while marching.
     pub backtrack_share: Option<f32>,
@@ -321,6 +327,8 @@ pub struct Drill {
     passes: HashMap<usize, (bool, u32)>,
     pub joined: HashMap<usize, i32>,
     formed_shares: Vec<f32>,
+    company_shares: Vec<f32>,
+    companies_max: usize,
     group: Option<(usize, usize, bool)>,
     /// Members the director took out of the group as stragglers, by spawn index.
     pub left_behind: Vec<usize>,
@@ -374,6 +382,7 @@ pub struct Drill {
     pub nudge: Option<i32>,
     /// D23 `--late`: frames after the first order until the rear party joins, and the rear party's spawn indices.
     pub late: Option<i32>,
+    pub cap: usize,
     pub rear: Vec<usize>,
     /// D21's measures: member-elmos along the axis toward the goal and away from it (this second's away in
     /// `back_second`); the anchor's steps against its heading, from the anchor and heading last noted; the group's
@@ -422,6 +431,8 @@ impl Drill {
             passes: HashMap::new(),
             joined: HashMap::new(),
             formed_shares: Vec::new(),
+            company_shares: Vec::new(),
+            companies_max: 0,
             group: None,
             left_behind: Vec::new(),
             last: HashMap::new(),
@@ -454,6 +465,7 @@ impl Drill {
             crosser: None,
             nudge: options.nudge,
             late: options.late,
+            cap: options.cap,
             rear: Vec::new(),
             forward: 0.0,
             back: 0.0,
@@ -493,6 +505,15 @@ impl Drill {
 
     /// The lane's group as the director read it this tick: how many are formed of how many members, and whether it
     /// stands at the route's end with no exceptions (a circuit ends on that word; `sample` takes the share).
+    /// The army's companies this tick (the companies design): how many, and their own formed shares.
+    pub fn note_companies(&mut self, companies: &[micro::CompanyState]) {
+        self.companies_max = self.companies_max.max(companies.len());
+        let marching: Vec<f32> = companies.iter().filter(|c| c.role != micro::Role::Mustering && c.members > 0).map(|c| c.formed as f32 / c.members as f32).collect();
+        if !marching.is_empty() {
+            self.company_shares.push(marching.iter().sum::<f32>() / marching.len() as f32);
+        }
+    }
+
     pub fn note_group(&mut self, formed: usize, members: usize, done: bool) {
         self.group = Some((formed, members, done));
     }
@@ -831,6 +852,8 @@ impl Drill {
             formed_share: (!self.formed_shares.is_empty()).then(|| self.formed_shares.iter().sum::<f32>() / self.formed_shares.len() as f32),
             joined: self.joined.len() as u32,
             left_behind: self.left_behind.len() as u32,
+            companies: self.companies_max as u32,
+            company_formed: (!self.company_shares.is_empty()).then(|| self.company_shares.iter().sum::<f32>() / self.company_shares.len() as f32),
             backtrack_share: (self.forward > 0.0).then(|| self.back / self.forward),
             anchor_back: self.anchor_back,
             stopped_s: self.stopped_s,
@@ -847,7 +870,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0 }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back

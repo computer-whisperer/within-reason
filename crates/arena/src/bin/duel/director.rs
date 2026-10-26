@@ -1595,6 +1595,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         if let Some(state) = lane.group_state("army") {
                             // The group's word for the drill's books: a circuit ends on it, and takes its formed share.
                             drill.note_group(state.formed.len(), state.formed.len() + state.exceptions.len(), state.arrived && state.exceptions.is_empty());
+                            drill.note_companies(&state.companies);
                             drill.note_anchor(state.anchor, state.heading, state.pace, state.arrived, state.engaged.is_some());
                             // D21 `--stall`: from `T` after the first order the rearmost formed member is held out of
                             // the group for `S` frames (`drill_orders` sends its Stops), then is a member again.
@@ -1673,7 +1674,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         .filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile && !waiting.contains(&i)) && !army.left_behind.contains(u) && Some(*u) != stalled)
                         .collect();
                     // `--lane ranks`: the group with its march off, the slots standing at the destination.
-                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, ..order };
+                    // The companies design (`--cap`): the army in companies of at most the cap, the lab's rally the
+                    // muster of a fed force.
+                    let (cap, musters) = duel.drill.as_ref().map_or((0, Vec::new()), |d| (d.cap, if d.cap > 0 && matches!(d.kind, drill::Kind::Gather | drill::Kind::Circuit) { vec![d.rally()] } else { Vec::new() }));
+                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, musters, ..order };
                     lane.set_group("army", living, order, Footwork::default(), Commitment::All);
                 }
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its

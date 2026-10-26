@@ -21,9 +21,11 @@
 pub mod form;
 pub mod ground;
 pub mod group;
+pub mod army;
 mod rove;
 
 pub use ground::{ClassKey, Classes, Footprint, Ground};
+pub use army::{Army, Company, CompanyState, Role};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
@@ -425,6 +427,17 @@ enum Stance {
 /// slot, or an Attack on its order's target) and fires at will; a Stop would drop the weapon's target, and every
 /// order costs shots (form6-stoutmix-dbg: standing Stouts re-stopped fired 0.58 a second in reach against 0.77 with
 /// the lane off).
+/// What one formation's tick reads of the lane's tick (`formation_tick`).
+#[derive(Clone, Copy)]
+struct FormCtx<'a> {
+    frame: i32,
+    enemies: &'a [EnemyUnit],
+    sources: &'a [Source],
+    by_id: &'a HashMap<UnitId, &'a OwnUnit>,
+    spacing: f32,
+    pursuit_on: bool,
+}
+
 struct FormOrder {
     stance: Stance,
     command: Option<Command>,
@@ -509,7 +522,10 @@ struct Declared {
     order: GroupOrder,
     footwork: Footwork,
     commitment: Commitment,
-    group: Option<Group>,
+    /// Its companies (`docs/design/2026-10-25-companies.md`): one with no cap, the formation as it was.
+    army: army::Army,
+    /// The ground its companies share (design D17), built from every member's class.
+    ground: Option<std::sync::Arc<Ground>>,
     state: Option<GroupState>,
     /// The classes and the room the group's ground was last built for, the structures' hash, and the frame.
     ground_key: Option<(Vec<ClassKey>, i32)>,
@@ -641,7 +657,8 @@ impl Lane {
                 // a group that roved 27 s kept its hold's anchor and state, and the advance picked after planned
                 // from that anchor 4,000 from its members and walked it alone).
                 if matches!(order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
-                    d.group = None;
+                    d.army = army::Army::default();
+                    d.ground = None;
                     d.state = None;
                 }
                 d.members = members;
@@ -650,7 +667,7 @@ impl Lane {
                 d.commitment = commitment;
             }
             None => {
-                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, group: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
+                self.groups.insert(name.to_string(), Declared { members, order, footwork, commitment, army: army::Army::default(), ground: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
             }
         }
     }
@@ -1188,7 +1205,6 @@ impl Lane {
         self.let_go.borrow_mut().retain(|_, until| *until > frame);
         self.pursuits.borrow_mut().retain(|id, (_, since)| enemies.iter().any(|e| e.id == *id) && frame - *since < 4 * LET_GO_FRAMES);
         let by_id: HashMap<UnitId, &OwnUnit> = soldiers.iter().map(|u| (u.id, *u)).collect();
-        let target_of = |id: UnitId| enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id));
         let names: Vec<String> = self.groups.keys().cloned().collect();
         for name in names {
             let Some(declared) = self.groups.get_mut(&name) else { continue };
@@ -1215,10 +1231,9 @@ impl Lane {
                 0.0
             };
             let spacing = form::spacing_for(area, self.tuning.factor, self.tuning.max);
-            let group = declared.group.get_or_insert_with(|| Group::new(&name, declared.members.clone(), declared.order.clone(), &positions, spacing));
-            group.update(declared.members.clone(), declared.order.clone());
             // The group's ground (design D17): the cells every member's class stands on, priced for the ranks' room;
-            // built when the classes or the room change.
+            // built when the classes or the room change, once for the declaration and shared by its companies.
+            let mut ground_changed = false;
             if let Some(terrain) = view.terrain() {
                 let mut classes: Vec<(ClassKey, MoveClass)> = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.def(u.def)?.move_class).map(|c| (ClassKey::of(c), c)).collect();
                 classes.sort_by_key(|(k, _)| *k);
@@ -1233,10 +1248,11 @@ impl Lane {
                     let mut grids: Vec<std::sync::Arc<Vec<bool>>> = classes.iter().map(|(_, c)| self.classes.passable(terrain, *c)).collect();
                     let marked = blocked.as_ref().map_or(0, |g| g.iter().filter(|b| !**b).count());
                     grids.extend(blocked);
-                    group.set_ground(Ground::new(terrain, &grids, wanted).map(std::sync::Arc::new));
+                    declared.ground = Ground::new(terrain, &grids, wanted).map(std::sync::Arc::new);
                     declared.ground_key = Some(key);
                     declared.ground_structures = hash;
                     declared.ground_frame = frame;
+                    ground_changed = true;
                     if group::debug_on() {
                         let (units, wrecks, largest) = structures.as_ref().map_or((0, 0, None), |(_, u, w, l)| (*u, *w, *l));
                         eprintln!(
@@ -1251,116 +1267,249 @@ impl Lane {
                     }
                 }
             }
-            // An Attack's goal follows its target's sightings.
-            if let GroupKind::Attack(id) = group.order.kind
-                && let Some(at) = target_of(id)
-            {
-                group.retarget(at);
-            }
-            // Engaged: an armed enemy within the horizon of the members' centre, for a group that fights.
-            let let_go = self.let_go.borrow();
-            let foes: Vec<form::Foe> = sources.iter().filter(|s| s.weight >= FAINT && s.pos.dist2d(centre) < HORIZON && !let_go.contains_key(&s.id)).map(|s| form::Foe { id: s.id, pos: s.pos, mobile: s.mobile, reach: s.reach }).collect();
-            drop(let_go);
-            let engaged = group.order.kind != GroupKind::Go && !foes.is_empty();
-            let reach = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.stats(u.def)).map(|s| s.reach).fold(f32::INFINITY, f32::min);
-            let named = match group.order.kind {
-                GroupKind::Attack(id) => Some(id),
-                _ => None,
-            };
-            // The target the group had: the one most of its members' claims name.
-            let mut had: HashMap<UnitId, usize> = HashMap::new();
-            for w in &walkers {
-                if let Some(t) = self.claims.get(&w.id).filter(|c| c.rule == Rule::Form).and_then(|c| c.target) {
-                    *had.entry(t).or_default() += 1;
+            let order = declared.order.clone();
+            let members = declared.members.clone();
+            let ground = declared.ground.clone();
+            let mut army = std::mem::take(&mut declared.army);
+            // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, one lead, the
+            // floor at a halt, the shape's slots numbered.
+            let by_walker: HashMap<UnitId, group::Walker> = walkers.iter().map(|w| (w.id, *w)).collect();
+            let founded = army.partition(&name, &members, &by_walker, &order, frame, spacing, &ground);
+            if ground_changed {
+                for c in &mut army.companies {
+                    c.formation.set_ground(ground.clone());
                 }
             }
-            let keep = had.into_iter().max_by_key(|(t, n)| (*n, t.0)).map(|(t, _)| t);
-            let mut contact = if engaged && reach.is_finite() && reach > 0.0 { form::contact(centre, named, keep, &foes, reach) } else { None };
-            // A running target is let go: the slot follows the target, and a group sent somewhere else would follow
-            // it anywhere (H-MICRO-FORM-PURSUIT). A target the host named (an Attack) is chased as ordered.
-            if pursuit_on && named.is_none() && let Some(c) = &contact && let Some(foe) = foes.iter().find(|f| f.id == c.target) && foe.mobile {
-                let mut pursuits = self.pursuits.borrow_mut();
-                let (origin, _) = *pursuits.entry(foe.id).or_insert((foe.pos, frame));
-                if foe.pos.dist2d(origin) > PURSUIT && foe.pos.dist2d(centre) > reach {
-                    pursuits.remove(&foe.id);
-                    self.let_go.borrow_mut().insert(foe.id, frame + LET_GO_FRAMES);
-                    contact = None;
-                }
+            let halted = order.kind == GroupKind::Hold || army.arrived;
+            if army.merge_floor(order.cap, halted) && group::debug_on() {
+                eprintln!("[group {name} f={frame}] MERGE: two companies under half the cap of {} merged at a halt; {} companies", order.cap, army.companies.len());
             }
-            if let Some(contact) = contact {
-                group.stopped = true;
-                group.engaged = Some(contact.target);
-                let (slots, _, _) = form::contact_slots(&contact, walkers.len(), spacing);
-                let slot_of = form::assign(&positions, &slots);
-                // Against area fire the walk to the slot is a Move, which keeps the body spread and walking under
-                // the shells (25 Stouts against 4 Fatboys: +0.49 with Move, -0.37 with Fight); against direct fire a
-                // Fight, which stops to shoot at the first thing in reach (14 Blitzes on E3 r1250: -0.25 against
-                // -0.34 with Move; a unit walking under a Move fired about half as often).
-                let walk = spacing > form::HULL_SPACING;
-                let target = Some(contact.target);
-                for (i, w) in walkers.iter().enumerate() {
-                    let Some(unit) = by_id.get(&w.id) else { continue };
-                    let unit_reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-                    let slot = group.snap(slots[slot_of[i]]);
-                    let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
-                    let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
-                    let claim = self.claims.get(&unit.id).filter(|c| c.rule == Rule::Form);
-                    let standing = claim.is_some_and(|c| c.stance == Some(Stance::Stand));
-                    // The slot it was sent to on this target: it keeps it until it gets there (a slot re-dealt every
-                    // tick re-ordered the Blitzes twice a second, the first E3 build), and a unit waiting at it is
-                    // sent on when the target has walked its slot `SLOT_MOVED` away.
-                    let sent = claim.filter(|c| c.target == target && matches!(c.stance, Some(Stance::Slot | Stance::Wait))).map(|c| (c.sent_to, c.stance));
-                    let form_order = if unit_reach > 0.0 && (distance < unit_reach - STAND_INSIDE || (standing && distance < unit_reach + STAND_KEEP)) {
-                        // Standing: its order's target when that is what is in reach, else nothing: it fires at
-                        // will where it is, or walks on to its slot under the order it has.
-                        let command = match named {
-                            Some(named) if nearest.is_some_and(|e| e.id == named) => Some(Command::Attack { unit: unit.id, target: named, queue: false }),
-                            _ => None,
-                        };
-                        FormOrder { stance: Stance::Stand, command, at: slot, target }
-                    } else {
-                        let to = match sent {
-                            Some((at, Some(Stance::Slot))) if unit.pos.dist2d(at) > ARRIVED => at,
-                            Some((at, Some(Stance::Wait))) if at.dist2d(slot) <= SLOT_MOVED => at,
-                            _ => slot,
-                        };
-                        if unit.pos.dist2d(to) <= ARRIVED {
-                            FormOrder { stance: Stance::Wait, command: None, at: to, target }
-                        } else {
-                            let command = if walk { Command::Move { unit: unit.id, to, queue: false } } else { Command::Fight { unit: unit.id, to, queue: false } };
-                            FormOrder { stance: Stance::Slot, command: Some(command), at: to, target }
-                        }
-                    };
-                    orders.insert(unit.id, form_order);
+            army.ensure_lead(&order);
+            if founded > 0 && group::debug_on() {
+                eprintln!(
+                    "[group {name} f={frame}] FOUNDED {founded}: now {}",
+                    army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role.word(), c.members.len())).collect::<Vec<_>>().join(", ")
+                );
+            }
+            let Some(li) = army.lead() else {
+                // Mustering alone: nobody marches yet; the musters hold where they gather.
+                let ctx = FormCtx { frame, enemies, sources, by_id: &by_id, spacing, pursuit_on };
+                for c in &mut army.companies {
+                    let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
+                    c.formation.set_members(c.members.clone());
+                    let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                    if let Some((_, since)) = c.muster
+                        && army::muster_due(c.members.len(), since, frame, &order)
+                    {
+                        c.role = army::Role::Joining;
+                        c.muster = None;
+                        c.formation.unslave();
+                    }
+                    c.state = Some(state);
                 }
-                declared.state = Some(group.state(&walkers));
+                let declared = self.groups.get_mut(&name).expect("declared");
+                declared.army = army;
+                declared.state = None;
                 continue;
-            }
-            // The march: contact over (if it was), the anchor set down where the body stands; every member to its
-            // slot this tick.
-            if group.stopped {
-                group.stopped = false;
-                group.engaged = None;
-                group.reanchor(&walkers);
-            }
-            // A walking group's slot order is a Move; a fighting group's a Fight, which stops to shoot what is in
-            // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was
-            // 6.0 s under Moves, the units walking on to slots on the structure's footprint, against 0.8 under
-            // Fights). Stopped slots are sent once, so a standing unit's Fight is never re-ordered.
-            group.tick(frame, &walkers, spacing, &self.pacing);
-            let fights = group.order.kind != GroupKind::Go;
-            for w in &walkers {
-                if !by_id.contains_key(&w.id) {
+            };
+            let walkers_of = |ids: &[UnitId]| -> Vec<group::Walker> { ids.iter().filter_map(|id| by_walker.get(id).copied()).collect() };
+            let ctx = FormCtx { frame, enemies, sources, by_id: &by_id, spacing, pursuit_on };
+            // The lead: the army's order, dragged by the slaved companies' median lag as by its own members', and by a
+            // joining company's once it is within `WAIT_FOR` of its point (read from the last tick).
+            let slaved_lag = (army.companies.iter())
+                .filter(|c| c.role == army::Role::Slaved || (c.role == army::Role::Joining && c.route_at.is_some_and(|p| c.formation.anchor.dist2d(p) <= army::WAIT_FOR)))
+                .map(|c| c.formation.band_lag)
+                .fold(0.0f32, f32::max);
+            let (lead_anchor, lead_heading, lead_pace, width, depth, abreast) = {
+                let c = &mut army.companies[li];
+                c.formation.external_lag = slaved_lag;
+                c.formation.update(c.members.clone(), order.clone());
+                let w = walkers_of(&c.members);
+                let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                let (width, depth) = army::Army::shape(&c.formation, spacing);
+                let abreast = army::Army::abreast_for(state.room, width);
+                let out = (state.anchor, state.heading, state.pace, width, depth, abreast);
+                c.state = Some(state);
+                out
+            };
+            army.assign_slots(lead_anchor, lead_heading, width, depth, abreast);
+            for i in 0..army.companies.len() {
+                if i == li {
                     continue;
                 }
-                // The slot carried ahead by the type's lead (D20), so the member stands in the slot.
-                let Some(to) = group.order_point(w.id) else { continue };
-                let command = if fights { Command::Fight { unit: w.id, to, queue: false } } else { Command::Move { unit: w.id, to, queue: false } };
-                orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: to, target: None });
+                let c = &mut army.companies[i];
+                let w = walkers_of(&c.members);
+                match c.role {
+                    army::Role::Lead => {}
+                    // Slaved: its anchor the lead's at the shape's offset, its members' orders the army's kind.
+                    army::Role::Slaved => {
+                        let point = army::Army::slaved_point(&c.formation, lead_anchor, lead_heading, c.slot, width, depth, abreast);
+                        c.formation.set_members(c.members.clone());
+                        c.formation.set_kind(order.kind);
+                        c.formation.slave(point, lead_heading, lead_pace);
+                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                        c.state = Some(state);
+                    }
+                    // Joining: its own march to its slaved point, planned again when the point has walked on.
+                    army::Role::Joining => {
+                        let point = army::Army::slaved_point(&c.formation, lead_anchor, lead_heading, c.slot, width, depth, abreast);
+                        if c.route_at.is_none_or(|p| p.dist2d(point) > army::FOLLOW_STEP) {
+                            c.route_at = Some(point);
+                            c.order = GroupOrder::new(GroupKind::FightTo, vec![point]);
+                        }
+                        c.formation.update(c.members.clone(), c.order.clone());
+                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                        if state.anchor.dist2d(point) <= army::SLAVE_WITHIN {
+                            if group::debug_on() {
+                                eprintln!("[group {name} f={frame}] SLAVED {}: {} members within {:.0} of slot {}", c.formation.name, c.members.len(), state.anchor.dist2d(point), c.slot);
+                            }
+                            c.role = army::Role::Slaved;
+                            c.route_at = None;
+                        }
+                        c.state = Some(state);
+                    }
+                    // Mustering: a hold at the muster point until due, then joining.
+                    army::Role::Mustering => {
+                        c.formation.update(c.members.clone(), c.order.clone());
+                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                        if let Some((at, since)) = c.muster
+                            && army::muster_due(c.members.len(), since, frame, &order)
+                        {
+                            if group::debug_on() {
+                                eprintln!("[group {name} f={frame}] RELEASE {}: {} members from the muster at ({:.0},{:.0}) after {} s", c.formation.name, c.members.len(), at.x, at.z, (frame - since) / FRAMES_PER_SECOND);
+                            }
+                            c.role = army::Role::Joining;
+                            c.muster = None;
+                            c.formation.unslave();
+                        }
+                        c.state = Some(state);
+                    }
+                }
             }
-            declared.state = Some(group.state(&walkers));
+            let state = army.compose();
+            let declared = self.groups.get_mut(&name).expect("declared");
+            declared.army = army;
+            declared.state = state;
         }
         orders
+    }
+
+    /// One formation's tick (a company's, or the whole group's with no cap): the contact shape when engaged, else the
+    /// march; the members' form orders into `orders`; its state.
+    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, FormOrder>) -> GroupState {
+        let FormCtx { frame, enemies, sources, by_id, spacing, pursuit_on } = *ctx;
+        let target_of = |id: UnitId| enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id));
+        let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
+        let centre = form::centroid(positions.iter().copied()).unwrap_or_default();
+        // An Attack's goal follows its target's sightings.
+        if let GroupKind::Attack(id) = group.order.kind
+            && let Some(at) = target_of(id)
+        {
+            group.retarget(at);
+        }
+        // Engaged: an armed enemy within the horizon of the members' centre, for a group that fights.
+        let let_go = self.let_go.borrow();
+        let foes: Vec<form::Foe> = sources.iter().filter(|s| s.weight >= FAINT && s.pos.dist2d(centre) < HORIZON && !let_go.contains_key(&s.id)).map(|s| form::Foe { id: s.id, pos: s.pos, mobile: s.mobile, reach: s.reach }).collect();
+        drop(let_go);
+        let engaged = group.order.kind != GroupKind::Go && !foes.is_empty();
+        let reach = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.stats(u.def)).map(|s| s.reach).fold(f32::INFINITY, f32::min);
+        let named = match group.order.kind {
+            GroupKind::Attack(id) => Some(id),
+            _ => None,
+        };
+        // The target the group had: the one most of its members' claims name.
+        let mut had: HashMap<UnitId, usize> = HashMap::new();
+        for w in walkers {
+            if let Some(t) = self.claims.get(&w.id).filter(|c| c.rule == Rule::Form).and_then(|c| c.target) {
+                *had.entry(t).or_default() += 1;
+            }
+        }
+        let keep = had.into_iter().max_by_key(|(t, n)| (*n, t.0)).map(|(t, _)| t);
+        let mut contact = if engaged && reach.is_finite() && reach > 0.0 { form::contact(centre, named, keep, &foes, reach) } else { None };
+        // A running target is let go: the slot follows the target, and a group sent somewhere else would follow
+        // it anywhere (H-MICRO-FORM-PURSUIT). A target the host named (an Attack) is chased as ordered.
+        if pursuit_on && named.is_none() && let Some(c) = &contact && let Some(foe) = foes.iter().find(|f| f.id == c.target) && foe.mobile {
+            let mut pursuits = self.pursuits.borrow_mut();
+            let (origin, _) = *pursuits.entry(foe.id).or_insert((foe.pos, frame));
+            if foe.pos.dist2d(origin) > PURSUIT && foe.pos.dist2d(centre) > reach {
+                pursuits.remove(&foe.id);
+                self.let_go.borrow_mut().insert(foe.id, frame + LET_GO_FRAMES);
+                contact = None;
+            }
+        }
+        if let Some(contact) = contact {
+            group.stopped = true;
+            group.engaged = Some(contact.target);
+            let (slots, _, _) = form::contact_slots(&contact, walkers.len(), spacing);
+            let slot_of = form::assign(&positions, &slots);
+            // Against area fire the walk to the slot is a Move, which keeps the body spread and walking under
+            // the shells (25 Stouts against 4 Fatboys: +0.49 with Move, -0.37 with Fight); against direct fire a
+            // Fight, which stops to shoot at the first thing in reach (14 Blitzes on E3 r1250: -0.25 against
+            // -0.34 with Move; a unit walking under a Move fired about half as often).
+            let walk = spacing > form::HULL_SPACING;
+            let target = Some(contact.target);
+            for (i, w) in walkers.iter().enumerate() {
+                let Some(unit) = by_id.get(&w.id) else { continue };
+                let unit_reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
+                let slot = group.snap(slots[slot_of[i]]);
+                let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
+                let claim = self.claims.get(&unit.id).filter(|c| c.rule == Rule::Form);
+                let standing = claim.is_some_and(|c| c.stance == Some(Stance::Stand));
+                // The slot it was sent to on this target: it keeps it until it gets there (a slot re-dealt every
+                // tick re-ordered the Blitzes twice a second, the first E3 build), and a unit waiting at it is
+                // sent on when the target has walked its slot `SLOT_MOVED` away.
+                let sent = claim.filter(|c| c.target == target && matches!(c.stance, Some(Stance::Slot | Stance::Wait))).map(|c| (c.sent_to, c.stance));
+                let form_order = if unit_reach > 0.0 && (distance < unit_reach - STAND_INSIDE || (standing && distance < unit_reach + STAND_KEEP)) {
+                    // Standing: its order's target when that is what is in reach, else nothing: it fires at
+                    // will where it is, or walks on to its slot under the order it has.
+                    let command = match named {
+                        Some(named) if nearest.is_some_and(|e| e.id == named) => Some(Command::Attack { unit: unit.id, target: named, queue: false }),
+                        _ => None,
+                    };
+                    FormOrder { stance: Stance::Stand, command, at: slot, target }
+                } else {
+                    let to = match sent {
+                        Some((at, Some(Stance::Slot))) if unit.pos.dist2d(at) > ARRIVED => at,
+                        Some((at, Some(Stance::Wait))) if at.dist2d(slot) <= SLOT_MOVED => at,
+                        _ => slot,
+                    };
+                    if unit.pos.dist2d(to) <= ARRIVED {
+                        FormOrder { stance: Stance::Wait, command: None, at: to, target }
+                    } else {
+                        let command = if walk { Command::Move { unit: unit.id, to, queue: false } } else { Command::Fight { unit: unit.id, to, queue: false } };
+                        FormOrder { stance: Stance::Slot, command: Some(command), at: to, target }
+                    }
+                };
+                orders.insert(unit.id, form_order);
+            }
+            return group.state(walkers);
+        }
+        // The march: contact over (if it was), the anchor set down where the body stands (a slaved company's anchor
+        // is the lead's to set); every member to its slot this tick.
+        if group.stopped {
+            group.stopped = false;
+            group.engaged = None;
+            if !group.slaved() {
+                group.reanchor(walkers);
+            }
+        }
+        // A walking group's slot order is a Move; a fighting group's a Fight, which stops to shoot what is in
+        // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was
+        // 6.0 s under Moves, the units walking on to slots on the structure's footprint, against 0.8 under
+        // Fights). Stopped slots are sent once, so a standing unit's Fight is never re-ordered.
+        group.tick(frame, walkers, spacing, &self.pacing);
+        let fights = group.order.kind != GroupKind::Go;
+        for w in walkers {
+            if !by_id.contains_key(&w.id) {
+                continue;
+            }
+            // The slot carried ahead by the type's lead (D20), so the member stands in the slot.
+            let Some(to) = group.order_point(w.id) else { continue };
+            let command = if fights { Command::Fight { unit: w.id, to, queue: false } } else { Command::Move { unit: w.id, to, queue: false } };
+            orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: to, target: None });
+        }
+        group.state(walkers)
     }
 
     /// A free unit with a form order takes it. An order goes out when the claim is fresh (the group just formed, or

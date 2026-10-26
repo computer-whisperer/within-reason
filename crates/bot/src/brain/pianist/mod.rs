@@ -207,6 +207,10 @@ pub struct Pianist {
     /// rewrote the player's allowance to say so, the think penalty's landing put `new` back, and each flip reset
     /// the plant's produced counts, so one list made seven advanced constructors against `armacv:2`).
     pub(super) rally: HashMap<(UnitId, Option<UnitDefId>), (u64, String)>,
+    /// Per group, the muster points the lane's companies gather at (the beside-lane points of the plants whose output
+    /// joins it) and the count that walks together (the plants' smallest `join_in`; none: the company cap). Kept up
+    /// every think by `keep_groups`, read by the lane's declaration (the companies design §4).
+    pub(super) musters: HashMap<String, (Vec<Vec3>, Option<usize>)>,
     /// The pass (`compose.rs`): the worlds of the last pick, the picture's signature and frame at the last gate,
     /// and the events since (`schedule.rs`).
     pub(super) worlds: Vec<compose::World>,
@@ -654,6 +658,7 @@ impl Pianist {
             seat_tag: String::new(),
             produced_by: HashMap::new(),
             rally: HashMap::new(),
+            musters: HashMap::new(),
             worlds: Vec::new(),
             sig: None,
             asked: BTreeMap::new(),
