@@ -16,6 +16,9 @@ use crate::{Distilled, MINUTE};
 const T2_FROM: i32 = 6 * MINUTE;
 /// The energy store must hold this share when the plant is started: a transition begun in a stall never ends.
 const T2_ENERGY_STORE: f32 = 0.3;
+/// `gate=bank`: the bank holds the plant's bill when it holds its metal, or, with a store smaller than that, when the
+/// store is this full.
+const BANK_FULL: f32 = 0.9;
 /// The share of the metal income a project may draw, and the seconds over which the bank is spent beside it
 /// (D-PROJECT). The players' "stop the other factories during the transition" is the share.
 const PROJECT_SHARE: f32 = 0.75;
@@ -60,6 +63,20 @@ pub(crate) enum Power {
     Swarm,
 }
 
+/// D-T2-GATE's arms: `gate=income` the advanced plant on income alone; `gate=field` and only once the field is won
+/// (D-FIELD), the default; `gate=bank` once the field is won or the bank holds the plant's bill; `gate=tech` those or
+/// once anything of his of tier 2 has been seen, each waiting while the strike body pushes in his half (2026-10-25:
+/// on the 2v2 bench the seats then tech at 14-15 min and the team's income doubles by 30:00, but no arm won more, and
+/// in duels `gate=tech` went 3-5-8 against the field gate's 9-3-4, dist42-49) ("past his advanced factory a tier-1 surplus is
+/// spent on worse terms", D-lead-convert-it; "decide at his lab", D-tier2-sprint).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(crate) enum Gate {
+    Bank,
+    Field,
+    Income,
+    Tech,
+}
+
 /// The arms of the rows (`README.md`): `WITHIN_REASON_DISTILLED="t2=22,energy=mohos,converters=on,power=helpers,pause=on"`.
 #[derive(Clone, Debug)]
 pub(crate) struct Options {
@@ -73,8 +90,8 @@ pub(crate) struct Options {
     pub power: Power,
     /// `pause=off`: the tier-1 plants keep making soldiers through the transition.
     pub pause_t1: bool,
-    /// `gate=income`: the advanced plant on income alone; `gate=field`: and only once the field is won (D-FIELD).
-    pub field_gate: bool,
+    /// What opens the advanced plant beside the income (D-T2-GATE).
+    pub gate: Gate,
     /// `lane=on`: the control lane under the army's orders (D-LANE); off by default, as wired it did not move the
     /// exchange (apex-v029-distilled-comet-10: 1-14-1 over sixteen cold games against 3-12-1 without it).
     pub lane: bool,
@@ -88,7 +105,7 @@ pub(crate) struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true, received: true, air: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: false, raiders: true, received: true, air: true }
     }
 }
 
@@ -107,7 +124,11 @@ impl Options {
                 ("power", "swarm") => options.power = Power::Swarm,
                 ("power", _) => options.power = Power::Helpers,
                 ("pause", v) => options.pause_t1 = v != "off",
-                ("gate", v) => options.field_gate = v != "income",
+                ("gate", "field") => options.gate = Gate::Field,
+                ("gate", "income") => options.gate = Gate::Income,
+                ("gate", "tech") => options.gate = Gate::Tech,
+                ("gate", "bank") => options.gate = Gate::Bank,
+                ("gate", _) => options.gate = Gate::Field,
                 ("lane", v) => options.lane = v == "on",
                 ("raid", v) => options.raiders = v != "off",
                 ("received", v) => options.received = v != "off",
@@ -122,7 +143,12 @@ impl Options {
         format!(
             "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
-            if self.field_gate { "field" } else { "income" },
+            match self.gate {
+                Gate::Bank => "bank",
+                Gate::Field => "field",
+                Gate::Income => "income",
+                Gate::Tech => "tech",
+            },
             if self.fusion_first { "fusion" } else { "mohos" },
             if self.converters { "on" } else { "off" },
             self.power,
@@ -190,25 +216,46 @@ impl Distilled {
     }
 
     /// D-T2-GATE: a constructor that can build the advanced plant starts it once the metal income reaches the arm's
-    /// figure, the energy store is not empty, no project is under way and, under `gate=field`, the field is won
-    /// (D-FIELD); one plant.
-    pub(crate) fn t2_gate(&self, builder: &UnitDefInfo, tick: &Tick) -> bool {
-        let (Some(from), Some(plant)) = (self.options.t2_income, self.kit.advanced_plant) else { return false };
-        let energy = tick.snapshot.energy;
-        self.frame >= T2_FROM
+    /// figure, the energy store is not empty and no project is under way, and, under `gate=field`, the field is won
+    /// (D-FIELD); under `gate=bank` the field is won or the bank holds the plant's bill (its metal, or `BANK_FULL` of a
+    /// store smaller than that): "a bank is a plant paid" (D-tier2-sprint), the plant standing on metal nothing else
+    /// was spending. The field alone kept the plant from every seat of the user's eight-seat game of 2026-10-25, the
+    /// field never won in a team game, while the store sat full at 7,500-12,300 from 24:00 on 130-180 a second. One
+    /// plant. The reason it opened, when it does.
+    pub(crate) fn t2_gate(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<&'static str> {
+        let (Some(from), Some(plant)) = (self.options.t2_income, self.kit.advanced_plant) else { return None };
+        let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
+        let ready = self.frame >= T2_FROM
             && builder.build_options.contains(&plant)
             && self.count(Some(plant)) == 0
             && !self.project_under_way()
-            && tick.snapshot.metal.income >= from
-            && energy.current >= T2_ENERGY_STORE * energy.storage
-            && (!self.options.field_gate || self.field_won())
+            && metal.income >= from
+            && energy.current >= T2_ENERGY_STORE * energy.storage;
+        if !ready {
+            return None;
+        }
+        let bill = self.def(plant).map_or(f32::MAX, |d| d.metal_cost);
+        // While the strike body pushes in his half the sprint waits: "if the surplus is in his half and his extractor
+        // count is falling, the sprint waits for the kill" (D-tier2-sprint). Against BARb hard_aggressive in duels the
+        // sighting and the bank opened the gate at 12.8 min with the body out, the plants paused for it, the army at
+        // 15:00 was 4,506 against 7,927, and the row went 3-7-6 against the field gate's 9-3-4 (dist47, dist46).
+        match self.options.gate {
+            Gate::Income => Some("income"),
+            _ if self.field_won() => Some("field"),
+            Gate::Bank | Gate::Tech if self.pushing_in_his_half() => None,
+            Gate::Bank | Gate::Tech if metal.current >= bill.min(BANK_FULL * metal.storage) => Some("bank"),
+            Gate::Tech if self.army.his_tier2.is_some() => Some("his tier 2"),
+            _ => None,
+        }
     }
 
-    /// The transition: the advanced plant is going up, or stands with its first two constructors still to make.
+    /// The transition: the first advanced plant is going up, or stands with its first two constructors still to make
+    /// (a later advanced plant, raised on a piling bank, pauses nothing).
     pub(crate) fn transition(&self) -> bool {
         let plant = self.kit.advanced_plant;
+        let standing = self.finished(plant).next().is_some();
         let under_way = self.own.values().any(|u| Some(u.def) == plant && u.being_built) || self.economy.working_on(|job| job == Job::AdvancedPlant) > 0;
-        under_way || (self.finished(plant).next().is_some() && self.count(self.kit.advanced_constructor) < 2)
+        (under_way && !standing) || (standing && self.count(self.kit.advanced_constructor) < 2)
     }
 
     /// D-T2-PAUSE: the tier-1 plants make nothing through the transition while a home guard stands.

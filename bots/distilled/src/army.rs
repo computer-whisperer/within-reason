@@ -128,6 +128,8 @@ pub(crate) struct Army {
     /// been ours by every test but the time (D-FIELD).
     progress: f32,
     field_since: Option<i32>,
+    /// The first thing of his of tier 2 seen, and when (D-T2-GATE, `gate=tech`).
+    pub his_tier2: Option<(UnitDefId, i32)>,
     /// His armed mobile ground units as last seen: weight and frame (his aircraft are `air.rs`'s, D-AIR-SEEN).
     pub his_army: BTreeMap<UnitId, (f32, i32)>,
     /// Where the body was outweighed, and when.
@@ -241,6 +243,11 @@ impl Distilled {
     /// start, outweighs what he has shown by `PUSH_ODDS`, nothing has driven it back for `FORGET`, and no raid has
     /// been answered for two minutes. The tier-2 gate waits for it (D-T2-GATE); a body merely out counted as the
     /// field won at 10:00 in six of eight games of dist7-army-barb-hardagg-comet-1 while his army was twice ours.
+    /// The strike body is out and pushing past the middle: the lead is being spent in his half (D-T2-GATE waits).
+    pub(crate) fn pushing_in_his_half(&self) -> bool {
+        !self.army.strike.is_empty() && matches!(self.army.stance, Some(Stance::Push)) && self.army.progress >= 0.5
+    }
+
     pub(crate) fn field_won(&self) -> bool {
         self.army.field_since.is_some_and(|since| self.frame - since >= FIELD_HELD)
     }
@@ -278,6 +285,10 @@ impl Distilled {
     /// none; his armed mobile ground units are remembered for `SEEN_FOR` from their last sighting.
     fn remember(&mut self, tick: &Tick) {
         for enemy in &tick.snapshot.enemies {
+            if let Some(id) = enemy.def.filter(|d| self.army.his_tier2.is_none() && self.tier(*d) >= 2) {
+                eprintln!("[distilled ai={}] f={} his tier 2 seen: {}", self.hello.ai_id, self.frame, self.def(id).map_or("?", |d| d.name.as_str()));
+                self.army.his_tier2 = Some((id, self.frame));
+            }
             let Some(def) = enemy.def.and_then(|d| self.def(d)) else { continue };
             if def.speed == 0.0 {
                 self.army.his_buildings.insert(enemy.id, Seen { pos: enemy.pos, def: enemy.def });

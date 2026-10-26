@@ -98,7 +98,11 @@ const BUILD_POWER_BANK_STEP: f32 = 500.0;
 const COMMANDER_BUILD_POWER_BANK: f32 = 600.0;
 const BUILD_POWER_BUILDERS: usize = 6;
 const STORE_NEARLY_FULL: f32 = 0.9;
-const SECOND_ADVANCED_PLANT_FROM: f32 = 100.0;
+/// With metal piling up, one advanced plant for every this much metal income (the second from 100, the third from
+/// 200), and a project under way no bar to one while the bank holds its bill (2026-10-25, the 2v2 bench with
+/// `gate=tech`: 187-219 a second at 30:00-35:00 against 156-210 the plants could spend, 5,800-17,800 banked, a
+/// second advanced plant in one seat of twenty: the fusions the advanced constructors raised were always a project).
+const ADVANCED_PLANT_PER_INCOME: f32 = 100.0;
 const TURRET_RETELL: i32 = 10 * SECOND;
 /// A construction turret is built within this of its plant's middle, inside its own reach of it.
 const TURRET_REACH: f32 = 330.0;
@@ -495,7 +499,9 @@ impl Distilled {
         if let Some(help) = self.project_help(tick) {
             return Some(help);
         }
-        if self.t2_gate(def, tick) {
+        if let Some(why) = self.t2_gate(def, tick) {
+            let metal = tick.snapshot.metal;
+            eprintln!("[distilled ai={}] f={} t2 gate: {why} (bank {:.0} of {:.0}, income {:.1}, field won {})", self.hello.ai_id, self.frame, metal.current, metal.storage, metal.income, u8::from(self.field_won()));
             return Some(Job::AdvancedPlant);
         }
         if let Some(job) = self.ring_turret_job(tick) {
@@ -597,7 +603,7 @@ impl Distilled {
     /// D-BUILD-POWER: while the plants cannot spend the soldiers' share of the income, or metal piles up in the
     /// store, a construction turret beside the plant with the fewest (advanced plants among them), another plant when
     /// each has one, and with metal piling up turrets to three a plant first (four times the power a metal of a
-    /// plant) and a second advanced plant from `SECOND_ADVANCED_PLANT_FROM` of income.
+    /// plant) and advanced plants to one per `ADVANCED_PLANT_PER_INCOME` of income.
     fn build_power_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         // Metal piling up asks for build power only while the energy can follow: at +50 % income the second plant
@@ -632,10 +638,16 @@ impl Distilled {
         let factories = plants.iter().filter(|p| Some(p.def) != self.kit.air_plant).count();
         let turrets_first = if piling && factories >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
         let yard_room = self.frame >= self.economy.plant_refused;
-        let second_advanced = piling && metal.income >= SECOND_ADVANCED_PLANT_FROM && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d)) && self.count(self.kit.advanced_plant) == 1 && !self.project_under_way();
+        let advanced = self.count(self.kit.advanced_plant);
+        let bill = self.kit.advanced_plant.and_then(|d| self.def(d)).map_or(f32::MAX, |d| d.metal_cost);
+        let more_advanced = piling
+            && advanced >= 1
+            && (advanced as f32) < (metal.income / ADVANCED_PLANT_PER_INCOME).floor()
+            && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d))
+            && (!self.project_under_way() || metal.current >= bill);
         let job = match fewest {
             Some((n, plant)) if self.kit.turret.is_some() && n < turrets_first => Some(Job::Turret(plant)),
-            _ if second_advanced && yard_room => Some(Job::AdvancedPlant),
+            _ if more_advanced && yard_room => Some(Job::AdvancedPlant),
             _ if self.count(self.kit.plant) < PLANTS && yard_room => Some(Job::Plant),
             Some((n, plant)) if self.kit.turret.is_some() && n < TURRETS_A_PLANT_AT_MOST => Some(Job::Turret(plant)),
             _ => None,

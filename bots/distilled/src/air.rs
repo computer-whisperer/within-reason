@@ -130,8 +130,7 @@ pub(crate) struct Air {
 impl Distilled {
     /// At the start: what every type does to aircraft, from the combat tables. A bomb's category admits aircraft but
     /// it only falls (`CBombDropper::TestRange`), so a bomber's figure here is not real; nothing below reads one.
-    pub(crate) fn init_air(&mut self) {
-        let table = combatsim::units::Units::default();
+    pub(crate) fn init_air(&mut self, table: &combatsim::units::Units) {
         for def in self.defs.values() {
             let Some(i) = table.index(&def.name) else { continue };
             let unit = &table.list[i];

@@ -72,6 +72,8 @@ pub(crate) struct Distilled {
     pub prev_own: BTreeMap<UnitId, OwnUnit>,
     /// Per aircraft of ours, the last weapon that hit it: a shot-down aircraft dies in its crash, which names no killer.
     last_hit: BTreeMap<UnitId, bot_protocol::Weapon>,
+    /// Every type's tier, from the combat tables (`techlevel`): the minute line's army by tier.
+    tiers: BTreeMap<UnitDefId, u32>,
     /// This tick's metal income, for the rules that run without the tick (D-PRODUCTION).
     pub metal_income: f32,
     /// D-RECEIVED: what our allies' overflow put into our stock, metal and energy, by the second it came, over
@@ -95,6 +97,11 @@ pub(crate) struct Distilled {
 impl Distilled {
     pub(crate) fn def(&self, id: UnitDefId) -> Option<&UnitDefInfo> {
         self.defs.get(&id)
+    }
+
+    /// A type's tier (`techlevel`), 1 when the combat tables do not know it.
+    pub(crate) fn tier(&self, id: UnitDefId) -> u32 {
+        self.tiers.get(&id).copied().unwrap_or(1)
     }
 
     pub(crate) fn finished(&self, def: Option<UnitDefId>) -> impl Iterator<Item = &OwnUnit> {
@@ -172,7 +179,9 @@ impl Distilled {
         self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
         self.kit = self.def(commander.def).map(|d| self.kit_of(d)).unwrap_or_default();
         self.income_multiplier = 1.0 + handicap_percent(&self.hello.script, self.hello.team) / 100.0;
-        self.init_air();
+        let table = combatsim::units::Units::default();
+        self.init_air(&table);
+        self.tiers = self.defs.values().filter_map(|d| table.index(&d.name).map(|i| (d.id, table.list[i].tech))).collect();
         let kit = &self.kit;
         let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank)]
             .iter()
@@ -367,7 +376,7 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
@@ -456,6 +465,14 @@ impl Bot for Distilled {
                 tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage,
                 self.received_rate().0, self.received_rate().1
             );
+            // The army by tier (2026-10-25, the 2v2 tier-2 bench): the metal of our finished armed mobile units
+            // that build nothing, of tier 1 and of tier 2 or more.
+            let (mut tier1, mut tier2) = (0.0, 0.0);
+            for u in self.own.values().filter(|u| !u.being_built) {
+                let Some(d) = self.def(u.def).filter(|d| d.speed > 0.0 && d.weapon_count > 0 && d.build_options.is_empty()) else { continue };
+                if self.tier(u.def) >= 2 { tier2 += d.metal_cost } else { tier1 += d.metal_cost }
+            }
+            eprintln!("[distilled ai={}] f={} army: tier 1 {tier1:.0}, tier 2 {tier2:.0}", self.hello.ai_id, tick.frame);
         }
         Commands(commands)
     }
