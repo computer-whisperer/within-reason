@@ -552,9 +552,10 @@ mod tests {
         assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
     }
 
-    /// The companies design (`docs/design/2026-10-25-companies.md`): forty-eight Pawns declared at a cap of 24 march
-    /// as two companies, the second slaved behind or beside the lead, and both are formed within ten seconds; the
-    /// state reads the army at the top and the companies under it.
+    /// The companies design (`docs/design/2026-10-25-companies.md` §2): forty-eight Pawns declared at a cap of 24
+    /// march as two companies, each on its own way and formed on its own; the state reads the army at the top and the
+    /// companies under it. The cap lifted on the march (companies-1: the player's `company: 0` left the companies
+    /// standing split) makes them one company.
     #[test]
     fn a_capped_group_marches_as_companies() {
         let host = Host::new(Vec::new());
@@ -601,11 +602,12 @@ mod tests {
         let text = log.join("\n");
         let s = lane.group_state("a").expect("a state");
         assert_eq!(s.companies.len(), 2, "{text}");
-        assert!(s.companies.iter().any(|c| c.role == crate::Role::Lead) && s.companies.iter().any(|c| c.role == crate::Role::Slaved), "{text}");
-        // By ten seconds both companies are formed.
-        let ten = &log[9];
-        assert!(s.formed.len() >= 40, "formed at the end: {}\n{text}", s.formed.len());
-        assert!(ten.contains("formed 2") || ten.contains("formed 3") || ten.contains("formed 4"), "{text}");
+        assert!(s.companies.iter().all(|c| c.role == crate::Role::Marching && c.members == 24), "{text}");
+        assert!(s.companies.iter().all(|c| c.formed >= 20), "each company formed on its own: {text}");
+        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw(), Commitment::None);
+        lane.tick(&host, &tick(30 + 3 * 200, body.clone(), Vec::new()), &mut Vec::new(), false);
+        let lifted = lane.group_state("a").expect("a state");
+        assert_eq!((lifted.companies.len(), lifted.companies[0].members), (1, 48), "the cap lifted: one company");
     }
 
     fn rover(id: i32, x: f32, z: f32) -> OwnUnit {

@@ -354,20 +354,6 @@ pub struct Group {
     dealt_at: i32,
     /// The exceptions this tick, as reported.
     exceptions: Vec<(UnitId, Cause, f32)>,
-    /// The worst lag of its own body behind their slots at the last tick.
-    pub lag: f32,
-    /// The median member's distance from its slot at the last tick.
-    pub median_off: f32,
-    /// The army's measure of a company (the companies design): the worst lag behind its slot, along the heading, of
-    /// any member within the joiner's reach of its slot (`exception_at` plus the layout's depth), fleeing and cut-off
-    /// members apart. Wider than the body's own drag: a company just slaved has every member in `away`, and a member
-    /// at the same speed as the slot never closes on it unless the lead waits.
-    pub band_lag: f32,
-    /// A lag the army adds to the lead's (its slaved companies' worst): dragged like its own members'.
-    pub external_lag: f32,
-    /// Slaved (the companies design): the anchor is set from outside each tick, no way of its own; the pace the
-    /// members' lead is carried by is the lead company's.
-    carry_pace: Option<f32>,
 }
 
 impl Group {
@@ -419,11 +405,6 @@ impl Group {
             heading_since: 0,
             dealt_at: -1,
             exceptions: Vec::new(),
-            lag: 0.0,
-            median_off: 0.0,
-            band_lag: 0.0,
-            external_lag: 0.0,
-            carry_pace: None,
         };
         group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, heading, group.members.len()));
         group.way_from = group.anchor;
@@ -445,49 +426,6 @@ impl Group {
     /// The way the anchor walks this order by, as planned (the tests' instrument).
     pub fn way(&self) -> &[Vec3] {
         &self.way
-    }
-
-    pub fn files(&self) -> usize {
-        self.files
-    }
-
-    /// The membership alone: a changed one re-deals the slots.
-    pub fn set_members(&mut self, members: Vec<UnitId>) {
-        if members != self.members {
-            self.members = members;
-            self.slot_of.clear();
-        }
-    }
-
-    /// The members' order kind alone (a slaved company fights or walks as the army does).
-    pub fn set_kind(&mut self, kind: GroupKind) {
-        self.order.kind = kind;
-    }
-
-    /// Slaved to an army's lead (`docs/design/2026-10-25-companies.md` §2): the anchor and heading are the lead's
-    /// offset, set every tick before the tick; no way of its own (at its end from the first tick: no pace, the slots
-    /// hang from the anchor, arrival is being formed up); the members' lead is carried at the lead company's pace.
-    pub fn slave(&mut self, anchor: Vec3, heading: (f32, f32), pace: f32) {
-        self.anchor = anchor;
-        self.heading = heading;
-        self.way.clear();
-        self.way_host.clear();
-        self.way_from = anchor;
-        self.planned_end = None;
-        self.leg = 0;
-        self.dirty = false;
-        self.reaim = false;
-        self.carry_pace = Some(pace);
-    }
-
-    /// Its own way again (a slaved company made the lead, a muster released): planned at the next tick.
-    pub fn unslave(&mut self) {
-        self.carry_pace = None;
-        self.dirty = true;
-    }
-
-    pub fn slaved(&self) -> bool {
-        self.carry_pace.is_some()
     }
 
     /// The host's order again: a new kind, a route of another length or a point moved `ROUTE_MOVED` re-aims the
@@ -687,16 +625,16 @@ impl Group {
         if anchor.dist2d(q) > self.spacing { q } else { anchor }
     }
 
+    /// The layout's depth: the ranks the members fill, `RANK_GAP` apart.
+    fn layout_depth(&self) -> f32 {
+        (self.members.len().max(1).div_ceil(self.files.max(1)) - 1) as f32 * form::RANK_GAP
+    }
+
     /// The body's depth behind the anchor along the heading: the mean of its members' (in the body, not away, not
     /// fleeing), or the layout's half depth for the members when nobody is in the body yet. The carry at a corner
     /// (`target`) is measured, so the trail the members keep behind their slots (about fifty at pace, the brake zone)
     /// and the ranks they actually hold are in it: from the rank count alone the body's centroid was still a hundred
     /// short of the corner when the anchor turned (the circuit7-carry trace).
-    /// The layout's depth: the ranks the members fill, `RANK_GAP` apart.
-    pub fn layout_depth(&self) -> f32 {
-        (self.members.len().max(1).div_ceil(self.files.max(1)) - 1) as f32 * form::RANK_GAP
-    }
-
     fn body_depth(&self, walkers: &[Walker]) -> f32 {
         let h = self.heading;
         let depths: Vec<f32> = self.body(walkers).iter().map(|p| (self.anchor.x - p.x) * h.0 + (self.anchor.z - p.z) * h.1).collect();
@@ -960,15 +898,9 @@ impl Group {
         // the body for minutes). The Glitters lobby game: a hundred joiners 2,000-5,500 behind, every one in `away`,
         // the anchor at full pace with one to twenty formed.
         let joiner_reach = pacing.exception_at + self.layout_depth();
-        let mut offs: Vec<f32> = Vec::with_capacity(walkers.len());
-        let mut band_lag = 0.0f32;
         for w in walkers {
             let Some(slot) = self.slots.get(&w.id) else { continue };
             let off = w.pos.dist2d(*slot);
-            offs.push(off);
-            if off <= joiner_reach && !w.fleeing && !self.cut_off.contains_key(&w.id) {
-                band_lag = band_lag.max((slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1);
-            }
             let away = self.away.contains_key(&w.id);
             let limit = if self.been_formed.contains(&w.id) { pacing.exception_at } else { joiner_reach };
             if away {
@@ -985,17 +917,6 @@ impl Group {
                 let behind = (slot.x - w.pos.x) * h.0 + (slot.z - w.pos.z) * h.1;
                 max_lag = max_lag.max(behind);
             }
-        }
-        // The army's drag (the companies design): a slaved company's body behind their slots holds the lead as its
-        // own members do.
-        self.lag = max_lag;
-        self.band_lag = band_lag;
-        offs.sort_by(f32::total_cmp);
-        self.median_off = offs.get(offs.len() / 2).copied().unwrap_or(0.0);
-        // The army's lag releases at `rejoin_within`, where a member comes out of `away`, not at `drag_from`: a
-        // company trailing between the two would hold the lead at nearly full pace and never close (the march test).
-        if self.external_lag > pacing.rejoin_within {
-            max_lag = max_lag.max(self.external_lag + (pacing.drag_from - pacing.rejoin_within));
         }
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
         self.pace = if self.stopped || self.at_end() || !march { 0.0 } else { self.full_pace * held };
@@ -1092,9 +1013,9 @@ impl Group {
         // a faster type's is learned.
         // The lead is for the pace at the type's speed, where a member never catches the carried point and settles
         // behind its slot by the engine's lag; at a held pace it does catch it and sits that far ahead of its slot,
-        // out of the formed band (the companies march test: the lead company's 24 all away at pace 54, the carried
+        // out of the formed band (the companies march test, 2026-10-25: 24 all away at a held pace of 54, the carried
         // point 186 ahead). The share's fourth power keeps the carry under the formed band below 0.8 of the pace.
-        let share = if self.full_pace > 0.0 { (self.carry_pace.unwrap_or(self.pace) / self.full_pace).clamp(0.0, 1.0).powi(4) } else { 0.0 };
+        let share = if self.full_pace > 0.0 { (self.pace / self.full_pace).clamp(0.0, 1.0).powi(4) } else { 0.0 };
         // The lead shrinks over the last lead's length of the way (D22 change 4), so nobody is sent past the route's
         // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back).
         let left = self.way_ahead();

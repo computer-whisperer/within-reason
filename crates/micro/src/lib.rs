@@ -1271,8 +1271,8 @@ impl Lane {
             let members = declared.members.clone();
             let ground = declared.ground.clone();
             let mut army = std::mem::take(&mut declared.army);
-            // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, one lead, the
-            // floor at a halt, the shape's slots numbered.
+            // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, two near companies
+            // that fit merged, then every company ticked as a group of its own.
             let by_walker: HashMap<UnitId, group::Walker> = walkers.iter().map(|w| (w.id, *w)).collect();
             let founded = army.partition(&name, &members, &by_walker, &order, frame, spacing, &ground);
             if ground_changed {
@@ -1280,111 +1280,31 @@ impl Lane {
                     c.formation.set_ground(ground.clone());
                 }
             }
-            let halted = order.kind == GroupKind::Hold || army.arrived;
-            if army.merge_floor(order.cap, halted) && group::debug_on() {
-                eprintln!("[group {name} f={frame}] MERGE: two companies under half the cap of {} merged at a halt; {} companies", order.cap, army.companies.len());
+            if let Some((into, from)) = army.merge(order.cap)
+                && group::debug_on()
+            {
+                eprintln!("[group {name} f={frame}] MERGE: a company of {from} into one of {into}; {} companies", army.companies.len());
             }
-            army.ensure_lead(&order);
             if founded > 0 && group::debug_on() {
                 eprintln!(
                     "[group {name} f={frame}] FOUNDED {founded}: now {}",
-                    army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role.word(), c.members.len())).collect::<Vec<_>>().join(", ")
+                    army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role().word(), c.members.len())).collect::<Vec<_>>().join(", ")
                 );
             }
-            let Some(li) = army.lead() else {
-                // Mustering alone: nobody marches yet; the musters hold where they gather.
-                let ctx = FormCtx { frame, enemies, sources, by_id: &by_id, spacing, pursuit_on };
-                for c in &mut army.companies {
-                    let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
-                    c.formation.set_members(c.members.clone());
-                    let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                    if let Some((_, since)) = c.muster
-                        && army::muster_due(c.members.len(), since, frame, &order)
-                    {
-                        c.role = army::Role::Joining;
-                        c.muster = None;
-                        c.formation.unslave();
-                    }
-                    c.state = Some(state);
-                }
-                let declared = self.groups.get_mut(&name).expect("declared");
-                declared.army = army;
-                declared.state = None;
-                continue;
-            };
-            let walkers_of = |ids: &[UnitId]| -> Vec<group::Walker> { ids.iter().filter_map(|id| by_walker.get(id).copied()).collect() };
             let ctx = FormCtx { frame, enemies, sources, by_id: &by_id, spacing, pursuit_on };
-            // The lead: the army's order, dragged by the slaved companies' median lag as by its own members', and by a
-            // joining company's once it is within `WAIT_FOR` of its point (read from the last tick).
-            let slaved_lag = (army.companies.iter())
-                .filter(|c| c.role == army::Role::Slaved || (c.role == army::Role::Joining && c.route_at.is_some_and(|p| c.formation.anchor.dist2d(p) <= army::WAIT_FOR)))
-                .map(|c| c.formation.band_lag)
-                .fold(0.0f32, f32::max);
-            let (lead_anchor, lead_heading, lead_pace, width, depth, abreast) = {
-                let c = &mut army.companies[li];
-                c.formation.external_lag = slaved_lag;
-                c.formation.update(c.members.clone(), order.clone());
-                let w = walkers_of(&c.members);
+            for c in &mut army.companies {
+                let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
+                c.formation.update(c.members.clone(), c.order(&order));
                 let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                let (width, depth) = army::Army::shape(&c.formation, spacing);
-                let abreast = army::Army::abreast_for(state.room, width);
-                let out = (state.anchor, state.heading, state.pace, width, depth, abreast);
+                if let Some((at, since)) = c.muster
+                    && army::muster_due(c.members.len(), since, frame, &order)
+                {
+                    if group::debug_on() {
+                        eprintln!("[group {name} f={frame}] RELEASE {}: {} members from the muster at ({:.0},{:.0}) after {} s", c.formation.name, c.members.len(), at.x, at.z, (frame - since) / FRAMES_PER_SECOND);
+                    }
+                    c.muster = None;
+                }
                 c.state = Some(state);
-                out
-            };
-            army.assign_slots(lead_anchor, lead_heading, width, depth, abreast);
-            for i in 0..army.companies.len() {
-                if i == li {
-                    continue;
-                }
-                let c = &mut army.companies[i];
-                let w = walkers_of(&c.members);
-                match c.role {
-                    army::Role::Lead => {}
-                    // Slaved: its anchor the lead's at the shape's offset, its members' orders the army's kind.
-                    army::Role::Slaved => {
-                        let point = army::Army::slaved_point(&c.formation, lead_anchor, lead_heading, c.slot, width, depth, abreast);
-                        c.formation.set_members(c.members.clone());
-                        c.formation.set_kind(order.kind);
-                        c.formation.slave(point, lead_heading, lead_pace);
-                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                        c.state = Some(state);
-                    }
-                    // Joining: its own march to its slaved point, planned again when the point has walked on.
-                    army::Role::Joining => {
-                        let point = army::Army::slaved_point(&c.formation, lead_anchor, lead_heading, c.slot, width, depth, abreast);
-                        if c.route_at.is_none_or(|p| p.dist2d(point) > army::FOLLOW_STEP) {
-                            c.route_at = Some(point);
-                            c.order = GroupOrder::new(GroupKind::FightTo, vec![point]);
-                        }
-                        c.formation.update(c.members.clone(), c.order.clone());
-                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                        if state.anchor.dist2d(point) <= army::SLAVE_WITHIN {
-                            if group::debug_on() {
-                                eprintln!("[group {name} f={frame}] SLAVED {}: {} members within {:.0} of slot {}", c.formation.name, c.members.len(), state.anchor.dist2d(point), c.slot);
-                            }
-                            c.role = army::Role::Slaved;
-                            c.route_at = None;
-                        }
-                        c.state = Some(state);
-                    }
-                    // Mustering: a hold at the muster point until due, then joining.
-                    army::Role::Mustering => {
-                        c.formation.update(c.members.clone(), c.order.clone());
-                        let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                        if let Some((at, since)) = c.muster
-                            && army::muster_due(c.members.len(), since, frame, &order)
-                        {
-                            if group::debug_on() {
-                                eprintln!("[group {name} f={frame}] RELEASE {}: {} members from the muster at ({:.0},{:.0}) after {} s", c.formation.name, c.members.len(), at.x, at.z, (frame - since) / FRAMES_PER_SECOND);
-                            }
-                            c.role = army::Role::Joining;
-                            c.muster = None;
-                            c.formation.unslave();
-                        }
-                        c.state = Some(state);
-                    }
-                }
             }
             let state = army.compose();
             let declared = self.groups.get_mut(&name).expect("declared");
@@ -1485,14 +1405,11 @@ impl Lane {
             }
             return group.state(walkers);
         }
-        // The march: contact over (if it was), the anchor set down where the body stands (a slaved company's anchor
-        // is the lead's to set); every member to its slot this tick.
+        // The march: contact over (if it was), the anchor set down where the body stands; every member to its slot this tick.
         if group.stopped {
             group.stopped = false;
             group.engaged = None;
-            if !group.slaved() {
-                group.reanchor(walkers);
-            }
+            group.reanchor(walkers);
         }
         // A walking group's slot order is a Move; a fighting group's a Fight, which stops to shoot what is in
         // reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to all was

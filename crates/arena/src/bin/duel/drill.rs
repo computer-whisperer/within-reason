@@ -237,7 +237,7 @@ pub struct Score {
     /// Members the host took out of the group as stragglers (`STRAGGLER_PATIENCE`).
     pub left_behind: u32,
     /// The companies design (`--cap`): the most companies the army had at once, and the mean over the ticks of the
-    /// companies' own formed shares (the lead's, the slaved and the joining; a muster is not marching).
+    /// marching companies' own formed shares (a muster is not marching).
     pub companies: u32,
     pub company_formed: Option<f32>,
     /// D21: member-elmos walked away from the goal along the axis over those walked toward it, the elmos the anchor

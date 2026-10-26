@@ -1862,7 +1862,7 @@ impl Brain {
                 entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
                 // The companies (the companies design §4), when the army is more than one or a muster stands.
                 if state.companies.len() > 1 || state.companies.iter().any(|c| c.role == micro::Role::Mustering) {
-                    entry["companies"] = json!(company_words(state, self.company_of(&group.name), &|p| self.place_words(&places, p)));
+                    entry["companies"] = json!(company_words(state, self.company_of(&group.name), pianist.musters.get(&group.name).and_then(|(_, r)| *r), &|p| self.place_words(&places, p)));
                 }
             }
             // A shelling group's screen, the lane's second formation of it (chunk 5).
@@ -2129,44 +2129,35 @@ impl Brain {
     }
 }
 
-/// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
-/// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
-/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the unit the arc
-/// stands on, when it does. A column (two files or fewer) says the ground narrowed it.
-/// The army's companies (the companies design §4): how many of up to the cap, and each by role: the lead and where
-/// it stands, a slaved company by its place beside or behind the lead, a joining one by what it has left to walk, a
-/// muster by its plant's place and what releases it.
-pub(crate) fn company_words(state: &micro::GroupState, cap: usize, place: &dyn Fn(Vec3) -> String) -> String {
+/// The army's companies (the companies design §4): how many of up to the cap, each marching one by its size, its
+/// formed count, where it stands and how far from the main body (the largest, whose numbers the formation words
+/// give), and a muster by its plant's place and what releases it.
+pub(crate) fn company_words(state: &micro::GroupState, cap: usize, release: Option<usize>, place: &dyn Fn(Vec3) -> String) -> String {
     use micro::Role;
-    let lead = state.companies.iter().find(|c| c.role == Role::Lead);
     let mut parts: Vec<String> = Vec::new();
     for c in &state.companies {
-        let formed = format!("{} of {} formed", c.formed, c.members);
         parts.push(match c.role {
-            Role::Lead => format!("the lead, {} ({formed}) at {}", c.members, place(c.anchor)),
-            Role::Slaved => {
-                let rel = lead.map_or(String::new(), |l| {
-                    let (dx, dz) = (c.anchor.x - l.anchor.x, c.anchor.z - l.anchor.z);
-                    let along = dx * state.heading.0 + dz * state.heading.1;
-                    let across = -dx * state.heading.1 + dz * state.heading.0;
-                    let side = if across.abs() >= along.abs() { if across > 0.0 { "left of" } else { "right of" } } else if along < 0.0 { "behind" } else { "ahead of" };
-                    format!(" {:.0} {side} the lead", dx.hypot(dz))
-                });
-                format!("one of {} ({formed}){rel}", c.members)
+            Role::Marching => {
+                let off = c.anchor.dist2d(state.anchor);
+                let from = if off < 1.0 { " (the main body)".to_string() } else { format!(", {off:.0} from the main body") };
+                format!("{} ({} formed) at {}{from}", c.members, c.formed, place(c.anchor))
             }
-            Role::Joining => format!("one of {} joining the army, {} to go", c.members, c.at.map_or("-".to_string(), |p| format!("{:.0}", p.dist2d(c.anchor)))),
             Role::Mustering => format!(
                 "{} mustering at {} (they leave at {} or after {} s)",
                 c.members,
                 c.at.map_or("their plant".to_string(), place),
-                cap.max(1),
+                release.unwrap_or(cap).max(1),
                 micro::army::MUSTER_PATIENCE / 30
             ),
         });
     }
-    format!("{} compan{} of up to {cap}: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
+    format!("{} compan{} of up to {cap}, each marching on its own way: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
 }
 
+/// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
+/// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
+/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the unit the arc
+/// stands on, when it does. A column (two files or fewer) says the ground narrowed it.
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();

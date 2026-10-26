@@ -466,8 +466,8 @@ unit that would normally hold at its range and be approached is tested as an att
 K-units-duel-caveats.
 
 **`--cap N`** (the companies design, `docs/design/2026-10-25-companies.md`, 2026-10-25 night) declares the drill's army
-with a company cap: the lane partitions it into companies of at most N (one lead on the way, the rest slaved beside or
-behind it as the ground's room allows), and a gather's or circuit's rally is the muster, where fed units gather and
-leave as a company when N stand or after the muster's patience. The report's `companies` is the most the army had at
+with a company cap: the lane partitions it into companies of at most N, each marching the drill's order on its own
+way (two near companies that fit under N merge), and a gather's or circuit's rally is the muster, where fed units
+gather and march as a company when N stand or after the muster's patience. The report's `companies` is the most the army had at
 once and `company_formed` the mean of the marching companies' own formed shares; `WITHIN_REASON_GROUP_DEBUG=1` prints
-FOUNDED / RELEASE / SLAVED / MERGE lines. 0 (the default) is one formation, the drill as before.
+FOUNDED / RELEASE / MERGE lines. 0 (the default) is one formation, the drill as before.

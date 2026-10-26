@@ -16,7 +16,9 @@ marched at full pace with 1-20 formed members while 60-130 joiners trailed 2,000
 46 joining at any moment). `arrived` fired eight times with every joiner in `away` (one formed member at the way's end
 was enough: `in_body > 0`); the hands held and asked, the next Go left the mass behind again; the anchor jumped over
 800 in a second 18 times on re-aims and set-downs on the few at the front. Not the cap's size: five groups of 28 built
-the same way would each have been a point unit with 27 stragglers.
+the same way would each have been a point unit with 27 stragglers. (Half the fault. The user's half, after companies-1: the mass
+shared one movement domain, so the head's choke set the column for every unit behind it, and the members walked
+thousands of elmos to make the shape. The cap is for that: small groups that move independently, §2.)
 
 ## 1. Where it lives: the engine, not the hands
 
@@ -31,43 +33,40 @@ the engine's. (Undeclared groups, air and the hunts, keep the hands' `joining` a
 - `GroupOrder` gains `cap: usize` (0: no cap, one company, today's behaviour exactly), `musters: Vec<Vec3>` (where
   newcomers gather: the plants' beside-lane points; the drill's lab point) and `release: Option<usize>` (how many
   mustered newcomers walk together; none: the cap).
+**Reworked 2026-10-25 night, after companies-1 (the user's correction).** The cap is there so that no group has to
+inherit one movement domain: "The rules that govern movement of a small army don't scale to a large army -- so forcing
+the groups to stay small and allowing them to move independently solves the problem. Different mechanics may be needed
+to have the groups travel together, but that sounds like a later problem." The first build (04b70ee) had one **lead**
+company walking the army's way and the others **slaved** to its anchor at offsets, in column when the lead's room read
+narrow, their pace dragging the lead's: the Glitters coupling one level up. companies-1 showed it: the slaved anchors
+swung up to 4,229 elmos at the lead's turns, the slaved companies formed 0 of 3 for four minutes. Rejected because the
+head's geometry governs every company; the companies are independent instead. Deleted with it: the lead, slaved and
+joining roles, the offsets, the abreast count, the slots' assignment, the drag between companies (`band_lag`,
+`external_lag`), the carried pace of a slaved company, `WAIT_FOR`, `SLAVE_WITHIN`, `FOLLOW_STEP`.
+
 - A declaration holds `companies: Vec<Company>`, each today's formation (`group::Group`) with its members and a role:
-  - **Lead**: the army's way is its way (the order's route, the ground, the pacing). One per army: the largest company
-    among the lead and the slaved ones; when it dies or merges away, the next largest.
-  - **Slaved { slot }**: its anchor is the lead's anchor plus the slot's offset, snapped to the ground, every tick;
-    no way of its own, no pacing of its own. Its members' slots hang from its anchor; its exceptions, its been-formed
-    set and its arrival are its own.
-  - **Joining**: a company on its way to the army (a released muster, a company founded far from the lead): its own
-    route to its slaved point (the lead's anchor plus its offset), re-planned when that point has moved more than
-    `FOLLOW_STEP` (150) since the route was set, a FightTo. Slaved once its anchor is within `SLAVE_WITHIN` (600) of
-    the point.
-  - **Muster { at, since }**: a Hold about the muster point; releases to Joining when it holds `release` members, or
-    `MUSTER_PATIENCE` (90 s) after its first member came with `MUSTER_MIN` (4) or more standing, or twice that with
-    fewer (a trickle goes in fours rather than waiting forever; the first fed circuit at a cap of 12 had the lab make
-    11 in two minutes, so a muster full at the cap would have waited the whole lap).
-- **The partition** (a membership change): a member no company has (1) goes to the company whose anchor is within
-  `JOIN_NEAR` (800) of it and which is under the cap; (2) else to the muster company of the nearest muster point within
-  `JOIN_NEAR` of it (founded on the first); (3) else, with no muster near, to the smallest company under the cap, or
-  founds a company where it stands (a Joining one; a lone far newcomer still walks, as a company of one, to the army).
-  A member gone leaves its company. With `cap` 0 everyone is one company (1 and 3 collapse to it).
-- **The offsets** (the army's shape): companies abreast first, the lead in the middle, slot k at a lateral offset of
-  `±ceil(k/2) × (company width + COMPANY_GAP)`, left then right; the fourth and on in a second line behind by the
-  company's depth plus the gap. Company width is `files × spacing`; the lead's `room` says how many stand abreast:
-  with room for fewer, the rest fall into the second line (a narrow way puts the army in column). The user's measure:
-  how much of the army can engage at once while keeping its speed; abreast where the ground allows.
-- **The army's pacing**: the lead's drag law one level up: a slaved company's body members behind their slots drag
-  the lead's pace as the lead's own do (the same `drag_from` to `exception_at` ramp over the worst lag of every
-  lead/slaved company's body); a Joining company holds nothing until it is slaved; a Muster holds nothing.
-- **Arrival**: the lead at its way's end and every lead/slaved company arrived by its own rule (§3); a Joining company
-  on its way blocks it (the army has not gathered); a Muster does not (it is not of the march yet).
-- **Contact**: per company, as today per group (its own centre, its own arc, its own `stopped`). A lead in contact
-  stops its anchor and the slaved anchors freeze with it; a slaved company in contact drags the lead through its lag.
-- **The floor**: at a halt (the order a Hold, or the army arrived) two lead/slaved companies both under half the cap
-  merge into the larger (its slots re-dealt by the membership change); never on the march, never above the cap.
-- **The state**: `GroupState` at the top is the army (anchor and heading the lead's, `formed` and `exceptions` the
-  union, `arrived` the army's, `pace` the lead's, `files` the lead's) and gains `companies: Vec<CompanyState { role
-  (a word: lead, slaved, joining, mustering), anchor, members, formed, exceptions, arrived, at (the muster point or
-  the slot offset's target) }>`. Readers that know nothing of companies read the army as they read a group today.
+  - **Marching**: a full group with the army's order: its own way planned from where it stands, its own ground
+    reading (room, files), its own pacing, contact and arrival. Nothing of another company's moves it.
+  - **Mustering { at, since }**: a Hold about the muster point; it marches (the army's order, its way from the muster)
+    when it holds `release` members, or `MUSTER_PATIENCE` (90 s) after its first member came with `MUSTER_MIN` (4) or
+    more standing, or twice that with fewer.
+- **The partition** (a membership change): a member no company has (1) goes to the nearest marching company under the
+  cap whose anchor is within `JOIN_NEAR` (800) of it; (2) else to the muster company of the nearest muster point within
+  `JOIN_NEAR` (founded on the first, with every pending newcomer near the same point); (3) else founds a marching
+  company where it stands with the pending newcomers near it. A member gone leaves its company. With `cap` 0 everyone
+  is one marching company, the musters unused: the group as before the cap.
+- **A change of the cap** (the order's cap differs from the one the companies were made under) dissolves the companies
+  and partitions every member afresh (companies-1: the player's `company: 0` left the standing companies split).
+- **The merge**: two marching companies whose anchors stand within `JOIN_NEAR` of each other and whose members together
+  fit under the cap merge into the larger, on the march or at a halt, one merge a tick (its slots re-dealt by the
+  membership change). Companies stay apart only where the cap makes them.
+- **The state**: `GroupState` at the top is the army: anchor, heading, pace, files and room the largest marching
+  company's (the main body; with no cap, the group's); `formed` and `exceptions` the union; `engaged` any company's;
+  `arrived` when every marching company has (a muster is not of the march yet). It carries `companies:
+  Vec<CompanyState { role (marching, mustering), anchor, members, formed, exceptions, arrived, at (the muster point) }>`.
+  Readers that know nothing of companies read the army as they read a group today.
+- **Travelling together** is not built: companies sent to one point meet at the same chokes and the same goal on their
+  own ways. The drills say how much that costs before anything is built for it.
 
 ## 3. Two rules changed whatever the cap (D24)
 
@@ -87,9 +86,9 @@ the engine's. (Undeclared groups, air and the hunts, keep the hands' `joining` a
 - Dies: `Group.waiting`, `release_waiting`, the wait branch of `admit`, the release loop in `keep_groups`, the picture's
   waiting words, the `join_in` range check's walk meaning (it is the release count now, 1 to the cap).
 - Arrival: the army's `arrived`, read as today.
-- The picture: the group's entry gains `companies`: "3 companies of up to 24: the lead, 24 formed at spot_148; the
-  second, 24, 310 to its left, 2 behind; the third, 11, joining from plant_14293, 1,900 to go; 7 mustering beside
-  plant_18450 (they leave at 24 or after 120 s)". The group is one actor to Jev and one name to the player, unchanged.
+- The picture: the group's entry gains `companies`: "3 companies of up to 24: 24 (20 formed) at spot_148; 24 (24
+  formed) at spot_150, 600 behind; 7 mustering beside plant_18450 (they leave at 24 or after 90 s)". The group is one
+  actor to Jev and one name to the player, unchanged.
 - A merge the player orders (`join_group_X`) appends the members; the partition places them.
 
 ## 5. The bench
@@ -99,6 +98,8 @@ the engine's. (Undeclared groups, air and the hunts, keep the hands' `joining` a
   while marching) and `muster_waits` (the median seconds a fed unit waited at the muster).
 - Arms: walk-48 at cap 0 / 24 / 16 (formed share, arrival spread, width at contact); circuit pawn12feed24 at cap 0 /
   12 (joined per company, left behind, lap time); assault mix36 at cap 12 / 0 (ramp, width at contact, deaths).
+- The choke arm (the rework): 60 or more through a choke on a winding way, cap 0 against 24; how far the members
+  walk off the route to make the shape, the arrival spread, the formed share.
 - Bars: a company's formed share at or above the twelve-member walk's (0.9); the circuit's feed arrives in companies
   with none left behind; the army's width at contact at cap 24 at or above one block's; nothing of the standing
   drills' results moves at cap 0.
@@ -115,10 +116,8 @@ the engine's. (Undeclared groups, air and the hunts, keep the hands' `joining` a
 ## 7. Open for the user
 
 - The cap's default: 24 (six files by four ranks, under 300 deep) against 32.
-- How many abreast at most (three, then a second line) and the gap between companies (one company width's half?).
 - Contact per company (built) against contact as one army (every company takes the arc together).
-- The second level's own pathing: a slaved anchor is snapped, never pathed; a slaved company behind a wall the lead
-  skirted is left to its members' own paths. The drills will say whether that is enough.
+- (Settled by the rework: abreast counts, gaps and the slaved anchor's pathing died with the slaving.)
 
 ## 8. Built (2026-10-25 night)
 
@@ -168,12 +167,37 @@ Chunks A to D are built in one sitting; E (the live game) follows.
   the Glitters shape again at a small scale. The player's `company: 0` at 19:12 left the existing companies split. Ledger
   row companies-1.
 
+- **The rework (independent companies, after companies-1).** Built as §2 says: `Role` is marching or mustering, each
+  company ticks as a group of its own with the army's order (`Company::order`), `Army::merge` any time, a new cap
+  partitions afresh, the top state the largest marching company's; and the muster is for newcomers to a marching army:
+  the declaration's members (the first partition, or the first after a new cap) found marching companies wherever they
+  stand (the 60-unit lap at cap 24 mustered its whole spawned army by the lab before that). Deleted from `group.rs`:
+  `lag`, `median_off`, `band_lag`, `external_lag`, the carried pace, `slave`/`unslave`/`slaved`, `set_kind`,
+  `set_members`, `files()`; `layout_depth` private again (and out of `body_depth`'s doc comment, where the first build
+  had put it). The carry's fourth power stays: a held pace is any drag's, not the slaving's. The picture's companies
+  words: each marching company's size, formed, place and distance from the main body; a muster's release is the plant's
+  `join_in`. Measured (ledger ind-*; Quicksilver, lane on, ranks of six):
+  - 60 Pawns on the circuit's first leg (3,657 as the crow flies, 4,442 on foot): cap 0 arrives in 58-59 s at formed
+    0.80, member backtrack 0.013; cap 24 (three companies) 56.6-58.5 s at 0.94-0.96, backtrack 0.002.
+  - 36 Pawns and 24 Stumpies on the same leg: cap 0's group arrived about 74 s at 0.76, one Stumpy left behind as a
+    straggler in both reps (the drill waits for it to the time limit); cap 24 68 s at 0.94, nobody left.
+  - the lap (15,309 on foot) with no feed: 60 Pawns cap 0 timed out with two left behind (the rest in at 188-191 s,
+    0.945), cap 24 195 s at 0.92, nobody left; the mix cap 0 timed out with four left (226-234 s, 0.94), cap 24 247 s
+    (238-245) at 0.91, one left.
+  - 48 Pawns on the 640 strip: cap 24 16.5 s at 0.93 (the slaved build 13-18 s at 0.75-0.78; cap 0 12-13 s at 0.87).
+  - the fed circuit (12 Pawns, 24 fed) at cap 12: all 24 joined (the slaved build 18), median 43 s at the muster, but
+    each released company walks the army's whole route from its first point, a lap behind the army: the drill ends at
+    519 s against the army's 183. The travelling-together problem, first shape (§9).
+  - regression at cap 0: plain 12 in 13-13.8 s at 0.93-1.0, the fed circuit (8) 178 s at 0.81: unchanged.
+
 ## 9. Open after the build
 
-- The column's price on a narrow strip (above). Whether a slaved company should keep its own way along the lead's
-  (pathed, not snapped) when the ground narrows.
-- The drills on open ground, abreast; an assault with companies against a defended position.
-- The lap's price of waiting for each company: `WAIT_FOR` and the muster's patience are the levers.
-- From companies-1: a column must trail along the lead's way, not hang straight behind its heading; a company that
-  fits in the lead under the cap folds into it when it reaches it (march or halt); a change of the cap re-partitions
-  the companies standing, not only the newcomers.
+- Travelling together (the user: a later problem). Its first shape is the feed: a released muster takes the army's
+  whole route from its first point and walks a lap behind it on the circuit, where a joiner should meet the army (the
+  user, 2026-10-24: the trailing units "all inherit the full order set -- running a lap around the map behind the army
+  -- rather than directly meeting the army halfway around the circuit"). On a one-point order, the hands' usual, the company walks straight to the goal.
+- The cap's default (24) against the drills: on the 640 strip one block of 48 is still 4 s faster.
+- An assault with companies against a defended position: companies reach contact one after another.
+- The ground is the declaration's, built from every member's class: a company of bots is priced by the tanks' room.
+- (Settled by the rework: the column's price, the slaved company's way, `WAIT_FOR`, the fold into the lead and the cap
+  change's re-partition.)

@@ -14,6 +14,11 @@
   several batches (`run/territory_bench.sh`'s six) rebuilds at each one, so an edit made while it runs reaches its later
   batches (terr150, terr166-168); `WITHIN_REASON_KEEP_INSTALLED=1` makes `run/install_ai.sh` neither build nor install,
   and the territory bench builds and installs once and sets it.
+- **A duel drill's micro engine is the `duel` process's own, the binary as it was when launched.** The duel's start
+  rebuilds the workspace, but the drill director (and the lane it ticks) is already running from the binary before
+  that rebuild, as its argument parsing is: after an edit to `crates/micro` or the duel, `cargo build --release` before
+  the batch, or its first arm runs the old code (ind3-lap-pawn60-cap24, 2026-10-25 night: the muster fix was in the
+  checkout and the arm mustered anyway; the arms after it ran the fix).
 - **A game runs from its snapshot, not the checkout** (since 2026-10-21; `crates/bot/src/texts.rs`): `bot --snapshot`
   copies the bot binary, every text and the reference tables to `run/matches/<batch>/snapshot/`, and the arena and
   `run/human_game.sh` run `snapshot/bot` with `WITHIN_REASON_TEXTS` pointing there. Edits and rebuilds in the checkout
