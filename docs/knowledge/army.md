@@ -476,6 +476,54 @@ from 4:42, eight Blitzes to six Banshees at 8:22.
 seen and no aircraft came in a run of games.
 **Used by.** H-HANDS-ENEMY-EVIDENCE (the factory type on the report line); the player's brief.
 
+### K-army-air-plant-by-30-income
+**Claim.** By 30 metal a second of income an aircraft plant is obligatory: from there on fighters, bombers and the
+rest of the air are part of a side's play, whether or not the enemy has flown.
+**Status.** stated by the user 2026-10-25 ("by 30 metal/s an air lab is considered obligatory"), and already in the
+base as thebluegecko's unit sheet (L-sheet-labs, 2026-10-23: "most pro players make air lab around 30m/s on many maps.
+Stronger on maps with low e cost"; cited by the derived brief, D-energy-second); unmeasured.
+**Evidence.** The user's words and the sheet. The timing it meets in our games: the distilled bot's income reached 30 a second at
+7-11 min against Apex v0.3.2 on Comet and 7-12 against BARb hard_aggressive (dist14-site-*), and Apex's first armed
+aircraft were seen at 10-14 min, so a plant at 30 stands before his air comes. An Aircraft Plant is 650 metal (630
+Cortex), 22 s of that income.
+**Would be wrong if.** A side that builds the plant at 30 and flies only what the plant's rules call for does worse,
+against opponents that fly little or not at all, than the same side without it.
+**Used by.** D-AIR-PLANT (`bots/distilled`).
+
+### K-army-fighters-cheapest-anti-air
+**Claim.** Once the aircraft plant stands, fighters are the cheapest anti-air by far. The edge is metal and reach,
+not energy: a Falcon (73 metal, 2,900 energy, 167 health) does 139 damage a second to aircraft, 2.2 times a Nettle's
+per metal (68 for 80) but 0.65 times per energy (0.048 a second per energy point against the Nettle's 0.075); a
+turret guards 765 round itself where the fighters guard every place and gather on the strike. Banshees and Wasps
+cannot hit aircraft at all and a Dragon does 95 a second, so fighters lose little to gunships. A plant of 150 build
+power makes a Falcon every 23 s and draws 124 energy a second doing it: fighters come as fast as build power and
+energy allow.
+**Status.** stated by the user 2026-10-25 ("once up, fighters are apparently the cheapest anti-air by far"), and
+thebluegecko's sheet (L-sheet-labs: "fighters are the strongest anti bomber per cost. bombers are the lowest cost way
+to destroy opponents E production after the map is split"); the arithmetic from `glossary/units.csv`; measured in the
+distilled bot's air bench (dist15-40: our metal lost to aircraft per metal of his air built 2.38 to 0.70).
+**Evidence.** The user's words; the glossary's figures. To kill in ten seconds what was seen of the eight-seat game's
+air at 27:00 (23 Wasps and 5 Dragons, 34,000 metal and 119,000 health) takes about 86 Falcons (6,300 metal); the
+territory bot's turret answer (T-AIR) holds a third of the air shown, 11,300 metal, in every region it guards.
+**Would be wrong if.** Fighters sized to the air shown lost more of our metal to aircraft than the same metal in
+anti-air turrets at the places he strikes.
+**Used by.** D-FIGHTERS (`bots/distilled`).
+
+### K-army-bombers-chain-energy-fields
+**Claim.** Bombers on the enemy's energy fields (solar and wind) are extremely strong, because the usual base layouts
+pack the generators so that their deaths chain: one building's death blast finishes its bombed neighbours. In
+moderation: a few bombers sent where his anti-air is not.
+**Status.** stated by the user 2026-10-25 ("bombing the enemy economy can be very strong in moderation"; "bombers on
+the enemy economy (solar or wind fields) are extremely strong due to how standard base layouts let them
+chain-explode on death"); unmeasured.
+**Evidence.** The user's words. The game's numbers (`glossary/units.csv`, death blast radius / damage): solar and
+wind 90 / 89 (solar 340 health, wind 196-230), converter 105 / 660 (167 health), energy storage 210 / 980, Cortex's
+advanced solar 130 / 220; a Stormbringer drops five 110-damage bombs in a line. So an Armada wind dies to a bomb and
+one neighbour's blast (Cortex's and Legion's to two), a solar to a bomb and three (full damage, no falloff), and a converter takes every neighbour within 105 with it.
+**Would be wrong if.** Sorties at his densest known generator field destroyed no more than the bombs alone account
+for, or cost more bombers than the metal and energy they destroyed.
+**Used by.** D-BOMB (`bots/distilled`).
+
 ## Comet Catcher Remake 1.8: the replay survey (2026-09-23)
 
 Claims from the game cards of 29 public 1v1 duels (both players OS 25 and above, games of 2026-09-20 to 2026-09-23 on BAR test-31357 to 31383), filed by the synthesis agent against `docs/knowledge/questions.md` and checked with `run/replays/check.py`; the map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` and the index `docs/knowledge/replays.md` point here. Spot numbers are the cards' (the game's own 80-spot list), not the bot's (the engine's 75); they map to the bot's by position (nearest within 130), and every spot carries its grid cell (8x8 over 8192x6144). Unit names: armfav Rover, corfav Rascal, armflash Blitz, corgator Incisor, corak Grunt, armpw Pawn, armflea Tick, armstump Stout, corraid Brute, armllt/corllt the light laser turret. "W"/"L" are the winners' and the losers' sides. Remaining card limits: `fights` is the eight costliest cell-minutes per game; the cards carry no unit positions over time (held back or chasing cannot be read); the killer of the first extractor is "?" on 10 sides; one manifest start (bcaeb16a, Chronopolize) disagrees with the card's B5 and the card is used. Fixed after the survey (cards re-cut 2026-09-23 evening): the faction field, the spots' cells, the first-enemy-seen field (removed: a replay sees everything), the factories' order, the last 15 s of kills counted apart, cells on every building, the first tier-2 unit.

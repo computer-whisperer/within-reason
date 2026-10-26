@@ -98,7 +98,11 @@ const BUILD_POWER_BANK_STEP: f32 = 500.0;
 const COMMANDER_BUILD_POWER_BANK: f32 = 600.0;
 const BUILD_POWER_BUILDERS: usize = 6;
 const STORE_NEARLY_FULL: f32 = 0.9;
-const SECOND_ADVANCED_PLANT_FROM: f32 = 100.0;
+/// With metal piling up, one advanced plant for every this much metal income (the second from 100, the third from
+/// 200), and a project under way no bar to one while the bank holds its bill (2026-10-25, the 2v2 bench with
+/// `gate=tech`: 187-219 a second at 30:00-35:00 against 156-210 the plants could spend, 5,800-17,800 banked, a
+/// second advanced plant in one seat of 32: the fusions the advanced constructors raised were always a project).
+const ADVANCED_PLANT_PER_INCOME: f32 = 100.0;
 const TURRET_RETELL: i32 = 10 * SECOND;
 /// A construction turret is built within this of its plant's middle, inside its own reach of it.
 const TURRET_REACH: f32 = 330.0;
@@ -108,12 +112,6 @@ const SCOUTS_FIRST: usize = 4;
 /// Constructors wanted by the income when that is more than the clock asks: one for every this much metal a second
 /// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
 const CONSTRUCTOR_PER_INCOME: f32 = 6.0;
-/// D-ANTI-AIR (2026-10-20): once his armed aircraft have been seen, anti-air turrets by the plants: one more than
-/// the plants, up to this many, one builder at a time (Apex v0.3.2 flies every seat: its Phoenix and Thunder bombers
-/// killed 105 Brutes standing at home and then the commander, dist8-army-apex-v032-comet-cold-1 game 02; there is no
-/// tier-1 anti-air vehicle).
-const AA_AT_MOST: usize = 4;
-const AA_NEAR: f32 = 400.0;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Job {
@@ -135,8 +133,11 @@ pub(crate) enum Job {
     /// Surplus energy into metal, at saturation (D-CONVERT).
     Converter,
     AdvancedConverter,
-    /// An anti-air turret by the plants, once his aircraft have been seen (D-ANTI-AIR).
+    /// An anti-air turret by the plants while the fighters are short (D-ANTI-AIR, `air.rs`).
     AntiAir,
+    /// The aircraft plant (D-AIR-PLANT), and help for it while the fighters are short (D-AIR-POWER).
+    AirPlant,
+    AirAssist,
 }
 
 impl Job {
@@ -155,7 +156,8 @@ impl Job {
             Job::Converter => kit.converter,
             Job::AdvancedConverter => kit.advanced_converter,
             Job::AntiAir => kit.aa_turret,
-            Job::Assist | Job::Help(_) => None,
+            Job::AirPlant => kit.air_plant,
+            Job::Assist | Job::AirAssist | Job::Help(_) => None,
         }
     }
 }
@@ -234,6 +236,11 @@ impl Economy {
         self.orders.get(&unit).map(|o| frame - o.since)
     }
 
+    /// Frames a builder has stood still on its build order, if it has (D-ORDERS' held test).
+    pub(crate) fn still_for(&self, unit: UnitId, frame: i32) -> Option<i32> {
+        self.orders.get(&unit).and_then(|o| o.still_since).map(|since| frame - since)
+    }
+
     /// A builder's recorded job as a word (the jobs line).
     pub(crate) fn job_word(&self, unit: UnitId) -> String {
         if self.fleeing.contains_key(&unit) {
@@ -251,6 +258,8 @@ impl Economy {
             Some(Job::Moho(_)) => "moho".into(),
             Some(Job::Converter) | Some(Job::AdvancedConverter) => "converter".into(),
             Some(Job::AntiAir) => "anti-air".into(),
+            Some(Job::AirPlant) => "air-plant".into(),
+            Some(Job::AirAssist) => "assist-air".into(),
         }
     }
 }
@@ -281,6 +290,7 @@ impl Distilled {
                 *self.economy.turret_attempts.entry(beside).or_default() += 1;
             }
             Job::Plant | Job::AdvancedPlant => self.economy.plant_refused = self.frame + TURRET_REFUSED,
+            Job::AirPlant => self.air.plant_refused = self.frame + TURRET_REFUSED,
             _ => {}
         }
     }
@@ -330,7 +340,7 @@ impl Distilled {
                     self.order_failed(unit.id, None);
                 }
             }
-            let was_assisting = self.economy.orders.get(&unit.id).is_some_and(|o| o.job == Job::Assist);
+            let was = self.economy.orders.get(&unit.id).map(|o| o.job);
             self.economy.orders.remove(&unit.id);
             let Some(mut job) = self.next_job(&unit, tick) else { continue };
             // No order a builder cannot carry out: the ladder's rungs look at the builder's options, and this is the
@@ -341,7 +351,7 @@ impl Distilled {
                 eprintln!("[distilled ai={}] f={} unit {} cannot build {job:?}: helping instead", self.hello.ai_id, self.frame, unit.id.0);
                 job = Job::Assist;
             }
-            if !(job == Job::Assist && was_assisting && !unit.idle) {
+            if !(matches!(job, Job::Assist | Job::AirAssist) && was == Some(job) && !unit.idle) {
                 self.order(&unit, job, commands);
             }
             self.economy.orders.insert(unit.id, Order { job, since: self.frame, still_since: None });
@@ -378,7 +388,7 @@ impl Distilled {
     fn review(&mut self, unit: &OwnUnit) -> Review {
         let frame = self.frame;
         let Some(order) = self.economy.orders.get_mut(&unit.id) else { return Review::Free };
-        if order.job == Job::Assist {
+        if matches!(order.job, Job::Assist | Job::AirAssist) {
             return if frame - order.since >= ASSIST_REVIEW { Review::Free } else { Review::Busy };
         }
         let age = frame - order.since;
@@ -402,7 +412,7 @@ impl Distilled {
 
     /// A building of ours under construction within the builder's reach: what a builder standing still on a build
     /// order has beside it (a plant's soldiers do not count: the held commander stood at the plant).
-    fn frame_beside(&self, unit: &OwnUnit) -> bool {
+    pub(crate) fn frame_beside(&self, unit: &OwnUnit) -> bool {
         let reach = self.def(unit.def).map_or(TURRET_REACH, |d| d.build_distance) + 150.0;
         self.own.values().any(|u| u.being_built && u.pos.dist2d(unit.pos) <= reach && self.def(u.def).is_some_and(|d| d.speed == 0.0))
     }
@@ -421,7 +431,13 @@ impl Distilled {
         let commander = Some(unit.def) == self.kit.commander;
         let on_energy = self.economy.working_on(|job| matches!(job, Job::Solar | Job::AdvancedSolar));
         let energy = self.energy_short(tick) && on_energy < ENERGY_BUILDERS + self.count(self.kit.constructor) / ENERGY_BUILDERS_PER;
-        let assist = || (self.finished(self.kit.plant).next().is_some() || self.finished(self.kit.advanced_plant).next().is_some()).then_some(Job::Assist);
+        // D-AIR-POWER: while the fighters are short, help goes to the aircraft plant.
+        let assist = || {
+            if self.air_power_wanted() {
+                return Some(Job::AirAssist);
+            }
+            (self.finished(self.kit.plant).next().is_some() || self.finished(self.kit.advanced_plant).next().is_some()).then_some(Job::Assist)
+        };
         if commander {
             // The opening, read off what stands: two extractors, two solars, the plant.
             if self.count(self.kit.extractor) < 2
@@ -445,6 +461,9 @@ impl Distilled {
             }
             if self.anti_air_wanted(def) {
                 return Some(Job::AntiAir);
+            }
+            if self.air_plant_wanted(def) {
+                return Some(Job::AirPlant);
             }
             // D-PROJECT: the commander's 300 is the biggest build power we own.
             if let Some(help) = self.project_help(tick) {
@@ -474,10 +493,15 @@ impl Distilled {
         if self.anti_air_wanted(def) {
             return Some(Job::AntiAir);
         }
+        if self.air_plant_wanted(def) {
+            return Some(Job::AirPlant);
+        }
         if let Some(help) = self.project_help(tick) {
             return Some(help);
         }
-        if self.t2_gate(def, tick) {
+        if let Some(why) = self.t2_gate(def, tick) {
+            let metal = tick.snapshot.metal;
+            eprintln!("[distilled ai={}] f={} t2 gate: {why} (bank {:.0} of {:.0}, income {:.1}, field won {})", self.hello.ai_id, self.frame, metal.current, metal.storage, metal.income, u8::from(self.field_won()));
             return Some(Job::AdvancedPlant);
         }
         if let Some(job) = self.ring_turret_job(tick) {
@@ -487,17 +511,6 @@ impl Distilled {
             return Some(job);
         }
         self.free_spot(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
-    }
-
-    /// D-ANTI-AIR: an anti-air turret is wanted by a builder that can build one once his aircraft have been seen,
-    /// while fewer than one more than the plants stand or are ordered, up to `AA_AT_MOST`, one builder at a time.
-    fn anti_air_wanted(&self, builder: &UnitDefInfo) -> bool {
-        let Some(aa) = self.kit.aa_turret.filter(|d| builder.build_options.contains(d)) else { return false };
-        if self.army.air_seen.is_none() || self.economy.working_on(|job| job == Job::AntiAir) > 0 {
-            return false;
-        }
-        let wanted = (1 + self.count(self.kit.plant) + self.count(self.kit.advanced_plant)).min(AA_AT_MOST);
-        self.count(Some(aa)) < wanted
     }
 
     /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
@@ -578,7 +591,8 @@ impl Distilled {
         // income the bank fed two plants beyond the income at 3:00 and the energy ran out with the draw read as the
         // income's; apex-v022-distilled-comet-sym50-2).
         let spend = if metal.current > 0.25 * metal.storage { self.can_spend() } else { self.can_spend().min(metal.income) };
-        let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0));
+        // The aircraft plant's draw with it (D-AIR-POWER): a fighter is 40 energy a metal.
+        let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0)) + self.air_draw();
         let extractors = self.finished(self.kit.extractor).count() as f32;
         energy.current < 0.3 * energy.storage
             || (energy.income < energy.usage && energy.current < 0.6 * energy.storage)
@@ -589,7 +603,7 @@ impl Distilled {
     /// D-BUILD-POWER: while the plants cannot spend the soldiers' share of the income, or metal piles up in the
     /// store, a construction turret beside the plant with the fewest (advanced plants among them), another plant when
     /// each has one, and with metal piling up turrets to three a plant first (four times the power a metal of a
-    /// plant) and a second advanced plant from `SECOND_ADVANCED_PLANT_FROM` of income.
+    /// plant) and advanced plants to one per `ADVANCED_PLANT_PER_INCOME` of income.
     fn build_power_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         // Metal piling up asks for build power only while the energy can follow: at +50 % income the second plant
@@ -603,7 +617,11 @@ impl Distilled {
         if !short && !piling {
             return None;
         }
-        let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).collect();
+        // The aircraft plant counts among the plants, and is one to add power to while the fighters are short
+        // (D-AIR-POWER: dist22-airsmoke3-glitters game 01 wanted 30 fighters at 28:30 and had 1-4, its fourteen
+        // constructors on turrets by the vehicle plants).
+        let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).chain(self.finished(self.kit.air_plant)).collect();
+        let air_power = self.air_power_wanted();
         // Nothing to add power to before the first plant stands.
         if plants.is_empty() {
             return None;
@@ -612,14 +630,24 @@ impl Distilled {
         let nearest = |at: Vec3| plants.iter().min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id);
         let turrets_at = |plant: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.turret && nearest(u.pos) == Some(plant.id)).count();
         let room = |plant: &OwnUnit| self.economy.turret_refused.get(&plant.id).is_none_or(|until| self.frame >= *until);
-        let fewest = plants.iter().filter(|p| room(p)).map(|p| (turrets_at(p), p.id)).min();
+        let fewest = plants.iter().filter(|p| room(p) && (air_power || Some(p.def) != self.kit.air_plant)).map(|p| (turrets_at(p), p.id)).min();
         // Plants before turrets while the plants are few (TURRETS_TO_THREE_FROM_PLANTS).
-        let turrets_first = if piling && plants.len() >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
+        // Vehicle plants only: with the aircraft plant counted, two vehicle plants and it stacked turrets three a plant
+        // where the third vehicle plant should have come (dist35-airon-barb: 2 plants and 10 turrets at 20:00 against 4
+        // and 6 with `air=off`, dist34).
+        let factories = plants.iter().filter(|p| Some(p.def) != self.kit.air_plant).count();
+        let turrets_first = if piling && factories >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
         let yard_room = self.frame >= self.economy.plant_refused;
-        let second_advanced = piling && metal.income >= SECOND_ADVANCED_PLANT_FROM && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d)) && self.count(self.kit.advanced_plant) == 1 && !self.project_under_way();
+        let advanced = self.count(self.kit.advanced_plant);
+        let bill = self.kit.advanced_plant.and_then(|d| self.def(d)).map_or(f32::MAX, |d| d.metal_cost);
+        let more_advanced = piling
+            && advanced >= 1
+            && (advanced as f32) < (metal.income / ADVANCED_PLANT_PER_INCOME).floor()
+            && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d))
+            && (!self.project_under_way() || metal.current >= bill);
         let job = match fewest {
             Some((n, plant)) if self.kit.turret.is_some() && n < turrets_first => Some(Job::Turret(plant)),
-            _ if second_advanced && yard_room => Some(Job::AdvancedPlant),
+            _ if more_advanced && yard_room => Some(Job::AdvancedPlant),
             _ if self.count(self.kit.plant) < PLANTS && yard_room => Some(Job::Plant),
             Some((n, plant)) if self.kit.turret.is_some() && n < TURRETS_A_PLANT_AT_MOST => Some(Job::Turret(plant)),
             _ => None,
@@ -645,7 +673,7 @@ impl Distilled {
             let low = if def.build_speed > 0.0 && def.speed == 0.0 {
                 true
             } else if Some(unit.def) == self.kit.commander {
-                self.economy.orders.get(&unit.id).is_some_and(|o| o.job == Job::Assist)
+                self.economy.orders.get(&unit.id).is_some_and(|o| matches!(o.job, Job::Assist | Job::AirAssist))
             } else if def.build_speed > 0.0 && !def.build_options.is_empty() {
                 false
             } else {
@@ -676,8 +704,10 @@ impl Distilled {
             if !idle || told.is_some_and(|(at, on)| on.is_none() && self.frame - at < TURRET_RETELL) {
                 continue;
             }
-            let plants = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant));
-            let Some(plant) = plants.filter(|p| p.pos.dist2d(at) < TURRET_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id) else { continue };
+            // The aircraft plant only for a turret with no vehicle plant in reach: one built beside it (D-AIR-POWER).
+            let nearest = |plants: &mut dyn Iterator<Item = &OwnUnit>| plants.filter(|p| p.pos.dist2d(at) < TURRET_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id);
+            let vehicle = nearest(&mut self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)));
+            let Some(plant) = vehicle.or_else(|| nearest(&mut self.finished(self.kit.air_plant))) else { continue };
             self.economy.turret_told.insert(turret, (self.frame, None));
             commands.push(Command::Guard { unit: turret, target: plant });
         }
@@ -734,7 +764,7 @@ impl Distilled {
             }
             Job::Turret(target) => {
                 let Some(target) = self.own.get(&target) else { return };
-                let plant = Some(target.def) == self.kit.plant || Some(target.def) == self.kit.advanced_plant;
+                let plant = Some(target.def) == self.kit.plant || Some(target.def) == self.kit.advanced_plant || Some(target.def) == self.kit.air_plant;
                 // Behind a plant, away from its front; after a refusal to its left, its right, then its front (the
                 // exit lane is kept out of); round a project's frame, inside the turret's reach of it.
                 let site = if plant {
@@ -765,13 +795,11 @@ impl Distilled {
                 let def = if job == Job::Converter { self.kit.converter } else { self.kit.advanced_converter };
                 commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 2, placements: placements(), exact: false }, false));
             }
-            Job::AntiAir => {
-                // By the plant with the fewest anti-air turrets within `AA_NEAR`, on its enemy side; the base point
-                // when no plant stands.
-                let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).collect();
-                let aa_near = |p: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.aa_turret && u.pos.dist2d(p.pos) < AA_NEAR).count();
-                let near = plants.iter().min_by_key(|p| aa_near(p)).map_or(self.toward_enemy(self.home, 300.0), |p| self.toward_enemy(p.pos, 200.0));
-                commands.extend(build(self.kit.aa_turret, BuildSite { near, search_radius: 400.0, min_dist: 2, placements: placements(), exact: false }, false));
+            Job::AntiAir => commands.extend(build(self.kit.aa_turret, BuildSite { near: self.anti_air_site(), search_radius: 400.0, min_dist: 2, placements: placements(), exact: false }, false)),
+            Job::AirPlant => commands.extend(build(self.kit.air_plant, BuildSite { near: self.air_plant_site(), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
+            Job::AirAssist => {
+                let nearest = self.finished(self.kit.air_plant).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
             }
             Job::Help(target) => commands.push(Command::Repair { unit: unit.id, target, queue: false }),
             Job::Moho(target) => {
@@ -823,7 +851,7 @@ impl Distilled {
             .collect()
     }
 
-    pub(crate) fn run_factories(&mut self, commands: &mut Vec<Command>) {
+    pub(crate) fn run_factories(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let idle = |me: &Self, def: Option<UnitDefId>| -> Vec<UnitId> { me.finished(def).filter(|p| p.idle && me.economy.factory_ordered.get(&p.id).is_none_or(|at| me.frame - at > GRACE)).map(|p| p.id).collect() };
         // D-T2-PAUSE: the tier-1 plants wait through the transition.
         if !self.plants_paused() {
@@ -835,6 +863,12 @@ impl Distilled {
         }
         for plant in idle(self, self.kit.advanced_plant) {
             let Some(def) = self.t2_next_unit() else { continue };
+            self.economy.factory_ordered.insert(plant, self.frame);
+            commands.push(Command::Build { unit: plant, def, site: None, queue: false });
+        }
+        // D-FIGHTERS, D-BOMB: the aircraft plant.
+        for plant in idle(self, self.kit.air_plant) {
+            let Some(def) = self.next_aircraft(tick.snapshot.energy) else { continue };
             self.economy.factory_ordered.insert(plant, self.frame);
             commands.push(Command::Build { unit: plant, def, site: None, queue: false });
         }

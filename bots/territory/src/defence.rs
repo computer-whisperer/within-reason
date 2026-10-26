@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
-use bot_protocol::{BuildSite, Command, EnemyUnit, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, EnemyUnit, UnitDefInfo, UnitId, Vec3};
 use buildorder::units::Role;
 
 use crate::hands::{Order, What};
@@ -51,13 +51,15 @@ pub(crate) const DEFENCE_LOG: i32 = 30 * SECOND;
 pub(crate) enum Kind {
     Turret,
     Radar,
+    /// T-AIR's: an anti-air turret, for a region short of `need` metal of them.
+    AntiAir { need: f32 },
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct Want {
-    kind: Kind,
-    at: Vec3,
-    region: usize,
+    pub(crate) kind: Kind,
+    pub(crate) at: Vec3,
+    pub(crate) region: usize,
 }
 
 #[derive(Default)]
@@ -65,7 +67,7 @@ pub(crate) struct Defence {
     /// (frame, metal) of his armed units seen near our buildings, over RAID_MEMORY.
     raids: VecDeque<(i32, f32)>,
     /// The sites wanted, remade every hands tick.
-    wants: Vec<Want>,
+    pub(crate) wants: Vec<Want>,
     /// Per builder type (the simulator's index): its turret and its radar, chosen on first use.
     kit: BTreeMap<usize, (Option<usize>, Option<usize>)>,
     /// The game's unit table with the weapons (combatsim's), loaded on first use.
@@ -81,18 +83,28 @@ pub(crate) fn toward(from: Vec3, to: Vec3, by: f32) -> Vec3 {
 }
 
 /// One turret of ours or ordered: where, its reach, its metal.
-struct Gun {
-    at: Vec3,
-    reach: f32,
-    metal: f32,
+pub(crate) struct Gun {
+    pub(crate) at: Vec3,
+    pub(crate) reach: f32,
+    pub(crate) metal: f32,
+}
+
+/// A unit type that flies: one that moves with no movement class.
+pub(crate) fn flies(info: &UnitDefInfo) -> bool {
+    info.speed > 0.0 && info.move_class.is_none()
 }
 
 impl Territory {
-    /// Every hands tick: his armed metal in sight within RAID_NEAR of a building of ours, kept when there is any.
+    /// Every hands tick: his armed metal in sight within RAID_NEAR of a building of ours, kept when there is any; his
+    /// aircraft apart (T-AIR's air shown: a ground turret cannot hit them, and with them in the raid T-COVER bought
+    /// ground turrets against his air).
     pub(crate) fn observe_raids(&mut self) {
         let buildings: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
         let mut metal = 0.0;
         for e in &self.enemies {
+            if e.def.and_then(|d| self.def(d)).is_some_and(flies) {
+                continue;
+            }
             let weight = self.his_weight(e);
             if weight > 0.0 && buildings.iter().any(|b| b.dist2d(e.pos) <= RAID_NEAR) {
                 metal += weight;
@@ -140,6 +152,17 @@ impl Territory {
         (!info.water_only && info.stockpile_seconds == 0.0 && unit.reach() > 0.0 && dps > 0.0).then(|| (dps * unit.health).sqrt() / info.metal_cost.max(1.0))
     }
 
+    /// T-AIR: a type's strength against aircraft per metal, √(damage a second against aircraft × health) / metal in
+    /// combatsim's table, with its reach against aircraft, for an anti-air type: one with more damage a second against
+    /// aircraft than against the ground. None for any other, or one for water alone or a stockpile.
+    pub(crate) fn air_strength(&mut self, u: usize) -> Option<(f32, f32)> {
+        let table = self.defence.table.get_or_insert_with(combatsim::Units::default);
+        let info = &self.hello.unit_defs[u];
+        let unit = table.list.get(table.index(&info.name)?)?;
+        let air = unit.dps_air();
+        (!info.water_only && info.stockpile_seconds == 0.0 && unit.reach_air() > 0.0 && air > unit.dps()).then(|| ((air * unit.health).sqrt() / info.metal_cost.max(1.0), unit.reach_air()))
+    }
+
     /// The builder type's turret (the most ground fighting strength per metal) and its radar (the cheapest).
     fn kit(&mut self, builder: usize) -> (Option<usize>, Option<usize>) {
         if let Some(kit) = self.defence.kit.get(&builder) {
@@ -166,13 +189,14 @@ impl Territory {
         self.game().units.list[u].role == Role::Eco && info.radar_range >= RADAR_LEAST
     }
 
-    /// Our turrets standing, framed and ordered, and our radars' places likewise.
+    /// Our ground turrets standing, framed and ordered (the anti-air ones are T-AIR's), and our radars' places
+    /// likewise.
     fn guns_and_radars(&self) -> (Vec<Gun>, Vec<Vec3>) {
         let units = &self.game().units;
         let (mut guns, mut radars) = (Vec::new(), Vec::new());
         for u in self.own.values() {
             let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].role == Role::Turret {
+            if units.list[i].role == Role::Turret && !self.is_anti_air(i) {
                 guns.push(Gun { at: u.pos, reach: self.hello.unit_defs[i].reach, metal: units.list[i].metal_cost as f32 });
             } else if self.is_radar(i) {
                 radars.push(u.pos);
@@ -180,7 +204,7 @@ impl Territory {
         }
         for order in self.hands.orders.values() {
             if let What::Build { unit, near, frame: None, .. } = &order.what {
-                if units.list[*unit].role == Role::Turret {
+                if units.list[*unit].role == Role::Turret && !self.is_anti_air(*unit) {
                     guns.push(Gun { at: *near, reach: self.hello.unit_defs[*unit].reach, metal: units.list[*unit].metal_cost as f32 });
                 } else if self.is_radar(*unit) {
                     radars.push(*near);
@@ -197,20 +221,9 @@ impl Territory {
             return;
         }
         let Some(regions) = &self.regions else { return };
-        let units = &self.game().units;
-        let (guns, radars) = self.guns_and_radars();
-        // What each region guards: every building of ours but a turret or a radar, frames at their progress.
-        let mut guarded: Vec<Vec<(Vec3, f32)>> = vec![Vec::new(); regions.list.len()];
-        for u in self.own.values() {
-            let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].speed > 0.0 || units.list[i].role == Role::Turret || self.is_radar(i) {
-                continue;
-            }
-            let Some(k) = self.region_of(u.pos) else { continue };
-            let worth = units.list[i].metal_cost as f32 * if u.being_built { (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) } else { 1.0 };
-            guarded[k].push((u.pos, worth));
-        }
         let mut gun_metal = vec![0.0f32; regions.list.len()];
+        let (guns, radars) = self.guns_and_radars();
+        let guarded = self.guarded();
         for g in &guns {
             if let Some(k) = self.region_of(g.at) {
                 gun_metal[k] += g.metal;
@@ -232,7 +245,7 @@ impl Territory {
                 let weakest = here.iter().min_by(|a, b| cover(a.0).total_cmp(&cover(b.0)).then(nearest_him(a, b)));
                 if let Some((p, _)) = weakest {
                     let at = toward(*p, self.enemy_home, TURRET_FORWARD);
-                    if self.site_clear(at) {
+                    if self.site_clear(at, true) {
                         wants.push(Want { kind: Kind::Turret, at, region: k });
                     }
                 }
@@ -245,7 +258,7 @@ impl Territory {
                 && !radar_at.iter().any(|r| r.dist2d(*forward) <= RADAR_SHARED)
             {
                 let at = toward(*forward, self.home, RADAR_BACK);
-                if self.site_clear(at) {
+                if self.site_clear(at, true) {
                     radar_at.push(at);
                     wants.push(Want { kind: Kind::Radar, at, region: k });
                 }
@@ -254,11 +267,29 @@ impl Territory {
         self.defence.wants = wants;
     }
 
+    /// What each region guards (T-COVER, T-AIR): every building of ours but a turret or a radar, frames at their
+    /// progress.
+    pub(crate) fn guarded(&self) -> Vec<Vec<(Vec3, f32)>> {
+        let Some(regions) = &self.regions else { return Vec::new() };
+        let units = &self.game().units;
+        let mut guarded: Vec<Vec<(Vec3, f32)>> = vec![Vec::new(); regions.list.len()];
+        for u in self.own.values() {
+            let Some(i) = self.unit_index(u.def) else { continue };
+            if units.list[i].speed > 0.0 || units.list[i].role == Role::Turret || self.is_radar(i) {
+                continue;
+            }
+            let Some(k) = self.region_of(u.pos) else { continue };
+            let worth = units.list[i].metal_cost as f32 * if u.being_built { (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) } else { 1.0 };
+            guarded[k].push((u.pos, worth));
+        }
+        guarded
+    }
+
     /// A defence site may be taken: outside every enemy start's dead radius, and no armed unit of his in sight within
-    /// SITE_CLEAR of it.
-    fn site_clear(&self, p: Vec3) -> bool {
+    /// SITE_CLEAR of it; his aircraft not counted with `aircraft` false (an anti-air site is wanted because of them).
+    pub(crate) fn site_clear(&self, p: Vec3, aircraft: bool) -> bool {
         self.enemy_starts.iter().all(|s| s.dist2d(p) > crate::snapshot::DEAD_SPOT)
-            && !self.enemies.iter().any(|e| e.pos.dist2d(p) <= SITE_CLEAR && e.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0))
+            && !self.enemies.iter().any(|e| e.pos.dist2d(p) <= SITE_CLEAR && e.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0 && (aircraft || !flies(d))))
     }
 
     /// The cheapest turret any of our builder types makes, the parity check's step.
@@ -274,7 +305,8 @@ impl Territory {
         least
     }
 
-    /// A builder with no order takes the nearest wanted site it can build within its reach (T-COVER, T-RADAR).
+    /// A builder with no order takes the nearest wanted site it can build within its reach, on ground its class
+    /// walks to (T-COVER, T-RADAR, T-AIR; T-SITES).
     pub(crate) fn defence_order(&mut self, id: UnitId, unit: usize, role: Role, commands: &mut Vec<Command>) -> bool {
         if self.frame < DEFENCE_FROM || !matches!(role, Role::Builder | Role::Commander) || self.defence.wants.is_empty() {
             return false;
@@ -282,7 +314,10 @@ impl Territory {
         let Some(builder) = self.own.get(&id).cloned() else { return false };
         let (turret, radar) = self.kit(unit);
         let leash = self.options.com_leash;
-        let reachable = |w: &Want| if role == Role::Commander { w.at.dist2d(self.home) <= leash } else { w.at.dist2d(builder.pos) <= DEFENCE_REACH };
+        let walkable = self.builder_ground(unit);
+        let reachable = |w: &Want| {
+            walkable.as_ref().is_none_or(|g| g.reaches(w.at)) && if role == Role::Commander { w.at.dist2d(self.home) <= leash } else { w.at.dist2d(builder.pos) <= DEFENCE_REACH }
+        };
         let pick = self
             .defence
             .wants
@@ -292,6 +327,7 @@ impl Territory {
             .filter_map(|(i, w)| match w.kind {
                 Kind::Turret => turret.map(|u| (i, u)),
                 Kind::Radar => radar.map(|u| (i, u)),
+                Kind::AntiAir { need } => self.air_type(unit, need).map(|u| (i, u)),
             })
             .filter(|(_, u)| !self.hands.struck.contains(u) && self.hands.type_refused.get(u).is_none_or(|until| self.frame >= *until))
             .min_by(|a, b| self.defence.wants[a.0].at.dist2d(builder.pos).total_cmp(&self.defence.wants[b.0].at.dist2d(builder.pos)));
@@ -312,6 +348,7 @@ impl Territory {
         let why = match want.kind {
             Kind::Turret => "cover",
             Kind::Radar => "radar",
+            Kind::AntiAir { .. } => "air",
         };
         self.note_order(id, &what, why);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
@@ -319,14 +356,14 @@ impl Territory {
         true
     }
 
-    /// `defence:` every DEFENCE_LOG: the raid wanted against and how many sightings it is the largest of, the turrets
-    /// and radars standing and framed, and the sites wanted with their regions.
+    /// `defence:` every DEFENCE_LOG: the raid wanted against and how many sightings it is the largest of, the ground
+    /// turrets and radars standing and framed, and the sites wanted with their regions (T-AIR's in the `air:` line).
     pub(crate) fn log_defence(&mut self) {
         let units = &self.game().units;
         let (mut turrets, mut turret_metal, mut radars) = (0, 0.0f32, 0);
         for u in self.own.values() {
             let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].role == Role::Turret {
+            if units.list[i].role == Role::Turret && !self.is_anti_air(i) {
                 turrets += 1;
                 turret_metal += units.list[i].metal_cost as f32;
             } else if self.is_radar(i) {
@@ -334,7 +371,7 @@ impl Territory {
             }
         }
         let wanted = |k: Kind| self.defence.wants.iter().filter(|w| w.kind == k).count();
-        let regions: Vec<String> = self.defence.wants.iter().map(|w| format!("{} r{} ({:.0},{:.0})", if w.kind == Kind::Turret { "turret" } else { "radar" }, w.region, w.at.x, w.at.z)).collect();
+        let regions: Vec<String> = self.defence.wants.iter().filter(|w| !matches!(w.kind, Kind::AntiAir { .. })).map(|w| format!("{} r{} ({:.0},{:.0})", if w.kind == Kind::Turret { "turret" } else { "radar" }, w.region, w.at.x, w.at.z)).collect();
         self.log(format_args!(
             "defence: raid {:.0} (seen {}) | turrets {turrets} ({turret_metal:.0} metal), radars {radars} | wanted {} turrets, {} radars: {}",
             self.raid(),

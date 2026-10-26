@@ -137,8 +137,11 @@ const FARM_EXTENT: f32 = 1600.0;
 const FARM_SEARCH: f32 = 24.0;
 /// A building of this much build time or more goes where the turrets are.
 const FARM_BIG: f64 = 20_000.0;
-/// A slot the host found no site at is left alone this long (something the bot does not see stands there).
+/// A slot the host found no site at, or held with no frame begun, is left alone this long (something the bot does not
+/// see stands there, or the builder could not get within reach of it).
 const FARM_DEAD: i32 = 2 * MINUTE;
+/// The `reach:` line names this many of each builder's unreached slots.
+const REACH_LISTED: usize = 12;
 /// The engine's slope value (255 is vertical) the ground under a slot's footprint may have, and the gap kept
 /// between footprints.
 const FARM_SLOPE: u8 = 8;
@@ -297,11 +300,13 @@ pub(crate) struct Hands {
     pub successes: BTreeMap<usize, u32>,
     pub struck: BTreeSet<usize>,
     /// The farm's origin, chosen on first use (T-FARM), and the farm slots and factory sites the host found no site
-    /// at, until a frame.
+    /// at or an order was held at, until a frame.
     pub farm_origin: Option<Vec3>,
     pub farm_dead: Vec<(Vec3, i32)>,
     /// Per factory type, the walking field from home of the class its sites are read for (T-SITES), made on first use.
     pub factory_ground: BTreeMap<usize, Option<Arc<Field>>>,
+    /// Per builder type, the walking field from home of its own class (T-SITES, `builder_ground`), made on first use.
+    pub builder_ground: BTreeMap<usize, Option<Arc<Field>>>,
     pub dropped: usize,
     pub begun: usize,
     pub skipped: usize,
@@ -339,6 +344,7 @@ impl Default for Hands {
             farm_origin: None,
             farm_dead: Vec::new(),
             factory_ground: BTreeMap::new(),
+            builder_ground: BTreeMap::new(),
             dropped: 0,
             begun: 0,
             skipped: 0,
@@ -1445,10 +1451,12 @@ impl Territory {
         {
             self.hands.refused.insert(spot, self.frame + SPOT_REFUSED);
         }
-        // A farm slot or a factory site the host found no site at is the site's fault, not the type's (the bot chose
-        // the ground, and the engine sees features it does not): dead for a while, no strike.
+        // A farm slot or a factory site the host found no site at, or held with no frame begun, is the site's fault,
+        // not the type's (the bot chose the ground, and the engine sees features it does not, or the builder cannot
+        // get within reach of it): dead for a while, no strike. Held and given again at once, the same slot nearest
+        // the builder was ordered 45 times in the user's 2026-10-25 game (T-SITES, `builder_ground`).
         let farm = |me: &Self, unit: usize| { let kind = &me.game().units.list[unit]; kind.speed == 0.0 && kind.extracts_metal == 0.0 };
-        if why == "no site" && let What::Build { unit, near, .. } = &order.what && farm(self, *unit) {
+        if (why == "no site" || why == "held") && let What::Build { unit, near, .. } = &order.what && farm(self, *unit) {
             let until = self.frame + FARM_DEAD;
             self.hands.farm_dead.push((*near, until));
         } else if why == "no site" && let What::Build { unit, .. } = &order.what {
@@ -1609,6 +1617,27 @@ impl Territory {
         field
     }
 
+    /// T-SITES: the walking field from home of a builder type's own movement class, the ground it can stand on to
+    /// build: a farm slot on a plateau its class cannot climb passes the slope test, and the builder stands at the
+    /// cliff's foot until the order is held (the user's eight-seat game on All That Glitters Extended, 2026-10-25:
+    /// one seat's commander 212-310 off two sites west of home from 2:30 to its death at 43:00, 45 orders of two
+    /// minutes each). None for a builder that flies, or without terrain. Made once a type.
+    pub(crate) fn builder_ground(&mut self, builder_unit: usize) -> Option<Arc<Field>> {
+        if let Some(field) = self.hands.builder_ground.get(&builder_unit) {
+            return field.clone();
+        }
+        let terrain = &self.hello.terrain;
+        let field = self.game().units.list[builder_unit].move_class.and_then(|class| Field::from(terrain, &terrain::passable(terrain, class), self.home)).map(Arc::new);
+        self.hands.builder_ground.insert(builder_unit, field.clone());
+        field
+    }
+
+    /// The commander's `builder_ground`, made with the farm's origin at the start (`farm_origin`): what the counts of
+    /// the farm's ground read where no builder is named (the plants' rings).
+    fn commander_field(&self) -> Option<&Field> {
+        self.hands.builder_ground.get(&self.game().commander).and_then(|f| f.as_deref())
+    }
+
     /// T-SITES: a factory's site. Round the point FACTORY_OUT from home toward his start, then a quarter turn
     /// further for each factory standing or ordered and each dropped order, the lattice point nearest it within
     /// FACTORY_SEARCH (the builder's walk added to that ranked an advanced plant 885 toward a far constructor on Great
@@ -1722,12 +1751,14 @@ impl Territory {
     }
 
     /// The farm's origin (T-FARM), chosen once: of the points FARM_OFFSETS from home at sixteen bearings, the one
-    /// whose core holds the most building slots the ground can take (off the base's own 400), discounted by how far
-    /// it lies toward his start (by half, on the line to him), snapped to the build grid.
+    /// whose core holds the most building slots the ground can take and the commander reaches (off the base's own
+    /// 400), discounted by how far it lies toward his start (by half, on the line to him), snapped to the build grid.
     pub(crate) fn farm_origin(&mut self) -> Vec3 {
         if let Some(origin) = self.hands.farm_origin {
             return origin;
         }
+        let commander = self.game().commander;
+        let walkable = self.builder_ground(commander);
         let (ex, ez) = (self.enemy_home.x - self.home.x, self.enemy_home.z - self.home.z);
         let length = ex.hypot(ez).max(1.0);
         let half = FARM_SLOT / 2.0 - FARM_GAP;
@@ -1738,7 +1769,7 @@ impl Territory {
             for offset in FARM_OFFSETS {
                 let snap = |v: f32| (v / 16.0).round() * 16.0;
                 let candidate = Vec3 { x: snap(self.home.x + offset * angle.cos()), y: self.home.y, z: snap(self.home.z + offset * angle.sin()) };
-                let slots = farm_slots(candidate, candidate, FARM_CORE, false).into_iter().filter(|p| p.dist2d(self.home) > 400.0 && self.farm_ground(*p, half)).count();
+                let slots = farm_slots(candidate, candidate, FARM_CORE, false).into_iter().filter(|p| p.dist2d(self.home) > 400.0 && self.farm_ground(*p, half) && walkable.as_ref().is_none_or(|g| g.reaches(*p))).count();
                 let score = slots as f32 * (1.0 - 0.5 * toward.max(0.0));
                 if best.is_none_or(|b| score > b.0) {
                     best = Some((score, candidate, bearing, offset, slots));
@@ -1747,9 +1778,30 @@ impl Territory {
         }
         let (score, origin, bearing, offset, slots) = best.expect("sixteen bearings");
         let his = ez.atan2(ex).rem_euclid(std::f32::consts::TAU) / std::f32::consts::TAU * 16.0;
-        self.log(format_args!("farm: origin ({:.0},{:.0}), {offset:.0} from home at bearing {bearing}/16 (his start at {his:.1}/16), {slots} building slots of ground in the core, score {score:.0}", origin.x, origin.z));
+        self.log(format_args!("farm: origin ({:.0},{:.0}), {offset:.0} from home at bearing {bearing}/16 (his start at {his:.1}/16), {slots} building slots of ground in the core the commander reaches, score {score:.0}", origin.x, origin.z));
         self.hands.farm_origin = Some(origin);
         origin
+    }
+
+    /// T-SITES, logged at the start: per ground builder type of the palette, the farm's slots of ground (within
+    /// FARM_EXTENT of the origin or of home, where the cheap buildings go) and the spots its class cannot get to.
+    pub(crate) fn log_reach(&mut self, builders: &[usize]) {
+        let origin = self.farm_origin();
+        let half = FARM_SLOT / 2.0 - FARM_GAP;
+        let mut ground = farm_slots(origin, origin, FARM_EXTENT, false);
+        ground.extend(farm_slots(origin, self.home, FARM_EXTENT, false));
+        ground.sort_by(|a, b| (a.x, a.z).partial_cmp(&(b.x, b.z)).expect("on the map"));
+        ground.dedup_by(|a, b| (a.x, a.z) == (b.x, b.z));
+        ground.retain(|p| self.farm_ground(*p, half));
+        let mut parts = Vec::new();
+        for &b in builders {
+            let Some(field) = self.builder_ground(b) else { continue };
+            let slots: Vec<&Vec3> = ground.iter().filter(|p| !field.reaches(**p)).collect();
+            let spots = self.hello.metal_spots.iter().filter(|p| !field.reaches(**p)).count();
+            let first: Vec<String> = slots.iter().take(REACH_LISTED).map(|p| format!("({:.0},{:.0})", p.x, p.z)).collect();
+            parts.push(format!("{} {} slots {spots} spots {}", self.game().units.list[b].name, slots.len(), first.join(" ")));
+        }
+        self.log(format_args!("reach: out of each ground builder's reach, of {} slots of ground and {} spots: {}", ground.len(), self.hello.metal_spots.len(), parts.join(" | ")));
     }
 
     /// Ground a footprint of half-size `half` centred at `p` can take: on the map, no slope over FARM_SLOPE and no
@@ -1790,10 +1842,12 @@ impl Territory {
         (taken, self.keep_out(false), mobile)
     }
 
-    /// Whether a footprint of half-width `half` can stand at `p` (T-FARM): ground it can take, not dead ground (T-SITES),
-    /// not a dead slot, not in a yard or lane, FARM_GAP clear of every footprint, FARM_MOBILE clear of every mobile unit.
-    fn site_free(&self, p: Vec3, half: f32, taken: &[(Vec3, f32)], lanes: &[Lane], mobile: &[Vec3]) -> bool {
+    /// Whether a footprint of half-width `half` can stand at `p` (T-FARM): ground it can take, ground the builder
+    /// reaches (`walkable`, T-SITES), not dead ground (T-SITES), not a dead slot, not in a yard or lane, FARM_GAP clear of
+    /// every footprint, FARM_MOBILE clear of every mobile unit.
+    fn site_free(&self, p: Vec3, half: f32, taken: &[(Vec3, f32)], lanes: &[Lane], mobile: &[Vec3], walkable: Option<&Field>) -> bool {
         self.farm_ground(p, half)
+            && walkable.is_none_or(|g| g.reaches(p))
             && !self.dead_ground(p)
             && !self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(p) < FARM_GAP)
             && !lanes.iter().any(|l| l.contains(p))
@@ -1812,6 +1866,7 @@ impl Territory {
         let fp = self.hello.unit_defs[turret].footprint;
         let half = fp.0.max(fp.1) as f32 * 4.0;
         let (taken, lanes, mobile) = self.site_blockers();
+        let walkable = self.commander_field();
         let mut plants: Vec<(usize, Vec3)> = self.own.values().filter_map(|u| self.unit_index(u.def).filter(|i| units.list[*i].role == Role::Factory).map(|i| (i, u.pos))).collect();
         plants.extend(self.hands.orders.values().filter_map(|o| match &o.what {
             What::Build { unit, near, frame: None, .. } if units.list[*unit].role == Role::Factory => Some((*unit, *near)),
@@ -1831,7 +1886,7 @@ impl Territory {
                     .collect();
                 let mut packed = taken.clone();
                 let mut free = 0;
-                while let Some(p) = candidates.iter().copied().filter(|p| self.site_free(*p, half, &packed, &lanes, &mobile)).min_by(|a, b| a.dist2d(centre).total_cmp(&b.dist2d(centre))) {
+                while let Some(p) = candidates.iter().copied().filter(|p| self.site_free(*p, half, &packed, &lanes, &mobile, walkable)).min_by(|a, b| a.dist2d(centre).total_cmp(&b.dist2d(centre))) {
                     packed.push((p, half));
                     free += 1;
                 }
@@ -1845,10 +1900,11 @@ impl Territory {
     /// grid point within PLANT_RING of that plant nearest its centre, T-PLANT), a big building's the free building slot with the most turrets (standing or
     /// framed) in reach and nearest home among those, a cheap building's the free building slot nearest its
     /// `builder` outside the core. Free: ground the footprint
-    /// can take, not in a factory's yard or lane, not a dead slot, and FARM_GAP clear of every standing building,
+    /// can take and the builder reaches, not in a factory's yard or lane, not a dead slot, and FARM_GAP clear of every standing building,
     /// frame and pending site by the footprints. None when the lattice within FARM_EXTENT has no such slot.
     fn farm_site(&mut self, builder: UnitId, unit: usize) -> Option<BuildSite> {
         let origin = self.farm_origin();
+        let walkable = self.own.get(&builder).and_then(|u| self.unit_index(u.def)).and_then(|b| self.builder_ground(b));
         let frame = self.frame;
         self.hands.farm_dead.retain(|(_, until)| frame < *until);
         let kind = &self.game().units.list[unit];
@@ -1856,7 +1912,7 @@ impl Territory {
         let footprint = |fp: (i32, i32)| fp.0.max(fp.1) as f32 * 4.0;
         let half = footprint(self.hello.unit_defs[unit].footprint);
         let (taken, lanes, mobile) = self.site_blockers();
-        let free = |p: Vec3| self.site_free(p, half, &taken, &lanes, &mobile);
+        let free = |p: Vec3| self.site_free(p, half, &taken, &lanes, &mobile, walkable.as_deref());
         let home = self.home;
         let nearer = |a: Vec3, b: Vec3, to: Vec3| a.dist2d(to).total_cmp(&b.dist2d(to));
         // The core fills from home's side (terr55-56: filled from its centre, 800 out, every turret and frame cost
@@ -1877,11 +1933,12 @@ impl Territory {
                     Some(p) => self.log(format_args!("plant: turret slot ({:.0},{:.0}), {:.0} from the plant at ({:.0},{:.0})", p.x, p.z, p.dist2d(centre), centre.x, centre.z)),
                     None => {
                         let ground = candidates.iter().filter(|p| !self.farm_ground(**p, half)).count();
+                        let unreached = candidates.iter().filter(|p| walkable.as_ref().is_some_and(|g| !g.reaches(**p))).count();
                         let laned = candidates.iter().filter(|p| lanes.iter().any(|l| l.contains(**p))).count();
                         let held = candidates.iter().filter(|p| taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half + FARM_GAP)).count();
                         let crowded = candidates.iter().filter(|p| mobile.iter().any(|q| q.dist2d(**p) < half + FARM_MOBILE)).count();
                         let dead = candidates.iter().filter(|p| self.hands.farm_dead.iter().any(|(d, _)| d.dist2d(**p) < FARM_GAP)).count();
-                        self.log(format_args!("plant: no turret slot within {PLANT_RING:.0} of ({:.0},{:.0}): {} points, {ground} off the ground, {laned} in a yard or lane, {held} by footprints, {crowded} by mobile units, {dead} dead", centre.x, centre.z, candidates.len()));
+                        self.log(format_args!("plant: no turret slot within {PLANT_RING:.0} of ({:.0},{:.0}): {} points, {ground} off the ground, {unreached} out of the builder's reach, {laned} in a yard or lane, {held} by footprints, {crowded} by mobile units, {dead} dead", centre.x, centre.z, candidates.len()));
                     }
                 }
                 slot

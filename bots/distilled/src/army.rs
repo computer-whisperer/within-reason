@@ -64,7 +64,7 @@ const AVOID: f32 = 900.0;
 const AVOID_FOR: i32 = 2 * MINUTE;
 /// His armed mobile units count as shown for this long after their last sighting (two minutes forgot the army that
 /// had just driven the body back before the next launch), unless seen destroyed.
-const SEEN_FOR: i32 = 5 * MINUTE;
+pub(crate) const SEEN_FOR: i32 = 5 * MINUTE;
 /// D-FIELD: the field is ours when the body has pushed this far toward his start, outweighs what he has shown, and
 /// has held that for this long (a field "won" the second the body launched started the advanced plant at 6:10-8:51
 /// in six of eight games of dist7-army-apex-v032-comet-cold-1, and the plants paused for it while Apex had thirty
@@ -128,11 +128,10 @@ pub(crate) struct Army {
     /// been ours by every test but the time (D-FIELD).
     progress: f32,
     field_since: Option<i32>,
-    /// His armed mobile units as last seen: weight and frame; his armed aircraft apart (D-ANTI-AIR).
+    /// The first thing of his of tier 2 seen, and when (D-T2-GATE, `gate=tech`).
+    pub his_tier2: Option<(UnitDefId, i32)>,
+    /// His armed mobile ground units as last seen: weight and frame (his aircraft are `air.rs`'s, D-AIR-SEEN).
     pub his_army: BTreeMap<UnitId, (f32, i32)>,
-    pub his_air: BTreeMap<UnitId, (f32, i32)>,
-    /// The frame his first armed aircraft was seen, if any.
-    pub air_seen: Option<i32>,
     /// Where the body was outweighed, and when.
     threats: Vec<(Vec3, i32)>,
 }
@@ -150,7 +149,6 @@ impl Army {
     pub(crate) fn forget(&mut self, enemy: UnitId) {
         self.his_buildings.remove(&enemy);
         self.his_army.remove(&enemy);
-        self.his_air.remove(&enemy);
     }
 
     /// Where the strike body's core was last sent, and when.
@@ -165,7 +163,7 @@ impl Distilled {
     fn weight(&self, def: Option<UnitDefId>, turret_factor: f32) -> f32 {
         let Some(def) = def.and_then(|d| self.def(d)) else { return BLIP_WEIGHT };
         if def.weapon_count == 0 || (def.speed > 0.0 && def.move_class.is_none()) {
-            // Unarmed, or an aircraft: nothing the body can fight (his air is D-ANTI-AIR's question).
+            // Unarmed, or an aircraft: nothing the body can fight (his air is `air.rs`'s question).
             0.0
         } else if def.speed == 0.0 {
             turret_factor * def.metal_cost
@@ -196,17 +194,17 @@ impl Distilled {
         if whole > 0.0 && artillery >= ARTILLERY_SHARE * whole { 1.0 } else { TURRET_WEIGHT }
     }
 
-    fn his_half(&self, at: Vec3) -> bool {
+    pub(crate) fn his_half(&self, at: Vec3) -> bool {
         at.dist2d(self.enemy_home) < at.dist2d(self.home)
     }
 
-    /// What he has shown of his army in the last two minutes, in metal.
+    /// What he has shown of his army in the last `SEEN_FOR`, in metal.
     pub(crate) fn his_army_weight(&self) -> f32 {
         self.army.his_army.values().map(|(w, _)| w).sum()
     }
 
     /// D-HOLD's hold point: the frontier extractor pulled back toward home.
-    fn hold_point(&self) -> Vec3 {
+    pub(crate) fn hold_point(&self) -> Vec3 {
         let frontier = self.finished(self.kit.extractor).map(|u| u.pos).min_by(|a, b| a.dist2d(self.enemy_home).total_cmp(&b.dist2d(self.enemy_home)));
         let least = self.toward_enemy(self.home, HOLD_LEAST);
         let Some(frontier) = frontier else { return least };
@@ -245,6 +243,11 @@ impl Distilled {
     /// start, outweighs what he has shown by `PUSH_ODDS`, nothing has driven it back for `FORGET`, and no raid has
     /// been answered for two minutes. The tier-2 gate waits for it (D-T2-GATE); a body merely out counted as the
     /// field won at 10:00 in six of eight games of dist7-army-barb-hardagg-comet-1 while his army was twice ours.
+    /// The strike body is out and pushing past the middle: the lead is being spent in his half (D-T2-GATE waits).
+    pub(crate) fn pushing_in_his_half(&self) -> bool {
+        !self.army.strike.is_empty() && matches!(self.army.stance, Some(Stance::Push)) && self.army.progress >= 0.5
+    }
+
     pub(crate) fn field_won(&self) -> bool {
         self.army.field_since.is_some_and(|since| self.frame - since >= FIELD_HELD)
     }
@@ -279,30 +282,30 @@ impl Distilled {
     }
 
     /// His buildings stay known after they leave sight, and are forgotten when one of ours stands there and sees
-    /// none; his armed mobile units are remembered for two minutes from their last sighting.
+    /// none; his armed mobile ground units are remembered for `SEEN_FOR` from their last sighting.
     fn remember(&mut self, tick: &Tick) {
         for enemy in &tick.snapshot.enemies {
+            if let Some(id) = enemy.def.filter(|d| self.army.his_tier2.is_none() && self.tier(*d) >= 2) {
+                eprintln!("[distilled ai={}] f={} his tier 2 seen: {}", self.hello.ai_id, self.frame, self.def(id).map_or("?", |d| d.name.as_str()));
+                self.army.his_tier2 = Some((id, self.frame));
+            }
             let Some(def) = enemy.def.and_then(|d| self.def(d)) else { continue };
             if def.speed == 0.0 {
                 self.army.his_buildings.insert(enemy.id, Seen { pos: enemy.pos, def: enemy.def });
-            } else if def.weapon_count > 0 && def.move_class.is_none() {
-                self.army.his_air.insert(enemy.id, (def.metal_cost, self.frame));
-                self.army.air_seen.get_or_insert(self.frame);
-            } else if def.weapon_count > 0 {
+            } else if def.weapon_count > 0 && def.move_class.is_some() {
                 let weight = self.weight(enemy.def, TURRET_WEIGHT);
                 self.army.his_army.insert(enemy.id, (weight, self.frame));
             }
         }
         let frame = self.frame;
         self.army.his_army.retain(|_, (_, seen)| frame - *seen < SEEN_FOR);
-        self.army.his_air.retain(|_, (_, seen)| frame - *seen < SEEN_FOR);
         self.army.threats.retain(|(_, at)| frame - *at < AVOID_FOR);
         let in_sight: BTreeSet<UnitId> = tick.snapshot.enemies.iter().map(|e| e.id).collect();
         let soldiers: Vec<Vec3> = self.army.strike.iter().chain(self.army.home_guard.iter()).chain(self.army.scouts.keys()).filter_map(|id| self.own.get(id)).map(|u| u.pos).collect();
         self.army.his_buildings.retain(|id, seen| in_sight.contains(id) || !soldiers.iter().any(|p| p.dist2d(seen.pos) < 150.0));
     }
 
-    /// A finished soldier joins the scouts or the guard; the dead leave every body.
+    /// A finished soldier joins the scouts or the guard (an aircraft is `air.rs`'s); the dead leave every body.
     fn enlist(&mut self) {
         let alive = |id: &UnitId| self.own.contains_key(id);
         self.army.home_guard.retain(alive);
@@ -313,7 +316,7 @@ impl Distilled {
         let new: Vec<(UnitId, UnitDefId)> = self
             .own
             .values()
-            .filter(|u| !u.being_built && self.def(u.def).is_some_and(|d| d.speed > 0.0 && d.weapon_count > 0 && d.build_options.is_empty()))
+            .filter(|u| !u.being_built && self.def(u.def).is_some_and(|d| d.speed > 0.0 && d.move_class.is_some() && d.weapon_count > 0 && d.build_options.is_empty()))
             .filter(|u| !self.army.home_guard.contains(&u.id) && !self.army.strike.contains(&u.id) && !self.army.scouts.contains_key(&u.id) && !self.army.raiders.contains(&u.id))
             .map(|u| (u.id, u.def))
             .collect();

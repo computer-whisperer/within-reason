@@ -80,7 +80,8 @@ impl Territory {
                     standing[k].push((u.pos, worth));
                 }
             }
-            if !u.being_built && d.weapon_count > 0 && d.reach > 0.0 && matches!(role, Some(Role::Commander | Role::Army | Role::Turret)) {
+            // An anti-air turret answers none of his ground (T-AIR's).
+            if !u.being_built && d.weapon_count > 0 && d.reach > 0.0 && matches!(role, Some(Role::Commander | Role::Army | Role::Turret)) && !self.unit_index(u.def).is_some_and(|i| self.is_anti_air(i)) {
                 armed.push(Armed { pos: u.pos, metal: d.metal_cost, reach: d.reach, speed: d.speed, def: u.def });
             }
         }
