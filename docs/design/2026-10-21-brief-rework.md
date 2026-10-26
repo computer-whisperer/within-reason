@@ -329,7 +329,9 @@ of 80 sides built an air plant, at 62 of income at the median, 3-7 minutes after
 bomber's side won all six) and a paragraph of `M-gecko-team` (the Glitters lobby game: their tier-2 gunships against
 our six seats with no air plant); facts gained the construction turret's burst (F-fight-death) and the solar's half
 damage closed (F-eco-energy). The relay's figure checked: "around 30" is where the plant begins, at about twice that
-income in the long games, not where most build it. The 8v8 team pool's air cut is not done.
+income in the long games, not where most build it. The 8v8 team pool's air cut is not done. The user read it the next
+morning ("This looks good, let's add it") and it is in the manifest after surprise.md since 2026-10-26 (23 documents,
+the player's prompt 85,500 words, brief_check exit 0).
 
 ## 7. Measurement
 
