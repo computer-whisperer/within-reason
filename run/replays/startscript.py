@@ -13,7 +13,10 @@ follows at headerSize, the stream after it, then the winning ally teams (winning
 writes them before the player and team statistics, DemoRecorder.cpp; none when the game was stopped before its
 end), the player statistics and the team statistics (every teamStatPeriod seconds, cumulative: metal and energy
 used, produced, excess, received and sent, damage dealt and received, units produced, died, received, sent,
-captured, out-captured, killed; a reading of the transfers without a replay, not used yet).
+captured, out-captured, killed), read by `team_stats`: an AI that writes no census of its own (Apex in our seat)
+still has its curve there, and a timeout its standing.
+
+    run/replays/startscript.py --stats <demo.sdfz>      print each team's last statistics
 """
 import gzip, json, os, re, struct, sys
 
@@ -40,6 +43,29 @@ def read_demo(path, winners=False):
                 f.seek(header_size + header["script_size"] + header["stream_size"])
                 header["winners"] = list(f.read(n))
     return header, script
+
+
+STAT_FIELDS = ("frame metal_used energy_used metal_produced energy_produced metal_excess energy_excess metal_received "
+               "energy_received metal_sent energy_sent damage_dealt damage_received units_produced units_died units_received "
+               "units_sent units_captured units_out_captured units_killed").split()
+STAT_FORMAT = "<i12f7i"  # TeamStatistics (rts/Sim/Misc/TeamStatistics.h), one every 15 s, cumulative
+
+
+def team_stats(path):
+    """Each team's statistics history: a list per team of dicts of `STAT_FIELDS`, in time order. The tail after the
+    winners: the player statistics, one count per team, then every team's records (DemoRecorder::WriteTeamStats)."""
+    header, _ = read_demo(path)
+    assert header["team_stat_elem_size"] == struct.calcsize(STAT_FORMAT), header["team_stat_elem_size"]
+    with gzip.open(path, "rb") as f:
+        f.seek(header["header_size"] + header["script_size"] + header["stream_size"] + header["winning_ally_teams_size"] + header["player_stat_size"])
+        tail = f.read(header["team_stat_size"])
+    n = header["num_teams"]
+    counts = struct.unpack_from(f"<{n}i", tail)
+    size, offset, teams = struct.calcsize(STAT_FORMAT), 4 * n, []
+    for count in counts:
+        teams.append([dict(zip(STAT_FIELDS, struct.unpack_from(STAT_FORMAT, tail, offset + i * size))) for i in range(count)])
+        offset += count * size
+    return teams
 
 
 def parse(text):
@@ -144,6 +170,11 @@ def load_script(path):
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    if sys.argv[1] == "--stats":
+        for team, history in enumerate(team_stats(sys.argv[2])):
+            last = history[-1] if history else {}
+            print(team, len(history), json.dumps({k: round(v) for k, v in last.items()}))
+        return
     header, game = load_script(sys.argv[1])
     rows = seats(game)
     if header:
