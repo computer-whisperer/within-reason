@@ -274,7 +274,8 @@ impl Territory {
         least
     }
 
-    /// A builder with no order takes the nearest wanted site it can build within its reach (T-COVER, T-RADAR).
+    /// A builder with no order takes the nearest wanted site it can build within its reach, on ground its class
+    /// walks to (T-COVER, T-RADAR; T-SITES).
     pub(crate) fn defence_order(&mut self, id: UnitId, unit: usize, role: Role, commands: &mut Vec<Command>) -> bool {
         if self.frame < DEFENCE_FROM || !matches!(role, Role::Builder | Role::Commander) || self.defence.wants.is_empty() {
             return false;
@@ -282,7 +283,10 @@ impl Territory {
         let Some(builder) = self.own.get(&id).cloned() else { return false };
         let (turret, radar) = self.kit(unit);
         let leash = self.options.com_leash;
-        let reachable = |w: &Want| if role == Role::Commander { w.at.dist2d(self.home) <= leash } else { w.at.dist2d(builder.pos) <= DEFENCE_REACH };
+        let walkable = self.builder_ground(unit);
+        let reachable = |w: &Want| {
+            walkable.as_ref().is_none_or(|g| g.reaches(w.at)) && if role == Role::Commander { w.at.dist2d(self.home) <= leash } else { w.at.dist2d(builder.pos) <= DEFENCE_REACH }
+        };
         let pick = self
             .defence
             .wants

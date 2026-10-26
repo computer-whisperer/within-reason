@@ -179,6 +179,7 @@ impl Territory {
         let home = (self.home.x as f64, self.home.z as f64);
         let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
         let origin = self.farm_origin();
+        self.log_reach(&builders);
         let mut slots = hands::farm_slots(origin, origin, 500.0, false);
         slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
         places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
