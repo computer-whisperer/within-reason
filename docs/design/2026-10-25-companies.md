@@ -160,9 +160,20 @@ Chunks A to D are built in one sitting; E (the live game) follows.
   `admit`'s wait, the release loop, the picture's waiting words, the `join_in` test. `join_in` is 1 to 64 now, the
   count that walks together. The picture's group entry gains `companies` (`company_words`). Tests: bot 144, micro 86.
 
+- **E (live, companies-1, WON 24:33).** No group reached the cap; every company came from a muster, and the musters'
+  companies of 1-4 slaved to the lead and stayed separate on the march (the floor merges at a halt only): group_B, the
+  main body, stood in 2-5 companies nearly all its life at a mean of 11 members. The lead's room read 100-300, so the
+  companies stood in column, each straight behind the lead's heading by its depth plus the gap: the rear companies'
+  slots swung hundreds to thousands of elmos at every turn of the heading (span up to 4,229; formed 0 of 3 from 20:30),
+  the Glitters shape again at a small scale. The player's `company: 0` at 19:12 left the existing companies split. Ledger
+  row companies-1.
+
 ## 9. Open after the build
 
 - The column's price on a narrow strip (above). Whether a slaved company should keep its own way along the lead's
   (pathed, not snapped) when the ground narrows.
 - The drills on open ground, abreast; an assault with companies against a defended position.
 - The lap's price of waiting for each company: `WAIT_FOR` and the muster's patience are the levers.
+- From companies-1: a column must trail along the lead's way, not hang straight behind its heading; a company that
+  fits in the lead under the cap folds into it when it reaches it (march or halt); a change of the cap re-partitions
+  the companies standing, not only the newcomers.
