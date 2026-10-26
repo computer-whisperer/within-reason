@@ -218,8 +218,9 @@ impl Recorder {
             json!({ "t": "ev", "f": frame, "k": kind, "u": who.0, "d": this.def(def), "x": pos.x as i32, "z": pos.z as i32 })
         };
         let record = match *event {
-            // Idle is a unit flag in the samples; damage is summed into the next sample.
-            Event::UnitIdle { .. } => return,
+            // Idle is a unit flag in the samples; damage is summed into the next sample; what allies' overflow put
+            // into the stock is in the stock's samples.
+            Event::UnitIdle { .. } | Event::Received { .. } => return,
             Event::Chat { player, ref text } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text }),
             Event::UnitDamaged { unit, attacker, damage, .. } => {
                 *self.damage.entry(unit).or_default() += damage;

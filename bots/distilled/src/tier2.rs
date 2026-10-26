@@ -80,11 +80,13 @@ pub(crate) struct Options {
     pub lane: bool,
     /// `raid=off`: no raider group (D-RAIDERS, 2026-10-20).
     pub raiders: bool,
+    /// `received=off`: what allies' overflow puts into the stock is not counted as income (D-RECEIVED, 2026-10-25).
+    pub received: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true, received: true }
     }
 }
 
@@ -106,6 +108,7 @@ impl Options {
                 ("gate", v) => options.field_gate = v != "income",
                 ("lane", v) => options.lane = v == "on",
                 ("raid", v) => options.raiders = v != "off",
+                ("received", v) => options.received = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -114,7 +117,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             if self.field_gate { "field" } else { "income" },
             if self.fusion_first { "fusion" } else { "mohos" },
@@ -122,7 +125,8 @@ impl Options {
             self.power,
             if self.pause_t1 { "on" } else { "off" },
             if self.lane { "on" } else { "off" },
-            if self.raiders { "on" } else { "off" }
+            if self.raiders { "on" } else { "off" },
+            if self.received { "on" } else { "off" }
         )
     }
 }

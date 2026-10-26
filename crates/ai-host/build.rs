@@ -7,8 +7,13 @@ fn main() {
     let commit = output(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "unknown".into());
     let dirty = output(&["status", "--porcelain", "--untracked-files=no"]).is_some_and(|s| !s.is_empty());
     println!("cargo:rustc-env=WITHIN_REASON_COMMIT={commit}{}", if dirty { "+" } else { "" });
-    println!("cargo:rerun-if-changed=../../.git/HEAD");
-    println!("cargo:rerun-if-changed=../../.git/index");
+    // HEAD and the index live in the repository's git directory: `.git/` in a plain checkout, a directory under the
+    // bare repository for a worktree (its `.git` is a file; 2026-10-24), so git is asked where they are.
+    for file in ["HEAD", "index"] {
+        if let Some(path) = output(&["rev-parse", "--git-path", file]) {
+            println!("cargo:rerun-if-changed={path}");
+        }
+    }
     // The index changes only when a file is staged: an edit to a tracked source left the flag clean (2026-10-20,
     // the day's batteries said a clean commit while the tree was dirty), so the source trees are watched too.
     println!("cargo:rerun-if-changed=../../bots");

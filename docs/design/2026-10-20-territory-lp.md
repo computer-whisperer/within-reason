@@ -38,9 +38,12 @@ works from the next one, which is conservative by half a bucket on average.
   (`Palette::roster` with soldiers off); later the soldiers and turrets of the territory stage. The commander is in
   `U` as a builder type with a fixed count of one.
 - `B ⊆ U`: the builder types: the commander, each mobile builder, each factory, the construction turret.
-- `can(b, u)`: `b` builds `u` (the build options). Two additions to the raw options, both of which the engine allows:
-  a mobile builder assists any product of a standing factory (a guard order), and a construction turret helps any
-  frame in its reach, which the model takes as everything but extractors and their upgrades (those stand afield).
+- `can(b, u)`: `b` builds `u` (the build options). Three additions to the raw options, all of which the engine allows:
+  a mobile builder assists any product of a standing factory (a guard order), a construction turret helps any
+  frame in its reach, which the model takes as everything but extractors and their upgrades (those stand afield),
+  and, under `mobile_help`, a mobile builder helps the frames of an extractor it cannot start (the basic constructor
+  on the moho's; before terr98-100 every upgrade was priced on the advanced constructors' power alone, and the program
+  bought twice his count of them; with the pair a few fewer and the marks level).
 - Per unit type `u`: metal cost `cm[u]`, energy cost `ce[u]`, build time `bt[u]` (build-power-seconds), build power
   `bp[u]` (0 for non-builders), net constant energy `em[u]` (production less upkeep: a solar +20, an extractor -3,
   a tier-2 extractor -20, a fusion +750), wind cap `wc[u]`, metal and energy storage `sm[u]`, `se[u]`, converter
@@ -72,7 +75,11 @@ works from the next one, which is conservative by half a bucket on average.
    factories' own: `Σ_{b mobile} Σ_{u a product} x[b, u, t] ≤ A · Σ_f bp[f] · n[f, t] · Δ`, `A = 2` to start (the
    yard clears between units; the distilled bot's games showed three turrets on one plant did not spend). The
    construction turret's power is bounded by what stands in its reach only through the same factor on its own
-   capacity; geometry is the hands'.
+   capacity; geometry is the hands'. A mobile builder's help on the upgrade frames it cannot start is at most `M` times the
+   mobile starters' direct power on the column (3d, `mobile_help`; 0.35 to start: thebluegecko's basic constructors
+   put 26 % of the builder-seconds on his moho frames, his advanced 73 %; terr100 level at every mark with 2-7 fewer
+   advanced constructors by 20:00, the hands' frame chooser counting the walk from terr100; terr98-99 invalid, the
+   hands' faults, `bots/territory/README.md` T-DISPATCH).
 4. **Metal.** `m[t+1] ≤ m[t] + Δ · (im[t]) + cf · c[t] - Σ_u cm[u] · Σ_b x[b, u, t] / bt'[b, u]` with the income
    `im[t] = Σ_u mm[u] · n[u, t] + Σ_u ex[u] · ā · n[u, t]` over the extractor types, `ā` the mean amount of the
    spots in play (the refinement for maps with unequal spots: a variable `z[k, t]` per spot, ordered nearest first,
@@ -120,6 +127,10 @@ heavier dependency). Decided at step 2 by measuring both on the same problem.
   of the bot's own games (the age of each order at its frame, by type: extractors 5-20 s with the far spots, base
   buildings 2-5 s, the tier-2 projects 50-120 s today). The far spots cost more walk than the near ones; the mean
   overhead is right for the plan's shape and wrong at the margin. The verifier (below) measures what that costs.
+  The commander's extractor walk is the exception since terr90 (2026-10-25): the bot derives it every plan from the
+  free spots within its leash, their mean distance at its speed plus the ring overhead, and bounds its extractors by
+  their number (`commander_spots`, one row over its Direct pairs on the basic extractor's ring columns), so the
+  commander's spots are priced as what stands free near home rather than at one walk for the whole map.
 - **Builder-second granularity.** A unit built by several builders in parallel is exact; a single builder on a
   5-minute project is exact; the model cannot say which builder stands where, and does not need to.
 - **Stalls and priority.** The LP never stalls; the engine shares a stall over every build. The hands run ahead
@@ -210,6 +221,47 @@ column's class, so a flow on a Frames column is power to put on the type's frame
 dearest frame), and a flow on a ring is an extractor on a spot of that ring (T-SITES takes the spot from the
 ring). The credits are by (unit, class); the standing orders' seed counts extractor orders only, since the Frames
 columns carry the rest.
+
+## Reclaim and the farm (2026-10-24, from thebluegecko's game against InactiveAI)
+
+The user's benchmark example (`docs/experiments.md` replay-gecko-inactiveai-comet-2026-10-21; the bot's README) does
+two things the program had no column for, and one thing its arms forbade.
+
+- **Reclaim** (`reclaim`, off by default in the bot, `--reclaim` on the CLI): a pair of kind `Reclaim` for every
+  builder but a factory and every Whole column of a standing building (not an extractor, whose upgrade replaces it;
+  not a frame; nothing mobile). Its power counts the other way in the completion row, its metal comes back whole
+  (the engine returns a reclaimed unit's metal in the second the reclaim ends and none of its energy, read from his
+  record at 4:41 and 10:22), its work is the unit's build time at the reclaimer's power (his advanced plant, 28,000,
+  in about seven seconds under the turrets round it), a turret without a walk and a mobile builder with its base
+  walk. One metal a unit in the objective as a tie-breaker, and none in the last bucket: without them the interior
+  point took down six fusions and the storages in minute 19 to loosen the energy reserve at the horizon, where
+  nothing counts. The plan then does what he did: from the bot's seed-1 start it takes the lab down at minute 9
+  once its constructors are out (he took his at 4:41: his lab made nine and stopped, the program's makes fifty)
+  and the advanced plant at 10-11 once its constructors are out (his at 10:22), and a few solars at 8-9. In the
+  program's own accounting reclaim is worth about two percent at 20:00 (2,049 to 2,087 with the farm; 1,656 to
+  1,652 without it, inside the solver's noise), as in his game (7,200 of 499,000 made): the action's worth is in
+  the moment and the ground, which the plan does not price, and the hands will.
+- **The farm** (`max_nanos`, `maxnanos=N`, `--max-nanos N`; `help_factor` as a physical bound): his 311 turrets
+  stood in a block south of his base and his advanced fusions and converters were placed inside their reach (39
+  and 28 turrets within 300 of a frame at its placing, a median), the aircraft placing and the turrets building.
+  The program's bound of six turrets a factory was the hands' rule (turrets behind the plant), not the game's;
+  `max_nanos` replaces it with a number when above zero (the farm's size is the base's ground, which the program
+  cannot see). The help factor is the placer's share: at 40 a 310-power constructor puts 26 s on an advanced
+  fusion the turrets finish, and his advanced aircraft put less. With both (`--help-factor 40 --max-nanos 300`)
+  the program answers 2,049 at 20:00 from the bot's start (2,087 with reclaim), against 1,656 under the bot's
+  arms, and builds his economy: 135 turrets, 85 advanced converters, 16 advanced fusions, 32 fusions.
+- **The walk**: the early marks are the model's walk constant, not the room. With `--walk-extractor 36` the
+  program's 5:00 is 62 with 26 extractors, his figure exactly (his nine constructors took 55 s an extractor
+  including the build; the constant 65 is the hands' own realized median, 56-66 s over every batch since terr25,
+  since they take spots as the flows credit them and not as a chain from where they stand). The program cannot
+  fix the hands; the number says what the hands' chaining is worth: 62 / 316 / 1,058 / 2,357 at the marks with
+  all three arms against his 62 / 213 / 651 / 1,706, and 50 / 258 / 937 / 2,087 with the hands' walk.
+
+What the program still has not got of his: the air line (his farm's turrets were built by 46 constructor
+aircraft; the land-lines rule stands, since the hands fly nothing), an energy storage before 5:00 (a plan that
+never stalls has no use for one; the hands have), and the end of the horizon, where under `terminal=0` the last
+two minutes buy solars and basic converters by the hundred because the bank is worth nothing at 20:00 (the
+composition at 16:00 is the shape to read: 169 turrets, 80 converters, 17 energy buildings).
 
 ## Verification, in order
 
@@ -376,3 +428,50 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
   so the relaxation costs one transient of three quarters of the energy storage, not a steady-state error. The
   verifier measures it.
+- 2026-10-24: the energy margin. The reserve (a share of the energy storage in stock) does not keep the hands out
+  of a stall: storage is eight seconds of the mid-game's usage, and the hands' overshoot is a flow, whole units
+  started where the plan runs fractions (terr38, `reserve=0.5`: every game stalled as before). A new row from the
+  second bucket, (1 + margin) times the build draw at most the bucket's production with the converters on what is
+  left (`energy_margin`, `emargin=0.25` the bot's default, `--energy-margin` on the CLI, 0 for the ceiling): the
+  plan buys its energy a quarter ahead of its draw and the hands' overshoot lives in the quarter. terr42: 133 /
+  142 / 193 / 124 at 10:00 against 131 / 137 / 174 / 75 with the hands' stall rules alone and 112 / 110 / 95 / 112
+  before them; 20:00 unchanged, about 750.
+- 2026-10-24 evening: the reclaim column and the farm arms (the section above), from the user's benchmark example
+  and his word to iterate the program for the actions his curve needs. The program beats the curve at every mark
+  once given his walk and his room (62 / 316 / 1,058 / 2,357), and at 10, 15 and 20 with the hands' walk (50 / 258
+  / 937 / 2,087); the hands now owe it three things, in the order the marks say: the extractor chain (the 5:00
+  mark is theirs alone), the farm's placing (turrets in a block, tier-2 frames inside their reach, the turret cap
+  as the arm), and the reclaim order (`ReclaimUnit`, which the protocol carries and the bot has never sent).
+  The bot's defaults since the farm (terr54, 2026-10-24 night): `maxnanos=300`, `help=40`; `reclaim=off` still.
+- 2026-10-24 late night, three options from the scaling arc, each measured once and two left off: `farm_big`
+  (a turret's help only on a turret or a building of that much build time; at 20,000 the program bought constructors
+  from the first minute for the dearer placing and lost every mark, terr58), `bank` (the metal bank at the horizon
+  counted as made, to stop the end-of-horizon dump of 400 solars and converters into the last buckets; it hoarded
+  instead, since metal kept read as income while the marks are income, terr64), and the horizon at 25:00 in a game of
+  20 (`end=1500`, on: the program invests for the rate, his composition stood at 20:00, the marks unmoved, terr65).
+  The pair for a turret on a factory (Assist is for mobile builders) is the program's next want: his 29 turrets on the
+  advanced plant at 10:00 made a constructor every 20 s.
+- 2026-10-25, the turrets' assist (`nano_assist`, `--nano-assist`; T-PLANT in the bot's README): a turret's Assist
+  pair on the products of an advanced factory (one whose constructors build an extractor upgrade), under its own row
+  bounded by F times the power of the advanced factories standing or committed (`n0`), not the plan's fractions.
+  Three readings in the engine (terr67-69): against the plan's fractional factories a tenth of an advanced plant with
+  ten times its power in turrets was a whole plant's production for a tenth of its price, and the plan held the plant
+  at a fraction to 8:00; on every factory's products it pumped basic constructors from the vehicle plant (38-50 by
+  10:00 against 29-36) and the engine's extractors did not follow (the constant extractor walk prices the eightieth
+  spot as the first); on advanced plants' products only, the plan asks for 1-2 turrets' worth at 10:00 and 3-6 at
+  14:00 against his 29, since its advanced constructors (one every 16-20 s) are what its metal and upgrade pace want.
+  The marks level; the arm off by default. The test: an advanced lab with six turrets makes 7.5 constructors in a
+  minute with the option against 3.2 without, and a basic lab gets no pair.
+- 2026-10-25, the extractor walk (terr73-83): `walk_extractor` 15 (65 before), `walk_upgrade` 40, the commander's
+  40 (16 before), and in the territory bot the extractor's walk grows from 15 at the start to `walk_late` 40 at
+  `walk_late_from` 600 s by the plan's t0 (lib.rs): the realized order age at a constructor's extractor frame is
+  12-19 s through 9:00 once the constructors chain spot to spot and 28-42 s from 10:00, the 65 having been measured
+  when the hands walked home between spots. At 65 the plan from the start was 18 extractors and 43 a second at 5:00
+  with 11 constructors, the hands' figures exactly; at 15 it is 25 and 59 with 8, thebluegecko's 26 and 62 with 9;
+  the annealer over the simulator gives 27 and 59.8 for five minutes. His 5:00 is above both models: the sixty-second
+  buckets from 1:00 (a constructor finished in a bucket builds from the next), the reserve, and the first factory
+  at a fraction (0.9 at 5:00) are the program's pessimism. One 15-s walk for the whole game had the plans from
+  10:00 want 21-24 constructors against 25-28 and 20:00 read 40-70 under; grown to 40 by t0 it reads 962-1,007.
+  The commander at 16 was given nine spots by 5:00 and the hands walked it 1,950 out for the fifth; at 40 two spots
+  and ten solars, his commander's day. `--reclaim` takes nothing down before 13:00 from the start: the plant's
+  reclaim at 4:41 is not in the program's interest while it wants the plant's constructors.

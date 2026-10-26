@@ -179,10 +179,16 @@ impl Field {
         Field::over(terrain.cell, terrain.width as usize, terrain.height as usize, costs, origins)
     }
 
+    /// As `from_costs`, searched no farther than `limit` effective elmos: the ground beyond it is left unreached,
+    /// the cheap form when only the near ground is asked about (a region's spots, each a field of its own).
+    pub fn from_costs_within(terrain: &Terrain, costs: &[u32], origins: &[Vec3], limit: f32) -> Option<Field> {
+        Self::search(terrain.cell, terrain.width as usize, terrain.height as usize, costs, origins, None, limit)
+    }
+
     /// `from_costs` over a grid given by its dimensions (a caller that holds cost layers and no `Terrain`: the lane's
     /// group ground).
     pub fn over(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3]) -> Option<Field> {
-        Self::over_until(cell, width, height, costs, origins, None)
+        Self::search(cell, width, height, costs, origins, None, f32::INFINITY)
     }
 
     /// `over`, stopped once the cell at `until` is settled (design D18): the route from there descends through cells
@@ -190,11 +196,18 @@ impl Field {
     /// bounded by the way's cost rather than the map (a plan of five legs over All That Glitters took 92 ms whole).
     /// Cells beyond are unreachable to `distance` and `route`.
     pub fn over_until(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3], until: Option<Vec3>) -> Option<Field> {
+        Self::search(cell, width, height, costs, origins, until, f32::INFINITY)
+    }
+
+    /// The one search: Dijkstra from the origins over the cost layer, stopped once the cell at `until` is settled
+    /// and never past `limit` effective elmos.
+    fn search(cell: f32, width: usize, height: usize, costs: &[u32], origins: &[Vec3], until: Option<Vec3>, limit: f32) -> Option<Field> {
         if width == 0 || cell <= 0.0 || costs.len() != width * height {
             return None;
         }
         let passable = |index: usize| costs[index] != IMPASSABLE;
         let mut field = Field { cell, width, height, cost: vec![UNREACHABLE; width * height] };
+        let bound = (f64::from(limit) / f64::from(cell) * 10.0).min(f64::from(UNREACHABLE - 1)) as u32;
         let mut queue = BinaryHeap::new();
         for origin in origins {
             if let Some(start) = field.nearest(*origin, passable) {
@@ -230,7 +243,7 @@ impl Field {
                 }
                 let rate = (u64::from(costs[index]) + u64::from(costs[next])) / 2;
                 let total = (u64::from(cost) + step * rate / 10).min(u64::from(UNREACHABLE - 1)) as u32;
-                if total < field.cost[next] {
+                if total < field.cost[next] && total <= bound {
                     field.cost[next] = total;
                     queue.push(Reverse((total, next)));
                 }
@@ -265,6 +278,14 @@ impl Field {
             }
         }
         best.map(|(_, index)| index)
+    }
+
+    /// Whether the cell under `pos` itself can be reached from the origin, with no snap to ground nearby: a plateau
+    /// the class cannot climb is not, though `distance` finds the ground at its foot (terr105: an advanced plant's
+    /// only site on All That Glitters was a plateau 340 above the base, its builder held 235 off for fifteen minutes).
+    pub fn reaches(&self, pos: Vec3) -> bool {
+        let (x, z) = ((pos.x / self.cell).floor() as i32, (pos.z / self.cell).floor() as i32);
+        x >= 0 && z >= 0 && (x as usize) < self.width && (z as usize) < self.height && self.cost[z as usize * self.width + x as usize] != UNREACHABLE
     }
 
     /// Walking distance from the origin to (the reachable ground nearest) `pos`, in elmos.
@@ -625,6 +646,34 @@ mod weighted {
         assert!(field.route_crosses(at(24.0 + 30.0 * 16.0, 24.0), |p| p.z > 28.0 * 16.0));
         assert!(!field.route_crosses(at(24.0 + 30.0 * 16.0, 24.0), |p| p.z < 0.0));
     }
+
+    #[test]
+    fn a_walled_pocket_is_not_reached_though_its_distance_snaps_to_the_foot() {
+        let terrain = flat(16, 16);
+        let mut passable = vec![true; 16 * 16];
+        // A ring of cliff round cell (10, 10): the pocket inside is flat ground nothing walks to.
+        for (x, z) in (9..=11).flat_map(|x| (9..=11).map(move |z| (x, z))).filter(|&(x, z)| (x, z) != (10, 10)) {
+            passable[z * 16 + x] = false;
+        }
+        let field = Field::from(&terrain, &passable, at(24.0, 24.0)).unwrap();
+        let pocket = at(10.5 * 16.0, 10.5 * 16.0);
+        assert!(!field.reaches(pocket));
+        assert!(field.distance(pocket).is_some(), "distance takes the reachable ground beside it");
+        assert!(field.reaches(at(5.5 * 16.0, 10.5 * 16.0)));
+        assert!(!field.reaches(at(-8.0, 24.0)), "off the map");
+    }
+
+    #[test]
+    fn a_bounded_field_stops_at_its_limit_and_agrees_inside_it() {
+        let terrain = flat(64, 4);
+        let costs = vec![10u32; 64 * 4];
+        let origin = at(8.0, 8.0);
+        let full = Field::from_costs(&terrain, &costs, &[origin]).unwrap();
+        let near = Field::from_costs_within(&terrain, &costs, &[origin], 300.0).unwrap();
+        let (inside, outside) = (at(16.0 * 15.5, 8.0), at(16.0 * 40.5, 8.0));
+        assert_eq!(near.distance(inside), full.distance(inside));
+        assert!(full.reaches(outside) && !near.reaches(outside) && near.distance(outside).is_none());
+    }
 }
 
 #[cfg(test)]
@@ -645,6 +694,13 @@ mod field_timing {
             assert!(Field::from(&terrain, &passable, origin).is_some());
         }
         eprintln!("44 fields: {:.0} ms", started.elapsed().as_secs_f64() * 1000.0);
+        let costs = vec![10u32; (width * height) as usize];
+        let started = std::time::Instant::now();
+        for i in 0..44 {
+            let origin = Vec3 { x: (i * 150) as f32, y: 0.0, z: (i * 100) as f32 };
+            assert!(Field::from_costs_within(&terrain, &costs, &[origin], 1100.0).is_some());
+        }
+        eprintln!("44 fields within 1,100: {:.0} ms", started.elapsed().as_secs_f64() * 1000.0);
     }
 }
 

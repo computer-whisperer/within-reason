@@ -484,3 +484,36 @@ the pool's storages came only in long games (they come at 9:36 median in games o
 **Used by.** The briefs' Economy bullet and "Scaling past the mohos" passage; the glossary's `armestor`/`corestor`
 lines; K-eco-storage-before-t2 (the inbox), K-mech-converter-threshold, K-t2-post-moho-scaling.
 
+
+### K-eco-pro-curve-against-a-passive-opponent
+**Claim.** Against an opponent that does nothing on Comet Catcher, a strong player's metal income runs about 60 /
+210 / 650 / 1,700 a second at 5 / 10 / 15 / 20 minutes, made this way: three extractors before anything, a plant at
+1:00 that makes nine constructors and then nothing, the nine on extractors only (26 standing at 5:00) while the
+commander builds the solars; an energy storage before 5:00; the advanced plant at about 5:30, its first constructor
+on a fusion at once (standing before 8:00), four fusions by 10:00 and almost no advanced solars; mohos ten to twelve
+a minute from 9:00; then an air plant whose constructor aircraft build a block of three hundred nano turrets, and
+advanced fusions and advanced converters placed inside the block by advanced aircraft, no basic converter at all,
+the first converter of the game near 14:00; metal spent to zero until the last two minutes; and each tier's
+infrastructure reclaimed once its work is done, at the moment the next tier's metal is wanted: the plant by the
+commander when its constructors are out (before the advanced plant), the advanced plant by the turrets when its
+constructors are out (before the air plant and the farm), the solars as the fusions stand and where the farm is
+to go, the advanced solars after them. The engine returns a reclaimed unit's metal whole in the second the
+reclaim ends and none of its energy.
+**Status.** observed (2026-10-24; one game)
+**Evidence.** thebluegecko (OS 34, Cortex, west) against InactiveAI, 2026-10-21, the user's game client's replay
+played through the headless engine: `run/matches/1792859881-replay-gecko-inactiveai-comet-2026-10-21`
+(`run/eco_marks.py record-0.jsonl --shape`; `docs/experiments.md` replay-gecko-inactiveai-comet-2026-10-21): 62 /
+213 / 651 / 1,706 and 2,270 at 21:00; extractors 26 / 74 / 77 / 78 standing (6 / 57 / 78 of them tier 2 from
+10:00); constructors 9 / 21 / 79 / 79; turrets 2 / 29 / 112 / 304; converters 0 / 0 / 10 / 116; energy income 380
+/ 3,710 / 14,010 / 79,690. Reclaimed: the plant 4:41 (570), the advanced plant 10:22 (2,600, seven seconds under
+the turrets), 17 solars 13:44-14:41 (2,550), 4 advanced solars 15:01-15:26 (1,480): 7,200 before 20:00, a seventieth
+of the metal made, each lump five to twelve seconds of his income then; the first six solars reclaimed stood where
+13-20 turret frames and the advanced fusions went. Beside it the flagship's game on the same task (terr-flagship-nullai-1: 36 / 177 / 463 /
+802, basic converters on fusions and solars, two turrets) and the territory bot (terr45: 33-39 / 125-144 / 304-359 /
+705-858, the same late shape). Builders' time, read from the record: his nine constructors took 55 s an extractor
+including the build; the program's walk constant of 65 s plus the build is the bot's own realized median.
+**Would be wrong if.** A second game of his, or another player's above 30 OS, against InactiveAI on this map came in
+under 1,200 at 20:00, or reached 1,700 with basic converters or without the turret block; or the engine's turrets
+did not add their power to a frame placed among them (K-mech).
+**Used by.** The territory bot's benchmark (`bots/territory/README.md`, the reference rows), its T-LP room (the
+turret cap of six a factory) and T-COMMIT's opening; the brief's economy passages do not cite it yet.

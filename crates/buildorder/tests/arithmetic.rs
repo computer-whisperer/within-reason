@@ -6,7 +6,7 @@ use std::sync::Arc;
 use buildorder::anneal::{anneal, Goal, Objective, Palette, Search};
 use buildorder::game::{Game, Spot, Straight};
 use buildorder::plan::{Item, Plan, Step};
-use buildorder::sim::{simulate, Outcome, Scenario, Standing, State};
+use buildorder::sim::{simulate, Outcome, Scenario, Standing, State, StateBuilder};
 use buildorder::units::{Role, Units};
 
 const HOME: (f64, f64) = (1000.0, 1000.0);
@@ -423,4 +423,182 @@ fn the_linear_program_fills_the_spots_within_the_build_power() {
     let expected = units.list[game.commander].metal_make + 4.0;
     assert!((plan.metal_income[plan.buckets] - expected).abs() < 0.1, "final income {} against {expected}", plan.metal_income[plan.buckets]);
     assert!(plan.made > 0.0 && plan.metal_price.iter().all(|p| *p >= -1e-6) && plan.solve_time < 2.0);
+}
+
+/// A standing lab that nothing offered needs, no metal in stock, eight spots, and five builders to take them (the
+/// commander and four constructors), so that the metal binds and not the builders' time: with `reclaim` on the
+/// program takes the lab down for its metal in the first minute, as much of it as the extractors want (a third:
+/// a `Reclaim` flow on it), and makes clearly more than without, since the commander's income alone would wait on
+/// every extractor; without the option the lab stands to the end. (With the commander alone the model rightly keeps
+/// the lab: its 29 s on the reclaim cost more than the metal saved, the commander's time being the bound.) The count
+/// after the first minute says nothing: once the spots are taken the metal is worth nothing to the objective and
+/// the interior point builds labs with it for free.
+#[test]
+fn the_linear_program_takes_an_idle_building_down_for_its_metal_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..8).map(|k| Spot { at: (1000.0 + 200.0 * k as f64, 1400.0), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots, Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let lab = units.index("armlab").unwrap();
+    let offer = vec![mex];
+    let mut state = State::start(&scenario);
+    state.metal = 0.0;
+    state.energy = 100_000.0;
+    state.energy_storage = 100_000.0;
+    state.standing.push(Standing { unit: lab, site: HOME, pays: 0.0 });
+    let ck = units.index("armck").unwrap();
+    for _ in 0..4 {
+        state.builders.push(StateBuilder { unit: ck, place: HOME, job: None });
+    }
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, ..Default::default() };
+    let with = LpOptions { reclaim: true, ..without.clone() };
+    let plain = solve(units, &scenario, &state, &offer, &without).unwrap();
+    let plan = solve(units, &scenario, &state, &offer, &with).unwrap();
+    assert!(plain.count_at(lab, 300.0) > 0.95, "without the option the lab stands: {}", plain.count_at(lab, 300.0));
+    assert!(plan.count_at(lab, 60.0) < 0.9, "with it the lab is being taken down in the first minute: {}", plan.count_at(lab, 60.0));
+    let reclaimed: f64 = plan.flows.iter().filter(|f| f.kind == Kind::Reclaim && f.unit == lab).map(|f| f.per_bucket.iter().sum::<f64>() / f.cost).sum();
+    assert!(reclaimed > 0.25, "a reclaim flow on the lab: {reclaimed}");
+    assert!(plan.made > plain.made + 50.0, "the lab's metal bought extractors: {} against {}", plan.made, plain.made);
+    assert!(plan.metal.iter().all(|m| *m >= -1e-6));
+}
+
+/// A standing advanced lab with six construction turrets standing beside it, its constructor and extractors
+/// offered, forty spots to take and the stocks full, so that the constructors' pace binds: with `nano_assist` at ten
+/// the turrets' 1,200 build power goes on the lab's products through an Assist flow of the turret type (the lab's
+/// own power and the commander's guard at twice it besides), and the first minute makes clearly more constructors
+/// than without the option, when the turrets have nothing to do (their Help pairs are bounded by the mobile
+/// builders' direct power on a column, and nothing offered is a building they could help). The pair is for an
+/// advanced factory's products only: a basic lab under the same option gets none (terr67-68: offered on every
+/// factory, the program pumped basic constructors and held the advanced plant to 8:00). thebluegecko's ramp: 29
+/// turrets within 400 of his advanced plant by 10:00, an advanced constructor every 6-8 s.
+#[test]
+fn the_linear_program_puts_turrets_on_a_factorys_products_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..40).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots, Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let lab = units.index("armalab").unwrap();
+    let ck = units.index("armack").unwrap();
+    let nano = units.index("armnanotc").unwrap();
+    let offer = vec![mex, ck];
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    state.standing.push(Standing { unit: lab, site: HOME, pays: 0.0 });
+    for _ in 0..6 {
+        state.standing.push(Standing { unit: nano, site: HOME, pays: 0.0 });
+    }
+    // One factory at most: the commander would otherwise build labs from the stock, fractions that produce from
+    // the first bucket (19.6 constructors in the first minute without the cap).
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, ..Default::default() };
+    // The ring bound (terr96): the advanced lab's ring holds the six turrets standing.
+    let with = LpOptions { plant_rings: vec![(lab, 6.0)], ..without.clone() };
+    let plain = solve(units, &scenario, &state, &offer, &without).unwrap();
+    let plan = solve(units, &scenario, &state, &offer, &with).unwrap();
+    let (before, after) = (plain.count_at(ck, 60.0), plan.count_at(ck, 60.0));
+    let own = units.list[lab].worker_time;
+    let most = 60.0 * 3.0 * own / units.list[ck].build_time;
+    assert!(before < most + 0.1, "without the option the lab and the commander's guard make at most {most:.1} constructors a minute: {before}");
+    assert!(after > 1.5 * before, "with it the turrets' power is on the products: {after} against {before}");
+    let assisted: f64 = plan.flows.iter().filter(|f| f.kind == Kind::Assist && f.builder == nano && f.unit == ck).map(|f| f.per_bucket.iter().sum::<f64>()).sum();
+    assert!(assisted > 1_000.0, "an Assist flow of the turret type on the constructor: {assisted}");
+    assert!(plain.flows.iter().all(|f| !(f.kind == Kind::Assist && f.builder == nano)), "no such flow without the option");
+    assert!(plan.made > plain.made, "the constructors took the spots sooner: {} against {}", plan.made, plain.made);
+    // The basic lab's products get no pair.
+    let basic = units.index("armlab").unwrap();
+    state.standing.retain(|s| s.unit != lab);
+    state.standing.push(Standing { unit: basic, site: HOME, pays: 0.0 });
+    let basic_plan = solve(units, &scenario, &state, &[mex, units.index("armck").unwrap()], &with).unwrap();
+    assert!(basic_plan.flows.iter().all(|f| !(f.kind == Kind::Assist && f.builder == nano)), "no turret assist on a basic lab's products");
+}
+
+/// With `mobile_help` the program puts a basic constructor's power on the upgrade frames it cannot start, bounded to
+/// that share of the advanced constructors' direct power on the type (terr98; thebluegecko's basic constructors
+/// put 26 % of the builder-seconds on his moho frames, his advanced 73 %). Off, no such flow.
+#[test]
+fn the_linear_program_lets_basic_constructors_help_upgrades_when_allowed() {
+    use buildorder::lp::{solve, Kind, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..20).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots.clone(), Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let moho = units.index("armmoho").unwrap();
+    let cv = units.index("armcv").unwrap();
+    let acv = units.index("armacv").unwrap();
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    for s in &spots {
+        state.standing.push(Standing { unit: mex, site: s.at, pays: 2.0 });
+    }
+    state.builders.push(StateBuilder { unit: acv, place: HOME, job: None });
+    for _ in 0..6 {
+        state.builders.push(StateBuilder { unit: cv, place: HOME, job: None });
+    }
+    let without = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, ..Default::default() };
+    let with = LpOptions { mobile_help: 0.35, ..without.clone() };
+    let plain = solve(units, &scenario, &state, &[mex, moho], &without).unwrap();
+    let plan = solve(units, &scenario, &state, &[mex, moho], &with).unwrap();
+    let power = |plan: &buildorder::lp::LpPlan, kind: Kind, builder: usize| -> f64 { plan.flows.iter().filter(|f| f.kind == kind && f.builder == builder && f.unit == moho).map(|f| f.per_bucket.iter().sum::<f64>()).sum() };
+    assert!(plain.flows.iter().all(|f| !(f.kind == Kind::Help && f.builder == cv)), "no help of the basic constructor without the option");
+    let (helped, direct) = (power(&plan, Kind::Help, cv), power(&plan, Kind::Direct, acv));
+    assert!(direct > 1_000.0, "the advanced constructor upgrades: {direct}");
+    assert!(helped > 100.0, "the basic constructors help the upgrades: {helped}");
+    assert!(helped <= 0.35 * direct + 1.0, "bounded to the share of the starters' power: {helped} against {direct}");
+    assert!(plan.count_at(moho, 300.0) >= plain.count_at(moho, 300.0) - 0.01, "no fewer upgrades with the help: {} against {}", plan.count_at(moho, 300.0), plain.count_at(moho, 300.0));
+}
+
+/// The walks measured in the game price their pair: the basic constructor's help on the upgrades, walked two seconds
+/// for every one worked (terr157-162: 15-18 s to a frame, then 8-10 s on it), costs the upgrade's build time times one
+/// plus that ratio blended with the constant's (`walk_prior` seconds of work at the constant walk of 40 s, a ratio of
+/// 0.24), and the program puts less help on it; the advanced constructor's own pair, unmeasured, keeps its constant
+/// price (the build time and 40 s of its power).
+#[test]
+fn the_linear_program_prices_a_pair_at_the_walks_measured_in_the_game() {
+    use buildorder::lp::{solve, Kind, LpOptions, Walked};
+    let game = game();
+    let units = &game.units;
+    let spots: Vec<Spot> = (0..20).map(|k| Spot { at: (1000.0 + 150.0 * (k % 10) as f64, 1400.0 + 300.0 * (k / 10) as f64), metal: 2.0 }).collect();
+    let scenario = Scenario::new(game.commander, HOME, spots.clone(), Arc::new(Straight { detour: 1.0 }), 10.0);
+    let mex = units.index("armmex").unwrap();
+    let moho = units.index("armmoho").unwrap();
+    let cv = units.index("armcv").unwrap();
+    let acv = units.index("armacv").unwrap();
+    let mut state = State::start(&scenario);
+    state.metal = 20_000.0;
+    state.metal_storage = 20_000.0;
+    state.energy = 1_000_000.0;
+    state.energy_storage = 1_000_000.0;
+    for s in &spots {
+        state.standing.push(Standing { unit: mex, site: s.at, pays: 2.0 });
+    }
+    state.builders.push(StateBuilder { unit: acv, place: HOME, job: None });
+    for _ in 0..6 {
+        state.builders.push(StateBuilder { unit: cv, place: HOME, job: None });
+    }
+    let constant = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, max_factories: 1.0, mobile_help: 0.35, ..Default::default() };
+    let measured = LpOptions { walked: vec![Walked { builder: cv, unit: moho, walking: 200.0, working: 100.0 }], ..constant.clone() };
+    let plain = solve(units, &scenario, &state, &[mex, moho], &constant).unwrap();
+    let plan = solve(units, &scenario, &state, &[mex, moho], &measured).unwrap();
+    let cost = |plan: &buildorder::lp::LpPlan, kind: Kind, builder: usize| plan.flows.iter().find(|f| f.kind == kind && f.builder == builder && f.unit == moho).map(|f| f.cost);
+    let build = units.list[moho].build_time;
+    let prior = units.list[cv].worker_time * 40.0 / build;
+    let ratio = (200.0 + prior * 30.0) / (100.0 + 30.0);
+    let helped = cost(&plan, Kind::Help, cv).expect("a help flow at the measured price");
+    assert!((helped - build * (1.0 + ratio)).abs() < 1.0, "the help at the measured ratio {ratio:.2}: {helped} against {}", build * (1.0 + ratio));
+    let at_constant = cost(&plain, Kind::Help, cv).unwrap();
+    assert!((at_constant - (build + units.list[cv].worker_time * 40.0)).abs() < 1.0, "the help at the constant walk without a measurement: {at_constant}");
+    let direct = cost(&plan, Kind::Direct, acv).unwrap();
+    assert!((direct - (build + units.list[acv].worker_time * 40.0)).abs() < 1.0, "the unmeasured pair keeps its constant price: {direct}");
+    let power = |plan: &buildorder::lp::LpPlan| -> f64 { plan.flows.iter().filter(|f| f.kind == Kind::Help && f.builder == cv && f.unit == moho).map(|f| f.per_bucket.iter().sum::<f64>() / f.cost).sum() };
+    assert!(power(&plan) < power(&plain), "fewer upgrades' worth of help at the dearer price: {} against {}", power(&plan), power(&plain));
 }

@@ -79,13 +79,16 @@ const RECONNECT_INTERVAL: i32 = 30;
 const HEARTBEAT_INTERVAL: i32 = 30 * 30;
 /// Frames between census lines (`WITHIN_REASON_OBSERVE`): what the opponent owns, for studying how it plays.
 const CENSUS_INTERVAL: i32 = 60 * 30;
-/// Frames between ground-truth samples of the opponent's units (`WITHIN_REASON_OBSERVE` with `WITHIN_REASON_TRUTH_DIR`).
+/// Frames between ground-truth samples of the opponent's units and of both sides' metal income (`WITHIN_REASON_OBSERVE`
+/// with `WITHIN_REASON_TRUTH_DIR`).
 const TRUTH_INTERVAL: i32 = 2 * 30;
 /// Frames between looks at the map's features (wrecks); a multiple of the brain's interval.
 const WRECKS_INTERVAL: i32 = 3 * 30;
 /// Frames between reads of our side's sensor coverage grids (sight, radar, air sight): once a second, a multiple of the
 /// brain's interval, so every brain think within the second reads the same grids.
 const SENSORS_INTERVAL: i32 = 30;
+/// What our allies' overflow put into our stock is read this often: the engine's own second, the team's slow update.
+const RECEIVED_INTERVAL: i32 = 30;
 
 struct Instance<L: Transport> {
     ai_id: c_int,
@@ -151,7 +154,14 @@ impl<L: Transport> Instance<L> {
         if frame % TRUTH_INTERVAL == 0 && let Some(truth) = &mut self.truth {
             use std::io::Write;
             let units = self.engine.enemy_truth();
-            let _ = writeln!(truth, "{{\"f\":{frame},\"enemy\":{units}}}").and_then(|()| truth.flush());
+            let (ours, theirs) = self.engine.metal_incomes();
+            let _ = writeln!(truth, "{{\"f\":{frame},\"enemy\":{units},\"income\":[{ours:.2},{theirs:.2}]}}").and_then(|()| truth.flush());
+        }
+        if frame % RECEIVED_INTERVAL == 0 {
+            let (metal, energy) = self.engine.received();
+            if metal > 0.0 || energy > 0.0 {
+                self.events.push(Event::Received { metal, energy });
+            }
         }
         if frame % CENSUS_INTERVAL == 0 && std::env::var_os("WITHIN_REASON_OBSERVE").is_some() {
             let census = self.engine.enemy_census();

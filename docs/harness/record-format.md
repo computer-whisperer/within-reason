@@ -209,7 +209,10 @@ replacements. `run/predictions.py MATCH` scores the rows against the truth file;
 The record holds the bot's fair view only. With `WITHIN_REASON_OBSERVE=1` the shim writes the once-a-minute census of
 both sides into `engine.log` (see `arena.md`) and the truth file (below). The viewer reads the truth file alone
 (2026-10-04; it read the census as a fallback before): the seats of one match write byte-identical truth files (one
-ally team sees one enemy), so it loads the first.
+ally team sees one enemy), so it loads the first. The truth file (`truth-<ai>.jsonl`) has a line every 2 s:
+`{"f": frame, "enemy": [[id, name, x, z, health %, being built], ...], "income": [ours, theirs]}`, the last the metal
+income a second of our ally team and of every other team summed (since 2026-10-25; the territory bot's defence bench
+reads the two sides' economies from it).
 
 ## Viewer
 `run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` (the batches of 2026-09-19 through 2026-10-19, and the records of the carded replay batches, live in `/ceph/christian/within-reason/run/matches-archive/`, see the ledger's head; give the viewer that directory to see them) at

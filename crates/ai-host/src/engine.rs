@@ -711,9 +711,10 @@ impl Engine {
     /// exit for five to seven minutes behind a solar 165 elmos off its front).
     fn site_facing(&self, def: UnitDefId, site: &BuildSite, facing: c_int, keep_out: &[Lane]) -> Option<Vec3> {
         let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || keep_out.iter().any(|lane| lane.contains(pos));
-        // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear.
+        // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear
+        // (an exact site: the first ring only).
         let rings = [0.0, 1.0, 2.0, 3.0].map(|r| r * 2.0 * SPOT_KEEPOUT);
-        for (ring, radius) in rings.into_iter().enumerate() {
+        for (ring, radius) in rings.into_iter().enumerate().take(if site.exact { 1 } else { 4 }) {
             let directions = if ring == 0 { 1 } else { 8 };
             for step in 0..directions {
                 let angle = step as f32 * std::f32::consts::TAU / directions as f32;
@@ -799,6 +800,29 @@ impl Engine {
         }
         call!(self, Cheats_setEnabled(false));
         format!("[{}]", rows.join(","))
+    }
+
+    /// What our allies' overflow put into our stock over the engine's last second, metal and energy.
+    pub fn received(&self) -> (f32, f32) {
+        (call!(self, Economy_getReceived(self.metal)), call!(self, Economy_getReceived(self.energy)))
+    }
+
+    /// Metal income a second of our ally team's teams and of every other team's, summed (cheat access for theirs,
+    /// as the truth's units): the comparison of the two sides' economies, which the bot never sees.
+    pub fn metal_incomes(&mut self) -> (f32, f32) {
+        let ally_team = call!(self, Game_getMyAllyTeam());
+        call!(self, Cheats_setEnabled(true));
+        let (mut ours, mut theirs) = (0.0, 0.0);
+        for team in 0..call!(self, Game_getTeams()) {
+            let income = call!(self, Game_getTeamResourceIncome(team, self.metal)).max(0.0);
+            if call!(self, Game_getTeamAllyTeam(team)) == ally_team {
+                ours += income;
+            } else {
+                theirs += income;
+            }
+        }
+        call!(self, Cheats_setEnabled(false));
+        (ours, theirs)
     }
 
     /// Our own units in the census format, for setting beside the enemy's.

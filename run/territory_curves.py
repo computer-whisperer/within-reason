@@ -3,7 +3,7 @@
 (`bots/territory`: `curve:` a minute, `plan:` per re-plan with the predicted income and extractors at +60, +120 and
 +300 s; docs/design/2026-10-20-territory-bot.md, decision 7).
 
-    run/territory_curves.py <batch dir or label> [--marks 5,10,15,20] [--oracle] [--lp] [--walks] [--plans]
+    run/territory_curves.py <batch dir or label> [--marks 5,10,15,20] [--oracle] [--lp] [--walks] [--chains] [--plans]
 
 Per game: the realized curve at the marks (extractors, constructors, factories, nanos, build power, metal and energy
 income, metal made) and the search's predictions against what came (the model error: the median and the worst of
@@ -11,6 +11,9 @@ predicted minus realized income at each look-ahead). With --oracle, `buildorder 
 --objective made --minutes END --palette roster --builders-only` is run once per game (cached as oracle.csv in the
 match directory) and its curve printed beside the bot's (the search regret, in the model's own terms). With --plans,
 every plan line. With --lp, the linear program's own ceiling from the same start (`buildorder lp`, cached as lp.csv).
+With --chains, how the constructors chain the spots (T-CHAIN): over every builder's consecutive extractors or
+upgrades to 10:00, the seconds between their frames and the elmos between their sites (thebluegecko's constructors:
+31 s and 528 elmos, a median), and how many of those pairs had another kind of building begun between them.
 """
 import glob, json, os, re, statistics, subprocess, sys
 
@@ -196,6 +199,27 @@ def main():
                 kind = "extractor" if short in ("mex", "moho") else ("factory" if short in ("lab", "vp", "alab", "avp") else ("product" if short in ("ck", "cv", "ack", "acv") else "base"))
                 ages.setdefault((who, kind), []).append(age)
             print("   walks (order to frame): " + "; ".join(f"{who} {kind} median {statistics.median(v):.0f} s over {len(v)}" for (who, kind), v in sorted(ages.items())))
+        if "--chains" in args:
+            begun = {}
+            for line in open(f"{game}/engine.log", errors="replace"):
+                m = re.search(r"f=(\d+) begun: (\S+) by unit (\d+) at \d+, [\d.]+ s after its order, site \((\d+),(\d+)\)", line)
+                if m:
+                    begun.setdefault(int(m.group(3)), []).append((int(m.group(1)), m.group(2)[3:], (int(m.group(4)), int(m.group(5)))))
+            intervals, steps, broken = [], [], 0
+            for rows in begun.values():
+                last = None
+                for k, (f, kind, site) in enumerate(rows):
+                    if kind not in ("mex", "moho") or f > 600 * 30:
+                        continue
+                    if last is not None:
+                        lf, lsite, lk = last
+                        intervals.append((f - lf) / 30.0)
+                        steps.append(((site[0] - lsite[0]) ** 2 + (site[1] - lsite[1]) ** 2) ** 0.5)
+                        broken += any(r[1] not in ("mex", "moho") for r in rows[lk + 1:k])
+                    last = (f, site, k)
+            if intervals:
+                q = lambda v, p: sorted(v)[min(len(v) - 1, int(p * len(v)))]
+                print(f"   chains: extractor to extractor median {statistics.median(intervals):.0f} s (p25 {q(intervals, 0.25):.0f}, p75 {q(intervals, 0.75):.0f}), step median {statistics.median(steps):.0f} elmos (p75 {q(steps, 0.75):.0f}), over {len(intervals)} pairs to 10:00, {broken} with another building between (his: 31 s, 528 elmos)")
         if "--plans" in args:
             for p in plans:
                 print(f"   plan {p['n']:2} at {p['t0'] // 60}:{p['t0'] % 60:02d} wall {p['wall']} ms stale {p['stale']:.1f} s score {p['score']} -> +60 {p['p60'][0]:.1f}/{p['p60'][1]} +120 {p['p120'][0]:.1f}/{p['p120'][1]} +300 {p['p300'][0]:.1f}/{p['p300'][1]} end {p['end'][0]:.1f}/{p['end'][1]} cons {p['end'][2]} fac {p['end'][3]} nanos {p['end'][4]} made {p['end'][5]}")

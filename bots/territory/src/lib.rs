@@ -7,19 +7,27 @@
 //! state, the plan with the most metal made to the game's end, the plan's next step for every builder. No rule
 //! names a unit; the search picks from the roster.
 
+mod defence;
+mod guard;
 mod hands;
+mod his_start;
 mod options;
 mod planner;
+mod promise;
+mod race;
 mod snapshot;
+mod walks;
+mod work;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{AllyUnit, Bot, Command, Commands, Controller, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
 use buildorder::lp::LpOptions;
+use buildorder::regions::{Regions, REGION_SECONDS};
 use buildorder::plan::{Item, Plan};
 use buildorder::units::Role;
 
@@ -39,7 +47,13 @@ pub(crate) struct Territory {
     ground: Option<Arc<dyn Ground>>,
     pub(crate) planner: Option<planner::Planner>,
     pub home: Vec3,
+    /// His start nearest ours, which every direction toward him is taken to (T-SCENARIO); every enemy seat's start,
+    /// which the dead ground is drawn round (T-ALLIES).
     pub enemy_home: Vec3,
+    pub enemy_starts: Vec<Vec3>,
+    /// Our allies' units this tick, and each allied seat's start (T-ALLIES).
+    pub allies: Vec<AllyUnit>,
+    pub ally_starts: Vec<(i32, Vec3)>,
     pub frame: i32,
     pub own: BTreeMap<UnitId, OwnUnit>,
     /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
@@ -50,8 +64,18 @@ pub(crate) struct Territory {
     pub energy: Resource,
     pub options: options::Options,
     pub hands: hands::Hands,
+    /// The constructors' walks measured in the game, which the program prices its pairs from (T-WALKS).
+    pub walks: walks::Walks,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
     pub spots: Vec<usize>,
+    /// The map's spots in regions (T-REGIONS), made at the start.
+    pub regions: Option<Regions>,
+    /// The race of force per region, an instrument (T-RACE).
+    pub race: race::Race,
+    /// The turrets and radars wanted (T-COVER, T-RADAR).
+    pub defence: defence::Defence,
+    /// The soldiers' guard (T-GUARD).
+    pub guard: guard::Guard,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -90,10 +114,25 @@ impl Territory {
     fn start(&mut self, tick: &Tick) {
         let Some(commander) = tick.snapshot.own_units.iter().find(|u| self.def(u.def).is_some_and(|d| !d.build_options.is_empty() && d.speed > 0.0)).cloned() else { return };
         self.home = commander.pos;
-        let ours = self.hello.ally_team;
-        let map = Vec3 { x: self.hello.map.width, y: 0.0, z: self.hello.map.height };
-        // His start box when the script gives one, else our start mirrored through the map's centre.
-        self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
+        // Our allies' starts (T-ALLIES): the script's, else where each allied seat's commander stands at the first tick.
+        let commander_of = |team: i32| self.allies.iter().find(|u| u.team == team && self.def(u.def).is_some_and(|d| !d.build_options.is_empty() && d.speed > 0.0 && d.name.ends_with("com"))).map(|u| u.pos);
+        self.ally_starts = self
+            .hello
+            .teams
+            .iter()
+            .filter(|t| t.ally_team == self.hello.ally_team && t.team != self.hello.team && t.controller != Controller::Gaia)
+            .filter_map(|t| t.start_pos.or_else(|| commander_of(t.team)).map(|at| (t.team, at)))
+            .collect();
+        // His starts (T-SCENARIO): the script's, else the game's own guess in his box, else the mirror; every enemy
+        // seat's (T-ALLIES). His box's centre, taken before, was 100-2,437 from where he stood on five maps
+        // (terr103-107), and with the starts pinned the script's own position went unread: every one of terr102's 45
+        // deaths to his weapons came within 300 of his start, 2,320-3,160 from the point the dead radius was drawn
+        // round (his box's centre or the mirror).
+        let placed: Vec<Vec3> = std::iter::once(self.home).chain(self.ally_starts.iter().map(|(_, at)| *at)).collect();
+        let starts = his_start::his_starts(&self.hello, self.home, &placed);
+        self.enemy_starts = starts.iter().map(|(at, _)| *at).collect();
+        let (enemy_home, source) = starts.iter().copied().min_by(|a, b| a.0.dist2d(self.home).total_cmp(&b.0.dist2d(self.home))).expect("one at least");
+        self.enemy_home = enemy_home;
         let Some(game) = Game::from_hello(&self.hello, commander.def, (self.home.x as f64, self.home.z as f64)) else {
             self.log(format_args!("the commander's type {} is not in the unit table: nothing will be built", commander.def.0));
             return;
@@ -103,23 +142,46 @@ impl Territory {
         if !self.options.soldiers {
             palette.factory.retain(|i| matches!(i, Item::Build(u) if game.units.list[*u].role == Role::Builder));
         }
+        // The line arm: the factories the program may open with.
+        palette.keep_line(&game.units, game.commander, &self.options.line);
         let names = |items: &[Item]| items.iter().map(|i| match i { Item::Build(u) => game.units.list[*u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() }).collect::<Vec<_>>().join(" ");
         let (mobile, factory) = (names(&palette.mobile), names(&palette.factory));
+        let builders = palette.builders(&game.units, game.commander);
+        let line_constructor = palette.constructor;
         self.ground = Some(game.ground());
         let game = Arc::new(game);
         self.game = Some(game.clone());
         self.planner = Some(planner::Planner::new(game, palette));
-        let scenario = self.scenario(tick);
+        let scenario = self.scenario();
         self.spots = self.spot_indices(&scenario);
+        // The map's spots in regions, each within REGION_SECONDS' walk of the line's first constructor (step 1 of
+        // `docs/design/2026-10-25-territory-regions.md`: logged, not yet planned over).
+        let began = std::time::Instant::now();
+        let game = self.game.clone().expect("made above");
+        let radius = REGION_SECONDS * game.units.list[line_constructor].speed;
+        let regions = Regions::new(&game, &builders, radius);
+        self.log(format_args!(
+            "regions: {} over {} spots within {radius:.0} ({REGION_SECONDS:.0} s of {}) in {} ms: {}",
+            regions.list.len(),
+            game.spots.len(),
+            game.units.list[line_constructor].name,
+            began.elapsed().as_millis(),
+            regions.describe(&game, &builders, &self.spots).join(" | ")
+        ));
+        self.log(format_args!("regions of spots: {}", regions.of_spot.iter().map(|r| r.to_string()).collect::<Vec<_>>().join(" ")));
+        self.regions = Some(regions);
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
         // first plan worth 35,000 against the 86,000 found 28 s later). Every place a plan walks to: the spots,
-        // the base spiral, home.
+        // the farm's first slots round its origin and round home (T-FARM), home.
         let began = std::time::Instant::now();
         let ground = self.ground();
         let home = (self.home.x as f64, self.home.z as f64);
         let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
-        places.extend((0..60).map(|n| { let p = hands::base_site(self.home, n); (p.x as f64, p.z as f64) }));
+        let origin = self.farm_origin();
+        let mut slots = hands::farm_slots(origin, origin, 500.0, false);
+        slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
+        places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
         places.push(home);
         for place in &places {
             ground.walk(home, *place);
@@ -127,8 +189,11 @@ impl Territory {
         let warmed = began.elapsed();
         self.log(format_args!("ground: {} places walked in {} ms", places.len(), warmed.as_millis()));
         self.log(format_args!(
-            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}); {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
-            self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z, self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
+            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); every enemy start {}; allied starts {}; {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
+            self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z,
+            starts.iter().map(|(at, why)| format!("({:.0}, {:.0}) {why}", at.x, at.z)).collect::<Vec<_>>().join(", "),
+            if self.ally_starts.is_empty() { "none".to_string() } else { self.ally_starts.iter().map(|(team, at)| format!("team {team} ({:.0}, {:.0})", at.x, at.z)).collect::<Vec<_>>().join(", ") },
+            self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
         ));
         if self.options.dump {
             self.dump(commander.def);
@@ -154,12 +219,32 @@ impl Territory {
 
     fn request(&mut self, tick: &Tick) -> planner::Request {
         // The spots in play follow his seen units (the dead spots, decision 4 and stage 2's first form).
-        let scenario = self.scenario(tick);
+        let scenario = self.scenario();
         self.spots = self.spot_indices(&scenario);
         let (state, builders) = self.snapshot(tick);
         let horizon = (self.options.end - state.t0).max(HORIZON_LEAST);
         let start = self.warm_start(&builders);
         let o = &self.options;
+        // The commander's spots: the free ones within its leash, the program's pair priced at their mean walk and
+        // bounded by their number (his commander's two at 1,007 and 1,215 at 2:06-2:13 and none after; one walk of
+        // 40 for the whole map gave it none after the opening's, terr76-89).
+        let spots = &self.hello.metal_spots;
+        let near: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let commander_speed = self.game().units.list[self.game().commander].speed.max(1.0);
+        // The advanced constructor's spots priced from home (the plant ramp's second change, terr97): born at the
+        // plant, it reaches a free spot at the free spots' mean distance from home, not at a constructor's chain
+        // walk, so from the minute the free spots lie far its upgrade beside home wins, as his did from 7:00.
+        let free_far: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i)).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let advanced_speed = self.game().units.list.iter().filter(|d| d.role == Role::Builder && d.builds.iter().any(|u| self.is_upgrade(*u))).map(|d| d.speed).fold(0.0, f64::max).max(1.0);
+        // The plants' rings (T-PLANT): per factory type, the turrets its plants' rings hold, the program's bound on
+        // the turrets' assist on that type's products.
+        let mut plant_rings: Vec<(usize, f64)> = Vec::new();
+        for (unit, _, standing, free) in self.plant_rings() {
+            match plant_rings.iter_mut().find(|(u, _)| *u == unit) {
+                Some(entry) => entry.1 += (standing + free) as f64,
+                None => plant_rings.push((unit, (standing + free) as f64)),
+            }
+        }
         let lp = o.lp.then(|| LpOptions {
             dt: o.dt,
             mid_from: o.mid_from,
@@ -171,18 +256,33 @@ impl Territory {
             max_factories: o.factories as f64,
             terminal: o.terminal,
             energy_reserve: o.energy_reserve,
+            energy_margin: o.energy_margin,
+            margin_from: o.margin_from,
+            factory_from: o.factory_from,
             assist_factor: o.assist_factor,
+            plant_rings: plant_rings.clone(),
             help_factor: o.help_factor,
+            mobile_help: o.mobile_help,
             nanos_per_factory: o.nanos_per_factory,
+            max_nanos: o.max_nanos,
+            farm_big: o.farm_big,
+            bank: o.bank,
+            reclaim: o.reclaim,
             walk_extractor: o.walk_extractor,
+            walk_upgrade: o.walk_upgrade,
+            advanced_walk_extractor: o.ring_overhead + free_far.iter().sum::<f64>() / free_far.len().max(1) as f64 / advanced_speed,
             walk_base: o.walk_base,
             walk_factory: o.walk_factory,
-            commander_walk_extractor: o.commander_walk_extractor,
+            commander_walk_extractor: o.ring_overhead + near.iter().sum::<f64>() / near.len().max(1) as f64 / commander_speed,
+            commander_spots: near.len() as f64,
             commander_walk_base: o.commander_walk_base,
             commander_walk_factory: o.commander_walk_factory,
-            commander_reach: hands::COMMANDER_LEASH as f64,
+            commander_reach: o.com_leash as f64,
             rings: o.rings,
             ring_overhead: o.ring_overhead,
+            // T-WALKS: the constructors' walks measured in the game; the constant walks above are the prior.
+            walked: self.walked(),
+            walk_prior: walks::WALK_PRIOR,
         });
         planner::Request {
             scenario,
@@ -242,25 +342,32 @@ impl Territory {
                 while m <= planned.horizon {
                     let t = planned.t0 + m;
                     by_minute.push(format!(
-                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} conv{:.0} eco{:.0} inc{:.0} bank{:.0}/{:.0}",
+                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} mmkr{:.0} makr{:.0} afus{:.0} fus{:.0} eco{:.0} inc{:.0} bank{:.0}/{:.0}",
                         m / 60.0,
                         self.plan_count(plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
                         self.plan_count(plan, t, &|u| u.extracts_metal > basic * 1.5),
                         self.plan_count(plan, t, &|u| u.role == Role::Builder),
                         self.plan_count(plan, t, &|u| u.role == Role::Factory),
                         self.plan_count(plan, t, &|u| u.role == Role::Nano),
-                        self.plan_count(plan, t, &|u| u.conv_capacity > 0.0),
-                        self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
+                        self.plan_count(plan, t, &|u| u.conv_capacity >= 500.0),
+                        self.plan_count(plan, t, &|u| u.conv_capacity > 0.0 && u.conv_capacity < 500.0),
+                        self.plan_count(plan, t, &|u| u.energy_make >= 2000.0),
+                        self.plan_count(plan, t, &|u| u.energy_make >= 500.0 && u.energy_make < 2000.0),
+                        self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && u.energy_make < 500.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
                         plan.income_at(t),
                         plan.metal_at(t),
                         plan.energy_at(t)
                     ));
                     m += 60.0;
                 }
-                // The factory kinds the program ends with, since the kinds decide the tier-2 line.
-                let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.1}", units.list[*u].name, plan.count_at(*u, end))).collect();
+                // The factory kinds the program ends with, since the kinds decide the tier-2 line, with each kind's count
+                // at +1, +3 and +5 minutes (T-COMMIT fires on the count within COMMIT_WITHIN: in terr49 the Armada plans
+                // wanted 0.5-0.9 of a vehicle plant at the end from 3:35 and the commit came at 6:20, the Cortex plans a
+                // whole advanced lab from 4:17 and the commit at 4:55).
+                let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.2}/{:.2}/{:.2}/{:.1}", units.list[*u].name, plan.count_at(*u, plan.t0 + 60.0), plan.count_at(*u, plan.t0 + 180.0), plan.count_at(*u, plan.t0 + 300.0), plan.count_at(*u, end))).collect();
                 let rings: Vec<String> = plan.rings.iter().enumerate().map(|(k, r)| format!("r{k} {} spots to {:.0} at {:.0} ({:.2}/s)", r.spots, r.bound, r.distance, r.metal)).collect();
-                self.log(format_args!("targets: {} | factory kinds at the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
+                self.log(format_args!("targets: {} | factory kinds at +1/+3/+5 min/the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
+                self.log_promise(plan);
                 self.hands.targets = Some(plan.clone());
                 self.seed_committed();
                 return;
@@ -313,6 +420,19 @@ impl Territory {
             self.count_role(Role::Builder), self.count_role(Role::Factory), self.count_role(Role::Nano), m.current, m.storage, m.income, m.usage, e.current, e.storage, e.income, e.usage,
             self.made, self.hands.orders.len(), self.hands.begun, self.hands.dropped, self.hands.skipped, self.hands.energy_refused, self.plans
         ));
+        // T-FARM: the turrets' use, and the frames none of them reaches.
+        let turrets: Vec<&OwnUnit> = self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Nano)).collect();
+        let busy = turrets.iter().filter(|u| !u.idle).count();
+        let frames: Vec<Vec3> = self.own.values().filter(|u| u.being_built && self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
+        let unreached = frames.iter().filter(|f| !turrets.iter().any(|t| t.pos.dist2d(**f) < hands::NANO_REACH)).count();
+        // T-PLANT: the turrets within reach of a factory (his 29 by 10:00).
+        let plants: Vec<Vec3> = self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).map(|u| u.pos).collect();
+        let at_plants = turrets.iter().filter(|t| plants.iter().any(|p| p.dist2d(t.pos) < hands::NANO_REACH)).count();
+        let (wanted, plant) = self.plant_turrets_wanted();
+        let plant = plant.map_or("none".to_string(), |p| format!("({:.0},{:.0})", p.x, p.z));
+        let rings: Vec<String> = self.plant_rings().iter().map(|(u, c, s, f)| format!("{} ({:.0},{:.0}) {s} of {} in its ring", self.game().units.list[*u].name, c.x, c.z, s + f)).collect();
+        let rings = if rings.is_empty() { "none".to_string() } else { rings.join(", ") };
+        self.log(format_args!("turrets: {} standing, {busy} busy, {at_plants} at the plants, the program's assist {wanted:.1} turrets, placing at {plant}; frames {} of which {unreached} beyond every turret's reach; rings: {rings}", turrets.len(), frames.len()));
         self.log(format_args!("jobs: {}", self.jobs_line()));
         let energy = self.energy_line();
         self.log(format_args!("energy: {energy}"));
@@ -334,6 +454,9 @@ impl Bot for Territory {
             planner: None,
             home: Vec3::default(),
             enemy_home: Vec3::default(),
+            enemy_starts: Vec::new(),
+            allies: Vec::new(),
+            ally_starts: Vec::new(),
             frame: 0,
             own: BTreeMap::new(),
             enemies: Vec::new(),
@@ -341,7 +464,12 @@ impl Bot for Territory {
             energy: Resource::default(),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
+            walks: walks::Walks::default(),
             spots: Vec::new(),
+            regions: None,
+            race: race::Race::default(),
+            defence: defence::Defence::default(),
+            guard: guard::Guard::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -356,8 +484,12 @@ impl Bot for Territory {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
+        self.allies = tick.snapshot.allies.clone();
         self.metal = tick.snapshot.metal;
         self.energy = tick.snapshot.energy;
+        if let Some(sensors) = &tick.snapshot.sensors {
+            self.race.sensors = Some(sensors.clone());
+        }
         if !self.started {
             self.start(&tick);
             if !self.started {
@@ -387,6 +519,7 @@ impl Bot for Territory {
                     }
                     self.unit_lost(*unit);
                 }
+                Event::EnemyDestroyed { enemy, .. } => self.army_lost(*enemy),
                 _ => {}
             }
         }
@@ -412,11 +545,30 @@ impl Bot for Territory {
             self.adopt_planned(planned);
         }
         if tick.due() % (SECOND / 2) == 0 {
+            self.measure_walks();
+            self.log_walks();
+            self.observe_raids();
+            self.observe_army();
+            self.plan_defence();
             self.run_hands(&mut commands);
+            self.run_guard(&mut commands);
             self.run_nanos(&mut commands);
+            self.run_priorities(&mut commands);
         }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             self.curve_line(&tick);
+        }
+        if tick.due() % promise::STANDING_LOG == 0 {
+            self.log_standing();
+        }
+        if tick.due() % race::RACE_LOG == 0 && tick.frame > 0 {
+            self.log_race();
+        }
+        if tick.due() % defence::DEFENCE_LOG == 0 && tick.frame > 0 {
+            self.log_defence();
+        }
+        if tick.due() % guard::GUARD_LOG == 0 && tick.frame > 0 {
+            self.log_guard();
         }
         Commands(commands)
     }

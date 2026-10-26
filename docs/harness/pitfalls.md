@@ -10,7 +10,10 @@
   `/kill` on the autohost channel. (Retired 2026-09-19: the earlier claim that the stdout log is block-buffered. It is
   line-flushed; the first smoke test looked cut off at frame 31 because the engine prints almost nothing during play.)
 - **Factory build orders: SHIFT means "build five".** Enforced in the shim; see K-rules-factory-shift-means-five.
-- **The arena rebuilds the workspace at start.** Do not leave `crates/` half-edited while a batch is starting.
+- **The arena rebuilds the workspace at start.** Do not leave `crates/` half-edited while a batch is starting. A run of
+  several batches (`run/territory_bench.sh`'s six) rebuilds at each one, so an edit made while it runs reaches its later
+  batches (terr150, terr166-168); `WITHIN_REASON_KEEP_INSTALLED=1` makes `run/install_ai.sh` neither build nor install,
+  and the territory bench builds and installs once and sets it.
 - **A game runs from its snapshot, not the checkout** (since 2026-10-21; `crates/bot/src/texts.rs`): `bot --snapshot`
   copies the bot binary, every text and the reference tables to `run/matches/<batch>/snapshot/`, and the arena and
   `run/human_game.sh` run `snapshot/bot` with `WITHIN_REASON_TEXTS` pointing there. Edits and rebuilds in the checkout
@@ -229,7 +232,22 @@ Since 2026-10-24 the repository is `~/workspace/within-reason/within-reason.git`
 `within-reason.main`, like the user's other projects; a side worktree goes beside it as
 `within-reason.<branch>` (`git -C ~/workspace/within-reason/within-reason.git worktree add ../within-reason.<branch> -b <branch> main`).
 The git-ignored working data (`upstream/`, `run/engines/`, `run/data/`, `run/matches/`, `target/`, 33 GB in all) lives
-only in the main worktree; a fresh worktree has none of it and needs its own `run/data` (install_ai.sh) and engine.
+only in the main worktree; a fresh worktree has none of it and needs its own engine and `run/data` (the engine
+writes its cache and infolog there, and two trees must not share one). The recipe that stood up the `territory`
+worktree (2026-10-24; the disk is btrfs, so the copies are reflinks: instant, no space until a file changes), from
+the new worktree's root:
+
+```
+cp -r --reflink=always ../within-reason.main/run/engines run/engines && ln -s engines/2026.07.04 run/engine
+cp -r --reflink=always ../within-reason.main/run/data run/data && mkdir -p run/matches run/logs
+cargo build --release && run/install_ai.sh      # the AI libraries into this tree's run/data/AI
+```
+
+(`run/engine` is the symlink the main tree has, inside the ignored directory; never a symlink *at* an ignored path.)
+A worktree's `.git` is a file, not a directory: the build scripts of `crates/bot` and `crates/ai-host` ask git
+where HEAD and the index are (`git rev-parse --git-path`) rather than naming `../../.git/HEAD`, which a worktree
+has not got. The check that the whole chain works is a control batch on the same seeds as the last one in the
+main tree (terr37 against terr36: the same numbers within the seeds' noise).
 `crates/arena/src/harness.rs` fixes `REPO` from `CARGO_MANIFEST_DIR` when it is compiled, so a binary built in one
 place looks for the briefs, the scripts and the matches directory there for ever, and cargo does not count the
 directory's name as a change (the move of 2026-10-24 recompiled six crates and left the arena with the old path):

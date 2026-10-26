@@ -708,14 +708,14 @@ impl Distilled {
         match job {
             Job::Extractor(spot) => {
                 let at = self.hello.metal_spots[spot];
-                commands.extend(build(self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new() }, false));
+                commands.extend(build(self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }, false));
                 // D-SENTRY: an outer extractor on his side of our ground gets a sentry on its enemy side, queued behind
                 // it, unless one stands within `SENTRY_SHARED` already (2026-10-20: nineteen sentries by 10:00 against
                 // Apex cost 12,900 energy, more than the thirteen solars of the same minutes made).
                 let toward = ((at.x - self.home.x) * (self.enemy_home.x - self.home.x) + (at.z - self.home.z) * (self.enemy_home.z - self.home.z)) / self.home.dist2d(self.enemy_home).max(1.0).powi(2);
                 let shared = self.own.values().any(|u| Some(u.def) == self.kit.sentry && u.pos.dist2d(at) < SENTRY_SHARED);
                 if at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
-                    commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new() }, true));
+                    commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new(), exact: false }, true));
                 }
             }
             Job::Solar | Job::AdvancedSolar => {
@@ -730,7 +730,7 @@ impl Distilled {
                 let attempt = self.economy.attempts.get(&unit.id).copied().unwrap_or(0);
                 let commander = Some(unit.def) == self.kit.commander && unit.pos.dist2d(self.home) < COMMANDER_WALK;
                 let (near, radius) = if commander && attempt == 0 { (unit.pos, 600.0) } else { (self.back_field(attempt), 1500.0) };
-                commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements() }, false));
+                commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements(), exact: false }, false));
             }
             Job::Turret(target) => {
                 let Some(target) = self.own.get(&target) else { return };
@@ -748,22 +748,22 @@ impl Distilled {
                         _ => (ux, uz),
                     };
                     let near = Vec3 { x: target.pos.x + rx * 150.0, y: target.pos.y, z: target.pos.z + rz * 150.0 };
-                    BuildSite { near, search_radius: 350.0, min_dist: 1, placements: placements() }
+                    BuildSite { near, search_radius: 350.0, min_dist: 1, placements: placements(), exact: false }
                 } else {
-                    BuildSite { near: target.pos, search_radius: 300.0, min_dist: 2, placements: placements() }
+                    BuildSite { near: target.pos, search_radius: 300.0, min_dist: 2, placements: placements(), exact: false }
                 };
                 commands.extend(build(self.kit.turret, site, false));
             }
-            Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements() }, false)),
-            Job::AdvancedPlant => commands.extend(build(self.kit.advanced_plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements() }, false)),
+            Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
+            Job::AdvancedPlant => commands.extend(build(self.kit.advanced_plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
             Job::Fusion | Job::AdvancedFusion => {
                 // The back field, with the generators.
                 let def = if job == Job::Fusion { self.kit.fusion } else { self.kit.advanced_fusion };
-                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements() }, false));
+                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements(), exact: false }, false));
             }
             Job::Converter | Job::AdvancedConverter => {
                 let def = if job == Job::Converter { self.kit.converter } else { self.kit.advanced_converter };
-                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 2, placements: placements() }, false));
+                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 2, placements: placements(), exact: false }, false));
             }
             Job::AntiAir => {
                 // By the plant with the fewest anti-air turrets within `AA_NEAR`, on its enemy side; the base point
@@ -771,13 +771,13 @@ impl Distilled {
                 let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).collect();
                 let aa_near = |p: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.aa_turret && u.pos.dist2d(p.pos) < AA_NEAR).count();
                 let near = plants.iter().min_by_key(|p| aa_near(p)).map_or(self.toward_enemy(self.home, 300.0), |p| self.toward_enemy(p.pos, 200.0));
-                commands.extend(build(self.kit.aa_turret, BuildSite { near, search_radius: 400.0, min_dist: 2, placements: placements() }, false));
+                commands.extend(build(self.kit.aa_turret, BuildSite { near, search_radius: 400.0, min_dist: 2, placements: placements(), exact: false }, false));
             }
             Job::Help(target) => commands.push(Command::Repair { unit: unit.id, target, queue: false }),
             Job::Moho(target) => {
                 // Over the extractor, where the engine lets the tier-2 one replace it (K-mech-tier-2-extractor-stands-on-ours).
                 let Some(extractor) = self.own.get(&target) else { return };
-                commands.extend(build(self.kit.moho, BuildSite { near: extractor.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() }, false));
+                commands.extend(build(self.kit.moho, BuildSite { near: extractor.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }, false));
             }
             Job::Assist => {
                 let nearest = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));

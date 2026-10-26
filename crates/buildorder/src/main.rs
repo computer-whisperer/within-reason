@@ -21,12 +21,16 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
-  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--assist 2] [--help-factor 3]
-                       [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
-                       [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5] [--commander-reach 1500] [--rings 1] [--ring-overhead 5]
-                       [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--csv FILE]
+  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--energy-margin 0] [--margin-from 0] [--factory-from 0] [--assist 2] [--plant-rings armavp:30,..] [--help-factor 3] [--mobile-help 0]
+                       [--nanos-per-factory 6] [--max-nanos 0] [--farm-big 0] [--bank] [--reclaim] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
+                       [--walk-extractor 15] [--walk-upgrade 40] [--advanced-walk-extractor 15] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 40] [--commander-walk-base 5] [--commander-reach 1500] [--commander-spots N] [--rings 1] [--ring-overhead 5]
+                       [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--at MINUTE] [--from SECONDS (with --game: from the record's state then)] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
+  buildorder regions   --game RECORD.jsonl | --hello DUMP.json [--line vehicle|bot|any] [--seconds 20] [--csv FILE]
+                       (the map's spots in regions, docs/design/2026-10-25-territory-regions.md: each region's spots
+                       within --seconds' walk of the line's first constructor, and the seconds an extractor there costs
+                       each of our builder types; the csv a row a spot: its region and its place in the region's order)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
                        (plan words: unit names without the faction prefix, assist, help; help puts the builder's power on the dearest frame)
   buildorder walks     RECORD.jsonl... [--minutes 6]      (builders' ways between builds: recorded against predicted)
@@ -279,13 +283,28 @@ fn optimize(args: &Args) {
 /// The linear program from the empty start (docs/design/2026-10-20-territory-lp.md): the plan by minute, the counts at
 /// the end, the prices.
 fn linear_program(args: &Args) {
-    let game = game(args);
+    // `--from S` with `--game`: the program asked from the record's own state at second S (`Replay::state_at`, the
+    // snapshot the calibrate subcommand replays from), else from the start.
+    let from: f64 = args.number("--from", 0.0);
+    let replay = (from > 0.0).then(|| record::read(args.value("--game").unwrap_or_else(|| die("--from needs --game RECORD.jsonl")), from + 5.0).unwrap_or_else(|e| die(&e)));
+    let owned;
+    let game: &Game = match &replay {
+        Some(r) => &r.game,
+        None => {
+            owned = game(args);
+            &owned
+        }
+    };
     let units = &game.units;
-    let scenario = scenario(&game, args);
+    let scenario = scenario(game, args);
     let water = game.terrain.heights.iter().any(|h| *h < 0);
     let mut palette = Palette::roster(units, game.commander, None, water, &also(&game, args));
     if args.has("--builders-only") {
         palette.factory.retain(|i| matches!(i, buildorder::plan::Item::Build(u) if units.list[*u].role == buildorder::units::Role::Builder));
+    }
+    // `--line vehicle|bot`: the factory line the territory bot plays (its `line` arm), as `regions` takes it.
+    if let Some(line) = args.value("--line") {
+        palette.keep_line(units, game.commander, &line);
     }
     // `--affordable M`: the types costing at most M metal, as the territory bot offers the program what its hands
     // could start now (the stock and ninety seconds of income).
@@ -303,20 +322,46 @@ fn linear_program(args: &Args) {
         max_factories: args.number("--max-factories", 4.0),
         terminal: args.number("--terminal", 0.0),
         energy_reserve: args.number("--energy-reserve", 0.2),
+        energy_margin: args.number("--energy-margin", 0.0),
+        margin_from: args.number("--margin-from", 0.0),
+        factory_from: args.number("--factory-from", 0.0),
         assist_factor: args.number("--assist", 2.0),
+        // `--plant-rings armavp:30,armvp:20`: the turrets each factory type's rings hold (the bot counts them from the ground).
+        plant_rings: args.value("--plant-rings").map_or_else(Vec::new, |v| {
+            v.split(',')
+                .filter_map(|e| {
+                    let (name, n) = e.split_once(':')?;
+                    Some((units.list.iter().position(|u| u.name == name)?, n.parse().ok()?))
+                })
+                .collect()
+        }),
         help_factor: args.number("--help-factor", 3.0),
+        mobile_help: args.number("--mobile-help", 0.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
-        walk_extractor: args.number("--walk-extractor", 65.0),
+        max_nanos: args.number("--max-nanos", 0.0),
+        farm_big: args.number("--farm-big", 0.0),
+        bank: args.has("--bank"),
+        reclaim: args.has("--reclaim"),
+        walk_extractor: args.number("--walk-extractor", 15.0),
+        walk_upgrade: args.number("--walk-upgrade", 40.0),
+        advanced_walk_extractor: args.number("--advanced-walk-extractor", 15.0),
         walk_base: args.number("--walk-base", 3.0),
         walk_factory: args.number("--walk-factory", 40.0),
-        commander_walk_extractor: args.number("--commander-walk-extractor", 16.0),
+        commander_walk_extractor: args.number("--commander-walk-extractor", 40.0),
         commander_walk_base: args.number("--commander-walk-base", 5.0),
         commander_walk_factory: args.number("--commander-walk-factory", 9.0),
         commander_reach: args.number("--commander-reach", 1500.0),
+        commander_spots: args.number("--commander-spots", f64::INFINITY),
         rings: args.number("--rings", 1.0) as usize,
         ring_overhead: args.number("--ring-overhead", 5.0),
+        walked: Vec::new(),
+        walk_prior: 30.0,
     };
-    let plan = lp::solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap_or_else(|e| die(&e));
+    let state = match &replay {
+        Some(r) => r.state_at(from, &scenario).unwrap_or_else(|| die(&format!("no sample at {from} s"))).0,
+        None => State::start(&scenario),
+    };
+    let plan = lp::solve(units, &scenario, &state, &offer, &options).unwrap_or_else(|e| die(&e));
     println!(
         "# {} from {:.0},{:.0}: {} types, {} buckets ({} s to {} s), {} spots, {} variables, {} rows, {} in {:.0} ms; metal made {:.0}, objective {:.0}",
         game.side(), game.home.0, game.home.1, plan.types.len(), plan.buckets, plan.lengths[0], plan.lengths[plan.buckets - 1], scenario.spots.len(), plan.variables, plan.rows, plan.status, plan.solve_time * 1000.0, plan.made, plan.objective
@@ -352,6 +397,70 @@ fn linear_program(args: &Args) {
     let mut at_end: Vec<(f64, String)> = plan.columns.iter().enumerate().map(|(i, c)| (plan.counts[i][plan.buckets], format!("{}{}", units.list[c.unit].name, class_name(c.class)))).filter(|(n, _)| *n > 0.05).collect();
     at_end.sort_by(|a, b| b.0.total_cmp(&a.0));
     println!("at the end: {}", at_end.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
+    // `--at M`: the composition at minute M, as the end line gives it for the horizon (the shape to read when the
+    // last minutes buy what pays before the end and nothing else).
+    if let Some(minute) = args.value("--at").and_then(|v| v.parse::<f64>().ok()) {
+        let t = plan.bucket_at(plan.t0 + minute * 60.0);
+        let mut at: Vec<(f64, String)> = plan.columns.iter().enumerate().map(|(i, c)| (plan.counts[i][t], format!("{}{}", units.list[c.unit].name, class_name(c.class)))).filter(|(n, _)| *n > 0.05).collect();
+        at.sort_by(|a, b| b.0.total_cmp(&a.0));
+        println!("at {minute:.0}:00: {}", at.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
+    }
+    // `--power N`: for the N unit types the plan puts the most build power on, that power split by builder type and how
+    // it is spent (built, helped, assisted), in build-power-seconds over the horizon and as units of the type.
+    if let Some(n) = args.value("--power").and_then(|v| v.parse::<usize>().ok()) {
+        let mut by_unit: Vec<(usize, f64)> = Vec::new();
+        for f in &plan.flows {
+            let total: f64 = f.per_bucket.iter().sum();
+            match by_unit.iter_mut().find(|(u, _)| *u == f.unit) {
+                Some(e) => e.1 += total,
+                None => by_unit.push((f.unit, total)),
+            }
+        }
+        by_unit.sort_by(|a, b| b.1.total_cmp(&a.1));
+        for (u, total) in by_unit.into_iter().take(n) {
+            let mut parts: Vec<(f64, String)> = plan
+                .flows
+                .iter()
+                .filter(|f| f.unit == u)
+                .map(|f| {
+                    let power: f64 = f.per_bucket.iter().sum();
+                    (power, format!("{} {:?} {:.0} ({:.1} units)", units.list[f.builder].name, f.kind, power, power / f.cost))
+                })
+                .filter(|(p, _)| *p > 1.0)
+                .collect();
+            parts.sort_by(|a, b| b.0.total_cmp(&a.0));
+            println!("power on {}: {:.0} | {}", units.list[u].name, total, parts.into_iter().map(|(_, s)| s).collect::<Vec<_>>().join(", "));
+        }
+    }
+    // What the plan takes down for its metal, by unit type and minute (`--reclaim`).
+    let mut reclaimed: Vec<(usize, String, Vec<(usize, f64)>)> = Vec::new();
+    for f in plan.flows.iter().filter(|f| f.kind == buildorder::lp::Kind::Reclaim) {
+        let entry = match reclaimed.iter_mut().find(|(u, _, _)| *u == f.unit) {
+            Some(e) => e,
+            None => {
+                reclaimed.push((f.unit, units.list[f.unit].name.clone(), Vec::new()));
+                reclaimed.last_mut().unwrap()
+            }
+        };
+        for (t, x) in f.per_bucket.iter().enumerate() {
+            let minute = (plan.starts[t] / 60.0) as usize;
+            match entry.2.iter_mut().find(|(m, _)| *m == minute) {
+                Some(e) => e.1 += x / f.cost,
+                None => entry.2.push((minute, x / f.cost)),
+            }
+        }
+    }
+    if !reclaimed.is_empty() {
+        let text: Vec<String> = reclaimed
+            .iter()
+            .map(|(_, name, by_minute)| {
+                let mut by_minute: Vec<&(usize, f64)> = by_minute.iter().filter(|(_, n)| *n > 0.05).collect();
+                by_minute.sort_by_key(|(m, _)| *m);
+                format!("{name} {:.1} ({})", by_minute.iter().map(|(_, n)| n).sum::<f64>(), by_minute.iter().map(|(m, n)| format!("{n:.1} at {m}")).collect::<Vec<_>>().join(", "))
+            })
+            .collect();
+        println!("reclaimed: {}", text.join("; "));
+    }
     for (bt, prices) in &plan.power_price {
         let shown: Vec<String> = minutes_shown.iter().step_by(2).map(|(_, t)| format!("{:.3}", prices.get(*t).copied().unwrap_or(0.0))).collect();
         println!("price of a build-power-second of {} every two minutes: {}", units.list[*bt].name, shown.join(" "));
@@ -392,6 +501,48 @@ fn linear_program(args: &Args) {
             );
         }
         std::fs::write(path, text).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+    }
+}
+
+/// The map's spots in regions, as the territory bot logs them at its start.
+fn regions(args: &Args) {
+    let game = game(args);
+    let units = &game.units;
+    let water = game.terrain.heights.iter().any(|h| *h < 0);
+    let mut palette = Palette::roster(units, game.commander, None, water, &also(&game, args));
+    palette.keep_line(units, game.commander, &args.text("--line", "vehicle"));
+    let builders = palette.builders(units, game.commander);
+    let seconds: f64 = args.number("--seconds", buildorder::regions::REGION_SECONDS);
+    let radius = seconds * units.list[palette.constructor].speed;
+    let began = std::time::Instant::now();
+    let regions = buildorder::regions::Regions::new(&game, &builders, radius);
+    let took = began.elapsed();
+    let mut sizes: Vec<usize> = regions.list.iter().map(|r| r.spots.len()).collect();
+    sizes.sort_unstable();
+    println!(
+        "{} regions over {} spots within {radius:.0} ({seconds:.0} s of {} at {:.1}/s), {} movement classes, in {} ms; spots a region: median {}, at most {}",
+        regions.list.len(),
+        game.spots.len(),
+        units.list[palette.constructor].name,
+        units.list[palette.constructor].speed,
+        regions.classes.len(),
+        took.as_millis(),
+        sizes.get(sizes.len() / 2).copied().unwrap_or(0),
+        sizes.last().copied().unwrap_or(0)
+    );
+    let all: Vec<usize> = (0..game.spots.len()).collect();
+    for line in regions.describe(&game, &builders, &all) {
+        println!("  {line}");
+    }
+    if let Some(path) = args.value("--csv") {
+        let mut out = String::from("spot,x,z,region,order,centre\n");
+        for (r, region) in regions.list.iter().enumerate() {
+            for (k, s) in region.spots.iter().enumerate() {
+                let (x, z) = game.spots[*s].0;
+                let _ = writeln!(out, "{s},{x:.0},{z:.0},{r},{k},{}", u8::from(region.centre == *s));
+            }
+        }
+        std::fs::write(path, out).unwrap_or_else(|e| die(&format!("{path}: {e}")));
     }
 }
 
@@ -545,6 +696,7 @@ fn main() {
         Some("optimize") => optimize(&args),
         Some("simulate") => run_plan(&args),
         Some("lp") => linear_program(&args),
+        Some("regions") => regions(&args),
         Some("calibrate") => calibrate(&args),
         Some("walks") => walks(&args),
         _ => die("missing or unknown command"),
