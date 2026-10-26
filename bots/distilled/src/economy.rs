@@ -101,7 +101,7 @@ const STORE_NEARLY_FULL: f32 = 0.9;
 /// With metal piling up, one advanced plant for every this much metal income (the second from 100, the third from
 /// 200), and a project under way no bar to one while the bank holds its bill (2026-10-25, the 2v2 bench with
 /// `gate=tech`: 187-219 a second at 30:00-35:00 against 156-210 the plants could spend, 5,800-17,800 banked, a
-/// second advanced plant in one seat of twenty: the fusions the advanced constructors raised were always a project).
+/// second advanced plant in one seat of 32: the fusions the advanced constructors raised were always a project).
 const ADVANCED_PLANT_PER_INCOME: f32 = 100.0;
 const TURRET_RETELL: i32 = 10 * SECOND;
 /// A construction turret is built within this of its plant's middle, inside its own reach of it.
@@ -633,8 +633,8 @@ impl Distilled {
         let fewest = plants.iter().filter(|p| room(p) && (air_power || Some(p.def) != self.kit.air_plant)).map(|p| (turrets_at(p), p.id)).min();
         // Plants before turrets while the plants are few (TURRETS_TO_THREE_FROM_PLANTS).
         // Vehicle plants only: with the aircraft plant counted, two vehicle plants and it stacked turrets three a plant
-        // where the third vehicle plant should have come (dist35-airon-barb: 2 plants and 11 turrets at 20:00 against 4
-        // and 5 with `air=off`, dist34).
+        // where the third vehicle plant should have come (dist35-airon-barb: 2 plants and 10 turrets at 20:00 against 4
+        // and 6 with `air=off`, dist34).
         let factories = plants.iter().filter(|p| Some(p.def) != self.kit.air_plant).count();
         let turrets_first = if piling && factories >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
         let yard_room = self.frame >= self.economy.plant_refused;

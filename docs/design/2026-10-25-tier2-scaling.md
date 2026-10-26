@@ -73,6 +73,13 @@ kill" as a wait while the strike body pushes past the middle: the duel 3-5-8 (th
 13.8), the 2v2 0-10-6. So teching as such, at any of these moments, buys these seats nothing in results against
 BARb within 40 minutes: the income comes, and nothing turns it into a stronger army in the field.
 
+What the seats die to (the death instrument's `died:` lines, our metal lost a game, sixteen `field` games against the
+48 of the three `tech` rows): at 10-20 min his tier 1 21,000 / 22,000, his tier 2 5,300 / 4,700, his turrets 6,600 /
+3,100; at 20-30 min his tier 1 21,900 / 15,700, his tier 2 39,300 / 44,300, his turrets 29,700 / 18,200, of which our
+soldiers 79,900 / 61,500 (17,800 of them tier 2); from 30:00 his tier 2 49,200 / 94,300 (the `tech` games run
+longer). In either arm the army is spent from 20:00 into his tier-2 units and his turrets, at about twice what his
+tier 1 takes: the reach article's toll (`docs/briefs/derived/reach.md`), paid by our tier 2 as by our tier 1.
+
 ## Step 2 (proposed): the army's type by what beats his
 
 Both bots choose their soldier by strength per metal, which never picks tier 2. The proposal: among the soldiers our

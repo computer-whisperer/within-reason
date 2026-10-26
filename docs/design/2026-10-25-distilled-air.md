@@ -97,7 +97,7 @@ helps the air plant instead,
 and D-BUILD-POWER's construction turrets may go beside the air plant (it counts among the plants for their sites, not
 for the step to three turrets a plant once three plants stand, and an idle turret helps it only with no vehicle plant
 in reach: counted whole it made the third plant and turrets stacked where the third vehicle plant should have come,
-2 plants and 11 turrets at 20:00 against 4 and 5 with `air=off`, dist35 against dist34); the air plant's draw while it works (its power and its helpers' times the fighter's
+2 plants and 10 turrets at 20:00 against 4 and 6 with `air=off`, dist35 against dist34); the air plant's draw while it works (its power and its helpers' times the fighter's
 energy over its build time) is added to D-ENERGY's draw. What answers nothing yet (the four fighters before he has
 flown, the bombers) is made only with the energy store over half and is not in the draw (from dist28: the plant on
 fighters drew 124 a second, 40 % of the energy income at 8:00, and the store stood at 856 against 1,748). The turrets came from dist22 game 01: at 28:30 his tier-2
