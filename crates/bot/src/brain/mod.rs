@@ -7,6 +7,7 @@ mod allies;
 mod bases;
 mod briefing;
 mod combat;
+mod echo;
 mod economy;
 mod guns;
 pub mod journal;
@@ -234,6 +235,8 @@ pub struct Brain {
     carried_events: Vec<Event>,
     /// Ticks that came late (`Tick::late`) and the most frames one waited, since the last per-minute line.
     late_ticks: (u32, i32),
+    /// How late the engine runs our orders, timed by our own chat lines (H-HANDS-ORDER-LAG).
+    echo: echo::Echo,
 }
 
 /// The engine sends an AI's chat as its host player's (the user, in a game with people), so every line of the
@@ -378,6 +381,7 @@ impl Brain {
             lane: Default::default(),
             carried_events: Vec::new(),
             late_ticks: (0, 0),
+            echo: Default::default(),
         }
     }
 
@@ -478,6 +482,13 @@ impl Brain {
         if tick.late > 0 {
             self.late_ticks = (self.late_ticks.0 + 1, self.late_ticks.1.max(tick.late));
         }
+        for event in &tick.events {
+            if let Event::Chat { text, .. } = event
+                && let Some(lag) = self.echo.heard(text, tick.frame)
+            {
+                eprintln!("[ai {}] f={} our line came back {lag} frames after we said it: orders run that late", self.world.hello.ai_id, tick.frame);
+            }
+        }
         if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
             let mut commands = Vec::new();
@@ -496,6 +507,7 @@ impl Brain {
                 self.note_commitments();
             }
             self.micro(tick, &mut commands);
+            self.echo.said(&commands, tick.frame);
             return commands;
         }
         let mut commands = if self.carried_events.is_empty() {
@@ -509,6 +521,7 @@ impl Brain {
         self.note_standing_orders(&commands, tick.frame);
         self.note_commitments();
         self.micro(tick, &mut commands);
+        self.echo.said(&commands, tick.frame);
         commands
     }
 

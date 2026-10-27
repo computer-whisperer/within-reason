@@ -255,6 +255,23 @@ the AI's host, and woke the player ("That was my own chat echoed back"); the ban
 frame 75, came back under the same number).
 **Used by.** `relay_chat`: lines we said and have not yet seen back are dropped when they come back.
 
+### K-engine-orders-run-at-the-servers-frame
+**Claim.** An AI's orders and chat lines go to the game's server and run at the frame it stamps them with, in the
+order sent. A host running behind the server (a client stalled at the start of a lobby game, catching up after)
+has every order of every AI it hosts run that many frames late, and our own line's echo times it: the frames from
+saying a line to hearing it back are the lag on the orders sent beside it.
+**Status.** demonstrated (2026-10-25, human 1792971120)
+**Evidence.** human 1792971120 (All That Glitters Extended, 6v2, the user's client hosting our seat, two WRTerritory,
+two WRDistilled and BARb): the banner said at frame 75 came back at 960, and the four heuristic bots' banners showed
+at 960 too; the commander stood idle where it spawned until 960, and the vehicle plant ordered at 405 was started
+at 1022. The player's turns' wall clock: game frames 330 to 1680 passed in about 25 s (the client catching up). After
+it, the player's "gl hf" said at 2160 came back at 2169, and winds beside the commander ordered at 1605 and 2025 were
+started 18 frames later. Every other human game: the banner back in 6 to 9 frames; an arena game at speed 50: 29
+(companies-2).
+**Would be wrong if.** A line could come back by a path the unit orders do not take (it would time the chat, not
+the orders); the plant's start 62 frames after the echo agrees with the shared path.
+**Used by.** H-HANDS-ORDER-LAG (`brain/echo.rs`): the hands' grace on an order's outcome.
+
 ### K-mech-lobby-box-beside-us
 **Claim.** A lobby's start script can give an enemy ally team a start box whose centre is next to our own start,
 so the box guess of the enemy base is worthless there; the mirror is the better guess.

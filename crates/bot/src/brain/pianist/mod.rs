@@ -1787,15 +1787,20 @@ impl Brain {
             }
         }
         // A build the engine never started: the builder is idle again after the order's grace with no nanoframe.
+        // The grace is the engine's lag on our orders and 1.5 s; until our first line has come back the lag is
+        // unknown and an idle builder may be one whose order has not run yet, so nothing is judged by the clock
+        // (H-HANDS-ORDER-LAG; human 1792971120: six opening orders called refused while they waited 30 s).
+        let grace = self.echo.lag(frame).map(|lag| lag + super::economy::ORDER_GRACE_FRAMES);
+        let past = |since: i32| grace.is_some_and(|grace| frame - since > grace);
         for unit in own.iter().filter(|u| u.idle && !u.being_built) {
             match pianist.tasks.get(&unit.id) {
-                Some(Task::Build { def, near, ordered, started: false, .. }) if frame - ordered > super::economy::ORDER_GRACE_FRAMES => {
+                Some(Task::Build { def, near, ordered, started: false, .. }) if past(*ordered) => {
                     refused.push((unit.id, *def, *near));
                 }
-                Some(Task::Build { started: true, ordered, .. }) if frame - ordered > super::economy::ORDER_GRACE_FRAMES => {
+                Some(Task::Build { started: true, ordered, .. }) if past(*ordered) => {
                     pianist.tasks.remove(&unit.id);
                 }
-                Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::Repair { since, .. }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
+                Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::Repair { since, .. }) if past(*since) => {
                     pianist.tasks.remove(&unit.id);
                 }
                 // A walk ends where the builder arrives. Standing idle short of the place, the engine has dropped
@@ -1804,7 +1809,7 @@ impl Brain {
                 Some(Task::Walk { to, .. }) if unit.pos.dist2d(*to) < 150.0 => {
                     pianist.tasks.remove(&unit.id);
                 }
-                Some(Task::Walk { to, since, place }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
+                Some(Task::Walk { to, since, place }) if past(*since) => {
                     done.push(format!("{} {}: its walk to {place} ended {:.0} short of it: the engine gave the order up", picture::clock(frame), self.actor_name(unit.id), unit.pos.dist2d(*to)));
                     pianist.tasks.remove(&unit.id);
                 }
