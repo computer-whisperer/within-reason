@@ -245,3 +245,39 @@ in another engine version.
 **Used by.** `Command::FireAt` (the host picks the engine command by `UnitDef_canManualFire`: manual fire for the
 commander, an attack at the ground for the silo; `DESIGN.md`); the duel harness's `fire` script command; the design's
 nuke harness (`docs/design/2026-10-09-late-economy.md` §10).
+
+### K-rules-interception-needs-the-aim-point-in-coverage
+**Claim.** In BAR an anti-nuke takes a missile only when the place the missile is aimed at lies within the anti-nuke's
+coverage (2,000 for `armamd`, `corfmd`, `legabm`; measured flat, from where the anti-nuke stands at that moment, so a
+mobile one's cover moves with it). The engine alone would also take a missile whose flight passes within the coverage
+or whose projected impact does (four cases in `CInterceptHandler::Update`); BAR's gadget "Don't target flyover nukes"
+refuses every case but the aim point. So a missile aimed at a place more than 2,000 from every anti-nuke lands, and an
+intercepted one proves an anti-nuke stood within 2,000 of where it was aimed.
+**Status.** read from source (2026-10-27), not measured.
+**Evidence.** `rts/Sim/Misc/InterceptHandler.cpp` (`Update`: the four cases, each behind
+`eventHandler.AllowWeaponInterceptTarget`); BAR's `luarules/gadgets/unit_interceptors.lua` (`AllowWeaponInterceptTarget`
+returns whether the target's ground position is within the interceptor weapon's `coverageRange` of the interceptor
+unit, in x and z); the unit files (`coverage = 2000`, `reloadtime = 2`, `stockpilelimit = 20`, `stockpiletime = 90`).
+**Would be wrong if.** A missile aimed beyond every anti-nuke's coverage were taken in flight, or the gadget were
+disabled in a lobby.
+**Used by.** D-NUKE-FIRE (`bots/distilled/src/nuke.rs`): no place within his known anti-nuke's coverage is struck.
+
+### K-rules-a-bot-sees-no-interception
+**Claim.** Nothing tells an AI that its missile was intercepted. The Skirmish AI interface has no projectile access and
+no interception event, and an enemy unit's stockpile count is given to allies only (`AICallback::GetProperty`,
+`AIVAL_STOCKPILED`), so his anti-nuke's ready interceptors cannot be read. What an AI does get: its own silo firing
+(`EVENT_WEAPON_FIRED`, raised for a unit firing under an attack order), and the damage and kills the warhead does
+(`EnemyDamaged`, `EnemyDestroyed`, both naming our silo), but only for units in our ally team's sight or radar (BAR's
+buildings are not radar-stealthy). A strike on a place nobody of ours watches has no observable outcome. The true
+heightmap is given in full (`Map_getHeightMap` reads the synced one), so a crater would tell a landing anywhere; that
+is information a human player lacks in fog, it is off when the lobby disables map deformation, and it is not used.
+**Status.** read from source (2026-10-27), not measured; the user, 2026-10-27: "Let's run with the expectation of not
+knowing".
+**Evidence.** `rts/ExternalAI/Interface/SSkirmishAICallback.h` (no projectile callbacks), `AISEvents.h`,
+`rts/ExternalAI/EngineOutHandler.cpp` (`UnitDestroyed`, `UnitDamaged`: the enemy events need the unit in the ally
+team's sight or radar unless cheat events are on), `rts/Sim/Units/CommandAI/CommandAI.cpp` (`WeaponFired`),
+`rts/ExternalAI/AICallback.cpp` (`GetProperty`, `GetHeightMap`).
+**Would be wrong if.** An engine version added projectile or interception events, or the enemy events came without
+sight.
+**Used by.** D-NUKE-FIRE's instrument (`nuke:` lines: what the events saw of each strike, and whether the place was in
+our sight or radar); `run/distilled_nuke.py` judges every strike from the truth file instead.

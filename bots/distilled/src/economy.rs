@@ -138,6 +138,8 @@ pub(crate) enum Job {
     /// The aircraft plant (D-AIR-PLANT), and help for it while the fighters are short (D-AIR-POWER).
     AirPlant,
     AirAssist,
+    /// A nuclear silo (D-NUKE, `nuke.rs`), a project.
+    Silo,
 }
 
 impl Job {
@@ -157,6 +159,7 @@ impl Job {
             Job::AdvancedConverter => kit.advanced_converter,
             Job::AntiAir => kit.aa_turret,
             Job::AirPlant => kit.air_plant,
+            Job::Silo => kit.silo,
             Job::Assist | Job::AirAssist | Job::Help(_) => None,
         }
     }
@@ -260,6 +263,7 @@ impl Economy {
             Some(Job::AntiAir) => "anti-air".into(),
             Some(Job::AirPlant) => "air-plant".into(),
             Some(Job::AirAssist) => "assist-air".into(),
+            Some(Job::Silo) => "silo".into(),
         }
     }
 }
@@ -291,6 +295,7 @@ impl Distilled {
             }
             Job::Plant | Job::AdvancedPlant => self.economy.plant_refused = self.frame + TURRET_REFUSED,
             Job::AirPlant => self.air.plant_refused = self.frame + TURRET_REFUSED,
+            Job::Silo => self.nuke.site_refused = self.frame + TURRET_REFUSED,
             _ => {}
         }
     }
@@ -582,8 +587,8 @@ impl Distilled {
     }
 
     /// D-ENERGY: the store is low, or it is falling and not full, or the income is under what the soldiers the metal
-    /// income pays for and the project's frame would draw together (the tier-2 soldier's energy per metal once an
-    /// advanced plant stands), or far under the ratio.
+    /// income pays for, the project's frame and the silos (D-NUKE) would draw together (the tier-2 soldier's energy per
+    /// metal once an advanced plant stands), or far under the ratio.
     pub(crate) fn energy_short(&self, tick: &Tick) -> bool {
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let soldier = if self.count(self.kit.advanced_plant) > 0 { self.t2_soldier().or_else(|| self.soldier()) } else { self.soldier() };
@@ -591,8 +596,9 @@ impl Distilled {
         // income the bank fed two plants beyond the income at 3:00 and the energy ran out with the draw read as the
         // income's; apex-v022-distilled-comet-sym50-2).
         let spend = if metal.current > 0.25 * metal.storage { self.can_spend() } else { self.can_spend().min(metal.income) };
-        // The aircraft plant's draw with it (D-AIR-POWER): a fighter is 40 energy a metal.
-        let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0)) + self.air_draw();
+        // The aircraft plant's draw with it (D-AIR-POWER): a fighter is 40 energy a metal; and the silos' stockpiles,
+        // one more while the bank holds the next silo's metal (D-NUKE).
+        let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0)) + self.air_draw() + self.silo_draw(tick);
         let extractors = self.finished(self.kit.extractor).count() as f32;
         energy.current < 0.3 * energy.storage
             || (energy.income < energy.usage && energy.current < 0.6 * energy.storage)
@@ -786,6 +792,7 @@ impl Distilled {
             }
             Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
             Job::AdvancedPlant => commands.extend(build(self.kit.advanced_plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
+            Job::Silo => commands.extend(build(self.kit.silo, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements(), exact: false }, false)),
             Job::Fusion | Job::AdvancedFusion => {
                 // The back field, with the generators.
                 let def = if job == Job::Fusion { self.kit.fusion } else { self.kit.advanced_fusion };

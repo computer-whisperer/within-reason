@@ -18,7 +18,7 @@ const T2_FROM: i32 = 6 * MINUTE;
 const T2_ENERGY_STORE: f32 = 0.3;
 /// `gate=bank`: the bank holds the plant's bill when it holds its metal, or, with a store smaller than that, when the
 /// store is this full.
-const BANK_FULL: f32 = 0.9;
+pub(crate) const BANK_FULL: f32 = 0.9;
 /// The share of the metal income a project may draw, and the seconds over which the bank is spent beside it
 /// (D-PROJECT). The players' "stop the other factories during the transition" is the share.
 const PROJECT_SHARE: f32 = 0.75;
@@ -102,11 +102,13 @@ pub(crate) struct Options {
     pub received: bool,
     /// `air=off`: no aircraft plant, so no fighters and no bombers; the Nettles stay (`air.rs`, 2026-10-25).
     pub air: bool,
+    /// `nuke=off`: no silo (D-NUKE, `nuke.rs`, 2026-10-27).
+    pub nuke: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: false, raiders: true, received: true, air: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: false, raiders: true, received: true, air: true, nuke: true }
     }
 }
 
@@ -137,6 +139,7 @@ impl Options {
                 ("raid", v) => options.raiders = v != "off",
                 ("received", v) => options.received = v != "off",
                 ("air", v) => options.air = v != "off",
+                ("nuke", v) => options.nuke = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -145,7 +148,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -160,17 +163,18 @@ impl Options {
             if self.lane { "on" } else { "off" },
             if self.raiders { "on" } else { "off" },
             if self.received { "on" } else { "off" },
-            if self.air { "on" } else { "off" }
+            if self.air { "on" } else { "off" },
+            if self.nuke { "on" } else { "off" }
         )
     }
 }
 
 impl Distilled {
-    fn project_defs(&self) -> [Option<UnitDefId>; 3] {
-        [self.kit.advanced_plant, self.kit.fusion, self.kit.advanced_fusion]
+    fn project_defs(&self) -> [Option<UnitDefId>; 4] {
+        [self.kit.advanced_plant, self.kit.fusion, self.kit.advanced_fusion, self.kit.silo]
     }
 
-    /// The current project: the dearest unfinished advanced plant, fusion or advanced fusion of ours.
+    /// The current project: the dearest unfinished advanced plant, fusion, advanced fusion or silo of ours.
     pub(crate) fn project_frame(&self) -> Option<&OwnUnit> {
         let defs = self.project_defs();
         let cost = |u: &OwnUnit| self.def(u.def).map_or(0.0, |d| d.metal_cost);
@@ -179,13 +183,13 @@ impl Distilled {
 
     /// A project is under way: its frame stands, or a builder has been told to place one.
     pub(crate) fn project_under_way(&self) -> bool {
-        self.project_frame().is_some() || self.economy.working_on(|job| matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion)) > 0
+        self.project_frame().is_some() || self.economy.working_on(|job| matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo)) > 0
     }
 
     /// Build power on a frame: the build speeds of the builders raising or helping it and of the construction turrets
     /// within reach of it.
     pub(crate) fn power_on(&self, frame: &OwnUnit) -> f32 {
-        let on_it = |job: Job| matches!(job, Job::Help(target) if target == frame.id) || matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion);
+        let on_it = |job: Job| matches!(job, Job::Help(target) if target == frame.id) || matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo);
         let builders: f32 = self.economy.orders.iter().filter(|(_, order)| on_it(order.job)).filter_map(|(id, _)| self.own.get(id)).filter_map(|u| self.def(u.def)).map(|d| d.build_speed).sum();
         let turrets: f32 = self.finished(self.kit.turret).filter_map(|t| self.def(t.def).filter(|d| t.pos.dist2d(frame.pos) <= d.build_distance + TURRET_REACH_SLACK)).map(|d| d.build_speed).sum();
         builders + turrets
@@ -269,8 +273,8 @@ impl Distilled {
 
     /// D-T2-ADVANCED: an advanced constructor's ladder. Under `energy=fusion` the first fusion before anything; energy
     /// when it is short at scale (a fusion from `FUSION_FROM`, an advanced fusion from `ADVANCED_FUSION_FROM`, else an
-    /// advanced solar); a tier-2 extractor nearest home while energy allows; the project; a converter at saturation;
-    /// else energy for the extractors to come, else help at the advanced plant.
+    /// advanced solar); a tier-2 extractor nearest home while energy allows; a silo (D-NUKE); the project; a converter
+    /// at saturation; else energy for the extractors to come, else help at the advanced plant.
     pub(crate) fn advanced_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
         let kit = &self.kit;
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
@@ -306,6 +310,10 @@ impl Distilled {
         let moho = self.moho_target(tick);
         if energy_for_moho && let Some(target) = moho {
             return Some(Job::Moho(target));
+        }
+        // D-NUKE: a bank nothing else spends becomes a silo once the energy covers it.
+        if let Some(job) = self.silo_job(builder, tick) {
+            return Some(job);
         }
         if let Some(job) = self.project_help(tick) {
             return Some(job);
@@ -383,7 +391,7 @@ impl Distilled {
     pub(crate) fn t2_milestone(&self, unit: UnitId, how: &str) {
         let Some(def) = self.own.get(&unit).map(|u| u.def) else { return };
         let kit = &self.kit;
-        let named = [(kit.advanced_plant, "advanced plant"), (kit.advanced_constructor, "advanced constructor"), (kit.moho, "tier-2 extractor"), (kit.fusion, "fusion"), (kit.advanced_fusion, "advanced fusion"), (kit.converter, "converter"), (kit.advanced_converter, "advanced converter"), (kit.assist, "fast assist unit")];
+        let named = [(kit.advanced_plant, "advanced plant"), (kit.advanced_constructor, "advanced constructor"), (kit.moho, "tier-2 extractor"), (kit.fusion, "fusion"), (kit.advanced_fusion, "advanced fusion"), (kit.converter, "converter"), (kit.advanced_converter, "advanced converter"), (kit.assist, "fast assist unit"), (kit.silo, "silo")];
         let Some((_, what)) = named.iter().find(|(d, _)| *d == Some(def)) else { return };
         if how == "begun" && !self.project_defs().contains(&Some(def)) {
             return;

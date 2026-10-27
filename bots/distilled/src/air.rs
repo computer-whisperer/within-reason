@@ -52,7 +52,7 @@ const SORTIE_GAP: i32 = MINUTE;
 /// building's worth is its metal and its energy at the converter's rate (70 energy a metal, K-mech-converter-rates).
 const FIELD: f32 = 200.0;
 const FIELD_LEAST: usize = 3;
-const ENERGY_A_METAL: f32 = 70.0;
+pub(crate) const ENERGY_A_METAL: f32 = 70.0;
 /// A bomber that has been within `PASS` of its target for `PASS_FOR` has dropped and is called back; a sortie is
 /// called back whole once it has lasted its flight time and `SORTIE_SLACK`; its kills are counted for `SETTLE` after
 /// the last bomber is called back (the chain takes seconds).

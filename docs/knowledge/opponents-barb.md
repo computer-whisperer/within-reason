@@ -653,3 +653,20 @@ still a frame (the scan takes the first appearance in his unit list, finished or
 anti-nuke is a little later than the minute given).
 **Used by.** `docs/design/2026-10-09-late-economy.md` §3 and §4.9: the nuke is not a rush weapon against
 hard_aggressive in the arena; against people it is a question of the seat with no anti-nuke.
+
+### K-barb-anti-nuke-beside-fusions
+**Claim.** BARb stands its anti-nukes beside its fusions, so its dearest buildings are the covered ones. Its build
+chain puts an anti-nuke 170-260 from each fusion and advanced fusion with a chance of one half (`armfus`,
+`armckfus`, `armafus` and Cortex's likewise), and the porcupine's superweapon pick takes one with a weight of 0.15 among
+six superweapons from an income of 30; nothing in its config or in CircuitAI's source answers an enemy silo. On the 2v2
+bench on All That Glitters an anti-nuke of his appeared in 31 of the 32 games of dist42 and dist44, first at 21-25 min
+in all but two (29.5, 33.1), the one without ending at 23.9; his own silo in 7 of the 32, at 22.8 to 36.0.
+**Status.** read from config and measured on the bench's truth files (2026-10-26).
+**Evidence.** `luarules/configs/BARb/stable/config/build_chain.json` (`porcupine.superweapon`, the `hub` chains of the
+fusions); `CircuitAI/src` (stockpile handling in `MilitaryManager.cpp`, no anti-nuke response); the truth files of
+`run/matches/1792985297-dist42-t2gate-gate-field` and `1792986946-dist44-t2gate-gate-tech` (first appearance of
+`armamd`, `corfmd`, `armsilo`, `corsilo`).
+**Would be wrong if.** BARb's config changed, or a later batch showed his anti-nuke appearing in answer to our silo.
+**Used by.** D-NUKE-FIRE (`bots/distilled/src/nuke.rs`): the places struck are outside his known cover, so against
+BARb they are his outer buildings, or covered ones while his anti-nuke there has not been seen (a missile then likely
+taken).
