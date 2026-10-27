@@ -1,7 +1,8 @@
 # Tier 2 in the heuristic bots' seats (2026-10-25)
 
 **Status.** Step 1 (the distilled bot's gate) built as arms and measured (dist41-49): the seats tech and earn, the
-results do not follow, and duels lose; the default stays `gate=field`, stopped for discussion. Step 2 (the army's
+results do not follow, and duels lose; `gate=field` stays the default in a duel, and a seat with allies takes
+`gate=tech` (the user, 2026-10-26: "Let's use tech in games with allies"). Step 2 (the army's
 type) reframed by an offline look, not begun. The spending of a tier-2 income found as a further bottleneck, one
 attempt measured without effect.
 
@@ -35,10 +36,11 @@ stored is the plant with nothing forgone, and metal above the store's cap is los
 D-T2-GATE keeps its income figure (22), clock (6:00), energy store (30 %) and one plant, and its last condition
 becomes an arm:
 
-- `gate=field` (the old default): the field won.
-- `gate=bank` (the new default): the field won, or the bank holds the plant's bill: its 2,600 metal, or 90 % of a
+- `gate=field` (the old default, still the default in a duel): the field won.
+- `gate=bank`: the field won, or the bank holds the plant's bill: its 2,600 metal, or 90 % of a
   store smaller than that. Nothing else was spending that metal.
-- `gate=tech`: those, or anything of his of tier 2 seen (`techlevel` from the combat tables).
+- `gate=tech` (the default for a seat with allies since 2026-10-26): those, or anything of his of tier 2 seen
+  (`techlevel` from the combat tables).
 - `gate=income`: the income alone.
 
 The reason the gate opened is logged (`t2 gate:`), as is the first tier-2 thing of his seen (`his tier 2 seen:`), and the

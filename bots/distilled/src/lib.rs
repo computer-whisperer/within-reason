@@ -16,7 +16,7 @@ mod tier2;
 
 use std::collections::{BTreeMap, VecDeque};
 
-use bot_protocol::{Bot, Command, Commands, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Bot, Command, Commands, Controller, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 
 pub(crate) const SECOND: i32 = 30;
 pub(crate) const MINUTE: i32 = 60 * SECOND;
@@ -376,7 +376,8 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
+        let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {

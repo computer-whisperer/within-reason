@@ -64,11 +64,12 @@ pub(crate) enum Power {
 }
 
 /// D-T2-GATE's arms: `gate=income` the advanced plant on income alone; `gate=field` and only once the field is won
-/// (D-FIELD), the default; `gate=bank` once the field is won or the bank holds the plant's bill; `gate=tech` those or
-/// once anything of his of tier 2 has been seen, each waiting while the strike body pushes in his half (2026-10-25:
-/// on the 2v2 bench the seats then tech at 14-15 min and the team's income doubles by 30:00, but no arm won more, and
-/// in duels `gate=tech` went 3-5-8 against the field gate's 9-3-4, dist42-49) ("past his advanced factory a tier-1 surplus is
-/// spent on worse terms", D-lead-convert-it; "decide at his lab", D-tier2-sprint).
+/// (D-FIELD), the default in a duel; `gate=bank` once the field is won or the bank holds the plant's bill; `gate=tech`
+/// those or once anything of his of tier 2 has been seen, the default for a seat with allies, each waiting while the
+/// strike body pushes in his half (2026-10-25: on the 2v2 bench the seats then tech at 14-15 min and the team's income
+/// doubles by 30:00, but no arm won more, and in duels `gate=tech` went 3-5-8 against the field gate's 9-3-4,
+/// dist42-49; the user, 2026-10-26: "Let's use tech in games with allies") ("past his advanced factory a tier-1 surplus
+/// is spent on worse terms", D-lead-convert-it; "decide at his lab", D-tier2-sprint).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Gate {
     Bank,
@@ -110,8 +111,12 @@ impl Default for Options {
 }
 
 impl Options {
-    pub(crate) fn from_env() -> Self {
+    /// The seat's arms: the defaults, `gate=tech` when the seat has allies, then what `WITHIN_REASON_DISTILLED` says.
+    pub(crate) fn for_seat(allied: bool) -> Self {
         let mut options = Options::default();
+        if allied {
+            options.gate = Gate::Tech;
+        }
         let text = std::env::var("WITHIN_REASON_DISTILLED").unwrap_or_default();
         for pair in text.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
@@ -128,7 +133,6 @@ impl Options {
                 ("gate", "income") => options.gate = Gate::Income,
                 ("gate", "tech") => options.gate = Gate::Tech,
                 ("gate", "bank") => options.gate = Gate::Bank,
-                ("gate", _) => options.gate = Gate::Field,
                 ("lane", v) => options.lane = v == "on",
                 ("raid", v) => options.raiders = v != "off",
                 ("received", v) => options.received = v != "off",
