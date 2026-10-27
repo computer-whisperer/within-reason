@@ -538,7 +538,7 @@ impl Brain {
             .iter()
             .filter(|u| u.being_built)
             .map(|u| {
-                let share = (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0);
+                let share = u.build_progress;
                 (u.id, peak.remove(&u.id).map_or(share, |p| p.max(share)))
             })
             .collect();
@@ -593,7 +593,7 @@ impl Brain {
                 handle: self.handle(u),
                 unit: self.name(u.def).to_string(),
                 at: self.place(u.pos),
-                share: (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0),
+                share: u.build_progress,
                 cost: self.world.def(u.def).map_or(0.0, |d| d.metal_cost),
                 builders: on.get(&u.id).cloned().unwrap_or_default(),
                 alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
@@ -1377,7 +1377,8 @@ impl Brain {
                     words.insert(role.to_string(), self.placed_at_place(id));
                 }
             }
-            if d.build_options.contains(&kit.extractor) {
+            // `extractor` is the builder's own: the tier-2 one for an advanced constructor (lists.rs `next_list_step`).
+            if d.build_options.contains(&kit.extractor) || d.build_options.contains(&kit.advanced_extractor) {
                 words.insert("extractor".to_string(), false);
             }
             builders.insert(self.actor_name(unit.id), words);
@@ -1542,7 +1543,7 @@ mod frame_loss_tests {
     use super::{Cause, FrameFate, BLAST_WINDOW_FRAMES};
 
     fn frame(id: i32, pos: Vec3, share: f32) -> OwnUnit {
-        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, ..own(id, 2, pos) }
+        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, build_progress: share, ..own(id, 2, pos) }
     }
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {

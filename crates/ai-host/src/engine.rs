@@ -571,6 +571,7 @@ impl Engine {
                     stockpile_queued,
                     // The gadget's unit rules param: unset (a unit without the flag, or never toggled) reads as high.
                     priority_low: call!(self, Unit_getRulesParamFloat(id, c"builderPriority".as_ptr(), 1.0)) < 0.5,
+                    build_progress: call!(self, Unit_getBuildProgress(id)).clamp(0.0, 1.0),
                 }
             })
             .collect();

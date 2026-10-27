@@ -214,7 +214,7 @@ impl Brain {
                     commands.push(Command::Repair { unit: id, target: *target, queue });
                     let spot = self.world.is_extractor_def(frame_unit.def).then(|| self.world.hello.metal_spots.iter().position(|s| s.dist2d(frame_unit.pos) < self.spot_occupied_radius())).flatten();
                     task = Some(Task::Build { def: frame_unit.def, near: frame_unit.pos, spot, ordered: frame, started: true, frame: Some(*target) });
-                    did = Some(format!("finish our {} at {} ({:.0}% built)", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos), frame_unit.health / frame_unit.max_health.max(1.0) * 100.0));
+                    did = Some(format!("finish our {} at {} ({:.0}% built)", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos), frame_unit.build_progress * 100.0));
                 }
             }
             Order::DGun(party_name) => {

@@ -400,20 +400,22 @@ impl Brain {
                 None if helps(def) => Ok(Order::Build(def, Site::Planned)),
                 None => Err("it needs a place".to_string()),
             };
+            // The word `extractor` is the builder's own: the tier-2 one for an advanced constructor, which builds no other.
+            let extractor = if can(kit.extractor) { kit.extractor } else { kit.advanced_extractor };
             let resolved: Result<Order, String> = match kind {
-                "extractor" if !can(kit.extractor) => Err("this builder cannot build it".to_string()),
+                "extractor" if !can(extractor) => Err("this builder cannot build it".to_string()),
                 "extractor" => {
                     let spots = self.free_spots(unit, pianist, picture, own, frame, kit);
                     match &place {
                         Some(p) => match p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
-                            Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Order::Build(kit.extractor, Site::Spot(i))),
+                            Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Order::Build(extractor, Site::Spot(i))),
                             // Why it is not free (9.3): "not free" covered a spot nothing of ours reached, one the
                             // enemy held, one under wrecks and one another builder was taking (Cape Violet, 333 skips).
                             Some(i) => Err(self.why_not_free(i, unit, pianist, own, kit)),
                             None => Err(format!("{p} is not a spot")),
                         },
                         None => match spots.first() {
-                            Some((i, _)) => Ok(Order::Build(kit.extractor, Site::Spot(*i))),
+                            Some((i, _)) => Ok(Order::Build(extractor, Site::Spot(*i))),
                             None => Err("no free spot in reach".to_string()),
                         },
                     }
@@ -702,7 +704,7 @@ mod tests {
     fn steps_with_the_same_id_are_one_building() {
         use super::super::{TagState, Tagged, Task};
         use bot_protocol::{OwnUnit, UnitDefId, Vec3};
-        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false };
+        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: if being_built { 0.5 } else { 1.0 } };
         let (plant, solar) = (UnitDefId(7), UnitDefId(8));
         let (first, second, frame) = (UnitId(1), UnitId(2), UnitId(50));
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
@@ -782,7 +784,7 @@ mod finish_tests {
     #[test]
     fn a_finish_step_resumes_an_unfinished_frame_as_the_builders_own_build() {
         let mut brain = brain_of(&["armcv", "armsolar"]);
-        let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 62.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }, own(21, 2, at(1200.0, 1000.0))];
+        let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 62.0, max_health: 100.0, build_progress: 0.62, ..own(20, 2, at(1000.0, 1000.0)) }, own(21, 2, at(1200.0, 1000.0))];
         let id = UnitDefId(9);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };

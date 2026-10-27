@@ -76,6 +76,10 @@ joining roles, the offsets, the abreast count, the slots' assignment, the drag b
 - Arrived needs the body (the members that are no exception) to be at least half the members, not one. (The vacuous
   case `in_body > 0` closed in migration-2-1 reopened one unit wide: one formed member at the way's end with a hundred
   in `away` read arrived eight times in the Glitters game.)
+- Amended 2026-10-27: of the members out of their slots, only one walking in (moving, not away, not cut off) holds
+  the arrival. A stuck member, or a joiner that has not set off, held it for good, and a declared Move ends on the
+  arrival alone: apex-v0405-comet-sym0-opus-1 29:07-29:57 and companies-2 24:40, the group "advancing" at the stop it
+  had reached with five stuck (`a_stuck_member_does_not_hold_the_arrival`).
 
 ## 4. The hands
 

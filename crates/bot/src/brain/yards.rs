@@ -394,7 +394,7 @@ mod named_tests {
         assert_eq!(id(brain.unit_named("armllt at A1", &own)), Some(303));
         assert_eq!(id(brain.unit_named("armllt_301", &own)), Some(301));
         // "unfinished <type> at <cell or place>" names a frame of the type there, never a standing one.
-        let with_frame: Vec<OwnUnit> = own.iter().cloned().chain([OwnUnit { being_built: true, health: 40.0, max_health: 100.0, ..own[0].clone() }].into_iter().map(|mut u| { u.id = UnitId(310); u })).collect();
+        let with_frame: Vec<OwnUnit> = own.iter().cloned().chain([OwnUnit { being_built: true, health: 40.0, max_health: 100.0, build_progress: 0.4, ..own[0].clone() }].into_iter().map(|mut u| { u.id = UnitId(310); u })).collect();
         assert_eq!(id(brain.unit_named("unfinished armllt at E4", &with_frame)), Some(310));
         assert_eq!(id(brain.unit_named("unfinished armllt at spot_40", &with_frame)), Some(310));
         assert_eq!(id(brain.unit_named("armllt at E4", &with_frame)), Some(300), "the plain form keeps to standing units");

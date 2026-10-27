@@ -497,6 +497,11 @@ pub struct OwnUnit {
     /// a unit without the flag, and in shims from before 2026-10-13.
     #[serde(default)]
     pub priority_low: bool,
+    /// The share of its build done, 0 to 1 (`Unit_getBuildProgress`; 1 once finished). A frame's health is not its
+    /// progress: a damaged frame's is lower, and a finished unit's under repair reads as a frame's (rework-ladder-20-1
+    /// 5:02: a Sentry said 61 % built finished nine frames later).
+    #[serde(default)]
+    pub build_progress: f32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

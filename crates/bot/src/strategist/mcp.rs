@@ -178,7 +178,7 @@ fn tool_list() -> Value {
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
             { "name": "queue",
-              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows (a build whose frame began after the report you read is finished first even so, since your stop was written before it stood; the hands' line says which). Steps: \"finish <handle>\" (resume an unfinished structure of ours by the handle the report's `unfinished structures` line gives, whoever began it: it is this builder's own build from then on, finished first before any later list), \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home, out of every factory's exit lane either way (the builder walks: the pros' solars are at base; a generator at a place you mark is walked to and back from, so a mark far from the plant costs the commander that walk twice at every solar: migration-3-1 marked one 970 from home and the commander left the plant it was helping for 70 s per pair), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). A step may carry the word \"low\" (\"assist 90 low\", \"armsolar low\"): on that step the builder draws only the team's surplus and stands still in a metal stall, so the other builders' work comes first; the pros set their commander low while it guards the plant or builds a solar in the opening while the constructors claim spots, and high again for a build of its own. Plants and construction turrets are low always, as every human's are; a step without the word is high. Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building: the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step naming a building this builder cannot make, or a turret, radar or jammer with no place, is refused here; a step that cannot be done when its turn comes (the spot taken, a place unknown) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
+              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows (a build whose frame began after the report you read is finished first even so, since your stop was written before it stood; the hands' line says which). Steps: \"finish <handle>\" (resume an unfinished structure of ours by the handle the report's `unfinished structures` line gives, whoever began it: it is this builder's own build from then on, finished first before any later list), \"extractor spot_N\" (or \"extractor\" for the nearest free spot; an advanced constructor's extractor is its advanced one), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home, out of every factory's exit lane either way (the builder walks: the pros' solars are at base; a generator at a place you mark is walked to and back from, so a mark far from the plant costs the commander that walk twice at every solar: migration-3-1 marked one 970 from home and the commander left the plant it was helping for 70 s per pair), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). A step may carry the word \"low\" (\"assist 90 low\", \"armsolar low\"): on that step the builder draws only the team's surplus and stands still in a metal stall, so the other builders' work comes first; the pros set their commander low while it guards the plant or builds a solar in the opening while the constructors claim spots, and high again for a build of its own. Plants and construction turrets are low always, as every human's are; a step without the word is high. Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building (one type; a helper's step may leave the place out, \"armavp #avp1\", and takes the place another list in the same call gives it): the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step naming a building this builder cannot make, or a turret, radar or jammer with no place, is refused here; a step that cannot be done when its turn comes (the spot taken, a place unknown) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
               "description": "Which footwork reflexes your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all three, the default), or a list of the reflexes to keep. The reflexes: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting here never takes a group off its rove: the way back is a pick too, so name the group's new job in the packet. A setting stands until you change it; the group's picture entry shows it when it is not the default. A group's soldiers march as companies of at most `company` (24 unless you set it: six files by four ranks); pass {\"rules\": ..., \"company\": N} to set it (0 lifts the cap, one formation): the lead company walks the way, the others hang beside or behind it as the ground allows, a plant's new soldiers muster beside the plant and walk to the army as a company of their own, and the army waits for a company that falls behind as it waits for a soldier.",
@@ -643,29 +643,61 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             // Steps carrying the same id are one building, so one id names one thing; and the same factory step on
             // two builders without an id is two factories (player-33, 12:17: an Advanced Vehicle Plant twice from
-            // three lists with the same step), which the answer says without refusing it.
-            let mut tags: std::collections::BTreeMap<&str, (String, &str)> = Default::default();
-            let mut untagged: std::collections::BTreeMap<String, Vec<&str>> = Default::default();
+            // three lists with the same step), which the answer says without refusing it. One id's steps may differ
+            // in their place only where one names it and another does not: the helper's `armfus #fus1` beside the
+            // starter's `armfus back_yard #fus1` is the same reactor, and the bare step is given the place below
+            // (refused whole until 2026-10-27: ten calls in the migration, companies and apex games lost every list
+            // they carried so).
+            let mut tags: std::collections::BTreeMap<String, (String, Option<String>, String)> = Default::default();
+            let mut untagged: std::collections::BTreeMap<String, Vec<String>> = Default::default();
             for (name, list) in &parsed {
                 for step in list.iter().flatten() {
                     let (body, tag) = step_id(step);
                     let (body, _) = crate::brain::pianist::step_low(body);
                     let (body, _) = crate::brain::pianist::step_start(&body);
                     match tag {
-                        Some(tag) => match tags.get(tag) {
-                            Some((first, on)) if *first != body => return Err(format!("#{tag} names two buildings: '{first}' on {on}'s list and '{body}' on {name}'s; an id is one building, written the same on every list")),
-                            Some(_) => {}
-                            None => {
-                                tags.insert(tag, (body, name));
+                        Some(tag) => {
+                            let mut words = body.split_whitespace();
+                            let (kind, place) = (words.next().unwrap_or_default().to_string(), words.next().map(str::to_string));
+                            match tags.get_mut(tag) {
+                                Some((first, first_place, on)) if *first != kind || place.as_ref().zip(first_place.as_ref()).is_some_and(|(a, b)| a != b) => {
+                                    let written = |kind: &str, place: &Option<String>| place.as_ref().map_or(kind.to_string(), |p| format!("{kind} {p}"));
+                                    return Err(format!("#{tag} names two buildings: '{}' on {on}'s list and '{body}' on {name}'s; an id is one building: one type, and at most one place (a step without the place helps the one with it)", written(first, first_place)));
+                                }
+                                Some((_, first_place, _)) => {
+                                    if first_place.is_none() {
+                                        *first_place = place;
+                                    }
+                                }
+                                None => {
+                                    tags.insert(tag.to_string(), (kind, place, name.clone()));
+                                }
                             }
-                        },
+                        }
                         None if body.split_whitespace().next().is_some_and(|kind| crate::brain::roster::FACTORY_ROLES.contains(&kind) || crate::brain::pianist::glossary::entry(kind).is_some_and(|e| e.class.contains("factory"))) => {
                             let on = untagged.entry(body).or_default();
-                            if !on.contains(&name.as_str()) {
-                                on.push(name);
+                            if !on.contains(name) {
+                                on.push(name.clone());
                             }
                         }
                         None => {}
+                    }
+                }
+            }
+            // A bare step of an id the call places elsewhere takes the place, its other words (`low`, `start`) kept.
+            let mut placed: Vec<String> = Vec::new();
+            for (name, list) in parsed.iter_mut() {
+                for step in list.iter_mut().flatten() {
+                    let (body, tag) = step_id(step);
+                    let Some((_, Some(place), _)) = tag.and_then(|t| tags.get(t)) else { continue };
+                    let (bare, _) = crate::brain::pianist::step_low(body);
+                    let (bare, _) = crate::brain::pianist::step_start(&bare);
+                    if bare.split_whitespace().count() == 1 {
+                        let mut words = step.split_whitespace();
+                        let kind = words.next().unwrap_or_default();
+                        let whole = std::iter::once(kind).chain(std::iter::once(place.as_str())).chain(words).collect::<Vec<_>>().join(" ");
+                        placed.push(format!("note: {name}'s '{step}' is the building another list places at {place}: '{whole}'"));
+                        *step = whole;
                     }
                 }
             }
@@ -682,6 +714,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 queues.insert(name, list);
             }
             said.extend(twice);
+            said.extend(placed);
             Ok(said.join("; "))
         }
         "lane" => {
@@ -966,13 +999,16 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 let tags = |teams: &[i32]| teams.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(", ");
                 return Err(format!("t{to} is not a seat of our side in this game (ours: {}; allies: {})", tags(&live), if allied.is_empty() { "none".to_string() } else { tags(&allied) }));
             }
-            let metal = arguments["metal"].as_f64().unwrap_or(0.0) as f32;
-            let energy = arguments["energy"].as_f64().unwrap_or(0.0) as f32;
+            // A number, or a number written as a string (the commander sent `"keep_metal": "150"` in all three
+            // 3-seat lobby games and was told the field it had used does not exist).
+            let number = |v: &Value| v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().parse::<f64>().ok()));
+            let metal = number(&arguments["metal"]).unwrap_or(0.0) as f32;
+            let energy = number(&arguments["energy"]).unwrap_or(0.0) as f32;
             let units: Vec<String> = arguments["units"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.trim().to_string())).collect()).unwrap_or_default();
             // A standing transfer (H-PLAYER-STANDING-TRANSFER): `keep_metal` and/or `keep_energy` with from and to,
             // kept by the hands every second until `standing: false` (or "off") with from lifts it.
-            let keep_metal = arguments["keep_metal"].as_f64().map(|v| v.max(0.0) as f32);
-            let keep_energy = arguments["keep_energy"].as_f64().map(|v| v.max(0.0) as f32);
+            let keep_metal = number(&arguments["keep_metal"]).map(|v| v.max(0.0) as f32);
+            let keep_energy = number(&arguments["keep_energy"]).map(|v| v.max(0.0) as f32);
             if keep_metal.is_some() || keep_energy.is_some() {
                 let from = team_of(&arguments["from"])?;
                 if from == to {
@@ -1294,6 +1330,9 @@ mod tests {
         assert!(standing.contains("standing: t5 sends t7 every metal above 100"), "{standing}");
         assert_eq!(shared.standing.lock().unwrap().get(&5).map(|s| (s.to_team, s.keep_metal, s.keep_energy)), Some((7, Some(100.0), None)));
         assert!(call_tool("transfer", &json!({ "from": "t5", "standing": false }), &shared).unwrap().contains("lifted"));
+        // A keep written as a string is the number (human 1792809574 4:56: `"keep_metal": "150"` refused three times).
+        assert!(call_tool("transfer", &json!({ "from": "t5", "to": "t7", "keep_metal": "150" }), &shared).unwrap().contains("every metal above 150"));
+        assert!(call_tool("transfer", &json!({ "from": "t5", "standing": false }), &shared).unwrap().contains("lifted"));
         assert!(call_tool("transfer", &json!({ "from": "t5", "standing": false }), &shared).unwrap_err().contains("no standing transfer"));
         let err = call_tool("transfer", &json!({ "metal": 300, "from": "t5", "to": "t2" }), &shared).unwrap_err();
         assert!(err.contains("not a seat of our side") && err.contains("allies: t6, t7"), "{err}");
@@ -1361,6 +1400,13 @@ mod tests {
         let one = call_tool("queue", &json!({ "constructor_7": ["armvp home #vp2", "armsolar #s1"], "constructor_8": ["armvp home #vp2"] }), &shared).unwrap();
         assert!(!one.contains("note:"), "{one}");
         assert!(call_tool("queue", &json!({ "constructor_7": ["armvp home #vp2"], "constructor_8": ["armsolar #vp2"] }), &shared).unwrap_err().contains("#vp2 names two buildings"));
+        // A step without the place is the placed one's building and takes its place, in either order (migration-2-1
+        // 11:47: `armfus #fus1` beside `armfus back_yard #fus1` refused the whole call); two places are two buildings.
+        let helped = call_tool("queue", &json!({ "constructor_7": ["armvp low #vp3"], "constructor_8": ["armvp home #vp3", "armsolar"] }), &shared).unwrap();
+        assert!(helped.contains("note: constructor_7's 'armvp low #vp3' is the building another list places at home"), "{helped}");
+        assert_eq!(shared.queues.lock().unwrap().get("constructor_7").cloned().flatten(), Some(vec!["armvp home low #vp3".to_string()]));
+        assert_eq!(shared.queues.lock().unwrap().get("constructor_8").cloned().flatten(), Some(vec!["armvp home #vp3".to_string(), "armsolar".to_string()]));
+        assert!(call_tool("queue", &json!({ "constructor_7": ["armvp home #vp4"], "constructor_8": ["armvp spot_3 #vp4"] }), &shared).unwrap_err().contains("#vp4 names two buildings"));
         assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 20 #a"] }), &shared).unwrap_err().contains("an id goes on a step that builds something"));
         assert!(call_tool("queue", &json!({ "commander": ["armvp #vp2 home"] }), &shared).unwrap_err().contains("an id is one word after everything else"));
         assert!(call_tool("queue", &json!({ "commander": ["armvp #vp-2"] }), &shared).unwrap_err().contains("letters, digits and underscores"));

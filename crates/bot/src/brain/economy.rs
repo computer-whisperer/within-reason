@@ -151,11 +151,15 @@ impl Brain {
 
     /// What a plan builds and where the engine is asked to put it. None when the builder cannot build it.
     pub(super) fn build_site_for(&self, plan: &Plan, unit: &OwnUnit, own: &[OwnUnit], kit: &Kit) -> Option<(UnitDefId, BuildSite)> {
+        // A spot takes the builder's own extractor: an advanced constructor builds no tier-1 one, so its is the
+        // tier-2 (player-50-1 22:27: `extractor spot_3` refused to an advanced constructor rebuilding lost spots).
+        let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
         let planned_def = match plan {
+            Plan::Extractor(_) if !can(kit.extractor) && can(kit.advanced_extractor) => kit.advanced_extractor,
             Plan::Extractor(_) => kit.extractor,
             Plan::Near(def_id, _) | Plan::Beside(def_id, _) => *def_id,
         };
-        if !self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&planned_def)) {
+        if !can(planned_def) {
             return None;
         }
         // Nothing but an extractor goes in a factory's exit lane (yards.rs), and a site the engine refused for this
@@ -195,7 +199,7 @@ impl Brain {
         Some(match *plan {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
-            Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }),
+            Plan::Extractor(spot) => (planned_def, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }),
             // A tier-2 extractor over one of ours goes exactly where ours stands: the game upgrades in place and
             // refuses any other position on a held spot (low-1: three `armmoho spot_N` orders at the spots' centres,
             // 97-104 elmos from our extractors placed off centre, all "site bad"; the player: "upgrade path not working").
@@ -233,8 +237,6 @@ mod tests {
     #[test]
     fn a_silo_and_an_anti_nuke_are_placed_in_the_back_field_and_a_turret_on_the_line() {
         let brain = brain_of(&["armsilo", "armamd", "armllt", "armck"]);
-        let id = UnitDefId(4);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &ROSTERS[0] };
         let builder = own(1, 4, Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
         let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder)) {
             Plan::Near(_, at) | Plan::Beside(_, at) => at,
@@ -244,5 +246,19 @@ mod tests {
         assert_eq!(where_(1), back, "the silo");
         assert_eq!(where_(2), back, "the anti-nuke");
         assert_eq!(where_(3), line, "the light turret");
+    }
+
+    /// A spot takes the builder's own extractor: the tier-2 one for an advanced constructor, which builds no other.
+    #[test]
+    fn an_advanced_constructor_builds_its_own_extractor_at_a_spot() {
+        let mut brain = brain_of(&["armmex", "armmoho", "armck", "armack"]);
+        brain.world.hello.unit_defs[2].build_options = vec![UnitDefId(1)];
+        brain.world.hello.unit_defs[3].build_options = vec![UnitDefId(2)];
+        let (mex, moho) = (UnitDefId(1), UnitDefId(2));
+        let kit = Kit { commander: mex, extractor: mex, converter: mex, lab: mex, turret: mex, constructor: mex, vehicle_constructor: mex, advanced_constructor: mex, advanced_extractor: moho, raider: mex, line: mex, resurrector: mex, roster: &ROSTERS[0] };
+        let spot = Plan::Extractor(Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
+        let at = Vec3 { x: 900.0, y: 0.0, z: 1000.0 };
+        assert_eq!(brain.build_site_for(&spot, &own(1, 3, at), &[], &kit).map(|(def, _)| def), Some(mex), "a constructor");
+        assert_eq!(brain.build_site_for(&spot, &own(2, 4, at), &[], &kit).map(|(def, _)| def), Some(moho), "an advanced constructor");
     }
 }

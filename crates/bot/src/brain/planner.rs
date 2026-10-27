@@ -70,7 +70,7 @@ impl Brain {
                     let unit = index(*def)?;
                     let frame = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < JOB_REACH).min_by(|a, b| a.pos.dist2d(*near).total_cmp(&b.pos.dist2d(*near)));
                     Some(match frame {
-                        Some(f) => Job { unit, site: at(f.pos), progress: (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64, pays: pays(unit, f.pos) },
+                        Some(f) => Job { unit, site: at(f.pos), progress: f.build_progress as f64, pays: pays(unit, f.pos) },
                         None => Job { unit, site: at(*near), progress: 0.0, pays: pays(unit, *near) },
                     })
                 }

@@ -461,7 +461,7 @@ impl Brain {
     pub(super) fn builder_status(&self, pianist: &Pianist, unit: &OwnUnit, picture: &Picture, under_fire: &[UnitId], own: &[OwnUnit]) -> BuilderStatus {
         let started = match pianist.tasks.get(&unit.id) {
             Some(Task::Build { def, started: true, frame: own_frame, .. }) => {
-                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.health / u.max_health.max(1.0));
+                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.build_progress);
                 Some((self.short_words(*def), share))
             }
             _ => None,
@@ -1437,7 +1437,7 @@ impl Brain {
                     // The fact, not an argument (human-11: four newborn constructors went to the lab on "it adds its
                     // build power to whatever the factory makes" against instructions that named their spots).
                     None => match own.iter().find(|u| u.being_built && u.pos.dist2d(lab.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)) {
-                        Some(on_pad) => format!("its build power goes to the lab's unit, a {} ({:.0}% built)", self.short_words(on_pad.def), on_pad.health / on_pad.max_health.max(1.0) * 100.0),
+                        Some(on_pad) => format!("its build power goes to the lab's unit, a {} ({:.0}% built)", self.short_words(on_pad.def), on_pad.build_progress * 100.0),
                         None => "the lab makes nothing at the moment: its build power would wait there".to_string(),
                     },
                 };
@@ -1445,7 +1445,7 @@ impl Brain {
             }
             for other in scene.builders.iter().filter(|o| o.id != unit.id) {
                 let Some(Task::Build { def, started: true, frame: own_frame, .. }) = pianist.tasks.get(&other.id) else { continue };
-                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.health / u.max_health.max(1.0));
+                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.build_progress);
                 let other_name = self.actor_name(other.id);
                 push(format!("help_{other_name}"), Order::Help(other.id), format!("{then}{name} helps {other_name} build its {} (about {:.0}% done; {}){}{leaves}", self.short_words(*def), tenths(share), way_words(unit.pos.dist2d(other.pos), speed), stands(other.pos)), format!("helping {other_name}"), None);
             }
@@ -1464,7 +1464,7 @@ impl Brain {
             let mut orphans: Vec<&OwnUnit> = own.iter().filter(|f| f.being_built && f.id != unit.id && !busy.contains_key(&f.id) && self.world.def(f.def).is_some_and(|d| d.speed == 0.0) && f.pos.dist2d(unit.pos) < FINISH_REACH).collect();
             orphans.sort_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
             for frame_unit in orphans.into_iter().take(3) {
-                let share = frame_unit.health / frame_unit.max_health.max(1.0);
+                let share = frame_unit.build_progress;
                 let cost = self.world.def(frame_unit.def).map_or(0.0, |d| d.metal_cost);
                 let what = format!("our unfinished {} at {}", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos));
                 push(format!("finish_{}", self.handle(frame_unit)), Order::Finish(frame_unit.id), format!("{then}{name} finishes {what} ({:.0}% built, {:.0} of {cost:.0} metal in it, decaying while nobody builds it; {}){}{leaves}", share * 100.0, share * cost, way_words(unit.pos.dist2d(frame_unit.pos), speed), stands(frame_unit.pos)), format!("finishing {what}"), None);

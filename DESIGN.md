@@ -99,7 +99,9 @@ manual fire and the silo's missile as `COMMAND_UNIT_ATTACK_AREA` with no radius,
 (K-rules-the-silo-fires-on-an-attack-at-the-ground; measured 2026-10-09 in the `nuke-check-*` scenarios). `Command::Stockpile { unit, change }` is `COMMAND_UNIT_STOCKPILE` one order a step, up with no
 option and down with the right-mouse one: the game's "Stockpile control" gadget fills every silo and anti-nuke to its
 unit file's limit on its own from the moment it stands and reads a stockpile order as a step of that kept count, so
-there is nothing to order a round with (K-rules-a-stockpile-fills-itself-to-its-limit). `OwnUnit` carries `stockpile`
+there is nothing to order a round with (K-rules-a-stockpile-fills-itself-to-its-limit). `OwnUnit` carries `build_progress`
+(the engine's share of the build done, 2026-10-27: every "% built" the hands and the player read; the frame's health
+was read as it before, low on a damaged frame and a finished unit under repair read as a frame), `stockpile`
 and `stockpile_queued` (asked of the engine only for types with a stockpiled weapon) and `UnitDefInfo`
 `stockpile_seconds` (120 for Armada's silo, 90 for an anti-nuke; 0 for everything else), `stockpile_energy` (the round's
 cost: over the seconds, the draw) and `coverage` (an interceptor's: 2,000). The record writes a `round` event when a

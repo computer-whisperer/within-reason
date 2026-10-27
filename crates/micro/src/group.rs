@@ -1071,7 +1071,7 @@ impl Group {
         }
         // Formed and exceptions, from this tick's slots.
         self.exceptions.clear();
-        let mut all_formed = true;
+        let mut none_walking_in = true;
         for w in walkers {
             let slot = self.slots[&w.id];
             let off = w.pos.dist2d(slot);
@@ -1100,17 +1100,21 @@ impl Group {
             if let Some(cause) = cause {
                 let seconds = if w.speed > 0.0 { off / w.speed } else { f32::INFINITY };
                 self.exceptions.push((w.id, cause, seconds));
-                if !self.away.contains_key(&w.id) && !cut_off {
-                    all_formed = false;
+                // Only a member on its way in holds the arrival: one standing still out of its slot (stuck, or a
+                // joiner that has not set off) may never come, and an order ended by arrival alone stood on it
+                // (apex-v0405 29:07-29:57, companies-2 24:40: five stuck and the group 'advancing' at the stop it
+                // had reached for 50 s).
+                if !self.away.contains_key(&w.id) && !cut_off && w.moving >= 5.0 {
+                    none_walking_in = false;
                 }
             }
         }
-        // Arrived: the anchor at the end and every member of the body in its slot, the body at least half the members
+        // Arrived: the anchor at the end and no member of the body walking in to its slot, the body at least half the members
         // (with every member an exception the old rule was vacuously true: migration-2-1's hold read arrived with three
         // joiners; closed one unit wide, it read arrived eight times in the Glitters lobby game with one formed member
         // at the way's end and a hundred in `away`; D24).
         let in_body = walkers.len() - self.exceptions.len();
-        self.arrived = self.at_end() && all_formed && in_body * 2 >= walkers.len();
+        self.arrived = self.at_end() && none_walking_in && in_body * 2 >= walkers.len();
         &self.slots
     }
 
@@ -1858,6 +1862,28 @@ mod tests {
         let state = group.state(&w);
         assert!(group.at_end() && state.formed.is_empty() && state.exceptions.len() == 2, "{state:?}");
         assert!(!state.arrived, "nobody in slot: not arrived");
+    }
+
+    /// A member standing still out of its slot does not hold the arrival; one walking in does.
+    #[test]
+    fn a_stuck_member_does_not_hold_the_arrival() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -96.0), (2, 0.0, -32.0), (3, 0.0, 32.0), (4, 0.0, 96.0)], 100.0);
+        let positions: Vec<Vec3> = w.iter().map(|w| w.pos).collect();
+        let mut group = Group::new("a", w.iter().map(|w| w.id).collect(), GroupOrder::new(GroupKind::Hold, vec![at(0.0, 0.0)]), &positions, 64.0);
+        for frame in [3, 6, 9] {
+            group.tick(frame, &w, 64.0, &pacing);
+        }
+        assert!(group.state(&w).arrived, "the hold formed: {:?}", group.state(&w));
+        // One member 200 out of its slot, walking in: not arrived.
+        w[3].pos = at(200.0, 96.0);
+        group.tick(12, &w, 64.0, &pacing);
+        assert!(!group.state(&w).arrived, "{:?}", group.state(&w));
+        // The same member standing still there: stuck, and the arrival stands.
+        w[3].moving = 0.0;
+        group.tick(15, &w, 64.0, &pacing);
+        let state = group.state(&w);
+        assert!(state.exceptions.iter().any(|(id, c, _)| *id == UnitId(4) && *c == Cause::Stuck) && state.arrived, "{state:?}");
     }
 
     /// D24 (docs/design/2026-10-25-companies.md §3): a joiner within the exception distance plus the layout's depth of

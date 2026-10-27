@@ -1163,7 +1163,7 @@ impl Brain {
                     // percentage was believed standing at 14:45 and finished at 16:12; by type within 200 the entry
                     // showed a neighbour's 98 % for a frame at 8: the unfinished-structures sweep, 2026-10-17).
                     let frame_unit = own_frame.and_then(|f| own.iter().find(|u| u.id == f));
-                    let percent = frame_unit.map(|u| u.health / u.max_health.max(1.0) * 100.0);
+                    let percent = frame_unit.map(|u| u.build_progress * 100.0);
                     // Its name once it stands, so a list or a `produce` for it can be staged now.
                     let named = frame_unit.and_then(|u| self.future_name(u)).map_or(String::new(), |n| format!("; it will be {n}: a `queue` or `produce` for it now waits for it to stand"));
                     format!("building a {what} at {} ({}){named}", self.place_words(places, *near), percent.map_or("its frame is gone".to_string(), |p| format!("{p:.0} % built")))
@@ -1677,7 +1677,7 @@ impl Brain {
                 let queue = pianist.lab_queue.get(&unit.id).map(Vec::as_slice).unwrap_or_default();
                 // What stands on its pad now (the queue holds only what is not yet started, human-6: "building "
                 // with the queue empty and a Grunt on the pad).
-                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built{})", self.short_words(u.def), u.health / u.max_health.max(1.0) * 100.0, self.future_name(u).map_or(String::new(), |n| format!("; it will be {n}: a `queue` for it now waits for it to stand")))).next();
+                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built{})", self.short_words(u.def), u.build_progress * 100.0, self.future_name(u).map_or(String::new(), |n| format!("; it will be {n}: a `queue` for it now waits for it to stand")))).next();
                 entry["doing"] = json!(match (on_pad, queue.is_empty()) {
                     (None, true) if unit.idle => "idle: building nothing".to_string(),
                     (None, true) => "starting a unit".to_string(),

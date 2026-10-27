@@ -965,7 +965,7 @@ impl Brain {
                     let build = self.pianist.as_ref().and_then(|p| p.tasks.get(&unit)).and_then(|t| match t {
                         Task::Build { started: true, frame: Some(f), def, near, .. } => {
                             let frame_unit = tick.snapshot.own_units.iter().find(|u| u.id == *f);
-                            let share = frame_unit.map_or(0.0, |u| u.health / u.max_health.max(1.0));
+                            let share = frame_unit.map_or(0.0, |u| u.build_progress);
                             let cost = self.world.def(*def).map_or(0.0, |d| d.metal_cost);
                             Some((self.frame_builders.get(f).map_or(0, |(_, created)| *created), format!("its {} at {} ({:.0}% built, {:.0} metal in it", self.short_words(*def), self.world.grid(*near), share * 100.0, share * cost), frame_unit.map(|u| self.handle(u))))
                         }
@@ -999,7 +999,7 @@ impl Brain {
             // said so, since the player cannot tell a staged list from a dropped one.
             if let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).filter(|u| u.being_built) {
                 let pianist = self.pianist.as_mut().expect("pianist mode");
-                pianist.done.push(format!("{} {name}: staged; it is {:.0}% built and the list runs when it stands", picture::clock(tick.frame), unit.health / unit.max_health.max(1.0) * 100.0));
+                pianist.done.push(format!("{} {name}: staged; it is {:.0}% built and the list runs when it stands", picture::clock(tick.frame), unit.build_progress * 100.0));
             }
             // A new list is the player's order now: it ends the hold the pick's retreat put on the old one.
             let listed = tick.snapshot.own_units.iter().find(|u| self.actor_name(u.id) == name).map(|u| u.id);
@@ -2017,7 +2017,7 @@ mod frame_tests {
     }
 
     fn frame(id: i32, def: i32, pos: Vec3, share: f32) -> OwnUnit {
-        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, ..own(id, def, pos) }
+        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, build_progress: share, ..own(id, def, pos) }
     }
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
@@ -2112,7 +2112,7 @@ mod stop_tests {
             pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 60, started: true, frame: Some(UnitId(20)) });
             brain.pianist = Some(pianist);
             brain.frame_builders.insert(UnitId(20), (UnitId(1), created));
-            let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 70.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }];
+            let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 70.0, max_health: 100.0, build_progress: 0.7, ..own(20, 2, at(1000.0, 1000.0)) }];
             let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
             let tick = Tick { frame: 200, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
             let mut commands = Vec::new();
