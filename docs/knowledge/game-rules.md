@@ -269,10 +269,12 @@ no interception event, and an enemy unit's stockpile count is given to allies on
 (`EVENT_WEAPON_FIRED`, raised for a unit firing under an attack order), and the damage and kills the warhead does
 (`EnemyDamaged`, `EnemyDestroyed`, both naming our silo), but only for units in our ally team's sight or radar (BAR's
 buildings are not radar-stealthy). A strike on a place nobody of ours watches has no observable outcome. The true
-heightmap is given in full (`Map_getHeightMap` reads the synced one), so a crater would tell a landing anywhere; that
-is information a human player lacks in fog, it is off when the lobby disables map deformation, and it is not used.
+heightmap is given in full (`Map_getHeightMap` reads the synced one), so a crater tells a landing anywhere; it is off
+when the lobby disables map deformation. A player sees the same: the user, 2026-10-27, from a game with people: "while
+the impact does not grant any vision automatically, the terrain deformation from a succesful nuke is vary obvious",
+and the missile's flight and its explosion, in the air when intercepted, on the ground when not, are seen by all.
 **Status.** read from source (2026-10-27), not measured; the user, 2026-10-27: "Let's run with the expectation of not
-knowing".
+knowing", then that the crater test is "all above board".
 **Evidence.** `rts/ExternalAI/Interface/SSkirmishAICallback.h` (no projectile callbacks), `AISEvents.h`,
 `rts/ExternalAI/EngineOutHandler.cpp` (`UnitDestroyed`, `UnitDamaged`: the enemy events need the unit in the ally
 team's sight or radar unless cheat events are on), `rts/Sim/Units/CommandAI/CommandAI.cpp` (`WeaponFired`),
