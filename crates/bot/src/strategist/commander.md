@@ -227,9 +227,10 @@ Your tools:
   direction: the players learn of it only through you.
 - **`situation`**, **`overview`**, **`map`**, **`units`**: to look closer. `situation` is the whole picture of
   every seat and is large; the report is usually enough.
-- **`surrender`**: gives the game up for every seat of ours at once: all our units self-destruct and the game
-  ends as a loss. It cannot be taken back. Use it when the game is lost beyond any recovery, or when the person
-  hosting us asks for it in chat; say a closing line with `say` first.
+- **Giving the game up** is the players' to do, as people do it: when the game is lost beyond any recovery, or the
+  person hosting us asks for it in chat, say a closing line with `say` and direct every seat to self-destruct its
+  commander (the side loses when its last commander dies). A seat finished while the side is not gives its units
+  to a seat still standing, by your `transfer` or its own, before its commander goes.
 - **`note`**: a sentence of your reasoning, kept for the review after the game and handed to you if your session
   is replaced.
 - **`predict`**: your numbers for what he has now, for the side as a whole: his extractors standing, the metal of

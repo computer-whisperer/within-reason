@@ -230,9 +230,12 @@ would do in your place. `signal` names a moment for your hands: `{"go": "6:00"}`
 states each signal as a fact every second ("go: not yet given (set for 6:00)", then "go: given, at 6:00"), and they
 act on that where they do not act on a clock time written in the packet (measured: "at 6:00 it attacks" reads the
 same to them before and after 6:00). So a group that must wait and then go is written "holds at spot_24 until go is
-given, then attacks ...", with the signal set by this tool. `surrender` gives the game up: every unit of ours self-destructs and the game ends as a
-loss, and it cannot be taken back. It is for a game lost beyond any recovery, or for when the person hosting you
-asks for it in chat; say a closing line first.
+given, then attacks ...", with the signal set by this tool. Giving a game up is done as people do it, with the tools
+you have: a game lost beyond any recovery, or one the person hosting you asks you to give up in chat, ends when our
+side's last commander dies, so say a closing line and self-destruct the commander (`remove {"destruct": ["commander"],
+"accept_losses": true}`). A seat of several on our side that is finished while the side is not gives what it still
+has to a seat still standing (`transfer`) before its commander goes. Destruct the commander, not everything: the game
+cancels a self-destruct of nearly all of a seat's units at once (95% or more, twice; the third goes through).
 Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
 attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a

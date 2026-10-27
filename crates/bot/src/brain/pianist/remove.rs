@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 use bot_protocol::{Command, OwnUnit, Tick};
 
-use super::super::Brain;
+use super::super::{Brain, FRAMES_PER_SECOND};
 use crate::strategist::shared::{Removal, Shared, UnitCard};
 
 impl Brain {
@@ -78,9 +78,19 @@ impl Brain {
         for removal in removals {
             match removal {
                 Removal::Destruct { targets } => {
+                    // The order is a toggle: a unit whose countdown is still running is left to it. One standing
+                    // past its countdown was stopped by the game (a self-destruct of 95% or more of a seat's units
+                    // is cancelled twice, game_selfd_resign.lua) and is told again.
+                    self.self_destructing.retain(|id, _| own.iter().any(|u| u.id == *id));
+                    let lag = self.echo.lag(frame).unwrap_or(0);
                     for handle in targets {
                         match self.unit_named(&handle, own) {
+                            Some(u) if self.self_destructing.get(&u.id).is_some_and(|until| frame < *until) => {
+                                notes.push(format!("{handle} is self-destructing already"));
+                            }
                             Some(u) => {
+                                let seconds = self.world.def(u.def).map_or(5.0, |d| d.self_destruct_seconds);
+                                self.self_destructing.insert(u.id, frame + (seconds * FRAMES_PER_SECOND as f32) as i32 + lag + FRAMES_PER_SECOND);
                                 commands.push(Command::SelfDestruct { unit: u.id });
                                 notes.push(format!("{handle} is self-destructing on the player's order"));
                             }
@@ -129,5 +139,37 @@ impl Brain {
         own.iter()
             .filter(|u| u.id != target.id && !u.being_built && self.world.is_mobile_builder(u.def))
             .min_by(|a, b| (listed(a), a.pos.dist2d(target.pos)).partial_cmp(&(listed(b), b.pos.dist2d(target.pos))).unwrap_or(std::cmp::Ordering::Equal))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bot_protocol::{Resource, Snapshot, UnitId};
+
+    use super::super::fixtures::{at, brain_of, own};
+    use super::*;
+
+    /// The engine's self-destruct is a toggle: a second `remove` inside the countdown is not sent, one after it is
+    /// (the game stopped the countdown).
+    #[test]
+    fn a_unit_already_self_destructing_is_not_told_again_until_its_countdown_is_over() {
+        let mut brain = brain_of(&["armcom"]);
+        brain.pianist = Some(super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        let shared = Shared::default();
+        let ours = vec![own(7, 1, at(1000.0, 1000.0))];
+        let tick = |frame: i32| {
+            let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+            Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
+        };
+        let handle = brain.handle(&ours[0]);
+        let mut sent = |brain: &mut Brain, frame: i32| {
+            shared.removals.lock().unwrap().push(Removal::Destruct { targets: vec![handle.clone()] });
+            let mut commands = Vec::new();
+            brain.take_removals(&tick(frame), &mut commands, &shared);
+            commands.iter().filter(|c| matches!(c, Command::SelfDestruct { unit: UnitId(7) })).count()
+        };
+        assert_eq!(sent(&mut brain, 100), 1);
+        assert_eq!(sent(&mut brain, 160), 0, "inside the countdown");
+        assert_eq!(sent(&mut brain, 100 + 7 * 30), 1, "still standing past it: the game stopped it");
     }
 }

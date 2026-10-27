@@ -83,7 +83,7 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
             super::command::tool_list()
         } else if shared.side.get().is_some() {
             // Under a commander chat is the commander's.
-            Value::Array(tool_list().as_array().into_iter().flatten().filter(|t| t["name"] != "say" && t["name"] != "surrender").cloned().collect())
+            Value::Array(tool_list().as_array().into_iter().flatten().filter(|t| t["name"] != "say").cloned().collect())
         } else {
             tool_list()
         } })),
@@ -193,7 +193,7 @@ fn tool_list() -> Value {
               "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become; a constructor or factory of another faction builds its own faction's things there (write them by their own names or by role words). A standing transfer, {\"from\": \"t2\", \"to\": \"t5\", \"keep_metal\": 100, \"keep_energy\": 2000}, has t2's hands send t5 everything above those amounts in t2's store every second until {\"from\": \"t2\", \"standing\": false} lifts it; one keep or both. This is how a seat feeds a sprint: a one-shot send moves a surplus, and a seat spending as it earns never has one (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat and passed on), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
               "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" }, "keep_metal": { "type": "number" }, "keep_energy": { "type": "number" }, "standing": { "type": "boolean" } } } },
             { "name": "remove",
-              "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander); for a reclaim, \"<type> at <place or grid cell>\" (\"armwin at spot_64\", \"armsolar at E4\") names the nearest standing unit of that type to the place, for a building the picture gives no handle for, and \"unfinished <type> at <place or grid cell>\" the nearest unfinished frame of the type there (the report's `unfinished structures` line gives frames' handles too). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
+              "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back (a unit already counting down is left to it: the engine's order is a toggle). A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander); for a reclaim, \"<type> at <place or grid cell>\" (\"armwin at spot_64\", \"armsolar at E4\") names the nearest standing unit of that type to the place, for a building the picture gives no handle for, and \"unfinished <type> at <place or grid cell>\" the nearest unfinished frame of the type there (the report's `unfinished structures` line gives frames' handles too). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
             { "name": "fire",
               "description": "Fire a nuclear silo's ready missile at a place: {\"silo\": \"armsilo_31002\" (its handle as the picture's `stockpilers` entry writes it), \"at\": [x, z] or a grid cell (\"E7\": its centre)}. The silo launches about nine seconds after the order and the warhead lands thirteen seconds later: 12,500 damage at the point, nothing 640 away, so aim at the point itself (his advanced plant, his fusions, his commander standing still), not at a cell. The game keeps a silo stockpiling to ten missiles on its own, each two minutes and about 1,042 energy a second; `fire` spends one. His anti-nuke takes any missile aimed within 2,000 of it once it has an interceptor (90 s after it stands); the enemy's buildings by place name his anti-nukes with that coverage. Refused when no missile is ready.",
@@ -202,7 +202,6 @@ fn tool_list() -> Value {
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
             signal_tool(),
-            surrender_tool(),
             orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
@@ -256,23 +255,6 @@ pub(super) fn signal(arguments: &Value, shared: &Shared) -> Result<String, Strin
         }
     }
     Ok(said.join("; "))
-}
-
-/// The `surrender` tool, the player's and the commander's alike.
-pub(super) fn surrender_tool() -> Value {
-    json!({ "name": "surrender",
-        "description": "Give the game up: every unit of ours self-destructs within seconds and the game ends as a loss. It cannot be taken back. Only when the game is lost beyond any recovery (no factory and no means to build one, or an army and economy a small fraction of his with his army in our base), or when the person hosting us asks for it in chat. Say a closing line in chat first (`say`), then call this with the reason.",
-        "inputSchema": { "type": "object", "additionalProperties": false, "required": ["reason"], "properties": { "reason": { "type": "string" } } } })
-}
-
-/// The `surrender` tool's work, on the caller's own state.
-pub(super) fn surrender(arguments: &Value, shared: &Shared) -> Result<String, String> {
-    let reason = arguments["reason"].as_str().map(str::trim).filter(|r| !r.is_empty()).ok_or("surrender needs its reason under \"reason\"")?;
-    let time = shared.briefing().game_time;
-    shared.notes.lock().unwrap().push(format!("[{time}] surrendered: {reason}"));
-    shared.surrender.store(true, Ordering::Relaxed);
-    eprintln!("[strategist] surrender at {time}: {reason}");
-    Ok("surrendered: every unit of ours is self-destructing and the game will end. Nothing more is needed from you".into())
 }
 
 /// A grid cell's column and row, 0-based ("E7" gives (4, 6)).
@@ -419,8 +401,6 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         if let Some(outcome) = super::command::call_tool(name, arguments, shared) {
             return outcome;
         }
-    } else if name == "surrender" && shared.side.get().is_some() {
-        return Err("giving the game up is the commander's in this game. Write a `note` when you think it is lost: the commander reads it".into());
     } else if name == "say" && shared.side.get().is_some() {
         return Err("chat is the commander's in this game: it hears the people and answers them. Write a `note` when there is something it should say".into());
     } else if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
@@ -813,7 +793,6 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             Ok(format!("marked: {}; your hands see the place from their next look", said.join("; ")))
         }
         "signal" => signal(arguments, shared),
-        "surrender" => surrender(arguments, shared),
         "say" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("say needs text")?;
             let text: String = text.chars().take(240).collect();
@@ -1341,7 +1320,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "fire", "say", "signal", "surrender", "orders", "wait", "note", "predict"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "fire", "say", "signal", "orders", "wait", "note", "predict"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }

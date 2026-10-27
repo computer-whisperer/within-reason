@@ -217,7 +217,6 @@ pub(super) fn tool_list() -> Value {
         { "name": "transfer",
           "description": "Move metal or energy from one seat to another, ours or an ally's that is not ours (the allies line names them by tag), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold, or {\"units\": [\"group_A_t2\"], \"to\": \"t1\"} gives those units (a group by its name as the report writes it) to that seat: its player and hands take them as a group of their own from their next look, and the seat that gave them no longer has them. For a strike of two seats' bodies that are about to hit one place, giving one body to the other seat puts both under one player and one pair of hands; the giving seat's new units stay its own. A standing transfer, {\"from\": \"t2\", \"to\": \"t5\", \"keep_metal\": 100, \"keep_energy\": 2000}, has t2's hands send t5 everything above those amounts in t2's store every second until {\"from\": \"t2\", \"standing\": false} lifts it; one keep or both: this is how a seat feeds a sprint, since a seat spending as it earns never has a surplus to send once. Say in your direction what was given and why.",
           "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" }, "keep_metal": { "type": "number" }, "keep_energy": { "type": "number" }, "standing": { "type": "boolean" } } } },
-        super::mcp::surrender_tool(),
         { "name": "situation",
           "description": "The picture the players' hands read this second, every seat's together: economy, ours, enemy, places by name, every actor with what it is doing. Your report carries a summary; call this to read the whole of it. It is large.",
           "inputSchema": empty },
@@ -251,7 +250,6 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
             }
             Ok(format!("your next report comes {} s of game after this one began", wake.max_seconds))
         }),
-        "surrender" => Some(super::mcp::surrender(arguments, shared)),
         "signal" => Some(super::mcp::signal(arguments, shared)),
         "situation" | "overview" | "map" | "units" | "note" | "predict" | "say" | "mark" | "transfer" => None,
         other => Some(Err(format!("{other} is not a tool of the commander's: you direct the players in words (`direct`); the units are theirs"))),
@@ -619,11 +617,6 @@ mod tests {
         assert_eq!(player.signals_all(10800).0["go_west"], "given, at 6:00");
         call_tool("signal", &json!({ "go_now": null }), &side).unwrap().unwrap();
         assert!(!player.signals_all(10800).0.contains_key("go_now"));
-        // Giving the game up is the commander's, with a reason, and sets the side's flag for every seat.
-        assert!(call_tool("surrender", &json!({}), &side).unwrap().is_err());
-        assert!(!side.surrender.load(Ordering::Relaxed));
-        assert!(call_tool("surrender", &json!({ "reason": "no factory left, his army in our base" }), &side).unwrap().is_ok());
-        assert!(side.surrender.load(Ordering::Relaxed));
         assert!(call_tool("wait", &json!({ "max_seconds": 5 }), &side).unwrap().unwrap().contains("30 s"));
     }
 }

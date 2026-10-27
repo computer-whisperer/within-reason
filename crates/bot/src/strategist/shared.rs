@@ -749,9 +749,6 @@ pub struct Shared {
     /// picture states each one's status as a fact ("not yet given", "given at 6:00"), and a packet waits on the
     /// name. The commander's are the side's, the same to every seat in the same second.
     pub signals: Mutex<BTreeMap<String, i32>>,
-    /// The `surrender` tool was called (the commander's on the side's state, a player's on its own): every seat
-    /// that reads this state gives the game up by self-destructing what it owns.
-    pub surrender: std::sync::atomic::AtomicBool,
     /// This is the state of the side's commander (`command.rs`), not of a player: its tools are the commander's.
     pub commander: std::sync::atomic::AtomicBool,
     /// A player's: the side's state, when the game has a commander. The brain publishes there what it publishes

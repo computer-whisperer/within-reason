@@ -1,5 +1,21 @@
 # Game rules and engine semantics that shape play
 
+### K-rules-mass-self-destruct-is-cancelled-twice
+**Claim.** BAR cancels a self-destruct of 95% or more of a team's units at once the first two times in a game and
+lets the third through (an anti-rage-quit rule, the warning going to the team's players), unless exactly one ally
+team holds a team of people: then the check is skipped for every team. An AI's units in an all-AI game, or in a game
+with people on both sides, are covered; a self-destruct of a few units (the commander alone) never is. The engine's
+self-destruct order is a toggle: a second one inside the countdown stops it.
+**Status.** demonstrated (2026-10-27)
+**Evidence.** `luarules/gadgets/game_selfd_resign.lua` (`thresholdPercentage = 0.95`, `allowedStrikes = 3`,
+`cancelSelfDestructOrders` re-giving `CMD.SELFD`; `isLastAliveNonGaiaAllyTeam` counts ally teams with a non-AI team
+and checks neither which nor whether alive). rework-ladder-50-1/00: 20 units told to self-destruct at frame 44655
+(24:48), none died of it (19 to his weapons later); three units told one at a time at 47325, 47460 and 47640 died of
+it 1.5 to 2.5 s later.
+**Would be wrong if.** A BAR version changes the gadget's threshold or strikes.
+**Used by.** The role texts (player.md, commander.md): give up by the commander's self-destruct; `remove`'s
+countdown guard (`pianist/remove.rs`).
+
 ### K-rules-commander-death-ends-game
 **Claim.** With the default death mode (`deathmode=com`, "Kill all enemy Commanders") a *side* loses when it has no
 commander left: the gadget keeps one live-commander count per ally team and kills every seat of the side when it
