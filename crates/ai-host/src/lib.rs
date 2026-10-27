@@ -75,6 +75,8 @@ impl<B: Bot> Transport for InProcess<B> {
 const TICK_FRAMES: i32 = 3;
 const BRAIN_FRAMES: i32 = 15;
 const RECONNECT_INTERVAL: i32 = 30;
+/// Frames between tries after a bot answered with another protocol: half a minute.
+const MISMATCH_RETRY: i32 = 900;
 /// Frames between heartbeat lines in the engine log; the arena reads game time from them.
 const HEARTBEAT_INTERVAL: i32 = 30 * 30;
 /// Frames between census lines (`WITHIN_REASON_OBSERVE`): what the opponent owns, for studying how it plays.
@@ -113,6 +115,8 @@ struct Instance<L: Transport> {
     /// and again before a give `CHEAT_REFRESH` frames after the last sending (the director's retried spawn); the
     /// frame of the last sending.
     cheats_sent_at: Option<i32>,
+    /// The frame a bot last answered the handshake with another protocol.
+    mismatch_at: Option<i32>,
     frame: i32,
 }
 
@@ -209,8 +213,28 @@ impl<L: Transport> Instance<L> {
     }
 
     fn connect(&mut self, frame: i32) {
-        // A missing bot is the normal idle state, not worth a log line every second.
-        let Ok(link) = L::connect() else { return };
+        if self.mismatch_at.is_some_and(|at| frame < at + MISMATCH_RETRY) {
+            return;
+        }
+        let link = match L::connect() {
+            Ok(link) => link,
+            // The bot and this library were built from different protocol sources (`bot_protocol::handshake`): said
+            // once, in the chat where the people at the game see it, and tried again every half minute (a bot
+            // restarted from the matching build is taken).
+            Err(e) if e.kind() == std::io::ErrorKind::InvalidData => {
+                if self.mismatch_at.is_none() {
+                    self.log(format_args!("the bot speaks another protocol: {e}"));
+                    let _ = self.engine.console(&format!(
+                        "/say this AI's library and the bot process were built from different protocols ({e}): run/install_to_bar.sh (or run/install_ai.sh) from the bot's tree, then restart the game"
+                    ));
+                }
+                self.mismatch_at = Some(frame);
+                return;
+            }
+            // A missing bot is the normal idle state, not worth a log line every second.
+            Err(_) => return,
+        };
+        self.mismatch_at = None;
         self.link = Some(link);
         self.log(format_args!("connected to bot at frame {frame}"));
         let hello = self.engine.hello(frame, self.tick_frames);
@@ -437,6 +461,7 @@ impl<L: Transport> Host<L> {
                 events: Vec::new(),
                 spawns: Vec::new(),
                 cheats_sent_at: None,
+                mismatch_at: None,
                 frame: -1,
             };
             instance.log("init");

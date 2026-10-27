@@ -23,6 +23,16 @@ model=${4:-claude-opus-5-5}
 players=${5:-one}
 commander=${6:-none}
 commander_effort=${7:-high}
+# The AI library the client loads must be this build's: the shim and the bot speak one protocol, and a library
+# installed from another tree misreads the bot's orders (human 2026-10-26: one installed before a field was added to
+# the build order dropped two seats five times each; the handshake now refuses it in game, this check before it).
+# WITHIN_REASON_BAR_DIR names another install.
+bar=${WITHIN_REASON_BAR_DIR:-"$HOME/.local/share/BeyondAllReason"}
+installed="$bar/AI/Skirmish/WReason/0.1/libSkirmishAI.so"
+if ! cmp -s "$root/target/release/libai_shim.so" "$installed"; then
+    echo "the AI library in $installed is not this build's (target/release/libai_shim.so): run run/install_to_bar.sh first" >&2
+    exit 1
+fi
 dir="$root/run/matches/$(date +%s)-$label/00"
 mkdir -p "$dir"
 snapshot="$(dirname "$dir")/snapshot"

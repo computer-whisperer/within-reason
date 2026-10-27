@@ -6,7 +6,7 @@
 mod framing;
 mod messages;
 
-pub use framing::{FrameReader, write_frame};
+pub use framing::{FINGERPRINT, FrameReader, handshake, write_frame};
 pub use messages::*;
 
 /// A bot as a host runs it inside the AI library (`ai_host::InProcess`): made from the `Hello`, then one

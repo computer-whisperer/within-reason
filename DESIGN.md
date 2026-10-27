@@ -53,6 +53,11 @@ tokens (`bots/README.md`).
   and attach the rest chunk by chunk.
 
 ## Protocol (credit-based, so the shim never blocks the sim)
+0. Both sides write the protocol's fingerprint (eight bytes: a hash of `bot-protocol`'s message and framing sources
+   without their comments, `crates/bot-protocol/build.rs`) and read the other's before any frame
+   (`bot_protocol::handshake`). Postcard is not self-describing, so builds of two trees would misread each other's
+   frames; on a mismatch the bot refuses the connection before any session and says so once in its log, and the shim
+   says so once in the game chat and tries again every half minute.
 1. shim → bot `Hello { ai_id, team, ally_team, game_id, teams, start_boxes, frame, map, unit_defs, metal_spots, terrain }` once per
    connection, sent at the engine's `init` (the end of loading, before the starts are placed and long before the first
    frame: the player takes its opening turn then, `docs/design/2026-09-30-opening-turn.md`), or at an update when no bot

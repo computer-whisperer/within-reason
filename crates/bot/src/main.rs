@@ -77,10 +77,22 @@ fn main() -> io::Result<()> {
     // leaves when its last session ends; otherwise it listens on for the next game.
     static LIVE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let leave_when_over = std::env::var_os("WITHIN_REASON_EXIT_WHEN_OVER").is_some();
+    // Said once: a shim of another protocol retries every half minute (one from before the handshake every second).
+    static MISMATCH_SAID: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     for stream in listener.incoming() {
-        let stream = stream?;
-        LIVE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let mut stream = stream?;
         std::thread::spawn(move || {
+            // Before any session or player: a shim built from other protocol sources would misread every order
+            // (human 2026-10-26, five reconnections a seat, each a fresh player session).
+            let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
+            if let Err(e) = bot_protocol::handshake(&mut stream) {
+                if !MISMATCH_SAID.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                    eprintln!("refused a shim: {e}; the AI library the engine loaded was built from another tree than this bot: run/install_to_bar.sh (a BAR install) or run/install_ai.sh from this bot's tree, then restart the game");
+                }
+                return;
+            }
+            let _ = stream.set_read_timeout(None);
+            LIVE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             if let Err(e) = session(stream, player) {
                 eprintln!("session ended: {e}");
             }

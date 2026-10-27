@@ -342,6 +342,7 @@ fn serve(socket: &Path, director: Arc<Mutex<Director>>, closing: Arc<AtomicBool>
 
 fn session(mut stream: UnixStream, director: &Mutex<Director>) -> io::Result<()> {
     stream.set_nonblocking(false)?;
+    bot_protocol::handshake(&mut stream).inspect_err(|e| eprintln!("refused a shim: {e} (run/install_ai.sh)"))?;
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
     let mut next = move || reader.read::<ToBot>(&mut input).map(|m| m.expect("blocking socket"));

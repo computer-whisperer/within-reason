@@ -6,9 +6,12 @@ use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
 use ai_host::Transport;
-use bot_protocol::{Commands, FrameReader, ToBot, socket_path, write_frame};
+use bot_protocol::{Commands, FrameReader, ToBot, handshake, socket_path, write_frame};
 
 const WRITE_TIMEOUT: Duration = Duration::from_millis(250);
+/// The bot answers the handshake from its accept loop at once; a bot from before the handshake never answers, and the
+/// engine thread waits this long to find out.
+const HANDSHAKE_TIMEOUT: Duration = Duration::from_millis(250);
 
 pub struct Link {
     stream: UnixStream,
@@ -17,8 +20,18 @@ pub struct Link {
 
 impl Transport for Link {
     fn connect() -> io::Result<Self> {
-        let stream = UnixStream::connect(socket_path())?;
+        let mut stream = UnixStream::connect(socket_path())?;
         stream.set_write_timeout(Some(WRITE_TIMEOUT))?;
+        stream.set_read_timeout(Some(HANDSHAKE_TIMEOUT))?;
+        // A bot of another protocol, or one from before the handshake (no answer in time), is the same fault to the
+        // host: `InvalidData`, said once in the chat.
+        handshake(&mut stream).map_err(|e| match e.kind() {
+            io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::UnexpectedEof => {
+                io::Error::new(io::ErrorKind::InvalidData, format!("no handshake from the bot ({e})"))
+            }
+            _ => e,
+        })?;
+        stream.set_read_timeout(None)?;
         Ok(Link { stream, reader: FrameReader::default() })
     }
 

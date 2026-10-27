@@ -4,6 +4,28 @@ use serde::{Serialize, de::DeserializeOwned};
 
 const MAX_FRAME: usize = 64 << 20;
 
+/// The protocol's fingerprint (`build.rs`), the first eight bytes each side writes on a connection.
+pub const FINGERPRINT: &str = env!("WITHIN_REASON_PROTOCOL");
+
+/// The first exchange on a connection, before any frame: each side writes the fingerprint and reads the other's.
+/// `InvalidData` when they differ: the two were built from different protocol sources and every frame would be misread.
+/// A peer from before the handshake writes a frame instead (the shim its `Hello`), and that reads as a mismatch too.
+pub fn handshake(stream: &mut (impl Read + Write)) -> io::Result<()> {
+    let ours = fingerprint_bytes();
+    stream.write_all(&ours)?;
+    stream.flush()?;
+    let mut theirs = [0u8; 8];
+    stream.read_exact(&mut theirs)?;
+    if theirs != ours {
+        return Err(io::Error::new(ErrorKind::InvalidData, format!("protocol {:016x}, ours {FINGERPRINT}", u64::from_be_bytes(theirs))));
+    }
+    Ok(())
+}
+
+fn fingerprint_bytes() -> [u8; 8] {
+    u64::from_str_radix(FINGERPRINT, 16).expect("build.rs writes sixteen hex digits").to_be_bytes()
+}
+
 /// Writes one message as a little-endian `u32` length followed by its postcard encoding.
 pub fn write_frame<T: Serialize>(writer: &mut impl Write, message: &T) -> io::Result<()> {
     let body = postcard::to_stdvec(message).map_err(io::Error::other)?;
@@ -72,6 +94,21 @@ mod tests {
             out[0] = self.0.remove(0);
             Ok(1)
         }
+    }
+
+    /// Two sides of one build agree; a peer that writes a frame first (a shim from before the handshake) does not.
+    #[test]
+    fn the_handshake_tells_a_stale_peer() {
+        let (mut a, mut b) = std::os::unix::net::UnixStream::pair().unwrap();
+        let other = std::thread::spawn(move || handshake(&mut b));
+        handshake(&mut a).unwrap();
+        other.join().unwrap().unwrap();
+        let (mut a, mut b) = std::os::unix::net::UnixStream::pair().unwrap();
+        // Longer than the fingerprint, as the old shim's `Hello` is; `b` is kept so the read sees no end of file.
+        write_frame(&mut b, &Commands((0..4).map(|i| Command::Stop { unit: UnitId(i) }).collect())).unwrap();
+        let error = handshake(&mut a).unwrap_err();
+        drop(b);
+        assert_eq!(error.kind(), ErrorKind::InvalidData, "{error}");
     }
 
     #[test]

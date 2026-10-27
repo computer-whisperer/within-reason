@@ -88,6 +88,13 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
 - The bot protocol changed on 2026-09-22 (`UnitDamaged` gained `from` and `weapon`; later that day `Snapshot` gained `wind`; `Command::MoveState`; late
   that night `UnitDefInfo` gained `footprint` and the blasts, `OwnUnit` `facing`, `BuildSite` `keep_out`, and `Command::ReclaimUnit`, on 2026-09-23 `TeamInfo.controller` (who plays each seat), and on 2026-09-30 `BuildSite.keep_out` became `placements` (a facing with its keep-out, tried in order)): the arena builds both
   sides, but GUI play needs `run/install_to_bar.sh` re-run so the installed shim matches the bot.
+- **A shim from another tree misreads the bot's orders.** human 2026-10-26: the client's shim, installed 2026-10-25 at
+  19:08, predated `BuildSite.exact` (the territory merge at 20:24); every command after a build order with a site was
+  read a byte off, and when the misreading met an impossible value the shim dropped the connection (`Found an Option
+  discriminant that wasn't 0 or 1` in the launcher log) and reconnected, a fresh player session each time: five a seat
+  for two of three seats. Between the drops some orders were likely misread without an error. Since then the
+  connection opens with a protocol handshake that refuses a mismatch (DESIGN.md, Protocol 0), and `run/human_game.sh`
+  refuses to start while the client's installed library is not `target/release/libai_shim.so`.
 - The shim says Hello at `init` since 2026-10-01 (the opening turn, `docs/design/2026-09-30-opening-turn.md`): a shim
   installed before that connects at the first frame, the opening turn then starts as the game does, and the hands wait
   for it with the game running. Re-run `run/install_to_bar.sh` before a game with people. The bot must be listening
