@@ -298,7 +298,9 @@ Seen the night the drill demos were copied into the user's client. What does rep
 as `/give`, which the engine sends as a `CommandMessage` over the net (`Game.cpp` `ActionPressed`), recorded and
 re-executed. Built the same night, and simpler than a widget: the engine takes an AI's text that starts with a slash
 as a console command (`CAICallback::SendTextMsg` calls `CGame::ProcessCommandText`), so `engine::Spawner::give`
-sends `/give 1 <unit> <team> @x,0,z` as the AI's text and the shim sends `/cheat 1` from its first update. Two things
+sends `/give 1 <unit> <team> @x,0,z` as the AI's text and the shim sends `/cheat 1` from its first update (from
+2026-10-27 with the first give instead: sent at every first update it reached the games with people, where the server
+refuses it and tells every player, `docs/design/2026-10-27-engine-thread.md`). Two things
 found building it: the unsynced give executor checks the cheat flag locally (`UnsyncedActionExecutor.h`), and the
 flag set by `/cheat 1` comes back from the server a frame later, so a `/give` in the same frame as the `/cheat` is
 refused without a log line (the first smoke's `spawn_failed`); the shim held spawns two frames (`lib.rs`

@@ -1,0 +1,10 @@
+[package]
+name = "nukes"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "The nuclear silos' strikes for the heuristic bots of bots/: where each missile goes, what became of it, his anti-nuke cover; the flagship does not use it"
+
+[dependencies]
+bot-protocol = { path = "../bot-protocol" }
+combatsim = { path = "../combatsim" }

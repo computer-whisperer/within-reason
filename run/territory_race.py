@@ -132,7 +132,9 @@ def read(path):
             for c in CELL.finditer(text):
                 warn = None if c.group(3) == "-" else float(c.group(3))
                 cells[int(c.group(1))] = (float(c.group(2)), warn, [float(c.group(i)) for i in range(4, 8)], float(c.group(8)))
-            g["race"].append((t, cells))
+            # Taken on its own thread from 2026-10-27 and said when it ends: the line names the frame it was taken at.
+            taken = re.search(r", of f=(\d+) \|", text)
+            g["race"].append((int(taken.group(1)) / 30.0 if taken else t, cells))
     truth = glob.glob(f"{path}/truth-*.jsonl")
     g["truth"] = []
     if truth:

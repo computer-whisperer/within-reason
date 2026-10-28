@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use bot_protocol::{Hello, MoveClass, Terrain, UnitDefId, Vec3};
 use terrain::Field;
@@ -24,6 +25,9 @@ pub struct Spot {
 /// Walking distance in elmos between two points, for a builder on foot.
 pub trait Ground: Debug + Send + Sync {
     fn walk(&self, from: (f64, f64), to: (f64, f64)) -> f64;
+
+    /// Makes ready ahead of the first ask what walks to each of `places` need; open ground needs nothing.
+    fn prepare(&self, _places: &[(f64, f64)]) {}
 }
 
 /// Flat open ground: the straight line times `detour`. 1.05 fits 565 builder trips in 12 recorded games on Quicksilver
@@ -39,15 +43,21 @@ impl Ground for Straight {
     }
 }
 
-/// The map's own ground for one movement class: distances on foot, one field per place walked to (few: metal spots
-/// and base sites), made when first asked for.
+/// The map's own ground for one movement class: distances on foot, one field per place walked to (the metal spots and
+/// base sites), made when first asked for or by `prepare`. A field of All That Glitters Extended's 960 x 640 cells
+/// takes 37 ms and 2.5 MB (`docs/design/2026-10-27-engine-thread.md`).
 pub struct Walked {
     terrain: Terrain,
     /// The builder's class's cost a cell: slopes priced by the engine's own law (`terrain::costs`), so that a plan
     /// walks the commander over its own ground at its own pace (routing design, 2026-09-20).
     costs: Vec<u32>,
-    fields: Mutex<HashMap<(i32, i32), Option<Arc<Field>>>>,
+    /// Each place's field, by its cell: made once, by whichever thread asks first, the others waiting for it; the map's
+    /// lock is held only to find the slot, so the search's threads no longer queue behind each other's fields.
+    fields: Mutex<HashMap<(i32, i32), Arc<OnceLock<Option<Arc<Field>>>>>>,
 }
+
+/// Threads `prepare` makes fields on at most.
+const PREPARE_THREADS: usize = 8;
 
 /// Where no way on foot is found the builder is charged this many straight lines, not eternity: a plan stuck for
 /// good on one bad site would tell the search nothing about the rest of it.
@@ -60,6 +70,16 @@ impl Walked {
         (terrain.width > 0 && costs.len() == (terrain.width * terrain.height) as usize)
             .then(|| Walked { terrain: terrain.clone(), costs, fields: Mutex::default() })
     }
+
+    fn field(&self, to: (f64, f64)) -> Option<Arc<Field>> {
+        let key = ((to.0 / self.terrain.cell as f64) as i32, (to.1 / self.terrain.cell as f64) as i32);
+        let slot = self.fields.lock().unwrap().entry(key).or_default().clone();
+        slot.get_or_init(|| Field::from_costs(&self.terrain, &self.costs, &[at(to)]).map(Arc::new)).clone()
+    }
+}
+
+fn at(p: (f64, f64)) -> Vec3 {
+    Vec3 { x: p.0 as f32, y: 0.0, z: p.1 as f32 }
 }
 
 impl Debug for Walked {
@@ -70,10 +90,22 @@ impl Debug for Walked {
 
 impl Ground for Walked {
     fn walk(&self, from: (f64, f64), to: (f64, f64)) -> f64 {
-        let at = |p: (f64, f64)| Vec3 { x: p.0 as f32, y: 0.0, z: p.1 as f32 };
-        let key = ((to.0 / self.terrain.cell as f64) as i32, (to.1 / self.terrain.cell as f64) as i32);
-        let field = self.fields.lock().unwrap().entry(key).or_insert_with(|| Field::from_costs(&self.terrain, &self.costs, &[at(to)]).map(Arc::new)).clone();
-        field.and_then(|f| f.distance(at(from))).map_or(distance(from, to) * NO_WAY_DETOUR, |d| (d as f64).max(distance(from, to)))
+        self.field(to).and_then(|f| f.distance(at(from))).map_or(distance(from, to) * NO_WAY_DETOUR, |d| (d as f64).max(distance(from, to)))
+    }
+
+    /// The places' fields on up to `PREPARE_THREADS` threads, in the order given.
+    fn prepare(&self, places: &[(f64, f64)]) {
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, PREPARE_THREADS);
+        let next = AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            for _ in 0..threads {
+                scope.spawn(|| {
+                    while let Some(place) = places.get(next.fetch_add(1, Ordering::Relaxed)) {
+                        self.field(*place);
+                    }
+                });
+            }
+        });
     }
 }
 
@@ -214,5 +246,33 @@ mod wind_tests {
         let comet = process_mean_wind(1.0, 4.0);
         assert!((2.6..3.4).contains(&comet), "{comet}");
         assert_eq!(process_mean_wind(0.0, 0.0), 0.0);
+    }
+}
+
+#[cfg(test)]
+mod ground_tests {
+    use super::{Ground, Walked};
+    use bot_protocol::{MoveClass, MoveKind, Terrain};
+
+    /// 64 x 48 cells of 16, flat, with a wall across the middle from the top down to four cells off the bottom edge.
+    fn walled() -> Terrain {
+        let (width, height) = (64u32, 48u32);
+        let slopes = (0..width * height).map(|i| if i % width == 32 && i / width < height - 4 { 255 } else { 0 }).collect();
+        Terrain { cell: 16.0, width, height, heights: vec![10; (width * height) as usize], slopes, metal: Vec::new() }
+    }
+
+    #[test]
+    fn prepared_fields_walk_as_fields_made_when_asked() {
+        let class = MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0 };
+        let places: Vec<(f64, f64)> = (0..40).map(|i| (40.0 + 24.0 * i as f64, 40.0 + 17.0 * i as f64)).collect();
+        let (asked, prepared) = (Walked::new(&walled(), class).unwrap(), Walked::new(&walled(), class).unwrap());
+        prepared.prepare(&places);
+        let from = (100.0, 100.0);
+        for to in &places {
+            assert_eq!(asked.walk(from, *to), prepared.walk(from, *to), "to {to:?}");
+        }
+        // Round the wall, not through it: from its west foot to its east foot the walk goes down past its end.
+        let (west, east) = ((500.0, 100.0), (540.0, 100.0));
+        assert!(prepared.walk(west, east) > 1000.0, "{}", prepared.walk(west, east));
     }
 }

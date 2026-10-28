@@ -1,0 +1,11 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the ground read round the targets before the silo's missile (fired at 170 s, landing about 192 s) and twice after: the crater a landing digs and an interception does not (D-NUKE-VERDICT, 2026-10-27)",
+ "rows": [
+  {"t": 150.0, "unit": 0, "cmd": "probe", "x": 6600, "z": 3072},
+  {"t": 170.0, "unit": 0, "cmd": "fire", "x": 6600, "z": 3072},
+  {"t": 215.0, "unit": 0, "cmd": "probe", "x": 6600, "z": 3072},
+  {"t": 240.0, "unit": 0, "cmd": "probe", "x": 6600, "z": 3072}
+ ]
+}

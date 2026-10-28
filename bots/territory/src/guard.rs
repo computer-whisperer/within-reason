@@ -51,7 +51,7 @@ pub(crate) struct Guard {
     /// host's enemy list does not leave it out: counted again from those sightings, his bots stood in the army shown
     /// five minutes after their death (terr280: 3,836 of 4,064 dead at 15:00 of game 02). Kept for the game: the
     /// engine gives a unit's id out again only once every other id has been used (`SimObjectIDPool::FreeID`, delayed).
-    dead: BTreeSet<UnitId>,
+    pub(crate) dead: BTreeSet<UnitId>,
     /// The guard's type, chosen again when the factory types standing change.
     kind: Option<(Vec<usize>, Option<usize>)>,
     /// Where the guard is sent and why, and the frame it last answered a raid.
@@ -259,8 +259,9 @@ impl Territory {
             if units.list[i].speed > 0.0 {
                 continue;
             }
-            // An anti-air turret is no help against the ground (T-AIR's); it is one of the buildings at stake.
-            if units.list[i].role == Role::Turret && !self.is_anti_air(i) && !u.being_built {
+            // An anti-air turret is no help against the ground (T-AIR's), nor a silo (T-NUKE's); each is one of the
+            // buildings at stake.
+            if self.is_gun(i) && !u.being_built {
                 turrets.push((u.pos, self.hello.unit_defs[i].reach, units.list[i].metal_cost as f32));
             } else {
                 buildings.push((u.pos, units.list[i].metal_cost as f32));

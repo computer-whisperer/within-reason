@@ -12,11 +12,12 @@ mod air;
 mod army;
 mod economy;
 mod lane;
+mod nuke;
 mod tier2;
 
 use std::collections::{BTreeMap, VecDeque};
 
-use bot_protocol::{Bot, Command, Commands, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Bot, Command, Commands, Controller, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 
 pub(crate) const SECOND: i32 = 30;
 pub(crate) const MINUTE: i32 = 60 * SECOND;
@@ -39,6 +40,8 @@ pub(crate) struct Kit {
     pub air_plant: Option<UnitDefId>,
     pub fighter: Option<UnitDefId>,
     pub bomber: Option<UnitDefId>,
+    /// The aircraft plant's scout plane (Peeper, Finch; Legion has none): D-NUKE-LOOK's eyes.
+    pub air_scout: Option<UnitDefId>,
     pub constructor: Option<UnitDefId>,
     pub scout: Option<UnitDefId>,
     pub raider: Option<UnitDefId>,
@@ -57,6 +60,8 @@ pub(crate) struct Kit {
     pub assist: Option<UnitDefId>,
     pub t2_tank: Option<UnitDefId>,
     pub t2_artillery: Option<UnitDefId>,
+    /// The nuclear silo (`nuke.rs`): Retaliator, Apocalypse, Legion's.
+    pub silo: Option<UnitDefId>,
 }
 
 pub(crate) struct Distilled {
@@ -85,6 +90,8 @@ pub(crate) struct Distilled {
     pub economy: economy::Economy,
     pub army: army::Army,
     pub air: air::Air,
+    /// The silos and their strikes (D-NUKE, `nuke.rs`).
+    pub nuke: nukes::Nukes,
     /// The control lane under the army's orders (D-LANE, `lane.rs`).
     pub control: lane::Control,
     /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
@@ -133,11 +140,12 @@ impl Distilled {
             "leg" => ("lht", "scout", "econv", "adveconv", "hades", "gat", "bar", "aheattank", "amcluster", Some("afcv")),
             _ => ("llt", "fav", "makr", "mmkr", "flash", "stump", "art", "bull", "mart", Some("consul")),
         };
-        // The aircraft plant's fighter and bomber: Falcon and Stormbringer, Valiant and Whirlwind, Noctua and none.
-        let (fighter, bomber) = match faction {
-            "cor" => ("veng", Some("shad")),
-            "leg" => ("fig", None),
-            _ => ("fig", Some("thund")),
+        // The aircraft plant's fighter, bomber and scout plane: Falcon, Stormbringer and Peeper; Valiant, Whirlwind and
+        // Finch; Noctua and neither.
+        let (fighter, bomber, air_scout) = match faction {
+            "cor" => ("veng", Some("shad"), Some("fink")),
+            "leg" => ("fig", None, None),
+            _ => ("fig", Some("thund"), Some("peep")),
         };
         Kit {
             // The cheapest extractor the commander can build.
@@ -151,6 +159,7 @@ impl Distilled {
             air_plant: named("ap"),
             fighter: named(fighter),
             bomber: bomber.and_then(named),
+            air_scout: air_scout.and_then(named),
             constructor: named("cv"),
             scout: named(scout),
             raider: named(raider),
@@ -167,6 +176,7 @@ impl Distilled {
             assist: assist.and_then(named),
             t2_tank: named(t2_tank),
             t2_artillery: named(t2_artillery),
+            silo: named("silo"),
         }
     }
 
@@ -181,9 +191,10 @@ impl Distilled {
         self.income_multiplier = 1.0 + handicap_percent(&self.hello.script, self.hello.team) / 100.0;
         let table = combatsim::units::Units::default();
         self.init_air(&table);
+        self.init_nuke(&table);
         self.tiers = self.defs.values().filter_map(|d| table.index(&d.name).map(|i| (d.id, table.list[i].tech))).collect();
         let kit = &self.kit;
-        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank)]
+        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank), ("silo", kit.silo)]
             .iter()
             .filter(|(_, def)| def.is_none())
             .map(|(name, _)| *name)
@@ -376,7 +387,8 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
+        let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
@@ -407,12 +419,16 @@ impl Bot for Distilled {
             match event {
                 Event::BuildSiteNotFound { unit, def } => self.order_failed(*unit, Some(*def)),
                 Event::CommandRejected { unit, .. } => self.order_failed(*unit, None),
-                Event::EnemyDestroyed { enemy, .. } => {
+                Event::EnemyDestroyed { enemy, attacker } => {
+                    self.nuke_hit(*enemy, *attacker, true);
                     self.bombed(*enemy);
                     self.army.forget(*enemy);
                     self.air.shown.remove(enemy);
                 }
                 Event::UnitFinished { unit } => self.t2_milestone(*unit, "standing"),
+                Event::EnemyDamaged { enemy, attacker, .. } => self.nuke_hit(*enemy, *attacker, false),
+                Event::WeaponFired { unit, .. } => self.nuke_launched(*unit),
+                Event::Ground { points } => self.nuke_ground(points),
                 Event::UnitDestroyed { unit, attacker, death } => {
                     self.unit_died(&tick, *unit, *attacker, death);
                     self.last_hit.remove(unit);
@@ -445,6 +461,7 @@ impl Bot for Distilled {
         if tick.due() % SECOND == 0 {
             self.run_army(&tick, &mut commands);
             self.run_air(&tick, &mut commands);
+            self.run_nukes(&tick, &mut commands);
             self.note_commitments();
         }
         if tick.due() % (30 * SECOND) == 0 && tick.frame > 0 {
@@ -473,6 +490,7 @@ impl Bot for Distilled {
                 if self.tier(u.def) >= 2 { tier2 += d.metal_cost } else { tier1 += d.metal_cost }
             }
             eprintln!("[distilled ai={}] f={} army: tier 1 {tier1:.0}, tier 2 {tier2:.0}", self.hello.ai_id, tick.frame);
+            self.log_nukes(&tick);
         }
         Commands(commands)
     }

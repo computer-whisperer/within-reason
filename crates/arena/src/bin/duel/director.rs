@@ -1371,6 +1371,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 Event::CommandRejected { unit, code } if army.units.contains(unit) => {
                     duel.notes.push(json!({"rejected": army.spawn_of.get(unit).copied(), "side": side, "code": code, "f": frame}));
                 }
+                // A script's probe answered: each point as [x, z, height].
+                Event::Ground { points } => {
+                    let heights: Vec<Value> = points.iter().map(|p| json!([p.x.round(), p.z.round(), (p.y * 10.0).round() / 10.0])).collect();
+                    duel.notes.push(json!({"ground": heights, "side": side, "f": frame}));
+                }
                 _ => {}
             }
         }
@@ -1969,6 +1974,19 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
         let index = army.next_row;
         army.next_row += 1;
         army.last_row_frame = Some(frame);
+        if row.cmd == ScriptCmd::Probe {
+            let at = Vec3 { x: row.x.unwrap_or(0.0), y: 0.0, z: row.z.unwrap_or(0.0) };
+            let mut points = vec![at];
+            for r in [150.0f32, 300.0] {
+                points.extend((0..8).map(|k| {
+                    let a = k as f32 * std::f32::consts::FRAC_PI_4;
+                    Vec3 { x: at.x + r * a.cos(), y: 0.0, z: at.z + r * a.sin() }
+                }));
+            }
+            commands.push(Command::Probe { points });
+            notes.push(json!({"row": index, "f": frame, "cmd": "probe"}));
+            continue;
+        }
         let (mut sent, mut skipped) = (Vec::new(), Vec::new());
         for i in row.unit.indices(count) {
             let Some(unit) = living(army, i) else {
@@ -1990,6 +2008,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                     sent.push(i);
                     continue;
                 }
+                ScriptCmd::Probe => unreachable!("a probe row goes out before the units' loop"),
                 ScriptCmd::Attack => match row.target.and_then(|t| living(enemy, t)) {
                     Some(target) => Command::Attack { unit, target, queue: row.queue },
                     None => {

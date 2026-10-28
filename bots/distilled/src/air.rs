@@ -8,6 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bot_protocol::{Command, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use nukes::ENERGY_A_METAL;
 
 use crate::army::SEEN_FOR;
 use crate::economy::Job;
@@ -49,10 +50,9 @@ const AA_WEIGHT: f32 = 3.0;
 const BOMBERS: usize = 4;
 const SORTIE_GAP: i32 = MINUTE;
 /// His economy buildings within this of a point are one field; a field of fewer than `FIELD_LEAST` is not bombed. A
-/// building's worth is its metal and its energy at the converter's rate (70 energy a metal, K-mech-converter-rates).
+/// building's worth is its metal and its energy at the converter's rate (`nukes::ENERGY_A_METAL`).
 const FIELD: f32 = 200.0;
 const FIELD_LEAST: usize = 3;
-const ENERGY_A_METAL: f32 = 70.0;
 /// A bomber that has been within `PASS` of its target for `PASS_FOR` has dropped and is called back; a sortie is
 /// called back whole once it has lasted its flight time and `SORTIE_SLACK`; its kills are counted for `SETTLE` after
 /// the last bomber is called back (the chain takes seconds).
@@ -234,6 +234,10 @@ impl Distilled {
     /// D-FIGHTERS, D-BOMB: what the aircraft plant makes next: fighters to the count wanted, then the squadron's
     /// bombers, else nothing; with no air of his shown, only from spare energy (`SPARE_ENERGY`).
     pub(crate) fn next_aircraft(&self, energy: Resource) -> Option<UnitDefId> {
+        // D-NUKE-LOOK: a scout plane to look for the anti-nuke behind an interception comes first.
+        if self.air_scout_wanted() {
+            return self.kit.air_scout;
+        }
         let spare = energy.current > SPARE_ENERGY * energy.storage;
         if self.fighters_short() && (spare || !self.air.shown.is_empty()) {
             return self.kit.fighter;

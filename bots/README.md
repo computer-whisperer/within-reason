@@ -29,7 +29,14 @@ install.
 
 ## Limits of the in-library host, as built
 
-- `tick` runs on the engine thread: the game waits for it. Keep it well inside a frame (33 ms at speed 1).
+- `tick` runs on the engine thread: the game waits for it. Keep it well inside a frame (33 ms at speed 1). Where a
+  client hosts AIs for people as a spectator, the game does not wait: the server paces the game by the players' CPU
+  alone, so that client falls behind and fast-forwards, and the seats' orders arrive late by as much (the 2026-10-25
+  game: about 30 s at its start, WRTerritory's first ticks; `docs/design/2026-10-27-engine-thread.md`). The host says
+  what each seat costs the engine thread: `[wreason ai=N] timing f=F minute: reads R s, bot B s, apply A s` once a
+  game minute (reading the game for its ticks, the bot's start and ticks, carrying out its commands), `timing f=F slow
+  tick|reads|apply N ms` for any one call of 50 ms or more, and `timing f=0 hello: ...` at the start;
+  `run/seat_time.py` tallies them.
 - A panic in the bot is caught at the library's edge and the bot's state is whatever the panic left.
 - No match record is written (`record-<ai>.jsonl` is the flagship's recorder, in `crates/bot`), so the viewer and the
   review tools have nothing to read for these games yet; the engine log's census, balance and truth lines are there.

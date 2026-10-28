@@ -933,6 +933,11 @@ impl Engine {
     /// (`Pos2BuildPos`, the path), but the replay draws the queued ghost or destination at the height sent, in
     /// the sky or under the ground (the user, 2026-09-27: "to-be-started mex ghosts and unit movement destinations
     /// appear as either high in the sky or under the terrain").
+    /// The ground's height at a place now, craters and all ([`Command::Probe`]).
+    pub fn elevation(&self, x: f32, z: f32) -> f32 {
+        call!(self, Map_getElevationAt(x, z))
+    }
+
     fn on_the_ground(&self, at: Vec3) -> [f32; 3] {
         [at.x, call!(self, Map_getElevationAt(at.x, at.z)), at.z]
     }
@@ -1180,7 +1185,8 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
                     params_size: 1,
                 })
             }
-            Command::GiveUnit { .. } => Err(-1),
+            // The shim answers these itself (`lib.rs` `apply`): nothing reaches the engine.
+            Command::GiveUnit { .. } | Command::Probe { .. } => Err(-1),
             Command::SelfDestruct { unit } => {
                 self.handle(sys::COMMAND_UNIT_SELF_DESTROY, &mut sys::SSelfDestroyUnitCommand {
                     unitId: unit.0,

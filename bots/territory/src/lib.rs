@@ -12,6 +12,7 @@ mod air;
 mod guard;
 mod hands;
 mod his_start;
+mod nuke;
 mod options;
 mod planner;
 mod promise;
@@ -71,13 +72,15 @@ pub(crate) struct Territory {
     pub spots: Vec<usize>,
     /// The map's spots in regions (T-REGIONS), made at the start.
     pub regions: Option<Regions>,
-    /// The race of force per region, an instrument (T-RACE).
+    /// The race of force per region (T-RACE), taken on its own thread; T-RADAR reads its warnings.
     pub race: race::Race,
     /// The turrets and radars wanted (T-COVER, T-RADAR).
     pub defence: defence::Defence,
     /// The soldiers' guard (T-GUARD).
     pub guard: guard::Guard,
     pub air: air::Air,
+    /// T-SEEN and T-NUKE: his buildings known, our silos and their strikes.
+    pub nuke: nuke::Silos,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -172,26 +175,29 @@ impl Territory {
         ));
         self.log(format_args!("regions of spots: {}", regions.of_spot.iter().map(|r| r.to_string()).collect::<Vec<_>>().join(" ")));
         self.regions = Some(regions);
-        // The ground's distance fields are made on first use, one per place walked to; made during the first
-        // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
-        // first plan worth 35,000 against the 86,000 found 28 s later). Every place a plan walks to: the spots,
-        // the farm's first slots round its origin and round home (T-FARM), home.
-        let began = std::time::Instant::now();
-        let ground = self.ground();
-        let home = (self.home.x as f64, self.home.z as f64);
-        let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
         let origin = self.farm_origin();
         self.log_reach(&builders);
         self.init_air();
-        let mut slots = hands::farm_slots(origin, origin, 500.0, false);
-        slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
-        places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
-        places.push(home);
-        for place in &places {
-            ground.walk(home, *place);
+        self.init_nukes();
+        // The ground's distance fields, one per place walked to, are read by the anneal's simulator alone: the program
+        // prices its rings by the straight line from home (`lp.rs`). Under the program none is made, unless an
+        // unsolved program hands a plan to the anneal (28 of 1,195 games to terr337); made here for every place on
+        // the program's planner they cost the 2026-10-25 game with people 17 s of the engine thread a seat at its first
+        // frame and 1.1 GB, and were never read (`docs/design/2026-10-27-engine-thread.md`). For the anneal they are
+        // made now, in parallel: made during its first search they inflated its iteration-cost probe and it stopped
+        // at a third of its budget (terr-smoke-1: a first plan worth 35,000 against the 86,000 found 28 s later).
+        // Every place a plan walks to: the spots, the farm's first slots round its origin and round home (T-FARM),
+        // home.
+        if !self.options.lp {
+            let began = std::time::Instant::now();
+            let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
+            let mut slots = hands::farm_slots(origin, origin, 500.0, false);
+            slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
+            places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
+            places.push((self.home.x as f64, self.home.z as f64));
+            self.ground().prepare(&places);
+            self.log(format_args!("ground: {} places walked in {} ms", places.len(), began.elapsed().as_millis()));
         }
-        let warmed = began.elapsed();
-        self.log(format_args!("ground: {} places walked in {} ms", places.len(), warmed.as_millis()));
         self.log(format_args!(
             "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); every enemy start {}; allied starts {}; {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
             self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z,
@@ -475,6 +481,7 @@ impl Bot for Territory {
             defence: defence::Defence::default(),
             guard: guard::Guard::default(),
             air: air::Air::default(),
+            nuke: nuke::Silos::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -524,7 +531,13 @@ impl Bot for Territory {
                     }
                     self.unit_lost(*unit);
                 }
-                Event::EnemyDestroyed { enemy, .. } => self.army_lost(*enemy),
+                Event::EnemyDestroyed { enemy, attacker } => {
+                    self.nuke_hit(*enemy, *attacker, true);
+                    self.army_lost(*enemy);
+                }
+                Event::EnemyDamaged { enemy, attacker, .. } => self.nuke_hit(*enemy, *attacker, false),
+                Event::WeaponFired { unit, .. } => self.nuke.engine.launched(*unit, self.frame),
+                Event::Ground { points } => self.nuke_ground(points),
                 _ => {}
             }
         }
@@ -533,6 +546,7 @@ impl Bot for Territory {
             self.announced = true;
             commands.push(Command::Say { text: self.banner() });
         }
+        self.remember_buildings(&tick);
         self.made += tick.snapshot.metal.income as f64 * (tick.frame - self.last_frame) as f64 / SECOND as f64;
         self.last_frame = tick.frame;
 
@@ -561,15 +575,17 @@ impl Bot for Territory {
             self.run_nanos(&mut commands);
             self.run_priorities(&mut commands);
         }
+        if tick.due() % SECOND == 0 {
+            self.run_nukes(&tick, &mut commands);
+        }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             self.curve_line(&tick);
+            self.log_nukes(&tick);
         }
         if tick.due() % promise::STANDING_LOG == 0 {
             self.log_standing();
         }
-        if tick.due() % race::RACE_LOG == 0 && tick.frame > 0 {
-            self.log_race();
-        }
+        self.run_race(tick.frame, tick.due() % race::RACE_LOG == 0 && tick.frame > 0);
         if tick.due() % defence::DEFENCE_LOG == 0 && tick.frame > 0 {
             self.log_defence();
         }
