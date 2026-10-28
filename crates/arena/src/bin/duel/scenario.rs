@@ -35,6 +35,7 @@
 //!     { "t": 0.0, "unit": [0, 1, 2], "cmd": "move", "x": 4300, "z": 1900 },   // unit: an index into side 0, a list, or "all"
 //!     { "t": 0.0, "unit": 3, "cmd": "attack", "target": 4 },                    // target: an index into side 1
 //!     { "t": 4.5, "unit": "all", "cmd": "fight", "x": 4527, "z": 1436, "queue": true },
+//!     { "t": 4.5, "unit": 7, "cmd": "fight_reclaiming_enemies", "x": 4527, "z": 1436 },   // a builder: takes enemies apart
 //!     { "t": 9.0, "unit": 5, "cmd": "guard", "target": 6 },                     // guard: an index into side 0
 //!     { "t": 9.0, "unit": 5, "cmd": "stop" },
 //!     { "t": 9.0, "unit": 5, "cmd": "firestate", "state": 0 },             // 0 hold fire, 1 return fire, 2 fire at will
@@ -145,6 +146,9 @@ impl Units {
 pub enum ScriptCmd {
     Move,
     Fight,
+    /// A builder's fight that takes apart enemies and stops for nothing of ours (`Command::FightReclaimingEnemies`).
+    #[serde(rename = "fight_reclaiming_enemies")]
+    FightReclaimingEnemies,
     Attack,
     Stop,
     Guard,

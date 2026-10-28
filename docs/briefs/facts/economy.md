@@ -174,9 +174,16 @@ fixed bonus makes many small reclaimers worth far more than their build power sa
 with the map's own values and reclaim the same way.
 
 Reclaiming a live unit or building of your own (or an ally's, or an enemy's you can reach) returns its full metal
-cost times its build progress, all of it at the end, with no energy cost; the time is the unit's build time over the
-reclaimer's power, so the commander eats a bot lab in 17 seconds for 500 metal and a construction vehicle eats a
-Stout in 38 for 225.
+cost times its build progress, all of it at the end, with no energy cost and no wreck; the time is its health share
+times its build time over the reclaimer's power, so the commander eats a whole bot lab in 17 seconds for 500 metal and
+a construction vehicle a whole Stout in 38 for 225. Any unfinished frame can be taken apart, an enemy's too;
+commanders cannot. An enemy unit keeps shooting while it is taken apart, from inside the reclaimer's build distance
+(130-145; every raider's gun reaches farther), so health decides the trade: a construction bot takes a full Pawn apart
+in 21 seconds while the Pawn kills it in 8, but one at a quarter health in 5 seconds, for its 54 metal; a damaged
+raider that wanders among constructors, an enemy's fresh frame and a lone hurt building are what an unarmed builder can
+kill. The reclaim drains health at the same time as weapons do, so the commander's laser and its reclaim add, and a
+unit the reclaim finishes pays its whole cost instead of a 60 percent wreck. Stopped before the end, a reclaim pays
+nothing, but the health it took stays lost.
 
 Resurrecting a whole wreck (one not partly reclaimed) costs 50 percent of the unit's energy and no metal and takes
 its build time over the resurrector's power: a resurrection bot (200) raises a Blitz in 10 seconds for 450 energy, a

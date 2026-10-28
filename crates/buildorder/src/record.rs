@@ -153,6 +153,9 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             cloak: d["cloak"].as_array().and_then(|c| Some(bot_protocol::Cloak { cost: c.first()?.as_f64()? as f32, decloak_distance: c.get(1)?.as_f64()? as f32, decloak_on_fire: c.get(2)?.as_i64()? != 0, starts_cloaked: c.get(3)?.as_i64()? != 0 })),
             shield: d["shield"].as_array().and_then(|s| Some(bot_protocol::Shield { radius: s.first()?.as_f64()? as f32, power: s.get(1)?.as_f64()? as f32, intercepts: s.get(2)?.as_u64()? as u32, exterior: s.get(3)?.as_i64()? != 0 })),
             intercepted_by: d["intercepted_by"].as_u64().unwrap_or(0) as u32,
+            health: number(d, "health"),
+            reclaim_speed: number(d, "reclaim_speed"),
+            reclaimable: d["reclaimable"].as_bool().unwrap_or(false),
         })
         .collect();
     Ok(Units::new(&defs))

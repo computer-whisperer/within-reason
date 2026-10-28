@@ -5,10 +5,14 @@
 //! metal lying in safe fields and work the richest field for the walk. H-REC-RESURRECT: a wreck of a soldier worth
 //! having is raised when energy is plentiful; everything else is taken apart. Constructors short of metal go to the
 //! same fields (H-ECO-RECLAIM) and, while we have a resurrection bot, leave it the wrecks worth raising.
+//!
+//! His units: a builder takes one apart in its health share times its build time over the builder's reclaim speed, and
+//! we get its whole cost (K-mech-reclaim-values). What comes apart within `TAKE_APART_SECONDS` near a builder is a
+//! constructor's menu move (H-HANDS-TAKE-APART-HIS) and a resurrection bot's first job (H-REC-TAKE-APART).
 
 use std::collections::HashMap;
 
-use bot_protocol::{Command, FeatureId, OwnUnit, Tick, UnitId, Vec3, Wreck};
+use bot_protocol::{Command, EnemyUnit, FeatureId, OwnUnit, Tick, UnitId, Vec3, Wreck};
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
@@ -31,6 +35,13 @@ const QUEUE: usize = 5;
 /// (the commander games, 2026-09-20: 869 wrecks taken apart for 89 raised).
 const RAISE_MIN_METAL: f32 = 100.0;
 const RAISE_ENERGY: f32 = 0.5;
+/// His units and frames a builder is offered, or a resurrection bot takes, come apart within this at its reclaim speed
+/// (the user, 2026-10-27: "only units and frames with health remaining that should take a short enough time period --
+/// 10s should do it"): a construction bot's Pawn at a quarter health (5 s), not a whole one (21 s, while the Pawn
+/// kills it in 8).
+pub(super) const TAKE_APART_SECONDS: f32 = 10.0;
+/// ... and stand this near the builder.
+pub(super) const TAKE_APART_REACH: f32 = 600.0;
 
 pub struct WreckField {
     pub at: Vec3,
@@ -50,6 +61,15 @@ pub struct Reclaim {
     pub(super) to_mend: Vec<(UnitId, UnitId)>,
     /// Resurrection bots we have.
     crew: usize,
+    /// H-REC-TAKE-APART: the unit of his each resurrection bot is taking apart.
+    taking: HashMap<UnitId, UnitId>,
+}
+
+/// One of his a builder can take apart: the seconds it takes and the metal it pays.
+pub(super) struct Takeable<'a> {
+    pub enemy: &'a EnemyUnit,
+    pub seconds: f32,
+    pub metal: f32,
 }
 
 impl Brain {
@@ -132,6 +152,64 @@ impl Brain {
         wrecks.into_iter().take(QUEUE).map(|w| w.id).collect()
     }
 
+    /// His units and frames in sight that `builder` takes apart within `TAKE_APART_SECONDS`, standing within
+    /// `TAKE_APART_REACH` of it, the nearest first. Not aircraft (out of a builder's reach in flight), and a finished
+    /// unit only of a type that can be taken apart (no commander); a frame always can. A frame pays its cost times its
+    /// progress, which its health share stands for.
+    pub(super) fn takeable<'a>(&self, builder: &OwnUnit, enemies: &'a [EnemyUnit]) -> Vec<Takeable<'a>> {
+        let speed = self.world.def(builder.def).map_or(0.0, |d| d.reclaim_speed);
+        if speed <= 0.0 {
+            return Vec::new();
+        }
+        let mut out: Vec<Takeable> = enemies
+            .iter()
+            .filter(|e| e.pos.dist2d(builder.pos) < TAKE_APART_REACH)
+            .filter_map(|e| {
+                let def = e.def?;
+                let d = self.world.def(def).filter(|d| d.health > 0.0 && (d.reclaimable || e.being_built))?;
+                if self.world.domain_of(def) == crate::world::Domain::Air {
+                    return None;
+                }
+                let share = (e.health / d.health).clamp(0.0, 1.0);
+                let seconds = share * d.build_time / speed;
+                (seconds <= TAKE_APART_SECONDS).then(|| Takeable { enemy: e, seconds, metal: d.metal_cost * if e.being_built { share } else { 1.0 } })
+            })
+            .collect();
+        out.sort_by(|a, b| a.enemy.pos.dist2d(builder.pos).total_cmp(&b.enemy.pos.dist2d(builder.pos)));
+        out
+    }
+
+    /// H-REC-TAKE-APART: a resurrection bot takes apart the nearest of his it can within `TAKE_APART_SECONDS`
+    /// before anything else; one whose quarry has gone out of `TAKE_APART_REACH` stops (a single-unit reclaim follows its
+    /// target anywhere) and goes back to the wrecks. Returns the bots busy with it.
+    pub(super) fn take_apart_his(&mut self, crew: &[&OwnUnit], enemies: &[EnemyUnit], commands: &mut Vec<Command>) -> Vec<UnitId> {
+        self.reclaim.taking.retain(|bot, target| {
+            let Some(unit) = crew.iter().find(|u| u.id == *bot) else { return false };
+            match enemies.iter().find(|e| e.id == *target) {
+                Some(e) if e.pos.dist2d(unit.pos) < TAKE_APART_REACH => !unit.idle,
+                Some(_) => {
+                    commands.push(Command::Stop { unit: *bot });
+                    false
+                }
+                None => false,
+            }
+        });
+        if !self.enabled("H-REC-TAKE-APART") {
+            return Vec::new();
+        }
+        for unit in crew {
+            if self.reclaim.taking.contains_key(&unit.id) {
+                continue;
+            }
+            let Some(target) = self.takeable(unit, enemies).first().map(|t| t.enemy.id) else { continue };
+            commands.push(Command::ReclaimUnit { unit: unit.id, target, queue: false });
+            self.reclaim.taking.insert(unit.id, target);
+            self.reclaim.workers.remove(&unit.id);
+            self.fire("H-REC-TAKE-APART");
+        }
+        self.reclaim.taking.keys().copied().collect()
+    }
+
     /// Orders for an idle resurrection bot.
     pub(super) fn work_wrecks(&mut self, unit: &OwnUnit, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(index) = self.field_for(unit, f32::INFINITY) else {
@@ -168,5 +246,60 @@ impl Kit {
     /// A resurrection bot: it raises wrecks and takes them apart, and builds nothing.
     pub fn is_resurrector(&self, def: bot_protocol::UnitDefId) -> bool {
         def == self.resurrector
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::brain::pianist::fixtures::{at, brain_of, enemy, own};
+    use super::*;
+
+    /// A construction bot (1), a Pawn (2), a commander (3), a resurrection bot (4), with the engine's numbers.
+    fn brain() -> Brain {
+        let mut brain = brain_of(&["armck", "armpw", "armcom", "armrectr"]);
+        let defs = &mut brain.world.hello.unit_defs;
+        defs[0].reclaim_speed = 80.0;
+        defs[1].build_time = 1650.0;
+        defs[2].build_time = 75000.0;
+        defs[2].reclaimable = false;
+        defs[3].reclaim_speed = 200.0;
+        brain
+    }
+
+    #[test]
+    fn a_hurt_pawn_and_a_fresh_frame_come_apart_in_seconds_a_whole_pawn_and_a_commander_do_not() {
+        let brain = brain();
+        let builder = own(10, 1, at(1000.0, 1000.0));
+        let pawn = |id: i32, x: f32, health: f32| bot_protocol::EnemyUnit { health, ..enemy(id, 2, at(x, 1000.0)) };
+        let enemies = vec![
+            pawn(20, 1200.0, 370.0),
+            pawn(21, 1300.0, 92.5),
+            bot_protocol::EnemyUnit { being_built: true, ..pawn(22, 1100.0, 74.0) },
+            pawn(23, 1700.0, 37.0),
+            bot_protocol::EnemyUnit { health: 100.0, ..enemy(24, 3, at(1050.0, 1000.0)) },
+        ];
+        let takeable = brain.takeable(&builder, &enemies);
+        let seen: Vec<(i32, f32, f32)> = takeable.iter().map(|t| (t.enemy.id.0, (t.seconds * 10.0).round() / 10.0, t.metal.round())).collect();
+        // A quarter-health Pawn in 5.2 s for its whole 54 metal (the table's cost), a 20 % frame in 4.1 s for a fifth
+        // of it; the whole Pawn takes 20.6 s, the one 700 away is out of reach, a commander is never taken apart.
+        let cost = brain.world.hello.unit_defs[1].metal_cost;
+        assert_eq!(seen, vec![(22, 4.1, (cost * 0.2).round()), (21, 5.2, cost.round())]);
+    }
+
+    #[test]
+    fn a_resurrection_bot_takes_a_hurt_raider_apart_and_lets_it_go_when_it_runs_out_of_reach() {
+        let mut brain = brain();
+        let bot = OwnUnit { idle: true, ..own(10, 4, at(1000.0, 1000.0)) };
+        let mut enemies = vec![bot_protocol::EnemyUnit { health: 185.0, ..enemy(21, 2, at(1300.0, 1000.0)) }];
+        let mut commands = Vec::new();
+        let busy = brain.take_apart_his(&[&bot], &enemies, &mut commands);
+        assert_eq!(busy, vec![UnitId(10)]);
+        assert!(matches!(commands[..], [Command::ReclaimUnit { unit: UnitId(10), target: UnitId(21), queue: false }]), "{commands:?}");
+        let bot = OwnUnit { idle: false, ..bot };
+        enemies[0].pos = at(1700.0, 1000.0);
+        commands.clear();
+        let busy = brain.take_apart_his(&[&bot], &enemies, &mut commands);
+        assert!(busy.is_empty());
+        assert!(matches!(commands[..], [Command::Stop { unit: UnitId(10) }]), "{commands:?}");
     }
 }

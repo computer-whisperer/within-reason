@@ -136,15 +136,27 @@ whenever you hit that edge.
   an extractor at every free spot you name, and at the free spot it reaches soonest; a tier-2 extractor over our
   extractor at a spot you name; `help` any factory, or
   another builder's build under way; `take apart` a wreck field the picture lists; `repair` a damaged building or
-  the commander; `go` to a place you name; `follow` a group; and for the commander `attack` a party and the `D-gun`
-  on a party's nearest unit. A builder on a `queue` list has no menu while the list runs; while an enemy is on it (it
-  was hit in the last seconds, or a party stands within 800) it has its ways out alone: go, follow, attack, D-gun.
+  the commander; `go` to a place you name; `follow` a group; for a constructor `take apart` a unit or frame of his
+  within 600 that comes apart in 10 seconds or less; and for the commander `attack` a party and the `D-gun` on a
+  party's nearest unit. A builder on a `queue` list has no menu while the list runs; while an enemy is on it (it
+  was hit in the last seconds, or a party stands within 800) it has its ways out alone: go, follow, take apart his,
+  attack, D-gun.
 - A factory (`lab_N`, `plant_N`, `factory_N`): `stay`, or `make` any unit of its own (those your `produce` list
   allows). Your first report carries the whole roster, one line a unit by internal name; `units` gives any unit's
   full entry, ours or theirs.
+Taking his units apart: a builder can reclaim an enemy unit as it reclaims ours. It drains the unit's health and,
+when the health is gone, pays the unit's whole metal cost (a frame its cost times its progress) and leaves no
+wreck; the time is the unit's health share times its build time over the builder's power, so a construction bot
+needs 21 seconds for a whole Pawn, which kills it in 8, and 5 seconds for a Pawn at a quarter of its health. A
+constructor's only weapon is that: a hurt raider among our builders, his fresh frame or a hurt building of his
+beside one is a kill for it, a whole raider is not. The unit keeps shooting meanwhile, and the builder's reach (130
+to 145) is inside every raider's gun. The commander's `attack` takes apart what it passes as its laser fires (the
+two add), and stops for nothing of ours on the way. Commanders cannot be taken apart.
 Resurrection bots (`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck
 field with no enemy in sight near it by themselves, raising soldiers worth 100 metal or more while stored energy is
-above half and taking the rest apart, and wait at home between fields; you are woken when 500 metal of wrecks lies in
+above half and taking the rest apart, and wait at home between fields; before anything else each takes apart a unit
+or frame of his within 600 of it that comes apart in 10 seconds or less (a resurrection bot's power is 200: a Pawn at
+half health in 4 seconds); you are woken when 500 metal of wrecks lies in
 such fields, and the picture's `wrecks` and `resurrection_bots` lines carry the totals.
 Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
 was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),

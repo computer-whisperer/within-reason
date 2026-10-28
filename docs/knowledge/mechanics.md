@@ -125,13 +125,23 @@ changes; interacts with K-rules-factory-shift-means-five)
 ### K-mech-reclaim-values
 **Claim.** A dead unit leaves a wreck worth 60% of its metal cost; a wreck that takes enough damage becomes a heap worth 25%.
 Reclaiming wrecks and features costs no energy and is gradual (metal arrives as you go); several builders can work one wreck.
-Reclaiming your own live unit returns 100% of its metal, all at the end. Resurrecting costs 0 metal and 50% of the unit's
+Reclaiming a live unit returns 100% of its metal times its build progress, all at the end, and leaves no wreck; an enemy's
+the same (`allowEnemies`), any unfinished frame always, commanders and decoy commanders never (`reclaimable = false`). The
+reclaimer drains the unit's health (`unitDrainHealth`) by its full health times reclaim speed over build time a second,
+so it comes apart in its health share times its build time over the reclaimer's reclaim speed (BAR's files leave that at
+the build power): a construction bot (80) takes a Pawn apart in 20.6 s at full health and 5.2 s at a quarter, while the
+Pawn's 90 a second kills the construction bot in 8.4 s; the commander (300) in 5.5 and 1.4 s, its laser alone kills the
+Pawn in 2.0 s, and the two add. The unit keeps fighting while it is taken apart (`unitMethod` 1: no nanoframe); an
+interrupted reclaim pays nothing, but the health it drained stays lost. Resurrecting costs 0 metal and 50% of the unit's
 energy cost. Repair is free. The commander's wreck holds 1250 M. After an even mid-map trade of 40 units the field holds on
 the order of 2000-3000 M — whoever holds the ground afterwards collects it.
-**Status.** supported (2026-09-19) — local source; the mid-map estimate is arithmetic
+**Status.** supported (2026-09-19) — local source; the mid-map estimate is arithmetic. The live-unit reclaim amended
+2026-10-27 from the engine's source (an enemy's, the health share); the enemy-only fight drill (`docs/data/scenarios-2026-10-27/`) is the runtime check.
 **Evidence.** `gamedata/alldefs_post.lua:556-569` (wreck_metal_ratio 0.6, heap_metal_ratio 0.25); `gamedata/modrules.lua:21-39`
 (reclaimMethod 0, unitMethod 1, unitEfficiency 1, featureEnergyCostFactor 0, repair energyCostFactor 0, resurrect 0.5);
-`units/armcom.lua:114` (dead metal 1250). Web agrees: https://www.beyondallreason.info/guide/reclaim-resurrect-repair.
+`units/armcom.lua:114` (dead metal 1250); RecoilEngine `rts/Sim/Units/Unit.cpp` `CUnit::AddBuildPower` (the reclaim branch: step =
+power / buildTime, health drained by maxHealth × step, the lump refund cost × buildProgress × unitEfficiency) and
+`AllowedReclaim` (an unfinished unit always), `UnitDef.cpp:368` (reclaimSpeed defaults to workerTime). Web agrees: https://www.beyondallreason.info/guide/reclaim-resurrect-repair.
 **Would be wrong if.** A logged area-reclaim over a battle site yielded far less than 0.6 × the metal of units lost there.
 **Used by.** (candidate: H-ARMY-RECLAIM — after a fight within our half or the middle, send rez bots/constructors to
 area-reclaim; BARb gets that metal otherwise. Relates to K-army-piecemeal-midmap: our mid-map trades feed whoever reclaims)

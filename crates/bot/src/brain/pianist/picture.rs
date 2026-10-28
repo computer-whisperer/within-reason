@@ -1178,6 +1178,7 @@ impl Brain {
             Some(Task::Assist { lab, .. }) => format!("helping lab_{} build", lab.0),
             Some(Task::Reclaim { at, .. }) => format!("taking apart wrecks at {}", self.place_words(places, *at)),
             Some(Task::ReclaimUnit { target, .. }) => format!("taking apart our {} on the player's order", self.known_units.get(target).map_or("unit".to_string(), |(def, _)| format!("{}_{}", self.name(*def), target.0))),
+            Some(Task::TakeApartHis { target, def, .. }) => format!("taking apart his {}_{}", self.name(*def), target.0),
             Some(Task::Repair { target, .. }) => format!("repairing our {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def))),
             // The engine has dropped its order when the unit stands idle short of the place: said here until the
             // housekeeping ends the task.

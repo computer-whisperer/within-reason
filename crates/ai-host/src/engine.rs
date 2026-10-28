@@ -383,6 +383,9 @@ impl Engine {
             cloak: self.cloak(id),
             shield: self.shield(id),
             intercepted_by: self.intercepted_by(id),
+            health: call!(self, UnitDef_getHealth(id)),
+            reclaim_speed: call!(self, UnitDef_getReclaimSpeed(id)),
+            reclaimable: call!(self, UnitDef_isReclaimable(id)),
         }
     }
 
@@ -898,6 +901,7 @@ impl Engine {
         let options = |queue: bool| if queue { sys::UNIT_COMMAND_OPTION_SHIFT_KEY as i16 } else { 0 };
         const NO_GROUP: c_int = -1;
         const NO_TIMEOUT: c_int = c_int::MAX;
+        const META_KEY: i16 = 1 << 2;
 /// BAR's `CMD_PRIORITY` (`modules/customcommands.lua`), the builder-priority gadget's command id.
 const BUILDER_PRIORITY_COMMAND: c_int = 34571;
         match *command {
@@ -931,6 +935,18 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
                     unitId: unit.0,
                     groupId: NO_GROUP,
                     options: options(queue),
+                    timeOut: NO_TIMEOUT,
+                    toPos_posF3: pos.as_mut_ptr(),
+                })
+            }
+            Command::FightReclaimingEnemies { unit, to, queue } => {
+                let mut pos = self.on_the_ground(to);
+                self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    // The engine's META bit (1 << 2, `Command.h`) has no name in the AI interface; the options pass
+                    // through to the command whole (`AISCommands.cpp`).
+                    options: options(queue) | sys::UNIT_COMMAND_OPTION_CONTROL_KEY as i16 | META_KEY,
                     timeOut: NO_TIMEOUT,
                     toPos_posF3: pos.as_mut_ptr(),
                 })

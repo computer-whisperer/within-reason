@@ -456,6 +456,9 @@ mod tests {
             cloak: None,
             shield: None,
             intercepted_by: 0,
+            health: 0.0,
+            reclaim_speed: 0.0,
+            reclaimable: false,
         }
     }
 

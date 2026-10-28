@@ -1955,6 +1955,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
             let command = match row.cmd {
                 ScriptCmd::Move => Command::Move { unit, to, queue: row.queue },
                 ScriptCmd::Fight => Command::Fight { unit, to, queue: row.queue },
+                ScriptCmd::FightReclaimingEnemies => Command::FightReclaimingEnemies { unit, to, queue: row.queue },
                 ScriptCmd::Stop => Command::Stop { unit },
                 ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
                 ScriptCmd::Fire => Command::FireAt { unit, at: to },

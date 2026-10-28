@@ -188,7 +188,7 @@ hurters they had taken as targets; hurters given with their targets were crushed
 
 For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`, `docs/studies/2026-09-28-tas-e3.md`).
 - **`--script FILE`**: timed orders for side 0 (ours), JSON rows `{"t", "unit", "cmd", "x", "z" | "target", "queue",
-  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, attack, stop, guard, firestate, and from
+  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, from 2026-10-27 fight_reclaiming_enemies (a builder's enemy-only fight), attack, stop, guard, firestate, and from
   2026-10-09 `fire`, a manual-fire weapon at the ground at x, z, which is how a silo's missile goes; `unit` an index
   into side 0, a list, or `"all"`; an attack's `target` an index into side 1). While a script has rows still to go
   out the fight is not called a stalemate however quiet it is (a silo's round takes minutes before the script fires

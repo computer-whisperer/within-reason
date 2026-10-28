@@ -40,6 +40,8 @@ const AT_END: f32 = 800.0;
 const DAMAGED: f32 = 0.7;
 /// How far a builder is offered an unfinished frame of ours nobody is building.
 const FINISH_REACH: f32 = 1500.0;
+/// H-HANDS-TAKE-APART-HIS: the nearest this many of his a builder can take apart are its moves.
+const TAKE_APART_LISTED: usize = 3;
 /// A wreck field with this much metal is worth a builder's walk (the picture lists the same fields).
 const FIELD_METAL: f32 = 100.0;
 /// The D-gun's shot costs this much energy.
@@ -137,6 +139,8 @@ pub(crate) enum Order {
     TakeApart(Vec3),
     /// One unit of ours, on the player's order (a `reclaim <handle>` list step from the `remove` tool).
     TakeApartUnit(UnitId),
+    /// One unit or frame of his that comes apart in seconds (H-HANDS-TAKE-APART-HIS).
+    TakeApartHis(UnitId),
     Repair(UnitId),
     /// An unfinished structure of ours, whoever began it, as this builder's own build from now on (a started build
     /// task on that frame, so the finish-first law and the 60 % rule hold; the engine's repair command builds it).
@@ -588,6 +592,7 @@ impl Brain {
             (Some(Task::Build { def, .. }), _) => format!("; drops the {} it was going to build", self.short_words(*def)),
             (Some(Task::Follow { group, .. }), _) => format!("; leaves group_{group}"),
             (Some(Task::Attack { party, .. }), _) => format!("; leaves its attack on {party}"),
+            (Some(Task::TakeApartHis { target, def, .. }), _) => format!("; leaves his {}_{} it was taking apart", self.name(*def), target.0),
             _ => String::new(),
         }
     }
@@ -607,6 +612,10 @@ impl Brain {
             Some(Task::Assist { lab, .. }) => ("help", format!("help_{}", self.actor_name(*lab)), format!("helps {} build", self.actor_name(*lab))),
             Some(Task::Reclaim { at, .. }) => ("take_apart", String::new(), format!("takes apart wrecks at {}", self.place_words(places, *at))),
             Some(Task::ReclaimUnit { .. }) => ("take_apart", String::new(), "takes apart a unit of ours on the player's order".to_string()),
+            Some(Task::TakeApartHis { target, def, .. }) => {
+                let handle = format!("{}_{}", self.name(*def), target.0);
+                ("take_apart", format!("take_apart_his_{handle}"), format!("takes apart his {handle}"))
+            }
             Some(Task::Repair { target, .. }) => ("repair", String::new(), format!("repairs our {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def)))),
             Some(Task::Walk { place, .. }) => ("go", format!("go_{place}"), format!("walks to {place}")),
             Some(Task::Follow { group, .. }) => ("follow", format!("follow_group_{group}"), format!("follows group_{group}")),
@@ -1467,7 +1476,8 @@ impl Brain {
             }
         }
 
-        // The moves that take a builder out of danger, which a listed builder has too: go, follow, attack, D-gun.
+        // The moves that take a builder out of danger, which a listed builder has too: go, follow, take apart, attack,
+        // D-gun.
         for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE) {
             let key = format!("go_{}", place.name);
             push(key.clone(), Order::Go(place.name.clone()), format!("{name} walks to {} ({}{}) and waits there{}{}{leaves}", place.name, way_words(unit.pos.dist2d(place.at), speed), what_stands(place), near_words(place), stands(place.at)), format!("the walk to {}", place.name), None);
@@ -1477,6 +1487,40 @@ impl Brain {
             push(key.clone(), Order::Follow(Ward::Group(group.name.clone())), format!("{name} follows group_{} ({}, {}; it {group_course}): it walks beside it wherever it goes{}{leaves}", group.name, self.composition_words(theirs), way_words(unit.pos.dist2d(*at), speed), stands(*at)), format!("following group_{}", group.name), None);
         }
         let armed = self.world.def(unit.def).is_some_and(|d| d.weapon_count > 0);
+        // H-HANDS-TAKE-APART-HIS: an unarmed builder's way to kill, his units and frames beside it that come apart in
+        // seconds (an armed builder takes apart what its attack passes). The unit shoots back while it comes apart.
+        for t in self.takeable(unit, enemies).into_iter().filter(|_| !armed).take(TAKE_APART_LISTED) {
+            let Some(def) = t.enemy.def else { continue };
+            let Some(d) = self.world.def(def) else { continue };
+            let handle = format!("{}_{}", self.name(def), t.enemy.id.0);
+            let shoots = if t.enemy.being_built {
+                "; a frame: it cannot shoot".to_string()
+            } else if d.weapon_count == 0 {
+                String::new()
+            } else {
+                match super::glossary::entry(self.name(def)).and_then(|e| e.dps).filter(|dps| *dps > 0.0) {
+                    Some(dps) => format!("; it shoots back from inside its reach, about {dps:.0} damage a second, which kills {name} in about {:.0} s", unit.health / dps),
+                    None => "; it shoots back from inside its reach".to_string(),
+                }
+            };
+            let moving = t.enemy.vel.x.hypot(t.enemy.vel.z) > 0.1;
+            let outruns = if moving && d.speed > speed { format!("; it is faster than {name} and gets away if it runs") } else { String::new() };
+            let what = if t.enemy.being_built { format!("his unfinished {}", self.short_words(def)) } else { format!("his {}", self.short_words(def)) };
+            push(
+                format!("take_apart_his_{handle}"),
+                Order::TakeApartHis(t.enemy.id),
+                format!(
+                    "{name} takes apart {what} at {} ({:.0}% health; {}): about {:.0} s at its build power, {:.0} metal back and no wreck{shoots}{outruns}{leaves}",
+                    self.place_words(&picture.places, t.enemy.pos),
+                    100.0 * t.enemy.health / d.health,
+                    way_words(unit.pos.dist2d(t.enemy.pos), speed),
+                    t.seconds.max(1.0),
+                    t.metal,
+                ),
+                format!("taking apart {what}"),
+                None,
+            );
+        }
         let dgun = self.dgun_reach(unit.def);
         let reach = self.world.def(unit.def).map_or(0.0, |d| d.reach);
         for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| armed) {
@@ -1492,7 +1536,8 @@ impl Brain {
             let their_reach = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.reach).fold(0.0, f32::max);
             let range = if their_reach > reach { "; it outranges this unit: it is hit on the way in and lands nothing unless the party stands" } else { "" };
             let key = format!("attack_{}", party.name);
-            push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}{leaves}", way_words(distance, speed)), format!("the attack on {}", party.name), Some(party));
+            let build_distance = self.world.def(unit.def).map_or(0.0, |d| d.build_distance);
+            push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}; it stops for nothing of ours on the way and takes apart any of his it passes within {build_distance:.0}{leaves}", way_words(distance, speed)), format!("the attack on {}", party.name), Some(party));
             // The D-gun reaches what stands inside its reach: beyond it the commander cannot fire it, and walking
             // in is the attack above (rebuild-smoke-1: the shot was picked five times at parties 900 away).
             let targets = self.dgun_targets(party, unit, enemies);
@@ -1847,6 +1892,37 @@ pub(super) mod tests {
     /// The E3 scene (fourteen Blitzes, three Centurions 600 from them, two of his turrets beyond): one menu for the
     /// group with every verb, aimed at everything named. The step back to the place its packet names stands beside
     /// its answers to the party, with the fight's facts on both; a place nobody named is no walk; his buildings are
+    /// H-HANDS-TAKE-APART-HIS: a constructor beside a quarter-health Pawn has the move, with its seconds, its metal and
+    /// the Pawn's fire in the words; beside a whole one (21 s at a construction bot's 80) it has none.
+    #[test]
+    fn a_constructor_is_offered_a_hurt_pawn_to_take_apart_and_not_a_whole_one() {
+        use super::super::fixtures::{at, brain_of, enemy, own};
+        use bot_protocol::{EnemyUnit, Resource, Snapshot};
+        let mut brain = brain_of(&["armck", "armpw"]);
+        let defs = &mut brain.world.hello.unit_defs;
+        defs[0].build_speed = 80.0;
+        defs[0].reclaim_speed = 80.0;
+        defs[0].build_options = vec![UnitDefId(1)];
+        defs[1].build_time = 1650.0;
+        brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        let id = UnitDefId(1);
+        let kit = Kit { commander: UnitDefId(99), extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "places": {} }), places: Vec::new(), parties: Vec::new() };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let menu_with = |brain: &mut Brain, health: f32| {
+            let builder = OwnUnit { health: 760.0, max_health: 760.0, idle: true, ..own(10, 1, at(1000.0, 1000.0)) };
+            let pawn = EnemyUnit { health, ..enemy(21, 2, at(1300.0, 1000.0)) };
+            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: vec![builder], allies: Vec::new(), enemies: vec![pawn], wrecks: None, sensors: None } };
+            brain.menus(&tick, &kit, &picture).into_iter().find(|m| matches!(m.kind, Kind::Builder(UnitId(10)))).expect("the constructor's menu")
+        };
+        let menu = menu_with(&mut brain, 92.5);
+        let take = menu.moves.iter().find(|m| m.key == "take_apart_his_armpw_21").expect("the take-apart move");
+        assert!(take.words.contains("25% health") && take.words.contains("about 5 s at its build power") && take.words.contains("metal back and no wreck"), "{}", take.words);
+        assert!(take.words.contains("it shoots back"), "{}", take.words);
+        let menu = menu_with(&mut brain, 370.0);
+        assert!(!menu.moves.iter().any(|m| m.key.starts_with("take_apart_his")), "{:?}", menu.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
+    }
+
     /// a place to attack though the packet does not name it; a detachment comes in every size of the ladder below
     /// the group's own.
     #[test]

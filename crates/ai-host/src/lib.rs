@@ -303,6 +303,7 @@ impl<L: Transport> Instance<L> {
                 let (Command::Build { unit, .. }
                 | Command::Move { unit, .. }
                 | Command::Fight { unit, .. }
+                | Command::FightReclaimingEnemies { unit, .. }
                 | Command::Attack { unit, .. }
                 | Command::Stop { unit }
                 | Command::SetRepeat { unit, .. }

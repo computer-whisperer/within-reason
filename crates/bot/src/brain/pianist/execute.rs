@@ -179,6 +179,13 @@ impl Brain {
                 task = Some(Task::ReclaimUnit { target: *target, since: frame });
                 did = Some(format!("take apart our {}", own.iter().find(|u| u.id == *target).map_or("unit".to_string(), |u| self.handle(u))));
             }
+            Order::TakeApartHis(target) => {
+                if let Some(def) = tick.snapshot.enemies.iter().find(|e| e.id == *target).and_then(|e| e.def) {
+                    commands.push(Command::ReclaimUnit { unit: id, target: *target, queue });
+                    task = Some(Task::TakeApartHis { target: *target, def, since: frame });
+                    did = Some(format!("take apart his {}_{}", self.name(def), target.0));
+                }
+            }
             Order::Repair(target) => {
                 commands.push(Command::Repair { unit: id, target: *target, queue });
                 task = Some(Task::Repair { target: *target, since: frame });
@@ -224,7 +231,12 @@ impl Brain {
             }
             Order::Attack(party_name) => {
                 if let Some(party) = picture.parties.iter().find(|p| p.name == *party_name) {
-                    commands.push(Command::Fight { unit: id, to: party.at, queue });
+                    // In the engine's enemy-only mode: a plain fight makes a builder stop to repair, help build and
+                    // take wrecks apart beside its line (companies-1 8:15-8:32: the commander moved 110 in 17 s
+                    // toward a raid 1,300 away; the enemy-only drill, docs/data/scenarios-2026-10-27/: the plain
+                    // fight stood 8 s repairing a turret beside the line, the enemy-only one walked past it and took
+                    // the Pawn apart). It takes apart any of his it passes within its build distance.
+                    commands.push(Command::FightReclaimingEnemies { unit: id, to: party.at, queue });
                     task = Some(Task::Attack { party: party_name.clone(), to: party.at, since: frame });
                     did = Some(format!("attack {party_name}"));
                 }

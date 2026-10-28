@@ -92,6 +92,8 @@ pub(super) enum Task {
     Reclaim { at: Vec3, since: i32 },
     /// Taking one unit of ours apart on the player's order (`remove` tool).
     ReclaimUnit { target: UnitId, since: i32 },
+    /// Taking one of his apart (H-HANDS-TAKE-APART-HIS); `def`: its type, for the words once it is out of sight.
+    TakeApartHis { target: UnitId, def: UnitDefId, since: i32 },
     Repair { target: UnitId, since: i32 },
     Walk { to: Vec3, place: String, since: i32 },
     /// Walking beside a group of ours wherever it goes; `at`: where the group stood at the builder's last order.
@@ -132,7 +134,7 @@ impl Task {
     pub(super) fn since(&self) -> i32 {
         match self {
             Task::Build { ordered, .. } => *ordered,
-            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } | Task::Follow { since, .. } | Task::Attack { since, .. } => *since,
+            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::TakeApartHis { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } | Task::Follow { since, .. } | Task::Attack { since, .. } => *since,
         }
     }
 }
@@ -608,7 +610,7 @@ impl Pianist {
                 *since = frame;
                 order = Some(Command::Guard { unit: builder, target: *lab });
             }
-            Task::ReclaimUnit { target, since } => {
+            Task::ReclaimUnit { target, since } | Task::TakeApartHis { target, since, .. } => {
                 *since = frame;
                 order = Some(Command::ReclaimUnit { unit: builder, target: *target, queue: false });
             }
@@ -837,8 +839,10 @@ impl Brain {
         for (bot, raised) in std::mem::take(&mut self.reclaim.to_mend) {
             commands.push(Command::Repair { unit: bot, target: raised, queue: false });
         }
-        let crew: Vec<bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && u.idle && kit.is_resurrector(u.def)).cloned().collect();
-        for unit in &crew {
+        // H-REC-TAKE-APART before the wrecks: his units and frames beside a bot that come apart in seconds.
+        let crew: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && kit.is_resurrector(u.def)).collect();
+        let taking = self.take_apart_his(&crew, &tick.snapshot.enemies, commands);
+        for unit in crew.into_iter().filter(|u| u.idle && !taking.contains(&u.id)) {
             self.work_wrecks(unit, tick, commands);
         }
         // The growth history (the curves and the stagnation wake) and the field the player's report and wake
@@ -1800,7 +1804,8 @@ impl Brain {
                 Some(Task::Build { started: true, ordered, .. }) if past(*ordered) => {
                     pianist.tasks.remove(&unit.id);
                 }
-                Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::Repair { since, .. }) if past(*since) => {
+                // A unit of his taken apart, dead or gone out of sight, leaves the builder idle too.
+                Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::TakeApartHis { since, .. }) | Some(Task::Repair { since, .. }) if past(*since) => {
                     pianist.tasks.remove(&unit.id);
                 }
                 // A walk ends where the builder arrives. Standing idle short of the place, the engine has dropped
@@ -1849,7 +1854,8 @@ impl Brain {
         }
         pianist.at_site.retain(|id, _| own.iter().any(|u| u.id == *id));
         // A builder attacking a party follows it: the fight order is to where the party stood when the pick was made,
-        // and a raider moves. A builder following a group goes after it when the group has moved on.
+        // and a raider moves (the enemy-only fight, as `Order::Attack` gives it). A builder following a group goes
+        // after it when the group has moved on.
         let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
         let mut moved: Vec<(UnitId, Command)> = Vec::new();
         let mut left: Vec<UnitId> = Vec::new();
@@ -1858,7 +1864,7 @@ impl Brain {
                 Task::Attack { party, to, .. } => {
                     if let Some(p) = pianist.parties.iter().find(|p| p.name == *party).filter(|p| p.at.dist2d(*to) > 150.0) {
                         *to = p.at;
-                        moved.push((*id, Command::Fight { unit: *id, to: p.at, queue: false }));
+                        moved.push((*id, Command::FightReclaimingEnemies { unit: *id, to: p.at, queue: false }));
                     }
                 }
                 Task::Follow { group, at, .. } => match bodies.iter().find(|(name, _)| name == group) {

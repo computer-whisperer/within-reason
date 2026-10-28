@@ -315,6 +315,17 @@ pub struct UnitDefInfo {
     /// when `shield.intercepts & intercepted_by != 0`. 0 unarmed.
     #[serde(default)]
     pub intercepted_by: u32,
+    /// Full health (`UnitDef_getHealth`): an enemy's health share is its snapshot health over this.
+    #[serde(default)]
+    pub health: f32,
+    /// How fast it takes things apart (`UnitDef_getReclaimSpeed`; BAR's files leave it at the build power, the
+    /// Legion's evolving commanders excepted). A unit comes apart in its health share times its `build_time` over this.
+    #[serde(default)]
+    pub reclaim_speed: f32,
+    /// Whether a builder can take it apart once finished (`UnitDef_isReclaimable`): not a commander nor a decoy one.
+    /// Any unfinished frame can be taken apart.
+    #[serde(default)]
+    pub reclaimable: bool,
 }
 
 /// How a unit cloaks (the engine's cloak fields).
@@ -586,14 +597,20 @@ pub enum Command {
     Build { unit: UnitId, def: UnitDefId, site: Option<BuildSite>, queue: bool },
     Move { unit: UnitId, to: Vec3, queue: bool },
     Fight { unit: UnitId, to: Vec3, queue: bool },
+    /// A builder's fight in the engine's enemy-only reclaim mode (`CBuilderCAI::ExecuteFight` with CTRL and META):
+    /// it walks the line stopping for nothing of ours (a plain fight makes a builder repair and help build what is
+    /// ours beside the line and take wrecks apart), takes apart any enemy unit within its search radius, and its
+    /// weapon fires at what it reaches.
+    FightReclaimingEnemies { unit: UnitId, to: Vec3, queue: bool },
     Stop { unit: UnitId },
     SetRepeat { unit: UnitId, repeat: bool },
     /// Follow and help `target`: a builder guarding a factory adds its build power to whatever the factory makes.
     Guard { unit: UnitId, target: UnitId },
     /// Take one feature apart for its metal.
     ReclaimFeature { unit: UnitId, feature: FeatureId, queue: bool },
-    /// Take one unit of ours apart for its metal: the player's way to remove a building that stands in a factory's
-    /// exit lane (docs/design/2026-09-22-yard-and-reclaim.md).
+    /// Take one unit apart for its metal: one of ours, the player's way to remove a building that stands in a
+    /// factory's exit lane (docs/design/2026-09-22-yard-and-reclaim.md), or one of his, which comes apart in its
+    /// health share times its build time over the builder's reclaim speed and pays its whole cost at the end.
     ReclaimUnit { unit: UnitId, target: UnitId, queue: bool },
     /// Raise the unit a wreck was (resurrection bots only); it costs energy and time, no metal.
     Resurrect { unit: UnitId, feature: FeatureId, queue: bool },

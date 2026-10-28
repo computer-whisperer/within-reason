@@ -337,6 +337,7 @@ impl Recorder {
                 },
                 Command::Move { unit, to, .. } => json!(["move", unit.0, to.x as i32, to.z as i32]),
                 Command::Fight { unit, to, .. } => json!(["fight", unit.0, to.x as i32, to.z as i32]),
+                Command::FightReclaimingEnemies { unit, to, .. } => json!(["fight_reclaiming_enemies", unit.0, to.x as i32, to.z as i32]),
                 Command::Stop { unit } => json!(["stop", unit.0]),
                 Command::SetRepeat { unit, repeat } => json!(["repeat", unit.0, repeat as i32]),
                 Command::Guard { unit, target } => json!(["guard", unit.0, target.0]),
@@ -518,6 +519,8 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "cloak": d.cloak.map(|c| json!([c.cost, c.decloak_distance, i32::from(c.decloak_on_fire), i32::from(c.starts_cloaked)])),
                 "shield": d.shield.map(|sh| json!([sh.radius, sh.power, sh.intercepts, i32::from(sh.exterior)])),
                 "intercepted_by": d.intercepted_by,
+                // Full health, reclaim speed and whether a finished one can be taken apart (records from 2026-10-27).
+                "health": d.health, "reclaim_speed": d.reclaim_speed, "reclaimable": d.reclaimable,
             })
         })
         .collect();
