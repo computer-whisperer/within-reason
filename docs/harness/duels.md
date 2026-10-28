@@ -49,9 +49,9 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   text: the engine takes an AI's text that starts with a slash as a command (`CAICallback::SendTextMsg`,
   `CGame::ProcessCommandText`) and a synced one travels as a `CommandMessage` over the net, so it is in the demo and
   a replay re-simulates the spawn (checked 2026-10-24 by `run/replay_match.py` on a drill's demo: the twelve Blitzes
-  appear at frame 120 and walk, no desync). `/give` needs the game's cheat flag, so the shim sends `/cheat 1` from
-  its first update (the game logs "Cheating is enabled!" at frame 0) and holds spawns two frames, since the unsynced
-  give executor refuses locally until the flag has come back from the server (`UnsyncedActionExecutor.h`). Until
+  appear at frame 120 and walk, no desync). `/give` needs the game's cheat flag, so the shim sends `/cheat 1` with
+  the first give (from its first update until 2026-10-27, when that was found reaching games with people) and holds
+  spawns `CHEAT_LAG` frames, since the unsynced give executor refuses locally until the flag has come back from the server (`UnsyncedActionExecutor.h`). Until
   2026-10-24 spawning was the AI interface's cheat `COMMAND_CHEATS_GIVE_ME_NEW_UNIT`, a direct call on the host's
   simulation that no demo carried (pitfalls.md): a replay showed the commanders alone with desync warnings. The
   shim still issues spawns after letting go of its instance table (`engine::Spawner`), as the cheat's re-entry

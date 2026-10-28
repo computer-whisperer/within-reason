@@ -1879,16 +1879,25 @@ impl Territory {
             .into_iter()
             .map(|(unit, centre)| {
                 let standing = turrets.iter().filter(|t| t.dist2d(centre) < PLANT_RING).count();
-                let candidates: Vec<Vec3> = (-n..=n)
+                let mut candidates: Vec<Vec3> = (-n..=n)
                     .flat_map(|i| (-n..=n).map(move |j| (i, j)))
                     .map(|(i, j)| Vec3 { x: grid(centre.x) + 16.0 * i as f32, y: centre.y, z: grid(centre.z) + 16.0 * j as f32 })
                     .filter(|p| p.dist2d(centre) < PLANT_RING)
                     .collect();
+                // Nearest the plant first: a site taken only makes the others less free, so one pass in that order packs
+                // the ring as picking the nearest free site over and over did, each candidate tried once (the picking
+                // tried every candidate again at each pick: 95-373 ms of the engine thread a plan on All That Glitters
+                // Extended, `docs/design/2026-10-27-engine-thread.md`; the counts were the same at every call over
+                // terr338-343). The sort is stable, so of sites as near the first in the grid's order is taken, as the
+                // picking's `min_by` took it.
+                candidates.sort_by(|a, b| a.dist2d(centre).total_cmp(&b.dist2d(centre)));
                 let mut packed = taken.clone();
                 let mut free = 0;
-                while let Some(p) = candidates.iter().copied().filter(|p| self.site_free(*p, half, &packed, &lanes, &mobile, walkable)).min_by(|a, b| a.dist2d(centre).total_cmp(&b.dist2d(centre))) {
-                    packed.push((p, half));
-                    free += 1;
+                for p in candidates {
+                    if self.site_free(p, half, &packed, &lanes, &mobile, walkable) {
+                        packed.push((p, half));
+                        free += 1;
+                    }
                 }
                 (unit, centre, standing, free)
             })

@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::ffi::{c_int, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Mutex;
+use std::time::Instant;
 
 use bot_protocol::{Bot, Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
 pub use recoil_ai_sys as sys;
@@ -106,15 +107,36 @@ struct Instance<L: Transport> {
     events: Vec<Event>,
     /// Units to create once the export has let go of the instance table (see `engine::Spawner`).
     spawns: Vec<(UnitDefId, Vec3)>,
-    /// The frame `/cheat 1` went out (the host's first update), which `/give` needs (`engine::Spawner::give`): spawns
-    /// are held until `CHEAT_LAG` frames after it, when the flag has come back from the server, and the command goes
-    /// out again `CHEAT_RESEND` frames after the first, since the game has swallowed the first one (2026-10-24 night,
-    /// two engines starting together: no "Cheating is enabled!" in the infolog, every give refused, `spawn_failed`),
-    /// and again before a give `CHEAT_REFRESH` frames after the last sending (the director's retried spawn); the
-    /// frame of the last sending.
+    /// The frame `/cheat 1` last went out, which `/give` needs (`engine::Spawner::give`). It goes out with the first
+    /// give and none before: no bot of a game with people gives units, and there the server refuses the command and
+    /// tells every player so, or on a client hosting the game turns cheating on (the hosts' first update sent it from
+    /// 2026-10-24 to 2026-10-27, `docs/design/2026-10-27-engine-thread.md`). Spawns are held until `CHEAT_LAG` frames
+    /// after a sending, when the flag has come back from the server; the command goes out again `CHEAT_RESEND` frames
+    /// after it, since the game has swallowed one (2026-10-24 night, two engines starting together: no "Cheating is
+    /// enabled!" in the infolog, every give refused, `spawn_failed`), and again before a give `CHEAT_REFRESH` frames
+    /// after the last sending (the director's retried spawn).
     cheats_sent_at: Option<i32>,
     frame: i32,
+    /// The engine thread's time on this instance since the last `timing` line.
+    spent: Spent,
 }
+
+/// Wall seconds the engine thread spent on one instance (`docs/design/2026-10-27-engine-thread.md`): an in-library
+/// bot's tick runs on it and the game waits, and a client hosting AIs for people falls behind the server by that much.
+#[derive(Default)]
+struct Spent {
+    /// Reading the game for a tick: the snapshot, and the wrecks and sensors when due.
+    reads: f64,
+    /// The bot's answer: the in-library bot's ticks, the shim's socket writes (the start is said once, at the hello).
+    bot: f64,
+    /// Carrying out the bot's commands, the build-site searches among them.
+    apply: f64,
+}
+
+/// A `timing` line names any single read, tick or apply that held the engine thread this long, in seconds.
+const SLOW_CALL: f64 = 0.05;
+/// Frames between `timing` lines: once a game minute.
+const TIMING_INTERVAL: i32 = 60 * 30;
 
 /// Frames from `/cheat 1` to the first `/give`: the command comes back from the server within a frame in a local game
 /// when it comes back at all; half a second covers the second sending too.
@@ -135,13 +157,25 @@ impl<L: Transport> Instance<L> {
         eprintln!("[wreason ai={}] {text}", self.ai_id);
     }
 
+    /// The time a call held the engine thread, added to its account; said when it held it `SLOW_CALL` or more.
+    fn spent(&mut self, began: Instant, what: &str, account: fn(&mut Spent) -> &mut f64) {
+        let seconds = began.elapsed().as_secs_f64();
+        *account(&mut self.spent) += seconds;
+        if seconds >= SLOW_CALL {
+            self.log(format_args!("timing f={} slow {what} {:.0} ms", self.frame, seconds * 1000.0));
+        }
+    }
+
+    fn cheat(&mut self) {
+        if let Err(code) = self.engine.console("/cheat 1") {
+            self.log(format!("/cheat 1 refused: {code}"));
+        }
+    }
+
     fn update(&mut self, frame: i32) {
         self.frame = frame;
-        if self.cheats_sent_at.is_none_or(|sent| frame == sent + CHEAT_RESEND) {
-            if let Err(code) = self.engine.console("/cheat 1") {
-                self.log(format!("/cheat 1 refused: {code}"));
-            }
-            self.cheats_sent_at.get_or_insert(frame);
+        if self.cheats_sent_at.is_some_and(|sent| frame == sent + CHEAT_RESEND) {
+            self.cheat();
         }
         if frame % HEARTBEAT_INTERVAL == 0 {
             self.log(format_args!("heartbeat f={frame}"));
@@ -172,11 +206,17 @@ impl<L: Transport> Instance<L> {
         if self.link.is_none() && frame % RECONNECT_INTERVAL == 0 {
             self.connect(frame);
         }
+        if frame % TIMING_INTERVAL == 0 && frame > 0 {
+            let Spent { reads, bot, apply } = std::mem::take(&mut self.spent);
+            self.log(format_args!("timing f={frame} minute: reads {reads:.3} s, bot {bot:.3} s, apply {apply:.3} s"));
+        }
         let Some(link) = &mut self.link else { return };
         match link.poll() {
             Ok(Some(commands)) => {
                 self.has_credit = true;
+                let began = Instant::now();
                 self.apply(commands);
+                self.spent(began, "apply", |s| &mut s.apply);
             }
             Ok(None) => {}
             Err(e) => return self.disconnect(e),
@@ -185,6 +225,7 @@ impl<L: Transport> Instance<L> {
             self.tick_due = Some(frame);
         }
         if self.has_credit && let Some(due) = self.tick_due.take() {
+            let began = Instant::now();
             let mut snapshot = self.engine.snapshot();
             if due % WRECKS_INTERVAL == 0 {
                 snapshot.wrecks = Some(self.engine.wrecks());
@@ -192,8 +233,11 @@ impl<L: Transport> Instance<L> {
             if due % SENSORS_INTERVAL == 0 {
                 snapshot.sensors = self.engine.sensors();
             }
+            self.spent(began, "reads", |s| &mut s.reads);
             let tick = Tick { frame, late: frame - due, events: std::mem::take(&mut self.events), snapshot };
+            let began = Instant::now();
             self.send(ToBot::Tick(tick));
+            self.spent(began, "tick", |s| &mut s.bot);
             // Lockstep (`WITHIN_REASON_LOCKSTEP`, headless study runs only): the engine waits here for the answer,
             // so a bot that holds its reply while a language model thinks has in effect paused the game.
             if self.lockstep && let Some(link) = &mut self.link {
@@ -213,8 +257,12 @@ impl<L: Transport> Instance<L> {
         let Ok(link) = L::connect() else { return };
         self.link = Some(link);
         self.log(format_args!("connected to bot at frame {frame}"));
+        let began = Instant::now();
         let hello = self.engine.hello(frame, self.tick_frames);
+        let reads = began.elapsed();
+        let began = Instant::now();
         self.send(ToBot::Hello(hello));
+        self.log(format_args!("timing f={frame} hello: reads {} ms, bot start {} ms", reads.as_millis(), began.elapsed().as_millis()));
     }
 
     fn send(&mut self, message: ToBot) {
@@ -268,13 +316,11 @@ impl<L: Transport> Instance<L> {
                 continue;
             }
             if let Command::GiveUnit { def, at } = command {
-                // A give long after the cheat command: `/cheat 1` again first, and the give waits `CHEAT_LAG` for
-                // it (the game swallows the command now and then, both sendings; the director gives an army of
-                // which nothing appeared again three seconds on, and that give needs a fresh flag).
-                if self.cheats_sent_at.is_some_and(|sent| self.frame - sent > CHEAT_REFRESH) {
-                    if let Err(code) = self.engine.console("/cheat 1") {
-                        self.log(format!("/cheat 1 refused: {code}"));
-                    }
+                // The first give, or one long after the cheat command: `/cheat 1` first, and the give waits
+                // `CHEAT_LAG` for it (the game swallows the command now and then, both sendings; the director gives an
+                // army of which nothing appeared again three seconds on, and that give needs a fresh flag).
+                if self.cheats_sent_at.is_none_or(|sent| self.frame - sent > CHEAT_REFRESH) {
+                    self.cheat();
                     self.cheats_sent_at = Some(self.frame);
                 }
                 self.spawns.push((def, at));
@@ -443,6 +489,7 @@ impl<L: Transport> Host<L> {
                 spawns: Vec::new(),
                 cheats_sent_at: None,
                 frame: -1,
+                spent: Spent::default(),
             };
             instance.log("init");
             // Hello at init, before the people place their starts and long before the first update: the player takes
