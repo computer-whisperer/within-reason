@@ -22,11 +22,11 @@ use super::{GroupTask, Pianist, Task};
 use crate::strategist::shared::Allowance;
 use crate::world::Domain;
 
-/// A builder is threatened by a party this close, or by a hit in the last seconds: a listed builder then has its
-/// ways out on a menu, and no builder queues a step behind its build.
 /// The rover's job, as the `rove` and `rove_1` moves say it (H-MICRO-ROVE; docs/studies/2026-10-07-rove-words.md).
 const ROVE_WORDS: &str = "looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach";
 
+/// A builder is threatened by a party this close, or by a hit in the last seconds: a listed builder then has its
+/// ways out on a menu, and no builder queues a step behind its build.
 pub(super) const THREATENED: f32 = 800.0;
 /// A builder whose started build is this far along has its moves ordered behind it (H-HANDS-QUEUE).
 const QUEUE_AT: f32 = 0.6;
@@ -1141,6 +1141,19 @@ impl Brain {
                     false,
                 );
             }
+        }
+        // An aircraft roves when it has a weapon that hits the ground (thebluegecko, L-gecko-air-details: "make sure
+        // that Banshees work with Rove"): a group of them whole, its fastest such alone from any air group.
+        let rovable: Vec<&OwnUnit> = units.iter().copied().filter(|u| !air || self.can_rove(u.def)).collect();
+        let whole = rovable.len() == units.len();
+        let air_words;
+        let rove_words = if air {
+            air_words = format!("looking at what we know least, killing unguarded constructors and extractors, and keeping out of the reach of his anti-air wherever it would kill them within {:.0} s (a light laser turret's would not)", micro::AIR_DANGER_SECONDS);
+            air_words.as_str()
+        } else {
+            ROVE_WORDS
+        };
+        if !rovable.is_empty() {
             // The whole group roves (H-MICRO-ROVE): a task, the lane running every soldier, any later pick the way
             // back (docs/design/2026-10-07-rove-approval.md, the rework). A pick since 2026-10-07; the player's
             // `lane rove` set it with no pick before, over the group's course on a picture as old as the turn
@@ -1151,22 +1164,24 @@ impl Brain {
             // (rove-move-1, never picked in 1,905 gates); these rate 0.65 there and 0.07 where it does not. With
             // the menu kept while roving, no take-back move came over the bar under a packet that asks for roving
             // (docs/studies/2026-10-08-roving-menu.md).
-            push(
-                "rove".into(),
-                Order::Rove,
-                format!("{name} roves: its soldiers scout his side on their own, {ROVE_WORDS}; a pick of yours brings it back{keeps}{leaves}"),
-                "roving whole".into(),
-                None,
-                false,
-            );
+            if whole {
+                push(
+                    "rove".into(),
+                    Order::Rove,
+                    format!("{name} roves: its soldiers scout his side on their own, {rove_words}; a pick of yours brings it back{keeps}{leaves}"),
+                    "roving whole".into(),
+                    None,
+                    false,
+                );
+            }
             // Its fastest soldier leaves as a group of its own and roves: the detachment ladder's first rung, aimed
             // at nothing (`scout` until 2026-10-08).
-            let fastest = (units.len() >= 2 && !group.roving()).then(|| units.iter().copied().max_by(|a, b| self.world.def(a.def).map_or(0.0, |d| d.speed).total_cmp(&self.world.def(b.def).map_or(0.0, |d| d.speed)))).flatten();
+            let fastest = (units.len() >= 2 && !group.roving()).then(|| rovable.iter().copied().max_by(|a, b| self.world.def(a.def).map_or(0.0, |d| d.speed).total_cmp(&self.world.def(b.def).map_or(0.0, |d| d.speed)))).flatten();
             if let Some(fastest) = fastest {
                 push(
                     "rove_1".into(),
                     Order::RoveOne,
-                    format!("1 {} of {name} (its fastest) leaves it as a group of its own and roves: it scouts his side on its own, {ROVE_WORDS}; the rest of {name} keeps its course", self.name(fastest.def)),
+                    format!("1 {} of {name} (its fastest{}) leaves it as a group of its own and roves: it scouts his side on its own, {rove_words}; the rest of {name} keeps its course", self.name(fastest.def), if whole { "" } else { " that can rove" }),
                     "a rover of one".into(),
                     None,
                     true,
@@ -1186,19 +1201,21 @@ impl Brain {
                 let spots_inside = self.world.hello.metal_spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
                 let cells = format!("the cells {}, {spots_inside} metal spots inside", crate::strategist::shared::cells_words(region.cells.expect("a region")));
                 let key = format!("rove_{}", region.name);
-                push(
-                    key.clone(),
-                    Order::RoveWithin(region.name.clone()),
-                    format!("{name} roves within {} ({cells}): its soldiers look only at places inside it, {ROVE_WORDS} there; a pick of yours brings it back{keeps}{leaves}", region.name),
-                    format!("roving within {}", region.name),
-                    None,
-                    false,
-                );
+                if whole {
+                    push(
+                        key.clone(),
+                        Order::RoveWithin(region.name.clone()),
+                        format!("{name} roves within {} ({cells}): its soldiers look only at places inside it, {rove_words} there; a pick of yours brings it back{keeps}{leaves}", region.name),
+                        format!("roving within {}", region.name),
+                        None,
+                        false,
+                    );
+                }
                 if let Some(fastest) = fastest {
                     push(
                         format!("rove_1_{}", region.name),
                         Order::RoveOneWithin(region.name.clone()),
-                        format!("1 {} of {name} (its fastest) leaves it as a group of its own and roves within {} ({cells}): it looks only at places inside it, {ROVE_WORDS} there; the rest of {name} keeps its course", self.name(fastest.def), region.name),
+                        format!("1 {} of {name} (its fastest{}) leaves it as a group of its own and roves within {} ({cells}): it looks only at places inside it, {rove_words} there; the rest of {name} keeps its course", self.name(fastest.def), if whole { "" } else { " that can rove" }, region.name),
                         format!("a rover of one within {}", region.name),
                         None,
                         true,
@@ -1800,6 +1817,47 @@ pub(super) mod tests {
         assert!(attack.forbiddable && attack.reads == [Read::Air]);
         let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").unwrap();
         assert!(send.forbiddable && send.reads == [Read::Detach(2), Read::Air], "{:?}", send.reads);
+    }
+
+    /// An air group roves when its aircraft have a weapon that hits the ground (thebluegecko, L-gecko-air-details:
+    /// "make sure that Banshees work with Rove"): Banshees and Stormbringers whole or one alone, with the anti-air
+    /// words; fighters and stun drones not at all; a mixed group sends its Banshee alone, not its faster Falcon.
+    #[test]
+    fn an_air_group_roves_when_its_aircraft_hit_the_ground() {
+        use super::super::fixtures::{at, brain_of, own};
+        use bot_protocol::{Resource, Snapshot};
+        let mut brain = brain_of(&["armkam", "armfig", "armthund", "corbw"]);
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let groups = [("A", vec![(10, 1), (11, 1)]), ("B", vec![(20, 2), (21, 2)]), ("C", vec![(30, 1), (31, 2)]), ("D", vec![(40, 3), (41, 3)]), ("E", vec![(50, 4), (51, 4)])];
+        let mut own_units = Vec::new();
+        for (i, (name, members)) in groups.iter().enumerate() {
+            for (id, def) in members {
+                own_units.push(own(*id, *def, at(1000.0 + 300.0 * i as f32, 1000.0)));
+            }
+            pianist.groups.push(Group::new(name.to_string(), Domain::Air, members.iter().map(|(id, _)| UnitId(*id)).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+        }
+        brain.pianist = Some(pianist);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture {
+            rules: String::new(),
+            state: serde_json::json!({ "instructions": "", "actors": {}, "places": {} }),
+            places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }],
+            parties: Vec::new(),
+        };
+        let menus = brain.menus(&tick, &kit, &picture);
+        let roves = |group: &str| -> Vec<String> { menus.iter().find(|m| m.name == format!("group_{group}")).expect(group).moves.iter().filter(|m| m.key.starts_with("rove")).map(|m| m.key.clone()).collect() };
+        assert_eq!(roves("A"), ["rove", "rove_1"], "Banshees");
+        assert_eq!(roves("D"), ["rove", "rove_1"], "Stormbringers");
+        assert!(roves("B").is_empty() && roves("E").is_empty(), "fighters {:?}, stun drones {:?}", roves("B"), roves("E"));
+        assert_eq!(roves("C"), ["rove_1"], "a Banshee and a Falcon");
+        let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
+        let rove = menu.moves.iter().find(|m| m.key == "rove").unwrap();
+        assert!(rove.words.contains("keeping out of the reach of his anti-air wherever it would kill them within 15 s"), "{}", rove.words);
+        let one = menus.iter().find(|m| m.name == "group_C").unwrap().moves.iter().find(|m| m.key == "rove_1").unwrap();
+        assert!(one.words.starts_with("1 armkam of group_C (its fastest that can rove)"), "{}", one.words);
     }
 
     /// A region the player marked is on a group's menu to rove within (`rove_<region>`, `rove_1_<region>`) when

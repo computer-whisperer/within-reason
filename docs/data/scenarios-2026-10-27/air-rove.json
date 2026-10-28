@@ -1,0 +1,14 @@
+{ "format": "within-reason-scenario", "version": 1,
+  "map": "Comet Catcher Remake 1.8", "map_size": [8192, 6144], "centre": [2700, 3800],
+  "source": { "note": "by hand, 2026-10-27: three Banshees rove among three of his extractors, one beside a light laser turret, one beside a Thistle, one alone (the air rove drill, L-gecko-air-details)" },
+  "sides": [
+    { "name": "ours", "units": [
+      { "type": "armkam", "x": 2400, "z": 3800 },
+      { "type": "armkam", "x": 2450, "z": 3800 },
+      { "type": "armkam", "x": 2400, "z": 3850 } ] },
+    { "name": "theirs", "units": [
+      { "type": "cormex", "x": 3100, "z": 3600 },
+      { "type": "corllt", "x": 3150, "z": 3650 },
+      { "type": "cormex", "x": 2700, "z": 4600 },
+      { "type": "corrl", "x": 2750, "z": 4650 },
+      { "type": "cormex", "x": 2400, "z": 3000 } ] } ] }

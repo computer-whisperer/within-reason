@@ -218,6 +218,12 @@ impl Brain {
         }
     }
 
+    /// Whether a soldier of this type can rove (H-MICRO-ROVE): any on the ground; an aircraft with a weapon that hits
+    /// the ground (a gunship, a bomber), not a fighter, a stun drone or a scout, which would kill nothing.
+    pub(super) fn can_rove(&self, def: UnitDefId) -> bool {
+        self.world.domain_of(def) != Domain::Air || self.sim_stats(def).is_some_and(|(_, dps, _)| dps > 0.0)
+    }
+
     /// A type's reach, damage a second and speed against ground: the simulator's table, else the glossary's numbers
     /// for a type the table lacks (never a stand-in by metal).
     pub(super) fn sim_stats(&self, def: UnitDefId) -> Option<(f32, f32, f32)> {
@@ -242,14 +248,18 @@ impl View for BrainView<'_> {
 
     fn stats(&self, def: UnitDefId) -> Option<Stats> {
         let (reach, dps, speed) = self.brain.sim_stats(def)?;
-        let (health, dgun) = match self.brain.sim.defs.get(&def) {
+        let (health, dgun, air_reach, air_dps) = match self.brain.sim.defs.get(&def) {
             Some(i) => {
                 let unit = &self.brain.sim.rules.units.list[*i];
-                (unit.health, unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max))
+                (unit.health, unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max), unit.reach_air(), unit.dps_air())
             }
-            None => (super::pianist::glossary::entry(self.brain.name(def)).map_or(0.0, |e| e.health), 0.0),
+            None => match super::pianist::glossary::entry(self.brain.name(def)) {
+                // The glossary has one reach for all of a type's weapons: its anti-air's when it has some.
+                Some(e) => (e.health, 0.0, e.dps_air.filter(|d| *d > 0.0).map_or(0.0, |_| e.range), e.dps_air.unwrap_or(0.0)),
+                None => (0.0, 0.0, 0.0, 0.0),
+            },
         };
-        Some(Stats { reach, dps, speed, health, dgun, sight: self.brain.sight_of(def), area: self.brain.world.def(def).map_or(0.0, |d| d.blast_radius) })
+        Some(Stats { reach, dps, speed, health, dgun, sight: self.brain.sight_of(def), area: self.brain.world.def(def).map_or(0.0, |d| d.blast_radius), air_reach, air_dps })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {

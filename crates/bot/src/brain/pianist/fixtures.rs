@@ -54,7 +54,8 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 converter: None,
                 weapon_count: u.weapons.len() as i32,
                 build_options: Vec::new(),
-                move_class: u.mobile().then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.1, depth: 20.0, slope_mod: 0.0 }),
+                // An aircraft has none (`World::domain_of`).
+                move_class: (u.mobile() && !u.air).then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.1, depth: 20.0, slope_mod: 0.0 }),
                 footprint: (2, 2),
                 death_blast: None,
                 self_destruct_blast: None,

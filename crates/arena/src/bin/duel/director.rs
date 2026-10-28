@@ -290,6 +290,8 @@ struct Army {
     second_hits: Vec<(UnitId, UnitId, f32)>,
     /// A script's next row (side 0 under `--script`).
     next_row: usize,
+    /// The units a script's `rove` rows handed to the lane's roving group.
+    roving: Vec<UnitId>,
     /// A track's last place sent per spawn index, with the row's time (side 1 under `--theirs track`).
     track_sent: HashMap<usize, (f32, Vec3)>,
 }
@@ -340,6 +342,7 @@ impl Army {
             second_shots: HashMap::new(),
             second_hits: Vec::new(),
             next_row: 0,
+            roving: Vec::new(),
             track_sent: HashMap::new(),
         }
     }
@@ -1168,7 +1171,7 @@ impl View for DuelView<'_> {
         let name = &self.rules.defs.get(&def)?.name;
         let unit = &self.rules.units.list[self.rules.units.index(name)?];
         let dgun = unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max);
-        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight, area: self.rules.defs.get(&def)?.blast_radius })
+        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight, area: self.rules.defs.get(&def)?.blast_radius, air_reach: unit.reach_air(), air_dps: unit.dps_air() })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {
@@ -1215,6 +1218,12 @@ impl View for DuelView<'_> {
 
     fn label(&self) -> String {
         format!("[duel side {}]", self.side)
+    }
+
+    /// A rover's places (a script's `rove` rows): the other army's living buildings, his and never seen, as the
+    /// brain's metal spots stand to a rover that has not looked at them yet.
+    fn rove_goals(&self, _def: UnitDefId) -> Vec<micro::RoveGoal> {
+        self.buildings.iter().map(|(id, _, at)| micro::RoveGoal { name: format!("building_{}", id.0), at: *at, seen: None, theirs: true }).collect()
     }
 }
 
@@ -1572,6 +1581,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     for (name, hunters, order) in hunt_groups.drain(..) {
                         lane.set_group(&name, hunters, order, Footwork::raw(), Commitment::All);
                     }
+                }
+                if !army.roving.is_empty() {
+                    let rovers: Vec<UnitId> = army.roving.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
+                    lane.set_group("rove", rovers, GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw(), Commitment::All);
                 }
                 // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
                 // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
@@ -1959,6 +1972,13 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                 ScriptCmd::Stop => Command::Stop { unit },
                 ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
                 ScriptCmd::Fire => Command::FireAt { unit, at: to },
+                ScriptCmd::Rove => {
+                    if !army.roving.contains(&unit) {
+                        army.roving.push(unit);
+                    }
+                    sent.push(i);
+                    continue;
+                }
                 ScriptCmd::Attack => match row.target.and_then(|t| living(enemy, t)) {
                     Some(target) => Command::Attack { unit, target, queue: row.queue },
                     None => {

@@ -55,7 +55,7 @@ impl View for LaneView<'_> {
         let row = *self.bot.control.rows.get(&def)?;
         let unit = &self.bot.control.rules.units.list[row];
         let dgun = unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max);
-        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight, area: self.bot.def(def).map_or(0.0, |d| d.blast_radius) })
+        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight, area: self.bot.def(def).map_or(0.0, |d| d.blast_radius), air_reach: unit.reach_air(), air_dps: unit.dps_air() })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {

@@ -429,7 +429,7 @@ impl Brain {
                     _ => None,
                 };
                 let speed = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.speed);
-                if let Some(scout) = units.iter().copied().max_by(|a, b| speed(a).total_cmp(&speed(b)))
+                if let Some(scout) = units.iter().copied().filter(|u| self.can_rove(u.def)).max_by(|a, b| speed(a).total_cmp(&speed(b)))
                     && units.len() >= 2
                 {
                     let domain = pianist.groups[index].domain;

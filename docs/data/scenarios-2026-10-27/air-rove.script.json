@@ -1,0 +1,8 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the three Banshees rove from the first orders",
+ "rows": [
+  { "t": 0.0, "unit": "all", "cmd": "rove" }
+ ]
+}

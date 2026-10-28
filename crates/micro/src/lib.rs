@@ -29,7 +29,7 @@ pub use army::{Army, Company, CompanyState, Role};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
-pub use rove::{RoveEvent, RoveGoal, RoveReport, RoveWhat};
+pub use rove::{AIR_DANGER_SECONDS, RoveEvent, RoveGoal, RoveReport, RoveWhat};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -251,7 +251,8 @@ impl Footwork {
 
 /// A type's fighting numbers against ground: reach, damage a second, speed (elmos a second), hit points, the reach of
 /// its D-gun (a `command_fire` weapon; 0 for everything but a commander), its sight, and the radius its shells hurt
-/// round where they land (`UnitDefInfo::blast_radius`; 0 when the host has none).
+/// round where they land (`UnitDefInfo::blast_radius`; 0 when the host has none); and against aircraft, the reach and
+/// damage a second of the weapons that can hit them (0 for a type that cannot), what an aircraft rover keeps off.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Stats {
     pub reach: f32,
@@ -261,6 +262,8 @@ pub struct Stats {
     pub dgun: f32,
     pub sight: f32,
     pub area: f32,
+    pub air_reach: f32,
+    pub air_dps: f32,
 }
 
 /// What the lane reads of its host.
@@ -299,9 +302,14 @@ pub trait View {
 }
 
 /// A soldier the lane commands: armed, mobile, no builder, on the ground (aircraft are out: its steps are ground
-/// cells and its threats ground guns); the commander is a builder.
+/// cells and its threats ground guns; they rove alone, `is_air_soldier`); the commander is a builder.
 pub fn is_soldier(d: &UnitDefInfo) -> bool {
     d.weapon_count > 0 && d.speed > 0.0 && d.build_speed == 0.0 && d.move_class.is_some()
+}
+
+/// An armed aircraft that is no builder: a soldier of a roving group (H-MICRO-ROVE), and nothing else of the lane's.
+pub fn is_air_soldier(d: &UnitDefInfo) -> bool {
+    d.weapon_count > 0 && d.speed > 0.0 && d.build_speed == 0.0 && d.move_class.is_none()
 }
 
 fn is_commander(d: &UnitDefInfo) -> bool {
@@ -789,12 +797,14 @@ impl Lane {
         self.standing.retain(|id, _| snapshot.own_units.iter().any(|u| u.id == *id));
         self.claims.retain(|id, _| snapshot.own_units.iter().any(|u| u.id == *id));
         out.milling = self.track_milling(&snapshot.own_units);
-        let sources = self.threat_sources(view, snapshot.enemies.as_slice(), frame);
+        let sources = self.threat_sources(view, snapshot.enemies.as_slice(), frame, false);
         self.rebuild_grid(view, &sources);
         let commands = &mut out.commands;
         let fired = &mut out.fired;
 
         let mut soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_soldier)).collect();
+        // Aircraft are the lane's in a roving group alone.
+        let fliers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_air_soldier)).collect();
         // H-MICRO-ROVE and H-MICRO-HUNT before everything: a rover or a hunter is a member of a declared group of
         // that kind (design D15), the lane's alone, under no other rule and in no body, and nothing the host said to
         // it this tick reaches the engine.
@@ -804,7 +814,7 @@ impl Lane {
         for (name, d) in &self.groups {
             match d.order.kind {
                 GroupKind::Rove { within } => {
-                    for u in soldiers.iter().filter(|u| d.members.contains(&u.id)) {
+                    for u in soldiers.iter().chain(&fliers).filter(|u| d.members.contains(&u.id)) {
                         rovers.push((*u, within));
                         owned.insert(u.id);
                     }
@@ -826,7 +836,8 @@ impl Lane {
         }
         self.rovers.retain(|id, _| rovers.iter().any(|(u, _)| u.id == *id));
         if !rovers.is_empty() {
-            self.rove(view, &rovers, snapshot.enemies.as_slice(), &sources, frame, commands, fired, &mut out.rove, debug);
+            let air_sources = if rovers.iter().any(|(u, _)| view.def(u.def).is_some_and(is_air_soldier)) { self.threat_sources(view, snapshot.enemies.as_slice(), frame, true) } else { Vec::new() };
+            self.rove(view, &rovers, snapshot.enemies.as_slice(), &sources, &air_sources, frame, commands, fired, &mut out.rove, debug);
         }
         self.hunts.retain(|name, _| hunts.iter().any(|(n, ..)| n == name));
         for (name, order, hunters) in &hunts {
@@ -1492,9 +1503,14 @@ impl Lane {
     }
 
     /// Everything that can hurt us this tick: armed enemies in sight, remembered armed buildings, and armed
-    /// soldiers seen lately at their last place, fading.
-    fn threat_sources(&mut self, view: &dyn View, enemies: &[EnemyUnit], frame: i32) -> Vec<Source> {
-        let stats = |def: UnitDefId| -> Option<Stats> { view.stats(def).filter(|s| s.reach > 0.0) };
+    /// soldiers seen lately at their last place, fading. With `air`, what can hurt an aircraft, by the reach and
+    /// damage of its weapons that hit aircraft (the light laser turret's 10.7 a second among them, the anti-air
+    /// turret's 67.6), and no D-gun.
+    fn threat_sources(&mut self, view: &dyn View, enemies: &[EnemyUnit], frame: i32, air: bool) -> Vec<Source> {
+        let stats = |def: UnitDefId| -> Option<Stats> {
+            let s = view.stats(def)?;
+            if air { (s.air_reach > 0.0).then_some(Stats { reach: s.air_reach, dps: s.air_dps, dgun: 0.0, ..s }) } else { (s.reach > 0.0).then_some(s) }
+        };
         let blip = view.blip_def();
         let mut sources = Vec::new();
         for enemy in enemies {

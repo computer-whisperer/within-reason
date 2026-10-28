@@ -14,6 +14,13 @@
 //! group of kind `Rove` (design D15), whose order may confine it to a region: outside it the rover looks at nothing and
 //! attacks nothing, though it may pass through outside ground on its way.
 //!
+//! An aircraft roves too (a gunship, a bomber: an armed flier with a weapon that hits the ground; thebluegecko,
+//! 2026-10-27, L-gecko-air-details: "make sure that Banshees work with Rove", one Banshee to one extractor across the
+//! map). It keeps off what hits aircraft, not the ground's guns, and only what would kill it soon: a shooter counts
+//! when it and every other within its reach would together take the aircraft's health in `AIR_DANGER_SECONDS`. A
+//! Banshee (560) then attacks an extractor beside a light laser turret (10.7 a second against aircraft, 52 s) and
+//! keeps off one beside a Thistle (67.6, 8 s); a Wasp (1,560) keeps off two Thistles and not one (23 s).
+//!
 //! player-9-posing: three scouts sent at his base at G1-G2 never arrived: one pulled home by the hands at the first
 //! sight of his commander, one walked into two Pawns beside his lab, one diverted onto a hunt.
 
@@ -58,6 +65,9 @@ const STILL: f32 = 0.2;
 const SAME_MOVE: f32 = 32.0;
 /// Staleness counts in steps of this among spots all seen once.
 const STALE_STEP: i32 = 60 * FRAMES_PER_SECOND;
+/// An aircraft rover keeps off a shooter whose cover, with every other shooter within its reach, would kill it in
+/// this long (the module's comment).
+pub const AIR_DANGER_SECONDS: f32 = 15.0;
 
 /// A place a rover may look at: its name in the host's words, where it is, the frame it was last within sight of
 /// anything of ours (`None`: never), and whether it is his (in his start box, or his base).
@@ -162,6 +172,17 @@ fn clear_way(danger: &[&Source], a: Vec3, b: Vec3) -> bool {
     danger.iter().all(|s| to_segment(s.pos, a, b) >= keep_off(s))
 }
 
+/// What an aircraft with this much health keeps off, of the shooters that hit aircraft (the module's comment).
+fn air_danger(sources: &[Source], health: f32) -> Vec<&Source> {
+    sources
+        .iter()
+        .filter(|s| {
+            let cover: f32 = sources.iter().filter(|o| o.pos.dist2d(s.pos) <= s.reach).map(|o| o.weight).sum();
+            cover * AIR_DANGER_SECONDS >= health
+        })
+        .collect()
+}
+
 /// What to kill first: a constructor walking about, an extractor, a radar, anything else.
 fn target_class(d: &bot_protocol::UnitDefInfo) -> u8 {
     if d.build_speed > 0.0 && d.speed > 0.0 {
@@ -193,12 +214,21 @@ impl Lane {
 
     /// H-MICRO-ROVE, every tick, for every rover: evade, else attack, else look (the module's comment).
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[(&OwnUnit, Option<(Vec3, Vec3)>)], enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
+    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[(&OwnUnit, Option<(Vec3, Vec3)>)], enemies: &[EnemyUnit], sources: &[Source], air_sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
         let danger_all: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
         let mut goals_of: HashMap<UnitDefId, Vec<RoveGoal>> = HashMap::new();
         for (unit, within) in rovers {
-            // A torpedo shooter is no danger to a rover on land (the engine: water weapons reach only what is in the water).
-            let danger: Vec<&Source> = danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect();
+            let flies = view.def(unit.def).is_some_and(super::is_air_soldier);
+            let danger: Vec<&Source> = if flies {
+                air_danger(air_sources, unit.health)
+            } else {
+                // A torpedo shooter is no danger to a rover on land (the engine: water weapons reach only what is in the water).
+                danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect()
+            };
+            // What it knows can hit it where it stands: an aircraft hit by a shooter it chose not to keep off (a
+            // light laser turret beside its extractor) is not hit by something unseen (the air rove drill: every
+            // Banshee gave up its next place under the turret's fire).
+            let known_cover = |p: Vec3| flies && air_sources.iter().any(|s| s.pos.dist2d(p) <= keep_off(s));
             let stats = view.stats(unit.def).unwrap_or_default();
             let sight = if stats.sight > 0.0 { stats.sight } else { DEFAULT_SIGHT };
             // A region the order confines it to: nothing outside it is looked at or attacked.
@@ -238,7 +268,7 @@ impl Lane {
             // 1. Out of every reach. Where it stands, and where half a second of its velocity takes it.
             let next = Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES };
             let threat = danger.iter().copied().filter(|s| s.pos.dist2d(unit.pos) < keep_off(s) || s.pos.dist2d(next) < keep_off(s)).min_by(|a, b| (a.pos.dist2d(unit.pos) - keep_off(a)).total_cmp(&(b.pos.dist2d(unit.pos) - keep_off(b))));
-            let hit_unseen = threat.is_none() && unit.health < rover.health - 1.0;
+            let hit_unseen = threat.is_none() && unit.health < rover.health - 1.0 && !known_cover(unit.pos);
             rover.health = unit.health;
             if let Some(s) = threat {
                 // From anything as fast as it, toward home; else round the threat toward where it was going.
@@ -409,6 +439,8 @@ mod tests {
     const TOWER: UnitDefId = UnitDefId(3);
     const EXTRACTOR: UnitDefId = UnitDefId(4);
     const CONSTRUCTOR: UnitDefId = UnitDefId(5);
+    const BANSHEE: UnitDefId = UnitDefId(6);
+    const THISTLE: UnitDefId = UnitDefId(7);
 
     fn at(x: f32, z: f32) -> Vec3 {
         Vec3 { x, y: 0.0, z }
@@ -476,6 +508,8 @@ mod tests {
                 def(TOWER, "armllt", 0.0, 1, 0.0, 0.0),
                 def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
                 def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
+                UnitDefInfo { move_class: None, ..def(BANSHEE, "armkam", 185.0, 1, 0.0, 0.0) },
+                def(THISTLE, "corrl", 0.0, 1, 0.0, 0.0),
             ];
             Host { defs, buildings: Vec::new(), goals }
         }
@@ -487,9 +521,11 @@ mod tests {
         }
         fn stats(&self, def: UnitDefId) -> Option<Stats> {
             Some(match def {
-                ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0 },
-                PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0, area: 0.0 },
-                TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0 },
+                ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0, ..Stats::default() },
+                PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0, area: 0.0, ..Stats::default() },
+                TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0, air_reach: 430.0, air_dps: 10.7 },
+                BANSHEE => Stats { reach: 350.0, dps: 38.6, speed: 185.0, health: 560.0, sight: 520.0, ..Stats::default() },
+                THISTLE => Stats { health: 335.0, sight: 500.0, air_reach: 765.0, air_dps: 67.6, ..Stats::default() },
                 EXTRACTOR => Stats { health: 300.0, ..Stats::default() },
                 CONSTRUCTOR => Stats { speed: 36.0, health: 760.0, ..Stats::default() },
                 _ => return None,
@@ -553,6 +589,33 @@ mod tests {
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "confined, the extractor outside is left: {:?}", out.commands);
         let report = confined.roving(UnitId(10)).expect("roving");
         assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
+    }
+
+    /// An aircraft rover keeps off his anti-air, not the ground's guns, and only what would kill it within
+    /// `AIR_DANGER_SECONDS` (L-gecko-air-details): a Banshee attacks an extractor beside a light laser turret, which a
+    /// Rover leaves; beside a Thistle it takes the unguarded one further off; with a Wasp's 1,560 health, one Thistle
+    /// (23 s to kill it) does not keep it off.
+    #[test]
+    fn an_aircraft_rover_keeps_off_anti_air_that_would_kill_it_and_nothing_else() {
+        let banshee = |health: f32| OwnUnit { def: BANSHEE, health, max_health: health, ..rover(10, 1000.0, 1500.0) };
+        let attacks = |out: &crate::Output| out.commands.iter().find_map(|c| match c { Command::Attack { unit, target, .. } if unit.0 == 10 => Some(target.0), _ => None });
+        let guarded = enemy(50, EXTRACTOR, 1800.0, 1500.0);
+        let open = enemy(51, EXTRACTOR, 1000.0, 2300.0);
+
+        let tower = enemy(60, TOWER, 1850.0, 1550.0);
+        let out = roving_lane(&[10]).tick(&Host::new(Vec::new()), &tick(30, vec![banshee(560.0)], vec![guarded.clone(), open.clone(), tower.clone()]), &mut Vec::new(), false);
+        assert_eq!(attacks(&out), Some(50), "the light laser turret takes 52 s to kill it: the nearer extractor: {:?}", out.commands);
+        let out = roving_lane(&[10]).tick(&Host::new(Vec::new()), &tick(30, vec![rover(10, 1000.0, 1500.0)], vec![guarded.clone(), open.clone(), tower]), &mut Vec::new(), false);
+        assert_eq!(attacks(&out), Some(51), "a Rover leaves what the turret covers: {:?}", out.commands);
+
+        let thistle = enemy(61, THISTLE, 1850.0, 1550.0);
+        let out = roving_lane(&[10]).tick(&Host::new(Vec::new()), &tick(30, vec![banshee(560.0)], vec![guarded.clone(), open.clone(), thistle.clone()]), &mut Vec::new(), false);
+        assert_eq!(attacks(&out), Some(51), "the Thistle kills it in 8 s: the unguarded one: {:?}", out.commands);
+        let out = roving_lane(&[10]).tick(&Host::new(Vec::new()), &tick(30, vec![banshee(1560.0)], vec![guarded.clone(), open.clone(), thistle.clone()]), &mut Vec::new(), false);
+        assert_eq!(attacks(&out), Some(50), "one Thistle against 1,560: {:?}", out.commands);
+        let second = enemy(62, THISTLE, 1850.0, 1450.0);
+        let out = roving_lane(&[10]).tick(&Host::new(Vec::new()), &tick(30, vec![banshee(1560.0)], vec![guarded, open, thistle, second]), &mut Vec::new(), false);
+        assert_eq!(attacks(&out), Some(51), "two Thistles kill it in 11.5 s: {:?}", out.commands);
     }
 
     /// The companies design (`docs/design/2026-10-25-companies.md` §2): forty-eight Pawns declared at a cap of 24

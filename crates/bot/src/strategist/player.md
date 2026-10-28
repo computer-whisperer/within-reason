@@ -119,7 +119,10 @@ whenever you hit that edge.
   and fights what comes at it); `rove` (the whole group roves: every soldier runs on its own in code, looking at
   what we know least, his start box first, killing what it finds unguarded and keeping out of every reach, until a
   later pick takes it elsewhere; while it roves its menu has no party moves); `rove_1` (its fastest soldier leaves as a group of its own and roves); and for a region you marked (`mark` with a cell range, `"east_half": "E1-H8"`) that the packet names for the group, `rove_<region>` and `rove_1_<region>` (the same, but the rovers look at nothing and attack nothing outside the region: "the Rovers rove in his half" is a mark of his half and a packet that names it for them; a later plain `rove` frees them of it). An air group has stay, hold, go,
-  attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join.
+  attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join, and its
+  gunships and bombers rove as soldiers do (`rove`, `rove_1`, the regions), keeping out of the reach of anti-air that
+  would kill them soon: Banshees on his extractors, one each across the map, are thebluegecko's use of it; fighters and
+  Shurikens do not rove.
 - A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
   names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
   no place can hold, gather, join, follow, and attack what is in sight or his known buildings, and that is all. His

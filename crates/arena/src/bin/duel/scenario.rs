@@ -155,6 +155,9 @@ pub enum ScriptCmd {
     Firestate,
     /// A manual-fire weapon at the ground at x, z: a silo's missile (`Command::FireAt`).
     Fire,
+    /// From now on the unit is a member of one roving group the lane runs (H-MICRO-ROVE): no order of its own; a
+    /// script with a rove row keeps side 0's lane on for it.
+    Rove,
 }
 
 #[derive(Deserialize)]
@@ -165,6 +168,11 @@ enum ScriptFile {
 }
 
 impl Script {
+    /// Whether a row hands a unit to the lane to rove.
+    pub fn roves(&self) -> bool {
+        self.rows.iter().any(|r| r.cmd == ScriptCmd::Rove)
+    }
+
     /// Reads and checks a script against the scenario it will be fought in.
     pub fn load(path: &std::path::Path, scenario: &Scenario) -> Result<Script, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -184,7 +192,7 @@ impl Script {
                 return problem(&format!("a unit index past side 0's {ours} units"));
             }
             match row.cmd {
-                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::Fire if row.x.is_none() || row.z.is_none() => return problem("move, fight and fire need x and z"),
+                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::FightReclaimingEnemies | ScriptCmd::Fire if row.x.is_none() || row.z.is_none() => return problem("move, fight and fire need x and z"),
                 ScriptCmd::Attack if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack needs a target below {theirs}")),
                 ScriptCmd::Guard if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard needs a target (of side 0) below {ours}")),
                 ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),
