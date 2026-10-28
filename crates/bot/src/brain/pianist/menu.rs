@@ -1396,11 +1396,7 @@ impl Brain {
                 };
                 if !on_water || self.world.water_within(unit.pos, reach) {
                     let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
-                    // A factory frame of this type already started nearby is helped up, not started again
-                    // (H-HANDS-STARTED across builders): the words say what the order will do.
-                    let frame_near = self.world.is_factory_def(def) && own.iter().any(|u| u.def == def && u.being_built && u.pos.dist2d(unit.pos) < super::execute::FRAME_HELP);
-                    let helped = if frame_near { "; a frame of that type is already started near it: it helps that one up, not a second" } else { "" };
-                    push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{helped}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);
+                    push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);
                 }
                 if on_water {
                     continue;

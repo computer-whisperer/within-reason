@@ -38,11 +38,6 @@ fn at_the_orders_site(on: Option<usize>, near: Vec3, spot: Option<usize>, place:
     }
 }
 
-/// A factory frame of the type a builder is told to build, standing unfinished within this of it, is helped up
-/// instead of a second frame being started (game 10: a second advanced vehicle plant at 18:35, 224 from the first
-/// at 0%, abandoned at 19:15; the user: two seats gifting metal does not help a seat without the build power). The
-/// move's words say so (`menu.rs`).
-pub(super) const FRAME_HELP: f32 = 900.0;
 
 impl Brain {
     /// Puts a picked world in force: every actor's move other than `stay` is executed. Returns what changed, for
@@ -111,22 +106,6 @@ impl Brain {
         }
         let mut task: Option<Task> = None;
         let mut did: Option<String> = None;
-        // A factory of the asked type already started by another builder of ours nearby is the build to help.
-        let frame_to_help = match order {
-            Order::Build(def, Site::Planned | Site::Place(_)) if self.world.is_factory_def(*def) => own.iter().filter(|u| u.def == *def && u.being_built && u.pos.dist2d(unit.pos) < FRAME_HELP).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))).map(|u| u.id),
-            _ => None,
-        };
-        if let Some(target) = frame_to_help {
-            if helping != Some(target) {
-                commands.push(Command::Guard { unit: id, target });
-            }
-            let since = match self.pianist.as_ref().and_then(|p| p.tasks.get(&id)) {
-                Some(Task::Assist { lab, since }) if *lab == target => *since,
-                _ => frame,
-            };
-            task = Some(Task::Assist { lab: target, since });
-            did = Some(format!("help {} build (a frame of that type already started {:.0} away)", self.actor_name(target), own.iter().find(|u| u.id == target).map_or(0.0, |u| u.pos.dist2d(unit.pos))));
-        }
         let mut build = |plan: Plan, spot: Option<usize>| -> Option<String> {
             let (def, site) = self.build_site_for(&plan, unit, own, kit)?;
             let near = site.near;
@@ -135,7 +114,6 @@ impl Brain {
             Some(format!("build a {} at {}", self.name(def), self.place_words(&picture.places, near)))
         };
         match order {
-            _ if frame_to_help.is_some() => {}
             Order::Build(_, Site::Spot(i)) => {
                 did = build(Plan::Extractor(self.world.hello.metal_spots[*i]), Some(*i));
             }

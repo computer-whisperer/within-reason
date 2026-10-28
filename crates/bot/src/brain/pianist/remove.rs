@@ -162,7 +162,7 @@ mod tests {
             Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
         };
         let handle = brain.handle(&ours[0]);
-        let mut sent = |brain: &mut Brain, frame: i32| {
+        let sent = |brain: &mut Brain, frame: i32| {
             shared.removals.lock().unwrap().push(Removal::Destruct { targets: vec![handle.clone()] });
             let mut commands = Vec::new();
             brain.take_removals(&tick(frame), &mut commands, &shared);
