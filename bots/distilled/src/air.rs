@@ -234,6 +234,10 @@ impl Distilled {
     /// D-FIGHTERS, D-BOMB: what the aircraft plant makes next: fighters to the count wanted, then the squadron's
     /// bombers, else nothing; with no air of his shown, only from spare energy (`SPARE_ENERGY`).
     pub(crate) fn next_aircraft(&self, energy: Resource) -> Option<UnitDefId> {
+        // D-NUKE-LOOK: a scout plane to look for the anti-nuke behind an interception comes first.
+        if self.air_scout_wanted() {
+            return self.kit.air_scout;
+        }
         let spare = energy.current > SPARE_ENERGY * energy.storage;
         if self.fighters_short() && (spare || !self.air.shown.is_empty()) {
             return self.kit.fighter;

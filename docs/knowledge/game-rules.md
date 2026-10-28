@@ -270,9 +270,15 @@ no interception event, and an enemy unit's stockpile count is given to allies on
 (`EnemyDamaged`, `EnemyDestroyed`, both naming our silo), but only for units in our ally team's sight or radar (BAR's
 buildings are not radar-stealthy). A strike on a place nobody of ours watches has no observable outcome. The true
 heightmap is given in full (`Map_getHeightMap` reads the synced one), so a crater tells a landing anywhere; it is off
-when the lobby disables map deformation. A player sees the same: the user, 2026-10-27, from a game with people: "while
-the impact does not grant any vision automatically, the terrain deformation from a succesful nuke is vary obvious",
-and the missile's flight and its explosion, in the air when intercepted, on the ground when not, are seen by all.
+when the lobby disables map deformation. A player gets the same bit by another road. The game draws a glowing crater in
+the fog where a missile landed; it is not the real deformation, which shows only once the place is in sight, but a
+deliberate signal of success. The missile's flight and its explosion, in the air when intercepted and on the ground
+when not, are seen by all (the user, 2026-10-27, from games with people: "the terrain deformation from a succesful nuke
+is vary obvious", then "In the game gui there is a very obvious glowing crater that appears in the fog-of-war terrain
+content. It is not exactly the real deformation (getting real vision reveals the real terrain damage), but the
+deliberate success signal is still there"). So the bot reads the real ground for that one bit, landed or not, and
+nothing more. Whether the glowing mark is drawn on a lobby with deformation off, where the bot's ground tells nothing,
+is not known.
 **Status.** read from source (2026-10-27), not measured; the user, 2026-10-27: "Let's run with the expectation of not
 knowing", then that the crater test is "all above board".
 **Evidence.** `rts/ExternalAI/Interface/SSkirmishAICallback.h` (no projectile callbacks), `AISEvents.h`,
@@ -283,3 +289,20 @@ team's sight or radar unless cheat events are on), `rts/Sim/Units/CommandAI/Comm
 sight.
 **Used by.** D-NUKE-FIRE's instrument (`nuke:` lines: what the events saw of each strike, and whether the place was in
 our sight or radar); `run/distilled_nuke.py` judges every strike from the truth file instead.
+
+### K-rules-a-landed-nuke-digs-a-crater
+**Claim.** A nuclear missile that lands digs a crater the ground's height shows at once, and one intercepted leaves the
+ground as it was. On Comet Catcher an Armada missile aimed between four solars and a light turret took the ground down
+52 at the aim, 37 at 150 from it, 7 at 300 (21 on the mean over the aim and two rings of eight); the same missile taken by
+a Cortex anti-nuke 260 from the aim left every point as it was, to the tenth. The engine digs the crater over the frames
+after the blast (`EXPLOSION_LIFETIME`), squares under a building move with the building as a block, and the readings
+25 and 50 s after the impact were the same.
+**Status.** measured (2026-10-27), one run each, one map; a harder map digs less (the engine divides by the ground's
+hardness), and a lobby with map deformation off digs nothing.
+**Evidence.** The duel harness's `probe` script command (`Command::Probe`, answered with the synced ground's height);
+`docs/data/scenarios-2026-10-09-nuke/silo-alone-witness.json` (silo-alone with a fifth solar outside the blast, so the
+duel outlives the landing) and `silo-antinuke.json`, script `crater-170.json` (probes at 150, 215, 240 s, the missile at
+170); `run/matches/*-duel-nuke-crater-witness`, `*-duel-nuke-crater-antinuke`; `rts/Map/BasicMapDamage.cpp`.
+**Would be wrong if.** An intercepted missile were seen to move the ground, or a landed one on another map moved the
+mean by less than 2.
+**Used by.** D-NUKE-VERDICT (`bots/distilled/src/nuke.rs`, `CRATER_DEPTH = 2`).

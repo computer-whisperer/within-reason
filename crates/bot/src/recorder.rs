@@ -220,7 +220,8 @@ impl Recorder {
         let record = match *event {
             // Idle is a unit flag in the samples; damage is summed into the next sample; what allies' overflow put
             // into the stock is in the stock's samples.
-            Event::UnitIdle { .. } | Event::Received { .. } => return,
+            // A probe's heights are the bot's own business (`Command::Probe`).
+            Event::UnitIdle { .. } | Event::Received { .. } | Event::Ground { .. } => return,
             Event::Chat { player, ref text } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text }),
             Event::UnitDamaged { unit, attacker, damage, .. } => {
                 *self.damage.entry(unit).or_default() += damage;
@@ -357,6 +358,7 @@ impl Recorder {
                 Command::FireAt { unit, at } => json!(["fire_at", unit.0, at.x as i32, at.z as i32]),
                 Command::Stockpile { unit, change } => json!(["stockpile", unit.0, change]),
                 Command::Priority { unit, low } => json!(["priority", unit.0, i32::from(!low)]),
+                Command::Probe { ref points } => json!(["probe", points.len()]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));

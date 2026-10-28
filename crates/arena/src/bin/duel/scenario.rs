@@ -38,7 +38,8 @@
 //!     { "t": 9.0, "unit": 5, "cmd": "guard", "target": 6 },                     // guard: an index into side 0
 //!     { "t": 9.0, "unit": 5, "cmd": "stop" },
 //!     { "t": 9.0, "unit": 5, "cmd": "firestate", "state": 0 },             // 0 hold fire, 1 return fire, 2 fire at will
-//!     { "t": 150.0, "unit": 0, "cmd": "fire", "x": 6500, "z": 3072 } ] }     // a manual-fire weapon at the ground (a silo's missile)
+//!     { "t": 150.0, "unit": 0, "cmd": "fire", "x": 6500, "z": 3072 },        // a manual-fire weapon at the ground (a silo's missile)
+//!     { "t": 210.0, "unit": 0, "cmd": "probe", "x": 6500, "z": 3072 } ] }    // the ground's height there and round it
 //! ```
 //!
 //! (A bare JSON array of rows is read too.) `t` is seconds from the fight's first orders; the director issues a row on
@@ -151,6 +152,10 @@ pub enum ScriptCmd {
     Firestate,
     /// A manual-fire weapon at the ground at x, z: a silo's missile (`Command::FireAt`).
     Fire,
+    /// The ground's height at x, z and on two rings of eight round it, 150 and 300 out (`Command::Probe`), as the
+    /// distilled bot reads a strike's crater (D-NUKE-VERDICT); the answer goes to the per-second log as `ground`. The
+    /// row's units are not used.
+    Probe,
 }
 
 #[derive(Deserialize)]
@@ -180,7 +185,7 @@ impl Script {
                 return problem(&format!("a unit index past side 0's {ours} units"));
             }
             match row.cmd {
-                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::Fire if row.x.is_none() || row.z.is_none() => return problem("move, fight and fire need x and z"),
+                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::Fire | ScriptCmd::Probe if row.x.is_none() || row.z.is_none() => return problem("move, fight, fire and probe need x and z"),
                 ScriptCmd::Attack if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack needs a target below {theirs}")),
                 ScriptCmd::Guard if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard needs a target (of side 0) below {ours}")),
                 ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),

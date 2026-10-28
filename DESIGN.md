@@ -109,6 +109,14 @@ parameter, 0 low and 1 high): a low builder draws only the team's surplus, full 
 order in `AllowCommand`, nothing is queued, and the shim reads the flag back as `OwnUnit::priority_low` from the unit
 rules param `builderPriority` (K-mech-builder-priority-is-a-builder-flag; the study `docs/studies/2026-10-13-builder-priority.md`).
 
+`Command::Probe { points }` (2026-10-27) asks the ground's height at a few points; the shim answers it itself in the
+next tick as `Event::Ground { points }`, each point with `y` the synced ground's height (`Map_getElevationAt`), and sends
+nothing to the engine. Nothing else tells a bot whether its missile was intercepted (no projectile access, no event:
+K-rules-a-bot-sees-no-interception); a missile that lands digs a crater, one intercepted bursts in the air, and players
+are shown a glowing crater where one landed (the user, 2026-10-27), so the ground before and after a strike is that one
+bit. The distilled bot's silos read it (D-NUKE-VERDICT); the flagship's recorder writes the order as `probe` and passes
+over the answer.
+
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at
 its first orders (frame 60) the bot says a chat line: `<its given name> is Within Reason <commit, "+" when the tree

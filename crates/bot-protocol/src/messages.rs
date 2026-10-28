@@ -568,6 +568,8 @@ pub enum Event {
     /// reading the income alone sees an ally's gift only as a rising stock. Sent once a second while either is above
     /// zero.
     Received { metal: f32, energy: f32 },
+    /// The answer to a [`Command::Probe`]: its points as asked, each with `y` the ground's height when the shim read it.
+    Ground { points: Vec<Vec3> },
 }
 
 /// The bot's reply to a tick; also the credit that lets the shim send the next one.
@@ -636,6 +638,11 @@ pub enum Command {
     /// constructors, factories and construction turrets; the gadget consumes the order without queueing it, and the
     /// flag is read back as `OwnUnit::priority_low`.
     Priority { unit: UnitId, low: bool },
+    /// The ground's height now at these points: the shim answers in the next tick with [`Event::Ground`] and sends
+    /// nothing to the engine. The synced ground (`Map_getElevationAt`), so what a crater has done to it: a missile
+    /// that lands digs one (players are shown a glowing crater where it landed), one intercepted in the air does not
+    /// (K-rules-a-bot-sees-no-interception).
+    Probe { points: Vec<Vec3> },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

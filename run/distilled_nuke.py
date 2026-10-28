@@ -8,8 +8,8 @@ For the newest batch of each label, pooled over the games and our seats:
 - the silos: seats that began one, the minute the first was begun and stood, the silos standing at the marks;
 - the strikes: ordered, launched, and what the truth file says each did (his buildings inside the blast before the
   impact against after: killed or damaged = landed; buildings inside and none harmed = stopped, which is an
-  interception or a miss; none inside = empty), with his anti-nuke within 2,000 of the aim at the launch by the truth, and what the
-  bot's own events saw of it (the `nuke: strike` lines);
+  interception or a miss; none inside = empty), with his anti-nuke within 2,000 of the aim at the launch by the truth,
+  against the bot's own verdict from the ground (the `nuke: strike` lines) and the ground's fall it read;
 - at the marks, medians over the seats still playing: our bank, income and energy store, and the worth of his
   buildings standing by the truth (metal plus energy over 70).
 """
@@ -24,6 +24,7 @@ COVERAGE = 2000.0
 ENERGY_A_METAL = 70.0
 # The truth file has a row every 2 s; the warhead lands about 12 s after the launch.
 BEFORE, AFTER = 10 * 30, 24 * 30
+LANDED_SHARE = 0.25
 
 
 def worth(name):
@@ -49,7 +50,7 @@ def read_log(path):
         if not m:
             continue
         ai, f, text = int(m.group(1)), int(m.group(2)), m.group(3)
-        s = seats.setdefault(ai, {"begun": None, "standing": None, "silos": {}, "ordered": 0, "launches": [], "seen": [], "marks": {}})
+        s = seats.setdefault(ai, {"begun": None, "standing": None, "silos": {}, "ordered": 0, "launches": [], "verdicts": {}, "marks": {}})
         minute = round(f / 1800)
         at_mark = minute in MARKS and abs(f / 1800 - minute) < 0.01
         if text.startswith("t2: silo begun") and s["begun"] is None:
@@ -65,9 +66,9 @@ def read_log(path):
             if (ai, silo) in pending:
                 x, z, r = pending.pop((ai, silo))
                 s["launches"].append((f, x, z, r))
-        elif text.startswith("nuke: strike at ") and "seen killed" in text:
-            g = re.search(r"seen killed (\d+) worth (\d+), damaged (\d+); the place in our (\w+)", text)
-            s["seen"].append((int(g.group(1)), float(g.group(2)), int(g.group(3)), g.group(4)))
+        elif text.startswith("nuke: strike at "):
+            g = re.search(r"strike at \((-?\d+),(-?\d+)\) by silo \d+: (\w+)(?: \(the ground down (-?[\d.]+) on the mean, (-?[\d.]+) at most\))?", text)
+            s["verdicts"][(int(g.group(1)), int(g.group(2)))] = (g.group(3), float(g.group(4)) if g.group(4) else None)
         elif text.startswith("nuke: silos ") and at_mark:
             s["silos"][minute] = int(re.match(r"nuke: silos (\d+)", text).group(1))
         elif text.startswith("extractors=") and at_mark:
@@ -116,9 +117,14 @@ def judge(rows, launch):
     b, a = inside(before), inside(after)
     if not b:
         return "empty", 0, 0.0, covered
-    killed = [u for i, u in b.items() if i not in a]
+    # A building gone with a new one standing on its place was replaced (an extractor upgraded), not killed.
+    # (The new one may stand already as a frame before it.)
+    replaced = lambda u: any(i != u[0] and (v[2] - u[2]) ** 2 + (v[3] - u[3]) ** 2 < 50 ** 2 for i, v in a.items())
+    killed = [u for i, u in b.items() if i not in a and not replaced(u)]
     damaged = [u for i, u in b.items() if i in a and a[i][4] < u[4] - 5]
-    if killed or damaged:
+    # A warhead kills or hurts most of what stands in its circle; a few hurt buildings among many are a fight nearby
+    # (dist57: an intercepted strike over 96 buildings, three worn solars dying in the window).
+    if len(killed) + len(damaged) >= max(1, LANDED_SHARE * len(b)):
         return "landed", len(killed), sum(worth(u[1]) for u in killed), covered
     return "stopped", 0, 0.0, covered
 
@@ -139,7 +145,7 @@ def main():
         ended = [r["game_minutes"] for r in results if r["outcome"] != "Timeout"]
         print(f"=== {os.path.basename(batch)}: {o.count('Win')} won, {o.count('Loss')} lost, {o.count('Timeout')} to the cap of {len(o)} (ended at {med(ended, '{:.1f}')} min median)")
         all_seats, verdicts, his = [], {}, {m: [] for m in MARKS}
-        killed_worth, covered_by_verdict = [], {}
+        killed_worth, covered_by_verdict, against = [], {}, {}
         for r in results:
             g = f"{batch}/{r['index']:02d}"
             seats = read_log(g)
@@ -152,6 +158,8 @@ def main():
                     covered_by_verdict.setdefault(v, [0, 0])[0 if covered else 1] += 1
                     if v == "landed":
                         killed_worth.append(w)
+                    bot, drop = s["verdicts"].get((launch[1], launch[2]), ("none", None))
+                    against.setdefault((v, bot), []).append(drop)
             for m in MARKS:
                 row = row_at(rows, m * 1800, False)
                 if row is not None and rows and rows[-1][0] >= m * 1800:
@@ -162,12 +170,10 @@ def main():
               f"standing at {', '.join(f'{m}:00 {med([s['silos'].get(m) for s in all_seats if m in s['silos']])}' for m in MARKS)}")
         print(f"  strikes: {sum(s['ordered'] for s in all_seats)} ordered, {launches} launched; by the truth {verdicts or '-'} "
               f"(his anti-nuke within {COVERAGE:.0f} of the aim [covered, not]: {covered_by_verdict or '-'}); worth killed a landed strike {med(killed_worth)}, all {sum(killed_worth):.0f}")
-        seen = [x for s in all_seats for x in s["seen"]]
-        if seen:
-            sensed = {}
-            for k, w, d, where in seen:
-                sensed[where] = sensed.get(where, 0) + 1
-            print(f"  the bot's events: {len(seen)} strikes read, {sum(1 for k, w, d, _ in seen if k or d)} with a kill or damage seen, worth seen {sum(w for _, w, _, _ in seen):.0f}; the place in our {sensed}")
+        for (truth, bot), drops in sorted(against.items()):
+            known = sorted(d for d in drops if d is not None)
+            span = f", the ground down {known[0]:.1f} to {known[-1]:.1f} on the mean" if known else ""
+            print(f"  the truth says {truth}, the bot said {bot}: {len(drops)}{span}")
         for m in MARKS:
             rows_m = [s["marks"][m] for s in all_seats if m in s["marks"]]
             if rows_m or his[m]:

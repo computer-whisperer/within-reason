@@ -262,6 +262,11 @@ impl<L: Transport> Instance<L> {
                     }
                 }
             }
+            if let Command::Probe { points } = &command {
+                let points = points.iter().map(|p| Vec3 { y: self.engine.elevation(p.x, p.z), ..*p }).collect();
+                self.events.push(Event::Ground { points });
+                continue;
+            }
             if let Command::GiveUnit { def, at } = command {
                 // A give long after the cheat command: `/cheat 1` again first, and the give waits `CHEAT_LAG` for
                 // it (the game swallows the command now and then, both sendings; the director gives an army of

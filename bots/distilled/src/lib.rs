@@ -40,6 +40,8 @@ pub(crate) struct Kit {
     pub air_plant: Option<UnitDefId>,
     pub fighter: Option<UnitDefId>,
     pub bomber: Option<UnitDefId>,
+    /// The aircraft plant's scout plane (Peeper, Finch; Legion has none): D-NUKE-LOOK's eyes.
+    pub air_scout: Option<UnitDefId>,
     pub constructor: Option<UnitDefId>,
     pub scout: Option<UnitDefId>,
     pub raider: Option<UnitDefId>,
@@ -138,11 +140,12 @@ impl Distilled {
             "leg" => ("lht", "scout", "econv", "adveconv", "hades", "gat", "bar", "aheattank", "amcluster", Some("afcv")),
             _ => ("llt", "fav", "makr", "mmkr", "flash", "stump", "art", "bull", "mart", Some("consul")),
         };
-        // The aircraft plant's fighter and bomber: Falcon and Stormbringer, Valiant and Whirlwind, Noctua and none.
-        let (fighter, bomber) = match faction {
-            "cor" => ("veng", Some("shad")),
-            "leg" => ("fig", None),
-            _ => ("fig", Some("thund")),
+        // The aircraft plant's fighter, bomber and scout plane: Falcon, Stormbringer and Peeper; Valiant, Whirlwind and
+        // Finch; Noctua and neither.
+        let (fighter, bomber, air_scout) = match faction {
+            "cor" => ("veng", Some("shad"), Some("fink")),
+            "leg" => ("fig", None, None),
+            _ => ("fig", Some("thund"), Some("peep")),
         };
         Kit {
             // The cheapest extractor the commander can build.
@@ -156,6 +159,7 @@ impl Distilled {
             air_plant: named("ap"),
             fighter: named(fighter),
             bomber: bomber.and_then(named),
+            air_scout: air_scout.and_then(named),
             constructor: named("cv"),
             scout: named(scout),
             raider: named(raider),
@@ -424,6 +428,7 @@ impl Bot for Distilled {
                 Event::UnitFinished { unit } => self.t2_milestone(*unit, "standing"),
                 Event::EnemyDamaged { enemy, attacker, .. } => self.nuke_hit(*enemy, *attacker, false),
                 Event::WeaponFired { unit, .. } => self.nuke_launched(*unit),
+                Event::Ground { points } => self.nuke_ground(points),
                 Event::UnitDestroyed { unit, attacker, death } => {
                     self.unit_died(&tick, *unit, *attacker, death);
                     self.last_hit.remove(unit);
