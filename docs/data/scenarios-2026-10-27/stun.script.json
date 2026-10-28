@@ -1,0 +1,8 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the Shurikens fight onto the party, as the stun move orders them",
+ "rows": [
+  { "t": 0.0, "unit": "all", "cmd": "fight", "x": 2925, "z": 3800 }
+ ]
+}

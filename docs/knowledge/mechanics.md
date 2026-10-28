@@ -166,6 +166,28 @@ notes 37:55-38:07).
 or a BAR gadget re-orders weapon targets for these units.
 **Used by.** F-fight-range (the brief's facts).
 
+### K-mech-stun
+**Claim.** A stun (paralyzer) weapon adds its damage, times the target's `paralyzemultiplier` (1 for most, 0.2 for 16 unit
+files, 0 for commanders, transports, spies, walls and a few tier-3 giants), to a stun store; the unit is stunned while the
+store is above its maximum health: it neither moves nor shoots, and keeps its orders. The store falls by a fortieth of the
+maximum health a second (BAR's `paralyzeDeclineRate` 40) and is capped at the health plus the weapon's `paralyzetime`
+of that fall, so a unit wakes at most `paralyzetime` seconds after the last shot (7 for the Shuriken: 600 a shot, reach
+220, reload 1.2). A stun weapon aims only at what can be stunned (BAR's `EMPABLE`: a surface unit whose multiplier is not
+0); the engine's own aim puts a stunned unit behind the rest, and a queued attack skips one. The seconds a unit stays
+stunned are `40 * (store / health - 1)`, readable for ours and for his in sight (`Unit_getParalyzeDamage`, `Unit_isParalyzed`).
+**Status.** supported (2026-10-27) — local source and the stun drill: the shim's seconds counted down one a second, were
+7.0 again at each new hit and never above 7; a Pawn went down to one shot, a Blitz to two
+**Evidence.** RecoilEngine `rts/Sim/Units/Unit.cpp` 996-1013 (the fall, stunned while above the health) and 1253-1305
+(the cap); `rts/Game/GameHelper.cpp` 754 (a stunned target's worse priority for a paralyzer); `rts/Sim/Units/CommandAI/CommandAI.cpp`
+`SkipParalyzeTarget`; `rts/ExternalAI/SSkirmishAICallbackImpl.cpp` (stun readable for allies, and enemies in sight);
+BAR `gamedata/modrules.lua` (paralyzeOnMaxHealth, paralyzeDeclineRate 40, 20 under the `emprework` option),
+`gamedata/alldefs_post.lua:201` (EMPABLE), `luarules/gadgets/unit_paralyze_damage_multiplier.lua`,
+`unit_paralyze_damage_limit.lua` (the same cap for mobile units), `units/CorAircraft/corbw.lua`; the drill
+`run/matches/1793154711-duel-stun` (`docs/data/scenarios-2026-10-27/stun.json`).
+**Would be wrong if.** A game with `emprework` on (the fall is a twentieth, the cap 10 s), or a drill showing a commander
+stunned.
+**Used by.** H-HANDS-STUN, H-MICRO-ROVE, H-MICRO-LANE, D-air-not-optional (the Shuriken).
+
 ### K-mech-dgun
 **Claim.** The commander's D-gun: range 250, 500 energy per shot, 0.9 s reload, damage 99999 to everything except commanders
 (0), small area (36); it is a manual-fire weapon (`commandfire`), so it never fires unless explicitly ordered. The commander's

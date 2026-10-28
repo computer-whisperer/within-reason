@@ -245,6 +245,8 @@ struct Army {
     start: HashMap<UnitId, f32>,
     /// Where each unit was last seen; a unit that dies leaves its wreck there.
     seen_at: HashMap<UnitId, Vec3>,
+    /// Its own stunned units and the seconds each stays so, as its team's snapshot says.
+    stunned: HashMap<UnitId, f32>,
     centroid: Vec3,
     /// Root-mean-square distance of the living units from `centroid`, this tick.
     dispersion: f32,
@@ -311,6 +313,7 @@ impl Army {
             max_health: HashMap::new(),
             start: HashMap::new(),
             seen_at: HashMap::new(),
+            stunned: HashMap::new(),
             centroid,
             dispersion: 0.0,
             spread_at_contact: None,
@@ -483,6 +486,10 @@ impl Director {
             // area of 300, the engine gives the radius, 150.
             let areas: Vec<String> = ["armfboy", "armbull", "armstump", "armflash"].iter().filter_map(|n| self.defs.get(*n).map(|d| format!("{n} {:.0}", d.blast_radius))).collect();
             eprintln!("duel: blast radius from the definitions: {}", areas.join(", "));
+            // And of the stun: the Shuriken's weapon, and the share of stun taken by a commander, a Pincer, a Pawn.
+            let stun = self.defs.get("corbw").and_then(|d| d.stun).map_or("none".to_string(), |s| format!("{:.0} a shot, reach {:.0}, reload {:.1}, {:.0} s", s.per_shot, s.reach, s.reload, s.seconds));
+            let taken: Vec<String> = ["armcom", "armpincer", "armpw"].iter().filter_map(|n| self.defs.get(*n).map(|d| format!("{n} {}", d.stun_taken))).collect();
+            eprintln!("duel: stun from the definitions: corbw {stun}; taken: {}", taken.join(", "));
             self.hello = Some(hello);
         }
     }
@@ -1287,6 +1294,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
         }
         army.alive.clear();
         army.rounds.clear();
+        army.stunned.clear();
         let mut sum = (0.0, 0.0);
         for unit in tick.snapshot.own_units.iter().filter(|u| army.units.contains(&u.id)) {
             army.alive.insert(unit.id, (unit.health / unit.max_health.max(1.0)).clamp(0.0, 1.0));
@@ -1295,6 +1303,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             }
             army.max_health.insert(unit.id, unit.max_health);
             army.seen_at.insert(unit.id, unit.pos);
+            if unit.stunned > 0.0 {
+                army.stunned.insert(unit.id, unit.stunned);
+            }
             sum = (sum.0 + unit.pos.x, sum.1 + unit.pos.z);
         }
         let alive = &army.alive;
@@ -2065,6 +2076,12 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         rows.sort_by_key(|r| r.0);
         rows.into_iter().map(|((i, j), d)| json!([i, j, d.round()])).collect()
     };
+    // Each stunned unit, as [index, seconds it stays stunned].
+    let stunned = |a: &Army| -> Vec<Value> {
+        let mut rows: Vec<(usize, f32)> = a.stunned.iter().filter_map(|(u, s)| Some((*a.spawn_of.get(u)?, *s))).collect();
+        rows.sort_by_key(|r| r.0);
+        rows.into_iter().map(|(i, s)| json!([i, (f64::from(s) * 10.0).round() / 10.0])).collect()
+    };
     // Each stockpiler's rounds, ready and queued, as [index, ready, queued].
     let rounds = |a: &Army| -> Vec<Value> {
         let mut rows: Vec<(usize, i32, i32)> = a.rounds.iter().filter_map(|(u, (ready, queued))| Some((*a.spawn_of.get(u)?, *ready, *queued))).collect();
@@ -2082,6 +2099,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         "dealt": {"x": dealt(x, y, hits_on_y), "y": dealt(y, x, hits_on_x)},
         "energy": [x.energy.round(), y.energy.round()],
         "rounds": {"x": rounds(x), "y": rounds(y)},
+        "stunned": {"x": stunned(x), "y": stunned(y)},
         "orders": std::mem::take(&mut duel.notes),
     });
     if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {

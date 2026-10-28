@@ -122,6 +122,10 @@ pub struct Brain {
     enemy_buildings: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
     /// Of `enemy_buildings`, the ones last seen still being built: no threat, no shooter, no wall, and a target.
     enemy_unfinished: HashSet<UnitId>,
+    /// His units stunned, with the seconds each stays so as of `stun_frame`: from his units in sight, and counted down
+    /// for those out of sight since (a stunned turret is no threat until it wakes, seen or not).
+    enemy_stunned: HashMap<UnitId, f32>,
+    stun_frame: i32,
     /// Hits from out of sight in the last twenty seconds (`shelling.rs`), and when the player was last woken for them.
     shelling: Vec<shelling::Shell>,
     shelling_warned: i32,
@@ -329,6 +333,8 @@ impl Brain {
             strategist,
             enemy_buildings: HashMap::new(),
             enemy_unfinished: HashSet::new(),
+            enemy_stunned: HashMap::new(),
+            stun_frame: 0,
             shelling: Vec::new(),
             sensors: None,
             guns: Vec::new(),

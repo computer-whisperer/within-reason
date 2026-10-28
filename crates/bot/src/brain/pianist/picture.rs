@@ -367,7 +367,8 @@ impl Brain {
         for unit in units {
             *counts.entry(self.short_words(unit.def)).or_default() += 1;
         }
-        counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ")
+        let stunned: Vec<f32> = units.iter().map(|u| u.stunned).filter(|s| *s > 0.0).collect();
+        counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ") + &stunned_words(&stunned, units.len()).map_or(String::new(), |w| format!("; {w}"))
     }
 
     /// The ground's height at a place (water level 0: negative is that deep under water); 0 without terrain.
@@ -450,7 +451,8 @@ impl Brain {
                 *counts.entry(name).or_default() += 1;
                 metal += mobile[*i].def.and_then(|d| self.world.def(d)).map_or(110.0, |d| d.metal_cost);
             }
-            let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
+            let stunned: Vec<f32> = members.iter().map(|i| mobile[*i].stunned).filter(|s| *s > 0.0).collect();
+            let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ") + &stunned_words(&stunned, members.len()).map_or(String::new(), |w| format!("; {w}"));
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
             let air = members.iter().all(|i| mobile[*i].def.is_some_and(|d| self.world.domain_of(d) == crate::world::Domain::Air));
             let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
@@ -753,21 +755,114 @@ impl Brain {
         words
     }
 
-    pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> String {
+    /// What a group of stun weapons does to a party (the stun move's words): which of its units it can stun and with how
+    /// many shots, and how many it keeps down at once. A shot holds a unit the weapon's seconds after it lands, so
+    /// once a unit is down one shot in that time keeps it there: each drone keeps `seconds / reload` units down.
+    pub(super) fn stun_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> String {
+        let stuns: Vec<bot_protocol::Stun> = units.iter().filter_map(|u| self.world.def(u.def)?.stun).collect();
+        if stuns.is_empty() {
+            return "it has nothing that stuns".to_string();
+        }
+        let n = stuns.len() as f32;
+        let per_shot = stuns.iter().map(|s| s.per_shot).sum::<f32>() / n;
+        let seconds = stuns.iter().map(|s| s.seconds).fold(f32::INFINITY, f32::min);
+        let shots_a_second: f32 = stuns.iter().map(|s| 1.0 / s.reload.max(0.1)).sum();
+        let reach = stuns.iter().map(|s| s.reach).fold(f32::INFINITY, f32::min);
+        let held = (shots_a_second * seconds).floor();
+        let mut can: BTreeMap<String, (usize, i32)> = BTreeMap::new();
+        let mut cannot: BTreeMap<String, usize> = BTreeMap::new();
+        let mut shots_all = 0.0;
+        for e in enemies.iter().filter(|e| party.in_fight(e.id)) {
+            let Some(d) = e.def.and_then(|d| self.world.def(d)) else { continue };
+            let name = self.short_words(d.id);
+            if d.stun_taken <= 0.0 {
+                *cannot.entry(name).or_default() += 1;
+                continue;
+            }
+            // One more than the shots that only reach its health: the stun falls between shots (a Stout, 1,800, takes
+            // four of 600, not three).
+            let shots = (d.health.max(1.0) / (per_shot * d.stun_taken)).floor() as i32 + 1;
+            shots_all += shots as f32;
+            let entry = can.entry(name).or_insert((0, shots));
+            entry.0 += 1;
+        }
+        let stunnable: usize = can.values().map(|(k, _)| *k).sum();
+        if stunnable == 0 {
+            return format!("nothing of it in sight can be stunned{}", if cannot.is_empty() { String::new() } else { format!(" ({})", cannot.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) });
+        }
+        let shots = can.iter().map(|(k, (_, s))| format!("{s} shot{} each for its {k}", if *s == 1 { "" } else { "s" })).collect::<Vec<_>>().join(", ");
+        let immune = if cannot.is_empty() { String::new() } else { format!("; it cannot stun its {} at all", cannot.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) };
+        format!(
+            "it can stun {stunnable} of it ({shots}, from {reach:.0}){immune}; about {:.0} s of all its fire stuns them all, and once they are down it keeps up to {held:.0} stunned at once (a stun lasts {seconds:.0} s after the last shot); nothing dies of a stun, so it is worth the seconds our other fire gets on them meanwhile",
+            shots_all / shots_a_second
+        )
+    }
+
+    /// The party's fighting force with the turrets covering it, its stunned units left out (they shoot nothing until
+    /// they wake; `odds_words` says them).
+    fn awake_force(&self, party: &Party, enemies: &[EnemyUnit]) -> super::super::combat::Force {
         let mut theirs = super::super::combat::Force::default();
-        for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
+        for enemy in enemies.iter().filter(|e| party.in_fight(e.id) && e.stunned <= 0.0) {
             match enemy.def {
                 Some(def) => theirs.add(def),
                 None => theirs.unidentified += 1,
             }
         }
+        theirs.turret_metal += party.turret_metal;
+        theirs.turret_metal_air += party.turret_metal_air;
+        theirs
+    }
+
+    pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> String {
+        // His units and ours stunned now shoot nothing until they wake: out of the weight, said with the weight
+        // counting them (`theirs_all`, `ours_all`), and the forces as types (what hits what) are the whole ones.
+        let mut theirs = super::super::combat::Force::default();
+        let mut theirs_all = super::super::combat::Force::default();
+        let mut stunned: Vec<f32> = Vec::new();
+        for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
+            match enemy.def {
+                Some(def) => {
+                    theirs_all.add(def);
+                    if enemy.stunned > 0.0 {
+                        stunned.push(enemy.stunned);
+                    } else {
+                        theirs.add(def);
+                    }
+                }
+                None => {
+                    theirs.unidentified += 1;
+                    theirs_all.unidentified += 1;
+                }
+            }
+        }
+        let his_stunned = stunned.len();
         // The turrets covering it fight with it (worlds-2, 18:33: "party_99 (1 armsnipe, 1 armwar, at nest) met
         // with 5310 metal: we outweigh it heavily", and the nest's Overwatch, beamer and light turrets killed 16
         // Stouts in 15 s).
         theirs.turret_metal += party.turret_metal;
         theirs.turret_metal_air += party.turret_metal_air;
+        theirs_all.turret_metal += party.turret_metal;
+        theirs_all.turret_metal_air += party.turret_metal_air;
+        let awake: Vec<&OwnUnit> = units.iter().copied().filter(|u| u.stunned <= 0.0).collect();
+        stunned.extend(units.iter().map(|u| u.stunned).filter(|s| *s > 0.0));
+        let ratio = self.odds(&Brain::force_of(&awake), &theirs);
         let ours = Brain::force_of(units);
-        let ratio = self.odds(&ours, &theirs);
+        let stun_words = if stunned.is_empty() {
+            String::new()
+        } else {
+            let whole = self.odds(&ours, &theirs_all);
+            let weigh = if whole >= 2.5 { "we outweigh it heavily" } else if whole >= 1.3 { "we outweigh it" } else if whole >= NARROW { "we outweigh it narrowly" } else if whole >= 0.8 { "an even fight" } else { "it outweighs us" };
+            let low = stunned.iter().fold(f32::INFINITY, |a, b| a.min(*b)).ceil();
+            let high = stunned.iter().fold(0.0f32, |a, b| a.max(*b)).ceil();
+            let span = if low == high { format!("{high:.0} s more") } else { format!("{low:.0}-{high:.0} s more") };
+            let who = match (his_stunned, stunned.len() - his_stunned) {
+                (h, 0) => format!("{h} of it"),
+                (0, o) => format!("{o} of ours"),
+                (h, o) => format!("{h} of it and {o} of ours"),
+            };
+            format!("; {who} stunned ({span}), not counted: once they wake, {weigh}")
+        };
+        let theirs = theirs_all;
         // Reach: a party that outranges everything in the group, or turrets covering it that do, kills the group on
         // its approach before it shoots, whatever the metal says (bluegecko-3v1-comet-catcher-9: 94 tier-1 tanks
         // of reach 315-350 died to Bulls of 460 and 24 to beamers of 490, most of them to shooters out of sight,
@@ -863,6 +958,7 @@ impl Brain {
         if their_water_only && ours_in_water == 0 {
             more.push_str("; its weapons are torpedoes, which reach only what is in the water: it cannot hit this group on land");
         }
+        let more = more + &stun_words;
         if units.is_empty() {
             "we have nobody to send".to_string()
         } else if submerged_in_it > 0 && submerged_in_it == party.fighters() && !self.force_can_hit_submerged(&ours) {
@@ -937,16 +1033,9 @@ impl Brain {
                 // rules' step-back sentence walked the column back on alternate seconds; offline with this clause and
                 // the rule's exception the walk back was offered at the bar in 1 of 15 advancing moments against 7,
                 // `docs/studies/2026-10-02-thrash-words.md`).
-                let mut theirs = super::super::combat::Force::default();
-                for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
-                    match enemy.def {
-                        Some(def) => theirs.add(def),
-                        None => theirs.unidentified += 1,
-                    }
-                }
-                theirs.turret_metal += party.turret_metal;
-                theirs.turret_metal_air += party.turret_metal_air;
-                let ratio = self.odds(&Brain::force_of(&body.core), &theirs);
+                let theirs = self.awake_force(party, enemies);
+                let awake: Vec<&OwnUnit> = body.core.iter().copied().filter(|u| u.stunned <= 0.0).collect();
+                let ratio = self.odds(&Brain::force_of(&awake), &theirs);
                 let whole = if ratio >= 2.5 { "outweighs it heavily" } else if ratio >= 1.3 { "outweighs it" } else if ratio >= NARROW { "outweighs it narrowly" } else if ratio >= 0.8 { "matches it" } else { "is outweighed by it" };
                 let metal: f32 = body.core.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let against = if party.turret_metal > 0.0 { format!("the party and the turrets covering it ({:.0} and {:.0}, the turrets counted three times: {:.0})", party.metal, party.turret_metal, party.metal + 3.0 * party.turret_metal) } else { format!("the party ({:.0})", party.metal) };
@@ -956,20 +1045,12 @@ impl Brain {
         };
         let beside: Vec<&bot_protocol::AllyUnit> = allies.iter().filter(|a| !a.being_built && a.pos.dist2d(party.at) <= NEAR && self.world.def(a.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
         if !beside.is_empty() {
-            let mut ours = Brain::force_of(&body.within(party.at, NEAR.max(body.length)));
+            let near: Vec<&OwnUnit> = body.within(party.at, NEAR.max(body.length)).into_iter().filter(|u| u.stunned <= 0.0).collect();
+            let mut ours = Brain::force_of(&near);
             for a in &beside {
                 ours.add(a.def);
             }
-            let mut theirs = super::super::combat::Force::default();
-            for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
-                match enemy.def {
-                    Some(def) => theirs.add(def),
-                    None => theirs.unidentified += 1,
-                }
-            }
-            theirs.turret_metal += party.turret_metal;
-            theirs.turret_metal_air += party.turret_metal_air;
-            let ratio = self.odds(&ours, &theirs);
+            let ratio = self.odds(&ours, &self.awake_force(party, enemies));
             let together = if ratio >= 2.5 { "together we outweigh it heavily" } else if ratio >= 1.3 { "together we outweigh it" } else if ratio >= NARROW { "together we outweigh it narrowly" } else if ratio >= 0.8 { "together an even fight" } else { "even together it outweighs us" };
             let metal: f32 = beside.iter().filter_map(|a| self.world.def(a.def)).map(|d| d.metal_cost).sum();
             let seats: BTreeSet<i32> = beside.iter().map(|a| a.team).collect();
@@ -985,9 +1066,16 @@ impl Brain {
         let mut ground = 0.0;
         let mut air = 0.0;
         let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+        let mut stunned: Vec<f32> = Vec::new();
         for (id, (def, pos, _)) in &self.enemy_buildings {
             let Some(d) = self.world.def(*def) else { continue };
             if d.weapon_count == 0 || d.reach <= 0.0 || pos.dist2d(at) > d.reach + TURRET_MARGIN || self.enemy_unfinished.contains(id) {
+                continue;
+            }
+            *counts.entry(self.name(*def)).or_default() += 1;
+            // A stunned turret shoots nothing until it wakes: said, and out of the weight.
+            if let Some(left) = self.enemy_stunned.get(id) {
+                stunned.push(*left);
                 continue;
             }
             if self.can_hit(*def, false) {
@@ -996,10 +1084,10 @@ impl Brain {
             if self.can_hit(*def, true) {
                 air += d.metal_cost;
             }
-            *counts.entry(self.name(*def)).or_default() += 1;
         }
         let n: usize = counts.values().sum();
-        let words = if n == 0 { String::new() } else { format!("{n} turret{}: {}", if n == 1 { "" } else { "s" }, counts.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) };
+        let stun = stunned_words(&stunned, n).map_or(String::new(), |w| format!("; {w}, not counted"));
+        let words = if n == 0 { String::new() } else { format!("{n} turret{}: {}{stun}", if n == 1 { "" } else { "s" }, counts.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) };
         (ground, air, words)
     }
 
@@ -1624,6 +1712,9 @@ impl Brain {
             if builder {
                 entry["health"] = json!(format!("{} ({:.0}%)", health_words(unit.health / unit.max_health), unit.health / unit.max_health * 100.0));
                 entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame, own));
+                if let Some(w) = stunned_words(&[unit.stunned].into_iter().filter(|s| *s > 0.0).collect::<Vec<_>>(), 1) {
+                    entry["stunned"] = json!(format!("{w}: it neither moves nor builds until it wakes, and keeps its orders for then"));
+                }
                 if let Some(next) = pianist.queued.get(&unit.id) {
                     entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, own)));
                 }
@@ -2202,6 +2293,19 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
     out.join("; ")
 }
 
+/// The stunned among `of` units, with the seconds they stay so: "all 3 stunned, 4 s more", "5 of them stunned, 2-6 s
+/// more" (a stunned unit neither moves nor shoots; `None` when none is).
+pub(super) fn stunned_words(seconds: &[f32], of: usize) -> Option<String> {
+    if seconds.is_empty() {
+        return None;
+    }
+    let (low, high) = seconds.iter().fold((f32::INFINITY, 0.0f32), |(lo, hi), s| (lo.min(*s), hi.max(*s)));
+    let (low, high) = (low.ceil() as i32, high.ceil() as i32);
+    let span = if low == high { format!("{high} s more") } else { format!("{low}-{high} s more") };
+    let who = if seconds.len() == of && of > 1 { format!("all {of}") } else if of == 1 { "it is".to_string() } else { format!("{} of them", seconds.len()) };
+    Some(format!("{who} stunned, {span}"))
+}
+
 #[cfg(test)]
 mod tests {
     use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId};
@@ -2282,6 +2386,35 @@ mod tests {
         let beside = super::super::fixtures::own(901, 1, super::super::fixtures::at(4700.0, 1600.0));
         let (here, away) = brain.party_where_we_stand(&party, &[&beside]);
         assert!(here.turret_metal == party.turret_metal && away.is_empty(), "{here:?} {away}");
+    }
+
+    /// Stunned units shoot nothing until they wake: his stunned Centurions and a stunned turret are out of the weight
+    /// and said with their seconds, the weight counting them beside it; ours stunned are said in our composition.
+    #[test]
+    fn stunned_units_are_said_and_left_out_of_the_weight() {
+        let (mut brain, ours, mut enemies, parties) = super::super::fixtures::e3();
+        let party = &parties[0];
+        let group: Vec<&OwnUnit> = ours.iter().take(4).collect();
+        let awake = brain.odds_words(&group, party, &enemies);
+        assert!(!awake.contains("stunned"), "{awake}");
+        for e in enemies.iter_mut().filter(|e| party.ids.contains(&e.id)) {
+            e.stunned = if e.id.0 == 1 { 2.4 } else { 5.1 };
+        }
+        let stunned = brain.odds_words(&group, party, &enemies);
+        let weigh = awake.split(',').next().unwrap();
+        assert!(stunned.starts_with("we outweigh it heavily"), "{stunned}");
+        assert!(stunned.contains(&format!("; 3 of it stunned (3-6 s more), not counted: once they wake, {weigh}")), "{stunned}\n{awake}");
+        // A turret of the two covering it, stunned out of sight: one counted.
+        let (ground, _, words) = brain.turrets_covering(party.at);
+        brain.enemy_stunned.insert(UnitId(10), 3.0);
+        let (stunned_ground, _, stunned_words) = brain.turrets_covering(party.at);
+        assert!((stunned_ground - ground / 2.0).abs() < 1.0 && stunned_words == "2 turrets: 2 armllt; 1 of them stunned, 3 s more, not counted", "{words} / {stunned_words}");
+        let mut ours = ours;
+        ours[0].stunned = 4.0;
+        let group: Vec<&OwnUnit> = ours.iter().take(4).collect();
+        assert!(brain.composition_words(&group).ends_with("; 1 of them stunned, 4 s more"), "{}", brain.composition_words(&group));
+        assert_eq!(super::stunned_words(&[1.2, 0.4], 2).as_deref(), Some("all 2 stunned, 1-2 s more"));
+        assert_eq!(super::stunned_words(&[6.0], 1).as_deref(), Some("it is stunned, 6 s more"));
     }
 
     /// The losses line says to whom, and "losing this fight" counts only the losses to the party in the entry and

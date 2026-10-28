@@ -326,6 +326,28 @@ pub struct UnitDefInfo {
     /// Any unfinished frame can be taken apart.
     #[serde(default)]
     pub reclaimable: bool,
+    /// The share of a stun weapon's damage it takes (the unit file's `paralyzemultiplier`): 1 for most, 0.2 for a few
+    /// (amphibious raiders and others), 0 for what cannot be stunned (commanders, transports, spies, walls). 1 in
+    /// shims from before 2026-10-27.
+    #[serde(default = "full_share")]
+    pub stun_taken: f32,
+    /// Its stun weapon, when it has one (the largest stun a shot of its paralyzer weapons).
+    #[serde(default)]
+    pub stun: Option<Stun>,
+}
+
+fn full_share() -> f32 {
+    1.0
+}
+
+/// A stun weapon: the stun a shot does (to a unit that takes all of it), its reach, the seconds between shots, and the
+/// longest a unit stays stunned after its last hit (the weapon's `paralyzetime`).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Stun {
+    pub per_shot: f32,
+    pub reach: f32,
+    pub reload: f32,
+    pub seconds: f32,
 }
 
 /// How a unit cloaks (the engine's cloak fields).
@@ -513,6 +535,10 @@ pub struct OwnUnit {
     /// 5:02: a Sentry said 61 % built finished nine frames later).
     #[serde(default)]
     pub build_progress: f32,
+    /// Seconds it stays stunned (`STUN_DECLINE`: the stun on it over its health); 0 when it is not, and in shims from
+    /// before 2026-10-27. A stunned unit neither moves nor shoots, and keeps its orders for when it wakes.
+    #[serde(default)]
+    pub stunned: f32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -538,7 +564,15 @@ pub struct EnemyUnit {
     /// Still under construction (in sight only; a radar contact is never): it cannot shoot, and it dies to anything.
     #[serde(default)]
     pub being_built: bool,
+    /// Seconds it stays stunned, as `OwnUnit::stunned` (in sight only: the engine says nothing of a radar contact's).
+    #[serde(default)]
+    pub stunned: f32,
 }
+
+/// The game's stun falls by a `1 / STUN_DECLINE` share of a unit's health a second (BAR's `paralyzeDeclineRate`,
+/// modrules.lua; 20 under the `emprework` mod option, which we do not play): a unit stays stunned while the stun on it
+/// is above its health, so its seconds left are `STUN_DECLINE * (stun / health - 1)`.
+pub const STUN_DECLINE: f32 = 40.0;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {

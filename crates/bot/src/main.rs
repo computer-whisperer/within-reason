@@ -175,7 +175,7 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
         let decide_ms = started.elapsed().as_secs_f32() * 1000.0;
         let journal = brain.take_journal();
         if let Some(r) = &mut recorder
-            && let Err(e) = r.tick(&tick, journal, |_| 0, &commands, decide_ms)
+            && let Err(e) = r.tick(&tick, journal, &commands, decide_ms)
         {
             // A full disk must not lose the match.
             eprintln!("match record abandoned: {e}");

@@ -224,6 +224,16 @@ impl Brain {
         self.world.domain_of(def) != Domain::Air || self.sim_stats(def).is_some_and(|(_, dps, _)| dps > 0.0)
     }
 
+    /// Whether a type's weapons only stun (a Shuriken, a Stiletto): it kills nothing, and the stun is what it is for.
+    pub(super) fn stuns_only(&self, def: UnitDefId) -> bool {
+        self.world.def(def).is_some_and(|d| d.stun.is_some()) && self.sim_stats(def).is_none_or(|(_, dps, _)| dps <= 0.0)
+    }
+
+    /// Whether every member of a group stuns only.
+    pub(super) fn stun_group(&self, group: &super::pianist::Group) -> bool {
+        !group.members.is_empty() && group.members.iter().all(|id| self.known_units.get(id).is_some_and(|(def, _)| self.stuns_only(*def)))
+    }
+
     /// A type's reach, damage a second and speed against ground: the simulator's table, else the glossary's numbers
     /// for a type the table lacks (never a stand-in by metal).
     pub(super) fn sim_stats(&self, def: UnitDefId) -> Option<(f32, f32, f32)> {
@@ -311,6 +321,10 @@ impl View for BrainView<'_> {
 
     fn label(&self) -> String {
         format!("[ai {}]", self.brain.ai())
+    }
+
+    fn stunned(&self, unit: UnitId) -> f32 {
+        self.brain.enemy_stunned.get(&unit).copied().unwrap_or(0.0)
     }
 
     /// Every metal spot a unit of this type can reach from home, with when it was last within sight of ours

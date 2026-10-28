@@ -122,7 +122,12 @@ whenever you hit that edge.
   attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join, and its
   gunships and bombers rove as soldiers do (`rove`, `rove_1`, the regions), keeping out of the reach of anti-air that
   would kill them soon: Banshees on his extractors, one each across the map, are thebluegecko's use of it; fighters and
-  Shurikens do not rove.
+  Shurikens do not rove. A group of stun aircraft alone (Shurikens, Stilettos) has `stun_<party>` in place of the
+  attack: it stuns the party's units one after another and kills nothing, so it pays only while other fire of ours hits
+  them; a commander cannot be stunned.
+- Stuns: a unit stunned neither moves nor shoots for the seconds the picture gives ("3 of them stunned, 2-6 s more"),
+  his or ours; the odds leave stunned units out and say the weight counting them, so a ground attack timed into those
+  seconds fights the smaller army.
 - A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
   names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
   no place can hold, gather, join, follow, and attack what is in sight or his known buildings, and that is all. His

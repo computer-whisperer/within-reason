@@ -37,6 +37,10 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 health: u.health,
                 reclaim_speed: 0.0,
                 reclaimable: true,
+                // The simulator's table has no stun resistance nor stun time: commanders take none (BAR's
+                // `paralyzemultiplier` 0), every stun weapon lasts the Shuriken's 7 s.
+                stun_taken: if name.ends_with("com") { 0.0 } else { 1.0 },
+                stun: u.weapons.iter().filter(|w| w.paralyzer).map(|w| bot_protocol::Stun { per_shot: w.damage_to("default"), reach: w.range, reload: w.reload, seconds: 7.0 }).max_by(|a, b| a.per_shot.total_cmp(&b.per_shot)),
                 build_time: 1.0,
                 build_distance: 0.0,
                 extracts_metal: 0.0,
@@ -92,11 +96,11 @@ pub(crate) fn at(x: f32, z: f32) -> Vec3 {
 }
 
 pub(crate) fn own(id: i32, def: i32, pos: Vec3) -> OwnUnit {
-    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: 1.0 }
+    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: 1.0, stunned: 0.0 }
 }
 
 pub(crate) fn enemy(id: i32, def: i32, pos: Vec3) -> EnemyUnit {
-    EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 1000.0, team: Some(1), being_built: false }
+    EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 1000.0, team: Some(1), being_built: false, stunned: 0.0 }
 }
 
 /// The E3 scene of player-14 at 9:17, as the TAS study cut it: fourteen Blitzes south-west of three Centurions

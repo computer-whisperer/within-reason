@@ -246,6 +246,12 @@ impl Lane {
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
+            // Stunned: nothing it is sent does anything until it wakes.
+            if unit.stunned > 0.0 {
+                rover.health = unit.health;
+                self.rovers.insert(unit.id, rover);
+                continue;
+            }
             let give_up = |rover: &mut Rover, why: String, block: i32, events: &mut Vec<RoveEvent>| {
                 if let Some(goal) = rover.goal.take() {
                     rover.blocked.push((goal.name.clone(), frame + block));
@@ -335,8 +341,10 @@ impl Lane {
                 let d = view.def(e.def?)?;
                 let air = d.speed > 0.0 && d.move_class.is_none();
                 let kill_seconds = e.health.max(1.0) / stats.dps.max(0.01);
+                // Stunned for longer than the way there and the kill take: harmless until it is dead.
+                let asleep = e.stunned > e.pos.dist2d(unit.pos) / stats.speed.max(1.0) + kill_seconds;
                 // Unarmed, or a turret still being built: harmless and worth its whole metal.
-                ((d.weapon_count == 0 || e.being_built) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos) && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
+                ((d.weapon_count == 0 || e.being_built || asleep) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos) && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
             };
             rover.target = rover.target.filter(|t| enemies.iter().find(|e| e.id == *t).and_then(&attackable).is_some());
             if rover.target.is_none() {
@@ -491,6 +499,8 @@ mod tests {
             health: 0.0,
             reclaim_speed: 0.0,
             reclaimable: false,
+            stun_taken: 1.0,
+            stun: None,
         }
     }
 
@@ -591,6 +601,27 @@ mod tests {
         assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
     }
 
+    /// A stunned unit shoots nothing until it wakes: a rover inside a stunned turret's reach stays, attacks it when
+    /// it stays stunned longer than the way there and the kill, and leaves it alone when it wakes sooner; a stunned
+    /// rover of ours is sent nothing.
+    #[test]
+    fn a_stunned_turret_is_no_threat_and_a_target_while_it_sleeps() {
+        let tower = |stunned: f32| EnemyUnit { stunned, ..enemy(60, TOWER, 1300.0, 1000.0) };
+        let attacks = |out: &crate::Output| out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 60));
+        let evades = |out: &crate::Output| out.rove.iter().any(|e| matches!(e.what, RoveWhat::Evades { .. }));
+        let host = Host::new(Vec::new());
+        let out = roving_lane(&[10]).tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![tower(0.0)]), &mut Vec::new(), false);
+        assert!(evades(&out) && !attacks(&out), "awake: {:?}", out.commands);
+        // 300 health at 40 a second is 7.5 s, and 300 to go at 168 another 1.8.
+        let out = roving_lane(&[10]).tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![tower(12.0)]), &mut Vec::new(), false);
+        assert!(!evades(&out) && attacks(&out), "stunned 12 s: {:?}", out.commands);
+        let out = roving_lane(&[10]).tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![tower(5.0)]), &mut Vec::new(), false);
+        assert!(!evades(&out) && !attacks(&out), "stunned 5 s: {:?}", out.commands);
+        let stunned = OwnUnit { stunned: 3.0, ..rover(10, 1000.0, 1000.0) };
+        let out = roving_lane(&[10]).tick(&host, &tick(30, vec![stunned], vec![tower(0.0)]), &mut Vec::new(), false);
+        assert!(out.commands.is_empty(), "our rover stunned: {:?}", out.commands);
+    }
+
     /// An aircraft rover keeps off his anti-air, not the ground's guns, and only what would kill it within
     /// `AIR_DANGER_SECONDS` (L-gecko-air-details): a Banshee attacks an extractor beside a light laser turret, which a
     /// Rover leaves; beside a Thistle it takes the unguarded one further off; with a Wasp's 1,560 health, one Thistle
@@ -677,11 +708,11 @@ mod tests {
     }
 
     fn rover(id: i32, x: f32, z: f32) -> OwnUnit {
-        OwnUnit { id: UnitId(id), def: ROVER, pos: at(x, z), vel: at(0.0, 0.0), health: 105.0, max_health: 105.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: 1.0 }
+        OwnUnit { id: UnitId(id), def: ROVER, pos: at(x, z), vel: at(0.0, 0.0), health: 105.0, max_health: 105.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: 1.0, stunned: 0.0 }
     }
 
     fn enemy(id: i32, def: UnitDefId, x: f32, z: f32) -> EnemyUnit {
-        EnemyUnit { id: UnitId(id), def: Some(def), pos: at(x, z), vel: at(0.0, 0.0), health: 300.0, team: Some(1), being_built: false }
+        EnemyUnit { id: UnitId(id), def: Some(def), pos: at(x, z), vel: at(0.0, 0.0), health: 300.0, team: Some(1), being_built: false, stunned: 0.0 }
     }
 
     fn tick(frame: i32, own: Vec<OwnUnit>, enemies: Vec<EnemyUnit>) -> Tick {

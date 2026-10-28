@@ -386,7 +386,44 @@ impl Engine {
             health: call!(self, UnitDef_getHealth(id)),
             reclaim_speed: call!(self, UnitDef_getReclaimSpeed(id)),
             reclaimable: call!(self, UnitDef_isReclaimable(id)),
+            stun_taken: self.custom_number(id, "paralyzemultiplier").unwrap_or(1.0),
+            stun: self.stun(id),
         }
+    }
+
+    /// The type's stun weapon: of its paralyzer weapons, the one with the largest stun a shot.
+    fn stun(&self, id: c_int) -> Option<bot_protocol::Stun> {
+        let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
+        let mut best: Option<bot_protocol::Stun> = None;
+        for mount in 0..mounts {
+            let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
+            if weapon < 0 || !call!(self, WeaponDef_isParalyzer(weapon)) {
+                continue;
+            }
+            let count = call!(self, WeaponDef_Damage_getTypes(weapon, std::ptr::null_mut(), 0)).max(0);
+            let mut damages = vec![0f32; count as usize];
+            call!(self, WeaponDef_Damage_getTypes(weapon, damages.as_mut_ptr(), count));
+            let per_shot = damages.into_iter().fold(0f32, f32::max);
+            if best.is_none_or(|b| per_shot > b.per_shot) {
+                best = Some(bot_protocol::Stun {
+                    per_shot,
+                    reach: call!(self, WeaponDef_getRange(weapon)),
+                    reload: call!(self, WeaponDef_getReload(weapon)),
+                    seconds: call!(self, WeaponDef_Damage_getParalyzeDamageTime(weapon)) as f32,
+                });
+            }
+        }
+        best
+    }
+
+    /// Seconds the unit stays stunned (`bot_protocol::STUN_DECLINE`); 0 when it is not, or when the engine will not say
+    /// (an enemy out of sight).
+    fn stunned(&self, id: c_int) -> f32 {
+        if !call!(self, Unit_isParalyzed(id)) {
+            return 0.0;
+        }
+        let (stun, health) = (call!(self, Unit_getParalyzeDamage(id)), call!(self, Unit_getMaxHealth(id)));
+        if health <= 0.0 { 0.0 } else { (bot_protocol::STUN_DECLINE * (stun / health - 1.0)).max(0.0) }
     }
 
     /// How the type cloaks, for one that can; None for the rest.
@@ -536,14 +573,16 @@ impl Engine {
     }
 
     fn converter(&self, id: c_int) -> Option<Converter> {
+        Some(Converter { capacity: self.custom_number(id, "energyconv_capacity")?, efficiency: self.custom_number(id, "energyconv_efficiency")? })
+    }
+
+    /// One of the type's custom parameters (the unit file's `customparams`), as a number.
+    fn custom_number(&self, id: c_int, name: &str) -> Option<f32> {
         let count = call!(self, UnitDef_getCustomParams(id, std::ptr::null_mut(), std::ptr::null_mut())).max(0) as usize;
         let (mut keys, mut values) = (vec![std::ptr::null(); count], vec![std::ptr::null(); count]);
         call!(self, UnitDef_getCustomParams(id, keys.as_mut_ptr(), values.as_mut_ptr()));
-        let number = |name: &str| {
-            let at = keys.iter().position(|k| self.string(*k) == name)?;
-            self.string(values[at]).parse::<f32>().ok()
-        };
-        Some(Converter { capacity: number("energyconv_capacity")?, efficiency: number("energyconv_efficiency")? })
+        let at = keys.iter().position(|k| self.string(*k) == name)?;
+        self.string(values[at]).parse::<f32>().ok()
     }
 
     pub fn snapshot(&mut self) -> Snapshot {
@@ -575,6 +614,7 @@ impl Engine {
                     // The gadget's unit rules param: unset (a unit without the flag, or never toggled) reads as high.
                     priority_low: call!(self, Unit_getRulesParamFloat(id, c"builderPriority".as_ptr(), 1.0)) < 0.5,
                     build_progress: call!(self, Unit_getBuildProgress(id)).clamp(0.0, 1.0),
+                    stunned: self.stunned(id),
                 }
             })
             .collect();
@@ -608,6 +648,7 @@ impl Engine {
                     health: call!(self, Unit_getHealth(id)),
                     team: Some(call!(self, Unit_getTeam(id))).filter(|team| *team >= 0),
                     being_built: def >= 0 && call!(self, Unit_isBeingBuilt(id)),
+                    stunned: if def >= 0 { self.stunned(id) } else { 0.0 },
                 }
             })
             .collect();

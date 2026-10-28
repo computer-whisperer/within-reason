@@ -704,7 +704,7 @@ mod tests {
     fn steps_with_the_same_id_are_one_building() {
         use super::super::{TagState, Tagged, Task};
         use bot_protocol::{OwnUnit, UnitDefId, Vec3};
-        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: if being_built { 0.5 } else { 1.0 } };
+        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false, build_progress: if being_built { 0.5 } else { 1.0 }, stunned: 0.0 };
         let (plant, solar) = (UnitDefId(7), UnitDefId(8));
         let (first, second, frame) = (UnitId(1), UnitId(2), UnitId(50));
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");

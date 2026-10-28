@@ -156,6 +156,9 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             health: number(d, "health"),
             reclaim_speed: number(d, "reclaim_speed"),
             reclaimable: d["reclaimable"].as_bool().unwrap_or(false),
+            // Records from 2026-10-27 on: the stun share it takes, its stun weapon [per shot, reach, reload, seconds].
+            stun_taken: d["stun_taken"].as_f64().map_or(1.0, |v| v as f32),
+            stun: d["stun"].as_array().and_then(|s| Some(bot_protocol::Stun { per_shot: s.first()?.as_f64()? as f32, reach: s.get(1)?.as_f64()? as f32, reload: s.get(2)?.as_f64()? as f32, seconds: s.get(3)?.as_f64()? as f32 })),
         })
         .collect();
     Ok(Units::new(&defs))

@@ -1,0 +1,15 @@
+{ "format": "within-reason-scenario", "version": 1,
+  "map": "Comet Catcher Remake 1.8", "map_size": [8192, 6144], "centre": [2700, 3800],
+  "source": { "note": "by hand, 2026-10-27: four Shurikens over three Pawns, a Blitz and a light laser turret on hold fire (the stun drill: does the shim read the seconds stunned)" },
+  "sides": [
+    { "name": "ours", "units": [
+      { "type": "corbw", "x": 2300, "z": 3800 },
+      { "type": "corbw", "x": 2300, "z": 3850 },
+      { "type": "corbw", "x": 2350, "z": 3800 },
+      { "type": "corbw", "x": 2350, "z": 3850 } ] },
+    { "name": "theirs", "units": [
+      { "type": "armpw", "x": 2900, "z": 3750, "order": { "kind": "move", "x": 2900, "z": 3750 } },
+      { "type": "armpw", "x": 2900, "z": 3800, "order": { "kind": "move", "x": 2900, "z": 3800 } },
+      { "type": "armpw", "x": 2900, "z": 3850, "order": { "kind": "move", "x": 2900, "z": 3850 } },
+      { "type": "armflash", "x": 2950, "z": 3800, "order": { "kind": "move", "x": 2950, "z": 3800 } },
+      { "type": "armllt", "x": 3000, "z": 3900 } ] } ] }

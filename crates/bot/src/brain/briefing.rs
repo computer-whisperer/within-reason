@@ -652,6 +652,20 @@ impl Brain {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
             }
         }
+        // His stunned units: what is in sight says its own seconds; the rest count down.
+        let elapsed = (tick.frame - self.stun_frame) as f32 / FRAMES_PER_SECOND as f32;
+        self.stun_frame = tick.frame;
+        self.enemy_stunned.retain(|_, left| {
+            *left -= elapsed;
+            *left > 0.0
+        });
+        for enemy in tick.snapshot.enemies.iter().filter(|e| e.def.is_some()) {
+            if enemy.stunned > 0.0 {
+                self.enemy_stunned.insert(enemy.id, enemy.stunned);
+            } else {
+                self.enemy_stunned.remove(&enemy.id);
+            }
+        }
         // A remembered building whose place our side sees, with nothing of his there, is gone (the impedance
         // tally, 2026-10-16: nuke-1-medium's report listed his labs as standing "in sight now" for twelve minutes
         // after our missiles killed them out of sight, and two more missiles went at them). A radar contact at the
@@ -1611,7 +1625,7 @@ mod frame_loss_tests {
         // Solars 20 to 23 near the Juggernaut (500) at (1150, 1050), 23 far from it; the commander (10) and solar 24 far away.
         let ours = || vec![own(10, 1, at(5000.0, 5000.0)), own(20, 2, at(1000.0, 1000.0)), own(21, 2, at(1100.0, 1000.0)), own(22, 2, at(1200.0, 1000.0)), own(23, 2, at(3000.0, 1000.0)), own(24, 2, at(5100.0, 5000.0))];
         let mut first = tick(30, ours(), Vec::new());
-        first.snapshot.enemies = vec![EnemyUnit { id: UnitId(500), def: Some(UnitDefId(3)), pos: at(1150.0, 1050.0), vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false }];
+        first.snapshot.enemies = vec![EnemyUnit { id: UnitId(500), def: Some(UnitDefId(3)), pos: at(1150.0, 1050.0), vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false, stunned: 0.0 }];
         brain.track_losses(&first, &kit);
         let warhead = || Death::Weapon(Weapon { name: "corsilo_crblmssl".into(), range: 72000.0 });
         let explosion = || Death::Weapon(Weapon { name: "korgexplosion".into(), range: 10.0 });
@@ -1725,7 +1739,7 @@ mod frame_loss_tests {
     fn a_building_is_gone_only_in_the_engines_sight_for_the_dwell_and_a_cloaked_one_only_when_decloaked() {
         use bot_protocol::{Cloak, EnemyUnit, Grid, Sensors};
         let mut brain = brain_of(&["armcom", "armsolar", "armpb"]);
-        let enemy = |id: i32, def: i32, pos: Vec3| EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false };
+        let enemy = |id: i32, def: i32, pos: Vec3| EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false, stunned: 0.0 };
         let look = |frame: i32, ours: Vec<OwnUnit>, enemies: Vec<EnemyUnit>| {
             let mut t = tick(frame, ours, Vec::new());
             t.snapshot.enemies = enemies;

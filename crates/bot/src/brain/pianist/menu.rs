@@ -115,6 +115,9 @@ pub(crate) enum Order {
     Raid(String),
     /// The whole group, or an armed builder, attacks the party.
     Attack(String),
+    /// A group of stun weapons over the party: a fight order onto it, so each drone aims at what is not stunned yet
+    /// (the engine's choice; a unit that cannot be stunned is no target of theirs).
+    Stun(String),
     /// The long-reach soldiers shell it from their reach, the rest standing between.
     Shell(His),
     /// These soldiers leave as a group of their own and hunt the party (H-MICRO-HUNT).
@@ -657,8 +660,9 @@ impl Brain {
             GroupTask::Move { place, .. } => ("go", format!("go_{place}"), format!("walks to {place} without stopping to fight"), None),
             GroupTask::Engage { party, .. } => {
                 let seen = picture.parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map(|p| p.name.clone());
-                let key = seen.as_ref().map_or(String::new(), |p| format!("attack_{p}"));
-                ("attack", key, format!("attacks {}", seen.as_deref().unwrap_or("a party now out of sight")), seen)
+                let (verb, words) = if self.stun_group(group) { ("stun", "stuns") } else { ("attack", "attacks") };
+                let key = seen.as_ref().map_or(String::new(), |p| format!("{verb}_{p}"));
+                (verb, key, format!("{words} {}", seen.as_deref().unwrap_or("a party now out of sight")), seen)
             }
             GroupTask::Hunt(h) => ("hunt", String::new(), format!("hunts {}", h.party), Some(h.party.clone())),
             GroupTask::Follow { name: ward, .. } => ("follow", format!("follow_{ward}"), format!("follows {ward}"), None),
@@ -990,6 +994,7 @@ impl Brain {
         // "one body that never splits", "the whole group attacks it, never a detachment", in three games, against
         // a party the body outweighed four times, which the rule below offers to detachments alone).
         let every_detachment_forbidden = !ladder.is_empty() && ladder.iter().all(|n| pianist.decode.reads.get(&format!("{name}|detach|{n}")).is_some_and(|p| *p >= super::decode::ON));
+        let stunners = air && !units.is_empty() && units.iter().all(|u| self.stuns_only(u.def));
         // A roving group's parties are the lane's business (H-MICRO-ROVE): no attack, shell or send on its menu.
         for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| !group.roving()) {
             if !self.reachable_for(walker, party.at) {
@@ -1014,6 +1019,21 @@ impl Brain {
                 })
                 .collect();
             let already = if on_it.is_empty() { String::new() } else { format!("; already on it: {}", on_it.join(", ")) };
+            // Stun weapons alone (Shurikens, Stilettos): a stun over the party, never an attack, which would aim
+            // them at one unit (its commander first, the one thing they cannot stun).
+            if stunners {
+                if !party.air {
+                    push(
+                        format!("stun_{}", party.name),
+                        Order::Stun(party.name.clone()),
+                        format!("{name} stuns {party_words} ({}): {}{already}{leaves}", way_words(distance, speed), self.stun_words(&units, party, enemies)),
+                        format!("the stun over {}", party.name),
+                        Some(party),
+                        false,
+                    );
+                }
+                continue;
+            }
             // A party the whole body outweighs four times over is a detachment's work, not the body's (the user,
             // 2026-10-03, watching player-57 at 6:04: "if jev insists on sending units back from the front to
             // address the threat, it should be a small detachment rather than the full group"). At 5:31 eleven
@@ -1858,6 +1878,46 @@ pub(super) mod tests {
         assert!(rove.words.contains("keeping out of the reach of his anti-air wherever it would kill them within 15 s"), "{}", rove.words);
         let one = menus.iter().find(|m| m.name == "group_C").unwrap().moves.iter().find(|m| m.key == "rove_1").unwrap();
         assert!(one.words.starts_with("1 armkam of group_C (its fastest that can rove)"), "{}", one.words);
+    }
+
+    /// A group of stun weapons alone has a stun over each party and no attack (which would aim it at one unit, the
+    /// commander first, which nothing stuns); the words count what it can stun and how many it keeps down; engaged,
+    /// its course is the stun.
+    #[test]
+    fn a_group_of_stun_drones_stuns_a_party_and_never_attacks_it() {
+        use super::super::fixtures::{at, brain_of, enemy, own};
+        use bot_protocol::{Resource, Snapshot};
+        let mut brain = brain_of(&["corbw", "armpw", "armflash", "armcom", "armfig"]);
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let drones: Vec<OwnUnit> = (0..4).map(|i| own(10 + i, 1, at(1000.0 + 20.0 * i as f32, 1000.0))).collect();
+        let fighters: Vec<OwnUnit> = (0..2).map(|i| own(20 + i, 5, at(1500.0, 1000.0 + 20.0 * i as f32))).collect();
+        pianist.groups.push(Group::new("S".into(), Domain::Air, drones.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+        pianist.groups.push(Group::new("F".into(), Domain::Air, fighters.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+        brain.pianist = Some(pianist);
+        for u in drones.iter().chain(&fighters) {
+            brain.known_units.insert(u.id, (u.def, u.pos));
+        }
+        let enemies: Vec<_> = [(1, 2), (2, 2), (3, 2), (4, 3), (5, 3), (6, 4)].iter().map(|(id, def)| enemy(*id, *def, at(2000.0 + 30.0 * *id as f32, 1500.0))).collect();
+        let party = Party { name: "party_1".into(), ids: enemies.iter().map(|e| e.id).collect(), at: at(2100.0, 1500.0), metal: 3200.0, composition: "3 armpw, 2 armflash, 1 armcom".into(), has_commander: true, air: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), beside: Vec::new(), beside_words: String::new() };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let own_units: Vec<OwnUnit> = drones.iter().chain(&fighters).cloned().collect();
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties: vec![party.clone()] };
+        let menus = brain.menus(&tick, &kit, &picture);
+        let keys = |group: &str| -> Vec<String> { menus.iter().find(|m| m.name == format!("group_{group}")).expect(group).moves.iter().map(|m| m.key.clone()).collect() };
+        assert!(keys("S").contains(&"stun_party_1".to_string()) && !keys("S").contains(&"attack_party_1".to_string()), "{:?}", keys("S"));
+        assert!(!keys("F").iter().any(|k| k.starts_with("stun_")), "{:?}", keys("F"));
+        let stun = menus.iter().find(|m| m.name == "group_S").unwrap().moves.iter().find(|m| m.key == "stun_party_1").unwrap();
+        assert!(stun.words.contains("it can stun 5 of it (2 shots each for its Blitz (armflash), 1 shot each for its Pawn (armpw), from 220); it cannot stun its 1 Armada Commander (armcom) at all; about 2 s of all its fire stuns them all"), "{}", stun.words);
+        assert!(stun.words.contains("keeps up to 23 stunned at once (a stun lasts 7 s after the last shot)"), "{}", stun.words);
+        assert!(matches!(&stun.order, Order::Stun(p) if p == "party_1"));
+        brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, sent: party.at, last_seen: 300, target: None, searched: false }, 300);
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_S").unwrap();
+        assert_eq!(menu.course, "stun");
+        assert!(!menu.moves.iter().any(|m| m.key == "stun_party_1"), "the course's own move is left out: {:?}", menu.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
     }
 
     /// A region the player marked is on a group's menu to rove within (`rove_<region>`, `rove_1_<region>`) when

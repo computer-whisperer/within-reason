@@ -23,8 +23,8 @@ const SENSE_FRAMES: i32 = 300;
 
 const FLAG_BEING_BUILT: u8 = 1;
 const FLAG_IDLE: u8 = 2;
-/// The brain's role bits (`journal::ROLE_*`) sit above the unit's own.
-const ROLE_SHIFT: u8 = 2;
+/// 4 and 8 were the deleted heuristic army's roles, in old records only.
+const FLAG_STUNNED: u8 = 16;
 
 pub struct Recorder {
     out: File,
@@ -135,7 +135,7 @@ impl Recorder {
     }
 
     /// Records one tick: the events, the brain's journal, the commands it answered with, and a sample when due.
-    pub fn tick(&mut self, tick: &Tick, journal: Journal, role: impl Fn(UnitId) -> u8, commands: &[Command], decide_ms: f32) -> io::Result<()> {
+    pub fn tick(&mut self, tick: &Tick, journal: Journal, commands: &[Command], decide_ms: f32) -> io::Result<()> {
         if let Some(mut header) = self.header.take() {
             // The header waits for the first tick because only a unit tells which faction we play.
             let first = tick.snapshot.own_units.first().and_then(|u| self.def_index.get(&u.def));
@@ -187,7 +187,7 @@ impl Recorder {
         self.latest_tick = self.latest_tick.max(tick.late);
         if tick.frame >= self.next_sample {
             self.next_sample = tick.frame - tick.frame % SAMPLE_FRAMES + SAMPLE_FRAMES;
-            self.sample(tick, role);
+            self.sample(tick);
         }
         // Our side's sensor coverage, every `SENSE_FRAMES` (the shim sends it every second): the three grids as
         // base64 bitmaps with their dimensions, so a reader can tell a cell seen empty from one never covered.
@@ -364,12 +364,12 @@ impl Recorder {
     }
 
     /// Written by hand: this is nine tenths of the file, and `[id,def,x,z,health%,flags]` rows keep it small.
-    fn sample(&mut self, tick: &Tick, role: impl Fn(UnitId) -> u8) {
+    fn sample(&mut self, tick: &Tick) {
         let s = &tick.snapshot;
         let resource = |r: Resource| format!("[{:.0},{:.1},{:.1},{:.0}]", r.current, r.income, r.usage, r.storage);
         let _ = write!(self.buffer, "{{\"t\":\"s\",\"f\":{},\"m\":{},\"e\":{},\"own\":[", tick.frame, resource(s.metal), resource(s.energy));
         for (i, u) in s.own_units.iter().enumerate() {
-            let flags = u8::from(u.being_built) * FLAG_BEING_BUILT | u8::from(u.idle) * FLAG_IDLE | role(u.id) << ROLE_SHIFT;
+            let flags = u8::from(u.being_built) * FLAG_BEING_BUILT | u8::from(u.idle) * FLAG_IDLE | u8::from(u.stunned > 0.0) * FLAG_STUNNED;
             let health = (u.health / u.max_health.max(1.0) * 100.0).round() as i32;
             let comma = if i == 0 { "" } else { "," };
             let _ = write!(self.buffer, "{comma}[{},{},{},{},{health},{flags}]", u.id.0, self.def(Some(u.def)), u.pos.x as i32, u.pos.z as i32);
@@ -384,7 +384,7 @@ impl Recorder {
         for (i, e) in s.enemies.iter().enumerate() {
             let comma = if i == 0 { "" } else { "," };
             let def = self.def(self.known.get(&e.id).and_then(|k| k.0));
-            let _ = write!(self.buffer, "{comma}[{},{def},{},{},{:.0},{}]", e.id.0, e.pos.x as i32, e.pos.z as i32, e.health, e.being_built as i32);
+            let _ = write!(self.buffer, "{comma}[{},{def},{},{},{:.0},{},{:.0}]", e.id.0, e.pos.x as i32, e.pos.z as i32, e.health, e.being_built as i32, e.stunned.ceil());
         }
         self.buffer.push_str("],\"al\":[");
         for (i, a) in s.allies.iter().enumerate() {
@@ -495,7 +495,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         .unit_defs
         .iter()
         .map(|d| {
-            json!({
+            let mut row = json!({
                 "id": d.id.0, "name": d.name, "class": class(d), "metal": d.metal_cost, "energy": d.energy_cost,
                 "speed": d.speed, "weapons": d.weapon_count,
                 "tidal_make": d.tidal_make, "sonar_range": d.sonar_range, "hits_submerged": d.hits_submerged, "water_only": d.water_only,
@@ -521,7 +521,12 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "intercepted_by": d.intercepted_by,
                 // Full health, reclaim speed and whether a finished one can be taken apart (records from 2026-10-27).
                 "health": d.health, "reclaim_speed": d.reclaim_speed, "reclaimable": d.reclaimable,
-            })
+            });
+            // The stun share it takes and its stun weapon [stun a shot, reach, reload, seconds] (records from
+            // 2026-10-27; set apart: one more field in the macro passes its recursion limit).
+            row["stun_taken"] = json!(d.stun_taken);
+            row["stun"] = json!(d.stun.map(|s| [s.per_shot, s.reach, s.reload, s.seconds]));
+            row
         })
         .collect();
     let spots: Vec<Value> = hello.metal_spots.iter().map(|s| json!([s.x as i32, s.z as i32, s.y])).collect();

@@ -299,6 +299,11 @@ pub trait View {
     fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
         Vec::new()
     }
+    /// Seconds a unit of theirs stays stunned as the host remembers it, out of sight included (a stunned turret shoots
+    /// nothing until it wakes); 0 by default. One in sight says its own (`EnemyUnit::stunned`).
+    fn stunned(&self, _unit: UnitId) -> f32 {
+        0.0
+    }
 }
 
 /// A soldier the lane commands: armed, mobile, no builder, on the ground (aircraft are out: its steps are ground
@@ -865,6 +870,10 @@ impl Lane {
         }
         let mut free: Vec<&OwnUnit> = Vec::new();
         for unit in &soldiers {
+            // Stunned: it neither moves nor shoots, and keeps its orders for when it wakes; no reflex or slot is sent.
+            if unit.stunned > 0.0 {
+                continue;
+            }
             let near = sources.iter().any(|s| s.pos.dist2d(unit.pos) < HORIZON + s.reach);
             let rules = rules_of(unit.id);
             // Raw: no reflex, the host's orders as given; a member of a formation group still takes its slot.
@@ -1513,7 +1522,12 @@ impl Lane {
         };
         let blip = view.blip_def();
         let mut sources = Vec::new();
+        // A stunned unit shoots nothing until it wakes: no threat, in sight or remembered.
+        let stunned = |id: UnitId| enemies.iter().find(|e| e.id == id).map_or_else(|| view.stunned(id), |e| e.stunned) > 0.0;
         for enemy in enemies {
+            if enemy.stunned > 0.0 {
+                continue;
+            }
             let Some(def) = enemy.def.or(blip) else { continue };
             let Some(d) = view.def(def) else { continue };
             // A building still being built shoots nothing: stamped whole, a turret at 5% pushed a push off its
@@ -1530,7 +1544,7 @@ impl Lane {
             sources.push(Source { id: enemy.id, pos: enemy.pos, reach: s.reach, weight: s.dps, health, mobile, commander: is_commander(d), dgun: s.dgun, speed: s.speed, def: enemy.def, water_only: d.water_only });
         }
         for (id, def, pos) in view.remembered_buildings() {
-            if sources.iter().any(|s| s.id == id) {
+            if sources.iter().any(|s| s.id == id) || stunned(id) {
                 continue;
             }
             let Some(s) = stats(def) else { continue };
@@ -1538,7 +1552,7 @@ impl Lane {
         }
         self.seen.retain(|id, (_, _, at)| frame - *at < MEMORY_FRAMES && view.enemy_known(*id));
         for (id, (def, pos, at)) in &self.seen {
-            if sources.iter().any(|s| s.id == *id) {
+            if sources.iter().any(|s| s.id == *id) || stunned(*id) {
                 continue;
             }
             let Some(s) = stats(*def) else { continue };

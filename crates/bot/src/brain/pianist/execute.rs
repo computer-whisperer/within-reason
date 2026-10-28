@@ -344,6 +344,13 @@ impl Brain {
                     did = Some(Brain::engage_group(group, party, own, target, frame, commands));
                 }
             }
+            Order::Stun(party_name) => {
+                if let Some(party) = party(party_name) {
+                    let group = &mut pianist.groups[index];
+                    Brain::engage_group(group, party, own, None, frame, commands);
+                    did = Some(format!("stun {} ({})", party.name, party.composition));
+                }
+            }
             Order::Send(hunters, party_name) => {
                 if let Some(party) = party(party_name) {
                     did = Brain::start_hunt(&mut pianist, index, hunters, party, own, enemies, frame, commands);
