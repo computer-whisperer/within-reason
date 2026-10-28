@@ -1,10 +1,10 @@
 <!--meta
 id: D-air-not-optional
 layer: derived
-premises: [D-metal-is-the-game, D-energy-second, D-surprise-weapons, D-reach-nests, F-eco-energy, F-eco-build, F-fight-damage, F-fight-death, F-fight-sight, F-map-metal, F-unit-armap, F-unit-corap, F-unit-armfig, F-unit-corveng, F-unit-armthund, F-unit-corshad, F-unit-armkam, F-unit-corape, F-unit-corcrwh, F-unit-armca, F-unit-corca, F-unit-armck, F-unit-armrl, F-unit-corrl, F-unit-armjeth, F-unit-armsam, F-unit-armcir, F-unit-armsolar, F-unit-corsolar, F-unit-armwin, F-unit-armmakr, F-unit-armnanotc, M-pool-air, M-pool-energy-and-power, M-gecko-vs-us-comet, M-gecko-team, F-barb-how-it-decides, F-barb-profiles, M-barb-sparring, M-format-8v8]
-lessons: [L-sheet-labs, L-other-u6bkep-nests-and-air, L-gecko-bots-vs-vehicles, L-energy-converters, L-tier2-go, L-mex-game-over, L-sheet-surprises]
-sources: {people: [thebluegecko, u6bkep, Irishstud14, the user], dates: [2026-10-02, 2026-10-23, 2026-10-25], relay: the user's account of the experienced players on air (2026-10-25 night, "my relay here is imperfect, but the core points should be correct"); thebluegecko's sheet rows on the aircraft plant; u6bkep's chat in human-10; code: [upstream/Beyond-All-Reason/units/ArmAircraft/armthund.lua (the bomb: 5 x 110, area 144, edge 0.55, reload 6, burstrate 0.25), upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armsolar.lua (damagemodifier 0.5 while closed), upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua (metalmaker 660 over 210; nanoboom 530 to construction turrets over 128, edge 0.75; windboom 89 over 180), upstream/RecoilEngine/rts/Game/GameHelper.cpp:131-150 (falloff from the surface), crates/terrain/src/sheet.rs (spots by air alone)]; the pool cut and the passes: /tmp scratch scripts air_cut3.py and bomb_pass.py of 2026-10-25 night over the 1v1 cards re-cut from the archived records; the Glitters 2v6 record run/matches/1792971120-human/00/record-1.jsonl}
-status: in the manifest since 2026-10-26 (the user read it: "This looks good, let's add it"); the bomb pass is worked by hand from the unit files and the engine's falloff, not measured in a drill; the matched-income cut and the team pool's cut not done
+premises: [D-metal-is-the-game, D-energy-second, D-surprise-weapons, D-reach-nests, F-eco-energy, F-eco-build, F-fight-damage, F-fight-death, F-fight-sight, F-map-metal, F-unit-armap, F-unit-corap, F-unit-armfig, F-unit-corveng, F-unit-armthund, F-unit-corshad, F-unit-armkam, F-unit-corape, F-unit-corcrwh, F-unit-armca, F-unit-corca, F-unit-armck, F-unit-armrl, F-unit-corrl, F-unit-armjeth, F-unit-armsam, F-unit-armcir, F-unit-armsolar, F-unit-corsolar, F-unit-armwin, F-unit-armmakr, F-unit-armnanotc, F-unit-corbw, F-unit-armatlas, F-unit-corvalk, F-unit-armhawk, F-unit-corvamp, F-unit-armliche, F-unit-armawac, F-unit-corawac, F-unit-armllt, F-unit-armbeamer, F-unit-armmex, F-unit-armmoho, F-unit-armack, F-unit-armcv, F-unit-armcom, F-unit-armpw, F-unit-armflash, F-unit-armstump, F-unit-armplat, F-unit-armsb, F-unit-armsfig, F-unit-armaap, D-tier2-sprint, D-raid-answer, M-pool-air, M-pool-energy-and-power, M-gecko-vs-us-comet, M-gecko-team, F-barb-how-it-decides, F-barb-profiles, M-barb-sparring, M-format-8v8]
+lessons: [L-sheet-labs, L-other-u6bkep-nests-and-air, L-gecko-bots-vs-vehicles, L-energy-converters, L-tier2-go, L-mex-game-over, L-sheet-surprises, L-gecko-air-details, L-gecko-one-more-con]
+sources: {people: [thebluegecko, u6bkep, Irishstud14, the user], dates: [2026-10-02, 2026-10-23, 2026-10-25, 2026-10-27], relay: thebluegecko's spoken notes on what this article left out (2026-10-27, L-gecko-air-details); before them, the user's account of the experienced players on air (2026-10-25 night, "my relay here is imperfect, but the core points should be correct"); thebluegecko's sheet rows on the aircraft plant; u6bkep's chat in human-10; code: [upstream/Beyond-All-Reason/units/ArmAircraft/armthund.lua (the bomb: 5 x 110, area 144, edge 0.55, reload 6, burstrate 0.25), upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armsolar.lua (damagemodifier 0.5 while closed), upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua (metalmaker 660 over 210; nanoboom 530 to construction turrets over 128, edge 0.75; windboom 89 over 180), upstream/RecoilEngine/rts/Game/GameHelper.cpp:131-150 (falloff from the surface), crates/terrain/src/sheet.rs (spots by air alone), upstream/Beyond-All-Reason/units/CorAircraft/corbw.lua (the stun: 600 a shot, reload 1.2, reach 220, paralyzetime 7), upstream/Beyond-All-Reason/gamedata/modrules.lua (paralyzeOnMaxHealth, paralyzeDeclineRate 40), upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:996-1013, 1253-1305 (stunned while the stun passes the maximum health; it falls by a fortieth of the health a second and is capped at 7 s past the last hit), upstream/Beyond-All-Reason/units/ArmAircraft/T2/armliche.lua (3,150 to commanders), upstream/Beyond-All-Reason/units/ArmBuildings/LandUtil/armnanotc.lua (mass 700, cantbetransported false, reach 400), upstream/Beyond-All-Reason/units/ArmAircraft/armatlas.lua (transportmass 750, transportsize 3), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:351 (a unit's mass is its metal cost unless set)]; the pool cut and the passes: /tmp scratch scripts air_cut3.py and bomb_pass.py of 2026-10-25 night over the 1v1 cards re-cut from the archived records; the Glitters 2v6 record run/matches/1792971120-human/00/record-1.jsonl}
+status: in the manifest since 2026-10-26 (the user read it: "This looks good, let's add it"); amended 2026-10-27 from thebluegecko's notes (the Shuriken, Banshees on extractors, transports, tier-2 air and seaplanes past the ground's anti-air, the sea; the gunship line corrected): the arithmetic from the unit files and the engine, none of it drilled; the bomb pass is worked by hand from the unit files and the engine's falloff, not measured in a drill; the matched-income cut and the team pool's cut not done
 -->
 ### Air is not optional
 
@@ -64,6 +64,63 @@ at 60 metal a second is eleven seconds of income.
   the air as its way to his energy, his builders and his commander; D-surprise-weapons works the Banshee snipe and its
   clock, and the same clock governs a bomber wave: it pays where his fighters and his field anti-air do not yet
   stand, and is a waste where they do.
+- *The Shuriken* (Cortex's stun drone: 58 metal, 83 health, speed 280; L-gecko-air-details: "some of the strongest
+  units in the game"). Each shot is 600 of stun at 220 every 1.2 seconds; a unit is stunned while the stun on it passes
+  its health, and wakes at most 7 seconds after the last shot. One shot stuns a Pawn (370), a Grunt (280) or a Thistle
+  (335); two a Blitz (730), a construction bot or a light laser turret (620); three a Beamer (1,430); four a Stout
+  (1,800); seven at once a commander. A stunned unit neither shoots nor moves, and the shot that stuns it holds it the
+  full 7 seconds, so at best one Shuriken keeps about five Pawns or three Blitzes down at once (a new one every 1.2
+  seconds; whether the drones spread their shots over units not yet stunned is unchecked); nothing dies of it. Hence
+  his three uses, each with the same condition:
+  - *with a ground attack at the same moment*: the stunned army is shot by ours without shooting back, which is how "a
+    losing-sized army" trades up. Stun alone kills nothing, and stun that lands before or after our army arrives buys
+    nothing.
+  - *against run-bys*: a few hold the raiders at our extractors until our army arrives (D-raid-answer's clock, with the
+    raid's damage stopped while it runs).
+  - *against a turret nest*: a light laser turret answers aircraft at 10.7 a second (it shoots them last, and weakly),
+    a Beamer at 20, so Shurikens stun a nest's turrets with nothing hurting them, and the ground army walks into a nest
+    that does not fire (D-reach-nests). A Thistle kills a Shuriken in about 1.2 seconds of fire and the wing crosses the
+    545 between its 765 and the Shuriken's 220 in about two, so a spread wing loses a couple a Thistle and stuns it with
+    the first shot that lands; flak or fighters unseen are what make it "fall apart badly". Spread them, stun the
+    anti-air first.
+- *Banshees on extractors* (Armada's gunship: 135 metal, 560 health, 38.6 a second, reach 350, speed 185). A Banshee
+  kills a tier-1 extractor (270) in about seven seconds and is answered by a light laser turret at 10.7 a second
+  (52 seconds to kill it), so the extractors of the map's middle and far side, guarded by turrets and no anti-air, are
+  its targets, one Banshee to one extractor and all at once across the map. Against units it does too little before
+  fighters come: a Falcon kills a Banshee in four seconds, two in two, for 73 metal each. A tier-2 extractor (2,800)
+  takes it 73 seconds: not its target. When his fighters come it either takes a last extractor or two each, or comes
+  home to defend against run-bys over our anti-air, where fighters that follow die cheap. The window is the wide map
+  whose front is about to settle and has not (L-gecko-air-details); once it has, bombers on his energy are the plain
+  answer (above).
+- *Past the ground's anti-air: tier-2 air and seaplanes.* His tier-1 anti-air prices a tier-1 aircraft: a Thistle or
+  a Nettle at 67.6 a second kills a Stormbringer (670) in ten seconds, which is why a field wants two (above). The
+  advanced aircraft plant's units are priced against fighters instead:
+  - a Wasp (Cortex's tier-2 gunship: 370 metal, 1,560 health, 111 a second at 410) takes 23 seconds of a Thistle and
+    28 of a Crossbow (55) and kills the Thistle (335) in three; a tier-1 extractor dies in 2.4 seconds, a commander
+    (3,700) to ten Wasps in under four.
+  - a Liche (Armada's atomic bomber: 2,200 metal, 46,000 energy, 2,300 health) drops 3,150 on a commander: two bombs
+    kill a whole commander, one a commander already hurt for 550.
+  - the radar planes (Oracle and Condor, about 175 metal, radar to 2,400-2,500, sight 1,250) see the commander as a
+    radar dot through its cloak, which is how the snipe finds it.
+  - tier-2 fighters beat tier-1 ones by far: a Highwind (150 metal, 370 health) does 536 a second to aircraft against
+    the Falcon's 139 (3.6 a metal against 1.9) and kills a Falcon in a third of a second, so fighters that stop his
+    tier-1 air are answered by tier 2.
+  - seaplanes (the Seaplane Platform, 1,450 metal, made by the sea, amphibious and air constructors) are the tier-1
+    form of the same bet "to some extent": a Tsunami bomber has 1,170 health against the Stormbringer's 670 (17 seconds
+    of a Thistle), a Cyclone fighter 252 a second to aircraft against 139.
+  Both cost energy above all (D-energy-second), and both are what the 60-rated players rush "to at least threaten
+  sniping the comm" (L-gecko-air-details): the commander snipe of D-surprise-weapons with ground anti-air no answer to
+  it.
+- *Transports* (the Stork and the Hercules: 68 to 74 metal, about 1,400 energy, 265 health, speed about 200; each
+  lifts one unit of mass up to 750, and a unit's mass is its metal cost unless set). A construction turret (230 metal,
+  200 of build power at 400 of reach, mass 700) and a tier-2 constructor bot (430 metal, mass 430, 210 of build power,
+  speed 33) both ride. A tier-2 constructor alone builds an advanced extractor (14,900 of build) in 71 seconds and walks
+  33 a second between spots; with two turrets dropped beside it, 24 seconds, the three moved at about 200 by three
+  transports (204 metal). Per build power a turret on a transport (298 metal for 200) costs about what a construction
+  vehicle does (135 for 90) and moves four times as fast; its price is attention (the drops), which the hands do not
+  yet offer. On a wreck field a dropped turret takes everything within 400 at 200 a second with no walking between the
+  piles, against a construction bot's 80 at 130 that walks to each (L-reclaim-field). And turrets that cannot all stand
+  where they are needed can be built where there is room and carried.
 - *Air constructors.* 110 metal, 2,100 energy, 50 of build power against a construction bot's 80, but 136 a second
   against 36 and above every building and cliff: across a crowded base, to a far spot, onto ground nothing else stands
   on. Some maps have spots that only they reach: on Project SD-129, 25 of 148 stand on islands in the void, beyond the
@@ -98,6 +155,14 @@ at 60 metal a second is eleven seconds of income.
    constructor to cross, the far spots of a wide map.
 6. *Scout his air plant.* Its standing is the clock on everything above (u6bkep's "intuit or scout"); an aircraft plant
    of his that we have not seen is the reason to build fighters before his first wing, not after it.
+7. *Shurikens as Cortex, in time with the ground:* over his army the moment ours reaches it, over raiders at our
+   extractors, over a turret nest ahead of our army; spread, his anti-air stunned first.
+8. *Banshees on his extractors on a wide map whose front has not settled,* one to an extractor across the map, and home
+   over our anti-air when his fighters come.
+9. *Tier-2 air when his answer to our air is ground anti-air,* and tier-2 fighters when his fighters stop our tier-1
+   air: the Wasps on extractors and commanders, the Liche on the commander, a radar plane to find it.
+10. *Transports with an air plant already standing,* to carry the tier-2 constructor and its construction turrets
+    from spot to spot, a turret onto a large wreck field, turrets to where there is no room to build them.
 
 **Where it bends.** (1) Short games: the pool's duels end at 12:00 at the median, and in the 40 Comet duels an air
 plant was built by 22 of 80 sides; the plant belongs to the game that goes past the first army's fights, and an air
@@ -105,14 +170,19 @@ plant at 8:00 that delays the second ground plant is the early trap of D-metal-i
 static defence is on a clock with anti-air at 520 s on medium and whose counter table answers air with anti-air
 (F-barb-how-it-decides, F-barb-profiles, M-barb-sparring): bombers meet anti-air early and the lesson of the people's games travels less. (3) In
 a team one seat's air plant covers the side (M-format-8v8): fighters for every seat's fields from one plant, the seat
-that holds the side's energy (D-energy-second) the one that builds it. (4) Gunships are not bombers: Banshees and Wasps
-fight armies and commanders rather than fields; the Banshee's own clock is D-surprise-weapons'.
-(5) Water maps carry their own air (seaplanes, torpedo aircraft), not derived here.
+that holds the side's energy (D-energy-second) the one that builds it. (4) Gunships are not bombers: they kill one building at a time, not a field. A Banshee's target is
+an extractor, never an army (above); a mass of Banshees or Wasps at his commander is D-surprise-weapons' snipe
+("could they switch into 10 banshees and kill my com", L-gecko-one-more-con). (5) At sea: ships are dear, so anti-air
+is seldom built before it is needed, ships are weak to Shurikens, and a sunk fleet's wrecks lie in the winner's water,
+so the first sea battle is worth more than a first battle on land (L-gecko-air-details; not worked out here, nor the
+torpedo aircraft).
 
 **How it fails** (for the episode index): *not built* (the store full, no air plant past 15:00: the Glitters
 lobby game, 2026-10-25); *not seen* (his air plant unscouted until his wing came); *not answered* (his bombers or
 gunships over our fields and commanders with ground anti-air alone, built after they came); *packed* (a converter,
-construction turret or turbine block lost to one pass's chain).
+construction turret or turbine block lost to one pass's chain); *Banshees on units* (sent at an army, dead to his
+fighters before they kill enough); *stun alone* (Shurikens over an army with nothing of ours on the ground to shoot it);
+*tier-1 against tier 2* (Thistles and Crossbows as the answer to Wasps or a Liche).
 
 **The test.** Kill-test: the pool's sides that reached 30 metal a second and played five minutes more, with an air plant
 against without, at matched income: with one they won 12 of 20, without 12 of 24, a lean that the income confounds
@@ -120,4 +190,7 @@ against without, at matched income: with one they won 12 of 20, without 12 of 24
 income (67 against 86 at 10:00). Not done: the matched-income cut, and the same cut on the team pool (the Glitters
 8v8 cards). Status: the heuristic's first half (the plant around 30, most players) holds as "from 30, at about twice
 it, in the long games"; fighters per metal holds; the single bomber that destroys a field holds for converters,
-construction turret blocks and packed turbines, and not for solars, which it darkens instead.
+construction turret blocks and packed turbines, and not for solars, which it darkens instead. thebluegecko's
+additions of 2026-10-27 (the Shuriken, the Banshee's window, tier-2 air, transports, the sea) are his account with our
+arithmetic from the unit files and the engine's stun rule; none is measured in our games or drilled, and the
+transports cannot be played by our hands yet.

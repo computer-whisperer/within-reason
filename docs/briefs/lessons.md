@@ -543,6 +543,66 @@ always win with it because there's LLTs that are efficient on the other side of 
 bot player just has to survive until a few pounders come out. And the game kind of resettles despite the 2x army value
 lead."**
 
+<!--meta
+id: L-gecko-air-details
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-10-27], relay: a voice conversation the user recorded and we transcribed locally (docs/knowledge/_inbox/gecko-air-2026-10-27.md, faster-whisper large-v3), his notes on what derived/air.md leaves out; the speaker reading is ours and the user confirmed it; the bracketed corrections of the model's hearing are ours}
+status: live
+-->
+On the Shuriken (0:05): **"Shuriken are some of the strongest units in the game. For a fairly low cost, they can stun
+quite large enemy armies, and let a losing-sized army trade out with advantage. So, going Cortex, air, unscouted
+Shuriken can be stronger than bombers and cheaper, though it does depend on successfully stunning the army and then
+attacking the army with something on the ground at the same time. So, coordination can be difficult. Another way to
+use Shuriken is defensively. Especially on large maps, it is common for run-bys, units running around the corners to do
+quite a lot of damage, kill many mexes [mechs]. A few Shuriken can just shut that down. Stun something long enough for
+reinforcements to get there without taking any losses. If there isn't very much AA, Shuriken can also very quickly stun
+LLTs and beamers, making fast Shurikens a way to break fairly heavy pork. Although, of course, if there is unscouted AA,
+that can fall apart badly. It's important to spread the Shurikens when you do this. And to target down any AA, a few
+Thistles won't stop you because you can just stun the Thistles first. They'll get a couple of Shurikens. You can just
+build more."**
+
+On the Banshee (1:42): **"On wide maps, around the time the front starts to stabilize, but before it actually does. If
+the front is fully stabilized, bombers is normal. If the front is almost stabilized, Banshees are a poor but functional
+defense to run-bys, and an excellent way to snipe mexes [mechs]. So rather than going for E, you can go for mexes. ...
+Because the Banshees can attack across the whole map at once, if you can micro to attack one mex at a time per Banshee
+across the whole map, you can do a lot of damage fairly cheap. You should make sure that Banshees work with Rove [our
+group move]. ... The trouble with the Banshees is if they start targeting units, they'll never do enough damage before
+the Figs come out. Because you don't get very long. Once this starts happening, the opponent will just build Fighters,
+and the Fighters will wipe them out at very low cost. You can counter-play with your own Fighters if you see this all
+coming, but really, you're going to lose the Banshees. At that point, you can either try to trade out for one last mex
+or two per Banshee, or you can pull the Banshees back and use them to defend run-bys. With the idea that if the enemy
+Fighters pursue into your territory, your AA can kill them cheap."**
+
+On transports (3:11): **"Another thing air [Eir] can do, T2 cons and how fast you can expand in T2 matter a lot. The
+cost is really high, but the payback is really high. Especially Bot-Cons, which are a little bit cheaper to get into,
+are really slow. A Transport costs very little. So if you already have an Airplant up, you can then build a Transport
+and shuttle around the Constructor at high speed. The cheapest build power is the Con-Turret. You can also shuttle
+around Con-Turrets. ... So a few Transports can lift two or three Con-Turrets and the T2-Con around and take mexes
+faster than you can just running around with some bot or vehicle cons following a T2-Con. And it's cheaper. The cost is
+APM. But Within Reason has high APM. So that's a way to leverage that into more efficiency."** ... **"dropping a
+Con-Turret on a metal field is really efficient. A large part of the time it takes to pick up a metal field is the
+running back and forth between the metal piles. But the Con-Turret's got a large range and can just eat everything in
+that range. ... Also, in the transport, it's fast. Faster than anything except an aircon. So you can get it to that
+front line pretty quickly. High cost, but maybe it's worth it if the metal field is big."** The user: **"simply moving
+the Con-Turrets around might help a lot just for building the Con-Turret mass. If they can't all be at one
+location."**
+
+On the sea (5:54): **"Ships are really expensive, making it more expensive than otherwise to build things you don't
+necessarily need. So people are less likely to try and pre-build AA. Ships are also pretty vulnerable to shurikens,
+making shurikens an unusually good addition to a sea battle. Also, since you sink them and can recover them easier,
+it's even more beneficial to win the first sea battle than it would otherwise normally be."**
+
+On seaplanes and tier-2 air (6:30): **"Both are very E-heavy, but are a way of doubling down on the same kind of bet. In
+air.md, we talk about how a bomber is a low-cost way to do a lot of damage. If they put in place some things to stop
+that bomber, but they don't put in place a whole bunch of fighters, say, if they put up thistles or crossbows or
+whistlers or something, T2 air and, to some extent, seaplanes are not stopped by those methods. And so, despite that
+AA, you can still go air and do damage. Especially good kinds of damage. Destroying mexes [mechs] or the comms with
+something like wasps. Or, if you are Armada [armed], then a single nuclear bomber two-hits a commander, or two-one-hits
+[as heard]. So, very effective comm sniping. T2 also gets you fairly long-range radar planes. They'll help you find the
+comm. Cloaking being a thing at that point in the game, usually. ... Many of the 60 OS players will rush to T2 air
+fairly quickly, to at least threaten sniping the comm that way. T2 figs are also quite a bit better than T1 figs. So, if
+your opponent is stopping you from doing that with figs, getting T2 up can be one way to fix it."**
+
 ### The unit sheet (thebluegecko, 2026-10-23)
 
 The glossary sheet (`run/glossary_sheet.py`, one row a unit with our numbers and our prose) went to the experienced
