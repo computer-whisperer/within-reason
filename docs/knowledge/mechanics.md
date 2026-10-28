@@ -146,6 +146,26 @@ power / buildTime, health drained by maxHealth × step, the lump refund cost × 
 **Used by.** (candidate: H-ARMY-RECLAIM — after a fight within our half or the middle, send rez bots/constructors to
 area-reclaim; BARb gets that metal otherwise. Relates to K-army-piecemeal-midmap: our mid-map trades feed whoever reclaims)
 
+### K-mech-dual-guns-shoot-aircraft-last
+**Claim.** A land gun that can hit both ground and air (`onlytargetcategory = "NOTSUB"`) with `badtargetcategory = "VTOL"`
+picks an aircraft only when no other target is in its reach, and gives up an aircraft it holds at its next search when a
+ground target has come into reach. BAR sets this on about 120 unit files, the commanders, the tier-1 raiders and tanks
+(Pawn, Blitz, Stout, Mace, Grunt, Thug, Brute, Incisor), the light and heavy laser towers and the Banisher among them; a
+gun that hits aircraft alone (`onlytargetcategory = "VTOL"`: Fury, Thistle, flak) is not affected. So a body fighting on
+the ground has no anti-air but its anti-air-only units.
+**Status.** supported (2026-10-27) — local source; the in-game sighting is a player's (All That Glitters, 2026-10-25:
+"Banisher anti-air will not fire while any ground target is in reach")
+**Evidence.** RecoilEngine `rts/Sim/Weapons/Weapon.cpp` `CWeapon::AutoTarget` (the best bad-category target is kept only
+while no good one is found; targets are sorted with bad categories last) and the target-change test before it (a
+non-user target in the bad category triggers a new search); `units/CorVehicles/T2/corban.lua` (one MissileLauncher,
+range 800, reload 7.5, NOTSUB with badtargetcategory VTOL); `corsent.lua`, `corrl.lua`, `corflak.lua`, `armflak.lua`,
+`armrl.lua` (VTOL only); `luarules/gadgets/unit_aa_targeting_priority.lua` (its air priorities, bombers first, apply only
+to weapons with no air category among their bad targets, so not to these); run/matches/1792971120-human/00 (the player's
+notes 37:55-38:07).
+**Would be wrong if.** A drill with a Banisher under a Wasp and a Stout both in reach shows the missile going to the Wasp,
+or a BAR gadget re-orders weapon targets for these units.
+**Used by.** F-fight-range (the brief's facts).
+
 ### K-mech-dgun
 **Claim.** The commander's D-gun: range 250, 500 energy per shot, 0.9 s reload, damage 99999 to everything except commanders
 (0), small area (36); it is a manual-fire weapon (`commandfire`), so it never fires unless explicitly ordered. The commander's

@@ -31,3 +31,23 @@ packet's first paragraph, 0.60 and the attack went. So:
 sight now and last seen moving toward our side, is on its way to the other base. Human-26 2:50 to 3:33: seven Rovers
 left yellow's base, were out of sight for 27 seconds crossing the middle, and arrived at red's. Write the allowance
 for them before they arrive, in the packet that is already on its way.
+
+**What the players before you wrote for you, from the games against people of 2026-10-23 to 10-25.** Each is one
+player's reading of its own game in its debrief, held against the notes it wrote while it played; none is measured
+over games.
+
+- **Ask for another seat's body with a place and a minute, never for "support".** Comet Catcher, 2026-10-23: our
+  north body (2,300) and thebluegecko's (2,100) advanced and backed between spot_15 and spot_20 for minutes, losing
+  units each swing, with an allied body standing beside it; the asks of 10:42, 11:25 and 19:29 brought nothing, and
+  the one that ended the game, at 21:27, named his base at B4 and said now. Comet Catcher, 2026-10-25: four urgent
+  asks from 11:38 to 14:25, for bodies 1,700 to 3,000 away, came after the north lane was lost; ask when a lane
+  starts to turn (about 8:00 there), not when it has gone.
+- **Leave a packet alone while a fight is going your way.** A changed packet is read again whole and every group's
+  move asked again under it; on 2026-10-25 the north seat's player sent nothing at 13:53, 14:11 and 16:41, with its
+  body winning the trade at home, and judged that right.
+- **Put the commander's help to the plant at low priority once, in the first packet.** On 2026-10-25 the store ran
+  dry at 1:30, 4:39 and 5:33, each time the commander helping the plant at full priority, and the player fixed it three
+  times.
+- **Walk the commander out before the fight reaches it, to a named place far off, with nothing else to do.** Boreal
+  Falls 10:51 (it D-gunned 11 of 12 Blitzes and died, its blast taking the plant and the last constructor), Eye of
+  Horus 23:33 and All That Glitters 41:55: each commander died walking out with the enemy already in its base.

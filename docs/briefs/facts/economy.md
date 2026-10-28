@@ -250,6 +250,9 @@ their own value in.
 - Energy by metal: a solar is 7.75 metal per energy a second, an advanced solar 4.4 (and 5,000 energy to build, 62
   seconds of its own output), a wind turbine 40 over the map's average wind, cheaper than a solar wherever the
   average exceeds 5.2 but never steady, a fusion 4.5, an advanced fusion 3.2.
+- In an energy stall only what costs no energy is built at full speed (a step is all or nothing): solars (0 energy)
+  go up as fast as their builders work, an advanced solar's 5,000 waits for energy the stall does not have. The way out
+  of a stall is plain solars first, advanced ones after.
 - What production draws in energy: a plant alone making Blitzes 68 a second (three and a half solars), with the
   commander assisting 203 (ten); making constructors 72 and 217; Stouts 93 and 278; a constructor building
   extractors 25, building solars nothing. The energy a side needs follows from what its plants make and who assists

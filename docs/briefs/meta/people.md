@@ -212,15 +212,18 @@ id: M-gecko-team
 layer: meta
 premises: [F-eco-build, F-eco-extractors]
 lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-energy-nanos]
-population: thebluegecko with u6bkep (and Covariance once) against three or four seats of ours: Eclipsed 2026-10-11, human-31 Comet 10-11, Flats and Forests 10-11, Gecko Isle 10-12 and 10-19, Azurite Shores 10-18, Center Command 10-19, Gasbag Grabens 10-20, Project SD-129 10-20; with five bot seats beside ours on All That Glitters Extended 10-25 (the air paragraph)
-dates: 2026-10-11 to 2026-10-25
+population: thebluegecko with u6bkep (and Covariance once) against three or four seats of ours: Eclipsed 2026-10-11, human-31 Comet 10-11, Flats and Forests 10-11, Gecko Isle 10-12 and 10-19, Azurite Shores 10-18, Center Command 10-19, Gasbag Grabens 10-20, Project SD-129 10-20; Comet Catcher, Boreal Falls and Eye of Horus 10-23 and Comet Catcher 10-25 (three seats of ours, the four-games paragraph); with five bot seats beside ours on All That Glitters Extended 10-25 (the air paragraph)
+dates: 2026-10-11 to 2026-10-25 (the four-games paragraph written 2026-10-27 from the live edge)
 ground: record for Center Command (the engine replay's records and truth files, no card) with the ledger's reading; review (the review skill's model review) and sightings for SD-129; model for the rest; person for the user's rulings
-sources: {code: [run/matches/1792466765-replay-center-command-2v4b, run/matches/1792460593-human, run/matches/1792547311-human/00/review.md, run/matches/1792971120-human/00/record-1.jsonl (sightings), docs/experiments.md, docs/studies/2026-10-22-episode-sweep/episodes.jsonl], claims: [K-t2-people-share-advanced-constructors-across-factions, K-t2-moho-frames-finished-by-tier-1-build-power, K-t2-people-eat-each-plant-for-the-next, K-opp-people-nuke-late-or-never]}
+sources: {code: [run/matches/1792466765-replay-center-command-2v4b, run/matches/1792460593-human, run/matches/1792547311-human/00/review.md, run/matches/1792971120-human/00/record-1.jsonl (sightings), run/matches/1792807358-human/00, run/matches/1792809574-human/00, run/matches/1792810743-human/00, run/matches/1792969892-human/00 (record-*.jsonl: sightings; strategist-*.jsonl and commander.jsonl: our seats' notes), docs/briefs/inbox/1792807358-human.md and the three others (our players' debriefs), docs/experiments.md, docs/studies/2026-10-22-episode-sweep/episodes.jsonl], claims: [K-t2-people-share-advanced-constructors-across-factions, K-t2-moho-frames-finished-by-tier-1-build-power, K-t2-people-eat-each-plant-for-the-next, K-opp-people-nuke-late-or-never]}
 status: live
 -->
 ### thebluegecko and u6bkep as a team
 
-Two people against three or four seats of ours, since 2026-10-11: they won all nine team games. They split the map by
+Two people against three or four seats of ours, since 2026-10-11: they won all nine team games to 2026-10-20. Of the
+five since, our side lost Boreal Falls, Eye of Horus and All That Glitters, was down to its last commander when the
+10-25 Comet record ended, and was in his base with both their commanders reported dead when the 10-23 Comet record
+ended at 22:12 (no referee in any; the four-games paragraph). They split the map by
 row or by land and sea (thebluegecko Cortex on land or in the north in most games, both Armada on Eclipsed; u6bkep
 Armada vehicles in the south, bots on Gasbag, the sea on Azurite), raid from the first minutes with whatever is
 fastest, and tech behind the raids out of our sight.
@@ -251,6 +254,34 @@ homes 8:00-10:09; the Cortex side (thebluegecko by our models' inference) with G
 extractors 6:13-7:14 and its advanced lab at 9:17, tier 2 by about 12:38 and a forward nest with a Scorpion and a
 Persecutor that out-ranged our last base.
 
+**Four more games, 2026-10-23 and 10-25 (sightings: everything of theirs our three seats had in sight or on radar,
+counted by unique id and by the most at once; model: who did what, from our player's and commander's notes in the
+games).** thebluegecko played Cortex and u6bkep Armada in all four.
+- *Comet Catcher, 10-23.* Rascals from 2:07 and Blitzes from 2:14 (24 at once at 8:06); Incisor pairs on our west edge
+  from 3:33, Exploiters from 4:48 and Twin Guards from 6:22, and a turret creep down D1-D3 with Pounders (7:08) and
+  Brutes (9:18, 34 seen) onto our west-edge spots by 10:00; u6bkep's Stouts (10:02) and Janus (10:45) up the middle,
+  with a Beamer and an Overwatch post at D5-E6. Tzars from 15:58 (20 seen, 11 at once at 21:26): they kept out of our
+  Stouts' reach at 650, and walking at them cost about 15,000 metal for one Tzar at 16:44-18:00 (model). u6bkep's
+  commander died about 17:50 at B7-B8 with his plants; thebluegecko's at B4 at 22:10, beside an advanced vehicle plant
+  seen at 21:26 and two fusions (model). No aircraft seen in 22 minutes.
+- *Boreal Falls, 10-23 (lost; the side broken by 14:26).* u6bkep's Blitzes from 3:15 (71 seen, 15 at once at 6:19),
+  in masses of 12 to 16 down passage_1 at D1 into our north seat at 6:39 and 9:00-10:56, which killed its plant and
+  its commander; thebluegecko's Grunts from 3:20 (124 seen, 24 at once at 15:29), Thugs from 8:05 (42 seen, 21 at once
+  at 15:11), Stouts from 9:40 and Janus from 13:12; Graverobbers from 4:53.
+- *Eye of Horus, 10-23 (lost at 23:38).* Both opened with a bot lab, u6bkep's Armada lab at A2 and thebluegecko's
+  Cortex lab at D2 (both in sight at 3:00): Grunts from 2:03 (59 seen) and Pawns from 2:11 (41), single Grunts taking
+  the centre seat's four extractors before 3:03 (model); Exploiter and Twin Guard posts at spot_25, E5, G4 and B3 by
+  6:00 (model); Maces from 6:23, Centurions from 8:14, his advanced bot lab at 9:11; Fiends from 9:23 in packs (86
+  seen, 13 at once), which took the centre seat's home at 17:39; u6bkep's block of Stouts and Janus (65 and 22 seen, 19
+  at once at 18:52) through the west seat; a Catapult shelling from F4 by 20:34 (so a gantry: tier 3; model), 18 Whirlwind
+  bombers at 20:06, Shivas from 21:17 (12 at once at 23:19), Bulls from 22:15 and Wasps at 22:50.
+- *Comet Catcher, 10-25 (the north seat's home lost at 15:34).* Rascals from 2:07 and Blitzes from 2:27 (44 seen, 17
+  at once at 7:39); thebluegecko's Incisors from 4:02, 8 massed at D3 beside an Exploiter at 6:41 (model); a post of Guard
+  turrets of his commander's at E4 in our half at 9:22 (model); Brutes from 7:28 (78 seen, 17 at once at 17:02) with
+  Pounders, Lashers and constructors raising Twin Guards at E1-F1 held the north lane by 11:38 and walked into the north
+  seat's home at 12:52; u6bkep's Stouts and Janus (from 9:43 and 11:09) killed the middle seat's commander at 14:07 and
+  the south seat's at 15:56; 10 Whirlwind bombers at 15:02 on the north seat's solars, with no anti-air there.
+
 **Nukes.** No silo in 21 minutes of Center Command on 31 to 34 mohos and two fusions (truth); none seen in any other
 game (floors). The user's ruling of 2026-10-20 (person): they nuke very late or never, while BARb and Apex have clocks
 of their own (the opponent documents).
@@ -260,7 +291,9 @@ radar).** Our flagship and five bot seats against the two of them. Their air was
 from 26:57 (30 in sight at once at most), Wasp gunships from 27:17 (62 at once), Dragons from 37:07 (10). Our six seats
 built no air plant in 44 minutes; the anti-air came after the Wasps and was all ground. Three of our commanders died to
 Tzars and Shivas from 39:57, the last three under the gunships from 42:07 (read from what was in our
-seat's sight round each when it died, not from the killer: the bot seats write no record).
+seat's sight round each when it died, not from the killer: the bot seats write no record). On the smaller maps their
+air came earlier and was tier 1 (the four-games paragraph): 18 Whirlwind bombers at 20:06 on Eye of Horus and 10 at
+15:02 on Comet Catcher, each wave against seats with no anti-air; none in the 22 minutes of the 10-23 Comet game.
 
 <!--meta
 id: M-u6bkep
@@ -334,11 +367,11 @@ His advice to the player, spectating games 3 and 5, is in the lessons.
 <!--meta
 id: M-other-gecko-people
 layer: meta
-population: [gecko]Infern8 (lobby 25; games 5 and 6 of the 3v1 series, 2026-09-26/27) and [gecko]Covariance (lobby 17; with u6bkep in human-25 and -26, 2026-10-06, and in the Gecko Isle 4v3 of 2026-10-19)
+population: [gecko]Infern8 (lobby 25; games 5 and 6 of the 3v1 series, 2026-09-26/27; a 1v1 on Comet Catcher, 2026-10-23) and [gecko]Covariance (lobby 17; with u6bkep in human-25 and -26, 2026-10-06, and in the Gecko Isle 4v3 of 2026-10-19)
 map: Comet Catcher Remake 1.8; Gecko Isle Remake v1.2.1
-dates: 2026-09-26 to 2026-10-19
+dates: 2026-09-26 to 2026-10-23
 ground: sightings, model
-sources: {code: [docs/studies/2026-10-22-episode-sweep/episodes.jsonl]}
+sources: {code: [docs/studies/2026-10-22-episode-sweep/episodes.jsonl, run/matches/1792812445-human/00 (record-0.jsonl: sightings; strategist-0.jsonl and commander.jsonl: our notes), docs/briefs/inbox/1792812445-human.md]}
 status: live
 -->
 ### Infern8 and Covariance
@@ -351,7 +384,13 @@ Incisors from 2:36, his commander forward to D4 at 6:38 with a second plant and 
 Pounders held D4 as one block with the commander inside through our attack of 8:35-9:20 (3.5k lost, the block held),
 Brute raids of 7 to 9 into our north from 10:05, then the one block (13 Pounders and 15 Brutes at 14:45) moved from
 seat to seat; Graverobbers raising our wrecks from 15:02, Tigers at 17:00. We saw 66 Brutes and 40 Pounders and 9
-extractors.
+extractors. **The 1v1, Comet Catcher 2026-10-23 (lost; our base fell at 15:28).** Armada vehicles again: his plant at
+B4 (1310, 2672) with a radar and four solars, his extractors at A4, found by our two Rovers at 2:14; Rovers from 2:05
+and Blitzes from 2:55 (40 seen, 10 at once); his commander at E4 D-gunned 9 of the 15 Blitzes we sent at it at 9:07
+and walked off (model); Stouts from 9:02 (62 seen, 24 at once at 14:57), Janus from 10:12 and Centurions from 11:00
+(11 at once at 15:54) in one block, about 3,000 metal at 12:09 and 6,400 to 6,600 from 13:06 (model), that never split
+and walked through E3, F3 and F2 into our base. We out-built him on extractors from 4:00 to 14:00 (24 at 10:00, 28 at
+12:00) and lost the army to it a few units at a time; his army metal in sight passed ours at 14:00 (6,380 to 5,685).
 
 **Covariance (17) with u6bkep (19), human-25 and -26.** Two Armada vehicle players: Rovers in our homes from 1:51
 (1 to 3, then 6 to 7 by 2:31 and swarms of 14 to 17 at 4:34-5:31 in human-26; 48 Rovers dead by 5:50 and 65 in all,

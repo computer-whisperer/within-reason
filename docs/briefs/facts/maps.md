@@ -196,7 +196,7 @@ start exactly.
 <!--meta
 id: F-map-catalogue
 layer: fact
-sources: {code: [docs/briefs/reference/map-sheets.md (run/map_sheets.py over the latest recorded game of each map, regenerated 2026-10-22 with Gasbag Grabens and Project SD-129; the sheet's tidal reads 0 for Quicksilver, Mithril Mountain and Feast of Hades from records older than the field, and Feast of Hades' draw and walks are unknown for the same reason: the maps' files are used for those), run/data/maps/*.sd7 mapinfo.lua (the metal scale, extractor radius, wind, tide, deformability, water damage), crates/terrain/src/sheet.rs (walks, passable share, the ways' width), maps/*.smf type maps (Gasbag Grabens' waste)], game: 54199a0d, claims: [K-maps-quicksilver-facts, K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]}
+sources: {code: [docs/briefs/reference/map-sheets.md (run/map_sheets.py over the latest recorded game of each map, regenerated 2026-10-22 with Gasbag Grabens and Project SD-129; the sheet's tidal reads 0 for Quicksilver, Mithril Mountain and Feast of Hades from records older than the field, and Feast of Hades' draw and walks are unknown for the same reason: the maps' files are used for those), run/data/maps/*.sd7 mapinfo.lua (the metal scale, extractor radius, wind, tide, deformability, water damage), crates/terrain/src/sheet.rs (walks, passable share, the ways' width), maps/*.smf type maps (Gasbag Grabens' waste); Boreal Falls and Eye of Horus from `run/map_sheets.py --print` of 2026-10-27 over run/matches/1792809574-human and 1792810743-human, their radius from the records' headers], game: 54199a0d, claims: [K-maps-quicksilver-facts, K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]}
 status: live
 -->
 ### The maps we have played
@@ -227,8 +227,10 @@ hold. Draw is a tier-1 extractor's metal a second on the lowest, median and high
 | Feast of Hades 1.0.1 | 8,192 x 8,192 | 92 | (unknown; scale 2.9) | 80 | 4-14 | 15 | 7% | - | - | - |
 | Avalanche 3.4 | 4,096 x 4,096 | 19 | 1.99 all | ? | 3-19 | 20 | 0% | - | - | - |
 | Azurite Shores 1.0.2 | 9,216 x 8,192 | 76 | 2.45 all | ? | 1-20 | 20 | 26% | - | - | - |
+| Boreal Falls 1.0.2 | 7,168 x 7,168 | 60 | 2.04 all | 60 | 2-16 | 13 | 0% | 95 / 84 / 87 | - | - |
 | Coast To Coast BAR v1.0 | 6,144 x 4,096 | 24 | 1.41 / 2.16 / 2.17 | ? | 5-20 | 16 | 60% | - | - | - |
 | Eclipsed 0.9.8 | 7,168 x 7,168 | 71 | 1.45 / 1.45 / 2.58 | ? | 0-10 | 18 | 13% | - | - | - |
+| Eye Of Horus 1.7.1 | 6,144 x 7,168 | 46 | 2.87 all | 90 | 1-25 | 18 | 0% | 96 / 81 / 87 | - | - |
 | Flats and Forests v2.2 | 12,288 x 12,288 | 204 | 2.06 all | ? | 4-12 | 15 | 0% | - | - | - |
 | SailAway 2 | 10,240 x 10,240 | 96 | 1.95 all | ? | 5-20 | 0 | 69% | - | - | - |
 
@@ -240,6 +242,36 @@ reach 38 of its 44 spots). Cape Violet's land routes west run through two passes
 median. Gasbag Grabens has a third of its map in toxic waste no unit enters and water that hurts. Center Command's
 tide is the strongest we play (75 a second from a 90-metal generator wherever a pond is 20 deep). Comet Catcher's
 wind is the weakest (about 3 a second a turbine).
+<!--meta
+id: M-map-seats
+layer: meta
+population: our seats in four games against thebluegecko and u6bkep: Comet Catcher (the north-east seat G1, 2026-10-23 and 10-25), Boreal Falls (F2, 10-23), Eye of Horus (E7, 10-23), All That Glitters Extended (H8, 10-25)
+dates: 2026-10-23 to 2026-10-25 (written 2026-10-27 from the live edge)
+ground: model (our player's and commander's notes in the games and the players' debriefs); the wind ranges are the catalogue's
+sources: {code: [run/matches/1792807358-human/00, run/matches/1792969892-human/00, run/matches/1792809574-human/00, run/matches/1792810743-human/00, run/matches/1792971120-human/00 (strategist-*.jsonl, commander.jsonl), docs/briefs/inbox/1792807358-human.md, 1792969892-human.md, 1792809574-human.md, 1792810743-human.md, 1792971120-human.md]}
+status: live
+-->
+### Where our seats were hit, by map
+
+What our players found about their own seat's ground in games against people, in their words' substance; the people
+themselves are in the meta's people document (M-gecko-team).
+
+- **Comet Catcher, the north-east seat (G1), both games.** Home is the F and G rows. The west-edge spots 20, 23, 15, 8
+  and 21 were picked off all game in both, and his way in was the D1-D3 column: a turret line crept down it at about
+  10:00 in the first game, Twin Guards stood at E1-F1 by 11:38 in the second. Rows 6 to 8 were the other seats' fight,
+  and our body drifting there did nothing. Holding beside our own turrets at spot_20 and spot_23 traded best (1,070 of
+  his for 330 of ours at 9:05).
+- **Boreal Falls, F2 (the front one of our three seats in the north-east).** Wind 2 to 16: the player opened with three
+  turbines before the plant. passage_1 at E2, with spot_7 at D1 down it, is the road the Blitz masses took into F2
+  (6:39, 9:00, 10:07; 12 to 16 Blitzes): the seat fell with a turret there and no body standing beside it.
+- **Eye of Horus, E7 (the middle of three in the south).** Wind 1 to 25, 19 at the start: turbines (43 metal) over
+  solars (150). The centre column (spots 43, 42, 33, 32, 28, 24, 25) runs between both enemy seats; his nest at spot_25
+  and a gun post at E5 closed it by 6:00, and the seat was raided from both sides. The wreck fields at B4-B5 and E5
+  (7,000 metal by 10:00), D7 (5,400) and F6 (8,000) were the cheapest metal once the line moved.
+- **All That Glitters Extended, the south-east (H8).** Wind 0 to 16, about 12 at the start, fell to 1 or 2 at 9:24 and
+  emptied the energy store for a minute: turbines alone are not an energy plan here. An allied seat shares the corner
+  (G8) and took the spots north of it (403, 417, 422 by 4:07), so our share ran north up the east edge (H7-H5) and to
+  the wrecks at D5-C5 (2,600 metal).
 <!--meta
 id: F-map-consequences
 layer: fact

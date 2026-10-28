@@ -55,7 +55,10 @@ What a person at the head of a team decides, and nothing below it:
   when it can tell.
 - **Where the armies go.** A lead in army is worth nothing while it stands in our half. The standing order of an
   army that leads is to be in his half, killing what it outweighs, and to stay there (see "Going" below); a place
-  to gather and a moment to go are for one case only, a defended position.
+  to gather and a moment to go are for one case only, a defended position. A seat's only army is also its defence:
+  hand it to another seat, or send it across the map, only while no party of his stands near that seat (Comet
+  Catcher, 2026-10-25: the middle seat's body was handed north at 12:52, and 15 of u6bkep's Stouts and Janus killed
+  that seat's commander, its constructors and a moho by 14:07).
 - **Which seat feeds which**: a seat banking metal beside one that is starved, and the seat whose advanced plant is
   placed fed by the others until it stands; `transfer` does it, to an allied seat that is not ours too, and a
   standing transfer (`keep_metal`) does it every second for a feeder that never banks; the transfers line in your

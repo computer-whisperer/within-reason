@@ -58,7 +58,7 @@ then hits it for double what the first does, until the armour swings back.
 <!--meta
 id: F-fight-range
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Weapons/Weapon.cpp:1100-1118 (range sphere), 1118-1162 (HaveFreeLineOfFire, TestCone), upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp:49-53 (avoid flags; avoidfeature is false in nearly every BAR weapon), 107 (heightmod default 0.2), 392-397 (heightMod 0.8 cannons, 1.0 beam lasers), upstream/RecoilEngine/rts/Sim/Weapons/Cannon.cpp:40-57, 248-275 (ballistic range), upstream/RecoilEngine/rts/Sim/Weapons/BeamLaser.cpp:289, 419-424 (beam intensity), upstream/RecoilEngine/rts/Sim/Weapons/Weapon.cpp:479-490 (the shot's cost), upstream/Beyond-All-Reason/units (minintensity on a BeamLaser only in coresupp.lua 0.6 and corsiegebreaker.lua 0.5; the Sharpshooter's is on a LaserCannon where it does nothing; cylindertargeting in armflash.lua, armpw.lua; corlevlr.lua heightmod 1 heightboostfactor 0; corhlt.lua energypershot 50; corcom.lua range 262), note: the Stout's uphill and downhill reaches were computed by the refuter from Cannon.cpp with mygravity 0.1445 (alldefs_post.lua:1055-1066), not measured], game: 54199a0d, claims: [K-engine-a-shot-is-refused-across-a-friend, K-mech-height-and-lasers, K-mech-stall-slows-everything]}
+sources: {code: [upstream/RecoilEngine/rts/Sim/Weapons/Weapon.cpp:1100-1118 (range sphere), 1118-1162 (HaveFreeLineOfFire, TestCone), upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp:49-53 (avoid flags; avoidfeature is false in nearly every BAR weapon), 107 (heightmod default 0.2), 392-397 (heightMod 0.8 cannons, 1.0 beam lasers), upstream/RecoilEngine/rts/Sim/Weapons/Cannon.cpp:40-57, 248-275 (ballistic range), upstream/RecoilEngine/rts/Sim/Weapons/BeamLaser.cpp:289, 419-424 (beam intensity), upstream/RecoilEngine/rts/Sim/Weapons/Weapon.cpp:479-490 (the shot's cost), upstream/Beyond-All-Reason/units (minintensity on a BeamLaser only in coresupp.lua 0.6 and corsiegebreaker.lua 0.5; the Sharpshooter's is on a LaserCannon where it does nothing; cylindertargeting in armflash.lua, armpw.lua; corlevlr.lua heightmod 1 heightboostfactor 0; corhlt.lua energypershot 50; corcom.lua range 262), upstream/RecoilEngine/rts/Sim/Weapons/Weapon.cpp:719-770 (AutoTarget: a bad-category target kept only while no other is found) and 700-711 (a bad-category current target is dropped for a search), upstream/Beyond-All-Reason/units (`onlytargetcategory = "NOTSUB"` with `badtargetcategory = "VTOL"` on the commanders, armpw, armflash, armstump, armham, armwar, armllt, armbeamer, corak, corthud, corraid, corgator, corllt, corhllt, corban and some ninety more), note: the Stout's uphill and downhill reaches were computed by the refuter from Cannon.cpp with mygravity 0.1445 (alldefs_post.lua:1055-1066), not measured], game: 54199a0d, claims: [K-engine-a-shot-is-refused-across-a-friend, K-mech-height-and-lasers, K-mech-stall-slows-everything, K-mech-dual-guns-shoot-aircraft-last]}
 status: live
 -->
 ### Range, height and the line of fire
@@ -86,6 +86,14 @@ About a tenth of the units pay energy to fire, the lasers above all. The light l
 second firing), the Beamer 6 a shot but ten shots a second, the Overwatch 75 and the Warden 50, the commander's D-gun
 500; the silo and the anti-nuke pay at stockpiling, not at firing. A gun whose shot the side cannot pay does not fire:
 in an energy stall a laser line fires only as energy trickles in, in competition with the builders.
+
+Most land guns that can hit an aircraft rank it last: the Pawn, the Blitz, the Stout, the Mace, the Grunt, the Thug,
+the Brute, the Incisor, the light and heavy laser towers, the commanders and the Banisher among about a hundred and
+twenty. Such a gun picks an aircraft only when no ground target is in its reach, and drops one it holds whenever it
+looks again; so a body of them under gunships with an enemy on the ground in reach fires at the ground and nothing at
+the air. The Banisher's missile (800 reach, one shot every 7.5 seconds) is the case our players met on All That
+Glitters on 2026-10-25: a Banisher body under Wasps and Dragons kept shooting tanks. Only a gun that targets aircraft
+alone (the Fury, the Thistle, the flak) defends a body that is also fighting on the ground.
 
 <!--meta
 id: F-fight-accuracy
@@ -219,3 +227,14 @@ status: live
   more than its metal and is worth repairing.
 - Laser lines eat energy: ten light laser towers firing draw 430 a second, a Beamer alone 60; a side at zero energy
   defends with cannons and missiles only, and has no D-gun.
+- Reach against a unit that backs away: the closing speed is the difference of the two speeds. A Stout (350, speed 75)
+  walking at a Tzar (650, 39) that stands is under its fire for 4 seconds, about 1,030 of its 1,800 health; at one
+  that backs away it closes at 36 and is under fire 8.3 seconds, about 2,140, and dies before it fires. A Starlight
+  (950) against a Tzar walking at it fires for 7.7 seconds first, about 4,100 of the Tzar's 7,800; a Banisher (800)
+  3.8 seconds, about 510 (its damage is a 1,000 missile every 7.5 seconds).
+- Reach is not the Incisor's edge over the Blitz: it reaches 230 to the Blitz's 180, half a second of free fire at the
+  Blitz's speed (about 46). One on one it kills a Blitz in 7.8 seconds and a Blitz kills it in 9.1, and the Blitz is the
+  faster (101 to 85).
+- Raiders walking at a commander: from the D-gun's 250 to a Blitz's 180 is 0.7 seconds at a Blitz's speed, and the
+  D-gun kills one unit a shot every 0.9 seconds while the store holds 500 energy a shot; 15 Blitzes sent at a commander
+  on Comet Catcher on 2026-10-23 lost nine and killed nothing (M-other-gecko-people).
