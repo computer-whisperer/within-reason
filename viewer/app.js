@@ -864,8 +864,8 @@ const WV = (() => {
   }
 
   /// The lane's declared groups (the sample's `groups`, docs/harness/record-format.md): the anchor as a diamond with
-  /// its heading, the heading's line as long as the pace's share of the full pace, and a line of the state: files,
-  /// formed of members, the exceptions by cause, the pace share, the points left and the way left (or "no way").
+  /// its heading, the heading's line as long as the pace's share of the full pace, and a line of the state: files (records
+  /// before 2026-10-28), formed of members, the exceptions by cause, the pace share, the points left and the way left (or "no way").
   function drawRanks(ctx, state, px, pz) {
     const match = view.match;
     ctx.font = "10px system-ui";
@@ -892,7 +892,7 @@ const WV = (() => {
         const out = [...causes].map(([c, n]) => `${n} ${c}`).join(", ");
         const way = g.way == null ? "no way" : `${Math.round(g.way)} to go`;
         const state = g.engaged != null ? "engaged" : g.arrived ? "arrived" : g.pace > 0 ? `${Math.round(share * 100)}% pace` : "held";
-        ctx.fillText(`${name.replace(/^group_/, "")}: ${g.files} files, ${(g.formed || []).length}/${members} formed${out ? `, ${out}` : ""}; ${state}${g.legs_left > 1 ? `, ${g.legs_left} points` : ""}, ${way}`, x + 9, y - 10);
+        ctx.fillText(`${name.replace(/^group_/, "")}: ${g.files ? `${g.files} files, ` : ""}${(g.formed || []).length}/${members} formed${out ? `, ${out}` : ""}; ${state}${g.legs_left > 1 ? `, ${g.legs_left} points` : ""}, ${way}`, x + 9, y - 10);
       }
     });
     ctx.font = "11px system-ui";

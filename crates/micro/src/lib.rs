@@ -16,8 +16,8 @@
 //!
 //! The host is a [`View`]: unit definitions, each type's fighting numbers, the terrain, and what it remembers of the
 //! enemy. The ground is the lane's own from the terrain (`ground.rs`, design D17): each class's passable grid for the
-//! reflexes' steps, and for a group the common ground its anchor's way is planned over, its slots snapped to and its
-//! files narrowed to. H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
+//! reflexes' steps, and for a group the common ground its anchor's way is planned over and its slots snapped to.
+//! H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
 
 pub mod form;
 pub mod ground;

@@ -100,7 +100,7 @@ real straggler stays Jev's, from the words.
   with the group order and the lane places the anchor and the slots along it; the engine still paths each unit to its
   slot. ~~The lane does not depend on `terrain`; the hosts (the hands, the director) have the fields.~~ **Reversed
   2026-10-25 (D17):** the lane owns the ground; the host names points and the lane paths the anchor between them over
-  the members' strictest passable grid, priced by room; the slots are snapped to it and the files narrowed to it.
+  the members' strictest passable grid, priced by room; the slots are snapped to it and the files narrowed to it (the narrowing retired 2026-10-28, `docs/design/2026-10-28-contact-cleanup.md` §4).
 - Bodies by chaining (`form::bodies`) go: the host declares the group and the lane never splits a declared group. The
   raider/line separation (the pros keep them apart) becomes the host's choice, two groups or one.
 
@@ -493,7 +493,7 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   `CUT_OFF_FACTOR` (2) times the straight line, is an exception with the cause `CutOff` and holds the anchor by nothing,
   formed again when its walk is within 1.5 times (hysteresis). (4) A set-down places the anchor on the way: the body's
   centroid projected onto the nearest segment (after contact: any segment; at a turn: the new leg) and carried forward
-  so the ranks' centroid lies on that point, the leg that segment's end; never the centroid itself. (5) The files
+  so the ranks' centroid lies on that point, the leg that segment's end; never the centroid itself. (5) (Retired 2026-10-28, the contact cleanup's §4: six files on any ground.) The files
   narrow to the room at the anchor's cell (the half-width that fits with half a hull to spare, down to one file) and
   widen when the room allows the next file with half a spacing to spare; a change of files re-deals the slots and
   moves the anchor not at all (the front keeps its place, the extra ranks file in behind; re-placed to keep the ranks'

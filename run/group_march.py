@@ -18,7 +18,7 @@ def records(path):
 
 
 def read(path):
-    groups = defaultdict(lambda: {"seconds": 0, "marching": 0, "formed": 0.0, "pace": 0.0, "held": 0, "engaged": 0, "arrived": 0, "no_way": 0, "members": 0.0, "exceptions": defaultdict(float), "files": 0.0})
+    groups = defaultdict(lambda: {"seconds": 0, "marching": 0, "formed": 0.0, "pace": 0.0, "held": 0, "engaged": 0, "arrived": 0, "no_way": 0, "members": 0.0, "exceptions": defaultdict(float)})
     frames = 0
     with open(path) as f:
         for line in f:
@@ -34,7 +34,6 @@ def read(path):
                 s["seconds"] += 1
                 members = len(g.get("formed", [])) + len(g.get("exceptions", []))
                 s["members"] += members
-                s["files"] += g.get("files", 0)
                 if g.get("way") is None:
                     s["no_way"] += 1
                 if g.get("engaged") is not None:
@@ -60,12 +59,12 @@ def main():
     for path in paths:
         groups = read(path)
         print(f"{path}: {len(groups)} declared groups")
-        print("| group | declared s | marching s | formed share | pace share | held s | engaged s | arrived s | no way s | members | files | exceptions (member-s) |")
-        print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+        print("| group | declared s | marching s | formed share | pace share | held s | engaged s | arrived s | no way s | members | exceptions (member-s) |")
+        print("|---|---|---|---|---|---|---|---|---|---|---|")
         for name, s in sorted(groups.items(), key=lambda kv: -kv[1]["seconds"]):
             m = s["marching"]
             exc = ", ".join(f"{c} {int(n)}" for c, n in sorted(s["exceptions"].items(), key=lambda kv: -kv[1])) or "-"
-            print(f"| {name} | {s['seconds']} | {m} | {s['formed'] / m:.2f} | {s['pace'] / m:.2f} | {s['held']} | {s['engaged']} | {s['arrived']} | {s['no_way']} | {s['members'] / max(1, s['seconds']):.1f} | {s['files'] / max(1, s['seconds']):.1f} | {exc} |" if m else f"| {name} | {s['seconds']} | 0 | - | - | {s['held']} | {s['engaged']} | {s['arrived']} | {s['no_way']} | {s['members'] / max(1, s['seconds']):.1f} | {s['files'] / max(1, s['seconds']):.1f} | {exc} |")
+            print(f"| {name} | {s['seconds']} | {m} | {s['formed'] / m:.2f} | {s['pace'] / m:.2f} | {s['held']} | {s['engaged']} | {s['arrived']} | {s['no_way']} | {s['members'] / max(1, s['seconds']):.1f} | {exc} |" if m else f"| {name} | {s['seconds']} | 0 | - | - | {s['held']} | {s['engaged']} | {s['arrived']} | {s['no_way']} | {s['members'] / max(1, s['seconds']):.1f} | {exc} |")
 
 
 if __name__ == "__main__":

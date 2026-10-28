@@ -602,7 +602,7 @@ fn group_json(s: &GroupState) -> Value {
         "formed": s.formed.iter().map(|u| u.0).collect::<Vec<_>>(),
         "exceptions": s.exceptions.iter().map(|(u, cause, seconds)| json!([u.0, format!("{cause:?}").to_lowercase(), tenth(*seconds)])).collect::<Vec<_>>(),
         "arrived": s.arrived, "legs_left": s.legs_left, "engaged": s.engaged.map(|u| u.0),
-        "files": s.files, "room": s.room.map(f32::round), "way": s.way.map(f32::round),
+        "way": s.way.map(f32::round),
         // The companies (docs/design/2026-10-25-companies.md): none for a group with no cap.
         "companies": s.companies.iter().map(|c| json!({"role": c.role.word(), "anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived})).collect::<Vec<_>>(),
     })
@@ -626,8 +626,6 @@ mod group_tests {
             arrived: false,
             legs_left: 2,
             engaged: None,
-            files: 4,
-            room: Some(150.2),
             way: None,
             companies: Vec::new(),
         };
@@ -639,8 +637,6 @@ mod group_tests {
         assert_eq!(line["exceptions"], serde_json::json!([[13, "behind", 2.3], [14, "cutoff", 0.0]]));
         assert_eq!(line["legs_left"], 2);
         assert!(line["engaged"].is_null());
-        assert_eq!(line["files"], 4);
-        assert_eq!(line["room"], 150.0);
         assert!(line["way"].is_null(), "no way on foot is null");
         let found = GroupState { way: Some(1234.6), ..state };
         assert_eq!(super::group_json(&found)["way"], 1235.0);

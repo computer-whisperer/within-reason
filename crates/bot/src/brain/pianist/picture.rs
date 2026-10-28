@@ -2245,7 +2245,7 @@ pub(crate) fn company_words(state: &micro::GroupState, cap: usize, release: Opti
 /// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
 /// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
 /// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the enemy in reach the
-/// group is halted for, when it is. A column (two files or fewer) says the ground narrowed it.
+/// group is halted for, when it is.
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();
@@ -2263,7 +2263,6 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
         outliers.push(format!("{} cut off by the ground", count(Cause::CutOff)));
     }
     let outliers = if outliers.is_empty() { String::new() } else { format!(", {}", outliers.join(", ")) };
-    let ranks = if state.files <= 2 { format!("in a column of {}", state.files) } else { format!("in ranks of {}", state.files) };
     let mut out = Vec::new();
     if state.way.is_none()
         && let Some(to) = to
@@ -2271,17 +2270,17 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
         out.push(format!("no way on foot from here to {to} for this group"));
     }
     if let Some(target) = engaged {
-        out.push(format!("halted at {at} {ranks} to fight {target} in reach, {formed} of {members} formed{outliers}"));
+        out.push(format!("halted at {at} to fight {target} in reach, {formed} of {members} formed{outliers}"));
     } else if state.arrived {
         out.push(format!("arrived at {}, {formed} of {members} in rank{outliers}", to.unwrap_or(at)));
     } else if state.pace <= 0.0 {
-        out.push(format!("held at {at} {ranks}, {formed} of {members} formed{outliers}"));
+        out.push(format!("held at {at}, {formed} of {members} formed{outliers}"));
     } else {
         let share = if state.full_pace > 0.0 { state.pace / state.full_pace * 100.0 } else { 0.0 };
         let going = to.map_or(String::new(), |to| format!(" to {to}"));
         let points = if state.legs_left > 1 { format!(", {} points to go", state.legs_left) } else { String::new() };
         let way = state.way.map_or(String::new(), |w| format!(", {w:.0} on its way"));
-        out.push(format!("advancing{going} {ranks}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}"));
+        out.push(format!("advancing{going}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}"));
     }
     out.join("; ")
 }
@@ -2305,7 +2304,7 @@ mod tests {
 
     use super::super::fixtures::{at, brain_of, enemy, own};
 
-    /// The formation words (the migration design §4): the march with its outliers by cause, the column, the hold,
+    /// The formation words (the migration design §4): the march with its outliers by cause, the hold,
     /// the arrival, the contact, and "no way on foot" ahead of the rest when the ground gives none.
     #[test]
     fn the_formation_words_read_the_lanes_state() {
@@ -2320,21 +2319,17 @@ mod tests {
             arrived: false,
             legs_left: 3,
             engaged: None,
-            files: 6,
-            room: Some(300.0),
             way: Some(2345.0),
             companies: Vec::new(),
         };
         let words = super::formation_words(&state, 8, Some("spot_3 (D4)"), "(C4)", None);
-        assert_eq!(words, "advancing to spot_3 (D4) in ranks of 6, 3 of 8 formed, 2 behind (the farthest 10 s), 1 joining, 1 cut off by the ground; walking at 80% of its pace, 3 points to go, 2345 on its way");
-        let column = GroupState { files: 2, exceptions: Vec::new(), legs_left: 1, ..state.clone() };
-        assert_eq!(super::formation_words(&column, 3, Some("spot_3 (D4)"), "(C4)", None), "advancing to spot_3 (D4) in a column of 2, 3 of 3 formed; walking at 80% of its pace, 2345 on its way");
+        assert_eq!(words, "advancing to spot_3 (D4), 3 of 8 formed, 2 behind (the farthest 10 s), 1 joining, 1 cut off by the ground; walking at 80% of its pace, 3 points to go, 2345 on its way");
         let held = GroupState { pace: 0.0, ..state.clone() };
-        assert!(super::formation_words(&held, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("held at (C4) in ranks of 6, 3 of 8 formed, 2 behind"));
+        assert!(super::formation_words(&held, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("held at (C4), 3 of 8 formed, 2 behind"));
         let arrived = GroupState { arrived: true, pace: 0.0, exceptions: Vec::new(), ..state.clone() };
         assert_eq!(super::formation_words(&arrived, 3, Some("spot_3 (D4)"), "(C4)", None), "arrived at spot_3 (D4), 3 of 3 in rank");
         let engaged = GroupState { pace: 0.0, engaged: Some(UnitId(99)), ..state.clone() };
-        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) in ranks of 6 to fight his Pawn at (C5) in reach, 3 of 8 formed, 2 behind"));
+        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) to fight his Pawn at (C5) in reach, 3 of 8 formed, 2 behind"));
         let no_way = GroupState { way: None, ..state.clone() };
         assert!(super::formation_words(&no_way, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("no way on foot from here to spot_3 (D4) for this group; advancing to spot_3 (D4)"));
     }

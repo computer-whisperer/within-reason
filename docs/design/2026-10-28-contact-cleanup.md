@@ -131,3 +131,43 @@ Open, for the user: a contact shape that keeps the block legible and wins back t
 ranks into a wider line at contact; the members out of reach walking under a Move against area fire rather than
 standing), measured on the Fatboy, Bull and Pop-up arms.
 
+## 4. The files no longer narrow to the ground (2026-10-28, after contact-1)
+
+The user, after contact-1's three timeouts: "I think we should disable the terrain-based reforming regardless. It seems
+to be most of the reason we are loosing those timeout games. You see a lot of erratic thrashing of individual unit
+orders that I assume is from the terrain-based reforming logic."
+
+**What it did (D17, 2026-10-25).** Every tick on the march the group read the room about the anchor's cell on its
+ground and laid the ranks in the files that fit (`Group::fit_files`: half the room less half a hull over the spacing,
+one to six, widened only with half a spacing to spare; held while the anchor was on a carry past a bend, D18). Every
+change of files cleared the deal, so every member's slot was dealt afresh.
+
+**What contact-1 showed** (`run/matches/1793221642-contact-1`, the ledger row; scratchpad instruments read once a
+second, so a change and its flip back inside a second count as none):
+- The files changed 9-12 times a group-minute in all four games (groups of ten or more: 9.1-11.9), once every five or
+  six seconds, each a re-deal of every member.
+- Groups of 20 or more stood in one or two files for 16 / 35 / 30 / 45% of their engaged seconds: by structures the
+  room shrinks, so the block filed into a column where it fought (game 00 12:15-12:30 at his LLT/HLT/Beamer nest, 6 to
+  3 to 1 files; game 02 36:10-36:30, 103 members in one file against a Tzar). migration-3-1 had shown the same at 24:15
+  ("files to one with 46 members", the drills design's live shapes): the narrowing was sized for twelve.
+- Of the members' ordered points that jumped more than 150 within 2 s (8-15 a member-minute), 19-27% fell in a second
+  with a change of files; about as many with a change of membership (15-27%: a join or a death re-deals the group), a
+  turn of 30 degrees or more (15-26%) and a swing of the pace (13-22%: the lead is the pace's share to the fourth power,
+  so a halt pulls every point back up to 300); about half with none of these. The narrowing is one source of the
+  thrash, not most of it.
+
+**The rule now.** The ranks are `form::FILES` (six) on any ground; nothing about the ground changes the shape or deals
+the slots. What the ground still does: the anchor's way is planned over it and priced by the room six files want (a
+march prefers wide ground and goes through a narrow pass only when it is the way), every slot is snapped onto it (in a
+corridor the outer files' slots stand on the corridor's floor beside the inner ones: the unit test
+`the_ranks_keep_their_files_through_a_corridor`, twelve through a corridor 192 wide, arrive with no re-deal), a member
+the ground does not join to its slot is cut off, the route's end and a set-down anchor are placed where the ranks have
+room (`Ground::stand`). Deleted: `Group::fit_files`, `Group::carrying` (read only by it), the `files` and `room` of
+`Group` and `GroupState` and so of the record's `groups` and the duel's per-second line, the picture's "in a column of
+N" / "in ranks of N" words, the files column of `run/group_march.py`; the viewer draws a record's files only when it has
+them.
+
+Rejected-because: D17 narrowed the files so a body went through a corridor in a column rather than piling its outer
+files against the walls (the detour drill, circuit13-15); live, the room is read at one cell under an anchor that walks
+among structures, so the shape changed every few seconds and collapsed to a column at the fights, where a block has to
+be widest. Not measured on the bench before the change; the price, if any, is on the corridor and detour drills.
