@@ -37,7 +37,7 @@ for (const seat of match.seats) {
   }
   const defs = seat.defs.length;
   for (const s of seat.samples) for (const u of s.own) assert(u.length === 6 && u[1] >= 0 && u[1] < defs, "own unit row");
-  for (const s of seat.samples) for (const e of s.en) assert(e.length === 6 && e[1] >= -1 && e[1] < defs, "enemy row");
+  for (const s of seat.samples) for (const e of s.en) assert((e.length === 6 || e.length === 7) && e[1] >= -1 && e[1] < defs, "enemy row");  // seven fields from 2026-10-27 (the seconds stunned)
   // No ally row of a seat we loaded survives: those units are that seat's own.
   for (const s of seat.samples) for (const u of s.al || []) assert(!teams.has(u[4]), "an ally row of a loaded seat was kept");
 }
