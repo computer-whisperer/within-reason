@@ -12,6 +12,7 @@ mod air;
 mod guard;
 mod hands;
 mod his_start;
+mod nuke;
 mod options;
 mod planner;
 mod promise;
@@ -78,6 +79,8 @@ pub(crate) struct Territory {
     /// The soldiers' guard (T-GUARD).
     pub guard: guard::Guard,
     pub air: air::Air,
+    /// T-SEEN and T-NUKE: his buildings known, our silos and their strikes.
+    pub nuke: nuke::Silos,
     /// Metal made so far: the engine's income integrated over the ticks.
     made: f64,
     last_frame: i32,
@@ -175,6 +178,7 @@ impl Territory {
         let origin = self.farm_origin();
         self.log_reach(&builders);
         self.init_air();
+        self.init_nukes();
         // The ground's distance fields, one per place walked to, are read by the anneal's simulator alone: the program
         // prices its rings by the straight line from home (`lp.rs`). Under the program none is made, unless an
         // unsolved program hands a plan to the anneal (28 of 1,195 games to terr337); made here for every place on
@@ -477,6 +481,7 @@ impl Bot for Territory {
             defence: defence::Defence::default(),
             guard: guard::Guard::default(),
             air: air::Air::default(),
+            nuke: nuke::Silos::default(),
             made: 0.0,
             last_frame: 0,
             last_replan: 0,
@@ -526,7 +531,13 @@ impl Bot for Territory {
                     }
                     self.unit_lost(*unit);
                 }
-                Event::EnemyDestroyed { enemy, .. } => self.army_lost(*enemy),
+                Event::EnemyDestroyed { enemy, attacker } => {
+                    self.nuke_hit(*enemy, *attacker, true);
+                    self.army_lost(*enemy);
+                }
+                Event::EnemyDamaged { enemy, attacker, .. } => self.nuke_hit(*enemy, *attacker, false),
+                Event::WeaponFired { unit, .. } => self.nuke.engine.launched(*unit, self.frame),
+                Event::Ground { points } => self.nuke_ground(points),
                 _ => {}
             }
         }
@@ -535,6 +546,7 @@ impl Bot for Territory {
             self.announced = true;
             commands.push(Command::Say { text: self.banner() });
         }
+        self.remember_buildings(&tick);
         self.made += tick.snapshot.metal.income as f64 * (tick.frame - self.last_frame) as f64 / SECOND as f64;
         self.last_frame = tick.frame;
 
@@ -563,8 +575,12 @@ impl Bot for Territory {
             self.run_nanos(&mut commands);
             self.run_priorities(&mut commands);
         }
+        if tick.due() % SECOND == 0 {
+            self.run_nukes(&tick, &mut commands);
+        }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             self.curve_line(&tick);
+            self.log_nukes(&tick);
         }
         if tick.due() % promise::STANDING_LOG == 0 {
             self.log_standing();

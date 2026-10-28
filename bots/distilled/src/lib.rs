@@ -91,7 +91,7 @@ pub(crate) struct Distilled {
     pub army: army::Army,
     pub air: air::Air,
     /// The silos and their strikes (D-NUKE, `nuke.rs`).
-    pub nuke: nuke::Nuke,
+    pub nuke: nukes::Nukes,
     /// The control lane under the army's orders (D-LANE, `lane.rs`).
     pub control: lane::Control,
     /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
@@ -388,7 +388,7 @@ impl Bot for Distilled {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), nuke: nuke::Nuke::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {

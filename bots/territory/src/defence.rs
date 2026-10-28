@@ -71,7 +71,7 @@ pub(crate) struct Defence {
     /// Per builder type (the simulator's index): its turret and its radar, chosen on first use.
     kit: BTreeMap<usize, (Option<usize>, Option<usize>)>,
     /// The game's unit table with the weapons (combatsim's), loaded on first use.
-    table: Option<combatsim::Units>,
+    pub(crate) table: Option<combatsim::Units>,
 }
 
 pub(crate) fn toward(from: Vec3, to: Vec3, by: f32) -> Vec3 {
@@ -184,6 +184,18 @@ impl Territory {
         (turret, radar)
     }
 
+    /// A type that stockpiles its rounds: a silo or an anti-nuke. The unit table has it a turret, with a reach of the
+    /// whole map, but it is no gun against a raid (T-NUKE's silos): T-COVER, T-GUARD and T-RACE leave it out of our
+    /// turrets, and T-COVER and T-AIR guard it as a building.
+    pub(crate) fn stockpiles(&self, u: usize) -> bool {
+        self.hello.unit_defs[u].stockpile_seconds > 0.0
+    }
+
+    /// One of our ground guns: a turret that is neither anti-air (T-AIR's) nor a stockpiler.
+    pub(crate) fn is_gun(&self, u: usize) -> bool {
+        self.game().units.list[u].role == Role::Turret && !self.is_anti_air(u) && !self.stockpiles(u)
+    }
+
     fn is_radar(&self, u: usize) -> bool {
         let info = &self.hello.unit_defs[u];
         self.game().units.list[u].role == Role::Eco && info.radar_range >= RADAR_LEAST
@@ -196,7 +208,7 @@ impl Territory {
         let (mut guns, mut radars) = (Vec::new(), Vec::new());
         for u in self.own.values() {
             let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].role == Role::Turret && !self.is_anti_air(i) {
+            if self.is_gun(i) {
                 guns.push(Gun { at: u.pos, reach: self.hello.unit_defs[i].reach, metal: units.list[i].metal_cost as f32 });
             } else if self.is_radar(i) {
                 radars.push(u.pos);
@@ -204,7 +216,7 @@ impl Territory {
         }
         for order in self.hands.orders.values() {
             if let What::Build { unit, near, frame: None, .. } = &order.what {
-                if units.list[*unit].role == Role::Turret && !self.is_anti_air(*unit) {
+                if self.is_gun(*unit) {
                     guns.push(Gun { at: *near, reach: self.hello.unit_defs[*unit].reach, metal: units.list[*unit].metal_cost as f32 });
                 } else if self.is_radar(*unit) {
                     radars.push(*near);
@@ -267,15 +279,15 @@ impl Territory {
         self.defence.wants = wants;
     }
 
-    /// What each region guards (T-COVER, T-AIR): every building of ours but a turret or a radar, frames at their
-    /// progress.
+    /// What each region guards (T-COVER, T-AIR): every building of ours but a turret or a radar (a silo is guarded),
+    /// frames at their progress.
     pub(crate) fn guarded(&self) -> Vec<Vec<(Vec3, f32)>> {
         let Some(regions) = &self.regions else { return Vec::new() };
         let units = &self.game().units;
         let mut guarded: Vec<Vec<(Vec3, f32)>> = vec![Vec::new(); regions.list.len()];
         for u in self.own.values() {
             let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].speed > 0.0 || units.list[i].role == Role::Turret || self.is_radar(i) {
+            if units.list[i].speed > 0.0 || (units.list[i].role == Role::Turret && !self.stockpiles(i)) || self.is_radar(i) {
                 continue;
             }
             let Some(k) = self.region_of(u.pos) else { continue };
@@ -363,7 +375,7 @@ impl Territory {
         let (mut turrets, mut turret_metal, mut radars) = (0, 0.0f32, 0);
         for u in self.own.values() {
             let Some(i) = self.unit_index(u.def) else { continue };
-            if units.list[i].role == Role::Turret && !self.is_anti_air(i) {
+            if self.is_gun(i) {
                 turrets += 1;
                 turret_metal += units.list[i].metal_cost as f32;
             } else if self.is_radar(i) {

@@ -288,7 +288,7 @@ team's sight or radar unless cheat events are on), `rts/Sim/Units/CommandAI/Comm
 **Would be wrong if.** An engine version added projectile or interception events, or the enemy events came without
 sight.
 **Used by.** D-NUKE-FIRE's instrument (`nuke:` lines: what the events saw of each strike, and whether the place was in
-our sight or radar); `run/distilled_nuke.py` judges every strike from the truth file instead.
+our sight or radar); `run/nukes.py` judges every strike from the truth file instead.
 
 ### K-rules-a-landed-nuke-digs-a-crater
 **Claim.** A nuclear missile that lands digs a crater the ground's height shows at once, and one intercepted leaves the

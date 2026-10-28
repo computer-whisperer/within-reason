@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""The distilled bot's silos on the team bench (run/distilled_team_bench.sh, docs/design/2026-10-27-distilled-nukes.md).
+"""Our silos' strikes against the truth (docs/design/2026-10-27-distilled-nukes.md, 2026-10-27-territory-nukes.md):
+the distilled bot's on its team bench (run/distilled_team_bench.sh), the territory bot's beside a distilled ally.
 
-    run/distilled_nuke.py LABEL [LABEL...]
+    run/nukes.py LABEL [LABEL...]
 
-For the newest batch of each label, pooled over the games and our seats:
+For the newest batch of each label, pooled over the games and, per bot, our seats of it:
 - the outcome and the minute it came;
 - the silos: seats that began one, the minute the first was begun and stood, the silos standing at the marks;
 - the strikes: ordered, launched, and what the truth file says each did (his buildings inside the blast before the
@@ -16,7 +17,7 @@ For the newest batch of each label, pooled over the games and our seats:
 import glob, json, os, re, statistics, sys
 
 MARKS = (35, 40, 45, 50)
-LINE = re.compile(r"\[distilled ai=(\d+)\] f=(\d+) (.*)")
+LINE = re.compile(r"\[(distilled|territory) ai=(\d+)\] f=(\d+) (.*)")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 UNITS = json.load(open(f"{ROOT}/crates/combatsim/data/units.json"))["units"]
 ANTI_NUKES = {"armamd", "corfmd", "legabm", "armscab", "cormabm"}
@@ -49,13 +50,14 @@ def read_log(path):
         m = LINE.search(line)
         if not m:
             continue
-        ai, f, text = int(m.group(1)), int(m.group(2)), m.group(3)
-        s = seats.setdefault(ai, {"begun": None, "standing": None, "silos": {}, "ordered": 0, "launches": [], "verdicts": {}, "marks": {}})
+        bot, ai, f, text = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
+        s = seats.setdefault(ai, {"bot": bot, "begun": None, "standing": None, "silos": {}, "ordered": 0, "launches": [], "verdicts": {}, "marks": {}})
         minute = round(f / 1800)
         at_mark = minute in MARKS and abs(f / 1800 - minute) < 0.01
-        if text.startswith("t2: silo begun") and s["begun"] is None:
+        # The distilled bot's milestones are its tier-2 lines; the territory bot's its own.
+        if text.startswith(("t2: silo begun", "nuke: silo begun")) and s["begun"] is None:
             s["begun"] = f / 1800
-        elif text.startswith("t2: silo standing") and s["standing"] is None:
+        elif text.startswith(("t2: silo standing", "nuke: silo standing")) and s["standing"] is None:
             s["standing"] = f / 1800
         elif text.startswith("nuke: silo ") and " fires at " in text:
             g = re.search(r"silo (\d+) fires at \((-?\d+),(-?\d+)\) blast (\d+)", text)
@@ -71,7 +73,7 @@ def read_log(path):
             s["verdicts"][(int(g.group(1)), int(g.group(2)))] = (g.group(3), float(g.group(4)) if g.group(4) else None)
         elif text.startswith("nuke: silos ") and at_mark:
             s["silos"][minute] = int(re.match(r"nuke: silos (\d+)", text).group(1))
-        elif text.startswith("extractors=") and at_mark:
+        elif text.startswith(("extractors=", "curve: extractors=")) and at_mark:
             mm = re.search(r"metal (\d+)/(\d+) \+([\d.]+).*?energy (\d+)/(\d+)", text)
             if mm:
                 s["marks"][minute] = {"bank": int(mm.group(1)), "income": float(mm.group(3)), "estore": int(mm.group(4)) / max(1, int(mm.group(5)))}
@@ -144,42 +146,46 @@ def main():
         o = [r["outcome"] for r in results]
         ended = [r["game_minutes"] for r in results if r["outcome"] != "Timeout"]
         print(f"=== {os.path.basename(batch)}: {o.count('Win')} won, {o.count('Loss')} lost, {o.count('Timeout')} to the cap of {len(o)} (ended at {med(ended, '{:.1f}')} min median)")
-        all_seats, verdicts, his = [], {}, {m: [] for m in MARKS}
-        killed_worth, covered_by_verdict, against = [], {}, {}
+        games, his = [], {m: [] for m in MARKS}
         for r in results:
             g = f"{batch}/{r['index']:02d}"
-            seats = read_log(g)
             rows = read_truth(g)
-            all_seats += seats.values()
-            for s in seats.values():
-                for launch in s["launches"]:
-                    v, _, w, covered = judge(rows, launch)
-                    verdicts[v] = verdicts.get(v, 0) + 1
-                    covered_by_verdict.setdefault(v, [0, 0])[0 if covered else 1] += 1
-                    if v == "landed":
-                        killed_worth.append(w)
-                    bot, drop = s["verdicts"].get((launch[1], launch[2]), ("none", None))
-                    against.setdefault((v, bot), []).append(drop)
+            games.append((read_log(g), rows))
             for m in MARKS:
                 row = row_at(rows, m * 1800, False)
                 if row is not None and rows and rows[-1][0] >= m * 1800:
                     his[m].append(sum(worth(u[1]) for u in row if building(u[1]) and not u[5]))
-        began = [s for s in all_seats if s["begun"] is not None]
-        launches = sum(len(s["launches"]) for s in all_seats)
-        print(f"  silos: begun in {len(began)} of {len(all_seats)} seats, the first begun at {med([s['begun'] for s in began], '{:.1f}')} and standing at {med([s['standing'] for s in all_seats], '{:.1f}')} min median; "
-              f"standing at {', '.join(f'{m}:00 {med([s['silos'].get(m) for s in all_seats if m in s['silos']])}' for m in MARKS)}")
-        print(f"  strikes: {sum(s['ordered'] for s in all_seats)} ordered, {launches} launched; by the truth {verdicts or '-'} "
-              f"(his anti-nuke within {COVERAGE:.0f} of the aim [covered, not]: {covered_by_verdict or '-'}); worth killed a landed strike {med(killed_worth)}, all {sum(killed_worth):.0f}")
-        for (truth, bot), drops in sorted(against.items()):
-            known = sorted(d for d in drops if d is not None)
-            span = f", the ground down {known[0]:.1f} to {known[-1]:.1f} on the mean" if known else ""
-            print(f"  the truth says {truth}, the bot said {bot}: {len(drops)}{span}")
+        for name in sorted({s["bot"] for seats, _ in games for s in seats.values()}):
+            all_seats, verdicts, killed_worth, covered_by_verdict, against = [], {}, [], {}, {}
+            for seats, rows in games:
+                mine = [s for s in seats.values() if s["bot"] == name]
+                all_seats += mine
+                for s in mine:
+                    for launch in s["launches"]:
+                        v, _, w, covered = judge(rows, launch)
+                        verdicts[v] = verdicts.get(v, 0) + 1
+                        covered_by_verdict.setdefault(v, [0, 0])[0 if covered else 1] += 1
+                        if v == "landed":
+                            killed_worth.append(w)
+                        said, drop = s["verdicts"].get((launch[1], launch[2]), ("none", None))
+                        against.setdefault((v, said), []).append(drop)
+            began = [s for s in all_seats if s["begun"] is not None]
+            launches = sum(len(s["launches"]) for s in all_seats)
+            print(f"  {name}: silos begun in {len(began)} of {len(all_seats)} seats, the first begun at {med([s['begun'] for s in began], '{:.1f}')} and standing at {med([s['standing'] for s in all_seats], '{:.1f}')} min median; "
+                  f"standing at {', '.join(f'{m}:00 {med([s['silos'].get(m) for s in all_seats if m in s['silos']])}' for m in MARKS)}")
+            print(f"  {name}: strikes {sum(s['ordered'] for s in all_seats)} ordered, {launches} launched; by the truth {verdicts or '-'} "
+                  f"(his anti-nuke within {COVERAGE:.0f} of the aim [covered, not]: {covered_by_verdict or '-'}); worth killed a landed strike {med(killed_worth)}, all {sum(killed_worth):.0f}")
+            for (truth, said), drops in sorted(against.items()):
+                known = sorted(d for d in drops if d is not None)
+                span = f", the ground down {known[0]:.1f} to {known[-1]:.1f} on the mean" if known else ""
+                print(f"  {name}: the truth says {truth}, the bot said {said}: {len(drops)}{span}")
+            for m in MARKS:
+                rows_m = [s["marks"][m] for s in all_seats if m in s["marks"]]
+                if rows_m:
+                    print(f"  {name}: {m}:00 ({len(rows_m)} seats) bank {med([x['bank'] for x in rows_m])}, income {med([x['income'] for x in rows_m], '{:.1f}')}, energy store {med([x['estore'] for x in rows_m], '{:.2f}')}")
         for m in MARKS:
-            rows_m = [s["marks"][m] for s in all_seats if m in s["marks"]]
-            if rows_m or his[m]:
-                print(f"  {m}:00 ({len(rows_m)} seats) bank {med([x['bank'] for x in rows_m])}, income {med([x['income'] for x in rows_m], '{:.1f}')}, energy store {med([x['estore'] for x in rows_m], '{:.2f}')}; "
-                      f"his buildings worth {med(his[m])} ({len(his[m])} games)")
-
+            if his[m]:
+                print(f"  {m}:00 his buildings worth {med(his[m])} ({len(his[m])} games)")
 
 if __name__ == "__main__":
     main()

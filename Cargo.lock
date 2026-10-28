@@ -134,6 +134,7 @@ dependencies = [
  "bot-protocol",
  "combatsim",
  "micro",
+ "nukes",
 ]
 
 [[package]]
@@ -160,6 +161,7 @@ dependencies = [
  "bot-protocol",
  "buildorder",
  "combatsim",
+ "nukes",
  "serde_json",
  "terrain",
 ]
@@ -841,6 +843,14 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "nukes"
+version = "0.1.0"
+dependencies = [
+ "bot-protocol",
+ "combatsim",
 ]
 
 [[package]]

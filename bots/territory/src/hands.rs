@@ -739,6 +739,10 @@ impl Territory {
         if self.defence_order(id, unit, role, commands) {
             return;
         }
+        // T-NUKE: a silo from a full bank, before the plan's flows.
+        if self.silo_order(id, unit, commands) {
+            return;
+        }
         // The credits by unit type over every builder type's flows (turret help apart), the largest in power-seconds
         // first, and at a credit tied the one the plan wants sooner (its credit at a third of the lead: terr24, two
         // solars and two extractors wanted by one minute tied, and unit order put the solars first); this builder's
@@ -1911,7 +1915,7 @@ impl Territory {
     /// `builder` outside the core. Free: ground the footprint
     /// can take and the builder reaches, not in a factory's yard or lane, not a dead slot, and FARM_GAP clear of every standing building,
     /// frame and pending site by the footprints. None when the lattice within FARM_EXTENT has no such slot.
-    fn farm_site(&mut self, builder: UnitId, unit: usize) -> Option<BuildSite> {
+    pub(crate) fn farm_site(&mut self, builder: UnitId, unit: usize) -> Option<BuildSite> {
         let origin = self.farm_origin();
         let walkable = self.own.get(&builder).and_then(|u| self.unit_index(u.def)).and_then(|b| self.builder_ground(b));
         let frame = self.frame;

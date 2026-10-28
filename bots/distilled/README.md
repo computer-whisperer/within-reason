@@ -68,13 +68,16 @@ except that a seat with allies defaults to `gate=tech`.
 | D-CONVERT | With no free spot left to take, a tier-1 constructor builds a converter while the energy store is over 75 % and 70 a second is spare; an advanced constructor an advanced converter at 600 spare; never more than 24 | `CONVERTER_LEVEL = 0.75`, `CONVERTER_FEED = 70`, `ADVANCED_CONVERTER_FEED = 600`, `CONVERTERS_AT_MOST = 24` | K-mech-converter-threshold, K-mech-converter-rates, K-eco-expansion-before-conversion | `saturated_job`, `advanced_job` |
 | D-ENERGY (amended) | The energy rule's draw adds what the project's frame draws at the power on it, and uses the tier-2 tank's energy per metal once an advanced plant stands | | K-energy-plant-draw-outruns-solars | `energy_short`, `project_draw` |
 
-### The silos (2026-10-27, `nuke.rs`; the design `docs/design/2026-10-27-distilled-nukes.md`)
+### The silos (2026-10-27, `nuke.rs` and `crates/nukes`; the design `docs/design/2026-10-27-distilled-nukes.md`)
 
 A later-game way to spend a bank nothing else spends, for seats left to themselves in games with people (the user,
 2026-10-27: "one bot applying constant pressure with random missile strikes is far better than letting the resources
 go to waste"). What became of a strike is read off the ground: a missile that lands digs a crater (players are shown a
 glowing one where it landed), one intercepted bursts in the air (K-rules-a-bot-sees-no-interception; the user,
-2026-10-27: build "1-3 plus the scout", the cover memory, the ruins, the hold and the look).
+2026-10-27: build "1-3 plus the scout", the cover memory, the ruins, the hold and the look). D-NUKE and D-ENERGY's
+share are this bot's (`nuke.rs`); the strikes, D-NUKE-FIRE to D-NUKE-LOOK, are `crates/nukes`' since 2026-10-27, shared
+with the territory bot's T-NUKE (`docs/design/2026-10-27-territory-nukes.md`), and the code names below are there, but
+for `nuke_ground`, `nuke_hit` and `air_scout_wanted`, which hand the engine this bot's events and build its scout.
 
 | ID | Rule | Values | Rests on | Code |
 |---|---|---|---|---|
@@ -91,7 +94,7 @@ The instrument: `nuke:` lines for each order (the place, the blast, the worth an
 known anti-nuke, whether the place was in our sight or radar), each launch, each verdict (the ground's fall on the mean
 and at most, what the events saw where we see, the ruins forgotten), the hold and its end, the look, and a minute line
 (silos and the paused, missiles ready and stockpiling, the draw, verdicts, interceptions and landings remembered,
-places worth striking). `run/distilled_nuke.py` reads a batch and judges every strike from the truth file, against the
+places worth striking). `run/nukes.py` reads a batch and judges every strike from the truth file, against the
 bot's own verdict.
 
 Not in it: radar, tier-2 air, anti-air in the army, air scouts (beyond D-NUKE-LOOK's) and constructor aircraft, sea, reclaim, the control

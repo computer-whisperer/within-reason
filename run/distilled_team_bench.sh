@@ -6,7 +6,7 @@
 #   run/distilled_team_bench.sh FIRST TAG ARMS [ARMS...] [-- arena args for every batch...]
 #
 # ARMS is a WITHIN_REASON_DISTILLED value ("gate=field"). MINUTES in the environment sets the cap (40 by default; 55 for
-# the silos, which come from about 30:00). Read the result with run/distilled_t2.py (run/distilled_nuke.py for the silos).
+# the silos, which come from about 30:00). Read the result with run/distilled_t2.py (run/nukes.py for the silos).
 set -u
 cd "$(dirname "$0")/.." || exit 1
 if [ $# -lt 3 ]; then

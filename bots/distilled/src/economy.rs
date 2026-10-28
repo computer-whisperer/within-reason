@@ -218,11 +218,13 @@ pub(crate) struct Economy {
     /// The frame until which no plant is asked for, after a plant found no site (distilled-t2b-30-hard: two plants
     /// and a 9,000 bank at 25:00, the yard asked for a plant every half second).
     plant_refused: i32,
+    /// The frame until which no silo is started, after its site was refused (D-ORDERS).
+    pub silo_refused: i32,
 }
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0 }
+        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0 }
     }
 
     /// Units the factories have been told to make.
@@ -295,7 +297,7 @@ impl Distilled {
             }
             Job::Plant | Job::AdvancedPlant => self.economy.plant_refused = self.frame + TURRET_REFUSED,
             Job::AirPlant => self.air.plant_refused = self.frame + TURRET_REFUSED,
-            Job::Silo => self.nuke.site_refused = self.frame + TURRET_REFUSED,
+            Job::Silo => self.economy.silo_refused = self.frame + TURRET_REFUSED,
             _ => {}
         }
     }

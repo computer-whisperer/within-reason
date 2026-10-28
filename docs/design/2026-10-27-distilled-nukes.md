@@ -2,7 +2,8 @@
 
 **Status.** The basic design built (`bots/distilled/src/nuke.rs`, arm `nuke=on|off`, on by default) and smoked
 (dist52, below); the crater's verdict and what follows from it built (below), the crater measured in the duel
-harness.
+harness. Since 2026-10-27 the strikes (D-NUKE-FIRE to D-NUKE-LOOK) are `crates/nukes`', shared with the territory
+bot (`docs/design/2026-10-27-territory-nukes.md`); D-NUKE stays in `nuke.rs`.
 
 ## Why
 
@@ -60,7 +61,7 @@ What the money is: on the 2v2 bench against BARb with `gate=tech` (dist44, media
   anti-nuke, whether the place was in our sight or radar), each launch, and 45 s after the launch what the events
   showed (kills and damage naming the silo, and their worth); a minute line (silos, frames, missiles ready and
   stockpiling, the draw, strikes, places worth striking and those excluded by cover). Offline, the truth files tell
-  what happened at every strike (`run/distilled_nuke.py`): his units inside the circle before and after.
+  what happened at every strike (`run/nukes.py`): his units inside the circle before and after.
 
 Not in it, for later: our own anti-nuke; pausing a silo's stockpile when the energy runs short (the protocol's
 `Stockpile` step, unmeasured); turning the programme off when the base is under attack; inferring his anti-nuke cover
