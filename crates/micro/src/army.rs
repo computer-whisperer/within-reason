@@ -265,7 +265,7 @@ mod tests {
             .map(|i| {
                 let id = UnitId(first + i as i32);
                 let pos = at(x - (i / 6) as f32 * 96.0, z + (i % 6) as f32 * 64.0);
-                (id, Walker { id, pos, speed: 80.0, moving: 0.0, fleeing: false })
+                (id, Walker { id, pos, speed: 80.0, moving: 0.0 })
             })
             .collect()
     }
@@ -299,7 +299,7 @@ mod tests {
         capped.partition("a", &fewer, &walkers, &order, 3, 64.0, &None);
         assert_eq!(capped.companies[0].members.len(), 23);
         let mut more = walkers.clone();
-        more.insert(UnitId(99), Walker { id: UnitId(99), pos: at(100.0, 100.0), speed: 80.0, moving: 0.0, fleeing: false });
+        more.insert(UnitId(99), Walker { id: UnitId(99), pos: at(100.0, 100.0), speed: 80.0, moving: 0.0 });
         let mut all = ids(&more);
         all.retain(|id| id.0 != 3);
         capped.partition("a", &all, &more, &order, 6, 64.0, &None);
@@ -321,7 +321,7 @@ mod tests {
         army.partition("a", &ids(&walkers), &walkers, &order, 0, 64.0, &None);
         assert_eq!(army.companies.len(), 1);
         for (i, id) in [101, 102, 103].iter().enumerate() {
-            walkers.insert(UnitId(*id), Walker { id: UnitId(*id), pos: at(6000.0 + 40.0 * i as f32, 100.0), speed: 80.0, moving: 0.0, fleeing: false });
+            walkers.insert(UnitId(*id), Walker { id: UnitId(*id), pos: at(6000.0 + 40.0 * i as f32, 100.0), speed: 80.0, moving: 0.0 });
         }
         army.partition("a", &ids(&walkers), &walkers, &order, 30, 64.0, &None);
         assert_eq!(sizes(&army), vec![(Role::Marching, 12), (Role::Mustering, 3)]);

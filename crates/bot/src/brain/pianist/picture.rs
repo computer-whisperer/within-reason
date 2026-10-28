@@ -1908,7 +1908,7 @@ impl Brain {
                 // No clocks on a course and no "on your pick" (2026-10-24: the policy of t-1 does not enter the words;
                 // `docs/design/2026-10-24-pick-rework.md` §6).
                 GroupTask::Hold { picked: true, .. } => "holding here".to_string(),
-                GroupTask::Hold { committed, .. } => format!("standing with no order{}", if *committed { ", fighting everything here, turrets included" } else { "" }),
+                GroupTask::Hold { .. } => "standing with no order".to_string(),
                 GroupTask::Move { place, fight, .. } if lane_state.is_some() => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                 GroupTask::Move { to, place, fight, .. } => format!("{} to {place}: {}", if *fight { "advancing" } else { "walking" }, shape(*to)),
                 // Told to attack is not attacking: the entry says where the group stands against the party
@@ -2067,10 +2067,6 @@ impl Brain {
                     "{} of its {} soldiers ({}) have had an enemy inside their own reach for up to {longest} s and have not fired a shot: {why}; they are in the fight's count and do nothing in it where they stand",
                     silent.len(), units.len(), kinds.iter().map(|(k, n)| format!("{n} {k}")).collect::<Vec<_>>().join(", ")
                 ));
-            }
-            let fleeing = units.iter().filter(|u| self.lane.fleeing(u.id)).count();
-            if fleeing > 0 {
-                entry["footwork"] = json!(format!("{fleeing} of its {} soldiers are being held back by their own footwork this second: stepping out of a turret's reach they were not sent against, or out of a fight they would die in", units.len()));
             }
             // The nearest party with the odds against this group and what it is killing: the words the `do` question
             // weighs (they were only on the engage option's line before). Near any member, not the centre: the
@@ -2248,8 +2244,8 @@ pub(crate) fn company_words(state: &micro::GroupState, cap: usize, release: Opti
 
 /// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
 /// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
-/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the unit the arc
-/// stands on, when it does. A column (two files or fewer) says the ground narrowed it.
+/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the enemy in reach the
+/// group is halted for, when it is. A column (two files or fewer) says the ground narrowed it.
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();
@@ -2266,9 +2262,6 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
     if count(Cause::CutOff) > 0 {
         outliers.push(format!("{} cut off by the ground", count(Cause::CutOff)));
     }
-    if count(Cause::Fled) > 0 {
-        outliers.push(format!("{} fleeing", count(Cause::Fled)));
-    }
     let outliers = if outliers.is_empty() { String::new() } else { format!(", {}", outliers.join(", ")) };
     let ranks = if state.files <= 2 { format!("in a column of {}", state.files) } else { format!("in ranks of {}", state.files) };
     let mut out = Vec::new();
@@ -2278,7 +2271,7 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
         out.push(format!("no way on foot from here to {to} for this group"));
     }
     if let Some(target) = engaged {
-        out.push(format!("engaged at {at}: the arc on {target}, {formed} of {members} in rank{outliers}"));
+        out.push(format!("halted at {at} {ranks} to fight {target} in reach, {formed} of {members} formed{outliers}"));
     } else if state.arrived {
         out.push(format!("arrived at {}, {formed} of {members} in rank{outliers}", to.unwrap_or(at)));
     } else if state.pace <= 0.0 {
@@ -2341,7 +2334,7 @@ mod tests {
         let arrived = GroupState { arrived: true, pace: 0.0, exceptions: Vec::new(), ..state.clone() };
         assert_eq!(super::formation_words(&arrived, 3, Some("spot_3 (D4)"), "(C4)", None), "arrived at spot_3 (D4), 3 of 3 in rank");
         let engaged = GroupState { pace: 0.0, engaged: Some(UnitId(99)), ..state.clone() };
-        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("engaged at (C4): the arc on his Pawn at (C5), 3 of 8 in rank, 2 behind"));
+        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) in ranks of 6 to fight his Pawn at (C5) in reach, 3 of 8 formed, 2 behind"));
         let no_way = GroupState { way: None, ..state.clone() };
         assert!(super::formation_words(&no_way, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("no way on foot from here to spot_3 (D4) for this group; advancing to spot_3 (D4)"));
     }

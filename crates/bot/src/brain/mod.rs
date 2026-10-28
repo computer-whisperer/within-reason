@@ -494,7 +494,7 @@ impl Brain {
             // with people pointed elsewhere, 1 of 97 played on them).
             if !commands.is_empty() {
                 self.note_standing_orders(&commands, tick.frame);
-                self.note_commitments();
+                self.declare_groups();
             }
             self.micro(tick, &mut commands);
             self.echo.said(&commands, tick.frame);
@@ -509,7 +509,7 @@ impl Brain {
             self.think(&whole)
         };
         self.note_standing_orders(&commands, tick.frame);
-        self.note_commitments();
+        self.declare_groups();
         self.micro(tick, &mut commands);
         self.echo.said(&commands, tick.frame);
         commands

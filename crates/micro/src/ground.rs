@@ -4,7 +4,7 @@
 //! the anchor's walk between the points the host names is the lane's to path, and every slot must be ground the body
 //! can stand on. The host hands the lane its terrain once (`View::terrain`: the hello's height and slope maps at
 //! 16-elmo cells) and the lane builds what it needs from the `terrain` crate: each movement class's passable grid on
-//! first use (`Classes`, for the reflexes' steps and the contact arc's slots), and for each group a `Ground`: the
+//! first use (`Classes`, for the reflexes' steps), and for each group a `Ground`: the
 //! cells every member's class can stand on, the room about each (the distance to the nearest impassable cell or the
 //! map's edge: `terrain::clearance`, D13) and the way priced by that room for the formation's half-width plus a hull
 //! (`terrain::clearance_costs`: flat where the body has the room it wants, dearer toward a wall, so a corner is

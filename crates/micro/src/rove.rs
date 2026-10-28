@@ -437,7 +437,7 @@ impl Lane {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Commitment, Footwork, Stats};
+    use super::super::{Footwork, Stats};
     use super::*;
     use crate::{GroupKind, GroupOrder, HuntOrder};
     use bot_protocol::{MoveClass, MoveKind, Snapshot, Tick, UnitDefInfo};
@@ -593,7 +593,7 @@ mod tests {
         assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 50)), "free, it attacks the extractor beside it: {:?}", out.commands);
         let mut confined = Lane::default();
         let within = Some((at(2000.0, 2000.0), at(4000.0, 4000.0)));
-        confined.set_group("scouts", vec![UnitId(10)], GroupOrder::new(GroupKind::Rove { within }, Vec::new()), Footwork::raw(), Commitment::All);
+        confined.set_group("scouts", vec![UnitId(10)], GroupOrder::new(GroupKind::Rove { within }, Vec::new()), Footwork::raw());
         let host = Host::new(goals);
         let out = confined.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor]), &mut Vec::new(), false);
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "confined, the extractor outside is left: {:?}", out.commands);
@@ -660,7 +660,7 @@ mod tests {
         let mut body: Vec<OwnUnit> = (0..48).map(|i| { let mut u = rover(100 + i, 1000.0 - (i / 6) as f32 * 96.0, 1000.0 + (i % 6) as f32 * 64.0); u.def = PAWN; u }).collect();
         let ids: Vec<UnitId> = body.iter().map(|u| u.id).collect();
         let goal = at(6000.0, 1160.0);
-        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]).with_cap(24), Footwork::raw(), Commitment::None);
+        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]).with_cap(24), Footwork::raw());
         let mut sent: HashMap<UnitId, Vec3> = HashMap::new();
         let mut log = Vec::new();
         for step in 0..200 {
@@ -701,7 +701,7 @@ mod tests {
         assert_eq!(s.companies.len(), 2, "{text}");
         assert!(s.companies.iter().all(|c| c.role == crate::Role::Marching && c.members == 24), "{text}");
         assert!(s.companies.iter().all(|c| c.formed >= 20), "each company formed on its own: {text}");
-        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw(), Commitment::None);
+        lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw());
         lane.tick(&host, &tick(30 + 3 * 200, body.clone(), Vec::new()), &mut Vec::new(), false);
         let lifted = lane.group_state("a").expect("a state");
         assert_eq!((lifted.companies.len(), lifted.companies[0].members), (1, 48), "the cap lifted: one company");
@@ -722,7 +722,7 @@ mod tests {
     /// A lane with these units declared as one roving group (design D15).
     fn roving_lane(ids: &[i32]) -> Lane {
         let mut lane = Lane::default();
-        lane.set_group("scouts", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw(), Commitment::All);
+        lane.set_group("scouts", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw());
         lane
     }
 
@@ -751,47 +751,47 @@ mod tests {
         assert_eq!(out.fired, vec!["H-MICRO-ROVE", "H-MICRO-ROVE"]);
     }
 
-    /// H-MICRO-FORM-PURSUIT: a group advancing to a station forms on a Pawn that comes within the horizon, and its
-    /// orders follow the Pawn while it stays; once the Pawn has run 600 from where the group formed on it and is out
-    /// of reach, the group lets it go, the anchor is set down where the body stands and the march resumes
-    /// (player-21 5:41-6:46: six Rovers trailed a Tick 4,700 elmos into his base).
+    /// Contact holds the ranks (`docs/design/2026-10-28-contact-cleanup.md`): a group advancing to a station does not
+    /// stop for a Pawn it cannot reach, halts with its slots standing while one is inside a member's reach (that
+    /// member gets no order: it fires at will), and walks on to its station when the Pawn has run, never after it
+    /// (player-21 5:41-6:46: six Rovers formed on a Tick under the old contact and trailed it 4,700 elmos into his base).
     #[test]
-    fn a_group_lets_a_running_target_go_and_walks_on_to_its_station() {
+    fn a_group_halts_for_what_it_can_reach_and_never_follows_it() {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
         let station = at(1000.0, 3600.0);
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![station]), Footwork::raw(), Commitment::All);
-        let rovers = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![station]), Footwork::raw());
+        let rovers = |z: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, z + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         let orders_of = |commands: &[Command], unit: i32| commands.iter().filter_map(|c| match c { Command::Fight { unit: u, to, .. } | Command::Move { unit: u, to, .. } if u.0 == unit => Some(*to), _ => None }).collect::<Vec<Vec3>>();
-        // Tick 1: a Pawn stands 500 east, inside the 700 horizon: the group forms on it.
-        let out = lane.tick(&host, &tick(30, rovers(1000.0), vec![enemy(50, PAWN, 1500.0, 1000.0)]), &mut Vec::new(), false);
-        let first = orders_of(&out.commands, 10);
-        assert!(!first.is_empty() && first[0].dist2d(at(1500.0, 1000.0)) < 400.0, "the group forms on the Pawn: {first:?}");
-        assert_eq!(lane.group_state("a").map(|s| s.engaged), Some(Some(UnitId(50))));
-        // The Pawn runs east 100 a tick; the group walks after it. At 300 run it is still the target.
-        let mut x = 1500.0;
-        let mut last = Vec::new();
-        for f in 1..=3 {
-            x += 100.0;
-            let out = lane.tick(&host, &tick(30 + 30 * f, rovers(1000.0 + 100.0 * f as f32), vec![enemy(50, PAWN, x, 1000.0)]), &mut Vec::new(), false);
-            last = orders_of(&out.commands, 10);
-        }
-        assert!(last.is_empty() || last[0].dist2d(at(x, 1000.0)) < 400.0, "still on the Pawn at 300 run: {last:?}");
-        // Past 600 run, out of reach (the group 500 behind): let go, the march resumes from where the body stands.
-        for f in 4..=8 {
-            x += 100.0;
-            let out = lane.tick(&host, &tick(30 + 30 * f, rovers(1000.0 + 100.0 * f as f32), vec![enemy(50, PAWN, x, 1000.0)]), &mut Vec::new(), false);
-            last = orders_of(&out.commands, 10);
-        }
-        let body = at(1840.0, 1020.0);
-        assert!(!last.is_empty(), "the group is ordered on");
-        // The orders are the slots by the body carried the lead (300) south, toward the station (D20), not the Pawn.
-        assert!(last.iter().all(|p| p.dist2d(at(x, 1000.0)) > 400.0 && p.dist2d(body) < 650.0 && p.z - body.z > 150.0), "the orders are slots by the body carried the lead toward the station, not the Pawn: {last:?} (Pawn at {x})");
+        // A Pawn 500 east, inside the old 700 horizon but out of every Rover's reach (180): the march goes on south.
+        let mut z = 1000.0;
+        lane.tick(&host, &tick(30, rovers(z), vec![enemy(50, PAWN, 1540.0, z)]), &mut Vec::new(), false);
+        let out = lane.tick(&host, &tick(33, rovers(z), vec![enemy(50, PAWN, 1540.0, z)]), &mut Vec::new(), false);
         let state = lane.group_state("a").expect("a state");
         assert_eq!(state.engaged, None);
-        assert!(state.anchor.dist2d(body) < 300.0, "the anchor set down where the body stands: {:?}", state.anchor);
-        assert!(state.heading.1 > 0.9, "facing the station, south: {:?}", state.heading);
+        assert!(state.pace > 0.0, "not halted for a Pawn out of reach: {:?}", state.pace);
+        assert!(orders_of(&out.commands, 10).iter().all(|p| p.z > z && (p.x - 1040.0).abs() < 200.0), "the orders lead south toward the station: {:?}", orders_of(&out.commands, 10));
+        // The Pawn closes to 100 east of the near file: the group halts, the slots stand, the member in reach is not ordered.
+        z += 30.0;
+        lane.tick(&host, &tick(36, rovers(z), vec![enemy(50, PAWN, 1180.0, z)]), &mut Vec::new(), false);
+        let anchor = lane.group_state("a").expect("a state").anchor;
+        let out = lane.tick(&host, &tick(66, rovers(z), vec![enemy(50, PAWN, 1180.0, z)]), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert_eq!(state.engaged, Some(UnitId(50)));
+        assert_eq!(state.pace, 0.0, "halted while a member has the Pawn in reach");
+        assert!(state.anchor.dist2d(anchor) < 1.0, "the anchor stands: {:?} from {anchor:?}", state.anchor);
+        assert!(orders_of(&out.commands, 12).is_empty(), "the member in reach stands without an order");
+        // The Pawn runs east out of every reach: the march resumes toward the station from where the block stood.
+        let mut last = Vec::new();
+        for f in 1..=4 {
+            let out = lane.tick(&host, &tick(66 + 30 * f, rovers(z), vec![enemy(50, PAWN, 1180.0 + 300.0 * f as f32, z)]), &mut Vec::new(), false);
+            last.extend(orders_of(&out.commands, 10));
+        }
+        let state = lane.group_state("a").expect("a state");
+        assert_eq!(state.engaged, None);
+        assert!(state.pace > 0.0 && state.heading.1 > 0.9, "walking on south: pace {} heading {:?}", state.pace, state.heading);
+        assert!(!last.is_empty() && last.iter().all(|p| p.x < 1300.0 && p.z > z), "the orders lead to the station, not the Pawn: {last:?}");
     }
 
     /// A formation re-declared as a rove loses its group and state (no reader sees a formed hold while the members
@@ -805,16 +805,16 @@ mod tests {
         let ids = [10, 11, 12];
         let members: Vec<UnitId> = ids.iter().map(|id| UnitId(*id)).collect();
         let body = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 64.0 * i as f32, 1000.0)).collect::<Vec<_>>();
-        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(1064.0, 1000.0)]), Footwork::raw(), Commitment::All);
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(1064.0, 1000.0)]), Footwork::raw());
         for f in 1..=10 {
             lane.tick(&host, &tick(30 * f, body(1000.0), Vec::new()), &mut Vec::new(), false);
         }
         assert!(lane.group_state("a").is_some_and(|s| s.arrived), "a hold formed: {:?}", lane.group_state("a"));
-        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw(), Commitment::All);
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw());
         lane.tick(&host, &tick(330, body(1000.0), Vec::new()), &mut Vec::new(), false);
         assert!(lane.group_state("a").is_none(), "a roving group has no formation state");
         // The rovers roam 3,000 east; told to advance north from there, the slots are about them, not at the old hold.
-        lane.set_group("a", members, GroupOrder::new(GroupKind::FightTo, vec![at(4064.0, -3000.0)]), Footwork::raw(), Commitment::All);
+        lane.set_group("a", members, GroupOrder::new(GroupKind::FightTo, vec![at(4064.0, -3000.0)]), Footwork::raw());
         let out = lane.tick(&host, &tick(360, body(4000.0), Vec::new()), &mut Vec::new(), false);
         let to: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Fight { to, .. } => Some(*to), _ => None }).collect();
         assert_eq!(to.len(), 3, "every member ordered: {:?}", out.commands);
@@ -832,7 +832,7 @@ mod tests {
         let mut lane = Lane::default();
         let members = vec![UnitId(10), UnitId(11)];
         let hunt = HuntOrder { quarry: UnitId(99), leash: 2000.0, lost_frames: crate::HUNT_LOST_FRAMES, since: 30 };
-        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw(), Commitment::All);
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw());
         let hunters = |x: f32| vec![rover(10, x, 1000.0), rover(11, x + 200.0, 1150.0)];
         let out = lane.tick(&host, &tick(30, hunters(2500.0), vec![enemy(99, ROVER, 2800.0, 1000.0)]), &mut Vec::new(), false);
         assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 99)), "{:?}", out.commands);
@@ -841,7 +841,7 @@ mod tests {
         lane.tick(&host, &tick(60, hunters(2600.0), Vec::new()), &mut Vec::new(), false);
         let mut host_orders: Vec<Command> = members.iter().map(|id| Command::Stop { unit: *id }).collect();
         lane.note_standing_orders(&host_orders, 63, |_| true);
-        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(2700.0, 1075.0)]), Footwork::raw(), Commitment::All);
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::Hold, vec![at(2700.0, 1075.0)]), Footwork::raw());
         let out = lane.tick(&host, &tick(63, hunters(2600.0), Vec::new()), &mut host_orders, false);
         let ordered: Vec<i32> = out.commands.iter().filter_map(|c| match c { Command::Fight { unit, .. } | Command::Move { unit, .. } => Some(unit.0), _ => None }).collect();
         assert_eq!(ordered.len(), 2, "every former hunter sent to a slot on the hold's first tick: {:?} (host orders left {:?})", out.commands, host_orders);
@@ -856,7 +856,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![at(1000.0, 3600.0)]), Footwork::raw(), Commitment::All);
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![at(1000.0, 3600.0)]), Footwork::raw());
         let mut rovers = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         rovers.push(rover(20, 3000.0, 3000.0));
         let mut host_orders: Vec<Command> = ids.iter().chain([20].iter()).map(|id| Command::Stop { unit: UnitId(*id) }).collect();
@@ -885,7 +885,7 @@ mod tests {
             u.def = PAWN;
         }
         let goal = at(4000.0, 1000.0);
-        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw(), Commitment::None);
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![goal]), Footwork::raw());
         let first_of = |commands: &[Command], id: i32| commands.iter().find_map(|c| match c { Command::Move { unit, to, queue: false } if unit.0 == id => Some(*to), _ => None });
         let out = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
         let rover_to = first_of(&out.commands, 10).expect("the Rover is ordered");
@@ -1088,7 +1088,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let hunt = HuntOrder { quarry: UnitId(99), leash: 900.0, lost_frames: crate::HUNT_LOST_FRAMES, since: 30 };
-        lane.set_group("hunt", vec![UnitId(10)], GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw(), Commitment::All);
+        lane.set_group("hunt", vec![UnitId(10)], GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()), Footwork::raw());
         let mut hunter = rover(10, 2500.0, 2500.0);
         hunter.health = 30.0;
         let out = lane.tick(&host, &tick(30, vec![hunter], vec![enemy(99, ROVER, 2800.0, 2500.0)]), &mut Vec::new(), false);

@@ -166,14 +166,12 @@ above half and taking the rest apart, and wait at home between fields; before an
 or frame of his within 600 of it that comes apart in 10 seconds or less (a resurrection bot's power is 200: a Pawn at
 half health in 4 seconds); you are woken when 500 metal of wrecks lies in
 such fields, and the picture's `wrecks` and `resurrection_bots` lines carry the totals.
-Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
-was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),
-takes its slot in a concave at reach on its target, spaced by the enemy's area of effect (`form`), steps back while
-reloading from an enemy it outranges (`kite`); an advancing group walks in ranks that keep its fast units with the body (`march`).
-The picture's `footwork` line says when they are holding a group back. `lane` sets, per group or for
-all, which rules apply: `raw` is none, and the group's orders reach the engine exactly as your hands gave them. Use
-it when a group must go somewhere or fight something and the footwork is in the way; the group's entry shows the
-setting while it is not the default.
+Between your hands' orders, the code keeps every group in ranks: it walks at its slowest unit's pace with its fast
+units in the body, halts in its ranks while any of its soldiers has an armed enemy in reach and fights there, and walks
+on when nothing is in reach. A group's soldiers never flee one by one; a retreat is a walk your hands pick. Two
+footwork rules apply to its soldiers: a soldier spreads out under a commander's D-gun (`fan`) and steps back while
+reloading from an enemy it outranges (`kite`). `lane` sets, per group or for all, which of them apply (`raw` is
+neither); the group's entry shows the setting while it is not the default.
 How the hands read your packet: each time a unit is asked about, Jev is shown the whole packet beside the picture and
 rates every move on that unit's menu, and every enemy party for whether it needs answering; the best-rated moves of
 all the units asked are then joined into plans, and Jev picks one plan or keeps everything as it is. Nothing is read

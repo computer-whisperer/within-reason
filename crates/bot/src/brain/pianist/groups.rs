@@ -99,12 +99,11 @@ const ROVE_LOG: usize = 10;
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
-    /// `committed`: the hold an advance arrives in, still committed to everything there (H-HANDS-GROUPS).
     /// `picked`: a hold Jev picked, which is a course; a hold an order ended in is none, and the group is idle.
     /// `at`: where the lane's anchor stands for the hold (its Hold route; the ranks hang from it): the anchor as it is
     /// when an arrival ends in a hold or a hold is picked, the body's place when the group forms (the migration
     /// design, chunk 2).
-    Hold { committed: bool, picked: bool, at: Vec3 },
+    Hold { picked: bool, at: Vec3 },
     Move { to: Vec3, place: String, fight: bool },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
@@ -379,9 +378,9 @@ impl Group {
 }
 
 impl GroupTask {
-    /// The hold an order ends in, or a group forms in: nobody picked it, nothing is committed.
+    /// The hold an order ends in, or a group forms in: nobody picked it.
     pub(crate) fn idle_hold(at: Vec3) -> GroupTask {
-        GroupTask::Hold { committed: false, picked: false, at }
+        GroupTask::Hold { picked: false, at }
     }
 }
 
@@ -604,22 +603,22 @@ impl Brain {
             let declared = group.declared();
             match &mut group.task {
                 GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
-                GroupTask::Move { to, fight, .. } if declared => {
+                GroupTask::Move { .. } if declared => {
                     // The lane's arrival (the anchor at the way's end, every member not an exception in its slot),
                     // read a second after the order at the earliest: the state before it is the last task's.
                     if frame - group.last_order >= FRAMES_PER_SECOND && let Some(state) = lane_state.as_ref().filter(|s| s.arrived) {
                         // An arrival ends the order in a hold nobody picked, the anchor where it stands: the group
                         // is idle and is asked. A shell's hold keeps shelling: the screen stays between (chunk 5).
-                        let (committed, at) = (*fight, state.anchor);
+                        let at = state.anchor;
                         let (shelling, screen) = (group.shelling, group.screen);
-                        group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
+                        group.set_task(GroupTask::Hold { picked: false, at }, frame);
                         if shelling {
                             group.shelling = true;
                             group.screen = screen;
                         }
                     }
                 }
-                GroupTask::Move { to, fight, .. } => {
+                GroupTask::Move { to, .. } => {
                     // An air group, or a shelling one, until their chunks: arrival by the members, not the centre (a
                     // group split by a cliff never got its centre within 300 of its goal, so a fall-back walk stayed
                     // the base world for two minutes and the player's new stations were shown as the default and
@@ -631,8 +630,8 @@ impl Brain {
                     distances.sort_by(f32::total_cmp);
                     let to_go = distances.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len().saturating_sub(1))).copied().unwrap_or(0.0);
                     if to_go < ARRIVED {
-                        let (committed, at) = (*fight, *to);
-                        group.set_task(GroupTask::Hold { committed, picked: false, at }, frame);
+                        let at = *to;
+                        group.set_task(GroupTask::Hold { picked: false, at }, frame);
                     }
                 }
                 GroupTask::Engage { party, at, sent, last_seen, target, searched, .. } => {
@@ -1115,7 +1114,7 @@ mod tests {
         group.screen = Some(at(3400.0, 1000.0));
         pianist.groups.push(group);
         brain.pianist = Some(pianist);
-        brain.note_commitments();
+        brain.declare_groups();
         let mut names = brain.lane.group_names();
         names.sort();
         assert_eq!(names, ["group_S", "group_S_screen"]);
@@ -1123,7 +1122,7 @@ mod tests {
         assert_eq!(brain.lane.group_members("group_S_screen"), Some(&[UnitId(3), UnitId(4)][..]));
         // The shell ends (a walk picked): one formation of all four, the screen gone.
         brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Move { to: at(3000.0, 1000.0), place: "spot_1".into(), fight: false }, 30);
-        brain.note_commitments();
+        brain.declare_groups();
         assert_eq!(brain.lane.group_names(), ["group_S"]);
         assert_eq!(brain.lane.group_members("group_S").map(|m| m.len()), Some(4));
     }

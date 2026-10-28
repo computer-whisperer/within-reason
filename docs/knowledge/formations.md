@@ -180,7 +180,9 @@ the Fight, 1,246-1,379 under the Move. In reach while engaged against the Fatboy
 **Would be wrong if.** A live game's tier-2 fights under the lane (read with `run/fire.py`) showed the Stouts walking
 under the Move losing their shots without the area fire missing them (the Fatboys' or Bulls' damage per shot the same
 as against a ball), or the slots on sloped ground unreachable (the duel's sites are flat and its view does not snap).
-**Used by.** H-MICRO-FORM, H-MICRO-FORM-SPACING, H-MICRO-FORM-ARC.
+**Used by.** H-MICRO-FORM-SPACING (the march's spacing); H-MICRO-FORM's contact concave and H-MICRO-FORM-ARC until
+2026-10-28, when the ring went on the user's ruling (`docs/design/2026-10-28-contact-cleanup.md`): the claim stands as
+measured, and the cleanup's bench reprices it against ranks held through contact.
 
 ### K-form-a-per-unit-step-out-of-a-turret-does-not-pay
 **Claim.** Stepping a unit out of a turret's reach whenever it stands inside it with nothing of its own in reach (the
@@ -206,7 +208,9 @@ to Rocketeers, Centurions and Pawns for one Lazarus. Neither the player nor a pi
 19953, 5134, 24632 (the fight points by ten-second bucket); the review's finding 3; `crates/micro/src/lib.rs` `form`
 at 1ffc8e9 (`engaged` = any foe within `HORIZON`, `keep` the target most claims name).
 **Status.** fixed 2026-09-28 (H-MICRO-FORM-PURSUIT: a target that has run 600 from first contact and is out of
-reach is let go for 30 s; a lane test in `rove.rs` shows the let-go and the return to the station). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
+reach is let go for 30 s; a lane test in `rove.rs` shows the let-go and the return to the station); the cause gone
+2026-10-28 with the contact target itself (`docs/design/2026-10-28-contact-cleanup.md`: a block halts in its ranks for
+what is in reach and follows nothing; the `rove.rs` test keeps the case). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
 static or standing targets, so they cannot show a regression from it either way.
 
 

@@ -83,22 +83,19 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 
 ## 5. The micro engine (10 Hz, ground soldiers; the player's `lane` tool sets the reflexes a group's soldiers are under)
 
-Refreshed 2026-10-24 night against the code at design D15 (`docs/design/2026-10-24-formation-drills.md`). The lane's
-surface is two things: a declared group (`Lane::set_group`: members, an order of a kind with a route, the reflexes,
-the threat set), which the lane owns whole, and per-unit reflexes and a threat set for loose soldiers
-(`set_commitments`). **The flagship declares only its hunting and roving groups**; every other soldier of its is loose,
-so no formation forms in a flagship game until the hands' migration (the user, 2026-10-24 night: "The flagship's
-current state is not a problem: focus on building a good engine and we will attach the hands to it when it is ready").
+Refreshed 2026-10-28 against the contact cleanup (`docs/design/2026-10-28-contact-cleanup.md`). The lane's surface is
+two things: a declared group (`Lane::set_group`: members, an order of a kind with a route, the group's fan and kite),
+which the lane owns whole, and per-unit reflexes and a threat set for loose soldiers (`set_commitments`). The flagship
+declares every ground group as a formation, a hunt or a rove (the hands' migration, chunks 2-5, 2026-10-25), so its
+soldiers are loose only between their birth and their group; a declared group's members never flee (2026-10-28).
 
 | Rule | What it decides | Main values | ID |
 |---|---|---|---|
-| Threat set | Which enemies a unit stands against, from its group's task: an advance everything; a hold or follow mobile units; an attack his commander only at 450 metal of group | `COMMANDER_PARTY_METAL = 450` | H-HANDS-GROUPS |
-| Flee | Steps out of an unpriced threat, or when fire would kill it in 1.5 s and the side is outgunned | `HORIZON = 700`, `EXPOSURE_SECONDS = 1.5`, `ODDS_TO_STAY = 1.2` | H-MICRO-FLEE |
+| Flee | A loose soldier (in no declared group) steps out of a threat its threat set does not cover, or out of fire that would kill it in 1.5 s while its side is outgunned; never a declared group's member (2026-10-28) | `HORIZON = 700`, `EXPOSURE_SECONDS = 1.5`, `ODDS_TO_STAY = 1.2` | H-MICRO-FLEE |
 | Fan | Sidesteps out of a D-gun's line | `DGUN_MARGIN = 260`, `DGUN_SHADOW = 48` | H-MICRO-FAN |
 | Kite | Out-reaching by 80 and no slower, steps back while reloading | `KITE_MARGIN = 80`, `KITE_EDGE = 15` | H-MICRO-KITE |
 | Group | A declared group of kind Go, FightTo, Attack or Hold: an anchor walks the order's route at the slowest type's speed, held back by its body's lag; the way between the route's points is the lane's, planned over the ground every member's class stands on and priced by the room the ranks want (D17, 2026-10-25), the ground carrying what stands on it (every unit without speed by its footprint, the wrecks named; D18, 2026-10-25) and the route's end placed where the body has its room; the field for a leg stops at the leg's start; slots in ranks of six hung from it, narrowed to the files the room allows (not while the anchor is on a carry past a bend, where the room is not the body's), snapped to that ground, re-dealt by least travel at a turn of 20° or more; the carry past a bend runs to the ground's edge; members formed within 128, exceptions reported with a cause (a member whose slot the ground does not join to it is cut off and holds the anchor by nothing); `march` off in the order puts the slots at the destination; the state says the way left and when a route point has no way on foot (`GroupState::way`, 2026-10-25); a member's march order is its slot carried its type's lead ahead at the pace's share (D20, 2026-10-25): the pace type `LEAD` ahead, so it never walks in the engine's brake zone on the march and the pace is the drag's alone, a faster type its following distance learned on the march | `FILES = 6`, `HULL_SPACING = 64`, `RANK_GAP = 96`, `REDEAL_TURN_DEG = 20`, `Pacing` (formed 128, drag 128, exception 300, rejoin 96), `CUT_OFF_FACTOR = 2`, `REJOIN_WAY = 400`, `STRUCTURES_CADENCE = 150` frames, the room wanted six files at the spacing plus a hull, the stand within twice that room, `LEAD = 300` | H-MICRO-GROUP |
-| Form (at contact) | An armed enemy within 700 of the group's centre stops the anchor; the group picks the body's target (the host's for an Attack, else the nearest soldier in the open, else a building) and stands on an arc at reach, spaced wider against area fire | `HORIZON = 700`, `SPACING_MAX = 160`, `AREA_SPACING = 2` | H-MICRO-FORM, -ARC, -SPACING |
-| Pursuit let-go | Lets a chased target go | `PURSUIT = 600`, `LET_GO_FRAMES` 30 s | H-MICRO-FORM-PURSUIT |
+| Form (at contact) | A member with an armed enemy in sight (or the Attack's target) inside its reach stands with no order; a fighting group's anchor halts while more than half its members stand, and the ranks hold where it stopped (no contact shape or target since 2026-10-28, `docs/design/2026-10-28-contact-cleanup.md`); the spacing widens against area fire | `STAND_INSIDE = 20`, `STAND_KEEP = 20`, `Pacing::halt_share = 0.5`, `SPACING_MAX = 160`, `AREA_SPACING = 2` | H-MICRO-FORM, -SPACING |
 | Hunt | A declared group of kind Hunt: attack by id each tick; its ends (dead, lost, the leash from where each hunter stood when the lane first ran it) are in §2 | `HUNT_LOST_FRAMES` 6 s | H-MICRO-HUNT |
 | Rove | A declared group of kind Rove: evade, else kill what is unguarded, else look at the least-known place, within the order's region if one | `ATTACK_RADIUS = 1000`, `KILL_SECONDS = 45`, `LOOK_SHARE = 0.6` | H-MICRO-ROVE |
 

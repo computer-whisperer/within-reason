@@ -709,7 +709,8 @@ impl Drill {
             self.sample_circuit(frame, walkers);
         }
         // The formed share under a group (D12, D16): every second of a circuit; for the other drills every second
-        // until contact, when the slots become the arc's and the group's books stop.
+        // until contact: the formation the body arrives in (the books run on through contact since 2026-10-28, the
+        // contact cleanup, but the column keeps its meaning across batches).
         if let Some((formed, members, _)) = self.group
             && members > 0
             && (self.kind == Kind::Circuit || !self.contact())

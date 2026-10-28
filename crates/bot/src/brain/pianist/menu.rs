@@ -648,7 +648,7 @@ impl Brain {
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         match &group.task {
             GroupTask::Hold { picked: true, .. } => ("hold", "hold".to_string(), format!("holds at {at}"), None),
-            GroupTask::Hold { committed, .. } => ("idle", String::new(), format!("stands at {at} with no order{}", if *committed { ", fighting everything there, turrets included" } else { "" }), None),
+            GroupTask::Hold { .. } => ("idle", String::new(), format!("stands at {at} with no order"), None),
             // The key is the shell move's own (`shell_party_N`, `shell_spot_N`), so the menu leaves out the shell the
             // group is already on (player-49 11:20-11:22: an empty key left it on the menu, it was picked each
             // second and the whole group ordered again each time; 18 of group_O's 103 picks).
@@ -1982,7 +1982,7 @@ pub(super) mod tests {
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { within: None }, 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true, at: Vec3::default() }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { picked: true, at: Vec3::default() }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
@@ -2050,7 +2050,7 @@ pub(super) mod tests {
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
-        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { committed: false, picked: true, at: Vec3::default() }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { picked: true, at: Vec3::default() }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
