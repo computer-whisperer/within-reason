@@ -503,6 +503,30 @@ counted.
 **Would be wrong if.** Held units with no target from before the hold fired at enemies that appeared later.
 **Used by.** H-DUEL-SCENARIO-PREP (harness only).
 
+### K-engine-a-fight-at-manoeuvre-closes-on-and-chases
+**Claim.** A ground unit under a Fight (attack-move) order at the manoeuvre move state (BAR's default: a unit inherits
+its plant's, and a plant's is manoeuvre) leaves its line for the nearest enemy within its reach plus 100 of the line,
+closes on it until it is in reach, follows it while it backs off, and gives it up only past its reach plus the
+manoeuvre leash (500) from the line; an idle unit at manoeuvre attacks within its reach plus 200 and chases the same
+way. At hold position the fight's search is its reach and only targets a weapon can aim at now, the unit stops to shoot,
+and the attack is dropped the moment the target leaves reach (no closing in, no following). Under a Move the unit
+never leaves its path or stops; its weapons still choose targets in reach on their own at fire at will.
+**Status.** supported from source (2026-10-28) and on the bench (ledger hpon-* / hpoff-* / hpmove-*): at hold position
+twelve Blitzes marched to an assault's end 250 from two Pop-ups (reach 730; the Blitz's 180) and stood there until all
+died without a shot, 8 duels of 8, where at manoeuvre (search 280) they closed in and took 5 of 8.
+**Evidence.** Recoil 2026.07.04 `rts/Sim/Units/CommandAI/MobileCAI.cpp`: `ExecuteFight` (search radius `maxRange + 100
+* moveState^2` about the closest point of the command's line, a temporary `CMD_ATTACK` pushed), `IsValidTarget` (at
+hold position only a target a weapon can rotate to), `ExecuteAttack` (`canChaseTarget` false at hold position; a
+temporary order at hold position is finished when the target is out of reach; the leash `GetManeuverLeash() *
+moveState + maxRange`, `MoveType.cpp` `maneuverLeash(500.0f)`), `GenerateAttackCmd` (an idle unit's search `maxRange +
+200 * moveState^2`); `Unit.cpp` (a new unit takes its builder's move state), `UnitDef.cpp` (a mobile def with no
+`moveState` takes the builder's; BAR's unit defs set none); `rts/Sim/Weapons/Weapon.cpp` `AllowWeaponAutoTarget`
+(auto-targeting needs fire at will, not a particular command). Seen live: the user, watching files-1 (2026-10-28): "I
+still see units in formation 'engage' enemy units by breaking formation and driving at the enemy".
+**Would be wrong if.** Members of a formation group at hold position were still seen leaving their slots for enemies out
+of their reach under the lane's Fight.
+**Used by.** H-MICRO-FORM-HOLDPOS (benched 2026-10-28, not adopted: branch `holdpos-bench`).
+
 ### K-engine-a-unit-left-alone-heals
 **Claim.** A hurt unit that takes no damage for a while heals by itself, slowly: a Stout hurt to 95% of its health was
 whole again about 95 s later, one hurt to 88% had reached 97% after about 85 s.
