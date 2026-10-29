@@ -417,7 +417,7 @@ impl Group {
     }
 
     /// The ground the lane built for this group's classes and room (design D17); `None` without terrain. A new ground
-    /// plans the way again.
+    /// plans the way again (an anchor at the way's end stays at it, `plan`).
     pub fn set_ground(&mut self, ground: Option<Arc<Ground>>) {
         self.ground = ground;
         self.dirty = true;
@@ -464,6 +464,12 @@ impl Group {
         // to (until then a ground rebuilt on a structure change planned from the route's first point, so a
         // circuit's anchor would have turned back for a passed corner).
         let passed = self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count().min(self.order.route.len().saturating_sub(1));
+        // An anchor at the way's end stays there through a re-plan (a ground rebuilt on a structure change: a wreck,
+        // a dead turret): planned afresh it walked the new last leg, and a block that had closed past its end turned
+        // round and marched back to it at every enemy death (the advance bench's replays, 2026-10-28 night, the user:
+        // "the group reforms differently after some number of the enemy units die"). A new order sets `leg` to 0
+        // before it plans, so it still walks.
+        let at_end = self.at_end();
         self.way_from = self.anchor;
         self.way.clear();
         self.way_host.clear();
@@ -494,7 +500,7 @@ impl Group {
             }
         }
         self.planned_end = self.order.route.last().copied();
-        self.leg = 0;
+        self.leg = if at_end { self.way.len() } else { 0 };
         self.dirty = false;
         if debug_on() {
             eprintln!(
@@ -784,7 +790,9 @@ impl Group {
                 self.anchor = Vec3 { y: end.y, ..end };
             }
             self.leg = self.way.len();
-        } else if self.leg < self.way.len() {
+        } else if self.leg < self.way.len() && !self.stopped {
+            // Facing the next point; not while the lane halts the block: a re-plan while it fought turned the ranks
+            // about the anchor onto the wrecks (the same replays).
             let next = self.target(self.leg, carry);
             // (`form::heading` says east for two points under 1.0 apart: a Hold at the body's own place spun the
             // formation east at the route's end before every guard was 1.0.)
@@ -1456,6 +1464,51 @@ mod tests {
             march(&mut group, &mut w, 30, 3, &pacing);
         }
         assert!(group.pace == 0.0 && (group.anchor.x - 610.0).abs() < 2.0, "stopped 90 short of the target: {:?}", group.state(&w));
+    }
+
+    /// A ground rebuilt (a structure change: a wreck, a dead turret) plans the way again but moves nothing that
+    /// stands: an arrived anchor stays arrived, a closing anchor goes on closing and never walks back to the end, a
+    /// block halted by the lane keeps its heading.
+    #[test]
+    fn a_ground_rebuild_leaves_an_arrived_a_closing_and_a_halted_anchor_as_they_are() {
+        let pacing = Pacing::default();
+        let fresh = || {
+            let w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+            let g = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::FightTo, vec![at(400.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+            (g, w)
+        };
+        // Arrived: a rebuild keeps it arrived, no step.
+        let (mut group, mut w) = fresh();
+        group.tick(0, &w, 64.0, &pacing);
+        march(&mut group, &mut w, 600, 3, &pacing);
+        assert!(group.arrived);
+        group.set_ground(None);
+        march(&mut group, &mut w, 30, 3, &pacing);
+        assert!(group.at_end() && group.arrived && group.pace == 0.0 && (group.anchor.x - 400.0).abs() < 0.5, "{:?}", group.state(&w));
+        // Closing past the end (short of the leash): a rebuild leaves it closing on, the anchor never turning back.
+        for _ in 0..3 {
+            group.close_on(Some(at(2000.0, 0.0)), 90.0);
+            march(&mut group, &mut w, 30, 3, &pacing);
+        }
+        let before = group.anchor.x;
+        assert!(before > 550.0, "closing: {before}");
+        group.set_ground(None);
+        group.close_on(Some(at(2000.0, 0.0)), 90.0);
+        march(&mut group, &mut w, 30, 3, &pacing);
+        assert!(group.at_end() && group.heading.0 > 0.99 && group.anchor.x > before + 50.0, "closing on, not back: {:?}", group.state(&w));
+        // Halted on the way by the lane: a rebuild with the next point elsewhere keeps the heading.
+        let (mut group, mut w) = fresh();
+        group.tick(0, &w, 64.0, &pacing);
+        march(&mut group, &mut w, 60, 3, &pacing);
+        let heading = group.heading;
+        group.stopped = true;
+        group.update(vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::FightTo, vec![at(200.0, 900.0)]));
+        group.set_ground(None);
+        march(&mut group, &mut w, 30, 3, &pacing);
+        assert!(group.pace == 0.0 && (group.heading.0 - heading.0).abs() < 0.01, "a halted block does not turn: {:?} from {heading:?}", group.heading);
+        group.stopped = false;
+        march(&mut group, &mut w, 30, 3, &pacing);
+        assert!(group.heading.1 > 0.9, "it turns when it walks: {:?}", group.heading);
     }
 
     #[test]

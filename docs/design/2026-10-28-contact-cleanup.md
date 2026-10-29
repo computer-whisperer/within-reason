@@ -267,3 +267,22 @@ trickle (-0.30) and times out one flat assault: a half stays the default.
 The fire instrument's shots, muzzled and first-shot columns are blind to this march
 (K-engine-the-weapon-fired-event-comes-only-under-an-attack-command): the flat assault counted 213 shots against
 2,780 while dealing the same damage (55,459 against 54,128 over 8 duels). `dealt` and the margin are the judges.
+
+### 5.1 A ground rebuild moves nothing that stands (2026-10-28 night, after the replays)
+
+The user, watching the adv-* replays: "on many occasions the group reforms differently after some number of the enemy
+units die. The corpses are obstacles and the new formation sometimes places the formation on top of those corpses."
+The per-second logs (scratchpad `replan_trace.py` on the record; the duel's `seconds` lines): in the second of an enemy
+death the group's `way` left jumped from 0 to 100-300 and its heading swung 47-171 degrees. The chain: a death changes
+the structures on the ground (a dead turret's footprint gone, its wreck a blocked cell), the ground is rebuilt (D18),
+a new ground plans the way again from the anchor (`Group::plan`), and `plan` set `leg` to 0, so an anchor that had
+arrived, or had closed past its end, had a new last leg back to the route's end: it turned round, walked back, arrived,
+closed again, at every death. And the tick faced the anchor toward its next way point whether it walked or not, so a
+block halted in contact turned its ranks about the anchor onto the wrecks when the re-planned way's first point lay at
+another bearing (formation against formation: 40 and 106 degrees with the anchor never moving).
+
+The rule: an anchor at the way's end stays at it through a re-plan (`plan` keeps `leg` at the end when it was there;
+a new order sets `leg` to 0 before it plans, so it still walks), and the anchor faces its next way point only while
+the lane is not halting it (`Group::tick`). Test `a_ground_rebuild_leaves_an_arrived_a_closing_and_a_halted_anchor_as_they_are`.
+Live (advance-1) 28 of the 131 turn seconds in large groups sat within 3 s of an enemy death; the other source, the
+hands' re-declarations (46 route jumps with the anchor still), is the hands', next.
