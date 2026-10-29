@@ -1992,15 +1992,12 @@ impl Brain {
                 let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
                 entry["stragglers"] = json!(format!("{} of its soldiers are stragglers, up to {farthest:.0} from the body; they are not in its fights yet", body.stragglers.len()));
             }
-            // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick), else the player's
-            // footwork setting.
+            // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick).
             if let GroupTask::Rove { within: Some(region), .. } = &group.task {
                 let cells = places.iter().find(|p| p.name == *region).and_then(|p| p.cells).map_or(String::new(), |c| format!(" (the cells {})", crate::strategist::shared::cells_words(c)));
                 entry["lane"] = json!(format!("roving within {region}{cells}: its soldiers look only at places inside it, kill what they find unguarded there (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back, and a plain `rove` frees them of the region"));
             } else if group.roving() {
                 entry["lane"] = json!("roving: its soldiers look at the places nothing of ours has seen (his start box first), kill what they find unguarded (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back");
-            } else if let Some(words) = self.footwork_of(&group.name).words() {
-                entry["lane"] = json!(words);
             }
             if group.roving() && !group.rove_log.is_empty() {
                 entry["rove"] = json!(group.rove_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
@@ -2244,8 +2241,8 @@ pub(crate) fn company_words(state: &micro::GroupState, cap: usize, release: Opti
 
 /// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
 /// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
-/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the enemy in reach the
-/// group is halted for, when it is.
+/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the enemy some
+/// member has in reach, when one has (the group halted for it at pace 0, or still walking).
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();
@@ -2269,7 +2266,9 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
     {
         out.push(format!("no way on foot from here to {to} for this group"));
     }
-    if let Some(target) = engaged {
+    if let Some(target) = engaged
+        && state.pace <= 0.0
+    {
         out.push(format!("halted at {at} to fight {target} in reach, {formed} of {members} formed{outliers}"));
     } else if state.arrived {
         out.push(format!("arrived at {}, {formed} of {members} in rank{outliers}", to.unwrap_or(at)));
@@ -2280,7 +2279,8 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
         let going = to.map_or(String::new(), |to| format!(" to {to}"));
         let points = if state.legs_left > 1 { format!(", {} points to go", state.legs_left) } else { String::new() };
         let way = state.way.map_or(String::new(), |w| format!(", {w:.0} on its way"));
-        out.push(format!("advancing{going}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}"));
+        let fighting = engaged.map_or(String::new(), |target| format!(" with {target} in reach"));
+        out.push(format!("advancing{going}{fighting}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}"));
     }
     out.join("; ")
 }

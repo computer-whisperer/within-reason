@@ -527,6 +527,24 @@ still see units in formation 'engage' enemy units by breaking formation and driv
 of their reach under the lane's Fight.
 **Used by.** H-MICRO-FORM-HOLDPOS (benched 2026-10-28, not adopted: branch `holdpos-bench`).
 
+### K-engine-the-weapon-fired-event-comes-only-under-an-attack-command
+**Claim.** The engine reports a weapon firing to an AI (`SWeaponFiredEvent`, the shim's `Event::WeaponFired`, the
+record's `shots`) only while the unit is executing an Attack command: its own, or the temporary one a Fight pushes.
+A unit firing at will under a Move, or idle at hold position, fires and deals damage with no event. So the fire
+instrument's shots, muzzled seconds and first-shot columns (`run/fire.py`, the duel's `shots_x` / `muzzled_*` /
+`first_shot_s` / `lost_before_shot`) are the count of shots under Attack orders, not of shots; damage dealt (the
+enemy-damaged event, `dealt`) is the measure of fire under a Move march.
+**Status.** supported from source and on the bench (2026-10-28 night, ledger adv-*): the mix's flat assault under the
+Move march dealt 55,459 over 8 duels with 213 shots counted, against 54,128 with 2,780 under the Fight march; 25
+Stouts against 4 Fatboys dealt 213,992 with 483 counted against 156,375 with 1,749. The halving of shots a second in
+reach under hold position (ledger hpon-*, "not explained") was this: at hold position a Fight's temporary attack is
+cancelled sooner.
+**Evidence.** Recoil 2026.07.04 `rts/Sim/Units/CommandAI/CommandAI.cpp` `CCommandAI::WeaponFired`: `if (inCommand !=
+CMD_ATTACK || commandQue.empty()) return;` before `eoh->WeaponFired(*owner, *(weapon->weaponDef))`;
+`rts/Sim/Weapons/Weapon.cpp` calls it from `Fire` for every salvo.
+**Exploited by.** the bench's reading (`docs/design/2026-10-28-contact-cleanup.md` §5): judge a Move march by `dealt`
+and the margin.
+
 ### K-engine-a-unit-left-alone-heals
 **Claim.** A hurt unit that takes no damage for a while heals by itself, slowly: a Stout hurt to 95% of its health was
 whole again about 95 s later, one hurt to 88% had reached 97% after about 85 s.

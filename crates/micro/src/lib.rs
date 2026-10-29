@@ -6,13 +6,14 @@
 //! its slot. A group the host declares (`Lane::set_group`, `group.rs`; `docs/design/2026-10-24-formation-drills.md`
 //! §2) is the lane's whole: an anchor walks the host's route at the group's pace, every member is sent to its slot
 //! every tick, the exceptions are reported with a cause, and the host's per-unit orders to members are dropped. At
-//! contact the group keeps its ranks: a member with an armed enemy in sight in reach stands and fires, and the anchor
-//! of a group that fights halts while any member stands (`docs/design/2026-10-28-contact-cleanup.md`); its members are
-//! under fan and kite and never flee. A hunt (H-MICRO-HUNT) and a rove (`rove.rs`, H-MICRO-ROVE) are kinds of group
+//! contact the group keeps its ranks: every member walks to its slot as a Move, firing at will on the way, at the
+//! engine's hold position so nobody chases; the anchor of a group that fights halts when every member of its body has
+//! an armed enemy in reach (or one inside half its reach), and at its route's end it closes on what it sees
+//! (`docs/design/2026-10-28-contact-cleanup.md` §5). A hunt (H-MICRO-HUNT) and a rove (`rove.rs`, H-MICRO-ROVE) are kinds of group
 //! too (design D15): the hunters attack one unit by id every tick until it is dead, lost or the leash is reached; a
 //! rover chooses where to look and what to kill itself. Soldiers in no declared group are the host's, order by order,
 //! under the three reflexes (flee, fan, kite: `Footwork`) and a threat set (`Commitment`) the host gives per unit
-//! (`set_commitments`).
+//! (`set_commitments`); a declared group's member is under none.
 //!
 //! The host is a [`View`]: unit definitions, each type's fighting numbers, the terrain, and what it remembers of the
 //! enemy. The ground is the lane's own from the terrain (`ground.rs`, design D17): each class's passable grid for the
@@ -102,12 +103,11 @@ const DGUN_SHADOW: f32 = 48.0;
 const FAN_CLEAR: f32 = 64.0;
 /// The most a fan step is, however far out the unit is.
 const FAN_STEP_MAX: f32 = 150.0;
-/// H-MICRO-FORM: a unit stands when an enemy is inside its reach by this much (the engine's range test and ours
-/// disagree at the edge; the fire instrument calls the last 40 the edge), and keeps standing while one is within
-/// its reach plus `STAND_KEEP`, and for `FORM_FRAMES` at least: every change of stance is an order, and an order
-/// costs shots (form-smoke: Blitzes re-ordered between standing, stepping back and closing every few frames fired
-/// 1.8 a second in reach against 6.6 with the lane off). A keep of 100 held Stouts standing out of reach of Thuds
-/// at 380 (form5-stoutmix-on, -0.08): the keep is the reach slack now.
+/// H-MICRO-FORM: a member has an enemy in reach for the halt when it is inside its reach by this much (the engine's
+/// range test and ours disagree at the edge; the fire instrument calls the last 40 the edge), and a halted block keeps
+/// counting it while it is within the reach plus `STAND_KEEP` (hysteresis: a block that halted and walked on every tick
+/// would re-order every member each time, and an order costs shots). A keep of 100 held Stouts standing out of reach
+/// of Thuds at 380 (form5-stoutmix-on, -0.08): the keep is the reach slack.
 const STAND_INSIDE: f32 = 20.0;
 const STAND_KEEP: f32 = REACH_SLACK;
 /// On the march a member's slot order goes out again every `Pacing::cadence` frames while the slot has moved this
@@ -115,8 +115,11 @@ const STAND_KEEP: f32 = REACH_SLACK;
 const REISSUE_MIN: f32 = 4.0;
 /// H-MICRO-FORM-SPACING: an area weapon of theirs in sight or remembered this near a body's centre sets its spacing.
 const AREA_HORIZON: f32 = 1500.0;
-/// A stance lasts at least this long: a change is an order, and an order costs shots.
-const FORM_FRAMES: i32 = 15;
+/// H-MICRO-FORM-HOLDPOS's ID (a host switches it off by it), and the engine's move states it sets: hold position
+/// for a formation group's soldier, manoeuvre (the plant's default, which a new unit inherits) when it leaves.
+const HOLDPOS: &str = "H-MICRO-FORM-HOLDPOS";
+const MOVESTATE_HOLD_POSITION: i32 = 0;
+const MOVESTATE_MANOEUVRE: i32 = 1;
 /// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt, unless its `HuntOrder` says longer (the
 /// host gives a quarry that cloaks more: it is hidden where it stands, not gone).
 pub const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
@@ -183,12 +186,11 @@ impl Commitment {
     }
 }
 
-/// Which of the lane's three reflexes apply to a soldier (H-HANDS-LANE): flee, fan and kite. All on by default; `raw`
-/// is none, and a loose soldier's orders reach the engine as the host gave them (a group's member still takes its
-/// slot). A declared group's member never flees whatever its group's footwork says (2026-10-28,
-/// `docs/design/2026-10-28-contact-cleanup.md`: a retreat is the group's order). Whether a group forms is not a rule here
-/// (design D15): a declared group forms by definition, its pacing is its order's (`GroupOrder::march`), and a hunting
-/// or roving group is under no reflex and no order of the host's by its kind.
+/// Which of the lane's three reflexes apply to a loose soldier (one in no declared group): flee, fan and kite. All on
+/// by default; `raw` is none, and the soldier's orders reach the engine as the host gave them. A declared group's
+/// member is under none of them whatever the host set (`docs/design/2026-10-28-contact-cleanup.md` §1, §5: a retreat
+/// is the group's order, and a step aside or back is the spreading the user saw); a hunting or roving group is under
+/// no reflex and no order of the host's by its kind.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Footwork {
     pub flee: bool,
@@ -203,41 +205,8 @@ impl Default for Footwork {
 }
 
 impl Footwork {
-    /// The rules a host may set for a group's soldiers: a declared group's members never flee, so flee is a loose
-    /// soldier's alone and no setting (`docs/design/2026-10-28-contact-cleanup.md`).
-    pub const RULES: [&'static str; 2] = ["fan", "kite"];
-
     pub fn raw() -> Footwork {
         Footwork { flee: false, fan: false, kite: false }
-    }
-
-    /// The group rules kept, by name.
-    pub fn kept(&self) -> Vec<&'static str> {
-        let flags = [self.fan, self.kite];
-        Footwork::RULES.iter().zip(flags).filter(|(_, on)| *on).map(|(name, _)| *name).collect()
-    }
-
-    /// From the group rules to keep, by name; an unknown name, and flee, are the error.
-    pub fn keeping(names: &[String]) -> Result<Footwork, String> {
-        let mut footwork = Footwork::raw();
-        for name in names {
-            match name.as_str() {
-                "fan" => footwork.fan = true,
-                "kite" => footwork.kite = true,
-                "flee" => return Err("flee is no footwork rule: a group's soldiers never flee one by one; the group halts in its ranks to fight what is in reach, and a retreat is a walk your hands pick".to_string()),
-                other => return Err(format!("{other} is not a footwork rule; the rules are {}", Footwork::RULES.join(", "))),
-            }
-        }
-        Ok(footwork)
-    }
-
-    /// One line for the picture: what stands when it is not the default (both group rules).
-    pub fn words(&self) -> Option<String> {
-        let kept = self.kept();
-        if kept.len() == Footwork::RULES.len() {
-            return None;
-        }
-        Some(if kept.is_empty() { "raw: no footwork rules".to_string() } else { format!("footwork rules {} only", kept.join(", ")) })
     }
 }
 
@@ -391,37 +360,6 @@ struct Claim {
     /// What it was told to shoot (a kite's shot).
     target: Option<UnitId>,
     frame: i32,
-    /// A form claim's kind, so a change of kind is a fresh order.
-    stance: Option<Stance>,
-    /// A form claim's command kind (Fight, Move, Attack on whom, Stop), so a change of order is a fresh order too.
-    kind: Option<Kind>,
-}
-
-/// The kind of an order, for telling a changed order from the same one again.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Kind {
-    Fight,
-    Move,
-    Attack(UnitId),
-}
-
-fn kind_of(command: &Command) -> Option<Kind> {
-    match command {
-        Command::Fight { .. } => Some(Kind::Fight),
-        Command::Move { .. } => Some(Kind::Move),
-        Command::Attack { target, .. } => Some(Kind::Attack(*target)),
-        _ => None,
-    }
-}
-
-/// What H-MICRO-FORM has a unit doing.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Stance {
-    /// Walking to its slot, an offset from the group's anchor that moves at the pace (and stands while the anchor does).
-    March,
-    /// An armed enemy in sight in reach: standing where it is, or walking on to its slot under the order it has (no
-    /// new order).
-    Stand,
 }
 
 /// What one formation's tick reads of the lane's tick (`formation_tick`).
@@ -431,17 +369,6 @@ struct FormCtx<'a> {
     enemies: &'a [EnemyUnit],
     by_id: &'a HashMap<UnitId, &'a OwnUnit>,
     spacing: f32,
-}
-
-/// A form order for one unit this tick. A stand has no command: the unit keeps the order it has (a Fight to its
-/// slot, or an Attack on its order's target) and fires at will; a Stop would drop the weapon's target, and every
-/// order costs shots (form6-stoutmix-dbg: standing Stouts re-stopped fired 0.58 a second in reach against 0.77 with
-/// the lane off).
-struct FormOrder {
-    stance: Stance,
-    command: Option<Command>,
-    /// Where the command sends the unit (a standing unit: where it stands).
-    at: Vec3,
 }
 
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
@@ -503,6 +430,9 @@ pub struct Lane {
     /// The wrecks the snapshot last carried (it carries them every few seconds; between, the last list stands), for
     /// the groups' grounds (design D18).
     wrecks: Vec<Wreck>,
+    /// The soldiers the lane has put at the engine's hold position as members of a formation group
+    /// (H-MICRO-FORM-HOLDPOS), so each goes back to manoeuvre once, when it leaves.
+    held: HashSet<UnitId>,
 }
 
 /// A group's ground is rebuilt for a change of structures no sooner than this after the last build (frames); a
@@ -513,7 +443,6 @@ const STRUCTURES_CADENCE: i32 = 150;
 struct Declared {
     members: Vec<UnitId>,
     order: GroupOrder,
-    footwork: Footwork,
     /// Its companies (`docs/design/2026-10-25-companies.md`): one with no cap, the formation as it was.
     army: army::Army,
     /// The ground its companies share (design D17), built from every member's class.
@@ -616,24 +545,20 @@ impl Lane {
         self.claims.get(&unit).filter(|c| c.rule == Rule::Hunt).and_then(|c| c.target)
     }
 
-    /// What holds this unit, for an instrument and for a host's idle re-send: the rule's ID and, for a form
-    /// claim, its stance. A formed unit on the march is not held: its order is the host's, rewritten, and the host may
-    /// re-send it as it re-sends any walking unit's.
+    /// What holds this unit, for an instrument and for a host's idle re-send: the rule's ID. A group's member is not
+    /// held: its slot is its order, re-sent as the slot moves, and the host may re-send it as it re-sends any walking
+    /// unit's.
     pub fn holding(&self, unit: UnitId) -> Option<String> {
-        self.claims.get(&unit).and_then(|c| match c.stance {
-            Some(Stance::March) => None,
-            Some(stance) => Some(format!("{} {stance:?}", c.rule.id())),
-            None => Some(c.rule.id().to_string()),
-        })
+        self.claims.get(&unit).filter(|c| c.rule != Rule::Form).map(|c| c.rule.id().to_string())
     }
 
     /// The host declares a group (`docs/design/2026-10-24-formation-drills.md` §2, D15): its members, its order (the
-    /// kind, the route with the goal last, and whether to march it: `march` off puts the slots at the destination) and
-    /// the reflexes its members are under (fan and kite; never flee). Once per decision; the same call again with the
-    /// same members and order changes nothing, a new route turns the anchor where it stands, a new membership re-deals
-    /// the slots, a new order to a hunting group is a new hunt. The lane owns the members from here: the host's
-    /// per-unit orders to them are dropped, and `clear_group` gives them back.
-    pub fn set_group(&mut self, name: &str, members: Vec<UnitId>, order: GroupOrder, footwork: Footwork) {
+    /// kind, the route with the goal last, and whether to march it: `march` off puts the slots at the destination).
+    /// Its members are under no reflex. Once per decision; the same call again with the same members and order
+    /// changes nothing, a new route turns the anchor where it stands, a new membership re-deals the slots, a new order
+    /// to a hunting group is a new hunt. The lane owns the members from here: the host's per-unit orders to them are
+    /// dropped, and `clear_group` gives them back.
+    pub fn set_group(&mut self, name: &str, members: Vec<UnitId>, order: GroupOrder) {
         match self.groups.get_mut(name) {
             Some(d) => {
                 if d.order != order {
@@ -650,10 +575,9 @@ impl Lane {
                 }
                 d.members = members;
                 d.order = order;
-                d.footwork = footwork;
             }
             None => {
-                self.groups.insert(name.to_string(), Declared { members, order, footwork, army: army::Army::default(), ground: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
+                self.groups.insert(name.to_string(), Declared { members, order, army: army::Army::default(), ground: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
             }
         }
     }
@@ -813,11 +737,12 @@ impl Lane {
         for (name, order, hunters) in &hunts {
             self.hunt(view, name, hunters, order, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.hunts, debug);
         }
-        // Each soldier's reflexes (a group's members under the group's, never flee: a retreat is the group's order,
-        // `docs/design/2026-10-28-contact-cleanup.md`), and the rules the host has switched off by ID (an ablation).
+        // Each loose soldier's reflexes; a declared group's member is under none (a retreat is the group's order, a
+        // step aside or back the spreading: `docs/design/2026-10-28-contact-cleanup.md` §1, §5); and the rules the
+        // host has switched off by ID (an ablation).
         let mut footwork = self.footwork.clone();
         for d in self.groups.values() {
-            footwork.extend(d.members.iter().map(|id| (*id, Footwork { flee: false, ..d.footwork })));
+            footwork.extend(d.members.iter().map(|id| (*id, Footwork::raw())));
         }
         let gate = Footwork { flee: view.enabled(Rule::Flee.id()), fan: view.enabled(Rule::Fan.id()), kite: view.enabled(Rule::Kite.id()) };
         let form_on = view.enabled(Rule::Form.id());
@@ -833,6 +758,7 @@ impl Lane {
             let grouped: HashSet<UnitId> = self.groups.values().flat_map(|d| d.members.iter().copied()).collect();
             host.retain(|c| unit_of(c).is_none_or(|u| !grouped.contains(&u)));
         }
+        self.hold_position(view, snapshot, &soldiers, form_on, commands, fired);
         let mut free: Vec<&OwnUnit> = Vec::new();
         for unit in &soldiers {
             // Stunned: it neither moves nor shoots, and keeps its orders for when it wakes; no reflex or slot is sent.
@@ -875,8 +801,8 @@ impl Lane {
             if near(unit) && rules_of(unit.id).kite && self.kite(view, unit, snapshot.enemies.as_slice(), frame, commands, fired, debug) {
                 continue;
             }
-            if let Some(order) = form_orders.get(&unit.id) {
-                self.take_slot(view, unit, order, frame, commands, fired, debug);
+            if let Some(to) = form_orders.get(&unit.id) {
+                self.take_slot(view, unit, *to, frame, commands, fired, debug);
             } else if self.claims.get(&unit.id).is_some_and(|c| c.rule != Rule::Form && frame - c.frame < CLAIM_FRAMES) {
                 // A claim stands at least this long.
             } else {
@@ -888,6 +814,37 @@ impl Lane {
             eprintln!("{} f={frame} micro this minute: {claims} units took over, {orders} orders", view.label());
         }
         out
+    }
+
+    /// H-MICRO-FORM-HOLDPOS (`docs/design/2026-10-28-contact-cleanup.md` §5): every soldier of a formation group stands
+    /// at the engine's hold position, and goes back to manoeuvre when it leaves the group. At manoeuvre a unit idle in
+    /// its slot attacks what comes within its reach plus 200 and chases it to 500 plus its reach (Recoil
+    /// `MobileCAI::GenerateAttackCmd`, `ExecuteAttack`; K-engine-a-fight-at-manoeuvre-closes-on-and-chases): the
+    /// members driving out of the ranks at what they saw. At hold position it auto-targets only what a weapon can aim
+    /// at where it stands and never moves for it; a Move still fires at will on the way.
+    fn hold_position(&mut self, view: &dyn View, snapshot: &Snapshot, soldiers: &[&OwnUnit], form_on: bool, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>) {
+        let on = form_on && view.enabled(HOLDPOS);
+        let members: HashSet<UnitId> = if on {
+            self.groups.values().filter(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. })).flat_map(|d| d.members.iter().copied()).collect()
+        } else {
+            HashSet::new()
+        };
+        for unit in soldiers {
+            if members.contains(&unit.id) && self.held.insert(unit.id) {
+                fired.push(HOLDPOS);
+                commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_HOLD_POSITION });
+            }
+        }
+        let alive: HashSet<UnitId> = snapshot.own_units.iter().map(|u| u.id).collect();
+        self.held.retain(|id| {
+            if members.contains(id) {
+                return true;
+            }
+            if alive.contains(id) {
+                commands.push(Command::MoveState { unit: *id, state: MOVESTATE_MANOEUVRE });
+            }
+            false
+        });
     }
 
     /// H-MICRO-HUNT for one declared group of kind `Hunt` (design D15): every member is sent at the quarry by id every
@@ -945,7 +902,7 @@ impl Lane {
             }
             match (seen, state.last_seen) {
                 (Some(e), _) => {
-                    self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame, stance: None, kind: None });
+                    self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame });
                     self.counts.1 += 1;
                     commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
                 }
@@ -955,7 +912,7 @@ impl Lane {
                         state.sent_to_sighting.insert(unit.id, at);
                         let ahead = (frame - at) as f32;
                         let to = self.classes.snap_for(view, unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
-                        self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
+                        self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame });
                         self.counts.1 += 1;
                         commands.push(Command::Move { unit: unit.id, to, queue: false });
                     }
@@ -1029,7 +986,7 @@ impl Lane {
                 // engine's braking zone; the cell is what the claim remembers.
                 let (dx, dz) = (cell.x - unit.pos.x, cell.z - unit.pos.z);
                 let to = self.classes.snap_for(view, unit.def, Vec3 { x: unit.pos.x + dx * STEP_REACH, y: 0.0, z: unit.pos.z + dz * STEP_REACH });
-                self.claims.insert(unit.id, Claim { rule: Rule::Flee, sent_to: cell, target: None, frame, stance: None, kind: None });
+                self.claims.insert(unit.id, Claim { rule: Rule::Flee, sent_to: cell, target: None, frame });
                 commands.push(Command::Move { unit: unit.id, to, queue: false });
             }
             return Some(Rule::Flee);
@@ -1097,7 +1054,7 @@ impl Lane {
                 }
                 if fresh || reorder {
                     self.counts.1 += 1;
-                    self.claims.insert(unit.id, Claim { rule: Rule::Fan, sent_to: step, target: None, frame, stance: None, kind: None });
+                    self.claims.insert(unit.id, Claim { rule: Rule::Fan, sent_to: step, target: None, frame });
                     commands.push(Command::Move { unit: unit.id, to: step, queue: false });
                 }
                 owned.push(unit.id);
@@ -1142,7 +1099,7 @@ impl Lane {
                 return true;
             }
             self.counts.1 += 1;
-            self.claims.insert(unit.id, Claim { rule: Rule::Kite, sent_to: unit.pos, target: Some(enemy.id), frame, stance: None, kind: None });
+            self.claims.insert(unit.id, Claim { rule: Rule::Kite, sent_to: unit.pos, target: Some(enemy.id), frame });
             commands.push(Command::Attack { unit: unit.id, target: enemy.id, queue: false });
             return true;
         }
@@ -1155,7 +1112,7 @@ impl Lane {
             return true;
         }
         self.counts.1 += 1;
-        self.claims.insert(unit.id, Claim { rule: Rule::Kite, sent_to: step, target: None, frame, stance: None, kind: None });
+        self.claims.insert(unit.id, Claim { rule: Rule::Kite, sent_to: step, target: None, frame });
         commands.push(Command::Move { unit: unit.id, to: step, queue: false });
         true
     }
@@ -1163,12 +1120,12 @@ impl Lane {
     /// H-MICRO-FORM's orders for every member of a declared group this tick (`group.rs` for the anchor and the
     /// slots, `form.rs` for the geometry; `docs/design/2026-10-24-formation-drills.md` §2). The spacing is the
     /// hull's, or wider against an area weapon of theirs in sight or remembered within 1,500 (H-MICRO-FORM-SPACING).
-    /// Every member is sent to its slot, an offset from the anchor that walks the route at the group's pace, a Move for
-    /// a walking group and a Fight for one that fights; the anchor is held back by the members of its body behind their
-    /// slots (`Group::tick`). At contact the ranks hold (`docs/design/2026-10-28-contact-cleanup.md`): a member with an
-    /// armed enemy in sight inside its reach stands (no order), and the anchor of a group that fights halts while any
-    /// member stands, so the slots stand where the block stopped; when nobody stands the march resumes from there.
-    fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, FormOrder> {
+    /// Every member is sent to its slot, an offset from the anchor that walks the route at the group's pace, as a
+    /// Move; the anchor is held back by the members of its body behind their slots (`Group::tick`). At contact the
+    /// ranks hold (`docs/design/2026-10-28-contact-cleanup.md` §5): the anchor of a group that fights halts when every
+    /// member of its body has an armed enemy in sight in reach, so the slots stand where the block stopped, and walks
+    /// on when that fails. Each member's point this tick.
+    fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, Vec3> {
         let mut orders = HashMap::new();
         let enemies: &[EnemyUnit] = snapshot.enemies.as_slice();
         // What stands on the ground this tick (design D18), marked once for every group's ground.
@@ -1290,100 +1247,99 @@ impl Lane {
         orders
     }
 
-    /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`):
-    /// who stands (an armed enemy in sight inside its reach, or the named target), the anchor halted while anyone does
-    /// for a group that fights, the march's slots, and each member's form order into `orders`; its state.
-    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, FormOrder>) -> GroupState {
+    /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
+    /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
+    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, Vec3>) -> GroupState {
         let FormCtx { frame, enemies, by_id, spacing } = *ctx;
         // An Attack's goal follows its target's sightings.
-        let named = match group.order.kind {
-            GroupKind::Attack(id) => Some(id),
-            _ => None,
-        };
-        if let Some(id) = named
+        if let GroupKind::Attack(id) = group.order.kind
             && let Some(at) = enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id))
         {
             group.retarget(at);
         }
-        // What a member stands for: an armed enemy in sight (a known type: a radar contact has none), not being built
-        // and not stunned, or the named target in sight. Nothing on radar only, remembered or seen a while ago stops a
-        // block: the contact ring formed on such ghosts (the design's §0). A walk stands for nothing.
+        // What a fighting group halts for: an armed enemy in sight (a known type: a radar contact has none), not being
+        // built and not stunned. Nothing on radar only, remembered or seen a while ago stops a block: the contact ring
+        // formed on such ghosts (the design's §0). A walk halts for nothing.
         let fights = group.order.kind != GroupKind::Go;
-        let stand_for: Vec<&EnemyUnit> = if fights {
-            let armed = |e: &EnemyUnit| e.def.and_then(|d| view.stats(d)).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0;
-            enemies.iter().filter(|e| e.def.is_some() && (Some(e.id) == named || armed(e))).collect()
+        let armed: Vec<&EnemyUnit> = if fights {
+            enemies.iter().filter(|e| e.def.and_then(|d| view.stats(d)).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0).collect()
         } else {
             Vec::new()
         };
-        // A member stands inside its reach by `STAND_INSIDE` and keeps standing within its reach plus `STAND_KEEP`.
-        let mut standing: HashMap<UnitId, &EnemyUnit> = HashMap::new();
+        // The halt: every member of the body has an armed enemy within its own reach, or one has it inside `close_to`
+        // of its reach (a block deeper than its reach never brings its rear rank onto a point target). Inside by
+        // `STAND_INSIDE` to halt, within the reach plus `STAND_KEEP` to stay halted. The body is last tick's books;
+        // everyone until there are any.
+        let keep = if group.stopped { STAND_KEEP } else { -STAND_INSIDE };
+        let body_known = walkers.iter().any(|w| group.in_body(w.id));
+        let (mut counted, mut in_reach, mut close) = (0usize, 0usize, false);
+        let mut shortest = f32::INFINITY;
+        let mut contacts: Vec<&EnemyUnit> = Vec::new();
         for w in walkers {
             let Some(unit) = by_id.get(&w.id) else { continue };
             let reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-            let Some(nearest) = stand_for.iter().copied().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) else { continue };
+            if reach <= 0.0 {
+                continue;
+            }
+            let Some(nearest) = armed.iter().copied().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) else { continue };
             let distance = nearest.pos.dist2d(unit.pos);
-            let stood = self.claims.get(&w.id).is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::Stand));
-            if reach > 0.0 && (distance < reach - STAND_INSIDE || (stood && distance < reach + STAND_KEEP)) {
-                standing.insert(w.id, nearest);
+            let inside = distance < reach + keep;
+            if inside {
+                contacts.push(nearest);
+            }
+            if !body_known || group.in_body(w.id) {
+                counted += 1;
+                in_reach += usize::from(inside);
+                close |= distance < reach * self.pacing.close_to + keep;
+                shortest = shortest.min(reach);
             }
         }
-        group.stopped = !standing.is_empty() && standing.len() as f32 > self.pacing.halt_share * walkers.len() as f32;
-        group.engaged = standing.values().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor))).map(|e| e.id);
-        // The march, halted or not: a walking group's slot order is a Move; a fighting group's a Fight, which stops to
-        // shoot what is in reach with nothing armed about (an unarmed structure on the goal: the gantry drill's ramp to
-        // all was 6.0 s under Moves, the units walking on to slots on the structure's footprint, against 0.8 under
-        // Fights). A halted anchor's slots are sent once, so a waiting member's Fight is never re-ordered.
+        group.stopped = counted > 0 && (in_reach == counted || close);
+        group.engaged = contacts.iter().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor))).map(|e| e.id);
+        // The close: an advance or an attack at its route's end walks at the nearest armed enemy in sight within the
+        // horizon of its anchor, no nearer than `close_to` of the body's shortest reach (`Group::close_on` bounds it
+        // to the leash too); a hold stands at its end.
+        let closes = matches!(group.order.kind, GroupKind::FightTo | GroupKind::Attack(_)) && shortest.is_finite();
+        let target = armed.iter().filter(|_| closes).map(|e| e.pos).filter(|p| p.dist2d(group.anchor) < HORIZON).min_by(|a, b| a.dist2d(group.anchor).total_cmp(&b.dist2d(group.anchor)));
+        group.close_on(target, if shortest.is_finite() { shortest * self.pacing.close_to } else { 0.0 });
+        // The march, halted or not: every member's point is its slot carried ahead by the type's lead (D20), the slot
+        // itself while the anchor stands.
         group.tick(frame, walkers, spacing, &self.pacing);
         for w in walkers {
-            if !by_id.contains_key(&w.id) {
-                continue;
+            if by_id.contains_key(&w.id)
+                && let Some(to) = group.order_point(w.id)
+            {
+                orders.insert(w.id, to);
             }
-            if let Some(enemy) = standing.get(&w.id) {
-                // Standing: its order's target when that is what is in reach, else nothing: it fires at will where it
-                // is, or walks on to its slot under the order it has.
-                let command = named.filter(|n| *n == enemy.id).map(|target| Command::Attack { unit: w.id, target, queue: false });
-                orders.insert(w.id, FormOrder { stance: Stance::Stand, command, at: w.pos });
-                continue;
-            }
-            // The slot carried ahead by the type's lead (D20), so the member stands in the slot.
-            let Some(to) = group.order_point(w.id) else { continue };
-            let command = if fights { Command::Fight { unit: w.id, to, queue: false } } else { Command::Move { unit: w.id, to, queue: false } };
-            orders.insert(w.id, FormOrder { stance: Stance::March, command: Some(command), at: to });
         }
         group.state(walkers)
     }
 
-    /// A free unit with a form order takes it. An order goes out when the claim is fresh (the group just formed, or
-    /// the unit came back from a reflex), when the stance or the order's kind changed, and on the march every
-    /// `Pacing::cadence` frames while the slot has moved `REISSUE_MIN` since the last order: the loop that holds the
-    /// pace (a stopped anchor's slots go out once). Never to a standing unit: an order there costs shots.
+    /// A free unit with a form order takes it: a Move to its point, out when the claim is fresh (the group just formed,
+    /// or the unit came back from a reflex) and on the march every `Pacing::cadence` frames while the point has moved
+    /// `REISSUE_MIN` since the last order: the loop that holds the pace (a halted anchor's slots go out once, and a
+    /// member in reach fires at will on the way and where it stands; an order costs no shot under a Move).
     #[allow(clippy::too_many_arguments)]
-    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, order: &FormOrder, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
+    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, to: Vec3, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
-        let kind = order.command.as_ref().and_then(kind_of);
-        let old = claim.filter(|c| c.rule == Rule::Form && frame - c.frame >= FORM_FRAMES);
-        let changed = old.is_some_and(|c| c.stance != Some(order.stance) || c.kind != kind);
-        // The march's cadence: the slot has walked on since the last order.
-        let due = claim.is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::March) && order.stance == Stance::March && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(order.at) > REISSUE_MIN);
-        if !(fresh || changed || due) {
+        let due = claim.is_some_and(|c| c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN);
+        if !(fresh || due) {
             return;
         }
         if fresh {
             fired.push(Rule::Form.id());
             self.counts.0 += 1;
+            if debug {
+                eprintln!(
+                    "{} f={frame} micro: {}#{} forms from ({:.0}, {:.0}) to ({:.0}, {:.0})",
+                    view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, unit.pos.x, unit.pos.z, to.x, to.z
+                );
+            }
         }
-        if debug && (fresh || changed) {
-            eprintln!(
-                "{} f={frame} micro: {}#{} forms ({:?}) from ({:.0}, {:.0}) to ({:.0}, {:.0})",
-                view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, order.stance, unit.pos.x, unit.pos.z, order.at.x, order.at.z
-            );
-        }
-        self.claims.insert(unit.id, Claim { rule: Rule::Form, sent_to: order.at, target: None, frame, stance: Some(order.stance), kind });
-        if let Some(command) = &order.command {
-            self.counts.1 += 1;
-            commands.push(command.clone());
-        }
+        self.claims.insert(unit.id, Claim { rule: Rule::Form, sent_to: to, target: None, frame });
+        self.counts.1 += 1;
+        commands.push(Command::Move { unit: unit.id, to, queue: false });
     }
 
     /// A claimed unit no behaviour wants any more gets its standing order back, once.

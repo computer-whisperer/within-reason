@@ -171,3 +171,99 @@ Rejected-because: D17 narrowed the files so a body went through a corridor in a 
 files against the walls (the detour drill, circuit13-15); live, the room is read at one cell under an anchor that walks
 among structures, so the shape changed every few seconds and collapsed to a column at the fights, where a block has to
 be widest. Not measured on the bench before the change; the price, if any, is on the corridor and detour drills.
+
+## 5. The advance: ranks held, fire on the move, halt when all are in range (2026-10-28 night)
+
+The user, watching the hold-position bench's replays (hpon / hpoff / hpmove, the ledger rows): "I don't see any of
+these matching the movement logic I was looking for. I was expecting units to stay in formation and advance until all
+in range of the enemy, attacking asynchronously with movement. All of these seem to be variations of either halting
+once they start attacking, or charging the enemy independently, or spreading out by a different method." Then: "Let's
+take a fresh look at this. Review the full group-based movement control logic and try to implement something that
+actually helps this time."
+
+**What §1 did, read again.** A member with an armed enemy in reach stood: no new order, whatever order it had kept.
+Under the Fight march at manoeuvre that order drove it at targets within its reach plus 100 and chased them (the
+engine's `ExecuteFight`, K-engine-a-fight-at-manoeuvre-closes-on-and-chases): the charging. The anchor halted when more
+than half stood, so the rear ranks never came into reach: the halting. Fan and kite stepped members sideways and back
+one by one, and the spacing widened to 160 when an area weapon came within 1,500: the spreading. Hold position (hpon)
+made each unit stop at its first target; the Move march (hpmove) fired on the move but kept the stand-without-order
+and the halt at a half, and an idle member at manoeuvre chased within its reach plus 200.
+
+**The rule now.** A declared group's shape is its march's, and its members do one thing: walk to their slots.
+
+- **Every member's order is a Move to its slot every tick**, in reach or not, re-sent as the slot moves (the march's
+  cadence, D20's lead); there is no standing stance and no Attack on a named target (an Attack's route still follows
+  its target's sightings). A Move never diverts; the weapons fire at will on the move at what they can hit, and the
+  engine picks the target.
+- **Hold position** (H-MICRO-FORM-HOLDPOS): every soldier of a formation group is put at the engine's hold position
+  once (`Command::MoveState` 0) and back to manoeuvre when it leaves the group. A unit at its slot in a halted block
+  shoots what is in reach and chases nothing (`MobileCAI::ExecuteFight` / `GenerateAttackCmd` read `MOVESTATE_HOLDPOS`:
+  no close-in, no chase, auto-targets only what a weapon can aim at now).
+- **The halt.** A fighting group (FightTo, Attack, Hold; never a Go) halts its anchor when every member of its body
+  (in a slot, not away, not cut off; everyone when nobody has a slot yet) has an armed enemy in sight within its own
+  reach, or when any body member has one inside `Pacing::close_to` (a half) of its reach: the second half keeps a
+  block deeper than its reach from walking over a point target to bring its rear rank in. Inside by `STAND_INSIDE`
+  (20) to halt, kept while within reach plus `STAND_KEEP` (20). The march resumes as soon as the condition fails (an
+  enemy dead or run, a member out of reach): the block creeps on until all are in range again.
+- **The close.** A FightTo or an Attack at its route's end with an armed enemy in sight within `HORIZON` (700) of its
+  anchor walks its anchor at the nearest, straight, at the pace, until the halt above stops it, and at most
+  `CLOSE_LEASH` (600) past the route's end; a Hold stands at its end. The route's end is placed off structures with the
+  ranks' room (`Ground::stand`), 250 from the Pop-ups on the bench while a Blitz reaches 180: without the close nobody
+  fires (hpon, 0 of 8 without a shot).
+- **No reflex in a declared group.** Its members are under no footwork rule: no flee (§1), no fan, no kite. A member
+  under a commander's D-gun stands in its file; a member that outranges what it fights does not step back. The player's
+  `lane` tool keeps only its company cap. Loose soldiers (the distilled bot's) keep the three.
+- **`engaged`** in the state is contact: the nearest armed enemy some member has in reach, halted or not (the picture's
+  words say "halted ... to fight" at pace 0 and "closing on" while the anchor walks).
+- **The spacing** against area weapons (H-MICRO-FORM-SPACING) stands: it is the block's shape, set before contact (an
+  area weapon within 1,500, in sight or remembered), not a step one by one. Open with the bench.
+
+**Deleted, with the reason.**
+
+| What | Where | Why gone |
+|---|---|---|
+| The stand (`Stance::Stand`, `Stance`, `Kind`, `kind_of`, `FormOrder`, the claim's stance and kind, `holding`'s stance word) | `lib.rs` | A member is never given nothing: its slot is its order. |
+| The Fight march and the Attack on the named target | `lib.rs` `formation_tick` | A Fight at manoeuvre is the engine's charge; an Attack by id leaves the ranks for its target. |
+| `Pacing::halt_share` | `group.rs`, the duel's `WITHIN_REASON_PACING` fifth field | The halt is all in range or any inside `close_to`, the fifth field now. |
+| A declared group's footwork (`set_group`'s fourth argument, `Declared::footwork`, `Footwork::RULES` / `kept` / `keeping` / `words`), the `lane` tool's rules, `footwork_of`, the picture's `lane` words for a formation, `Shared::lane` | `lib.rs`, the hosts, `strategist/mcp.rs`, `player.md` | No reflex reaches a member. `Footwork` stays for loose soldiers (`set_commitments`). |
+
+Rejected-because: fan's measured wins (matt-fan3: six D-gun deaths in five shots against ten in six) and kite's
+(Rocketeers against Hammers) were for loose parties; in a block they are the spreading the user named. The halt at a
+half (§3) kept the rear idle; the Move march won the plain duels only by the idle chase.
+
+**The bench**: the eleven arms of §3 on this binary against hpoff (the ledger rows), plus the close at a third
+(`WITHIN_REASON_PACING=1.0,3,300,128,0.33`). Bars: the flat and detour assaults hold (8/8); the Pop-ups are taken (the
+close); formation against formation holds. The area-fire duels (Fatboys, Bulls) are the price to read: a halted block
+stands in the shells with its rear ranks out of reach.
+
+### Results (2026-10-28 night)
+
+`hpoff` is the §1 binary (the Fight march at manoeuvre, the halt at a half; ledger row hpon-*), `adv` this change
+(`run/matches/*-duel-adv-*`), `adv3` the same binary with the close at a third (`WITHIN_REASON_PACING=1.0,3,300,128,0.33`).
+Margin (taken / lost / timeout of 8):
+
+| arm | hpoff | adv (close at a half) | adv3 (a third) |
+|---|---|---|---|
+| mix v 2 HLT + 2 Sentries, flat | +0.63 (8/0/0) | +0.57 (8/0/0) | +0.48 (7/0/1) |
+| mix v the same on the 1.3 detour | +0.59 (8/0/0) | +0.48 (8/0/0) | +0.51 (8/0/0) |
+| mix v a Guardian + 2 Sentries | +0.79 | +0.70 | +0.73 |
+| 12 Blitzes v 2 Pop-ups | +0.11 (5/3/0) | +0.28 (6/2/0) | +0.32 (8/0/0) |
+| 10 Stouts v 2 Guardians | +0.81 | +0.89 | +0.89 |
+| 10 Stouts v 2 Sentries + a Beamer | +0.85 | +0.84 | +0.84 |
+| mix v its mirror, theirs a formation | +0.21 (7/0/1) | -0.06 (3/4/1) | +0.02 (4/3/1) |
+| mix v its mirror, theirs the engine's fight | +0.01 (3/5/0) | -0.06 (3/5/0) | -0.30 (1/7/0) |
+| 25 Stouts v 4 Fatboys | -0.34 (0/8/0) | +0.38 (7/1/0) | +0.34 (8/0/0) |
+| 21 Stouts v 5 Bulls | -0.25 (0/8/0) | +0.49 (8/0/0) | +0.44 (8/0/0) |
+| 12 Stouts v 12, the engine's fight | +0.03 (4/4/0) | +0.28 (8/0/0) | +0.27 (8/0/0) |
+
+Read: the area-fire duels the ring won and §1 lost are won back and more (the ring: Fatboys +0.46, Bulls +0.20),
+without a ring: the block walks in ranks until all are in reach and fires on the way, and at hold position nobody
+leaves the ranks. The Stout mirror against the engine's fight 8 of 8. The assaults hold their take (8/8) at 0.06-0.11
+less margin, and the Pop-ups are taken more often (the close). Lost: formation against formation (+0.21 → -0.06;
+both sides on this binary halt with all in reach and nobody chases what backs off: open) and the mix against the
+engine's trickle within noise (-0.06 against +0.01). The close at a third takes every Pop-up arm but loses to the
+trickle (-0.30) and times out one flat assault: a half stays the default.
+
+The fire instrument's shots, muzzled and first-shot columns are blind to this march
+(K-engine-the-weapon-fired-event-comes-only-under-an-attack-command): the flat assault counted 213 shots against
+2,780 while dealing the same damage (55,459 against 54,128 over 8 duels). `dealt` and the margin are the judges.

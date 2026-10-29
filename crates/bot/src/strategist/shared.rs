@@ -454,8 +454,6 @@ impl Default for Wake {
     }
 }
 
-pub use micro::Footwork;
-
 /// What one turn changed, held back by the think penalty (`hold_for_turn`) and put into force by `apply_delayed`.
 /// Whole-state fields carry the turn's final value; the consumed ones (`queues`, `removals`, `standing`) carry only
 /// what the turn added, so nothing the brain already took is played twice.
@@ -464,7 +462,6 @@ pub struct TurnOutputs {
     pub wake: Wake,
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
-    pub lane: BTreeMap<String, Footwork>,
     pub company: BTreeMap<String, usize>,
     pub marks: BTreeMap<String, Mark>,
     pub allowed: BTreeMap<String, Allowance>,
@@ -689,8 +686,6 @@ pub struct Shared {
     /// two seats had two names, and the player's `engage_party` on one seat's name was refused on another (games
     /// 3, 4, 6, 9).
     pub parties: Mutex<PartyRegistry>,
-    /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
-    pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// The player's company cap by group name or `all` (`lane` tool, `company`; the companies design §4): members a
     /// company of the group's army holds at most, 0 for no cap; unset, the hands' `COMPANY_CAP`.
     pub company: Mutex<BTreeMap<String, usize>>,
@@ -919,7 +914,6 @@ impl Shared {
             wake: self.wake.lock().unwrap().clone(),
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
-            lane: self.lane.lock().unwrap().clone(),
             company: self.company.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
@@ -932,7 +926,6 @@ impl Shared {
         *self.wake.lock().unwrap() = o.wake;
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
-        *self.lane.lock().unwrap() = o.lane;
         *self.company.lock().unwrap() = o.company;
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
@@ -962,7 +955,6 @@ impl Shared {
                 self.last_landing.store(frame, std::sync::atomic::Ordering::Relaxed);
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
-                *self.lane.lock().unwrap() = o.lane;
                 *self.company.lock().unwrap() = o.company;
                 *self.marks.lock().unwrap() = o.marks;
                 *self.allowed.lock().unwrap() = o.allowed;

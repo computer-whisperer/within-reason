@@ -10,8 +10,9 @@
 //! What the loop holds: the pace (the slowest type's speed in the group times `Pacing::fraction`, 1.0: the anchor is
 //! held back by its formed members, so the slowest type regains a lost slot by the anchor waiting, not by a margin on
 //! the pace; the bench's 0.9 cost a pure column 4 s for nothing and met no bar the 1.0 missed), the shape (ranks of `form::FILES` across the
-//! heading, filled from the front, the same on any ground and at contact (the lane halts the anchor there and the
-//! ranks hold; the files no longer narrow to the ground's room: `docs/design/2026-10-28-contact-cleanup.md` §4); the
+//! heading, filled from the front, the same on any ground and at contact (the lane halts the anchor when every member
+//! has an enemy in reach and the ranks hold; at the route's end it closes on what the lane names, `close_on`; the
+//! files no longer narrow to the ground's room: `docs/design/2026-10-28-contact-cleanup.md` §4, §5); the
 //! slots re-dealt by least travel with
 //! the anchor set down on the body when the anchor turns `REDEAL_TURN_DEG` or more at a route point, design D14: a
 //! turn is a re-labelling of who stands where and an about-face is free, where the slots rotating about the anchor
@@ -66,9 +67,10 @@ pub(crate) fn debug_on() -> bool {
 pub enum GroupKind {
     /// Walk there and stand; nothing on the way is fought (the hands' walk, a Move).
     Go,
-    /// Fight to it: the block halts while a member has an armed enemy in reach (the hands' advance).
+    /// Fight to it: the block halts when every member has an armed enemy in reach, and at the route's end closes on
+    /// what it sees (the hands' advance).
     FightTo,
-    /// Attack this unit: the route's end follows its sightings, and a member with it in reach attacks it.
+    /// Attack this unit: the route's end follows its sightings; otherwise an advance.
     Attack(UnitId),
     /// Stand at the route's end in formation and fight what comes.
     Hold,
@@ -156,7 +158,7 @@ pub struct GroupState {
     pub arrived: bool,
     /// The host's route points still ahead of the anchor (0 at the end: "two corners to go").
     pub legs_left: usize,
-    /// The nearest armed enemy a standing member has in reach, while the lane halts the group for it (contact).
+    /// The nearest armed enemy some member has in reach (contact), halted for it or not (`pace` says).
     pub engaged: Option<UnitId>,
     /// The way left to the route's end, in elmos: from the anchor along the planned way (the host's points as given
     /// without a ground). `None` when a leg of the route has no way on the group's ground (its point is off every
@@ -190,13 +192,18 @@ pub struct Pacing {
     pub rejoin_within: f32,
     /// The lead (D20) of the pace type: its march order is its slot carried this far ahead at the pace's share.
     pub lead: f32,
-    /// At contact a fighting group's anchor halts while more than this share of its members stand (an armed enemy in
-    /// sight in reach; `docs/design/2026-10-28-contact-cleanup.md` §3): 0 halts it for the first, 1 never. A half:
-    /// halted for the first, the block stood with its rear ranks idle out of reach (the detour assault +0.48 against
-    /// the ring's +0.60, the shot ramp 12 / 28 s); at a half +0.55, never +0.58, the other arms alike within noise;
-    /// a half keeps the anchor from walking on while most of the block fights.
-    pub halt_share: f32,
+    /// A fighting group's anchor halts when every member of its body has an armed enemy in sight within its reach, or
+    /// when any member has one inside this share of its reach (`docs/design/2026-10-28-contact-cleanup.md` §5): a
+    /// block deeper than its reach (four ranks of Blitzes against one turret) would otherwise walk over a point target
+    /// to bring its rear rank in. Before (§3) the anchor halted while more than half the members stood, and the rear
+    /// ranks never came into reach.
+    pub close_to: f32,
 }
+
+/// A fighting group at its route's end walks at an armed enemy in sight (`Group::close_on`) at most this far past
+/// the end: the close brings a block the last gap into reach (the bench's route end stood 250 from the Pop-ups,
+/// a Blitz reaching 180), and no further, so a block never follows what runs (§1's "a halted block follows nothing").
+pub const CLOSE_LEASH: f32 = 600.0;
 
 /// A route point that moved less than this since the host's last order is the same point (an enemy's centre
 /// creeping; the host re-declaring every tick): the anchor's leg and the slots' deal stand.
@@ -259,7 +266,7 @@ const CUT_OFF_CADENCE: i32 = 15;
 
 impl Default for Pacing {
     fn default() -> Pacing {
-        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: 2.0 * form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING, lead: LEAD, halt_share: 0.5 }
+        Pacing { fraction: 1.0, cadence: 3, formed_within: 2.0 * form::HULL_SPACING, drag_from: 2.0 * form::HULL_SPACING, exception_at: 300.0, rejoin_within: 1.5 * form::HULL_SPACING, lead: LEAD, close_to: 0.5 }
     }
 }
 
@@ -329,6 +336,9 @@ pub struct Group {
     reaim: bool,
     /// Stopped by the lane: at contact the anchor stands.
     pub stopped: bool,
+    /// Where the anchor walks past the route's end (`close_on`): the armed enemy in sight the lane has the block
+    /// close on, within `CLOSE_LEASH` of the end, and how near it the anchor stops.
+    close: Option<(Vec3, f32)>,
     pub arrived: bool,
     pub engaged: Option<UnitId>,
     last_frame: Option<i32>,
@@ -386,6 +396,7 @@ impl Group {
             been_formed: HashSet::new(),
             reaim: false,
             stopped: false,
+            close: None,
             arrived: false,
             engaged: None,
             last_frame: None,
@@ -543,13 +554,15 @@ impl Group {
         walkers.iter().any(|w| self.been_formed.contains(&w.id) && !self.cut_off.contains_key(&w.id) && w.pos.dist2d(self.anchor) <= REJOIN_WAY)
     }
 
-    /// The members in the body (D22): with a slot, within `exception_at` of it (not away), not cut off.
+    /// A member of the body (D22): with a slot, within `exception_at` of it (not away), not cut off. By last tick's
+    /// books: nobody before the first tick.
+    pub fn in_body(&self, id: UnitId) -> bool {
+        self.slots.contains_key(&id) && !self.away.contains_key(&id) && !self.cut_off.contains_key(&id)
+    }
+
+    /// Where the members in the body stand.
     fn body(&self, walkers: &[Walker]) -> Vec<Vec3> {
-        walkers
-            .iter()
-            .filter(|w| self.slots.contains_key(&w.id) && !self.away.contains_key(&w.id) && !self.cut_off.contains_key(&w.id))
-            .map(|w| w.pos)
-            .collect()
+        walkers.iter().filter(|w| self.in_body(w.id)).map(|w| w.pos).collect()
     }
 
     /// An anchor set down on the body, put on the way's segment when it stands off it by more than the ranks' own
@@ -685,6 +698,21 @@ impl Group {
         self.leg >= self.way.len()
     }
 
+    /// The close (`docs/design/2026-10-28-contact-cleanup.md` §5): at the way's end the anchor walks at `target` (the
+    /// armed enemy in sight the lane names, `None` for none) while it stands within `CLOSE_LEASH` of the end and
+    /// further than `stop` from the target (the lane's: half the body's shortest reach, so the front rank never walks
+    /// onto what it fights while the halt waits for the rear); on the way, past the leash or at the stop it closes on
+    /// nothing.
+    pub fn close_on(&mut self, target: Option<Vec3>, stop: f32) {
+        let end = self.way.last().copied().unwrap_or(self.way_from);
+        self.close = target.filter(|t| self.at_end() && self.anchor.dist2d(end) < CLOSE_LEASH && self.anchor.dist2d(*t) > stop + 1.0).map(|t| (t, stop));
+    }
+
+    /// Whether the anchor is walking past the way's end at what the block closes on.
+    pub fn closing(&self) -> bool {
+        self.close.is_some() && self.pace > 0.0
+    }
+
     /// The anchor walks `distance` along the way, leg by leg, each intermediate point carried on by `carry`.
     fn advance(&mut self, distance: f32, carry: f32) {
         let mut left = distance;
@@ -799,8 +827,20 @@ impl Group {
             }
         }
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
-        self.pace = if self.stopped || self.at_end() || !march { 0.0 } else { self.full_pace * held };
-        if self.pace > 0.0 {
+        self.pace = if self.stopped || !march || (self.at_end() && self.close.is_none()) { 0.0 } else { self.full_pace * held };
+        if self.pace > 0.0 && self.at_end() {
+            // The close (§5): past the way's end the anchor walks straight at what the block closes on, no nearer
+            // than `close_on`'s stop; the halt stops it before that.
+            if let Some((to, stop)) = self.close {
+                let d = self.anchor.dist2d(to);
+                if d > stop {
+                    let h = form::heading(self.anchor, to);
+                    let step = (self.pace * dt).min(d - stop);
+                    self.heading = h;
+                    self.anchor = Vec3 { x: self.anchor.x + h.0 * step, y: self.anchor.y, z: self.anchor.z + h.1 * step };
+                }
+            }
+        } else if self.pace > 0.0 {
             let (heading_before, leg_before) = (self.heading, self.leg);
             self.advance(self.pace * dt, carry);
             // A way point passed: facing the next, and at a turn of `REDEAL_TURN_DEG` or more the anchor is set
@@ -893,8 +933,9 @@ impl Group {
         // point 186 ahead). The share's fourth power keeps the carry under the formed band below 0.8 of the pace.
         let share = if self.full_pace > 0.0 { (self.pace / self.full_pace).clamp(0.0, 1.0).powi(4) } else { 0.0 };
         // The lead shrinks over the last lead's length of the way (D22 change 4), so nobody is sent past the route's
-        // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back).
-        let left = self.way_ahead();
+        // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back); a close past
+        // the end is way left too.
+        let left = self.way_ahead() + if self.at_end() { self.close.map_or(0.0, |(to, stop)| (self.anchor.dist2d(to) - stop).max(0.0)) } else { 0.0 };
         self.ordered = walkers
             .iter()
             .map(|w| {
@@ -987,7 +1028,7 @@ impl Group {
         // joiners; closed one unit wide, it read arrived eight times in the Glitters lobby game with one formed member
         // at the way's end and a hundred in `away`; D24).
         let in_body = walkers.len() - self.exceptions.len();
-        self.arrived = self.at_end() && none_walking_in && in_body * 2 >= walkers.len();
+        self.arrived = self.at_end() && !self.closing() && none_walking_in && in_body * 2 >= walkers.len();
         &self.slots
     }
 
@@ -1376,6 +1417,45 @@ mod tests {
         assert_eq!(group.pace, 0.0);
         assert!(group.arrived, "{:?}", group.state(&w));
         assert!((group.anchor.x - 400.0).abs() < 0.5);
+    }
+
+    /// The close (§5): at the way's end the anchor walks at what the lane names, within the leash, and the lead is for
+    /// that walk; past the leash, or on the way, it closes on nothing; a close ended leaves the anchor where it stands.
+    #[test]
+    fn at_the_ways_end_the_anchor_closes_on_what_the_lane_names_within_the_leash() {
+        let pacing = Pacing::default();
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::FightTo, vec![at(400.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        // On the way a close is nothing.
+        group.close_on(Some(at(2000.0, 0.0)), 90.0);
+        march(&mut group, &mut w, 600, 3, &pacing);
+        assert!(group.at_end() && group.arrived && group.pace == 0.0 && (group.anchor.x - 400.0).abs() < 0.5, "{:?}", group.state(&w));
+        // At the end: the anchor walks at the target, not arrived while it walks.
+        group.close_on(Some(at(2000.0, 0.0)), 90.0);
+        march(&mut group, &mut w, 150, 3, &pacing);
+        assert!(group.pace > 0.0 && !group.arrived && group.anchor.x > 450.0, "closing: {:?}", group.state(&w));
+        assert!(group.order_point(UnitId(1)).unwrap().x > group.anchor.x + 100.0, "the lead carries the point ahead on the close");
+        // Up to the leash from the end, and no further.
+        for _ in 0..40 {
+            group.close_on(Some(at(2000.0, 0.0)), 90.0);
+            march(&mut group, &mut w, 30, 3, &pacing);
+        }
+        assert!(group.pace == 0.0 && group.anchor.x <= 400.0 + CLOSE_LEASH + 1.0 && group.anchor.x > 400.0 + CLOSE_LEASH - 50.0, "stopped at the leash: {:?}", group.state(&w));
+        // The target gone: the anchor stands where it is, and the group has arrived there.
+        group.close_on(None, 90.0);
+        march(&mut group, &mut w, 60, 3, &pacing);
+        assert!(group.pace == 0.0 && group.arrived, "{:?}", group.state(&w));
+        // A target inside the leash: the anchor stops at the stop distance from it and no nearer.
+        let mut w = walkers(&[(1, 0.0, -32.0), (2, 0.0, 32.0)], 100.0);
+        let mut group = Group::new("a", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::FightTo, vec![at(400.0, 0.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        group.tick(0, &w, 64.0, &pacing);
+        march(&mut group, &mut w, 600, 3, &pacing);
+        for _ in 0..20 {
+            group.close_on(Some(at(700.0, 0.0)), 90.0);
+            march(&mut group, &mut w, 30, 3, &pacing);
+        }
+        assert!(group.pace == 0.0 && (group.anchor.x - 610.0).abs() < 2.0, "stopped 90 short of the target: {:?}", group.state(&w));
     }
 
     #[test]

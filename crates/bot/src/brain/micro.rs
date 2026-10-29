@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use bot_protocol::{Command, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use combatsim::sim::Rules;
-pub use micro::{Footwork, Lane, Stats, View};
+pub use micro::{Lane, Stats, View};
 
 /// The combat simulator's tables, and its unit type for each of the game's (filled on first use).
 pub(super) struct Sim {
@@ -40,20 +40,19 @@ impl Brain {
     /// The pianist's groups to the lane: a hunting or roving group declared as a group of that kind (design D15), a
     /// ground group holding, walking, advancing, attacking, following or shelling as a formation of kind Hold, Go,
     /// FightTo or Attack (the migration design, chunks 2-5: `Group::declared`; its order carries the company cap and
-    /// the muster points: the companies design §4) with the player's footwork (H-HANDS-LANE: fan and kite; a declared
-    /// group's members never flee, `docs/design/2026-10-28-contact-cleanup.md`). An air group is nothing to the lane
-    /// but a rove (its aircraft are no lane soldiers otherwise).
+    /// the muster points: the companies design §4); a declared group's members are under no reflex
+    /// (`docs/design/2026-10-28-contact-cleanup.md` §5). An air group is nothing to the lane but a rove (its aircraft
+    /// are no lane soldiers otherwise).
     pub(super) fn declare_groups(&mut self) {
-        let mut declared: Vec<(String, Vec<UnitId>, micro::GroupOrder, Footwork)> = Vec::new();
+        let mut declared: Vec<(String, Vec<UnitId>, micro::GroupOrder)> = Vec::new();
         if let Some(pianist) = &self.pianist {
             for group in &pianist.groups {
-                let rules = self.footwork_of(&group.name);
                 let name = group.lane_name();
                 match &group.task {
                     // A roving group is the lane's whole (H-MICRO-ROVE), within the region the player marked, if one.
                     super::pianist::GroupTask::Rove { within } => {
                         let within = within.as_ref().and_then(|name| self.region_of(name));
-                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()), Footwork::raw()));
+                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new())));
                     }
                     // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
                     // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane
@@ -86,10 +85,10 @@ impl Brain {
                                 micro::GroupKind::Hold => self.lane.group_state(&screen_name).map_or(screen_at, |s| s.anchor),
                                 _ => screen_at,
                             };
-                            declared.push((name, artillery, company(micro::GroupOrder::new(kind.clone(), vec![*at])), rules));
-                            declared.push((screen_name, rest, company(micro::GroupOrder::new(kind, vec![screen_point])), rules));
+                            declared.push((name, artillery, company(micro::GroupOrder::new(kind.clone(), vec![*at]))));
+                            declared.push((screen_name, rest, company(micro::GroupOrder::new(kind, vec![screen_point]))));
                         } else {
-                            declared.push((name, members, company(micro::GroupOrder::new(kind, vec![*at])), rules));
+                            declared.push((name, members, company(micro::GroupOrder::new(kind, vec![*at]))));
                         }
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
@@ -99,7 +98,7 @@ impl Brain {
                     super::pianist::GroupTask::Hunt(h) => {
                         let lost_frames = if self.quarry_cloaks(h.quarry) { super::pianist::groups::HUNT_HIDDEN_FRAMES } else { micro::HUNT_LOST_FRAMES };
                         let order = micro::HuntOrder { quarry: h.quarry, leash: super::pianist::groups::HUNT_LEASH, lost_frames, since: h.since };
-                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Hunt(order), Vec::new()), Footwork::raw()));
+                        declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Hunt(order), Vec::new())));
                     }
                     _ => {}
                 }
@@ -110,8 +109,8 @@ impl Brain {
                 self.lane.clear_group(&name);
             }
         }
-        for (name, members, order, footwork) in declared {
-            self.lane.set_group(&name, members, order, footwork);
+        for (name, members, order) in declared {
+            self.lane.set_group(&name, members, order);
         }
     }
 
@@ -121,13 +120,6 @@ impl Brain {
         let Some(shared) = &self.strategist else { return super::pianist::groups::COMPANY_CAP };
         let company = shared.company.lock().unwrap();
         company.get(&format!("group_{group}")).or_else(|| company.get("all")).copied().unwrap_or(super::pianist::groups::COMPANY_CAP)
-    }
-
-    /// The player's footwork setting for a pianist group (H-HANDS-LANE): the group's own, else `all`, else every rule.
-    pub(super) fn footwork_of(&self, group: &str) -> Footwork {
-        let Some(shared) = &self.strategist else { return Footwork::default() };
-        let lane = shared.lane.lock().unwrap();
-        lane.get(&format!("group_{group}")).or_else(|| lane.get("all")).copied().unwrap_or_default()
     }
 
     /// Every tick: the lane over the brain's view, over the brain's own orders of this tick (`commands`, which

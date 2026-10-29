@@ -13,7 +13,7 @@ use std::time::Instant;
 use serde_json::{Value, json};
 
 use bot_protocol::{Command, Event, Hello, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
-use micro::{Commitment, Footwork, GroupKind, GroupOrder, Lane, Stats, View};
+use micro::{Commitment, GroupKind, GroupOrder, Lane, Stats, View};
 
 use crate::drill::{self, Drill, Walker};
 use crate::fire::{self, Fire, Tally};
@@ -1059,7 +1059,7 @@ impl Director {
     }
 }
 
-/// H-MICRO-GROUP's numbers for the lane: `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,halt_share]]]]`
+/// H-MICRO-GROUP's numbers for the lane: `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,close_to]]]]`
 /// (the bench's arms), else
 /// the lane's own.
 fn pacing_tuning() -> micro::Pacing {
@@ -1071,9 +1071,10 @@ fn pacing_tuning() -> micro::Pacing {
     // The third and fourth fields (D20's bench): the lead in elmos and the drag's start.
     let lead = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.lead);
     let drag_from = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.drag_from);
-    // The fifth (the contact cleanup's bench): the share of members standing that halts the anchor.
-    let halt_share = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.halt_share);
-    micro::Pacing { fraction, cadence, lead, drag_from, halt_share, ..default }
+    // The fifth (the contact cleanup's bench, §5): the share of a member's reach inside which the block halts and the
+    // close stops.
+    let close_to = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.close_to);
+    micro::Pacing { fraction, cadence, lead, drag_from, close_to, ..default }
 }
 
 /// H-MICRO-FORM-SPACING's numbers for the lane: `WITHIN_REASON_FORM_SPACING=factor,max` (the harness's search), else
@@ -1611,12 +1612,12 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         }
                     }
                     for (name, hunters, order) in hunt_groups.drain(..) {
-                        lane.set_group(&name, hunters, order, Footwork::raw());
+                        lane.set_group(&name, hunters, order);
                     }
                 }
                 if !army.roving.is_empty() {
                     let rovers: Vec<UnitId> = army.roving.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
-                    lane.set_group("rove", rovers, GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()), Footwork::raw());
+                    lane.set_group("rove", rovers, GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()));
                 }
                 // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
                 // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
@@ -1723,7 +1724,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     // muster of a fed force.
                     let (cap, musters) = duel.drill.as_ref().map_or((0, Vec::new()), |d| (d.cap, if d.cap > 0 && matches!(d.kind, drill::Kind::Gather | drill::Kind::Circuit) { vec![d.rally()] } else { Vec::new() }));
                     let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, musters, ..order };
-                    lane.set_group("army", living, order, Footwork::default());
+                    lane.set_group("army", living, order);
                 }
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
                 // quarry is gone from them; `enemy.units` keeps the dead).
