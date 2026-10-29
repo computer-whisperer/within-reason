@@ -864,6 +864,112 @@ mod tests {
         assert!(state.arrived && state.engaged.is_none(), "{state:?}");
     }
 
+    /// §5.2: the halt is all in reach and nothing else. A straggler of his inside half a corner member's reach, with
+    /// the far corner out of every reach, halts nothing (until 2026-10-29 it did: advance-2 18:23-18:37, a company
+    /// held halted with 5 of 11 in reach while a Maverick beyond the rear's reach killed six); and the front's guard
+    /// pins the anchor at half the shortest reach from the nearest armed enemy, on the way, while the rear has nothing
+    /// in reach.
+    #[test]
+    fn a_fighting_block_walks_on_with_a_straggler_inside_half_reach_and_pins_at_the_stop() {
+        let host = Host::new(Vec::new());
+        let ids: Vec<i32> = (10..19).collect();
+        let members = ids.iter().map(|id| UnitId(*id)).collect::<Vec<_>>();
+        // Three files 100 apart, three ranks 100 apart; the station far south.
+        let block = || ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 100.0 * (i % 3) as f32, 1000.0 + 100.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let mut lane = Lane::default();
+        lane.set_group("a", members.clone(), GroupOrder::new(GroupKind::FightTo, vec![at(1100.0, 3600.0)]));
+        lane.tick(&host, &tick(30, block(), Vec::new()), &mut Vec::new(), false);
+        // A Pawn 70 beyond the north-east corner: inside half of that member's reach (90), out of the far corner's
+        // (sqrt(270^2 + 200^2) = 336 against 180). Not halted, not pinned: the block walks on, in contact.
+        let pawn = enemy(50, PAWN, 1270.0, 1000.0);
+        lane.tick(&host, &tick(33, block(), vec![pawn.clone()]), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert_eq!(state.engaged, Some(UnitId(50)));
+        assert!(state.pace > 0.0, "a straggler inside half one member's reach halts nothing: {state:?}");
+        // A tower on the route, ahead of the block: the anchor walks to half the reach from it and stands there with
+        // the rear out of reach (the old halt would have stopped the block there too; the new one never does, the
+        // guard does). The stand-in engine walks every unit to its last Move goal.
+        let tower = enemy(51, TOWER, 1100.0, 1700.0);
+        let mut lane = Lane::default();
+        let mut body = block();
+        lane.set_group("a", members, GroupOrder::new(GroupKind::FightTo, vec![at(1100.0, 3600.0)]));
+        let mut goals: HashMap<UnitId, Vec3> = HashMap::new();
+        let mut frame = 30;
+        let mut pinned_at = None;
+        while frame < 30 * 60 {
+            let out = lane.tick(&host, &tick(frame, body.clone(), vec![tower.clone()]), &mut Vec::new(), false);
+            for c in &out.commands {
+                if let Command::Move { unit, to, .. } = c {
+                    goals.insert(*unit, *to);
+                }
+            }
+            for u in body.iter_mut() {
+                let Some(to) = goals.get(&u.id) else { continue };
+                let d = u.pos.dist2d(*to);
+                let step = 16.8f32.min((d - 20.0).max(0.0));
+                u.vel = at(0.0, 0.0);
+                if d > 0.0 && step > 0.0 {
+                    let (dx, dz) = ((to.x - u.pos.x) / d * step, (to.z - u.pos.z) / d * step);
+                    u.pos = at(u.pos.x + dx, u.pos.z + dz);
+                    u.vel = at(dx / 3.0, dz / 3.0);
+                }
+            }
+            let state = lane.group_state("a").expect("a state");
+            if state.pace == 0.0 && state.anchor.z > 1300.0 {
+                pinned_at = Some(state.anchor);
+                break;
+            }
+            frame += 3;
+        }
+        let anchor = pinned_at.expect("the anchor stood short of the tower");
+        let d = anchor.dist2d(tower.pos);
+        assert!((70.0..=112.0).contains(&d), "pinned about half the reach (90) from the tower: {d:.0}");
+        let in_reach = body.iter().filter(|u| u.pos.dist2d(tower.pos) <= 180.0).count();
+        assert!(in_reach < body.len(), "the rear has nothing in reach, and the block stands at the stop all the same: {in_reach} of {}", body.len());
+    }
+
+    /// §5.2: an attack on a party ends each formation's way at the nearest member of the party in its sight, and the
+    /// host's centre (re-sent every tick as the sightings move it) only while none is seen; the host's moving route
+    /// re-aims nothing. (advance-2 18:25-18:41: a company walked 17 s at a centroid pulled by units it could not
+    /// reach, with nothing in reach.)
+    #[test]
+    fn an_attack_on_a_party_aims_each_formation_at_its_nearest_member() {
+        let host = Host::new(Vec::new());
+        let ids = [10, 11, 12, 13, 14, 15];
+        let members = ids.iter().map(|id| UnitId(*id)).collect::<Vec<_>>();
+        let block = || ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let order = |centre: Vec3| GroupOrder { party: vec![UnitId(50), UnitId(51)], ..GroupOrder::new(GroupKind::FightTo, vec![centre]) };
+        let mut lane = Lane::default();
+        // The party's centre south; its nearest member east, its other far south.
+        lane.set_group("a", members.clone(), order(at(1040.0, 2200.0)));
+        let seen = vec![enemy(50, PAWN, 1600.0, 1100.0), enemy(51, PAWN, 1040.0, 2600.0)];
+        lane.tick(&host, &tick(30, block(), seen.clone()), &mut Vec::new(), false);
+        lane.tick(&host, &tick(33, block(), seen.clone()), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.heading.0 > 0.8, "facing the nearest member, east, not the centre: {:?}", state.heading);
+        // The host moves the centre as the sightings move it: the way still ends at the nearest member.
+        lane.set_group("a", members.clone(), order(at(1300.0, 2300.0)));
+        lane.tick(&host, &tick(36, block(), seen.clone()), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.heading.0 > 0.8, "the host's moving centre re-aims nothing: {:?}", state.heading);
+        // Sticky: the other member a little nearer than the one the way is on changes nothing; much nearer, it is
+        // the end (`PARTY_SWITCH`).
+        let a_little = vec![enemy(50, PAWN, 1600.0, 1100.0), enemy(51, PAWN, 1040.0, 1500.0)];
+        lane.tick(&host, &tick(39, block(), a_little.clone()), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.heading.0 > 0.8, "a member nearer by under the margin changes nothing: {:?}", state.heading);
+        let much = vec![enemy(50, PAWN, 1600.0, 1100.0), enemy(51, PAWN, 1040.0, 1250.0)];
+        lane.tick(&host, &tick(42, block(), much.clone()), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.heading.1 > 0.8, "a member nearer by the margin is the end: {:?}", state.heading);
+        // Nobody of the party in sight: the way ends at the host's centre.
+        lane.set_group("a", members, order(at(1600.0, 2200.0)));
+        lane.tick(&host, &tick(45, block(), Vec::new()), &mut Vec::new(), false);
+        lane.tick(&host, &tick(48, block(), Vec::new()), &mut Vec::new(), false);
+        let state = lane.group_state("a").expect("a state");
+        assert!(state.heading.0 > 0.3 && state.heading.1 > 0.8, "the centre, south-south-east, while none is seen: {:?}", state.heading);
+    }
+
     /// H-MICRO-FORM-HOLDPOS: a formation group's soldiers are put at hold position once, so nobody idle in its slot
     /// chases; a member that leaves the group, or a group re-declared as a rove, is at manoeuvre again, once.
     #[test]

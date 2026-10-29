@@ -110,12 +110,16 @@ pub struct GroupOrder {
     pub musters: Vec<Vec3>,
     /// How many mustered newcomers walk together; none: the cap.
     pub release: Option<usize>,
+    /// The enemy units an attack on a party is on (`docs/design/2026-10-28-contact-cleanup.md` §5.2): each company's
+    /// route ends at the nearest of them in its sight, the host's route (the party's centre) only while none is seen;
+    /// a route the host moves does not re-aim such a group. Empty: the route is the route.
+    pub party: Vec<UnitId>,
 }
 
 impl GroupOrder {
     /// A marching order of this kind along this route.
     pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
-        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None }
+        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new() }
     }
 
     /// The same order with a company cap.
@@ -204,6 +208,10 @@ pub struct Pacing {
 /// the end: the close brings a block the last gap into reach (the bench's route end stood 250 from the Pop-ups,
 /// a Blitz reaching 180), and no further, so a block never follows what runs (§1's "a halted block follows nothing").
 pub const CLOSE_LEASH: f32 = 600.0;
+/// The guard's hysteresis (`guard_at`): inside the stop by this to pin, out by this to walk again.
+pub const PIN_SLACK: f32 = 20.0;
+/// How much nearer the anchor another member of the party must be before the way's end leaves the one it is on.
+pub const PARTY_SWITCH: f32 = 150.0;
 
 /// A route point that moved less than this since the host's last order is the same point (an enemy's centre
 /// creeping; the host re-declaring every tick): the anchor's leg and the slots' deal stand.
@@ -339,6 +347,16 @@ pub struct Group {
     /// Where the anchor walks past the route's end (`close_on`): the armed enemy in sight the lane has the block
     /// close on, within `CLOSE_LEASH` of the end, and how near it the anchor stops.
     close: Option<(Vec3, f32)>,
+    /// The nearest armed enemy in sight to the anchor and how near it the anchor may come (`guard_at`, §5.2): on the
+    /// way as in the close, the front rank never walks nearer than the stop to what it fights.
+    guard: Option<(Vec3, f32)>,
+    /// At the guard's stop: the anchor stands there (pace 0) until the guard is further off, with the halt's
+    /// hysteresis.
+    pub pinned: bool,
+    /// The member of the order's party the way ends at (§5.2): kept while in sight unless another is nearer the
+    /// anchor by `PARTY_SWITCH`, so the end does not hop between members of a loose party every tick (pb1: the
+    /// heading swung 60-120 degrees a second round a pinned block, 1-6 of 18 formed).
+    pub party_target: Option<UnitId>,
     pub arrived: bool,
     pub engaged: Option<UnitId>,
     last_frame: Option<i32>,
@@ -397,6 +415,9 @@ impl Group {
             reaim: false,
             stopped: false,
             close: None,
+            guard: None,
+            pinned: false,
+            party_target: None,
             arrived: false,
             engaged: None,
             last_frame: None,
@@ -432,7 +453,10 @@ impl Group {
     /// anchor from where it stands (no jump), plans the way again and re-deals the slots by least travel (a reverse:
     /// nobody crosses the formation); a point moved less is taken silently. A new membership re-deals the slots too.
     pub fn update(&mut self, members: Vec<UnitId>, order: GroupOrder) {
-        let moved = order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED);
+        // An attack on a party (§5.2): the host's route is the party's centre, re-set every tick as the sightings
+        // move it, and the lane's own end is the nearest member in sight; neither re-aims the group.
+        let same_party = !order.party.is_empty() && order.party == self.order.party;
+        let moved = !same_party && (order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED));
         // A walk re-declared as an advance (or back) on the same route is the same march: the members' order kind
         // changes, the anchor, the way and the deal stand (migration-2-1: Jev alternated `go` and `fight_to` on one
         // place every second for a minute, and each re-dealt and re-planned the body).
@@ -446,8 +470,10 @@ impl Group {
             self.dirty = true;
             self.reaim = true;
         } else {
+            // With a party the host's route is kept as the fall-back end (the lane re-aims the way itself).
             self.order.route = order.route;
             self.order.kind = order.kind;
+            self.order.party = order.party;
         }
         if members != self.members {
             self.members = members;
@@ -714,6 +740,20 @@ impl Group {
         self.close = target.filter(|t| self.at_end() && self.anchor.dist2d(end) < CLOSE_LEASH && self.anchor.dist2d(*t) > stop + 1.0).map(|t| (t, stop));
     }
 
+    /// The front's guard (§5.2): the nearest armed enemy in sight to the anchor, `None` for none, and how near it
+    /// the anchor may come. On the way the anchor's step is cut to the room left, and at the stop it stands
+    /// (`pinned`, pace 0) until the guard is `PIN_SLACK` further off. A point target a deep block cannot all reach
+    /// was the halt's "one inside half reach" until 2026-10-29 (the user: against a party that straddles the reach
+    /// line it held the block halted while most of it had nothing in reach, advance-2 18:23-18:37); now the front
+    /// stops and nothing else does.
+    pub fn guard_at(&mut self, target: Option<Vec3>, stop: f32) {
+        self.guard = target.map(|t| (t, stop));
+        // The step is cut to the room, so the anchor arrives at the stop exactly: pinned there, free again once the
+        // guard is `PIN_SLACK` further off.
+        let keep = if self.pinned { PIN_SLACK } else { 1.0 };
+        self.pinned = self.guard.is_some_and(|(t, stop)| self.anchor.dist2d(t) < stop + keep);
+    }
+
     /// Whether the anchor is walking past the way's end at what the block closes on.
     pub fn closing(&self) -> bool {
         self.close.is_some() && self.pace > 0.0
@@ -790,9 +830,10 @@ impl Group {
                 self.anchor = Vec3 { y: end.y, ..end };
             }
             self.leg = self.way.len();
-        } else if self.leg < self.way.len() && !self.stopped {
-            // Facing the next point; not while the lane halts the block: a re-plan while it fought turned the ranks
-            // about the anchor onto the wrecks (the same replays).
+        } else if self.leg < self.way.len() && !self.stopped && !self.pinned {
+            // Facing the next point; not while the lane halts or pins the block: a re-plan while it fought turned
+            // the ranks about the anchor onto the wrecks (the same replays), and a party's end hopping round a
+            // pinned block spun it (pb1).
             let next = self.target(self.leg, carry);
             // (`form::heading` says east for two points under 1.0 apart: a Hold at the body's own place spun the
             // formation east at the route's end before every guard was 1.0.)
@@ -835,7 +876,9 @@ impl Group {
             }
         }
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
-        self.pace = if self.stopped || !march || (self.at_end() && self.close.is_none()) { 0.0 } else { self.full_pace * held };
+        self.pace = if self.stopped || self.pinned || !march || (self.at_end() && self.close.is_none()) { 0.0 } else { self.full_pace * held };
+        // The room to the guard's stop: the step never crosses it (§5.2).
+        let room = self.guard.map_or(f32::INFINITY, |(t, stop)| (self.anchor.dist2d(t) - stop).max(0.0));
         if self.pace > 0.0 && self.at_end() {
             // The close (§5): past the way's end the anchor walks straight at what the block closes on, no nearer
             // than `close_on`'s stop; the halt stops it before that.
@@ -850,7 +893,7 @@ impl Group {
             }
         } else if self.pace > 0.0 {
             let (heading_before, leg_before) = (self.heading, self.leg);
-            self.advance(self.pace * dt, carry);
+            self.advance((self.pace * dt).min(room), carry);
             // A way point passed: facing the next, and at a turn of `REDEAL_TURN_DEG` or more the anchor is set
             // down on the body and the slots re-dealt where the members stand (D14).
             if self.leg > leg_before && self.leg < self.way.len() {

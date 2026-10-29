@@ -1266,13 +1266,32 @@ impl Lane {
         } else {
             Vec::new()
         };
-        // The halt: every member of the body has an armed enemy within its own reach, or one has it inside `close_to`
-        // of its reach (a block deeper than its reach never brings its rear rank onto a point target). Inside by
-        // `STAND_INSIDE` to halt, within the reach plus `STAND_KEEP` to stay halted. The body is last tick's books;
-        // everyone until there are any.
+        // An attack on a party (§5.2): this formation's route ends at the nearest member of the party in sight; the
+        // host's centre stands only while none is seen.
+        if !group.order.party.is_empty() && matches!(group.order.kind, GroupKind::FightTo | GroupKind::Attack(_)) {
+            let seen: Vec<&EnemyUnit> = enemies.iter().filter(|e| group.order.party.contains(&e.id)).collect();
+            let nearest = seen.iter().copied().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor)));
+            let current = group.party_target.and_then(|id| seen.iter().copied().find(|e| e.id == id));
+            // Sticky: the member the way is on, unless another is nearer by `PARTY_SWITCH` or it is out of sight.
+            let target = match (current, nearest) {
+                (Some(c), Some(n)) if n.pos.dist2d(group.anchor) + group::PARTY_SWITCH < c.pos.dist2d(group.anchor) => Some(n),
+                (Some(c), _) => Some(c),
+                (None, n) => n,
+            };
+            group.party_target = target.map(|e| e.id);
+            if let Some(end) = target.map(|e| e.pos).or_else(|| group.order.route.last().copied()) {
+                group.retarget(end);
+            }
+        }
+        // The halt: every member of the body has an armed enemy within its own reach. Inside by `STAND_INSIDE` to
+        // halt, within the reach plus `STAND_KEEP` to stay halted. The body is last tick's books; everyone until
+        // there are any. (Until 2026-10-29 one member with an enemy inside `close_to` of its reach halted the block
+        // too, for the point target a deep block cannot all reach; that is the front's guard now, `Group::guard_at`:
+        // the user, on advance-2 18:23-18:37, where it held a company halted with 5 of 11 in reach while a Maverick
+        // 20 beyond the rear's reach killed six.)
         let keep = if group.stopped { STAND_KEEP } else { -STAND_INSIDE };
         let body_known = walkers.iter().any(|w| group.in_body(w.id));
-        let (mut counted, mut in_reach, mut close) = (0usize, 0usize, false);
+        let (mut counted, mut in_reach) = (0usize, 0usize);
         let mut shortest = f32::INFINITY;
         let mut contacts: Vec<&EnemyUnit> = Vec::new();
         for w in walkers {
@@ -1290,18 +1309,20 @@ impl Lane {
             if !body_known || group.in_body(w.id) {
                 counted += 1;
                 in_reach += usize::from(inside);
-                close |= distance < reach * self.pacing.close_to + keep;
                 shortest = shortest.min(reach);
             }
         }
-        group.stopped = counted > 0 && (in_reach == counted || close);
+        group.stopped = counted > 0 && in_reach == counted;
         group.engaged = contacts.iter().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor))).map(|e| e.id);
-        // The close: an advance or an attack at its route's end walks at the nearest armed enemy in sight within the
-        // horizon of its anchor, no nearer than `close_to` of the body's shortest reach (`Group::close_on` bounds it
-        // to the leash too); a hold stands at its end.
+        // The front's guard and the close (§5, §5.2): the nearest armed enemy in sight within the horizon of the
+        // anchor, and the stop, `close_to` of the body's shortest reach. Every fighting kind's anchor comes no nearer
+        // than the stop to it, on the way or closing; an advance or an attack at its route's end walks at it
+        // (`Group::close_on` bounds that to the leash too); a hold stands at its end.
+        let stop = if shortest.is_finite() { shortest * self.pacing.close_to } else { 0.0 };
+        let nearest = armed.iter().map(|e| e.pos).filter(|p| p.dist2d(group.anchor) < HORIZON).min_by(|a, b| a.dist2d(group.anchor).total_cmp(&b.dist2d(group.anchor)));
+        group.guard_at(nearest.filter(|_| shortest.is_finite()), stop);
         let closes = matches!(group.order.kind, GroupKind::FightTo | GroupKind::Attack(_)) && shortest.is_finite();
-        let target = armed.iter().filter(|_| closes).map(|e| e.pos).filter(|p| p.dist2d(group.anchor) < HORIZON).min_by(|a, b| a.dist2d(group.anchor).total_cmp(&b.dist2d(group.anchor)));
-        group.close_on(target, if shortest.is_finite() { shortest * self.pacing.close_to } else { 0.0 });
+        group.close_on(nearest.filter(|_| closes), stop);
         // The march, halted or not: every member's point is its slot carried ahead by the type's lead (D20), the slot
         // itself while the anchor stands.
         group.tick(frame, walkers, spacing, &self.pacing);

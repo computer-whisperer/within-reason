@@ -88,7 +88,13 @@ impl Brain {
                             declared.push((name, artillery, company(micro::GroupOrder::new(kind.clone(), vec![*at]))));
                             declared.push((screen_name, rest, company(micro::GroupOrder::new(kind, vec![screen_point]))));
                         } else {
-                            declared.push((name, members, company(micro::GroupOrder::new(kind, vec![*at]))));
+                            // An attack on a party carries the party (§5.2): each company's route ends at the nearest
+                            // member of it in sight, the centre only while none is.
+                            let party = match &group.task {
+                                super::pianist::GroupTask::Engage { party, .. } => party.clone(),
+                                _ => Vec::new(),
+                            };
+                            declared.push((name, members, company(micro::GroupOrder { party, ..micro::GroupOrder::new(kind, vec![*at]) })));
                         }
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or

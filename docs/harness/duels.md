@@ -159,6 +159,8 @@ live (`source.live`: each side's value left 30 and 60 s later, ours from the rec
 beside the replay. The file format is the doc comment of `crates/arena/src/bin/duel/scenario.rs`; the files cut so far
 are in `docs/data/scenarios-2026-09-24/`.
 
+Under `--lane on` side 0 of a scenario is one lane group fighting to the other side's centroid with the other side as its party (`GroupOrder::party`, 2026-10-29: each formation's way ends at the nearest of them in sight). The pass-by drills of 2026-10-29 (`run/scenarios/2026-10-29-advance-2-passby-1822.json`, `2026-10-29-passby-synthetic.json`, `--theirs track`) are scenario files: a cut of advance-2 18:22 with his true track, and a scripted party crossing our halted front.
+
 `duel --scenario FILE` fights it `--reps` times on its map, at its place, one repetition after another on the one field
 (swept between, as a duel's site is); side 0 is `x` in `duels.csv`, side 1 `y`, and the commanders start in the two
 corners of the map farthest from the place. The AI interface's cheat gives a unit at a point and nothing else (no

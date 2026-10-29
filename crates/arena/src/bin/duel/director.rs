@@ -1688,7 +1688,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     // `--advance` (D18): theirs as one group fighting to the army's start, once the army has its orders.
                     Some(drill) if side == 1 && drill.advance && drill.last_order.is_some() => Some(GroupOrder::new(GroupKind::FightTo, vec![drill.start])),
                     Some(_) => None,
-                    None if plain_fight => Some(GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid])),
+                    // A plain fight is an attack on the other side as a party (§5.2): each company at the nearest of
+                    // them in sight, the centroid while none is.
+                    None if plain_fight => Some(GroupOrder { party: enemy.alive.keys().copied().collect(), ..GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid]) }),
                     None => None,
                 };
                 if let Some(order) = group {

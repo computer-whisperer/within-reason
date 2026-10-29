@@ -286,3 +286,79 @@ a new order sets `leg` to 0 before it plans, so it still walks), and the anchor 
 the lane is not halting it (`Group::tick`). Test `a_ground_rebuild_leaves_an_arrived_a_closing_and_a_halted_anchor_as_they_are`.
 Live (advance-1) 28 of the 131 turn seconds in large groups sat within 3 s of an enemy death; the other source, the
 hands' re-declarations (46 route jumps with the anchor still), is the hands', next.
+
+### 5.2 The halt is all in reach; the front's guard; an attack on a party follows its nearest (2026-10-29)
+
+The user, reading advance-2's 18:38 (`run/matches/1793242140-advance-2`, group_V1 against his Rocketeer/Mace/Warrior
+party): "Our group half fights it, half stands aside, and waffles back and forth in that mode." From the per-second
+record: the original company of 13 halted at 18:23 with 11 in reach and its anchor stood 14 s while his party walked
+past it west; from 18:28 the in-reach count fell 9, 7, 6, 5 of 13, 12, 11, 9, and the halt held on the second term
+(his Janus and a Stout inside half a front member's reach) while a Maverick, reach 365 against the Stouts' 350, stood
+20 beyond the rear's reach and killed six. The joiners' company of 14 spent 17 s with 0 in reach walking at the route's
+end, the party's centre (the mean of its unit ids), pulled by the very units the first company could not reach. The
+user: "It needs to be generally robust to a wide variety of situations ... The original failure of 'leaving and
+returning when part of a stationary enemy group dies' needs to remain solved, but 'not following an enemy we are
+supposed to be attacking, when part of it is out of range of some of our units' is also bad." Then: "Build 1 and 2,
+with both drills first."
+
+The rules (micro `formation_tick`, `Group::guard_at`, `Group::update`):
+- **The halt is all in reach, alone.** A fighting block halts its anchor when every member of its body has an armed
+  enemy in sight within its own reach, with the 20 hysteresis; the "any inside `close_to` of its reach" term is gone.
+- **The front's guard.** Every fighting kind's anchor comes no nearer than `close_to` (a half) of the body's shortest
+  reach to the nearest armed enemy in sight within the horizon, on the way as in the close: the march's step is cut to
+  the room left, and at the stop the anchor is `pinned` (pace 0; free again once the guard is `PIN_SLACK` further off;
+  a pinned block does not turn its ranks to face a way point, as a halted one does not, §5.1). The point target a deep
+  block cannot all reach is this guard's case now.
+- **An attack on a party follows its nearest.** `GroupOrder::party` carries the party's unit ids (the hands set it for
+  an Engage, the duel for a plain fight); each formation's way ends at the member of the party nearest its anchor in
+  its sight, sticky (`party_target`: it stays unless another is nearer by `PARTY_SWITCH`, 150, or it is out of sight),
+  and at the host's centre only while none is seen; the host's route moving re-aims such a group no more.
+- Tests: `a_fighting_block_walks_on_with_a_straggler_inside_half_reach_and_pins_at_the_stop`,
+  `an_attack_on_a_party_aims_each_formation_at_its_nearest_member`; the §5 and §5.1 tests unchanged.
+
+The drills, both scenario files under `run/scenarios/`, run with `--theirs track --lane on`:
+- `2026-10-29-advance-2-passby-1822.json`, cut from the record at 18:22 by `run/engagement.py ... --enemies truth
+  --track --track-seconds 45` (radius 1400 about (5800, 4000)): 18 of ours (13 Stouts, 4 Blitzes, a Janus) against
+  his 22 (6 Stouts, 4 Rocketeers, 2 Maces, 2 Pawns, 2 Hounds, 2 Warriors, a Janus, a Blitz, a Maverick, a Flea)
+  walking their true track for 45 s. The live outcome it carries: ours 0.32 of value left at 30 s and 0.19 at 60,
+  his 0.40 and 0.49.
+- `2026-10-29-passby-synthetic.json`: ours in three ranks facing west on the same field, his 15 (6 Stouts, 4
+  Rocketeers, 2 Maces, 2 Warriors, a Maverick) on a scripted track across our front from the north-west to the
+  south-west, 433 from the front rank and 556 from the rear at the nearest, over 40 s.
+The reader `passby_seconds.py` (the session scratchpad) counts per second who has something in reach and who fires.
+
+Results (ledger rows pb0-*, pb1-*, pb2-*; 8 reps; pb0 the §5.1 binary, pb1 rules one and two, pb2 with the sticky
+target and the pinned block not turning):
+
+| measure | pb0 cut | pb1 cut | pb2 cut | pb0 syn | pb1 syn | pb2 syn |
+|---|---|---|---|---|---|---|
+| in-reach share while engaged (mean) | 0.49 | 0.67 | 0.75 | 0.50 | 0.65 | 0.62 |
+| seconds with under half in reach | 24 | 13 | 6 | 21 | 12 | 11 |
+| seconds halted / engaged | 28 / 54 | 27 / 58 | 30 / 53 | 24 / 44 | 14 / 46 | 14 / 46 |
+| heading turns over 30 degrees | 4.6 | 14.1 | 8.8 | 5.8 | 12.5 | 10.1 |
+| unit-seconds firing | 141 | 169 | 151 | 175 | 217 | 208 |
+| margin (wins) | -0.08 (0/8) | -0.02 (0/8) | -0.28 (0/8) | +0.42 (5/8) | +0.45 (8/8) | +0.46 (8/8) |
+| value left at 60 s, ours / his | 0.34 / 0.40 | 0.29 / 0.33 | 0.08 / 0.36 | 0.62 / 0.28 | 0.46 / 0.06 | 0.48 / 0.07 |
+
+The movement is what was asked: three quarters of the block with something in reach where half had, the rear no
+longer standing aside, the synthetic party no longer left standing 715 from a halted block. The price is in the cut:
+the block now walks into his 22 with the Hounds and Rocketeers and stays, and ends with 0.07 of its value where
+standing half aside left 0.35 (the live game's own figure at 60 s was 0.19). An order to attack an outranging party
+that outweighs you is now carried out in full; that it is a losing order is the player's to see (its words say so:
+"it outranges us ... the approach is paid under its fire"). The first binary's hopping end (turns 14 a rep, 1-6 of 18
+formed round a pinned block) cost the block-against-block arms of the regression slice; the sticky target and the
+pinned block's fixed heading brought most of that back:
+
+| arm | adv2 | pb1 | pb2 |
+|---|---|---|---|
+| formation against formation (on/on) | +0.14 (6/8) | -0.11 (1/8) | +0.05 (5/8) |
+| block against the engine's charge (on/off) | -0.06 (adv; hpoff +0.01) | -0.18 (0/8) | -0.17 (0/8) |
+| Stout mirror | +0.28 (adv) | +0.15 (7/8) | +0.19 (7/8) |
+| 21 Stouts v 5 Bulls | +0.49 (adv) | +0.39 (8/8) | +0.49 (8/8) |
+| 25 Stouts v 4 Fatboys | +0.47 (8/8) | +0.42 (8/8) | +0.42 (8/8) |
+| the six assaults | +0.43 to +0.90 | within 0.06 of adv2/adv | within 0.02 |
+
+Open: the walk-against-the-charge arm (-0.06 to -0.17; at contact the block stood 287 deep by 212 wide against 205
+by 276, its first shot at 27 s against 20: a pinned block no longer turns to face a mob that comes round it), and
+whether a block ordered at a party it cannot reach should stand its ground rather than walk in (item 3 of the
+proposal, the firing line, unbuilt).
