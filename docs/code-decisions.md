@@ -63,8 +63,9 @@ removed changes its row here.
 
 ## 4. Thresholds on Jev's answers and on when it is asked
 
-The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at launch (`--hands-layers`,
-`run/human_game.sh`; unset is `news` alone; `again` and `near` are named explicitly).
+The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at launch (`--hands-layers`; unset is the
+nine `news,same,fuse,openers,split,tick,places,again,near`, `layers.rs` `DEFAULT`, the user's word 2026-10-29 after
+six games ran `news` alone by a launch without the flag; `run/human_game.sh` sets its own seven, without `again` and `near`).
 
 | Decision | Values | Code |
 |---|---|---|

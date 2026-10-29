@@ -22,7 +22,7 @@
 //!              [--commander MODEL] [--commander-effort LEVEL]   (with --player: a commander session above the players, which orders no unit and writes them a direction in prose; default none, effort high)
 //!              [--player-effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
-//!              [--hands-layers a,b|none]   (the hands' savings that are on: news is the default; none is the base version alone)
+//!              [--hands-layers a,b|none]   (the hands' savings that are on; unset, the bot's default, news,same,fuse,openers,split,tick,places,again,near; none is the base version alone)
 //!              [--opponent NAME:VERSION]   (the enemy seats' AI, as installed under the engine's AI/Skirmish; default BARb:stable)
 //!              [--our-bonus N] [--enemy-bonus N]   (the lobby's bonus in percent of income for our seats and the enemy's: -50 halves, +50 adds half; default 0)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
@@ -167,8 +167,9 @@ struct Options {
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
-    /// `--hands-layers a,b`: the hands' savings that are on (`WITHIN_REASON_HANDS_LAYERS`; unset, `news`; `none` for
-    /// the base version alone). `docs/design/2026-10-01-hands-rebuild.md` §8.
+    /// `--hands-layers a,b`: the hands' savings that are on (`WITHIN_REASON_HANDS_LAYERS`; unset, the bot's default,
+    /// the nine of `layers.rs` `DEFAULT`; `none` for the base version alone). `docs/design/2026-10-01-hands-rebuild.md` §8.
+    /// The batch's record carries what was passed; the Jev log's header carries what ran.
     hands_layers: Option<String>,
     /// `--think-penalty X`: the player's orders land X game seconds late per wall second it thought (`WITHIN_REASON_THINK_PENALTY`).
     think_penalty: Option<String>,
@@ -254,7 +255,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 

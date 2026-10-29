@@ -5,8 +5,11 @@
 //! it asks anyway, in the same request, and the log sets what it assumed beside what came back.
 //!
 //! `WITHIN_REASON_HANDS_LAYERS` (the arena's `--hands-layers`) names the layers that are on, comma-separated;
-//! unset, `news` is on, and `none` switches every layer off. Built so far: `news`, `same`, `fuse`, `openers`, `split`,
-//! `tick`, `places`, `again`, `near`. Naming a layer that is not built stops the bot at its start rather than running a game without it.
+//! unset, `DEFAULT` is on (the nine every player game carried from 2026-10-19 to companies-2; six games after it ran
+//! `news` alone by a launch that left the flag out, at three to four times the Jev cost a minute, the user 2026-10-29:
+//! "make the change so that the full nine layers are the arena's default"), and `none` switches every layer off.
+//! Built so far: `news`, `same`, `fuse`, `openers`, `split`, `tick`, `places`, `again`, `near`, `kept`, `beside`,
+//! `stragglers`. Naming a layer that is not built stops the bot at its start rather than running a game without it.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -35,6 +38,9 @@ pub(crate) fn stragglers() -> bool {
 /// The layers of the design note, in its order, and those that exist.
 const KNOWN: [&str; 14] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside", "stragglers", "one", "local"];
 const BUILT: [&str; 12] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside", "stragglers"];
+/// The layers on when `WITHIN_REASON_HANDS_LAYERS` is unset: the set the player games run (`run/human_game.sh` sets
+/// its own, without `again` and `near`).
+pub(crate) const DEFAULT: &str = "news,same,fuse,openers,split,tick,places,again,near";
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 /// How old an answer may be to stand for an actor asked again only because something of its opened (the `again`
@@ -106,7 +112,7 @@ pub(crate) struct Layers {
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false }) };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Layers::parse(Some(DEFAULT)) };
         let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
@@ -497,7 +503,8 @@ mod tests {
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
         let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false };
-        assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
+        assert_eq!(Layers::parse(None), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: true, tick: true, places: true, again: true, near: true, ..none.clone() }));
+        assert_eq!(Layers::parse(None), Layers::parse(Some(DEFAULT)));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
         assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false, near: false, kept: false, beside: false, stragglers: false }));
