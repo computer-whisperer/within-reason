@@ -154,6 +154,7 @@ fn main() -> io::Result<()> {
         fed: options.fed,
         drill: options.drill.clone(),
         log_dir,
+        banner: banner(&options),
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
@@ -224,6 +225,34 @@ fn main() -> io::Result<()> {
 }
 
 /// One engine start: duels run until the queue is empty or the match has had its share.
+/// The line every match of the batch says in the game chat once its fields are laid out (`Batch::banner`): the label,
+/// what is fought, the lanes and the knobs set from the environment, so a replay says which arm it is.
+fn banner(options: &Options) -> String {
+    let what = match &options.drill {
+        Some(d) => format!(
+            "drill {}{}{}",
+            d.kind.label(),
+            d.around.map_or(String::new(), |a| format!(", around {a}")),
+            if d.advance { ", theirs advancing" } else { "" }
+        ),
+        None if options.scenario.is_some() => "scenario".to_string(),
+        None => "duels".to_string(),
+    };
+    let pairs: Vec<String> = options.pairs.iter().map(|(x, y)| format!("{x} v {y}")).collect();
+    let knobs: Vec<String> = ["WITHIN_REASON_DISABLE", "WITHIN_REASON_PACING", "WITHIN_REASON_FORM_SPACING"]
+        .iter()
+        .filter_map(|k| std::env::var(k).ok().map(|v| format!("{} {v}", k.trim_start_matches("WITHIN_REASON_").to_lowercase())))
+        .collect();
+    format!(
+        "duel bench {}: {what}, {}; lane {}/{}{}",
+        options.label,
+        pairs.join(", "),
+        options.lanes[0].label(),
+        options.lanes[1].label(),
+        if knobs.is_empty() { String::new() } else { format!("; {}", knobs.join(", ")) }
+    )
+}
+
 fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch>, index: usize) -> io::Result<()> {
     // Under `--seeds` the match takes the seed of the first job waiting, and only that seed's jobs; else its own.
     let seed = if options.seeds.is_empty() {

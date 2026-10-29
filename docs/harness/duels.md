@@ -36,7 +36,7 @@ sizing. Two buildings are never paired.
 Output, in `run/matches/<stamp>-duel-<label>/`: `duels.csv` (one row per duel, appended as they finish), `pairs.csv`
 (per ordered pairing and pair of formations: counts, wins / losses / draws, mean margin, mean seconds, then the fire
 instrument's columns below), `matrix.csv` and `matrix.md` (row unit against column unit, mean margin x 100, formations
-pooled), `batch.json`, and one directory per engine start with `engine.log` and the replay. The first ten columns of
+pooled), `batch.json`, and one directory per engine start with `engine.log` and the replay. Each match says in the game chat, so in its replay, what it is (2026-10-28, the user, watching the hold-position bench's replays: "let's add a chat log report to the start of those matches giving them labels"): once its fields are laid out, `duel bench <label>: <drill or duels>, <pairings>; lane <x>/<y>` and the knobs set from the environment (`disable`, `pacing`, `form_spacing`), and as each duel begins `duel <n> of this match (field <i>): <x> v <y>, rep <r>, <formations>` (`main.rs` `banner`, `director.rs` `Director::tick`; the chat is `/say` from the AI, recorded in the demo). The first ten columns of
 `pairs.csv` keep the 2026-09-19 layout (`combatsim` reads them by position); `duel --report` and `run/duel_ab.py` read
 batches from before the fire instrument too, leaving its columns empty (nan in `duel_ab.py`).
 

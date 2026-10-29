@@ -139,6 +139,10 @@ pub struct Batch {
     pub drill: Option<drill::Options>,
     /// Where a scenario's per-second logs go (`<batch>/seconds/`).
     pub log_dir: Option<PathBuf>,
+    /// What every match says in the game chat when its fields are laid out (the batch's label, the drill, the lanes,
+    /// the knobs from the environment), so a replay names the arm it is (the user, watching the hold-position bench's
+    /// replays: "let's add a chat log report to the start of those matches giving them labels").
+    pub banner: String,
     pub on_result: Box<dyn Fn(&DuelResult) + Send + Sync>,
 }
 
@@ -452,6 +456,8 @@ pub struct Director {
     /// First sighting of each team's own units: the commander.
     commanders: HashMap<i32, Vec3>,
     fields: Option<Vec<Field>>,
+    /// Duels begun in this match, for the chat line each one starts with.
+    begun: u32,
     pub last_tick: Instant,
     pub finished: bool,
     pub fatal: Option<String>,
@@ -472,6 +478,7 @@ impl Director {
             fed: HashSet::new(),
             commanders: HashMap::new(),
             fields: None,
+            begun: 0,
             last_tick: Instant::now(),
             finished: false,
             fatal: None,
@@ -504,6 +511,7 @@ impl Director {
         if self.finished || self.fatal.is_some() {
             return Vec::new();
         }
+        let mut commands = Vec::new();
         if self.fields.is_none() {
             if let Some(unit) = tick.snapshot.own_units.first() {
                 self.commanders.entry(team).or_insert(unit.pos);
@@ -515,8 +523,8 @@ impl Director {
             if self.fatal.is_some() {
                 return Vec::new();
             }
+            commands.push(Command::Say { text: self.batch.banner.clone() });
         }
-        let mut commands = Vec::new();
         if self.batch.fed
             && !self.fed.contains(&team)
             && let (Some(def), Some(&at), Some(hello)) = (self.defs.get(FEEDER), self.commanders.get(&team), self.hello.as_ref())
@@ -534,6 +542,11 @@ impl Director {
         for (index, field) in fields.iter_mut().enumerate() {
             if field.duel.is_none() && !field.abandoned && self.duel_budget > 0 {
                 field.duel = self.next_duel(field);
+                if let Some(duel) = &field.duel {
+                    self.begun += 1;
+                    let [x, y] = self.batch.shapes[duel.job.shape].map(|f| f.label());
+                    commands.push(Command::Say { text: format!("duel {} of this match (field {index}): {} v {}, rep {}, {x}/{y}", self.begun, duel.job.x, duel.job.y, duel.job.rep) });
+                }
             }
             let Some(duel) = &mut field.duel else { continue };
             let bomb = SWEEP_BOMBS.iter().find_map(|name| self.defs.get(*name)).map(|def| def.id);
