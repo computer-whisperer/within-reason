@@ -76,6 +76,29 @@ pub const CROSSER_TRIGGER: f32 = 500.0;
 pub const CROSSER_BEYOND: f32 = 1200.0;
 /// D23 `--nudge`: how far across the axis the goal is moved at each re-declaration (over `ROUTE_MOVED` 48).
 pub const NUDGE: f32 = 60.0;
+/// The pair drill: two anchors nearer than this stand in one footprint (a formation of six files at 64 is 384 across).
+pub const PAIR_OVERLAP: f32 = 250.0;
+/// The pair drill's follower re-aims at its ward's anchor once it has moved this far (the hands' follow step).
+pub const PAIR_FOLLOW_STEP: f32 = 150.0;
+
+/// The pair drill's second group: it walks to the same end, follows the army, or both attack the party on the goal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairMode {
+    Walk,
+    Follow,
+    Attack,
+}
+
+impl PairMode {
+    pub fn parse(text: &str) -> Option<PairMode> {
+        match text {
+            "walk" => Some(PairMode::Walk),
+            "follow" => Some(PairMode::Follow),
+            "attack" => Some(PairMode::Attack),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -88,6 +111,11 @@ pub enum Kind {
     Circuit,
     /// The walk into a defence that shoots back, judged as a duel (design D16).
     Assault,
+    /// Two groups of ours on one strip (2026-10-29, the formations that stacked in advance-2): the army and a second
+    /// group spawned `--behind FORCE@D` beside it, `D` across the axis; the second walks to the same end, follows the
+    /// army, or both attack the party `--theirs` standing on the goal (`--pair walk|follow|attack`). Measured on the
+    /// anchors' distance, the seconds they stood in one footprint, and the second group's arrival.
+    Pair,
 }
 
 impl Kind {
@@ -99,6 +127,7 @@ impl Kind {
             "into" => Some(Kind::Into),
             "circuit" => Some(Kind::Circuit),
             "assault" => Some(Kind::Assault),
+            "pair" => Some(Kind::Pair),
             _ => None,
         }
     }
@@ -111,6 +140,7 @@ impl Kind {
             Kind::Into => "into",
             Kind::Circuit => "circuit",
             Kind::Assault => "assault",
+            Kind::Pair => "pair",
         }
     }
 }
@@ -174,6 +204,8 @@ pub struct Options {
     pub late: Option<i32>,
     /// The companies design (`--cap N`): members a company of the army holds at most; 0 for one formation.
     pub cap: usize,
+    /// `pair`: what the second group does (`--pair walk|follow|attack`).
+    pub pair: PairMode,
 }
 
 /// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
@@ -240,6 +272,12 @@ pub struct Score {
     /// marching companies' own formed shares (a muster is not marching).
     pub companies: u32,
     pub company_formed: Option<f32>,
+    /// `pair`: the two anchors' mean distance over the seconds both stood, the seconds they stood within
+    /// `PAIR_OVERLAP`, the second group's arrival from the first order, and the distance at that second.
+    pub pair_distance: Option<f32>,
+    pub pair_overlap_s: u32,
+    pub pair_arrive_s: Option<f32>,
+    pub pair_distance_arrival: Option<f32>,
     /// D21: member-elmos walked away from the goal along the axis over those walked toward it, the elmos the anchor
     /// moved against its heading summed over ticks, and the seconds the group's pace was 0 while marching.
     pub backtrack_share: Option<f32>,
@@ -384,6 +422,15 @@ pub struct Drill {
     pub late: Option<i32>,
     pub cap: usize,
     pub rear: Vec<usize>,
+    /// `pair`: the second group's mode, where its way ends now (a follower's re-aimed at the army's anchor once it
+    /// has moved `PAIR_FOLLOW_STEP`), its anchor and standing as last noted, the anchors' distance each second both
+    /// stood, the seconds within `PAIR_OVERLAP`, and the frame the second group arrived.
+    pub pair_mode: PairMode,
+    pub pair_goal: Option<Vec3>,
+    last_pair: Option<(Vec3, bool)>,
+    pair_distances: Vec<f32>,
+    pair_overlap_s: u32,
+    pair_arrived: Option<(i32, f32)>,
     /// D21's measures: member-elmos along the axis toward the goal and away from it (this second's away in
     /// `back_second`); the anchor's steps against its heading, from the anchor and heading last noted; the group's
     /// pace, arrived and engaged as last noted and the seconds the pace was 0 on the march; the orders to the army
@@ -467,6 +514,12 @@ impl Drill {
             late: options.late,
             cap: options.cap,
             rear: Vec::new(),
+            pair_mode: options.pair,
+            pair_goal: None,
+            last_pair: None,
+            pair_distances: Vec::new(),
+            pair_overlap_s: 0,
+            pair_arrived: None,
             forward: 0.0,
             back: 0.0,
             back_second: 0.0,
@@ -516,6 +569,27 @@ impl Drill {
 
     pub fn note_group(&mut self, formed: usize, members: usize, done: bool) {
         self.group = Some((formed, members, done));
+    }
+
+    /// `pair`: the second group's anchor and whether it stands at its end with no exceptions, this tick.
+    pub fn note_pair(&mut self, anchor: Vec3, done: bool) {
+        self.last_pair = Some((anchor, done));
+    }
+
+    /// `pair`: where the second group's way ends this tick. A follower's end is the army's anchor, re-set once it has
+    /// moved `PAIR_FOLLOW_STEP` (the hands' follow step); the others' is the goal.
+    pub fn pair_end(&mut self) -> Vec3 {
+        if self.pair_mode != PairMode::Follow {
+            return self.toward;
+        }
+        let ward = self.last_anchor.map_or(self.toward, |(a, _)| a);
+        match self.pair_goal {
+            Some(at) if at.dist2d(ward) <= PAIR_FOLLOW_STEP => at,
+            _ => {
+                self.pair_goal = Some(ward);
+                ward
+            }
+        }
     }
 
     /// D21: the group's anchor, heading, pace and standing this tick. A step of the anchor against its heading is
@@ -622,6 +696,12 @@ impl Drill {
         Vec3 { x: self.toward.x - axis.z / norm * NUDGE * side, y: self.toward.y, z: self.toward.z + axis.x / norm * NUDGE * side }
     }
 
+    /// Judged as an assault (D16): the defence wiped is `taken`, the army's mobile units wiped is `wiped`, else the
+    /// time limit. An assault, and the pair drill's attack arm.
+    pub fn judged_as_assault(&self) -> bool {
+        self.kind == Kind::Assault || (self.kind == Kind::Pair && self.pair_mode == PairMode::Attack)
+    }
+
     /// D23 `--late`: whether the rear party still stands out of the group at `frame`.
     pub fn rear_waits(&self, frame: i32) -> bool {
         match (self.late, self.first_order) {
@@ -703,6 +783,20 @@ impl Drill {
             && self.last_order.is_some()
         {
             self.stopped_s += 1;
+        }
+        // `pair`: the anchors' distance this second, the overlap, and the second group's arrival.
+        if self.kind == Kind::Pair
+            && let (Some((army, _)), Some((pair, done))) = (self.last_anchor, self.last_pair)
+            && self.last_order.is_some()
+        {
+            let d = army.dist2d(pair);
+            self.pair_distances.push(d);
+            if d < PAIR_OVERLAP {
+                self.pair_overlap_s += 1;
+            }
+            if done && self.pair_arrived.is_none() {
+                self.pair_arrived = Some((frame, d));
+            }
         }
         self.orders_last_second = std::mem::take(&mut self.orders_second);
         if self.kind == Kind::Circuit {
@@ -803,6 +897,8 @@ impl Drill {
             Kind::Walk => self.arrived.len() >= expected || self.group.is_some_and(|(_, members, done)| done && members >= expected),
             Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
             Kind::Assault => false,
+            // Both groups at their ends; an attack is judged like an assault (taken, wiped or the time limit).
+            Kind::Pair => self.pair_mode != PairMode::Attack && self.group.is_some_and(|(_, _, done)| done) && self.pair_arrived.is_some(),
             Kind::Circuit => {
                 let core: Vec<&usize> = self.core.iter().filter(|i| !self.left_behind.contains(i)).collect();
                 !core.is_empty() && core.iter().all(|i| self.arrived.contains_key(i)) && self.group.is_none_or(|(_, _, done)| done)
@@ -855,6 +951,10 @@ impl Drill {
             left_behind: self.left_behind.len() as u32,
             companies: self.companies_max as u32,
             company_formed: (!self.company_shares.is_empty()).then(|| self.company_shares.iter().sum::<f32>() / self.company_shares.len() as f32),
+            pair_distance: (!self.pair_distances.is_empty()).then(|| self.pair_distances.iter().sum::<f32>() / self.pair_distances.len() as f32),
+            pair_overlap_s: self.pair_overlap_s,
+            pair_arrive_s: self.pair_arrived.map(|(f, _)| seconds(f)),
+            pair_distance_arrival: self.pair_arrived.map(|(_, d)| d),
             backtrack_share: (self.forward > 0.0).then(|| self.back / self.forward),
             anchor_back: self.anchor_back,
             stopped_s: self.stopped_s,
@@ -871,7 +971,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0 }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back

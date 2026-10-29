@@ -419,7 +419,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0 };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: drill::PairMode::Walk };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -511,7 +511,8 @@ fn parse_args() -> io::Result<Options> {
                 options.pairs.push((scenario.sides[0].name.clone(), scenario.sides[1].name.clone()));
                 options.scenario = Some(scenario);
             }
-            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather, into, circuit or assault"))),
+            "--drill" => drill_kind = Some(drill::Kind::parse(&value()).unwrap_or_else(|| usage("--drill is walk, reverse, gather, into, circuit, assault or pair"))),
+            "--pair" => drill_opts.pair = drill::PairMode::parse(&value()).unwrap_or_else(|| usage("--pair is walk, follow or attack")),
             "--feed" => {
                 let force = plan::Force::parse(&value());
                 if force.parts.iter().any(|(_, c)| *c == 0) {
@@ -595,7 +596,14 @@ fn parse_args() -> io::Result<Options> {
         if ours.is_empty() {
             usage("--drill needs --ours (the army, or the list a gather's lab builds)");
         }
-        let assault = kind == drill::Kind::Assault;
+        let pair_attack = kind == drill::Kind::Pair && drill_opts.pair == drill::PairMode::Attack;
+        if kind == drill::Kind::Pair && drill_opts.behind.is_empty() {
+            usage("--drill pair needs --behind FORCE@D (the second group, D across the axis from the army)");
+        }
+        if pair_attack && theirs.is_empty() {
+            usage("--drill pair --pair attack needs --theirs PARTY (the party standing on the goal, with counts)");
+        }
+        let assault = kind == drill::Kind::Assault || pair_attack;
         if !assault && !theirs.is_empty() {
             usage("--drill fights nobody: no --theirs");
         }
@@ -710,6 +718,9 @@ fn usage(problem: &str) -> ! {
        duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|on|ranks[/off|on]] [--formation X] [--from X,Z --to X,Z | --around RATIO] [--advance] ...
             (the walk into a defence that shoots back, judged as a duel: design D16; both forces with counts, armflash*12 against armhlt*1;
              --advance: theirs march on the army's start under the second lane mode, design D18)
+       duel --drill pair --ours FORCE --behind FORCE@D [--pair walk|follow|attack] [--theirs PARTY] [--distance 2000] [--lane on] ...
+            (two groups of ours: the second D across the axis walks to the same end, follows the army, or both attack the party on the goal;
+             measured on the anchors' distance and the seconds they stood in one footprint: the stacking of advance-2)
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

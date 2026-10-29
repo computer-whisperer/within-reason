@@ -636,7 +636,7 @@ impl Director {
             // An assault's defence is the queue's `y`, checked with the pairings below.
             drill::Kind::Assault => Vec::new(),
             drill::Kind::Circuit => (!d.feed.is_empty()).then(|| d.lab.clone()).into_iter().chain(d.feed.iter().map(|(n, _)| n.clone())).collect(),
-            drill::Kind::Walk | drill::Kind::Reverse => Vec::new(),
+            drill::Kind::Walk | drill::Kind::Reverse | drill::Kind::Pair => Vec::new(),
         }
         // D21's arms: the rear party's types, the churned structure, the crosser.
         .into_iter()
@@ -953,7 +953,12 @@ impl Director {
                 if !options.behind.is_empty() {
                     let count: u32 = options.behind.iter().map(|(_, n)| n).sum();
                     let defs: Vec<&UnitDefInfo> = options.behind.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
-                    let behind_at = Vec3 { x: start.x - axis.0 * options.behind_distance, y: 0.0, z: start.z - axis.1 * options.behind_distance };
+                    // The pair drill's second group stands `D` across the axis beside the army, not behind it.
+                    let behind_at = if options.kind == drill::Kind::Pair {
+                        Vec3 { x: start.x + perp.0 * options.behind_distance, y: 0.0, z: start.z + perp.1 * options.behind_distance }
+                    } else {
+                        Vec3 { x: start.x - axis.0 * options.behind_distance, y: 0.0, z: start.z - axis.1 * options.behind_distance }
+                    };
                     let rank = Formation { kind: FormationKind::Ranks(count.max(1)), spacing: form_x.spacing };
                     let first_rear = spawns.len();
                     spawns.extend(rank.places_along(behind_at, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, place(at), None)));
@@ -977,7 +982,8 @@ impl Director {
                     drill.target = Some(0);
                     vec![Self::spawn(&self.defs[&options.target], drill.goal, None)]
                 }
-                drill::Kind::Assault => {
+                // The pair drill's attack arm: the party on the goal, placed as a defence is.
+                drill::Kind::Assault | drill::Kind::Pair if options.kind == drill::Kind::Assault || options.pair == drill::PairMode::Attack => {
                     let count: u32 = force_y.iter().map(|(_, n)| n).sum();
                     let defs: Vec<&UnitDefInfo> = force_y.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
                     let rank = Formation { kind: FormationKind::Ranks(count.max(1)), spacing: drill::DEFENCE_SPACING };
@@ -1717,7 +1723,8 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     }
                     let stalled = duel.drill.as_ref().and_then(|d| d.stalled.map(|(u, _)| u));
                     // D23 `--late`: the rear party is nobody's until its time, then joins the marching group.
-                    let waiting: Vec<usize> = duel.drill.as_ref().filter(|d| d.rear_waits(frame)).map(|d| d.rear.clone()).unwrap_or_default();
+                    // The pair drill: the second force is never the army's; it is the group "pair" below.
+                    let waiting: Vec<usize> = duel.drill.as_ref().filter(|d| d.rear_waits(frame) || d.kind == drill::Kind::Pair).map(|d| d.rear.clone()).unwrap_or_default();
                     let living: Vec<UnitId> = (army.alive.keys().copied())
                         .filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile && !waiting.contains(&i)) && !army.left_behind.contains(u) && Some(*u) != stalled)
                         .collect();
@@ -1725,8 +1732,24 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     // The companies design (`--cap`): the army in companies of at most the cap, the lab's rally the
                     // muster of a fed force.
                     let (cap, musters) = duel.drill.as_ref().map_or((0, Vec::new()), |d| (d.cap, if d.cap > 0 && matches!(d.kind, drill::Kind::Gather | drill::Kind::Circuit) { vec![d.rally()] } else { Vec::new() }));
-                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, musters, ..order };
+                    let pair_attack = duel.drill.as_ref().is_some_and(|d| d.kind == drill::Kind::Pair && d.pair_mode == drill::PairMode::Attack);
+                    let party: Vec<UnitId> = if pair_attack { enemy.alive.keys().copied().collect() } else { order.party.clone() };
+                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, musters, party: party.clone(), ..order };
                     lane.set_group("army", living, order);
+                    // The pair drill's second group: the second force as a lane group of its own, to the same end, to
+                    // the army's anchor (a follower), or at the party with the army; its anchor noted for the books.
+                    if let Some(drill) = duel.drill.as_mut()
+                        && drill.kind == drill::Kind::Pair
+                    {
+                        if let Some(state) = lane.group_state("pair") {
+                            drill.note_pair(state.anchor, state.arrived && state.exceptions.is_empty());
+                        }
+                        let members: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|i| drill.rear.contains(i)) && !army.left_behind.contains(u)).collect();
+                        let end = drill.pair_end();
+                        let kind = if drill.fight || drill.pair_mode != drill::PairMode::Walk { GroupKind::FightTo } else { GroupKind::Go };
+                        let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, party, ..GroupOrder::new(kind, vec![end]) };
+                        lane.set_group("pair", members, order);
+                    }
                 }
                 // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
                 // quarry is gone from them; `enemy.units` keeps the dead).
@@ -1799,9 +1822,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     // A drill ends on arrival (an `into`: when everyone has fired) or the time limit alone (`drill.rs`);
                     // an assault (D16) when the defence is wiped (`taken`), the army's mobile units are (`wiped`), or
                     // at the time limit.
-                    if drill.kind == drill::Kind::Assault && duel.armies[1].alive.is_empty() {
+                    if drill.judged_as_assault() && duel.armies[1].alive.is_empty() {
                         Some("taken")
-                    } else if drill.kind == drill::Kind::Assault && walking.is_empty() {
+                    } else if drill.judged_as_assault() && walking.is_empty() {
                         Some("wiped")
                     } else if drill.done(&walking) {
                         Some(if drill.kind == drill::Kind::Into { "engaged" } else { "arrived" })
@@ -1822,7 +1845,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     None
                 };
                 if let (Some(reason), Some(drill)) = (reason, duel.drill.as_mut())
-                    && drill.kind == drill::Kind::Assault
+                    && drill.judged_as_assault()
                 {
                     // The assault's own columns (D16): when the defence fell, and the army's units dead before their
                     // own first shot.
@@ -2427,7 +2450,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "x": army.spawns.iter().map(|s| s.name.clone()).collect::<Vec<_>>(), "formation": army.formation.map(|f| f.label()), "lane": army.lane_mode.label(),
         "fight": drill.fight, "turn_at_s": drill.turn_at / FPS, "reissue_s": drill.reissue.map(|f| f as f32 / FPS as f32), "lead": drill.lead, "pace": drill.pace,
         "target": target.map(|s| s.name.clone()), "target_at": target.map(|s| [s.at.x.round(), s.at.z.round()]),
-        "theirs": (drill.kind == drill::Kind::Assault).then(|| other.spawns.iter().map(|s| json!([s.name, s.at.x.round(), s.at.z.round()])).collect::<Vec<_>>()),
+        "theirs": drill.judged_as_assault().then(|| other.spawns.iter().map(|s| json!([s.name, s.at.x.round(), s.at.z.round()])).collect::<Vec<_>>()),
         "advance": drill.advance, "lane_theirs": other.lane_mode.label(),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
         "pacing": std::env::var("WITHIN_REASON_PACING").ok(),

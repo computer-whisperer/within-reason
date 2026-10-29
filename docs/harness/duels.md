@@ -353,6 +353,16 @@ line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800
 (1704,2024)), 178 s for a Pawn at full speed; the first leg walks 4,429 for 3,586 as the crow flies.
 
 **assault** (design D16, 2026-10-24 night): the walk into a defence that shoots back, judged as a duel.
+`duel --drill pair --ours FORCE --behind FORCE@D [--pair walk|follow|attack] [--theirs PARTY] [--distance 2000] [--lane on] ...`
+(2026-10-29, the formations that stacked in advance-2): two groups of ours, the army and a second force spawned `D`
+across the axis beside it, each a lane group of its own (`army`, `pair`). `walk`: both to the same end; `follow`: the
+second's way ends at the army's anchor, re-set once it has moved 150 (the hands' follow step); `attack`: both at the
+party `--theirs` standing on the goal (placed as an assault's defence), judged as an assault. Columns: the two anchors'
+mean distance over the seconds both stood, the seconds they stood within `PAIR_OVERLAP` (250, one footprint), the
+second group's arrival from the first order and the distance then (`pair_distance`, `pair_overlap_s`,
+`pair_arrive_s`, `pair_distance_arrival`). Smoke: two groups of twelve walked to one end arrive with their anchors 0
+apart, within one footprint for 31 of 40 s.
+
 `duel --drill assault --ours FORCE --theirs DEFENCE [--distance 2500] [--order fight|move] [--lane off|old|ranks|on[/off|on]]
 [--formation ranks6@64] [--from X,Z --to X,Z | --around R] [--advance]`: both forces written with counts (`armflash*12` against
 `armhlt*1`, nothing sized against the other side), the army spawned `--distance` from the goal in its formation facing

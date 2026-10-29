@@ -308,7 +308,7 @@ def main():
         for r in rows:
             groups.setdefault(tuple(r.get(k, "") for k in by), []).append(r)
         assault = meta.get("kind") == "assault"
-        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind | backtrack | anchor back | stopped s |"
+        head = "| " + " | ".join(by) + " | n | arrived or engaged (timeout) | first / median / last s | spread | nearest friend | speed share | spin-up s | recover s | produced | join s | at contact deep x wide | ramp half / all s | first shot s | shot ramp half / all s (target deaths) | walk / straight (route s) | laps | formed share | joined | left behind | backtrack | anchor back | stopped s | pair: distance / overlap s / arrive s / at arrival |"
         if assault:
             # D16: the duel's judge and fire columns beside the drill's.
             head += " taken / wiped / timeout | taken s | margin (value left x - y) | lost before shot | shots per reach s | muzzled share | friend on line |"
@@ -357,6 +357,9 @@ def main():
             cells.append(fmt(mean(number(r.get("backtrack_share")) for r in rs), 2))
             cells.append(fmt(mean(number(r.get("anchor_back")) for r in rs)))
             cells.append(fmt(mean(number(r.get("stopped_s")) for r in rs), 1))
+            # The pair drill (2026-10-29): the two anchors' mean distance, the seconds within one footprint, the second group's arrival and the distance then.
+            pair = mean(number(r.get("pair_distance")) for r in rs)
+            cells.append(f"{fmt(pair)} / {fmt(mean(number(r.get('pair_overlap_s')) for r in rs), 1)} / {fmt(mean(number(r.get('pair_arrive_s')) for r in rs))} / {fmt(mean(number(r.get('pair_distance_arrival')) for r in rs))}" if pair is not None else "-")
             if assault:
                 taken = sum(1 for r in rs if r.get("reason") == "taken")
                 wiped = sum(1 for r in rs if r.get("reason") == "wiped")
