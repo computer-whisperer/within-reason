@@ -970,6 +970,62 @@ mod tests {
         assert!(state.heading.0 > 0.3 && state.heading.1 > 0.8, "the centre, south-south-east, while none is seen: {:?}", state.heading);
     }
 
+    /// §5.3: two formations ordered to one end stand beside each other, not on each other: the second's way ends
+    /// off the first's footprint (the larger, or the one standing, keeps the place), a width and a margin to the
+    /// side; the host sending the same end again moves nothing (the place is kept while the end stays), and a
+    /// formation that outranks the other is never displaced by it.
+    #[test]
+    fn two_formations_sent_to_one_end_stand_beside_each_other() {
+        let host = Host::new(Vec::new());
+        let end = at(1100.0, 3000.0);
+        let a_ids: Vec<i32> = (10..19).collect();
+        let b_ids: Vec<i32> = (30..36).collect();
+        let block = |ids: &[i32], x0: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let members = |ids: &[i32]| ids.iter().map(|id| UnitId(*id)).collect::<Vec<_>>();
+        let mut lane = Lane::default();
+        lane.set_group("a", members(&a_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+        lane.set_group("b", members(&b_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+        let mut body: Vec<OwnUnit> = block(&a_ids, 1000.0);
+        body.extend(block(&b_ids, 1300.0));
+        let mut goals: HashMap<UnitId, Vec3> = HashMap::new();
+        let mut frame = 30;
+        while frame < 30 * 90 {
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            for c in &out.commands {
+                if let Command::Move { unit, to, .. } = c {
+                    goals.insert(*unit, *to);
+                }
+            }
+            for u in body.iter_mut() {
+                let Some(to) = goals.get(&u.id) else { continue };
+                let d = u.pos.dist2d(*to);
+                let step = 16.8f32.min((d - 20.0).max(0.0));
+                u.vel = at(0.0, 0.0);
+                if d > 0.0 && step > 0.0 {
+                    let (dx, dz) = ((to.x - u.pos.x) / d * step, (to.z - u.pos.z) / d * step);
+                    u.pos = at(u.pos.x + dx, u.pos.z + dz);
+                    u.vel = at(dx / 3.0, dz / 3.0);
+                }
+            }
+            // The host sends the same ends again, as the hands do every tick.
+            lane.set_group("a", members(&a_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+            lane.set_group("b", members(&b_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+            let (a, b) = (lane.group_state("a").expect("a"), lane.group_state("b").expect("b"));
+            if a.arrived && b.arrived {
+                break;
+            }
+            frame += 3;
+        }
+        let (a, b) = (lane.group_state("a").expect("a"), lane.group_state("b").expect("b"));
+        assert!(a.arrived && b.arrived, "both arrived: {a:?} {b:?}");
+        // The larger, a, took the end; b stands a footprint beside it: apart across the heading by about the two half
+        // widths and the margin (a: 3 files of 3 ranks, b: 3 files of 2; the spacing the lane's), on a level with it.
+        let apart = a.anchor.dist2d(b.anchor);
+        assert!(a.anchor.dist2d(end) < 60.0, "a stands at the end: {:?}", a.anchor);
+        assert!(apart > 150.0 && apart < 450.0, "b beside a, not on it: {apart:.0} apart ({:?} / {:?})", a.anchor, b.anchor);
+        assert!((a.anchor.z - b.anchor.z).abs() < 120.0, "beside, not behind: {:?} / {:?}", a.anchor, b.anchor);
+    }
+
     /// H-MICRO-FORM-HOLDPOS: a formation group's soldiers are put at hold position once, so nobody idle in its slot
     /// chases; a member that leaves the group, or a group re-declared as a rove, is at manoeuvre again, once.
     #[test]

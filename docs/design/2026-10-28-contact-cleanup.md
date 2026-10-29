@@ -362,3 +362,47 @@ Open: the walk-against-the-charge arm (-0.06 to -0.17; at contact the block stoo
 by 276, its first shot at 27 s against 20: a pinned block no longer turns to face a mob that comes round it), and
 whether a block ordered at a party it cannot reach should stand its ground rather than walk in (item 3 of the
 proposal, the firing line, unbuilt).
+
+### 5.3 Formations are placed off each other (2026-10-29)
+
+The user, after advance-2: "Many times throughout that game I saw multiple sub-groups mingling with each other and
+superposing. This caused both formations' movements to be delayed and mutually blocked. We should work to incentivise
+formations to separate from each other. I don't think it should be forbidden for them to overlap, but we should find
+ways to have them naturally separate where possible." Measured in advance-2: 396 company-pair-seconds with two anchors
+within 190 of each other over 1,482 sampled seconds; two companies of one capped group on one attack (159 s), a
+follower on its ward (58 s), an idle group where another held (47 s), two groups on one party (14 s). The pieces:
+a formation's place is its route's end, placed off structures by `Ground::stand` at plan time and set raw by
+`retarget` every tick for an attack, a party's nearest and a follower; a follower's end is its ward's anchor exactly;
+an army's companies share one route; the ground knows nothing of other formations.
+
+The rule (`Group::keep_off`, `Footprint`, `FormCtx::footprints`): the lane snapshots every formation's footprint each
+tick (the ranks' rectangle in the heading's frame, `standing` when at its end, halted or pinned). Wherever a
+formation's way ends this tick, after the planner, the party or the host set it, the end is kept off the footprints
+of the formations that outrank it (a standing one over a marching one, else the larger, else the name): when it lies
+in one, grown by `KEEP_OFF_MARGIN` (48), it moves to the nearest free place beside the occupant, left or right in
+steps of the two half widths plus the margin, else behind it; nothing when none fits, so overlap is never forbidden.
+The place is kept while the host's end stays within `ROUTE_MOVED` of what it was placed for and is still free, and
+given back to the planner's end when released, so nothing flickers; an anchor that had arrived on a taken end walks to
+its place. A marching formation whose way crosses another is left alone. Test
+`two_formations_sent_to_one_end_stand_beside_each_other`.
+
+The drill (`duel --drill pair`, `docs/harness/duels.md`): two groups of twelve, the second 300 across the axis, in
+three arms, walk to one end, follow the army, attack a party of six Stouts and two Rocketeers on the goal; scored on
+the anchors' mean distance, the seconds within one footprint (250), the second group's arrival and the distance then.
+
+Results (ledger pair0 the §5.2 binary, pair2 this rule; 8 reps):
+
+| arm | anchors apart at arrival | footprint-overlap s | second group's arrival s | outcome |
+|---|---|---|---|---|
+| walk | 0 to 434 | 31 to 35 | 39 to 49 | arrived 8/8 both |
+| follow | 16 to 432 | 5.5 to 0 | 44 to 54 | arrived 8/8 both |
+| attack | 6 to 100 | 90 to 40 | 62 to 59 | taken 6 of 8 to 8 of 8, margin +0.80 to +0.79 |
+
+The two half widths and the margin of two blocks of twelve are 432: the second stands exactly beside the first.
+The walk's overlap on the march stays (both converge on one end until the placement parts them at it); its second
+group arrives ten seconds later, which is the walk to the place beside. The single-formation arms, where the rule is
+a no-op, hold: the slice within 0.06 of pb2 on every arm (on/off -0.17 to -0.11, Bulls +0.49 to +0.44, the assaults
+within 0.04), the pass-by within 0.04. A first build (ledger pair1) wrote the host's raw end back over the planner's
+placed end whenever nothing blocked it, undoing `Ground::stand` on every single-formation arm; fixed before pair2.
+Open: group_X4's companies stood 10-50 apart for a minute and a half because the player's company cap was 8 and two
+of 7 could not merge; under this rule they stand side by side.

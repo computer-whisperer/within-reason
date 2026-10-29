@@ -369,6 +369,8 @@ struct FormCtx<'a> {
     enemies: &'a [EnemyUnit],
     by_id: &'a HashMap<UnitId, &'a OwnUnit>,
     spacing: f32,
+    /// Every formation's footprint as of the last tick (§5.3): what a formation's end is kept off.
+    footprints: &'a [group::Footprint],
 }
 
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
@@ -1140,6 +1142,8 @@ impl Lane {
         let spacing_on = view.enabled("H-MICRO-FORM-SPACING");
         let by_id: HashMap<UnitId, &OwnUnit> = soldiers.iter().map(|u| (u.id, *u)).collect();
         let names: Vec<String> = self.groups.keys().cloned().collect();
+        // Every formation's footprint as of the last tick (§5.3): each formation keeps its end off the others'.
+        let footprints: Vec<group::Footprint> = self.groups.values().filter(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. })).flat_map(|d| d.army.companies.iter().map(|c| c.formation.footprint())).collect();
         for name in names {
             let Some(declared) = self.groups.get_mut(&name) else { continue };
             if matches!(declared.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
@@ -1224,7 +1228,7 @@ impl Lane {
                     army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role().word(), c.members.len())).collect::<Vec<_>>().join(", ")
                 );
             }
-            let ctx = FormCtx { frame, enemies, by_id: &by_id, spacing };
+            let ctx = FormCtx { frame, enemies, by_id: &by_id, spacing, footprints: &footprints };
             for c in &mut army.companies {
                 let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
                 c.formation.update(c.members.clone(), c.order(&order));
@@ -1250,7 +1254,7 @@ impl Lane {
     /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
     /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
     fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, Vec3>) -> GroupState {
-        let FormCtx { frame, enemies, by_id, spacing } = *ctx;
+        let FormCtx { frame, enemies, by_id, spacing, footprints } = *ctx;
         // An Attack's goal follows its target's sightings.
         if let GroupKind::Attack(id) = group.order.kind
             && let Some(at) = enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id))
@@ -1283,6 +1287,8 @@ impl Lane {
                 group.retarget(end);
             }
         }
+        // The end kept off the other formations' footprints (§5.3), after whatever set it this tick.
+        group.keep_off(footprints);
         // The halt: every member of the body has an armed enemy within its own reach. Inside by `STAND_INSIDE` to
         // halt, within the reach plus `STAND_KEEP` to stay halted. The body is last tick's books; everyone until
         // there are any. (Until 2026-10-29 one member with an enemy inside `close_to` of its reach halted the block

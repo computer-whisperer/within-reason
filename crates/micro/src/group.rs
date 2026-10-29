@@ -212,6 +212,49 @@ pub const CLOSE_LEASH: f32 = 600.0;
 pub const PIN_SLACK: f32 = 20.0;
 /// How much nearer the anchor another member of the party must be before the way's end leaves the one it is on.
 pub const PARTY_SWITCH: f32 = 150.0;
+/// The room kept between two formations' footprints when one is placed off the other (`keep_off`).
+pub const KEEP_OFF_MARGIN: f32 = 48.0;
+
+/// A formation's footprint this tick (`docs/design/2026-10-28-contact-cleanup.md` §5.3): the ranks' rectangle in the
+/// heading's frame, the front rank centred on the anchor and the rest behind it; `standing` when it is at its end,
+/// halted or pinned (a standing formation keeps its place, a marching one is placed off it).
+#[derive(Clone, Debug)]
+pub struct Footprint {
+    pub name: String,
+    pub anchor: Vec3,
+    pub heading: (f32, f32),
+    pub count: usize,
+    pub spacing: f32,
+    pub standing: bool,
+}
+
+impl Footprint {
+    /// Half the width across the heading and the depth behind the anchor.
+    pub fn half_width(&self) -> f32 {
+        self.count.min(form::FILES).max(1) as f32 * self.spacing / 2.0
+    }
+
+    pub fn depth(&self) -> f32 {
+        (self.count.max(1).div_ceil(form::FILES) - 1) as f32 * form::RANK_GAP
+    }
+
+    /// Whether `p` lies in the rectangle grown by `margin` on every side.
+    pub fn contains(&self, p: Vec3, margin: f32) -> bool {
+        let (dx, dz) = (p.x - self.anchor.x, p.z - self.anchor.z);
+        let forward = dx * self.heading.0 + dz * self.heading.1;
+        let lateral = -dx * self.heading.1 + dz * self.heading.0;
+        forward <= margin && forward >= -self.depth() - margin && lateral.abs() <= self.half_width() + margin
+    }
+
+    /// Whether this footprint keeps its place against `other`: a standing one against a marching one, else the
+    /// larger, else the name (so the two never both yield).
+    pub fn outranks(&self, other: &Footprint) -> bool {
+        if self.standing != other.standing {
+            return self.standing;
+        }
+        self.count > other.count || (self.count == other.count && self.name < other.name)
+    }
+}
 
 /// A route point that moved less than this since the host's last order is the same point (an enemy's centre
 /// creeping; the host re-declaring every tick): the anchor's leg and the slots' deal stand.
@@ -357,6 +400,10 @@ pub struct Group {
     /// anchor by `PARTY_SWITCH`, so the end does not hop between members of a loose party every tick (pb1: the
     /// heading swung 60-120 degrees a second round a pinned block, 1-6 of 18 formed).
     pub party_target: Option<UnitId>,
+    /// The way's end as placed off another formation's footprint (`keep_off`): the host's end it was placed for,
+    /// where it went, and the way's end before (the planner's or the party's, restored when the place is given up);
+    /// kept while the host's end stays within `ROUTE_MOVED` and the place is still free.
+    placed: Option<(Vec3, Vec3, Vec3)>,
     pub arrived: bool,
     pub engaged: Option<UnitId>,
     last_frame: Option<i32>,
@@ -418,6 +465,7 @@ impl Group {
             guard: None,
             pinned: false,
             party_target: None,
+            placed: None,
             arrived: false,
             engaged: None,
             last_frame: None,
@@ -588,6 +636,75 @@ impl Group {
 
     /// A member of the body (D22): with a slot, within `exception_at` of it (not away), not cut off. By last tick's
     /// books: nobody before the first tick.
+    /// This formation's footprint this tick (§5.3).
+    pub fn footprint(&self) -> Footprint {
+        Footprint { name: self.name.clone(), anchor: self.anchor, heading: self.heading, count: self.members.len(), spacing: self.spacing, standing: self.at_end() || self.stopped || self.pinned }
+    }
+
+    /// The way's end kept off other formations (§5.3; the user, on advance-2: "multiple sub-groups mingling with
+    /// each other and superposing ... both formations' movements were delayed and mutually blocked"): when the end
+    /// lies in the footprint of a formation that outranks this one, it is moved to the nearest free place beside
+    /// that formation, left or right of it in steps of a width, else behind it; nothing when none fits, so overlap
+    /// is never forbidden. The place is kept while the host's end stays within `ROUTE_MOVED` of what it was placed
+    /// for and is still free, so it does not flicker. Called every tick after the host's or the party's end is set.
+    pub fn keep_off(&mut self, others: &[Footprint]) {
+        let Some(raw) = self.order.route.last().copied() else { return };
+        if self.way.is_empty() {
+            return;
+        }
+        let mine = self.footprint();
+        let margin = KEEP_OFF_MARGIN;
+        let blockers: Vec<&Footprint> = others.iter().filter(|o| o.name != mine.name && o.outranks(&mine)).collect();
+        let free = |p: Vec3| !blockers.iter().any(|o| o.contains(p, margin));
+        // The way's end as the planner or the party set it this tick; a kept place stands over it, a place given up
+        // gives it back.
+        let before = match self.placed {
+            Some((_, at, before)) if self.way.last().is_some_and(|l| l.dist2d(at) <= 1.0) => before,
+            _ => self.way.last().copied().unwrap_or(raw),
+        };
+        let placed = if let Some((for_raw, at, _)) = self.placed
+            && for_raw.dist2d(raw) <= ROUTE_MOVED
+            && free(at)
+        {
+            Some(at)
+        } else if free(before) {
+            None
+        } else {
+            let occupant = blockers.iter().copied().find(|o| o.contains(before, margin));
+            occupant.and_then(|o| {
+                let h = o.heading;
+                let left = (-h.1, h.0);
+                let across = o.half_width() + mine.half_width() + margin;
+                let behind = o.depth() + margin + 1.0;
+                let mut candidates: Vec<Vec3> = Vec::new();
+                for step in 1..=2 {
+                    for sign in [1.0f32, -1.0] {
+                        let s = sign * across * step as f32;
+                        candidates.push(Vec3 { x: o.anchor.x + left.0 * s, y: raw.y, z: o.anchor.z + left.1 * s });
+                    }
+                }
+                candidates.push(Vec3 { x: o.anchor.x - h.0 * behind, y: raw.y, z: o.anchor.z - h.1 * behind });
+                // Beside before behind; of the two sides, the one nearer the host's end first.
+                let (mut beside, behind): (Vec<Vec3>, Vec<Vec3>) = candidates.into_iter().partition(|c| (c.x - o.anchor.x) * h.0 + (c.z - o.anchor.z) * h.1 > -behind / 2.0);
+                beside.sort_by(|a, b| a.dist2d(raw).total_cmp(&b.dist2d(raw)));
+                beside.into_iter().chain(behind).map(|c| self.ground.as_ref().and_then(|g| g.stand(c)).unwrap_or(c)).find(|c| free(*c))
+            })
+        };
+        self.placed = placed.map(|at| (raw, at, before));
+        let end = placed.unwrap_or(before);
+        if let Some(last) = self.way.last_mut()
+            && last.dist2d(end) > 1.0
+        {
+            let far = last.dist2d(end) > ROUTE_MOVED;
+            *last = end;
+            // An anchor that had arrived on the old end walks to the new one.
+            if far && self.leg >= self.way.len() {
+                self.leg = self.way.len().saturating_sub(1);
+                self.arrived = false;
+            }
+        }
+    }
+
     pub fn in_body(&self, id: UnitId) -> bool {
         self.slots.contains_key(&id) && !self.away.contains_key(&id) && !self.cut_off.contains_key(&id)
     }
