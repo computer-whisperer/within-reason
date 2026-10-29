@@ -275,15 +275,14 @@ fn clash(menus: &[Menu], world: &World) -> bool {
 /// actors, each actor's best first, so one actor's many moves never starve another's (onepass-smoke-1); then the
 /// joint worlds (the user's one-decider design, restored 2026-09-29): every combination of the best-rated actors'
 /// changes, one per actor, over as many actors as fit under `cap`, ordered by the product of their ranks. None when
-/// nothing opened. Also returns each actor's best candidate, for world 1's line.
+/// nothing opened.
 #[cfg(test)]
-pub(super) fn compose(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BTreeMap<String, f64>, cap: usize) -> Option<(Vec<World>, Vec<Option<usize>>)> {
+pub(super) fn compose(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BTreeMap<String, f64>, cap: usize) -> Option<Vec<World>> {
     let per_menu = candidates(menus, answers, flags);
     if per_menu.iter().all(Vec::is_empty) {
         return None;
     }
-    let next: Vec<Option<usize>> = per_menu.iter().map(|mine| mine.first().map(|(_, ti)| *ti)).collect();
-    Some((worlds_over(menus, &per_menu, cap), next))
+    Some(worlds_over(menus, &per_menu, cap))
 }
 
 /// The worlds over the candidates given: world 1, the single changes round-robin, then the joint worlds.
@@ -487,13 +486,13 @@ pub(super) fn split_pick(answers: &BTreeMap<String, Answer>, components: &[Compo
     (world, parts)
 }
 
-/// What a world's line needs beside the menus: the parties, the gate's word on which need answering, each idle
-/// actor's best candidate, the store's words, the detachments the gate reads as forbidden.
+/// What a world's line needs beside the menus: the parties, the store's words, the detachments the gate reads as
+/// forbidden. Nothing of the gate's ratings: the gate is a filter on what the worlds offer, and its numbers do not
+/// become words in a world (the user, 2026-10-29: world 1's "with its next move X, not ordered" and the "Left to
+/// nobody" list were the gate's ranking and its party nouls read as costs; both deleted).
 pub(super) struct Lines<'a> {
     pub parties: &'a [Party],
     pub places: &'a [super::Place],
-    pub flags: &'a BTreeMap<String, f64>,
-    pub next: &'a [Option<usize>],
     pub store: &'a str,
     pub forbidden: &'a BTreeSet<String>,
     /// A split pick's component: the lines speak of its actors and parties alone. None: of everything.
@@ -518,9 +517,7 @@ struct Parts {
     sent: Vec<String>,
     /// A party an actor is told to attack and has not reached, with where that actor stands.
     not_met: Vec<String>,
-    /// A party Jev says needs answering that nobody is aimed at.
-    unmet: Vec<String>,
-    /// The idle actors, each with the move the gate rated best for it.
+    /// The idle actors, in their own words ("group_A holds at spot_49, a stop it has reached").
     idle: Vec<String>,
 }
 
@@ -544,29 +541,18 @@ fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
         if there.is_empty() && !away.is_empty() {
             parts.not_met.push(format!("{line}: {}", away.iter().map(|m| format!("{} is told to attack it, but {}", m.name, m.against.as_ref().map_or(String::new(), |s| s.words()))).collect::<Vec<_>>().join("; ")));
         }
-        if there.is_empty() && away.is_empty() && sent.is_empty() && lines.flags.get(&format!("{}.answer", party.name)).is_some_and(|a| *a >= FLAG) {
-            parts.unmet.push(line);
-        }
     }
-    parts.idle = menus
-        .iter()
-        .zip(world)
-        .enumerate()
-        .filter(|(k, (menu, i))| **i == 0 && menu.idle && lines.scope.is_none_or(|s| s.menus.contains(k)))
-        .map(|(k, (menu, _))| match lines.next.get(k).copied().flatten() {
-            Some(ti) => format!("{}, with its next move, {}, not ordered", menu.idle_words, menu.moves[ti].said),
-            None => menu.idle_words.clone(),
-        })
-        .collect();
+    parts.idle = menus.iter().zip(world).enumerate().filter(|(k, (menu, i))| **i == 0 && menu.idle && lines.scope.is_none_or(|s| s.menus.contains(k))).map(|(_, (menu, _))| menu.idle_words.clone()).collect();
     parts
 }
 
 /// A world's line. World 1's says the cost of changing nothing and no more (the courses in force are in `actors`;
-/// K-jev-hold-words-carry-the-cost): the parties that need answering and are left to nobody, and each idle actor
-/// with the move Jev's own gate rated best for it (K-jev-its-own-best-rated-move-carries-a-route: 24 of 24 next
-/// legs picked with the sentence, 10 of 24 with an unordered list). Every other world's says only what it changes
-/// from world 1 ("As w1, and ...") and the consequences that differ, so the change is the option's own words. A
-/// detachment the gate reads as forbidden says so in a sentence of its own at the line's end.
+/// K-jev-hold-words-carry-the-cost): the parties met, sent at and not met, and each idle actor in its own words.
+/// Every other world's says only what it changes from world 1 ("As w1, and ...") and the consequences that differ,
+/// so the change is the option's own words. A detachment the gate reads as forbidden says so in a sentence of its
+/// own at the line's end. Until 2026-10-29 world 1 also named each idle actor's best-rated move as "its next move,
+/// not ordered" (K-jev-its-own-best-rated-move-carries-a-route, retired) and listed as "Left to nobody" the parties
+/// whose `answer` noul was at the flag with nobody at them: the gate's numbers as costs, deleted on the user's word.
 pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Option<&World>) -> String {
     let mut of = parts_of(world, menus, lines);
     if let Some(b) = base {
@@ -575,10 +561,9 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
         added(&mut of.met, &theirs.met);
         added(&mut of.sent, &theirs.sent);
         added(&mut of.not_met, &theirs.not_met);
-        added(&mut of.unmet, &theirs.unmet);
         added(&mut of.idle, &theirs.idle);
     }
-    let Parts { moves, met, sent, not_met, unmet, idle } = of;
+    let Parts { moves, met, sent, not_met, idle } = of;
     let mut parts: Vec<String> = Vec::new();
     parts.push(match base {
         None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
@@ -592,9 +577,6 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
     }
     if !not_met.is_empty() {
         parts.push(format!("Not met: {}", not_met.join("; ")));
-    }
-    if !unmet.is_empty() {
-        parts.push(format!("Left to nobody: {}", unmet.join("; ")));
     }
     if !idle.is_empty() {
         // The cost on the option's own words (onepass-smoke-3: "Idle: plant" beside a full store lost to the Blitz
@@ -625,7 +607,7 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
 /// separating nothing (a 0.5 confidence bar would have held quick and spaced picks alike). Under a draw, world 1's
 /// share of the mass is its chance and no more, so the plurality fault cannot return; the wording names world 1 as
 /// one world among the rest and privileges it in nothing.
-const COMMON: &str = "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.";
+const COMMON: &str = "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met, who stays idle. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.";
 
 /// The pick's one question: every world under its number, world 1 first.
 pub(super) fn pick_question(lines: &[String]) -> Question {
@@ -717,14 +699,13 @@ pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Plac
     if per_menu.iter().all(Vec::is_empty) {
         return Followed { flags, rated, worlds: None, components: None };
     }
-    let next: Vec<Option<usize>> = per_menu.iter().map(|mine| mine.first().map(|(_, ti)| *ti)).collect();
     let mut worlds = worlds_over(menus, &per_menu, cap);
     // The detachments the gate reads as forbidden by the instructions (`FORBIDDEN`): said on their lines.
     // The mark the decode set stands over the second's own reading, which is then asked for the audit alone.
     let decoded = |id: &str| menus.iter().find_map(|menu| menu.moves.iter().find(|m| menu.id(m) == id).and_then(|m| m.marked));
     let mut forbidden: BTreeSet<String> = flags.iter().filter(|(_, p)| **p >= FORBIDDEN).filter_map(|(id, _)| id.strip_suffix(".forbidden").map(str::to_string)).filter(|id| decoded(id).is_none()).collect();
     forbidden.extend(menus.iter().flat_map(|menu| menu.moves.iter().filter(|m| m.marked == Some(true)).map(|m| menu.id(m))));
-    let said = Lines { parties, places, flags: &flags, next: &next, store, forbidden: &forbidden, scope: None };
+    let said = Lines { parties, places, store, forbidden: &forbidden, scope: None };
     let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, menus, &said, (i > 0).then_some(&worlds[0]))).collect();
     let keep = fit(&lines, LINE_CHARS);
     worlds.truncate(keep);
@@ -813,8 +794,8 @@ mod tests {
         menu(&format!("group_{name}"), Kind::Group(name.to_string()), idle, moves)
     }
 
-    fn said<'a>(parties: &'a [Party], flags: &'a BTreeMap<String, f64>, next: &'a [Option<usize>], forbidden: &'a BTreeSet<String>) -> Lines<'a> {
-        Lines { parties, places: &[], flags, next, store: "340 of 500 stored", forbidden, scope: None }
+    fn said<'a>(parties: &'a [Party], forbidden: &'a BTreeSet<String>) -> Lines<'a> {
+        Lines { parties, places: &[], store: "340 of 500 stored", forbidden, scope: None }
     }
 
     /// One menu per actor, one move per actor a world: a group's own way out stands beside its answers to a party
@@ -829,7 +810,7 @@ mod tests {
         // The group's own change opens its walk; the party's answer opens the attack on it.
         let answers = nouls(&[("party_7.answer", 0.8), ("group_A.change", 0.9), ("group_A.go_spot_30", 0.7), ("group_A.attack_party_7", 0.6), ("group_A.go_spot_31", 0.2)]);
         let mut flags = BTreeMap::new();
-        let (worlds, _) = compose(&menus, &answers, &mut flags, CAP).unwrap();
+        let worlds = compose(&menus, &answers, &mut flags, CAP).unwrap();
         assert_eq!(worlds, vec![vec![0], vec![1], vec![2]], "world 1, then its two best moves, each a world of its own: one move per actor");
         assert_eq!(flags["group_A.go_spot_30"], 0.7);
     }
@@ -873,20 +854,18 @@ mod tests {
             menu("commander", Kind::Builder(UnitId(4)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
         ];
         let answers = nouls(&[("group_A.join_group_B", 0.9), ("group_A.go_spot_30", 0.6), ("group_B.join_group_A", 0.8), ("constructor_3.build_armmex_spot_4", 0.7), ("commander.build_armmex_spot_4", 0.7)]);
-        let (worlds, next) = compose(&menus, &answers, &mut BTreeMap::new(), CAP).unwrap();
+        let worlds = compose(&menus, &answers, &mut BTreeMap::new(), CAP).unwrap();
         assert_eq!(worlds[0], vec![0, 0, 0, 0]);
-        assert_eq!(next, vec![Some(1), Some(1), Some(1), Some(1)]);
         assert!(worlds.contains(&vec![2, 1, 1, 0]), "{worlds:?}");
         assert!(!worlds.iter().any(|w| w[0] == 1 && w[1] == 1), "A into B while B into A is no world: {worlds:?}");
         assert!(!worlds.iter().any(|w| w[2] == 1 && w[3] == 1), "two builders on one spot is no world: {worlds:?}");
         // 3 * 2 * 2 * 2 = 24 combinations, less the 4 with the mutual join and the 6 with both on the spot, 1 in both.
         assert_eq!(worlds.len(), 24 - 4 - 6 + 1, "{worlds:?}");
-        let flags = BTreeMap::new();
         let forbidden = BTreeSet::new();
-        let line = consequence(&vec![2, 1, 1, 0], &menus, &said(&[], &flags, &next, &forbidden), Some(&worlds[0]));
+        let line = consequence(&vec![2, 1, 1, 0], &menus, &said(&[], &forbidden), Some(&worlds[0]));
         assert_eq!(line, "As w1, and: go_spot_30; join_group_A; build_armmex_spot_4.");
         // A cap of 6 holds world 1 and the five single changes; nothing joint fits.
-        let (small, _) = compose(&menus, &answers, &mut BTreeMap::new(), 6).unwrap();
+        let small = compose(&menus, &answers, &mut BTreeMap::new(), 6).unwrap();
         assert_eq!(small.len(), 6);
         assert!(small.iter().all(|w| w.iter().filter(|i| **i != 0).count() <= 1), "{small:?}");
     }
@@ -914,11 +893,12 @@ mod tests {
         let groups = &components[0];
         assert_eq!(groups.worlds.len(), 1 + 3 + 2, "three single changes and A's two with B's one: {:?}", groups.worlds);
         assert!(groups.worlds.iter().all(|w| w[2..].iter().all(|i| *i == 0)));
-        // A component's lines speak of its own: the party it answers, its idle actors; party_8 and the builders are another's.
-        assert_eq!(groups.lines[0], "Nothing changes: every actor keeps the course its entry under `actors` describes. Left to nobody: party_7 (2 Ticks, in sight). group_A idle, doing nothing, with its next move, the attack_party_7, not ordered; group_B idle, doing nothing, with its next move, the send_1_party_7, not ordered.");
+        // A component's lines speak of its own: its idle actors in their own words, nothing of the gate's ratings;
+        // party_8 and the builders are another's.
+        assert_eq!(groups.lines[0], "Nothing changes: every actor keeps the course its entry under `actors` describes. group_A idle, doing nothing; group_B idle, doing nothing.");
         assert_eq!(components[1].worlds, vec![vec![0, 0, 0, 0, 0, 0], vec![0, 0, 1, 0, 0, 0], vec![0, 0, 0, 1, 0, 0]], "two builders on one spot is no world");
         assert_eq!(components[2].lines.len(), 2);
-        assert!(components[2].lines[0].contains("plant_5 idle, doing nothing, with its next move, the make_armflash, not ordered, while the metal store reads 340 of 500 stored") && !components[2].lines[0].contains("party_"), "{}", components[2].lines[0]);
+        assert!(components[2].lines[0].contains("plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored") && !components[2].lines[0].contains("party_") && !components[2].lines[0].contains("next move"), "{}", components[2].lines[0]);
         let questions = split_questions(&components);
         assert_eq!(questions.keys().map(String::as_str).collect::<Vec<_>>(), ["worlds.c0.pick", "worlds.c1.pick", "worlds.c2.pick"], "one Choice a component, world 1 among its options");
         let Question::Choice { criteria, .. } = &questions["worlds.c2.pick"] else { panic!("a choice") };
@@ -938,10 +918,11 @@ mod tests {
         assert_eq!(parts.iter().map(|p| (p["candidate"].as_u64(), p["taken"].as_bool())).collect::<Vec<_>>(), vec![(Some(joint as u64), Some(true)), (Some(1), Some(false)), (Some(2), Some(true))]);
     }
 
-    /// World 1's line: the cost of changing nothing. An idle actor is named with the move the gate rated best for
-    /// it; a party is left to nobody only when Jev says it needs answering; a party somebody's course is on is met.
+    /// World 1's line: the cost of changing nothing. An idle actor is said in its own words, never with the move
+    /// the gate rated best for it; a party nobody is at is not listed, whatever its `answer` noul said (the user,
+    /// 2026-10-29: the gate's numbers are a filter, not words in a world); a party somebody's course is on is met.
     #[test]
-    fn world_one_names_each_idle_actors_best_rated_move() {
+    fn world_one_says_the_idle_in_their_own_words_and_nothing_of_the_gates_ratings() {
         let mut a = group("A", true, vec![mv("fight_to_spot_46", Order::FightTo("spot_46".into()), None)]);
         a.idle_words = "group_A holds at spot_49, a stop it has reached".into();
         a.moves[1].said = "the advance to spot_46".into();
@@ -950,16 +931,14 @@ mod tests {
         b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false) });
         let menus = vec![a, b, menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)])];
         let parties = vec![party("party_7"), party("party_8"), party("party_9")];
-        let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8), ("party_8.answer".to_string(), 0.9), ("party_9.answer".to_string(), 0.2)].into();
-        let next = vec![Some(1), None, None];
         let forbidden = BTreeSet::new();
-        let line = consequence(&vec![0, 0, 0], &menus, &said(&parties, &flags, &next, &forbidden), None);
+        let line = consequence(&vec![0, 0, 0], &menus, &said(&parties, &forbidden), None);
         assert_eq!(
             line,
-            "Nothing changes: every actor keeps the course its entry under `actors` describes. Met: party_8 (2 Ticks, in sight) met by group_B. Left to nobody: party_7 (2 Ticks, in sight). group_A holds at spot_49, a stop it has reached, with its next move, the advance to spot_46, not ordered; plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored."
+            "Nothing changes: every actor keeps the course its entry under `actors` describes. Met: party_8 (2 Ticks, in sight) met by group_B. group_A holds at spot_49, a stop it has reached; plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored."
         );
         // The change's line says only what it changes: the group no longer idle is said by its move.
-        let line = consequence(&vec![1, 0, 0], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0, 0]));
+        let line = consequence(&vec![1, 0, 0], &menus, &said(&parties, &forbidden), Some(&vec![0, 0, 0]));
         assert_eq!(line, "As w1, and: fight_to_spot_46.");
     }
 
@@ -974,16 +953,16 @@ mod tests {
         w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false) });
         let menus = vec![w, group("A", false, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))])];
         let parties = vec![party("party_7")];
-        let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8)].into();
-        let (next, forbidden) = (vec![None, None], BTreeSet::new());
+        let forbidden = BTreeSet::new();
         let away = "group_W is told to attack it, but nothing of it has the party in reach (the nearest of its 9 soldiers is near, about 10 s of walking away, every one of them standing with no order); the party outruns it: it reaches the party only where the party stands still";
-        let line = consequence(&vec![0, 0], &menus, &said(&parties, &flags, &next, &forbidden), None);
+        let line = consequence(&vec![0, 0], &menus, &said(&parties, &forbidden), None);
         assert_eq!(line, format!("Nothing changes: every actor keeps the course its entry under `actors` describes. Not met: party_7 (2 Ticks, in sight): {away}."));
-        let line = consequence(&vec![0, 1], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0]));
+        let line = consequence(&vec![0, 1], &menus, &said(&parties, &forbidden), Some(&vec![0, 0]));
         assert_eq!(line, "As w1, and: attack_party_7. Sent at: party_7 (2 Ticks, in sight) by group_A.");
-        // Taken off the party, and nobody else sent: Jev said it needs answering, so it is left to nobody.
-        let line = consequence(&vec![1, 0], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0]));
-        assert_eq!(line, "As w1, and: go_spot_30. Left to nobody: party_7 (2 Ticks, in sight).");
+        // Taken off the party, and nobody else sent: the line says the move and no more; what the gate's party
+        // noul said is not a cost in a world.
+        let line = consequence(&vec![1, 0], &menus, &said(&parties, &forbidden), Some(&vec![0, 0]));
+        assert_eq!(line, "As w1, and: go_spot_30.");
         let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[], false, false, false).into_iter().collect();
         let Question::Noul { instructions, .. } = &qs["party_7.answer"] else { panic!("a noul") };
         assert!(instructions.as_str().unwrap().contains(&format!("by someone other than what stands ({away})?")), "{instructions}");
@@ -1108,7 +1087,7 @@ mod tests {
         let answers = nouls(&[("party_7.answer", 0.2), ("group_A.send_1_party_7", 0.9), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
         assert!(compose(&menus, &answers, &mut BTreeMap::new(), CAP).is_none(), "the audit's answers move nobody, and a party that needs no answer opens nothing");
         let answers = nouls(&[("party_7.answer", 0.8), ("group_A.send_1_party_7", 0.6), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
-        let (worlds, _) = compose(&menus, &answers, &mut BTreeMap::new(), CAP).expect("the party opens its answers");
+        let worlds = compose(&menus, &answers, &mut BTreeMap::new(), CAP).expect("the party opens its answers");
         assert_eq!(worlds, vec![vec![0, 0], vec![2, 0]]);
     }
 

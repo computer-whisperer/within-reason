@@ -618,7 +618,7 @@ mod group_tests {
     fn the_group_line_has_the_drills_keys_by_unit_id() {
         let state = GroupState {
             anchor: Vec3 { x: 1200.4, y: 0.0, z: 800.6 },
-            heading: (0.7071, -0.7071),
+            heading: (std::f32::consts::FRAC_1_SQRT_2, -std::f32::consts::FRAC_1_SQRT_2),
             pace: 86.6,
             full_pace: 87.0,
             formed: vec![UnitId(11), UnitId(12)],
