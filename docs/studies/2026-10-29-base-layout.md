@@ -2,8 +2,8 @@
 
 The research behind `docs/briefs/derived/base.md` (D-base-layout), asked for by the user on 2026-10-29 as the first
 step of the base-design work: find the key patterns and structures of the problem before any process for our play is
-reviewed. Tool: `run/base_layout.py` (`pool`, `block`, `summary`). Data: `docs/studies/data/base-layout-2026-10-29/`
-(`comet-duels-35os.jsonl`, one line a seat; `gecko-and-ours.jsonl`; `comet-duels.txt`, the 70 replay directories read,
+reviewed. Tool: `run/base_layout.py` (`pool`, `block`, `pen`, `summary`). Data: `docs/studies/data/base-layout-2026-10-29/`
+(`comet-duels-35os.jsonl`, one line a seat; `gecko-and-ours.jsonl`; `pen-*.jsonl`; `comet-duels.txt`, the 70 replay directories read,
 all under `/ceph/christian/within-reason/run/matches-archive`; `unitfacts.json`, footprints, blasts and health parsed
 from the game's unit files).
 
@@ -129,7 +129,34 @@ chain victims.
 5. Reclaim buys ground, not metal: a solar's 155 is under a second of a 14-minute income; seventeen solars are
    forty-seven turret footprints.
 
-## 7. What it does not say
+## 7. Fencing in (added the same day, the user's courtyard)
+
+`run/base_layout.py pen`: for each land plant, at each minute, a flood fill from the plant's door over a 16-elmo grid
+of our own standing footprints (and the terrain's slopes where the record has `terrain-<ai>.bin`: ours do, the pool's
+replay records do not), eroded by the unit's movement footprint (2 to 7 squares: bots 2, vehicles and heavy bots 3,
+Bull and Fatboy 4, Bantha and Shiva 5, Vanguard 6, Thor and Juggernaut 7); a size is penned when the fill cannot
+reach 1,200 elmos from the plant. Wrecks, allies' buildings and enemy units are not in it. Data:
+`pen-ours-and-gecko.jsonl`, `pen-pool-40os.jsonl`.
+
+| | plants | penned at any size | sizes |
+|---|---|---|---|
+| ours, fourteen latest games (advance-1 to -4, files-1, contact-1, airstun-1, two human games, apex-v0405, companies-1/2, migration-3-1/4-1) | 44 | 5 | 7 at 10:00-13:00, 6 at 14:00-22:00, 5 at 10:00-17:00, 4 once (contact-1's second plant, 17:00); never 2 or 3 |
+| the pool at 40 OS (24 games, 49 seats, no terrain) | 97 | 24 | 7 in 24, 6 in 16, 5 in 6, 4 in 2, everything in 1 (a plant walled in at 8:00) |
+| thebluegecko (two games, 7 plants) | 7 | 0 | |
+
+The picture (contact-1's second plant at 17:00, rendered from the record): the plant facing east into a solar field
+laid at one footprint plus one or two squares, gaps of 16 to 48 elmos between solars that pass a Stumpy and stop a
+Bull. The pool's duels end before anyone makes a size-5 unit; both sides pen what they do not build.
+
+## 8. Gantries
+
+No person in our records built one. The eight-seat AI games on Glitters (smrtbarb-8v8 replays) placed five, with 6 to
+24 turrets in reach when placed and frames of 17 to 42 seconds; one of ours (replay-dist-c8a-02) was placed at 20:30
+with no turret in reach and never finished. The numbers in the article are the unit files': 12 by 12, 7,900 / 62,000
+(Cortex 8,400 / 68,000), 1,800 of its own build power, a Bantha 360,000, a Thor 320,000, a Juggernaut 780,000, blast
+1,330 to 210, products of movement footprint 5 to 7.
+
+## 9. What it does not say
 
 Why the people pitch at 48 (habit, the grid's default, or a measured preference), whether a block at 96 costs anything
 in frame clocks (no frame in his game had more than 121 turrets in reach, and 68 fit at 96), how the people lay bases

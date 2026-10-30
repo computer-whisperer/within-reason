@@ -7,6 +7,9 @@ run/replay_match.py). The study: docs/studies/2026-10-29-base-layout.md; the der
     run/base_layout.py pool 0 <record.jsonl>...         the same for bare records (ours: run/matches/<batch>/<NN>/record-0.jsonl)
     run/base_layout.py block <record.jsonl>             the construction-turret block of one side: pitch, bars, what stands
                                                         in it with the turrets in reach when placed, the chain bill
+    run/base_layout.py pen <record.jsonl>...            per land factory, the first minute a unit of each footprint (2 to 7
+                                                        squares) can no longer walk from its exit to ground 1,200 away through
+                                                        our own buildings (and the terrain where the record has it)
     run/base_layout.py summary <pool.jsonl>             the pooled medians of a pool file
 
 Footprints, blasts and health come from the game's unit files under upstream/Beyond-All-Reason (cached as
@@ -68,7 +71,7 @@ def kind_of(name):
 def half(name):
     """Half the footprint in elmos (a footprint square is 16 elmos): a 3x3 turret is 24, a 6x6 plant 48."""
     f = FACTS.get(name) or {}
-    return (f.get('fx') or 2) * 8, (f.get('fz') or 2) * 8
+    return int((f.get('fx') or 2) * 8), int((f.get('fz') or 2) * 8)
 
 def dist(a, b): return math.hypot(a[0] - b[0], a[1] - b[1])
 
@@ -367,6 +370,123 @@ def block(record):
             inr = sum(1 for v in nanos if dist(P(u), P(v)) <= 400 + hx and fin[v]['f'] <= fend and (v not in de or de[v]['f'] > fend))
             print(f'  factory {n:8s} at {P(u)} finished {fin[u]["f"] / fps / 60:5.1f}', f'gone {de[u]["f"] / fps / 60:5.1f} ({de[u].get("c") or "killed"})' if u in de else 'standing at the end', f'turrets in reach then {inr}')
 
+
+# ---------------------------------------------------------------- pen: when a base fences its own factories in, by unit size
+def pen(record, minutes_step=1):
+    """For each land factory of the record's side: at every minute, whether a unit of each movement footprint (2 squares = bots,
+    3 = vehicles and T2 bots, 4 = Bull/Fatboy class, 5 = Bantha class, 6 = Vanguard, 7 = Thor/Juggernaut) can walk from the
+    factory's exit to open ground 1,200 away, through our own standing buildings (and the terrain's slopes when the record
+    has terrain-<ai>.bin). A size is penned when the eroded free grid has no path. Grid: 16-elmo squares."""
+    import struct
+    h, defs, cr, fin, de, cmds, samples = load(record)
+    name = lambda d: defs[d]['name']; fps = h.get('frames_per_second', 30)
+    W, H = int(h['map']['width']) // 16, int(h['map']['height']) // 16
+    base_block = bytearray(W * H)   # 1 = never walkable (steep ground), from the terrain file when present
+    terr = h.get('terrain')
+    tfile = os.path.join(os.path.dirname(record), f"terrain-{h.get('ai_id', 0)}.bin")
+    slope_limit = None
+    if terr and os.path.exists(tfile):
+        tw, th = terr['width'], terr['height']
+        raw = open(tfile, 'rb').read()
+        slopes = raw[tw * th * 2: tw * th * 3]
+        # a vehicle's limit: TANK3 maxslope 10 degrees... the record's move_classes give the slope units; use the largest ground class' bound
+        mcs = terr.get('move_classes') or h.get('move_classes') or []
+        tank = min([m['max_slope'] for m in mcs if m.get('kind') == 'tank'] or [0.109]) * 255
+        bot = min([m['max_slope'] for m in mcs if m.get('kind') == 'bot'] or [0.412]) * 255
+        slope_limit = {'tank': round(tank), 'bot': round(bot)}
+        bot_block = bytearray(W * H)
+        for z in range(min(H, th)):
+            for x in range(min(W, tw)):
+                sv = slopes[z * tw + x]
+                if sv > tank: base_block[z * W + x] = 1
+                if sv > bot: bot_block[z * W + x] = 1
+    else:
+        bot_block = bytearray(W * H)
+    bld = {u: r for u, r in cr.items() if (defs[r['d']].get('speed') or 0) == 0 and u in fin}
+    facs = [u for u in bld if name(bld[u]['d']) in FACTORIES and name(bld[u]['d']) not in NO_LANE]
+    end_f = max([r['f'] for r in samples] or [0])
+    # facing from the first products, as in analyse()
+    pos_at = {s['f']: {o[0]: (o[2], o[3]) for o in s.get('own', [])} for s in samples}
+    sf = sorted(pos_at)
+    def pos_near(uid, f):
+        lo, hi, best = 0, len(sf) - 1, None
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if sf[mid] <= f: best = sf[mid]; lo = mid + 1
+            else: hi = mid - 1
+        return None if best is None else pos_at[best].get(uid)
+    def facing_of(v):
+        pv = (cr[v]['x'], cr[v]['z']); hx, hz = half(name(cr[v]['d']))
+        prods = sorted([(cr[u]['f'], u) for u in cr if cr[u]['f'] > fin[v]['f'] and (defs[cr[u]['d']].get('speed') or 0) > 0 and dist((cr[u]['x'], cr[u]['z']), pv) <= max(hx, hz) + 120])[:8]
+        vecs = []
+        for f0, u in prods:
+            if u not in fin: continue
+            p1 = pos_near(u, fin[u]['f'] + 5 * fps)
+            if p1 and dist((cr[u]['x'], cr[u]['z']), p1) > 20: vecs.append((p1[0] - pv[0], p1[1] - pv[1]))
+        if not vecs: return None
+        mx, mz = st.mean(x for x, _ in vecs), st.mean(z for _, z in vecs)
+        return (0 if mz > 0 else 2) if abs(mz) >= abs(mx) else (1 if mx > 0 else 3)
+    results = []
+    for v in facs:
+        fv = fin[v]['f']; dv = de[v]['f'] if v in de else end_f
+        nm = name(cr[v]['d']); pv = (cr[v]['x'], cr[v]['z']); hx, hz = half(nm)
+        facing = facing_of(v)
+        if facing is None: continue
+        # the exit squares: the row of squares just outside the front edge, across the width
+        def exits_for(n):
+            k = n // 2 + 1   # a unit's centre stands at least half its footprint off the wall
+            e = []
+            for i in range(-hx // 16, hx // 16):
+                if facing == 0: e.append((pv[0] // 16 + i, (pv[1] + hz) // 16 + k - 1))
+                elif facing == 2: e.append((pv[0] // 16 + i, (pv[1] - hz) // 16 - k))
+                elif facing == 1: e.append(((pv[0] + hx) // 16 + k - 1, pv[1] // 16 + i))
+                else: e.append(((pv[0] - hx) // 16 - k, pv[1] // 16 + i))
+            return e
+        row = {'factory': nm, 'at': pv, 'facing': facing, 'finished_min': round(fv / fps / 60, 1), 'gone_min': round(dv / fps / 60, 1) if v in de else None, 'penned': {}}
+        first_pen = {}
+        for minute in range(int(fv / fps / 60) + 1, int(dv / fps / 60) + 1, minutes_step):
+            f = minute * 60 * fps
+            grid = bytearray(bot_block if 'lab' in nm else base_block)   # a lab's bots climb what a plant's vehicles cannot
+            for u, r in bld.items():
+                if u == v or fin[u]['f'] > f or (u in de and de[u]['f'] <= f): continue
+                qx, qz = half(name(r['d']))
+                x0, x1 = max(0, (r['x'] - qx) // 16), min(W, (r['x'] + qx) // 16)
+                z0, z1 = max(0, (r['z'] - qz) // 16), min(H, (r['z'] + qz) // 16)
+                for z in range(z0, z1):
+                    base = z * W
+                    for x in range(x0, x1): grid[base + x] = 1
+            # the factory's own footprint blocks too (its yard), the exits are outside it
+            for z in range(max(0, (pv[1] - hz) // 16), min(H, (pv[1] + hz) // 16)):
+                for x in range(max(0, (pv[0] - hx) // 16), min(W, (pv[0] + hx) // 16)): grid[z * W + x] = 1
+            for n in (2, 3, 4, 5, 6, 7):
+                if n in first_pen: continue
+                # erosion: a square is open for size n when the n x n block it anchors (centre-ish) is free
+                off = n // 2
+                def free(x, z):
+                    if x - off < 0 or z - off < 0 or x - off + n > W or z - off + n > H: return False
+                    for zz in range(z - off, z - off + n):
+                        base = zz * W
+                        for xx in range(x - off, x - off + n):
+                            if grid[base + xx]: return False
+                    return True
+                starts = [(x, z) for x, z in exits_for(n) if 0 <= x < W and 0 <= z < H and free(x, z)]
+                if not starts:
+                    # the door itself is narrower than the unit: look one more row out
+                    first_pen[n] = minute; continue
+                seen = set(starts); stack = list(starts); out = False
+                far = (1200 // 16) ** 2
+                while stack:
+                    x, z = stack.pop()
+                    if (x - pv[0] // 16) ** 2 + (z - pv[1] // 16) ** 2 >= far: out = True; break
+                    for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, nz = x + dx, z + dz
+                        if (nx, nz) in seen or not (0 <= nx < W and 0 <= nz < H): continue
+                        if free(nx, nz): seen.add((nx, nz)); stack.append((nx, nz))
+                if not out: first_pen[n] = minute
+        row['penned'] = first_pen
+        results.append(row)
+    return {'record': record, 'slope_limit': slope_limit, 'minutes': round(end_f / fps / 60, 1), 'factories': results}
+
 # ---------------------------------------------------------------- summary of a pool file
 def summary(path):
     rows = [json.loads(l) for l in open(path) if 'error' not in l]
@@ -415,5 +535,7 @@ if __name__ == '__main__':
     mode = sys.argv[1]
     if mode == 'pool': pool(sys.argv[2:])
     elif mode == 'block': block(sys.argv[2])
+    elif mode == 'pen':
+        for r in sys.argv[2:]: print(json.dumps(pen(r))); sys.stdout.flush()
     elif mode == 'summary': summary(sys.argv[2])
     else: sys.exit(__doc__)

@@ -5,7 +5,7 @@ premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, F-map-build, F-
 lessons: [L-energy-nanos, L-sheet-labs, L-gecko-one-more-con]
 tests: [E-center-command-2v4, the replay of thebluegecko against InactiveAI (docs/experiments.md replay-gecko-inactiveai-comet-2026-10-21), the pool's Comet duels and our advance-3 and advance-4 under run/base_layout.py (docs/studies/2026-10-29-base-layout.md)]
 sources: {people: [thebluegecko (his records), the pool's players at 35 OS and above, the user (the problem statement of 2026-10-29)], dates: [2026-10-29], code: [upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:374 (buildDistance + buildeeRadius), upstream/RecoilEngine/rts/Game/GameHelper.cpp:132-149 (blast falloff), upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp:71 (areaOfEffect is a diameter), upstream/RecoilEngine/rts/Sim/Objects/SolidObject.h:38-49 (yardmap states), upstream/Beyond-All-Reason/weapons/Unit_Explosions.lua, the unit files' footprints and yardmaps], web: [beyondallreason.info/unit/armnanotc, beyondallreason.info/guide/in-depth-look-at-economy, beyondallreason.info/guide/important-knowledge-on-advanced-mechanics, beyondallreason.info/commands/build-grid-line-spacing]}
-status: draft, checked (run/base_layout.py, 2026-10-29: 118 seats of the pool's Comet duels at 35 OS and above, thebluegecko's two records, our advance-3 and advance-4); kept out of the manifest until the user has read it
+status: foundation, checked (run/base_layout.py, 2026-10-29: 118 seats of the pool's Comet duels at 35 OS and above, thebluegecko's two records, our advance-3 and advance-4, the fencing-in instrument over 49 pool seats at 40 OS and our fourteen latest games). Not in any manifest: the user (2026-10-29) does not expect the player or the commander to be given it; it is the foundation for what the base-design arc builds, read by people and by the agents who build it
 -->
 ### The base as three machines
 
@@ -80,6 +80,24 @@ good when the next frame starts inside the reach of the build power that will fi
   turrets too. Of the pool's turrets within reach of a plant, 56 percent stood beside it, 26 behind and 17 in front
   (past the clearance). Ours keep the whole 320 clear (H-ECO-YARD-LANE) and stand the turrets 56 to 69 from the
   plant's edge where the pool's stand 129 and his 121: we hug the plant and keep its front emptier than anyone.
+- *The courtyard.* The apron is not the exit; the exit is a path from the apron to open ground, and the base grows
+  across it. A unit walks only where every square under its movement footprint is free, and the footprints come in
+  sizes: 2 squares (32 elmos) for the bots and the Flash, 3 (48) for the vehicles and the heavier bots, 4 (64) for
+  the Bull, the Fatboy, the Razorback and the Catapult, 5 (80) for the Bantha, the Marauder and the Shiva, 6 (96) for
+  the Vanguard, 7 (112) for the Thor and the Juggernaut. So a gap of one or two squares between solars passes a Stumpy
+  and stops a Bull, and the courtyard the user has seen is that: a plant facing into its own solar field, the solars
+  at 97 to 128 apart (one footprint and a square or two), the small units out and the large ones penned. Measured
+  (`run/base_layout.py pen`: at each minute, whether a unit of each size can walk from the plant's door to ground 1,200
+  away through our own standing buildings and the terrain's slopes): in contact-1 the second plant's path closed at
+  size 7 by 13:00, 6 by 14:00, 4 and 5 by 17:00, and never for 2 and 3; in airstun-1 sizes 5 to 7 at 14:00; in
+  apex-v0405-comet the first plant's at 5 to 7 by 10:00 and an advanced plant's at 6 and 7 by 22:00; the other 39
+  plants of our fourteen latest games never closed at any size, and none closed for the sizes we make. The pool at
+  40 OS (49 seats, 97 plants, buildings only since those records carry no terrain): 24 plants closed, 22 of them only
+  at sizes 6 and 7, two at 4, one at everything (a plant walled in at 8:00 and presumably eaten). Neither side keeps a
+  street for what it does not build; the pool's duels end before anyone makes a size-5 unit, so nobody pays. The bill
+  comes when the first Bull or Bantha stands in a base laid for Stumpies, and it is paid by reclaiming a solar or two;
+  the alternative is a street of the widest size the plant will ever make, 7 squares for a gantry's, decided when the
+  plant is placed.
 - *The reach of the turret.* A construction turret helps anything whose edge is within 400 of it (the same rule as the
   arm, so a 9 by 9 plant's centre may be 472 away), at 200 of build for 230 metal and 3,200 energy, and it does nothing
   on its own (K-mech-nano-turrets-idle-without-an-order). Reach and footprint set the ceiling: a lattice of touching
@@ -109,6 +127,18 @@ good when the next frame starts inside the reach of the build power that will fi
   which is the end-game production the block was for: an air plant has no exit lane to keep, so it goes where the
   build power is. Only 17 percent of his turrets were ever within 400 of a factory; the block is laid for the frames,
   and the plants come to it.
+- *The gantry.* The experimental gantry is the block's natural tenant and its hardest. It is 12 by 12 (192 elmos),
+  7,900 metal and 62,000 of build (Cortex's 8,400 and 68,000), with 1,800 of build power of its own, which makes a
+  Bantha (360,000) in 200 seconds, a Thor (320,000) in 178 and a Juggernaut (780,000) in 433; forty turrets round it
+  bring those to 37, 33 and 80 seconds, and the Bantha's 286,000 energy over 37 seconds is a draw of 7,700 a second,
+  which only a block's fusions and converters supply. Its death blast is 1,330 to 210 and kills a turret within 121 of
+  its wall, so the ring from 122 to 472 (400 plus its half footprint) both builds and survives it; nothing of the
+  advanced fusion's contradiction here. Its exit is its own front half (Armada; Cortex's the inner eight columns, 128
+  wide), and what leaves it is size 5 to 7: the street from a gantry's door to the map must be seven squares (112
+  elmos) clear for the whole way, the widest requirement in the game, so a base that will hold a gantry lays that
+  street first and packs round it. No person in our records built one (the pool's duels are too short; thebluegecko's
+  two games ended before); the eight-seat AI games did, with 13 to 24 turrets in reach when placed, the frames taking
+  17 to 42 seconds, and one gantry in a 1v1 of ours placed at 20:30 with no turret in reach and never finished.
 - *Moving the block.* A turret weighs 700 and is not barred from transport (`cantbetransported = false`); the Atlas
   and the Valkyrie carry one unit of mass up to 750 and size 3, which the turret is exactly, at 207 elmos a second; the
   Dragonfly size 4 with no mass bound. One turret a trip, so a block of forty moves 2,000 elmos in about two minutes
@@ -184,6 +214,13 @@ good when the next frame starts inside the reach of the build power that will fi
 5. *Transport turns the block's site into a soft decision.* With a hand for it, a block built where the advanced
    plant stood can follow the fusions, the gantry or the front, and a turret or two lifted out of a chain is the
    people's own cure for a burning block.
+6. *Streets are sized by what will walk them, and the size is known at the plant.* A plant's products are its
+   roster: a bot lab's largest is 3, a vehicle plant's 4 (the Bull), an advanced lab's 6 (the Vanguard), an advanced
+   vehicle plant's 7 (the Thor), a gantry's 7. Every other building packs at its footprint; the one gap a base keeps
+   is the street from each plant's door to the open, as wide as the plant's largest unit, kept open as the base grows
+   round it. Letting the small out while the large are penned is what happens when no such street was decided, and
+   the courtyard is the picture of it. Reclaim is the way out after the fact, a solar or two along the shortest line
+   to the open; the street is the way before.
 
 **Where it bends.** (1) Wind maps: a turbine is a 48 footprint at 196 health with an 89 blast; a turbine field packed
 at 48 is the base's largest flammable, and the pool's advice ("Wind generators chain explode terribly. Use build
@@ -204,7 +241,9 @@ front line by the people's own use, and a target by the same token.
 Catcher duels with records (118 seats at 35 OS and above), thebluegecko's Center Command 2v4 and InactiveAI records,
 and our advance-3 and advance-4: the opening's stands, path, gaps and queue batches; the turrets' pitch, their count
 per plant and their side of it; the lane's contents and depths; nearest-neighbour spacing by kind; own reclaims by
-kind and clock; chain victims by the falloff arithmetic. Wrong if a pool at 40 OS and above showed gaps over two
+kind and clock; chain victims by the falloff arithmetic; and the fencing-in instrument (`pen`), the first minute a unit
+of each footprint can no longer walk from a plant's door to ground 1,200 away through our own buildings and the
+terrain's slopes (49 pool seats at 40 OS, our fourteen latest games, his two). Wrong if a pool at 40 OS and above showed gaps over two
 seconds or three stands before the plant as the norm; if the people's blocks turned out to be spaced at 96 rather than
 touching; if turrets in reach of a frame did not shorten it in proportion (K-t2-moho-frames-finished-by-tier-1-build-power
 says they do); or if a block's death did not take the turrets the arithmetic says it must.
