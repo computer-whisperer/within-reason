@@ -529,6 +529,10 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
             row["stun_taken"] = json!(d.stun_taken);
             // The height difference across its footprint the engine allows a building (records from 2026-10-29).
             row["max_height_dif"] = json!(d.max_height_dif);
+            // The water it stands in and whether it floats (records from 2026-10-30; the layout's step 5).
+            row["min_water_depth"] = json!(d.min_water_depth);
+            row["max_water_depth"] = json!(d.max_water_depth);
+            row["floater"] = json!(d.floater);
             row["stun"] = json!(d.stun.map(|s| [s.per_shot, s.reach, s.reload, s.seconds]));
             row
         })
