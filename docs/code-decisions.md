@@ -123,6 +123,9 @@ gantry's slot, and from then on the rows are kept for frames, the slot for the g
 its sub-lattice (96 apart, 48 after the player's `block` tool says `dense`), and a turret's or a frame's band is the
 block's reach from its centre; a row slot beats a site outside the rows that is as quick to stand (block-5: the rows
 admitted frames without drawing them). The code lists banks on its ground for reclaim; the player removes them or not.
+Water is the same layer (H-ECO-SEA): every kind stands where the engine's build rule and its own depths from the
+engine say, a shipyard's street is the water its ships float in, a block at a shipyard is of the sea kinds; nothing of
+ours decides whether to go to sea, only where a sea kind the player asked for stands.
 
 Wakes (`B/wake.rs` and the triggers beside it; H-WAKE-*, H-HANDS-LOSS-WAKE, H-HANDS-STALL, H-HANDS-SHELLED): no turn
 within 5 s of the last; the player's own timer (default 30 s) capped at 10 s while a fight is on; losses while orders

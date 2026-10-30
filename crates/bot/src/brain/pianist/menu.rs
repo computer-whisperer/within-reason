@@ -1410,7 +1410,7 @@ impl Brain {
             let armed_building = |d: UnitDefId| self.world.def(d).is_some_and(|x| x.speed == 0.0 && x.weapon_count > 0);
             for def in offered.iter().copied().filter(|d| *d != kit.extractor) {
                 let Some(d) = self.world.def(def) else { continue };
-                let on_water = super::glossary::entry(&d.name).is_some_and(|e| e.has_flag("on_water"));
+                let on_water = self.world.is_sea_def(def);
                 let nano = d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty();
                 if nano && !own.iter().any(|u| self.world.is_factory_def(u.def) && !u.being_built) {
                     continue;

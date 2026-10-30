@@ -265,6 +265,20 @@ pub struct UnitDefInfo {
     /// and shims from before 2026-10-29, when the layout layer takes 10.7.
     #[serde(default)]
     pub max_height_dif: f32,
+    /// The water a building stands in: every square's ground must lie at a height in
+    /// `[-max_water_depth, -min_water_depth]` (`GameHelper.cpp` `CheckTerrainConstraints`, F-map-build). The unit
+    /// file's `minWaterDepth` (the engine's default, -10e6, is no floor) and `maxWaterDepth` (default +10e6; BAR's land
+    /// buildings say 0, so they stand on land alone; a tier-1 extractor says neither and stands at any depth; a
+    /// shipyard says 30 and nothing). 0 and 0 in records and shims from before 2026-10-30, which the layout layer
+    /// reads as land alone.
+    #[serde(default)]
+    pub min_water_depth: f32,
+    #[serde(default)]
+    pub max_water_depth: f32,
+    /// Whether it floats (`floater`, or a `waterline` given): in water its squares skip the height-difference check,
+    /// and it stands at the surface.
+    #[serde(default)]
+    pub floater: bool,
     /// What its death does to what stands around it; None for a unit that dies quietly.
     pub death_blast: Option<Blast>,
     /// What its self-destruct does (the commander's is the game's largest); None when it has none.

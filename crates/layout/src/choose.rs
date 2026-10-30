@@ -209,7 +209,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
             }
             // A plant's own street, from the site it would stand at.
             if f.factory {
-                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new() };
+                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), sea: 0.0 };
                 if !street_open(&world.ground, &own, &blocks, &*world.open) {
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
                     continue;
@@ -225,7 +225,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
 fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: &Walk, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
     let f = &req.facts;
     let rect = fp.rect(at);
-    if !world.ground.stands(fp, at, f.height_dif, false) {
+    if !world.ground.stands(fp, at, f) {
         return None;
     }
     if world.standing.iter().any(|s| (if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) }).overlaps(&rect)) {
@@ -247,7 +247,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         return None;
     }
     if f.factory {
-        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new() };
+        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         let apron = own.apron();
         if !world.ground.in_map(&apron) || world.standing.iter().any(|s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
             return None;
@@ -345,7 +345,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         words = format!("{words}; its blast holds {}, {kills:.0} metal of ours", kinds.join(" and "));
     }
     // Level 3: the builder's walk to within reach of the site, round what stands.
-    let l3 = (walk.to(at) - f.reach_from(&req.builder)).max(0.0);
+    let l3 = walk.to_within(at, f.reach_from(&req.builder));
     let l4 = world.home.dist2d(at);
     Some(Candidate { at, facing, rect, scores: [l1[0], l1[1], l2, l3, l4], words })
 }
@@ -421,12 +421,21 @@ impl Walk {
     }
 
     /// The walk to `p`: infinite when the flood never reached it.
-    fn to(&self, p: Vec3) -> f32 {
-        let (i, j) = (((p.x - self.x0) / GRID).floor(), ((p.z - self.z0) / GRID).floor());
-        if i < 0.0 || j < 0.0 || i as usize >= self.nx || j as usize >= self.nz {
-            return f32::INFINITY;
+    /// The walk to within `reach` of `p`: the least distance to a cell whose centre lies within `reach` of it, so a
+    /// site the builder cannot stand on (one on the water, for a builder on land) is reached from the shore.
+    fn to_within(&self, p: Vec3, reach: f32) -> f32 {
+        let cells = (reach / GRID).ceil() as i32;
+        let (ci, cj) = (((p.x - self.x0) / GRID).floor() as i32, ((p.z - self.z0) / GRID).floor() as i32);
+        let mut best = f32::INFINITY;
+        for j in (cj - cells).max(0)..=(cj + cells).min(self.nz as i32 - 1) {
+            for i in (ci - cells).max(0)..=(ci + cells).min(self.nx as i32 - 1) {
+                let c = Vec3 { x: self.x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: self.z0 + (j as f32 + 0.5) * GRID };
+                if c.dist2d(p) <= reach {
+                    best = best.min(self.dist[j as usize * self.nx + i as usize]);
+                }
+            }
         }
-        self.dist[j as usize * self.nx + i as usize]
+        best
     }
 }
 
@@ -546,7 +555,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32, blast: Option<(f32, f32)>) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0 }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn builder() -> Facts {
@@ -623,7 +632,7 @@ mod tests {
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        let plant = |p: Vec3| Plant { centre: p, footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into() };
+        let plant = |p: Vec3| Plant { centre: p, footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into(), sea: 0.0 };
         w.plants.push(plant(at(2000.0, 2000.0)));
         w.plants.push(plant(at(2000.0, 2300.0)));
         for p in [at(2000.0, 2000.0), at(2000.0, 2300.0)] {
@@ -667,7 +676,7 @@ mod tests {
         let builder_at = at(2100.0, 2048.0);
         let req = Request { facts: vp, purpose: Purpose::Plant, centre: builder_at, radius: 60.0, builder_at, builder: builder() };
         let site = choose(&w, &req).expect("a site");
-        let own = Plant { centre: site.at, footprint: vp.footprint, facing: site.facing, product_half: 32.0, ours: true, name: String::new(), widest: String::new() };
+        let own = Plant { centre: site.at, footprint: vp.footprint, facing: site.facing, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         assert!(!own.apron().overlaps(&Rect { x0: 2268.0, z0: 2016.0, x1: 2332.0, z1: 2080.0 }), "the apron over the spot: {site:?}");
         assert!(site.at.dist2d(spots[0]) >= 100.0);
     }
@@ -679,7 +688,7 @@ mod tests {
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into() });
+        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 });
         w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
         for k in -12..=12 {
             if k == 0 {
@@ -693,5 +702,44 @@ mod tests {
         let rect = Footprint { x: 10, z: 10 }.rect(site.at);
         assert!(!rect.overlaps(&Rect { x0: 2160.0, z0: 1960.0, x1: 2240.0, z1: 2040.0 }), "placed in the gap: {site:?}");
         assert!(!w.plants[0].apron().overlaps(&rect));
+    }
+}
+
+#[cfg(test)]
+mod sea_tests {
+    use super::*;
+    use bot_protocol::Terrain;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    /// Land at 50 west of x 2048, water of -40 east of it.
+    fn shore() -> Terrain {
+        let (w, h) = (256u32, 256u32);
+        let mut heights = Vec::new();
+        for _ in 0..h {
+            for i in 0..w {
+                heights.push(if (i as f32 * 16.0 + 8.0) < 2048.0 { 50 } else { -40 });
+            }
+        }
+        Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
+    }
+
+    /// A tidal generator for a commander on the shore goes on the water nearest the commander's walk, though the
+    /// commander cannot stand on any water site and home lies far out to sea.
+    #[test]
+    fn a_sea_kind_goes_on_the_water_nearest_the_builders_walk() {
+        let t = shore();
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open) };
+        let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0 };
+        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0 };
+        let builder_at = at(1900.0, 2048.0);
+        let req = Request { facts: tidal, purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 400.0, builder_at, builder: commander };
+        let site = choose(&w, &req).expect("a site on the water");
+        assert!(ground.height_at(site.at.x, site.at.z).is_some_and(|h| h < 0.0), "{site:?} is not on the water");
+        assert!(site.at.x < 2150.0 && site.at.dist2d(builder_at) < 300.0, "{site:?} is not the water nearest the commander (the walk band of 48 lets the shore slide)");
     }
 }

@@ -26,6 +26,8 @@ pub const GRID: f32 = 16.0;
 /// The engine's height tolerance for a building whose definition does not say: `maxslope` 10 in 276 of BAR's 543
 /// definitions, times the game's 1.5, so 40 tan 15° (F-map-build).
 const DEFAULT_HEIGHT_DIF: f32 = 10.7;
+/// The engine's default `minWaterDepth`: no floor to the water a kind stands in (`UnitDef.cpp`).
+pub const NO_DEPTH_FLOOR: f32 = -10e6;
 /// A metal-map square is 16 elmos; an extractor's offset from its spot is tried in steps of `MEX_STEP`.
 const MEX_SQUARE: f32 = 16.0;
 const MEX_STEP: f32 = 8.0;
@@ -130,6 +132,13 @@ pub struct Facts {
     pub blast: Option<(f32, f32)>,
     /// The height difference across its footprint the engine allows (F-map-build).
     pub height_dif: f32,
+    /// The water it stands in: every square's ground at a height in `[-max_depth, -min_depth]` (F-map-build). A land
+    /// building has no floor and a ceiling of 0; a sea kind a floor (a shipyard's 30) and no ceiling; a tier-1
+    /// extractor neither.
+    pub min_depth: f32,
+    pub max_depth: f32,
+    /// Whether it floats: in water its squares skip the height-difference check.
+    pub floater: bool,
     pub extractor: bool,
     pub factory: bool,
     /// A structure: it does not move.
@@ -151,6 +160,10 @@ impl Facts {
             health: d.health,
             blast: d.death_blast.map(|b| (b.radius, b.damage)),
             height_dif: if d.max_height_dif > 0.0 { d.max_height_dif } else { DEFAULT_HEIGHT_DIF },
+            // A record or shim from before the depths were sent says 0 and 0: land alone.
+            min_depth: if d.min_water_depth == 0.0 && d.max_water_depth == 0.0 { NO_DEPTH_FLOOR } else { d.min_water_depth },
+            max_depth: d.max_water_depth,
+            floater: d.floater,
             extractor: d.extracts_metal > 0.0,
             factory: d.speed == 0.0 && !d.build_options.is_empty(),
             building: d.speed == 0.0,
@@ -208,24 +221,26 @@ impl<'a> Ground<'a> {
         r.x0 >= 0.0 && r.z0 >= 0.0 && r.x1 <= self.map_width && r.z1 <= self.map_height
     }
 
-    /// Whether a building with this footprint (as faced) stands at `centre`: inside the map, every square of the
-    /// footprint within `height_dif` of the centre square's height above or below (F-map-build), and on land unless
-    /// `wet` (a tier-1 extractor stands on the sea floor at any depth; every other land building needs depth zero).
-    pub fn stands(&self, footprint: Footprint, centre: Vec3, height_dif: f32, wet: bool) -> bool {
+    /// Whether a building of `f` with this footprint (as faced) stands at `centre`, as the engine tests a build square
+    /// (`GameHelper.cpp` `CheckTerrainConstraints`, F-map-build): inside the map, every square's ground at a height
+    /// in `[-f.max_depth, -f.min_depth]` (land alone for a land building, water deep enough for a sea kind, anywhere
+    /// for a tier-1 extractor), and within `f.height_dif` of the centre square's height unless the kind floats and
+    /// the square is under water.
+    pub fn stands(&self, footprint: Footprint, centre: Vec3, f: &Facts) -> bool {
         let rect = footprint.rect(centre);
         if !self.in_map(&rect) {
             return false;
         }
         let Some(floor) = self.height_at(centre.x, centre.z) else { return false };
-        if !wet && floor < 0.0 {
-            return false;
-        }
         for sx in 0..footprint.x {
             for sz in 0..footprint.z {
                 let (x, z) = (rect.x0 + (sx as f32 + 0.5) * SQUARE, rect.z0 + (sz as f32 + 0.5) * SQUARE);
-                match self.height_at(x, z) {
-                    Some(h) if (h - floor).abs() <= height_dif && (wet || h >= 0.0) => {}
-                    _ => return false,
+                let Some(h) = self.height_at(x, z) else { return false };
+                if h < -f.max_depth || h > -f.min_depth {
+                    return false;
+                }
+                if (h - floor).abs() > f.height_dif && !(f.floater && h <= 0.0) {
+                    return false;
                 }
             }
         }
@@ -377,7 +392,7 @@ pub fn stand(scene: &Scene, wants: &[Want]) -> Option<Stand> {
     if scene.ground.terrain.cell <= 0.0 || scene.ground.terrain.heights.is_empty() {
         return None;
     }
-    let mut memo: HashMap<(i32, i32, i32, i32), bool> = HashMap::new();
+    let mut memo: HashMap<(i32, i32, i32, i32, i32), bool> = HashMap::new();
     let mut candidates: Vec<Vec3> = vec![scene.start];
     let n = (STAND_RADIUS / STAND_PITCH) as i32;
     for i in -n..=n {
@@ -412,7 +427,7 @@ pub fn stand(scene: &Scene, wants: &[Want]) -> Option<Stand> {
     best
 }
 
-fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32, i32, i32), bool>) -> Stand {
+fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32, i32, i32, i32), bool>) -> Stand {
     let mut occupied: Vec<Rect> = scene.occupied.clone();
     occupied.push(Rect { x0: s.x - COMMANDER_HALF, z0: s.z - COMMANDER_HALF, x1: s.x + COMMANDER_HALF, z1: s.z + COMMANDER_HALF });
     let mut spot_boxes: Vec<(usize, Rect)> = scene
@@ -426,9 +441,9 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
     let mut plants: Vec<Plant> = Vec::new();
     let mut slots: Vec<Option<Slot>> = vec![None; wants.len()];
     let mut walk = 0.0;
-    let mut stands = |footprint: Footprint, centre: Vec3, height_dif: f32, wet: bool| -> bool {
-        let key = (footprint.x, footprint.z, centre.x.round() as i32, centre.z.round() as i32);
-        *memo.entry(key).or_insert_with(|| scene.ground.stands(footprint, centre, height_dif, wet))
+    let mut stands = |footprint: Footprint, centre: Vec3, f: &Facts| -> bool {
+        let key = (f.def.0, footprint.x, footprint.z, centre.x.round() as i32, centre.z.round() as i32);
+        *memo.entry(key).or_insert_with(|| scene.ground.stands(footprint, centre, f))
     };
     // Extractors first: their spots are given, and everything else keeps off them.
     let mex_reach = scene.extractor.reach_from(&scene.builder);
@@ -463,10 +478,10 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
                 if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
                     continue;
                 }
-                if !stands(fp, centre, f.height_dif, false) {
+                if !stands(fp, centre, &f) {
                     continue;
                 }
-                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new() };
+                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
                 let apron = plant.apron();
                 if !scene.ground.in_map(&apron) || occupied.iter().any(|r| r.overlaps(&apron)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&apron)) || !lane_open(&apron, scene.open) {
                     continue;
@@ -504,7 +519,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
             if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
                 continue;
             }
-            if !stands(fp, centre, f.height_dif, f.extractor) {
+            if !stands(fp, centre, &f) {
                 continue;
             }
             let touching = placed_of.get(&def).map_or(0, |rs| rs.iter().filter(|r| r.touches(&rect)).count()).min(TOUCHING_CAP);
@@ -631,6 +646,9 @@ mod tests {
             footprint: Footprint { x: footprint.0, z: footprint.1 },
             build_distance,
             height_dif: 10.7,
+            min_depth: NO_DEPTH_FLOOR,
+            max_depth: 0.0,
+            floater: false,
             extractor,
             factory,
             building: true,
@@ -730,7 +748,7 @@ mod tests {
         }
         let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
         assert_eq!(lab.1, 1, "the lab faces east, toward the enemy");
-        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new() };
+        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         assert!(rects.iter().all(|r| !r.overlaps(&plant.apron())), "nothing in the lab's apron");
         assert!(street_open(&sc.ground, &plant, &rects, &open), "the lab's street is open");
         for s in &stand.slots {
@@ -759,7 +777,7 @@ mod tests {
         let stand = stand(&sc, &wants).expect("a stand");
         assert_eq!(stand.unplaced, 0, "{stand:?}");
         let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
-        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new() };
+        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         assert!(plant.apron().x1 <= 600.0 + 8.0, "the apron is off the cliff: {stand:?}");
         let rects: Vec<Rect> = stand.slots.iter().map(|s| match *s { Slot::Extractor { at, .. } => facts(MEX).unwrap().footprint.rect(at), Slot::Building { def, at, facing } => facts(def).unwrap().footprint.faced(facing).rect(at) }).collect();
         assert!(street_open(&sc.ground, &plant, &rects, &open));
@@ -770,5 +788,55 @@ mod tests {
             };
             assert!(fp.rect(s.at()).x1 <= 600.0 + 8.0, "{s:?} stands on the cliff");
         }
+    }
+}
+
+#[cfg(test)]
+mod sea_tests {
+    use super::*;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    /// A shore: land at 50 west of x 512, a shallow strip of -10 to x 576, water of -40 to x 896 and -60 beyond.
+    fn shore() -> Terrain {
+        let (w, h) = (64u32, 64u32);
+        let mut heights = Vec::new();
+        for _ in 0..h {
+            for i in 0..w {
+                let x = i as f32 * 16.0 + 8.0;
+                heights.push(if x < 512.0 { 50 } else if x < 576.0 { -10 } else if x < 896.0 { -40 } else { -60 });
+            }
+        }
+        Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
+    }
+
+    fn kind(min_depth: f32, max_depth: f32, floater: bool) -> Facts {
+        Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth, max_depth, floater, extractor: false, factory: false, building: true, product_half: 0.0 }
+    }
+
+    /// The engine's depth rule (F-map-build): a land building stands on land alone, a sea kind in water at least its
+    /// floor deep, a tier-1 extractor anywhere; a floater does not mind the sea floor's slope, a submerged kind does.
+    #[test]
+    fn a_kind_stands_where_its_depths_say_and_a_floater_ignores_the_sea_floor() {
+        let t = shore();
+        let g = Ground::new(&t, 1024.0, 1024.0);
+        let fp = Footprint { x: 4, z: 4 };
+        let land = kind(NO_DEPTH_FLOOR, 0.0, false);
+        let tidal = kind(20.0, 1e7, true);
+        let shipyard = kind(30.0, 1e7, true);
+        let extractor = kind(NO_DEPTH_FLOOR, 1e7, false);
+        let sunk_fusion = kind(25.0, 1e7, false);
+        let (dry, shallow, wet) = (at(256.0, 512.0), at(544.0, 512.0), at(768.0, 512.0));
+        assert!(g.stands(fp, dry, &land) && !g.stands(fp, shallow, &land) && !g.stands(fp, wet, &land));
+        assert!(!g.stands(fp, dry, &tidal) && !g.stands(fp, shallow, &tidal) && g.stands(fp, wet, &tidal));
+        assert!(g.stands(fp, wet, &shipyard) && !g.stands(fp, at(544.0, 512.0), &shipyard));
+        assert!(g.stands(fp, dry, &extractor) && g.stands(fp, shallow, &extractor) && g.stands(fp, wet, &extractor));
+        // Over the step from -40 to -60 (a footprint of 32 across x 896): the floater stands, the submerged kind not.
+        let step = at(896.0, 512.0);
+        assert!(g.stands(fp, step, &tidal), "a floater over a 20-elmo step in the sea floor");
+        assert!(!g.stands(fp, step, &sunk_fusion), "a submerged kind over the same step");
+        assert!(g.stands(fp, at(960.0, 512.0), &sunk_fusion), "the submerged kind on the flat floor beyond");
     }
 }

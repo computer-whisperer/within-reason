@@ -6,7 +6,7 @@
 //! (`stand.rs`). The rules that chose what to build went with the heuristic bot (2026-09-25,
 //! `docs/design/2026-09-25-one-decider.md`).
 
-use bot_protocol::{BuildSite, OwnUnit, Placement, UnitDefId, Vec3};
+use bot_protocol::{BuildSite, MoveKind, OwnUnit, Placement, UnitDefId, Vec3};
 use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Reservation, Reserved, Standing, Worker, World};
 
 use super::roster::Kit;
@@ -206,12 +206,14 @@ impl Brain {
         }
     }
 
-    /// A plant for the street rule: its footprint, facing and its widest product's half-width.
+    /// A plant for the street rule: its footprint, facing and its widest product's half-width, and for a shipyard the
+    /// water its widest product floats in.
     pub(super) fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
         let f = self.facts_of(def)?;
         let d = self.world.def(def)?;
-        let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1)).map_or(String::new(), |p| p.name.clone());
-        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest })
+        let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1));
+        let sea = widest.and_then(|p| p.move_class).filter(|m| m.kind == MoveKind::Ship).map_or(0.0, |m| m.depth);
+        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), sea })
     }
 
     /// Where a building of `def` goes for `builder` without a place from the player: the stand's slot for its kind
@@ -227,14 +229,9 @@ impl Brain {
     }
 
     /// Where a building of `def` goes within `radius` of `centre` (the player's place, or the kind's band): the
-    /// layer's site, or for a sea building the engine's search on the nearest water. When the layer finds no ground
-    /// the engine is asked at the band's centre and the log says why.
+    /// layer's site, on land or on water as the kind's depths have it (§1.0: water is ground with its own
+    /// footprints). When the layer finds no ground the engine is asked at the band's centre and the log says why.
     pub(super) fn place_in(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], centre: Vec3, radius: f32) -> Plan {
-        let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
-        if on_water {
-            let reach = self.world.def(builder.def).map_or(100.0, |b| b.build_distance) + 300.0;
-            return Plan::Near(def, self.world.nearest_water(centre, reach).unwrap_or(centre));
-        }
         let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
         let world = self.layout_world(own);
         let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };

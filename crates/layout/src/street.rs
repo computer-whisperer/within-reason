@@ -28,6 +28,9 @@ pub struct Plant {
     pub name: String,
     /// What it makes, for the report's words ("closed for Bulls").
     pub widest: String,
+    /// For a plant whose widest product is a ship, the shallowest water it floats in: its street runs through water
+    /// at least that deep, whatever the ground's passable set says. 0 for a plant whose products walk.
+    pub sea: f32,
 }
 
 impl Plant {
@@ -125,7 +128,8 @@ impl Flood {
         for j in 0..nz {
             for i in 0..nx {
                 let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
-                let blocked = !open(p) || near.iter().any(|r| r.contains(p));
+                let passable = if plant.sea > 0.0 { ground.height_at(p.x, p.z).is_some_and(|h| h <= -plant.sea) } else { open(p) };
+                let blocked = !passable || near.iter().any(|r| r.contains(p));
                 sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(blocked);
             }
         }
@@ -213,7 +217,7 @@ mod tests {
     }
 
     fn plant(facing: i32) -> Plant {
-        Plant { centre: at(2048.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into() }
+        Plant { centre: at(2048.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 }
     }
 
     /// A plant alone on open ground has its street; a ring of footprints round it, closing every gap under a Bull's
@@ -263,5 +267,44 @@ mod tests {
         let f = Flood::new(&Ground::new(&t, 4096.0, 4096.0), &p, &[], &|_| true);
         assert_eq!((f.x0, f.z0), (2048.0 - STREET_REACH, 2048.0 - STREET_REACH));
         assert!(f.start.is_some());
+    }
+}
+
+#[cfg(test)]
+mod sea_tests {
+    use super::*;
+    use bot_protocol::Terrain;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    /// Land at 50 west of x 2000; water east of it at `deep`, except where `shallow` says -10.
+    fn shore(deep: i16, shallow: impl Fn(f32, f32) -> bool) -> Terrain {
+        let (w, h) = (256u32, 256u32);
+        let mut heights = Vec::new();
+        for j in 0..h {
+            for i in 0..w {
+                let (x, z) = (i as f32 * 16.0 + 8.0, j as f32 * 16.0 + 8.0);
+                heights.push(if x < 2000.0 { 50 } else if shallow(x, z) { -10 } else { deep });
+            }
+        }
+        Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
+    }
+
+    /// A shipyard's street runs through water its ships float in, whatever the land's passable set says: open over
+    /// deep water with every land cell impassable, closed when shallows pen the water before its door.
+    #[test]
+    fn a_shipyards_street_is_the_deep_water_before_its_door() {
+        let nothing_walks = |_: Vec3| false;
+        let yard = Plant { centre: at(2100.0, 2048.0), footprint: Footprint { x: 6, z: 6 }, facing: 1, product_half: 32.0, ours: true, name: "yard".into(), widest: "Corsair".into(), sea: 30.0 };
+        let deep = shore(-40, |_, _| false);
+        assert!(street_open(&Ground::new(&deep, 4096.0, 4096.0), &yard, &[], &nothing_walks));
+        // A pocket of deep water 400 across before the door, shallows all round it.
+        let penned = shore(-40, |x, z| !(x < 2500.0 && (z - 2048.0).abs() < 250.0));
+        assert!(!street_open(&Ground::new(&penned, 4096.0, 4096.0), &yard, &[], &nothing_walks));
+        // Water a ship's floor shallow (-20 for a floor of 30) is as closed as land.
+        let too_shallow = shore(-20, |_, _| false);
+        assert!(!street_open(&Ground::new(&too_shallow, 4096.0, 4096.0), &yard, &[], &nothing_walks));
     }
 }

@@ -7,9 +7,12 @@ run/replay_match.py). The study: docs/studies/2026-10-29-base-layout.md; the der
     run/base_layout.py pool 0 <record.jsonl>...         the same for bare records (ours: run/matches/<batch>/<NN>/record-0.jsonl)
     run/base_layout.py block <record.jsonl>             the construction-turret block of one side: pitch, bars, what stands
                                                         in it with the turrets in reach when placed, the chain bill
-    run/base_layout.py pen [--allies] <record.jsonl>... per land factory (with --allies, allied structures block too), the first minute a unit of each footprint (2 to 7
+    run/base_layout.py pen [--allies] <record.jsonl>... per factory (with --allies, allied structures block too), the first minute a unit of each footprint (2 to 7
                                                         squares) can no longer walk from its exit to ground 1,200 away through
-                                                        our own buildings (and the terrain where the record has it)
+                                                        our own buildings (and the terrain where the record has it: slopes and
+                                                        water for a land factory, water its ships float in for a shipyard)
+    run/base_layout.py water <record.jsonl>             our buildings against the water under them: sea kinds on land or in
+                                                        water too shallow, land kinds in water, the depth under each sea kind
     run/base_layout.py summary <pool.jsonl>             the pooled medians of a pool file
     run/base_layout.py chain                            the chain-sum table: each kind's health against its dead neighbours' blasts by pitch
 
@@ -50,7 +53,8 @@ NANOS = {'armnanotc', 'cornanotc', 'legnanotc', 'armnanotcplat', 'cornanotcplat'
 FACTORIES = {'armlab', 'armvp', 'armap', 'armhp', 'armalab', 'armavp', 'armaap', 'armahp', 'armshltx', 'armsy', 'armasy',
              'corlab', 'corvp', 'corap', 'corhp', 'coralab', 'coravp', 'coraap', 'corahp', 'corgant', 'corsy', 'corasy',
              'leglab', 'legvp', 'legap', 'leghp', 'legalab', 'legavp', 'legaap', 'legahp', 'leggant'}
-NO_LANE = {'armap', 'armaap', 'armsy', 'armasy', 'corap', 'coraap', 'corsy', 'corasy', 'legap', 'legaap'}
+NO_LANE = {'armap', 'armaap', 'corap', 'coraap', 'legap', 'legaap'}
+SHIPYARDS = {'armsy', 'armasy', 'corsy', 'corasy', 'legsy', 'legasy'}
 BUILDER_MOBILE = {'armck', 'armcv', 'armca', 'armack', 'armacv', 'armaca', 'armrectr', 'armcs', 'armacsub', 'armbeaver', 'armch', 'armfark', 'armconsul',
                   'corck', 'corcv', 'corca', 'corack', 'coracv', 'coraca', 'cornecro', 'corcs', 'coracsub', 'cormuskrat', 'corch', 'corfast',
                   'legck', 'legcv', 'legca', 'legack', 'legacv', 'legaca', 'legaceb', 'legotter'}
@@ -387,25 +391,30 @@ def pen(record, minutes_step=1, allies=False):
     h, defs, cr, fin, de, cmds, samples = load(record)
     name = lambda d: defs.get(d, {}).get('name', '?'); fps = h.get('frames_per_second', 30)
     W, H = int(h['map']['width']) // 16, int(h['map']['height']) // 16
-    base_block = bytearray(W * H)   # 1 = never walkable (steep ground), from the terrain file when present
+    base_block = bytearray(W * H)   # 1 = never walkable (steep ground, water), from the terrain file when present
+    sea_block = bytearray(W * H)    # 1 = water too shallow for a ship (or land): a shipyard's exit
     terr = h.get('terrain')
     tfile = os.path.join(os.path.dirname(record), f"terrain-{h.get('ai_id', 0)}.bin")
     slope_limit = None
     if terr and os.path.exists(tfile):
         tw, th = terr['width'], terr['height']
         raw = open(tfile, 'rb').read()
+        heights = struct.unpack_from('<%dh' % (tw * th), raw, 0)
         slopes = raw[tw * th * 2: tw * th * 3]
         # a vehicle's limit: TANK3 maxslope 10 degrees... the record's move_classes give the slope units; use the largest ground class' bound
         mcs = terr.get('move_classes') or h.get('move_classes') or []
         tank = min([m['max_slope'] for m in mcs if m.get('kind') == 'tank'] or [0.109]) * 255
         bot = min([m['max_slope'] for m in mcs if m.get('kind') == 'bot'] or [0.412]) * 255
-        slope_limit = {'tank': round(tank), 'bot': round(bot)}
+        # a ship's floor: the deepest-drawing ship class (the engine: a ship's move class depth is the shallowest it floats in)
+        ship = max([m['depth'] for m in mcs if m.get('kind') == 'ship'] or [30.0])
+        slope_limit = {'tank': round(tank), 'bot': round(bot), 'ship_depth': ship}
         bot_block = bytearray(W * H)
         for z in range(min(H, th)):
             for x in range(min(W, tw)):
-                sv = slopes[z * tw + x]
-                if sv > tank: base_block[z * W + x] = 1
-                if sv > bot: bot_block[z * W + x] = 1
+                sv = slopes[z * tw + x]; hv = heights[z * tw + x]
+                if sv > tank or hv < 0: base_block[z * W + x] = 1
+                if sv > bot or hv < 0: bot_block[z * W + x] = 1
+                if hv > -ship: sea_block[z * W + x] = 1
     else:
         bot_block = bytearray(W * H)
     bld = {u: r for u, r in cr.items() if (defs.get(r['d'], {}).get('speed') or 0) == 0 and u in fin and r['d'] in defs}
@@ -453,7 +462,7 @@ def pen(record, minutes_step=1, allies=False):
         first_pen = {}
         for minute in range(int(fv / fps / 60) + 1, int(dv / fps / 60) + 1, minutes_step):
             f = minute * 60 * fps
-            grid = bytearray(bot_block if 'lab' in nm else base_block)   # a lab's bots climb what a plant's vehicles cannot
+            grid = bytearray(sea_block if nm in SHIPYARDS else bot_block if 'lab' in nm else base_block)   # a lab's bots climb what a plant's vehicles cannot; a shipyard's ships need water
             if allies:
                 # allied structures standing at this minute, from the nearest sample's `al` rows ([id, def, x, z, team, ...])
                 near_f = max([k for k in sf if k <= f] or [sf[0]]) if sf else None
@@ -530,6 +539,37 @@ def chain():
             cells.append(f'gap {gap:>3}: {n:2d}, {total:7.0f}, {front:6.0f}')
         print(f'{k:7s} ({hp:5.0f}) | ' + ' | '.join(cells))
 
+# ---------------------------------------------------------------- water: our buildings against the water under them
+def water(record):
+    """Our finished buildings against the ground height under their centres (the terrain file): sea kinds (a
+    min_water_depth above 0 in the header's unit_defs, records from 2026-10-30) on land or in water shallower than their
+    floor, land kinds (max_water_depth 0) in water, and the depth under each sea kind. The design's step 5 judge:
+    nothing of ours on land that the budget said was water's."""
+    import struct
+    h, defs, cr, fin, de, cmds, samples = load(record)
+    terr = h.get('terrain'); tfile = os.path.join(os.path.dirname(record), f"terrain-{h.get('ai_id', 0)}.bin")
+    if not terr or not os.path.exists(tfile): sys.exit('no terrain file beside the record')
+    tw, th, cell = terr['width'], terr['height'], terr['cell']
+    heights = struct.unpack_from('<%dh' % (tw * th), open(tfile, 'rb').read(), 0)
+    def hgt(x, z): return heights[min(th - 1, int(z // cell)) * tw + min(tw - 1, int(x // cell))]
+    fps = h.get('frames_per_second', 30)
+    rows = collections.defaultdict(list); wrong = []
+    for u, r in cr.items():
+        d = defs.get(r['d'])
+        if not d or (d.get('speed') or 0) != 0 or u not in fin: continue
+        ground = hgt(r['x'], r['z']); mn = d.get('min_water_depth') or 0.0; mx = d.get('max_water_depth') or 0.0
+        sea = mn > 0
+        rows[d['name']].append((ground, sea, mn))
+        if sea and ground > -mn: wrong.append(f"{d['name']} at ({r['x']},{r['z']}) {fin[u]['f'] // (60 * fps)}:{fin[u]['f'] // fps % 60:02d}: ground {ground}, needs {-mn:.0f} or deeper")
+        if not sea and mx == 0 and (mn != 0 or mx != 0) and ground < 0: wrong.append(f"{d['name']} at ({r['x']},{r['z']}): a land kind in water {ground}")
+    depths_known = any((d.get('min_water_depth') or d.get('max_water_depth')) for d in defs.values())
+    print('depth facts in the record:', depths_known)
+    for nm, lst in sorted(rows.items(), key=lambda kv: -len(kv[1])):
+        wet = [g for g, _, _ in lst if g < 0]
+        print(f"  {nm:14} n={len(lst):3d} in water {len(wet):3d} {'sea kind, floor %.0f' % -lst[0][2] if lst[0][1] else 'land kind'}; ground under them {min(g for g, _, _ in lst)}..{max(g for g, _, _ in lst)}")
+    print('wrong:', len(wrong))
+    for w in wrong: print('  ' + w)
+
 # ---------------------------------------------------------------- summary of a pool file
 def summary(path):
     rows = [json.loads(l) for l in open(path) if 'error' not in l]
@@ -582,6 +622,7 @@ if __name__ == '__main__':
         allies = '--allies' in sys.argv
         for r in sys.argv[2:]:
             if r != '--allies': print(json.dumps(pen(r, allies=allies))); sys.stdout.flush()
+    elif mode == 'water': water(sys.argv[2])
     elif mode == 'summary': summary(sys.argv[2])
     elif mode == 'chain': chain()
     else: sys.exit(__doc__)

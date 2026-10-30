@@ -151,7 +151,7 @@ fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
         let p = if along_x { Vec3 { x: centre.x + a, y: centre.y, z: centre.z } } else { Vec3 { x: centre.x, y: centre.y, z: centre.z + a } };
         let p = g.footprint.snap(p);
         let facing = facings_toward(p, toward)[0];
-        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new() };
+        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         (p, facing, plant.apron())
     });
     Shape { rows, slots, gantry }
@@ -243,7 +243,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     let mut solid: Vec<Rect> = s.rows.to_vec();
     if let Some((at, facing, apron)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
-        if !world.ground.stands(g.footprint.faced(*facing), *at, g.height_dif, false) || !world.ground.in_map(apron) {
+        if !world.ground.stands(g.footprint.faced(*facing), *at, g) || !world.ground.in_map(apron) {
             return None;
         }
         rects.push(g.footprint.faced(*facing).rect(*at));
@@ -254,7 +254,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
         return None;
     }
     for slot in &s.slots {
-        if !world.ground.stands(wants.frame.footprint, *slot, wants.frame.height_dif, false) {
+        if !world.ground.stands(wants.frame.footprint, *slot, &wants.frame) {
             return None;
         }
         if world.spots.iter().any(|p| p.dist2d(*slot) < world.spot_keep_out) {
@@ -296,7 +296,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     }
     if let Some((at, facing, _)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
-        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new() };
+        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
         if !street_open(&world.ground, &own, &blocks, &*world.open) {
             return None;
         }
@@ -336,7 +336,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0 }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
@@ -347,7 +347,7 @@ mod tests {
         let turret = Facts { build_distance: 400.0, build_speed: 200.0, ..facts(5, 6, 230.0, 560.0) };
         let frame = Facts { build_time: 312_500.0, blast: Some((640.0, 10_600.0)), ..facts(7, 12, 9700.0, 8300.0) };
         let gantry = Facts { factory: true, product_half: 64.0, ..facts(8, 24, 7900.0, 16000.0) };
-        let plant = Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 18, z: 18 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into() };
+        let plant = Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 18, z: 18 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 };
         Wants { turret, frame, gantry: Some(gantry), plant }
     }
 

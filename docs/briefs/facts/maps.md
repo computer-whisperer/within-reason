@@ -115,7 +115,10 @@ Great Divide, the one map we play whose ground cannot be deformed, nothing does.
 limited to a water depth of zero, but a tier-1 extractor has no depth limit and stands on the sea floor at any
 depth, which is how the under-water spots of Cape Violet and Quicksilver are taken: by an amphibious, hover or ship
 constructor, or by a land constructor on the shore within its build distance of 130; a tidal generator needs 20 of
-water, a hover platform 5, a shipyard 30; a geothermal plant stands only over a vent. A blocking feature in the
+water, a hover platform 5, a shipyard 30; a geothermal plant stands only over a vent. A kind that floats (the tidal,
+the shipyards, the floating converter, radar and turrets, the naval construction turret) does not mind the sea
+floor's slope under it, since it sits at the surface; a kind that stands on the floor under water (the underwater
+fusion and storages) must have the floor within its tolerance like any land building. A blocking feature in the
 footprint (a tree, a rock, most wrecks; not a heap, not a Pawn's wreck) blocks the site until reclaimed, and a
 builder told to build there reclaims it first; another unit in the footprint makes the builder wait, or is pushed
 off if it is mobile.

@@ -80,19 +80,29 @@ impl Brain {
         let (def, at, facing, name) = plant;
         // The construction turret (the roster's `nano`), not the kit's laser tower (block-1: the LLT's footprint of 4
         // put the centre off the turret's grid and its reach of 128 stood for the block's).
-        let turret = self.facts_of(self.world.def_named(kit.roster.role("nano")?)?)?;
         let plant_facts = self.facts_of(def)?;
         let builds = self.world.def(kit.advanced_constructor).map(|d| d.build_options.clone()).unwrap_or_default();
-        let on_water = |d: UnitDefId| glossary::entry(self.name(d)).is_some_and(|e| e.has_flag("on_water"));
+        // A block at sea (the plant a shipyard, §1.0) is of the sea kinds: the naval construction turret, the
+        // underwater fusion, the underwater gantry; on land of the land kinds.
+        let sea = plant_facts.min_depth > 0.0;
+        let turret = if sea {
+            builds
+                .iter()
+                .filter(|d| self.world.is_sea_def(**d) && self.world.def(**d).is_some_and(|u| u.build_speed > 0.0 && u.build_options.is_empty()))
+                .filter_map(|d| self.facts_of(*d))
+                .max_by_key(|f| f.build_speed as i64)?
+        } else {
+            self.facts_of(self.world.def_named(kit.roster.role("nano")?)?)?
+        };
         let frame: Facts = builds
             .iter()
-            .filter(|d| !self.world.is_factory_def(**d) && !on_water(**d))
+            .filter(|d| !self.world.is_factory_def(**d) && self.world.is_sea_def(**d) == sea)
             .filter(|d| self.world.def(**d).is_some_and(|u| u.speed == 0.0 && u.energy_make > 0.0))
             .filter_map(|d| self.facts_of(*d))
             .max_by_key(|f| (f.footprint.x * f.footprint.z, f.build_time as i64))?;
         let gantry = builds
             .iter()
-            .filter(|d| self.world.is_factory_def(**d) && !on_water(**d))
+            .filter(|d| self.world.is_factory_def(**d) && self.world.is_sea_def(**d) == sea)
             .filter_map(|d| self.facts_of(*d))
             .filter(|f| f.footprint.x.max(f.footprint.z) > plant_facts.footprint.x.max(plant_facts.footprint.z))
             .max_by_key(|f| f.footprint.x.max(f.footprint.z));

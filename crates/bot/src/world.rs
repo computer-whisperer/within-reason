@@ -109,6 +109,13 @@ impl World {
         self.def(id).is_some_and(|d| d.speed == 0.0 && !d.build_options.is_empty())
     }
 
+    /// A sea kind: a building that needs water under it (its `min_water_depth` above zero: the tidal generator, the
+    /// shipyards, the floating converter and turrets, the underwater fusion). From the engine's facts, not the
+    /// glossary's flag.
+    pub fn is_sea_def(&self, id: UnitDefId) -> bool {
+        self.def(id).is_some_and(|d| d.speed == 0.0 && d.min_water_depth > 0.0)
+    }
+
     /// An extractor of any tier.
     pub fn is_extractor_def(&self, id: UnitDefId) -> bool {
         self.def(id).is_some_and(|d| d.extracts_metal > 0.0)

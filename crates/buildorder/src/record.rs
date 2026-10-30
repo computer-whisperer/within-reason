@@ -139,6 +139,9 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             // Records from 2026-09-22 late night on; the simulator reads none of these.
             footprint: d["footprint"].as_array().map_or((0, 0), |f| (f[0].as_i64().unwrap_or(0) as i32, f[1].as_i64().unwrap_or(0) as i32)),
             max_height_dif: d["max_height_dif"].as_f64().unwrap_or(0.0) as f32,
+            min_water_depth: d["min_water_depth"].as_f64().unwrap_or(0.0) as f32,
+            max_water_depth: d["max_water_depth"].as_f64().unwrap_or(0.0) as f32,
+            floater: d["floater"].as_bool().unwrap_or(false),
             death_blast: blast(&d["death_blast"]),
             self_destruct_blast: blast(&d["selfd_blast"]),
             self_destruct_seconds: number(d, "selfd_seconds"),

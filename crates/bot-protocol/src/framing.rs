@@ -138,7 +138,7 @@ mod tests {
             build_speed: 0.0, build_time: 1.0, build_distance: 0.0, extracts_metal: 0.0, metal_make: 0.0,
             energy_make: 0.0, energy_upkeep: 0.0, wind_cap: 0.0, tidal_make: 0.0, metal_storage: 0.0,
             energy_storage: 0.0, sonar_range: 0.0, hits_submerged: false, water_only: false, radar_range: 0.0,
-            converter: None, weapon_count: 1, build_options: Vec::new(), move_class: None, footprint: (3, 3), max_height_dif: 0.0,
+            converter: None, weapon_count: 1, build_options: Vec::new(), move_class: None, footprint: (3, 3), max_height_dif: 0.0, min_water_depth: 0.0, max_water_depth: 0.0, floater: false,
             death_blast: None, self_destruct_blast: None, self_destruct_seconds: 0.0, reach: 700.0, reload: 7.0,
             blast_radius: 150.0, stockpile_seconds: 0.0, stockpile_energy: 0.0, coverage: 0.0, sight: 0.0, jam_range: 0.0, stealth: false, cloak: None, shield: None, intercepted_by: 0, health: 0.0, reclaim_speed: 0.0, reclaimable: false, stun_taken: 1.0, stun: None,
         };
