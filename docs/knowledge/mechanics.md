@@ -240,10 +240,15 @@ turbines are fragile (167-220 hp). Advice: spread generators and converters rath
 away from labs.
 **Status.** reported (2026-09-19); health values supported from local source; measured 2026-10-24 on the drill bench: an
 advanced fusion given as a weaponless target died once under a mixed column and its blast wiped the twelve units that
-killed it (66,727 damage dealt by a side with no weapon, 8 of 8 duels). The blasts from `weapons/Unit_Explosions.lua`:
-`customfusionexplo` (armafus) 10,600 damage over 1,280; `fusionExplosion` (armfus) smaller; `hugeBuildingexplosiongeneric`
-(the gantry, the plasma deflector) 1,330 over 420; `largeBuildingExplosionGeneric` (the plants) 670 over 340;
-`mediumBuildingExplosionGeneric` (storages, radars) less; the walls' `WallExplosionMetal` 0 over 36.
+killed it (66,727 damage dealt by a side with no weapon, 8 of 8 duels). The blasts from `weapons/Unit_Explosions.lua`
+(the file's `areaOfEffect` is a diameter, `WeaponDef.cpp:71`; the engine's radius is half, and the damage falls linearly
+from the centre to nothing at the radius, measured to the victim's surface, `GameHelper.cpp:132-149`; corrected
+2026-10-29, the entry had read the diameters as radii): `customfusionexplo` (armafus) 10,600 damage to a radius of 640;
+`fusionExplosion` (armfus) 2,650 to 240; `energystorage` 980 to 210; `advmetalmaker` 1,220 to 160; `metalmaker` 660 to
+105; `hugeBuildingexplosiongeneric` (the gantry, the plasma deflector) 1,330 to 210; `largeBuildingExplosionGeneric`
+(the plants, the moho) 670 to 170; `mediumBuildingExplosionGeneric` (storages, radars) 220 to 130; `nanoboom` (the
+construction turret) 11 to 64 to everything but 530 to another turret (the `nanos` armour class, edge 0.75); the walls'
+`WallExplosionMetal` 0 to 18. Worked through in `docs/briefs/derived/base.md` (D-base-layout).
 **Evidence.** https://www.beyondallreason.info/guide/important-knowledge-on-advanced-mechanics (energy storage self-destruct
 1280 damage in 260 AoE); https://www.crdhq.com/articles/bar-new-player-guide-getting-started. `armmakr.lua` (health 167),
 `armwin.lua` (196).
