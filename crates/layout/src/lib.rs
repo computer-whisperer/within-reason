@@ -241,7 +241,11 @@ impl<'a> Ground<'a> {
             for sz in 0..footprint.z {
                 let (x, z) = (rect.x0 + (sx as f32 + 0.5) * SQUARE, rect.z0 + (sz as f32 + 0.5) * SQUARE);
                 let Some(h) = self.height_at(x, z) else { return false };
-                if h < -f.max_depth || h > -f.min_depth {
+                // The engine reads the height at the square itself, between our cells, so it lies between the cell's
+                // and its neighbours': the whole range must be in the kind's depths (water-2: a shipyard's site with
+                // every cell at -30 to -119 was refused by the engine for a floor of 30).
+                let (low, high) = self.height_range_at(x, z);
+                if low < -f.max_depth || high > -f.min_depth {
                     return false;
                 }
                 if (h - floor).abs() > f.height_dif && !(f.floater && h <= 0.0) {
@@ -250,6 +254,21 @@ impl<'a> Ground<'a> {
             }
         }
         true
+    }
+
+    /// The least and greatest height of the cell at (x, z) and its four neighbours: the range a square's height
+    /// between our cells lies in.
+    fn height_range_at(&self, x: f32, z: f32) -> (f32, f32) {
+        let c = self.terrain.cell;
+        let mut low = f32::INFINITY;
+        let mut high = f32::NEG_INFINITY;
+        for (dx, dz) in [(0.0, 0.0), (-c, 0.0), (c, 0.0), (0.0, -c), (0.0, c)] {
+            if let Some(h) = self.height_at(x + dx, z + dz) {
+                low = low.min(h);
+                high = high.max(h);
+            }
+        }
+        (low, high)
     }
 }
 
@@ -838,6 +857,10 @@ mod sea_tests {
         assert!(g.stands(fp, dry, &land) && !g.stands(fp, shallow, &land) && !g.stands(fp, wet, &land));
         assert!(!g.stands(fp, dry, &tidal) && !g.stands(fp, shallow, &tidal) && g.stands(fp, wet, &tidal));
         assert!(g.stands(fp, wet, &shipyard) && !g.stands(fp, at(544.0, 512.0), &shipyard));
+        // At the water's edge the next cell is the shallow strip of -10: the engine's squares between the cells may be
+        // shallower than the floor, so a shipyard keeps a cell off the edge (water-2).
+        assert!(!g.stands(fp, at(592.0, 512.0), &shipyard), "a shipyard with the shallow strip in the next cell");
+        assert!(g.stands(fp, at(624.0, 512.0), &shipyard), "a shipyard a cell further out");
         assert!(g.stands(fp, dry, &extractor) && g.stands(fp, shallow, &extractor) && g.stands(fp, wet, &extractor));
         // Over the step from -40 to -60 (a footprint of 32 across x 896): the floater stands, the submerged kind not.
         let step = at(896.0, 512.0);

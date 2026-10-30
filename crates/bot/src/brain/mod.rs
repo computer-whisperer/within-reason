@@ -109,6 +109,9 @@ pub struct Brain {
     block: Option<layout::Block>,
     block_tried: i32,
     block_failed: Option<String>,
+    /// The last refusal said for each kind (the menu asks where every kind would go each turn; the same answer is
+    /// logged once).
+    layout_refusal_said: std::cell::RefCell<HashMap<UnitDefId, String>>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
@@ -335,6 +338,7 @@ impl Brain {
             block: None,
             block_tried: i32::MIN / 2,
             block_failed: None,
+            layout_refusal_said: std::cell::RefCell::new(HashMap::new()),
             reclaim: Default::default(),
             plan_game: None,
             pianist,

@@ -239,7 +239,10 @@ impl Brain {
         match layout::choose(&world, &req) {
             Ok(site) => Plan::Slot(def, site.at, site.facing),
             Err(why) => {
-                eprintln!("[ai {}] no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.ai(), self.name(def), self.actor_name(builder.id), centre.x, centre.z);
+                let said = format!("no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.name(def), self.actor_name(builder.id), centre.x, centre.z);
+                if self.layout_refusal_said.borrow_mut().insert(def, said.clone()) != Some(said.clone()) {
+                    eprintln!("[ai {}] {said}", self.ai());
+                }
                 Plan::Near(def, centre)
             }
         }
