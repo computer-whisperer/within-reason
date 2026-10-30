@@ -18,17 +18,23 @@ use super::Brain;
 const MARK_MOVED: f32 = 96.0;
 /// When no ground held a block, the search runs again after this many frames (30 s).
 const RETRY_FRAMES: i32 = 900;
+/// The block's plant is gone when no factory of ours stands within this of where it stood.
+const PLANT_MOVED: f32 = 64.0;
 
 impl Brain {
-    /// Lays the block once an advanced plant of ours is placed, or lays it again at the player's `block` mark when
-    /// the mark has moved; keeps its pitch at the player's word. Said in the hands' lines.
+    /// Lays the block once an advanced plant of ours stands or is being built (not on an order: block-2's first
+    /// order was refused by the engine and the plant went up 1,000 away from the block laid beside the order), lays
+    /// it again at the player's `block` mark when the mark has moved or beside the next advanced plant when the one
+    /// it was laid for is gone; keeps its pitch at the player's word. Said in the hands' lines.
     pub(super) fn tend_block(&mut self, own: &[OwnUnit], kit: &Kit, frame: i32) {
         let dense = self.strategist.as_ref().is_some_and(|s| s.block_dense.load(std::sync::atomic::Ordering::Relaxed));
         let mark = self.strategist.as_ref().and_then(|s| s.marks_all().get("block").map(|m| Vec3 { x: m.x, y: 0.0, z: m.z }));
         if let Some(block) = self.block.as_mut() {
             block.pitch = if dense { DENSE_PITCH } else { SPARSE_PITCH };
+            let plant_gone = !block.marked && !own.iter().any(|u| u.pos.dist2d(block.plant_at) < PLANT_MOVED && self.world.is_factory_def(u.def));
             match mark {
                 Some(m) if block.centre.dist2d(m) > MARK_MOVED => {}
+                None if plant_gone => {}
                 _ => return,
             }
         } else if frame < self.block_tried + RETRY_FRAMES {
@@ -62,17 +68,10 @@ impl Brain {
         }
     }
 
-    /// Our first advanced plant, standing or ordered: a factory of tier 2 or above by the glossary.
+    /// Our first advanced plant standing or being built: a factory of tier 2 or above by the glossary.
     fn advanced_plant(&self, own: &[OwnUnit]) -> Option<(UnitDefId, Vec3, i32, String)> {
         let advanced = |def: UnitDefId| self.world.is_factory_def(def) && glossary::entry(self.name(def)).is_some_and(|e| e.tier >= 2);
-        if let Some(u) = own.iter().filter(|u| advanced(u.def)).min_by_key(|u| u.id.0) {
-            return Some((u.def, u.pos, u.facing, self.actor_name(u.id)));
-        }
-        let pianist = self.pianist.as_ref()?;
-        pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)).find_map(|t| match t {
-            super::pianist::Task::Build { def, near, facing, .. } if advanced(*def) => Some((*def, *near, *facing, format!("an ordered {}", self.name(*def)))),
-            _ => None,
-        })
+        own.iter().filter(|u| advanced(u.def)).min_by_key(|u| u.id.0).map(|u| (u.def, u.pos, u.facing, self.actor_name(u.id)))
     }
 
     /// What the block is laid for: the kit's turret, the largest frame the advanced constructor builds (the advanced
@@ -229,6 +228,12 @@ mod tests {
         let super::super::economy::Plan::Slot(_, at, _) = plan else { panic!("a slot") };
         assert!(block.lattice().holds(at), "{at:?} off the lattice at {:?}", block.centre);
         assert!(!block.holds(&layout::Footprint { x: 6, z: 6 }.rect(at)));
+        // The plant gone and another standing elsewhere: the block is laid again beside the new one.
+        let moved = OwnUnit { facing: 1, ..own(12, 3, Vec3 { x: 3200.0, y: 0.0, z: 2000.0 }) };
+        brain.tend_block(&[commander.clone(), moved.clone()], &kit, 150);
+        let again = brain.block.clone().expect("a block");
+        assert!(again.plant_at.dist2d(moved.pos) < 1.0 && again.centre.dist2d(block.centre) > 500.0, "{again:?}");
+        brain.tend_block(&ours, &kit, 160);
         // Dense on the player's word.
         brain.strategist = Some(std::sync::Arc::new(crate::strategist::shared::Shared::default()));
         brain.strategist.as_ref().unwrap().block_dense.store(true, std::sync::atomic::Ordering::Relaxed);

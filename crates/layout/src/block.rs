@@ -82,7 +82,8 @@ pub struct Block {
     pub gantry: Option<(Facts, Vec3, i32, Rect)>,
     /// Whether the player's mark placed it.
     pub marked: bool,
-    /// How far from the plant it stands.
+    /// The advanced plant it was laid beside, and how far from it the centre stands.
+    pub plant_at: Vec3,
     pub from_plant: f32,
 }
 
@@ -228,6 +229,7 @@ pub fn lay(world: &World, wants: &Wants, mark: Option<Vec3>) -> Result<Block, St
         frame_slots: s.slots,
         gantry: s.gantry.map(|(at, facing, apron)| (wants.gantry.clone().expect("a gantry"), at, facing, apron)),
         marked: mark.is_some(),
+        plant_at,
         from_plant: distance,
     })
 }
