@@ -209,7 +209,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
             }
             // A plant's own street, from the site it would stand at.
             if f.factory {
-                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), sea: 0.0 };
+                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), sea: f.product_sea };
                 if !street_open(&world.ground, &own, &blocks, &*world.open) {
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
                     continue;
@@ -247,7 +247,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         return None;
     }
     if f.factory {
-        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: f.product_sea };
         let apron = own.apron();
         if !world.ground.in_map(&apron) || world.standing.iter().any(|s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
             return None;
@@ -255,7 +255,10 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         if world.spots.iter().any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
             return None;
         }
-        if !apron_open(&apron, &*world.open) {
+        // A shipyard's apron is water its ships float in, whatever the land's passable set says (water-1: every
+        // shipyard site was refused by the land's apron check).
+        let passable = |p: Vec3| if f.product_sea > 0.0 { world.ground.height_at(p.x, p.z).is_some_and(|h| h <= -f.product_sea) } else { (world.open)(p) };
+        if !apron_open(&apron, &passable) {
             return None;
         }
     }
@@ -555,7 +558,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32, blast: Option<(f32, f32)>) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn builder() -> Facts {
@@ -734,12 +737,29 @@ mod sea_tests {
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
         let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open) };
-        let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0 };
-        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0 };
+        let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 };
+        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         let builder_at = at(1900.0, 2048.0);
         let req = Request { facts: tidal, purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 400.0, builder_at, builder: commander };
         let site = choose(&w, &req).expect("a site on the water");
         assert!(ground.height_at(site.at.x, site.at.z).is_some_and(|h| h < 0.0), "{site:?} is not on the water");
         assert!(site.at.x < 2150.0 && site.at.dist2d(builder_at) < 300.0, "{site:?} is not the water nearest the commander (the walk band of 48 lets the shore slide)");
+    }
+
+    /// A shipyard for a constructor on the shore goes on the water: its apron and street are judged by the water its
+    /// ships float in, not by the land's passable set (water-1: the land's apron check refused every shipyard site).
+    #[test]
+    fn a_shipyard_goes_on_the_water_with_its_apron_and_street_at_sea() {
+        let t = shore();
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open) };
+        let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
+        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
+        let builder_at = at(1900.0, 2048.0);
+        let req = Request { facts: shipyard, purpose: Purpose::Plant, centre: builder_at, radius: 600.0, builder_at, builder: commander };
+        let site = choose(&w, &req).expect("a shipyard site on the water");
+        assert!(ground.height_at(site.at.x, site.at.z).is_some_and(|h| h <= -30.0), "{site:?} is not in water 30 deep");
+        assert!(site.at.x < 2400.0, "{site:?} is far out to sea");
     }
 }

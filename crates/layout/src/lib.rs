@@ -144,8 +144,11 @@ pub struct Facts {
     /// A structure: it does not move.
     pub building: bool,
     /// For a factory, half the width of the widest unit it makes, in elmos: its street's half-width. 0 otherwise;
-    /// the caller sets it (`with_product_half`), since it needs the products' definitions.
+    /// the caller sets it (`with_products`), since it needs the products' definitions.
     pub product_half: f32,
+    /// For a factory whose widest product is a ship, the shallowest water it floats in: its apron and street are
+    /// water at least that deep. 0 for a factory whose products walk, and for every other kind.
+    pub product_sea: f32,
 }
 
 impl Facts {
@@ -168,11 +171,13 @@ impl Facts {
             factory: d.speed == 0.0 && !d.build_options.is_empty(),
             building: d.speed == 0.0,
             product_half: 0.0,
+            product_sea: 0.0,
         }
     }
 
-    pub fn with_product_half(self, product_half: f32) -> Facts {
-        Facts { product_half, ..self }
+    /// A factory's street: its widest product's half-width, and the water that product floats in when it is a ship.
+    pub fn with_products(self, product_half: f32, product_sea: f32) -> Facts {
+        Facts { product_half, product_sea, ..self }
     }
 
     /// The width of a factory's street, as the design has it: as wide as its widest product. A product's movement
@@ -658,6 +663,7 @@ mod tests {
             health: 0.0,
             blast: None,
             product_half: 0.0,
+            product_sea: 0.0,
         };
         match def {
             COM => Some(f((4, 4), false, false, 145.0)),
@@ -813,7 +819,7 @@ mod sea_tests {
     }
 
     fn kind(min_depth: f32, max_depth: f32, floater: bool) -> Facts {
-        Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth, max_depth, floater, extractor: false, factory: false, building: true, product_half: 0.0 }
+        Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth, max_depth, floater, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 }
     }
 
     /// The engine's depth rule (F-map-build): a land building stands on land alone, a sea kind in water at least its

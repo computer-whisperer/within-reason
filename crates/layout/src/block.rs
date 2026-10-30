@@ -151,7 +151,7 @@ fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
         let p = if along_x { Vec3 { x: centre.x + a, y: centre.y, z: centre.z } } else { Vec3 { x: centre.x, y: centre.y, z: centre.z + a } };
         let p = g.footprint.snap(p);
         let facing = facings_toward(p, toward)[0];
-        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
         (p, facing, plant.apron())
     });
     Shape { rows, slots, gantry }
@@ -296,7 +296,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     }
     if let Some((at, facing, _)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
-        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
         if !street_open(&world.ground, &own, &blocks, &*world.open) {
             return None;
         }
@@ -336,7 +336,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
