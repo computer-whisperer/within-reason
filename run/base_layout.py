@@ -324,7 +324,7 @@ def block(record):
         # The block's sub-lattice (the design §1.1, step 3): the share of turrets whose centres agree modulo a pitch.
         for pitch in (96, 48):
             classes = collections.Counter((round(p[0]) % pitch, round(p[1]) % pitch) for p in pts)
-            on, _ = classes.most_common(1)[0]
+            _, on = classes.most_common(1)[0]
             print(f'on one {pitch}-lattice: {on} of {len(pts)} turrets')
     par = list(range(len(pts)))
     def find(i):

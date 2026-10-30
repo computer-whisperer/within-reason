@@ -398,11 +398,16 @@ mod tests {
         let site = choose(&w, &req).expect("a turret site");
         assert!(block.lattice().holds(site.at), "{site:?} off the lattice at {:?}", block.centre);
         assert!(!block.holds(&wants.turret.footprint.rect(site.at)), "{site:?} on the rows");
-        // A frame goes into a row (the reservation admits frames), the only ground in reach of the turret there.
-        w.workers.push(crate::Worker { at: site.at, reach: 400.0, power: 200.0 });
-        let req = Request { facts: wants.frame, purpose: Purpose::Frame, centre: block.centre, radius: block.reach, builder_at: block.centre, builder };
+        // A frame goes into a row, not merely beside one: a turret at the centre reaches the whole band, and the
+        // builder stands 700 west, so ground at the band's west edge is 300 nearer its walk and as quick to stand
+        // (block-5: both frames went beside the rows that way).
+        w.workers.push(crate::Worker { at: block.centre, reach: 400.0, power: 200.0 });
+        let far_west = Vec3 { x: block.centre.x - 700.0, y: 0.0, z: block.centre.z };
+        let req = Request { facts: wants.frame, purpose: Purpose::Frame, centre: block.centre, radius: block.reach, builder_at: far_west, builder };
         let site = choose(&w, &req).expect("a frame site");
         assert!(site.words.contains("1 turret"), "{site:?}");
+        assert!(site.words.contains("in a frame row"), "{site:?}");
+        assert!(block.frame_rows.iter().any(|r| r.overlaps(&wants.frame.footprint.rect(site.at))), "{site:?} outside the rows {:?}", block.frame_rows);
         // A solar's band at the block centre finds ground, never on the rows or the gantry's slot.
         let solar = facts(3, 10, 155.0, 340.0);
         let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: block.centre, radius: 200.0, builder_at: block.centre, builder };

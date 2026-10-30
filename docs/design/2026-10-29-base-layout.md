@@ -260,11 +260,13 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
    mark the nearest point to it that holds. From then on the world carries its rows as reservations a frame may take
    and nothing else, the gantry's slot as its kind's, and its sub-lattice for construction turrets (96 sparse, 48 after
    the player's `block` tool says `dense`); a turret's and a frame's bands are the block's reach (the turret's 400)
-   from its centre. The frame's hands' line counts the turrets in reach and the chain bill by kind ("its blast holds 3
+   from its centre. Among frame sites equally quick to stand (within the 3 s band) a row slot wins and the hands' line
+   says "in a frame row" (block-5, 2026-10-30: the rows admitted frames but did not draw them, and both frames went
+   beside the rows on the builder's walk, one of them onto the turrets' lattice). The frame's hands' line counts the turrets in reach and the chain bill by kind ("its blast holds 3
    armnanotc and 1 armmakr, 850 metal of ours"); the report gains the block's line (centre, pitch, turrets on it,
    frame slots free, the gantry's slot, the banks on its ground to reclaim) or, when no ground held one, why. The
-   judge `run/base_layout.py block` reads the 96 bin and the share of turrets on one lattice. Judge pending: the
-   first game is `block-1`.
+   judge `run/base_layout.py block` reads the 96 bin and the share of turrets on one lattice. Judged in `block-5`
+   (block-1 to block-4 found the fixes above or never played).
 4. **The territory bot on the shared crate, if the crate looks simple then** (the user: "may adopt the crate in this
    arc if it looks simple, and may be delayed if not"). T-FARM replaced; judged by its standing marks (terr202-207's
    reference rows) not moving down.
@@ -294,5 +296,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2 in layout-1: banks touching at 80, three plants 181 and 202 apart, nothing penned), step 3 built 2026-10-30 (judge pending: block-1), steps 4 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2 in layout-1: banks touching at 80, three plants 181 and 202 apart, nothing penned), step 3 built 2026-10-30 and judged in block-5 the same day (the block laid at 6:25 on the flattest ground 746 from the plant, 7 of 7 turrets on the 96 lattice, the second advanced fusion standing in 186 s with 7 turrets in reach against 185 said; the frames went beside the rows rather than in them, fixed: a row slot wins among sites as quick to stand), steps 4 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.

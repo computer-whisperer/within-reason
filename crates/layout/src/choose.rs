@@ -303,8 +303,18 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
             let in_reach: Vec<&Worker> = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).collect();
             let power: f32 = in_reach.iter().map(|w| w.power).sum::<f32>() + req.builder.build_speed;
             let seconds = if power > 0.0 { f.build_time / power } else { f32::INFINITY };
-            words = format!("{} turret{} with {:.0} build power in reach, {seconds:.0} s to stand", in_reach.len(), if in_reach.len() == 1 { "" } else { "s" }, power);
-            [seconds, 0.0]
+            // Ground reserved for frames (the block's rows) wins among sites equally quick to stand: the rows are
+            // where the turrets will gather, and a frame outside them takes the lattice (block-5: both frames went
+            // beside the rows on the builder's walk).
+            let in_rows = world.reservations.iter().any(|r| r.for_ == Reserved::Frames && r.rect.overlaps(&rect));
+            words = format!(
+                "{} turret{} with {:.0} build power in reach, {seconds:.0} s to stand{}",
+                in_reach.len(),
+                if in_reach.len() == 1 { "" } else { "s" },
+                power,
+                if in_rows { ", in a frame row" } else { "" }
+            );
+            [seconds, if in_rows { 0.0 } else { 1.0 }]
         }
         Purpose::Place => [at.dist2d(req.centre), 0.0],
     };

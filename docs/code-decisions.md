@@ -121,7 +121,8 @@ The block (H-ECO-BLOCK) is the one global decision after the stand: when our fir
 is found once, at the player's `block` mark or on the flattest ground beside the plant that holds two frame rows and the
 gantry's slot, and from then on the rows are kept for frames, the slot for the gantry, construction turrets stand on
 its sub-lattice (96 apart, 48 after the player's `block` tool says `dense`), and a turret's or a frame's band is the
-block's reach from its centre. The code lists banks on its ground for reclaim; the player removes them or not.
+block's reach from its centre; a row slot beats a site outside the rows that is as quick to stand (block-5: the rows
+admitted frames without drawing them). The code lists banks on its ground for reclaim; the player removes them or not.
 
 Wakes (`B/wake.rs` and the triggers beside it; H-WAKE-*, H-HANDS-LOSS-WAKE, H-HANDS-STALL, H-HANDS-SHELLED): no turn
 within 5 s of the last; the player's own timer (default 30 s) capped at 10 s while a fight is on; losses while orders
