@@ -51,6 +51,49 @@ heuristics ruling governs what and when, not where). The layer answers one quest
 and answers it from a plan of districts rather than from where the builder stands. The player keeps the three site
 decisions through marks it already makes; Jev stays out, as it is today.
 
+### 1.0 The ground budget, allies and water
+
+The user (2026-10-29, after the first draft): "base layout is often a function of the available surface area. In the
+8v8 games in particular, our existing sprawl runs into contention very quickly and most 8v8 attempts involved many
+blocked-in units. Responsibility for avoiding block-in extends to avoiding blocking in other seats' facilities as
+well. In other cases, the maps are populated with sparse islands and force most construction to be at sea ... We will
+not always have the luxury of a relatively wide open base area like comet catcher." So the plan begins with what it
+has to work with, not with the districts.
+
+- **The ground budget is the first input.** Before any district is laid the layer computes the buildable ground of
+  the seat: the cells that take a footprint (the slope tolerance of the kinds it will build, F-map-build; the water's
+  depth for what floats or stands under water), less spots and their extractor footprints, less allies' structures and
+  the claims round their starts (the game's start-box claim per seat, `CLAIM_RADIUS`, the territory bot's T-ALLIES),
+  less every plant's street (ours and, as far as their facing shows it, allies'). The districts are fitted to that
+  budget in order of what they are worth: the stand (fixed by the start), the plant district with its street, then the
+  block as large as the budget allows at the chosen pitch, then the generators' rows in what is left. A short budget
+  changes the block's size and shape (a bar is a bar in any direction, bent round what is there), never the streets:
+  a street is the last thing to give, since a penned plant's output is worth nothing. When the budget cannot hold a
+  district at all the layer says so in the report ("no ground for a block within 1,500 of the advanced plant; the
+  nearest ground that holds one is at D6") and the player decides whether to move the plant or the base.
+- **Allies' buildings are obstacles and allies' plants are streets we must not close.** Measured (`run/base_layout.py
+  pen --allies`, our four Glitters 8v8s, 32 seats, 61 plants): with our own buildings alone 10 plants closed to some
+  size, with allies' structures counted 17, and six closed to Bulls (size 4), one at 2:00, four by 7:00, seat 7's plant
+  in three of four games at the same place (1184, 2030). The sizes we make (2 and 3) still pass on the grid, so the
+  "many blocked-in units" the user saw come from what the grid does not carry: allied and own units standing in the
+  gaps, wrecks, the engine's pathfinder refusing at its coarse resolution what the fine grid allows, and enemy
+  structures. The street check therefore counts allied structures as obstacles (the `al` samples the host already
+  sends), treats every allied plant's lane as a street of its largest product's width that no placement of ours may
+  close, and leaves a margin of one square round allied footprints. An ally's building that closes one of our
+  streets is reported as such ("street from plant_12 closed by an allied armsolar at C4"), for the player to say in
+  the team channel; we do not reclaim allies.
+- **Water is ground with its own footprints.** On a map whose buildable land is islands, the stand and the plant
+  district may be on water from the start (the hands already place the on-water kinds at the nearest water,
+  H-ECO-TIDAL): the tidal generator, the shipyard and the amphibious plant, the floating converter, radar and
+  turrets, the naval construction turret (`armnanotcplat`, the block's turret at sea), the underwater fusion, storages
+  and advanced converter, the floating hover platform, the underwater gantry. A sea district is a lattice on water
+  deep enough for its kinds (each has a minimum and maximum depth; the ship classes their own), with a shipyard's
+  street a ship's footprint wide through water that ships can take, and the block's bars of naval turrets round the
+  underwater fusions. The same code, a different passable set and a different kind table; the ground budget is
+  computed over land and water together, each kind over the cells it can stand on. Judge: the sea maps in the
+  catalogue (Cape Violet, SailAway, Isidis) under the same instruments, which need the water depth added to the pen
+  check's passable set.
+
 ### 1.1 Districts
 
 A district is a region with a lattice and a purpose. Three kinds:
@@ -126,15 +169,21 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
 1. **The stand and the queue.** `crates/layout` with the stand district; the lists order every step whose slot is in
    reach with `queue: true`. Judge: `run/base_layout.py pool` on the new games against the pool, gaps (0.6 s), stands
    (one or two), the plant's clock (Hellontoast's 0:54 on the same sequence).
-2. **The street rule and footprint packing.** The plant district with apron and street; the ground check before every
-   site; solars and converters at footprint in rows. Judge: `pen` (nothing penned at any size a plant makes, through
-   the game), nearest-neighbour spacing (solars 80, converters 48), the lane's contents (nothing within 100 of a door).
+2. **The ground budget, the street rule and footprint packing.** The buildable ground computed with allies' structures,
+   claims and lanes taken out; the plant district with apron and street; the ground check before every site, allied
+   structures and allied streets in it; solars and converters at footprint in rows. Judge: `pen` and `pen --allies`
+   (nothing penned at any size a plant makes, ours or an ally's, through the game, in the 1v1s and in an 8v8 against
+   BARb on Glitters), nearest-neighbour spacing (solars 80, converters 48), the lane's contents (nothing within 100 of
+   a door), the report's street lines when an ally closes one.
 3. **The block.** Laid at the advanced plant; frame slots by turrets in reach; blast slots; reclaim-for-ground.
    Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; pitch
    as decided; the chain bill as computed), and the economy marks the territory bot is already judged by.
 4. **The territory bot on the shared crate.** T-FARM replaced; judged by its standing marks (terr202-207's reference
    rows) not moving down.
-5. **Transport of turrets**, when the hand exists: the block follows the frames. Not designed here.
+5. **Water.** The sea kinds' depth table, the passable set over water, the shipyard's street, the naval turret's bars;
+   the pen check given the water depth. Judge: a game on Cape Violet or SailAway, the stand's gaps and the pen check at
+   sea, and nothing of ours on land that the budget said was water's.
+6. **Transport of turrets**, when the hand exists: the block follows the frames. Not designed here.
 
 Each step is a batch of player games on Comet against BARb hard_aggressive (the arena target), the instruments run on
 their records, and a ledger row; nothing moves to the next step while the judge of the last is unmet.
@@ -142,8 +191,10 @@ their records, and a ledger row; nothing moves to the next step while the judge 
 ## 3. What this does not do
 
 It does not decide what to build or when (the player's lists, the territory bot's program). It does not place for
-allies or read their buildings except as obstacles. It does not model wrecks as obstacles in the street check beyond
-what the ground model already carries. It does not choose between pitch 48 and 96 or the advanced fusion's policy
+allies; it reads their buildings as obstacles and their plants' lanes as streets, and never reclaims theirs. It does
+not model wrecks or standing units as obstacles in the street check beyond what the ground model already carries,
+which is where the 8v8 block-ins the grid does not show must come from; if they persist after step 2 the check gains
+the wrecks and the standing units' positions from the samples. It does not choose between pitch 48 and 96 or the advanced fusion's policy
 (§4). It leaves the facing of a plant toward the enemy unless the player marks otherwise.
 
 ## 4. Decisions for the user before step 3

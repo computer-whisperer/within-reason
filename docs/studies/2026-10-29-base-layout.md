@@ -143,6 +143,12 @@ reach 1,200 elmos from the plant. Wrecks, allies' buildings and enemy units are 
 | ours, fourteen latest games (advance-1 to -4, files-1, contact-1, airstun-1, two human games, apex-v0405, companies-1/2, migration-3-1/4-1) | 44 | 5 | 7 at 10:00-13:00, 6 at 14:00-22:00, 5 at 10:00-17:00, 4 once (contact-1's second plant, 17:00); never 2 or 3 |
 | the pool at 40 OS (24 games, 49 seats, no terrain) | 97 | 24 | 7 in 24, 6 in 16, 5 in 6, 4 in 2, everything in 1 (a plant walled in at 8:00) |
 | thebluegecko (two games, 7 plants) | 7 | 0 | |
+| our four Glitters 8v8s (32 seats, own buildings only) | 61 | 10 | 7 in 10, 6 in 9, 5 in 5, 4 in 1 |
+| the same with allied structures counted (`pen --allies`, the samples' `al` rows) | 61 | 17 | 7 and 6 in 17, 5 in 10, 4 in 6 (one at 2:00, four by 7:00; seat 7's plant at (1184, 2030) in three of four games) |
+
+Sizes 2 and 3 pass on the grid in every 8v8 seat, so the block-ins the user saw in those games come from what the
+grid does not carry: units standing in the gaps, wrecks, enemy structures, and the engine's pathfinder refusing at its
+coarse resolution gaps the fine grid allows. Data: `pen-8v8-own.jsonl`, `pen-8v8-allies.jsonl`.
 
 The picture (contact-1's second plant at 17:00, rendered from the record): the plant facing east into a solar field
 laid at one footprint plus one or two squares, gaps of 16 to 48 elmos between solars that pass a Stumpy and stop a

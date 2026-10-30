@@ -7,7 +7,7 @@ run/replay_match.py). The study: docs/studies/2026-10-29-base-layout.md; the der
     run/base_layout.py pool 0 <record.jsonl>...         the same for bare records (ours: run/matches/<batch>/<NN>/record-0.jsonl)
     run/base_layout.py block <record.jsonl>             the construction-turret block of one side: pitch, bars, what stands
                                                         in it with the turrets in reach when placed, the chain bill
-    run/base_layout.py pen <record.jsonl>...            per land factory, the first minute a unit of each footprint (2 to 7
+    run/base_layout.py pen [--allies] <record.jsonl>... per land factory (with --allies, allied structures block too), the first minute a unit of each footprint (2 to 7
                                                         squares) can no longer walk from its exit to ground 1,200 away through
                                                         our own buildings (and the terrain where the record has it)
     run/base_layout.py summary <pool.jsonl>             the pooled medians of a pool file
@@ -304,7 +304,7 @@ def pool(args):
 def block(record):
     h, defs, cr, fin, de, cmds, samples = load(record)
     name = lambda d: defs[d]['name']; fps = h.get('frames_per_second', 30)
-    bld = {u: r for u, r in cr.items() if (defs[r['d']].get('speed') or 0) == 0 and u in fin}
+    bld = {u: r for u, r in cr.items() if (defs.get(r['d'], {}).get('speed') or 0) == 0 and u in fin and r['d'] in defs}
     P = lambda u: (cr[u]['x'], cr[u]['z'])
     nanos = [u for u in bld if name(bld[u]['d']) in NANOS]
     end_nanos = [u for u in nanos if u not in de]
@@ -372,14 +372,14 @@ def block(record):
 
 
 # ---------------------------------------------------------------- pen: when a base fences its own factories in, by unit size
-def pen(record, minutes_step=1):
+def pen(record, minutes_step=1, allies=False):
     """For each land factory of the record's side: at every minute, whether a unit of each movement footprint (2 squares = bots,
     3 = vehicles and T2 bots, 4 = Bull/Fatboy class, 5 = Bantha class, 6 = Vanguard, 7 = Thor/Juggernaut) can walk from the
     factory's exit to open ground 1,200 away, through our own standing buildings (and the terrain's slopes when the record
     has terrain-<ai>.bin). A size is penned when the eroded free grid has no path. Grid: 16-elmo squares."""
     import struct
     h, defs, cr, fin, de, cmds, samples = load(record)
-    name = lambda d: defs[d]['name']; fps = h.get('frames_per_second', 30)
+    name = lambda d: defs.get(d, {}).get('name', '?'); fps = h.get('frames_per_second', 30)
     W, H = int(h['map']['width']) // 16, int(h['map']['height']) // 16
     base_block = bytearray(W * H)   # 1 = never walkable (steep ground), from the terrain file when present
     terr = h.get('terrain')
@@ -402,11 +402,12 @@ def pen(record, minutes_step=1):
                 if sv > bot: bot_block[z * W + x] = 1
     else:
         bot_block = bytearray(W * H)
-    bld = {u: r for u, r in cr.items() if (defs[r['d']].get('speed') or 0) == 0 and u in fin}
+    bld = {u: r for u, r in cr.items() if (defs.get(r['d'], {}).get('speed') or 0) == 0 and u in fin and r['d'] in defs}
     facs = [u for u in bld if name(bld[u]['d']) in FACTORIES and name(bld[u]['d']) not in NO_LANE]
     end_f = max([r['f'] for r in samples] or [0])
     # facing from the first products, as in analyse()
     pos_at = {s['f']: {o[0]: (o[2], o[3]) for o in s.get('own', [])} for s in samples}
+    samples_at = {s['f']: s.get('al') or [] for s in samples}
     sf = sorted(pos_at)
     def pos_near(uid, f):
         lo, hi, best = 0, len(sf) - 1, None
@@ -417,7 +418,7 @@ def pen(record, minutes_step=1):
         return None if best is None else pos_at[best].get(uid)
     def facing_of(v):
         pv = (cr[v]['x'], cr[v]['z']); hx, hz = half(name(cr[v]['d']))
-        prods = sorted([(cr[u]['f'], u) for u in cr if cr[u]['f'] > fin[v]['f'] and (defs[cr[u]['d']].get('speed') or 0) > 0 and dist((cr[u]['x'], cr[u]['z']), pv) <= max(hx, hz) + 120])[:8]
+        prods = sorted([(cr[u]['f'], u) for u in cr if cr[u]['f'] > fin[v]['f'] and (defs.get(cr[u]['d'], {}).get('speed') or 0) > 0 and dist((cr[u]['x'], cr[u]['z']), pv) <= max(hx, hz) + 120])[:8]
         vecs = []
         for f0, u in prods:
             if u not in fin: continue
@@ -447,6 +448,15 @@ def pen(record, minutes_step=1):
         for minute in range(int(fv / fps / 60) + 1, int(dv / fps / 60) + 1, minutes_step):
             f = minute * 60 * fps
             grid = bytearray(bot_block if 'lab' in nm else base_block)   # a lab's bots climb what a plant's vehicles cannot
+            if allies:
+                # allied structures standing at this minute, from the nearest sample's `al` rows ([id, def, x, z, team, ...])
+                near_f = max([k for k in sf if k <= f] or [sf[0]]) if sf else None
+                for a in (samples_at.get(near_f) or []):
+                    if a[1] not in defs or (defs[a[1]].get('speed') or 0) != 0: continue
+                    qx, qz = half(name(a[1]))
+                    for z in range(max(0, (a[3] - qz) // 16), min(H, (a[3] + qz) // 16)):
+                        base = z * W
+                        for x in range(max(0, (a[2] - qx) // 16), min(W, (a[2] + qx) // 16)): grid[base + x] = 1
             for u, r in bld.items():
                 if u == v or fin[u]['f'] > f or (u in de and de[u]['f'] <= f): continue
                 qx, qz = half(name(r['d']))
@@ -485,7 +495,7 @@ def pen(record, minutes_step=1):
                 if not out: first_pen[n] = minute
         row['penned'] = first_pen
         results.append(row)
-    return {'record': record, 'slope_limit': slope_limit, 'minutes': round(end_f / fps / 60, 1), 'factories': results}
+    return {'record': record, 'allies': allies, 'slope_limit': slope_limit, 'minutes': round(end_f / fps / 60, 1), 'factories': results}
 
 # ---------------------------------------------------------------- summary of a pool file
 def summary(path):
@@ -536,6 +546,8 @@ if __name__ == '__main__':
     if mode == 'pool': pool(sys.argv[2:])
     elif mode == 'block': block(sys.argv[2])
     elif mode == 'pen':
-        for r in sys.argv[2:]: print(json.dumps(pen(r))); sys.stdout.flush()
+        allies = '--allies' in sys.argv
+        for r in sys.argv[2:]:
+            if r != '--allies': print(json.dumps(pen(r, allies=allies))); sys.stdout.flush()
     elif mode == 'summary': summary(sys.argv[2])
     else: sys.exit(__doc__)
