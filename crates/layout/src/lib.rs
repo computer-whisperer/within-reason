@@ -203,11 +203,14 @@ pub struct Ground<'a> {
     map_height: f32,
     /// The least and greatest height on the map, found once when first asked.
     bounds: std::cell::OnceCell<(f32, f32)>,
+    /// Per cell, the least and greatest height of it and its four neighbours, found once when first asked: the
+    /// range an engine square's height between our cells lies in (`stands` read five cells a square before).
+    ranges: std::cell::OnceCell<Vec<(i16, i16)>>,
 }
 
 impl<'a> Ground<'a> {
     pub fn new(terrain: &'a Terrain, map_width: f32, map_height: f32) -> Ground<'a> {
-        Ground { terrain, map_width, map_height, bounds: std::cell::OnceCell::new() }
+        Ground { terrain, map_width, map_height, bounds: std::cell::OnceCell::new(), ranges: std::cell::OnceCell::new() }
     }
 
     /// The least and greatest height anywhere on the map.
@@ -260,18 +263,28 @@ impl<'a> Ground<'a> {
             return false;
         }
         let Some(floor) = self.height_at(centre.x, centre.z) else { return false };
-        for sx in 0..footprint.x {
-            for sz in 0..footprint.z {
-                let (x, z) = (rect.x0 + (sx as f32 + 0.5) * SQUARE, rect.z0 + (sz as f32 + 0.5) * SQUARE);
-                let Some(h) = self.height_at(x, z) else { return false };
+        let t = self.terrain;
+        if t.cell <= 0.0 {
+            return false;
+        }
+        // Every engine square of the footprint lies in one of our cells; the test is per cell (a 12-square side
+        // read 144 squares, 720 cells, where its 36 cells say the same).
+        let (w, h) = (t.width as usize, t.height as usize);
+        let (i0, i1) = ((rect.x0 / t.cell).floor().max(0.0) as usize, ((rect.x1 / t.cell).ceil() as usize).min(w));
+        let (j0, j1) = ((rect.z0 / t.cell).floor().max(0.0) as usize, ((rect.z1 / t.cell).ceil() as usize).min(h));
+        let ranges = self.ranges();
+        for j in j0..j1 {
+            for i in i0..i1 {
+                let k = j * w + i;
+                let cell = f32::from(t.heights[k]);
                 // The engine reads the height at the square itself, between our cells, so it lies between the cell's
                 // and its neighbours': the whole range must be in the kind's depths (water-2: a shipyard's site with
                 // every cell at -30 to -119 was refused by the engine for a floor of 30).
-                let (low, high) = self.height_range_at(x, z);
+                let (low, high) = (f32::from(ranges[k].0), f32::from(ranges[k].1));
                 if low < -f.max_depth || high > -f.min_depth {
                     return false;
                 }
-                if (low - floor).abs().max((high - floor).abs()) > f.height_dif && !(f.floater && h <= 0.0) {
+                if (low - floor).abs().max((high - floor).abs()) > f.height_dif && !(f.floater && cell <= 0.0) {
                     return false;
                 }
             }
@@ -279,19 +292,29 @@ impl<'a> Ground<'a> {
         true
     }
 
-    /// The least and greatest height of the cell at (x, z) and its four neighbours: the range a square's height
-    /// between our cells lies in.
-    fn height_range_at(&self, x: f32, z: f32) -> (f32, f32) {
-        let c = self.terrain.cell;
-        let mut low = f32::INFINITY;
-        let mut high = f32::NEG_INFINITY;
-        for (dx, dz) in [(0.0, 0.0), (-c, 0.0), (c, 0.0), (0.0, -c), (0.0, c)] {
-            if let Some(h) = self.height_at(x + dx, z + dz) {
-                low = low.min(h);
-                high = high.max(h);
+    /// Per cell, the least and greatest height of it and its four neighbours.
+    fn ranges(&self) -> &[(i16, i16)] {
+        self.ranges.get_or_init(|| {
+            let t = self.terrain;
+            let (w, h) = (t.width as usize, t.height as usize);
+            let mut out = Vec::with_capacity(w * h);
+            for j in 0..h {
+                for i in 0..w {
+                    let mut low = t.heights[j * w + i];
+                    let mut high = low;
+                    for (di, dj) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                        let (ni, nj) = (i as i64 + di, j as i64 + dj);
+                        if ni >= 0 && nj >= 0 && (ni as usize) < w && (nj as usize) < h {
+                            let n = t.heights[nj as usize * w + ni as usize];
+                            low = low.min(n);
+                            high = high.max(n);
+                        }
+                    }
+                    out.push((low, high));
+                }
             }
-        }
-        (low, high)
+            out
+        })
     }
 }
 

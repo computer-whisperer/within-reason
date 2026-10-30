@@ -461,8 +461,8 @@ struct Scene<'a> {
     builders: Vec<&'a OwnUnit>,
     /// Every group: its name, where its body stands, its soldiers and its course in words.
     groups: Vec<(&'a Group, Vec3, Vec<&'a OwnUnit>, String)>,
-    /// The layout layer's world this second, built once for every builder's site questions.
-    layout: layout::World<'a>,
+    /// The layout layer's world this second, built once, when the first builder's moves ask for a site.
+    layout: std::cell::OnceCell<layout::World<'a>>,
 }
 
 impl Brain {
@@ -738,8 +738,8 @@ impl Brain {
     /// Every actor's menu this second: each group (a roving one with no party moves: its sightings are the lane's
     /// business), each builder off a list (a listed one only while it is threatened, and then with its ways out
     /// alone), each factory with nothing ordered ahead.
-    pub(super) fn menus(&self, tick: &Tick, kit: &Kit, picture: &Picture) -> Vec<Menu> {
-        let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
+    /// What every menu this second is composed over.
+    fn scene<'a>(&'a self, tick: &'a Tick, kit: &'a Kit, picture: &'a Picture, pianist: &'a Pianist) -> Scene<'a> {
         let own = tick.snapshot.own_units.as_slice();
         let enemies = tick.snapshot.enemies.as_slice();
         let frame = tick.frame;
@@ -772,10 +772,38 @@ impl Brain {
             })
             .collect();
         let air_parties: BTreeSet<String> = picture.parties.iter().filter(|p| p.air).map(|p| p.name.clone()).collect();
-        let layout = self.layout_world(own);
-        let scene = Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, air_parties, under_fire, builders, groups, layout };
+        Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, air_parties, under_fire, builders, groups, layout: std::cell::OnceCell::new() }
+    }
+
+    /// The moves of the builder menus the layers left open (not quiet, or quiet and audited): composed now, after
+    /// the news layer, so a closed builder's site questions are never asked of the layout layer.
+    pub(super) fn fill_builder_menus(&self, tick: &Tick, kit: &Kit, picture: &Picture, menus: &mut [Menu]) {
+        let Some(pianist) = self.pianist.as_ref() else { return };
+        let scene = self.scene(tick, kit, picture, pianist);
+        for menu in menus.iter_mut() {
+            let Kind::Builder(id) = menu.kind else { continue };
+            if menu.quiet && !menu.audit {
+                continue;
+            }
+            let Some(unit) = scene.own.iter().find(|u| u.id == id) else { continue };
+            if let Some(mut full) = self.builder_menu(&scene, unit, true) {
+                full.quiet = menu.quiet;
+                full.audit = menu.audit;
+                full.reopened = menu.reopened;
+                *menu = full;
+            }
+        }
+    }
+
+    pub(super) fn menus(&self, tick: &Tick, kit: &Kit, picture: &Picture) -> Vec<Menu> {
+        let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
+        let scene = self.scene(tick, kit, picture, pianist);
+        let own = scene.own;
         let mut menus: Vec<Menu> = Vec::new();
-        menus.extend(scene.builders.iter().filter_map(|unit| self.builder_menu(&scene, unit)));
+        // A builder's menu is its head alone here (course, party, status); its moves, the dear part (a site question
+        // to the layout layer for every kind it may build), are composed by `fill_builder_menus` for the actors
+        // the news layer leaves open (econ-flagship-1: every builder's moves every second, most of them closed).
+        menus.extend(scene.builders.iter().filter_map(|unit| self.builder_menu(&scene, unit, false)));
         menus.extend(own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)).filter_map(|unit| self.factory_menu(&scene, unit)));
         menus.extend(pianist.groups.iter().filter_map(|group| self.group_menu(&scene, group)));
         menus
@@ -1303,7 +1331,8 @@ impl Brain {
         shot
     }
 
-    fn builder_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
+    /// A builder's menu; with `with_moves` false its head alone, the moves being `stay` (see `menus`).
+    fn builder_menu<'a>(&'a self, scene: &Scene<'a>, unit: &OwnUnit, with_moves: bool) -> Option<Menu> {
         let (own, enemies, picture, pianist, kit, frame) = (scene.own, scene.enemies, scene.picture, scene.pianist, scene.kit, scene.frame);
         let name = self.actor_name(unit.id);
         let task = pianist.tasks.get(&unit.id);
@@ -1350,7 +1379,7 @@ impl Brain {
         let what_stands = |place: &Place| picture.state["places"][&place.name]["what"].as_str().map_or(String::new(), |w| format!(", {w}"));
         let near_words = |place: &Place| picture.state["places"][&place.name]["enemies_near"].as_str().map_or(String::new(), |e| format!("; enemies near it: {e}"));
 
-        if !listed {
+        if !listed && with_moves {
             // Build: an extractor at every free spot the packet or a list names, and at the free spot the builder
             // reaches soonest (its "beside itself"); every other type the allowance permits where the base layout
             // has it; a type that stands at a place (a defence, a radar, a jammer, a sonar) at every named place
@@ -1443,7 +1472,7 @@ impl Brain {
                 }
                 // Where the base layout has it: said, since "beside itself" is not where a factory or a generator
                 // far from home goes.
-                let plan = self.place_planned_in(&scene.layout, def, unit, own);
+                let plan = self.place_planned_in(scene.layout.get_or_init(|| self.layout_world(own)), def, unit, own);
                 let anchor = plan.anchor();
                 let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
                 push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);

@@ -1114,6 +1114,8 @@ impl Brain {
                 (0, 0)
             }
         };
+        // The open builders' moves, now that the news layer has closed the calm ones (`menu::fill_builder_menus`).
+        self.fill_builder_menus(tick, kit, picture, &mut menus);
         // The log's header, before the first request of any kind (the decode's may be the first).
         if jev_on && self.pianist.as_ref().is_some_and(|p| !p.header_logged) {
             let rules = diet::rules_for(&picture.rules, &|_| true);
