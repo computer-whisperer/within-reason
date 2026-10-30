@@ -162,7 +162,25 @@ with no turret in reach and never finished. The numbers in the article are the u
 (Cortex 8,400 / 68,000), 1,800 of its own build power, a Bantha 360,000, a Thor 320,000, a Juggernaut 780,000, blast
 1,330 to 210, products of movement footprint 5 to 7.
 
-## 9. What it does not say
+## 9. Banks (added for the generator question)
+
+Clusters at single linkage (solars 88, one footprint plus a square; converters 56, touching), per seat with eight or
+more solars:
+
+| | solars a seat | largest solar cluster | share of solar clusters that are one solar | converter clusters (touching) |
+|---|---|---|---|---|
+| the pool (133 seats) | 26 | 7 | 0.56 | largest 4, median 3.5 (11 seats with converters) |
+| thebluegecko vs InactiveAI | 25 | 10 | 0.40 | none built |
+| ours, fourteen latest | 42 | 1 | 1.00 | largest 1 (6 seats) |
+
+Our solars never touch and we build sixteen more of them than the pool; the pool's singletons are mostly a solar
+beside an outer extractor. By the blast numbers no generator bank chains on its own: solar, advanced solar, tidal and
+wind burst for 89 at most (`smallBuildingExplosionGeneric`, `windboom`, edge 0.75) against healths of 340, 1,130 and
+196. Basic converters chain while their centres are under 129 apart (660 to 105 against 167), advanced converters under
+192 (1,220 to 160 against 445). A storage's 980 to 210 kills solars within 137 of its wall, turbines within 168,
+converters within 174. A hull-area sprawl index was tried and dropped: the pool's outer laser towers inflate it.
+
+## 10. What it does not say
 
 Why the people pitch at 48 (habit, the grid's default, or a measured preference), whether a block at 96 costs anything
 in frame clocks (no frame in his game had more than 121 turrets in reach, and 68 fit at 96), how the people lay bases

@@ -127,6 +127,30 @@ A district is a region with a lattice and a purpose. Three kinds:
   standing on block slots are listed as **reclaim-for-ground** in the order the block grows into them: the plan says
   which solar goes when the slot it stands on is next.
 
+- **Banks** (the generators and converters: solar, advanced solar, wind, tidal, basic converter; the user, 2026-10-29:
+  "usually placed in banks by constructors (or sometimes the commander) rather than in range of the construction
+  turrets, although key ones can be ... Humans typically build them in clusters of various sizes according to what is
+  easy to arrange with the games' placement tools. This is in contrast to our current loose basic solar sprawl which
+  currently is what takes up the majority of our base surface area"). A bank is a lattice of one kind at its footprint
+  (solars 80, advanced solars 64, winds and converters 48, tidal on water), of a bounded size, with a vehicle street (3
+  squares) between banks. A generator step goes to the nearest bank of its kind with a free slot that the builder
+  reaches with a short walk, else founds a bank at the builder's lattice point nearest its work: banks grow, nothing
+  scatters. Measured against the people (`docs/studies/2026-10-29-base-layout.md` §9): the pool's solars stand in
+  clusters of up to 7 (median largest), thebluegecko's of 10, 26 solars a seat; ours 42 solars a seat, every one a
+  singleton at linkage 88, never touching. The bank's size bound is the chain precaution, and by the blast numbers it
+  binds only converters: a solar, an advanced solar, a tidal or a wind turbine bursts for 89 at most, less than any of
+  their healths (340, 1,130, 196), so a bank of them of any size loses only what the enemy shoots; a basic converter
+  (660 to 105) kills a touching converter outright and keeps killing to centres 129 apart, an advanced converter
+  (1,220 to 160) to centres 192 apart. So converter banks are small (the pool's touching clusters are 3 to 4; six at
+  most), the street between them the firebreak, and the one precaution the generator banks need is from their
+  neighbours: an energy storage (980 to 210) kills solars within 137 of its wall, turbines within 168 and converters
+  within 174, so a storage stands apart from every bank by that much, and a fusion (kills solars within 209) is not a
+  bank's neighbour. Advanced converters are the block's: they are "brought up at speed late game with the advanced
+  fusion reactors that power them" and take the frame rows beside the farm, in rows whose length is their bill (a row
+  at 64 chains end to end). An advanced solar that is wanted at speed early goes to a block or plant-district slot as a
+  frame; otherwise to its bank. Banks are the first ground the block grows into: a bank's slots are listed for
+  reclaim-for-ground as the block reaches them, the way his seventeen solars went.
+
 Extractors stay on spots, exactly as now. Defences stay at the player's places (the line 650 ahead and the defence
 120 toward the enemy go; a defence without a place is refused as now).
 
