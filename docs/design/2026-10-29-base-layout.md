@@ -111,7 +111,19 @@ A district is a region with a lattice and a purpose. Three kinds:
   the plant's largest product's movement footprint (a bot lab 3 squares, a vehicle plant 4, an advanced lab 6, an
   advanced vehicle plant 7, a gantry 7), kept free of everything but extractors on spots. The street's line is the
   shortest walkable line from the apron to ground outside the base's districts, chosen when the plant is placed and
-  bent round spots.
+  bent round spots. **Plants of a tier are co-located** (the user, 2026-10-29: "the time it takes for a completed unit
+  to roll off the pad implies downtime for adjacent construction turrets that may be taken up by a different
+  construction facility in range. This is why you often see construction turrets and production facilities
+  co-located"): a second plant of the tier, of the same type or another, goes beside the first with the turret slots
+  between them, both pads within reach of one turret row (centres about 500 apart or less), each plant with its own
+  street, the streets merging where they can; a third goes on the row's other side or across a street. Measured (the
+  study, §10): the people's same-type plant pairs stand 304 apart median (67 of 90 within 500) and 72 percent of their
+  turrets reach two or more plants; ours 647 apart (7 of 29 within 500) and 48 percent. The roll-off gap is about a
+  second a unit (the pool 1.0, ours 1.5, his 0.3 to 0.4), 12 to 17 percent of a plant's cycle under assist, which is
+  what a turret with one plant idles. In the block the plant row holds plants side by side the same way (his eight air
+  plants, each with 35 to 87 turrets in reach). The companion change is in the hands, not the layer: a turret in reach
+  of several plants helps the one with a frame on its pad, where today it guards the nearest finished factory and is
+  told again every 10 s (H-ECO-NANO-GUARD, `nanos.rs`); the engine's guard follows one factory through its roll-offs.
 - **The block** (one, from the advanced plant). Laid when the advanced plant is placed, on the flattest ground within
   the base that holds it, centred so that the plant's slot is in it: bars of turret slots alternating with frame rows
   for the things the block builds (advanced converters, fusions, the later plants, the gantry), each frame slot having
@@ -221,7 +233,8 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
    structures and allied streets in it; solars and converters at footprint in rows. Judge: `pen` and `pen --allies`
    (nothing penned at any size a plant makes, ours or an ally's, through the game, in the 1v1s and in an 8v8 against
    BARb on Glitters), nearest-neighbour spacing (solars 80, converters 48), the lane's contents (nothing within 100 of
-   a door), the report's street lines when an ally closes one.
+   a door), the report's street lines when an ally closes one; the share of turrets in reach of two or more plants
+   (the pool's 72 percent against our 48) and same-type plant pairs within 500.
 3. **The block.** Laid at the advanced plant; frame slots by turrets in reach; blast slots; reclaim-for-ground.
    Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; the
    sparse lattice's 96 before the player's `block dense`, 48 after; the chain bill reported, not bounded), and the

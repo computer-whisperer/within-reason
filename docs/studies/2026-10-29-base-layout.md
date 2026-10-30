@@ -201,7 +201,21 @@ about 260 between centres; turrets at 48 are a train, at 64 a hole spreads but a
 touching chain by the front, one footprint apart only as a hole; advanced fusions chain at any pitch a block allows.
 A storage's single blast kills solars within 137 of its wall, turbines within 168, converters within 174.
 
-## 10. What it does not say
+## 10. Co-location of plants (the user's roll-off point)
+
+Per factory, the gap from a product finishing to the next product's frame being created, and whether the turrets stand
+in reach of more than one plant (400 plus the plant's half footprint):
+
+| | seats with 2+ plants | roll-off gap, s (median, quartiles) | build s median | gap share of the cycle | turrets in reach of 2+ plants | same-type plant pairs: distance median, within 500 |
+|---|---|---|---|---|---|---|
+| the pool (140 seats) | 103 | 1.0 (0.7 to 1.3), n 16,220 | 5.0 | 0.15 | 526 of 730 (72 %) | 304; 67 of 90 |
+| thebluegecko (two games) | 2 | 0.3 (0.3 to 0.4), n 476 | 1.7 | 0.17 | 212 of 349 (61 %) | 959 (his eight air plants in the block, 6 of 36 within 500) |
+| ours, fourteen latest | 12 | 1.5 (1.2 to 2.0), n 2,612 | 9.4 | 0.12 | 28 of 58 (48 %) | 647; 7 of 29 |
+
+The people put a second plant of the same type beside the first and let one turret row serve both; we put ours 650
+apart.
+
+## 11. What it does not say
 
 Why the people pitch at 48 (habit, the grid's default, or a measured preference), whether a block at 96 costs anything
 in frame clocks (no frame in his game had more than 121 turrets in reach, and 68 fit at 96), how the people lay bases
