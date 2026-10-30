@@ -1786,6 +1786,11 @@ impl Brain {
                         if nanos_idle > 0 { format!(" ({nanos_idle} idle this second)") } else { String::new() }
                     ));
                 }
+                // The street rule's state (docs/design/2026-10-29-base-layout.md §1.4): the player acts when a street
+                // is closed by what the layer could not prevent (an ally's building, his, the ground).
+                if let Some(street) = self.street_words(unit, own) {
+                    entry["street"] = json!(street);
+                }
                 if let Some(lane) = self.lane_of(unit) {
                     let stuck = self.stuck_in_lane(&lane, own);
                     if !stuck.is_empty() {

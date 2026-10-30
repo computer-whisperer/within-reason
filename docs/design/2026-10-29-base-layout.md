@@ -232,7 +232,15 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
    (nothing penned at any size a plant makes, ours or an ally's, through the game, in the 1v1s and in an 8v8 against
    BARb on Glitters), nearest-neighbour spacing (solars 80, converters 48), the lane's contents (nothing within 100 of
    a door), the report's street lines when an ally closes one; the share of turrets in reach of two or more plants
-   (the pool's 72 percent against our 48) and same-type plant pairs within 500.
+   (the pool's 72 percent against our 48) and same-type plant pairs within 500. **Built 2026-10-29** (H-ECO-LAYOUT):
+   `layout::choose` (the levels of §1.1 as written, the bands as constants, the street check of §1.2 as a windowed
+   flood over the ground a plant's widest product stands on, `street.rs`), the bot's `layout_world` (ours, allies'
+   with their facing now sent by the shim, his known buildings, the plants' aprons, the turrets' reach, the frames,
+   the stand's free slots as reservations, the refused sites), every kind's purpose and band in `economy.rs`, the
+   player's place as a band, the picture's `street` line per plant, the stand's own slots under the same apron and
+   street check; `beside_builder` and the 320 lane deleted with their constants. The ground budget of §1.0 is implicit
+   in the candidate set (what stands, allies' footprints with a margin, the aprons, the spots, the ground) rather than
+   computed as a map; no "no ground for a district" line yet, since no district is drawn. Judge pending: `layout-1`.
 3. **The block.** Laid at the advanced plant; frame slots by turrets in reach; blast slots; reclaim-for-ground.
    Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; the
    sparse lattice's 96 before the player's `block dense`, 48 after; the chain bill reported, not bounded), and the
@@ -266,5 +274,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; step 1 built the same night (judge pending), steps 2 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2's judge pending), steps 3 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.

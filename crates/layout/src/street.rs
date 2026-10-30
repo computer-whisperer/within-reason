@@ -1,0 +1,267 @@
+//! The street rule (the design §1.2): no placement may close a plant's way to the open. A plant has an apron, the
+//! ground before its door kept clear outright, and a street: wherever its widest product can walk from the door to
+//! the open, through the ground its units stand on and round every footprint. The check floods a window round the
+//! plant with the candidate footprint added; a site that closes any plant's street, ours or an ally's, is passed over.
+//! The same check reports a street's state for the player ("closed for Bulls by armsolar_3041").
+
+use bot_protocol::Vec3;
+
+use crate::{Footprint, GRID, Ground, Rect, facing_dir, lane_rect};
+
+/// The ground before a plant's door kept clear of everything: the engine's empty-spot search walks the front
+/// (`Factory.cpp` `SendToEmptySpot`), and the people clear about 100 (the study §4); six cells of the grid.
+pub const APRON: f32 = 96.0;
+/// How far from its door a plant's street must reach: the open.
+pub const STREET_REACH: f32 = 1200.0;
+
+/// A plant whose street the rule keeps: ours or an ally's.
+#[derive(Clone, Debug)]
+pub struct Plant {
+    pub centre: Vec3,
+    /// Before facing.
+    pub footprint: Footprint,
+    pub facing: i32,
+    /// Half the width of its widest product, in elmos.
+    pub product_half: f32,
+    pub ours: bool,
+    /// How the report names it.
+    pub name: String,
+    /// What it makes, for the report's words ("closed for Bulls").
+    pub widest: String,
+}
+
+impl Plant {
+    pub fn rect(&self) -> Rect {
+        self.footprint.faced(self.facing).rect(self.centre)
+    }
+
+    /// The ground before its door kept clear outright.
+    pub fn apron(&self) -> Rect {
+        lane_rect(self.footprint, self.centre, self.facing, APRON, self.product_half)
+    }
+
+    /// The cells of its widest product: a unit of `k` cells a side.
+    fn product_cells(&self) -> i32 {
+        ((self.product_half * 2.0) / GRID).ceil().max(1.0) as i32
+    }
+
+    /// Where its units stand once off the pad: before the front face, half the product and a cell out.
+    pub fn door(&self) -> Vec3 {
+        let (_, half_depth) = self.footprint.faced(self.facing).half();
+        let (fx, fz) = facing_dir(self.facing);
+        let out = half_depth + (self.product_cells() as f32 / 2.0 + 1.0) * GRID;
+        Vec3 { x: self.centre.x + fx * out, y: self.centre.y, z: self.centre.z + fz * out }
+    }
+
+    /// Whether `rect` lies where it could affect this plant's street.
+    pub fn concerns(&self, rect: &Rect) -> bool {
+        let window = Rect { x0: self.centre.x - STREET_REACH, z0: self.centre.z - STREET_REACH, x1: self.centre.x + STREET_REACH, z1: self.centre.z + STREET_REACH };
+        window.overlaps(rect)
+    }
+}
+
+/// The state of a plant's street.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StreetState {
+    Open,
+    /// Closed, and the index into `blocks` of a footprint whose removal opens it, if one does.
+    Closed { opener: Option<usize> },
+}
+
+/// Whether the plant's widest product walks from its door to the open, over ground `open` and round every rect of
+/// `blocks` (the plant's own footprint among them or not: its door lies outside it).
+pub fn street_open(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> bool {
+    Flood::new(ground, plant, blocks, open).reaches_the_open()
+}
+
+/// The street's state, and the one block of `ours` (indices into `blocks`) whose removal would open a closed one:
+/// the nearest such to the door.
+pub fn street_state(ground: &Ground, plant: &Plant, blocks: &[Rect], ours: &[usize], open: &dyn Fn(Vec3) -> bool) -> StreetState {
+    if street_open(ground, plant, blocks, open) {
+        return StreetState::Open;
+    }
+    let door = plant.door();
+    let mut candidates: Vec<usize> = ours.iter().copied().filter(|i| plant.concerns(&blocks[*i])).collect();
+    candidates.sort_by(|a, b| blocks[*a].centre().dist2d(door).total_cmp(&blocks[*b].centre().dist2d(door)));
+    for i in candidates {
+        let without: Vec<Rect> = blocks.iter().enumerate().filter(|(j, _)| *j != i).map(|(_, r)| *r).collect();
+        if street_open(ground, plant, &without, open) {
+            return StreetState::Closed { opener: Some(i) };
+        }
+    }
+    StreetState::Closed { opener: None }
+}
+
+/// A reached cell on the window's edge counts as the open when it is at least this far from the door, when the
+/// window has such cells (a small map's edge beside the door is no way out).
+const OPEN_FROM_DOOR: f32 = 300.0;
+
+/// The flood's window: the ground within `STREET_REACH` of the plant, clamped to the map, in cells of GRID; blocked
+/// cells summed for the product's block test.
+struct Flood {
+    nx: i32,
+    nz: i32,
+    k: i32,
+    x0: f32,
+    z0: f32,
+    /// Prefix sums of blocked cells, (nx + 1) by (nz + 1).
+    sums: Vec<i32>,
+    start: Option<(i32, i32)>,
+    door: Vec3,
+}
+
+impl Flood {
+    fn new(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
+        let (map_w, map_h) = ground.extent();
+        let x0 = (plant.centre.x - STREET_REACH).max(0.0);
+        let z0 = (plant.centre.z - STREET_REACH).max(0.0);
+        let x1 = (plant.centre.x + STREET_REACH).min(map_w);
+        let z1 = (plant.centre.z + STREET_REACH).min(map_h);
+        let nx = ((x1 - x0) / GRID).floor().max(1.0) as i32;
+        let nz = ((z1 - z0) / GRID).floor().max(1.0) as i32;
+        let near: Vec<&Rect> = blocks.iter().filter(|r| plant.concerns(r)).collect();
+        let mut sums = vec![0i32; ((nx + 1) * (nz + 1)) as usize];
+        let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
+        for j in 0..nz {
+            for i in 0..nx {
+                let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
+                let blocked = !open(p) || near.iter().any(|r| r.contains(p));
+                sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(blocked);
+            }
+        }
+        let k = plant.product_cells();
+        let door = plant.door();
+        let (di, dj) = (((door.x - x0) / GRID).floor() as i32 - k / 2, ((door.z - z0) / GRID).floor() as i32 - k / 2);
+        let start = (di >= 0 && dj >= 0 && di + k <= nx && dj + k <= nz).then_some((di, dj));
+        Flood { nx, nz, k, x0, z0, sums, start, door }
+    }
+
+    /// Whether the product's block with its corner at (i, j) stands on unblocked cells.
+    fn free(&self, i: i32, j: i32) -> bool {
+        let (nx, nz, k) = (self.nx, self.nz, self.k);
+        if i < 0 || j < 0 || i + k > nx || j + k > nz {
+            return false;
+        }
+        let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
+        let blocked = self.sums[at(i + k, j + k)] - self.sums[at(i, j + k)] - self.sums[at(i + k, j)] + self.sums[at(i, j)];
+        blocked == 0
+    }
+
+    fn on_edge(&self, i: i32, j: i32) -> bool {
+        i == 0 || j == 0 || i + self.k == self.nx || j + self.k == self.nz
+    }
+
+    fn centre_of(&self, i: i32, j: i32) -> Vec3 {
+        Vec3 { x: self.x0 + (i as f32 + self.k as f32 / 2.0) * GRID, y: 0.0, z: self.z0 + (j as f32 + self.k as f32 / 2.0) * GRID }
+    }
+
+    fn reaches_the_open(&self) -> bool {
+        let Some(start) = self.start else { return false };
+        if !self.free(start.0, start.1) {
+            return false;
+        }
+        // Does the window have an edge far enough from the door at all (a small map may not)?
+        let far_edge = {
+            let mut any = false;
+            for i in 0..=(self.nx - self.k) {
+                for j in [0, self.nz - self.k] {
+                    any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
+                }
+            }
+            for j in 0..=(self.nz - self.k) {
+                for i in [0, self.nx - self.k] {
+                    any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
+                }
+            }
+            any
+        };
+        let (nx, nz, k) = (self.nx, self.nz, self.k);
+        let mut seen = vec![false; (nx * nz) as usize];
+        let mut stack = vec![start];
+        seen[(start.1 * nx + start.0) as usize] = true;
+        while let Some((i, j)) = stack.pop() {
+            if self.on_edge(i, j) && (!far_edge || self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR) {
+                return true;
+            }
+            for (di, dj) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let (ni, nj) = (i + di, j + dj);
+                if ni < 0 || nj < 0 || ni + k > nx || nj + k > nz || seen[(nj * nx + ni) as usize] {
+                    continue;
+                }
+                seen[(nj * nx + ni) as usize] = true;
+                if self.free(ni, nj) {
+                    stack.push((ni, nj));
+                }
+            }
+        }
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bot_protocol::Terrain;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    fn flat() -> Terrain {
+        let (w, h) = (256u32, 256u32);
+        Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: Vec::new() }
+    }
+
+    fn plant(facing: i32) -> Plant {
+        Plant { centre: at(2048.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into() }
+    }
+
+    /// A plant alone on open ground has its street; a ring of footprints round it, closing every gap under a Bull's
+    /// width, closes it; one footprint taken out of the ring opens it again, and the state names that footprint.
+    #[test]
+    fn a_ring_round_the_plant_closes_the_street_and_one_gap_opens_it() {
+        let t = flat();
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |_: Vec3| true;
+        let p = plant(1);
+        assert!(street_open(&ground, &p, &[], &open));
+        // The ring: solars (80 wide) touching, 240 from the plant's centre on every side.
+        let solar = |x: f32, z: f32| Footprint { x: 10, z: 10 }.rect(at(x, z));
+        let mut ring: Vec<Rect> = Vec::new();
+        for k in -3..=3 {
+            let o = 80.0 * k as f32;
+            ring.push(solar(2288.0, 2048.0 + o));
+            ring.push(solar(1808.0, 2048.0 + o));
+            ring.push(solar(2048.0 + o, 1808.0));
+            ring.push(solar(2048.0 + o, 2288.0));
+        }
+        assert!(!street_open(&ground, &p, &ring, &open));
+        let ours: Vec<usize> = (0..ring.len()).collect();
+        match street_state(&ground, &p, &ring, &ours, &open) {
+            StreetState::Closed { opener: Some(i) } => assert!(ring[i].centre().x == 2288.0 && (ring[i].centre().z - 2048.0).abs() <= 80.0, "the opener is before the door: {:?}", ring[i]),
+            other => panic!("{other:?}"),
+        }
+        // A gap of one solar (80) passes a Bull (64) but not a Thor (96 wide).
+        let east_middle = ring.iter().position(|r| r.centre() == at(2288.0, 2048.0)).unwrap();
+        let gapped: Vec<Rect> = ring.iter().enumerate().filter(|(i, _)| *i != east_middle).map(|(_, r)| *r).collect();
+        assert!(street_open(&ground, &p, &gapped, &open));
+        let thor = Plant { product_half: 48.0, ..plant(1) };
+        assert!(!street_open(&ground, &thor, &gapped, &open));
+        // A plant beside the map's edge on a small map still has its street when it reaches that edge.
+        let small = Terrain { cell: 16.0, width: 64, height: 64, heights: vec![50; 64 * 64], slopes: vec![0; 64 * 64], metal: Vec::new() };
+        let corner = Plant { centre: at(512.0, 512.0), ..plant(1) };
+        assert!(street_open(&Ground::new(&small, 1024.0, 1024.0), &corner, &[], &open));
+    }
+
+    #[test]
+    fn the_door_lies_before_the_front_face() {
+        let p = plant(1);
+        // Facing east: the front face at x = 2096; a Bull is 4 cells, so the door is 3 cells out.
+        assert_eq!(p.door(), at(2096.0 + 48.0, 2048.0));
+        assert_eq!(p.apron(), Rect { x0: 2096.0, z0: 2048.0 - 48.0 - 32.0, x1: 2192.0, z1: 2048.0 + 48.0 + 32.0 });
+        let t = flat();
+        let f = Flood::new(&Ground::new(&t, 4096.0, 4096.0), &p, &[], &|_| true);
+        assert_eq!((f.x0, f.z0), (2048.0 - STREET_REACH, 2048.0 - STREET_REACH));
+        assert!(f.start.is_some());
+    }
+}

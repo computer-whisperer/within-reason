@@ -1437,9 +1437,7 @@ impl Brain {
                 // Where the base layout has it: said, since "beside itself" is not where a factory or a generator
                 // far from home goes.
                 let plan = self.place_planned(def, unit, own);
-                let anchor = match &plan {
-                    super::super::economy::Plan::Extractor(at) | super::super::economy::Plan::Near(_, at) | super::super::economy::Plan::Beside(_, at) | super::super::economy::Plan::Slot(_, at, _) => *at,
-                };
+                let anchor = plan.anchor();
                 if !on_water || self.world.water_within(unit.pos, reach) {
                     let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
                     push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);

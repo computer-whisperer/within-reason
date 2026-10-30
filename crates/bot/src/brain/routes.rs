@@ -278,6 +278,11 @@ impl Brain {
 
     /// Where the units a factory of this type makes can stand: the passable grid of the strictest movement class
     /// among its build options (a vehicle plant's tanks climb less than a lab's bots), else the soldiers'.
+    /// Where our soldiers' class stands: the layout layer's ground for every plant's street. None without terrain.
+    pub(super) fn routes_passable(&self) -> Option<&[bool]> {
+        self.routes.as_ref().map(|r| r.passable.as_slice())
+    }
+
     pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<&[bool]> {
         let routes = self.routes.as_ref()?;
         let strictest = self

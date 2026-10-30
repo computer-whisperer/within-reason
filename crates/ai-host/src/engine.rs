@@ -632,6 +632,7 @@ impl Engine {
                     pos: self.unit_pos(id),
                     team,
                     being_built: call!(self, Unit_isBeingBuilt(id)),
+                    facing: call!(self, Unit_getBuildingFacing(id)),
                 })
             })
             .collect();

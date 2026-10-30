@@ -553,6 +553,10 @@ pub struct AllyUnit {
     pub pos: Vec3,
     pub team: i32,
     pub being_built: bool,
+    /// Its building facing (as `OwnUnit::facing`): an allied plant's apron and street lie off its front. 0 from a
+    /// shim older than 2026-10-29.
+    #[serde(default)]
+    pub facing: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

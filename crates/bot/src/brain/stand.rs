@@ -8,7 +8,7 @@
 use std::collections::VecDeque;
 
 use bot_protocol::{OwnUnit, UnitDefId, UnitId, Vec3};
-use layout::{Facts, Ground, Scene, Slot, Stand, Want};
+use layout::{Ground, Scene, Slot, Stand, Want};
 
 use super::pianist::lists::{step_id, step_low, step_start};
 use super::pianist::picture::Picture;
@@ -32,9 +32,9 @@ impl Brain {
         if wants.is_empty() {
             return;
         }
-        let Some(builder) = self.world.def(unit.def).map(Facts::of) else { return };
-        let Some(extractor) = self.world.def(kit.extractor).map(Facts::of) else { return };
-        let facts = |def: UnitDefId| self.world.def(def).map(Facts::of);
+        let Some(builder) = self.facts_of(unit.def) else { return };
+        let Some(extractor) = self.facts_of(kit.extractor) else { return };
+        let facts = |def: UnitDefId| self.facts_of(def);
         let hello = &self.world.hello;
         let free: Vec<usize> = self.free_spots(unit, pianist, picture, own, frame, kit).into_iter().map(|(i, _)| i).collect();
         let spots_taken: Vec<usize> = (0..hello.metal_spots.len()).filter(|i| !free.contains(i)).collect();
@@ -55,7 +55,7 @@ impl Brain {
         let rect_of = |def: UnitDefId, at: Vec3, facing: i32| facts(def).map(|f| f.footprint.faced(facing).rect(at));
         let mut occupied: Vec<layout::Rect> = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| rect_of(u.def, u.pos, u.facing)).collect();
         occupied.extend(pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)).filter_map(|t| match t {
-            Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0) => rect_of(*def, *near, 0),
+            Task::Build { def, near, facing, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0) => rect_of(*def, *near, *facing),
             _ => None,
         }));
         let scene = Scene {
@@ -70,8 +70,6 @@ impl Brain {
             spot_keep_out: SPOT_KEEPOUT,
             ground: Ground::new(terrain, hello.map.width, hello.map.height),
             toward: self.enemy_base(unit.pos),
-            lane_depth: super::yards::LANE_DEPTH,
-            lane_margin: super::yards::LANE_MARGIN,
             open: &open,
             occupied,
         };

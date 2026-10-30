@@ -109,9 +109,18 @@ impl Brain {
         let mut build = |plan: Plan, spot: Option<usize>| -> Option<String> {
             let (def, site) = self.build_site_for(&plan, unit, own, kit)?;
             let near = site.near;
+            let facing = match plan {
+                Plan::Slot(_, _, facing) => facing,
+                _ => 0,
+            };
+            // The layer's reasons for the site, so the player reads why it stands there.
+            let why = match plan {
+                Plan::Slot(..) => self.site_words(def, unit, own, near).map(|w| format!(" ({w})")).unwrap_or_default(),
+                _ => String::new(),
+            };
             commands.push(Command::Build { unit: id, def, site: Some(site), queue });
-            task = Some(Task::Build { def, near, spot, ordered: frame, started: false, frame: None });
-            Some(format!("build a {} at {}", self.name(def), self.place_words(&picture.places, near)))
+            task = Some(Task::Build { def, near, spot, ordered: frame, started: false, frame: None, facing });
+            Some(format!("build a {} at {}{why}", self.name(def), self.place_words(&picture.places, near)))
         };
         match order {
             Order::Build(_, Site::Spot(i)) => {
@@ -138,25 +147,23 @@ impl Brain {
                     },
                 }
             }
+            // The place is the step's band of distance (the design §1.4): the site is chosen by the levels within it.
             Order::Build(def, Site::Place(place_name)) => {
                 let at = place(place_name).map_or(unit.pos, |p| p.at);
                 // A defence stands toward the enemy from the place, so its reach covers the approach rather than
-                // whichever side the engine's site search found free (player-10-routes; the user, 2026-09-28: "our
-                // turrets are not built in reasonable locations to defend the points of interest intended").
-                let at = if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0) {
+                // whichever side the ground allows (player-10-routes; the user, 2026-09-28: "our turrets are not
+                // built in reasonable locations to defend the points of interest intended").
+                let defence = self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0);
+                let (at, band) = if defence {
                     let enemy = self.enemy_base(at);
                     let (dx, dz) = (enemy.x - at.x, enemy.z - at.z);
                     let len = dx.hypot(dz).max(1.0);
-                    Vec3 { x: at.x + dx / len * DEFENCE_FORWARD, y: at.y, z: at.z + dz / len * DEFENCE_FORWARD }
+                    (Vec3 { x: at.x + dx / len * DEFENCE_FORWARD, y: at.y, z: at.z + dz / len * DEFENCE_FORWARD }, super::super::economy::BAND_DEFENCE)
                 } else {
-                    at
+                    (at, super::super::economy::BAND_PLACE)
                 };
-                // A building that stands on water keeps the water site: snapped to the builder's own ground, a
-                // shipyard's mark became the nearest land cell and the engine had nowhere to put it (Cape Violet,
-                // 2026-09-27). The engine walks the builder to the shore.
-                let on_water = super::glossary::entry(self.name(*def)).is_some_and(|e| e.has_flag("on_water"));
-                let site = if on_water { at } else { self.snap_for(self.walker_of(unit.def), at) };
-                did = build(Plan::Near(*def, site), None);
+                let plan = self.place_in(*def, unit, own, at, band);
+                did = build(plan, None);
             }
             Order::Help(target) => {
                 // Queued, the guard order is given when the build finishes (`Pianist::promote`).
@@ -198,7 +205,7 @@ impl Brain {
                 if let Some(frame_unit) = own.iter().find(|u| u.id == *target && u.being_built) {
                     commands.push(Command::Repair { unit: id, target: *target, queue });
                     let spot = self.world.is_extractor_def(frame_unit.def).then(|| self.world.hello.metal_spots.iter().position(|s| s.dist2d(frame_unit.pos) < self.spot_occupied_radius())).flatten();
-                    task = Some(Task::Build { def: frame_unit.def, near: frame_unit.pos, spot, ordered: frame, started: true, frame: Some(*target) });
+                    task = Some(Task::Build { def: frame_unit.def, near: frame_unit.pos, spot, ordered: frame, started: true, frame: Some(*target), facing: frame_unit.facing });
                     did = Some(format!("finish our {} at {} ({:.0}% built)", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos), frame_unit.build_progress * 100.0));
                 }
             }

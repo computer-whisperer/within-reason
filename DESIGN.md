@@ -53,9 +53,11 @@ tokens (`bots/README.md`).
   and attach the rest chunk by chunk.
 - `layout` — where a building goes (2026-10-29, `docs/design/2026-10-29-base-layout.md`): the build grid and
   footprints, the ground a footprint stands on (F-map-build, the engine's height tolerance per definition), an
-  extractor's site inside its patch, a factory's exit lane, and the commander's stand (`stand`: the opening's slots
-  solved once from the start position, the spots and the terrain, so the opening list goes as one queue). Shared by
-  the flagship (`bot/src/brain/stand.rs`, `Plan::Slot`) and, in later steps, the heuristic bots; no engine, no Jev.
+  extractor's site inside its patch, a plant's apron and street (`street.rs`: the flood that says whether its widest
+  product reaches the open), the commander's stand (`stand`: the opening's slots solved once so the opening list goes
+  as one queue), and `choose` (`choose.rs`: constraints, then bands, over a `World` of what stands, the plants, the
+  turrets' reach and the frames). Shared by the flagship (`bot/src/brain/economy.rs`, `stand.rs`, `Plan::Slot`) and,
+  in later steps, the heuristic bots; no engine, no Jev.
 
 ## Protocol (credit-based, so the shim never blocks the sim)
 0. Both sides write the protocol's fingerprint (eight bytes: a hash of `bot-protocol`'s message and framing sources

@@ -1,46 +1,42 @@
-//! Where a building goes: the site for what the pianist's builders are told to build (`place_planned`,
-//! `build_site_for`, the extractor's exact site). The rules that chose what to build went with the heuristic bot
-//! (2026-09-25, `docs/design/2026-09-25-one-decider.md`). The commander's opening takes the stand's slots
-//! (`stand.rs`, `crates/layout`; docs/design/2026-10-29-base-layout.md step 1); the rest is placed as before until
-//! the layout layer's later steps replace it.
+//! Where a building goes: the site for what the pianist's builders are told to build (`place_planned`, `place_in`,
+//! `build_site_for`, the extractor's exact site). The layout layer (`crates/layout`, docs/design/2026-10-29-base-layout.md
+//! §1.1) chooses every site but an extractor's and a sea building's: constraints, then bands, over a world of what
+//! stands (ours, allies', his), the plants with their aprons and streets, the turrets' reach and the frames, the
+//! stand's reservations and the sites the engine refused. The commander's opening takes the stand's slots first
+//! (`stand.rs`). The rules that chose what to build went with the heuristic bot (2026-09-25,
+//! `docs/design/2026-09-25-one-decider.md`).
 
-use bot_protocol::{BuildSite, Lane, OwnUnit, Placement, UnitDefId, Vec3};
+use bot_protocol::{BuildSite, OwnUnit, Placement, UnitDefId, Vec3};
+use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Standing, Worker, World};
 
 use super::roster::Kit;
 use super::Brain;
 
 pub(super) const EARLY_COMMANDER_LEASH: f32 = 1500.0;
-const NANO_REACH: f32 = 260.0;
 /// How far from a layout slot the engine's site may be: a grid step, so the slot is the site or nothing.
 const SLOT_SEARCH: f32 = 24.0;
-/// A metal extractor this close to a spot occupies it.
-/// An extractor this close to a spot's centre stands on that spot, at least; the map's extractor radius when larger,
-/// since an extractor may be built anywhere within it (`extractor_site`; rush-20: offset extractors were not seen as
-/// occupying their spot, which was claimed and ordered again and again, 3 extractors built by minute 3 for 12 orders).
-/// Gaps between base buildings, in 8-elmo build squares. Three squares made a maze the army could not leave.
-const BUILDING_GAP: i32 = 5;
-const LAB_GAP: i32 = 8;
-/// Distances from the start point along the line to the enemy: generators behind, labs ahead, turrets beyond them.
-const BACK_FIELD: f32 = 150.0;
-/// How far off its centre an extractor still counts as refused for that spot (the dropped-order fallback).
+/// How far an extractor's centre may be from the spot's centre and still be the spot's (the dropped-order fallback).
 pub(super) const MEX_PATCH: f32 = 130.0;
-/// How far around a site the engine refused for a building the next search for that type keeps away.
-const REFUSED_SITE_RADIUS: f32 = 64.0;
-const LAB_YARD: f32 = 350.0;
-/// How far a building's anchor keeps from anything of ours standing or started, so the engine's closest free site
-/// to it stays within the builder's reach: the lab's gap (LAB_GAP squares) plus half of it and a neighbour, and a
-/// small building's gap plus a little.
-const LAB_CLEARANCE: f32 = 230.0;
-const BUILDING_CLEARANCE: f32 = 90.0;
-/// No building goes up this close to a metal spot's centre: a lab anchored 102 from a spot left the engine no site for
-/// the extractor (human-1, the user's "it builds the lab right on top of it"; a lab is 96 wide, an extractor 48). The
-/// lab keeps farther: the engine's site search moved one 80 from an anchor that was 156 from the spot (human-1, second
-/// game: the lab landed 98 from spot_10 again).
-const SPOT_CLEARANCE: f32 = 150.0;
-const LAB_SPOT_CLEARANCE: f32 = 260.0;
-const TURRET_LINE: f32 = 650.0;
-/// A builder farther than this from home puts a generator in the back field at home, not beside itself.
-const GENERATOR_HOME: f32 = 1000.0;
+/// The shim refuses a site this close to a metal spot's centre (`ai-host` `SPOT_KEEPOUT`): no slot goes there.
+pub(super) const SPOT_KEEPOUT: f32 = 100.0;
+/// The bands of distance (level 0): how far from its anchor a kind's site is looked for before the band widens.
+/// A generator or converter stays a short walk from its builder (the people's banks are where the constructor was
+/// working); a turret within its own reach of a pad; a plant and a frame within a few seconds of the builder.
+const BAND_GENERATOR: f32 = 300.0;
+const BAND_TURRET: f32 = 400.0;
+const BAND_PLANT: f32 = 600.0;
+const BAND_FRAME: f32 = 600.0;
+/// A stockpiler (a silo, an anti-nuke) stands behind home, away from the enemy (the user, 2026-10-09: "putting it
+/// in the back field for now").
+const BACK_FIELD: f32 = 300.0;
+const BAND_BACK_FIELD: f32 = 500.0;
+/// A step with a place: the site is chosen within this of the place (a defence a little toward the enemy from it).
+pub(super) const BAND_PLACE: f32 = 200.0;
+pub(super) const BAND_DEFENCE: f32 = 150.0;
+/// Banks of converters and wind turbines stop at this many (§1.3: the chain sum); solars have no cap.
+const BANK_CAP: usize = 6;
+/// A sea building's site: the engine's search this far round the nearest water.
+const WATER_SEARCH: f32 = 600.0;
 /// No orders before this frame: the engine loses them.
 pub(super) const FIRST_ORDER_FRAME: i32 = 60;
 /// A builder is not judged idle for this long after an order: the order has to reach it first.
@@ -49,81 +45,196 @@ pub(super) const ORDER_GRACE_FRAMES: i32 = 45;
 /// What one builder should do next.
 pub(super) enum Plan {
     Extractor(Vec3),
-    /// A building placed near `anchor`.
+    /// A building the engine sites near `anchor`: a sea building on the water (the layout layer's ground is land
+    /// until its water step), a tier-2 extractor over ours, or the layer's fallback when it found no ground.
     Near(UnitDefId, Vec3),
-    /// A building placed right beside `anchor`: a construction turret has to reach the factory it helps.
-    Beside(UnitDefId, Vec3),
-    /// A building at a slot the layout layer solved, with its facing: the site exactly, or nothing (the stand).
+    /// A building at a slot the layout layer chose, with its facing: the site exactly, or nothing.
     Slot(UnitDefId, Vec3, i32),
 }
 
+impl Plan {
+    pub(super) fn anchor(&self) -> Vec3 {
+        match *self {
+            Plan::Extractor(at) | Plan::Near(_, at) | Plan::Slot(_, at, _) => at,
+        }
+    }
+}
+
 impl Brain {
+    /// What the layout layer knows of a definition: its footprint and, for a factory, its street's half-width (its
+    /// widest product's).
+    pub(super) fn facts_of(&self, def: UnitDefId) -> Option<Facts> {
+        let d = self.world.def(def)?;
+        let facts = Facts::of(d);
+        if !facts.factory {
+            return Some(facts);
+        }
+        let products = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).map(|p| layout::Footprint { x: p.footprint.0, z: p.footprint.1 });
+        Some(facts.with_product_half(Facts::product_half_of(products)))
+    }
+
+    /// What a kind is placed for (the design's level 1).
+    fn purpose_of(&self, def: UnitDefId) -> Purpose {
+        let Some(d) = self.world.def(def) else { return Purpose::Place };
+        let static_builder = d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty();
+        if self.world.is_factory_def(def) {
+            Purpose::Plant
+        } else if static_builder {
+            Purpose::Turret
+        } else if (d.converter.is_some() && d.metal_cost < 500.0) || d.wind_cap > 0.0 {
+            Purpose::Generator { cap: Some(BANK_CAP) }
+        } else if (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.tidal_make > 0.0) && d.metal_cost < 500.0 {
+            Purpose::Generator { cap: None }
+        } else if self.placed_at_place(def) {
+            Purpose::Place
+        } else {
+            Purpose::Frame
+        }
+    }
+
+    /// The kind's own band of distance without a place from the player: its centre and radius.
+    fn band_for(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> (Vec3, f32) {
+        let stockpiler = self.world.def(def).is_some_and(|d| d.stockpile_seconds > 0.0);
+        if stockpiler {
+            return (self.forward_of_home(-BACK_FIELD), BAND_BACK_FIELD);
+        }
+        match self.purpose_of(def) {
+            Purpose::Generator { .. } => (builder.pos, BAND_GENERATOR),
+            Purpose::Turret => {
+                let pad = own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
+                (pad.map_or(builder.pos, |p| p.pos), BAND_TURRET)
+            }
+            Purpose::Plant => (builder.pos, BAND_PLANT),
+            Purpose::Frame => (builder.pos, BAND_FRAME),
+            Purpose::Place => (builder.pos, BAND_PLACE),
+        }
+    }
+
+    /// The world the layout layer chooses over, from this tick's units: what stands (ours finished and framed, every
+    /// unstarted build of ours, allies' with a square of margin, his known buildings), the plants with their aprons
+    /// and streets (ours and allies'), our construction turrets as build power, our frames, the stand's free slots as
+    /// reservations, the sites the engine refused lately.
+    pub(super) fn layout_world<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
+        let hello = &self.world.hello;
+        let rect_of = |def: UnitDefId, at: Vec3, facing: i32| self.facts_of(def).map(|f| f.footprint.faced(facing).rect(at));
+        let standing_of = |def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String| {
+            let d = self.world.def(def)?;
+            Some(Standing { rect: rect_of(def, at, facing)?, def: Some(def), ours, metal: d.metal_cost, health: d.health, blast: d.death_blast.map(|b| (b.radius, b.damage)), name })
+        };
+        let mut standing: Vec<Standing> = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| standing_of(u.def, u.pos, u.facing, true, self.handle(u))).collect();
+        let mut plants: Vec<Plant> = own.iter().filter(|u| self.world.is_factory_def(u.def)).filter_map(|u| self.plant_of(u.def, u.pos, u.facing, true, self.actor_name(u.id))).collect();
+        if let Some(pianist) = self.pianist.as_ref() {
+            for task in pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)) {
+                if let super::pianist::Task::Build { def, near, started: false, facing, .. } = task
+                    && self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)
+                {
+                    standing.extend(standing_of(*def, *near, *facing, true, format!("an ordered {}", self.name(*def))));
+                    if self.world.is_factory_def(*def) {
+                        plants.extend(self.plant_of(*def, *near, *facing, true, format!("an ordered {}", self.name(*def))));
+                    }
+                }
+            }
+        }
+        for a in &self.allies {
+            let name = format!("an allied {} at {}", self.name(a.def), self.world.grid(a.pos));
+            standing.extend(standing_of(a.def, a.pos, a.facing, false, name.clone()));
+            if self.world.is_factory_def(a.def) {
+                plants.extend(self.plant_of(a.def, a.pos, a.facing, false, name));
+            }
+        }
+        for (def, pos, _) in self.enemy_buildings.values() {
+            standing.extend(standing_of(*def, *pos, 0, false, format!("his {}", self.name(*def))));
+        }
+        let workers: Vec<Worker> = own
+            .iter()
+            .filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty()))
+            .filter_map(|u| self.world.def(u.def).map(|d| Worker { at: u.pos, reach: d.build_distance, power: d.build_speed }))
+            .collect();
+        let frames: Vec<Frame> = own.iter().filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| Some(Frame { rect: rect_of(u.def, u.pos, u.facing)?, metal: self.world.def(u.def)?.metal_cost })).collect();
+        let reservations: Vec<layout::Rect> = match (&self.stand, self.pianist.as_ref()) {
+            (Some((who, stand)), Some(pianist)) => stand
+                .slots
+                .iter()
+                .filter_map(|s| match *s {
+                    layout::Slot::Building { def, at, facing } if self.free_stand_slots(*who, def, own, pianist).iter().any(|(a, _)| *a == at) => rect_of(def, at, facing),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
+        let refused: Vec<(UnitDefId, Vec3)> = self.pianist.as_ref().map(|p| p.refused_sites.iter().map(|(d, at, _)| (*d, *at)).collect()).unwrap_or_default();
+        let terrain = &hello.terrain;
+        let passable = self.routes_passable();
+        let open = move |p: Vec3| match passable {
+            Some(passable) => {
+                let (i, j) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
+                i < terrain.width as usize && j < terrain.height as usize && passable[j * terrain.width as usize + i]
+            }
+            None => true,
+        };
+        World {
+            ground: Ground::new(terrain, hello.map.width, hello.map.height),
+            spots: &hello.metal_spots,
+            spot_keep_out: SPOT_KEEPOUT,
+            standing,
+            plants,
+            workers,
+            frames,
+            reservations,
+            refused,
+            home: self.home,
+            toward: self.enemy_base(self.home),
+            open: Box::new(open),
+        }
+    }
+
+    /// A plant for the street rule: its footprint, facing and its widest product's half-width.
+    fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
+        let f = self.facts_of(def)?;
+        let d = self.world.def(def)?;
+        let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1)).map_or(String::new(), |p| p.name.clone());
+        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest })
+    }
+
+    /// Where a building of `def` goes for `builder` without a place from the player: the stand's slot for its kind
+    /// while one is free; the water for a sea building; else the layout layer's choice within the kind's own band.
     pub(super) fn place_planned(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> Plan {
-        let lab = own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
-        // By what the definition is (a factory, a defence, a construction turret), so every building the game has
-        // places (docs/design/2026-09-22-full-roster.md, decision 3).
-        let info = self.world.def(def);
-        let static_builder = info.is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty());
-        let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
-        // The stand's slot for this kind, while one is free: solved at the start for the commander's opening.
         if let Some(pianist) = self.pianist.as_ref()
             && let Some((at, facing)) = self.free_stand_slots(builder.id, def, own, pianist).into_iter().next()
         {
             return Plan::Slot(def, at, facing);
         }
-        match def {
-            // A sea building stands on the water nearest the builder (the menu offers it only with water in reach).
-            d if on_water => match self.world.nearest_water(builder.pos, info.map_or(100.0, |b| b.build_distance) + 300.0) {
-                Some(water) => Plan::Near(d, water),
-                None => Plan::Near(d, builder.pos),
-            },
-            // The yard, but no farther from the builder than its reach: the commander built the lab at its feet in
-            // both experienced players' replays and never took a step for it (rush-2-ab: ours walked 280 for it).
-            d if self.world.is_factory_def(d) => Plan::Near(d, self.beside_builder(builder, self.forward_of_home(LAB_YARD), own, LAB_CLEARANCE, LAB_SPOT_CLEARANCE)),
-            // A stockpiler (a nuclear silo, an anti-nuke) is armed but reaches the whole map: it goes to the back field
-            // with the generators, not to the turret line (the user, 2026-10-09: "putting it in the back field for now";
-            // docs/design/2026-10-09-late-economy.md §10).
-            d if info.is_some_and(|i| i.stockpile_seconds > 0.0) => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
-            d if info.is_some_and(|i| i.speed == 0.0 && i.weapon_count > 0) => Plan::Near(d, self.forward_of_home(TURRET_LINE)),
-            d if static_builder && lab.is_some() => Plan::Beside(d, lab.unwrap().pos),
-            d if static_builder => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
-            // A generator goes home, to the back field behind the plants, when its builder is out on the map: beside
-            // the builder it stood on the frontier and died there (player-10-routes; the user, 2026-09-28: "we tend
-            // to build solars etc on the front lines rather than back at base"). At home, beside the builder as before.
-            d if info.is_some_and(|i| i.energy_make > 0.0 || i.energy_upkeep < 0.0 || i.wind_cap > 0.0) && builder.pos.dist2d(self.home) > GENERATOR_HOME => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
-            // As the simulator places them: beside the builder wherever it stands, no walking (queue-smoke: a planned
-            // solar went to the back field 497 elmos from a commander out at a far extractor, and the plan's timing
-            // with it).
-            d => Plan::Beside(d, self.beside_builder(builder, self.enemy_base(builder.pos), own, BUILDING_CLEARANCE, SPOT_CLEARANCE)),
+        let (centre, radius) = self.band_for(def, builder, own);
+        self.place_in(def, builder, own, centre, radius)
+    }
+
+    /// Where a building of `def` goes within `radius` of `centre` (the player's place, or the kind's band): the
+    /// layer's site, or for a sea building the engine's search on the nearest water. When the layer finds no ground
+    /// the engine is asked at the band's centre and the log says why.
+    pub(super) fn place_in(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], centre: Vec3, radius: f32) -> Plan {
+        let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
+        if on_water {
+            let reach = self.world.def(builder.def).map_or(100.0, |b| b.build_distance) + 300.0;
+            return Plan::Near(def, self.world.nearest_water(centre, reach).unwrap_or(centre));
+        }
+        let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
+        let world = self.layout_world(own);
+        let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };
+        match layout::choose(&world, &req) {
+            Ok(site) => Plan::Slot(def, site.at, site.facing),
+            Err(why) => {
+                eprintln!("[ai {}] no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.ai(), self.name(def), self.actor_name(builder.id), centre.x, centre.z);
+                Plan::Near(def, centre)
+            }
         }
     }
 
-    /// Where a building goes up beside `builder` without it taking a step: the engine's site search does not count
-    /// units as in the way, so a site asked for at the builder's own position is its own position, and the game then
-    /// has the builder walk off, turn round and come back (five seconds a building, rush-2-ab). A point one reach
-    /// away toward `toward`, so the base grows that way, turned round the builder in 45-degree steps until nothing
-    /// of ours stands or is started within `clearance` of it: the engine's closest free site to an anchor on the first
-    /// extractor's nanoframe lay beyond the extractor, out of reach, and the commander walked for the lab
-    /// (rush-7-comet-std-noplace 09).
-    fn beside_builder(&self, builder: &OwnUnit, toward: Vec3, own: &[OwnUnit], clearance: f32, spot_clearance: f32) -> Vec3 {
-        let reach = self.world.def(builder.def).map_or(100.0, |d| d.build_distance.max(60.0));
-        let heading = (toward.z - builder.pos.z).atan2(toward.x - builder.pos.x);
-        let at = |turn: f32| {
-            let angle = heading + turn.to_radians();
-            Vec3 { x: builder.pos.x + angle.cos() * reach, y: 0.0, z: builder.pos.z + angle.sin() * reach }
-        };
-        let standing = |p: Vec3| own.iter().any(|u| u.id != builder.id && self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && u.pos.dist2d(p) < clearance);
-        let on_spot = |p: Vec3| self.world.hello.metal_spots.iter().any(|s| s.dist2d(p) < spot_clearance);
-        let started = |p: Vec3| {
-            self.pianist.as_ref().is_some_and(|pianist| {
-                pianist.tasks.iter().any(|(id, task)| *id != builder.id && matches!(task, super::pianist::Task::Build { near, .. } if near.dist2d(p) < clearance))
-            })
-        };
-        [0.0, 45.0, -45.0, 90.0, -90.0, 135.0, -135.0, 180.0]
-            .into_iter()
-            .map(at)
-            .find(|p| !standing(*p) && !started(*p) && !on_spot(*p))
-            .unwrap_or_else(|| at(0.0))
+    /// The site's reasons in the layer's words, for the hands' line: the choice run again at the chosen site.
+    pub(super) fn site_words(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], at: Vec3) -> Option<String> {
+        let (facts, builder_facts) = (self.facts_of(def)?, self.facts_of(builder.def)?);
+        let world = self.layout_world(own);
+        let req = Request { facts, purpose: self.purpose_of(def), centre: at, radius: 8.0, builder_at: builder.pos, builder: builder_facts };
+        layout::choose(&world, &req).ok().map(|s| s.words)
     }
 
     /// An extractor's site on `spot` for `builder`: inside the patch, toward the builder (`layout::extractor_site`);
@@ -149,45 +260,11 @@ impl Brain {
         let planned_def = match plan {
             Plan::Extractor(_) if !can(kit.extractor) && can(kit.advanced_extractor) => kit.advanced_extractor,
             Plan::Extractor(_) => kit.extractor,
-            Plan::Near(def_id, _) | Plan::Beside(def_id, _) | Plan::Slot(def_id, ..) => *def_id,
+            Plan::Near(def_id, _) | Plan::Slot(def_id, ..) => *def_id,
         };
         if !can(planned_def) {
             return None;
         }
-        // Nothing but an extractor goes in a factory's exit lane (yards.rs), and a site the engine refused for this
-        // type is not asked again while the refusal stands (a point lane).
-        let mut keep_out = self.lanes.clone();
-        if let Some(pianist) = self.pianist.as_ref() {
-            keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));
-            // Another builder's build the engine has not started yet (ordered, or queued behind its build) stands
-            // nowhere the engine's site search can see: its site is kept out by the two footprints' reach (human-27
-            // 2:08-2:09: the commander's and a constructor's solars ordered a second apart beside each other, the
-            // constructor's placed over the commander's blueprint, and the commander stood 46 s at a site the engine
-            // held without building).
-            let radius = |def: UnitDefId| self.world.def(def).map_or(40.0, |d| (d.footprint.0 as f32).hypot(d.footprint.1 as f32) * 4.0);
-            let pending = pianist.tasks.iter().chain(pianist.queued_tasks()).filter(|(id, _)| **id != unit.id);
-            keep_out.extend(pending.filter_map(|(_, task)| match task {
-                super::pianist::Task::Build { def, near, started: false, .. } => Some(Lane { from: *near, to: *near, half_width: radius(*def) + radius(planned_def) }),
-                _ => None,
-            }));
-        }
-        // A factory is offered every facing, the one toward the enemy first; each facing's own exit lane must be
-        // clear of what stands or is ordered (the mirrored lanes), of ground its units cannot walk and of the map's
-        // edge. Anything else stands the engine's default way.
-        let placements = |anchor: Vec3| -> Vec<Placement> {
-            if !self.world.is_factory_def(planned_def) {
-                return vec![Placement { facing: 0, keep_out: keep_out.clone() }];
-            }
-            self.facings_toward_the_enemy(anchor)
-                .into_iter()
-                .map(|facing| {
-                    let mut keep_out = keep_out.clone();
-                    keep_out.extend(self.own_lane_keep_out(planned_def, own, facing));
-                    keep_out.extend(self.blocked_lane_keep_out(planned_def, anchor, 1000.0 + 2.0 * super::yards::LANE_DEPTH, facing));
-                    Placement { facing, keep_out }
-                })
-                .collect()
-        };
         Some(match *plan {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
@@ -195,30 +272,49 @@ impl Brain {
             // A tier-2 extractor over one of ours goes exactly where ours stands: the game upgrades in place and
             // refuses any other position on a held spot (low-1: three `armmoho spot_N` orders at the spots' centres,
             // 97-104 elmos from our extractors placed off centre, all "site bad"; the player: "upgrade path not working").
-            Plan::Near(def_id, anchor) | Plan::Beside(def_id, anchor)
+            Plan::Near(def_id, anchor)
                 if self.world.def(def_id).is_some_and(|d| d.extracts_metal > 0.0)
                     && let Some(ours) = own.iter().filter(|u| kit.is_extractor(u.def) && u.def != def_id && u.pos.dist2d(anchor) < self.spot_occupied_radius()).min_by(|a, b| a.pos.dist2d(anchor).total_cmp(&b.pos.dist2d(anchor))) =>
             {
                 (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false })
             }
-            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id), placements: placements(anchor), exact: false }),
-            Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, placements: placements(anchor), exact: false }),
-            // The layout's slot, exactly: the layer kept it off every lane and spot itself, and the engine's answer
-            // is that site or none (then the refusal is remembered and the slot is passed over).
+            // The engine's search, the default facing, a gap of two squares: the water, or the layer's fallback.
+            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: WATER_SEARCH, min_dist: 2, placements: Vec::new(), exact: false }),
+            // The layout's slot, exactly: the layer kept it off every apron, street and spot itself, and the engine's
+            // answer is that site or none (then the refusal is remembered and the slot is passed over).
             Plan::Slot(def_id, at, facing) => (def_id, BuildSite { near: at, search_radius: SLOT_SEARCH, min_dist: 0, placements: vec![Placement { facing, keep_out: Vec::new() }], exact: true }),
         })
-    }
-
-    /// The gap, in build squares, a new building keeps from its neighbours: wide enough for units to walk through.
-    fn gap_around(&self, def: UnitDefId) -> i32 {
-        // Any factory: the hover platform and the aircraft plant have exit lanes like the lab's.
-        if self.world.is_factory_def(def) { LAB_GAP } else { BUILDING_GAP }
     }
 
     pub(super) fn spot_occupied_radius(&self) -> f32 {
         self.world.hello.map.spot_radius()
     }
 
+    /// The street of a plant of ours, for the report: open, or closed for its widest product and by what.
+    pub(super) fn street_words(&self, plant: &OwnUnit, own: &[OwnUnit]) -> Option<String> {
+        let world = self.layout_world(own);
+        let p = world.plants.iter().find(|p| p.ours && p.centre.dist2d(plant.pos) < 1.0)?;
+        let blocks: Vec<layout::Rect> = world.standing.iter().map(|s| if s.ours { s.rect } else { s.rect.grown(8.0) }).collect();
+        let ours: Vec<usize> = world.standing.iter().enumerate().filter(|(_, s)| s.ours && s.rect != p.rect()).map(|(i, _)| i).collect();
+        let widest = match self.world.def_named(&p.widest) {
+            Some(def) => format!("its {}", self.short_words(def)),
+            None => "its units".to_string(),
+        };
+        Some(match layout::street_state(&world.ground, p, &blocks, &ours, &*world.open) {
+            layout::StreetState::Open => "open for everything it makes".to_string(),
+            layout::StreetState::Closed { opener: Some(i) } => {
+                let s = &world.standing[i];
+                if s.ours { format!("closed for {widest} by {}; reclaim it to open", s.name) } else { format!("closed for {widest} by {}", s.name) }
+            }
+            layout::StreetState::Closed { opener: None } => {
+                let allied = world.standing.iter().filter(|s| !s.ours && p.concerns(&s.rect)).map(|s| s.name.clone()).next();
+                match allied {
+                    Some(name) => format!("closed for {widest}: no one building of ours opens it; {name} stands in the way"),
+                    None => format!("closed for {widest} by the ground and what stands: no one building of ours opens it"),
+                }
+            }
+        })
+    }
 }
 
 #[cfg(test)]
@@ -226,22 +322,6 @@ mod tests {
     use super::*;
     use crate::brain::pianist::fixtures::{brain_of, own};
     use crate::brain::roster::{Kit, ROSTERS};
-
-    /// A stockpiler is armed but reaches the whole map: a silo and an anti-nuke go to the back field with the
-    /// generators, not to the turret line 650 ahead that an armed building takes (the user, 2026-10-09).
-    #[test]
-    fn a_silo_and_an_anti_nuke_are_placed_in_the_back_field_and_a_turret_on_the_line() {
-        let brain = brain_of(&["armsilo", "armamd", "armllt", "armck"]);
-        let builder = own(1, 4, Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
-        let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder)) {
-            Plan::Near(_, at) | Plan::Beside(_, at) | Plan::Slot(_, at, _) => at,
-            Plan::Extractor(at) => at,
-        };
-        let (back, line) = (brain.forward_of_home(-BACK_FIELD), brain.forward_of_home(TURRET_LINE));
-        assert_eq!(where_(1), back, "the silo");
-        assert_eq!(where_(2), back, "the anti-nuke");
-        assert_eq!(where_(3), line, "the light turret");
-    }
 
     /// A spot takes the builder's own extractor: the tier-2 one for an advanced constructor, which builds no other.
     #[test]
@@ -255,5 +335,89 @@ mod tests {
         let at = Vec3 { x: 900.0, y: 0.0, z: 1000.0 };
         assert_eq!(brain.build_site_for(&spot, &own(1, 3, at), &[], &kit).map(|(def, _)| def), Some(mex), "a constructor");
         assert_eq!(brain.build_site_for(&spot, &own(2, 4, at), &[], &kit).map(|(def, _)| def), Some(moho), "an advanced constructor");
+    }
+
+    /// The layer places for the hands: on flat ground with a plant facing east and one solar standing, a second
+    /// solar for the commander goes touching the first, out of the plant's apron, as an exact slot; the plant's
+    /// street reads open, and reads closed by a solar once solars ring it.
+    #[test]
+    fn a_solar_joins_its_bank_out_of_the_apron_and_the_street_is_read() {
+        use crate::brain::pianist::Pianist;
+        use bot_protocol::Terrain;
+        let mut brain = brain_of(&["armcom", "armsolar", "armvp"]);
+        let (com, solar, vp) = (UnitDefId(1), UnitDefId(2), UnitDefId(3));
+        {
+            let defs = &mut brain.world.hello.unit_defs;
+            defs[0].build_distance = 145.0;
+            defs[0].build_speed = 300.0;
+            defs[0].build_options = vec![solar, vp];
+            defs[1].footprint = (10, 10);
+            defs[1].energy_make = 20.0;
+            defs[2].footprint = (12, 12);
+            defs[2].build_options = vec![com];
+            let (w, h) = (512u32, 384u32);
+            brain.world.hello.terrain = Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: Vec::new() };
+        }
+        brain.home = Vec3 { x: 2000.0, y: 0.0, z: 2000.0 };
+        brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        let commander = own(10, 1, Vec3 { x: 2008.0, y: 0.0, z: 2104.0 });
+        let plant = OwnUnit { facing: 1, ..own(11, 3, Vec3 { x: 2000.0, y: 0.0, z: 2000.0 }) };
+        let first = own(12, 2, Vec3 { x: 2008.0, y: 0.0, z: 2168.0 });
+        let ours = vec![commander.clone(), plant.clone(), first.clone()];
+        let plan = brain.place_planned(solar, &commander, &ours);
+        let Plan::Slot(def, at, _) = plan else { panic!("the layer's slot") };
+        assert_eq!(def, solar);
+        let rect = layout::Footprint { x: 10, z: 10 }.rect(at);
+        assert!(rect.touches(&layout::Footprint { x: 10, z: 10 }.rect(first.pos)), "touching the first solar: {at:?}");
+        let apron = brain.plant_of(vp, plant.pos, 1, true, String::new()).unwrap().apron();
+        assert!(!apron.overlaps(&rect), "in the apron: {at:?}");
+        assert_eq!(brain.street_words(&plant, &ours).as_deref(), Some("open for everything it makes"));
+        // Solars ringing the plant close its street; the one before the door opens it.
+        let mut ringed = ours.clone();
+        let mut id = 20;
+        for k in -3..=3 {
+            let o = 80.0 * k as f32;
+            for p in [(2248.0, 2000.0 + o), (1752.0, 2000.0 + o), (2000.0 + o, 1752.0), (2000.0 + o, 2248.0)] {
+                ringed.push(own(id, 2, Vec3 { x: p.0, y: 0.0, z: p.1 }));
+                id += 1;
+            }
+        }
+        let words = brain.street_words(&plant, &ringed).unwrap();
+        assert!(words.starts_with("closed for") && words.contains("armsolar_") && words.contains("reclaim it to open"), "{words}");
+    }
+
+    /// The kinds' purposes and bands: a solar banks without a cap, a converter and a wind turbine to six, a
+    /// construction turret reaches pads, a plant is a plant, a fusion a frame, a turret stands at a place; a silo's
+    /// band is behind home, a solar's beside its builder.
+    #[test]
+    fn kinds_have_their_purposes_and_bands() {
+        let mut brain = brain_of(&["armsolar", "armmakr", "armwin", "armnanotc", "armvp", "armfus", "armllt", "armsilo", "armcom"]);
+        {
+            let defs = &mut brain.world.hello.unit_defs;
+            defs[0].energy_make = 20.0;
+            defs[1].converter = Some(bot_protocol::Converter { capacity: 70.0, efficiency: 0.014 });
+            defs[2].wind_cap = 25.0;
+            defs[3].build_speed = 200.0;
+            defs[4].build_options = vec![UnitDefId(9)];
+            defs[5].energy_make = 1000.0;
+            defs[8].build_speed = 300.0;
+            defs[8].build_options = vec![UnitDefId(1)];
+        }
+        brain.home = Vec3 { x: 1000.0, y: 0.0, z: 1000.0 };
+        let p = |i: i32| brain.purpose_of(UnitDefId(i));
+        assert_eq!(p(1), Purpose::Generator { cap: None });
+        assert_eq!(p(2), Purpose::Generator { cap: Some(BANK_CAP) });
+        assert_eq!(p(3), Purpose::Generator { cap: Some(BANK_CAP) });
+        assert_eq!(p(4), Purpose::Turret);
+        assert_eq!(p(5), Purpose::Plant);
+        assert_eq!(p(6), Purpose::Frame);
+        assert_eq!(p(7), Purpose::Place);
+        let builder = own(1, 9, Vec3 { x: 1200.0, y: 0.0, z: 1000.0 });
+        let (centre, radius) = brain.band_for(UnitDefId(8), &builder, std::slice::from_ref(&builder));
+        let enemy = brain.enemy_base(brain.home);
+        assert!(centre.dist2d(enemy) > brain.home.dist2d(enemy), "the silo's band is behind home: {centre:?}");
+        assert_eq!(radius, BAND_BACK_FIELD);
+        let (centre, radius) = brain.band_for(UnitDefId(1), &builder, std::slice::from_ref(&builder));
+        assert_eq!((centre, radius), (builder.pos, BAND_GENERATOR));
     }
 }

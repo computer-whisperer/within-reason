@@ -156,7 +156,6 @@ pub struct Brain {
     building_health_frame: i32,
     /// Our factories' exit lanes this tick, kept clear of new buildings; our mobile units that cannot move; the
     /// factories whose blocked yard the player has been told of (`yards.rs`).
-    lanes: Vec<bot_protocol::Lane>,
     stuck: HashMap<UnitId, yards::Stuck>,
     /// Mobile units standing still in a standing factory's exit lane: since when, where they stood, which factory.
     lane_standers: HashMap<UnitId, (i32, Vec3, UnitId)>,
@@ -353,7 +352,6 @@ impl Brain {
             takings: Vec::new(),
             building_health: HashMap::new(),
             building_health_frame: 0,
-            lanes: Vec::new(),
             stuck: HashMap::new(),
             lane_standers: HashMap::new(),
             yard_warned: HashSet::new(),

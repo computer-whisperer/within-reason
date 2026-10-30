@@ -86,7 +86,8 @@ pub(super) enum Task {
     /// builder since the order), and that frame's id once it has: the finished and destroyed events, the picture and
     /// the menu read the builder's own frame by it and no neighbour's (by type within 250, a neighbour's frame
     /// finishing ended the build at 62-98 % in 18 of 23 games: docs/studies/2026-10-17-unfinished-structures.md §2.1).
-    Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool, frame: Option<UnitId> },
+    /// `facing`: the building's facing as ordered (the layout layer's; a plant's apron lies off its front).
+    Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool, frame: Option<UnitId>, facing: i32 },
     /// Guarding a factory or another builder.
     Assist { lab: UnitId, since: i32 },
     Reclaim { at: Vec3, since: i32 },
@@ -2081,8 +2082,8 @@ mod frame_tests {
         let mut brain = brain_of(&["armcom", "armcv", "armsolar"]);
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let (builder, mine, theirs) = (UnitId(10), UnitId(20), UnitId(21));
-        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: true, frame: Some(mine) });
-        pianist.queue_push(builder, Task::Build { def: UnitDefId(3), near: at(1300.0, 1000.0), spot: None, ordered: 0, started: false, frame: None }, None);
+        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: true, frame: Some(mine), facing: 0 });
+        pianist.queue_push(builder, Task::Build { def: UnitDefId(3), near: at(1300.0, 1000.0), spot: None, ordered: 0, started: false, frame: None, facing: 0 }, None);
         brain.pianist = Some(pianist);
         let ours = || vec![own(10, 2, at(1000.0, 950.0)), own(11, 2, at(1150.0, 950.0)), frame(20, 3, at(1000.0, 1000.0), 0.7), frame(21, 3, at(1150.0, 1000.0), 0.99)];
         let mut commands = Vec::new();
@@ -2109,7 +2110,7 @@ mod frame_tests {
         let mut brain = brain_of(&["armcom", "armcv", "armsolar", "armnanotc"]);
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let builder = UnitId(10);
-        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: false, frame: None });
+        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: false, frame: None, facing: 0 });
         brain.pianist = Some(pianist);
         let mut commands = Vec::new();
         let ours = vec![own(10, 2, at(1000.0, 950.0)), frame(30, 4, at(1200.0, 1000.0), 0.01)];
@@ -2157,7 +2158,7 @@ mod stop_tests {
             shared.queues.lock().unwrap().insert("constructor_1".into(), Some(vec!["stop".to_string(), "armsolar".to_string()]));
             brain.strategist = Some(shared);
             let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-            pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 60, started: true, frame: Some(UnitId(20)) });
+            pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 60, started: true, frame: Some(UnitId(20)), facing: 0 });
             brain.pianist = Some(pianist);
             brain.frame_builders.insert(UnitId(20), (UnitId(1), created));
             let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 70.0, max_health: 100.0, build_progress: 0.7, ..own(20, 2, at(1000.0, 1000.0)) }];
