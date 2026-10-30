@@ -206,7 +206,9 @@ good when the next frame starts inside the reach of the build power that will fi
    thebluegecko's converter and advanced fusion frames had in reach when placed (median; 121 at most), so his frames
    would have stood at the same clocks under a quarter of his density, had the block been laid at 96 from the start.
    Whether the lower density costs anything is a question of ground, the block at 96 needing four times the flat area
-   for the same count, and of the people's hands, which place at the grid's pitch because it is the default.
+   for the same count, and of the people's hands, which place at the grid's pitch because it is the default. (The
+   user's ruling, 2026-10-29: the 96 sub-lattice first and the 48 lattice back-filled once anti-air is robust; chain
+   death a second or third criterion, the fusions beside the active farm; `docs/design/2026-10-29-base-layout.md`.)
 4. *The big blasts have a geometry of their own.* Fusions at one footprint from each other, inside a ring of turrets
    190 to 448 out; energy storages at least 90 from a turret and spread; converters one footprint apart; advanced
    fusions where their 606 covers the least metal, which inside a block is nowhere, so the question for them is who

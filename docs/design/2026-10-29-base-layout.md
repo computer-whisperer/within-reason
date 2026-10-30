@@ -113,10 +113,16 @@ A district is a region with a lattice and a purpose. Three kinds:
   shortest walkable line from the apron to ground outside the base's districts, chosen when the plant is placed and
   bent round spots.
 - **The block** (one, from the advanced plant). Laid when the advanced plant is placed, on the flattest ground within
-  the base that holds it, centred so that the plant's slot is in it: bars of turret slots (the people's: four turrets
-  wide, pitch 48; or pitch 96, the user's decision, §4) alternating with frame rows for the things the block builds
-  (advanced converters, fusions, the later plants, the gantry), each frame slot having the most turret slots within
-  400 of it. The block has blast slots (§1.3) and its own streets: every plant placed in it gets the plant district's
+  the base that holds it, centred so that the plant's slot is in it: bars of turret slots alternating with frame rows
+  for the things the block builds (advanced converters, fusions, the later plants, the gantry), each frame slot having
+  the most turret slots within 400 of it. **Sparse first, back-filled later** (the user's ruling, 2026-10-29): the
+  turret slots are a 48-pitch lattice of which only the 96-pitch sub-lattice (every other slot in both directions, a
+  quarter of the cells) is offered at first, so no turret stands within another's blast (at 96 a neighbour's surface
+  is 72 from the exploder, past the 64) and up to 68 reach a frame, above thebluegecko's 46 to 53 in use; the other
+  three sub-lattices are the back-fill, offered when the player says the block may densify (a word on the block's
+  mark, `block dense`; the territory bot densifies when its program wants more turrets in reach than the sparse slots
+  give). The frame rows, streets and blast slots are reserved in the sparse phase, so densifying changes nothing but
+  the turret count. The people's 48 is the end state; the checkerboard is the road to it while anti-air is thin. The block has blast slots (§1.3) and its own streets: every plant placed in it gets the plant district's
   street, and a gantry's slot is reserved with a 7-square street from the first bar. Solars and other T1 structures
   standing on block slots are listed as **reclaim-for-ground** in the order the block grows into them: the plan says
   which solar goes when the slot it stands on is next.
@@ -133,15 +139,23 @@ a `Field` from the door with the clearance bound). A site that fails is moved to
 that holds when the plan is disturbed (spots, slopes, losses, the player's own marks), and it is what the fencing-in
 instrument measures after the fact.
 
-### 1.3 Blast slots
+### 1.3 Blast slots, a second criterion
 
-From the falloff arithmetic (D-base-layout, "The chain bill"): a fusion's slot is in the ring 190 to 448 from the
-turrets that build it and one footprint from any other fusion; an energy storage at least 90 from any turret and 180
-from another storage; converters touching each other are accepted (the people's; a converter's death takes
-converters, not turrets); an advanced fusion's death takes every turret within 606, so its slot is where that costs
-least, at a block's edge, and the policy for it is the user's (§4): accept the bill as the people do, or place it by
-aircraft or constructors beside a block that reaches it with few turrets. The gantry's slot keeps turrets 122 or more
-from its wall (its 1,330 kills a turret within 121) and builds with the ring to 472.
+The user's ruling (2026-10-29): avoiding chain death is "a second or third optimization criteria rather than a
+requirement"; fusions and advanced fusions "are critical enough to build quickly that placing turrets near them is
+usually the acceptable penalty. The blast will kill any construction unit anyway, so optimizing that comes down to
+limiting how much of our economy it takes with it. The balance with stand-up time is critical too, so in many cases the
+danger is not enough to dissuade building it right next to the active con turret farm." So a frame slot is chosen
+first by stand-up time (the turrets in reach of it), among slots within a few seconds of the best by the metal of ours
+its death blast would take (the falloff arithmetic of D-base-layout: what stands inside 606 for an advanced fusion,
+240 for a fusion, 210 for a storage), and only then by distance. A fusion or an advanced fusion goes beside the active
+farm; the layer's part is the side of the farm whose blast holds the least of the economy (a bar's end rather than its
+middle, away from the other fusions and the plants), and one footprint between two advanced fusions, which costs no
+stand-up time and stops the one chain that is certain (touching, Cortex's 9,800 falls within 48 of surface). An
+energy storage keeps 90 from turrets where a slot allows and is otherwise placed; converters touch, as the people's
+do. The gantry's ring (turrets 122 or more from its wall, reach to 472) costs nothing in stand-up time and is kept.
+The report states the bill of each big frame as it is placed ("afus_12 placed: 59 turrets in reach; its blast holds 31
+turrets and 2 converters, 8,100 metal") so the player sees what it accepts; the layer refuses no slot for its bill.
 
 ### 1.4 What the player says
 
@@ -176,10 +190,12 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
    BARb on Glitters), nearest-neighbour spacing (solars 80, converters 48), the lane's contents (nothing within 100 of
    a door), the report's street lines when an ally closes one.
 3. **The block.** Laid at the advanced plant; frame slots by turrets in reach; blast slots; reclaim-for-ground.
-   Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; pitch
-   as decided; the chain bill as computed), and the economy marks the territory bot is already judged by.
-4. **The territory bot on the shared crate.** T-FARM replaced; judged by its standing marks (terr202-207's reference
-   rows) not moving down.
+   Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; the
+   sparse lattice's 96 before the player's `block dense`, 48 after; the chain bill reported, not bounded), and the
+   economy marks the territory bot is already judged by.
+4. **The territory bot on the shared crate, if the crate looks simple then** (the user: "may adopt the crate in this
+   arc if it looks simple, and may be delayed if not"). T-FARM replaced; judged by its standing marks (terr202-207's
+   reference rows) not moving down.
 5. **Water.** The sea kinds' depth table, the passable set over water, the shipyard's street, the naval turret's bars;
    the pen check given the water depth. Judge: a game on Cape Violet or SailAway, the stand's gaps and the pen check at
    sea, and nothing of ours on land that the budget said was water's.
@@ -194,18 +210,15 @@ It does not decide what to build or when (the player's lists, the territory bot'
 allies; it reads their buildings as obstacles and their plants' lanes as streets, and never reclaims theirs. It does
 not model wrecks or standing units as obstacles in the street check beyond what the ground model already carries,
 which is where the 8v8 block-ins the grid does not show must come from; if they persist after step 2 the check gains
-the wrecks and the standing units' positions from the samples. It does not choose between pitch 48 and 96 or the advanced fusion's policy
-(§4). It leaves the facing of a plant toward the enemy unless the player marks otherwise.
+the wrecks and the standing units' positions from the samples. It does not decide when the block densifies (the player's word). It leaves the facing of a plant toward the enemy unless the player marks otherwise.
 
-## 4. Decisions for the user before step 3
+## 4. Decisions taken (the user, 2026-10-29)
 
-- **Pitch**: 48 (the people's; 274 turrets in reach of a frame; a train once two adjacent turrets die) or 96 (68 in
-  reach, still above his frames' median of 46 to 53; no turret-to-turret chain; a vehicle street between every two
-  rows; four times the flat ground for the same count).
-- **The advanced fusion**: accept the bill inside the block as the people do, or keep it to a block's edge placed by
-  aircraft or constructors with few turrets in its 606.
-- **Whether the territory bot adopts the crate in this arc** (step 4) or keeps T-FARM until the flagship's block is
-  judged.
+- **Pitch: sparse back-fill.** The 96 sub-lattice first (no turret within another's blast, 68 in reach of a frame),
+  the 48 lattice filled in on the player's word once anti-air is robust; the people's 48 is the end state.
+- **Chain death is a second or third criterion**, never a requirement: stand-up time first, the blast's bill among the
+  slots within a few seconds of the best, the bill reported; fusions and advanced fusions beside the active farm.
+- **The territory bot adopts the crate in this arc if it looks simple** when step 3 is done, and is delayed if not.
 
 ## Status
 
