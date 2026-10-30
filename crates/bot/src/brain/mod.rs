@@ -16,6 +16,7 @@ mod people;
 pub mod pianist;
 mod planner;
 mod scout;
+mod block;
 mod stand;
 mod reclaim;
 mod shelling;
@@ -102,6 +103,12 @@ pub struct Brain {
     /// solved once, when its list first plays, each taken by a step of its kind (`place_planned`) and the steps
     /// ordered as one queue (`play_lists`). The builder it was solved for, and the stand.
     stand: Option<(UnitId, layout::Stand)>,
+    /// The block (`layout::lay_block`, the design §1.1 step 3; `block.rs`): laid once an advanced plant of ours is
+    /// placed, at the player's `block` mark or beside the plant; its rows and gantry slot are reservations and its
+    /// sub-lattice is where construction turrets stand. When it was last tried and why it failed, for the report.
+    block: Option<layout::Block>,
+    block_tried: i32,
+    block_failed: Option<String>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
@@ -325,6 +332,9 @@ impl Brain {
             spot_claims: HashMap::new(),
             routes: None,
             stand: None,
+            block: None,
+            block_tried: i32::MIN / 2,
+            block_failed: None,
             reclaim: Default::default(),
             plan_game: None,
             pianist,
@@ -551,6 +561,7 @@ impl Brain {
         self.track_fire(tick);
         self.track_hits(tick);
         self.track_takings(tick);
+        self.tend_block(&tick.snapshot.own_units, &kit, tick.frame);
         self.run_pianist(tick, &kit, &mut commands);
         if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
             self.publish_plan_context(tick, &kit);

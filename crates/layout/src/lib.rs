@@ -7,6 +7,7 @@
 //! next order and one or two stands up to the plant, against our 3.5 / 1.0 / 0.8 / 5.8 s and three). No engine, no
 //! Jev: the ground is the terrain the host sends, the facts are the definitions.
 
+mod block;
 mod choose;
 mod street;
 
@@ -14,7 +15,8 @@ use std::collections::HashMap;
 
 use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
 
-pub use choose::{Frame, Purpose, Request, Site, Standing, Worker, World, choose};
+pub use block::{Block, DENSE_PITCH, Lattice, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
+pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose};
 pub use street::{APRON, Plant, STREET_REACH, StreetState, street_open, street_state};
 
 /// A build square (`SQUARE_SIZE`): footprints count them.

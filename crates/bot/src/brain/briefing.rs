@@ -840,6 +840,7 @@ impl Brain {
                 })
                 .collect(),
             frames: self.unfinished_frames(&snapshot.own_units, tick.frame),
+            block: self.block_line(&snapshot.own_units),
             home: self.place(self.home),
             colour: self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).and_then(|t| t.color).map(colour_name).unwrap_or_default(),
             home_group: self.group(&soldiers),

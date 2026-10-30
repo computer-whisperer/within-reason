@@ -246,6 +246,10 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     if let Some(line) = unfinished_line(briefing) {
         lines.push(line);
     }
+    // The block: where the construction turrets and frames stand (the base layout design §1.1, step 3).
+    if let Some(line) = &briefing.block {
+        lines.push(line.clone());
+    }
     // Where we stand against the experienced players' games on this map, in a duel (H-PLAYER-REFERENCE-LINE).
     if briefing.sides.iter().all(|side| side.seats.len() == 1) && briefing.sides.len() == 2 {
         lines.extend(super::reference::line(briefing, s));

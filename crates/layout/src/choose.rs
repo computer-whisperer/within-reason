@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 use bot_protocol::{UnitDefId, Vec3};
 
+use crate::block::Lattice;
 use crate::street::{Plant, street_open};
 use crate::{Facts, Footprint, GRID, Ground, Rect, facings_toward};
 
@@ -41,7 +42,11 @@ const BAND_WALK: f32 = 48.0;
 pub struct Standing {
     pub rect: Rect,
     pub def: Option<UnitDefId>,
+    /// Its kind's internal name, for the bill's words ("31 armnanotc").
+    pub kind: String,
     pub ours: bool,
+    /// A generator or converter: a bank the block may be laid over, listed for reclaim-for-ground.
+    pub bank: bool,
     pub metal: f32,
     pub health: f32,
     /// Its death's blast: (radius, damage at the centre).
@@ -65,6 +70,34 @@ pub struct Frame {
     pub metal: f32,
 }
 
+/// Ground kept for something not yet ordered, and for what.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Reservation {
+    pub rect: Rect,
+    pub for_: Reserved,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Reserved {
+    /// Nothing goes here (the stand's slots, which their kinds take directly; a gantry's apron).
+    Nothing,
+    /// The block's frame rows: a frame may stand here.
+    Frames,
+    /// One kind's slot (the gantry's).
+    Kind(UnitDefId),
+}
+
+impl Reservation {
+    /// Whether a building of `facts` placed for `purpose` may stand on this ground.
+    fn admits(&self, facts: &Facts, purpose: Purpose) -> bool {
+        match self.for_ {
+            Reserved::Nothing => false,
+            Reserved::Frames => purpose == Purpose::Frame,
+            Reserved::Kind(def) => facts.def == def,
+        }
+    }
+}
+
 /// What a site is chosen over.
 pub struct World<'a> {
     pub ground: Ground<'a>,
@@ -75,8 +108,10 @@ pub struct World<'a> {
     pub plants: Vec<Plant>,
     pub workers: Vec<Worker>,
     pub frames: Vec<Frame>,
-    /// Ground kept for something not yet ordered: the stand's free slots.
-    pub reservations: Vec<Rect>,
+    /// Ground kept for something not yet ordered: the stand's free slots, the block's rows and gantry slot.
+    pub reservations: Vec<Reservation>,
+    /// The block's sub-lattice for construction turrets, once the block is laid.
+    pub lattice: Option<Lattice>,
     /// Sites the engine refused lately, by type.
     pub refused: Vec<(UnitDefId, Vec3)>,
     pub home: Vec3,
@@ -191,7 +226,10 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
     if world.standing.iter().any(|s| (if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) }).overlaps(&rect)) {
         return None;
     }
-    if world.reservations.iter().any(|r| r.overlaps(&rect)) {
+    if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f, req.purpose)) {
+        return None;
+    }
+    if req.purpose == Purpose::Turret && world.lattice.is_some_and(|l| !l.holds(at)) {
         return None;
     }
     if world.spots.iter().any(|p| p.dist2d(at) < world.spot_keep_out || Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&rect)) {
@@ -206,7 +244,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
     if f.factory {
         let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new() };
         let apron = own.apron();
-        if !world.ground.in_map(&apron) || world.standing.iter().any(|s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.overlaps(&apron)) {
+        if !world.ground.in_map(&apron) || world.standing.iter().any(|s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
             return None;
         }
         if world.spots.iter().any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
@@ -255,9 +293,10 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
             [-(turrets as f32), facing_rank as f32]
         }
         Purpose::Frame => {
-            let power: f32 = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).map(|w| w.power).sum::<f32>() + req.builder.build_speed;
+            let in_reach: Vec<&Worker> = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).collect();
+            let power: f32 = in_reach.iter().map(|w| w.power).sum::<f32>() + req.builder.build_speed;
             let seconds = if power > 0.0 { f.build_time / power } else { f32::INFINITY };
-            words = format!("{:.0} build power in reach, {seconds:.0} s to stand", power);
+            words = format!("{} turret{} with {:.0} build power in reach, {seconds:.0} s to stand", in_reach.len(), if in_reach.len() == 1 { "" } else { "s" }, power);
             [seconds, 0.0]
         }
         Purpose::Place => [at.dist2d(req.centre), 0.0],
@@ -269,13 +308,24 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
         .iter()
         .filter_map(|s| s.blast.map(|b| blast_at(b, s.rect.centre(), &rect)))
         .sum();
-    let kills: f32 = match own_blast {
-        Some(b) => world.standing.iter().filter(|s| s.ours && s.health > 0.0 && blast_at(b, at, &s.rect) >= s.health).map(|s| s.metal).sum(),
-        None => 0.0,
+    let killed: Vec<&Standing> = match own_blast {
+        Some(b) => world.standing.iter().filter(|s| s.ours && s.health > 0.0 && blast_at(b, at, &s.rect) >= s.health).collect(),
+        None => Vec::new(),
     };
+    let kills: f32 = killed.iter().map(|s| s.metal).sum();
     let l2 = kills + if f.health > 0.0 && taken >= f.health { f.metal } else { 0.0 };
     if kills > 0.0 {
-        words = format!("{words}; its blast would take {kills:.0} metal of ours");
+        // The bill, reported not bounded (§1.3): what its death would take, by kind.
+        let mut by_kind: Vec<(String, usize)> = Vec::new();
+        for s in &killed {
+            match by_kind.iter_mut().find(|(k, _)| *k == s.kind) {
+                Some((_, n)) => *n += 1,
+                None => by_kind.push((s.kind.clone(), 1)),
+            }
+        }
+        by_kind.sort_by(|a, b| b.1.cmp(&a.1));
+        let kinds: Vec<String> = by_kind.iter().map(|(k, n)| format!("{n} {k}")).collect();
+        words = format!("{words}; its blast holds {}, {kills:.0} metal of ours", kinds.join(" and "));
     }
     let l3 = (req.builder_at.dist2d(at) - f.reach_from(&req.builder)).max(0.0);
     let l4 = world.home.dist2d(at);
@@ -406,11 +456,11 @@ mod tests {
     }
 
     fn standing(def: i32, fp: i32, p: Vec3, metal: f32, health: f32, blast: Option<(f32, f32)>) -> Standing {
-        Standing { rect: Footprint { x: fp, z: fp }.rect(p), def: Some(UnitDefId(def)), ours: true, metal, health, blast, name: format!("u{def}") }
+        Standing { rect: Footprint { x: fp, z: fp }.rect(p), def: Some(UnitDefId(def)), kind: format!("u{def}"), ours: true, bank: true, metal, health, blast, name: format!("u{def}") }
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open) }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open) }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -449,7 +499,7 @@ mod tests {
         w.plants.push(plant(at(2000.0, 2000.0)));
         w.plants.push(plant(at(2000.0, 2300.0)));
         for p in [at(2000.0, 2000.0), at(2000.0, 2300.0)] {
-            w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(p), def: Some(UnitDefId(9)), ours: true, metal: 700.0, health: 3000.0, blast: None, name: "plant".into() });
+            w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(p), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant".into() });
         }
         let nano = Facts { build_distance: 240.0, build_speed: 200.0, ..facts(5, 6, 300.0, 560.0, Some((100.0, 530.0))) };
         let req = Request { facts: nano, purpose: Purpose::Turret, centre: at(2000.0, 2150.0), radius: 400.0, builder_at: at(2000.0, 2150.0), builder: builder() };
@@ -502,7 +552,7 @@ mod tests {
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
         w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into() });
-        w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), ours: true, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
+        w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
         for k in -12..=12 {
             if k == 0 {
                 continue;

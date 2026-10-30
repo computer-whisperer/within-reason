@@ -7,7 +7,7 @@
 //! `docs/design/2026-09-25-one-decider.md`).
 
 use bot_protocol::{BuildSite, OwnUnit, Placement, UnitDefId, Vec3};
-use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Standing, Worker, World};
+use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Reservation, Reserved, Standing, Worker, World};
 
 use super::roster::Kit;
 use super::Brain;
@@ -74,7 +74,7 @@ impl Brain {
     }
 
     /// What a kind is placed for (the design's level 1).
-    fn purpose_of(&self, def: UnitDefId) -> Purpose {
+    pub(super) fn purpose_of(&self, def: UnitDefId) -> Purpose {
         let Some(d) = self.world.def(def) else { return Purpose::Place };
         let static_builder = d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty();
         if self.world.is_factory_def(def) {
@@ -92,20 +92,23 @@ impl Brain {
         }
     }
 
-    /// The kind's own band of distance without a place from the player: its centre and radius.
-    fn band_for(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> (Vec3, f32) {
+    /// The kind's own band of distance without a place from the player: its centre and radius. Once the block is
+    /// laid a turret's and a frame's bands are the block's reach from its centre (§1.1: a frame no farther from the
+    /// block's centre than the block's reach; the turret pile stands where the advanced plant stands).
+    pub(super) fn band_for(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> (Vec3, f32) {
         let stockpiler = self.world.def(def).is_some_and(|d| d.stockpile_seconds > 0.0);
         if stockpiler {
             return (self.forward_of_home(-BACK_FIELD), BAND_BACK_FIELD);
         }
+        let block = self.block.as_ref().map(|b| (b.centre, b.reach));
         match self.purpose_of(def) {
             Purpose::Generator { .. } => (builder.pos, BAND_GENERATOR),
-            Purpose::Turret => {
+            Purpose::Turret => block.unwrap_or_else(|| {
                 let pad = own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
                 (pad.map_or(builder.pos, |p| p.pos), BAND_TURRET)
-            }
+            }),
             Purpose::Plant => (builder.pos, BAND_PLANT),
-            Purpose::Frame => (builder.pos, BAND_FRAME),
+            Purpose::Frame => block.unwrap_or((builder.pos, BAND_FRAME)),
             Purpose::Place => (builder.pos, BAND_PLACE),
         }
     }
@@ -113,13 +116,24 @@ impl Brain {
     /// The world the layout layer chooses over, from this tick's units: what stands (ours finished and framed, every
     /// unstarted build of ours, allies' with a square of margin, his known buildings), the plants with their aprons
     /// and streets (ours and allies'), our construction turrets as build power, our frames, the stand's free slots as
-    /// reservations, the sites the engine refused lately.
+    /// reservations, the sites the engine refused lately, and the block's rows, gantry slot and sub-lattice.
     pub(super) fn layout_world<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
+        let mut world = self.layout_world_without_block(own);
+        if let Some(block) = self.block.as_ref() {
+            world.reservations.extend(block.reservations());
+            world.lattice = Some(block.lattice());
+        }
+        world
+    }
+
+    /// The world before the block is laid: what `lay_block` chooses the block's ground over.
+    pub(super) fn layout_world_without_block<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
         let hello = &self.world.hello;
         let rect_of = |def: UnitDefId, at: Vec3, facing: i32| self.facts_of(def).map(|f| f.footprint.faced(facing).rect(at));
         let standing_of = |def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String| {
             let d = self.world.def(def)?;
-            Some(Standing { rect: rect_of(def, at, facing)?, def: Some(def), ours, metal: d.metal_cost, health: d.health, blast: d.death_blast.map(|b| (b.radius, b.damage)), name })
+            let bank = matches!(self.purpose_of(def), Purpose::Generator { .. });
+            Some(Standing { rect: rect_of(def, at, facing)?, def: Some(def), kind: d.name.clone(), ours, bank, metal: d.metal_cost, health: d.health, blast: d.death_blast.map(|b| (b.radius, b.damage)), name })
         };
         let mut standing: Vec<Standing> = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| standing_of(u.def, u.pos, u.facing, true, self.handle(u))).collect();
         let mut plants: Vec<Plant> = own.iter().filter(|u| self.world.is_factory_def(u.def)).filter_map(|u| self.plant_of(u.def, u.pos, u.facing, true, self.actor_name(u.id))).collect();
@@ -151,7 +165,7 @@ impl Brain {
             .filter_map(|u| self.world.def(u.def).map(|d| Worker { at: u.pos, reach: d.build_distance, power: d.build_speed }))
             .collect();
         let frames: Vec<Frame> = own.iter().filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| Some(Frame { rect: rect_of(u.def, u.pos, u.facing)?, metal: self.world.def(u.def)?.metal_cost })).collect();
-        let reservations: Vec<layout::Rect> = match (&self.stand, self.pianist.as_ref()) {
+        let reservations: Vec<Reservation> = match (&self.stand, self.pianist.as_ref()) {
             (Some((who, stand)), Some(pianist)) => stand
                 .slots
                 .iter()
@@ -159,6 +173,7 @@ impl Brain {
                     layout::Slot::Building { def, at, facing } if self.free_stand_slots(*who, def, own, pianist).iter().any(|(a, _)| *a == at) => rect_of(def, at, facing),
                     _ => None,
                 })
+                .map(|rect| Reservation { rect, for_: Reserved::Nothing })
                 .collect(),
             _ => Vec::new(),
         };
@@ -181,6 +196,7 @@ impl Brain {
             workers,
             frames,
             reservations,
+            lattice: None,
             refused,
             home: self.home,
             toward: self.enemy_base(self.home),
@@ -189,7 +205,7 @@ impl Brain {
     }
 
     /// A plant for the street rule: its footprint, facing and its widest product's half-width.
-    fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
+    pub(super) fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
         let f = self.facts_of(def)?;
         let d = self.world.def(def)?;
         let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1)).map_or(String::new(), |p| p.name.clone());

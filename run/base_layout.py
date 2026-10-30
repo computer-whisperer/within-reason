@@ -319,8 +319,13 @@ def block(record):
         bearings[round(math.degrees(math.atan2(q[1] - p[1], q[0] - p[0])) / 45) * 45 % 180] += 1
     if nn:
         print('nearest neighbour: median', st.median(nn), 'quartiles', st.quantiles(nn, n=4) if len(nn) > 3 else nn,
-              '| at 48 (touching)', sum(1 for d in nn if d <= 50), 'at 64', sum(1 for d in nn if 50 < d <= 66), 'over 100', sum(1 for d in nn if d > 100))
+              '| at 48 (touching)', sum(1 for d in nn if d <= 50), 'at 64', sum(1 for d in nn if 50 < d <= 66), 'at 96 (the sparse block)', sum(1 for d in nn if 90 < d <= 100), 'over 100', sum(1 for d in nn if d > 100))
         print('bearing of the nearest neighbour (degrees mod 180; 0 = along x)', dict(bearings))
+        # The block's sub-lattice (the design §1.1, step 3): the share of turrets whose centres agree modulo a pitch.
+        for pitch in (96, 48):
+            classes = collections.Counter((round(p[0]) % pitch, round(p[1]) % pitch) for p in pts)
+            on, _ = classes.most_common(1)[0]
+            print(f'on one {pitch}-lattice: {on} of {len(pts)} turrets')
     par = list(range(len(pts)))
     def find(i):
         while par[i] != i: par[i] = par[par[i]]; i = par[i]

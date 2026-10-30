@@ -102,8 +102,9 @@ soldiers are loose only between their birth and their group; a declared group's 
 
 ## 6. Where a building goes, and when the player is woken
 
-Placement (`B/economy.rs`, `B/stand.rs`, `B/yards.rs`, `P/execute.rs`, `crates/layout`; H-ECO-STAND, H-ECO-LAYOUT,
-H-ECO-YARD-LANE, H-HANDS-DEFENCE-FORWARD; `docs/design/2026-10-29-base-layout.md`, steps 1 and 2 built 2026-10-29): the
+Placement (`B/economy.rs`, `B/stand.rs`, `B/block.rs`, `B/yards.rs`, `P/execute.rs`, `crates/layout`; H-ECO-STAND,
+H-ECO-LAYOUT, H-ECO-BLOCK, H-ECO-YARD-LANE, H-HANDS-DEFENCE-FORWARD; `docs/design/2026-10-29-base-layout.md`, steps 1 and
+2 built 2026-10-29, step 3 2026-10-30): the
 commander's opening goes to the stand, its list's leading steps solved once as exact slots within reach of where it
 stands and ordered as one queue; every other site but an extractor's (inside its patch, toward the builder) and a sea
 building's (the engine's search on the nearest water) is the layout layer's: constraints (the footprint stands, nothing
@@ -114,6 +115,11 @@ point 300 behind home, the player's place 200 round it, a defence 150 round a po
 purpose (neighbours of its kind, pads and frames in reach, turrets in reach and the facing toward the enemy, seconds
 to stand), then the chain sum, then the builder's walk, then home. The old rules (the yard 350 ahead, the turret line
 650 ahead, the back field for generators, `beside_builder`, the 320 lane, the spot clearances, the gaps) are deleted.
+The block (H-ECO-BLOCK) is the one global decision after the stand: when our first advanced plant is placed its centre
+is found once, at the player's `block` mark or on the flattest ground beside the plant that holds two frame rows and the
+gantry's slot, and from then on the rows are kept for frames, the slot for the gantry, construction turrets stand on
+its sub-lattice (96 apart, 48 after the player's `block` tool says `dense`), and a turret's or a frame's band is the
+block's reach from its centre. The code lists banks on its ground for reclaim; the player removes them or not.
 
 Wakes (`B/wake.rs` and the triggers beside it; H-WAKE-*, H-HANDS-LOSS-WAKE, H-HANDS-STALL, H-HANDS-SHELLED): no turn
 within 5 s of the last; the player's own timer (default 30 s) capped at 10 s while a fight is on; losses while orders

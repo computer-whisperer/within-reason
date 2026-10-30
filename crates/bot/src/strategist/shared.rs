@@ -42,6 +42,9 @@ pub struct Briefing {
     /// Our unfinished structures, standing, every one, those nobody is building first (the unfinished-structures
     /// sweep, 2026-10-17: a frame nobody was building was in no report until it decayed, 205 such in 23 games).
     pub frames: Vec<UnfinishedFrame>,
+    /// The block's line (`brain/block.rs` `block_line`): where the construction turrets and frames stand, its pitch,
+    /// what stands on its ground; or why none could be laid.
+    pub block: Option<String>,
     /// The other seats of our side (an ally AI, a person, a seat of ours under another player): what each has built
     /// and where its army stands, from the allied units the engine shows every seat (H-REPORT-ALLIES-LINE;
     /// human-8v8-1: three Apex allies placed advanced labs at 5:20, 8:00 and 8:30 and no report showed them).
@@ -464,6 +467,7 @@ pub struct TurnOutputs {
     pub queues: BTreeMap<String, Option<Vec<String>>>,
     pub company: BTreeMap<String, usize>,
     pub marks: BTreeMap<String, Mark>,
+    pub block_dense: bool,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
     pub firings: Vec<Firing>,
@@ -691,6 +695,8 @@ pub struct Shared {
     pub company: Mutex<BTreeMap<String, usize>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
     pub marks: Mutex<BTreeMap<String, Mark>>,
+    /// The block's pitch at the player's word (`block` tool): dense packs the construction turrets at 48, else 96.
+    pub block_dense: std::sync::atomic::AtomicBool,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
     pub allowed: Mutex<BTreeMap<String, Allowance>>,
@@ -916,6 +922,7 @@ impl Shared {
             queues: self.queues.lock().unwrap().clone(),
             company: self.company.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
+            block_dense: self.block_dense.load(std::sync::atomic::Ordering::Relaxed),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
             firings: self.firings.lock().unwrap().clone(),
@@ -928,6 +935,7 @@ impl Shared {
         *self.queues.lock().unwrap() = o.queues;
         *self.company.lock().unwrap() = o.company;
         *self.marks.lock().unwrap() = o.marks;
+        self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
         *self.firings.lock().unwrap() = o.firings;
@@ -957,6 +965,7 @@ impl Shared {
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.company.lock().unwrap() = o.company;
                 *self.marks.lock().unwrap() = o.marks;
+                self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
                 self.removals.lock().unwrap().extend(o.removals);

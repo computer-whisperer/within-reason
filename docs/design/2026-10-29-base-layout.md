@@ -244,7 +244,21 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
 3. **The block.** Laid at the advanced plant; frame slots by turrets in reach; blast slots; reclaim-for-ground.
    Judge: `block` (turrets in reach when a frame is placed, frame seconds against his 46 / 5.5 s and 53 / 35 s; the
    sparse lattice's 96 before the player's `block dense`, 48 after; the chain bill reported, not bounded), and the
-   economy marks the territory bot is already judged by.
+   economy marks the territory bot is already judged by. **Built 2026-10-30** (H-ECO-BLOCK): `layout::lay_block` (`block.rs`): when our first advanced plant (a
+   factory of glossary tier 2 or above) is ordered or stands, the block's centre is found once, at the player's `block`
+   mark or on the flattest ground within 600 (doubled twice) of the plant that holds two frame rows (144 deep, three
+   advanced-fusion slots each, between a bar of turrets through the centre and one 192 either side) and, when the
+   advanced constructor builds a factory larger than the plant, the gantry's slot with its apron toward the enemy;
+   clear of everything standing but our own banks (listed for reclaim-for-ground), off the spots and every apron,
+   closing no street, among sites equally flat (4 elmos) the least of ours on it, then the nearest the plant; under a
+   mark the nearest point to it that holds. From then on the world carries its rows as reservations a frame may take
+   and nothing else, the gantry's slot as its kind's, and its sub-lattice for construction turrets (96 sparse, 48 after
+   the player's `block` tool says `dense`); a turret's and a frame's bands are the block's reach (the turret's 400)
+   from its centre. The frame's hands' line counts the turrets in reach and the chain bill by kind ("its blast holds 3
+   armnanotc and 1 armmakr, 850 metal of ours"); the report gains the block's line (centre, pitch, turrets on it,
+   frame slots free, the gantry's slot, the banks on its ground to reclaim) or, when no ground held one, why. The
+   judge `run/base_layout.py block` reads the 96 bin and the share of turrets on one lattice. Judge pending: the
+   first game is `block-1`.
 4. **The territory bot on the shared crate, if the crate looks simple then** (the user: "may adopt the crate in this
    arc if it looks simple, and may be delayed if not"). T-FARM replaced; judged by its standing marks (terr202-207's
    reference rows) not moving down.
@@ -274,5 +288,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2's judge pending), steps 3 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2 in layout-1: banks touching at 80, three plants 181 and 202 apart, nothing penned), step 3 built 2026-10-30 (judge pending: block-1), steps 4 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.
