@@ -200,9 +200,9 @@ a cell against its health (the engine's falloff to the collision surface, F-figh
 Nothing new is required of it. Its marks name the three sites when it wants to: a mark for the plant (`plant_yard`,
 as it writes `avp_yard` today) sets the plant district's place and facing; a mark for the block (`block`) sets the
 block's centre when the advanced plant is placed; without marks the layer chooses as §1.1 says. A `queue` step with a
-place is an anchor into the district that holds the place; a bare step goes to its kind's district (a solar to the
-stand while the stand has slots, else the nearest district with a solar slot; a turret to the block, else beside the
-nearest plant; a fusion to a blast slot). The report gains one line a plant, its street's state ("street from
+place makes the place the step's level-0 distance band (the site is chosen by the levels within it); a bare step is
+chosen by the levels with its kind's own band (a solar beside the solars its builder is near, a turret where it
+reaches the most pads and frames, a fusion where the most build power reaches it). The report gains one line a plant, its street's state ("street from
 plant_12: open for everything it makes" / "closed for Bulls by armsolar_3041; reclaim it to open"), so the player can
 act when a street has been closed by what the layer could not prevent (an enemy frame, an ally's building, a wreck).
 
