@@ -234,7 +234,7 @@ impl Brain {
         let (facts, builder_facts) = (self.facts_of(def)?, self.facts_of(builder.def)?);
         let world = self.layout_world(own);
         let req = Request { facts, purpose: self.purpose_of(def), centre: at, radius: 8.0, builder_at: builder.pos, builder: builder_facts };
-        layout::choose(&world, &req).ok().map(|s| s.words)
+        layout::choose(&world, &req).ok().map(|s| s.words).filter(|w| !w.is_empty())
     }
 
     /// An extractor's site on `spot` for `builder`: inside the patch, toward the builder (`layout::extractor_site`);
