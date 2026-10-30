@@ -94,84 +94,66 @@ has to work with, not with the districts.
   catalogue (Cape Violet, SailAway, Isidis) under the same instruments, which need the water depth added to the pen
   check's passable set.
 
-### 1.1 Districts
+### 1.1 Constraints, then bands: how a site is chosen
 
-A district is a region with a lattice and a purpose. Three kinds:
+(Rewritten 2026-10-29 on the user's word, after the additions of §1.0, the banks, the roll-off and the chain sum showed
+that every concern since the first draft was a criterion, not a shape: "rewrite 1.1 and 1.3 as constraints and bands".)
+Nothing is drawn in advance but reservations. The lattice is the 16-elmo grid with its 48 and 96 sub-lattices over land
+and water, its passable set the ground budget of §1.0. A building's site is the free lattice point that is best in the
+order below, each level a band: a site within the band of the best at one level goes to the next level, and the first
+level that separates the candidates decides. Bars of turrets, banks of generators and plants sharing a turret row then
+come out where the ground allows them and bend where it does not, which is what the 8v8s and the island maps need; and
+the report prints the chosen site's reasons, which a drawn pattern could not.
 
-- **The stand** (the commander's, from the start). The slots within the arm's reach of the start position (145 plus
-  the buildee's radius, about 190 to a solar's centre), packed at footprint on the 16-elmo grid, spots left for their
-  extractors, the first plant's slot and facing among them. Computed at the start from the start position, the spots
-  and the terrain, before the first order. The commander's opening steps are matched to the stand's slots in list
-  order; a step whose slot is in reach now is ordered now with `queue: true`, so the whole stand is one queue and the
-  commander never idles between structures. The pool's number to beat: 0.6 s from a structure finishing to the next
-  order, one or two stands up to the plant.
-- **The plant district** (one per land plant). The plant with its facing (toward the enemy as now, or the player's
-  mark), two or three turret slots beside it (the pool's 56 percent beside, never in front), an apron of 100 in
-  front (the pool's clearance; the 320 lane goes), and a **street**: a corridor from the apron to the open, as wide as
-  the plant's largest product's movement footprint (a bot lab 3 squares, a vehicle plant 4, an advanced lab 6, an
-  advanced vehicle plant 7, a gantry 7), kept free of everything but extractors on spots. The street's line is the
-  shortest walkable line from the apron to ground outside the base's districts, chosen when the plant is placed and
-  bent round spots. **Plants of a tier are co-located** (the user, 2026-10-29: "the time it takes for a completed unit
-  to roll off the pad implies downtime for adjacent construction turrets that may be taken up by a different
-  construction facility in range. This is why you often see construction turrets and production facilities
-  co-located"): a second plant of the tier, of the same type or another, goes beside the first with the turret slots
-  between them, both pads within reach of one turret row (centres about 500 apart or less), each plant with its own
-  street, the streets merging where they can; a third goes on the row's other side or across a street. Measured (the
-  study, §10): the people's same-type plant pairs stand 304 apart median (67 of 90 within 500) and 72 percent of their
-  turrets reach two or more plants; ours 647 apart (7 of 29 within 500) and 48 percent. The roll-off gap is about a
-  second a unit (the pool 1.0, ours 1.5, his 0.3 to 0.4), 12 to 17 percent of a plant's cycle under assist, which is
-  what a turret with one plant idles. In the block the plant row holds plants side by side the same way (his eight air
-  plants, each with 35 to 87 turrets in reach). The companion change is in the hands, not the layer: a turret in reach
-  of several plants helps the one with a frame on its pad, where today it guards the nearest finished factory and is
-  told again every 10 s (H-ECO-NANO-GUARD, `nanos.rs`); the engine's guard follows one factory through its roll-offs.
-- **The block** (one, from the advanced plant). Laid when the advanced plant is placed, on the flattest ground within
-  the base that holds it, centred so that the plant's slot is in it: bars of turret slots alternating with frame rows
-  for the things the block builds (advanced converters, fusions, the later plants, the gantry), each frame slot having
-  the most turret slots within 400 of it. **Sparse first, back-filled later** (the user's ruling, 2026-10-29): the
-  turret slots are a 48-pitch lattice of which only the 96-pitch sub-lattice (every other slot in both directions, a
-  quarter of the cells) is offered at first, so no turret stands within another's blast (at 96 a neighbour's surface
-  is 72 from the exploder, past the 64: the sum over every dead neighbour is zero; at the territory bot's 64 a dead
-  row behind puts 297 on the next turret, under its 560, but all its neighbours dead put 1,189, so a hole spreads
-  though a front does not; at 48 a dead row puts 920 and the block is a train) and up to 68 reach a frame, above
-  thebluegecko's 46 to 53 in use; the other
-  three sub-lattices are the back-fill, offered when the player says the block may densify (a word on the block's
-  mark, `block dense`; the territory bot densifies when its program wants more turrets in reach than the sparse slots
-  give). The frame rows, streets and blast slots are reserved in the sparse phase, so densifying changes nothing but
-  the turret count. The people's 48 is the end state; the checkerboard is the road to it while anti-air is thin. The block has blast slots (§1.3) and its own streets: every plant placed in it gets the plant district's
-  street, and a gantry's slot is reserved with a 7-square street from the first bar. Solars and other T1 structures
-  standing on block slots are listed as **reclaim-for-ground** in the order the block grows into them: the plan says
-  which solar goes when the slot it stands on is next.
+**Level 0, the constraints** (a site that fails any is not a candidate):
 
-- **Banks** (the generators and converters: solar, advanced solar, wind, tidal, basic converter; the user, 2026-10-29:
-  "usually placed in banks by constructors (or sometimes the commander) rather than in range of the construction
-  turrets, although key ones can be ... Humans typically build them in clusters of various sizes according to what is
-  easy to arrange with the games' placement tools. This is in contrast to our current loose basic solar sprawl which
-  currently is what takes up the majority of our base surface area"). A bank is a lattice of one kind at its footprint
-  (solars 80, advanced solars 64, winds and converters 48, tidal on water), of a bounded size, with a vehicle street (3
-  squares) between banks. A generator step goes to the nearest bank of its kind with a free slot that the builder
-  reaches with a short walk, else founds a bank at the builder's lattice point nearest its work: banks grow, nothing
-  scatters. Measured against the people (`docs/studies/2026-10-29-base-layout.md` §9): the pool's solars stand in
-  clusters of up to 7 (median largest), thebluegecko's of 10, 26 solars a seat; ours 42 solars a seat, every one a
-  singleton at linkage 88, never touching. The bank's size bound and pitch are the chain precaution, and the chain
-  criterion is the sum of the blasts a cell takes from every dead neighbour within reach, not one blast against its
-  health (the user, 2026-10-29: "two adjacent structures may blow, chain to a third, and continue through the block").
-  By that sum, at full health, over a square lattice (`run/base_layout.py chain`, the study's §9 table): solars and
-  advanced solars never chain at any pitch (146 and 283 from all eight neighbours dead, against 340 and 1,130); wind
-  turbines chain through a touching bank (a dead row behind puts 245 on the next turbine, against 196) and are safe
-  only at one footprint between them (pitch 96: 127 from every neighbour dead); basic converters chain at every pitch
-  up to 96 (a dead row puts 182 on the next, against 167), advanced converters at every pitch up to 128 (610 against
-  445); energy storages chain each other under about 260 between centres. So solar banks may be any size; wind banks
-  are laid at pitch 96 or kept small; converter banks are small (the pool's touching clusters are 3 to 4; six at most)
-  with the street between them as the firebreak; storages stand apart from one another and from every bank (a
-  storage's 980 to 210 kills solars within 137 of its wall, turbines within 168, converters within 174); and a fusion
-  (kills solars within 209) is not a bank's neighbour. Advanced converters are the block's: they are "brought up at speed late game with the advanced
-  fusion reactors that power them" and take the frame rows beside the farm, in rows whose length is their bill (a row
-  at 64 chains end to end). An advanced solar that is wanted at speed early goes to a block or plant-district slot as a
-  frame; otherwise to its bank. Banks are the first ground the block grows into: a bank's slots are listed for
-  reclaim-for-ground as the block reaches them, the way his seventeen solars went.
+- The footprint stands: slope and depth for its kind over every square (F-map-build), no spot or extractor footprint
+  under it, nothing standing, framed or ordered on it, the 16-grid snap.
+- No street closed: ours (every plant's apron of 100 and its street, as wide as the plant's largest product, §1.2) and
+  allies' (their plants' lanes at the same width), checked with the footprint added to the ground model; one square of
+  margin round allied footprints.
+- The reservations kept: the stand's slots for its kinds while the stand is being built; the frame rows and the gantry's
+  slot and street at the block's centre once the advanced plant is placed; a street's cells never.
+- The phase's sub-lattice for turrets: the 96 sub-lattice while the block is sparse, the 48 lattice after the player's
+  `block dense` (the territory bot: when its program wants more turrets in reach than the sparse slots give). At 96 the
+  sum of every dead neighbour's blast on a turret is zero; at 64 a dead row behind puts 297 on the next (under its 560)
+  but every neighbour dead puts 1,189, so a hole spreads though a front does not; at 48 a dead row puts 920 and the
+  block is a train.
+- The kind's own band of distance: a converter or generator step goes no farther from its builder than a short walk (the
+  people's banks are where the constructor was working); a frame no farther from the block's centre than the block's
+  reach; anything the player anchored within the anchor's district.
 
-Extractors stay on spots, exactly as now. Defences stay at the player's places (the line 650 ahead and the defence
-120 toward the enemy go; a defence without a place is refused as now).
+**Level 1, the purpose** (the score the kind exists for; the band is the user's "within a few seconds of the best"):
+
+- A frame (a fusion, an advanced fusion, an advanced converter, an advanced solar wanted at speed, a plant, the
+  gantry, a storage): the build power in reach of the site, so stand-up time; the band a few seconds of the frame at
+  that power.
+- A construction turret: the pads and frame slots within its reach, weighted by what they will build; a turret that
+  reaches two pads is worth more than one that reaches one (the roll-off gap of about a second a unit, 12 to 17 percent
+  of a plant's cycle, is what a one-plant turret idles; the people's turrets reach two or more plants 72 percent of the
+  time, ours 48).
+- A plant: the turret slots and turrets its pad would share with the tier's standing plants (co-location: the people's
+  same-type pairs 304 apart median, ours 647), and the facing's street cost (the shortest street to the open).
+- A generator or basic converter: adjacency to its own kind, so banks grow where one stands (the pool's solars in
+  clusters of up to 7, thebluegecko's 10, ours all singletons), under the kind's bank cap (§1.3: converters six, winds
+  by pitch or six, solars and advanced solars unbounded) and with a vehicle street of 3 squares between banks.
+- An extractor: its spot, exactly, as now. A defence: the player's place, as now.
+
+**Level 2, the chain sum** (the user's second criterion): among sites within the band, the one whose own death would
+take the least of ours by the blast sum (§1.3), and that adds the least to the sum its neighbours already bear.
+
+**Level 3, the builder's walk**, then **level 4, distance to home**; a tie after that is the lattice's order.
+
+**The stand** is the one place the levels are pre-solved: at the start, from the start position, the spots and the
+terrain, the layer solves the commander's first slots (two extractors, solars, the plant with its facing and street)
+within the arm's reach (145 plus the buildee's radius, about 190 to a solar's centre), so that the opening list's
+steps are ordered as one queue (`queue: true`) and the commander never idles between them; the pool's 0.6 s from a
+structure finishing to the next order and one or two stands up to the plant are the marks.
+
+**The block's centre** is the one global decision: the player's `block` mark, else the flattest ground within the base
+that holds the frame rows and the gantry's street beside the advanced plant's slot, found once when that plant is
+placed; after that every slot in it is chosen by the levels like any other. Banks on that ground are listed for
+reclaim-for-ground as the block's slots reach them, the way his seventeen solars went.
 
 ### 1.2 The street rule
 
@@ -182,25 +164,36 @@ a `Field` from the door with the clearance bound). A site that fails is moved to
 that holds when the plan is disturbed (spots, slopes, losses, the player's own marks), and it is what the fencing-in
 instrument measures after the fact.
 
-### 1.3 Blast slots, a second criterion
+### 1.3 The chain sum, the second criterion
 
 The user's ruling (2026-10-29): avoiding chain death is "a second or third optimization criteria rather than a
 requirement"; fusions and advanced fusions "are critical enough to build quickly that placing turrets near them is
 usually the acceptable penalty. The blast will kill any construction unit anyway, so optimizing that comes down to
 limiting how much of our economy it takes with it. The balance with stand-up time is critical too, so in many cases the
-danger is not enough to dissuade building it right next to the active con turret farm." So a frame slot is chosen
-first by stand-up time (the turrets in reach of it), among slots within a few seconds of the best by the metal of ours
-its death blast would take (the falloff arithmetic of D-base-layout: what stands inside 606 for an advanced fusion,
-240 for a fusion, 210 for a storage), and only then by distance. A fusion or an advanced fusion goes beside the active
-farm; the layer's part is the side of the farm whose blast holds the least of the economy (a bar's end rather than its
-middle, away from the other fusions and the plants). Spacing buys nothing between the big reactors at any pitch a
-block allows: one advanced fusion's blast kills another at one footprint apart (Armada's 8,300 falls within 190 of
-surface; Cortex's 9,800 within 48, and two neighbours' blasts within far more), and three touching fusions in a row put
-9,800 on the next against 3,800, so the reactors stand where stand-up time puts them and the report carries the bill. An
-energy storage keeps 90 from turrets where a slot allows and is otherwise placed; converters touch, as the people's
-do. The gantry's ring (turrets 122 or more from its wall, reach to 472) costs nothing in stand-up time and is kept.
-The report states the bill of each big frame as it is placed ("afus_12 placed: 59 turrets in reach; its blast holds 31
-turrets and 2 converters, 8,100 metal") so the player sees what it accepts; the layer refuses no slot for its bill.
+danger is not enough to dissuade building it right next to the active con turret farm." And the rule for the sum (the
+user, the same day): "a two-dimensional grid does not require blast > hp to spread. Two adjacent structures may blow,
+chain to a third, and continue through the block." So the chain criterion is the sum of every dead neighbour's blast on
+a cell against its health (the engine's falloff to the collision surface, F-fight-death), computed by
+`run/base_layout.py chain` (the study's §9 table), and it enters the choice at level 2, never as a refusal:
+
+- *What the sum says by kind.* Solars and advanced solars never chain at any pitch (146 and 283 from every neighbour
+  dead against 340 and 1,130). Wind turbines chain through a touching bank (a dead row behind puts 245 on the next,
+  against 196) and are safe at one footprint between (127). Basic converters chain at every pitch to 96 (182 on the next,
+  against 167), advanced converters at every pitch to 128 (610 against 445). Storages chain each other under about 260
+  between centres. Turrets: 48 a train, 64 front-proof but not hole-proof, 96 nothing. Fusions touching chain by a
+  dead row (9,813 against 3,800), one footprint apart only as a hole (1,324 behind, 4,702 all round). Advanced fusions
+  chain at any pitch a block allows (56,195 from a dead row one footprint away; Armada's dies at one footprint from a
+  single blast).
+- *What follows for the levels.* The reactors stand where level 1 puts them, beside the active farm, and spacing buys
+  nothing between them; level 2 only picks, among the sites within a few seconds of the best, the side of the farm
+  whose blast holds the least of the economy (a bar's end rather than its middle, away from the other reactors and the
+  plants). Bank caps are level-0 constraints for the kinds that chain: converters six to a bank with the 3-square street
+  between banks as the firebreak, winds six or at pitch 96, storages apart from each other by 260 and from every bank
+  (a storage's single blast kills solars within 137 of its wall, turbines 168, converters 174); solars and advanced
+  solars have no cap. The gantry's ring (turrets 122 or more from its wall, reach to 472) is kept because it costs no
+  stand-up time.
+- *The bill is reported, not bounded.* Each big frame's placement line states it ("afus_12 placed: 59 turrets in
+  reach; its blast holds 31 turrets and 2 converters, 8,100 metal"), so the player sees what it accepts.
 
 ### 1.4 What the player says
 
@@ -218,7 +211,7 @@ act when a street has been closed by what the layer could not prevent (an enemy 
 A new shared crate, `crates/layout`, with no engine or Jev dependency: districts, lattices, streets, blast slots,
 the reclaim-for-ground list, the street check over a ground model it is given; unit facts (footprints, blasts,
 health, movement footprints) from the glossary and the unit definitions the host already sends. `crates/bot` consumes
-it through `Plan::Slot(def, site, facing)` in `place_planned`, asking the shim for the slot `exact` (the territory bot's
+it through `Plan::Slot(def, site, facing)` in `place_planned` (the layer: reserve, then choose by the levels of §1.1), asking the shim for the slot `exact` (the territory bot's
 way, T-SITES). `bots/territory` replaces `farm_slots` with the block district (a change to both regimes, as a shared
 crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BACK_FIELD`, `TURRET_LINE`,
 `GENERATOR_HOME`, `LAB_YARD` and the 320 lane are deleted, not kept behind a flag.
@@ -268,5 +261,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; nothing built. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; nothing built. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.
