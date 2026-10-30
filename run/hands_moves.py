@@ -46,7 +46,8 @@ def main():
     made = merged = 0
     for c in m.calls:
         if c.get("t") == "pass" and c.get("menus"):
-            words = {mv["id"]: mv["words"] for menu in c["menus"] for mv in menu["moves"]}
+            # From 2026-10-30 a closed menu's moves are not logged: the words of the last open menu carry forward.
+            words.update({mv["id"]: mv["words"] for menu in c["menus"] for mv in menu.get("moves") or []})
             packet_home = None
         if c.get("t") != "plan":
             continue

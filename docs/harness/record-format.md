@@ -120,6 +120,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   (`threats`, `plan`, `gate`/`quiet`, `hunts`, `played` with source `rule`/`plan`) and logs from 2026-09-25 night to
   2026-09-26 morning (worlds-smoke-1 to nouls-1) the retired H-HANDS-WORLDS lines (`quiet`, `groups`, `worlds`,
   `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group).
+- From 2026-10-30 (the rebuilt hands' version 3 rows) a `pass` row's `menus` (one per actor: `name`, `kind`, `idle`, `course`, `quiet`, `audit`, `moves`) carry each menu's `move_count`, and a closed menu's (`quiet` and not `audit`) `moves` list is empty: its moves were not asked, and the readers (`run/hands_moves.py`) carry the words of the last open menu forward (econ-flagship-1: every actor's menu written every second, 1.32 GB a game).
 - From 2026-09-28 (H-HANDS-ENGAGEMENT-PLAN, `docs/design/2026-09-28-engagement-plan.md`) an `engagement` line per plan
   question answered: `{"t": "engagement", "f", "group", "position" (the elements' names, sorted, comma-joined), "reason" (why it asked: `first`, `<element> died`,
   `new static turret_N`, `new party party_N (M metal)`, `stale: N s since the last ask`; from 2026-09-28 evening), "ms",

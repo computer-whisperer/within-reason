@@ -461,6 +461,8 @@ struct Scene<'a> {
     builders: Vec<&'a OwnUnit>,
     /// Every group: its name, where its body stands, its soldiers and its course in words.
     groups: Vec<(&'a Group, Vec3, Vec<&'a OwnUnit>, String)>,
+    /// The layout layer's world this second, built once for every builder's site questions.
+    layout: layout::World<'a>,
 }
 
 impl Brain {
@@ -770,7 +772,8 @@ impl Brain {
             })
             .collect();
         let air_parties: BTreeSet<String> = picture.parties.iter().filter(|p| p.air).map(|p| p.name.clone()).collect();
-        let scene = Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, air_parties, under_fire, builders, groups };
+        let layout = self.layout_world(own);
+        let scene = Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, air_parties, under_fire, builders, groups, layout };
         let mut menus: Vec<Menu> = Vec::new();
         menus.extend(scene.builders.iter().filter_map(|unit| self.builder_menu(&scene, unit)));
         menus.extend(own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)).filter_map(|unit| self.factory_menu(&scene, unit)));
@@ -1434,14 +1437,16 @@ impl Brain {
                     }
                     continue;
                 }
+                // A sea kind is offered only with water in the builder's reach; the layer is not asked for it otherwise.
+                if on_water && !self.world.water_within(unit.pos, reach) {
+                    continue;
+                }
                 // Where the base layout has it: said, since "beside itself" is not where a factory or a generator
                 // far from home goes.
-                let plan = self.place_planned(def, unit, own);
+                let plan = self.place_planned_in(&scene.layout, def, unit, own);
                 let anchor = plan.anchor();
-                if !on_water || self.world.water_within(unit.pos, reach) {
-                    let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
-                    push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);
-                }
+                let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
+                push(format!("build_{key}"), Order::Build(def, Site::Planned), format!("{then}{name} builds a {} {where_}: {costs}{leaves}", self.unit_words(def)), format!("a {} {where_}", self.short_words(def)), None);
                 if on_water {
                     continue;
                 }

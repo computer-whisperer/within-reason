@@ -201,11 +201,34 @@ pub struct Ground<'a> {
     terrain: &'a Terrain,
     map_width: f32,
     map_height: f32,
+    /// The least and greatest height on the map, found once when first asked.
+    bounds: std::cell::OnceCell<(f32, f32)>,
 }
 
 impl<'a> Ground<'a> {
     pub fn new(terrain: &'a Terrain, map_width: f32, map_height: f32) -> Ground<'a> {
-        Ground { terrain, map_width, map_height }
+        Ground { terrain, map_width, map_height, bounds: std::cell::OnceCell::new() }
+    }
+
+    /// The least and greatest height anywhere on the map.
+    pub fn height_bounds(&self) -> (f32, f32) {
+        *self.bounds.get_or_init(|| {
+            let (mut lo, mut hi) = (f32::INFINITY, f32::NEG_INFINITY);
+            for h in &self.terrain.heights {
+                lo = lo.min(f32::from(*h));
+                hi = hi.max(f32::from(*h));
+            }
+            (lo, hi)
+        })
+    }
+
+    /// Whether any ground on the map is at a height in the kind's depths, `[-f.max_depth, -f.min_depth]`: a sea
+    /// kind on a map without water stands nowhere, and the search for its site is not made (econ-flagship-1: a
+    /// shipyard's search flooded its whole band three times for every constructor every second, about a second each,
+    /// 9,704 times, and the game took 2.5 hours of wall under the lockstep).
+    pub fn depths_on_map(&self, f: &Facts) -> bool {
+        let (lo, hi) = self.height_bounds();
+        lo <= -f.min_depth && hi >= -f.max_depth
     }
 
     pub fn height_at(&self, x: f32, z: f32) -> Option<f32> {

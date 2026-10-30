@@ -768,7 +768,11 @@ pub(super) fn log_menus(menus: &[Menu]) -> Value {
                 "course": menu.course,
                 "quiet": menu.quiet,
                 "audit": menu.audit,
-                "moves": menu.moves.iter().map(|m| if !m.playable() { json!({ "id": menu.id(m), "words": m.words, "party": m.party, "fused": m.fused, "far": m.far, "held": m.held, "blanked": m.blanked, "audit": m.audit }) } else { json!({ "id": menu.id(m), "words": m.words, "party": m.party }) }).collect::<Vec<_>>(),
+                // A closed menu's moves are not asked and not logged, only counted (econ-flagship-1: every actor's
+                // menu, some 1,000 moves each, written every second, 1.32 GB a game); the readers carry the words
+                // of the last open menu forward.
+                "move_count": menu.moves.len(),
+                "moves": if menu.quiet && !menu.audit { Vec::new() } else { menu.moves.iter().map(|m| if !m.playable() { json!({ "id": menu.id(m), "words": m.words, "party": m.party, "fused": m.fused, "far": m.far, "held": m.held, "blanked": m.blanked, "audit": m.audit }) } else { json!({ "id": menu.id(m), "words": m.words, "party": m.party }) }).collect::<Vec<_>>() },
             })
         })
         .collect::<Vec<_>>())

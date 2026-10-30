@@ -123,6 +123,9 @@ pub struct World<'a> {
     pub toward: Vec3,
     /// Whether a plant's units can stand on the ground here.
     pub open: Box<dyn Fn(Vec3) -> bool + 'a>,
+    /// The walk floods made over this world, by start cell, centre cell and radius: a builder's menu asks for a site
+    /// for a dozen kinds a second, most from the same place with the same band, and the flood is the same.
+    pub walks: std::cell::RefCell<HashMap<(i32, i32, i32, i32, i32), std::rc::Rc<Walk>>>,
 }
 
 /// What a building is for: the score of level 1.
@@ -178,8 +181,19 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
         Purpose::Frame => [BAND_FRAME_SECONDS, 0.0, BAND_CHAIN_METAL, BAND_WALK, 0.0],
         Purpose::Place => [GRID, 0.0, BAND_CHAIN_METAL, BAND_WALK, 0.0],
     };
+    if !world.ground.depths_on_map(f) {
+        let (lo, hi) = world.ground.height_bounds();
+        let wants = if f.min_depth > 0.0 {
+            format!("water at least {:.0} deep", f.min_depth)
+        } else if f.max_depth < 1e6 {
+            format!("ground above {:.0}", -f.max_depth)
+        } else {
+            "any ground".to_string()
+        };
+        return Err(format!("no ground on this map takes it: it wants {wants} and the map's heights run {lo:.0} to {hi:.0}"));
+    }
     let banks = bank_sizes(world, f.def);
-    let walk = Walk::new(world, req.builder_at, req.centre, req.radius * 2f32.powi(WIDENINGS as i32));
+    let walk = Walk::cached(world, req.builder_at, req.centre, req.radius * 2f32.powi(WIDENINGS as i32));
     let mut why = String::new();
     for widening in 0..=WIDENINGS {
         let radius = req.radius * 2f32.powi(widening as i32);
@@ -357,7 +371,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
 /// margin) and over ground its units take, so a site across a bank reads as far as the way round it (block-2: the
 /// commander rounded a wall of solars 700 long for a site that touched two of them, 560 off in a line). One flood a
 /// choice, over a window that holds the builder and the widest band.
-struct Walk {
+pub struct Walk {
     x0: f32,
     z0: f32,
     nx: usize,
@@ -366,6 +380,13 @@ struct Walk {
 }
 
 impl Walk {
+    /// The flood from `from` for a search of `radius` about `centre`, made once per world.
+    fn cached(world: &World, from: Vec3, centre: Vec3, radius: f32) -> std::rc::Rc<Walk> {
+        let cell = |v: f32| (v / GRID).floor() as i32;
+        let key = (cell(from.x), cell(from.z), cell(centre.x), cell(centre.z), radius.round() as i32);
+        world.walks.borrow_mut().entry(key).or_insert_with(|| std::rc::Rc::new(Walk::new(world, from, centre, radius))).clone()
+    }
+
     fn new(world: &World, from: Vec3, centre: Vec3, radius: f32) -> Walk {
         let (w, h) = world.ground.extent();
         let half = radius + from.dist2d(centre) + 2.0 * GRID;
@@ -570,7 +591,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open) }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -710,6 +731,33 @@ mod tests {
 
 #[cfg(test)]
 mod sea_tests {
+
+    #[test]
+    fn a_sea_kind_on_a_map_without_water_is_refused_without_a_search() {
+        // Land everywhere at 50: a shipyard wanting 30 of water stands nowhere, and the answer says so at once.
+        let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
+        let open = |_: Vec3| true;
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
+        let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
+        let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
+        assert!(!w.ground.depths_on_map(&shipyard));
+        let req = Request { facts: shipyard.clone(), purpose: Purpose::Plant, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder: builder.clone() };
+        let why = choose(&w, &req).unwrap_err();
+        assert!(why.contains("no ground on this map takes it") && why.contains("water at least 30 deep") && why.contains("50 to 50"), "{why}");
+        assert!(w.walks.borrow().is_empty(), "no flood was made");
+        // A land kind's search makes one flood and a second kind from the same place with the same band reuses it.
+        shipyard.min_depth = crate::NO_DEPTH_FLOOR;
+        shipyard.max_depth = 0.0;
+        shipyard.product_sea = 0.0;
+        assert!(w.ground.depths_on_map(&shipyard));
+        let req = Request { facts: shipyard, purpose: Purpose::Plant, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder: builder.clone() };
+        assert!(choose(&w, &req).is_ok());
+        assert_eq!(w.walks.borrow().len(), 1);
+        let solar = Facts { def: UnitDefId(3), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0};
+        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder };
+        assert!(choose(&w, &req).is_ok());
+        assert_eq!(w.walks.borrow().len(), 1, "the same start, centre and radius: the flood is shared");
+    }
     use super::*;
     use bot_protocol::Terrain;
 
@@ -736,7 +784,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open) };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
         let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         let builder_at = at(1900.0, 2048.0);
@@ -753,7 +801,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open) };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
         let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         let builder_at = at(1900.0, 2048.0);

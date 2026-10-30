@@ -205,6 +205,7 @@ impl Brain {
             home: self.home,
             toward: self.enemy_base(self.home),
             open: Box::new(open),
+            walks: Default::default(),
         }
     }
 
@@ -220,23 +221,32 @@ impl Brain {
     /// Where a building of `def` goes for `builder` without a place from the player: the stand's slot for its kind
     /// while one is free; the water for a sea building; else the layout layer's choice within the kind's own band.
     pub(super) fn place_planned(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> Plan {
+        self.place_planned_in(&self.layout_world(own), def, builder, own)
+    }
+
+    /// `place_planned` over a world built already: the menu asks for every kind of every builder each pass over one
+    /// world (econ-flagship-1: the world was rebuilt for each of some 240 asks a second).
+    pub(super) fn place_planned_in(&self, world: &World, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit]) -> Plan {
         if let Some(pianist) = self.pianist.as_ref()
             && let Some((at, facing)) = self.free_stand_slots(builder.id, def, own, pianist).into_iter().next()
         {
             return Plan::Slot(def, at, facing);
         }
         let (centre, radius) = self.band_for(def, builder, own);
-        self.place_in(def, builder, own, centre, radius)
+        self.place_in_world(world, def, builder, centre, radius)
     }
 
     /// Where a building of `def` goes within `radius` of `centre` (the player's place, or the kind's band): the
     /// layer's site, on land or on water as the kind's depths have it (§1.0: water is ground with its own
     /// footprints). When the layer finds no ground the engine is asked at the band's centre and the log says why.
     pub(super) fn place_in(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], centre: Vec3, radius: f32) -> Plan {
+        self.place_in_world(&self.layout_world(own), def, builder, centre, radius)
+    }
+
+    fn place_in_world(&self, world: &World, def: UnitDefId, builder: &OwnUnit, centre: Vec3, radius: f32) -> Plan {
         let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
-        let world = self.layout_world(own);
         let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };
-        match layout::choose(&world, &req) {
+        match layout::choose(world, &req) {
             Ok(site) => Plan::Slot(def, site.at, site.facing),
             Err(why) => {
                 let said = format!("no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.name(def), self.actor_name(builder.id), centre.x, centre.z);
