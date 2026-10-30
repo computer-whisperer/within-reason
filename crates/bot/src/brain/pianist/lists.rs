@@ -102,7 +102,7 @@ impl Pianist {
     /// help order (the id's frame, or the builder claiming it) makes the builder a helper of the id, and a frame
     /// being helped is the id's building. The order's words, with the id when it is help.
     fn note_tag(&mut self, tag: &str, builder: UnitId, own: &[OwnUnit], did: String, queue: bool, frame_now: i32) -> String {
-        let task = if queue { self.queued.get(&builder) } else { self.tasks.get(&builder) }.cloned();
+        let task = if queue { self.queued.get(&builder).and_then(|q| q.back()).map(|q| &q.task) } else { self.tasks.get(&builder) }.cloned();
         match task {
             // A build on a frame that stands already (the id's frame finished by this builder) keeps the frame as
             // the id's building: inserted with none, the id was free again the moment the frame stood and its
@@ -129,7 +129,7 @@ impl Pianist {
 
 impl Brain {
     /// Every builder with a list: its next step ordered when it is ready for one.
-    pub(super) fn play_lists(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, commands: &mut Vec<Command>) {
+    pub(crate) fn play_lists(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, commands: &mut Vec<Command>) {
         let own = &tick.snapshot.own_units;
         let frame = tick.frame;
         let Some(mut pianist) = self.pianist.take() else { return };
@@ -142,7 +142,7 @@ impl Brain {
         let helpers: Vec<(UnitId, String)> = pianist.helping.iter().map(|(builder, id)| (*builder, id.clone())).collect();
         for (builder, id) in helpers {
             let help = |task: Option<&Task>| matches!(task, Some(Task::Repair { .. }) | Some(Task::Assist { .. }));
-            let (queued, doing) = (help(pianist.queued.get(&builder)), help(pianist.tasks.get(&builder)));
+            let (queued, doing) = (pianist.queue_of(builder).any(|t| help(Some(t))), help(pianist.tasks.get(&builder)));
             let def = pianist.tagged.get(&id).map(|t| t.def);
             let wanted = def.is_some_and(|def| matches!(pianist.tag_state(&id, def, builder, own), TagState::UnderWay(_) | TagState::Claimed(_)));
             if wanted && (queued || doing) {
@@ -151,8 +151,12 @@ impl Brain {
             pianist.helping.remove(&builder);
             if queued {
                 // Not begun yet (ordered behind the helper's own build): the help is taken off, the build goes on.
-                pianist.queued.remove(&builder);
-                pianist.queued_steps.remove(&builder);
+                if let Some(queue) = pianist.queued.get_mut(&builder) {
+                    queue.retain(|q| !help(Some(&q.task)));
+                    if queue.is_empty() {
+                        pianist.queued.remove(&builder);
+                    }
+                }
             } else if doing {
                 pianist.tasks.remove(&builder);
                 pianist.list_steps.remove(&builder);
@@ -160,7 +164,8 @@ impl Brain {
             }
             // Neither: the pass sent the helper elsewhere, and its step is back on its list (`execute_builder`).
         }
-        for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
+        let builders: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)).collect();
+        for unit in builders {
             let name = self.actor_name(unit.id);
             if pianist.scripts.get(&name).is_none_or(|s| s.is_empty()) || pianist.helping.contains_key(&unit.id) {
                 continue;
@@ -223,8 +228,31 @@ impl Brain {
                     pianist.note(frame, format!("{name}: {text}"));
                 }
             }
-            if let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
-                steps.push((unit.id, order, step, status.queue_ahead && !leaving));
+            // The stand (docs/design/2026-10-29-base-layout.md §1.1, H-ECO-STAND): solved once for the commander
+            // from its list's leading steps; then every leading step whose slot or spot the stand holds goes now,
+            // each behind the one before, as one queue, so the commander never idles between them. The first step
+            // not the stand's waits for its turn as before.
+            if self.stand.is_none() && kit.commander == unit.def {
+                self.solve_stand(unit, &mut pianist, picture, own, frame, kit);
+            }
+            let mut queue = status.queue_ahead && !leaving;
+            let mut prefer = self.stand_spots(unit, &pianist, picture, own, frame, kit);
+            let (mut batched_spots, mut batched_defs): (Vec<usize>, Vec<UnitDefId>) = (Vec::new(), Vec::new());
+            while let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit, &mut prefer, &mut batched_spots) {
+                let on_the_stand = match &order {
+                    Order::Build(def, Site::Planned) => self.free_stand_slots(unit.id, *def, own, &pianist).len() > batched_defs.iter().filter(|d| *d == def).count(),
+                    Order::Build(_, Site::Spot(i)) => self.stand.as_ref().is_some_and(|(who, s)| *who == unit.id && s.slots.iter().any(|slot| matches!(slot, layout::Slot::Extractor { spot, .. } if spot == i))),
+                    _ => false,
+                };
+                if let Order::Build(def, Site::Planned) = &order {
+                    batched_defs.push(*def);
+                }
+                steps.push((unit.id, order, step, queue));
+                let next_on_the_stand = pianist.scripts.get(&name).and_then(|s| s.front()).is_some_and(|next| self.step_on_the_stand(next, unit, &pianist, own, &prefer, &batched_defs));
+                if !on_the_stand || !next_on_the_stand {
+                    break;
+                }
+                queue = true;
             }
         }
         // Several builders reaching one id's step on this tick: the nearest starts it, the rest help it.
@@ -236,8 +264,15 @@ impl Brain {
         nearest_first(&mut steps, site, |id| own.iter().find(|u| u.id == id).map(|u| u.pos));
         self.pianist = Some(pianist);
         let mut claimed: HashMap<String, UnitId> = HashMap::new();
+        // A step of a builder's batch that could not be played: the steps behind it go back to the front of its list
+        // in their order, not out of turn behind it.
+        let mut failed: HashMap<UnitId, Vec<String>> = HashMap::new();
         for (id, order, step, queue) in steps {
             let name = self.actor_name(id);
+            if let Some(back) = failed.get_mut(&id) {
+                back.push(step);
+                continue;
+            }
             let tag = step_id(&step).1;
             let order = same_tick_help(order, tag, &claimed);
             match self.execute_builder(tick, kit, picture, id, &order, queue, Some(&step), commands) {
@@ -280,6 +315,16 @@ impl Brain {
                     };
                     pianist.done.push(format!("{} {name}: {text}", clock(frame)));
                     pianist.note(frame, format!("{name}: {text}"));
+                    failed.insert(id, Vec::new());
+                }
+            }
+        }
+        let failed: Vec<(String, Vec<String>)> = failed.into_iter().map(|(id, back)| (self.actor_name(id), back)).collect();
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        for (name, back) in failed {
+            if let Some(list) = pianist.scripts.get_mut(&name) {
+                for step in back.into_iter().rev() {
+                    list.push_front(step);
                 }
             }
         }
@@ -327,7 +372,7 @@ impl Brain {
         if self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(spot) < radius && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) {
             return format!("spot_{i} holds his extractor: it is taken by killing that, not by a list");
         }
-        if let Some((id, _)) = pianist.tasks.iter().chain(pianist.queued.iter()).find(|(id, t)| **id != unit.id && matches!(t, Task::Build { spot: Some(s), .. } if *s == i)) {
+        if let Some((id, _)) = pianist.tasks.iter().chain(pianist.queued_tasks()).find(|(id, t)| **id != unit.id && matches!(t, Task::Build { spot: Some(s), .. } if *s == i)) {
             return format!("spot_{i} is being taken by {}", self.actor_name(*id));
         }
         if self.team_mates.spot_claims.contains(&i) {
@@ -377,7 +422,11 @@ impl Brain {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Option<(Order, String)> {
+    /// `prefer`: the spots the stand holds for this builder, taken first by its bare `extractor` steps and removed
+    /// as they are; `batched`: the spots its steps took this tick already, which a bare step passes over (several
+    /// steps of one builder go in one tick at the stand, and a spot is this builder's only once).
+    #[allow(clippy::too_many_arguments)]
+    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit, prefer: &mut Vec<usize>, batched: &mut Vec<usize>) -> Option<(Order, String)> {
         let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
         loop {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
@@ -405,17 +454,27 @@ impl Brain {
             let resolved: Result<Order, String> = match kind {
                 "extractor" if !can(extractor) => Err("this builder cannot build it".to_string()),
                 "extractor" => {
-                    let spots = self.free_spots(unit, pianist, picture, own, frame, kit);
+                    let mut spots = self.free_spots(unit, pianist, picture, own, frame, kit);
+                    spots.retain(|(i, _)| !batched.contains(i));
+                    if let Some(k) = prefer.iter().position(|p| spots.iter().any(|(j, _)| j == p)) {
+                        let i = prefer.remove(k);
+                        spots.retain(|(j, _)| *j != i);
+                        spots.insert(0, (i, 0.0));
+                    }
+                    let mut taking = |i: usize| {
+                        batched.push(i);
+                        Ok(Order::Build(extractor, Site::Spot(i)))
+                    };
                     match &place {
                         Some(p) => match p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
-                            Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Order::Build(extractor, Site::Spot(i))),
+                            Some(i) if spots.iter().any(|(j, _)| *j == i) => taking(i),
                             // Why it is not free (9.3): "not free" covered a spot nothing of ours reached, one the
                             // enemy held, one under wrecks and one another builder was taking (Cape Violet, 333 skips).
                             Some(i) => Err(self.why_not_free(i, unit, pianist, own, kit)),
                             None => Err(format!("{p} is not a spot")),
                         },
                         None => match spots.first() {
-                            Some((i, _)) => Ok(Order::Build(extractor, Site::Spot(*i))),
+                            Some((i, _)) => taking(*i),
                             None => Err("no free spot in reach".to_string()),
                         },
                     }
@@ -552,8 +611,7 @@ mod tests {
         let build = |started| Task::Build { def: UnitDefId(7), near: Vec3::default(), spot: None, ordered: 100, started, frame: started.then_some(UnitId(70)) };
         let queued = |pianist: &mut super::Pianist, builder| {
             pianist.tasks.insert(builder, build(true));
-            pianist.queued.insert(builder, build(false));
-            pianist.queued_steps.insert(builder, "extractor".to_string());
+            pianist.queue_push(builder, build(false), Some("extractor".to_string()));
             pianist.list_steps.insert(builder, ("extractor".to_string(), 100));
         };
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
@@ -562,7 +620,7 @@ mod tests {
             queued(&mut pianist, builder);
         }
         // The pass's own queued build, on a builder without a list: a cancel of no list leaves it.
-        pianist.queued_steps.remove(&unlisted);
+        pianist.queued.get_mut(&unlisted).unwrap().front_mut().unwrap().step = None;
         pianist.list_replaced(replaced, true);
         pianist.list_replaced(cancelled, false);
         pianist.list_replaced(unlisted, false);
@@ -574,7 +632,7 @@ mod tests {
         assert!(matches!(pianist.tasks.get(&unlisted), Some(Task::Build { started: false, .. })));
         for builder in [replaced, cancelled] {
             assert!(matches!(pianist.take_queued(builder, "commander", 200, None), Some(Command::Stop { unit }) if unit == builder));
-            assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder) && !pianist.queued_steps.contains_key(&builder));
+            assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder));
         }
         assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
         // A queued build the engine has begun as the list was replaced is kept, its frame the task's (migration-3-1
@@ -584,7 +642,7 @@ mod tests {
         queued(&mut pianist, other);
         pianist.list_replaced(begun, true);
         pianist.list_replaced(other, true);
-        let def = match pianist.queued.get(&begun) { Some(Task::Build { def, .. }) => *def, _ => unreachable!() };
+        let def = match pianist.queue_of(begun).next() { Some(Task::Build { def, .. }) => *def, _ => unreachable!() };
         let frame_pos = Vec3 { x: 100.0, y: 0.0, z: 200.0 };
         assert!(pianist.take_queued(begun, "commander", 200, Some((UnitId(50), def, frame_pos))).is_none());
         assert!(matches!(pianist.tasks.get(&begun), Some(Task::Build { started: true, frame: Some(UnitId(50)), near, .. }) if near.x == 100.0), "{:?}", pianist.tasks.get(&begun));
@@ -626,20 +684,20 @@ mod tests {
         let unit = &ours[0];
         let name = "constructor_100".to_string();
         pianist.scripts.insert(name.clone(), VecDeque::from(["reclaim E4".to_string(), "reclaim Z9".to_string(), "reclaim".to_string(), "armwar #w1".to_string(), "armllt spot_40".to_string()]));
-        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit);
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit, &mut Vec::new(), &mut Vec::new());
         assert!(matches!(&step, Some((Order::TakeApart(field), s)) if *field == at(4700.0, 2700.0) && s == "reclaim E4"), "{step:?}");
         // The next two are skipped and said; the id step waits at the front for a builder that can start #w1.
-        assert!(brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit).is_none());
+        assert!(brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit, &mut Vec::new(), &mut Vec::new()).is_none());
         assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'reclaim Z9'") && d.contains("no wreck field is known at Z9")), "{:?}", pianist.done);
         assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'reclaim'") && d.contains("reclaim takes a handle")), "{:?}", pianist.done);
         assert_eq!(pianist.scripts[&name].front().map(String::as_str), Some("armwar #w1"));
         // Another builder claims #w1: this one's step is its help.
         pianist.tagged.insert("w1".into(), Tagged { def: UnitDefId(2), claim: Some(UnitId(101)), claimed: 90, building: None });
         pianist.tasks.insert(UnitId(101), Task::Build { def: UnitDefId(2), near: at(0.0, 0.0), spot: None, ordered: 90, started: false, frame: None });
-        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 110, &kit);
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 110, &kit, &mut Vec::new(), &mut Vec::new());
         assert!(matches!(&step, Some((Order::Help(UnitId(101)), _))), "{step:?}");
         // Without an id, a step it cannot make is skipped as before.
-        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 120, &kit);
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 120, &kit, &mut Vec::new(), &mut Vec::new());
         assert!(step.is_none() && pianist.done.iter().any(|d| d.contains("skipped the step 'armllt spot_40'") && d.contains("cannot build")), "{step:?} {:?}", pianist.done);
     }
 
@@ -791,7 +849,7 @@ mod finish_tests {
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let name = "constructor_1".to_string();
         pianist.scripts.insert(name.clone(), VecDeque::from(["finish armsolar_21".to_string(), "finish armsolar_99".to_string(), "finish".to_string(), "finish armsolar_20".to_string()]));
-        let step = brain.next_list_step(&ours[0], &name, &mut pianist, &picture, &ours, 100, &kit);
+        let step = brain.next_list_step(&ours[0], &name, &mut pianist, &picture, &ours, 100, &kit, &mut Vec::new(), &mut Vec::new());
         assert!(matches!(&step, Some((Order::Finish(UnitId(20)), s)) if s == "finish armsolar_20"), "{step:?}");
         assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'finish armsolar_21'") && d.contains("stands finished already")), "{:?}", pianist.done);
         assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'finish armsolar_99'") && d.contains("the frame is gone")), "{:?}", pianist.done);

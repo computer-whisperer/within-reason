@@ -1,6 +1,8 @@
 //! Where a building goes: the site for what the pianist's builders are told to build (`place_planned`,
 //! `build_site_for`, the extractor's exact site). The rules that chose what to build went with the heuristic bot
-//! (2026-09-25, `docs/design/2026-09-25-one-decider.md`).
+//! (2026-09-25, `docs/design/2026-09-25-one-decider.md`). The commander's opening takes the stand's slots
+//! (`stand.rs`, `crates/layout`; docs/design/2026-10-29-base-layout.md step 1); the rest is placed as before until
+//! the layout layer's later steps replace it.
 
 use bot_protocol::{BuildSite, Lane, OwnUnit, Placement, UnitDefId, Vec3};
 
@@ -9,6 +11,8 @@ use super::Brain;
 
 pub(super) const EARLY_COMMANDER_LEASH: f32 = 1500.0;
 const NANO_REACH: f32 = 260.0;
+/// How far from a layout slot the engine's site may be: a grid step, so the slot is the site or nothing.
+const SLOT_SEARCH: f32 = 24.0;
 /// A metal extractor this close to a spot occupies it.
 /// An extractor this close to a spot's centre stands on that spot, at least; the map's extractor radius when larger,
 /// since an extractor may be built anywhere within it (`extractor_site`; rush-20: offset extractors were not seen as
@@ -18,9 +22,6 @@ const BUILDING_GAP: i32 = 5;
 const LAB_GAP: i32 = 8;
 /// Distances from the start point along the line to the enemy: generators behind, labs ahead, turrets beyond them.
 const BACK_FIELD: f32 = 150.0;
-/// A metal-map square is 16 elmos; an extractor offset is tried in steps of `MEX_STEP`.
-const MEX_SQUARE: f32 = 16.0;
-const MEX_STEP: f32 = 8.0;
 /// How far off its centre an extractor still counts as refused for that spot (the dropped-order fallback).
 pub(super) const MEX_PATCH: f32 = 130.0;
 /// How far around a site the engine refused for a building the next search for that type keeps away.
@@ -52,6 +53,8 @@ pub(super) enum Plan {
     Near(UnitDefId, Vec3),
     /// A building placed right beside `anchor`: a construction turret has to reach the factory it helps.
     Beside(UnitDefId, Vec3),
+    /// A building at a slot the layout layer solved, with its facing: the site exactly, or nothing (the stand).
+    Slot(UnitDefId, Vec3, i32),
 }
 
 impl Brain {
@@ -62,6 +65,12 @@ impl Brain {
         let info = self.world.def(def);
         let static_builder = info.is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty());
         let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
+        // The stand's slot for this kind, while one is free: solved at the start for the commander's opening.
+        if let Some(pianist) = self.pianist.as_ref()
+            && let Some((at, facing)) = self.free_stand_slots(builder.id, def, own, pianist).into_iter().next()
+        {
+            return Plan::Slot(def, at, facing);
+        }
         match def {
             // A sea building stands on the water nearest the builder (the menu offers it only with water in reach).
             d if on_water => match self.world.nearest_water(builder.pos, info.map_or(100.0, |b| b.build_distance) + 300.0) {
@@ -117,36 +126,19 @@ impl Brain {
             .unwrap_or_else(|| at(0.0))
     }
 
+    /// An extractor's site on `spot` for `builder`: inside the patch, toward the builder (`layout::extractor_site`);
+    /// the centre where an offset was refused before. The stand's builder is sited from the stand, wherever it is
+    /// now: the opening's extractors are ordered as one queue before it has moved.
     pub(super) fn extractor_site(&self, spot: Vec3, builder: &OwnUnit) -> Vec3 {
         let hello = &self.world.hello;
         let Some(index) = hello.metal_spots.iter().position(|s| s.dist2d(spot) < 1.0) else { return spot };
+        if self.centre_only.contains(&index) {
+            return spot;
+        }
         let squares = hello.metal_spot_squares.get(index).map_or(&[][..], |s| s.as_slice());
-        if self.centre_only.contains(&index) || squares.is_empty() {
-            return spot;
-        }
         let reach = self.world.def(builder.def).map_or(100.0, |d| d.build_distance.max(60.0));
-        let d = spot.dist2d(builder.pos);
-        let wanted = (d - reach + 8.0).max(0.0);
-        if wanted <= 0.0 || d <= 0.0 {
-            return spot;
-        }
-        // The engine draws only the squares whose centres lie within the extractor radius of the extractor
-        // (ExtractorBuilding.cpp), which is stricter than what the game allows to be built (cmd_mex_denier.lua: the
-        // radius plus one metal square of every square of the patch). So every square of the patch stays within the
-        // radius, less a square for the build grid's snap: player-52's extractors stood 101 off centre at the median
-        // under the game's rule and drew 1.9 a second from patches worth 2.3. Tried from the offset wanted down to
-        // nothing.
-        let allowed = hello.map.extractor_radius - MEX_SQUARE;
-        let valid = |p: Vec3| squares.iter().all(|(sx, sz)| (p.x - sx).hypot(p.z - sz) < allowed);
-        let mut offset = wanted.min(hello.map.extractor_radius);
-        while offset > 0.0 {
-            let p = Vec3 { x: spot.x + (builder.pos.x - spot.x) / d * offset, y: spot.y, z: spot.z + (builder.pos.z - spot.z) / d * offset };
-            if valid(p) {
-                return p;
-            }
-            offset -= MEX_STEP;
-        }
-        spot
+        let from = self.stand.as_ref().filter(|(id, _)| *id == builder.id).map_or(builder.pos, |(_, s)| s.at);
+        layout::extractor_site(spot, squares, hello.map.extractor_radius, from, reach)
     }
 
     /// What a plan builds and where the engine is asked to put it. None when the builder cannot build it.
@@ -157,7 +149,7 @@ impl Brain {
         let planned_def = match plan {
             Plan::Extractor(_) if !can(kit.extractor) && can(kit.advanced_extractor) => kit.advanced_extractor,
             Plan::Extractor(_) => kit.extractor,
-            Plan::Near(def_id, _) | Plan::Beside(def_id, _) => *def_id,
+            Plan::Near(def_id, _) | Plan::Beside(def_id, _) | Plan::Slot(def_id, ..) => *def_id,
         };
         if !can(planned_def) {
             return None;
@@ -173,7 +165,7 @@ impl Brain {
             // constructor's placed over the commander's blueprint, and the commander stood 46 s at a site the engine
             // held without building).
             let radius = |def: UnitDefId| self.world.def(def).map_or(40.0, |d| (d.footprint.0 as f32).hypot(d.footprint.1 as f32) * 4.0);
-            let pending = pianist.tasks.iter().chain(pianist.queued.iter()).filter(|(id, _)| **id != unit.id);
+            let pending = pianist.tasks.iter().chain(pianist.queued_tasks()).filter(|(id, _)| **id != unit.id);
             keep_out.extend(pending.filter_map(|(_, task)| match task {
                 super::pianist::Task::Build { def, near, started: false, .. } => Some(Lane { from: *near, to: *near, half_width: radius(*def) + radius(planned_def) }),
                 _ => None,
@@ -211,6 +203,9 @@ impl Brain {
             }
             Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id), placements: placements(anchor), exact: false }),
             Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, placements: placements(anchor), exact: false }),
+            // The layout's slot, exactly: the layer kept it off every lane and spot itself, and the engine's answer
+            // is that site or none (then the refusal is remembered and the slot is passed over).
+            Plan::Slot(def_id, at, facing) => (def_id, BuildSite { near: at, search_radius: SLOT_SEARCH, min_dist: 0, placements: vec![Placement { facing, keep_out: Vec::new() }], exact: true }),
         })
     }
 
@@ -239,7 +234,7 @@ mod tests {
         let brain = brain_of(&["armsilo", "armamd", "armllt", "armck"]);
         let builder = own(1, 4, Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
         let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder)) {
-            Plan::Near(_, at) | Plan::Beside(_, at) => at,
+            Plan::Near(_, at) | Plan::Beside(_, at) | Plan::Slot(_, at, _) => at,
             Plan::Extractor(at) => at,
         };
         let (back, line) = (brain.forward_of_home(-BACK_FIELD), brain.forward_of_home(TURRET_LINE));

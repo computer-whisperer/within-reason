@@ -107,7 +107,10 @@ factory 350 ahead of home, an armed building on a line 650 ahead, generators in 
 nuclear silo, an anti-nuke: armed, but it reaches the whole map) in the back field too (the user, 2026-10-09), anything
 else beside the builder turned in 45° steps until clear; factory exit lanes 320 deep kept free; a defence at a named place 120
 toward his base; an extractor inside its patch nearest the builder; another builder's unstarted build kept out of
-every site search by the two footprints (2026-10-08, H-HANDS-REFUSED).
+every site search by the two footprints (2026-10-08, H-HANDS-REFUSED). From 2026-10-29 the commander's opening goes
+first to the stand (`B/stand.rs`, `crates/layout`; H-ECO-STAND): its list's leading steps solved once as exact slots
+within reach of where it stands, ordered as one queue (the design `docs/design/2026-10-29-base-layout.md`, step 1 of
+the layout layer that is to replace the rest of this section).
 
 Wakes (`B/wake.rs` and the triggers beside it; H-WAKE-*, H-HANDS-LOSS-WAKE, H-HANDS-STALL, H-HANDS-SHELLED): no turn
 within 5 s of the last; the player's own timer (default 30 s) capped at 10 s while a fight is on; losses while orders

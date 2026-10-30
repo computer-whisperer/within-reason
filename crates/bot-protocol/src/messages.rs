@@ -260,6 +260,11 @@ pub struct UnitDefInfo {
     pub move_class: Option<MoveClass>,
     /// The ground it stands on, in 8-elmo squares (x, z) before facing: a factory's exit lane runs off its front.
     pub footprint: (i32, i32),
+    /// The height difference across its footprint the engine allows a building (`UnitDef_getMaxHeightDif`: 40 times
+    /// the tangent of its slope limit, F-map-build): 10.7 for most, 17 for a lab, 40 for an extractor. 0 in records
+    /// and shims from before 2026-10-29, when the layout layer takes 10.7.
+    #[serde(default)]
+    pub max_height_dif: f32,
     /// What its death does to what stands around it; None for a unit that dies quietly.
     pub death_blast: Option<Blast>,
     /// What its self-destruct does (the commander's is the game's largest); None when it has none.

@@ -527,6 +527,8 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
             // The stun share it takes and its stun weapon [stun a shot, reach, reload, seconds] (records from
             // 2026-10-27; set apart: one more field in the macro passes its recursion limit).
             row["stun_taken"] = json!(d.stun_taken);
+            // The height difference across its footprint the engine allows a building (records from 2026-10-29).
+            row["max_height_dif"] = json!(d.max_height_dif);
             row["stun"] = json!(d.stun.map(|s| [s.per_shot, s.reach, s.reload, s.seconds]));
             row
         })

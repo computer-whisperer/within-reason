@@ -246,7 +246,8 @@ impl Brain {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(task) = task {
             if queue {
-                pianist.queued.insert(id, task);
+                // With the list step it came from, moved to `list_steps` when the task is promoted (`Queued`).
+                pianist.queue_push(id, task, list_step.map(str::to_string));
                 did = did.map(|d| format!("next, queued: {d}"));
             } else {
                 pianist.tasks.insert(id, task);
@@ -258,11 +259,6 @@ impl Brain {
             Some(step) => {
                 if !queue {
                     pianist.list_steps.insert(id, (step.to_string(), frame));
-                } else {
-                    // Kept with the queued task and moved to `list_steps` when it is promoted: unrecorded, a queued
-                    // `assist 25` read as the step before it once the plant stood, and the next step was ordered the
-                    // same second (bluegecko-3v1-comet-catcher-10 1:04-1:11, player-11 1:05-1:13).
-                    pianist.queued_steps.insert(id, step.to_string());
                 }
             }
             None => {

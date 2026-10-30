@@ -1,0 +1,9 @@
+[package]
+name = "layout"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "Where a building goes: the build grid, footprints, the ground a footprint stands on, the commander's stand"
+
+[dependencies]
+bot-protocol = { path = "../bot-protocol" }

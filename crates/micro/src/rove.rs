@@ -481,6 +481,7 @@ mod tests {
             build_options: Vec::new(),
             move_class: (speed > 0.0).then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0 }),
             footprint: (2, 2),
+            max_height_dif: 0.0,
             death_blast: None,
             self_destruct_blast: None,
             self_destruct_seconds: 0.0,

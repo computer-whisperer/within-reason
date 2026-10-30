@@ -1715,8 +1715,9 @@ impl Brain {
                 if let Some(w) = stunned_words(&[unit.stunned].into_iter().filter(|s| *s > 0.0).collect::<Vec<_>>(), 1) {
                     entry["stunned"] = json!(format!("{w}: it neither moves nor builds until it wakes, and keeps its orders for then"));
                 }
-                if let Some(next) = pianist.queued.get(&unit.id) {
-                    entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, own)));
+                let queued: Vec<String> = pianist.queue_of(unit.id).map(|next| self.task_words(Some(next), unit, &places, frame, own)).collect();
+                if !queued.is_empty() {
+                    entry["next"] = json!(format!("queued to start the moment this is done: {}", queued.join("; then ")));
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     let waits = if pianist.list_held.contains(&unit.id) {

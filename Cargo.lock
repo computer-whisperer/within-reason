@@ -118,6 +118,7 @@ dependencies = [
  "buildorder",
  "combatsim",
  "jev",
+ "layout",
  "micro",
  "serde",
  "serde_json",
@@ -753,6 +754,13 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "layout"
+version = "0.1.0"
+dependencies = [
+ "bot-protocol",
 ]
 
 [[package]]

@@ -1,0 +1,721 @@
+//! Where a building goes: the layout layer shared by the flagship (`crates/bot`) and the heuristic bots
+//! (`docs/design/2026-10-29-base-layout.md`). It knows the build grid and footprints, the ground a footprint may
+//! stand on (F-map-build), an extractor's site inside its patch, a factory's exit lane, and the commander's stand:
+//! the opening's slots solved once at the start, from the start position, the spots and the terrain, so that the
+//! opening list goes to the engine as one queue and the commander never idles between its first structures (the
+//! study, `docs/studies/2026-10-29-base-layout.md` §3 and §5: the people's 0.6 s from a structure finishing to the
+//! next order and one or two stands up to the plant, against our 3.5 / 1.0 / 0.8 / 5.8 s and three). No engine, no
+//! Jev: the ground is the terrain the host sends, the facts are the definitions.
+
+use std::collections::HashMap;
+
+use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
+
+/// A build square (`SQUARE_SIZE`): footprints count them.
+pub const SQUARE: f32 = 8.0;
+/// The build grid a building's centre snaps to (`CGameHelper::Pos2BuildPos`).
+pub const GRID: f32 = 16.0;
+/// The engine's height tolerance for a building whose definition does not say: `maxslope` 10 in 276 of BAR's 543
+/// definitions, times the game's 1.5, so 40 tan 15° (F-map-build).
+const DEFAULT_HEIGHT_DIF: f32 = 10.7;
+/// A metal-map square is 16 elmos; an extractor's offset from its spot is tried in steps of `MEX_STEP`.
+const MEX_SQUARE: f32 = 16.0;
+const MEX_STEP: f32 = 8.0;
+/// How far from the start the stand is looked for: the people stand still or take one step (the study §5).
+const STAND_RADIUS: f32 = 128.0;
+const STAND_PITCH: f32 = 32.0;
+/// The ground the commander itself needs at the stand: nothing is placed over it.
+const COMMANDER_HALF: f32 = 24.0;
+/// The margin round a metal spot's centre no building covers, so the extractor's own site stays free: the extractor's
+/// footprint (48) and a build square.
+const SPOT_BOX_HALF: f32 = 32.0;
+/// How many touching neighbours of its kind a slot is credited: a bank grows along a row or round a corner.
+const TOUCHING_CAP: usize = 2;
+/// The cells the escape check walks, round the stand: a building fenced the commander in when no cell this far out is
+/// reached from where it stands.
+const ESCAPE_MARGIN: f32 = 96.0;
+
+/// A building's footprint in build squares (x across its front, z front to back), as the definitions give it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Footprint {
+    pub x: i32,
+    pub z: i32,
+}
+
+impl Footprint {
+    /// The footprint as it lies on the ground with this facing: an odd facing (east, west) swaps the sides.
+    pub fn faced(self, facing: i32) -> Footprint {
+        if facing.rem_euclid(2) == 1 { Footprint { x: self.z, z: self.x } } else { self }
+    }
+
+    /// Half the sides, in elmos.
+    pub fn half(self) -> (f32, f32) {
+        (self.x as f32 * SQUARE / 2.0, self.z as f32 * SQUARE / 2.0)
+    }
+
+    /// Where the engine stands a building of this footprint ordered at `pos` (`Pos2BuildPos`): the 16-elmo grid,
+    /// offset by 8 on an axis whose size in squares is 2 mod 4.
+    pub fn snap(self, pos: Vec3) -> Vec3 {
+        Vec3 { x: snap_axis(pos.x, self.x), y: pos.y, z: snap_axis(pos.z, self.z) }
+    }
+
+    /// The ground it covers standing at `centre`.
+    pub fn rect(self, centre: Vec3) -> Rect {
+        let (hx, hz) = self.half();
+        Rect { x0: centre.x - hx, z0: centre.z - hz, x1: centre.x + hx, z1: centre.z + hz }
+    }
+}
+
+fn snap_axis(v: f32, size: i32) -> f32 {
+    if size & 2 != 0 { (v / GRID).floor() * GRID + GRID / 2.0 } else { ((v + GRID / 2.0) / GRID).floor() * GRID }
+}
+
+/// An axis-aligned piece of ground, in elmos.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Rect {
+    pub x0: f32,
+    pub z0: f32,
+    pub x1: f32,
+    pub z1: f32,
+}
+
+impl Rect {
+    pub fn centre(&self) -> Vec3 {
+        Vec3 { x: (self.x0 + self.x1) / 2.0, y: 0.0, z: (self.z0 + self.z1) / 2.0 }
+    }
+
+    /// Whether the two share ground; two that only touch along an edge do not.
+    pub fn overlaps(&self, o: &Rect) -> bool {
+        self.x0 < o.x1 && o.x0 < self.x1 && self.z0 < o.z1 && o.z0 < self.z1
+    }
+
+    /// Whether the two stand side by side: an edge in common, over a length, with no ground shared.
+    pub fn touches(&self, o: &Rect) -> bool {
+        let along_x = (self.x1 == o.x0 || o.x1 == self.x0) && self.z0 < o.z1 && o.z0 < self.z1;
+        let along_z = (self.z1 == o.z0 || o.z1 == self.z0) && self.x0 < o.x1 && o.x0 < self.x1;
+        along_x || along_z
+    }
+
+    pub fn contains(&self, p: Vec3) -> bool {
+        p.x >= self.x0 && p.x < self.x1 && p.z >= self.z0 && p.z < self.z1
+    }
+
+    pub fn grown(&self, by: f32) -> Rect {
+        Rect { x0: self.x0 - by, z0: self.z0 - by, x1: self.x1 + by, z1: self.z1 + by }
+    }
+}
+
+/// What the layer needs to know of a definition.
+#[derive(Clone, Copy, Debug)]
+pub struct Facts {
+    pub def: UnitDefId,
+    pub footprint: Footprint,
+    /// How far from itself a builder of this kind builds, measured to the target's edge.
+    pub build_distance: f32,
+    /// The height difference across its footprint the engine allows (F-map-build).
+    pub height_dif: f32,
+    pub extractor: bool,
+    pub factory: bool,
+    /// A structure: it does not move.
+    pub building: bool,
+}
+
+impl Facts {
+    pub fn of(d: &UnitDefInfo) -> Facts {
+        Facts {
+            def: d.id,
+            footprint: Footprint { x: d.footprint.0, z: d.footprint.1 },
+            build_distance: d.build_distance,
+            height_dif: if d.max_height_dif > 0.0 { d.max_height_dif } else { DEFAULT_HEIGHT_DIF },
+            extractor: d.extracts_metal > 0.0,
+            factory: d.speed == 0.0 && !d.build_options.is_empty(),
+            building: d.speed == 0.0,
+        }
+    }
+
+    /// How far from `builder`'s position this building's centre may be for the builder to raise it without a step:
+    /// the build distance (to the target's edge) plus the building's radius, taken as half its narrower side. The
+    /// engine takes the model's radius, which is larger; so a slot within this is within reach for certain.
+    pub fn reach_from(&self, builder: &Facts) -> f32 {
+        let (hx, hz) = self.footprint.half();
+        builder.build_distance + hx.min(hz)
+    }
+}
+
+/// The ground, for whether a footprint stands.
+pub struct Ground<'a> {
+    terrain: &'a Terrain,
+    map_width: f32,
+    map_height: f32,
+}
+
+impl<'a> Ground<'a> {
+    pub fn new(terrain: &'a Terrain, map_width: f32, map_height: f32) -> Ground<'a> {
+        Ground { terrain, map_width, map_height }
+    }
+
+    pub fn height_at(&self, x: f32, z: f32) -> Option<f32> {
+        let t = self.terrain;
+        if t.cell <= 0.0 || x < 0.0 || z < 0.0 {
+            return None;
+        }
+        let (i, j) = ((x / t.cell) as usize, (z / t.cell) as usize);
+        (i < t.width as usize && j < t.height as usize).then(|| f32::from(t.heights[j * t.width as usize + i]))
+    }
+
+    pub fn in_map(&self, r: &Rect) -> bool {
+        r.x0 >= 0.0 && r.z0 >= 0.0 && r.x1 <= self.map_width && r.z1 <= self.map_height
+    }
+
+    /// Whether a building with this footprint (as faced) stands at `centre`: inside the map, every square of the
+    /// footprint within `height_dif` of the centre square's height above or below (F-map-build), and on land unless
+    /// `wet` (a tier-1 extractor stands on the sea floor at any depth; every other land building needs depth zero).
+    pub fn stands(&self, footprint: Footprint, centre: Vec3, height_dif: f32, wet: bool) -> bool {
+        let rect = footprint.rect(centre);
+        if !self.in_map(&rect) {
+            return false;
+        }
+        let Some(floor) = self.height_at(centre.x, centre.z) else { return false };
+        if !wet && floor < 0.0 {
+            return false;
+        }
+        for sx in 0..footprint.x {
+            for sz in 0..footprint.z {
+                let (x, z) = (rect.x0 + (sx as f32 + 0.5) * SQUARE, rect.z0 + (sz as f32 + 0.5) * SQUARE);
+                match self.height_at(x, z) {
+                    Some(h) if (h - floor).abs() <= height_dif && (wet || h >= 0.0) => {}
+                    _ => return false,
+                }
+            }
+        }
+        true
+    }
+}
+
+/// Where an extractor on `spot` stands for a builder at `from` with `reach` to the extractor's centre: inside the
+/// patch, as near the builder as the patch allows, so the builder takes no step for it when it can be helped. The
+/// engine draws only the squares whose centres lie within the extractor radius of the extractor
+/// (`ExtractorBuilding.cpp`), stricter than what the game allows to be built (`cmd_mex_denier.lua`: the radius plus
+/// one metal square of every square of the patch), so every square of the patch stays within the radius less a
+/// square for the grid's snap: player-52's extractors stood 101 off centre at the median under the game's rule and
+/// drew 1.9 a second from patches worth 2.3. Tried from the offset wanted down to nothing; the spot's centre when the
+/// patch is unknown.
+pub fn extractor_site(spot: Vec3, squares: &[(f32, f32)], extractor_radius: f32, from: Vec3, reach: f32) -> Vec3 {
+    if squares.is_empty() {
+        return spot;
+    }
+    let d = spot.dist2d(from);
+    let wanted = (d - reach + SQUARE).max(0.0);
+    if wanted <= 0.0 || d <= 0.0 {
+        return spot;
+    }
+    let allowed = extractor_radius - MEX_SQUARE;
+    let valid = |p: Vec3| squares.iter().all(|(sx, sz)| (p.x - sx).hypot(p.z - sz) < allowed);
+    let mut offset = wanted.min(extractor_radius);
+    while offset > 0.0 {
+        let p = Vec3 { x: spot.x + (from.x - spot.x) / d * offset, y: spot.y, z: spot.z + (from.z - spot.z) / d * offset };
+        if valid(p) {
+            return p;
+        }
+        offset -= MEX_STEP;
+    }
+    spot
+}
+
+/// The engine's facing as a direction: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x).
+pub fn facing_dir(facing: i32) -> (f32, f32) {
+    match facing.rem_euclid(4) {
+        0 => (0.0, 1.0),
+        1 => (1.0, 0.0),
+        2 => (0.0, -1.0),
+        _ => (-1.0, 0.0),
+    }
+}
+
+/// The facings in order of how much each points toward `toward` from `at`: a factory's units leave through its front.
+pub fn facings_toward(at: Vec3, toward: Vec3) -> [i32; 4] {
+    let (dx, dz) = (toward.x - at.x, toward.z - at.z);
+    let mut facings = [0, 1, 2, 3];
+    facings.sort_by(|a, b| {
+        let along = |f: &i32| {
+            let (fx, fz) = facing_dir(*f);
+            fx * dx + fz * dz
+        };
+        along(b).total_cmp(&along(a))
+    });
+    facings
+}
+
+/// A factory's exit lane standing at `centre` with this facing: from its front face out by `depth`, as wide as the
+/// footprint plus `margin` a side (the engine's empty-spot search walks the front; `Factory.cpp` `SendToEmptySpot`).
+pub fn lane(footprint: Footprint, centre: Vec3, facing: i32, depth: f32, margin: f32) -> Lane {
+    let (half_width, half_depth) = footprint.half();
+    let (fx, fz) = facing_dir(facing);
+    let front = Vec3 { x: centre.x + fx * half_depth, y: centre.y, z: centre.z + fz * half_depth };
+    let far = half_depth + depth;
+    Lane { from: front, to: Vec3 { x: centre.x + fx * far, y: centre.y, z: centre.z + fz * far }, half_width: half_width + margin }
+}
+
+/// The same lane as the ground it covers.
+pub fn lane_rect(footprint: Footprint, centre: Vec3, facing: i32, depth: f32, margin: f32) -> Rect {
+    let l = lane(footprint, centre, facing, depth, margin);
+    let (x0, x1) = (l.from.x.min(l.to.x), l.from.x.max(l.to.x));
+    let (z0, z1) = (l.from.z.min(l.to.z), l.from.z.max(l.to.z));
+    match facing.rem_euclid(2) {
+        0 => Rect { x0: x0 - l.half_width, z0, x1: x1 + l.half_width, z1 },
+        _ => Rect { x0, z0: z0 - l.half_width, x1, z1: z1 + l.half_width },
+    }
+}
+
+/// One thing the opening wants built.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Want {
+    /// The nearest free spot.
+    Extractor,
+    Building(UnitDefId),
+}
+
+/// One solved slot of the stand.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Slot {
+    Extractor { spot: usize, at: Vec3 },
+    Building { def: UnitDefId, at: Vec3, facing: i32 },
+}
+
+impl Slot {
+    pub fn at(&self) -> Vec3 {
+        match *self {
+            Slot::Extractor { at, .. } | Slot::Building { at, .. } => at,
+        }
+    }
+}
+
+/// The commander's stand: where it stands, and its opening slots in the wants' order.
+#[derive(Clone, Debug)]
+pub struct Stand {
+    pub at: Vec3,
+    pub slots: Vec<Slot>,
+    /// The walking the stand costs the builder: from the start to the stand, and out and back to every extractor
+    /// beyond its reach.
+    pub walk: f32,
+    /// The wants that found no slot within reach: placed by other means.
+    pub unplaced: usize,
+}
+
+/// What the stand is solved over.
+pub struct Scene<'a> {
+    pub start: Vec3,
+    /// The builder that stands: its reach.
+    pub builder: Facts,
+    /// The extractor it builds.
+    pub extractor: Facts,
+    pub facts: &'a dyn Fn(UnitDefId) -> Option<Facts>,
+    pub spots: &'a [Vec3],
+    /// Per spot, the centres of its metal squares (`Hello::metal_spot_squares`); empty when unknown.
+    pub squares: &'a [Vec<(f32, f32)>],
+    pub extractor_radius: f32,
+    /// Spots no extractor of ours goes on: held, claimed by another builder, his.
+    pub spots_taken: &'a [usize],
+    /// No building but an extractor has its centre this close to a spot's centre (the shim refuses such a site, so
+    /// the base's own generators never bury an extractor site).
+    pub spot_keep_out: f32,
+    pub ground: Ground<'a>,
+    /// Where the enemy is: a factory's front points there when it can.
+    pub toward: Vec3,
+    /// A factory's exit lane, kept free of the stand's slots: its depth past the front face and its margin a side.
+    pub lane_depth: f32,
+    pub lane_margin: f32,
+    /// Whether a factory's units can stand on the ground here (its strictest movement class).
+    pub open: &'a dyn Fn(Vec3) -> bool,
+    /// The ground already taken: what stands or is ordered.
+    pub occupied: Vec<Rect>,
+}
+
+/// The stand for these wants: the point near the start from which the most of them are within the builder's reach,
+/// with the least walking, and the slots there. Solved in the wants' kinds' order of need (extractors on their
+/// spots, then factories with their lanes, then the rest) and returned in the wants' order. `None` when there is no
+/// ground at all (no terrain).
+pub fn stand(scene: &Scene, wants: &[Want]) -> Option<Stand> {
+    if scene.ground.terrain.cell <= 0.0 || scene.ground.terrain.heights.is_empty() {
+        return None;
+    }
+    let mut memo: HashMap<(i32, i32, i32, i32), bool> = HashMap::new();
+    let mut candidates: Vec<Vec3> = vec![scene.start];
+    let n = (STAND_RADIUS / STAND_PITCH) as i32;
+    for i in -n..=n {
+        for j in -n..=n {
+            let p = Vec3 { x: scene.start.x + i as f32 * STAND_PITCH, y: scene.start.y, z: scene.start.z + j as f32 * STAND_PITCH };
+            if p.dist2d(scene.start) <= STAND_RADIUS && (i, j) != (0, 0) {
+                candidates.push(p);
+            }
+        }
+    }
+    candidates.sort_by(|a, b| a.dist2d(scene.start).total_cmp(&b.dist2d(scene.start)));
+    let mut best: Option<Stand> = None;
+    for s in candidates {
+        // Nowhere to stand: in the water, off the map, under something.
+        if !scene.ground.height_at(s.x, s.z).is_some_and(|h| h >= 0.0) || scene.occupied.iter().any(|r| r.contains(s)) {
+            continue;
+        }
+        let mut found = solve_at(scene, s, wants, &mut memo);
+        found.walk += s.dist2d(scene.start);
+        let better = match &best {
+            None => true,
+            Some(b) => (found.unplaced, found.walk) < (b.unplaced, b.walk),
+        };
+        if better {
+            let done = found.unplaced == 0 && found.walk == 0.0;
+            best = Some(found);
+            if done {
+                break;
+            }
+        }
+    }
+    best
+}
+
+fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32, i32, i32), bool>) -> Stand {
+    let mut occupied: Vec<Rect> = scene.occupied.clone();
+    occupied.push(Rect { x0: s.x - COMMANDER_HALF, z0: s.z - COMMANDER_HALF, x1: s.x + COMMANDER_HALF, z1: s.z + COMMANDER_HALF });
+    let mut spot_boxes: Vec<(usize, Rect)> = scene
+        .spots
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !scene.spots_taken.contains(i))
+        .map(|(i, p)| (i, Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }))
+        .collect();
+    let mut lanes: Vec<Rect> = Vec::new();
+    let mut slots: Vec<Option<Slot>> = vec![None; wants.len()];
+    let mut walk = 0.0;
+    let mut stands = |footprint: Footprint, centre: Vec3, height_dif: f32, wet: bool| -> bool {
+        let key = (footprint.x, footprint.z, centre.x.round() as i32, centre.z.round() as i32);
+        *memo.entry(key).or_insert_with(|| scene.ground.stands(footprint, centre, height_dif, wet))
+    };
+    // Extractors first: their spots are given, and everything else keeps off them.
+    let mex_reach = scene.extractor.reach_from(&scene.builder);
+    for (k, want) in wants.iter().enumerate() {
+        if *want != Want::Extractor {
+            continue;
+        }
+        let nearest = spot_boxes.iter().enumerate().min_by(|(_, (i, _)), (_, (j, _))| scene.spots[*i].dist2d(s).total_cmp(&scene.spots[*j].dist2d(s)));
+        let Some((n, (i, _))) = nearest.map(|(n, (i, r))| (n, (*i, *r))) else { continue };
+        let squares = scene.squares.get(i).map_or(&[][..], Vec::as_slice);
+        // Sited as the builder will site it, from the stand with its build distance.
+        let at = extractor_site(scene.spots[i], squares, scene.extractor_radius, s, scene.builder.build_distance);
+        spot_boxes.remove(n);
+        occupied.push(scene.extractor.footprint.rect(at));
+        walk += 2.0 * (at.dist2d(s) - mex_reach).max(0.0);
+        slots[k] = Some(Slot::Extractor { spot: i, at });
+    }
+    // The factories: the most ground, and a lane the rest keeps out of.
+    let facings = facings_toward(s, scene.toward);
+    for (k, want) in wants.iter().enumerate() {
+        let Want::Building(def) = *want else { continue };
+        let Some(f) = (scene.facts)(def) else { continue };
+        if !f.factory {
+            continue;
+        }
+        let reach = f.reach_from(&scene.builder);
+        let mut best: Option<(usize, f32, Vec3, i32, Rect, Rect)> = None;
+        for (rank, facing) in facings.iter().enumerate() {
+            let fp = f.footprint.faced(*facing);
+            for centre in lattice(fp, s, reach) {
+                let rect = fp.rect(centre);
+                if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || lanes.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
+                    continue;
+                }
+                if !stands(fp, centre, f.height_dif, false) {
+                    continue;
+                }
+                let lane = lane_rect(f.footprint, centre, *facing, scene.lane_depth, scene.lane_margin);
+                if !scene.ground.in_map(&lane) || occupied.iter().any(|r| r.overlaps(&lane)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&lane)) || !lane_open(&lane, scene.open) {
+                    continue;
+                }
+                let score = (rank, centre.dist2d(s));
+                if best.as_ref().is_none_or(|b| score < (b.0, b.1)) {
+                    best = Some((rank, centre.dist2d(s), centre, *facing, rect, lane));
+                }
+            }
+        }
+        if let Some((_, _, centre, facing, rect, lane)) = best {
+            occupied.push(rect);
+            lanes.push(lane);
+            slots[k] = Some(Slot::Building { def, at: centre, facing });
+        }
+    }
+    // The rest: packed, touching their own kind, out of every lane, leaving the commander a way out.
+    let mut placed_of: HashMap<UnitDefId, Vec<Rect>> = HashMap::new();
+    for (k, want) in wants.iter().enumerate() {
+        let Want::Building(def) = *want else { continue };
+        let Some(f) = (scene.facts)(def) else { continue };
+        if f.factory || !f.building {
+            continue;
+        }
+        let reach = f.reach_from(&scene.builder);
+        let fp = f.footprint;
+        let mut ranked: Vec<((usize, f32), Vec3, Rect)> = Vec::new();
+        for centre in lattice(fp, s, reach) {
+            let rect = fp.rect(centre);
+            if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || lanes.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
+                continue;
+            }
+            if !stands(fp, centre, f.height_dif, f.extractor) {
+                continue;
+            }
+            let touching = placed_of.get(&def).map_or(0, |rs| rs.iter().filter(|r| r.touches(&rect)).count()).min(TOUCHING_CAP);
+            ranked.push(((TOUCHING_CAP - touching, centre.dist2d(s)), centre, rect));
+        }
+        ranked.sort_by(|a, b| a.0.0.cmp(&b.0.0).then(a.0.1.total_cmp(&b.0.1)));
+        for (_, centre, rect) in ranked {
+            let mut with = occupied.clone();
+            with.push(rect);
+            if !escapes(s, &with, reach + ESCAPE_MARGIN) {
+                continue;
+            }
+            occupied.push(rect);
+            placed_of.entry(def).or_default().push(rect);
+            slots[k] = Some(Slot::Building { def, at: centre, facing: 0 });
+            break;
+        }
+    }
+    let unplaced = slots.iter().filter(|s| s.is_none()).count();
+    Stand { at: s, slots: slots.into_iter().flatten().collect(), walk, unplaced }
+}
+
+/// Whether a building's centre here would be refused for a metal spot's sake.
+fn near_a_spot(scene: &Scene, centre: Vec3) -> bool {
+    scene.spots.iter().any(|p| p.dist2d(centre) < scene.spot_keep_out)
+}
+
+/// The centres on the build grid for this footprint within `reach` of `s`.
+fn lattice(fp: Footprint, s: Vec3, reach: f32) -> Vec<Vec3> {
+    let mut out = Vec::new();
+    let first = fp.snap(Vec3 { x: s.x - reach, y: s.y, z: s.z - reach });
+    let steps = (2.0 * reach / GRID) as i32 + 1;
+    for i in 0..=steps {
+        for j in 0..=steps {
+            let p = Vec3 { x: first.x + i as f32 * GRID, y: s.y, z: first.z + j as f32 * GRID };
+            if p.dist2d(s) <= reach {
+                out.push(p);
+            }
+        }
+    }
+    out
+}
+
+/// Whether every cell of the lane is ground the factory's units can stand on.
+fn lane_open(lane: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
+    let mut z = lane.z0 + GRID / 2.0;
+    while z < lane.z1 {
+        let mut x = lane.x0 + GRID / 2.0;
+        while x < lane.x1 {
+            if !open(Vec3 { x, y: 0.0, z }) {
+                return false;
+            }
+            x += GRID;
+        }
+        z += GRID;
+    }
+    true
+}
+
+/// Whether a unit the commander's size at `from` reaches ground `radius` away through the cells no `occupied` rect
+/// covers (a flood over the 16-elmo grid; a cell is blocked when its centre lies within a rect grown by the
+/// commander's half-width).
+fn escapes(from: Vec3, occupied: &[Rect], radius: f32) -> bool {
+    let n = (radius / GRID).ceil() as i32;
+    // The ground kept for the commander itself is no wall to it.
+    let walls: Vec<Rect> = occupied.iter().filter(|r| !r.contains(from)).map(|r| r.grown(SQUARE)).collect();
+    let blocked = |i: i32, j: i32| {
+        let p = Vec3 { x: from.x + i as f32 * GRID, y: 0.0, z: from.z + j as f32 * GRID };
+        walls.iter().any(|r| r.contains(p))
+    };
+    let mut seen = vec![false; ((2 * n + 1) * (2 * n + 1)) as usize];
+    let index = |i: i32, j: i32| ((j + n) * (2 * n + 1) + (i + n)) as usize;
+    let mut stack: Vec<(i32, i32)> = vec![(0, 0)];
+    seen[index(0, 0)] = true;
+    while let Some((i, j)) = stack.pop() {
+        if i.abs() == n || j.abs() == n {
+            return true;
+        }
+        for (di, dj) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let (ni, nj) = (i + di, j + dj);
+            if ni.abs() > n || nj.abs() > n || seen[index(ni, nj)] {
+                continue;
+            }
+            seen[index(ni, nj)] = true;
+            // The commander's own square is never blocked, whatever stands over it.
+            if (ni, nj) != (0, 0) && blocked(ni, nj) {
+                continue;
+            }
+            stack.push((ni, nj));
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    /// A flat map of 64 by 64 cells of 16 elmos, with a cliff where `cliff` says.
+    fn terrain(cliff: impl Fn(f32, f32) -> bool) -> Terrain {
+        let (w, h) = (64u32, 64u32);
+        let mut heights = Vec::new();
+        for j in 0..h {
+            for i in 0..w {
+                let (x, z) = (i as f32 * 16.0 + 8.0, j as f32 * 16.0 + 8.0);
+                heights.push(if cliff(x, z) { 200 } else { 50 });
+            }
+        }
+        Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
+    }
+
+    const COM: UnitDefId = UnitDefId(1);
+    const MEX: UnitDefId = UnitDefId(2);
+    const SOLAR: UnitDefId = UnitDefId(3);
+    const LAB: UnitDefId = UnitDefId(4);
+
+    fn facts(def: UnitDefId) -> Option<Facts> {
+        let f = |footprint: (i32, i32), extractor: bool, factory: bool, build_distance: f32| Facts {
+            def,
+            footprint: Footprint { x: footprint.0, z: footprint.1 },
+            build_distance,
+            height_dif: 10.7,
+            extractor,
+            factory,
+            building: true,
+        };
+        match def {
+            COM => Some(f((4, 4), false, false, 145.0)),
+            MEX => Some(f((6, 6), true, false, 0.0)),
+            SOLAR => Some(f((10, 10), false, false, 0.0)),
+            LAB => Some(f((12, 12), false, true, 0.0)),
+            _ => None,
+        }
+    }
+
+    fn scene<'a>(t: &'a Terrain, spots: &'a [Vec3], squares: &'a [Vec<(f32, f32)>], open: &'a dyn Fn(Vec3) -> bool) -> Scene<'a> {
+        Scene {
+            start: at(512.0, 512.0),
+            builder: facts(COM).unwrap(),
+            extractor: facts(MEX).unwrap(),
+            facts: &facts,
+            spots,
+            squares,
+            extractor_radius: 120.0,
+            spots_taken: &[],
+            spot_keep_out: 100.0,
+            ground: Ground::new(t, 1024.0, 1024.0),
+            toward: at(1000.0, 512.0),
+            lane_depth: 320.0,
+            lane_margin: 48.0,
+            open,
+            occupied: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_grid_snaps_as_the_engine_does() {
+        // A solar (10 squares, 2 mod 4) sits at an offset of 8; a lab (12 squares) on the grid itself.
+        assert_eq!(Footprint { x: 10, z: 10 }.snap(at(100.0, 100.0)), at(104.0, 104.0));
+        assert_eq!(Footprint { x: 12, z: 12 }.snap(at(100.0, 100.0)), at(96.0, 96.0));
+        assert_eq!(Footprint { x: 12, z: 12 }.snap(at(105.0, 105.0)), at(112.0, 112.0));
+        assert_eq!(Footprint { x: 12, z: 6 }.faced(1), Footprint { x: 6, z: 12 });
+    }
+
+    #[test]
+    fn an_extractor_is_offset_toward_the_builder_inside_its_patch() {
+        let spot = at(500.0, 500.0);
+        let squares: Vec<(f32, f32)> = vec![(488.0, 488.0), (504.0, 488.0), (488.0, 504.0), (504.0, 504.0)];
+        // A builder 300 away with 169 of reach: the site moves toward it, every square still within 104 of it.
+        let site = extractor_site(spot, &squares, 120.0, at(800.0, 500.0), 169.0);
+        assert!(site.x > spot.x && site.z == spot.z, "{site:?}");
+        assert!(squares.iter().all(|(sx, sz)| (site.x - sx).hypot(site.z - sz) < 104.0));
+        // In reach already: the centre.
+        assert_eq!(extractor_site(spot, &squares, 120.0, at(600.0, 500.0), 169.0), spot);
+    }
+
+    #[test]
+    fn a_lane_lies_off_the_front_face() {
+        let lab = Footprint { x: 12, z: 12 };
+        // Facing east from (512, 512): the front face at x = 560, the lane to 880, 96 wide plus 48 a side.
+        let r = lane_rect(lab, at(512.0, 512.0), 1, 320.0, 48.0);
+        assert_eq!(r, Rect { x0: 560.0, z0: 416.0, x1: 880.0, z1: 608.0 });
+        let r = lane_rect(lab, at(512.0, 512.0), 2, 320.0, 48.0);
+        assert_eq!(r, Rect { x0: 416.0, z0: 144.0, x1: 608.0, z1: 464.0 });
+    }
+
+    /// The opening's stand on flat ground: two extractors on their spots, the lab facing the enemy with its lane
+    /// free, three solars touching, every slot within reach of the stand, nothing overlapping, the commander free to
+    /// leave.
+    #[test]
+    fn the_stand_puts_the_opening_within_reach_of_one_point() {
+        let t = terrain(|_, _| false);
+        let spots = [at(400.0, 512.0), at(620.0, 400.0), at(100.0, 100.0)];
+        let squares: Vec<Vec<(f32, f32)>> = spots.iter().map(|s| vec![(s.x - 8.0, s.z - 8.0), (s.x + 8.0, s.z - 8.0), (s.x - 8.0, s.z + 8.0), (s.x + 8.0, s.z + 8.0)]).collect();
+        let open = |_: Vec3| true;
+        let sc = scene(&t, &spots, &squares, &open);
+        let wants = [Want::Extractor, Want::Extractor, Want::Building(SOLAR), Want::Building(SOLAR), Want::Building(SOLAR), Want::Building(LAB)];
+        let stand = stand(&sc, &wants).expect("a stand");
+        assert_eq!(stand.unplaced, 0, "{stand:?}");
+        assert_eq!(stand.slots.len(), 6);
+        let spots_taken: Vec<usize> = stand.slots.iter().filter_map(|s| if let Slot::Extractor { spot, .. } = s { Some(*spot) } else { None }).collect();
+        assert_eq!(spots_taken, vec![0, 1], "the two nearest spots, in the wants' order");
+        let rects: Vec<Rect> = stand
+            .slots
+            .iter()
+            .map(|s| match *s {
+                Slot::Extractor { at, .. } => facts(MEX).unwrap().footprint.rect(at),
+                Slot::Building { def, at, facing } => facts(def).unwrap().footprint.faced(facing).rect(at),
+            })
+            .collect();
+        for (i, a) in rects.iter().enumerate() {
+            for b in &rects[i + 1..] {
+                assert!(!a.overlaps(b), "{a:?} overlaps {b:?}");
+            }
+        }
+        let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
+        assert_eq!(lab.1, 1, "the lab faces east, toward the enemy");
+        let lane = lane_rect(facts(LAB).unwrap().footprint, lab.0, lab.1, 320.0, 48.0);
+        assert!(rects.iter().all(|r| !r.overlaps(&lane)), "nothing in the lab's lane");
+        for s in &stand.slots {
+            let reach = match *s {
+                Slot::Extractor { .. } => facts(MEX).unwrap().reach_from(&sc.builder),
+                Slot::Building { def, .. } => facts(def).unwrap().reach_from(&sc.builder),
+            };
+            assert!(s.at().dist2d(stand.at) <= reach + 1.0, "{s:?} is out of reach of {:?}", stand.at);
+        }
+        let solars: Vec<Rect> = stand.slots.iter().filter_map(|s| if let Slot::Building { def: SOLAR, at, .. } = *s { Some(facts(SOLAR).unwrap().footprint.rect(at)) } else { None }).collect();
+        assert_eq!(solars.len(), 3);
+        assert!(solars.iter().any(|a| solars.iter().any(|b| a != b && a.touches(b))), "the solars make a bank: {solars:?}");
+        assert!(escapes(stand.at, &rects, 300.0));
+    }
+
+    /// A cliff east of the start: the lab cannot face east over it (its lane would run up the cliff), so it faces
+    /// the next best way, and nothing stands on the cliff.
+    #[test]
+    fn the_stand_keeps_off_a_cliff_and_turns_the_lab() {
+        let t = terrain(|x, _| x > 600.0);
+        let spots = [at(400.0, 512.0)];
+        let squares: Vec<Vec<(f32, f32)>> = vec![vec![]];
+        let open = |p: Vec3| p.x <= 600.0;
+        let sc = scene(&t, &spots, &squares, &open);
+        let wants = [Want::Extractor, Want::Building(LAB), Want::Building(SOLAR), Want::Building(SOLAR)];
+        let stand = stand(&sc, &wants).expect("a stand");
+        assert_eq!(stand.unplaced, 0, "{stand:?}");
+        let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
+        assert_ne!(lab.1, 1, "not east, into the cliff: {stand:?}");
+        for s in &stand.slots {
+            let fp = match *s {
+                Slot::Extractor { .. } => facts(MEX).unwrap().footprint,
+                Slot::Building { def, facing, .. } => facts(def).unwrap().footprint.faced(facing),
+            };
+            assert!(fp.rect(s.at()).x1 <= 600.0 + 8.0, "{s:?} stands on the cliff");
+        }
+    }
+}

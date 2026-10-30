@@ -12,7 +12,7 @@
 pub mod glossary;
 pub(super) mod groups;
 mod execute;
-mod lists;
+pub(super) mod lists;
 mod priority;
 pub(crate) use lists::{step_id, step_low, step_start};
 pub(super) mod picture;
@@ -102,6 +102,15 @@ pub(super) enum Task {
     Attack { party: String, to: Vec3, since: i32 },
 }
 
+/// One task ordered behind a builder's build in progress, and the list step it came from (moved to `list_steps`
+/// when the task is promoted: unrecorded, a queued `assist 25` read as the step before it once the plant stood, and
+/// the next step was ordered the same second; bluegecko-3v1-comet-catcher-10 1:04-1:11, player-11 1:05-1:13).
+#[derive(Clone, Debug)]
+pub(super) struct Queued {
+    pub task: Task,
+    pub step: Option<String>,
+}
+
 /// A building named by an id on the player's list steps: its type, the builder ordered to start it while no frame
 /// stands yet, and the frame or building once the engine has made it.
 #[derive(Clone, Debug, PartialEq)]
@@ -171,9 +180,12 @@ pub struct Pianist {
     layers: layers::Layers,
     /// Builders' and labs' tasks, by unit.
     pub(super) tasks: HashMap<UnitId, Task>,
-    /// A builder's next task, already ordered behind the one in progress (H-HANDS-QUEUE): it becomes the task when
-    /// the frame in progress is finished, or when the engine starts it.
-    pub(super) queued: HashMap<UnitId, Task>,
+    /// A builder's next tasks, already ordered behind the one in progress, each with the list step it came from: one
+    /// at a time when a build is 60 % done (H-HANDS-QUEUE), the opening's steps as one queue at the commander's
+    /// stand (`docs/design/2026-10-29-base-layout.md` §1.1). The front becomes the task when the frame in progress
+    /// is finished, or when the engine starts it (`take_queued`). Never an empty queue: a builder is in the map
+    /// while it has one.
+    pub(super) queued: HashMap<UnitId, VecDeque<Queued>>,
     /// The player's lists of steps per builder (by actor name), done by the bot without asking (H-HANDS-SCRIPT).
     pub(super) scripts: HashMap<String, VecDeque<String>>,
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
@@ -182,8 +194,6 @@ pub struct Pianist {
     /// The builders with a list that the pick has sent away from an enemy: their list takes no step while they
     /// are still in the pass for one, or while a party stands on the site of their next step (`list_is_held`).
     pub(super) list_held: HashSet<UnitId>,
-    /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
-    pub(super) queued_steps: HashMap<UnitId, String>,
     /// The builders whose queued task was ordered before the player replaced or cancelled their list: it is dropped
     /// when its turn comes (`take_queued`).
     pub(super) stale_queue: HashSet<UnitId>,
@@ -519,7 +529,7 @@ impl Pianist {
     pub(super) fn tag_state(&mut self, id: &str, def: UnitDefId, builder: UnitId, own: &[bot_protocol::OwnUnit]) -> TagState {
         let Some(tagged) = self.tagged.get(id).cloned() else { return TagState::Free };
         let building = tagged.building.and_then(|unit| own.iter().find(|u| u.id == unit));
-        let on_it = |b: UnitId| self.tasks.get(&b).into_iter().chain(self.queued.get(&b)).any(|t| matches!(t, Task::Build { def: d, .. } if *d == tagged.def));
+        let on_it = |b: UnitId| self.tasks.get(&b).into_iter().chain(self.queue_of(b)).any(|t| matches!(t, Task::Build { def: d, .. } if *d == tagged.def));
         let claimed = tagged.claim.filter(|b| own.iter().any(|u| u.id == *b) && on_it(*b));
         if building.is_none() && (tagged.building.is_some() || claimed.is_none()) {
             self.tagged.remove(id);
@@ -545,7 +555,7 @@ impl Pianist {
         self.list_held.remove(&builder);
         self.list_steps.remove(&builder);
         self.helping.remove(&builder);
-        if self.queued.contains_key(&builder) && (new_list || self.queued_steps.contains_key(&builder)) {
+        if self.queued.get(&builder).is_some_and(|q| new_list || q.iter().any(|q| q.step.is_some())) {
             self.stale_queue.insert(builder);
         }
     }
@@ -570,31 +580,46 @@ impl Pianist {
         if !self.stale_queue.remove(&builder) {
             return self.promote(builder, frame);
         }
+        let steps = |queue: &VecDeque<Queued>| {
+            let named: Vec<String> = queue.iter().filter_map(|q| q.step.as_ref().map(|s| format!("'{s}'"))).collect();
+            match named.len() {
+                0 => "the build".to_string(),
+                1 => format!("the step {}", named[0]),
+                _ => format!("the steps {}", named.join(", ")),
+            }
+        };
         if let Some((unit, def, pos)) = begun
-            && matches!(self.queued.get(&builder), Some(Task::Build { def: queued_def, .. }) if *queued_def == def)
+            && matches!(self.queued.get(&builder).and_then(|q| q.front()), Some(Queued { task: Task::Build { def: queued_def, .. }, .. }) if *queued_def == def)
         {
-            let what = self.queued_steps.get(&builder).map_or("the build".to_string(), |step| format!("the step '{step}'"));
-            self.done.push(format!("{} {name}: kept {what} its old list had queued: the engine had begun it as you replaced or cancelled that list, so it finishes first and the new list follows", picture::clock(frame)));
+            let front = self.queued.get(&builder).and_then(|q| q.front()).and_then(|q| q.step.as_ref()).map_or("the build".to_string(), |step| format!("the step '{step}'"));
+            self.done.push(format!("{} {name}: kept {front} its old list had queued: the engine had begun it as you replaced or cancelled that list, so it finishes first and the new list follows", picture::clock(frame)));
             let order = self.promote(builder, frame);
             if let Some(Task::Build { started, frame: own_frame, near, .. }) = self.tasks.get_mut(&builder) {
                 *started = true;
                 *own_frame = Some(unit);
                 *near = pos;
             }
+            // The rest of the old list's queue goes with the list.
+            if let Some(rest) = self.queued.remove(&builder) {
+                self.done.push(format!("{} {name}: dropped {} its old list had queued behind that: you have replaced or cancelled that list since", picture::clock(frame), steps(&rest)));
+            }
             return order;
         }
-        self.queued.remove(&builder)?;
-        let what = self.queued_steps.remove(&builder).map_or("the build".to_string(), |step| format!("the step '{step}'"));
+        let queue = self.queued.remove(&builder)?;
         self.tasks.remove(&builder);
-        self.done.push(format!("{} {name}: dropped {what} its old list had queued behind the build it was on: you have replaced or cancelled that list since", picture::clock(frame)));
+        self.done.push(format!("{} {name}: dropped {} its old list had queued behind the build it was on: you have replaced or cancelled that list since", picture::clock(frame), steps(&queue)));
         Some(Command::Stop { unit: builder })
     }
 
     /// The builder's queued task becomes its task, its clock starting now. Helping the lab is the one task the engine
     /// could not hold queued (the guard order has no queue flag), so it is ordered here, as the build finishes.
     fn promote(&mut self, builder: UnitId, frame: i32) -> Option<Command> {
-        let mut next = self.queued.remove(&builder)?;
-        if let Some(step) = self.queued_steps.remove(&builder) {
+        let queue = self.queued.get_mut(&builder)?;
+        let Queued { task: mut next, step } = queue.pop_front()?;
+        if queue.is_empty() {
+            self.queued.remove(&builder);
+        }
+        if let Some(step) = step {
             self.list_steps.insert(builder, (step, frame));
         }
         let mut order = None;
@@ -618,6 +643,21 @@ impl Pianist {
         }
         self.tasks.insert(builder, next);
         order
+    }
+
+    /// The tasks queued behind `builder`'s build, front first.
+    pub(super) fn queue_of(&self, builder: UnitId) -> impl Iterator<Item = &Task> {
+        self.queued.get(&builder).into_iter().flatten().map(|q| &q.task)
+    }
+
+    /// Every builder's queued tasks, as (builder, task).
+    pub(super) fn queued_tasks(&self) -> impl Iterator<Item = (&UnitId, &Task)> {
+        self.queued.iter().flat_map(|(id, q)| q.iter().map(move |q| (id, &q.task)))
+    }
+
+    /// A task ordered behind `builder`'s build (and whatever is queued already), with the list step it came from.
+    pub(super) fn queue_push(&mut self, builder: UnitId, task: Task, step: Option<String>) {
+        self.queued.entry(builder).or_default().push_back(Queued { task, step });
     }
 
     /// The hands: Jev from the environment (the key file or `TYPESAFE_API_KEY`) when `jev`; `Err` says why Jev cannot
@@ -703,7 +743,6 @@ impl Pianist {
             scripts: HashMap::new(),
             list_steps: HashMap::new(),
             list_held: HashSet::new(),
-            queued_steps: HashMap::new(),
             stale_queue: HashSet::new(),
             tagged: HashMap::new(),
             helping: HashMap::new(),
@@ -986,7 +1025,6 @@ impl Brain {
                             pianist.tasks.remove(&unit);
                             // The stop empties the engine's queue: what was queued behind the build is gone with it.
                             pianist.queued.remove(&unit);
-                            pianist.queued_steps.remove(&unit);
                             let text = match build {
                                 Some((_, words, handle)) => format!("dropped {words}; `finish {}` would resume it) on your `stop`", handle.unwrap_or_default()),
                                 None => "stopped what it was doing on your `stop`".to_string(),
@@ -1657,7 +1695,6 @@ impl Brain {
         pianist.tasks.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.produced_by.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
-        pianist.queued_steps.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.stale_queue.retain(|id| pianist.queued.contains_key(id));
         pianist.helping.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
@@ -1667,13 +1704,18 @@ impl Brain {
                 // never-started checks measure from it.
                 Event::BuildSited { unit, def, at } => {
                     // The order may be queued behind the builder's current build (rove-task-1 2:42: the commander's
-                    // tower behind its solar, kept at the asked site and its clock run on the wrong place).
-                    for task in pianist.tasks.get_mut(&unit).into_iter().chain(pianist.queued.get_mut(&unit)) {
-                        if let Task::Build { def: d, near, started: false, .. } = task
-                            && *d == def
-                        {
-                            *near = at;
-                        }
+                    // tower behind its solar, kept at the asked site and its clock run on the wrong place). Of
+                    // several unstarted builds of the type (the stand's solars, one queue), the one asked nearest
+                    // the site is the one sited.
+                    let unstarted = pianist.tasks.get_mut(&unit).into_iter().chain(pianist.queued.get_mut(&unit).into_iter().flatten().map(|q| &mut q.task));
+                    let nearest = unstarted
+                        .filter_map(|task| match task {
+                            Task::Build { def: d, near, started: false, .. } if *d == def => Some(near),
+                            _ => None,
+                        })
+                        .min_by(|a, b| a.dist2d(at).total_cmp(&b.dist2d(at)));
+                    if let Some(near) = nearest {
+                        *near = at;
                     }
                 }
                 Event::UnitCreated { unit, builder: Some(builder) } => {
@@ -2040,7 +2082,7 @@ mod frame_tests {
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let (builder, mine, theirs) = (UnitId(10), UnitId(20), UnitId(21));
         pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: true, frame: Some(mine) });
-        pianist.queued.insert(builder, Task::Build { def: UnitDefId(3), near: at(1300.0, 1000.0), spot: None, ordered: 0, started: false, frame: None });
+        pianist.queue_push(builder, Task::Build { def: UnitDefId(3), near: at(1300.0, 1000.0), spot: None, ordered: 0, started: false, frame: None }, None);
         brain.pianist = Some(pianist);
         let ours = || vec![own(10, 2, at(1000.0, 950.0)), own(11, 2, at(1150.0, 950.0)), frame(20, 3, at(1000.0, 1000.0), 0.7), frame(21, 3, at(1150.0, 1000.0), 0.99)];
         let mut commands = Vec::new();

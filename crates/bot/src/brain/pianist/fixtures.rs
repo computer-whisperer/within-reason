@@ -61,6 +61,7 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 // An aircraft has none (`World::domain_of`).
                 move_class: (u.mobile() && !u.air).then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.1, depth: 20.0, slope_mod: 0.0 }),
                 footprint: (2, 2),
+                max_height_dif: 0.0,
                 death_blast: None,
                 self_destruct_blast: None,
                 self_destruct_seconds: 5.0,

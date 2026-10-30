@@ -220,7 +220,12 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
 
 1. **The stand and the queue.** `crates/layout` with the stand district; the lists order every step whose slot is in
    reach with `queue: true`. Judge: `run/base_layout.py pool` on the new games against the pool, gaps (0.6 s), stands
-   (one or two), the plant's clock (Hellontoast's 0:54 on the same sequence).
+   (one or two), the plant's clock (Hellontoast's 0:54 on the same sequence). **Built 2026-10-29** (H-ECO-STAND):
+   `crates/layout` (the build grid, footprints, the ground a footprint stands on by F-map-build with the engine's own
+   height tolerance now sent per definition, the extractor's site in its patch, a factory's lane, `stand`), the
+   bot's `stand.rs` (the stand solved when the commander's list first plays, from its leading steps up to the first
+   factory), `Plan::Slot` asked of the shim exactly, and the pianist's queue made a queue (`Queued`, a deque per
+   builder) so the lists issue the stand's steps in one tick. Judge pending: the first game is `stand-1`.
 2. **The ground budget, the street rule and footprint packing.** The buildable ground computed with allies' structures,
    claims and lanes taken out; the plant district with apron and street; the ground check before every site, allied
    structures and allied streets in it; solars and converters at footprint in rows. Judge: `pen` and `pen --allies`
@@ -261,5 +266,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; nothing built. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; step 1 built the same night (judge pending), steps 2 to 6 not. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.

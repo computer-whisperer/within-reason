@@ -368,6 +368,7 @@ impl Engine {
             build_options: options.into_iter().map(UnitDefId).collect(),
             move_class: self.move_class(id),
             footprint: (call!(self, UnitDef_getXSize(id)), call!(self, UnitDef_getZSize(id))),
+            max_height_dif: call!(self, UnitDef_getMaxHeightDif(id)),
             death_blast: self.blast(call!(self, UnitDef_getDeathExplosion(id))),
             self_destruct_blast: self.blast(call!(self, UnitDef_getSelfDExplosion(id))),
             self_destruct_seconds: call!(self, UnitDef_getSelfDCountdown(id)) as f32,

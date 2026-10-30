@@ -480,7 +480,7 @@ impl Brain {
 
     /// The free spots this builder could take, soonest by its own walking first: not held, not another builder's
     /// task or queued spot, not refused lately, free as far as we know, reachable by its class.
-    pub(super) fn free_spots(&self, unit: &OwnUnit, pianist: &Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Vec<(usize, f32)> {
+    pub(crate) fn free_spots(&self, unit: &OwnUnit, pianist: &Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Vec<(usize, f32)> {
         // A spot is taken by another builder's extractor order, unless that order has not started and the builder
         // has a list of its own waiting to take it over (bluegecko-3v1-comet-catcher-8, 6:20: lists for five
         // constructors landed at once, each skipped the spot another's not-yet-started hands' order held, those
@@ -488,7 +488,7 @@ impl Brain {
         let taken: Vec<usize> = pianist
             .tasks
             .iter()
-            .chain(pianist.queued.iter())
+            .chain(pianist.queued_tasks())
             .filter_map(|(id, t)| match t {
                 Task::Build { spot: Some(i), started, .. } if *id != unit.id => {
                     let listed = pianist.scripts.get(&self.actor_name(*id)).is_some_and(|q| !q.is_empty());
@@ -1438,7 +1438,7 @@ impl Brain {
                 // far from home goes.
                 let plan = self.place_planned(def, unit, own);
                 let anchor = match &plan {
-                    super::super::economy::Plan::Extractor(at) | super::super::economy::Plan::Near(_, at) | super::super::economy::Plan::Beside(_, at) => *at,
+                    super::super::economy::Plan::Extractor(at) | super::super::economy::Plan::Near(_, at) | super::super::economy::Plan::Beside(_, at) | super::super::economy::Plan::Slot(_, at, _) => *at,
                 };
                 if !on_water || self.world.water_within(unit.pos, reach) {
                     let where_ = if anchor.dist2d(unit.pos) < HERE { "beside itself".to_string() } else { format!("at {} ({})", self.place_words(&picture.places, anchor), way_words(unit.pos.dist2d(anchor), speed)) };
@@ -1453,7 +1453,7 @@ impl Brain {
                 for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE && p.at.dist2d(anchor) > HERE && (stands_at_a_place || mark(p))) {
                     // A defence's cover is words: what armed building of ours stands or is ordered there already.
                     let cover = if armed_building(def) {
-                        let covering = own.iter().filter(|t| armed_building(t.def) && t.pos.dist2d(place.at) < 350.0).count() + pianist.tasks.values().chain(pianist.queued.values()).filter(|t| matches!(t, Task::Build { def: td, near, .. } if armed_building(*td) && near.dist2d(place.at) < 350.0)).count();
+                        let covering = own.iter().filter(|t| armed_building(t.def) && t.pos.dist2d(place.at) < 350.0).count() + pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)).filter(|t| matches!(t, Task::Build { def: td, near, .. } if armed_building(*td) && near.dist2d(place.at) < 350.0)).count();
                         if covering == 0 { "; no turret of ours covers it; it stands a little toward the enemy from the place".to_string() } else { format!("; {covering} armed building(s) of ours cover it already") }
                     } else {
                         String::new()

@@ -5,6 +5,8 @@
 
 use bot_protocol::{Event, Lane, OwnUnit, UnitId, Vec3, UnitDefId};
 
+use layout::facing_dir;
+
 use super::{Brain, Tick};
 
 /// How far a factory's exit lane runs past its front edge: the engine's empty-spot search walks the front, and a
@@ -58,14 +60,7 @@ impl Brain {
     /// The facings to try for a factory at `anchor`, the one whose lane points most toward the enemy's start first:
     /// its units leave toward where they are going. Every facing is offered; the shim takes the first with a site.
     pub(super) fn facings_toward_the_enemy(&self, anchor: Vec3) -> [i32; 4] {
-        let enemy = self.enemy_base(self.home);
-        let (dx, dz) = (enemy.x - anchor.x, enemy.z - anchor.z);
-        let mut facings = [0, 1, 2, 3];
-        facings.sort_by(|a, b| {
-            let along = |f: &i32| { let (fx, fz) = facing_dir(*f); fx * dx + fz * dz };
-            along(b).total_cmp(&along(a))
-        });
-        facings
+        layout::facings_toward(anchor, self.enemy_base(self.home))
     }
 
     /// Where a new factory of this type must not stand for its exit lane, with this facing, to be clear of what
@@ -267,15 +262,6 @@ impl Brain {
 const AT_PLACE: f32 = 600.0;
 
 /// The engine's facing as a unit vector in the ground plane: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x).
-pub(super) fn facing_dir(facing: i32) -> (f32, f32) {
-    match facing.rem_euclid(4) {
-        0 => (0.0, 1.0),
-        1 => (1.0, 0.0),
-        2 => (0.0, -1.0),
-        _ => (-1.0, 0.0),
-    }
-}
-
 /// The strip of sites from which a factory of this size, with this facing, would have `at` in its exit lane: the
 /// lane mirrored behind the point.
 fn lane_behind(at: Vec3, facing: i32, half_width: f32, half_depth: f32) -> Lane {

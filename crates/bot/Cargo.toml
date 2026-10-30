@@ -8,6 +8,7 @@ description = "Bot process: serves AI shim connections and decides what each AI 
 [dependencies]
 bot-protocol = { path = "../bot-protocol" }
 terrain = { path = "../terrain" }
+layout = { path = "../layout" }
 buildorder = { path = "../buildorder" }
 combatsim = { path = "../combatsim" }
 micro = { path = "../micro" }

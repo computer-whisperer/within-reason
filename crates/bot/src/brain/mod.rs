@@ -16,6 +16,7 @@ mod people;
 pub mod pianist;
 mod planner;
 mod scout;
+mod stand;
 mod reclaim;
 mod shelling;
 mod wake;
@@ -97,6 +98,10 @@ pub struct Brain {
     spot_claims: HashMap<usize, i32>,
     /// Walking distances over the terrain, once our faction (and so our movement class) is known.
     routes: Option<routes::Routes>,
+    /// The commander's stand (`layout::stand`, `docs/design/2026-10-29-base-layout.md` §1.1): the opening's slots
+    /// solved once, when its list first plays, each taken by a step of its kind (`place_planned`) and the steps
+    /// ordered as one queue (`play_lists`). The builder it was solved for, and the stand.
+    stand: Option<(UnitId, layout::Stand)>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
@@ -320,6 +325,7 @@ impl Brain {
             boxes_honoured: true,
             spot_claims: HashMap::new(),
             routes: None,
+            stand: None,
             reclaim: Default::default(),
             plan_game: None,
             pianist,
@@ -553,7 +559,7 @@ impl Brain {
         }
         // The spots this seat's builders are on their way to, for the team board (13.1: the board shared no claims,
         // `spot_claims` was never filled, and 57 of 114 abandoned extractor orders were spots another seat took).
-        self.spot_claims = self.pianist.as_ref().map(|p| p.tasks.values().chain(p.queued.values()).filter_map(|t| if let pianist::Task::Build { spot: Some(i), .. } = t { Some((*i, tick.frame)) } else { None }).collect()).unwrap_or_default();
+        self.spot_claims = self.pianist.as_ref().map(|p| p.tasks.values().chain(p.queued_tasks().map(|(_, t)| t)).filter_map(|t| if let pianist::Task::Build { spot: Some(i), .. } = t { Some((*i, tick.frame)) } else { None }).collect()).unwrap_or_default();
         self.exchange_with_team(tick);
         self.journal_intent();
         self.report(tick, &kit);
