@@ -79,7 +79,9 @@ impl Brain {
     /// fusion), the gantry when the advanced constructor builds a factory larger than the plant, and the plant.
     fn block_wants(&self, plant: (UnitDefId, Vec3, i32, String), kit: &Kit) -> Option<BlockWants> {
         let (def, at, facing, name) = plant;
-        let turret = self.facts_of(kit.turret)?;
+        // The construction turret (the roster's `nano`), not the kit's laser tower (block-1: the LLT's footprint of 4
+        // put the centre off the turret's grid and its reach of 128 stood for the block's).
+        let turret = self.facts_of(self.world.def_named(kit.roster.role("nano")?)?)?;
         let plant_facts = self.facts_of(def)?;
         let builds = self.world.def(kit.advanced_constructor).map(|d| d.build_options.clone()).unwrap_or_default();
         let on_water = |d: UnitDefId| glossary::entry(self.name(d)).is_some_and(|e| e.has_flag("on_water"));
@@ -88,7 +90,7 @@ impl Brain {
             .filter(|d| !self.world.is_factory_def(**d) && !on_water(**d))
             .filter(|d| self.world.def(**d).is_some_and(|u| u.speed == 0.0 && u.energy_make > 0.0))
             .filter_map(|d| self.facts_of(*d))
-            .max_by_key(|f| f.footprint.x.max(f.footprint.z))?;
+            .max_by_key(|f| (f.footprint.x * f.footprint.z, f.build_time as i64))?;
         let gantry = builds
             .iter()
             .filter(|d| self.world.is_factory_def(**d) && !on_water(**d))
@@ -121,7 +123,7 @@ impl Brain {
     /// Our finished banks (generators, converters) standing on the block's reserved ground, by handle.
     fn on_block_ground(&self, block: &Block, own: &[OwnUnit]) -> Vec<String> {
         own.iter()
-            .filter(|u| !u.being_built && matches!(self.purpose_of(u.def), layout::Purpose::Generator { .. }))
+            .filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && matches!(self.purpose_of(u.def), layout::Purpose::Generator { .. }))
             .filter(|u| self.facts_of(u.def).is_some_and(|f| block.holds(&f.footprint.faced(u.facing).rect(u.pos))))
             .map(|u| self.handle(u))
             .collect()
@@ -174,7 +176,7 @@ mod tests {
     #[test]
     fn the_block_is_laid_at_the_advanced_plant_and_the_bands_follow_it() {
         use crate::brain::pianist::Pianist;
-        let mut brain = brain_of(&["armcom", "armnanotc", "armavp", "armack", "armafus", "armshltx", "armsolar", "armmex", "armmoho"]);
+        let mut brain = brain_of(&["armcom", "armnanotc", "armavp", "armack", "armafus", "armshltx", "armsolar", "armmex", "armmoho", "armckfus"]);
         let (com, nano, avp, ack, afus, gantry, solar) = (UnitDefId(1), UnitDefId(2), UnitDefId(3), UnitDefId(4), UnitDefId(5), UnitDefId(6), UnitDefId(7));
         {
             let defs = &mut brain.world.hello.unit_defs;
@@ -188,7 +190,7 @@ mod tests {
             defs[2].build_options = vec![ack];
             defs[3].speed = 30.0;
             defs[3].build_speed = 300.0;
-            defs[3].build_options = vec![afus, gantry];
+            defs[3].build_options = vec![afus, gantry, UnitDefId(10)];
             defs[4].footprint = (12, 12);
             defs[4].energy_make = 3000.0;
             defs[4].metal_cost = 9700.0;
@@ -196,12 +198,17 @@ mod tests {
             defs[5].build_options = vec![com];
             defs[6].footprint = (10, 10);
             defs[6].energy_make = 20.0;
+            // A fusion as wide as the advanced fusion but shallower: the rows are laid for the larger.
+            defs[9].footprint = (12, 10);
+            defs[9].energy_make = 750.0;
+            defs[4].build_time = 313_000.0;
+            defs[9].build_time = 65_000.0;
             let (w, h) = (512u32, 384u32);
             brain.world.hello.terrain = Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: Vec::new() };
         }
         brain.home = Vec3 { x: 2000.0, y: 0.0, z: 2000.0 };
         brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
-        let kit = Kit { commander: com, extractor: UnitDefId(8), converter: solar, lab: avp, turret: nano, constructor: ack, vehicle_constructor: ack, advanced_constructor: ack, advanced_extractor: UnitDefId(9), raider: com, line: com, resurrector: com, roster: &ROSTERS[0] };
+        let kit = Kit { commander: com, extractor: UnitDefId(8), converter: solar, lab: avp, turret: solar, constructor: ack, vehicle_constructor: ack, advanced_constructor: ack, advanced_extractor: UnitDefId(9), raider: com, line: com, resurrector: com, roster: &ROSTERS[0] };
         let commander = own(10, 1, Vec3 { x: 2008.0, y: 0.0, z: 2200.0 });
         let plant = OwnUnit { facing: 1, ..own(11, 3, Vec3 { x: 2000.0, y: 0.0, z: 2000.0 }) };
         let ours = vec![commander.clone(), plant.clone()];
@@ -209,6 +216,8 @@ mod tests {
         let block = brain.block.clone().expect("a block");
         assert!(block.gantry.is_some(), "the gantry's slot: {block:?}");
         assert_eq!(block.pitch, SPARSE_PITCH);
+        assert_eq!(block.reach, 400.0, "the construction turret's reach, not the kit's turret's");
+        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("armafus slots")), "{:?}", brain.pianist.as_ref().unwrap().done);
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
         let line = brain.block_line(&ours).expect("a line");
         assert!(line.contains("6 of 6 frame slots free") && line.contains("sparse"), "{line}");
