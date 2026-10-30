@@ -291,8 +291,14 @@ crate is; the bot's planner keeps deciding what and when). `beside_builder`, `BA
    naval construction turret, the underwater fusion, the underwater gantry). The study's `pen` blocks water for land
    factories and shallows for shipyards; `water` lists our buildings against the depth under them. Not built: the
    ground budget over water as a map (§1.0 is still implicit in the candidate set), sea constructors' walks (the walk
-   flood is the land classes'), the naval turret's bars as a separate lattice (the block's lattice serves). Judge
-   pending: `water-1` on Cape Violet.
+   flood is the land classes'), the naval turret's bars as a separate lattice (the block's lattice serves). **Judged
+   2026-10-30 in `water-2`** on Cape Violet: the shipyard in water 109 deep standing at 3:19 with its street open to
+   12:00, 23 tidals as touching banks over ground -38 to -152, 14 floating converters and three naval turrets beside
+   the shipyard, nothing of ours on wrong ground. Found on the way: a shipyard's apron was judged by the land's
+   passable set (water-1; fixed, `Facts.product_sea`), and the engine refused sites whose every cell passed while a
+   neighbouring cell did not (the engine reads its 8-elmo squares between our 16-elmo cells): depth and height
+   difference are now judged over a cell and its four neighbours, which also explains the few exact land slots the
+   engine refused since block-2.
 6. **Transport of turrets**, when the hand exists: the block follows the frames. Not designed here.
 
 Each step is a batch of player games on Comet against BARb hard_aggressive (the arena target), the instruments run on
@@ -316,5 +322,5 @@ the wrecks and the standing units' positions from the samples. It does not decid
 
 ## Status
 
-Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2 in layout-1: banks touching at 80, three plants 181 and 202 apart, nothing penned), step 3 built 2026-10-30 and judged in block-5 the same day (the block laid at 6:25 on the flattest ground 746 from the plant, 7 of 7 turrets on the 96 lattice, the second advanced fusion standing in 186 s with 7 turrets in reach against 185 said; the frames went beside the rows rather than in them, fixed: a row slot wins among sites as quick to stand), step 4 delayed 2026-10-30 (the farm is not a simple swap; see its note), step 5 built 2026-10-30 (the engine's depths and build rule in `Ground::stands`, the shipyard's street at sea, the sea block; judge pending: water-1 on Cape Violet), step 6 not. The research it rests on: `docs/briefs/derived/base.md`,
+Design written 2026-10-29; §1.1 and §1.3 rewritten the same day as constraints and bands on the user's word; steps 1 and 2 built the same night (step 1 judged in stand-1: the plant at 0:58, one queue; step 2 in layout-1: banks touching at 80, three plants 181 and 202 apart, nothing penned), step 3 built 2026-10-30 and judged in block-5 the same day (the block laid at 6:25 on the flattest ground 746 from the plant, 7 of 7 turrets on the 96 lattice, the second advanced fusion standing in 186 s with 7 turrets in reach against 185 said; the frames went beside the rows rather than in them, fixed: a row slot wins among sites as quick to stand), step 4 delayed 2026-10-30 (the farm is not a simple swap; see its note), step 5 built 2026-10-30 (the engine's depths and build rule in `Ground::stands`, the shipyard's street at sea, the sea block; judged in water-2 on Cape Violet the same day: the shipyard, 23 tidals, 14 floating converters and three naval turrets on the water, nothing wrong, the street at sea open; the cell-versus-square refusals fixed), step 6 not. The research it rests on: `docs/briefs/derived/base.md`,
 `docs/studies/2026-10-29-base-layout.md`, `run/base_layout.py`.

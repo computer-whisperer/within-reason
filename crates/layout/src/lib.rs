@@ -248,7 +248,7 @@ impl<'a> Ground<'a> {
                 if low < -f.max_depth || high > -f.min_depth {
                     return false;
                 }
-                if (h - floor).abs() > f.height_dif && !(f.floater && h <= 0.0) {
+                if (low - floor).abs().max((high - floor).abs()) > f.height_dif && !(f.floater && h <= 0.0) {
                     return false;
                 }
             }
@@ -824,14 +824,15 @@ mod sea_tests {
         Vec3 { x, y: 0.0, z }
     }
 
-    /// A shore: land at 50 west of x 512, a shallow strip of -10 to x 576, water of -40 to x 896 and -60 beyond.
+    /// A shore: a cliff top at 80 west of x 128, land at 50 to x 512, a shallow strip of -10 to x 576, water of -40
+    /// to x 896 and -60 beyond.
     fn shore() -> Terrain {
         let (w, h) = (64u32, 64u32);
         let mut heights = Vec::new();
         for _ in 0..h {
             for i in 0..w {
                 let x = i as f32 * 16.0 + 8.0;
-                heights.push(if x < 512.0 { 50 } else if x < 576.0 { -10 } else if x < 896.0 { -40 } else { -60 });
+                heights.push(if x < 128.0 { 80 } else if x < 512.0 { 50 } else if x < 576.0 { -10 } else if x < 896.0 { -40 } else { -60 });
             }
         }
         Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
@@ -867,5 +868,10 @@ mod sea_tests {
         assert!(g.stands(fp, step, &tidal), "a floater over a 20-elmo step in the sea floor");
         assert!(!g.stands(fp, step, &sunk_fusion), "a submerged kind over the same step");
         assert!(g.stands(fp, at(960.0, 512.0), &sunk_fusion), "the submerged kind on the flat floor beyond");
+        // The engine's squares lie between our cells: a land kind whose footprint's next cell is the cliff top (30
+        // higher) is refused, one a cell further off the cliff stands (water-2: a land defence the engine refused had
+        // every cell within its tolerance and a neighbour cell outside it).
+        assert!(!g.stands(fp, at(144.0, 512.0), &land), "a land kind beside the cliff");
+        assert!(g.stands(fp, at(176.0, 512.0), &land), "a land kind a cell off the cliff");
     }
 }
