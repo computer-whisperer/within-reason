@@ -33,8 +33,10 @@ const BAND_BACK_FIELD: f32 = 500.0;
 /// A step with a place: the site is chosen within this of the place (a defence a little toward the enemy from it).
 pub(super) const BAND_PLACE: f32 = 200.0;
 pub(super) const BAND_DEFENCE: f32 = 150.0;
-/// Banks of converters and wind turbines stop at this many (§1.3: the chain sum); solars have no cap.
+/// Banks of converters and wind turbines stop at this many (§1.3: the chain sum); solars and the other generators
+/// at 8 (the people's clusters of 7 to 10; a longer bank is a wall the builders walk round: block-2, the user's word).
 const BANK_CAP: usize = 6;
+const BANK_CAP_GENERATOR: usize = 8;
 /// A sea building's site: the engine's search this far round the nearest water.
 const WATER_SEARCH: f32 = 600.0;
 /// No orders before this frame: the engine loses them.
@@ -84,7 +86,7 @@ impl Brain {
         } else if (d.converter.is_some() && d.metal_cost < 500.0) || d.wind_cap > 0.0 {
             Purpose::Generator { cap: Some(BANK_CAP) }
         } else if (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.tidal_make > 0.0) && d.metal_cost < 500.0 {
-            Purpose::Generator { cap: None }
+            Purpose::Generator { cap: Some(BANK_CAP_GENERATOR) }
         } else if self.placed_at_place(def) {
             Purpose::Place
         } else {
@@ -421,7 +423,7 @@ mod tests {
         }
         brain.home = Vec3 { x: 1000.0, y: 0.0, z: 1000.0 };
         let p = |i: i32| brain.purpose_of(UnitDefId(i));
-        assert_eq!(p(1), Purpose::Generator { cap: None });
+        assert_eq!(p(1), Purpose::Generator { cap: Some(BANK_CAP_GENERATOR) });
         assert_eq!(p(2), Purpose::Generator { cap: Some(BANK_CAP) });
         assert_eq!(p(3), Purpose::Generator { cap: Some(BANK_CAP) });
         assert_eq!(p(4), Purpose::Turret);

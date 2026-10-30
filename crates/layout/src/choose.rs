@@ -22,16 +22,20 @@ const ALLY_MARGIN: f32 = 8.0;
 const SPOT_BOX_HALF: f32 = 32.0;
 /// A refused site keeps candidates of the type this far off.
 const REFUSED_RADIUS: f32 = 32.0;
-/// Banks of one kind stand touching or a vehicle street apart: three build squares.
-const BANK_STREET: f32 = 24.0;
+/// Banks of one kind stand touching or a vehicle street apart: three cells, which the commander and the tier-1
+/// vehicles pass (the user, 2026-10-30, after block-2's commander rounded a wall of solars 700 long).
+const BANK_STREET: f32 = 48.0;
 /// How many touching neighbours of its kind a generator is credited at most.
 const TOUCHING_CAP: f32 = 2.0;
+/// A site that founds a bank scores this at level 1: worse than touching one by more than the band, so a bank grows
+/// before a new one is founded, while touching one near the builder and touching two far away both pass to the walk.
+const FOUNDING: f32 = 1.0;
 /// How many candidates, best first, the street check tries before the band is widened.
 const STREET_TRIES: usize = 12;
 /// The band of distance is widened this many times by doubling when nothing in it passes.
 const WIDENINGS: u32 = 2;
 /// The bands: a candidate within the band of the best at a level goes to the next level.
-const BAND_GENERATOR: f32 = 0.5;
+const BAND_GENERATOR: f32 = 1.0;
 const BAND_TURRET: f32 = 0.5;
 const BAND_FRAME_SECONDS: f32 = 3.0;
 const BAND_CHAIN_METAL: f32 = 100.0;
@@ -175,6 +179,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
         Purpose::Place => [GRID, 0.0, BAND_CHAIN_METAL, BAND_WALK, 0.0],
     };
     let banks = bank_sizes(world, f.def);
+    let walk = Walk::new(world, req.builder_at, req.centre, req.radius * 2f32.powi(WIDENINGS as i32));
     let mut why = String::new();
     for widening in 0..=WIDENINGS {
         let radius = req.radius * 2f32.powi(widening as i32);
@@ -182,7 +187,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
         for (rank, facing) in facings.iter().enumerate() {
             let fp = f.footprint.faced(*facing);
             for at in lattice(fp, req.centre, radius) {
-                if let Some(c) = candidate(world, req, &banks, fp, at, *facing, rank) {
+                if let Some(c) = candidate(world, req, &banks, &walk, fp, at, *facing, rank) {
                     candidates.push(c);
                 }
             }
@@ -217,7 +222,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
 }
 
 /// One lattice point as a candidate, or None when a constraint fails.
-fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
+fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: &Walk, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
     let f = &req.facts;
     let rect = fp.rect(at);
     if !world.ground.stands(fp, at, f.height_dif, false) {
@@ -260,8 +265,10 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
         Purpose::Generator { cap } => {
             let same: Vec<(usize, &Standing)> = world.standing.iter().enumerate().filter(|(_, s)| s.ours && s.def == Some(f.def)).collect();
             let touching: Vec<usize> = same.iter().filter(|(_, s)| s.rect.touches(&rect)).map(|(i, _)| *i).collect();
-            // Touching its kind, or a street apart from it: a gap under the street's width is neither.
-            if same.iter().any(|(_, s)| !s.rect.touches(&rect) && gap(&s.rect, &rect) < BANK_STREET) {
+            // Touching its kind, or a street apart from it: a gap under the street's width is neither. Meeting at a
+            // corner (a gap of nothing) is packing, not a gap: before this, the only legal touching site on a bank's
+            // flat side was a notch touching two, and the banks grew as staircases (block-2).
+            if same.iter().any(|(_, s)| !s.rect.touches(&rect) && { let g = gap(&s.rect, &rect); g > 0.0 && g < BANK_STREET }) {
                 return None;
             }
             if let Some(cap) = cap {
@@ -275,7 +282,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
                 0 => "founding a bank".to_string(),
                 _ => format!("touching {n} of its kind"),
             };
-            [-(n as f32).min(TOUCHING_CAP), 0.0]
+            [if n == 0 { FOUNDING } else { -(n as f32).min(TOUCHING_CAP) }, 0.0]
         }
         Purpose::Turret => {
             let reach = f.build_distance;
@@ -327,9 +334,90 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, fp: Fo
         let kinds: Vec<String> = by_kind.iter().map(|(k, n)| format!("{n} {k}")).collect();
         words = format!("{words}; its blast holds {}, {kills:.0} metal of ours", kinds.join(" and "));
     }
-    let l3 = (req.builder_at.dist2d(at) - f.reach_from(&req.builder)).max(0.0);
+    // Level 3: the builder's walk to within reach of the site, round what stands.
+    let l3 = (walk.to(at) - f.reach_from(&req.builder)).max(0.0);
     let l4 = world.home.dist2d(at);
     Some(Candidate { at, facing, rect, scores: [l1[0], l1[1], l2, l3, l4], words })
+}
+
+/// The builder's walk: a flood over the cells from where it stands, round what stands (ours, allies' with their
+/// margin) and over ground its units take, so a site across a bank reads as far as the way round it (block-2: the
+/// commander rounded a wall of solars 700 long for a site that touched two of them, 560 off in a line). One flood a
+/// choice, over a window that holds the builder and the widest band.
+struct Walk {
+    x0: f32,
+    z0: f32,
+    nx: usize,
+    nz: usize,
+    dist: Vec<f32>,
+}
+
+impl Walk {
+    fn new(world: &World, from: Vec3, centre: Vec3, radius: f32) -> Walk {
+        let (w, h) = world.ground.extent();
+        let half = radius + from.dist2d(centre) + 2.0 * GRID;
+        let x0 = ((from.x - half) / GRID).floor().max(0.0) * GRID;
+        let z0 = ((from.z - half) / GRID).floor().max(0.0) * GRID;
+        let x1 = ((from.x + half) / GRID).ceil() * GRID;
+        let z1 = ((from.z + half) / GRID).ceil() * GRID;
+        let (x1, z1) = (x1.min((w / GRID).floor() * GRID), z1.min((h / GRID).floor() * GRID));
+        let nx = ((x1 - x0) / GRID).max(0.0) as usize;
+        let nz = ((z1 - z0) / GRID).max(0.0) as usize;
+        let mut blocked = vec![false; nx * nz];
+        for s in &world.standing {
+            let r = if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) };
+            let (i0, i1) = (((r.x0 - x0) / GRID).floor().max(0.0) as usize, (((r.x1 - x0) / GRID).ceil().max(0.0) as usize).min(nx));
+            let (j0, j1) = (((r.z0 - z0) / GRID).floor().max(0.0) as usize, (((r.z1 - z0) / GRID).ceil().max(0.0) as usize).min(nz));
+            for j in j0..j1 {
+                for i in i0..i1 {
+                    blocked[j * nx + i] = true;
+                }
+            }
+        }
+        let mut dist = vec![f32::INFINITY; nx * nz];
+        let start = (((from.x - x0) / GRID) as usize, ((from.z - z0) / GRID) as usize);
+        if nx == 0 || nz == 0 || start.0 >= nx || start.1 >= nz {
+            return Walk { x0, z0, nx, nz, dist };
+        }
+        let mut heap: std::collections::BinaryHeap<(std::cmp::Reverse<u32>, usize)> = std::collections::BinaryHeap::new();
+        let s = start.1 * nx + start.0;
+        dist[s] = 0.0;
+        heap.push((std::cmp::Reverse(0), s));
+        let open = |i: usize, j: usize| (world.open)(Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID });
+        while let Some((std::cmp::Reverse(d), k)) = heap.pop() {
+            if d as f32 > dist[k] {
+                continue;
+            }
+            let (i, j) = (k % nx, k / nx);
+            for (di, dj) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)] {
+                let (ni, nj) = (i as i32 + di, j as i32 + dj);
+                if ni < 0 || nj < 0 || ni >= nx as i32 || nj >= nz as i32 {
+                    continue;
+                }
+                let (ni, nj) = (ni as usize, nj as usize);
+                let n = nj * nx + ni;
+                if blocked[n] || !open(ni, nj) {
+                    continue;
+                }
+                let step = if di != 0 && dj != 0 { 23 } else { 16 };
+                let nd = d + step;
+                if (nd as f32) < dist[n] {
+                    dist[n] = nd as f32;
+                    heap.push((std::cmp::Reverse(nd), n));
+                }
+            }
+        }
+        Walk { x0, z0, nx, nz, dist }
+    }
+
+    /// The walk to `p`: infinite when the flood never reached it.
+    fn to(&self, p: Vec3) -> f32 {
+        let (i, j) = (((p.x - self.x0) / GRID).floor(), ((p.z - self.z0) / GRID).floor());
+        if i < 0.0 || j < 0.0 || i as usize >= self.nx || j as usize >= self.nz {
+            return f32::INFINITY;
+        }
+        self.dist[j as usize * self.nx + i as usize]
+    }
 }
 
 /// The candidates in the order of the bands: at each level those within the band of the best go on to the next
@@ -486,6 +574,36 @@ mod tests {
         let rect = Footprint { x: 6, z: 6 }.rect(site.at);
         assert!(w.standing[1..].iter().all(|s| !s.rect.touches(&rect) && gap(&s.rect, &rect) >= BANK_STREET), "{site:?}");
         assert!(site.words.contains("founding"));
+    }
+
+    /// The walk is the way round, not the line: with a wall of solars between the builder and a site touching two of
+    /// them, the solar goes touching one on the builder's side (block-2's commander rounded a wall 700 long).
+    #[test]
+    fn the_walk_goes_round_what_stands_so_the_near_side_of_a_wall_wins() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        // A wall along x at z 2000, 11 solars from 1600 to 2400, with a notch at its middle on the far (north) side
+        // where a solar would touch two.
+        for k in 0..11 {
+            w.standing.push(standing(3, 10, at(1608.0 + 80.0 * k as f32, 2008.0), 155.0, 340.0, None));
+        }
+        w.standing.push(standing(3, 10, at(1928.0, 1928.0), 155.0, 340.0, None));
+        w.standing.push(standing(3, 10, at(2088.0, 1928.0), 155.0, 340.0, None));
+        let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
+        // The builder south of the wall, under the notch.
+        let builder_at = at(2008.0, 2150.0);
+        // No cap here: the walk alone decides between touching two across the wall and touching one on this side.
+        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
+        let site = choose(&w, &req).expect("a site");
+        assert!(site.at.z > 2048.0, "across the wall: {site:?}");
+        assert!(site.words.contains("touching 1"), "{site:?}");
+        // The cap: with the wall's bank of thirteen over a cap of 8, nothing touching it is a candidate.
+        let req = Request { facts: solar, purpose: Purpose::Generator { cap: Some(8) }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
+        let site = choose(&w, &req).expect("a site");
+        assert!(site.words.contains("founding"), "{site:?}");
+        let rect = Footprint { x: 10, z: 10 }.rect(site.at);
+        assert!(w.standing.iter().all(|s| !s.rect.touches(&rect) && gap(&s.rect, &rect) >= BANK_STREET), "{site:?}");
     }
 
     /// A turret goes where it reaches the most pads; a plant goes where the most turrets reach it and keeps its
