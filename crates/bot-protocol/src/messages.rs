@@ -49,9 +49,12 @@ pub enum Death {
 }
 
 impl Vec3 {
-    /// Horizontal distance; height is ignored.
+    /// Horizontal distance; height is ignored. A plain square root, not `hypot`: libm's careful scaling is for
+    /// magnitudes a map never has, and this is the bot's most called arithmetic (econ-flagship-2: 30 % of the bot's
+    /// CPU in `hypotf`, under the layout layer's candidate tests).
     pub fn dist2d(self, other: Vec3) -> f32 {
-        (self.x - other.x).hypot(self.z - other.z)
+        let (dx, dz) = (self.x - other.x, self.z - other.z);
+        (dx * dx + dz * dz).sqrt()
     }
 }
 

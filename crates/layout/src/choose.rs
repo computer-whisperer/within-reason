@@ -453,8 +453,8 @@ impl Walk {
         let mut best = f32::INFINITY;
         for j in (cj - cells).max(0)..=(cj + cells).min(self.nz as i32 - 1) {
             for i in (ci - cells).max(0)..=(ci + cells).min(self.nx as i32 - 1) {
-                let c = Vec3 { x: self.x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: self.z0 + (j as f32 + 0.5) * GRID };
-                if c.dist2d(p) <= reach {
+                let (dx, dz) = (self.x0 + (i as f32 + 0.5) * GRID - p.x, self.z0 + (j as f32 + 0.5) * GRID - p.z);
+                if dx * dx + dz * dz <= reach * reach {
                     best = best.min(self.dist[j as usize * self.nx + i as usize]);
                 }
             }
@@ -544,7 +544,7 @@ fn apron_open(apron: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
 fn distance_to(r: &Rect, p: Vec3) -> f32 {
     let dx = (r.x0 - p.x).max(0.0).max(p.x - r.x1);
     let dz = (r.z0 - p.z).max(0.0).max(p.z - r.z1);
-    dx.hypot(dz)
+    (dx * dx + dz * dz).sqrt()
 }
 
 /// The gap between two rects along the axis they are farthest apart on; negative when they overlap.
