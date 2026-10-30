@@ -355,6 +355,7 @@ impl<L: Transport> Instance<L> {
                 | Command::Move { unit, .. }
                 | Command::Fight { unit, .. }
                 | Command::FightReclaimingEnemies { unit, .. }
+                | Command::Tend { unit, .. }
                 | Command::Attack { unit, .. }
                 | Command::Stop { unit }
                 | Command::SetRepeat { unit, .. }

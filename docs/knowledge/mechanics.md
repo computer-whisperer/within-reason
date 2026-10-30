@@ -441,8 +441,19 @@ configured to assist the lab they were placed near"); confirmed in the record; w
 fixes-1's five turrets were idle in 4 samples of 2,686.
 **Evidence.** `run/matches/1790132331-escalate-7-hard-aggressive`: finished events for armnanotc (6:15, 7:56, 8:18, 8:45, 9:08), the `cmd` records (none to those
 ids), the samples' idle flag.
+**Refined 2026-10-30.** The engine gives the turret nothing; the game's UI does, and that is what a person sees as the
+turret's default: BAR's ImmobileBuilder widget (`luaui/Widgets/unit_immobile_builder.lua`, on by default) sets every
+immobile builder to the maneuver move state and gives it a fight order with the META bit at a point 50 elmos off its
+position toward the map's centre, which an immobile unit never reaches (a fight finishes within 64 elmos), so every
+slow update `CBuilderCAI::ExecuteFight` repairs or helps build whatever of ours is within its build distance
+(stationary targets first, the nearest) and otherwise takes apart wrecks and enemy units there; under hold position
+the loop skips mobile units being built, a factory's products among them, which is why the widget sets maneuver. A
+second default widget, Priority Construction Turrets (`cmd_nanoturrets_assist_priority.lua`), gives every fighting
+turret within reach of a newly started turret frame a repair order on it. An AI has no widgets, so the bots give the
+same orders themselves (`Command::Tend`). A guard on a factory, the bots' order from 2026-09-23 to 2026-10-30, feeds
+that factory's product and nothing else in reach (the user, watching econ-flagship-1).
 **Would be wrong if.** A turret with no order helped a factory in its reach anyway in some game version.
-**Used by.** H-ECO-NANO-GUARD.
+**Used by.** H-ECO-NANO-GUARD, T-NANOS.
 
 ### K-mech-start-script-names-the-seats
 **Claim.** The game's start script, which the AI interface hands the shim whole (`Game_getSetupScript`), names every

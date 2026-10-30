@@ -170,8 +170,8 @@ pub struct Brain {
     /// Mobile units standing still in a standing factory's exit lane: since when, where they stood, which factory.
     lane_standers: HashMap<UnitId, (i32, Vec3, UnitId)>,
     yard_warned: HashSet<UnitId>,
-    /// Construction turrets told to guard a factory (H-ECO-NANO-GUARD).
-    nano_guards: nanos::NanoGuards,
+    /// Construction turrets' standing orders (H-ECO-NANO-GUARD).
+    nanos: nanos::Nanos,
     /// Chat lines of ours not yet seen back from the engine, which echoes every line as a chat event from our own
     /// host player (human-1: the player was woken by its own "gl hf").
     said: Vec<String>,
@@ -369,7 +369,7 @@ impl Brain {
             stuck: HashMap::new(),
             lane_standers: HashMap::new(),
             yard_warned: HashSet::new(),
-            nano_guards: HashMap::new(),
+            nanos: nanos::Nanos::default(),
             said: Vec::new(),
             heard_chat_at: -1,
             razed: Vec::new(),

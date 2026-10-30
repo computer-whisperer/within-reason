@@ -293,6 +293,10 @@ pub(crate) struct Hands {
     /// on a frame when a helper picks the frame to finish (`power_on`; terr60 counted it in the Frames credits too,
     /// which left the plan's turret help short of the turrets in reach for the constructors to make up).
     pub nano_frame: BTreeMap<UnitId, (UnitId, i32)>,
+    /// The turrets whose move state is set (maneuver, once) and the turret frames that have pulled the turrets in
+    /// reach onto them (once each, when they appear).
+    pub nano_set_up: std::collections::BTreeSet<UnitId>,
+    pub nano_frames_seen: std::collections::BTreeSet<UnitId>,
     /// Per builder, the frames it has begun (frame, unit): what a plan searched from an older snapshot has to skip.
     pub begun_log: BTreeMap<UnitId, Vec<(i32, usize)>>,
     /// Per unit type: orders that came to nothing, and frames begun (T-STRUCK).
@@ -337,6 +341,8 @@ impl Default for Hands {
             ordered: BTreeMap::new(),
             nano_told: BTreeMap::new(),
             nano_frame: BTreeMap::new(),
+            nano_set_up: std::collections::BTreeSet::new(),
+            nano_frames_seen: std::collections::BTreeSet::new(),
             begun_log: BTreeMap::new(),
             failures: BTreeMap::new(),
             successes: BTreeMap::new(),
@@ -2095,10 +2101,6 @@ impl Territory {
         self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).map(|u| u.id).min()
     }
 
-    fn nearest_factory(&self, from: Vec3) -> Option<&OwnUnit> {
-        self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).min_by(|a, b| a.pos.dist2d(from).total_cmp(&b.pos.dist2d(from)))
-    }
-
     /// The building frame within `reach` of `from` with the most metal still to build per builder on it, one more
     /// counted (a factory's pad is not a frame), among those the energy budget allows `builder` on: the help spreads over the frames rather
     /// than piling on the dearest (terr22-lp-nullai-comet-1: 48 constructors on one frame at 20:00 while five
@@ -2165,46 +2167,73 @@ impl Territory {
         }
     }
 
-    /// Construction turrets feed the nearest factory within their reach (the calibrated replays' behaviour; the
-    /// simulator's `nanos_help_frames` is off to match).
+    /// Construction turrets (T-NANOS) hold the game UI's default order, BAR's ImmobileBuilder widget's (the engine's
+    /// loop is described at `Command::Tend`): a new turret frame pulls the turrets in reach onto it; with the
+    /// program's targets a turret helps the dearest building frame in its reach; else an idle turret is set to
+    /// maneuver once and given the fight-in-place beside itself, which helps whatever stands in reach (a factory's
+    /// product among it: T-PLANT's turrets at a plant). Before 2026-10-30 the fallback was a guard on the nearest
+    /// factory, which fed that factory's product and nothing else in reach (the user, watching the flagship on the
+    /// benchmark: the UI's turret is "opportunistically helpful").
     pub(crate) fn run_nanos(&mut self, commands: &mut Vec<Command>) {
-        let nanos: Vec<(UnitId, Vec3)> = self.own.values().filter(|u| !u.being_built && u.idle && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos)).collect();
-        let plant_assist = self.plant_turrets_wanted().0 > START_AT;
-        for (nano, at) in nanos {
-            if self.hands.nano_told.get(&nano).is_some_and(|told| self.frame - told < GRACE) {
+        let turrets: Vec<(UnitId, Vec3, bool)> = self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos, u.idle)).collect();
+        let frames: Vec<(UnitId, Vec3)> = self.own.values().filter(|u| u.being_built && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos)).collect();
+        let now = self.frame;
+        let mut told: Vec<UnitId> = Vec::new();
+        for (frame, at) in frames {
+            if !self.hands.nano_frames_seen.insert(frame) {
                 continue;
             }
-            // T-PLANT: while the program asks turret assist at a plant, a turret within reach of a factory at work is
-            // the factory's.
-            if plant_assist
-                && let Some(factory) = self.own.values().filter(|f| !f.being_built && !f.idle && self.role_of_def(f.def) == Some(Role::Factory) && f.pos.dist2d(at) < NANO_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|f| f.id)
-            {
-                self.hands.nano_told.insert(nano, self.frame);
-                self.hands.nano_frame.remove(&nano);
-                commands.push(Command::Guard { unit: nano, target: factory });
+            for (nano, _, _) in turrets.iter().filter(|(_, p, _)| p.dist2d(at) < NANO_REACH) {
+                self.hands.nano_frame.insert(*nano, (frame, now));
+                commands.push(Command::Repair { unit: *nano, target: frame, queue: false });
+                told.push(*nano);
+            }
+        }
+        let plant_assist = self.plant_turrets_wanted().0 > START_AT;
+        let idle: Vec<(UnitId, Vec3)> = turrets.iter().filter(|(id, _, idle)| *idle && !told.contains(id)).map(|(id, at, _)| (*id, *at)).collect();
+        for (nano, at) in idle {
+            if self.hands.nano_told.get(&nano).is_some_and(|told| now - told < GRACE) {
                 continue;
             }
             // With the program's targets a turret helps the dearest building frame in its reach, as the program
-            // prices its power (bounded by the builders' own); else, and with none in reach, the nearest factory.
-            let frame = self.hands.targets.as_ref().and_then(|_| {
-                self.own
-                    .values()
-                    .filter(|u| u.being_built && u.pos.dist2d(at) < NANO_REACH && self.def(u.def).is_some_and(|d| d.speed == 0.0))
-                    .max_by(|a, b| (self.def(a.def).map_or(0.0, |d| d.metal_cost) * (1.0 - a.health / a.max_health.max(1.0))).total_cmp(&(self.def(b.def).map_or(0.0, |d| d.metal_cost) * (1.0 - b.health / b.max_health.max(1.0)))))
-                    .map(|u| u.id)
-            });
+            // prices its power (bounded by the builders' own); while the program asks turret assist at a plant, a
+            // turret within reach of a factory at work is the factory's (T-PLANT) and the fight-in-place feeds it.
+            let at_a_plant = plant_assist && self.own.values().any(|f| !f.being_built && !f.idle && self.role_of_def(f.def) == Some(Role::Factory) && f.pos.dist2d(at) < NANO_REACH);
+            let frame = if at_a_plant { None } else {
+                self.hands.targets.as_ref().and_then(|_| {
+                    self.own
+                        .values()
+                        .filter(|u| u.being_built && u.pos.dist2d(at) < NANO_REACH && self.def(u.def).is_some_and(|d| d.speed == 0.0))
+                        .max_by(|a, b| (self.def(a.def).map_or(0.0, |d| d.metal_cost) * (1.0 - a.health / a.max_health.max(1.0))).total_cmp(&(self.def(b.def).map_or(0.0, |d| d.metal_cost) * (1.0 - b.health / b.max_health.max(1.0)))))
+                        .map(|u| u.id)
+                })
+            };
             if let Some(frame) = frame {
-                let now = self.frame;
-                self.hands.nano_told.insert(nano, now);
                 self.hands.nano_frame.entry(nano).and_modify(|e| if e.0 != frame { *e = (frame, now) }).or_insert((frame, now));
                 commands.push(Command::Repair { unit: nano, target: frame, queue: false });
-                continue;
+            } else {
+                self.hands.nano_frame.remove(&nano);
+                if self.hands.nano_set_up.insert(nano) {
+                    commands.push(Command::MoveState { unit: nano, state: 1 });
+                }
+                commands.push(Command::Tend { unit: nano, to: self.beside(at) });
             }
-            let Some(factory) = self.nearest_factory(at).filter(|f| f.pos.dist2d(at) < NANO_REACH).map(|f| f.id) else { continue };
-            self.hands.nano_told.insert(nano, self.frame);
-            self.hands.nano_frame.remove(&nano);
-            commands.push(Command::Guard { unit: nano, target: factory });
+            told.push(nano);
         }
+        for nano in told {
+            self.hands.nano_told.insert(nano, now);
+            self.hands.nano_set_up.insert(nano);
+        }
+        self.hands.nano_frames_seen.retain(|f| self.own.contains_key(f));
+        self.hands.nano_set_up.retain(|n| self.own.contains_key(n));
+    }
+
+    /// The ImmobileBuilder widget's fight point: 50 elmos off the turret toward the map's centre on each axis, past
+    /// the 64 within which a fight finishes.
+    fn beside(&self, at: Vec3) -> Vec3 {
+        let map = &self.hello.map;
+        let toward = |p: f32, size: f32| if p > size / 2.0 { p - 50.0 } else { p + 50.0 };
+        Vec3 { x: toward(at.x, map.width), y: at.y, z: toward(at.z, map.height) }
     }
 
     /// The engine's facing (0 south +z, 1 east +x, 2 north -z, 3 west -x) that looks most toward his start.

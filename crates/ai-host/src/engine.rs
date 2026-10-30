@@ -990,6 +990,16 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
                     toPos_posF3: pos.as_mut_ptr(),
                 })
             }
+            Command::Tend { unit, to } => {
+                let mut pos = self.on_the_ground(to);
+                self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: META_KEY,
+                    timeOut: NO_TIMEOUT,
+                    toPos_posF3: pos.as_mut_ptr(),
+                })
+            }
             Command::FightReclaimingEnemies { unit, to, queue } => {
                 let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {

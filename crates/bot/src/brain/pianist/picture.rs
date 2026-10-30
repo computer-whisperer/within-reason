@@ -693,7 +693,7 @@ impl Brain {
             let helping = if factory {
                 own.iter()
                     .filter(|u| !u.being_built && u.id != unit.id)
-                    .filter(|u| matches!(pianist.tasks.get(&u.id), Some(Task::Assist { lab, .. }) if *lab == unit.id) || self.nano_guards.get(&u.id).is_some_and(|(f, _)| *f == unit.id))
+                    .filter(|u| matches!(pianist.tasks.get(&u.id), Some(Task::Assist { lab, .. }) if *lab == unit.id) || (self.is_static_builder(u.def) && self.turret_reaches(u, unit)))
                     .filter_map(|u| self.world.def(u.def))
                     .map(|d| d.build_speed)
                     .sum()
@@ -1781,7 +1781,7 @@ impl Brain {
                 let (nanos, nanos_idle) = self.nanos_on(unit, own);
                 if nanos > 0 {
                     entry["nanos"] = json!(format!(
-                        "{nanos} construction turret{} in reach guard it{}",
+                        "{nanos} construction turret{} in reach help it{}",
                         if nanos == 1 { "" } else { "s" },
                         if nanos_idle > 0 { format!(" ({nanos_idle} idle this second)") } else { String::new() }
                     ));
