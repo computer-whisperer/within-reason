@@ -113,7 +113,9 @@ ally's, banks touching or a street apart and capped at six for converters and wi
 generator 300 from its builder, a turret 400 from a pad, a plant or frame 600 from the builder, a stockpiler 500 round a
 point 300 behind home, the player's place 200 round it, a defence 150 round a point 120 toward his base), then the
 purpose (neighbours of its kind, pads and frames in reach, turrets in reach and the facing toward the enemy, seconds
-to stand), then the chain sum, then the builder's walk, then home. The old rules (the yard 350 ahead, the turret line
+to stand), then the chain sum, then the builder's walk (the way round what stands, by a flood, since 2026-10-30), then
+home. Generators bank to eight and converters to six, banks a street of 48 apart (2026-10-30, the user: a bank of
+eighteen solars was a wall the commander walked round). The old rules (the yard 350 ahead, the turret line
 650 ahead, the back field for generators, `beside_builder`, the 320 lane, the spot clearances, the gaps) are deleted.
 The block (H-ECO-BLOCK) is the one global decision after the stand: when our first advanced plant is placed its centre
 is found once, at the player's `block` mark or on the flattest ground beside the plant that holds two frame rows and the

@@ -136,13 +136,19 @@ the report prints the chosen site's reasons, which a drawn pattern could not.
   same-type pairs 304 apart median, ours 647), and the facing's street cost (the shortest street to the open).
 - A generator or basic converter: adjacency to its own kind, so banks grow where one stands (the pool's solars in
   clusters of up to 7, thebluegecko's 10, ours all singletons), under the kind's bank cap (§1.3: converters six, winds
-  by pitch or six, solars and advanced solars unbounded) and with a vehicle street of 3 squares between banks.
+  by pitch or six; solars and the other generators eight since 2026-10-30, the people's clusters of 7 to 10: block-2's
+  bank of eighteen was a wall 700 long the commander walked round) and with a vehicle street of three cells (48)
+  between banks; meeting at a corner is packing, not a gap.
 - An extractor: its spot, exactly, as now. A defence: the player's place, as now.
 
 **Level 2, the chain sum** (the user's second criterion): among sites within the band, the one whose own death would
 take the least of ours by the blast sum (§1.3), and that adds the least to the sum its neighbours already bear.
 
-**Level 3, the builder's walk**, then **level 4, distance to home**; a tie after that is the lattice's order.
+**Level 3, the builder's walk** (since 2026-10-30 the way round what stands, one flood from the builder a choice, not
+the line: a site across a bank read as near while the commander rounded the bank), then **level 4, distance to home**;
+a tie after that is the lattice's order. A generator's level-1 band is one neighbour, so touching one beside the
+builder and touching two across the base both reach the walk, which decides; founding a bank scores worse than touching
+one by more than the band (the user's ruling, 2026-10-30, on block-2's commander).
 
 **The stand** is the one place the levels are pre-solved: at the start, from the start position, the spots and the
 terrain, the layer solves the commander's first slots (two extractors, solars, the plant with its facing and street)
