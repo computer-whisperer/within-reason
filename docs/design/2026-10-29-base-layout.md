@@ -118,7 +118,10 @@ A district is a region with a lattice and a purpose. Three kinds:
   the most turret slots within 400 of it. **Sparse first, back-filled later** (the user's ruling, 2026-10-29): the
   turret slots are a 48-pitch lattice of which only the 96-pitch sub-lattice (every other slot in both directions, a
   quarter of the cells) is offered at first, so no turret stands within another's blast (at 96 a neighbour's surface
-  is 72 from the exploder, past the 64) and up to 68 reach a frame, above thebluegecko's 46 to 53 in use; the other
+  is 72 from the exploder, past the 64: the sum over every dead neighbour is zero; at the territory bot's 64 a dead
+  row behind puts 297 on the next turret, under its 560, but all its neighbours dead put 1,189, so a hole spreads
+  though a front does not; at 48 a dead row puts 920 and the block is a train) and up to 68 reach a frame, above
+  thebluegecko's 46 to 53 in use; the other
   three sub-lattices are the back-fill, offered when the player says the block may densify (a word on the block's
   mark, `block dense`; the territory bot densifies when its program wants more turrets in reach than the sparse slots
   give). The frame rows, streets and blast slots are reserved in the sparse phase, so densifying changes nothing but
@@ -137,15 +140,19 @@ A district is a region with a lattice and a purpose. Three kinds:
   reaches with a short walk, else founds a bank at the builder's lattice point nearest its work: banks grow, nothing
   scatters. Measured against the people (`docs/studies/2026-10-29-base-layout.md` §9): the pool's solars stand in
   clusters of up to 7 (median largest), thebluegecko's of 10, 26 solars a seat; ours 42 solars a seat, every one a
-  singleton at linkage 88, never touching. The bank's size bound is the chain precaution, and by the blast numbers it
-  binds only converters: a solar, an advanced solar, a tidal or a wind turbine bursts for 89 at most, less than any of
-  their healths (340, 1,130, 196), so a bank of them of any size loses only what the enemy shoots; a basic converter
-  (660 to 105) kills a touching converter outright and keeps killing to centres 129 apart, an advanced converter
-  (1,220 to 160) to centres 192 apart. So converter banks are small (the pool's touching clusters are 3 to 4; six at
-  most), the street between them the firebreak, and the one precaution the generator banks need is from their
-  neighbours: an energy storage (980 to 210) kills solars within 137 of its wall, turbines within 168 and converters
-  within 174, so a storage stands apart from every bank by that much, and a fusion (kills solars within 209) is not a
-  bank's neighbour. Advanced converters are the block's: they are "brought up at speed late game with the advanced
+  singleton at linkage 88, never touching. The bank's size bound and pitch are the chain precaution, and the chain
+  criterion is the sum of the blasts a cell takes from every dead neighbour within reach, not one blast against its
+  health (the user, 2026-10-29: "two adjacent structures may blow, chain to a third, and continue through the block").
+  By that sum, at full health, over a square lattice (`run/base_layout.py chain`, the study's §9 table): solars and
+  advanced solars never chain at any pitch (146 and 283 from all eight neighbours dead, against 340 and 1,130); wind
+  turbines chain through a touching bank (a dead row behind puts 245 on the next turbine, against 196) and are safe
+  only at one footprint between them (pitch 96: 127 from every neighbour dead); basic converters chain at every pitch
+  up to 96 (a dead row puts 182 on the next, against 167), advanced converters at every pitch up to 128 (610 against
+  445); energy storages chain each other under about 260 between centres. So solar banks may be any size; wind banks
+  are laid at pitch 96 or kept small; converter banks are small (the pool's touching clusters are 3 to 4; six at most)
+  with the street between them as the firebreak; storages stand apart from one another and from every bank (a
+  storage's 980 to 210 kills solars within 137 of its wall, turbines within 168, converters within 174); and a fusion
+  (kills solars within 209) is not a bank's neighbour. Advanced converters are the block's: they are "brought up at speed late game with the advanced
   fusion reactors that power them" and take the frame rows beside the farm, in rows whose length is their bill (a row
   at 64 chains end to end). An advanced solar that is wanted at speed early goes to a block or plant-district slot as a
   frame; otherwise to its bank. Banks are the first ground the block grows into: a bank's slots are listed for
@@ -174,8 +181,10 @@ first by stand-up time (the turrets in reach of it), among slots within a few se
 its death blast would take (the falloff arithmetic of D-base-layout: what stands inside 606 for an advanced fusion,
 240 for a fusion, 210 for a storage), and only then by distance. A fusion or an advanced fusion goes beside the active
 farm; the layer's part is the side of the farm whose blast holds the least of the economy (a bar's end rather than its
-middle, away from the other fusions and the plants), and one footprint between two advanced fusions, which costs no
-stand-up time and stops the one chain that is certain (touching, Cortex's 9,800 falls within 48 of surface). An
+middle, away from the other fusions and the plants). Spacing buys nothing between the big reactors at any pitch a
+block allows: one advanced fusion's blast kills another at one footprint apart (Armada's 8,300 falls within 190 of
+surface; Cortex's 9,800 within 48, and two neighbours' blasts within far more), and three touching fusions in a row put
+9,800 on the next against 3,800, so the reactors stand where stand-up time puts them and the report carries the bill. An
 energy storage keeps 90 from turrets where a slot allows and is otherwise placed; converters touch, as the people's
 do. The gantry's ring (turrets 122 or more from its wall, reach to 472) costs nothing in stand-up time and is kept.
 The report states the bill of each big frame as it is placed ("afus_12 placed: 59 turrets in reach; its blast holds 31

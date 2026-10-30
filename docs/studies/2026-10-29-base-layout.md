@@ -174,11 +174,32 @@ more solars:
 | ours, fourteen latest | 42 | 1 | 1.00 | largest 1 (6 seats) |
 
 Our solars never touch and we build sixteen more of them than the pool; the pool's singletons are mostly a solar
-beside an outer extractor. By the blast numbers no generator bank chains on its own: solar, advanced solar, tidal and
-wind burst for 89 at most (`smallBuildingExplosionGeneric`, `windboom`, edge 0.75) against healths of 340, 1,130 and
-196. Basic converters chain while their centres are under 129 apart (660 to 105 against 167), advanced converters under
-192 (1,220 to 160 against 445). A storage's 980 to 210 kills solars within 137 of its wall, turbines within 168,
-converters within 174. A hull-area sprawl index was tried and dropped: the pool's outer laser towers inflate it.
+beside an outer extractor. A hull-area sprawl index was tried and dropped: the pool's outer laser towers inflate it.
+
+**The chain sum.** A first reading said a bank chains only when one blast exceeds a neighbour's health; the user
+corrected it (2026-10-29): in a lattice a cell takes every dead neighbour's blast, so two adjacent deaths can take a
+third and run through the block. `run/base_layout.py chain` sums, for a full-health cell on a square lattice, the
+blasts of every neighbour within the blast radius (the engine's falloff to the cell's collision surface; `edge` 0.75
+for `windboom` and `nanoboom`), for all neighbours dead and for a dead half-plane ("front", the row behind). Health
+against the front is the propagating case; against all, the hole that spreads.
+
+| kind (health) | touching: all / front | +1 square | +2 | +3 | one footprint between |
+|---|---|---|---|---|---|
+| solar (340) | 146 / 38 | 75 / 19 | 12 / 3 | 0 | 0 |
+| advanced solar (1,130) | 283 / 93 | 131 / 33 | 67 / 17 | 4 / 1 | 0 |
+| wind turbine (196) | 711 / 245 | 448 / 154 | 225 / 56 | 127 / 32 | 127 / 32 |
+| basic converter (167) | 4,990 / 1,829 | 2,401 / 817 | 1,430 / 432 | 729 / 182 | 729 / 182 |
+| advanced converter (445) | 11,903 / 4,518 | 7,292 / 2,579 | 4,521 / 1,544 | 3,343 / 1,077 | 2,165 / 610 |
+| energy storage (1,890) | 25,203 / 10,530 | 13,682 / 5,399 | 8,378 / 3,153 | 5,636 / 2,006 | 5,636 / 2,006 |
+| construction turret (560) | 2,682 / 920 | 1,189 / 297 | 0 | 0 | 0 |
+| fusion (3,800) | 25,854 / 9,813 | 18,980 / 6,906 | 12,807 / 4,350 | 9,821 / 3,353 | 4,702 / 1,324 |
+| advanced fusion (8,300) | 470,594 / 205,617 | 397,094 / 171,517 | 325,983 / 138,611 | 262,718 / 109,629 | 142,599 / 56,195 |
+
+So: solars and advanced solars never chain; turbines chain through a touching bank and are safe at one footprint
+between; basic converters chain at every pitch to 96 and advanced converters to 128; storages chain each other under
+about 260 between centres; turrets at 48 are a train, at 64 a hole spreads but a front does not, at 96 nothing; fusions
+touching chain by the front, one footprint apart only as a hole; advanced fusions chain at any pitch a block allows.
+A storage's single blast kills solars within 137 of its wall, turbines within 168, converters within 174.
 
 ## 10. What it does not say
 

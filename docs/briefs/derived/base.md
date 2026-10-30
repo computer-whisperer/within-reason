@@ -151,8 +151,15 @@ good when the next frame starts inside the reach of the build power that will fi
   which a death at full health kills a full-health neighbour is `radius × (1 − victim health / blast damage)`: an
   advanced fusion (10,600 to 640) kills a turret (560) within 606 of its surface, an advanced converter (445) within
   613, a fusion (3,800) within 410, a plant (2,900 to 4,750) within 350 to 470, another advanced fusion within 139
-  (Armada's 8,300) or 48 (Cortex's 9,800): two advanced fusions touching chain, one footprint apart do not. A fusion
-  (2,650 to 240) kills a turret within 189, a converter within 225, a solar within 209, and no fusion. An energy
+  (Armada's 8,300) or 48 (Cortex's 9,800) of its surface: touching advanced fusions chain, and at one footprint apart
+  (96 of surface) Armada's still do. A fusion (2,650 to 240) kills a turret within 189, a converter within 225, a
+  solar within 209, and no fusion by itself. That last qualifier is the general rule (the user, 2026-10-29): in a
+  lattice a cell takes the sum of every dead neighbour's blast, so the chain criterion is that sum against its health,
+  not one blast; a dead row of three touching fusions puts about 9,800 on the next fusion, a dead row of turbines 245
+  on the next turbine (196), a dead row of touching turrets 920 on the next turret (560). The sums by kind and pitch
+  are the study's §9 table (`run/base_layout.py chain`): solars and advanced solars never chain at any pitch, turbines
+  are safe at one footprint between, basic converters chain at every pitch to 96 and advanced converters to 128,
+  turrets at 48 are a train, at 64 a hole spreads but a front does not, at 96 nothing. An energy
   storage (980 to 210) kills a turret within 90, a converter within 174, a turbine within 168. An advanced converter
   (1,220 to 160) kills a turret within 87 and another advanced converter within 102, so touching ones (64) chain; a
   converter (660 to 105) kills another converter within 78, touching ones (48) chain, and no turret. The turret's own

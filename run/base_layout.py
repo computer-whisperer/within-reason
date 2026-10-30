@@ -11,6 +11,7 @@ run/replay_match.py). The study: docs/studies/2026-10-29-base-layout.md; the der
                                                         squares) can no longer walk from its exit to ground 1,200 away through
                                                         our own buildings (and the terrain where the record has it)
     run/base_layout.py summary <pool.jsonl>             the pooled medians of a pool file
+    run/base_layout.py chain                            the chain-sum table: each kind's health against its dead neighbours' blasts by pitch
 
 Footprints, blasts and health come from the game's unit files under upstream/Beyond-All-Reason (cached as
 docs/studies/data/base-layout-2026-10-29/unitfacts.json when the checkout is missing). Death blasts: radius is half
@@ -497,6 +498,33 @@ def pen(record, minutes_step=1, allies=False):
         results.append(row)
     return {'record': record, 'allies': allies, 'slope_limit': slope_limit, 'minutes': round(end_f / fps / 60, 1), 'factories': results}
 
+
+# ---------------------------------------------------------------- chain: the sum of the neighbours' blasts on one cell
+def chain():
+    """For a full-health cell of each kind on a square lattice at its footprint pitch and wider: the sum of the death
+    blasts of every neighbour within reach (the engine's falloff to the cell's collision surface, edge effectiveness
+    where the blast has one), for all neighbours dead and for a dead half-plane behind (a front). The chain criterion
+    is that sum against the cell's health, not one blast (the user, 2026-10-29)."""
+    # kind: footprint, collision half width, health, blast radius, blast damage, edge (weapons/Unit_Explosions.lua, the unit files)
+    kinds = {'solar': (80, 25, 340, 90, 89, 0.0), 'advsol': (64, 23, 1130, 90, 89, 0.0), 'wind': (48, 17, 196, 90, 89, 0.75),
+             'makr': (48, 20, 167, 105, 660, 0.0), 'mmkr': (64, 30, 445, 160, 1220, 0.0), 'estor': (48, 21, 1890, 210, 980, 0.0),
+             'nanotc': (48, 15.5, 560, 64, 530, 0.75), 'fus': (96, 45, 3800, 240, 2650, 0.0), 'afus': (96, 48, 8300, 640, 10600, 0.0)}
+    def blast(R, D, edge, d):
+        return 0.0 if d >= R else D * (R - d) / (R - d * edge + 1e-3)
+    print('kind (health): gap -> neighbours in reach, sum with all dead, sum with the row behind dead')
+    for k, (fp, hw, hp, R, D, edge) in kinds.items():
+        cells = []
+        for gap in (0, 16, 32, 48, fp):
+            pitch = fp + gap; total = front = 0.0; n = 0
+            for i in range(-4, 5):
+                for j in range(-4, 5):
+                    if i == 0 and j == 0: continue
+                    d = max(0.0, math.hypot(i * pitch, j * pitch) - hw)
+                    x = blast(R, D, edge, d)
+                    if x > 0: n += 1; total += x; front += x if i < 0 else 0
+            cells.append(f'gap {gap:>3}: {n:2d}, {total:7.0f}, {front:6.0f}')
+        print(f'{k:7s} ({hp:5.0f}) | ' + ' | '.join(cells))
+
 # ---------------------------------------------------------------- summary of a pool file
 def summary(path):
     rows = [json.loads(l) for l in open(path) if 'error' not in l]
@@ -541,7 +569,7 @@ def summary(path):
     print('  turrets round a plant by side', dict(sides))
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3: sys.exit(__doc__)
+    if len(sys.argv) < 2 or (len(sys.argv) < 3 and sys.argv[1] != 'chain'): sys.exit(__doc__)
     mode = sys.argv[1]
     if mode == 'pool': pool(sys.argv[2:])
     elif mode == 'block': block(sys.argv[2])
@@ -550,4 +578,5 @@ if __name__ == '__main__':
         for r in sys.argv[2:]:
             if r != '--allies': print(json.dumps(pen(r, allies=allies))); sys.stdout.flush()
     elif mode == 'summary': summary(sys.argv[2])
+    elif mode == 'chain': chain()
     else: sys.exit(__doc__)
