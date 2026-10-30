@@ -126,6 +126,89 @@ pub struct World<'a> {
     /// The walk floods made over this world, by start cell, centre cell and radius: a builder's menu asks for a site
     /// for a dozen kinds a second, most from the same place with the same band, and the flood is the same.
     pub walks: std::cell::RefCell<HashMap<(i32, i32, i32, i32, i32), std::rc::Rc<Walk>>>,
+    /// What stands, and the spots, by the buckets of ground they touch, made once when first asked: a candidate is
+    /// tested against what stands near it, not against every building of a base of hundreds.
+    pub standing_near: std::cell::RefCell<Option<(usize, Buckets)>>,
+    pub spots_near: std::cell::RefCell<Option<(usize, Buckets)>>,
+}
+
+/// The edge of a bucket of ground.
+const BUCKET: f32 = 256.0;
+
+/// A grid of buckets over the map, each holding the indices of the rects that touch it.
+pub struct Buckets {
+    nx: usize,
+    nz: usize,
+    cells: Vec<Vec<u32>>,
+}
+
+impl Buckets {
+    fn new(extent: (f32, f32), rects: impl Iterator<Item = Rect>) -> Buckets {
+        let nx = (extent.0 / BUCKET).ceil().max(1.0) as usize;
+        let nz = (extent.1 / BUCKET).ceil().max(1.0) as usize;
+        let mut cells = vec![Vec::new(); nx * nz];
+        for (i, r) in rects.enumerate() {
+            let (i0, i1, j0, j1) = Buckets::span(nx, nz, &r);
+            for j in j0..j1 {
+                for x in i0..i1 {
+                    cells[j * nx + x].push(i as u32);
+                }
+            }
+        }
+        Buckets { nx, nz, cells }
+    }
+
+    fn span(nx: usize, nz: usize, r: &Rect) -> (usize, usize, usize, usize) {
+        let i0 = ((r.x0 / BUCKET).floor().max(0.0) as usize).min(nx);
+        let i1 = (((r.x1 / BUCKET).floor().max(0.0) as usize) + 1).min(nx);
+        let j0 = ((r.z0 / BUCKET).floor().max(0.0) as usize).min(nz);
+        let j1 = (((r.z1 / BUCKET).floor().max(0.0) as usize) + 1).min(nz);
+        (i0, i1, j0, j1)
+    }
+
+    /// The indices of the rects in the buckets `r` touches, each once.
+    fn near(&self, r: &Rect) -> Vec<usize> {
+        let (i0, i1, j0, j1) = Buckets::span(self.nx, self.nz, r);
+        let mut out: Vec<usize> = Vec::new();
+        for j in j0..j1 {
+            for x in i0..i1 {
+                out.extend(self.cells[j * self.nx + x].iter().map(|i| *i as usize));
+            }
+        }
+        if (i1 - i0) * (j1 - j0) > 1 {
+            out.sort_unstable();
+            out.dedup();
+        }
+        out
+    }
+}
+
+impl World<'_> {
+    /// A standing building's rect as the tests take it: an ally's with its margin.
+    fn blocking_rect(s: &Standing) -> Rect {
+        if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) }
+    }
+
+    /// The indices in the buckets `r` touches, the buckets made for the list's present length (a world's lists are
+    /// filled before it is asked, and a test that pushes to one between asks gets fresh buckets).
+    fn near(cache: &std::cell::RefCell<Option<(usize, Buckets)>>, len: usize, make: impl FnOnce() -> Buckets, r: &Rect) -> Vec<usize> {
+        let mut cache = cache.borrow_mut();
+        if cache.as_ref().is_none_or(|(n, _)| *n != len) {
+            *cache = Some((len, make()));
+        }
+        cache.as_ref().map_or_else(Vec::new, |(_, b)| b.near(r))
+    }
+
+    /// What stands in the buckets `r` touches, with each one's index in `standing`.
+    fn standing_near(&self, r: &Rect) -> impl Iterator<Item = (usize, &Standing)> {
+        World::near(&self.standing_near, self.standing.len(), || Buckets::new(self.ground.extent(), self.standing.iter().map(World::blocking_rect)), r).into_iter().map(|i| (i, &self.standing[i]))
+    }
+
+    /// The spots whose keep-out (the greater of the shim's and the box's) touches the buckets `r` touches.
+    fn spots_near(&self, r: &Rect) -> impl Iterator<Item = &Vec3> {
+        let half = self.spot_keep_out.max(SPOT_BOX_HALF);
+        World::near(&self.spots_near, self.spots.len(), || Buckets::new(self.ground.extent(), self.spots.iter().map(|p| Rect { x0: p.x - half, z0: p.z - half, x1: p.x + half, z1: p.z + half })), r).into_iter().map(|i| &self.spots[i])
+    }
 }
 
 /// What a building is for: the score of level 1.
@@ -193,10 +276,14 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
         return Err(format!("no ground on this map takes it: it wants {wants} and the map's heights run {lo:.0} to {hi:.0}"));
     }
     let banks = bank_sizes(world, f.def);
-    let walk = Walk::cached(world, req.builder_at, req.centre, req.radius * 2f32.powi(WIDENINGS as i32));
     let mut why = String::new();
+    // The blocks of the street rule: what stands, and the candidate under test pushed behind them.
+    let mut blocks: Vec<Rect> = world.standing.iter().map(World::blocking_rect).collect();
     for widening in 0..=WIDENINGS {
         let radius = req.radius * 2f32.powi(widening as i32);
+        // The flood for this widening alone: most searches end at the first, and a flood over four times the band
+        // is sixteen times the cells.
+        let walk = Walk::cached(world, req.builder_at, req.centre, radius);
         let mut candidates: Vec<Candidate> = Vec::new();
         for (rank, facing) in facings.iter().enumerate() {
             let fp = f.footprint.faced(*facing);
@@ -213,12 +300,12 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
         let ordered = by_bands(candidates, &bands);
         let plants_own: Vec<Plant> = Vec::new();
         for c in ordered.iter().take(STREET_TRIES) {
-            let mut blocks: Vec<Rect> = world.standing.iter().map(|s| if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) }).collect();
             blocks.push(c.rect);
             let plants = world.plants.iter().chain(plants_own.iter());
             let mut closed = plants.filter(|p| p.concerns(&c.rect)).filter(|p| !street_open(&world.ground, p, &blocks, &*world.open));
             if let Some(p) = closed.next() {
                 why = format!("the best site at ({:.0}, {:.0}) would close {}'s street for its {}", c.at.x, c.at.z, p.name, p.widest);
+                blocks.pop();
                 continue;
             }
             // A plant's own street, from the site it would stand at.
@@ -226,6 +313,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
                 let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), sea: f.product_sea };
                 if !street_open(&world.ground, &own, &blocks, &*world.open) {
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
+                    blocks.pop();
                     continue;
                 }
             }
@@ -242,7 +330,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if !world.ground.stands(fp, at, f) {
         return None;
     }
-    if world.standing.iter().any(|s| (if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) }).overlaps(&rect)) {
+    if world.standing_near(&rect).any(|(_, s)| World::blocking_rect(s).overlaps(&rect)) {
         return None;
     }
     if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f, req.purpose)) {
@@ -251,7 +339,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if req.purpose == Purpose::Turret && world.lattice.is_some_and(|l| !l.holds(at)) {
         return None;
     }
-    if world.spots.iter().any(|p| p.dist2d(at) < world.spot_keep_out || Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&rect)) {
+    if world.spots_near(&rect).any(|p| p.dist2d(at) < world.spot_keep_out || Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&rect)) {
         return None;
     }
     if world.refused.iter().any(|(d, p)| *d == f.def && p.dist2d(at) < REFUSED_RADIUS) {
@@ -263,10 +351,10 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if f.factory {
         let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: f.product_sea };
         let apron = own.apron();
-        if !world.ground.in_map(&apron) || world.standing.iter().any(|s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
+        if !world.ground.in_map(&apron) || world.standing_near(&apron).any(|(_, s)| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
             return None;
         }
-        if world.spots.iter().any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
+        if world.spots_near(&apron).any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
             return None;
         }
         // A shipyard's apron is water its ships float in, whatever the land's passable set says (water-1: every
@@ -280,7 +368,8 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     let mut words = String::new();
     let l1 = match req.purpose {
         Purpose::Generator { cap } => {
-            let same: Vec<(usize, &Standing)> = world.standing.iter().enumerate().filter(|(_, s)| s.ours && s.def == Some(f.def)).collect();
+            // Its kind within a street's width: the touching and gap tests reach no farther.
+            let same: Vec<(usize, &Standing)> = world.standing_near(&rect.grown(BANK_STREET)).filter(|(_, s)| s.ours && s.def == Some(f.def)).collect();
             let touching: Vec<usize> = same.iter().filter(|(_, s)| s.rect.touches(&rect)).map(|(i, _)| *i).collect();
             // Touching its kind, or a street apart from it: a gap under the street's width is neither. Meeting at a
             // corner (a gap of nothing) is packing, not a gap: before this, the only legal touching site on a bank's
@@ -343,7 +432,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         .filter_map(|s| s.blast.map(|b| blast_at(b, s.rect.centre(), &rect)))
         .sum();
     let killed: Vec<&Standing> = match own_blast {
-        Some(b) => world.standing.iter().filter(|s| s.ours && s.health > 0.0 && blast_at(b, at, &s.rect) >= s.health).collect(),
+        Some(b) => world.standing_near(&Rect { x0: at.x - b.0, z0: at.z - b.0, x1: at.x + b.0, z1: at.z + b.0 }).map(|(_, s)| s).filter(|s| s.ours && s.health > 0.0 && blast_at(b, at, &s.rect) >= s.health).collect(),
         None => Vec::new(),
     };
     let kills: f32 = killed.iter().map(|s| s.metal).sum();
@@ -591,7 +680,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -737,7 +826,7 @@ mod sea_tests {
         // Land everywhere at 50: a shipyard wanting 30 of water stands nowhere, and the answer says so at once.
         let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
         let open = |_: Vec3| true;
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
         let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         assert!(!w.ground.depths_on_map(&shipyard));
@@ -784,7 +873,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         let builder_at = at(1900.0, 2048.0);
@@ -801,7 +890,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
         let builder_at = at(1900.0, 2048.0);

@@ -205,7 +205,7 @@ impl Brain {
             home: self.home,
             toward: self.enemy_base(self.home),
             open: Box::new(open),
-            walks: Default::default(),
+            walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(),
         }
     }
 
