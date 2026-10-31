@@ -178,6 +178,11 @@ pub(crate) struct Group {
     pub met: Option<(i32, String)>,
     /// What its rovers found, attacked, ran from and gave up, newest last, for the picture: (frame, words).
     pub rove_log: Vec<(i32, String)>,
+    /// The place whose walk ended in the hold the group is in (H-HANDS-ARRIVAL), until its next task: the idle words
+    /// say "a stop it has reached" by it even when the front stopped past `ARRIVED` of the spot (apex-v0409-comet-
+    /// sym0-opus-2 13:16-13:46: the front company arrived 300-odd from spot_15, the idle words said nothing of a stop
+    /// reached, and the pick sent the group to spot_15 again every second or two, twenty times).
+    pub arrived_at: Option<String>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -237,7 +242,7 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, parent: None, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
     }
 
     /// Whether the group is the lane's as a formation (the migration design, chunks 2-5): a ground group holding,
@@ -394,6 +399,7 @@ impl Group {
         self.last_order = frame;
         self.shelling = false;
         self.screen = None;
+        self.arrived_at = None;
     }
 }
 
@@ -623,7 +629,7 @@ impl Brain {
             let declared = group.declared();
             match &mut group.task {
                 GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
-                GroupTask::Move { to, .. } if declared => {
+                GroupTask::Move { to, place, .. } if declared => {
                     // The front's arrival (H-HANDS-ARRIVAL: an arrived marching company of `FRONT_MIN` or more, the
                     // one nearest the way's end; the formation itself when the group has no companies), read a
                     // second after the order at the earliest: the state before it is the last task's.
@@ -632,9 +638,19 @@ impl Brain {
                     {
                         // An arrival ends the order in a hold nobody picked, the front's anchor where it stands:
                         // the group is idle and is asked; the companies still on the road walk to the hold. A
-                        // shell's hold keeps shelling: the screen stays between (chunk 5).
+                        // shell's hold keeps shelling: the screen stays between (chunk 5). The place is reached,
+                        // in the register and the idle words, whatever the anchor's distance to the spot.
+                        let place = place.clone();
                         let (shelling, screen) = (group.shelling, group.screen);
                         group.set_task(GroupTask::Hold { picked: false, at }, frame);
+                        if group.reached.last().is_none_or(|(last, _)| *last != place) {
+                            if group.reached.len() >= REACHED_KEPT {
+                                group.reached.remove(0);
+                            }
+                            group.reached.push((place.clone(), frame));
+                            route_news.push(format!("group_{} reached {place}", group.name));
+                        }
+                        group.arrived_at = Some(place);
                         if shelling {
                             group.shelling = true;
                             group.screen = screen;

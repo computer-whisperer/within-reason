@@ -1275,7 +1275,14 @@ impl Brain {
             }
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
-        let idle_words = format!("{name} holds at {at}{}", if reached_here { ", a stop it has reached" } else { "" });
+        // The walk that ended in this hold reached its place whatever the anchor's distance to the spot
+        // (H-HANDS-ARRIVAL, `Group::arrived_at`).
+        let stop = match &group.arrived_at {
+            Some(place) => format!(", a stop it has reached ({place})"),
+            None if reached_here => ", a stop it has reached".to_string(),
+            None => String::new(),
+        };
+        let idle_words = format!("{name} holds at {at}{stop}");
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
