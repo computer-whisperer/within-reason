@@ -181,7 +181,9 @@ def main():
         print(f"  {unit:>10} x{len(es):<3} {defs[es[0]['d']]['metal'] * len(es):>6} M by {by:<10} {when:<12} built later within 150: " + (", ".join(f"{k} {v}" for k, v in later.most_common(4)) or "-"))
     if cancelled:
         print("  cancelled: " + " ".join(f"{clock(e['f'])} {name[e['d']]}" for e in cancelled[:12]) + (" ..." if len(cancelled) > 12 else ""))
-    if any(s.get("bp") for s in samples):
+    # Only a replay record (the dump widget) carries the build target in `bp`'s third field; the bot's own records
+    # write 0 there (docs/harness/record-format.md), which read as every builder idle at every mark.
+    if any(tgt for s in samples for _, _, tgt in s.get("bp", [])):
         print("building at the marks (builder type -> target, count; then idle builders):")
         for m in marks:
             s = at(samples, m)
