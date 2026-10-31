@@ -136,14 +136,34 @@ impl Block {
         }
         let tier = self.tiers + 1;
         let (rows, slots) = tier_rows(self.centre, self.along_x, &self.frame, tier);
-        if slots.len() < 2 * ROW_SLOTS as usize {
-            return Err(format!("the block's tier {tier} does not fit the frame grid"));
+        // Each row on its own: a tier is whichever of its two rows hold (econ-flagship-6: the block laid 496 west of
+        // the advanced plant, its second tier's east row on the plant's footprint, and a two-rows-or-none tier left
+        // it at six slots all game).
+        let mut held: Vec<(Rect, Vec<Vec3>)> = Vec::new();
+        for row in &rows {
+            let in_row: Vec<Vec3> = slots.iter().copied().filter(|s| row.overlaps(&self.frame.footprint.rect(*s))).collect();
+            if in_row.len() == ROW_SLOTS as usize && ground_holds(world, &self.frame, &[*row], &[*row], &in_row).is_some() {
+                held.push((*row, in_row));
+            }
         }
-        ground_holds(world, &self.frame, &rows, &rows, &slots).ok_or_else(|| format!("no clear ground for the block's tier {tier} of rows"))?;
-        self.frame_rows.extend(rows);
-        self.frame_slots.extend(slots);
+        // Both rows together may close a street one alone does not: then the first alone.
+        if held.len() == 2 {
+            let rects: Vec<Rect> = held.iter().map(|(r, _)| *r).collect();
+            let all: Vec<Vec3> = held.iter().flat_map(|(_, s)| s.iter().copied()).collect();
+            if ground_holds(world, &self.frame, &rects, &rects, &all).is_none() {
+                held.truncate(1);
+            }
+        }
+        if held.is_empty() {
+            return Err(format!("no clear ground for the block's tier {tier} of rows"));
+        }
+        let added: usize = held.iter().map(|(_, s)| s.len()).sum();
+        for (row, in_row) in held {
+            self.frame_rows.push(row);
+            self.frame_slots.extend(in_row);
+        }
         self.tiers = tier;
-        Ok(2 * ROW_SLOTS as usize)
+        Ok(added)
     }
 }
 
@@ -544,13 +564,20 @@ mod tests {
             }
         }
         assert!(block.grow(&w).unwrap_err().contains("3 tiers"));
-        // A turret of ours on the second tier's ground: the block stays at one tier.
+        // A turret of ours on one row of the second tier's ground: the tier is the other row alone, three slots.
         let mut w2 = world(&t, &open);
         with_plant(&mut w2, &wants);
         let mut block = lay(&w2, &wants, None).expect("a block");
         let (rows, _) = tier_rows(block.centre, block.along_x, &block.frame, 2);
         let on_it = Vec3 { x: (rows[0].x0 + rows[0].x1) / 2.0, y: 0.0, z: (rows[0].z0 + rows[0].z1) / 2.0 };
         w2.standing.push(Standing { rect: wants.turret.footprint.rect(on_it), def: Some(UnitDefId(5)), kind: "armnanotc".into(), ours: true, bank: false, metal: 230.0, health: 560.0, blast: None, name: "nano_1".into() });
+        assert_eq!(block.grow(&w2), Ok(3), "{block:?}");
+        assert_eq!((block.tiers, block.frame_slots.len(), block.frame_rows.len()), (2, 9, 3));
+        assert!(block.frame_rows.iter().all(|r| !r.overlaps(&wants.turret.footprint.rect(on_it))), "the blocked row was laid: {block:?}");
+        // Both rows blocked: the tier is refused.
+        let on_other = Vec3 { x: (rows[1].x0 + rows[1].x1) / 2.0, y: 0.0, z: (rows[1].z0 + rows[1].z1) / 2.0 };
+        let mut block = lay(&w2, &wants, None).expect("a block");
+        w2.standing.push(Standing { rect: wants.turret.footprint.rect(on_other), def: Some(UnitDefId(5)), kind: "armnanotc".into(), ours: true, bank: false, metal: 230.0, health: 560.0, blast: None, name: "nano_2".into() });
         assert!(block.grow(&w2).unwrap_err().contains("no clear ground"), "{block:?}");
         assert_eq!(block.tiers, 1);
     }
