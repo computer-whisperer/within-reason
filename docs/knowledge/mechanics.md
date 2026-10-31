@@ -678,6 +678,27 @@ plant's second unit 25 s after its first (1:13, 1:38) with the store falling 278
 **Would be wrong if.** The engine ended a guard order by itself, or the pros' commanders left the plant for its first units.
 **Used by.** [[H-HANDS-SCRIPT]] (amended 2026-09-28).
 
+### K-hands-a-stream-of-companies-never-arrives
+**Claim.** A declared group whose plants feed it through musters is a stream of companies, not a body: the musters
+release at the 90 s patience (in fours at the smallest, never at the cap of 24 in the game measured), each company
+walks the whole route alone, and so one is nearly always on the road. The lane's composed `arrived` waits for every
+marching company and the hands ended a walk only on it, so the army's walk never ended while it stood at its place:
+the group kept a course in the gate (a `change` noul, its moves held by the openers) instead of being idle and asked,
+and the picture read "walking to P" with the front arrived. The main body named in the picture is the largest marching
+company, which a fresh release outnumbers: the picture's `at` and the instruments' anchor jump home when it does.
+**Status.** demonstrated (2026-10-31, the user's question "what system or process is waiting on the arrival state?").
+**Evidence.** apex-v0409-comet-sym0-opus-1 (`run/matches/1793417501-apex-v0409-comet-sym0-opus-1/00`, the record's
+`groups` and the jev log): 16 releases from 10:00 of 1-13 soldiers, none at 24; the lead company of 18 arrived at
+spot_23 at 10:40 (its own flag) with the group's flag false until the pick of 11:57, Jev's entry at 10:50 reading
+`doing: walking to spot_23; formation: held at 334 from spot_23` while `reached` already listed spot_23 (10:27); two
+companies of 21 and 14 arrived at spot_46 at 13:58 with a company of 22 at C8 3,069 behind, the pick 14:14; at 11:20
+a released company of 18 at C6 was the main body and the 17 under fire at E3 were "2,835 from the main body"; the
+record's anchor jumped from F3 to C7 at 12:50. The body-share rule (60 % of the non-mustering members within 300) does
+not fire either: 52 % at 10:40, 25-35 % with a release on the road.
+**Would be wrong if.** The lane's per-company `arrived` were false for a company standing at its end (then the front
+rule would wait as the composed flag did), or a plant's musters filled to the cap before the patience in ordinary play.
+**Used by.** [[H-HANDS-ARRIVAL]].
+
 ### K-mech-under-the-water-is-sonar-and-torpedoes
 **Claim.** In the engine (Recoil, `rts/Sim/Misc/LosHandler.cpp`, `rts/Sim/Weapons/Weapon.cpp`, `rts/Sim/Units/Unit.cpp`,
 read 2026-09-28): a unit under the surface (`IsUnderWater`) is detected by sonar only, never by line of sight or radar

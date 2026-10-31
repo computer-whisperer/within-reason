@@ -27,7 +27,7 @@ removed changes its row here.
 
 | Decision | Values | Code | ID |
 |---|---|---|---|
-| Arrival turns a walk into a hold (the group is then idle and asked); a gather ends when the tail is up | `ARRIVED = 300`, `BODY_SHARE = 0.6`, `STRUNG_OUT = 600` | `P/groups.rs` | none |
+| Arrival turns a walk into a hold (the group is then idle and asked): a declared group's when a marching company of `FRONT_MIN` or more stands arrived at the way's end by the lane's per-company flag (2026-10-31; before, the lane's composed flag, every marching company), an undeclared group's when the body share of its members stands within `ARRIVED`; a gather ends when the tail is up | `ARRIVED = 300`, `BODY_SHARE = 0.6`, `FRONT_MIN = 4`, `STRUNG_OUT = 600` | `P/groups.rs` | H-HANDS-ARRIVAL |
 | A group told to attack is sent again when its party has moved 150; a party unseen 6 s puts it on hold; an air group searches once at 6 s and holds at 60 s | `LOST_FRAMES` 6 s, `AIR_LOST_FRAMES` 60 s | `P/groups.rs` | H-HANDS-ATTACK-FOLLOWS, H-HANDS-AIR-TARGET; the 6 s hold has none |
 | A follower is sent after its ward each 150; the ward gone, it holds | | `P/groups.rs`, `P/mod.rs` | H-HANDS-FOLLOW |
 | A build the engine holds without starting (the builder standing still within reach of the site 8 s, no frame of the type there, never idle) is stopped, its site refused 90 s and its list step put back, so the order goes again elsewhere (the user's word, 2026-10-08, after human-27 2:08-2:54) | `BLOCKED_WATCH` 8 s, `BLOCKED_MARGIN = 120`, `BLOCKED_STILL = 0.2` | `P/mod.rs` | H-HANDS-BLOCKED-SITE |

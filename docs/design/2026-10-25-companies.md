@@ -214,3 +214,11 @@ Chunks A to D are built in one sitting; E (the live game) follows.
   and the picture's company words read to the player as stragglers holding the march (it lifted the cap twice).
 - (Settled by the rework: the column's price, the slaved company's way, `WAIT_FOR`, the fold into the lead and the cap
   change's re-partition.)
+- (Settled 2026-10-31, H-HANDS-ARRIVAL: the hands ended a walk on the composed `arrived`, which waits for every
+  marching company; with a release nearly always on the road the army's walk never ended (apex-v0409-comet-sym0-opus-1,
+  K-hands-a-stream-of-companies-never-arrives). Now the front company's own flag ends it.)
+- Still open from the same game: the main body of `compose` is the largest marching company, so the picture's `at`
+  and the record's anchor jump to a fresh release when it outnumbers the front (11:20, 12:50); and two companies over
+  the cap together (22 + 22) marched superposed within 190 for 327 s of 16:20-21:47 (1,746 company-pair-seconds in
+  the game, every one over the cap: the merge cannot take them and `keep_off` parts them only at the way's end),
+  formed 0.60 against 0.67 when clear.
