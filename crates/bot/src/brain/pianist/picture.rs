@@ -1508,6 +1508,9 @@ impl Brain {
         // (docs/design/2026-09-22-energy-draw.md), so the size of a stall is a number before it is a stall.
         let m = &snapshot.metal;
         let e = &snapshot.energy;
+        // What allies pour in (gifts and overflow), which the engine's income leaves out; the energy's share is in
+        // the flow words only, the metal's said (the Glitters 2v6 of 2026-10-25: 30 to 47 a second into a full store).
+        let received = self.received_rate();
         let draws = self.production_draws(own, pianist);
         let draw_total: f32 = draws.iter().map(|d| d.energy).sum();
         let budget = if draws.is_empty() {
@@ -1525,7 +1528,7 @@ impl Brain {
             format!(" Our production at full speed would draw {draw_total:.0} a second ({}); against the income that is {}", draws.iter().map(|d| format!("{} {:.0}", d.who, d.energy)).collect::<Vec<_>>().join(", "), if short > 0.0 { format!("short by {short:.0}, which is {}", fixes.join(" or ")) } else { format!("{:.0} to spare", -short) }) + "."
         };
         let economy = json!({
-            "metal": format!("{:.0} of {:.0} stored ({}); {:.1} a second coming in, {:.1} going out: {}", m.current, m.storage, stock_words(m.current, m.storage), m.income, m.usage, flow_words(m.income, m.usage, m.current, m.storage)),
+            "metal": format!("{:.0} of {:.0} stored ({}); {:.1} a second coming in{}, {:.1} going out: {}", m.current, m.storage, stock_words(m.current, m.storage), m.income, if received.0 >= 0.5 { format!(" and {:.0} more a second arriving from allies", received.0) } else { String::new() }, m.usage, flow_words(m.income + received.0, m.usage, m.current, m.storage)),
             "energy": format!("{:.0} of {:.0} stored ({}); {:.0} a second coming in, {:.0} going out: {}.{budget} The wind now: {:.0} of this map's {:.0} to {:.0} ({})", e.current, e.storage, stock_words(e.current, e.storage), e.income, e.usage, flow_words(e.income, e.usage, e.current, e.storage), snapshot.wind, self.world.hello.map.wind_min, self.world.hello.map.wind_max, if snapshot.wind < 6.0 { "weak: wind generators give little at the moment" } else { "blowing: wind generators pay" }),
         });
         let count = |f: &dyn Fn(&OwnUnit) -> bool| own.iter().filter(|u| !u.being_built && f(u)).count();

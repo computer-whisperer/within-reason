@@ -16,6 +16,9 @@ pub struct Briefing {
     pub frame: i32,
     pub metal: Resource,
     pub energy: Resource,
+    /// Metal and energy a second arriving from allies (gifts and overflow) over the last thirty seconds, which the
+    /// engine's income figures leave out.
+    pub received: (f32, f32),
     /// The wind now, and the map's range (the people build solar when the wind happens to be low, human-4).
     pub wind: f32,
     pub wind_range: (f32, f32),
@@ -159,10 +162,6 @@ pub struct Counts {
     pub turrets: usize,
     pub constructors: usize,
     pub army: usize,
-    /// Factories and construction turrets begun (standing or as frames), as the reference table counts the pros'
-    /// (H-PLAYER-REFERENCE-LINE).
-    pub factories_begun: usize,
-    pub construction_turrets_begun: usize,
 }
 
 /// What our factories and builders would take a second at full speed on what they build now, for the player's

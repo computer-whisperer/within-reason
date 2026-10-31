@@ -87,8 +87,8 @@ pub const HANDS_DEFAULT: Text = Text { path: "crates/bot/src/brain/pianist/defau
 /// Every text, for the snapshot and the tests.
 pub const ALL: [&Text; 8] = [&PLAYER_PROMPT, &PLAYER_UNDER_COMMAND, &PACKET_EXAMPLE, &COMMANDER_PROMPT, &PLAYER_OPUS, &HANDS_RULES, &HANDS_RULES_GATE, &HANDS_DEFAULT];
 
-/// The directories read whole at run time, beside the texts: the reference tables (`strategist/reference.rs` reads
-/// `docs/briefs/reference/<map>-<faction>.json` by the game's map).
+/// The directories read whole at run time, beside the texts: the generated tables and sheets the experience manifest
+/// lists (`docs/briefs/reference/*.md`).
 pub const DIRECTORIES: [&str; 1] = ["docs/briefs/reference"];
 
 /// The file that marks a checkout.
@@ -161,12 +161,6 @@ fn root() -> Option<&'static PathBuf> {
         exe.ancestors().find(|a| a.join(MARKER).is_file()).map(PathBuf::from)
     })
     .as_ref()
-}
-
-/// A file of the checkout that has no compiled copy (the reference tables): its contents, or None away from a
-/// checkout or when it is not there.
-pub fn read_file(path: &str) -> Option<String> {
-    std::fs::read_to_string(root()?.join(path)).ok()
 }
 
 /// Said once per key, on stderr: where a text is read from, that a read failed.

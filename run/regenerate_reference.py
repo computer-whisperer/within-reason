@@ -22,7 +22,7 @@ def main():
     from map_sheets import latest_record  # noqa: E402
     src = latest_record(COMET)
     for faction in ("arm", "cor"):
-        out = subprocess.run(["python3", "run/reference_set.py", "--map", COMET, "--faction", faction, "--sheet-from", src, "--json-out", f"{REF}/comet-catcher-remake-1.8-{faction}.json"], capture_output=True, text=True, check=True).stdout
+        out = subprocess.run(["python3", "run/reference_set.py", "--map", COMET, "--faction", faction, "--sheet-from", src], capture_output=True, text=True, check=True).stdout
         open(f"{REF}/comet-catcher-remake-1.8-{faction}.md", "w").write(out)
     open(f"{REF}/comet-catcher-remake-1.8-arm-games.md", "w").write(subprocess.run(["python3", "run/timelines.py", "--map", COMET, "--faction", "arm"], capture_output=True, text=True, check=True).stdout)
     open(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md", "w").write(subprocess.run(["python3", "run/opponent_set.py", "--map", COMET, "--profile", "hard_aggressive", "--archive"], capture_output=True, text=True, check=True).stdout)

@@ -12,7 +12,6 @@ pub mod command;
 pub mod fights;
 pub mod live_edge;
 mod mcp;
-mod reference;
 mod report;
 pub mod seats;
 pub mod shared;

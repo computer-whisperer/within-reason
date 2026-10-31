@@ -204,7 +204,7 @@ the rows from the same day).
 tier 2", the by-minute table's last two columns); docs/studies/2026-10-17-spending-line.md.
 **Would be wrong if.** The pool's construction turrets stood beside something other than the plant (not checked:
 the cards carry the turret's cell, not its target), or the pool changes with a wider OS floor.
-**Used by.** H-PLAYER-REFERENCE-LINE (the three cells), the sheet in the experience brief.
+**Used by.** The sheet in the experience brief; M-pool-energy-and-power in the rework brief (H-PLAYER-REFERENCE-LINE carried its three cells until retired 2026-10-30).
 
 ### K-sim-player-games-army-underestimated
 **Claim.** Against the player games of 2026-09-22 (thirteen Armada vehicle openings on Comet), the build-order
@@ -517,3 +517,19 @@ under 1,200 at 20:00, or reached 1,700 with basic converters or without the turr
 did not add their power to a frame placed among them (K-mech).
 **Used by.** The territory bot's benchmark (`bots/territory/README.md`, the reference rows), its T-LP room (the
 turret cap of six a factory) and T-COMMIT's opening; the brief's economy passages do not cite it yet.
+
+### K-team-allies-overflow-is-income-the-engine-leaves-out
+**Claim.** In a team game the metal and energy allies put into a seat's stores (gifts, and the overflow of a full
+neighbour) is income to that seat, and the engine's income figures (`Economy_getIncome`, the eco line's "+N") leave it
+out; it is reported apart (`Economy_getReceived`, the last second's figure). A seat that reads only the income reads
+itself as level while its store sits at cap.
+**Status.** observed (2026-10-25, one game; the engine's accounting from its source)
+**Evidence.** The Glitters 2v6 lobby game of 2026-10-25 (`run/matches/1792971120-human/00`, the ledger row): our
+flagship seat's metal at its cap (14,500-14,900) from 19:00 to 41:00 with income read as a flat 176.9 and usage
+150-280, the allies' overflow into our store at least 30-47 a second (a lower bound from the stock), and the eco line
+saying "in balance" and "FULL" together; `Event::Received` had no consumer in `crates/bot` (the recorder dropped it)
+while the distilled bot had read it since the same day (D-RECEIVED). Build power was frozen from 16:29 in that game.
+**Would be wrong if.** The engine's income figure included shared or overflowed resources (it does not: `CTeam::
+AddResources` with `useIncomeMultiplier` false books them to `resReceived`), or a seat reading the inflow still
+sat at cap as long.
+**Used by.** H-PLAYER-ALLIES-INFLOW (the eco line and the hands' picture, 2026-10-30); D-late-economy's team item.

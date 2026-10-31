@@ -69,6 +69,8 @@ const FRAMES_PER_SECOND: i32 = 30;
 /// Frames between runs of the whole brain (`think`), 2 Hz: the shim's ticks come more often than that, for the
 /// control lane (`micro.rs`), and must divide this (`docs/design/2026-09-20-micro-lane.md`).
 pub(crate) const BRAIN_FRAMES: i32 = 15;
+/// How long what allies put into our stores is averaged over (`Event::Received` comes once a second).
+const RECEIVED_WINDOW: i32 = 30 * FRAMES_PER_SECOND;
 
 pub struct Brain {
     world: World,
@@ -249,6 +251,11 @@ pub struct Brain {
     lane: micro::Lane,
     /// Events from the ticks since `think` last ran, in order, for its next run.
     carried_events: Vec<Event>,
+    /// Metal and energy allies put into our stores (`Event::Received`: gifts and overflow, the engine's figure for
+    /// the last second, once a second), kept for RECEIVED_WINDOW. The engine's income leaves it out, so a seat fed
+    /// by its allies read "in balance" with its store at cap (the Glitters 2v6 of 2026-10-25: 30 to 47 a second
+    /// arriving unread from 19:00 to 41:00).
+    received: std::collections::VecDeque<(i32, f32, f32)>,
     /// Ticks that came late (`Tick::late`) and the most frames one waited, since the last per-minute line.
     late_ticks: (u32, i32),
     /// How late the engine runs our orders, timed by our own chat lines (H-HANDS-ORDER-LAG).
@@ -404,6 +411,7 @@ impl Brain {
             journal: Default::default(),
             lane: Default::default(),
             carried_events: Vec::new(),
+            received: Default::default(),
             late_ticks: (0, 0),
             echo: Default::default(),
             self_destructing: HashMap::new(),
@@ -497,6 +505,12 @@ impl Brain {
                 eprintln!("[ai {}] f={} our line came back {lag} frames after we said it: orders run that late", self.world.hello.ai_id, tick.frame);
             }
         }
+        for event in &tick.events {
+            if let Event::Received { metal, energy } = event {
+                self.received.push_back((tick.frame, *metal, *energy));
+            }
+        }
+        self.received.retain(|(at, _, _)| tick.frame - at < RECEIVED_WINDOW);
         if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
             let mut commands = Vec::new();
@@ -734,6 +748,14 @@ impl Brain {
 
     fn ai(&self) -> i32 {
         self.world.hello.ai_id
+    }
+
+    /// What allies put into our stores a second, metal and energy, averaged over RECEIVED_WINDOW: an income the
+    /// engine's figure leaves out (the eco line says it beside the income and counts it in the flow words).
+    pub(super) fn received_rate(&self) -> (f32, f32) {
+        let seconds = (RECEIVED_WINDOW / FRAMES_PER_SECOND) as f32;
+        let (metal, energy) = self.received.iter().fold((0.0, 0.0), |(m, e), (_, rm, re)| (m + rm, e + re));
+        (metal / seconds, energy / seconds)
     }
 
     fn name(&self, def: UnitDefId) -> &str {

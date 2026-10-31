@@ -6,7 +6,7 @@
 //! `dense` through the `block` tool), and the bands of a turret and a frame are centred on it. Banks standing on its
 //! ground are listed in the report for reclaim-for-ground; the player decides (the `remove` tool).
 
-use bot_protocol::{OwnUnit, UnitDefId, Vec3};
+use bot_protocol::{OwnUnit, UnitDefId, UnitDefInfo, Vec3};
 use layout::{Block, BlockWants, DENSE_PITCH, Facts, SPARSE_PITCH};
 
 use super::pianist::glossary;
@@ -144,7 +144,10 @@ impl Brain {
         let Some(block) = self.block.as_ref() else {
             return self.block_failed.clone().map(|why| format!("the block (where your construction turrets and frames stand): {why}"));
         };
-        let turrets = own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def) && block.lattice().holds(u.pos)).count();
+        let on_it = || own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def) && block.lattice().holds(u.pos));
+        let turrets = on_it().count();
+        let power: f32 = on_it().filter_map(|u| self.world.def(u.def)).map(|d| d.build_speed).sum();
+        let clocks = self.block_clocks(power);
         let standing: Vec<layout::Rect> = own.iter().filter_map(|u| self.facts_of(u.def).filter(|f| f.building).map(|f| f.footprint.faced(u.facing).rect(u.pos))).collect();
         let frame_fp = self.frame_footprint_of(block);
         let free = block.free_frame_slots(&standing, frame_fp);
@@ -157,13 +160,42 @@ impl Brain {
         let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground: {} (reclaim them as the block's slots reach them: `remove`)", ground.join(", ")) };
         let placed = if block.marked { "at your `block` mark".to_string() } else { "beside the advanced plant; a `block` mark moves it".to_string() };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{gantry}{reclaim}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{clocks}{gantry}{reclaim}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
             if turrets == 1 { "" } else { "s" },
             block.frame_slots.len()
         ))
+    }
+
+    /// What a frame placed in the block stands in: the advanced constructor's generators and converter (the fusion,
+    /// the advanced fusion, the advanced converter; not the geothermal, which wants a vent), each its build time over
+    /// the power standing on the block, beside the lone advanced constructor's clock for the same kinds, so the two
+    /// are read side by side (econ-flagship-4 at 18:32, 11 turrets on the block and 6 of 6 slots free: "a fusion
+    /// takes about 186 s for a single advanced constructor, so new ones can't stand in time"). A clock, not advice:
+    /// the draw the stores must carry is the spending line's.
+    fn block_clocks(&self, power: f32) -> String {
+        let Some(kit) = self.kit.as_ref() else { return String::new() };
+        let Some(con) = self.world.def(kit.advanced_constructor) else { return String::new() };
+        let mut kinds: Vec<&UnitDefInfo> = con
+            .build_options
+            .iter()
+            .filter_map(|d| self.world.def(*d))
+            .filter(|d| d.speed == 0.0 && !self.world.is_factory_def(d.id) && !self.world.is_sea_def(d.id) && (d.energy_make > 0.0 || d.converter.is_some()))
+            .filter(|d| !glossary::entry(&d.name).is_some_and(|e| e.class.contains("geo")))
+            .collect();
+        kinds.sort_by(|a, b| a.build_time.total_cmp(&b.build_time));
+        if kinds.is_empty() {
+            return String::new();
+        }
+        let at = |p: f32| kinds.iter().map(|d| format!("{} {:.0} s", self.name(d.id), d.build_time / p)).collect::<Vec<_>>().join(", ");
+        let alone = format!("the {} alone: {}", self.name(con.id), at(con.build_speed.max(1.0)));
+        if power > 0.0 {
+            format!("; {power:.0} build power standing on it: a frame placed there stands in {} ({alone})", at(power))
+        } else {
+            format!("; no construction turret's power on it yet: a frame there builds at what walks to it ({alone})")
+        }
     }
 
     /// The footprint the block's frame slots were laid for: the row's depth less the slack, square.
@@ -230,6 +262,11 @@ mod tests {
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
         let line = brain.block_line(&ours).expect("a line");
         assert!(line.contains("6 of 6 frame slots free") && line.contains("sparse"), "{line}");
+        // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
+        // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.
+        brain.kit = Some(kit.clone());
+        let line = brain.block_line(&ours).expect("a line");
+        assert!(line.contains("no construction turret's power on it yet") && line.contains("(the armack alone: armckfus 217 s, armafus 1043 s)"), "{line}");
         // The bands: a turret's and a frame's are the block's.
         assert_eq!(brain.band_for(nano, &commander, &ours), (block.centre, block.reach));
         assert_eq!(brain.band_for(afus, &commander, &ours), (block.centre, block.reach));

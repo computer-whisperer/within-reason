@@ -815,6 +815,7 @@ impl Brain {
             frame: tick.frame,
             metal: snapshot.metal,
             energy: snapshot.energy,
+            received: self.received_rate(),
             wind: snapshot.wind,
             wind_range: (self.world.hello.map.wind_min, self.world.hello.map.wind_max),
             // By what a definition is, not by the kit's tier-1 land names: on SailAway 2 the line read "constructors 0
@@ -826,8 +827,6 @@ impl Brain {
                 generators: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0))).count(),
                 converters: count(kit.converter),
                 labs: standing.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
-                factories_begun: snapshot.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
-                construction_turrets_begun: snapshot.own_units.iter().filter(|u| self.is_static_builder(u.def)).count(),
                 turrets: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)).count(),
                 constructors: standing.iter().filter(|u| self.world.is_constructor_def(u.def)).count(),
                 army: soldiers.len(),

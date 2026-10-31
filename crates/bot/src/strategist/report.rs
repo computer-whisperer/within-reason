@@ -173,9 +173,27 @@ fn traded_words(t: &Traded) -> String {
     format!("lost {}; destroyed {}", bins(&t.lost, "metal"), bins(&t.killed, "metal of his"))
 }
 
+/// The eco line: both stores with the engine's income and usage, what allies pour in beside the income when they do
+/// (gifts and overflow, which the engine's income leaves out: the Glitters 2v6 of 2026-10-25 read "in balance" and
+/// "FULL" together while 30 to 47 a second arrived unread), the flow words on the whole inflow, the metal store's
+/// cap and the word when it is full (the impedance tally, 2026-10-16: the hands' picture said "2096 of 2100 stored
+/// (full: what comes in beyond this is wasted)" while the line here read "metal 1794 (+43.3/-35.3)"; jev114-player-1
+/// sat at the cap a fifth of the game), the wind and the counts.
+fn eco_line(briefing: &Briefing) -> String {
+    let (m, e, c) = (&briefing.metal, &briefing.energy, &briefing.counts);
+    let (rm, re) = briefing.received;
+    let from_allies = |r: f32| if r >= 0.5 { format!(", and {r:+.0} a second arriving from allies") } else { String::new() };
+    let full = m.storage > 0.0 && m.current / m.storage >= 0.98;
+    format!(
+        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}{}; {}){}, energy {:.0}/{:.0} ({:+.0}/-{:.0}{}; {}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
+        m.current, m.storage, m.income, m.usage, from_allies(rm), flow_words(m.income + rm, m.usage, m.current, m.storage), if full { " FULL: what comes in beyond the store is wasted" } else { "" },
+        e.current, e.storage, e.income, e.usage, from_allies(re), flow_words(e.income + re, e.usage, e.current, e.storage),
+        briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
+    )
+}
+
 pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats_line: bool) -> Vec<String> {
     let mut lines = Vec::new();
-    let c = &briefing.counts;
     let s = &field.score;
     lines.push(format!(
         "score: extractors {} (most held {}, no new high for {}; free spots {}: {} in our half our bots walk to, {} in our half under water or off their ground{}, {} in his half; nearest, our half first: {}; his extractors as our units last saw them, nearest our start first: {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; {}",
@@ -228,17 +246,7 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     // (H-PLAYER-ECO-WORDS; player-12 1:45: the line read "energy 1/1300 (+0)" behind an assisted constructor and the
     // word never appeared; the engine caps spending at income once the store is empty, so a net figure reads 0;
     // chase-player-2 5:08: "energy 1110/1550 (-89)" was twelve seconds from empty and the turn went to a plant).
-    let e = &briefing.energy;
-    // The metal store with its cap and the word when it is full, as the energy has had (the impedance tally,
-    // 2026-10-16: the hands' picture said "2096 of 2100 stored (full: what comes in beyond this is wasted)" while
-    // the line here read "metal 1794 (+43.3/-35.3)"; jev114-player-1 sat at the cap a fifth of the game).
-    let m = &briefing.metal;
-    let full = m.storage > 0.0 && m.current / m.storage >= 0.98;
-    lines.push(format!(
-        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}; {}){}, energy {:.0}/{:.0} ({:+.0}/-{:.0}; {}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
-        m.current, m.storage, m.income, m.usage, flow_words(m.income, m.usage, m.current, m.storage), if full { " FULL: what comes in beyond the store is wasted" } else { "" }, e.current, e.storage,
-        e.income, e.usage, flow_words(e.income, e.usage, e.current, e.storage), briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
-    ));
+    lines.push(eco_line(briefing));
     lines.extend(spending_line(briefing));
     if let Some(line) = stockpile_line(briefing) {
         lines.push(line);
@@ -249,10 +257,6 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     // The block: where the construction turrets and frames stand (the base layout design §1.1, step 3).
     if let Some(line) = &briefing.block {
         lines.push(line.clone());
-    }
-    // Where we stand against the experienced players' games on this map, in a duel (H-PLAYER-REFERENCE-LINE).
-    if briefing.sides.iter().all(|side| side.seats.len() == 1) && briefing.sides.len() == 2 {
-        lines.extend(super::reference::line(briefing, s));
     }
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();
@@ -955,5 +959,29 @@ mod sightings_tests {
         assert!(lines.iter().any(|l| l.starts_with("jammers of his (each hides") && l.contains("Erebus at G2")), "{lines:?}");
         assert!(lines.iter().any(|l| l.starts_with("fire from out of sight (standing places `guns_N`") && l.contains("guns_1")), "{lines:?}");
         assert!(lines.iter().any(|l| l.starts_with("shields of his: Soteria")), "{lines:?}");
+    }
+}
+
+#[cfg(test)]
+mod inflow_tests {
+    use super::*;
+    use bot_protocol::Resource;
+
+    /// What allies pour into our stores is said on the eco line beside the engine's income and counted in the flow
+    /// words, and nothing is said when nothing arrives (the Glitters 2v6 of 2026-10-25 read "in balance" and "FULL"
+    /// together while 30 to 47 a second arrived unread).
+    #[test]
+    fn the_eco_line_says_what_allies_pour_in() {
+        let briefing = Briefing {
+            metal: Resource { current: 14_800.0, storage: 14_900.0, income: 177.0, usage: 150.0 },
+            energy: Resource { current: 1_000.0, storage: 3_000.0, income: 400.0, usage: 300.0 },
+            received: (40.0, 0.0),
+            ..Briefing::default()
+        };
+        let line = eco_line(&briefing);
+        assert!(line.contains("metal 14800/14900 (+177.0/-150.0, and +40 a second arriving from allies; "), "{line}");
+        assert!(line.contains("FULL") && line.contains("energy 1000/3000 (+400/-300; "), "{line}");
+        let quiet = eco_line(&Briefing { received: (0.0, 0.0), ..briefing.clone() });
+        assert!(!quiet.contains("allies"), "{quiet}");
     }
 }
