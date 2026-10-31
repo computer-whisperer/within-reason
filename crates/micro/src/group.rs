@@ -614,7 +614,7 @@ impl Group {
                     // placement at plan time chose another free cell than `keep_off`'s beside, and the end moved
                     // between the two at every re-plan: foot2-pair-follow 8 s of overlap, the attack's blocks 662
                     // apart.)
-                    let point = if i == last { ground.stand(point).unwrap_or(point) } else { point };
+                    let point = if i == last { ground.stand(point, form::heading(from, point), self.members.len(), self.spacing).unwrap_or(point) } else { point };
                     let leg = ground.way_found_off(from, point, &self.others).unwrap_or_else(|| {
                         self.no_way = true;
                         vec![point]
@@ -747,7 +747,7 @@ impl Group {
                 // Beside before behind; of the two sides, the one nearer the host's end first.
                 let (mut beside, behind): (Vec<Vec3>, Vec<Vec3>) = candidates.into_iter().partition(|c| (c.x - o.anchor.x) * h.0 + (c.z - o.anchor.z) * h.1 > -behind / 2.0);
                 beside.sort_by(|a, b| a.dist2d(raw).total_cmp(&b.dist2d(raw)));
-                beside.into_iter().chain(behind).map(|c| self.ground.as_ref().and_then(|g| g.stand(c)).unwrap_or(c)).find(|c| free(*c))
+                beside.into_iter().chain(behind).map(|c| self.ground.as_ref().and_then(|g| g.stand(c, self.facing, self.members.len(), self.spacing)).unwrap_or(c)).find(|c| free(*c))
             })
         };
         self.placed = placed.map(|at| (raw, at, before));
@@ -869,16 +869,18 @@ impl Group {
         self.stand_anchor();
     }
 
-    /// An anchor set down on a cell with less than the ranks' room (the body's centroid fell on a structure or in a
+    /// An anchor set down where the ranks' slots do not all stand (the body's centroid fell on a structure or in a
     /// base lane: migration-2-1, eleven soldiers squeezed to a column of one with 16 of room) stands on the nearest
-    /// cell with that room within twice it (`Ground::stand`); a cell with the room keeps the anchor.
+    /// cell where they do (`Ground::stand`); an anchor whose slots all stand keeps its place.
     fn stand_anchor(&mut self) {
         let Some(ground) = &self.ground else { return };
-        if ground.room_at(self.anchor) >= ground.wanted() {
+        let count = self.members.len().max(1);
+        let here = ground.standing(self.anchor, self.facing, count, self.spacing);
+        if here == count {
             return;
         }
-        if let Some(at) = ground.stand(self.anchor)
-            && ground.room_at(at) > ground.room_at(self.anchor)
+        if let Some(at) = ground.stand(self.anchor, self.facing, count, self.spacing)
+            && ground.standing(at, self.facing, count, self.spacing) > here
         {
             self.anchor = Vec3 { y: self.anchor.y, ..at };
         }
@@ -2072,8 +2074,8 @@ mod tests {
         assert!(group.dirty && group.slot_of.is_empty(), "a new route plans and deals afresh");
     }
 
-    /// An anchor set down on a cell without the ranks' room (a factory's footprint under the body's centroid) stands
-    /// beside it where the room is.
+    /// An anchor set down where the ranks do not stand (a factory's footprint under the body's centroid) stands
+    /// beside it where every slot does.
     #[test]
     fn a_set_down_anchor_stands_where_the_ranks_have_room() {
         let (w, h) = (128usize, 64usize);
@@ -2088,8 +2090,8 @@ mod tests {
         group.set_ground(Some(ground.clone()));
         group.tick(3, &walkers, 64.0, &Pacing::default());
         group.settle_on_body(&walkers);
-        assert!(ground.room_at(group.anchor) >= ground.wanted(), "the anchor on a cell with the ranks' room: {:?} has {}", group.anchor, ground.room_at(group.anchor));
-        assert!(group.anchor.dist2d(at(1200.0, 500.0)) < 2.0 * ground.wanted() + 64.0, "and near the body: {:?}", group.anchor);
+        assert_eq!(ground.standing(group.anchor, group.facing, 6, 64.0), 6, "every slot on the ground: anchor {:?} facing {:?}", group.anchor, group.facing);
+        assert!(group.anchor.dist2d(at(1200.0, 500.0)) < 300.0, "and near the body: {:?}", group.anchor);
     }
 
     /// A hold whose every member is an exception (the members walked off, or joiners not yet in slot) is not arrived.
@@ -2231,12 +2233,11 @@ mod tests {
         assert!(state.heading.1 < -0.9, "facing north: {:?}", state.heading);
     }
 
-    /// D17: a member whose slot lies across the wall from it is cut off (its walk is many times the straight line) and
-    /// holds the anchor by nothing; a member whose slot is on the wall gets the slot snapped beside it.
+    /// D18 as amended 2026-10-31 (H-MICRO-STAND): a Go to a factory's centre plans its end off the factory, where every
+    /// slot of the ranks stands, and no further; a body of one stands a cell off its wall.
     #[test]
-    fn a_route_ending_on_a_structure_ends_where_the_body_has_room() {
-        // A flat map with a factory of 80 x 64 at (1,200, 500): a Go to the factory's centre plans its end off it with
-        // the room the ranks want, not against its wall with room for one file.
+    fn a_route_ending_on_a_structure_ends_where_the_body_stands() {
+        // A flat map with a factory of 80 x 64 at (1,200, 500).
         let (w, h) = (128usize, 64usize);
         let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
         let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
@@ -2247,9 +2248,35 @@ mod tests {
         group.set_ground(Some(ground.clone()));
         group.plan();
         let end = *group.way.last().unwrap();
-        assert!(ground.room_at(end) >= wanted_room(64.0), "the end has the body's room: {end:?} with {:.0}", ground.room_at(end));
-        assert!(end.dist2d(at(1200.0, 500.0)) < 2.0 * wanted_room(64.0) + 64.0, "and stands near the factory: {end:?}");
+        assert!(ground.passable_at(end), "the end off the factory: {end:?}");
+        assert!(end.dist2d(at(1200.0, 500.0)) < 120.0, "and against its wall (half-width 80 plus a cell), not out in the field: {end:?}");
         assert_eq!(group.state(&walkers(&[(1, 200.0, 500.0)], 100.0)).legs_left, 1);
+    }
+
+    /// barb-ladder3-20-1 group_W1 (2026-10-31): twelve Blitzes told to stand at an extractor with two turrets beside
+    /// it. The disk of the ranks' room about such a point is empty by definition, and the stand of D18 as first built
+    /// put the end 480 off; the body stands where its two ranks clear the buildings, within its own depth of the spot.
+    #[test]
+    fn a_route_ending_at_a_defended_extractor_stands_the_body_beside_it() {
+        let (w, h) = (128usize, 64usize);
+        let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let mut classes = Classes::default();
+        let spot = at(1200.0, 500.0);
+        // An extractor (3 x 3 squares) on the spot, a turret (2 x 2) 80 north-east and one 80 south-west of it.
+        let buildings = [crate::ground::Footprint::of(spot, (3, 3), 0), crate::ground::Footprint::of(at(1280.0, 420.0), (2, 2), 0), crate::ground::Footprint::of(at(1120.0, 580.0), (2, 2), 0)];
+        let (blocked, _) = crate::ground::structures(&terrain, &buildings);
+        let ground = Arc::new(Ground::new(&terrain, &[classes.passable(&terrain, tank), blocked], wanted_room(64.0)).unwrap());
+        assert!(ground.room_at(spot) < 64.0, "the spot has no room: {:.0}", ground.room_at(spot));
+        let ids: Vec<UnitId> = (1..=12).map(UnitId).collect();
+        let from: Vec<Vec3> = ids.iter().map(|id| at(300.0 + 40.0 * (id.0 % 6) as f32, 460.0 + 96.0 * (id.0 / 6) as f32)).collect();
+        let mut group = Group::new("w1", ids, GroupOrder::new(GroupKind::Go, vec![spot]), &from, 64.0);
+        group.set_ground(Some(ground.clone()));
+        group.plan();
+        let end = *group.way.last().unwrap();
+        let heading = form::heading(group.anchor, spot);
+        assert_eq!(ground.standing(end, heading, 12, 64.0), 12, "every slot on the ground at {end:?}");
+        assert!(end.dist2d(spot) < 2.0 * form::RANK_GAP + 32.0, "the body within its own depth of the spot, not in the field: {end:?} is {:.0} off", end.dist2d(spot));
     }
 
     #[test]

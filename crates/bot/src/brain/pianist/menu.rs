@@ -1275,10 +1275,11 @@ impl Brain {
             }
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
-        // The walk that ended in this hold reached its place whatever the anchor's distance to the spot
+        // The walk that ended in this hold reached its place, or stopped short of it by what it says
         // (H-HANDS-ARRIVAL, `Group::arrived_at`).
         let stop = match &group.arrived_at {
-            Some(place) => format!(", a stop it has reached ({place})"),
+            Some((place, short)) if *short > super::groups::ARRIVED => format!(", a stop {short:.0} short of {place}"),
+            Some((place, _)) => format!(", a stop it has reached ({place})"),
             None if reached_here => ", a stop it has reached".to_string(),
             None => String::new(),
         };

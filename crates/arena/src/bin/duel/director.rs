@@ -641,7 +641,7 @@ impl Director {
         // D21's arms: the rear party's types, the churned structure, the crosser.
         .into_iter()
         .chain(self.batch.drill.as_ref().into_iter().flat_map(|d| {
-            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).collect::<Vec<_>>()
+            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).chain(d.post.iter().map(|(n, _)| n.clone())).collect::<Vec<_>>()
         }))
         .collect::<Vec<_>>()).unwrap_or_default();
         for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
@@ -964,6 +964,21 @@ impl Director {
                     spawns.extend(rank.places_along(behind_at, heading, count).into_iter().zip(defs).map(|(at, def)| Self::spawn(def, place(at), None)));
                     // D23 `--late`: the rear party's indices, out of the group until `late` after the first order.
                     drill.rear = (first_rear..spawns.len()).collect();
+                }
+                // `--post` (H-MICRO-STAND's drill): our structures at the goal, the first on it, the rest round it
+                // across the axis first, then along it.
+                if !options.post.is_empty() {
+                    let defs: Vec<&UnitDefInfo> = options.post.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect();
+                    let round = [(perp.0, perp.1), (-perp.0, -perp.1), (axis.0, axis.1), (-axis.0, -axis.1)];
+                    spawns.extend(defs.into_iter().enumerate().map(|(i, def)| {
+                        let at = if i == 0 {
+                            drill.goal
+                        } else {
+                            let (dx, dz) = round[(i - 1) % round.len()];
+                            place(Vec3 { x: drill.goal.x + dx * drill::POST_OFF, y: 0.0, z: drill.goal.z + dz * drill::POST_OFF })
+                        };
+                        Self::spawn(def, at, None)
+                    }));
                 }
                 spawns
             };

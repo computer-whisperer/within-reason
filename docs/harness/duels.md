@@ -15,7 +15,7 @@ duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase 
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
-     [--lab armvp] [--target armshltx] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] ...
+     [--lab armvp] [--target armshltx] [--post FORCE] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
 duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
                                        a deployed army round a loop across the map while a lab feeds it (below)
@@ -280,7 +280,9 @@ unit is sent to its slot carried its lead ahead every tick, the director's own p
 and `--pace` are lane-off arms); `--lane ranks` is the same group with its order's `march` off, the slots standing at the
 destination. The per-second log carries the group's `anchor`, `heading`, `pace`, `full_pace`, `formed` (spawn
 indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'
-own arrival number). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
+own arrival number). `--post FORCE` ("armmex*1+armllt*2") stands our own structures at the goal, the first on it and the rest 96 off
+round it, never of the army: the walk to a defended extractor of ours (H-MICRO-STAND; barb-ladder3-20-1's group_W1), judged by
+the group's anchor at its arrival against the goal in the per-second log. **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
 12, before the fast units arrive) and ends when everyone is back. **gather** gives an `--lab` (default `armvp`) at
 the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it
 builds) and a free fusion for its energy (`--economy fed` unless `--economy bare` is given: the engine's cheat gives

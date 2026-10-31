@@ -16,8 +16,9 @@ use crate::world::Domain;
 /// one and two while the ball held 400 to 2,700 away, and died in ones and twos: human-8, eight Grunts lost by 3:14,
 /// every one in a group of five or fewer, 380 to 1,231 from the commander).
 const ADOPT_RADIUS: f32 = 400.0;
-/// A moving group has arrived when its centre is this close to its destination.
-const ARRIVED: f32 = 300.0;
+/// A moving group has arrived when its centre is this close to its destination; a declared group's front that stops
+/// further than this from the place it walked to has "stopped short" in the news and the idle words.
+pub(super) const ARRIVED: f32 = 300.0;
 /// H-HANDS-ARRIVAL: a declared group's walk has arrived when a marching company of this many or more stands arrived
 /// at the way's end (the lane's own flag, per company). The lane's composed `arrived` waits for every marching
 /// company, and an army fed by its plants' musters (released in fours at the smallest, `micro::army::MUSTER_MIN`)
@@ -178,11 +179,15 @@ pub(crate) struct Group {
     pub met: Option<(i32, String)>,
     /// What its rovers found, attacked, ran from and gave up, newest last, for the picture: (frame, words).
     pub rove_log: Vec<(i32, String)>,
-    /// The place whose walk ended in the hold the group is in (H-HANDS-ARRIVAL), until its next task: the idle words
-    /// say "a stop it has reached" by it even when the front stopped past `ARRIVED` of the spot (apex-v0409-comet-
+    /// The place whose walk ended in the hold the group is in (H-HANDS-ARRIVAL), until its next task, and how far
+    /// from it the front stopped: the idle words say "a stop it has reached (spot_15)" within `ARRIVED` and "a stop
+    /// 480 short of spot_63" past it, and while it is set the nearness register above is quiet (apex-v0409-comet-
     /// sym0-opus-2 13:16-13:46: the front company arrived 300-odd from spot_15, the idle words said nothing of a stop
-    /// reached, and the pick sent the group to spot_15 again every second or two, twenty times).
-    pub arrived_at: Option<String>,
+    /// reached, and the pick sent the group to spot_15 again every second or two, twenty times; barb-ladder3-20-1
+    /// 14:23-14:51: the front stopped 480 from spot_63 beside spot_59, the arrival wrote "reached spot_63" and the
+    /// nearness register "reached spot_59" in turn every second, each a piece of news, and the words "a stop it has
+    /// reached (spot_63)" stood against a packet asking for spot_63 while the pick walked the group there 23 times).
+    pub arrived_at: Option<(String, f32)>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -601,8 +606,11 @@ impl Brain {
             // The registers' facts: a named place (`menu::named_places`) the body comes within `ARRIVED` of is
             // reached, said in `recent` and asked about at once; the first enemies in sight since the last stop are
             // kept until the next. Code records; Jev picks the next move.
+            // One register writes at a time: a group holding where its walk ended (`arrived_at`) is where that walk
+            // says, and the nearest named place is not news until its next task.
             let here = pianist.places.iter().find(|p| pianist.named.contains(&p.name) && p.at.dist2d(centre) < ARRIVED).map(|p| p.name.clone());
             if let Some(place) = here
+                && group.arrived_at.is_none()
                 && group.reached.last().is_none_or(|(last, _)| *last != place)
             {
                 if group.reached.len() >= REACHED_KEPT {
@@ -638,19 +646,23 @@ impl Brain {
                     {
                         // An arrival ends the order in a hold nobody picked, the front's anchor where it stands:
                         // the group is idle and is asked; the companies still on the road walk to the hold. A
-                        // shell's hold keeps shelling: the screen stays between (chunk 5). The place is reached,
-                        // in the register and the idle words, whatever the anchor's distance to the spot.
+                        // shell's hold keeps shelling: the screen stays between (chunk 5). Within `ARRIVED` of the
+                        // spot the place is reached, in the register and the idle words; further off the news and
+                        // the words say how far short it stopped, and the register is not written.
                         let place = place.clone();
+                        let short = at.dist2d(*to);
                         let (shelling, screen) = (group.shelling, group.screen);
                         group.set_task(GroupTask::Hold { picked: false, at }, frame);
-                        if group.reached.last().is_none_or(|(last, _)| *last != place) {
+                        if short > ARRIVED {
+                            route_news.push(format!("group_{} stopped {short:.0} short of {place}", group.name));
+                        } else if group.reached.last().is_none_or(|(last, _)| *last != place) {
                             if group.reached.len() >= REACHED_KEPT {
                                 group.reached.remove(0);
                             }
                             group.reached.push((place.clone(), frame));
                             route_news.push(format!("group_{} reached {place}", group.name));
                         }
-                        group.arrived_at = Some(place);
+                        group.arrived_at = Some((place, short));
                         if shelling {
                             group.shelling = true;
                             group.screen = screen;

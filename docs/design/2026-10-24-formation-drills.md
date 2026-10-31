@@ -602,6 +602,20 @@ order, measured. Reuses the engine start, the sites, the sweep, `duels.csv`, the
   margin is the measure there, and a mirror on a detour wants a shorter time limit.
   **Order:** (1), (2), (3), (4), each committed with its ledger rows; then the migration design (the task mapping,
   Follow, the words, the record's group line) as a written proposal for the user to rule on.
+  **Amended 2026-10-31 (H-MICRO-STAND; barb-ladder3-20-1 group_W1):** the stand of (2) is replaced. It asked for the
+  nearest cell with a clear disk of the ranks' room (`wanted`, 224 at the hull spacing) about the anchor, our own
+  structures among the walls, because when it was built the files narrowed to the room at the anchor and an anchor
+  against a factory gave a column. The contact cleanup (2026-10-28, §4) fixed the files at six, and D17 already snaps a
+  slot on a blocked cell beside it, so the disk guarded nothing; and at a point among our own buildings it is empty by
+  definition: group_W1, told to stand at an extractor with two Sentries, was walked to the nearest open field 480 off,
+  arrived there, and was sent to the spot again 23 times in 28 s. Now `Ground::stand` lays the body's own slots (its
+  count, six files at its spacing, facing the leg into the point) at each cell about the point, nearest first within 32
+  cells, and takes the first where every slot stands, else the nearest with the most standing; the walk's end,
+  `keep_off`'s cells beside another formation and the set-down anchor all use it. The way's price keeps `wanted`: that
+  is the corridors' concern, and right. Tests: a Go to a factory's centre ends a cell off its wall
+  (`a_route_ending_on_a_structure_ends_where_the_body_stands`); twelve Blitzes to a defended extractor end within the
+  body's depth of it (`a_route_ending_at_a_defended_extractor_stands_the_body_beside_it`). Drill: `duel --drill walk
+  --post armmex*1+armllt*2` (ledger stand0 / stand1): under the old stand the body stopped 270-400 short in 3 of 3 (the anchor 263-326 off at the drill's end with 9-72 of way left, no Blitz within 300); under the new one the end lies 46-55 from the spot (the anchor 51-98 off with 4-52 of way left, 10-11 of 12 within 300 at 14-15 s). The circuit (181 / 184 / 186 s, formed 0.94) and the pair walk and follow (overlap 32.2 / 1.0 s, arrival 45 / 49 s) match the face1 rows.
 
 - **D19. The trail closes** (item 19; the user, 2026-10-25: "Good. Continue with the next chunk", on my proposal to fix
   it before the migration design). At a pace fraction of one a member walks no faster than its slot, so a trail once

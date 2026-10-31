@@ -206,7 +206,14 @@ pub struct Options {
     pub cap: usize,
     /// `pair`: what the second group does (`--pair walk|follow|attack`).
     pub pair: PairMode,
+    /// Our own structures at the goal (`--post name*count[+...]`, "armmex*1+armllt*2"): the first stands on the goal,
+    /// the rest round it `POST_OFF` off, side `x`'s and never of the army. H-MICRO-STAND's drill: a body told to
+    /// stand at a defended extractor (barb-ladder3-20-1 group_W1).
+    pub post: Vec<(String, u32)>,
 }
+
+/// How far from the goal the posted structures after the first stand.
+pub const POST_OFF: f32 = 96.0;
 
 /// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
 /// and of a pending give, and the cadence.
@@ -971,7 +978,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk, post: Vec::new() }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back

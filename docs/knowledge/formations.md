@@ -327,3 +327,23 @@ ground's costs alone; `lib.rs` giving `keep_off` the footprints after the plan.
 overlap longer than under `keep_off` alone (ledger pair2 / foot1), or a game showed companies walking through each
 other's standing footprints with the price in force.
 **Used by.** H-MICRO-GROUND-FORMATIONS.
+
+### K-group-a-disk-of-room-is-no-stand-among-our-buildings
+**Claim** (2026-10-31, from barb-ladder3-20-1). A body's standing place cannot be judged by the clearance about one
+cell. The clearance (`room`, the distance to the nearest blocked cell) is the right price for a corridor the body walks
+through; at a destination the question is whether the body's slots land on open ground, and a formation standing at a
+building has the building inside its hull, where a disk of its half-width is empty by definition. Judged by the disk,
+every defended extractor, factory and turret cluster of ours sends a body told to stand there to the nearest open field
+within the search's reach, and the hands, told by the lane that the walk ended, call the place reached. Judged by the
+slots, the body stands beside or around the building, within its own depth of the point.
+**Evidence.** The record and Jev log of `run/matches/1793456996-barb-ladder3-20-1/00`: group_W1 (12 Blitzes) at
+14:18-14:51 under the packet "With no raider at our extractors it stands at spot_63"; the lane's end recomputed from
+`terrain-0.bin` and the structures standing (an extractor and two Sentries at spot_63): room at the spot 36 with them,
+285 without; the nearest cell with 224 of room (2952, 4296), 480 from spot_63 and 233 from spot_59, the anchor's place
+to the elmo; the walk's way 0-1 elmo, arrived at once; the register alternating "reached spot_59" / "reached spot_63"
+every second; 23 picks of go_spot_63 at 0.57-0.75. group_Q3 at the same spots 22:53-23:15 (way 332 → 35, arrived 441
+off): 12 picks. The unit tests under H-MICRO-STAND. Drill (`duel --drill walk --ours armflash*12 --order move --lane on --post armmex*1+armllt*2 --distance 1500`, ledger stand0 / stand1): the old stand stopped the body 270-400 short of the extractor in 3 of 3 and the lane called it arrived with no Blitz within 300; the new one ends 46-55 from it with 10-11 of 12 within 300 at 14-15 s.
+**Would be wrong if.** A body under H-MICRO-STAND stood on or jammed against a building it was sent to (the slots'
+snapping failing to part it), or the circuit and pair drills (ledger stand1-*) lost formed share or arrival against the
+face1 / foot1 rows.
+**Used by.** H-MICRO-STAND, H-HANDS-ARRIVAL.
