@@ -41,7 +41,7 @@ pub struct Routes {
     from_home: Field,
     /// Where each movement class we field can stand, and its distances from home: for snapping and reachability
     /// by class. Built at the survey for every class among the units the commander reaches.
-    classes: HashMap<Walker, (Vec<bool>, Field)>,
+    classes: HashMap<Walker, (layout::Passable, Field)>,
     /// Distance from the nearest live enemy base.
     from_enemy: Option<Field>,
     /// The narrow places between home and the enemy's bases: of the two fields, so computed when `from_enemy` is
@@ -106,10 +106,10 @@ impl Brain {
         // Each class's field starts from the nearest ground that class stands on: seeded at our start itself, a ship's
         // field from a start on land was never made, the ship fell back to the soldiers' reach, and the construction
         // ships of game 12 on SailAway 2 were offered no spot all game (K-hands-a-ships-field-from-a-land-start).
-        let classes: HashMap<Walker, (Vec<bool>, Field)> = distinct
+        let classes: HashMap<Walker, (layout::Passable, Field)> = distinct
             .iter()
             .filter_map(|(key, mc)| {
-                let passable = terrain::passable(terrain, *mc);
+                let passable: layout::Passable = terrain::passable(terrain, *mc).into();
                 let origin = nearest_passable(terrain, &passable, self.home, 2500.0)?;
                 Field::from(terrain, &passable, origin).map(|f| (*key, (passable, f)))
             })
@@ -283,7 +283,7 @@ impl Brain {
         self.routes.as_ref().map(|r| r.passable.as_slice())
     }
 
-    pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<&[bool]> {
+    pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<layout::Passable> {
         let routes = self.routes.as_ref()?;
         let strictest = self
             .world
@@ -291,9 +291,9 @@ impl Brain {
             .build_options
             .iter()
             .filter_map(|id| self.world.def(*id).filter(|d| d.speed > 0.0).and_then(|d| d.move_class))
-            .filter_map(|mc| routes.classes.get(&Walker::Class(ClassKey::of(mc))).map(|(passable, _)| passable.as_slice()))
+            .filter_map(|mc| routes.classes.get(&Walker::Class(ClassKey::of(mc))).map(|(passable, _)| passable))
             .min_by_key(|passable| passable.iter().filter(|p| **p).count());
-        Some(strictest.unwrap_or(routes.passable.as_slice()))
+        Some(strictest.cloned().unwrap_or_else(|| routes.passable.clone().into()))
     }
 
     /// The reachable ground nearest `pos`; `pos` itself when we cannot tell.

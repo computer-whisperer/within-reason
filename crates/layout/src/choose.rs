@@ -312,7 +312,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
             }
             // A plant's own street, from the site it would stand at.
             if f.factory {
-                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), sea: f.product_sea };
+                let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), passable: f.product_passable.clone() };
                 if !street_open(&world.ground, &own, &blocks, &*world.open) {
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
                     blocks.pop();
@@ -351,7 +351,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         return None;
     }
     if f.factory {
-        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: f.product_sea };
+        let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: f.product_passable.clone() };
         let apron = own.apron();
         if !world.ground.in_map(&apron) || world.standing_near(&apron).any(|(_, s)| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
             return None;
@@ -359,9 +359,8 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         if world.spots_near(&apron).any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
             return None;
         }
-        // A shipyard's apron is water its ships float in, whatever the land's passable set says (water-1: every
-        // shipyard site was refused by the land's apron check).
-        let passable = |p: Vec3| if f.product_sea > 0.0 { world.ground.height_at(p.x, p.z).is_some_and(|h| h <= -f.product_sea) } else { (world.open)(p) };
+        // The apron is the products' own ground (water-1: every shipyard site was refused by the land's apron check).
+        let passable = |p: Vec3| own.stands(&world.ground, &*world.open, p);
         if !apron_open(&apron, &passable) {
             return None;
         }
@@ -683,7 +682,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32, blast: Option<(f32, f32)>) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn builder() -> Facts {
@@ -707,7 +706,7 @@ mod tests {
         let mut w = world(&t, &open);
         let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
         w.standing.push(standing(3, 10, at(2008.0, 2008.0), 155.0, 340.0, Some((50.0, 89.0))));
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: at(2100.0, 2100.0), radius: 300.0, builder_at: at(2100.0, 2100.0), builder: builder() };
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: at(2100.0, 2100.0), radius: 300.0, builder_at: at(2100.0, 2100.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(Footprint { x: 10, z: 10 }.rect(site.at).touches(&w.standing[0].rect), "{site:?}");
         assert!(site.words.contains("touching 1"));
@@ -716,7 +715,7 @@ mod tests {
         for k in 0..6 {
             w.standing.push(standing(4, 6, at(2408.0 + 48.0 * k as f32, 2408.0), 1.0, 167.0, Some((64.0, 200.0))));
         }
-        let req = Request { facts: conv, purpose: Purpose::Generator { cap: Some(6) }, centre: at(2520.0, 2400.0), radius: 200.0, builder_at: at(2520.0, 2400.0), builder: builder() };
+        let req = Request { facts: conv.clone(), purpose: Purpose::Generator { cap: Some(6) }, centre: at(2520.0, 2400.0), radius: 200.0, builder_at: at(2520.0, 2400.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         let rect = Footprint { x: 6, z: 6 }.rect(site.at);
         assert!(w.standing[1..].iter().all(|s| !s.rect.touches(&rect) && gap(&s.rect, &rect) >= BANK_STREET), "{site:?}");
@@ -741,12 +740,12 @@ mod tests {
         // The builder south of the wall, under the notch.
         let builder_at = at(2008.0, 2150.0);
         // No cap here: the walk alone decides between touching two across the wall and touching one on this side.
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(site.at.z > 2048.0, "across the wall: {site:?}");
         assert!(site.words.contains("touching 1"), "{site:?}");
         // The cap: with the wall's bank of thirteen over a cap of 8, nothing touching it is a candidate.
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: Some(8) }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: Some(8) }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(site.words.contains("founding"), "{site:?}");
         let rect = Footprint { x: 10, z: 10 }.rect(site.at);
@@ -760,14 +759,14 @@ mod tests {
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        let plant = |p: Vec3| Plant { centre: p, footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into(), sea: 0.0 };
+        let plant = |p: Vec3| Plant { centre: p, footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into(), passable: None };
         w.plants.push(plant(at(2000.0, 2000.0)));
         w.plants.push(plant(at(2000.0, 2300.0)));
         for p in [at(2000.0, 2000.0), at(2000.0, 2300.0)] {
             w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(p), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant".into() });
         }
         let nano = Facts { build_distance: 240.0, build_speed: 200.0, ..facts(5, 6, 300.0, 560.0, Some((100.0, 530.0))) };
-        let req = Request { facts: nano, purpose: Purpose::Turret, centre: at(2000.0, 2150.0), radius: 400.0, builder_at: at(2000.0, 2150.0), builder: builder() };
+        let req = Request { facts: nano.clone(), purpose: Purpose::Turret, centre: at(2000.0, 2150.0), radius: 400.0, builder_at: at(2000.0, 2150.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(site.words.starts_with("2 pads"), "{site:?}");
         // Its site is not in either plant's apron (east of them).
@@ -775,13 +774,13 @@ mod tests {
         // A second plant beside the first, within the turret's reach, facing east like it.
         w.workers.push(Worker { at: site.at, reach: 240.0, power: 200.0 });
         let vp = Facts { factory: true, product_half: 32.0, ..facts(9, 12, 700.0, 3000.0, None) };
-        let req = Request { facts: vp, purpose: Purpose::Plant, centre: at(2000.0, 2150.0), radius: 500.0, builder_at: at(2000.0, 2150.0), builder: builder() };
+        let req = Request { facts: vp.clone(), purpose: Purpose::Plant, centre: at(2000.0, 2150.0), radius: 500.0, builder_at: at(2000.0, 2150.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(site.words.starts_with("1 turret"), "{site:?}");
         assert_eq!(site.facing, 1, "{site:?}");
         // A fusion goes within the worker's reach: fewer seconds to stand.
         let fus = Facts { build_time: 100_000.0, ..facts(7, 8, 4300.0, 3800.0, Some((300.0, 3000.0))) };
-        let req = Request { facts: fus, purpose: Purpose::Frame, centre: at(2000.0, 2150.0), radius: 600.0, builder_at: at(2600.0, 2150.0), builder: builder() };
+        let req = Request { facts: fus.clone(), purpose: Purpose::Frame, centre: at(2000.0, 2150.0), radius: 600.0, builder_at: at(2600.0, 2150.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert!(distance_to(&Footprint { x: 8, z: 8 }.rect(site.at), w.workers[0].at) <= 240.0, "{site:?}");
     }
@@ -795,16 +794,16 @@ mod tests {
         let vp = Facts { factory: true, product_half: 32.0, ..facts(9, 12, 700.0, 3000.0, None) };
         let builder_at = at(4040.0, 2048.0);
         let w = world(&t, &open);
-        let req = Request { facts: vp, purpose: Purpose::Plant, centre: builder_at, radius: 60.0, builder_at, builder: builder() };
+        let req = Request { facts: vp.clone(), purpose: Purpose::Plant, centre: builder_at, radius: 60.0, builder_at, builder: builder() };
         let site = choose(&w, &req).expect("a site");
         assert_ne!(site.facing, 1, "not east, off the map: {site:?}");
         let spots = [at(2300.0, 2048.0)];
         let mut w = world(&t, &open);
         w.spots = &spots;
         let builder_at = at(2100.0, 2048.0);
-        let req = Request { facts: vp, purpose: Purpose::Plant, centre: builder_at, radius: 60.0, builder_at, builder: builder() };
+        let req = Request { facts: vp.clone(), purpose: Purpose::Plant, centre: builder_at, radius: 60.0, builder_at, builder: builder() };
         let site = choose(&w, &req).expect("a site");
-        let own = Plant { centre: site.at, footprint: vp.footprint, facing: site.facing, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let own = Plant { centre: site.at, footprint: vp.footprint, facing: site.facing, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), passable: None };
         assert!(!own.apron().overlaps(&Rect { x0: 2268.0, z0: 2016.0, x1: 2332.0, z1: 2080.0 }), "the apron over the spot: {site:?}");
         assert!(site.at.dist2d(spots[0]) >= 100.0);
     }
@@ -816,7 +815,7 @@ mod tests {
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 });
+        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), passable: None });
         w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
         for k in -12..=12 {
             if k == 0 {
@@ -825,7 +824,7 @@ mod tests {
             w.standing.push(standing(3, 10, at(2200.0, 2000.0 + 80.0 * k as f32), 155.0, 340.0, None));
         }
         let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: at(2200.0, 2000.0), radius: 120.0, builder_at: at(2200.0, 2000.0), builder: builder() };
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: at(2200.0, 2000.0), radius: 120.0, builder_at: at(2200.0, 2000.0), builder: builder() };
         let site = choose(&w, &req).expect("a site");
         let rect = Footprint { x: 10, z: 10 }.rect(site.at);
         assert!(!rect.overlaps(&Rect { x0: 2160.0, z0: 1960.0, x1: 2240.0, z1: 2040.0 }), "placed in the gap: {site:?}");
@@ -842,8 +841,8 @@ mod sea_tests {
         let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
         let open = |_: Vec3| true;
         let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
-        let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
-        let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
+        let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
+        let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         assert!(!w.ground.depths_on_map(&shipyard));
         let req = Request { facts: shipyard.clone(), purpose: Purpose::Plant, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder: builder.clone() };
         let why = choose(&w, &req).unwrap_err();
@@ -852,13 +851,13 @@ mod sea_tests {
         // A land kind's search makes one flood and a second kind from the same place with the same band reuses it.
         shipyard.min_depth = crate::NO_DEPTH_FLOOR;
         shipyard.max_depth = 0.0;
-        shipyard.product_sea = 0.0;
+        shipyard.product_passable = None;
         assert!(w.ground.depths_on_map(&shipyard));
-        let req = Request { facts: shipyard, purpose: Purpose::Plant, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder: builder.clone() };
+        let req = Request { facts: shipyard.clone(), purpose: Purpose::Plant, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder: builder.clone() };
         assert!(choose(&w, &req).is_ok());
         assert_eq!(w.walks.borrow().len(), 1);
-        let solar = Facts { def: UnitDefId(3), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0};
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder };
+        let solar = Facts { def: UnitDefId(3), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None};
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: at(2048.0, 2048.0), radius: 600.0, builder_at: at(2048.0, 2048.0), builder };
         assert!(choose(&w, &req).is_ok());
         assert_eq!(w.walks.borrow().len(), 1, "the same start, centre and radius: the flood is shared");
     }
@@ -889,10 +888,10 @@ mod sea_tests {
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
         let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
-        let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 };
-        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
+        let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None };
+        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
-        let req = Request { facts: tidal, purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 400.0, builder_at, builder: commander };
+        let req = Request { facts: tidal.clone(), purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 400.0, builder_at, builder: commander };
         let site = choose(&w, &req).expect("a site on the water");
         assert!(ground.height_at(site.at.x, site.at.z).is_some_and(|h| h < 0.0), "{site:?} is not on the water");
         assert!(site.at.x < 2150.0 && site.at.dist2d(builder_at) < 300.0, "{site:?} is not the water nearest the commander (the walk band of 48 lets the shore slide)");
@@ -906,10 +905,10 @@ mod sea_tests {
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
         let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
-        let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_sea: 15.0 };
-        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_sea: 0.0 };
+        let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
+        let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
-        let req = Request { facts: shipyard, purpose: Purpose::Plant, centre: builder_at, radius: 600.0, builder_at, builder: commander };
+        let req = Request { facts: shipyard.clone(), purpose: Purpose::Plant, centre: builder_at, radius: 600.0, builder_at, builder: commander };
         let site = choose(&w, &req).expect("a shipyard site on the water");
         assert!(ground.height_at(site.at.x, site.at.z).is_some_and(|h| h <= -30.0), "{site:?} is not in water 30 deep");
         assert!(site.at.x < 2400.0, "{site:?} is far out to sea");

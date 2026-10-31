@@ -277,6 +277,28 @@ and the `remove` call after it).
 **Status.** Fixed 2026-09-30 (the facing is chosen at placement, the edge counts as blocked, the wake names the
 ground), unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
 
+### K-eco-a-plants-street-on-anothers-ground-is-no-street
+**Claim.** A plant's street is only a street over the ground its own products stand on. The layout layer judged every
+street and apron on one passable set, the route survey's for the kit's raider (the Pawn, slopes to 105 of 255), while
+a vehicle plant's Stumpy stops at 28: ground between the two limits, a crater's rim on Comet Catcher, is open to the
+rule and a wall to the units. In apex-v0409-comet-sym0-opus-2 (2026-10-31) the three vehicle plants at (1326, 5472),
+(1470, 5312) and (1550, 5184), all facing east, shared one pocket whose north wall is the crater's rim; the solars
+closed the pocket's east and south by 10:30 (the first plant: the solar at (1416, 5160) and the nanos of 10:06 and
+10:29) and 12:00 (the other two: the solar column at x 1720-1880, 11:24-11:54). A flood from each door over vehicle
+ground with the buildings of 15:30 reaches 89-104 cells and no open; over bot ground, 3,700-4,900 cells and the open
+through the rim. The packet carried the contradiction all game: the yard line "nothing of ours stands in the lane: the
+jam is the units themselves or the ground" beside the street line "open for everything it makes". At 15:30, 57 of our
+137 mobile units stood in the base (38 Stumpies, 9 constructors); the player's debrief blamed two nanos in a lane, which
+were real and whose removal opened nothing. The stand (the opening) and the yard wake already used the plant's own
+strictest class (`passable_for_factory`); the layout world and its street report did not.
+**Evidence.** `run/matches/1793430155-apex-v0409-comet-sym0-opus-2/00` (record-0.jsonl, terrain-0.bin; the floods and
+the per-minute pen scan in the session's scratchpad `exit/pen.py`, `exit/scan.py`; `run/base_layout.py pen` on the
+record says penned from minute 9-13 for every footprint under the vehicle limit); strategist-0.jsonl's yard and street
+lines; the user's note at 15:30.
+**Status.** Fixed 2026-10-31 (`Facts::product_passable` / `Plant::passable`, the shipyard's depth folded into the same
+set), unmeasured in a game; judge by `run/base_layout.py pen` on the ladder games. Exploited by [[H-ECO-YARD-LANE]],
+[[H-ECO-SEA]].
+
 ### K-eco-a-factory-with-a-spot-in-its-lane-gets-an-extractor-there
 **Claim.** An extractor is placed exactly on its spot and no exit lane keeps it out (a spot is where it is), but a
 factory's site and facing were chosen with keep-outs mirrored only from standing buildings and ordered builds, both

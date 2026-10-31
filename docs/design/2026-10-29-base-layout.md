@@ -170,6 +170,14 @@ a `Field` from the door with the clearance bound). A site that fails is moved to
 that holds when the plan is disturbed (spots, slopes, losses, the player's own marks), and it is what the fencing-in
 instrument measures after the fact.
 
+**Amended 2026-10-31.** The ground the flood runs over is the plant's own: the passable set of the strictest movement
+class among its products (`Facts::product_passable` → `Plant::passable`, the bot's `passable_for_factory`), for a
+shipyard the Ship class's (water its floor deep; the depth field this stood in for is gone). Until then the street and
+the apron ran over the layout world's `open`, the route survey's set for the kit's raider (the Pawn, slopes to 105):
+in apex-v0409-comet-sym0-opus-2 the three vehicle plants' pocket had a crater's rim for its north wall, bot ground and
+no vehicle's, so the street was open through the rim all game while every vehicle was penned from 10:30 / 12:00
+(K-eco-a-plants-street-on-anothers-ground-is-no-street).
+
 ### 1.3 The chain sum, the second criterion
 
 The user's ruling (2026-10-29): avoiding chain death is "a second or third optimization criteria rather than a

@@ -111,7 +111,9 @@ commander's opening goes to the stand, its list's leading steps solved once as e
 stands and ordered as one queue; every other site but an extractor's (inside its patch, toward the builder) and a sea
 building's (the engine's search on the nearest water) is the layout layer's: constraints (the footprint stands, nothing
 under it, the stand's slots kept, off the spots, no plant's apron of 96 and no plant's street closed, ours or an
-ally's, banks touching or a street apart and capped at six for converters and winds, the kind's band of distance: a
+ally's, the street and the apron judged on the plant's own products' ground (since 2026-10-31; on the raider's
+before, and apex-v0409-comet-sym0-opus-2's three vehicle plants were penned by a crater's rim the street called
+open), banks touching or a street apart and capped at six for converters and winds, the kind's band of distance: a
 generator 300 from its builder, a turret 400 from a pad, a plant or frame 600 from the builder, a stockpiler 500 round a
 point 300 behind home, the player's place 200 round it, a defence 150 round a point 120 toward his base), then the
 purpose (neighbours of its kind, pads and frames in reach, turrets in reach and the facing toward the enemy, seconds

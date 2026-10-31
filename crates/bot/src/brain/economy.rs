@@ -6,7 +6,7 @@
 //! (`stand.rs`). The rules that chose what to build went with the heuristic bot (2026-09-25,
 //! `docs/design/2026-09-25-one-decider.md`).
 
-use bot_protocol::{BuildSite, MoveKind, OwnUnit, Placement, UnitDefId, Vec3};
+use bot_protocol::{BuildSite, OwnUnit, Placement, UnitDefId, Vec3};
 use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Reservation, Reserved, Standing, Worker, World};
 
 use super::roster::Kit;
@@ -72,9 +72,10 @@ impl Brain {
             return Some(facts);
         }
         let products: Vec<_> = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).collect();
-        let widest = products.iter().max_by_key(|p| p.footprint.0.max(p.footprint.1));
-        let sea = widest.and_then(|p| p.move_class).filter(|m| m.kind == MoveKind::Ship).map_or(0.0, |m| m.depth);
-        Some(facts.with_products(Facts::product_half_of(products.iter().map(|p| layout::Footprint { x: p.footprint.0, z: p.footprint.1 })), sea))
+        // The ground its products stand on: the strictest class among them (a vehicle plant's on slopes to 28 where
+        // the route survey's Pawn climbs 105: apex-v0409-comet-sym0-opus-2's three plants penned by a crater's rim).
+        let walk = self.passable_for_factory(def);
+        Some(facts.with_products(Facts::product_half_of(products.iter().map(|p| layout::Footprint { x: p.footprint.0, z: p.footprint.1 })), walk))
     }
 
     /// What a kind is placed for (the design's level 1).
@@ -211,13 +212,12 @@ impl Brain {
         }
     }
 
-    /// A plant for the street rule: its footprint, facing and its widest product's half-width, and for a shipyard the
-    /// water its widest product floats in.
+    /// A plant for the street rule: its footprint, facing, its widest product's half-width and its products' ground.
     pub(super) fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
         let f = self.facts_of(def)?;
         let d = self.world.def(def)?;
         let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1));
-        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), sea: f.product_sea })
+        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), passable: f.product_passable.clone() })
     }
 
     /// Where a building of `def` goes for `builder` without a place from the player: the stand's slot for its kind

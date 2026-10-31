@@ -6,7 +6,7 @@
 
 use bot_protocol::Vec3;
 
-use crate::{Footprint, GRID, Ground, Rect, facing_dir, lane_rect};
+use crate::{Footprint, GRID, Ground, Passable, Rect, facing_dir, lane_rect};
 
 /// The ground before a plant's door kept clear of everything: the engine's empty-spot search walks the front
 /// (`Factory.cpp` `SendToEmptySpot`), and the people clear about 100 (the study §4); six cells of the grid.
@@ -28,12 +28,20 @@ pub struct Plant {
     pub name: String,
     /// What it makes, for the report's words ("closed for Bulls").
     pub widest: String,
-    /// For a plant whose widest product is a ship, the shallowest water it floats in: its street runs through water
-    /// at least that deep, whatever the ground's passable set says. 0 for a plant whose products walk.
-    pub sea: f32,
+    /// The ground its products stand on (`Facts::product_passable`); its street runs over it, and over the caller's
+    /// `open` when it has none.
+    pub passable: Option<Passable>,
 }
 
 impl Plant {
+    /// Whether its products stand at `p`: by its own walk set, else by the caller's `open`.
+    pub fn stands(&self, ground: &Ground, open: &dyn Fn(Vec3) -> bool, p: Vec3) -> bool {
+        match &self.passable {
+            Some(walk) => ground.walks(walk, p.x, p.z),
+            None => open(p),
+        }
+    }
+
     pub fn rect(&self) -> Rect {
         self.footprint.faced(self.facing).rect(self.centre)
     }
@@ -71,8 +79,9 @@ pub enum StreetState {
     Closed { opener: Option<usize> },
 }
 
-/// Whether the plant's widest product walks from its door to the open, over ground `open` and round every rect of
-/// `blocks` (the plant's own footprint among them or not: its door lies outside it).
+/// Whether the plant's widest product walks from its door to the open, over the plant's own ground (`open` for a
+/// plant without one) and round every rect of `blocks` (the plant's own footprint among them or not: its door lies
+/// outside it).
 pub fn street_open(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> bool {
     Flood::new(ground, plant, blocks, open).reaches_the_open()
 }
@@ -128,8 +137,7 @@ impl Flood {
         for j in 0..nz {
             for i in 0..nx {
                 let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
-                let passable = if plant.sea > 0.0 { ground.height_at(p.x, p.z).is_some_and(|h| h <= -plant.sea) } else { open(p) };
-                let blocked = !passable || near.iter().any(|r| r.contains(p));
+                let blocked = !plant.stands(ground, open, p) || near.iter().any(|r| r.contains(p));
                 sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(blocked);
             }
         }
@@ -217,7 +225,7 @@ mod tests {
     }
 
     fn plant(facing: i32) -> Plant {
-        Plant { centre: at(2048.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 }
+        Plant { centre: at(2048.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), passable: None }
     }
 
     /// A plant alone on open ground has its street; a ring of footprints round it, closing every gap under a Bull's
@@ -292,19 +300,43 @@ mod sea_tests {
         Terrain { cell: 16.0, width: w, height: h, heights, slopes: vec![0; (w * h) as usize], metal: Vec::new() }
     }
 
-    /// A shipyard's street runs through water its ships float in, whatever the land's passable set says: open over
+    /// A plant's street runs over its own products' ground, whatever the caller's `open` says: a shipyard's over
     /// deep water with every land cell impassable, closed when shallows pen the water before its door.
     #[test]
     fn a_shipyards_street_is_the_deep_water_before_its_door() {
         let nothing_walks = |_: Vec3| false;
-        let yard = Plant { centre: at(2100.0, 2048.0), footprint: Footprint { x: 6, z: 6 }, facing: 1, product_half: 32.0, ours: true, name: "yard".into(), widest: "Corsair".into(), sea: 30.0 };
+        let yard = |t: &Terrain| Plant { centre: at(2100.0, 2048.0), footprint: Footprint { x: 6, z: 6 }, facing: 1, product_half: 32.0, ours: true, name: "yard".into(), widest: "Corsair".into(), passable: Some(crate::sea_walk(t, 30.0)) };
         let deep = shore(-40, |_, _| false);
-        assert!(street_open(&Ground::new(&deep, 4096.0, 4096.0), &yard, &[], &nothing_walks));
+        assert!(street_open(&Ground::new(&deep, 4096.0, 4096.0), &yard(&deep), &[], &nothing_walks));
         // A pocket of deep water 400 across before the door, shallows all round it.
         let penned = shore(-40, |x, z| !(x < 2500.0 && (z - 2048.0).abs() < 250.0));
-        assert!(!street_open(&Ground::new(&penned, 4096.0, 4096.0), &yard, &[], &nothing_walks));
+        assert!(!street_open(&Ground::new(&penned, 4096.0, 4096.0), &yard(&penned), &[], &nothing_walks));
         // Water a ship's floor shallow (-20 for a floor of 30) is as closed as land.
         let too_shallow = shore(-20, |_, _| false);
-        assert!(!street_open(&Ground::new(&too_shallow, 4096.0, 4096.0), &yard, &[], &nothing_walks));
+        assert!(!street_open(&Ground::new(&too_shallow, 4096.0, 4096.0), &yard(&too_shallow), &[], &nothing_walks));
+    }
+
+    /// A vehicle plant's street is judged on its vehicles' ground, not the caller's: a rim every bot climbs and no
+    /// vehicle does pens it (apex-v0409-comet-sym0-opus-2, the crater's rim north of the three vehicle plants).
+    #[test]
+    fn a_vehicle_plants_street_is_judged_on_its_vehicles_ground() {
+        let t = shore(50, |_, _| false);
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        // Bots walk everything; vehicles nothing east of x 2300 (a rim).
+        let bots_walk = |_: Vec3| true;
+        let vehicles: Passable = (0..256 * 256).map(|k| ((k % 256) as f32 * 16.0 + 8.0) < 2300.0).collect();
+        let plant = |passable: Option<Passable>| Plant { centre: at(2100.0, 2048.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Stumpy".into(), passable };
+        // A wall of footprints north and south of the door, so the only way out is east over the rim.
+        let solar = |x: f32, z: f32| Footprint { x: 10, z: 10 }.rect(at(x, z));
+        let mut walls: Vec<Rect> = Vec::new();
+        for k in 0..40 {
+            walls.push(solar(1000.0 + 80.0 * k as f32, 1800.0));
+            walls.push(solar(1000.0 + 80.0 * k as f32, 2300.0));
+        }
+        for k in 0..7 {
+            walls.push(solar(1000.0, 1800.0 + 80.0 * k as f32));
+        }
+        assert!(street_open(&ground, &plant(None), &walls, &bots_walk), "on the bots' ground the street is open");
+        assert!(!street_open(&ground, &plant(Some(vehicles)), &walls, &bots_walk), "on the vehicles' ground the rim pens it");
     }
 }

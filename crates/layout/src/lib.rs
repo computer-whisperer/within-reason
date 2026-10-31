@@ -115,8 +115,13 @@ impl Rect {
     }
 }
 
+/// Where a kind of unit stands, one flag per terrain cell in the terrain's row-major order (`terrain::passable` of its
+/// movement class): a plant's products' ground, the strictest among them, which its apron and street are judged on.
+/// Shared, since a world is built every pass and the set is the map's size.
+pub type Passable = std::sync::Arc<[bool]>;
+
 /// What the layer needs to know of a definition.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Facts {
     pub def: UnitDefId,
     pub footprint: Footprint,
@@ -146,9 +151,12 @@ pub struct Facts {
     /// For a factory, half the width of the widest unit it makes, in elmos: its street's half-width. 0 otherwise;
     /// the caller sets it (`with_products`), since it needs the products' definitions.
     pub product_half: f32,
-    /// For a factory whose widest product is a ship, the shallowest water it floats in: its apron and street are
-    /// water at least that deep. 0 for a factory whose products walk, and for every other kind.
-    pub product_sea: f32,
+    /// For a factory, the ground its products stand on, the strictest of their movement classes (a vehicle plant's
+    /// Stumpy on slopes to 28, a shipyard's Corsair in water 30 deep): its apron and street are judged on it, and on
+    /// the world's `open` when the caller has none (apex-v0409-comet-sym0-opus-2: the three vehicle plants' streets
+    /// were judged on the Pawn's ground, which climbs a crater's rim a Stumpy cannot, and all three were penned by
+    /// 12:00 with the street line saying open). None for every other kind.
+    pub product_passable: Option<Passable>,
 }
 
 impl Facts {
@@ -171,13 +179,13 @@ impl Facts {
             factory: d.speed == 0.0 && !d.build_options.is_empty(),
             building: d.speed == 0.0,
             product_half: 0.0,
-            product_sea: 0.0,
+            product_passable: None,
         }
     }
 
-    /// A factory's street: its widest product's half-width, and the water that product floats in when it is a ship.
-    pub fn with_products(self, product_half: f32, product_sea: f32) -> Facts {
-        Facts { product_half, product_sea, ..self }
+    /// A factory's street: its widest product's half-width, and the ground its products stand on.
+    pub fn with_products(self, product_half: f32, product_passable: Option<Passable>) -> Facts {
+        Facts { product_half, product_passable, ..self }
     }
 
     /// The width of a factory's street, as the design has it: as wide as its widest product. A product's movement
@@ -241,6 +249,16 @@ impl<'a> Ground<'a> {
         }
         let (i, j) = ((x / t.cell) as usize, (z / t.cell) as usize);
         (i < t.width as usize && j < t.height as usize).then(|| f32::from(t.heights[j * t.width as usize + i]))
+    }
+
+    /// Whether `walk` (one flag a terrain cell) says the ground at (x, z) is stood on; off the map it is not.
+    pub fn walks(&self, walk: &[bool], x: f32, z: f32) -> bool {
+        let t = self.terrain;
+        if t.cell <= 0.0 || x < 0.0 || z < 0.0 {
+            return false;
+        }
+        let (i, j) = ((x / t.cell) as usize, (z / t.cell) as usize);
+        i < t.width as usize && j < t.height as usize && walk.get(j * t.width as usize + i).copied().unwrap_or(false)
     }
 
     /// The map's extent in elmos.
@@ -551,7 +569,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
                 if !stands(fp, centre, &f) {
                     continue;
                 }
-                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: None };
                 let apron = plant.apron();
                 if !scene.ground.in_map(&apron) || occupied.iter().any(|r| r.overlaps(&apron)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&apron)) || !lane_open(&apron, scene.open) {
                     continue;
@@ -684,6 +702,13 @@ fn escapes(from: Vec3, occupied: &[Rect], radius: f32) -> bool {
     false
 }
 
+/// For the tests: where a ship of `depth` floats, from the terrain's heights (the bot's `terrain::passable` of a Ship
+/// class says the same).
+#[cfg(test)]
+pub(crate) fn sea_walk(t: &Terrain, depth: f32) -> Passable {
+    t.heights.iter().map(|h| f32::from(*h) <= -depth).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -728,7 +753,7 @@ mod tests {
             health: 0.0,
             blast: None,
             product_half: 0.0,
-            product_sea: 0.0,
+            product_passable: None,
         };
         match def {
             COM => Some(f((4, 4), false, false, 145.0)),
@@ -819,7 +844,7 @@ mod tests {
         }
         let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
         assert_eq!(lab.1, 1, "the lab faces east, toward the enemy");
-        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), passable: None };
         assert!(rects.iter().all(|r| !r.overlaps(&plant.apron())), "nothing in the lab's apron");
         assert!(street_open(&sc.ground, &plant, &rects, &open), "the lab's street is open");
         for s in &stand.slots {
@@ -848,7 +873,7 @@ mod tests {
         let stand = stand(&sc, &wants).expect("a stand");
         assert_eq!(stand.unplaced, 0, "{stand:?}");
         let lab = stand.slots.iter().find_map(|s| if let Slot::Building { def: LAB, at, facing } = *s { Some((at, facing)) } else { None }).expect("the lab");
-        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), sea: 0.0 };
+        let plant = Plant { centre: lab.0, footprint: facts(LAB).unwrap().footprint, facing: lab.1, product_half: 32.0, ours: true, name: String::new(), widest: String::new(), passable: None };
         assert!(plant.apron().x1 <= 600.0 + 8.0, "the apron is off the cliff: {stand:?}");
         let rects: Vec<Rect> = stand.slots.iter().map(|s| match *s { Slot::Extractor { at, .. } => facts(MEX).unwrap().footprint.rect(at), Slot::Building { def, at, facing } => facts(def).unwrap().footprint.faced(facing).rect(at) }).collect();
         assert!(street_open(&sc.ground, &plant, &rects, &open));
@@ -885,7 +910,7 @@ mod sea_tests {
     }
 
     fn kind(min_depth: f32, max_depth: f32, floater: bool) -> Facts {
-        Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth, max_depth, floater, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0 }
+        Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 0.0, build_speed: 0.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth, max_depth, floater, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None }
     }
 
     /// The engine's depth rule (F-map-build): a land building stands on land alone, a sea kind in water at least its

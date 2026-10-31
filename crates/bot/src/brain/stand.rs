@@ -45,7 +45,7 @@ impl Brain {
             _ => None,
         });
         let passable = factory.and_then(|def| self.passable_for_factory(def));
-        let open = |p: Vec3| match passable {
+        let open = |p: Vec3| match passable.as_deref() {
             Some(passable) => {
                 let (i, j) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
                 i < terrain.width as usize && j < terrain.height as usize && passable[j * terrain.width as usize + i]

@@ -221,7 +221,7 @@ fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
         let p = if along_x { Vec3 { x: centre.x + a, y: centre.y, z: centre.z } } else { Vec3 { x: centre.x, y: centre.y, z: centre.z + a } };
         let p = g.footprint.snap(p);
         let facing = facings_toward(p, toward)[0];
-        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
+        let plant = Plant { centre: p, footprint: g.footprint, facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), passable: g.product_passable.clone() };
         (p, facing, plant.apron())
     });
     Shape { rows, slots, gantry }
@@ -302,7 +302,7 @@ pub fn lay(world: &World, wants: &Wants, mark: Option<Vec3>) -> Result<Block, St
         plant_at,
         from_plant: distance,
         along_x,
-        frame: wants.frame,
+        frame: wants.frame.clone(),
         tiers: 1,
     })
 }
@@ -329,7 +329,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     let metal = ground_holds(world, &wants.frame, &rects, &solid, &s.slots)?;
     if let Some((at, facing, _)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
-        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
+        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), passable: g.product_passable.clone() };
         let mut blocks: Vec<Rect> = world.standing.iter().map(|st| if st.ours { st.rect } else { st.rect.grown(ALLY_MARGIN) }).collect();
         blocks.extend(solid.iter().copied());
         if !street_open(&world.ground, &own, &blocks, &*world.open) {
@@ -420,7 +420,7 @@ mod tests {
     }
 
     fn facts(def: i32, fp: i32, metal: f32, health: f32) -> Facts {
-        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_sea: 0.0, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
+        Facts { def: UnitDefId(def), footprint: Footprint { x: fp, z: fp }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal, health, blast: None, height_dif: 10.7, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false }
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
@@ -431,7 +431,7 @@ mod tests {
         let turret = Facts { build_distance: 400.0, build_speed: 200.0, ..facts(5, 6, 230.0, 560.0) };
         let frame = Facts { build_time: 312_500.0, blast: Some((640.0, 10_600.0)), ..facts(7, 12, 9700.0, 8300.0) };
         let gantry = Facts { factory: true, product_half: 64.0, ..facts(8, 24, 7900.0, 16000.0) };
-        let plant = Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 18, z: 18 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), sea: 0.0 };
+        let plant = Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 18, z: 18 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), passable: None };
         Wants { turret, frame, gantry: Some(gantry), plant }
     }
 
@@ -479,7 +479,7 @@ mod tests {
         w.frame_slots = block.frame_slots.clone();
         let builder = Facts { build_distance: 145.0, build_speed: 300.0, ..facts(1, 4, 0.0, 0.0) };
         // A turret near the plant: on the lattice, outside the rows.
-        let req = Request { facts: wants.turret, purpose: Purpose::Turret, centre: block.centre, radius: block.reach, builder_at: block.centre, builder };
+        let req = Request { facts: wants.turret.clone(), purpose: Purpose::Turret, centre: block.centre, radius: block.reach, builder_at: block.centre, builder: builder.clone() };
         let site = choose(&w, &req).expect("a turret site");
         assert!(block.lattice().holds(site.at), "{site:?} off the lattice at {:?}", block.centre);
         assert!(!block.holds(&wants.turret.footprint.rect(site.at)), "{site:?} on the rows");
@@ -489,14 +489,14 @@ mod tests {
         // (block-5: both frames went beside the rows that way).
         w.workers.push(crate::Worker { at: block.centre, reach: 400.0, power: 200.0 });
         let far_west = Vec3 { x: block.centre.x - 700.0, y: 0.0, z: block.centre.z };
-        let req = Request { facts: wants.frame, purpose: Purpose::Frame, centre: block.centre, radius: block.reach, builder_at: far_west, builder };
+        let req = Request { facts: wants.frame.clone(), purpose: Purpose::Frame, centre: block.centre, radius: block.reach, builder_at: far_west, builder: builder.clone() };
         let site = choose(&w, &req).expect("a frame site");
         assert!(site.words.contains("1 turret"), "{site:?}");
         assert!(site.words.contains("in a frame row"), "{site:?}");
         assert!(block.frame_rows.iter().any(|r| r.overlaps(&wants.frame.footprint.rect(site.at))), "{site:?} outside the rows {:?}", block.frame_rows);
         // A solar's band at the block centre finds ground, never on the rows or the gantry's slot.
         let solar = facts(3, 10, 155.0, 340.0);
-        let req = Request { facts: solar, purpose: Purpose::Generator { cap: None }, centre: block.centre, radius: 200.0, builder_at: block.centre, builder };
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: block.centre, radius: 200.0, builder_at: block.centre, builder: builder.clone() };
         let site = choose(&w, &req).expect("a solar site");
         assert!(!block.holds(&solar.footprint.rect(site.at)), "{site:?} on the block's ground");
         // Dense: a point 48 off the centre is on the lattice; sparse it was not.
