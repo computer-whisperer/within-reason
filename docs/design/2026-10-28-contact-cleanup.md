@@ -404,5 +404,21 @@ group arrives ten seconds later, which is the walk to the place beside. The sing
 a no-op, hold: the slice within 0.06 of pb2 on every arm (on/off -0.17 to -0.11, Bulls +0.49 to +0.44, the assaults
 within 0.04), the pass-by within 0.04. A first build (ledger pair1) wrote the host's raw end back over the planner's
 placed end whenever nothing blocked it, undoing `Ground::stand` on every single-formation arm; fixed before pair2.
+
+**Amended 2026-10-31 (barb-ladder4-20-1, the user: "Let's start with that first fix for the Ward's place").** "A
+follower's end is its ward's anchor exactly" above described the drill, not the hands: the hands sent `Group::body`'s
+place, the member at the 60th percentile of distance from the centroid, which for a declared ward counts its joiners,
+so seven followers of two to five Bulls were sent to a joiner crossing the base or a Bull standing away, 400-600 from
+the last point, every second, and each re-sent end re-aimed, re-planned and re-dealt them (580 of the game's 2,830
+follow-point moves over 150, 54 over 400). Now a follower is the lane's as an attack is: the host names the ward
+(`GroupOrder::ward`, the ward group's lane name), the lane sets the follower's end to the ward's anchor every tick
+(`Footprint::of_ward`, the largest of the ward's formations; `Group::retarget`), the host's stepped point re-aims
+nothing (`Group::update`, `same_ward`, the route kept as `retarget` left it), and the ward outranks its followers in
+`keep_off` whatever their sizes (a larger follower kept the end and stood on its ward). The hands' point is the ward's
+anchor too (`Lane::group_state`), its body only for a ward the lane has no formation of. Found with it: `keep_off`
+rewrote a kept place's "placed for" end with each tick's raw end, so an end creeping under `ROUTE_MOVED` a tick never
+read as moved, and a follower stood placed beside where its ward had started (test
+`a_follower_keeps_to_its_wards_anchor_and_stands_beside_it`). Drills: ledger ward0 / ward1 (the follow arm as face1,
+and a follower twice its ward's size).
 Open: group_X4's companies stood 10-50 apart for a minute and a half because the player's company cap was 8 and two
 of 7 could not merge; under this rule they stand side by side.

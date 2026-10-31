@@ -358,7 +358,9 @@ line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800
 `duel --drill pair --ours FORCE --behind FORCE@D [--pair walk|follow|attack] [--theirs PARTY] [--distance 2000] [--lane on] ...`
 (2026-10-29, the formations that stacked in advance-2): two groups of ours, the army and a second force spawned `D`
 across the axis beside it, each a lane group of its own (`army`, `pair`). `walk`: both to the same end; `follow`: the
-second's way ends at the army's anchor, re-set once it has moved 150 (the hands' follow step); `attack`: both at the
+second names the army as its ward (`GroupOrder::ward`, 2026-10-31: the lane keeps its end at the army's anchor every
+tick and off its footprint; the host's point, the army's anchor re-set once it has moved 150 as the hands step theirs,
+re-aims nothing); `attack`: both at the
 party `--theirs` standing on the goal (placed as an assault's defence), judged as an assault. Columns: the two anchors'
 mean distance over the seconds both stood, the seconds they stood within `PAIR_OVERLAP` (250, one footprint), the
 second group's arrival from the first order and the distance then (`pair_distance`, `pair_overlap_s`,

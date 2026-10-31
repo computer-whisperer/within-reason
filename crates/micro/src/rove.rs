@@ -1030,6 +1030,68 @@ mod tests {
         assert!((a.anchor.z - b.anchor.z).abs() < 120.0, "beside, not behind: {:?} / {:?}", a.anchor, b.anchor);
     }
 
+    /// §5.3, a follower: its way's end is its ward's anchor every tick, however stale the host's point, and its ward
+    /// outranks it whatever their sizes (barb-ladder4-20-1 18:20-18:40: the hands sent seven followers to a member
+    /// of the ward each second, 400-600 off the last, and each re-sent end re-aimed and re-dealt the body; a larger
+    /// follower kept the end and stood on its ward). The ward walks 1,600 east; the host re-sends the follower the
+    /// ward's starting point every tick. The follower keeps within a few footprints of the ward on the march, and
+    /// at the end both stand, the follower beside the ward and not on it.
+    #[test]
+    fn a_follower_keeps_to_its_wards_anchor_and_stands_beside_it() {
+        let host = Host::new(Vec::new());
+        let end = at(2600.0, 1000.0);
+        let ward_start = at(1000.0, 1000.0);
+        let a_ids: Vec<i32> = (10..16).collect();
+        let b_ids: Vec<i32> = (30..39).collect();
+        let block = |ids: &[i32], x0: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let members = |ids: &[i32]| ids.iter().map(|id| UnitId(*id)).collect::<Vec<_>>();
+        let follow = || GroupOrder { ward: Some("a".into()), ..GroupOrder::new(GroupKind::FightTo, vec![ward_start]) };
+        let mut lane = Lane::default();
+        lane.set_group("a", members(&a_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+        lane.set_group("b", members(&b_ids), follow());
+        let mut body: Vec<OwnUnit> = block(&a_ids, 1000.0);
+        body.extend(block(&b_ids, 700.0));
+        let mut goals: HashMap<UnitId, Vec3> = HashMap::new();
+        let mut frame = 30;
+        let mut farthest_apart: f32 = 0.0;
+        while frame < 30 * 120 {
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            for c in &out.commands {
+                if let Command::Move { unit, to, .. } = c {
+                    goals.insert(*unit, *to);
+                }
+            }
+            for u in body.iter_mut() {
+                let Some(to) = goals.get(&u.id) else { continue };
+                let d = u.pos.dist2d(*to);
+                let step = 16.8f32.min((d - 20.0).max(0.0));
+                u.vel = at(0.0, 0.0);
+                if d > 0.0 && step > 0.0 {
+                    let (dx, dz) = ((to.x - u.pos.x) / d * step, (to.z - u.pos.z) / d * step);
+                    u.pos = at(u.pos.x + dx, u.pos.z + dz);
+                    u.vel = at(dx / 3.0, dz / 3.0);
+                }
+            }
+            // The host sends the same orders again every tick, the follower's point the stale one.
+            lane.set_group("a", members(&a_ids), GroupOrder::new(GroupKind::FightTo, vec![end]));
+            lane.set_group("b", members(&b_ids), follow());
+            let (a, b) = (lane.group_state("a").expect("a"), lane.group_state("b").expect("b"));
+            if frame > 30 * 20 {
+                farthest_apart = farthest_apart.max(a.anchor.dist2d(b.anchor));
+            }
+            if a.arrived && b.arrived {
+                break;
+            }
+            frame += 3;
+        }
+        let (a, b) = (lane.group_state("a").expect("a"), lane.group_state("b").expect("b"));
+        assert!(a.arrived && b.arrived, "both arrived by {frame}: {a:?} {b:?}");
+        assert!(a.anchor.dist2d(end) < 60.0, "the ward stands at the end: {:?}", a.anchor);
+        let apart = a.anchor.dist2d(b.anchor);
+        assert!(apart > 150.0 && apart < 450.0, "the follower beside its ward, not on it: {apart:.0} apart ({:?} / {:?})", a.anchor, b.anchor);
+        assert!(farthest_apart < 700.0, "the follower kept to its ward on the march: {farthest_apart:.0} apart at the farthest");
+    }
+
     /// H-MICRO-FORM-HOLDPOS: a formation group's soldiers are put at hold position once, so nobody idle in its slot
     /// chases; a member that leaves the group, or a group re-declared as a rove, is at manoeuvre again, once.
     #[test]

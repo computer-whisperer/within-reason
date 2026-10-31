@@ -347,3 +347,26 @@ off): 12 picks. The unit tests under H-MICRO-STAND. Drill (`duel --drill walk --
 snapping failing to part it), or the circuit and pair drills (ledger stand1-*) lost formed share or arrival against the
 face1 / foot1 rows.
 **Used by.** H-MICRO-STAND, H-HANDS-ARRIVAL.
+
+### K-group-a-follow-point-that-is-a-member-swings-with-the-stragglers
+**Claim** (2026-10-31, from barb-ladder4-20-1). A group that follows another cannot be aimed at a member of the ward.
+The hands' body place (`Group::body`: the member at the 60th percentile of distance from the centroid) names a different
+member whenever the ward is loose, and a declared ward is loose by construction: its newcomers are members with slots
+from the moment they join, so a Flash walking in from the far side of the base is the 60th-percentile member of five
+Bulls. A follower aimed at it is aimed at the straggler, and the lane, told a route end that moved more than 48, re-aims,
+re-plans and re-deals the body; the follower mills and never settles beside its ward. The ward's place for a follower is
+the ward's formation, its anchor, and following a formation is the lane's business as placing one off another is.
+**Evidence.** The Jev log and record of `run/matches/1793479422-barb-ladder4-20-1/00`, 17:53-19:33, under the packets
+"group_V2 (our two Bulls) leads it: [seven groups] follow group_V2 or join it, side by side as one body": the follow
+chain V2 ← U2, N2; U2 ← D, J2, T2, O2; N2 ← W2 (33 soldiers behind two to five Bulls fresh from the Bull plant, which
+held at the plant 18:04-18:14 with a spread of 1,000-1,370: a Flash joining from (606, 4020) and a Bull "away"); U2's
+follow target at 18:28 (1677, 5901) is the Flash's position, at 18:29 (2262, 6049) a Bull 600 off; U2's way left 0 →
+456 → 364 → 536 → 324 → 135 → 86 → 438 in eight seconds and its centroid moved 330 elmo in the twenty seconds 18:20 to
+18:40; whole game 2,927 follow group-seconds, 580 of 2,830 consecutive follow-point moves over 150, 54 over 400, the
+largest 1,604. The lane's test `a_follower_keeps_to_its_wards_anchor_and_stands_beside_it` (a larger follower stands
+beside its ward, not on it, and keeps within 700 on the march), the hands' `a_following_group_names_its_ward_to_the_lane`;
+drills ledger ward0 / ward1.
+**Would be wrong if.** A follower under the fix lagged its ward further on the pair-follow drill than the hands' stepped
+point did (face1 / stand1: anchors 486-509 apart, overlap under 1 s, arrival 49-51 s), or a follower twice its ward's
+size stood on it.
+**Used by.** H-HANDS-FOLLOW, the contact cleanup's §5.3.

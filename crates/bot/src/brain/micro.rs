@@ -94,7 +94,13 @@ impl Brain {
                                 super::pianist::GroupTask::Engage { party, .. } => party.clone(),
                                 _ => Vec::new(),
                             };
-                            declared.push((name, members, company(micro::GroupOrder { party, ..micro::GroupOrder::new(kind, vec![*at]) })));
+                            // A follower of a group carries its ward (§5.3): the lane keeps its end at the ward's
+                            // anchor and off its footprint; the hands' point is where the ward stood at the last step.
+                            let ward = match &group.task {
+                                super::pianist::GroupTask::Follow { ward: super::pianist::groups::Ward::Group(other), .. } => Some(format!("group_{other}")),
+                                _ => None,
+                            };
+                            declared.push((name, members, company(micro::GroupOrder { party, ward, ..micro::GroupOrder::new(kind, vec![*at]) })));
                         }
                     }
                     // A hunt is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or

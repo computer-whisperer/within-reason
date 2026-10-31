@@ -1762,7 +1762,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         let members: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|i| drill.rear.contains(i)) && !army.left_behind.contains(u)).collect();
                         let end = drill.pair_end();
                         let kind = if drill.fight || drill.pair_mode != drill::PairMode::Walk { GroupKind::FightTo } else { GroupKind::Go };
-                        let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, party, ..GroupOrder::new(kind, vec![end]) };
+                        // A follower names its ward (§5.3): the lane keeps its end at the army's anchor and off its
+                        // footprint; `end` is the hands' stepped point.
+                        let ward = (drill.pair_mode == drill::PairMode::Follow).then(|| "army".to_string());
+                        let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, party, ward, ..GroupOrder::new(kind, vec![end]) };
                         lane.set_group("pair", members, order);
                     }
                 }

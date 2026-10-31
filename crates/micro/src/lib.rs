@@ -610,6 +610,11 @@ impl Lane {
         self.groups.get(name).map(|d| d.members.as_slice())
     }
 
+    /// A declared group's order as the host last gave it (the hosts' tests).
+    pub fn group_order(&self, name: &str) -> Option<&GroupOrder> {
+        self.groups.get(name).map(|d| &d.order)
+    }
+
     /// What a loose soldier was priced against: the host's per-unit threat set.
     fn commitment_of(&self, unit: UnitId) -> Commitment {
         self.commitment.get(&unit).cloned().unwrap_or_default()
@@ -1288,6 +1293,14 @@ impl Lane {
             if let Some(end) = target.map(|e| e.pos).or_else(|| group.order.route.last().copied()) {
                 group.retarget(end);
             }
+        }
+        // A follower (§5.3): its route's end is its ward's anchor every tick, as an attack's is its party's; the
+        // host's point stands while the ward has no formation this tick (a ward that is gone ends the follow on the
+        // host's side).
+        if let Some(ward) = group.order.ward.as_deref()
+            && let Some(w) = group::Footprint::of_ward(footprints, ward)
+        {
+            group.retarget(w.anchor);
         }
         // The end kept off the other formations' footprints (§5.3), after whatever set it this tick.
         group.keep_off(footprints);

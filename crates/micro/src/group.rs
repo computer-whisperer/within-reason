@@ -114,12 +114,17 @@ pub struct GroupOrder {
     /// route ends at the nearest of them in its sight, the host's route (the party's centre) only while none is seen;
     /// a route the host moves does not re-aim such a group. Empty: the route is the route.
     pub party: Vec<UnitId>,
+    /// The formation this group follows (the contact cleanup's §5.3, a follower): the lane's name of the ward
+    /// group, whose anchor the route's end is set to every tick (its largest marching company's, as its state is
+    /// composed), and whose footprint outranks this one's end whatever their sizes; a route the host moves does not
+    /// re-aim such a group. None: the route is the route.
+    pub ward: Option<String>,
 }
 
 impl GroupOrder {
     /// A marching order of this kind along this route.
     pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
-        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new() }
+        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new(), ward: None }
     }
 
     /// The same order with a company cap.
@@ -254,6 +259,18 @@ impl Footprint {
             return self.standing;
         }
         self.count > other.count || (self.count == other.count && self.name < other.name)
+    }
+
+    /// Whether this footprint is a formation of the declared group `group` (the group's own name, or one of its
+    /// companies, named `<group>.<n>`).
+    pub fn of_group(&self, group: &str) -> bool {
+        self.name == group || self.name.strip_prefix(group).is_some_and(|rest| rest.starts_with('.'))
+    }
+
+    /// The footprint a follower of `group` keeps to: the largest of the group's formations among `footprints` (its
+    /// state is composed from its largest marching company; a group with no cap is one formation).
+    pub fn of_ward<'a>(footprints: &'a [Footprint], group: &str) -> Option<&'a Footprint> {
+        footprints.iter().filter(|f| f.of_group(group)).max_by_key(|f| f.count)
     }
 }
 
@@ -559,7 +576,10 @@ impl Group {
         // An attack on a party (§5.2): the host's route is the party's centre, re-set every tick as the sightings
         // move it, and the lane's own end is the nearest member in sight; neither re-aims the group.
         let same_party = !order.party.is_empty() && order.party == self.order.party;
-        let moved = !same_party && (order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED));
+        // A follower (§5.3): the host's route is where its ward's body was when it last looked (the hands' follow
+        // step), re-set as the ward walks; the lane's own end is the ward's anchor every tick, and neither re-aims.
+        let same_ward = order.ward.is_some() && order.ward == self.order.ward;
+        let moved = !same_party && !same_ward && (order.route.len() != self.order.route.len() || order.route.iter().zip(&self.order.route).any(|(a, b)| a.dist2d(*b) > ROUTE_MOVED));
         // A walk re-declared as an advance (or back) on the same route is the same march: the members' order kind
         // changes, the anchor, the way and the deal stand (migration-2-1: Jev alternated `go` and `fight_to` on one
         // place every second for a minute, and each re-dealt and re-planned the body).
@@ -573,10 +593,15 @@ impl Group {
             self.dirty = true;
             self.reaim = true;
         } else {
-            // With a party the host's route is kept as the fall-back end (the lane re-aims the way itself).
-            self.order.route = order.route;
+            // With a party the host's route is kept as the fall-back end (the lane re-aims the way itself); with a
+            // ward the end stays the ward's anchor as `retarget` set it, so the host's stale point never reads as
+            // the end moved (a follower arrived beside a standing ward walked again every tick otherwise).
+            if !same_ward {
+                self.order.route = order.route;
+            }
             self.order.kind = order.kind;
             self.order.party = order.party;
+            self.order.ward = order.ward;
         }
         if members != self.members {
             self.members = members;
@@ -714,7 +739,10 @@ impl Group {
         }
         let mine = self.footprint();
         let margin = KEEP_OFF_MARGIN;
-        let blockers: Vec<&Footprint> = others.iter().filter(|o| o.name != mine.name && o.outranks(&mine)).collect();
+        // A follower's ward outranks it whatever their sizes: the end is the ward's anchor, and a larger follower
+        // that kept the place stood on its ward (barb-ladder4-20-1: seven Stouts on five Bulls).
+        let ward = self.order.ward.as_deref();
+        let blockers: Vec<&Footprint> = others.iter().filter(|o| o.name != mine.name && (o.outranks(&mine) || ward.is_some_and(|w| o.of_group(w)))).collect();
         let free = |p: Vec3| !blockers.iter().any(|o| o.contains(p, margin));
         // The way's end as the planner or the party set it this tick; a kept place stands over it, a place given up
         // gives it back.
@@ -722,11 +750,14 @@ impl Group {
             Some((_, at, before)) if self.way.last().is_some_and(|l| l.dist2d(at) <= 1.0) => before,
             _ => self.way.last().copied().unwrap_or(raw),
         };
+        // A kept place keeps the raw end it was placed for: rewritten with each tick's raw end it never read as
+        // moved while the end crept under `ROUTE_MOVED` a tick (a follower's end, its ward's anchor on the march,
+        // stood placed beside where the ward had started).
         let placed = if let Some((for_raw, at, _)) = self.placed
             && for_raw.dist2d(raw) <= ROUTE_MOVED
             && free(at)
         {
-            Some(at)
+            Some((for_raw, at))
         } else if free(before) {
             None
         } else {
@@ -747,11 +778,11 @@ impl Group {
                 // Beside before behind; of the two sides, the one nearer the host's end first.
                 let (mut beside, behind): (Vec<Vec3>, Vec<Vec3>) = candidates.into_iter().partition(|c| (c.x - o.anchor.x) * h.0 + (c.z - o.anchor.z) * h.1 > -behind / 2.0);
                 beside.sort_by(|a, b| a.dist2d(raw).total_cmp(&b.dist2d(raw)));
-                beside.into_iter().chain(behind).map(|c| self.ground.as_ref().and_then(|g| g.stand(c, self.facing, self.members.len(), self.spacing)).unwrap_or(c)).find(|c| free(*c))
+                beside.into_iter().chain(behind).map(|c| self.ground.as_ref().and_then(|g| g.stand(c, self.facing, self.members.len(), self.spacing)).unwrap_or(c)).find(|c| free(*c)).map(|c| (raw, c))
             })
         };
-        self.placed = placed.map(|at| (raw, at, before));
-        let end = placed.unwrap_or(before);
+        self.placed = placed.map(|(for_raw, at)| (for_raw, at, before));
+        let end = placed.map_or(before, |(_, at)| at);
         if let Some(last) = self.way.last_mut()
             && last.dist2d(end) > 1.0
         {

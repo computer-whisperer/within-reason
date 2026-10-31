@@ -562,8 +562,11 @@ impl Brain {
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
         let mut follow_ends: Vec<String> = Vec::new();
-        // Where each group's body stands, for the groups that follow another.
-        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
+        // Where each group stands, for the groups that follow another: its formation's anchor when the lane has one,
+        // else its body. (Until 2026-10-31 the body's place for every group: the member at the 60th percentile from
+        // the centroid, which in barb-ladder4-20-1 was a joiner crossing the base or a Bull standing away, and seven
+        // followers were sent 400-600 elmo to another member of the ward every second.)
+        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane.group_state(&g.lane_name()).map(|s| s.anchor).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
         for group in pianist.groups.iter_mut() {
             // A roving group is the lane's (H-MICRO-ROVE): no hunt, no orders kept up, every member its own from the
             // tick it joins.
@@ -1176,6 +1179,28 @@ mod tests {
         brain.declare_groups();
         assert_eq!(brain.lane.group_names(), ["group_S"]);
         assert_eq!(brain.lane.group_members("group_S").map(|m| m.len()), Some(4));
+    }
+
+    /// A group following a group is declared to the lane with its ward (the contact cleanup's §5.3): the lane keeps
+    /// its end at the ward's anchor and off the ward's footprint. A follower of a builder names none: its end is the
+    /// hands' point, the builder's place.
+    #[test]
+    fn a_following_group_names_its_ward_to_the_lane() {
+        use super::super::fixtures::{at, brain_of};
+        let mut brain = brain_of(&["armflash"]);
+        for id in 1..=5 {
+            brain.known_units.insert(UnitId(id), (UnitDefId(1), at(1000.0 + 50.0 * id as f32, 1000.0)));
+        }
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, vec![UnitId(1), UnitId(2)], GroupTask::Move { to: at(3000.0, 1000.0), place: "spot_1".into(), fight: true }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(3), UnitId(4)], GroupTask::Follow { ward: Ward::Group("A".into()), name: "group_A".into(), at: at(1100.0, 1000.0), since: 0 }, 0));
+        pianist.groups.push(Group::new("C".into(), Domain::Ground, vec![UnitId(5)], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(1100.0, 1000.0), since: 0 }, 0));
+        brain.pianist = Some(pianist);
+        brain.declare_groups();
+        let ward = |name: &str| brain.lane.group_order(name).and_then(|o| o.ward.clone());
+        assert_eq!(ward("group_B").as_deref(), Some("group_A"));
+        assert_eq!(ward("group_C"), None);
+        assert_eq!(ward("group_A"), None);
     }
 
     /// A roving group is the lane's: the hands keep up no order for it, its joiners are its own, and its course word
