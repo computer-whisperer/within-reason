@@ -36,6 +36,14 @@ const ROW_DEPTH: f32 = 144.0;
 const ROW_FROM: f32 = 24.0;
 /// A turret's footprint, for the rows' offsets and the gantry's.
 const TURRET_HALF: f32 = 24.0;
+/// The block's period across the rows: a row and the bar of turrets beyond it, so the bars stand at 0 and ±192.
+const PERIOD: f32 = 2.0 * ROW_FROM + ROW_DEPTH;
+/// How many tiers of rows the block grows to (`Block::grow`): the first either side of the centre bar, the second
+/// outside the next bars, the third the first's rows carried along the axis away from the gantry, which beside a
+/// plant is the plant's own ground, so the third tier holds once the plant is eaten (his way). A fourth would stand
+/// past the turrets' reach of the centre (the frame band), so it is never laid; a second block is the player's
+/// `block` mark.
+pub const MAX_TIERS: u32 = 3;
 /// Sites whose height spread is within this of the flattest are equally flat.
 const FLAT_BAND: f32 = 4.0;
 /// Nothing but an extractor stands within this of a spot's centre (the shim's keep-out).
@@ -75,7 +83,8 @@ pub struct Block {
     pub pitch: f32,
     /// How far its turrets reach: a frame goes no farther from the centre than this.
     pub reach: f32,
-    pub frame_rows: [Rect; 2],
+    /// The frame rows, two a tier (`grow`): the first pair either side of the centre bar.
+    pub frame_rows: Vec<Rect>,
     /// The frame slots the rows hold.
     pub frame_slots: Vec<Vec3>,
     /// The gantry's slot (its definition, centre, facing) and its apron.
@@ -85,6 +94,11 @@ pub struct Block {
     /// The advanced plant it was laid beside, and how far from it the centre stands.
     pub plant_at: Vec3,
     pub from_plant: f32,
+    /// Whether the rows run along x (the plant faces north or south), and the frame the rows are laid for.
+    pub along_x: bool,
+    pub frame: Facts,
+    /// How many tiers of rows stand (1 to MAX_TIERS).
+    pub tiers: u32,
 }
 
 impl Block {
@@ -111,16 +125,31 @@ impl Block {
     pub fn free_frame_slots(&self, standing: &[Rect], frame: Footprint) -> usize {
         self.frame_slots.iter().filter(|at| !standing.iter().any(|s| s.overlaps(&frame.rect(**at)))).count()
     }
+
+    /// Lays the next tier of rows (two rows, 2 × ROW_SLOTS slots) when its ground holds: clear of everything but our
+    /// banks, off the spots and aprons, closing no street. `world` is the world without this block's own
+    /// reservations. Err says why not (econ-flagship-5: the six slots were full by 11:28 and the twelve later large
+    /// frames stood 376 to 608 from the centre with a third of the turrets in reach of each).
+    pub fn grow(&mut self, world: &World) -> Result<usize, String> {
+        if self.tiers >= MAX_TIERS {
+            return Err(format!("the block has its {MAX_TIERS} tiers of rows; a further one would stand past the turrets' reach, so a second block wants a `block` mark"));
+        }
+        let tier = self.tiers + 1;
+        let (rows, slots) = tier_rows(self.centre, self.along_x, &self.frame, tier);
+        if slots.len() < 2 * ROW_SLOTS as usize {
+            return Err(format!("the block's tier {tier} does not fit the frame grid"));
+        }
+        ground_holds(world, &self.frame, &rows, &rows, &slots).ok_or_else(|| format!("no clear ground for the block's tier {tier} of rows"))?;
+        self.frame_rows.extend(rows);
+        self.frame_slots.extend(slots);
+        self.tiers = tier;
+        Ok(2 * ROW_SLOTS as usize)
+    }
 }
 
-/// The block's geometry at `centre` with the rows along `along` (a unit axis) and `deep` across them.
-struct Shape {
-    rows: [Rect; 2],
-    slots: Vec<Vec3>,
-    gantry: Option<(Vec3, i32, Rect)>,
-}
-
-fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
+/// The rows and slots of one tier: tier 1 either side of the centre bar, tier 2 beyond the next bars (a period
+/// farther out), tier 3 tier 1's rows carried one row-length along the axis away from the gantry.
+fn tier_rows(centre: Vec3, along_x: bool, frame: &Facts, tier: u32) -> (Vec<Rect>, Vec<Vec3>) {
     let rect = |a0: f32, a1: f32, d0: f32, d1: f32| {
         if along_x {
             Rect { x0: centre.x + a0, x1: centre.x + a1, z0: centre.z + d0, z1: centre.z + d1 }
@@ -128,22 +157,43 @@ fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
             Rect { x0: centre.x + d0, x1: centre.x + d1, z0: centre.z + a0, z1: centre.z + a1 }
         }
     };
-    let frame_side = wants.frame.footprint.x.max(wants.frame.footprint.z) as f32 * crate::SQUARE;
+    let frame_side = frame.footprint.x.max(frame.footprint.z) as f32 * crate::SQUARE;
     let half_len = ROW_SLOTS as f32 * frame_side / 2.0;
-    let rows = [rect(-half_len, half_len, ROW_FROM, ROW_FROM + ROW_DEPTH), rect(-half_len, half_len, -ROW_FROM - ROW_DEPTH, -ROW_FROM)];
+    let (off, shift) = match tier {
+        2 => (PERIOD, 0.0),
+        3 => (0.0, -2.0 * half_len),
+        _ => (0.0, 0.0),
+    };
+    let (a0, a1) = (shift - half_len, shift + half_len);
+    let rows = vec![rect(a0, a1, off + ROW_FROM, off + ROW_FROM + ROW_DEPTH), rect(a0, a1, -off - ROW_FROM - ROW_DEPTH, -off - ROW_FROM)];
     // The slots: a frame's centre on the build grid, inside its row.
     let mut slots = Vec::new();
     for (k, row) in rows.iter().enumerate() {
         for i in 0..ROW_SLOTS {
-            let a = -half_len + (i as f32 + 0.5) * frame_side;
-            let d = if k == 0 { ROW_FROM + ROW_DEPTH / 2.0 } else { -ROW_FROM - ROW_DEPTH / 2.0 };
+            let a = shift - half_len + (i as f32 + 0.5) * frame_side;
+            let d = if k == 0 { off + ROW_FROM + ROW_DEPTH / 2.0 } else { -off - ROW_FROM - ROW_DEPTH / 2.0 };
             let p = if along_x { Vec3 { x: centre.x + a, y: centre.y, z: centre.z + d } } else { Vec3 { x: centre.x + d, y: centre.y, z: centre.z + a } };
-            let p = wants.frame.footprint.snap(p);
-            if row.overlaps(&wants.frame.footprint.rect(p)) {
+            let p = frame.footprint.snap(p);
+            if row.overlaps(&frame.footprint.rect(p)) {
                 slots.push(p);
             }
         }
     }
+    (rows, slots)
+}
+
+/// The block's geometry at `centre` with the rows along `along` (a unit axis) and `deep` across them: the first tier
+/// of rows and the gantry's slot.
+struct Shape {
+    rows: Vec<Rect>,
+    slots: Vec<Vec3>,
+    gantry: Option<(Vec3, i32, Rect)>,
+}
+
+fn shape(centre: Vec3, along_x: bool, wants: &Wants, toward: Vec3) -> Shape {
+    let frame_side = wants.frame.footprint.x.max(wants.frame.footprint.z) as f32 * crate::SQUARE;
+    let half_len = ROW_SLOTS as f32 * frame_side / 2.0;
+    let (rows, slots) = tier_rows(centre, along_x, &wants.frame, 1);
     let gantry = wants.gantry.as_ref().map(|g| {
         let side = g.footprint.x.max(g.footprint.z) as f32 * crate::SQUARE;
         // Past the rows' end and the outer turret column there.
@@ -231,6 +281,9 @@ pub fn lay(world: &World, wants: &Wants, mark: Option<Vec3>) -> Result<Block, St
         marked: mark.is_some(),
         plant_at,
         from_plant: distance,
+        along_x,
+        frame: wants.frame,
+        tiers: 1,
     })
 }
 
@@ -239,8 +292,8 @@ pub fn lay(world: &World, wants: &Wants, mark: Option<Vec3>) -> Result<Block, St
 /// plant's apron and the reservations, no street closed. Some((the height spread over it, the metal of ours on it)).
 fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     // The ground it reserves, and what of it will be solid (the rows filled, the gantry): its apron stays open.
-    let mut rects: Vec<Rect> = s.rows.to_vec();
-    let mut solid: Vec<Rect> = s.rows.to_vec();
+    let mut rects: Vec<Rect> = s.rows.clone();
+    let mut solid: Vec<Rect> = s.rows.clone();
     if let Some((at, facing, apron)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
         if !world.ground.stands(g.footprint.faced(*facing), *at, g) || !world.ground.in_map(apron) {
@@ -253,8 +306,41 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     if s.slots.len() < 2 * ROW_SLOTS as usize {
         return None;
     }
-    for slot in &s.slots {
-        if !world.ground.stands(wants.frame.footprint, *slot, &wants.frame) {
+    let metal = ground_holds(world, &wants.frame, &rects, &solid, &s.slots)?;
+    if let Some((at, facing, _)) = &s.gantry {
+        let g = wants.gantry.as_ref()?;
+        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
+        let mut blocks: Vec<Rect> = world.standing.iter().map(|st| if st.ours { st.rect } else { st.rect.grown(ALLY_MARGIN) }).collect();
+        blocks.extend(solid.iter().copied());
+        if !street_open(&world.ground, &own, &blocks, &*world.open) {
+            return None;
+        }
+    }
+    // Flatness: the height spread over the rows' cells.
+    let (mut lo, mut hi) = (f32::INFINITY, f32::NEG_INFINITY);
+    for r in &rects {
+        let mut z = r.z0 + GRID / 2.0;
+        while z < r.z1 {
+            let mut x = r.x0 + GRID / 2.0;
+            while x < r.x1 {
+                let h = world.ground.height_at(x, z)?;
+                lo = lo.min(h);
+                hi = hi.max(h);
+                x += GRID;
+            }
+            z += GRID;
+        }
+    }
+    Some((hi - lo, metal))
+}
+
+/// Whether ground for frames holds: every slot stands for the frame and is off the spots; every rect in the map,
+/// off the spots' boxes, every plant's pad and apron and every reservation, with nothing of ours but banks on it
+/// (their metal summed, for the report's reclaim list) and nothing of anyone else's; and no plant's street closed
+/// with `solid` added to what stands.
+fn ground_holds(world: &World, frame: &Facts, rects: &[Rect], solid: &[Rect], slots: &[Vec3]) -> Option<f32> {
+    for slot in slots {
+        if !world.ground.stands(frame.footprint, *slot, frame) {
             return None;
         }
         if world.spots.iter().any(|p| p.dist2d(*slot) < world.spot_keep_out) {
@@ -262,7 +348,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
         }
     }
     let mut metal = 0.0;
-    for r in &rects {
+    for r in rects {
         if !world.ground.in_map(r) {
             return None;
         }
@@ -288,35 +374,13 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
             }
         }
     }
-    // The block's solid ground as blocks, the rows filled: no plant's street may close, nor the gantry's own.
+    // The solid ground as blocks, the rows filled: no plant's street may close.
     let mut blocks: Vec<Rect> = world.standing.iter().map(|st| if st.ours { st.rect } else { st.rect.grown(ALLY_MARGIN) }).collect();
     blocks.extend(solid.iter().copied());
     if world.plants.iter().filter(|p| rects.iter().any(|r| p.concerns(r))).any(|p| !street_open(&world.ground, p, &blocks, &*world.open)) {
         return None;
     }
-    if let Some((at, facing, _)) = &s.gantry {
-        let g = wants.gantry.as_ref()?;
-        let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), sea: g.product_sea };
-        if !street_open(&world.ground, &own, &blocks, &*world.open) {
-            return None;
-        }
-    }
-    // Flatness: the height spread over the rows' cells.
-    let (mut lo, mut hi) = (f32::INFINITY, f32::NEG_INFINITY);
-    for r in &rects {
-        let mut z = r.z0 + GRID / 2.0;
-        while z < r.z1 {
-            let mut x = r.x0 + GRID / 2.0;
-            while x < r.x1 {
-                let h = world.ground.height_at(x, z)?;
-                lo = lo.min(h);
-                hi = hi.max(h);
-                x += GRID;
-            }
-            z += GRID;
-        }
-    }
-    Some((hi - lo, metal))
+    Some(metal)
 }
 
 #[cfg(test)]
@@ -340,7 +404,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
     }
 
     fn wants() -> Wants {
@@ -392,12 +456,14 @@ mod tests {
         let mut block = lay(&w, &wants, None).expect("a block");
         w.reservations = block.reservations();
         w.lattice = Some(block.lattice());
+        w.frame_slots = block.frame_slots.clone();
         let builder = Facts { build_distance: 145.0, build_speed: 300.0, ..facts(1, 4, 0.0, 0.0) };
         // A turret near the plant: on the lattice, outside the rows.
         let req = Request { facts: wants.turret, purpose: Purpose::Turret, centre: block.centre, radius: block.reach, builder_at: block.centre, builder };
         let site = choose(&w, &req).expect("a turret site");
         assert!(block.lattice().holds(site.at), "{site:?} off the lattice at {:?}", block.centre);
         assert!(!block.holds(&wants.turret.footprint.rect(site.at)), "{site:?} on the rows");
+        assert!(site.words.starts_with("6 frame slots"), "with the block laid a turret is scored by the slots it reaches, not the pad: {site:?}");
         // A frame goes into a row, not merely beside one: a turret at the centre reaches the whole band, and the
         // builder stands 700 west, so ground at the band's west edge is 300 nearer its walk and as quick to stand
         // (block-5: both frames went beside the rows that way).
@@ -445,5 +511,47 @@ mod tests {
         w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(mark), def: Some(UnitDefId(9)), kind: "armvp".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_2".into() });
         let block = lay(&w, &wants, Some(mark)).expect("a block beside the plant");
         assert!(!block.holds(&Footprint { x: 12, z: 12 }.rect(mark)), "{block:?}");
+    }
+
+    /// The block grows a tier at a time on clear ground, two rows and six slots each, every slot within the turrets'
+    /// reach of the centre. Laid beside the plant along its front, the third tier's rows fall on the plant's own
+    /// ground, so it is refused while the plant stands and holds once the plant is eaten (his way: each plant
+    /// reclaimed for the next tier's frames); a fourth is never laid; a turret of ours standing on the next tier's
+    /// ground stops the growth there (econ-flagship-5: six slots full by 11:28, the later frames outside).
+    #[test]
+    fn the_block_grows_by_tiers_within_reach_and_stops_at_what_stands() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        let wants = wants();
+        with_plant(&mut w, &wants);
+        let mut block = lay(&w, &wants, None).expect("a block");
+        assert_eq!((block.tiers, block.frame_slots.len(), block.frame_rows.len()), (1, 6, 2));
+        assert_eq!(block.grow(&w), Ok(6));
+        assert!(block.grow(&w).unwrap_err().contains("no clear ground"), "the third tier is the plant's ground: {block:?}");
+        assert_eq!((block.tiers, block.frame_slots.len()), (2, 12));
+        // The plant eaten: the third tier holds.
+        w.plants.clear();
+        w.standing.clear();
+        assert_eq!(block.grow(&w), Ok(6));
+        assert_eq!((block.tiers, block.frame_slots.len(), block.frame_rows.len()), (3, 18, 6));
+        for s in &block.frame_slots {
+            assert!(s.dist2d(block.centre) <= block.reach, "slot {s:?} past the reach of {:?}", block.centre);
+        }
+        for (i, a) in block.frame_rows.iter().enumerate() {
+            for b in &block.frame_rows[i + 1..] {
+                assert!(!a.overlaps(b), "rows overlap: {a:?} {b:?}");
+            }
+        }
+        assert!(block.grow(&w).unwrap_err().contains("3 tiers"));
+        // A turret of ours on the second tier's ground: the block stays at one tier.
+        let mut w2 = world(&t, &open);
+        with_plant(&mut w2, &wants);
+        let mut block = lay(&w2, &wants, None).expect("a block");
+        let (rows, _) = tier_rows(block.centre, block.along_x, &block.frame, 2);
+        let on_it = Vec3 { x: (rows[0].x0 + rows[0].x1) / 2.0, y: 0.0, z: (rows[0].z0 + rows[0].z1) / 2.0 };
+        w2.standing.push(Standing { rect: wants.turret.footprint.rect(on_it), def: Some(UnitDefId(5)), kind: "armnanotc".into(), ours: true, bank: false, metal: 230.0, health: 560.0, blast: None, name: "nano_1".into() });
+        assert!(block.grow(&w2).unwrap_err().contains("no clear ground"), "{block:?}");
+        assert_eq!(block.tiers, 1);
     }
 }

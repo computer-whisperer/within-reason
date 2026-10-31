@@ -22,9 +22,12 @@ use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::{Brain, FRAMES_PER_SECOND};
 
-/// How long an order given to a turret is trusted before an idle turret is told again (the snapshot shows the
-/// order a tick late; an order the engine refused leaves the turret idle).
-const RETELL_FRAMES: i32 = 10 * FRAMES_PER_SECOND;
+/// How long an order given to a turret is trusted before an idle turret is told again: one second, past the tick
+/// the snapshot lags by (an order the engine refused leaves the turret idle, so the gap is the only guard against
+/// telling it every tick). It was ten seconds, and a turret that had finished a job (a turret frame it was pulled
+/// onto, a product of the plant) sat idle until then: econ-flagship-5's turrets idled 1 to 9 s between jobs of 2
+/// to 7, 44 % of their samples in minute 12, while the first advanced fusion crawled at the walking builders' power.
+const RETELL_FRAMES: i32 = FRAMES_PER_SECOND;
 /// Slack over the turret's build distance for the target's own size (the engine adds the target's radius).
 const FACTORY_REACH_SLACK: f32 = 100.0;
 /// The widget's offset of the fight point from the turret, toward the map's centre: past the 64 elmos within

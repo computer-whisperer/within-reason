@@ -35,7 +35,10 @@ impl Brain {
             match mark {
                 Some(m) if block.centre.dist2d(m) > MARK_MOVED => {}
                 None if plant_gone => {}
-                _ => return,
+                _ => {
+                    self.grow_block(own, frame);
+                    return;
+                }
             }
         } else if frame < self.block_tried + RETRY_FRAMES {
             return;
@@ -50,6 +53,13 @@ impl Brain {
         match laid {
             Ok(mut block) => {
                 block.pitch = if dense { DENSE_PITCH } else { SPARSE_PITCH };
+                // Every tier the ground holds is reserved now, before turrets and banks take the ground (later a
+                // tier is laid as the slots run short, `grow_block`).
+                {
+                    let world = self.layout_world_without_block(own);
+                    while block.grow(&world).is_ok() {}
+                }
+                self.block_grow_failed = None;
                 let words = self.block_laid_words(&block, &wants, own);
                 eprintln!("[ai {}] f={frame} {words}", self.ai());
                 if let Some(pianist) = self.pianist.as_mut() {
@@ -66,6 +76,44 @@ impl Brain {
                 self.block_failed = Some(said);
             }
         }
+    }
+
+    /// Lays the block's next tier of rows when fewer than two of its frame slots are free, at most once per
+    /// RETRY_FRAMES; what stopped it is kept for the report's block line.
+    fn grow_block(&mut self, own: &[OwnUnit], frame: i32) {
+        let Some(block) = self.block.as_ref() else { return };
+        if block.tiers >= layout::MAX_TIERS || frame < self.block_tried + RETRY_FRAMES || self.block_free_slots(block, own) >= 2 {
+            return;
+        }
+        self.block_tried = frame;
+        let mut grown = block.clone();
+        let result = {
+            let world = self.layout_world_without_block(own);
+            grown.grow(&world)
+        };
+        match result {
+            Ok(slots) => {
+                let words = format!("the block grew: tier {} of rows, {slots} more frame slots ({} in all)", grown.tiers, grown.frame_slots.len());
+                eprintln!("[ai {}] f={frame} {words}", self.ai());
+                if let Some(pianist) = self.pianist.as_mut() {
+                    pianist.done.push(format!("{} {words}", clock(frame)));
+                }
+                self.block = Some(grown);
+                self.block_grow_failed = None;
+            }
+            Err(why) => {
+                if self.block_grow_failed.as_deref() != Some(&why) {
+                    eprintln!("[ai {}] f={frame} {why}", self.ai());
+                }
+                self.block_grow_failed = Some(why);
+            }
+        }
+    }
+
+    /// The block's frame slots not covered by anything of ours standing or framed.
+    fn block_free_slots(&self, block: &Block, own: &[OwnUnit]) -> usize {
+        let standing: Vec<layout::Rect> = own.iter().filter_map(|u| self.facts_of(u.def).filter(|f| f.building).map(|f| f.footprint.faced(u.facing).rect(u.pos))).collect();
+        block.free_frame_slots(&standing, block.frame.footprint)
     }
 
     /// Our first advanced plant standing or being built: a factory of tier 2 or above by the glossary.
@@ -120,11 +168,12 @@ impl Brain {
         let ground = self.on_block_ground(block, own);
         let reclaim = if ground.is_empty() { String::new() } else { format!("; its ground holds {}: reclaim them as the block's slots reach them", ground.join(", ")) };
         format!(
-            "the block for the construction turrets and the frames at ({:.0}, {:.0}) {where_}: two rows of {} {} slots{gantry}; turrets {:.0} apart until you say dense{reclaim}",
+            "the block for the construction turrets and the frames at ({:.0}, {:.0}) {where_}: {} rows of {} slots, {} in all{gantry}; turrets {:.0} apart until you say dense{reclaim}",
             block.centre.x,
             block.centre.z,
-            block.frame_slots.len() / 2,
+            block.frame_rows.len(),
             self.name(wants.frame.def),
+            block.frame_slots.len(),
             block.pitch
         )
     }
@@ -148,9 +197,11 @@ impl Brain {
         let turrets = on_it().count();
         let power: f32 = on_it().filter_map(|u| self.world.def(u.def)).map(|d| d.build_speed).sum();
         let clocks = self.block_clocks(power);
-        let standing: Vec<layout::Rect> = own.iter().filter_map(|u| self.facts_of(u.def).filter(|f| f.building).map(|f| f.footprint.faced(u.facing).rect(u.pos))).collect();
-        let frame_fp = self.frame_footprint_of(block);
-        let free = block.free_frame_slots(&standing, frame_fp);
+        let free = self.block_free_slots(block, own);
+        let tiers = match &self.block_grow_failed {
+            Some(why) if free < 2 => format!(" in {} tier{} of rows ({why})", block.tiers, if block.tiers == 1 { "" } else { "s" }),
+            _ => format!(" in {} tier{} of rows", block.tiers, if block.tiers == 1 { "" } else { "s" }),
+        };
         let pitch = if block.pitch <= DENSE_PITCH { "dense (turrets touching, 48 apart)".to_string() } else { format!("sparse (turrets {:.0} apart; the `block` tool's dense packs them at 48)", block.pitch) };
         let gantry = match &block.gantry {
             Some((g, at, _, _)) => format!(", a {}'s slot at {}", self.name(g.def), self.world.grid(*at)),
@@ -160,7 +211,7 @@ impl Brain {
         let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground: {} (reclaim them as the block's slots reach them: `remove`)", ground.join(", ")) };
         let placed = if block.marked { "at your `block` mark".to_string() } else { "beside the advanced plant; a `block` mark moves it".to_string() };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{clocks}{gantry}{reclaim}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
@@ -198,11 +249,6 @@ impl Brain {
         }
     }
 
-    /// The footprint the block's frame slots were laid for: the row's depth less the slack, square.
-    fn frame_footprint_of(&self, block: &Block) -> layout::Footprint {
-        let side = ((block.frame_rows[0].x1 - block.frame_rows[0].x0).min(block.frame_rows[0].z1 - block.frame_rows[0].z0) / 8.0) as i32 - 6;
-        layout::Footprint { x: side.max(2), z: side.max(2) }
-    }
 }
 
 #[cfg(test)]
@@ -261,7 +307,8 @@ mod tests {
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("armafus slots")), "{:?}", brain.pianist.as_ref().unwrap().done);
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
         let line = brain.block_line(&ours).expect("a line");
-        assert!(line.contains("6 of 6 frame slots free") && line.contains("sparse"), "{line}");
+        // Two tiers held at laying (the third's rows run into the plant's side of the ground), twelve slots.
+        assert!(line.contains("12 of 12 frame slots free in 2 tiers of rows") && line.contains("sparse"), "{line}");
         // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
         // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.
         brain.kit = Some(kit.clone());

@@ -931,3 +931,28 @@ We use guard for nanos and builder assists, never for soldiers.
 **Would be wrong if.** A column of Blitzes guarding a Stout on a 2,000 walk arrived strung out as a plain column does,
 or converged into a ball at the pacesetter.
 **Used by.** nothing yet; a pacing arm of the drill bench (`docs/design/2026-10-24-formation-drills.md` §2, §4).
+
+### K-mech-tending-turret-takes-the-nearest-frame
+**Claim.** A construction turret under the fight-in-place order (`Command::Tend`: a fight with the META bit at a
+point beside it) helps, each slow update, the nearest stationary unit of ours being built within its build distance,
+and a factory's product counts as one; META is the engine's reclaim-enemy mode, not resurrect mode, so frames are
+repair targets (`builtOnly` false). So turrets beside a running factory feed the factory's product as long as it runs,
+a new turret frame among dense turrets is its neighbours' nearest target, and a frame farther than the product gets
+only the turrets nearer to it than to the factory. A turret whose job ends (the frame stands) is idle until given an
+order again.
+**Status.** observed (2026-10-30, econ-flagship-5) and read from the engine (`upstream/RecoilEngine/rts/Sim/Units/CommandAI/BuilderCAI.cpp`: `ExecuteFight` 1264-1276, `FindRepairTargetAndRepair` 1631-1700: "repair stationary targets first", the nearest by squared distance, `IsInBuildRange` for an immobile owner).
+**Evidence.** `run/matches/1793409490-econ-flagship-5/00/record-0.jsonl`: 29 turrets, 13 within 412 of the running
+advanced plant; the hands' line "nanos: 13 construction turrets in reach help it (12 idle this second)" at 12:53; the
+first advanced fusion (272 from the plant, 28 turrets within 450, 19 of them nearer to it than to the plant) gained
+23-37 metal a second (740-1,200 power, the eight walking builders' own) from 11:01 to 12:53 while turret frames were
+being added in waves at the dense pitch, then 114-183 a second (3,700-5,900 power) from 12:53 to 13:47 once the waves
+stopped; the second advanced fusion stood in 72 s (16 turrets in reach, 4,300 power). Turret idle flags (`own` flag 2):
+1-9 s stretches between jobs of 2-7 s, 198 of them 8:00-13:00, 44 % of turret-samples in minute 12, none in 13:00-19:00;
+the hands re-told an idle turret only ten seconds after its last order (`RETELL_FRAMES`, now one second). Builder
+priority read low for every turret (`bp` 0 in 3,872 of 3,889 samples, the hands' priority layer); the gadget's rule
+(stock less a margin plus the interval's income over the high builders' draw) did not throttle them at 5-27k banked.
+**Would be wrong if.** A turret with a frame nearer than the factory's product kept helping the product, or a turret
+with no job in reach stayed busy under the fight order (not measured: from 13:00 every turret had a frame in reach).
+**Used by.** H-ECO-NANO-GUARD (the one-second re-tell), H-ECO-BLOCK (the turret score by frame slots, the block's
+tiers), D-late-economy's "each tier's infrastructure is eaten for the next" (the plant beside the block takes the
+nearest turrets' power while it runs).

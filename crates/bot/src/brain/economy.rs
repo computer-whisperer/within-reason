@@ -126,6 +126,7 @@ impl Brain {
         if let Some(block) = self.block.as_ref() {
             world.reservations.extend(block.reservations());
             world.lattice = Some(block.lattice());
+            world.frame_slots = block.frame_slots.clone();
         }
         world
     }
@@ -199,6 +200,7 @@ impl Brain {
             plants,
             workers,
             frames,
+            frame_slots: Vec::new(),
             reservations,
             lattice: None,
             refused,
