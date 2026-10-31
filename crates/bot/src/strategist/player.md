@@ -114,9 +114,14 @@ whenever you hit that edge.
   way and there); `attack` a party in sight with the whole group, or his buildings at any place where some are
   known; `shell` either from its long-reach soldiers' reach with the rest as the screen (a group that has artillery);
   `send` one, two, four or eight of its soldiers after a party as a group of their own (its fastest, the nearest
-  first; the rest keep the group's course); `join` another group of its kind (ground, hover and air never mix);
-  `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever that goes
-  and fights what comes at it); `rove` (the whole group roves: every soldier runs on its own in code, looking at
+  first; the rest keep the group's course); `join` another group of its kind (ground, hover and air never mix: the
+  two become one body under the other group's name and course, at one pace, answering a party as one) and `take in`
+  another group (the same body under this group's name and course: "group_U2 joins group_V2" and "group_V2 takes in
+  group_U2" are the one order, and the name you keep is the one you want to lead; nothing else decides which name
+  survives); `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever
+  that goes and fights what comes at it, as a group of its own: asked, rated and fought apart from its ward, at its
+  own pace. Follow is for a group that must stay its own, Rovers hunting beside the army, anti-air with a column,
+  aircraft over a ground body; it is never the way to make one body, which is a join); `rove` (the whole group roves: every soldier runs on its own in code, looking at
   what we know least, his start box first, killing what it finds unguarded and keeping out of every reach, until a
   later pick takes it elsewhere; while it roves its menu has no party moves); `rove_1` (its fastest soldier leaves as a group of its own and roves); and for a region you marked (`mark` with a cell range, `"east_half": "E1-H8"`) that the packet names for the group, `rove_<region>` and `rove_1_<region>` (the same, but the rovers look at nothing and attack nothing outside the region: "the Rovers rove in his half" is a mark of his half and a packet that names it for them; a later plain `rove` frees them of it). An air group has stay, hold, go,
   attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join, and its
@@ -217,7 +222,9 @@ gather in a group of that factory's own, and nothing merges by itself: `{"plant_
 "group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, `"group":
 "by_type"` keeps one group per unit type (its Rovers never share a group with its Blitzes, so the Rovers can rove
 while the Blitzes fight; the hands' lines name each group as it forms), and a merge is your order (the hands' `join`
-move, which your packet can call for). `"join_in": 4` has the plant's new soldiers wait beside it, out of its lane,
+and `take in` moves, which your packet calls for by naming the direction: "group_U2 joins group_V2" or "group_V2
+takes in group_U2" both make one body named group_V2 on group_V2's course, so a body you mean to lead keeps its name
+however small it is). `"join_in": 4` has the plant's new soldiers wait beside it, out of its lane,
 and walk to their group four together, never alone (`null` lifts it); the group's entry says how many wait.
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with

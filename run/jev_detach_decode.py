@@ -37,6 +37,7 @@ for r in rows:
 def question(actor, what, kind, target):
     if kind == "place": return f"Read the player's `instructions` alone. Do they name {target} in anything they say to or about {actor} ({what}): a place it goes to, stands at, fights at, builds at, falls back to, or must keep away from?"
     if kind == "join": return f"Read the player's `instructions` alone. Do they tell {actor} ({what}) to join {target}, now or under some condition: {actor} to merge into {target} and take {target}'s name and course? No when it is {target} they tell to join {actor}."
+    if kind == "take_in": return f"Read the player's `instructions` alone. Do they tell {target} to join {actor} ({what}), or {actor} to take {target} in, now or under some condition: {target} to merge into {actor} and take {actor}'s name and course? No when it is {actor} they tell to join {target}."
     return f"Read the player's `instructions` alone. Do they tell {actor} ({what}) to follow, escort or stay beside {target}, now or under some condition?"
 by_packet = collections.defaultdict(list)
 for k in asks: by_packet[k[0]].append(k)

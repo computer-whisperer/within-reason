@@ -24,7 +24,7 @@ import re
 import subprocess
 import sys
 
-WITHDRAW = ("go_", "join_group_", "follow_", "fight_to_", "gather", "hold", "shell_", "rove")
+WITHDRAW = ("go_", "join_group_", "take_in_group_", "follow_", "fight_to_", "gather", "hold", "shell_", "rove")
 WINDOW = 15 * 30
 
 
@@ -66,7 +66,7 @@ def read(match):
                 detachments.add(actor)
         elif ".attack_" in mv:
             out["attack_picks"] += 1
-        elif ".join_group_" in mv:
+        elif ".join_group_" in mv or ".take_in_group_" in mv:
             out["join_picks"] += 1
     if not jevs:
         return out

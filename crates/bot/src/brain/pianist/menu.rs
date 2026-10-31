@@ -122,9 +122,11 @@ pub(crate) enum Order {
     Shell(His),
     /// These soldiers leave as a group of their own and hunt the party (H-MICRO-HUNT).
     Send(Vec<UnitId>, String),
-    /// Into the other group, on its course.
+    /// Into the other group: one body under its name, on its course.
     Join(String),
-    /// Beside a group or a builder of ours, wherever it goes.
+    /// The other group into this one: one body under this group's name, on its course.
+    TakeIn(String),
+    /// Beside a group or a builder of ours, wherever it goes, a group of its own.
     Follow(Ward),
     /// Its fastest soldier leaves as a group of its own and roves (H-MICRO-ROVE).
     RoveOne,
@@ -197,8 +199,10 @@ pub(crate) enum Read {
     Place(String),
     /// They have the builder build this type (its internal name, and its words).
     Build(String, String),
-    /// They tell the group to join this group.
+    /// They tell the group to join this group (one body under the other's name).
     Join(String),
+    /// They tell this group to take the other in (one body under this group's name): the other joins this one.
+    TakeIn(String),
     /// They tell the actor to follow this group or builder.
     Follow(String),
     /// They forbid the group a detachment of this many.
@@ -1155,27 +1159,36 @@ impl Brain {
             // body it left is the first place to say).
             let back = if group.parent.as_deref() == Some(other.name.as_str()) { "; the group it split from".to_string() } else { String::new() };
             if other.domain == group.domain {
-                let both: Vec<&OwnUnit> = units.iter().chain(theirs.iter()).copied().collect();
+                let both = units.len() + theirs.len();
+                // The join's direction is the pick's, as two moves (2026-10-31, barb-ladder4-20-1: under the size
+                // rule of 2026-10-03 two Bulls named as the army's leader could be joined by nobody without losing
+                // their name, and the player built the army of follows instead): `join` makes one body under the
+                // other's name and course, `take in` under this group's. The words of both and of `follow` say what
+                // one body is and what two groups are, since Jev rated follow over join under "join ... side by side".
                 push(
                     format!("join_group_{}", other.name),
                     Order::Join(other.name.clone()),
-                    // The larger of the two keeps its name, course and place (`execute.rs`, the join).
-                    if units.len() > theirs.len() {
-                        format!("{name} ({}) and group_{} ({}, {way}; it {other_course}) become one body of {} soldiers: {name} is the larger, so it keeps its name and its course, and group_{}'s soldiers leave theirs and walk to it{back}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name)
-                    } else {
-                        format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {} soldiers on group_{}'s course{}{back}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name, stands(*other_at))
-                    },
+                    format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {both} soldiers under group_{}'s name and course, at one pace, answering a party as one; {name}'s name ends{}{back}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), other.name, stands(*other_at)),
                     format!("joining group_{}", other.name),
+                    None,
+                    false,
+                );
+                push(
+                    format!("take_in_group_{}", other.name),
+                    Order::TakeIn(other.name.clone()),
+                    format!("{name} ({}) takes in group_{} ({}, {way}; it {other_course}): its soldiers walk to this body, one body of {both} soldiers under {name}'s name and course, at one pace, answering a party as one; group_{}'s name ends", self.composition_words(&units), other.name, self.composition_words(theirs), other.name),
+                    format!("taking in group_{}", other.name),
                     None,
                     false,
                 );
             }
             if !air {
                 let key = format!("follow_group_{}", other.name);
+                let one_body = if other.domain == group.domain { "; not one body with it: join or take in makes one" } else { "" };
                 push(
                     key.clone(),
                     Order::Follow(Ward::Group(other.name.clone())),
-                    format!("{name} follows group_{} ({}, {way}; it {other_course}): it stays beside it wherever it goes, a group of its own, and fights what comes at it{}{leaves}", other.name, self.composition_words(theirs), stands(*other_at)),
+                    format!("{name} follows group_{} ({}, {way}; it {other_course}): it stays beside it wherever it goes as a group of its own, asked, rated and fought apart from it, at its own pace{one_body}{}{leaves}", other.name, self.composition_words(theirs), stands(*other_at)),
                     format!("following group_{}", other.name),
                     None,
                     false,
@@ -1667,6 +1680,7 @@ impl Brain {
                 reads
             }
             Order::Join(other) => vec![Read::Join(format!("group_{other}"))],
+            Order::TakeIn(other) => vec![Read::TakeIn(format!("group_{other}"))],
             Order::Follow(Ward::Group(other)) => vec![Read::Follow(format!("group_{other}"))],
             Order::Follow(Ward::Builder(id)) => vec![Read::Follow(self.actor_name(*id))],
             Order::Send(soldiers, party) => {
@@ -2044,7 +2058,7 @@ pub(super) mod tests {
         let menus = brain.menus(&tick, &kit, &picture);
         let menu = menus.iter().find(|m| m.name == "group_A").expect("the roving group's menu");
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
-        assert_eq!(keys, ["stay", "hold", "go_spot_30", "fight_to_spot_30", "join_group_B", "follow_group_B"], "no gather, nothing aimed at party_12, no rove or rove_1 while roving");
+        assert_eq!(keys, ["stay", "hold", "go_spot_30", "fight_to_spot_30", "join_group_B", "take_in_group_B", "follow_group_B"], "no gather, nothing aimed at party_12, no rove or rove_1 while roving");
         assert!(!menu.idle && menu.course == "rove" && !menu.moves.iter().any(|m| m.key == "rove"), "{}", menu.course);
         let words = |key: &str| menu.moves.iter().find(|m| m.key == key).unwrap().words.clone();
         assert!(words("stay").starts_with("group_A roves: its Blitz at spot_40 (E3) is on its way to look at spot_30"), "{}", words("stay"));
@@ -2114,7 +2128,7 @@ pub(super) mod tests {
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert_eq!(
             keys,
-            ["stay", "hold", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "rove_1"],
+            ["stay", "hold", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "take_in_group_B", "follow_group_B", "rove", "rove_1"],
             "no walk home and none to spot_31, which the packet does not name; his turrets at spot_47 are a place to attack"
         );
         assert!(menu.idle && menu.course == "idle" && menu.near_party.as_deref() == Some("party_12"));

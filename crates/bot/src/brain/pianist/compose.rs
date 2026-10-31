@@ -272,9 +272,11 @@ fn clash(menus: &[Menu], world: &World) -> bool {
                 }
                 spots.push(*spot);
             }
-            Order::Join(other) => {
+            // Two merges of one pair of groups are no world: A into B while B into A, and the same merge twice (A
+            // joins B while B takes A in: the second finds no A).
+            Order::Join(other) | Order::TakeIn(other) => {
                 if let Kind::Group(me) = &menu.kind {
-                    if joins.iter().any(|(a, b)| *a == other.as_str() && *b == me.as_str()) {
+                    if joins.iter().any(|(a, b)| (*a == other.as_str() && *b == me.as_str()) || (*a == me.as_str() && *b == other.as_str())) {
                         return true;
                     }
                     joins.push((me.as_str(), other.as_str()));
@@ -416,7 +418,7 @@ fn components(menus: &[Menu], per_menu: &[Vec<(f64, usize)>]) -> Vec<Vec<usize>>
                 let m = &menu.moves[*ti];
                 set.extend(m.party.clone());
                 match &m.order {
-                    Order::Join(other) | Order::Follow(super::groups::Ward::Group(other)) => {
+                    Order::Join(other) | Order::TakeIn(other) | Order::Follow(super::groups::Ward::Group(other)) => {
                         set.insert(format!("group_{other}"));
                     }
                     Order::Follow(super::groups::Ward::Builder(id)) | Order::Help(id) => set.extend(name_of(*id)),
@@ -886,6 +888,13 @@ mod tests {
         assert_eq!(worlds[0], vec![0, 0, 0, 0]);
         assert!(worlds.contains(&vec![2, 1, 1, 0]), "{worlds:?}");
         assert!(!worlds.iter().any(|w| w[0] == 1 && w[1] == 1), "A into B while B into A is no world: {worlds:?}");
+        // The same merge twice is no world either: A joins B while B takes A in.
+        let twice = vec![
+            group("A", true, vec![mv("join_group_B", Order::Join("B".into()), None)]),
+            group("B", true, vec![mv("take_in_group_A", Order::TakeIn("A".into()), None)]),
+        ];
+        let twice_worlds = compose(&twice, &nouls(&[("group_A.join_group_B", 0.9), ("group_B.take_in_group_A", 0.8)]), &mut BTreeMap::new(), CAP).unwrap();
+        assert!(!twice_worlds.iter().any(|w| w[0] == 1 && w[1] == 1), "A joins B while B takes A in is one merge, no world: {twice_worlds:?}");
         assert!(!worlds.iter().any(|w| w[2] == 1 && w[3] == 1), "two builders on one spot is no world: {worlds:?}");
         // 3 * 2 * 2 * 2 = 24 combinations, less the 4 with the mutual join and the 6 with both on the spot, 1 in both.
         assert_eq!(worlds.len(), 24 - 4 - 6 + 1, "{worlds:?}");

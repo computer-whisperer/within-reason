@@ -44,6 +44,7 @@ fn key(actor: &str, read: &Read) -> String {
         Read::Place(place) => format!("{actor}|place|{place}"),
         Read::Build(name, _) => format!("{actor}|build|{name}"),
         Read::Join(other) => format!("{actor}|join|{other}"),
+        Read::TakeIn(other) => format!("{actor}|take_in|{other}"),
         Read::Follow(ward) => format!("{actor}|follow|{ward}"),
         Read::Detach(n) => format!("{actor}|detach|{n}"),
         Read::Air => format!("{actor}|air"),
@@ -60,6 +61,7 @@ fn question(actor: &str, what: &str, read: &Read) -> Question {
         // One way only (player-35, 23:25: under "group_S6 joins group_V4" the question's "or become one body with
         // it" read yes for both, and the army of 43 joined its own detachment of 8).
         Read::Join(other) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to join {other}, now or under some condition: {actor} to merge into {other} and take {other}'s name and course? No when it is {other} they tell to join {actor}."),
+        Read::TakeIn(other) => format!("Read the player's `instructions` alone. Do they tell {other} to join {actor} ({what}), or {actor} to take {other} in, now or under some condition: {other} to merge into {actor} and take {actor}'s name and course? No when it is {actor} they tell to join {other}."),
         Read::Follow(ward) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to follow, escort or stay beside {ward}, now or under some condition?"),
         Read::Detach(n) => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to send a detachment of {n} of its soldiers after an enemy party?"),
         Read::Air => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to attack, chase or hunt his aircraft (planes, bombers, gunships, air scouts), or tell it to ignore them or leave them alone?"),

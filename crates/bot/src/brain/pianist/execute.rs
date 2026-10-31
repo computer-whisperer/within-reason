@@ -423,16 +423,19 @@ impl Brain {
                     did = Some(format!("shell {what} from their reach with {} long-reach soldiers, {} between", long.len(), units.len() - long.len()));
                 }
             }
-            Order::Join(other) => {
+            Order::Join(other) | Order::TakeIn(other) => {
                 if let Some(target) = pianist.groups.iter().position(|g| g.name == *other && g.domain == pianist.groups[index].domain) {
-                    // The two become one body, and the join is the same whichever of them picked it: the smaller
-                    // group's soldiers walk to the larger's body, which keeps its name, its order and its place
-                    // (the user, 2026-10-03, after human-22: at 12:32 a body of 33 advancing on the push joined its
-                    // own detachment of 8 standing at home, took its name and stood with no order; again at 14:48,
-                    // 31 into 2). The walkers take the body's order when they reach it (H-HANDS-JOINERS): until
-                    // then they are on their way, not of its front or its odds.
-                    let larger = pianist.groups[index].members.len() > pianist.groups[target].members.len();
-                    let (keep, gone) = if larger { (index, target) } else { (target, index) };
+                    // The two become one body, and the direction is the pick's: a `join` walks this group's soldiers
+                    // to the other's body, which keeps its name, its order and its place; a `take in` walks the
+                    // other's to this one's. (From 2026-10-03 to 2026-10-31 the smaller walked to the larger
+                    // whichever picked it, after human-22, where a body of 33 joined its own detachment of 8 and
+                    // took its name; in barb-ladder4-20-1 that rule left two Bulls named as the army's leader
+                    // unable to be joined by anyone without losing their name, and the player built the army of
+                    // follows instead; now both directions are moves with their own words, read against the
+                    // packet.) The walkers take the body's order when they reach it (H-HANDS-JOINERS): until then
+                    // they are on their way, not of its front or its odds.
+                    let take_in = matches!(order, Order::TakeIn(_));
+                    let (keep, gone) = if take_in { (index, target) } else { (target, index) };
                     let to = pianist.groups[keep].body(own, None).map(|b| b.at).or(centre).unwrap_or(home);
                     let absorbed = pianist.groups.remove(gone);
                     let keep = if gone < keep { keep - 1 } else { keep };
@@ -443,7 +446,7 @@ impl Brain {
                         body.joining.extend(absorbed.members.iter().map(|id| (*id, to)));
                     }
                     body.members.extend(absorbed.members);
-                    did = Some(if larger { format!("take in group_{other}: its soldiers walk to this body, which keeps its name and its course") } else { format!("join group_{other}") });
+                    did = Some(if take_in { format!("take in group_{other}: its soldiers walk to this body, which keeps its name and its course") } else { format!("join group_{other}: one body under group_{other}'s name and course") });
                 }
             }
             Order::Follow(ward) => {

@@ -17,6 +17,10 @@ Armada; the places, units and groups are that game's, yours are your own):
 4. **Going is the standing order, not the exception.** A body that is to press is given its way and told to walk
    it now; new units join it where it is. A place to stand and a count to wait for belong only to a body that
    must meet a defended position, and then the packet says what it does at once when the count is met.
+   One body is a join, and its name is the direction's: "group_U2, group_D and group_J2 join group_V2" makes one
+   army named group_V2, two Bulls or twenty; "they follow group_V2" leaves four groups walking beside each other,
+   each asked, rated and fighting alone. Follow is for a group that stays its own on purpose (the Rovers that hunt
+   beside the army, anti-air with a column, aircraft over ground), never for making one body.
 5. **Raids and home are written before they happen**: who meets a raider at our extractors, with how many, where
    the home guard stands, and what the commander and the constructors do when a party comes.
 

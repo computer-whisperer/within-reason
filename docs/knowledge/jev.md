@@ -2398,3 +2398,23 @@ draws is the measurement above; a game's `plan` lines carry `cut` from now on.
 tail is then Jev's spread, not its mistakes), or the quick-pick share of groups falls with the floor on (then the floor
 is a hold on the course after all, which the ruling forbids).
 **Used by.** [[H-HANDS-MIN-P]]; amends [[K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them]].
+
+### K-hands-a-join-by-size-forbids-a-named-leader
+**Claim** (2026-10-31, from barb-ladder4-20-1). When a merge's direction is decided by size, a player who wants a small
+named body to lead a larger one has no move that keeps the leader's name, and reaches for `follow`, which makes no body
+at all. The hands' join and the brief's words together steered the player: the brief said the name stays with the
+larger body, the report showed the leader's best-rated move as "joining group_J2", and the player wrote "it joins no
+one" and had seven groups follow two Bulls. The direction of a join belongs on the menu as two moves with honest words,
+so the packet's "U2 joins V2" is one move and "V2 takes in U2" the same body; the words of join and follow then carry
+the difference Jev read wrong under "join ... side by side" (follow's words said "beside", join's did not say "one
+body, one pace, one answer").
+**Evidence.** `run/matches/1793479422-barb-ladder4-20-1/00`: the packets of 17:43 ("they all join group_N2 ... side
+by side, none ahead"), 17:53 ("group_V2 (our two Bulls) leads it: ... follow group_V2 or join it") and 18:03 ("it does
+not hold at spot_73 and joins no one"); Jev's gate at 17:47-17:52 (follow_group_N2 0.50-0.56, join_group_N2 under 0.5
+for D, O2, T2); the 18:03 report's V2 entry "best_rated: joining group_J2 (0.35)"; the join move's words before this
+change ("{name} is the larger, so it keeps its name and its course, and group_X's soldiers leave theirs and walk to
+it", `menu.rs`) and the brief's "a merge is your order (the hands' `join` move)" with no word on the direction. H-HANDS-JOIN-SYMMETRIC retired, the two moves built the same night; the player's reasoning itself is not
+recorded (its turns carry tool calls alone).
+**Would be wrong if.** A player given the two moves still built a leader out of follows, or a merge's direction picked
+by Jev against the packet returned at the rate of human-22 (a body joining its own detachment).
+**Used by.** H-HANDS-MENU, H-HANDS-FOLLOW, the brief's group verbs.
