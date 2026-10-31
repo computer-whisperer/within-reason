@@ -1918,6 +1918,13 @@ impl Brain {
                 // `docs/design/2026-10-24-pick-rework.md` §6).
                 GroupTask::Hold { picked: true, .. } => "holding here".to_string(),
                 GroupTask::Hold { .. } => "standing with no order".to_string(),
+                // A shell of a party says where the group stands against it, as an attack does (H-HANDS-SHELL,
+                // H-HANDS-STANDING): guns in reach are shelling, guns on their way are not yet.
+                GroupTask::Move { place, .. } if group.shelling && place.strip_prefix("standoff from ").is_some_and(|p| p.starts_with("party_")) => {
+                    let name = place.strip_prefix("standoff from ").unwrap_or(place);
+                    let standing = parties.iter().find(|p| p.name == name).map_or(String::new(), |p| format!(": {}", self.standing(&body.core, p, &snapshot.enemies).words()));
+                    format!("shelling {name} from a standoff{standing}")
+                }
                 GroupTask::Move { place, fight, .. } if lane_state.is_some() => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                 GroupTask::Move { to, place, fight, .. } => format!("{} to {place}: {}", if *fight { "advancing" } else { "walking" }, shape(*to)),
                 // Told to attack is not attacking: the entry says where the group stands against the party

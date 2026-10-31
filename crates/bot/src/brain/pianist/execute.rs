@@ -22,10 +22,37 @@ const DEFENCE_FORWARD: f32 = 120.0;
 /// A build's site within this of a place is the build at that place (a defence stands `DEFENCE_FORWARD` off it,
 /// the engine's site search a building's width more).
 pub(super) const SAME_SITE: f32 = 250.0;
-/// Artillery shells from this share of its reach, and the screen stands at this share (footwork below the `shell`
-/// move; never ruled).
+/// Artillery shells from this share of its reach, and the screen stands at this share, both on the line from the
+/// target to the guns (H-HANDS-SHELL, `shell_points`; the user's word 2026-10-31).
 const STANDOFF: f32 = 0.85;
 const SCREEN: f32 = 0.55;
+
+/// Where artillery shells a target from, and where its screen stands (H-HANDS-SHELL). Guns that already have the
+/// target inside their reach and stand outside its reach (`target_reach`, the longest of the target's) stay where
+/// they are: the standoff is their centroid. Otherwise the standoff is `STANDOFF` of their reach from the target on
+/// the line from the target toward the guns' centroid (`fallback`, the group's place, when it has no guns). The screen stands
+/// `SCREEN` of the reach from the target on the line to the standoff. Until 2026-10-31 the line ran to the whole
+/// group's centroid, joiners walking out from home included, and the standoff was walked to whatever the guns had in
+/// reach: barb-ladder3-20-1 30:32, two Starlights (950) standing 863 from a Fatboy (700) were walked 520 east to a
+/// point beside the nano pad, 698 round the crater, out of a shot they already had, and the words of that walk
+/// ("nothing of it has the party in reach, about 20 s of walking") flipped the pick to attack the next second.
+pub(super) fn shell_points(guns: &[Vec3], fallback: Vec3, target: Vec3, reach: f32, target_reach: f32) -> (Vec3, Vec3) {
+    let n = guns.len() as f32;
+    let from = if guns.is_empty() { fallback } else { Vec3 { x: guns.iter().map(|g| g.x).sum::<f32>() / n, y: fallback.y, z: guns.iter().map(|g| g.z).sum::<f32>() / n } };
+    let line = |toward: Vec3, dist: f32| {
+        let (dx, dz) = (toward.x - target.x, toward.z - target.z);
+        let len = dx.hypot(dz).max(1.0);
+        Vec3 { x: target.x + dx / len * dist, y: toward.y, z: target.z + dz / len * dist }
+    };
+    let in_place = !guns.is_empty()
+        && guns.iter().all(|g| {
+            let d = g.dist2d(target);
+            d <= reach && d > target_reach
+        });
+    let standoff = if in_place { from } else { line(from, reach * STANDOFF) };
+    let screen = line(standoff, reach * SCREEN);
+    (standoff, screen)
+}
 
 /// Whether a build (the spot it takes, the site asked for) is the one an order names: at the spot the order
 /// names, or within `SAME_SITE` of its place (`Some(None)`: a place the picture does not know, which is no site);
@@ -369,12 +396,19 @@ impl Brain {
                     let reach_of = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.reach);
                     let long: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.artillery(u)).collect();
                     let reach = long.iter().map(reach_of).fold(0.0, f32::max);
-                    let from = centre.unwrap_or(at);
-                    let (dx, dz) = (from.x - at.x, from.z - at.z);
-                    let len = dx.hypot(dz).max(1.0);
-                    let point = |dist: f32| Vec3 { x: at.x + dx / len * dist, y: 0.0, z: at.z + dz / len * dist };
-                    let standoff = self.snap_for(walker, point(reach * STANDOFF));
-                    let screen = self.snap_for(walker, point(reach * SCREEN));
+                    let guns: Vec<Vec3> = long.iter().map(|u| u.pos).collect();
+                    // The target's own reach: its party's members, or whatever of his stands at the place.
+                    let target_reach = (enemies.iter())
+                        .filter(|e| match target {
+                            His::Party(name) => party(name).is_some_and(|p| p.ids.contains(&e.id)),
+                            His::Place(_) => e.pos.dist2d(at) <= SAME_SITE,
+                        })
+                        .filter_map(|e| e.def.and_then(|d| self.world.def(d)))
+                        .map(|d| d.reach)
+                        .fold(0.0, f32::max);
+                    let (standoff, screen) = shell_points(&guns, centre.unwrap_or(at), at, reach, target_reach);
+                    let standoff = self.snap_for(walker, standoff);
+                    let screen = self.snap_for(walker, screen);
                     commands.extend(group.release_orders(&units));
                     group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {what}"), fight: true }, frame);
                     group.shelling = true;
@@ -500,6 +534,33 @@ mod tests {
 
     /// An order is the build under way only at the same place: `extractor spot_54` is not the extractor the
     /// builder is walking to at spot_62, and `armllt spot_43` is the turret ordered beside spot_43, not one elsewhere.
+    /// H-HANDS-SHELL: guns that already have the target in reach and stand out of its reach shell from where they
+    /// are; guns too far walk to the standoff on their own line to the target, not the group's; guns inside the
+    /// target's reach step out to the standoff.
+    #[test]
+    fn the_standoff_is_where_the_guns_already_have_the_shot_else_on_their_own_line() {
+        let at = |x: f32, z: f32| Vec3 { x, y: 0.0, z };
+        let fatboy = at(755.0, 4535.0);
+        // Two Starlights (950) 863 from a Fatboy (700), the group's centroid dragged toward home by joiners.
+        let guns = [at(640.0, 5380.0), at(672.0, 5404.0)];
+        let home_ward = at(1467.0, 5451.0);
+        let (standoff, screen) = super::shell_points(&guns, home_ward, fatboy, 950.0, 700.0);
+        assert!(standoff.dist2d(at(656.0, 5392.0)) < 1.0, "the guns stay: {standoff:?}");
+        let on_line = |p: Vec3| ((p.x - fatboy.x) * (standoff.z - fatboy.z) - (p.z - fatboy.z) * (standoff.x - fatboy.x)).abs() / standoff.dist2d(fatboy);
+        assert!((screen.dist2d(fatboy) - 0.55 * 950.0).abs() < 1.0 && on_line(screen) < 1.0, "the screen between the guns and the target: {screen:?}");
+        // The same guns 1,500 off: the standoff at 0.85 of their reach on their own line, not toward the group's centroid.
+        let far = [at(755.0, 6035.0), at(755.0, 6065.0)];
+        let (standoff, _) = super::shell_points(&far, home_ward, fatboy, 950.0, 700.0);
+        assert!((standoff.dist2d(fatboy) - 0.85 * 950.0).abs() < 1.0 && (standoff.x - 755.0).abs() < 1.0, "{standoff:?}");
+        // Guns inside the Fatboy's reach step out to the standoff.
+        let close = [at(755.0, 5035.0)];
+        let (standoff, _) = super::shell_points(&close, home_ward, fatboy, 950.0, 700.0);
+        assert!((standoff.dist2d(fatboy) - 0.85 * 950.0).abs() < 1.0, "{standoff:?}");
+        // No guns at all: the group's line.
+        let (standoff, _) = super::shell_points(&[], home_ward, fatboy, 950.0, 700.0);
+        assert!((standoff.dist2d(fatboy) - 0.85 * 950.0).abs() < 1.0 && standoff.x > fatboy.x && standoff.z > fatboy.z, "{standoff:?}");
+    }
+
     #[test]
     fn an_order_is_the_build_under_way_only_at_its_own_place() {
         let at = |x: f32, z: f32| Vec3 { x, y: 0.0, z };

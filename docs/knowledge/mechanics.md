@@ -977,3 +977,26 @@ with no job in reach stayed busy under the fight order (not measured: from 13:00
 **Used by.** H-ECO-NANO-GUARD (the one-second re-tell), H-ECO-BLOCK (the turret score by frame slots, the block's
 tiers), D-late-economy's "each tier's infrastructure is eaten for the next" (the plant beside the block takes the
 nearest turrets' power while it runs).
+
+### K-hands-a-standoff-from-the-groups-centroid-walks-the-guns-out-of-their-shot
+**Claim** (2026-10-31, from barb-ladder3-20-1). A shell order whose standoff is measured along the line from the target
+to the group's centroid, and walked to regardless of where the guns stand, takes guns that already have the shot out
+of it whenever the group has members elsewhere: joiners walking out from home pull the centroid toward home, the
+standoff point lands beside the base at the reach distance, and the guns walk sideways to it, round whatever terrain
+lies between, while the target stands untouched. The hands then describe that walk truthfully ("nothing of it has the
+party in reach, about 20 s of walking"), and a course described as a failing walk loses the next ask to the alternative,
+whose own first second loses the ask after that. The flip is the geometry's, not the pick's, and the re-ask on news is
+not at fault: a re-ask on a truthful picture of a sound course keeps the course.
+**Evidence.** The Jev log and record of `run/matches/1793456996-barb-ladder3-20-1/00`, 30:30-30:50: group_O (2 Starlight
+at reach 950, 1 Stout, 1 Blitz; 2 Stouts joining from home) at spot_68 (656, 5392), the Fatboy (reach 700) at (755,
+4535), 863 apart; the shell order's task `to` (1144, 5208) beside the nano pad (1180, 5250), 807 from the Fatboy on
+the line toward the group centroid (1467, 5451); the lane's words "advancing to nano_pad (B7) ... 698 on its way",
+the screen "2253 on its way"; the attack question "rather than what stands (nobody moves for it)" at 30:33 (attack
+0.67, p 0.89); the attack's words at 30:34 "nothing of it has the party in reach (the nearest of its 5 soldiers is
+near, about 20 s of walking away, on its way)" (shell 0.55, p 0.88); 30:38-30:48 under the attack course "halted at
+spot_68 to fight his Fatboy at spot_62 in reach". `execute.rs` before the change: `from = centre.unwrap_or(at)`,
+`point(reach * STANDOFF)`; `menu.rs` `group_course` returning `None` for a shell's `aimed_at`.
+**Would be wrong if.** A game under H-HANDS-SHELL showed a shelling group's attack question still reading "nobody
+moves for it", or guns with the shot in hand walking to a standoff, or the attack / shell flip at the same rate with
+the words corrected (then the pick's framing of near-equal courses is the cause, not the geometry).
+**Used by.** H-HANDS-SHELL.

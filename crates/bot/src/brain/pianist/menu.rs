@@ -654,9 +654,13 @@ impl Brain {
             // The key is the shell move's own (`shell_party_N`, `shell_spot_N`), so the menu leaves out the shell the
             // group is already on (player-49 11:20-11:22: an empty key left it on the menu, it was picked each
             // second and the whole group ordered again each time; 18 of group_O's 103 picks).
+            // A shell of a party is aimed at it (H-HANDS-SHELL): the party's question reads the group as on it, by its
+            // standing, instead of "nobody moves for it" (barb-ladder3-20-1 30:33: that line flipped a shelling group
+            // to attack, and the attack's first second flipped it back, nine times in twenty seconds).
             GroupTask::Move { place, .. } if group.shelling => {
                 let aimed = place.strip_prefix("standoff from ").unwrap_or(place);
-                ("shell", format!("shell_{}", aimed.strip_prefix("his buildings at ").unwrap_or(aimed)), format!("shells from a {place}"), None)
+                let party = aimed.starts_with("party_").then(|| aimed.to_string());
+                ("shell", format!("shell_{}", aimed.strip_prefix("his buildings at ").unwrap_or(aimed)), format!("shells from a {place}"), party)
             }
             GroupTask::Move { place, fight: true, .. } => ("fight_to", format!("fight_to_{place}"), format!("advances to {place}, fighting on the way"), None),
             GroupTask::Move { place, .. } => ("go", format!("go_{place}"), format!("walks to {place} without stopping to fight"), None),
@@ -2137,12 +2141,13 @@ pub(super) mod tests {
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
         let other = menus.iter().find(|m| m.name == "group_B").expect("the other group's menu");
         assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "rove_1"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
-        // A shelling group's course carries the shell move's own key, so the menu leaves that move out.
-        for (place, key) in [("standoff from party_12", "shell_party_12"), ("standoff from his buildings at spot_47", "shell_spot_47")] {
+        // A shelling group's course carries the shell move's own key, so the menu leaves that move out; a shell of a
+        // party is aimed at the party (H-HANDS-SHELL), one of his buildings at nothing.
+        for (place, key, aimed) in [("standoff from party_12", "shell_party_12", Some("party_12")), ("standoff from his buildings at spot_47", "shell_spot_47", None)] {
             let mut shelling = Group::new("S".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Move { to: at(4000.0, 2000.0), place: place.into(), fight: true }, 0);
             shelling.shelling = true;
-            let (course, course_key, ..) = brain.group_course(&shelling, &picture);
-            assert_eq!((course, course_key.as_str()), ("shell", key));
+            let (course, course_key, _, aimed_at) = brain.group_course(&shelling, &picture);
+            assert_eq!((course, course_key.as_str(), aimed_at.as_deref()), ("shell", key, aimed));
         }
     }
 
