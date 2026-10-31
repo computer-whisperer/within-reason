@@ -288,3 +288,42 @@ wait for).
 formed body re-aimed onto a joiners' cluster; or the strung-out walk's forward placement loses more than it gains (a
 host that wanted the group gathered gets a front that walks on alone).
 **Used by.** H-MICRO-GROUP (the D23 amendment); design D23.
+
+### K-group-ranks-laid-in-the-travel-frame-rotate-at-every-bend
+**Claim** (2026-10-31, the user's reading of apex-v0409-comet-sym0-opus-1 and the code). With the slots laid in the
+frame of the heading, and the heading recomputed every tick toward the next way point, every bend of the way rotates
+the whole grid about the anchor: a rear slot of a 300-deep block moves about 100 for a 20-degree bend, each member
+walks a different vector to its slot, and two interleaved blocks rotating about two anchors cross each other's paths.
+That is the shuffle at trajectory changes, and it is worst with another formation's ranks interspersed. Units move at
+one speed in every direction, so a block that keeps its facing and translates through a bend loses nothing on the
+march; facing matters at contact, where the close re-aims it. Holding the facing between corners is not free on a
+corridor circuit: the skewed block wants more lateral room than the planner priced for its half-width across the
+heading.
+**Evidence.** The code before the change (`group.rs` `tick`: `heading` set every tick, `form::slots(anchor, heading,
+..)`, the re-deal only at corners of 20 degrees or more). The drills (ledger face0 / face1, 3 reps a circuit arm, 8 a
+pair arm): the plain circuit 177 / 179 / 181 s at formed 0.95 before, 182 / 184 / 186 at 0.93 with the facing held
+to 60 degrees, 179 / 182 / 184 at 20 degrees, 182 / 185 / 186 at 120; the fed circuit 179 / 180 / 181 and
+180 / 181 / 183 at formed 0.82 both, its join median 59 to 51 s; the pair drill's second block arrived 49 → 46 s (walk)
+and 56 → 51 (follow) with overlap 34.5 → 32.1 and 0 → 0.4 s, the attack taken 8 of 8 against 7 of 8.
+**Would be wrong if.** A game under H-MICRO-FACING showed the interleaved shuffle unchanged, or the circuit's three per
+cent grew into bodies cut off at walls in play (the room check is the mitigation to build then).
+**Used by.** H-MICRO-FACING.
+
+### K-group-companies-over-the-cap-march-superposed
+**Claim** (2026-10-31, from apex-v0409-comet-sym0-opus-1). Two companies of one army that together exceed the cap
+walk the same route from the same place superposed for the whole march: the merge cannot take them, each company's
+way is planned over a ground that knows nothing of other formations, and `keep_off` parts them only at the way's end.
+A third company sent to an end two others hold never settles: its placed end moves about and its members stand in the
+others' ranks. The planner has to see the others: a standing formation's cells dear enough to walk round, a marching
+one's dear enough to lean off, and a re-plan when a standing one comes onto the way before its end; the end itself
+stays one rule's (`keep_off`): two placements of it disagreed and moved it at every re-plan (foot1 / foot2).
+**Evidence.** The record's `groups` (`run/matches/1793417501-apex-v0409-comet-sym0-opus-1/00`): 1,746 company-pair-
+seconds of two marching companies of group_G within 190, every pair over the cap of 24; two companies of 22 within
+22-206 from 15:00 to 21:47, 327 s unbroken from 16:20; marching companies of 15+ formed 0.60 with another within 190
+against 0.67 with none within 600; at spot_46 13:45-14:15 a company of 24 beside two arrived ones swung 8-21 of 24
+formed with 6-16 exceptions at an end 240-415 from the spot. `ground.rs` before the change: `way_found` over the
+ground's costs alone; `lib.rs` giving `keep_off` the footprints after the plan.
+**Would be wrong if.** The pair drills under H-MICRO-GROUND-FORMATIONS showed the second block's arrival later or its
+overlap longer than under `keep_off` alone (ledger pair2 / foot1), or a game showed companies walking through each
+other's standing footprints with the price in force.
+**Used by.** H-MICRO-GROUND-FORMATIONS.

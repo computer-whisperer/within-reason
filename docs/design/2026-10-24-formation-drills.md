@@ -65,7 +65,10 @@ cadence, so the engine's own movement does the following. The host never orders 
 1. Pace: the anchor moves at the slowest type's speed in the declared group (the fraction 1.0, ruled by the bench the
    night it was built: a lagging unit of that type regains its slot because the anchor is held back by its formed
    members, not because the pace leaves a margin; 0.9 cost a pure column 4 s and met no bar the 1.0 missed).
-2. Shape: the template across the heading, never wider than the standable ground across the route.
+2. Shape: the template across the heading, never wider than the standable ground across the route. (From 2026-10-31
+   across the ranks' `facing`, apart from the heading of travel: it stands between corners and turns only at a corner
+   of `REFACE_DEG` or more, at contact, or on a re-aim; `docs/design/2026-10-31-facing-and-footprints.md` §2,
+   H-MICRO-FACING.)
 3. Coherence: every member within a tolerance of its slot, or an exception.
 4. Integrity at contact: the anchor stops at reach, the formed body takes the arc, and the loop falls silent for any
    unit with a target in reach (every order there costs shots: form6, form7).

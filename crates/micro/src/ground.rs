@@ -26,9 +26,16 @@ use std::sync::Arc;
 use bot_protocol::{MoveClass, MoveKind, Terrain, Vec3};
 use terrain::Field;
 
+use crate::group::{Footprint as Formation, KEEP_OFF_MARGIN};
+
 /// A point is judged by the nearest standable cell within this many cells (a slot at a cliff's lip snaps onto the
 /// ground beside it; a slot in the middle of a lake is cut off).
 const SNAP_CELLS: i32 = 6;
+/// What a cell under another formation's footprint costs on top of its own price, in the fields' tenths of a cell
+/// (flat ground is 10 a cell): a standing block is walked round whenever a detour under sixty cells of flat ground a
+/// cell crossed exists, a marching one whenever one under four does (the facing design §3).
+pub const STANDING_COST: u32 = 600;
+pub const MARCHING_COST: u32 = 40;
 
 /// A movement class as a key: its kind, its slope limit and its depth, rounded (the hands' `ClassKey`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -209,6 +216,48 @@ impl Ground {
         best.map(|(_, index)| centre(self.cell, self.width, index, pos.y)).or_else(|| self.snap(pos))
     }
 
+    /// The costs with the other formations stamped in (`STANDING_COST`, `MARCHING_COST`, the footprint grown by
+    /// `KEEP_OFF_MARGIN`); `None` when no footprint touches a cell of the ground.
+    fn stamp(&self, others: &[Formation]) -> Option<Vec<u32>> {
+        if others.is_empty() {
+            return None;
+        }
+        let mut costs = self.costs.clone();
+        let mut touched = false;
+        for o in others {
+            let add = if o.standing { STANDING_COST } else { MARCHING_COST };
+            let reach = o.half_width() + o.depth() + 2.0 * KEEP_OFF_MARGIN + self.cell;
+            let lo = |v: f32| ((v - reach) / self.cell).floor().max(0.0) as usize;
+            let hi = |v: f32, n: usize| (((v + reach) / self.cell).ceil().max(0.0) as usize).min(n.saturating_sub(1));
+            for z in lo(o.anchor.z)..=hi(o.anchor.z, self.height) {
+                for x in lo(o.anchor.x)..=hi(o.anchor.x, self.width) {
+                    let index = z * self.width + x;
+                    if costs[index] == terrain::IMPASSABLE {
+                        continue;
+                    }
+                    if o.contains(centre(self.cell, self.width, index, 0.0), KEEP_OFF_MARGIN) {
+                        costs[index] = costs[index].saturating_add(add);
+                        touched = true;
+                    }
+                }
+            }
+        }
+        touched.then_some(costs)
+    }
+
+    /// Whether the line from `a` to `b` passes through a standing footprint grown by the margin (a sample a cell).
+    fn line_crosses(&self, a: Vec3, b: Vec3, standing: &[&Formation]) -> bool {
+        if standing.is_empty() {
+            return false;
+        }
+        let steps = (a.dist2d(b) / self.cell).ceil().max(1.0) as usize;
+        (0..=steps).any(|k| {
+            let t = k as f32 / steps as f32;
+            let p = Vec3 { x: a.x + (b.x - a.x) * t, y: 0.0, z: a.z + (b.z - a.z) * t };
+            standing.iter().any(|o| o.contains(p, KEEP_OFF_MARGIN))
+        })
+    }
+
     /// The way from `from` to `to` over the priced ground: the points after `from`, `to` (snapped) last, bending only
     /// where the ground bends it. `[to]` alone when the ground gives none (`way_found`): the straight line, and the
     /// engine does with each member what it can.
@@ -220,8 +269,28 @@ impl Ground {
     /// joins `from` to it (a cliff, a lake, the sea). The group's state says so (`GroupState::way`), so the hands can
     /// say "no way on foot" instead of walking the body at it.
     pub fn way_found(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
+        self.way_found_off(from, to, &[])
+    }
+
+    /// `way_found` with the other formations in the price (`docs/design/2026-10-31-facing-and-footprints.md` §3):
+    /// every cell under a standing formation's footprint, grown by `KEEP_OFF_MARGIN`, costs `STANDING_COST` more and
+    /// one under a marching formation's `MARCHING_COST` more, so the way bends round a block that stands and leans off
+    /// one that walks wherever there is room, and goes through where there is none (overlap is dear, never
+    /// forbidden); the straightening never cuts across a standing one. The costs are copied for the plan (200k
+    /// cells on Comet, under a millisecond); nothing of the ground is rebuilt, and the ground itself knows nothing of
+    /// formations (the reviewed game: two companies over the cap marched superposed 327 s, a third company never
+    /// settled at an end two others held).
+    pub fn way_found_off(&self, from: Vec3, to: Vec3, others: &[Formation]) -> Option<Vec<Vec3>> {
         let goal = self.snap(to)?;
-        let field = Field::over_until(self.cell, self.width, self.height, &self.costs, &[goal], Some(from))?;
+        let stamped = self.stamp(others);
+        let costs: &[u32] = stamped.as_deref().unwrap_or(&self.costs);
+        // The straightening cuts across no formation, standing or marching (the field's detour round a marching one
+        // was straightened away before this), except one the goal itself lies in: a follower's goal is its ward's
+        // anchor and an attack's a party member, and refusing every line to it left the raw cell chain, which walked
+        // the follower through the ward's ranks to the end `keep_off` had put beside it (foot3-pair-follow: 1 of 8
+        // arrived, 179 s of overlap).
+        let standing: Vec<&Formation> = others.iter().filter(|o| !o.contains(goal, KEEP_OFF_MARGIN)).collect();
+        let field = Field::over_until(self.cell, self.width, self.height, costs, &[goal], Some(from))?;
         let cells = field.route(from);
         if cells.is_empty() {
             return None;
@@ -244,7 +313,7 @@ impl Ground {
                 least[j] = running;
             }
             let mut j = points.len() - 1;
-            while j > i + 1 && !self.clear_line(points[i], points[j], self.wanted.min(least[j]) * 0.9) {
+            while j > i + 1 && !(self.clear_line(points[i], points[j], self.wanted.min(least[j]) * 0.9) && !self.line_crosses(points[i], points[j], &standing)) {
                 j -= 1;
             }
             way.push(points[j]);
@@ -376,6 +445,37 @@ mod tests {
     fn flat() -> Terrain {
         let (w, h) = (64usize, 64usize);
         Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() }
+    }
+
+    /// The facing design §3: a standing formation on the straight way is walked round with the margin, a marching one
+    /// too where the detour is cheap; with nobody about the way is as before. (The way's end is `keep_off`'s.)
+    #[test]
+    fn another_formation_on_the_way_is_walked_round() {
+        let terrain = flat();
+        let mut classes = Classes::default();
+        let grid = classes.passable(&terrain, tank());
+        let ground = Ground::new(&terrain, &[grid], 100.0).expect("ground");
+        let block = |standing: bool| Formation { name: "b".into(), anchor: at(512.0, 512.0), heading: (1.0, 0.0), count: 12, spacing: 64.0, standing };
+        let (from, to) = (at(100.0, 512.0), at(900.0, 512.0));
+        let plain = ground.way_found(from, to).expect("a way");
+        assert!(plain.len() <= 2, "the flat way is straight: {plain:?}");
+        for standing in [true, false] {
+            let others = [block(standing)];
+            let way = ground.way_found_off(from, to, &others).expect("a way");
+            assert!(way.last().is_some_and(|p| p.dist2d(to) < 20.0), "{way:?}");
+            // Every point and every sampled line between them is outside the footprint with its margin.
+            let mut points = vec![from];
+            points.extend(way.iter().copied());
+            for pair in points.windows(2) {
+                for k in 0..=20 {
+                    let t = k as f32 / 20.0;
+                    let p = at(pair[0].x + (pair[1].x - pair[0].x) * t, pair[0].z + (pair[1].z - pair[0].z) * t);
+                    assert!(!others[0].contains(p, KEEP_OFF_MARGIN - 1.0), "standing {standing}: the way crosses the block at {p:?}: {way:?}");
+                }
+            }
+        }
+        // With nobody about, the way is the plain one.
+        assert_eq!(ground.way_found_off(from, to, &[]), Some(plain));
     }
 
     #[test]

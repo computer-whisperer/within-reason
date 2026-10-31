@@ -216,7 +216,8 @@ pub const PARTY_SWITCH: f32 = 150.0;
 pub const KEEP_OFF_MARGIN: f32 = 48.0;
 
 /// A formation's footprint this tick (`docs/design/2026-10-28-contact-cleanup.md` §5.3): the ranks' rectangle in the
-/// heading's frame, the front rank centred on the anchor and the rest behind it; `standing` when it is at its end,
+/// facing's frame (`heading` here is the ranks' facing, not the travel: the facing design §2), the front rank centred
+/// on the anchor and the rest behind it; `standing` when it is at its end,
 /// halted or pinned (a standing formation keeps its place, a marching one is placed off it).
 #[derive(Clone, Debug)]
 pub struct Footprint {
@@ -267,9 +268,20 @@ pub const REPLAN_MOVED: f32 = 128.0;
 /// corners stand 370 from the anchor, so a snap of 23 degrees moved them 146 and put 17 of 20 out of the band
 /// (the circuit9 trace), while a re-deal that keeps the trail costs the body nothing.
 pub const REDEAL_TURN_DEG: f32 = 20.0;
+/// The ranks turn (the re-deal above) only when the way's heading departs from the facing by this much or more
+/// (`docs/design/2026-10-31-facing-and-footprints.md` §2); a smaller bend, or many small bends summing to less,
+/// translates the grid and the deal stands. Units walk at one speed in every direction, so a block moving at an angle
+/// to its facing loses nothing; facing matters at contact, where the close re-aims it. The drill's arm is
+/// `WITHIN_REASON_REFACE_DEG`.
+pub const REFACE_DEG: f32 = 60.0;
+pub fn reface_deg() -> f32 {
+    std::env::var("WITHIN_REASON_REFACE_DEG").ok().and_then(|v| v.parse().ok()).unwrap_or(REFACE_DEG)
+}
 /// A body this near the anchor is still its body: a new order re-aims the anchor only when no body member stands
 /// within it (D23), and the densest cluster is the members within it of one another (D22).
 pub const REJOIN_WAY: f32 = 400.0;
+/// How often a marching formation checks the standing formations on its remaining way (the facing design §3).
+pub const REPLAN_CADENCE: i32 = 60;
 
 /// The centroid of the densest cluster of `positions` (design D22): the one with the most others within `REJOIN_WAY`
 /// of it, and those others. Where a declaration or a set-down puts the anchor: the centroid of everyone put it
@@ -353,7 +365,15 @@ pub struct Group {
     pub members: Vec<UnitId>,
     pub order: GroupOrder,
     pub anchor: Vec3,
+    /// The direction of travel this tick: the anchor's step, the lead that carries each slot ahead, the drag's
+    /// "behind". Recomputed every tick toward the next target.
     pub heading: (f32, f32),
+    /// The frame the ranks are laid in (`docs/design/2026-10-31-facing-and-footprints.md` §2): the slots, the
+    /// set-down and the footprint. Apart from the heading, so a bend of the way translates every slot by one vector
+    /// and nobody crosses anybody; it turns only at a corner of `reface_deg()` or more against it (the re-deal), at
+    /// contact (the close and the guard), and when a new order re-aims a lost body. Until 2026-10-31 the slots were
+    /// laid in the heading's frame and every bend rotated the whole grid about the anchor.
+    pub facing: (f32, f32),
     /// The way the anchor walks: the host's route planned over the ground (design D17), the host's points among its
     /// points (`way_host`), from where the anchor stood when it was planned (`way_from`).
     way: Vec<Vec3>,
@@ -425,6 +445,12 @@ pub struct Group {
     dealt_at: i32,
     /// The exceptions this tick, as reported.
     exceptions: Vec<(UnitId, Cause, f32)>,
+    /// The other formations' footprints as of the last tick (`set_others`, the facing design §3): the plan prices
+    /// them (`Ground::way_found_off`, `stand_off`), and the standing ones that lie on the remaining way are watched
+    /// (`way_blocked`, every `REPLAN_CADENCE`): a change plans again.
+    others: Vec<Footprint>,
+    way_blocked: Vec<String>,
+    others_checked: i32,
 }
 
 impl Group {
@@ -438,6 +464,13 @@ impl Group {
         let centroid = dense_centroid(positions, order.route.first().copied()).unwrap_or_else(|| order.route.first().copied().unwrap_or_default());
         let first = order.route.first().copied().unwrap_or(centroid);
         let heading = if first.dist2d(centroid) > 1.0 { form::heading(centroid, first) } else { (1.0, 0.0) };
+        // The ranks face along the route's first leg when there is one (a body declared beside the line would
+        // otherwise keep the approach's tilt for the whole leg, the facing standing between corners), else the way
+        // to the first point.
+        let facing = match order.route.get(1) {
+            Some(second) if second.dist2d(first) > 1.0 => form::heading(first, *second),
+            _ => heading,
+        };
         let hold_at = (order.kind == GroupKind::Hold && order.route.len() == 1).then_some(first);
         let way = order.route.clone();
         let mut group = Group {
@@ -452,6 +485,7 @@ impl Group {
             order,
             anchor: centroid,
             heading,
+            facing,
             leg: 0,
             ground: None,
             slot_of: HashMap::new(),
@@ -479,8 +513,11 @@ impl Group {
             heading_since: 0,
             dealt_at: -1,
             exceptions: Vec::new(),
+            others: Vec::new(),
+            way_blocked: Vec::new(),
+            others_checked: -1,
         };
-        group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, heading, group.members.len()));
+        group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, facing, group.members.len()));
         group.way_from = group.anchor;
         group
     }
@@ -490,6 +527,24 @@ impl Group {
     pub fn set_ground(&mut self, ground: Option<Arc<Ground>>) {
         self.ground = ground;
         self.dirty = true;
+    }
+
+    /// The other formations' footprints this tick, this formation's own left out (the facing design §3): the next
+    /// plan prices them. Nothing is planned here; `tick` watches the standing ones on the remaining way.
+    pub fn set_others(&mut self, others: Vec<Footprint>) {
+        self.others = others;
+    }
+
+    /// The standing formations whose footprint (grown by the margin) lies on a point of the way still ahead, the end
+    /// left out: the end is `stand_off`'s and `keep_off`'s business, and a follower's or an attack's end is set raw
+    /// each tick inside its ward's or its party's footprint (foot1-pair-follow: the standing ward on the end made the
+    /// set change every two seconds, each re-plan walked the arrived follower again, overlap 10.8 s against 0.4).
+    fn standing_on_the_way(&self) -> Vec<String> {
+        let end = self.way.len().saturating_sub(1);
+        let ahead = &self.way[self.leg.min(end)..end];
+        let mut names: Vec<String> = (self.others.iter()).filter(|o| o.standing && ahead.iter().any(|p| o.contains(*p, KEEP_OFF_MARGIN))).map(|o| o.name.clone()).collect();
+        names.sort();
+        names
     }
 
     /// The way the anchor walks this order by, as planned (the tests' instrument).
@@ -555,8 +610,12 @@ impl Group {
                 for (i, &point) in self.order.route.iter().enumerate().skip(passed) {
                     // The route's end is where the body stands (D18: off a structure, with its room); the points
                     // between are passed through.
+                    // (The end is kept off the other formations by `keep_off` after the plan, not here: a second
+                    // placement at plan time chose another free cell than `keep_off`'s beside, and the end moved
+                    // between the two at every re-plan: foot2-pair-follow 8 s of overlap, the attack's blocks 662
+                    // apart.)
                     let point = if i == last { ground.stand(point).unwrap_or(point) } else { point };
-                    let leg = ground.way_found(from, point).unwrap_or_else(|| {
+                    let leg = ground.way_found_off(from, point, &self.others).unwrap_or_else(|| {
                         self.no_way = true;
                         vec![point]
                     });
@@ -576,6 +635,7 @@ impl Group {
         self.planned_end = self.order.route.last().copied();
         self.leg = if at_end { self.way.len() } else { 0 };
         self.dirty = false;
+        self.way_blocked = self.standing_on_the_way();
         if debug_on() {
             eprintln!(
                 "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{}{} in {:.1} ms",
@@ -638,7 +698,7 @@ impl Group {
     /// books: nobody before the first tick.
     /// This formation's footprint this tick (§5.3).
     pub fn footprint(&self) -> Footprint {
-        Footprint { name: self.name.clone(), anchor: self.anchor, heading: self.heading, count: self.members.len(), spacing: self.spacing, standing: self.at_end() || self.stopped || self.pinned }
+        Footprint { name: self.name.clone(), anchor: self.anchor, heading: self.facing, count: self.members.len(), spacing: self.spacing, standing: self.at_end() || self.stopped || self.pinned }
     }
 
     /// The way's end kept off other formations (§5.3; the user, on advance-2: "multiple sub-groups mingling with
@@ -798,7 +858,7 @@ impl Group {
     fn settle_on_body(&mut self, walkers: &[Walker]) {
         let body = self.body(walkers);
         let Some(centroid) = form::centroid(body.iter().copied()) else { return };
-        let anchor = self.anchor_for(centroid, self.heading, body.len());
+        let anchor = self.anchor_for(centroid, self.facing, body.len());
         let points = self.polyline();
         self.anchor = if points.len() >= 2 {
             let k = self.leg.min(points.len() - 2);
@@ -903,6 +963,16 @@ impl Group {
     /// route's end), the slots dealt and snapped to the ground, formed and exceptions
     /// told apart. Returns each walker's slot. `spacing` is the lane's for this tick.
     pub fn tick(&mut self, frame: i32, walkers: &[Walker], spacing: f32, pacing: &Pacing) -> &HashMap<UnitId, Vec3> {
+        // A standing formation that came onto the remaining way, or left it, since the plan (the facing design §3):
+        // plan again, so a block that stopped on the way is walked round within `REPLAN_CADENCE`. Not at the end.
+        if !self.others.is_empty() && !self.at_end() && frame - self.others_checked >= REPLAN_CADENCE {
+            self.others_checked = frame;
+            let blocked = self.standing_on_the_way();
+            if blocked != self.way_blocked {
+                self.way_blocked = blocked;
+                self.dirty = true;
+            }
+        }
         if self.dirty {
             // A new order for a body that stands far from the anchor (its members walked off under another host
             // order, or came back from a hunt) starts from the body: the anchor is set down on its densest cluster
@@ -921,8 +991,9 @@ impl Group {
                 let first = self.order.route.first().copied().unwrap_or(centroid);
                 if first.dist2d(centroid) > 1.0 {
                     self.heading = form::heading(centroid, first);
+                    self.facing = self.heading;
                 }
-                self.anchor = self.anchor_for(centroid, self.heading, walkers.len());
+                self.anchor = self.anchor_for(centroid, self.facing, walkers.len());
                 self.stand_anchor();
                 self.slot_of.clear();
                 // The old slots say nothing about this body: no drag and no "away" from them this tick.
@@ -943,6 +1014,7 @@ impl Group {
             if let Some(end) = self.way.last().copied() {
                 if end.dist2d(self.anchor) >= 1.0 {
                     self.heading = form::heading(self.anchor, end);
+                    self.facing = self.heading;
                 }
                 self.anchor = Vec3 { y: end.y, ..end };
             }
@@ -1005,31 +1077,38 @@ impl Group {
                     let h = form::heading(self.anchor, to);
                     let step = (self.pace * dt).min(d - stop);
                     self.heading = h;
+                    // The ranks face what the block closes on (§2's contact moment).
+                    self.facing = h;
                     self.anchor = Vec3 { x: self.anchor.x + h.0 * step, y: self.anchor.y, z: self.anchor.z + h.1 * step };
                 }
             }
         } else if self.pace > 0.0 {
-            let (heading_before, leg_before) = (self.heading, self.leg);
+            let leg_before = self.leg;
             self.advance((self.pace * dt).min(room), carry);
-            // A way point passed: facing the next, and at a turn of `REDEAL_TURN_DEG` or more the anchor is set
-            // down on the body and the slots re-dealt where the members stand (D14).
+            // A way point passed: heading for the next. The ranks turn only when the new heading departs from the
+            // facing by `reface_deg()` or more (§2 of the facing design; the sum of the bends since the ranks last
+            // turned, not the bend at this point): then the anchor is set down on the body and the slots re-dealt
+            // where the members stand (D14). A smaller departure leaves the facing and the deal, and the slots
+            // translate with the anchor.
             if self.leg > leg_before && self.leg < self.way.len() {
                 let next = self.target(self.leg, carry);
                 if next.dist2d(self.anchor) >= 1.0 {
                     self.heading = form::heading(self.anchor, next);
                 }
-                let turn = heading_before.0 * self.heading.0 + heading_before.1 * self.heading.1;
-                if turn < REDEAL_TURN_DEG.to_radians().cos() {
+                let turn = self.facing.0 * self.heading.0 + self.facing.1 * self.heading.1;
+                if turn < reface_deg().to_radians().cos() {
                     let before = self.anchor;
                     // Set down on the body facing the next target from there, twice: the setting-down moves the
                     // anchor, and the ranks are laid at the heading from where it stands (laid at the heading from
                     // where it turned, they swung 25-35 degrees more a tick later: the circuit7-carry trace).
                     for _ in 0..2 {
+                        self.facing = self.heading;
                         self.settle_on_body(walkers);
                         if next.dist2d(self.anchor) >= 1.0 {
                             self.heading = form::heading(self.anchor, next);
                         }
                     }
+                    self.facing = self.heading;
                     self.slot_of.clear();
                     if debug_on() {
                         let body = self.body(walkers).len();
@@ -1051,7 +1130,7 @@ impl Group {
         // The slots, sticky by index; dealt by least travel when the deal is stale.
         let ids: Vec<UnitId> = walkers.iter().map(|w| w.id).collect();
         let n = ids.len();
-        let slots = form::slots(self.anchor, self.heading, n.max(1), spacing, form::FILES);
+        let slots = form::slots(self.anchor, self.facing, n.max(1), spacing, form::FILES);
         let stale = n > 0 && (self.slot_of.len() != n || ids.iter().any(|id| !self.slot_of.contains_key(id)));
         if stale {
             let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
@@ -1728,6 +1807,57 @@ mod tests {
         walkers(&places, 100.0)
     }
 
+    /// The facing design §2: a bend under `reface_deg()` leaves the ranks' frame and the deal; the slots translate
+    /// with the anchor, so after the corner every member's slot has moved by the same vector and the heading alone
+    /// has turned. A bend over it turns the ranks (the test below and the right angle).
+    #[test]
+    fn a_bend_under_the_reface_angle_translates_the_ranks_and_turns_nobody() {
+        let pacing = Pacing::default();
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        // East to (400, 0), then 30 degrees south of east.
+        let bend = 30.0f32.to_radians();
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(100.0, 0.0), at(400.0, 0.0), at(400.0 + 2000.0 * bend.cos(), 2000.0 * bend.sin())]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        assert_eq!(group.facing, (1.0, 0.0));
+        let mut frame = 0;
+        let mut turned = None;
+        let mut deal_before = None;
+        while frame < 300 {
+            let slots = group.tick(frame, &w, 64.0, &pacing).clone();
+            if group.heading.1 > 0.4 {
+                turned = Some(slots);
+                break;
+            }
+            deal_before = Some((group.slot_of.clone(), slots.clone()));
+            for u in w.iter_mut() {
+                u.pos = slots[&u.id];
+            }
+            frame += 3;
+        }
+        let slots = turned.expect("the anchor took the bend");
+        let (deal, before) = deal_before.expect("ticks before the bend");
+        assert!((group.facing.0 - 1.0).abs() < 1e-3 && group.facing.1.abs() < 1e-3, "the ranks still face east: {:?}", group.facing);
+        assert_eq!(group.slot_of, deal, "the deal stands");
+        // One displacement for every slot.
+        let shifts: Vec<(f32, f32)> = w.iter().map(|u| (slots[&u.id].x - before[&u.id].x, slots[&u.id].z - before[&u.id].z)).collect();
+        for s in &shifts {
+            assert!((s.0 - shifts[0].0).abs() < 1e-2 && (s.1 - shifts[0].1).abs() < 1e-2, "{shifts:?}");
+        }
+        // And the frame turns at a corner over the angle: the same route with a 90-degree second leg.
+        let mut w = two_ranks_of_six();
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(100.0, 0.0), at(400.0, 0.0), at(400.0, 3000.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), 64.0);
+        let mut frame = 0;
+        while frame < 300 && group.heading.1 < 0.5 {
+            let slots = group.tick(frame, &w, 64.0, &pacing).clone();
+            for u in w.iter_mut() {
+                u.pos = slots[&u.id];
+            }
+            frame += 3;
+        }
+        assert!(group.facing.1 > 0.98, "the ranks face south after a right angle: {:?}", group.facing);
+    }
+
     #[test]
     fn an_about_face_at_a_route_point_costs_the_body_no_step() {
         let pacing = Pacing::default();
@@ -1751,11 +1881,13 @@ mod tests {
         }
         let slots = turned.expect("the anchor turned back within five seconds");
         assert!(group.heading.0 < -0.99, "{:?}", group.heading);
-        // The walkers stand where last tick's slots were; the new slots lie on them (a degree of the approach's tilt).
+        // The walkers stand where last tick's slots were; the new slots lie on them (a degree of the approach's tilt;
+        // with the facing apart from the heading the ranks hold the first leg's frame to the turn and the set-down
+        // is within six, against a formed band of 128).
         for u in &w {
-            assert!(u.pos.dist2d(slots[&u.id]) < 5.0, "unit {:?} at {:?} would walk to {:?}", u.id, u.pos, slots[&u.id]);
+            assert!(u.pos.dist2d(slots[&u.id]) < 10.0, "unit {:?} at {:?} would walk to {:?}", u.id, u.pos, slots[&u.id]);
         }
-        assert!((group.anchor.x - w[6].pos.x).abs() < 5.0, "the old rear rank is the new front: anchor {:?}, rear at {:?}", group.anchor, w[6].pos);
+        assert!((group.anchor.x - w[6].pos.x).abs() < 10.0, "the old rear rank is the new front: anchor {:?}, rear at {:?}", group.anchor, w[6].pos);
         assert!(group.state(&w).exceptions.is_empty());
         group.tick(frame + 3, &w, 64.0, &pacing);
         assert!((group.pace - group.full_pace).abs() < 0.01, "nobody lags, so the anchor walks on at full pace: {} of {}", group.pace, group.full_pace);

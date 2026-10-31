@@ -1231,6 +1231,8 @@ impl Lane {
             let ctx = FormCtx { frame, enemies, by_id: &by_id, spacing, footprints: &footprints };
             for c in &mut army.companies {
                 let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
+                // The other formations' footprints for the plan's price (the facing design §3), this one's left out.
+                c.formation.set_others(footprints.iter().filter(|f| f.name != c.formation.name).cloned().collect());
                 c.formation.update(c.members.clone(), c.order(&order));
                 let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
                 if let Some((at, since)) = c.muster
