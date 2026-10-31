@@ -333,6 +333,25 @@ income in the long games, not where most build it. The 8v8 team pool's air cut i
 morning ("This looks good, let's add it") and it is in the manifest after surprise.md since 2026-10-26 (23 documents,
 the player's prompt 85,500 words, brief_check exit 0).
 
+**The late-economy article (2026-10-30; from the econ-flagship review: the player of econ-flagship-4 built 14
+construction turrets and banked 45,000, read itself as "five times the strong players' median" against the duel
+pool's reference line, and every passage it had read priced the turret by its 3,200 energy and ranked a factory before
+it; the user: the two failure modes were not valuing turrets and reading the duel reference as the comparator, since
+"any game with actual adversaries cannot commit the full economy to exponential growth").** `derived/late-economy.md`
+(D-late-economy: the regime in which nothing is short, which the duel articles never reach; his three resources and
+his 8:01 line as the heuristic; the bank's age and the price of the next metal a second as the quantity; the loop of
+energy into metal into build power into energy, build power taking the form of what it builds with the lone
+constructor's and the block's clocks side by side, the turret's energy column paid once a fusion stands, power beyond
+the spend only stalling, each tier eaten for the next, the knob of what the game demands now with its three inputs,
+the team seat and the bonus; the instances as settings of the knob, from his inactive-opponent game at zero through
+the Center Command sprint and the 8v8 tech seats to the duel at most; five named failures for the episode index: the
+float, the lone clock, the wrong curve, the withheld converter, the frozen power). The old experience brief's late-game
+article had carried the two sentences the player lacked and the rework had covered it at two lines of 190. In the
+manifest after tier2.md on the user's read the same day ("This looks good"). Beside it `derived/metal-maps.md`
+(D-metal-maps: the loop cut at the converter, extractors everywhere, factories as the build power, the army by the
+hundred; two carded games of his and the map file unread), out of the manifest. The user's ruling on `derived/base.md`
+stands: a strongly-derived input to the base-construction arc and the layout engine, not the player's reading.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. (2026-10-23: the control that
