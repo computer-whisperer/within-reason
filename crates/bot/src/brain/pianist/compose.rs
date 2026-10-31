@@ -35,6 +35,21 @@ const DEPTH: usize = 2;
 /// An idle actor with no move at the flag still puts its best move to the pick when it is rated this high
 /// (onepass-medium-2: the commander idled six minutes on an extractor rated 0.48).
 pub(super) const IDLE_BAR: f64 = 0.3;
+/// Min-p on the pick's draw: a world whose probability is under this share of the leader's is not drawn, the rest
+/// renormalised (`WITHIN_REASON_MIN_P` sets it; 0 turns it off). The LLM sampler's min-p, over a temperature (which
+/// reweights the near-equal worlds the 2026-10-24 ruling keeps alternating) and over top-p (ten equal worlds under
+/// top-p 0.9 lose one of ten arbitrarily): every near-equal survives, the tail does not. barb-ladder3-20-1: 29 of
+/// 1,799 draws took a world under a tenth of the leader's mass, 15 of them detachments, among them every forbidden
+/// home-guard send of the last ten minutes (25:23 four Blitzes at 0.03 against 0.95 nothing, all four dead in the E5
+/// Sentry nest within 44 s; 25:54, 26:58, 27:49); at 0.1 the cut is 1.4 % of the mass and world 1's expected share
+/// 0.331 -> 0.333, at 0.2 83 draws and 4.7 % (the user's word 2026-10-31: 0.1).
+pub(super) const MIN_P: f64 = 0.1;
+
+/// The min-p floor in force: `WITHIN_REASON_MIN_P`, else `MIN_P`.
+pub(super) fn min_p() -> f64 {
+    static FLOOR: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *FLOOR.get_or_init(|| std::env::var("WITHIN_REASON_MIN_P").ok().and_then(|v| v.parse::<f64>().ok()).filter(|a| (0.0..1.0).contains(a)).unwrap_or(MIN_P))
+}
 
 /// One world: for each menu, the index of its move; 0 is `stay`.
 pub(crate) type World = Vec<usize>;
@@ -468,7 +483,7 @@ pub(super) fn split_pick(answers: &BTreeMap<String, Answer>, components: &[Compo
     let mut world: World = vec![0; menus.len()];
     let mut parts = Vec::new();
     for (j, c) in components.iter().enumerate() {
-        let Some(drawn) = picked(answers, &format!("worlds.c{j}.pick"), c.lines.len(), draw()) else { continue };
+        let Some(drawn) = picked(answers, &format!("worlds.c{j}.pick"), c.lines.len(), draw(), min_p()) else { continue };
         if drawn.world != 0 {
             for (mi, ti) in c.worlds[drawn.world].iter().enumerate().filter(|(_, ti)| **ti != 0) {
                 world[mi] = *ti;
@@ -479,6 +494,7 @@ pub(super) fn split_pick(answers: &BTreeMap<String, Answer>, components: &[Compo
             "changes": c.lines.len() - 1,
             "candidate": drawn.world + 1,
             "sampled_p": drawn.p,
+            "cut": drawn.cut,
             "taken": drawn.world != 0,
             "confidence": drawn.confidence,
         }));
@@ -615,21 +631,27 @@ pub(super) fn pick_question(lines: &[String]) -> Question {
     Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
 
-/// A world drawn from a Choice's probabilities with a uniform draw in `u` (0 to 1): the index (0 is world 1) and its
-/// probability. Keys outside `w1`..`w<worlds>` are not drawn.
-pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64) -> Option<(usize, f64)> {
+/// A world drawn from a Choice's probabilities with a uniform draw in `u` (0 to 1): the index (0 is world 1), its
+/// probability as the answer gave it, and the share of the mass the min-p floor cut. A world under `floor` times the
+/// leader's probability is not drawn (`MIN_P`); the rest are drawn by their shares of what is kept. Keys outside
+/// `w1`..`w<worlds>` are not drawn.
+pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64, floor: f64) -> Option<(usize, f64, f64)> {
     let Some(Answer::Choice { probabilities, choice, .. }) = answers.get(key) else { return None };
     let index = |k: &str| k.strip_prefix('w').and_then(|n| n.parse::<usize>().ok()).filter(|n| (1..=worlds).contains(n)).map(|n| n - 1);
-    let total: f64 = probabilities.iter().filter(|(k, _)| index(k).is_some()).map(|(_, p)| p).sum();
+    let indexed: Vec<(usize, f64)> = probabilities.iter().filter_map(|(k, p)| index(k).map(|i| (i, *p))).collect();
+    let total: f64 = indexed.iter().map(|(_, p)| p).sum();
     if total <= 0.0 {
-        return index(choice).map(|i| (i, 1.0));
+        return index(choice).map(|i| (i, 1.0, 0.0));
     }
+    let top = indexed.iter().map(|(_, p)| *p).fold(0.0, f64::max);
+    let kept: Vec<(usize, f64)> = indexed.iter().copied().filter(|(_, p)| *p >= floor * top).collect();
+    let kept_total: f64 = kept.iter().map(|(_, p)| p).sum();
+    let cut = (total - kept_total) / total;
     let mut acc = 0.0;
     let mut last = None;
-    for (k, p) in probabilities {
-        let Some(i) = index(k) else { continue };
-        acc += p / total;
-        last = Some((i, *p));
+    for (i, p) in kept {
+        acc += p / kept_total;
+        last = Some((i, p, cut));
         if u < acc {
             return last;
         }
@@ -642,18 +664,20 @@ pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usiz
 pub(super) struct Picked {
     /// The world's index: 0 is world 1.
     pub world: usize,
-    /// Its share of the answer's mass.
+    /// Its share of the answer's mass, as the answer gave it (before the floor's renormalisation).
     pub p: f64,
     pub confidence: f64,
+    /// The share of the answer's mass the min-p floor cut before the draw (0 when nothing was under it).
+    pub cut: f64,
 }
 
-pub(super) fn picked(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64) -> Option<Picked> {
-    let (world, p) = sample(answers, key, worlds, u)?;
+pub(super) fn picked(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64, floor: f64) -> Option<Picked> {
+    let (world, p, cut) = sample(answers, key, worlds, u, floor)?;
     let confidence = match answers.get(key) {
         Some(Answer::Choice { confidence, .. }) => *confidence,
         _ => 0.0,
     };
-    Some(Picked { world, p, confidence })
+    Some(Picked { world, p, confidence, cut })
 }
 
 /// A uniform draw in 0 to 1 from the standard library's random hasher seed (no `rand` dependency).
@@ -676,7 +700,7 @@ pub(super) fn run_pick(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev:
     }
     let request = jev::Request { state: state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), pick_question(lines))]) };
     let result = ask(&request);
-    let picked = result.as_ref().ok().and_then(|r| picked(&r.answers, "worlds.pick", lines.len(), u));
+    let picked = result.as_ref().ok().and_then(|r| picked(&r.answers, "worlds.pick", lines.len(), u, min_p()));
     PickRun { call: Some((request, result)), picked }
 }
 
@@ -1055,13 +1079,35 @@ mod tests {
         let text = instructions.as_str().unwrap();
         assert!(text.contains("w1: every actor keeps the course") && text.ends_with("Pick the best world this second."), "{text}");
         let answers = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.4), ("w2".to_string(), 0.3), ("w3".to_string(), 0.2), ("w4".to_string(), 0.1)]), confidence: 0.5 })]);
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.10), Some((0, 0.4)), "world 1 is drawn by its share like any other");
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.55), Some((1, 0.3)));
-        assert_eq!(sample(&answers, "worlds.pick", 4, 0.95), Some((3, 0.1)));
-        assert_eq!(picked(&answers, "worlds.pick", 4, 0.55), Some(Picked { world: 1, p: 0.3, confidence: 0.5 }));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.10, 0.0), Some((0, 0.4, 0.0)), "world 1 is drawn by its share like any other");
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.55, 0.0), Some((1, 0.3, 0.0)));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.95, 0.0), Some((3, 0.1, 0.0)));
+        assert_eq!(picked(&answers, "worlds.pick", 4, 0.55, 0.0), Some(Picked { world: 1, p: 0.3, confidence: 0.5, cut: 0.0 }));
         let stray = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w9".into(), probabilities: BTreeMap::from([("w9".to_string(), 0.9), ("w3".to_string(), 0.1)]), confidence: 0.9 })]);
-        assert_eq!(sample(&stray, "worlds.pick", 4, 0.5), Some((2, 0.1)), "a key beyond the worlds is not drawn");
+        assert_eq!(sample(&stray, "worlds.pick", 4, 0.5, 0.0), Some((2, 0.1, 0.0)), "a key beyond the worlds is not drawn");
         assert!((0.0..1.0).contains(&draw()));
+    }
+
+    /// Min-p (`MIN_P`): a world under a tenth of the leader's probability is not drawn and the rest are renormalised;
+    /// near-equals all survive. barb-ladder3-20-1 25:23: nothing 0.95, a send of two 0.02, a send of four 0.03, the
+    /// four drawn and dead in 44 s.
+    #[test]
+    fn the_draw_has_a_min_p_floor_under_the_leader() {
+        let home_guard = BTreeMap::from([("worlds.c0.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.95), ("w2".to_string(), 0.02), ("w3".to_string(), 0.03)]), confidence: 0.6 })]);
+        for u in [0.0, 0.5, 0.96, 0.999] {
+            let (world, p, cut) = sample(&home_guard, "worlds.c0.pick", 3, u, MIN_P).unwrap();
+            assert_eq!((world, p), (0, 0.95), "u={u}: the two tail worlds are never drawn");
+            assert!((cut - 0.05).abs() < 1e-9, "the cut is the tail's share of the mass: {cut}");
+        }
+        assert_eq!(sample(&home_guard, "worlds.c0.pick", 3, 0.999, 0.0), Some((2, 0.03, 0.0)), "with the floor off the tail draws as before");
+        // Nine near-equal worlds with a 0.12 among 0.22s survive at a tenth; a 0.42 against 0.58 is untouched.
+        let spread = BTreeMap::from([("worlds.c0.pick".to_string(), Answer::Choice { choice: "w6".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.09), ("w2".to_string(), 0.2), ("w3".to_string(), 0.01), ("w4".to_string(), 0.16), ("w5".to_string(), 0.12), ("w6".to_string(), 0.22), ("w7".to_string(), 0.12), ("w8".to_string(), 0.06), ("w9".to_string(), 0.02)]), confidence: 0.12 })]);
+        let kept: std::collections::BTreeSet<usize> = (0..1000).map(|i| sample(&spread, "worlds.c0.pick", 9, i as f64 / 1000.0, MIN_P).unwrap().0).collect();
+        assert_eq!(kept, std::collections::BTreeSet::from([0, 1, 3, 4, 5, 6, 7]), "w3 (0.01) and w9 (0.02) are under 0.022; the 0.06 and the 0.09 stay");
+        assert!((sample(&spread, "worlds.c0.pick", 9, 0.5, MIN_P).unwrap().2 - 0.03).abs() < 1e-9);
+        let hold = BTreeMap::from([("worlds.c0.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.58), ("w2".to_string(), 0.42)]), confidence: 0.3 })]);
+        assert_eq!(sample(&hold, "worlds.c0.pick", 2, 0.7, MIN_P), Some((1, 0.42, 0.0)));
+        assert_eq!(min_p(), MIN_P, "the default floor");
     }
 
     /// The line budget (player-27: 145-255 worlds of 120-240k characters refused for three minutes).

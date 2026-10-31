@@ -2374,3 +2374,27 @@ user: acceptable, "for how it reveals the actual underlying issues"). First game
 the game shows the course lost to draws of a few hundredths' mass where the state words were right; or w1 takes a
 share far above its old stage-two acceptance and the bot stalls (then the wording privileges it after all).
 **Used by.** [[H-HANDS-ONE-PASS]] (amended 2026-10-24).
+
+### K-jev-the-draws-tail-is-where-the-forbidden-detachments-live
+**Claim.** Under the one-draw pick the worlds Jev gives a few hundredths of the mass are not noise spread over
+everything: they are where the detachments live, and the detachments the player's instructions forbid live only there.
+A min-p floor at a tenth of the leader's probability cuts that tail and nothing else: the near-equal worlds the
+2026-10-24 ruling keeps alternating are untouched, world 1's share is untouched.
+**Evidence.** barb-ladder3-20-1 (2026-10-31, +20 BARb hard_aggressive, LOST 32:00): 1,816 Choices, 1,799 draws; the
+leader's mass a median 0.61 (quartiles 0.50 / 0.76), 857 two-world and 627 three-world Choices. 29 draws took a world
+under a tenth of the leader's: 15 were sends (`8:06` four of the army after two Ticks at 0.03 against 0.82; `14:56`
+eight after a Rocko and a Warrior at 0.02 against 0.62; `25:23` four of the home guard after a Tick and a Pawn at 0.03
+against 0.95, the line carrying "The player's instructions forbid this detachment" at a forbidden noul of 0.80, all
+four dead in the E5 Sentry nest within 44 s for two Pawns and three constructors; `25:54` 0.05 / 0.88, `26:58` 0.03 /
+0.92 and `27:49` 0.01 / 0.88, the same forbidden guard), the rest walks, a follow, a build and four world 1s. Across
+the 1,816 Choices a floor at 0.1 cuts 1.4 % of the mass and 955 of 6,110 worlds, keeps 2.84 worlds a Choice on average,
+and moves world 1's expected share 0.331 -> 0.333; 0.2 cuts 4.7 % and 83 draws; 0.3 cuts 9.2 %, 161 draws and w1 to
+0.311. The two post-hunt follow-ups found explicitly unreasonable in the same game (the 9:40 hold of two Blitzes alone
+in his half at 0.42 against 0.58; the 20:07 walk at 0.04 against a 0.29 leader) are not under the 0.1 floor: the first
+is a near-equal, the second a tenth and a third.
+**Status.** built 2026-10-31 at 0.1 ([[H-HANDS-MIN-P]]); not yet measured in a game. The offline replay of this game's
+draws is the measurement above; a game's `plan` lines carry `cut` from now on.
+**Would be wrong if.** A game's `cut` runs well past 2 % of the mass with no forbidden sends among the cut worlds (the
+tail is then Jev's spread, not its mistakes), or the quick-pick share of groups falls with the floor on (then the floor
+is a hold on the course after all, which the ruling forbids).
+**Used by.** [[H-HANDS-MIN-P]]; amends [[K-jev-the-pick-is-one-draw-over-the-worlds-the-course-among-them]].

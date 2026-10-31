@@ -95,6 +95,13 @@ text ("choose a move only when it is clearly better than the course"), a hystere
 - **The log.** A `plan` line carries `pick` (the world drawn, 1 = world 1), `sampled_p` and `confidence`; under `split`
   each part's `candidate` is the world drawn (1 = w1, `taken` false). The split audit's joint pick is one call, its
   row gains `joint_p`. `docs/harness/record-format.md` amended; `run/hands_window.py` and the viewer say "drew w1".
+- **Amended 2026-10-31, the user's word: a min-p floor on the draw** (`MIN_P` 0.1, `WITHIN_REASON_MIN_P`; H-HANDS-MIN-P,
+  K-jev-the-draws-tail-is-where-the-forbidden-detachments-live). A world under a tenth of the leader's probability is
+  not drawn; the rest are drawn by their shares of what is kept; the plan line carries `cut`. barb-ladder3-20-1 showed
+  the tail of the draw is where the detachments live (29 of 1,799 draws under a tenth of the leader, 15 of them sends,
+  every forbidden home-guard send among them; 25:23 four Blitzes at 0.03 against 0.95 nothing, dead in 44 s). Of the
+  LLM sampler's levers min-p is the one that keeps the ruling: a temperature reweights the near-equals too, top-p breaks
+  ties among equals arbitrarily. Not a hold on the course: world 1's expected share is unchanged (0.331 -> 0.333).
 - **Not changed in this step, so the game isolates the gate's removal:** the register line and "this undoes its last
   pick" (t-1 in words, §6), the young-order words, what counts as news, the idle actor's bar and the "not ordered"
   sentence, the gather arrival, every clause of §4.

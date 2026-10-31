@@ -1532,13 +1532,13 @@ impl Brain {
     }
 
     /// The world drawn put in force (world 1: nothing), and logged as a `plan` line (`pick` is the world's number,
-    /// `sampled_p` its share of the mass).
+    /// `sampled_p` its share of the mass, `cut` the share the min-p floor took off before the draw).
     #[allow(clippy::too_many_arguments)]
     fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &[menu::Menu], worlds: &[compose::World], picked: compose::Picked, commands: &mut Vec<Command>) {
         let changed = self.apply_world(tick, kit, picture, menus, &worlds[picked.world], commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
-        pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": picked.world + 1, "sampled_p": picked.p, "confidence": picked.confidence, "changed": changed, "played": played }));
+        pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": picked.world + 1, "sampled_p": picked.p, "cut": picked.cut, "confidence": picked.confidence, "changed": changed, "played": played }));
         self.journal.note_from("plan", tick.frame, "worlds", json!({ "worlds": worlds.len() }), json!({ "pick": picked.world + 1, "sampled_p": picked.p, "confidence": picked.confidence, "changed": changed }));
     }
 
