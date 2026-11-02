@@ -9,6 +9,7 @@
 
 mod block;
 mod choose;
+mod coverage;
 mod street;
 
 use std::collections::HashMap;
@@ -17,6 +18,7 @@ use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
 
 pub use block::{Block, DENSE_PITCH, Lattice, MAX_TIERS, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
 pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose};
+pub use coverage::Coverage;
 pub use street::{APRON, Plant, STREET_REACH, StreetState, street_open, street_state};
 
 /// A build square (`SQUARE_SIZE`): footprints count them.

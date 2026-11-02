@@ -134,6 +134,7 @@ dependencies = [
  "ai-host",
  "bot-protocol",
  "combatsim",
+ "layout",
  "micro",
  "nukes",
 ]

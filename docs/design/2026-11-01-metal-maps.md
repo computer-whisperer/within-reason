@@ -1,7 +1,9 @@
 # Metal maps: places without spots, extractors in the layout (2026-11-01)
 
 Status: proposed 2026-11-01 night; step 0 (the shim) built 2026-11-02 (`crates/ai-host/src/metal.rs`; judged by
-speedmetal-probe-2, fmp-probe-1, metal-step0-comet-check), steps 1-4 not started. The user's ask: "let's work on making metal maps play decently. I
+speedmetal-probe-2, fmp-probe-1, metal-step0-comet-check); step 1 (the coverage, the distilled bot) built 2026-11-02
+(`crates/layout/src/coverage.rs`, distilled `free_site`; judged by fmp-distilled-hard-1, metal-step1-comet-check);
+steps 2-4 not started. The user's ask: "let's work on making metal maps play decently. I
 have never tried it due to fears of the potentially large [number of] metal spot[s] breaking the mex waypoint system.
 Let's review how those maps work, how our systems work with them, and what needs to change." The user's two rulings on
 the shape (the same night): "we should make sure we can handle maps without a convenient grid of mexes to be used as
@@ -200,7 +202,14 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
 1. **Coverage and the extractor want** (§1.3), consumed first by the distilled bot (the user's project to iterate).
    Judge: on Full Metal Plate against BARb hard, extractors built per minute and income at 5, 10, 15 minutes against
    BARb's, no refused extractor site, the exit lanes clear (the yard instruments); on Comet the stand's extractor
-   slots unchanged.
+   slots unchanged. **Built and judged 2026-11-02:** `layout::Coverage` (the metal map with the claims by depth,
+   `worth_at`, `best_site` in rings round the builder, stopping at the first ring with a tile of full worth) and the
+   distilled bot's `free_site` over it, the claims rebuilt every tick from what stands; `MapInfo::metal_scale` added
+   for the absolute worth. Full Metal Plate against hard: extractors 14 / 32 / 47 / 57 at 4 / 7 / 10 / 15 minutes,
+   income 40 / 113 / 147 at 5 / 10 / 15 against BARb's 26 / 50 / 111, no refused site (fmp-distilled-hard-1); Comet
+   5 extractors by 3:00 on the spot path, income 13.5, as before (metal-step1-comet-check). The distilled bot sites its
+   other buildings by the shim's search, not `layout::choose`, so the exit lanes are its own list and the yard
+   instruments were not read; the flagship's `Plan::Extractor(place)` over the coverage comes with step 2's places.
 2. **Places without spots** (§1.2): square cells, cell destinations, rove goals as places, route fields on demand.
    Judge: a flagship game on SpeedMetal with the pianist alone on a fixed packet reaches 20 minutes with `late` 0,
    memory flat, and the groups walk to named cells; on Comet a lockstep game's route choices unchanged (the

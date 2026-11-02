@@ -240,6 +240,7 @@ impl Engine {
             extractor_radius,
             metal_map: is_metal_map,
             extractor_worth,
+            metal_scale: scale,
         };
 
         let script = self.string(call!(self, Game_getSetupScript()));

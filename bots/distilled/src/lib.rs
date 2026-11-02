@@ -88,6 +88,9 @@ pub(crate) struct Distilled {
     /// 1.5): what every side's army scales by, so the launch weights scale by it too (D-LAUNCH, 2026-10-13).
     pub income_multiplier: f32,
     pub economy: economy::Economy,
+    /// On a metal map, the metal under the ground and the extractors' claims over it, rebuilt every tick from what
+    /// stands (`layout::Coverage`); `None` on a spot map.
+    pub coverage: Option<layout::Coverage>,
     pub army: army::Army,
     pub air: air::Air,
     /// The silos and their strikes (D-NUKE, `nuke.rs`).
@@ -102,6 +105,30 @@ pub(crate) struct Distilled {
 }
 
 impl Distilled {
+    /// On a metal map, the extractors' claims as the engine holds them: every extractor standing or going up, ours,
+    /// an ally's or his as far as seen, claims the squares within the radius at its depth.
+    fn refresh_coverage(&mut self, tick: &Tick) {
+        let Some(mut coverage) = self.coverage.take() else { return };
+        coverage.clear_claims();
+        let depth = |def: UnitDefId| self.defs.get(&def).map(|d| d.extracts_metal).filter(|e| *e > 0.0);
+        for u in self.own.values() {
+            if let Some(d) = depth(u.def) {
+                coverage.claim(u.pos, d);
+            }
+        }
+        for u in &tick.snapshot.allies {
+            if let Some(d) = depth(u.def) {
+                coverage.claim(u.pos, d);
+            }
+        }
+        for b in self.army.his_buildings.values() {
+            if let Some(d) = b.def.and_then(depth) {
+                coverage.claim(b.pos, d);
+            }
+        }
+        self.coverage = Some(coverage);
+    }
+
     pub(crate) fn def(&self, id: UnitDefId) -> Option<&UnitDefInfo> {
         self.defs.get(&id)
     }
@@ -387,8 +414,9 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
+        let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), coverage, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
@@ -409,6 +437,7 @@ impl Bot for Distilled {
             tick.snapshot.energy.income += energy;
         }
         self.metal_income = tick.snapshot.metal.income;
+        self.refresh_coverage(&tick);
         if !self.started {
             self.start(&tick);
             if !self.started {

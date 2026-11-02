@@ -5,6 +5,7 @@
 use std::collections::BTreeMap;
 
 use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use layout::{Facts, Ground, Rect};
 
 use crate::{Distilled, Kit, MINUTE, SECOND};
 
@@ -113,9 +114,26 @@ const SCOUTS_FIRST: usize = 4;
 /// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
 const CONSTRUCTOR_PER_INCOME: f32 = 6.0;
 
+/// Where an extractor goes: a published metal spot (its index) on a spot map, or a tile of metal on a metal map (the
+/// footprint's centre in elmos, chosen from the coverage: `docs/design/2026-11-01-metal-maps.md` §1.3).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
+pub(crate) enum Site {
+    Spot(usize),
+    Tile(i32, i32),
+}
+
+impl Site {
+    pub(crate) fn at(self, hello: &bot_protocol::Hello) -> Vec3 {
+        match self {
+            Site::Spot(i) => hello.metal_spots[i],
+            Site::Tile(x, z) => Vec3 { x: x as f32, y: 0.0, z: z as f32 },
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Job {
-    Extractor(usize),
+    Extractor(Site),
     Solar,
     AdvancedSolar,
     Plant,
@@ -220,11 +238,30 @@ pub(crate) struct Economy {
     plant_refused: i32,
     /// The frame until which no silo is started, after its site was refused (D-ORDERS).
     pub silo_refused: i32,
+    /// Metal-map tiles whose extractor could not be placed, left alone until the frame.
+    pub tiles_refused: BTreeMap<(i32, i32), i32>,
 }
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0 }
+        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new() }
+    }
+
+    /// An extractor site that came to nothing is left alone until `until`.
+    pub(crate) fn refuse(&mut self, site: Site, until: i32) {
+        match site {
+            Site::Spot(i) => self.refused[i] = until,
+            Site::Tile(x, z) => {
+                self.tiles_refused.insert((x, z), until);
+            }
+        }
+    }
+
+    pub(crate) fn is_refused(&self, site: Site, frame: i32) -> bool {
+        match site {
+            Site::Spot(i) => frame < self.refused[i],
+            Site::Tile(x, z) => self.tiles_refused.get(&(x, z)).is_some_and(|until| frame < *until),
+        }
     }
 
     /// Units the factories have been told to make.
@@ -287,7 +324,7 @@ impl Distilled {
             self.economy.sidelined.insert(unit, self.frame + REFUSED);
         }
         match order.job {
-            Job::Extractor(spot) => self.economy.refused[spot] = self.frame + REFUSED,
+            Job::Extractor(site) => self.economy.refuse(site, self.frame + REFUSED),
             Job::Moho(target) => {
                 self.economy.moho_refused.insert(target, self.frame + REFUSED);
             }
@@ -314,9 +351,9 @@ impl Distilled {
                 let to = self.toward_point(unit.pos, self.home, FLEE_WALK);
                 eprintln!("[distilled ai={}] f={} flee: unit {} at ({:.0},{:.0}) from w{:.0} at ({:.0},{:.0})", self.hello.ai_id, self.frame, unit.id.0, unit.pos.x, unit.pos.z, threat.1, threat.0.x, threat.0.z);
                 if let Some(order) = self.economy.orders.remove(&unit.id)
-                    && let Job::Extractor(spot) = order.job
+                    && let Job::Extractor(site) = order.job
                 {
-                    self.economy.refused[spot] = self.frame + REFUSED;
+                    self.economy.refuse(site, self.frame + REFUSED);
                 }
                 self.economy.fleeing.insert(unit.id, self.frame + FLEE_FOR);
                 commands.push(Command::Move { unit: unit.id, to, queue: false });
@@ -448,9 +485,9 @@ impl Distilled {
         if commander {
             // The opening, read off what stands: two extractors, two solars, the plant.
             if self.count(self.kit.extractor) < 2
-                && let Some(spot) = self.free_spot(unit, tick, f32::MAX)
+                && let Some(site) = self.free_site(unit, tick, f32::MAX)
             {
-                return Some(Job::Extractor(spot));
+                return Some(Job::Extractor(site));
             }
             if self.count(self.kit.solar) < 2 {
                 return Some(Job::Solar);
@@ -482,8 +519,8 @@ impl Distilled {
             {
                 return Some(job);
             }
-            if let Some(spot) = self.free_spot(unit, tick, COMMANDER_WALK) {
-                return Some(Job::Extractor(spot));
+            if let Some(site) = self.free_site(unit, tick, COMMANDER_WALK) {
+                return Some(Job::Extractor(site));
             }
             // ...then it raises the build power itself when that is wanted, a plant in a third of a constructor's time
             // (D-BUILD-POWER; at +50 % income the constructors were on extractors and energy while the store sat full).
@@ -517,7 +554,7 @@ impl Distilled {
         if let Some(job) = self.build_power_wanted(def, tick) {
             return Some(job);
         }
-        self.free_spot(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
+        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
     }
 
     /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
@@ -721,22 +758,49 @@ impl Distilled {
         }
     }
 
-    /// D-EXPAND: the free spot that is nearest, counting the walk from the builder whole and the distance from home half.
-    fn free_spot(&self, unit: &OwnUnit, tick: &Tick, reach: f32) -> Option<usize> {
+    /// D-EXPAND: where this builder's next extractor goes within `reach` of home, or nowhere. On a spot map the free
+    /// spot that is nearest, counting the walk from the builder whole and the distance from home half; on a metal map
+    /// the tile of the most unclaimed metal nearest the builder (`layout::Coverage::best_site`): the ground stands,
+    /// nothing of ours or an ally's covers it, no extractor is ordered there, it is out of the plants' exit lanes, no
+    /// building of his within 200 and no armed enemy within `SPOT_DANGER`. Touching extractors share nothing on
+    /// today's metal maps (K-mech-a-metal-map-publishes-no-spots), so the carpet grows outward from the builder.
+    fn free_site(&self, unit: &OwnUnit, tick: &Tick, reach: f32) -> Option<Site> {
         let extractor = |def: UnitDefId| self.def(def).is_some_and(|d| d.extracts_metal > 0.0);
         let armed = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).is_none_or(|d| d.weapon_count > 0);
+        if let Some(coverage) = &self.coverage {
+            let def = self.def(self.kit.extractor?)?;
+            let facts = Facts::of(def);
+            let ground = Ground::new(&self.hello.terrain, self.hello.map.width, self.hello.map.height);
+            let lanes = self.exit_lanes();
+            let rect_of = |def: UnitDefId, pos: Vec3| self.def(def).filter(|d| d.speed <= 0.0).map(|d| Facts::of(d).footprint.rect(pos));
+            let mut taken: Vec<Rect> = self.own.values().filter_map(|u| rect_of(u.def, u.pos)).collect();
+            taken.extend(tick.snapshot.allies.iter().filter_map(|u| rect_of(u.def, u.pos)));
+            taken.extend(self.economy.orders.values().filter_map(|o| match o.job {
+                Job::Extractor(site @ Site::Tile(..)) => Some(facts.footprint.rect(site.at(&self.hello))),
+                _ => None,
+            }));
+            let ok = |p: Vec3, rect: &Rect| {
+                !self.economy.is_refused(Site::Tile(p.x as i32, p.z as i32), self.frame)
+                    && ground.stands(facts.footprint, p, &facts)
+                    && !taken.iter().any(|r| r.overlaps(rect))
+                    && !lanes.iter().any(|l| l.contains(p))
+                    && !self.army.his_buildings.values().any(|b| b.pos.dist2d(p) < 200.0)
+                    && !tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(p) < SPOT_DANGER)
+            };
+            return coverage.best_site(facts.footprint, unit.pos, self.home, reach, def.extracts_metal, &ok).map(|(p, _)| Site::Tile(p.x as i32, p.z as i32));
+        }
         let free = |i: &usize| {
             let at = self.hello.metal_spots[*i];
-            self.frame >= self.economy.refused[*i]
+            !self.economy.is_refused(Site::Spot(*i), self.frame)
                 && at.dist2d(self.home) <= reach
-                && !self.economy.orders.values().any(|o| o.job == Job::Extractor(*i))
+                && !self.economy.orders.values().any(|o| o.job == Job::Extractor(Site::Spot(*i)))
                 && !self.own.values().any(|u| extractor(u.def) && u.pos.dist2d(at) < 90.0)
                 && !tick.snapshot.allies.iter().any(|u| extractor(u.def) && u.pos.dist2d(at) < 90.0)
                 && !self.army.his_buildings.values().any(|b| b.pos.dist2d(at) < 200.0)
                 && !tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(at) < SPOT_DANGER)
         };
         let cost = |i: &usize| unit.pos.dist2d(self.hello.metal_spots[*i]) + 0.5 * self.home.dist2d(self.hello.metal_spots[*i]);
-        (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b)))
+        (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b))).map(Site::Spot)
     }
 
     fn order(&self, unit: &OwnUnit, job: Job, commands: &mut Vec<Command>) {
@@ -744,9 +808,11 @@ impl Distilled {
         // Nothing is built in a plant's exit lane, and a plant faces the enemy: its units leave through its front.
         let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.exit_lanes() }];
         match job {
-            Job::Extractor(spot) => {
-                let at = self.hello.metal_spots[spot];
-                commands.extend(build(self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }, false));
+            Job::Extractor(site) => {
+                let at = site.at(&self.hello);
+                // A tile was chosen over the coverage and the ground: the shim searches nowhere for it.
+                let exact = matches!(site, Site::Tile(..));
+                commands.extend(build(self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact }, false));
                 // D-SENTRY: an outer extractor on his side of our ground gets a sentry on its enemy side, queued behind
                 // it, unless one stands within `SENTRY_SHARED` already (2026-10-20: nineteen sentries by 10:00 against
                 // Apex cost 12,900 energy, more than the thirteen solars of the same minutes made).

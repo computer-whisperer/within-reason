@@ -557,7 +557,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "seats": hello.teams.iter().map(|t| json!({ "team": t.team, "ally_team": t.ally_team, "side": t.side, "controller": t.controller })).collect::<Vec<_>>(),
         "frames_per_second": 30, "sample_frames": SAMPLE_FRAMES, "tick_frames": hello.tick_frames, "mode": mode,
         "wall_start": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()),
-        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius, "metal_map": map.metal_map, "extractor_worth": map.extractor_worth },
+        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius, "metal_map": map.metal_map, "extractor_worth": map.extractor_worth, "metal_scale": map.metal_scale },
         "start_pos_type": hello.start_pos_type,
         "grid": { "columns": 8, "rows": 8 },
         "metal_spots": spots,

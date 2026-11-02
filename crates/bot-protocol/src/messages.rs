@@ -210,6 +210,10 @@ pub struct MapInfo {
     /// Metal Plate 2.32). 0 on a spot map, where each spot carries its own worth.
     #[serde(default)]
     pub extractor_worth: f32,
+    /// The map's metal scale (`maxMetal` of its mapinfo): a metal square's metal a second at `extractsMetal` 1 is
+    /// its raw value (0-255, `Terrain::metal`) times this. 0 from a shim older than 2026-11-02.
+    #[serde(default)]
+    pub metal_scale: f32,
 }
 
 impl MapInfo {

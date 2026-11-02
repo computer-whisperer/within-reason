@@ -12,5 +12,6 @@ crate-type = ["cdylib"]
 ai-host = { path = "../../crates/ai-host" }
 bot-protocol = { path = "../../crates/bot-protocol" }
 combatsim = { path = "../../crates/combatsim" }
+layout = { path = "../../crates/layout" }
 micro = { path = "../../crates/micro" }
 nukes = { path = "../../crates/nukes" }

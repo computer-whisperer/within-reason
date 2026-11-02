@@ -84,7 +84,7 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
         script: String::new(),
         frame: 0,
         tick_frames: 3,
-        map: MapInfo { name: "test".into(), width: 8192.0, height: 6144.0, wind_min: 0.0, wind_max: 0.0, tidal: 0.0, extractor_radius: 120.0, metal_map: false, extractor_worth: 0.0 },
+        map: MapInfo { name: "test".into(), width: 8192.0, height: 6144.0, wind_min: 0.0, wind_max: 0.0, tidal: 0.0, extractor_radius: 120.0, metal_map: false, extractor_worth: 0.0, metal_scale: 0.75 },
         unit_defs,
         metal_spots: Vec::new(),
         metal_spot_squares: Vec::new(),
