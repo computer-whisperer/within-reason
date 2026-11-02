@@ -88,10 +88,32 @@ plateau edges) the second job has none. The design separates them.
 
 - **The place layer** is the set of things a packet, a menu, a list, a rove or a route can name: home, the passages,
   the marked places, the metal spots or fields, and *every cell of the grid*. Today the cell grid is a fixed 8 by 8
-  (`strategist/report.rs:42`, `shared.rs:1062`): 1,024 by 768 on Comet, 1,664 by 256 on SpeedMetal. Cells become
-  square, their side the map's longer axis over eight (Comet 8 by 6, SpeedMetal 8 by 2, Full Metal Plate 8 by 8), so a
-  cell is a walkable neighbourhood and not a strip. (Comet's rows change from 768 to 1,024: the generated sheets
-  follow; the brief's handful of prose cell names are re-read.)
+  whatever the map (`scout.rs` `CELLS`, `mcp.rs:281-310` `/ 8.0`, `sheet.rs:84-89` `input.grid`, `report.rs:42`):
+  1,024 by 768 on Comet, 1,664 by 256 on SpeedMetal, 1,920 by 1,280 on Glitters Extended. **Cells become a fixed
+  1,024 elmos square** (the user, 2026-11-02: "a fixed elmo count rather than a subdivision quantity. Larger maps
+  should have larger cell counts"), columns `ceil(width / 1024)`, rows likewise, one grid definition shared by the
+  scout, the report, the sheet, the `mark` tool and the picture. Comet's columns stay A-H and its rows go from 768 to
+  1,024 (six rows); the generated sheets follow, the brief's few prose cell names are re-read.
+
+  | map | elmos | cells at 1,024 |
+  |---|---|---|
+  | Great Divide | 3,072 x 4,096 | 3 x 4 = 12 |
+  | Comet Catcher | 8,192 x 6,144 | 8 x 6 = 48 |
+  | Quicksilver, Boreal Falls | 7,168 x 7,168 | 7 x 7 = 49 |
+  | Center Command | 8,192 x 4,096 | 8 x 4 = 32 |
+  | All That Glitters | 6,144 x 10,240 | 6 x 10 = 60 |
+  | SpeedMetal | 13,312 x 2,048 | 13 x 2 = 26 |
+  | Full Metal Plate, Supreme Isthmus | 12,288 x 12,288 | 12 x 12 = 144 |
+  | All That Glitters Extended | 15,360 x 10,240 | 15 x 10 = 150 |
+  | SD-129, DWorld | 14,336 x 14,336 | 14 x 14 = 196 |
+
+  Single letters reach column X at 24,576 elmos, BAR's largest maps. What a grid of 150-196 cells asks of the
+  consumers: the report's scouting lines are already runs down a column over the cells that hold something
+  (`report.rs:43-80`), so they grow with content, not with cells; the scout's per-cell look (`scout.rs:97-110`) walks
+  every tile per cell, O(cells x tiles) a glance, and is bucketed once; the picture offers cells by the packet's names
+  and the group's neighbours (below), never all of them; the sheet's per-cell text is generated and read by the player
+  once before the game. Great Divide's twelve cells are coarse for a 1v1, and there the spots and the marked places
+  carry the fine names, as they do today.
 - **Cells as destinations.** The menus offer `walk_to_<cell>`, `advance_to_<cell>`, `rove_within_<cells>` for the
   cells the packet names and the cells next to the group's own, the way `spot_N` moves are offered for the places the
   packet names (`diet::spot_runs` learns cell names); a list step takes a cell as its place; the lane's end for a
@@ -193,12 +215,15 @@ Each step is a commit with its ledger row; the design is amended where a step fi
 - **A spacing constant for mexes on metal maps.** The coverage score gives the spacing where it matters and nothing
   where it does not (§0: touching mexes share nothing at radius 24 or 30).
 
-## 4. Open
+## 4. Decisions taken
 
-- The cell side: the longer axis over eight (chosen here for the player's A-H habit) against a fixed 1,024 elmos
-  (Comet unchanged, SpeedMetal 13 by 2, Full Metal Plate 12 by 12).
+- 2026-11-02 (the user): the cell is a fixed elmo count, 1,024 to start, so larger maps have more cells; checked
+  against the largest maps played (Glitters Extended 150 cells, SD-129 196), §1.2.
+
+## 5. Open
+
 - Whether cells next to the group's own are enough as offered destinations, or Jev needs a cell's neighbours two
-  deep on a map with eight columns.
+  deep on a map of 150-196 cells.
 - Allied extractors on a metal map are claimed only when seen; a tile under an unseen allied mex is refused by the
   engine, not by us (the `no site` path already re-plans).
 - Metal maps with a large extractor radius (the engine default is 500) where sharing does bite: none installed; the
