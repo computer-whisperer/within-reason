@@ -27,7 +27,8 @@ pub struct Engine {
     metal: c_int,
     energy: c_int,
     id_buf: Vec<c_int>,
-    /// Metal spots, kept so base buildings stay off them.
+    /// Metal spots, kept so base buildings stay off them (`SPOT_KEEPOUT`); empty on a metal map, where every
+    /// building stands on metal and the layout's streets keep the yard open instead.
     metal_spots: Vec<Vec3>,
     /// Per feature type: the metal a whole one holds, or `None` when it cannot be reclaimed.
     feature_metal: std::collections::HashMap<c_int, Option<f32>>,
@@ -126,19 +127,20 @@ impl Engine {
     }
 
     pub fn hello(&mut self, frame: i32, tick_frames: i32) -> Hello {
-        let map = MapInfo {
-            name: self.string(call!(self, Map_getName())),
-            width: call!(self, Map_getWidth()) as f32 * SQUARE_SIZE,
-            height: call!(self, Map_getHeight()) as f32 * SQUARE_SIZE,
-            wind_min: call!(self, Map_getMinWind()),
-            wind_max: call!(self, Map_getMaxWind()),
-            tidal: call!(self, Map_getTidalStrength()),
-            extractor_radius: call!(self, Map_getExtractorRadius(self.metal)),
-        };
         let def_count = call!(self, getUnitDefs(std::ptr::null_mut(), 0));
         let mut def_ids = vec![0; def_count.max(0) as usize];
         call!(self, getUnitDefs(def_ids.as_mut_ptr(), def_count));
-        let unit_defs = def_ids.into_iter().map(|id| self.unit_def(id)).collect();
+        let unit_defs: Vec<UnitDefInfo> = def_ids.into_iter().map(|id| self.unit_def(id)).collect();
+        let extractor_radius = call!(self, Map_getExtractorRadius(self.metal));
+        let scale = call!(self, Map_getMaxResource(self.metal));
+
+        // The raw metal map: one value per 2x2 heightmap squares (16 elmos), index 0 top left.
+        let (half_w, half_h) = ((call!(self, Map_getWidth()) / 2) as usize, (call!(self, Map_getHeight()) / 2) as usize);
+        let raw_count = call!(self, Map_getResourceMapRaw(self.metal, std::ptr::null_mut(), 0));
+        let mut raw = vec![0i16; raw_count.max(0) as usize];
+        call!(self, Map_getResourceMapRaw(self.metal, raw.as_mut_ptr(), raw_count));
+        raw.truncate(half_w * half_h);
+        let metal_map = crate::metal::MetalMap { values: &raw, width: half_w, height: half_h };
 
         let float_count = call!(self, Map_getResourceMapSpotsPositions(self.metal, std::ptr::null_mut(), 0));
         let mut floats = vec![0f32; float_count.max(0) as usize];
@@ -148,54 +150,32 @@ impl Engine {
         // params `mex_count`, `mex_x<i>`, `mex_z<i>`; the replay widget reads the same): the positions extractors
         // snap to, and the numbers the replay cards use, so the brief, the picture and the cards name the same spots.
         // The engine's list, snapped to the patch centroids below, has matched it index for index on Comet Catcher
-        // since 2026-09-23; it stays the fallback for a game without the params, and a difference is logged.
-        let game_spots: Vec<Vec3> = {
-            let count = call!(self, Game_getRulesParamFloat(c"mex_count".as_ptr(), 0.0)) as usize;
-            (1..=count)
-                .map_while(|i| {
-                    let (kx, kz) = (CString::new(format!("mex_x{i}")).unwrap_or_default(), CString::new(format!("mex_z{i}")).unwrap_or_default());
-                    let (x, z) = (call!(self, Game_getRulesParamFloat(kx.as_ptr(), f32::NAN)), call!(self, Game_getRulesParamFloat(kz.as_ptr(), f32::NAN)));
-                    (!x.is_nan() && !z.is_nan()).then(|| {
-                        let y = engine_spots.iter().min_by(|a, b| a.dist2d(Vec3 { x, y: 0.0, z }).total_cmp(&b.dist2d(Vec3 { x, y: 0.0, z }))).map_or(0.0, |s| s.y);
-                        Vec3 { x, y, z }
-                    })
+        // since 2026-09-23; it stays the fallback for a game without the params, and a difference is logged. On a
+        // metal map the finder sets `mex_count` to -1 and the engine's list is its greedy packing capped at 10,000
+        // (speedmetal-probe-1): no spots are published, the fields are (`docs/design/2026-11-01-metal-maps.md`).
+        let mex_count = call!(self, Game_getRulesParamFloat(c"mex_count".as_ptr(), 0.0));
+        let is_metal_map = crate::metal::is_metal_map(mex_count, engine_spots.len(), &metal_map);
+        let game_spots: Vec<Vec3> = (1..=(mex_count.max(0.0) as usize))
+            .map_while(|i| {
+                let (kx, kz) = (CString::new(format!("mex_x{i}")).unwrap_or_default(), CString::new(format!("mex_z{i}")).unwrap_or_default());
+                let (x, z) = (call!(self, Game_getRulesParamFloat(kx.as_ptr(), f32::NAN)), call!(self, Game_getRulesParamFloat(kz.as_ptr(), f32::NAN)));
+                (!x.is_nan() && !z.is_nan()).then(|| {
+                    let y = engine_spots.iter().min_by(|a, b| a.dist2d(Vec3 { x, y: 0.0, z }).total_cmp(&b.dist2d(Vec3 { x, y: 0.0, z }))).map_or(0.0, |s| s.y);
+                    Vec3 { x, y, z }
                 })
-                .collect()
-        };
+            })
+            .collect();
         let from_game = !game_spots.is_empty();
-        let mut metal_spots: Vec<Vec3> = if from_game { game_spots } else { engine_spots.clone() };
-        // The raw metal map: one value per 2x2 heightmap squares (16 elmos), index 0 top left. Each square with metal
-        // belongs to the nearest spot within a patch's reach of it.
-        const METAL_SQUARE: f32 = 2.0 * SQUARE_SIZE;
+        let mut metal_spots: Vec<Vec3> = if is_metal_map {
+            Vec::new()
+        } else if from_game {
+            game_spots
+        } else {
+            engine_spots.clone()
+        };
+        // Each square with metal belongs to the nearest spot within a patch's reach of it.
         const PATCH_REACH: f32 = 200.0;
-        let (half_w, half_h) = ((call!(self, Map_getWidth()) / 2) as usize, (call!(self, Map_getHeight()) / 2) as usize);
-        let raw_count = call!(self, Map_getResourceMapRaw(self.metal, std::ptr::null_mut(), 0));
-        let mut raw = vec![0i16; raw_count.max(0) as usize];
-        call!(self, Map_getResourceMapRaw(self.metal, raw.as_mut_ptr(), raw_count));
-        let mut metal_spot_squares: Vec<Vec<(f32, f32)>> = vec![Vec::new(); metal_spots.len()];
-        // (sum of x times metal, sum of z times metal, sum of metal) per spot, for the centroid below.
-        let mut weighted: Vec<(f64, f64, f64)> = vec![(0.0, 0.0, 0.0); metal_spots.len()];
-        for (index, value) in raw.iter().enumerate() {
-            if *value <= 0 || half_w == 0 {
-                continue;
-            }
-            let (x, z) = (((index % half_w) as f32 + 0.5) * METAL_SQUARE, ((index / half_w) as f32 + 0.5) * METAL_SQUARE);
-            if index / half_w >= half_h {
-                break;
-            }
-            let nearest = metal_spots.iter().enumerate().min_by(|a, b| {
-                let da = (a.1.x - x).hypot(a.1.z - z);
-                let db = (b.1.x - x).hypot(b.1.z - z);
-                da.total_cmp(&db)
-            });
-            if let Some((i, spot)) = nearest
-                && (spot.x - x).hypot(spot.z - z) < PATCH_REACH
-            {
-                metal_spot_squares[i].push((x, z));
-                let w = *value as f64;
-                weighted[i] = (weighted[i].0 + x as f64 * w, weighted[i].1 + z as f64 * w, weighted[i].2 + w);
-            }
-        }
+        let crate::metal::Patches { squares: metal_spot_squares, weighted } = crate::metal::assign_squares(&metal_spots, &metal_map, PATCH_REACH);
         // The engine's spot positions are not where the game puts extractors: on Comet Catcher they sit 82 elmos
         // (+40, +72) from every extractor BARb and people build (human-9, the escalate-7 truth file), and the site
         // asked at the corner spot was refused. The game and BARb snap to the metal-weighted centre of the patch,
@@ -212,21 +192,55 @@ impl Engine {
         // extractor standing where it covers the whole patch draws when multiplied by its `extractsMetal`. The
         // engine's own figure (the y of its spot list) is the same sum round its spot point, which is off the patch
         // and can miss squares of it.
-        let scale = f64::from(call!(self, Map_getMaxResource(self.metal)));
         for (spot, (_, _, sw)) in metal_spots.iter_mut().zip(&weighted) {
             if *sw > 0.0 {
-                spot.y = (sw * scale) as f32;
+                spot.y = (sw * f64::from(scale)) as f32;
             }
         }
-        let differing = metal_spots.iter().filter(|g| engine_spots.iter().all(|e| e.dist2d(**g) > 130.0)).count();
-        eprintln!(
-            "[wreason ai={}] metal spots: {} from {} (the engine's list has {}, {differing} of ours nowhere within 130 of one of its)",
-            self.ai_id,
-            metal_spots.len(),
-            if from_game { "the game's rules params (mex_count, mex_x<i>, mex_z<i>)" } else { "the engine's resource map, snapped to the patch centroids" },
-            engine_spots.len()
-        );
+        // On a metal map: the fields, and what a tier-1 extractor (the smallest `extractsMetal` among the types that
+        // extract) draws on the map's typical metal.
+        let (metal_fields, extractor_worth) = if is_metal_map {
+            let extracts = unit_defs.iter().map(|d| d.extracts_metal).filter(|e| *e > 0.0).fold(f32::INFINITY, f32::min);
+            let extracts = if extracts.is_finite() { extracts } else { 0.001 };
+            (crate::metal::fields(&metal_map, scale, extractor_radius), crate::metal::extractor_worth(&metal_map, extractor_radius, scale, extracts))
+        } else {
+            (Vec::new(), 0.0)
+        };
+        if is_metal_map {
+            eprintln!(
+                "[wreason ai={}] metal map (mex_count {mex_count}, the engine's list has {}, metal on {} of {} squares): {} fields, room for {} extractors at {extractor_worth:.2} metal/s each; no spots published",
+                self.ai_id,
+                engine_spots.len(),
+                metal_map.metal_squares(),
+                metal_map.squares(),
+                metal_fields.len(),
+                metal_fields.iter().map(|f| f.room).sum::<u32>()
+            );
+            for f in &metal_fields {
+                eprintln!("[wreason ai={}]   {}: centre ({:.0}, {:.0}), bounds {:?}, {} squares, room {}, worth {:.0}", self.ai_id, f.name, f.centre.x, f.centre.z, f.bounds.map(|b| b as i32), f.squares, f.room, f.worth);
+            }
+        } else {
+            let differing = metal_spots.iter().filter(|g| engine_spots.iter().all(|e| e.dist2d(**g) > 130.0)).count();
+            eprintln!(
+                "[wreason ai={}] metal spots: {} from {} (the engine's list has {}, {differing} of ours nowhere within 130 of one of its)",
+                self.ai_id,
+                metal_spots.len(),
+                if from_game { "the game's rules params (mex_count, mex_x<i>, mex_z<i>)" } else { "the engine's resource map, snapped to the patch centroids" },
+                engine_spots.len()
+            );
+        }
         self.metal_spots = metal_spots.clone();
+        let map = MapInfo {
+            name: self.string(call!(self, Map_getName())),
+            width: call!(self, Map_getWidth()) as f32 * SQUARE_SIZE,
+            height: call!(self, Map_getHeight()) as f32 * SQUARE_SIZE,
+            wind_min: call!(self, Map_getMinWind()),
+            wind_max: call!(self, Map_getMaxWind()),
+            tidal: call!(self, Map_getTidalStrength()),
+            extractor_radius,
+            metal_map: is_metal_map,
+            extractor_worth,
+        };
 
         let script = self.string(call!(self, Game_getSetupScript()));
         let controllers = crate::script::controllers(&script);
@@ -281,6 +295,7 @@ impl Engine {
             unit_defs,
             metal_spots,
             metal_spot_squares,
+            metal_fields,
             terrain: self.terrain(),
         }
     }

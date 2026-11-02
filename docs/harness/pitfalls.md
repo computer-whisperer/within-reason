@@ -87,7 +87,9 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
 
 - The bot protocol changed on 2026-09-22 (`UnitDamaged` gained `from` and `weapon`; later that day `Snapshot` gained `wind`; `Command::MoveState`; late
   that night `UnitDefInfo` gained `footprint` and the blasts, `OwnUnit` `facing`, `BuildSite` `keep_out`, and `Command::ReclaimUnit`, on 2026-09-23 `TeamInfo.controller` (who plays each seat), and on 2026-09-30 `BuildSite.keep_out` became `placements` (a facing with its keep-out, tried in order)): the arena builds both
-  sides, but GUI play needs `run/install_to_bar.sh` re-run so the installed shim matches the bot.
+  sides, but GUI play needs `run/install_to_bar.sh` re-run so the installed shim matches the bot. On 2026-11-02 `Hello`
+  gained `metal_fields` and `MapInfo` `metal_map` and `extractor_worth` (metal maps publish no spots): the handshake
+  refuses a shim from before it.
 - **A shim from another tree misreads the bot's orders.** human 2026-10-26: the client's shim, installed 2026-10-25 at
   19:08, predated `BuildSite.exact` (the territory merge at 20:24); every command after a build order with a site was
   read a byte off, and when the misreading met an impossible value the shim dropped the connection (`Found an Option

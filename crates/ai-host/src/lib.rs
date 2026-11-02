@@ -6,6 +6,7 @@
 //! [`Bot`] called on the engine thread: a bot shipped as one file). See `DESIGN.md`.
 
 mod engine;
+mod metal;
 mod script;
 
 use std::collections::BTreeMap;

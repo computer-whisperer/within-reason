@@ -750,6 +750,29 @@ supports).
 the store).
 **Used by.** [[H-ECO-SPOT-CENTROID]] (amended).
 
+### K-mech-a-metal-map-publishes-no-spots
+**Claim.** On a metal map BAR's spot finder publishes no spots (`mex_count` -1: a map on its name list, SpeedMetal BAR
+V2 among six, or any contiguous metal strip longer than six extractor radii), its snapping, area-mex and mex-denier
+widgets switch themselves off, and the engine's own spot list is a greedy packing one radius apart capped at 10,000:
+not places. An extractor claims every metal square whose centre lies within the extractor radius, at its depth
+(`extractsMetal`), and a square already claimed yields a later extractor only the depth above the claim: two tier-1
+extractors share nothing, a tier-2 over a tier-1 draws the difference. A mex's centre sits on a square corner (its
+footprint is 4 by 4), so at radius 24 it claims 4 squares spanning 32 elmos and at 30 it claims 12 spanning 80, while
+the nearest square a neighbour 64 away could contest is 40 from the centre: on today's metal maps touching mexes lose
+nothing. Full Metal Plate 1.7 is a metal map too (every square at 79, `maxMetal` 7.5, radius 24: 2.37 metal a second
+a mex, the client's +2.4); SpeedMetal (255, 10, 30) gives 30.6, thirteen Comet spots.
+**Status.** demonstrated 2026-11-01/02 (speedmetal-probe-1: 10,000 spots from the engine, hello 7,444 ms, income 63.2
+with two mexes and the commander, every solar refused by the spot keep-out; fmp-probe-1: 2.37 a mex).
+**Evidence.** `upstream/Beyond-All-Reason/common/upgets/api_resource_spot_finder.lua:33-40, 207-223, 241, 352-354`;
+`cmd_extractor_snap.lua:184`, `cmd_area_mex.lua:276`, `cmd_mex_denier.lua:40-44`;
+`upstream/RecoilEngine/rts/Map/MetalMap.cpp:98-113` (`RequestExtraction`),
+`rts/Sim/Units/UnitTypes/ExtractorBuilding.cpp:128-146`, `rts/Sim/Misc/ResourceMapAnalyzer.cpp:37, 48`; the maps'
+`mapinfo.lua` and `.smf` metal maps (the session's `smf_metal.py`); the user's observation of +2.4 a mex on Full
+Metal Plate however dense.
+**Would be wrong if.** A metal map with a radius past about 41 (the engine default is 500) were played: there
+neighbours do share squares, and the rule's arithmetic, not its mechanism, changes.
+**Used by.** [[H-ECO-SPOT-CENTROID]] (amended 2026-11-02), `docs/design/2026-11-01-metal-maps.md`.
+
 ### K-hands-a-role-word-named-a-unit-the-plant-cannot-build
 **Claim.** The role words of a `produce` list were the bot lab's units whatever the factory: `raider:5` written before
 the game was `armpw:5` at an Armada vehicle plant, which builds no Pawn; the tool took it without a word and the plant

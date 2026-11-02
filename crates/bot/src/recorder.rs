@@ -557,11 +557,12 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "seats": hello.teams.iter().map(|t| json!({ "team": t.team, "ally_team": t.ally_team, "side": t.side, "controller": t.controller })).collect::<Vec<_>>(),
         "frames_per_second": 30, "sample_frames": SAMPLE_FRAMES, "tick_frames": hello.tick_frames, "mode": mode,
         "wall_start": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()),
-        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius },
+        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius, "metal_map": map.metal_map, "extractor_worth": map.extractor_worth },
         "start_pos_type": hello.start_pos_type,
         "grid": { "columns": 8, "rows": 8 },
         "metal_spots": spots,
         "metal_spots_amount": "worth",
+        "metal_fields": hello.metal_fields.iter().map(|f| json!({ "name": f.name, "centre": [f.centre.x as i32, f.centre.z as i32], "bounds": f.bounds.map(|b| b as i32), "worth": f.worth, "room": f.room, "squares": f.squares })).collect::<Vec<_>>(),
         "terrain": {
             "file": terrain_file(hello), "cell": hello.terrain.cell, "width": hello.terrain.width, "height": hello.terrain.height,
             "layout": "heights as little-endian i16 (elmos, water level 0), row-major north to south; then slopes as u8 (engine slope x 255); then, when `metal` is true, the raw metal map as u8 per cell",

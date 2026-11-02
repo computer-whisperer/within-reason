@@ -90,11 +90,38 @@ pub struct Hello {
     pub tick_frames: i32,
     pub map: MapInfo,
     pub unit_defs: Vec<UnitDefInfo>,
+    /// The map's metal spots (x, z; y is the patch's worth): the game's own list when it publishes one, the engine's
+    /// snapped to the patch centroids otherwise, and **empty on a metal map** (`MapInfo::metal_map`), where the
+    /// engine's list is its greedy packing capped at 10,000 and no spot is a place.
     pub metal_spots: Vec<Vec3>,
     /// Per metal spot (same order), the centres of the metal-map squares (16 elmos) that make up its patch, from the
     /// engine's raw metal map: the game allows an extractor wherever its extractor radius covers every square.
     pub metal_spot_squares: Vec<Vec<(f32, f32)>>,
+    /// On a metal map, the regions of metal (`docs/design/2026-11-01-metal-maps.md` §1.1); empty elsewhere and from
+    /// a shim older than 2026-11-02.
+    #[serde(default)]
+    pub metal_fields: Vec<MetalField>,
     pub terrain: Terrain,
+}
+
+/// A region of metal on a metal map: connected metal squares, merged across gaps narrower than an extractor's
+/// diameter. The income summary of a metal map, not its waypoints (those are the grid's cells).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct MetalField {
+    /// `field_N`, numbered west to east by centre.
+    pub name: String,
+    /// The metal-weighted centre of its squares.
+    pub centre: Vec3,
+    /// Its extent in elmos: west, north, east, south edges.
+    pub bounds: [f32; 4],
+    /// Its squares' metal times the map's scale: what every extractor standing on it could draw together, times
+    /// `extracts_metal`.
+    pub worth: f32,
+    /// About how many tier-1 extractors (a 4 by 4 footprint, 16 squares) fit on it, the squares over sixteen; an
+    /// upper bound, the ground's slopes and the buildings on it not counted.
+    pub room: u32,
+    /// How many metal squares it has.
+    pub squares: u32,
 }
 
 /// One seat: a team has one commander and one economy; teams on one ally team fight together.
@@ -170,6 +197,19 @@ pub struct MapInfo {
     /// How far from a metal spot's squares an extractor still draws from them (`Game.extractorRadius`): the game
     /// (cmd_mex_denier.lua) allows an extractor anywhere its radius covers the whole spot.
     pub extractor_radius: f32,
+    /// A metal map: the game's spot finder published none (`mex_count` -1: a map on its name list, or a metal strip
+    /// longer than six extractor radii), or, without the finder, the engine's list hit its cap or metal covers over
+    /// a tenth of the squares. Extractors stand anywhere on metal, the game's snapping and its denier are off, and
+    /// `Hello::metal_spots` is empty (`docs/design/2026-11-01-metal-maps.md`). False from a shim older than
+    /// 2026-11-02.
+    #[serde(default)]
+    pub metal_map: bool,
+    /// On a metal map, the metal a second a tier-1 extractor draws standing on the map's typical metal: the squares
+    /// whose centres lie within the extractor radius of a square corner (where a 4 by 4 footprint's centre sits),
+    /// times the median metal value, the map's scale and the extractor's `extracts_metal` (SpeedMetal 30.6, Full
+    /// Metal Plate 2.32). 0 on a spot map, where each spot carries its own worth.
+    #[serde(default)]
+    pub extractor_worth: f32,
 }
 
 impl MapInfo {

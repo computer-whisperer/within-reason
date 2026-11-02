@@ -1,6 +1,7 @@
 # Metal maps: places without spots, extractors in the layout (2026-11-01)
 
-Status: proposed 2026-11-01 night, nothing built. The user's ask: "let's work on making metal maps play decently. I
+Status: proposed 2026-11-01 night; step 0 (the shim) built 2026-11-02 (`crates/ai-host/src/metal.rs`; judged by
+speedmetal-probe-2, fmp-probe-1, metal-step0-comet-check), steps 1-4 not started. The user's ask: "let's work on making metal maps play decently. I
 have never tried it due to fears of the potentially large [number of] metal spot[s] breaking the mex waypoint system.
 Let's review how those maps work, how our systems work with them, and what needs to change." The user's two rulings on
 the shape (the same night): "we should make sure we can handle maps without a convenient grid of mexes to be used as
@@ -72,9 +73,12 @@ plateau edges) the second job has none. The design separates them.
   as spots: on a metal map `metal_spots` is empty.
 - `Hello` gains `metal_fields`: the connected regions of metal squares (8-neighbour, merged across gaps under one
   extractor diameter), each with a name (`field_N`, west to east), its metal-weighted centre, its bounding box, its
-  squares' total worth, and its *room*: how many extractor footprints fit on its passable ground. SpeedMetal has a
-  handful (two plateaus, the highway, the strips); Full Metal Plate has one that is the whole map. Fields are the
-  income summary, not the waypoints (§1.2): "field_2: 14 of ours, 3 of his, room for about 400".
+  squares' total worth, and its *room*: about how many extractor footprints fit (its squares over sixteen; the
+  ground's slopes and the buildings on it not counted). Built 2026-11-02: both metal maps are **one field**, since
+  SpeedMetal's strips connect its plateaus and highway even square to square (checked at gaps of 1, 2 and 4 squares),
+  and Full Metal Plate is uniform; fields tell islands apart (Nine Metal Islands, untested), and on a connected map
+  the cells' metal share (§1.2, step 2) is the summary that tells places apart. Fields are the income summary, not
+  the waypoints: "field_0: room for 3,178 at 30.6 each" (SpeedMetal), "room for 36,864 at 2.37" (Full Metal Plate).
 - `MapInfo` gains `extractor_worth`: metal a second a tier-1 extractor draws on full metal here (squares claimed at
   the radius x 255 x `maxMetal` x `extractsMetal`): 30.6, 2.32. The brief and the sheet say it; nothing derives it from
   the spot list.
@@ -189,7 +193,10 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
 
 0. **The shim's gaps** (§1.1): detection, no engine fallback, fields and `extractor_worth` in `Hello`, the bucketed
    assignment, the keep-out off. Judge: hello under 50 ms on SpeedMetal; the distilled bot builds a solar on the
-   plateau; Comet's hello and spot list unchanged to the elmo.
+   plateau; Comet's hello and spot list unchanged to the elmo. **Built and judged 2026-11-02:** SpeedMetal hello
+   8 ms (was 7,444), three solars and a plant on the plateau in two minutes (speedmetal-probe-2); Full Metal Plate
+   hello 73 ms, 2.37 a mex (fmp-probe-1); Comet's 80 spots identical to lane-thread-lockstep-1's header, hello 4 ms
+   (metal-step0-comet-check). The bots still build no extractor on a metal map: that is step 1.
 1. **Coverage and the extractor want** (§1.3), consumed first by the distilled bot (the user's project to iterate).
    Judge: on Full Metal Plate against BARb hard, extractors built per minute and income at 5, 10, 15 minutes against
    BARb's, no refused extractor site, the exit lanes clear (the yard instruments); on Comet the stand's extractor
