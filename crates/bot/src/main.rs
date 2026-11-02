@@ -2,6 +2,7 @@
 
 mod brain;
 mod recorder;
+mod session;
 mod strategist;
 mod texts;
 mod team;
@@ -140,7 +141,7 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
     // No key, no pianist: the session says so and the seat is not played at all.
     let pianist = brain::pianist::Pianist::new(true, &log_dir(), hello.ai_id).map_err(|e| io::Error::other(format!("the pianist cannot start: {e}")))?;
     eprintln!("[ai {}] pianist: {} plays from the player's instructions", hello.ai_id, pianist.model());
-    let mut recorder = recorder::Recorder::from_env(&log_dir(), &hello, mode_name, strategist.is_some(), true);
+    let recorder = recorder::Recorder::from_env(&log_dir(), &hello, mode_name, strategist.is_some(), true);
     let setting = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     let mut banner = format!("Within Reason {} | {mode_name}", env!("WITHIN_REASON_COMMIT"));
     if strategist.is_some() {
@@ -151,36 +152,11 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
         banner += &format!(" | off: {disabled}");
     }
     banner += &format!(" | hands: {}", pianist.model());
-    let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, Some(pianist));
+    let brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, Some(pianist));
     // The opening turn is asked for now, before the game's first tick (`docs/design/2026-09-30-opening-turn.md`).
     brain.before_the_game();
     write_frame(&mut stream, &Commands::default())?;
-    let (mut last_frame, mut last_own) = (0, 0);
     let _commander = commander;
-    loop {
-        let tick = match next() {
-            Ok(ToBot::Tick(tick)) => tick,
-            Ok(_) => return Err(io::Error::other("unexpected second Hello")),
-            Err(e) => {
-                // The engine closed the connection: the game is over as far as this seat can know.
-                if let Some(r) = &mut recorder {
-                    r.ended(last_frame, last_own, &e.to_string());
-                }
-                return Err(e);
-            }
-        };
-        (last_frame, last_own) = (tick.frame, tick.snapshot.own_units.len());
-        let started = std::time::Instant::now();
-        let commands = brain.decide(&tick);
-        let decide_ms = started.elapsed().as_secs_f32() * 1000.0;
-        let journal = brain.take_journal();
-        if let Some(r) = &mut recorder
-            && let Err(e) = r.tick(&tick, journal, &commands, decide_ms)
-        {
-            // A full disk must not lose the match.
-            eprintln!("match record abandoned: {e}");
-            recorder = None;
-        }
-        write_frame(&mut stream, &Commands(commands))?;
-    }
+    // From here two threads: the lane and the socket on this one, the brain on its own (`session.rs`).
+    session::run(stream, next, brain, recorder)
 }

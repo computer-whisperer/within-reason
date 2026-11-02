@@ -8,7 +8,7 @@ Ratified 2026-09-19. Findings live under `docs/` (start at `docs/README.md`).
  Recoil engine client (spring / spring-headless)          bot process (Rust binary)
  ┌───────────────────────────────────────────┐            ┌──────────────────────────────┐
  │ libSkirmishAI.so  = crates/ai-shim        │   Unix     │ crates/bot  (the flagship)   │
- │  engine thread only:                      │  socket    │  one thread per AI instance  │
+ │  engine thread only:                      │  socket    │  two threads per AI instance │
  │   events ──► buffer                       │ ─────────► │  Hello, then Tick → Commands │
  │   every N frames: snapshot via callbacks  │ ◄───────── │  brain: world model + pianist │
  │   apply Commands via Engine_handleCommand │            │  later: Jev / LLM layers     │
@@ -78,10 +78,14 @@ tokens (`bots/README.md`).
    commanded), visible enemies with their team and velocity. Once a second the snapshot also carries `sensors`: our ally team's sight, radar and air-sight coverage grids as the engine computes them over the terrain (`Map_getLosMap`, `Map_getRadarMap`, `Map_getAirLosMap`; BAR squares of 64, 32 and 128 elmos), one bit a square; enemy jamming is not in them (BAR jams per side) and follows from a seen jammer's `jam_range`. The unit definitions carry `sight`, `jam_range`, `stealth`, `cloak`, `shield` and `intercepted_by` from 2026-10-18 (`docs/design/2026-10-18-sight-jammers-cloak-shields.md`), and `health` (full health: an enemy's health share), `reclaim_speed` and `reclaimable` from 2026-10-27 (what a builder takes apart of his and how fast, K-mech-reclaim-values). From the same day a unit, ours or his in sight, carries `stunned` (the seconds it stays stunned, from the engine's stun store over its health: K-mech-stun) and a definition `stun_taken` (its `paralyzemultiplier`) and `stun` (its stun weapon: a shot's stun, reach, reload, seconds). `Command::FightReclaimingEnemies` is the engine's fight in its enemy-only reclaim mode (CTRL+META, which the AI interface passes through whole): a builder walks the line stopping for nothing of ours and takes apart enemies it passes; it is a builder's `attack` (H-HANDS-COMMANDER-FIGHTS).
 4. Shim reads the socket non-blocking at each UPDATE and applies any `Commands` on the engine thread.
 
-The bot runs two passes on every tick (`brain/mod.rs` `decide`): the control lane (`crates/micro`, driven from `brain/micro.rs`) every tick, and the
-whole brain (`think`) on the ticks due at multiples of `BRAIN_FRAMES` (15, 2 Hz), fed every event since it last ran. The
-brain's schedule keys on the due frame (`Tick::due`), so a late tick is not a missed one.
-Design: `docs/design/2026-09-20-micro-lane.md`.
+The bot runs two threads a session (`crates/bot/src/session.rs`, since 2026-11-01): the fast thread owns the socket, the
+recorder and the control lane (`crates/micro`) and answers every tick; the brain's thread runs `Brain::decide` on every tick
+it is handed, the whole brain (`think`) on the ticks due at multiples of `BRAIN_FRAMES` (15, 2 Hz), fed every event since
+it last ran, and between thinks the hands' answers. In lockstep the fast thread waits for the brain's answer at every tick
+(the world held while the brain and Jev work); in realtime it never waits, and the brain folds the ticks that piled up
+while it worked. The brain's schedule keys on the due frame (`Tick::due`), so a late tick is not a missed one. What crosses
+between the threads is in the design: `docs/design/2026-10-03-lane-off-the-brain-thread.md`; the lane itself:
+`docs/design/2026-09-20-micro-lane.md`.
 
 If the bot is absent or dies, the shim keeps the game running and retries the connection about once a second, re-sending `Hello`.
 Socket path: `$WITHIN_REASON_SOCKET`, else `$XDG_RUNTIME_DIR/within-reason.sock`.

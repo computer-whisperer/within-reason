@@ -66,6 +66,8 @@ pub struct Recorder {
     /// Rounds ready in each stockpiler of ours as of the last tick: one more is a `round` event.
     rounds: HashMap<UnitId, i32>,
     slowest_decide_ms: f32,
+    /// The slowest brain `decide` whose answer landed in the interval (`session.rs`).
+    slowest_brain_ms: f32,
     /// The most frames a tick of the interval arrived late by (`Tick::late`).
     latest_tick: i32,
     intent: Option<Intent>,
@@ -113,6 +115,7 @@ impl Recorder {
                 own: HashSet::new(),
                 rounds: HashMap::new(),
                 slowest_decide_ms: 0.0,
+                slowest_brain_ms: 0.0,
                 latest_tick: 0,
                 intent: None,
             }),
@@ -135,7 +138,7 @@ impl Recorder {
     }
 
     /// Records one tick: the events, the brain's journal, the commands it answered with, and a sample when due.
-    pub fn tick(&mut self, tick: &Tick, journal: Journal, commands: &[Command], decide_ms: f32) -> io::Result<()> {
+    pub fn tick(&mut self, tick: &Tick, journal: Journal, commands: &[Command], decide_ms: f32, brain_ms: f32) -> io::Result<()> {
         if let Some(mut header) = self.header.take() {
             // The header waits for the first tick because only a unit tells which faction we play.
             let first = tick.snapshot.own_units.first().and_then(|u| self.def_index.get(&u.def));
@@ -184,6 +187,7 @@ impl Recorder {
         }
         self.commands(tick.frame, commands);
         self.slowest_decide_ms = self.slowest_decide_ms.max(decide_ms);
+        self.slowest_brain_ms = self.slowest_brain_ms.max(brain_ms);
         self.latest_tick = self.latest_tick.max(tick.late);
         if tick.frame >= self.next_sample {
             self.next_sample = tick.frame - tick.frame % SAMPLE_FRAMES + SAMPLE_FRAMES;
@@ -429,7 +433,7 @@ impl Recorder {
             let comma = if i == 0 { "" } else { "," };
             let _ = write!(self.buffer, "{comma}[{from},{to},{damage:.0}]");
         }
-        let _ = write!(self.buffer, "],\"ms\":{:.2},\"late\":{}", std::mem::take(&mut self.slowest_decide_ms), std::mem::take(&mut self.latest_tick));
+        let _ = write!(self.buffer, "],\"ms\":{:.2},\"brain_ms\":{:.2},\"late\":{}", std::mem::take(&mut self.slowest_decide_ms), std::mem::take(&mut self.slowest_brain_ms), std::mem::take(&mut self.latest_tick));
         let milling = std::mem::take(&mut self.milling);
         if milling.claims > 0 {
             let _ = write!(self.buffer, ",\"lane\":[{},{:.0},{:.0},{}]", milling.claims, milling.path, milling.net, milling.reversals);

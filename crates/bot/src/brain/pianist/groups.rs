@@ -566,7 +566,7 @@ impl Brain {
         // else its body. (Until 2026-10-31 the body's place for every group: the member at the 60th percentile from
         // the centroid, which in barb-ladder4-20-1 was a joiner crossing the base or a Bull standing away, and seven
         // followers were sent 400-600 elmo to another member of the ward every second.)
-        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane.group_state(&g.lane_name()).map(|s| s.anchor).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
+        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane_group(&g.lane_name()).map(|s| s.anchor).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
         for group in pianist.groups.iter_mut() {
             // A roving group is the lane's (H-MICRO-ROVE): no hunt, no orders kept up, every member its own from the
             // tick it joins.
@@ -604,7 +604,7 @@ impl Brain {
             // The body's place, not the centre of every member: the stream still joining from the plants would drag
             // the centre home (player-10 18:20: a front at spot_40 with 34 waiting at the yard read "0 of 59 arrived").
             // A declared group's place is its anchor, the lane's.
-            let lane_state = if group.declared() { self.lane.group_state(&group.lane_name()).cloned() } else { None };
+            let lane_state = if group.declared() { self.lane_group(&group.lane_name()).cloned() } else { None };
             let Some(centre) = lane_state.as_ref().map(|s| s.anchor).or_else(|| group.body(own, goal).map(|b| b.at)) else { continue };
             // The registers' facts: a named place (`menu::named_places`) the body comes within `ARRIVED` of is
             // reached, said in `recent` and asked about at once; the first enemies in sight since the last stop are
@@ -1168,17 +1168,18 @@ mod tests {
         group.screen = Some(at(3400.0, 1000.0));
         pianist.groups.push(group);
         brain.pianist = Some(pianist);
-        brain.declare_groups();
-        let mut names = brain.lane.group_names();
+        let declared = brain.declare_groups();
+        let mut names: Vec<&str> = declared.iter().map(|(n, ..)| n.as_str()).collect();
         names.sort();
         assert_eq!(names, ["group_S", "group_S_screen"]);
-        assert_eq!(brain.lane.group_members("group_S"), Some(&[UnitId(1), UnitId(2)][..]));
-        assert_eq!(brain.lane.group_members("group_S_screen"), Some(&[UnitId(3), UnitId(4)][..]));
+        let members = |declared: &[crate::session::Declared], name: &str| declared.iter().find(|(n, ..)| n == name).map(|(_, m, _)| m.clone());
+        assert_eq!(members(&declared, "group_S"), Some(vec![UnitId(1), UnitId(2)]));
+        assert_eq!(members(&declared, "group_S_screen"), Some(vec![UnitId(3), UnitId(4)]));
         // The shell ends (a walk picked): one formation of all four, the screen gone.
         brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Move { to: at(3000.0, 1000.0), place: "spot_1".into(), fight: false }, 30);
-        brain.declare_groups();
-        assert_eq!(brain.lane.group_names(), ["group_S"]);
-        assert_eq!(brain.lane.group_members("group_S").map(|m| m.len()), Some(4));
+        let declared = brain.declare_groups();
+        assert_eq!(declared.iter().map(|(n, ..)| n.as_str()).collect::<Vec<_>>(), ["group_S"]);
+        assert_eq!(members(&declared, "group_S").map(|m| m.len()), Some(4));
     }
 
     /// A group following a group is declared to the lane with its ward (the contact cleanup's §5.3): the lane keeps
@@ -1196,8 +1197,8 @@ mod tests {
         pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(3), UnitId(4)], GroupTask::Follow { ward: Ward::Group("A".into()), name: "group_A".into(), at: at(1100.0, 1000.0), since: 0 }, 0));
         pianist.groups.push(Group::new("C".into(), Domain::Ground, vec![UnitId(5)], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(1100.0, 1000.0), since: 0 }, 0));
         brain.pianist = Some(pianist);
-        brain.declare_groups();
-        let ward = |name: &str| brain.lane.group_order(name).and_then(|o| o.ward.clone());
+        let declared = brain.declare_groups();
+        let ward = |name: &str| declared.iter().find(|(n, ..)| n == name).and_then(|(_, _, order)| order.ward.clone());
         assert_eq!(ward("group_B").as_deref(), Some("group_A"));
         assert_eq!(ward("group_C"), None);
         assert_eq!(ward("group_A"), None);

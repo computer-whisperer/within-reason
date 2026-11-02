@@ -149,6 +149,21 @@ pub(crate) struct Rover {
     evasions: u32,
 }
 
+impl Rover {
+    fn report(&self) -> RoveReport {
+        let doing = if self.evading.is_some() {
+            "evading"
+        } else if self.target.is_some() {
+            "attacking"
+        } else if self.goal.is_some() {
+            "looking"
+        } else {
+            "waiting"
+        };
+        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, evasions: self.evasions }
+    }
+}
+
 /// How far beyond its reach a shooter is kept.
 fn margin(s: &Source) -> f32 {
     if s.mobile { (s.speed * MARGIN_SECONDS).max(MARGIN_MIN) } else { MARGIN_STATIC }
@@ -199,17 +214,12 @@ fn target_class(d: &bot_protocol::UnitDefInfo) -> u8 {
 impl Lane {
     /// What this unit is doing as a rover, if it is one (H-MICRO-ROVE).
     pub fn roving(&self, unit: UnitId) -> Option<RoveReport> {
-        let r = self.rovers.get(&unit)?;
-        let doing = if r.evading.is_some() {
-            "evading"
-        } else if r.target.is_some() {
-            "attacking"
-        } else if r.goal.is_some() {
-            "looking"
-        } else {
-            "waiting"
-        };
-        Some(RoveReport { doing, goal: r.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: r.target, evasions: r.evasions })
+        self.rovers.get(&unit).map(Rover::report)
+    }
+
+    /// Every rover's report, for a host that reads the lane from another thread.
+    pub fn rovers_roving(&self) -> HashMap<UnitId, RoveReport> {
+        self.rovers.iter().map(|(id, r)| (*id, r.report())).collect()
     }
 
     /// H-MICRO-ROVE, every tick, for every rover: evade, else attack, else look (the module's comment).

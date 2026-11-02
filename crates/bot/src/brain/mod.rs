@@ -34,6 +34,7 @@ const TICK_FRAMES_GUESS: i32 = 8;
 
 use bot_protocol::{Command, Event, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
+use crate::session::{BrainResult, LaneReport};
 use crate::strategist::shared::Shared;
 use crate::world::World;
 use roster::{Kit, ROSTERS};
@@ -249,8 +250,12 @@ pub struct Brain {
     last_trigger_frame: HashMap<&'static str, i32>,
     /// Decisions since `main` last collected them for the match record.
     journal: journal::Journal,
-    /// The control lane's state (`micro.rs`): standing orders, commitments, claims, the threat grid.
-    lane: micro::Lane,
+    /// The lane's declared groups' states and the rovers' reports as the lane last reported them (`session.rs`
+    /// `LaneReport`: the lane runs on the session's fast thread, `micro.rs` is the brain's side of it).
+    lane_groups: HashMap<String, micro::GroupState>,
+    lane_roving: HashMap<UnitId, micro::RoveReport>,
+    /// Whether the lane's fixed view has gone out (once, with the first answer after the faction is adopted).
+    lane_fixed_sent: bool,
     /// Events from the ticks since `think` last ran, in order, for its next run.
     carried_events: Vec<Event>,
     /// Metal and energy allies put into our stores (`Event::Received`: gifts and overflow, the engine's figure for
@@ -412,7 +417,9 @@ impl Brain {
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             last_trigger_frame: HashMap::new(),
             journal: Default::default(),
-            lane: Default::default(),
+            lane_groups: HashMap::new(),
+            lane_roving: HashMap::new(),
+            lane_fixed_sent: false,
             carried_events: Vec::new(),
             received: Default::default(),
             late_ticks: (0, 0),
@@ -479,9 +486,11 @@ impl Brain {
         self.said.push(line);
     }
 
-    /// One tick: the control lane every time, the whole brain (`think`) on the frames due at its own interval, with
-    /// every event since it last ran.
-    pub fn decide(&mut self, tick: &Tick) -> Vec<Command> {
+    /// One tick: the lane's report of the last tick taken up first; then the whole brain (`think`) on the frames due at
+    /// its own interval, with every event since it last ran, or between thinks the hands' answers that have come. The
+    /// answer carries the orders, the groups declared to the lane and the lane's view; the lane itself runs on the
+    /// session's fast thread (`session.rs`).
+    pub fn decide(&mut self, tick: &Tick, reports: Vec<LaneReport>) -> BrainResult {
         if let Some(sensors) = &tick.snapshot.sensors {
             self.sensors = Some((sensors.clone(), tick.frame));
         }
@@ -514,9 +523,12 @@ impl Brain {
             }
         }
         self.received.retain(|(at, _, _)| tick.frame - at < RECEIVED_WINDOW);
-        if tick.due() % BRAIN_FRAMES != 0 {
+        let mut commands = Vec::new();
+        for report in reports {
+            self.take_lane_report(report, tick, &mut commands);
+        }
+        let (declared, scene) = if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
-            let mut commands = Vec::new();
             if self.pianist.is_some() {
                 self.poll_hands(tick, &mut commands);
             }
@@ -527,27 +539,25 @@ impl Brain {
             // commands at our own base, the body standing there 22 s; human-22 11:30: a body under "advance to
             // spot_46" walking home; 13 of 118 walks and advances played between thinking ticks in four games
             // with people pointed elsewhere, 1 of 97 played on them).
-            if !commands.is_empty() {
-                self.note_standing_orders(&commands, tick.frame);
-                self.declare_groups();
-            }
-            self.micro(tick, &mut commands);
-            self.echo.said(&commands, tick.frame);
-            return commands;
-        }
-        let mut commands = if self.carried_events.is_empty() {
-            self.think(tick)
+            ((!commands.is_empty()).then(|| self.declare_groups()), None)
         } else {
-            let mut events = std::mem::take(&mut self.carried_events);
-            events.extend(tick.events.iter().cloned());
-            let whole = Tick { frame: tick.frame, late: tick.late, events, snapshot: tick.snapshot.clone() };
-            self.think(&whole)
+            let thought = if self.carried_events.is_empty() {
+                self.think(tick)
+            } else {
+                let mut events = std::mem::take(&mut self.carried_events);
+                events.extend(tick.events.iter().cloned());
+                let whole = Tick { frame: tick.frame, late: tick.late, events, snapshot: tick.snapshot.clone() };
+                self.think(&whole)
+            };
+            commands.extend(thought);
+            (Some(self.declare_groups()), self.kit.is_some().then(|| self.lane_scene()))
         };
-        self.note_standing_orders(&commands, tick.frame);
-        self.declare_groups();
-        self.micro(tick, &mut commands);
         self.echo.said(&commands, tick.frame);
-        commands
+        let fixed = (self.kit.is_some() && !self.lane_fixed_sent).then(|| {
+            self.lane_fixed_sent = true;
+            self.lane_fixed()
+        });
+        BrainResult { frame: tick.frame, commands, declared, fixed, scene, journal: self.take_journal(), decide_ms: 0.0 }
     }
 
     fn think(&mut self, tick: &Tick) -> Vec<Command> {

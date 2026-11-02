@@ -174,7 +174,7 @@ fn for_brief(text: &str, name: &str) -> String {
 }
 
 /// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`), unless the game is realtime.
-fn lockstep() -> bool {
+pub(crate) fn lockstep() -> bool {
     !realtime()
 }
 

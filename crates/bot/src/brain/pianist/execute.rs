@@ -344,7 +344,7 @@ impl Brain {
         match order {
             Order::Hold => {
                 // The ranks stand about the lane's anchor when the group is the lane's, else the body's place.
-                let anchor = self.lane.group_state(&pianist.groups[index].lane_name()).map(|s| s.anchor);
+                let anchor = self.lane_group(&pianist.groups[index].lane_name()).map(|s| s.anchor);
                 let group = &mut pianist.groups[index];
                 let at = anchor.or_else(|| group.body(own, None).map(|b| b.at)).or(centre).unwrap_or(home);
                 group.set_task(GroupTask::Hold { picked: true, at }, frame);

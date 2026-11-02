@@ -405,14 +405,14 @@ impl Brain {
             .iter()
             .map(|u| {
                 let who = format!("its {} at {}", self.short_words(u.def), self.place_words(places, u.pos));
-                let Some(r) = self.lane.roving(u.id) else { return format!("{who} is starting") };
+                let Some(r) = self.lane_roving.get(&u.id) else { return format!("{who} is starting") };
                 let what = match r.doing {
                     "evading" => "is stepping out of the reach of something that can shoot it".to_string(),
                     "attacking" => match r.target.and_then(|t| enemies.iter().find(|e| e.id == t)) {
                         Some(e) => format!("is attacking his unguarded {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos)),
                         None => "is attacking an unguarded unit of his".to_string(),
                     },
-                    "looking" => r.goal.map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(look))),
+                    "looking" => r.goal.as_ref().map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(*look))),
                     _ => "waits where it is safe: every way to a place worth a look passes the reach of something that can shoot it".to_string(),
                 };
                 let evaded = if r.evasions > 0 { format!(" ({} evasion{} so far)", r.evasions, if r.evasions == 1 { "" } else { "s" }) } else { String::new() };
@@ -1901,7 +1901,7 @@ impl Brain {
             let Some(body) = group.body(own, toward) else { continue };
             // A declared group (the lane's formation, the migration design chunk 2) is read from the lane's state:
             // its place is the anchor, and the `formation` line below carries what the body words said.
-            let lane_state = if group.declared() { self.lane.group_state(&group.lane_name()) } else { None };
+            let lane_state = if group.declared() { self.lane_group(&group.lane_name()) } else { None };
             let centre = lane_state.map_or(body.at, |s| s.anchor);
             let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
             let shape = |to: Vec3| {
@@ -1974,7 +1974,7 @@ impl Brain {
                 }
             }
             // A shelling group's screen, the lane's second formation of it (chunk 5).
-            if group.shelling && let Some(state) = self.lane.group_state(&group.screen_lane_name()) {
+            if group.shelling && let Some(state) = self.lane_group(&group.screen_lane_name()) {
                 let members = state.formed.len() + state.exceptions.len();
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
                 entry["screen"] = json!(format!("its screen ({members} soldiers between the artillery and the target): {}", formation_words(state, members, Some("its screen point"), &self.place_words(&places, state.anchor), engaged.as_deref())));
