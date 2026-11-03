@@ -98,6 +98,8 @@ pub(crate) struct Distilled {
     /// On a metal map, the metal under the ground and the extractors' claims over it, rebuilt every tick from what
     /// stands (`layout::Coverage`); `None` on a spot map.
     pub coverage: Option<layout::Coverage>,
+    /// D-STAND: the commander's opening slots, solved once at the start (`siting.rs` `solve_stand`).
+    pub(crate) stand: Option<layout::Stand>,
     pub army: army::Army,
     pub air: air::Air,
     /// The silos and their strikes (D-NUKE, `nuke.rs`).
@@ -230,6 +232,7 @@ impl Distilled {
         self.tiers = self.defs.values().filter_map(|d| table.index(&d.name).map(|i| (d.id, table.list[i].tech))).collect();
         // The combat tables' rows for every type: D-REACH's turret weights read them whether the lane runs or not.
         self.control.survey(&self.defs);
+        self.stand = self.solve_stand(commander);
         let kit = &self.kit;
         let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("radar", kit.radar), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank), ("silo", kit.silo)]
             .iter()
@@ -426,7 +429,7 @@ impl Bot for Distilled {
         let spots = hello.metal_spots.len();
         let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {

@@ -46,6 +46,11 @@ const TOUCHING_CAP: usize = 2;
 /// The cells the escape check walks, round the stand: a building fenced the commander in when no cell this far out is
 /// reached from where it stands.
 const ESCAPE_MARGIN: f32 = 96.0;
+/// No two of the stand's rects leave a channel narrower than the commander between them (touching is no channel):
+/// the engine's pathing sent it through one and it jammed there. The east seat of Comet Catcher, 2026-11-03 night
+/// (dist102, dist103): the plant's south face and the first extractor's north face 32 apart, the commander wedged
+/// between them at (6843, 705) on its way west in every east game, holding an extractor order five minutes at a time.
+const CHANNEL: f32 = 2.0 * COMMANDER_HALF;
 
 /// A building's footprint in build squares (x across its front, z front to back), as the definitions give it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -535,6 +540,12 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
     let mut plants: Vec<Plant> = Vec::new();
     let mut slots: Vec<Option<Slot>> = vec![None; wants.len()];
     let mut walk = 0.0;
+    // A rect that would leave a channel narrower than the commander to anything standing, ordered or kept for an
+    // extractor (the commander's own ground excepted: it walks away from it).
+    let channels = |rect: &Rect, occupied: &[Rect], spot_boxes: &[(usize, Rect)]| {
+        let narrow = |o: &Rect| !o.overlaps(rect) && !o.touches(rect) && o.grown(CHANNEL).overlaps(rect);
+        occupied.iter().filter(|o| !o.contains(s)).any(narrow) || spot_boxes.iter().any(|(_, o)| narrow(o))
+    };
     let mut stands = |footprint: Footprint, centre: Vec3, f: &Facts| -> bool {
         let key = (f.def.0, footprint.x, footprint.z, centre.x.round() as i32, centre.z.round() as i32);
         *memo.entry(key).or_insert_with(|| scene.ground.stands(footprint, centre, f))
@@ -580,7 +591,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
             let fp = f.footprint.faced(*facing);
             for centre in lattice(fp, s, reach) {
                 let rect = fp.rect(centre);
-                if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
+                if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) || channels(&rect, &occupied, &spot_boxes) {
                     continue;
                 }
                 if !stands(fp, centre, &f) {
@@ -621,7 +632,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
         let mut ranked: Vec<((usize, f32), Vec3, Rect)> = Vec::new();
         for centre in lattice(fp, s, reach) {
             let rect = fp.rect(centre);
-            if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) {
+            if occupied.iter().any(|r| r.overlaps(&rect)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&rect)) || aprons.iter().any(|r| r.overlaps(&rect)) || near_a_spot(scene, centre) || channels(&rect, &occupied, &spot_boxes) {
                 continue;
             }
             if !stands(fp, centre, &f) {
@@ -690,7 +701,7 @@ fn lane_open(lane: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
 fn escapes(from: Vec3, occupied: &[Rect], radius: f32) -> bool {
     let n = (radius / GRID).ceil() as i32;
     // The ground kept for the commander itself is no wall to it.
-    let walls: Vec<Rect> = occupied.iter().filter(|r| !r.contains(from)).map(|r| r.grown(SQUARE)).collect();
+    let walls: Vec<Rect> = occupied.iter().filter(|r| !r.contains(from)).map(|r| r.grown(COMMANDER_HALF)).collect();
     let blocked = |i: i32, j: i32| {
         let p = Vec3 { x: from.x + i as f32 * GRID, y: 0.0, z: from.z + j as f32 * GRID };
         walls.iter().any(|r| r.contains(p))

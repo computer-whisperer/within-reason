@@ -13,7 +13,7 @@
 //! turrets to one of four points round a plant, its plants to a point 350 toward the enemy with a 900 search.
 
 use bot_protocol::{OwnUnit, Tick, UnitDefId, Vec3};
-use layout::{Facts, Footprint, Frame, Ground, Plant, Purpose, Request, Standing, Worker, World};
+use layout::{Facts, Footprint, Frame, Ground, Plant, Purpose, Request, Scene, Slot, Standing, Want, Worker, World};
 
 use crate::Distilled;
 use crate::economy::Job;
@@ -35,6 +35,65 @@ const BANK_CAP_GENERATOR: usize = 8;
 const SLOT_SEARCH: f32 = 24.0;
 
 impl Distilled {
+    /// D-STAND: the commander's stand (`layout::stand`, the flagship's H-ECO-STAND since 2026-10-29), solved once at
+    /// the start from where the commander stands: D-OPENING's two extractors, two solars and the plant as slots within
+    /// its reach, the plant with its street clear and facing the enemy, nothing fencing the commander in. `order`
+    /// sends the slots as one queue (`Job::Stand`), so the commander never idles or walks between its first
+    /// structures; a slot the engine refuses falls to the opening's old rungs. Under `layout=on`; `None` when the
+    /// kit lacks a piece or the map has no terrain.
+    pub(crate) fn solve_stand(&self, commander: &OwnUnit) -> Option<layout::Stand> {
+        if !self.options.layout {
+            return None;
+        }
+        let (solar, plant) = (self.kit.solar?, self.kit.plant?);
+        let wants = [Want::Extractor, Want::Extractor, Want::Building(solar), Want::Building(solar), Want::Building(plant)];
+        let builder = self.facts_of(commander.def)?;
+        let extractor_def = self.kit.extractor?;
+        let extractor = self.facts_of(extractor_def)?;
+        let facts = |def: UnitDefId| self.facts_of(def);
+        let hello = &self.hello;
+        let open = |_: Vec3| true;
+        let occupied: Vec<layout::Rect> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| self.facts_of(u.def).map(|f| f.footprint.faced(u.facing).rect(u.pos))).collect();
+        let scene = Scene {
+            start: commander.pos,
+            builder,
+            extractor,
+            facts: &facts,
+            spots: &hello.metal_spots,
+            squares: &hello.metal_spot_squares,
+            extractor_radius: hello.map.extractor_radius,
+            spots_taken: &[],
+            spot_keep_out: SPOT_KEEPOUT,
+            ground: Ground::new(&hello.terrain, hello.map.width, hello.map.height),
+            toward: self.enemy_home,
+            open: &open,
+            occupied,
+            coverage: self.coverage.as_ref().map(|c| (c, self.def(extractor_def).map_or(0.001, |d| d.extracts_metal))),
+        };
+        let stand = layout::stand(&scene, &wants)?;
+        let slots: Vec<String> = stand
+            .slots
+            .iter()
+            .map(|s| match *s {
+                Slot::Extractor { spot, at } => format!("extractor at {} ({:.0},{:.0})", spot.map_or("a tile".to_string(), |i| format!("spot_{i}")), at.x, at.z),
+                Slot::Building { def, at, facing } => format!("{} at ({:.0},{:.0}) facing {facing}", self.name_of(def), at.x, at.z),
+            })
+            .collect();
+        eprintln!(
+            "[distilled ai={}] f={} stand: at ({:.0},{:.0}), {:.0} from the start, walk {:.0}: {}; {} of {} unplaced",
+            hello.ai_id,
+            self.frame,
+            stand.at.x,
+            stand.at.z,
+            stand.at.dist2d(commander.pos),
+            stand.walk,
+            slots.join(", "),
+            stand.unplaced,
+            wants.len()
+        );
+        Some(stand)
+    }
+
     /// What the layer knows of a kind: its footprint and, for a factory, its street's half-width (its widest product's).
     /// Its products' ground is not known here (the bot keeps no walk sets), so the street is judged on the world's
     /// `open`, which is everywhere.
@@ -168,7 +227,7 @@ impl Distilled {
             Job::Converter => (def, back, BAND_GENERATOR),
             Job::AntiAir => (def, self.anti_air_site(), BAND_PLACE),
             Job::Radar(at) => (def, at, BAND_PLACE),
-            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) => {
+            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand => {
                 return None;
             }
         })

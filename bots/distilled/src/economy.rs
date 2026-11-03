@@ -195,6 +195,8 @@ pub(crate) enum Job {
     Radar(Vec3),
     /// Take this wreck apart (D-RECLAIM).
     Reclaim(FeatureId),
+    /// The commander's opening as one queue at the stand's slots (D-STAND, `siting.rs` `solve_stand`).
+    Stand,
 }
 
 impl Job {
@@ -216,7 +218,7 @@ impl Job {
             Job::AirPlant => kit.air_plant,
             Job::Silo => kit.silo,
             Job::Radar(_) => kit.radar,
-            Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) => None,
+            Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand => None,
         }
     }
 }
@@ -287,11 +289,13 @@ pub(crate) struct Economy {
     /// D-RECLAIM: reclaim orders given, and the metal the wrecks held when ordered (the minute line).
     pub reclaims: usize,
     pub reclaim_metal: f32,
+    /// D-STAND: the stand's queue has gone to the commander; the opening's rungs place what it refused.
+    pub stand_issued: bool,
 }
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new(), reclaims: 0, reclaim_metal: 0.0 }
+        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new(), reclaims: 0, reclaim_metal: 0.0, stand_issued: false }
     }
 
     /// An extractor site that came to nothing is left alone until `until`.
@@ -352,6 +356,7 @@ impl Economy {
             Some(Job::Silo) => "silo".into(),
             Some(Job::Radar(_)) => "radar".into(),
             Some(Job::Reclaim(_)) => "reclaim".into(),
+            Some(Job::Stand) => "stand".into(),
         }
     }
 }
@@ -447,6 +452,9 @@ impl Distilled {
             let mut site = None;
             if !(matches!(job, Job::Assist | Job::AirAssist) && was == Some(job) && !unit.idle) {
                 site = self.order(&unit, job, tick, commands);
+                if job == Job::Stand {
+                    self.economy.stand_issued = true;
+                }
                 if let Job::Reclaim(feature) = job {
                     self.economy.reclaims += 1;
                     self.economy.reclaim_metal += self.wrecks.iter().find(|w| w.id == feature).map_or(0.0, |w| w.metal);
@@ -538,6 +546,10 @@ impl Distilled {
             (self.finished(self.kit.plant).next().is_some() || self.finished(self.kit.advanced_plant).next().is_some()).then_some(Job::Assist)
         };
         if commander {
+            // D-STAND: the opening as one queue at the stand's slots; the rungs below place what the stand did not.
+            if self.stand.is_some() && !self.economy.stand_issued {
+                return Some(Job::Stand);
+            }
             // The opening, read off what stands: two extractors, two solars, the plant.
             if self.count(self.kit.extractor) < 2
                 && let Some(site) = self.free_site(unit, tick, f32::MAX)
@@ -1030,6 +1042,19 @@ impl Distilled {
             Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
             Job::Radar(at) => {
                 commands.extend(build(self.kit.radar, BuildSite { near: at, search_radius: 250.0, min_dist: 1, placements: placements(), exact: false }, false));
+            }
+            // D-STAND: every slot of the stand as one queue, the first plain, the rest behind it; the buildings at
+            // their slots exactly, the extractors at the stand's site on their spot (the shim asks the engine for an
+            // extractor's point as it is).
+            Job::Stand => {
+                let Some(stand) = &self.stand else { return None };
+                for (i, slot) in stand.slots.iter().enumerate() {
+                    let (def, site) = match *slot {
+                        layout::Slot::Extractor { at, .. } => (self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }),
+                        layout::Slot::Building { def, at, facing } => (Some(def), Self::slot_site(at, facing)),
+                    };
+                    commands.extend(build(def, site, i > 0));
+                }
             }
             Job::Reclaim(feature) => {
                 if let Some(w) = self.wrecks.iter().find(|w| w.id == feature) {

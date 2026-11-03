@@ -10,9 +10,14 @@ use bot_protocol::{Command, Tick, UnitDefId, UnitId, Vec3};
 
 use crate::{Distilled, MINUTE, SECOND};
 
-/// D-HOLD: a mobile enemy this near a building of ours is a raid; a raid under `RAID_WEIGHT` (a scout) is let be.
+/// D-HOLD: any armed mobile ground enemy this near a building of ours is a raid, whatever it weighs. Until
+/// 2026-11-03 night a raid under 80 metal was "a scout" and let be, and a lone Pawn (54) or Grunt (43) took 104 of
+/// the 161 things of ours that died before 10:00 across sixteen games against Apex (65 extractors, 20 builders;
+/// dist95), 92 of 167 against BARb (dist96): one Pawn ate three extractors, a constructor and the radar in a minute
+/// from 3:13 with the guard of three standing at the hold point (dist95 game 02). The floor at 40 halved the early
+/// deaths against Apex (dist97, 7-0-9); the scout cars (21-31) that it still let be took 33 things before 10:00 in a
+/// BARb row (dist98). The user: a slow responder still ends the damage, even one that cannot catch the raider.
 const DEFEND: f32 = 900.0;
-const RAID_WEIGHT: f32 = 80.0;
 /// The hold point: the frontier extractor pulled back this far toward home, never nearer home than `HOLD_LEAST`;
 /// the base point, where a guard lighter than a raid meets it, this far out from home.
 const HOLD_BACK: f32 = 300.0;
@@ -261,7 +266,7 @@ impl Distilled {
         self.remember(tick);
         self.enlist();
         self.run_scouts(commands);
-        let raid = self.raid(tick).filter(|(_, weight)| *weight >= RAID_WEIGHT);
+        let raid = self.raid(tick);
         if raid.is_some() {
             self.army.last_raid = self.frame;
         }
