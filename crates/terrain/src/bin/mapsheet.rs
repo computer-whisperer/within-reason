@@ -131,6 +131,25 @@ fn run(dir: &Path, mut starts: Vec<(String, Vec3)>, max_metal: Option<f32>) -> R
         .zip(&raw)
         .map(|((p, amount), raw)| (*p, if worth { Some(amount * rate) } else { max_metal.filter(|_| *raw > 0.0).map(|m| raw * m * rate).or(Some(amount * rate)) }))
         .collect();
+    // A metal map's header (from 2026-11-02) carries the fields and what an extractor draws, and no spots.
+    let fields: Vec<bot_protocol::MetalField> = header["metal_fields"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|f| {
+                    let bounds = f["bounds"].as_array()?;
+                    Some(bot_protocol::MetalField {
+                        name: f["name"].as_str()?.to_string(),
+                        centre: at(f["centre"][0].as_f64()?, f["centre"][1].as_f64()?),
+                        bounds: [number(&bounds[0]), number(&bounds[1]), number(&bounds[2]), number(&bounds[3])],
+                        worth: number(&f["worth"]),
+                        room: f["room"].as_u64()? as u32,
+                        squares: f["squares"].as_u64().unwrap_or(0) as u32,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
     let input = Input {
         name: map["name"].as_str().unwrap_or("?"),
         terrain: &ground,
@@ -139,6 +158,9 @@ fn run(dir: &Path, mut starts: Vec<(String, Vec3)>, max_metal: Option<f32>) -> R
         wind: (number(&map["wind_min"]), number(&map["wind_max"])),
         tidal: number(&map["tidal"]),
         spots,
+        metal_map: map["metal_map"] == true,
+        fields: &fields,
+        extractor_worth: number(&map["extractor_worth"]),
         movers,
         starts,
     };

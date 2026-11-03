@@ -1004,6 +1004,9 @@ impl Brain {
             wind: (hello.map.wind_min, hello.map.wind_max),
             tidal: hello.map.tidal,
             spots: hello.metal_spots.iter().map(|s| (*s, Some(s.y * rate))).collect(),
+            metal_map: hello.map.metal_map,
+            fields: &hello.metal_fields,
+            extractor_worth: hello.map.extractor_worth,
             movers: hello.unit_defs.iter().filter_map(|d| Some(terrain::sheet::Mover { name: d.name.clone(), speed: d.speed, class: d.move_class? })).collect(),
             starts,
         })

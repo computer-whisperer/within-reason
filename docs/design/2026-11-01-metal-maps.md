@@ -243,6 +243,28 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    offered at every named cell (184 of 286 gate keys at 18:00 in -2); a cell takes the placed-at-place kinds now (b2701d6), and metal-step2-speedmetal-3 on it: 20 game minutes in 534 s, late 0, decide p95 under 1.0 s throughout, 53 extractors at 19:00, a late gate of 154 keys. **Step 2 judged met.**
 3. **What the player reads** (§1.4). Judge: a player game on Full Metal Plate and one on SpeedMetal against BARb
    hard: the packets name cells and fields, the hands build the carpet, the post-game review finds no spot words.
+   **Build plan (2026-11-02), one commit each:** (a) the sheet (`terrain::sheet`, `mapsheet`): `Input` takes the
+   fields, `extractor_worth` and `metal_map`; on a metal map the spots line becomes the metal line (no spots; the
+   fields with their cells, room and worth; what an extractor draws, in Comet spots; the share of the metal in each
+   cell, or "evenly over every cell" when the shares are within a third of each other), the class table counts the
+   metal squares reached and nearer us / him / contested / unreachable by squares, and the expansion table gives the
+   seconds to the nearest metal from each start; `mapsheet` reads the header's `metal_fields` and `map.metal_map`,
+   and `run/map_sheets.py` gains SpeedMetal's sheet; (b) the `map` tool and the first report's map (`briefing.rs`):
+   on a metal map no `metal_spots`, `metal_spots_summary` or `metal_spots_note`; a `metal` block instead (the fields,
+   the worth, the cells' shares, how to name a place: a cell or a field in a packet or a list step, `rove_<cell>`),
+   before the game and after; the side's spots line becomes the side's metal share (`Briefing::side_metal`); (c) the
+   report: the score's free-spot words become room (`Score::room`: the fields' room less the extractors standing,
+   ours, allied and his as seen) and his extractors by cell (`Score::enemy_extractor_cells`), the scouting block's
+   cell names carry the cell's metal share (`CellLook::metal_share`) and its extractors ours / allied / his
+   (`CellLook::extractors`) in place of the spot list, the allies' income estimate uses `extractor_worth`, the seat
+   line says room; (d) the picture: on a metal map every field is a place (`field_N`, `cells` its bounds, so
+   `rove_field_N` is a region move) and every cell holding a building of ours or a known one of his is a place, the
+   cell's words give its metal share and its extractors, a field's its room and extractors, the enemy evidence's
+   `never_looked` counts cells with metal never seen in place of spots; (e) the brief: `player.md`'s income paragraph
+   names Comet as the measured map and gives the metal map's sentence beside the spot map's, its places paragraph
+   names cells and fields, `docs/briefs/facts/maps.md` gets the metal-map paragraph (the extraction rule as it falls on
+   SpeedMetal and Full Metal Plate, both maps' numbers from the probes), and `docs/briefs/derived/metal-maps.md` is
+   amended where the probes read the map and joins the rework manifest.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at
    5/10/15/20 as the standing numbers are on Comet).
 
