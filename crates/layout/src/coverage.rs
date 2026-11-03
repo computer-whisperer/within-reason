@@ -102,14 +102,26 @@ impl Coverage {
         let full = self.full_worth(depth);
         let (width, height) = (self.width as f32 * self.cell, self.height as f32 * self.cell);
         let farthest = [from.dist2d(Vec3 { x: 0.0, y: 0.0, z: 0.0 }), from.dist2d(Vec3 { x: width, y: 0.0, z: 0.0 }), from.dist2d(Vec3 { x: 0.0, y: 0.0, z: height }), from.dist2d(Vec3 { x: width, y: 0.0, z: height })].into_iter().fold(0.0f32, f32::max);
+        // No tile lies farther from the builder than the anchor's reach allows: the rings stop there, not at the
+        // map's far corner (metal-step2-speedmetal-1: every ask for a full cell walked fifty rings of SpeedMetal, and
+        // the brain's decide grew to nine seconds by minute 7).
+        let farthest = farthest.min(from.dist2d(anchor) + reach);
         let mut best: Option<(Vec3, f32, f32)> = None;
         let mut inner = 0.0f32;
         while inner < farthest {
             let outer = inner + RING;
-            let first = footprint.snap(Vec3 { x: from.x - outer, y: from.y, z: from.z - outer });
-            let steps = (2.0 * outer / GRID) as i32 + 1;
-            for i in 0..=steps {
-                for j in 0..=steps {
+            // The lattice over the ring's bounding square, clipped to the map and to the anchor's reach.
+            let (x0, z0) = ((from.x - outer).max(anchor.x - reach).max(0.0), (from.z - outer).max(anchor.z - reach).max(0.0));
+            let (x1, z1) = ((from.x + outer).min(anchor.x + reach).min(width), (from.z + outer).min(anchor.z + reach).min(height));
+            if x1 < x0 || z1 < z0 {
+                // This ring does not reach the anchor's disc yet.
+                inner = outer;
+                continue;
+            }
+            let first = footprint.snap(Vec3 { x: x0, y: from.y, z: z0 });
+            let (steps_x, steps_z) = (((x1 - first.x) / GRID) as i32 + 1, ((z1 - first.z) / GRID) as i32 + 1);
+            for i in 0..=steps_x {
+                for j in 0..=steps_z {
                     let p = Vec3 { x: first.x + i as f32 * GRID, y: from.y, z: first.z + j as f32 * GRID };
                     let d = p.dist2d(from);
                     if d < inner || d >= outer || p.x < 0.0 || p.z < 0.0 || p.x > width || p.z > height || p.dist2d(anchor) > reach {
@@ -141,6 +153,38 @@ mod tests {
 
     fn at(x: f32, z: f32) -> Vec3 {
         Vec3 { x, y: 0.0, z }
+    }
+
+    /// An anchor's reach bounds the search: with every tile within reach claimed, the answer is None and the rings
+    /// never leave the reach (the search over a 13,000-elmo map would otherwise walk fifty rings for nothing).
+    #[test]
+    fn a_full_anchor_answers_none_without_searching_the_map() {
+        let t = terrain(832, 128, |_, _| 255);
+        let mut c = Coverage::new(&t, 10.0, 30.0).unwrap();
+        // Claim every tile within 300 of the anchor at (6000, 1000).
+        let anchor = at(6000.0, 1000.0);
+        for i in 0..40 {
+            for j in 0..40 {
+                let p = at(5680.0 + i as f32 * 16.0, 680.0 + j as f32 * 16.0);
+                if p.dist2d(anchor) <= 320.0 {
+                    c.claim(p, 0.001);
+                }
+            }
+        }
+        let asked = std::cell::Cell::new(0usize);
+        let farthest = std::cell::Cell::new(0.0f32);
+        let ok = |p: Vec3, _: &Rect| {
+            asked.set(asked.get() + 1);
+            farthest.set(farthest.get().max(p.dist2d(anchor)));
+            true
+        };
+        let from = at(500.0, 1000.0);
+        assert_eq!(c.best_site(MEX, from, anchor, 300.0, 0.001, &ok), None);
+        assert_eq!(asked.get(), 0, "nothing within reach is worth anything");
+        // With the reach widened to 400 there is metal in the ring just outside the claims, and nothing farther is asked.
+        let site = c.best_site(MEX, from, anchor, 400.0, 0.001, &ok).expect("a tile");
+        assert!(site.0.dist2d(anchor) > 300.0 && site.0.dist2d(anchor) <= 400.0, "{:?}", site);
+        assert!(farthest.get() <= 400.0);
     }
 
     /// A metal map of `w` by `h` squares with `metal(x, z)` in each.
