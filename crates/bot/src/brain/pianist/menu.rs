@@ -442,7 +442,7 @@ pub(super) fn named_places<'a>(places: &'a [Place], instructions: &str, scripts:
         .filter(|p| match p.spot {
             Some(i) => super::diet::names_spot(instructions, i) || listed.contains(&i),
             None if p.name == "home" || p.name.starts_with("passage_") => super::diet::names(instructions, &p.name),
-            None if p.is_cell() => super::diet::names(instructions, &p.name) || listed_cells.contains(&p.name.as_str()),
+            None if p.is_cell() || p.name.starts_with("field_") => super::diet::names(instructions, &p.name) || listed_cells.contains(&p.name.as_str()),
             None => true,
         })
         .collect()
@@ -457,8 +457,8 @@ struct Scene<'a> {
     own: &'a [OwnUnit],
     enemies: &'a [EnemyUnit],
     frame: i32,
-    /// The places a move can be aimed at: every mark, every spot, passage or `home` the packet names, every spot a
-    /// list step names.
+    /// The places a move can be aimed at: every mark, every spot, passage, cell, field or `home` the packet names,
+    /// every spot, cell or field a list step names.
     named: Vec<&'a Place>,
     /// The places where buildings of his are known, with what stands there in words.
     his: Vec<(&'a Place, String)>,

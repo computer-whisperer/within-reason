@@ -1398,6 +1398,22 @@ impl Brain {
                 }
             }
         }
+        // On a metal map (the metal-maps design §1.4) every field is a place (its bounds the cells it covers, so
+        // `rove_field_N` is a region move), and so is every cell holding a building of ours or a known one of his,
+        // as every spot held or seen held is on a spot map: a group is sent to defend or to attack them by name.
+        if self.world.hello.map.metal_map {
+            for field in &self.world.hello.metal_fields {
+                if !places.iter().any(|p| p.name == field.name) {
+                    let [west, north, east, south] = field.bounds;
+                    places.push(Place { name: field.name.clone(), at: field.centre, spot: None, cells: Some(grid.cells_touching(west, north, east, south)) });
+                }
+            }
+            let buildings = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).chain(self.enemy_buildings.values().map(|(_, pos, _)| *pos));
+            for pos in buildings {
+                let (column, row) = grid.cell_of(pos);
+                cell_place(&mut places, column, row);
+            }
+        }
         let marks: BTreeMap<String, crate::strategist::shared::Mark> = self.strategist.as_ref().map(|s| s.marks_all()).unwrap_or_default();
         for (name, m) in &marks {
             if !places.iter().any(|p| p.name == *name) {
@@ -1499,10 +1515,34 @@ impl Brain {
                 None if place.is_cell() => {
                     let (a, b) = self.world.cells.rect(place.cells.unwrap());
                     let inside = |p: Vec3| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z;
-                    let spots_inside = spots.iter().filter(|s| inside(**s)).count();
                     let ours = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && inside(u.pos)).count();
                     let his = self.enemy_buildings.values().filter(|(_, pos, _)| inside(*pos)).count();
-                    format!("a cell of the map's grid, 1,024 elmos square ({spots_inside} metal spots, {ours} buildings of ours, {his} of his known inside): as a place to go to, its centre, on the nearest ground the group stands on; a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it", place.name, place.name)
+                    // On a metal map the cell's metal and its extractors stand in for its spots (the design §1.4).
+                    let metal = if self.world.hello.map.metal_map {
+                        let (column, row) = self.world.cells.cell_of(place.at);
+                        let share = self.cell_metal.get(self.world.cells.index(column, row)).copied().unwrap_or(0.0);
+                        let mex = |pos: Vec3, def: UnitDefId| inside(pos) && self.world.def(def).is_some_and(|d| d.extracts_metal > 0.0);
+                        let our_mex = own.iter().filter(|u| mex(u.pos, u.def)).count();
+                        let allied_mex = self.allies.iter().filter(|u| mex(u.pos, u.def)).count();
+                        let his_mex = self.enemy_buildings.values().filter(|(def, pos, _)| mex(*pos, *def)).count();
+                        if share > 0.0 { format!("{:.0}% of the map's metal; extractors standing in it: {our_mex} ours, {allied_mex} allied, {his_mex} of his seen; ", share * 100.0) } else { "no metal; ".to_string() }
+                    } else {
+                        format!("{} metal spots, ", spots.iter().filter(|s| inside(**s)).count())
+                    };
+                    format!("a cell of the map's grid, 1,024 elmos square ({metal}{ours} buildings of ours, {his} of his known inside): as a place to go to, its centre, on the nearest ground the group stands on; a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it", place.name, place.name)
+                }
+                None if self.world.hello.metal_fields.iter().any(|f| f.name == place.name) => {
+                    let field = self.world.hello.metal_fields.iter().find(|f| f.name == place.name).expect("the field");
+                    let [west, north, east, south] = field.bounds;
+                    let inside = |p: Vec3| p.x >= west && p.x <= east && p.z >= north && p.z <= south;
+                    let mex = |pos: Vec3, def: UnitDefId| inside(pos) && self.world.def(def).is_some_and(|d| d.extracts_metal > 0.0);
+                    let our_mex = own.iter().filter(|u| mex(u.pos, u.def)).count();
+                    let allied_mex = self.allies.iter().filter(|u| mex(u.pos, u.def)).count();
+                    let his_mex = self.enemy_buildings.values().filter(|(def, pos, _)| mex(*pos, *def)).count();
+                    format!(
+                        "a field of metal over cells {}, room for about {} tier-1 extractors; standing on it: {our_mex} ours, {allied_mex} allied, {his_mex} of his seen; an extractor anywhere on it draws {:.1} metal a second; as a place to go to, its centre; a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it",
+                        terrain::Grid::words(self.world.cells.cells_touching(west, north, east, south)), field.room, self.world.hello.map.extractor_worth, place.name, place.name
+                    )
                 }
                 None if place.cells.is_some() => {
                     let (a, b) = self.world.cells.rect(place.cells.unwrap());
@@ -1724,7 +1764,21 @@ impl Brain {
             "biggest_party_known": biggest.unwrap_or_else(|| "none seen in the last three minutes".to_string()),
             "factories_seen": if factories.is_empty() { json!("none, ever: nothing of ours has had one in sight") } else { json!(factories) },
             "start_box": start_box,
-            "never_looked": format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Inside its start box, nearest home first: {}. Elsewhere, nearest home first: {}", spots.len(), words(&in_box), words(&elsewhere)),
+            "never_looked": if self.world.hello.map.metal_map {
+                // Cells with metal never seen (the metal-maps design §1.4), his box's first, nearest home first.
+                let grid = &self.world.cells;
+                let looks = self.cell_looks();
+                let mut never: Vec<(f32, String, bool)> = grid.cells().filter(|(c, r)| self.cell_metal.get(grid.index(*c, *r)).is_some_and(|m| *m > 0.0) && looks[grid.index(*c, *r)].1.is_none()).map(|(c, r)| (grid.centre(c, r).dist2d(self.home), terrain::Grid::name_of(c, r), in_their_box(grid.centre(c, r)))).collect();
+                never.sort_by(|a, b| a.0.total_cmp(&b.0));
+                let with_metal = self.cell_metal.iter().filter(|m| **m > 0.0).count();
+                let cells = |inside: bool| {
+                    let list: Vec<&String> = never.iter().filter(|(_, _, in_box)| *in_box == inside).map(|(_, name, _)| name).collect();
+                    if list.is_empty() { "none".to_string() } else { format!("{}{}", list.iter().take(NEVER_LOOKED).map(|n| n.as_str()).collect::<Vec<_>>().join(", "), if list.len() > NEVER_LOOKED { ", ..." } else { "" }) }
+                };
+                format!("{} of the map's {with_metal} cells with metal have never been within sight of a unit of ours; a base is always on metal. Inside its start box, nearest home first: {}. Elsewhere, nearest home first: {}", never.len(), cells(true), cells(false))
+            } else {
+                format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Inside its start box, nearest home first: {}. Elsewhere, nearest home first: {}", spots.len(), words(&in_box), words(&elsewhere))
+            },
             "looked_long_ago": if stale.is_empty() { json!("none") } else { json!(stale) },
             "buildings_seen": remembered,
             "army_known": format!("{} soldiers worth {:.0} metal seen in the last three minutes and not seen to die; it may have much more", known_soldiers.len(), known_metal.max(0.0)),
