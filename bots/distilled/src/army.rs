@@ -161,20 +161,46 @@ impl Army {
 }
 
 impl Distilled {
-    /// D-WEIGHT: a soldier its metal, a turret `turret_factor` times its metal, his commander `COMMANDER_WEIGHT`,
-    /// an unknown contact a raider's.
+    /// D-WEIGHT: a soldier its metal, a turret `turret_factor` times its metal (D-REACH: its weight from the
+    /// combat tables instead), his commander `COMMANDER_WEIGHT`, an unknown contact a raider's.
     fn weight(&self, def: Option<UnitDefId>, turret_factor: f32) -> f32 {
         let Some(def) = def.and_then(|d| self.def(d)) else { return BLIP_WEIGHT };
         if def.weapon_count == 0 || (def.speed > 0.0 && def.move_class.is_none()) {
             // Unarmed, or an aircraft: nothing the body can fight (his air is `air.rs`'s question).
             0.0
         } else if def.speed == 0.0 {
+            if self.options.reach
+                && let Some(weight) = self.table_turret_weight(def, turret_factor)
+            {
+                return weight;
+            }
             turret_factor * def.metal_cost
         } else if !def.build_options.is_empty() {
             COMMANDER_WEIGHT
         } else {
             def.metal_cost
         }
+    }
+
+    /// D-REACH (2026-11-03, the brief's reach article: a turret's weight by the square law is one to two times its
+    /// metal, a Sentry 1.2 Blitzes or 0.8 Stout, a Gauntlet a fifth of its metal and a toll; "the old three times its
+    /// metal is roughly a Sentry or Beamer against raiders arriving in a stream, and nothing else"): a turret's weight
+    /// is the metal of our line tank matching its fighting strength, √(damage a second × health), plus the toll its
+    /// reach over the tank's takes on the approach (the reach difference over the tank's speed, times the turret's
+    /// damage a second, as the share of the tank's health it costs, in the tank's metal). No toll once the body
+    /// carries artillery (`factor` 1.0: it outreaches the tier-1 turrets). `None` when the tables lack a row.
+    fn table_turret_weight(&self, def: &bot_protocol::UnitDefInfo, factor: f32) -> Option<f32> {
+        let row = |d: UnitDefId| self.control.rows.get(&d).map(|r| &self.control.rules.units.list[*r]);
+        let turret = row(def.id)?;
+        let reference = row(self.kit.tank.or(self.kit.raider)?)?;
+        let strength = |u: &combatsim::units::Unit| (u.dps() * u.health).sqrt();
+        let (ref_strength, ref_metal) = (strength(reference), reference.metal.max(1.0));
+        if ref_strength <= 0.0 || reference.speed <= 0.0 {
+            return None;
+        }
+        let weight = ref_metal * strength(turret) / ref_strength;
+        let toll = if factor > 1.0 { (turret.reach() - reference.reach()).max(0.0) / reference.speed * turret.dps() / reference.health.max(1.0) * ref_metal } else { 0.0 };
+        Some(weight + toll)
     }
 
     fn weight_of(&self, units: &BTreeSet<UnitId>) -> f32 {
@@ -457,7 +483,16 @@ impl Distilled {
         let defence = |at: Vec3| self.army.his_buildings.values().filter(|b| b.pos.dist2d(at) < TARGET_REACH).map(|b| self.weight(b.def, factor)).sum::<f32>() + self.his_army_weight();
         let nearest = |a: &Vec3, b: &Vec3| a.dist2d(from).total_cmp(&b.dist2d(from));
         if !self.army.his_buildings.is_empty() {
-            return self.army.his_buildings.values().map(|b| b.pos).filter(|p| !avoided(*p) && whole >= odds * defence(*p)).min_by(nearest);
+            let feasible = |p: &Vec3| !avoided(*p) && whole >= odds * defence(*p);
+            // D-REACH: "a post is a toll, not a wall; the economy behind it is the target": what his turrets cover
+            // (his unarmed buildings) before the turrets themselves, which the body walks through to reach it.
+            if self.options.reach {
+                let unarmed = |b: &&Seen| b.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count == 0);
+                if let Some(p) = self.army.his_buildings.values().filter(unarmed).map(|b| b.pos).filter(feasible).min_by(nearest) {
+                    return Some(p);
+                }
+            }
+            return self.army.his_buildings.values().map(|b| b.pos).filter(feasible).min_by(nearest);
         }
         if whole < odds * self.his_army_weight() {
             return None;

@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, FeatureId, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use layout::{Facts, Ground, Rect};
 
 use crate::{Distilled, Kit, MINUTE, SECOND};
@@ -24,6 +24,10 @@ const GRACE: i32 = 45;
 /// minute instead.
 const DROPPED: i32 = 3 * SECOND;
 const HELD: i32 = 2 * MINUTE;
+/// A builder that has not moved this far from one place is standing still there (the held test reads displacement,
+/// not the velocity: a builder jammed against its own buildings jitters at a few elmos a minute and never reads
+/// still by its velocity, dist94).
+const STILL_MOVE: f32 = 40.0;
 /// An order this old with no frame of ours in the builder's reach is dropped whether the builder stands still or not
 /// (dist82: the commander walked at one solar order for 744 s, jammed among its own buildings, never still).
 const HELD_LONG: i32 = 5 * MINUTE;
@@ -52,6 +56,32 @@ const FLEE_WALK: f32 = 700.0;
 const FLEE_FOR: i32 = 8 * SECOND;
 /// A spot with an armed enemy this near is not walked to.
 pub(crate) const SPOT_DANGER: f32 = 600.0;
+/// D-RADAR (2026-11-03, the brief's raid and reach articles: a radar at the front by 3:00, "the second most critical
+/// building after a mex", 60 metal for twenty seconds' warning; our games with one by 4:00 lost three fewer
+/// extractors by 16:00): from `RADAR_FROM`, a radar `RADAR_BACK` behind our finished extractor nearest his start when
+/// our radar does not cover it and no radar of ours stands within `RADAR_SHARED`; one going up at a time, `RADARS_AT_MOST`
+/// in all, none at a point with an armed enemy within `SPOT_DANGER`.
+const RADAR_FROM: i32 = 2 * MINUTE;
+const RADAR_BACK: f32 = 150.0;
+const RADAR_SHARED: f32 = 1000.0;
+const RADARS_AT_MOST: usize = 6;
+/// D-RECLAIM (2026-11-03, the brief's metal article: "the metal on the ground is the part of the quantity we have
+/// never collected"; a construction vehicle collects about 38 a second of wreck, the commander 75; the pool's winners
+/// run above their extractors' yield in 12 % of their minutes): a wreck worth `WRECK_LEAST` within `RECLAIM_COVER`
+/// of a plant, generator or construction turret of ours (the base and its field, not an outpost: taken from any
+/// building of ours the constructors went to the hold point's wrecks, fled his raiders there, came back and went
+/// again, 20-264 orders a game, and the extractors at 10:00 fell from 26 to 24: dist88 against dist91), with no
+/// armed enemy within `SPOT_DANGER`, is taken by a constructor with nothing better within `WRECK_WALK`, ahead of the
+/// next extractor when it pays `RECLAIM_RATE`, and by the commander within `COMMANDER_RECLAIM` of it; not into a
+/// store nearly full.
+const WRECK_LEAST: f32 = 40.0;
+const WRECK_WALK: f32 = 1500.0;
+const COMMANDER_RECLAIM: f32 = 300.0;
+const RECLAIM_COVER: f32 = 1200.0;
+/// ... ahead of the next extractor when the wreck pays this much metal a second of the builder's time, the walk and
+/// the engine's reclaim time counted (a Blitz wreck 500 away pays a construction vehicle 6 a second, a Stout's 1,000
+/// away the same; an extractor's 50 is 20 s of its time for 2.3 a second after).
+const RECLAIM_RATE: f32 = 4.0;
 /// A frame counts as within a turret's reach this far beyond its build distance (the footprint's half).
 pub(crate) const TURRET_REACH_SLACK: f32 = 100.0;
 /// Builders on energy at one time: three, and one more for every three constructors (2026-10-20: the flagship's
@@ -161,6 +191,10 @@ pub(crate) enum Job {
     AirAssist,
     /// A nuclear silo (D-NUKE, `nuke.rs`), a project.
     Silo,
+    /// A radar tower at this point (D-RADAR, `radar_site`).
+    Radar(Vec3),
+    /// Take this wreck apart (D-RECLAIM).
+    Reclaim(FeatureId),
 }
 
 impl Job {
@@ -181,7 +215,8 @@ impl Job {
             Job::AntiAir => kit.aa_turret,
             Job::AirPlant => kit.air_plant,
             Job::Silo => kit.silo,
-            Job::Assist | Job::AirAssist | Job::Help(_) => None,
+            Job::Radar(_) => kit.radar,
+            Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) => None,
         }
     }
 }
@@ -191,8 +226,10 @@ pub(crate) struct Order {
     /// The slot the layout layer chose for it, and its facing (D-LAYOUT, `siting.rs`): ground taken until the frame begins.
     pub(crate) site: Option<(Vec3, i32)>,
     since: i32,
-    /// Since when the builder has stood still on it (D-ORDERS).
-    still_since: Option<i32>,
+    /// Where the builder last moved `STILL_MOVE` from, and when: it has stood still since (D-ORDERS; a builder
+    /// jittering against its own buildings never reads as still by its velocity, dist94: the commander held one solar
+    /// order 270-300 s in three games of sixteen, moving a few elmos a minute).
+    anchor: (Vec3, i32),
 }
 
 /// What a builder's recorded order says at a pass of `run_builders` (D-ORDERS).
@@ -247,11 +284,14 @@ pub(crate) struct Economy {
     pub silo_refused: i32,
     /// Metal-map tiles whose extractor could not be placed, left alone until the frame.
     pub tiles_refused: BTreeMap<(i32, i32), i32>,
+    /// D-RECLAIM: reclaim orders given, and the metal the wrecks held when ordered (the minute line).
+    pub reclaims: usize,
+    pub reclaim_metal: f32,
 }
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new() }
+        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new(), reclaims: 0, reclaim_metal: 0.0 }
     }
 
     /// An extractor site that came to nothing is left alone until `until`.
@@ -285,9 +325,9 @@ impl Economy {
         self.orders.get(&unit).map(|o| frame - o.since)
     }
 
-    /// Frames a builder has stood still on its build order, if it has (D-ORDERS' held test).
+    /// Frames a builder has stood still on its build order (D-ORDERS' held test: within `STILL_MOVE` of one place).
     pub(crate) fn still_for(&self, unit: UnitId, frame: i32) -> Option<i32> {
-        self.orders.get(&unit).and_then(|o| o.still_since).map(|since| frame - since)
+        self.orders.get(&unit).map(|o| frame - o.anchor.1)
     }
 
     /// A builder's recorded job as a word (the jobs line).
@@ -310,6 +350,8 @@ impl Economy {
             Some(Job::AirPlant) => "air-plant".into(),
             Some(Job::AirAssist) => "assist-air".into(),
             Some(Job::Silo) => "silo".into(),
+            Some(Job::Radar(_)) => "radar".into(),
+            Some(Job::Reclaim(_)) => "reclaim".into(),
         }
     }
 }
@@ -405,8 +447,12 @@ impl Distilled {
             let mut site = None;
             if !(matches!(job, Job::Assist | Job::AirAssist) && was == Some(job) && !unit.idle) {
                 site = self.order(&unit, job, tick, commands);
+                if let Job::Reclaim(feature) = job {
+                    self.economy.reclaims += 1;
+                    self.economy.reclaim_metal += self.wrecks.iter().find(|w| w.id == feature).map_or(0.0, |w| w.metal);
+                }
             }
-            self.economy.orders.insert(unit.id, Order { job, site, since: self.frame, still_since: None });
+            self.economy.orders.insert(unit.id, Order { job, site, since: self.frame, anchor: (unit.pos, self.frame) });
         }
     }
 
@@ -456,9 +502,10 @@ impl Distilled {
                 Review::Done
             };
         }
-        let still = unit.vel.x.hypot(unit.vel.z) < 0.05;
-        order.still_since = if still { order.still_since.or(Some(frame)) } else { None };
-        let stuck = order.still_since.is_some_and(|since| frame - since >= HELD) || age >= HELD_LONG;
+        if unit.pos.dist2d(order.anchor.0) > STILL_MOVE {
+            order.anchor = (unit.pos, frame);
+        }
+        let stuck = frame - order.anchor.1 >= HELD || age >= HELD_LONG;
         if stuck && !self.frame_beside(unit) { Review::Held } else { Review::Busy }
     }
 
@@ -511,6 +558,12 @@ impl Distilled {
             if energy || (self.energy_below_ratio(tick) && tick.snapshot.energy.current < COMMANDER_SOLAR_STORE * tick.snapshot.energy.storage) {
                 return Some(Job::Solar);
             }
+            // D-RADAR: the front's radar when it is within the commander's walk.
+            if self.kit.radar.is_some_and(|r| def.build_options.contains(&r))
+                && let Some(at) = self.radar_site(tick).filter(|at| at.dist2d(self.home) <= COMMANDER_WALK)
+            {
+                return Some(Job::Radar(at));
+            }
             if self.anti_air_wanted(def) {
                 return Some(Job::AntiAir);
             }
@@ -520,6 +573,10 @@ impl Distilled {
             // D-PROJECT: the commander's 300 is the biggest build power we own.
             if let Some(help) = self.project_help(tick) {
                 return Some(help);
+            }
+            // D-RECLAIM: a wreck beside it, at 75 metal a second.
+            if let Some(job) = self.wreck_job(unit, tick, COMMANDER_RECLAIM, WRECK_LEAST, 0.0) {
+                return Some(job);
             }
             // With metal banked, the build power first; else the home spots: an extractor compounds, a plant can wait.
             if tick.snapshot.metal.current >= COMMANDER_BUILD_POWER_BANK
@@ -542,11 +599,22 @@ impl Distilled {
             let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
             return Some(if metal.income >= ADVANCED_FROM && energy.current >= ADVANCED_ENERGY_STORE * energy.storage && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar });
         }
+        // D-RADAR: the front's radar before the next extractor ("if not metal starved, prioritize over even mexes").
+        if self.kit.radar.is_some_and(|r| def.build_options.contains(&r))
+            && let Some(at) = self.radar_site(tick)
+        {
+            return Some(Job::Radar(at));
+        }
         if self.anti_air_wanted(def) {
             return Some(Job::AntiAir);
         }
         if self.air_plant_wanted(def) {
             return Some(Job::AirPlant);
+        }
+        // D-RECLAIM: a wreck that pays the builder's time well comes before the next extractor (a Stout's 135 is
+        // nearly three extractors' price, and its ground is ours now).
+        if let Some(job) = self.wreck_job(unit, tick, WRECK_WALK, WRECK_LEAST, RECLAIM_RATE) {
+            return Some(job);
         }
         // D-FLOAT: on a floating bank a converter on the spare before a hand on a reactor's frame (dist83: 39
         // constructors helping six reactor frames with the energy store full and 21-43 converters, against 43-59 with
@@ -574,7 +642,58 @@ impl Distilled {
         // D-FLOAT for the tier-1 constructors: with the spots taken and no spare for a converter, an advanced solar for
         // the next one (80 energy a second for 350 metal) rather than assisting an idle plant (23-30 of them, dist82).
         let float_energy = || (tick.snapshot.metal.current >= crate::tier2::FLOAT && self.steady_spare(tick) < CONSTRUCTOR_ENERGY_PER_EXTRACTOR * 4.0 && def.build_options.contains(&self.kit.advanced_solar?)).then_some(Job::AdvancedSolar);
-        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(float_energy).or_else(assist)
+        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.wreck_job(unit, tick, WRECK_WALK, WRECK_LEAST, 0.0)).or_else(|| self.saturated_job(tick)).or_else(float_energy).or_else(assist)
+    }
+
+    /// D-RADAR: where the next radar goes, if one is wanted: `RADAR_BACK` behind our finished extractor nearest his
+    /// start, when our radar (the shim's coverage grid) does not reach that extractor, no radar of ours stands within
+    /// `RADAR_SHARED` of it, none is going up, fewer than `RADARS_AT_MOST` stand, and no armed enemy is within
+    /// `SPOT_DANGER` of the point. Nothing before `RADAR_FROM`, nothing on the econ bench (`army=off`).
+    pub(crate) fn radar_site(&self, tick: &Tick) -> Option<Vec3> {
+        if !self.options.army || !self.options.radar || self.frame < RADAR_FROM || self.kit.radar.is_none() {
+            return None;
+        }
+        if self.count(self.kit.radar) >= RADARS_AT_MOST || self.economy.working_on(|job| matches!(job, Job::Radar(_))) > 0 {
+            return None;
+        }
+        let sensors = self.sensors.as_ref()?;
+        let frontier = self.finished(self.kit.extractor).map(|u| u.pos).min_by(|a, b| a.dist2d(self.enemy_home).total_cmp(&b.dist2d(self.enemy_home)))?;
+        if sensors.radar.at(frontier.x, frontier.z) || self.own.values().any(|u| Some(u.def) == self.kit.radar && u.pos.dist2d(frontier) <= RADAR_SHARED) {
+            return None;
+        }
+        let at = self.toward_point(frontier, self.home, RADAR_BACK);
+        let armed = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).is_none_or(|d| d.weapon_count > 0);
+        (!tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(at) < SPOT_DANGER)).then_some(at)
+    }
+
+    /// D-RECLAIM: the wreck worth this builder's walk: holding `least` metal or more, within `within` of the builder,
+    /// within `RECLAIM_COVER` of a building of ours, no armed enemy within `SPOT_DANGER` of it, not another builder's,
+    /// paying `rate` metal a second of the builder's time or more (the walk at its speed to its reach, then the
+    /// engine's reclaim time, six times the metal over 1.05 times the build power plus 135: F-eco-reclaim); the best
+    /// by that rate. None into a store nearly full (the metal lands in one second and the store clamps).
+    fn wreck_job(&self, unit: &OwnUnit, tick: &Tick, within: f32, least: f32, rate: f32) -> Option<Job> {
+        let metal = tick.snapshot.metal;
+        if !self.options.reclaim || self.wrecks.is_empty() || metal.current >= STORE_NEARLY_FULL * metal.storage {
+            return None;
+        }
+        let def = self.def(unit.def)?;
+        let (speed, reach, power) = (def.speed.max(1.0), def.build_distance, def.build_speed);
+        let armed = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).is_none_or(|d| d.weapon_count > 0);
+        let claimed = |id: FeatureId| self.economy.orders.values().any(|o| o.job == Job::Reclaim(id));
+        let base = |def: UnitDefId| Some(def) == self.kit.plant || Some(def) == self.kit.advanced_plant || Some(def) == self.kit.air_plant || Some(def) == self.kit.turret || Some(def) == self.kit.solar || Some(def) == self.kit.advanced_solar || Some(def) == self.kit.fusion || Some(def) == self.kit.advanced_fusion;
+        let buildings: Vec<Vec3> = self.own.values().filter(|u| base(u.def)).map(|u| u.pos).collect();
+        let pays = |w: &bot_protocol::Wreck| {
+            let walk = (w.pos.dist2d(unit.pos) - reach).max(0.0) / speed;
+            let take = 6.0 * w.metal / (1.05 * power + 135.0);
+            w.metal / (walk + take + 1.0)
+        };
+        self.wrecks
+            .iter()
+            .filter(|w| w.metal >= least && w.pos.dist2d(unit.pos) <= within && !claimed(w.id) && pays(w) >= rate)
+            .filter(|w| buildings.iter().any(|b| b.dist2d(w.pos) <= RECLAIM_COVER))
+            .filter(|w| !tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(w.pos) < SPOT_DANGER))
+            .max_by(|a, b| pays(a).total_cmp(&pays(b)))
+            .map(|w| Job::Reclaim(w.id))
     }
 
     /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
@@ -834,6 +953,9 @@ impl Distilled {
     /// round a point of the rule's, as before the layer.
     fn order(&self, unit: &OwnUnit, job: Job, tick: &Tick, commands: &mut Vec<Command>) -> Option<(Vec3, i32)> {
         let build = |def: Option<UnitDefId>, site: BuildSite, queue: bool| def.map(|def| Command::Build { unit: unit.id, def, site: Some(site), queue });
+        if let Job::Radar(at) = job {
+            eprintln!("[distilled ai={}] f={} radar: unit {} at ({:.0},{:.0}), {:.0} from home", self.hello.ai_id, self.frame, unit.id.0, at.x, at.z, at.dist2d(self.home));
+        }
         if self.options.layout && self.band_for(job, unit).is_some() {
             let world = self.layout_world(tick);
             match self.layout_site(&world, job, unit) {
@@ -906,6 +1028,15 @@ impl Distilled {
                 commands.extend(build(self.kit.turret, site, false));
             }
             Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
+            Job::Radar(at) => {
+                commands.extend(build(self.kit.radar, BuildSite { near: at, search_radius: 250.0, min_dist: 1, placements: placements(), exact: false }, false));
+            }
+            Job::Reclaim(feature) => {
+                if let Some(w) = self.wrecks.iter().find(|w| w.id == feature) {
+                    eprintln!("[distilled ai={}] f={} reclaim: unit {} wreck {} of {:.0} metal at ({:.0},{:.0}), {:.0} away", self.hello.ai_id, self.frame, unit.id.0, feature.0, w.metal, w.pos.x, w.pos.z, w.pos.dist2d(unit.pos));
+                }
+                commands.push(Command::ReclaimFeature { unit: unit.id, feature, queue: false });
+            }
             Job::AdvancedPlant => commands.extend(build(self.kit.advanced_plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
             Job::Silo => commands.extend(build(self.kit.silo, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements(), exact: false }, false)),
             Job::Fusion | Job::AdvancedFusion => {

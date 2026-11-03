@@ -134,11 +134,19 @@ pub(crate) struct Options {
     /// `layout=off`: the buildings sited by the rules' own points and the engine's search instead of the base layout
     /// engine (D-LAYOUT, `siting.rs`, 2026-11-03).
     pub layout: bool,
+    /// `reach=on`: D-REACH (2026-11-03: a turret's weight from the combat tables plus the approach's toll, and the
+    /// economy behind a post as the target). Off by default: with it the body launched earlier into BARb's turrets
+    /// and the row went 2-4-9 against the baseline's 6-1-9 on the same seeds (dist93 against dist86); the old
+    /// three-times-its-metal turret and the nearest feasible building stand.
+    pub reach: bool,
+    /// `radar=off`, `reclaim=off`: without D-RADAR, without D-RECLAIM (2026-11-03, the attribution rows).
+    pub radar: bool,
+    pub reclaim: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true }
     }
 }
 
@@ -174,6 +182,9 @@ impl Options {
                 ("nuke", v) => options.nuke = v != "off",
                 ("army", v) => options.army = v != "off",
                 ("layout", v) => options.layout = v != "off",
+                ("reach", v) => options.reach = v == "on",
+                ("radar", v) => options.radar = v != "off",
+                ("reclaim", v) => options.reclaim = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -188,7 +199,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -207,8 +218,10 @@ impl Options {
             if self.nuke { "on" } else { "off" },
 
             if self.army { "on" } else { "off" },
-
-            if self.layout { "on" } else { "off" }
+            if self.layout { "on" } else { "off" },
+            if self.reach { "on" } else { "off" },
+            if self.radar { "on" } else { "off" },
+            if self.reclaim { "on" } else { "off" }
         )
     }
 }

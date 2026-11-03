@@ -21,8 +21,8 @@ use crate::Distilled;
 /// The lane, the simulator's tables and the table's row for each of the game's unit types (filled at the start).
 pub(crate) struct Control {
     pub(crate) lane: Lane,
-    rules: Arc<Rules>,
-    rows: HashMap<UnitDefId, usize>,
+    pub(crate) rules: Arc<Rules>,
+    pub(crate) rows: HashMap<UnitDefId, usize>,
 }
 
 impl Default for Control {
@@ -34,7 +34,8 @@ impl Default for Control {
 }
 
 impl Control {
-    fn survey(&mut self, defs: &BTreeMap<UnitDefId, UnitDefInfo>) {
+    /// The table's row for each of the game's unit types (at the start; the lane and D-REACH read them).
+    pub(crate) fn survey(&mut self, defs: &BTreeMap<UnitDefId, UnitDefInfo>) {
         for def in defs.values() {
             if let Some(row) = self.rules.units.index(&def.name) {
                 self.rows.insert(def.id, row);
@@ -124,10 +125,6 @@ impl Distilled {
     pub(crate) fn run_lane(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         if !self.options.lane {
             return;
-        }
-        if self.control.rows.is_empty() {
-            let (control, defs) = (&mut self.control, &self.defs);
-            control.survey(defs);
         }
         let debug = std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some();
         let mut lane = std::mem::take(&mut self.control.lane);

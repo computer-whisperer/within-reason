@@ -63,7 +63,7 @@ impl Distilled {
             Purpose::Generator { cap: Some(BANK_CAP) }
         } else if (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.tidal_make > 0.0) && d.metal_cost < 500.0 {
             Purpose::Generator { cap: Some(BANK_CAP_GENERATOR) }
-        } else if Some(def) == self.kit.aa_turret || Some(def) == self.kit.sentry {
+        } else if Some(def) == self.kit.aa_turret || Some(def) == self.kit.sentry || Some(def) == self.kit.radar {
             Purpose::Place
         } else {
             Purpose::Frame
@@ -159,12 +159,16 @@ impl Distilled {
         Some(match job {
             Job::Solar | Job::AdvancedSolar => (def, unit.pos, BAND_GENERATOR),
             Job::Turret(target) => (def, self.own.get(&target).map_or_else(nearest_plant, |t| t.pos), BAND_TURRET),
+            // Not the first plant inside the commander's arm (tried 2026-11-03 for the pool's 0:34: it began at 0:43
+            // instead of 0:47, and the commander, hemmed in by its own plant and field, walked one solar order for
+            // 250-360 s in two to four games of sixteen against one: dist88, dist90, dist91 against dist86).
             Job::Plant | Job::AdvancedPlant => (def, self.toward_enemy(self.home, 350.0), BAND_PLANT),
             Job::AirPlant => (def, self.air_plant_site(), BAND_PLANT),
             Job::Fusion | Job::AdvancedFusion | Job::Silo | Job::AdvancedConverter => (def, back, BAND_FRAME),
             Job::Converter => (def, back, BAND_GENERATOR),
             Job::AntiAir => (def, self.anti_air_site(), BAND_PLACE),
-            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) => {
+            Job::Radar(at) => (def, at, BAND_PLACE),
+            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) => {
                 return None;
             }
         })

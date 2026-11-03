@@ -35,6 +35,8 @@ pub(crate) struct Kit {
     pub turret: Option<UnitDefId>,
     pub plant: Option<UnitDefId>,
     pub sentry: Option<UnitDefId>,
+    /// The radar tower (D-RADAR, 2026-11-03).
+    pub radar: Option<UnitDefId>,
     /// The anti-air turret (D-ANTI-AIR): Nettle, Thistle, Bramble.
     pub aa_turret: Option<UnitDefId>,
     /// The air (`air.rs`): the aircraft plant, its fighter and its bomber (Legion has no tier-1 land bomber).
@@ -88,6 +90,10 @@ pub(crate) struct Distilled {
     /// The lobby's income bonus for our seat as a multiplier (`Handicap=50` in our `[TEAMn]` of the start script is
     /// 1.5): what every side's army scales by, so the launch weights scale by it too (D-LAUNCH, 2026-10-13).
     pub income_multiplier: f32,
+    /// Our side's sensor coverage as the shim last read it (once a second): D-RADAR reads where our radar reaches.
+    pub(crate) sensors: Option<bot_protocol::Sensors>,
+    /// The wrecks in sight worth a walk, as the shim last looked (every few seconds): D-RECLAIM's list.
+    pub(crate) wrecks: Vec<bot_protocol::Wreck>,
     pub economy: economy::Economy,
     /// On a metal map, the metal under the ground and the extractors' claims over it, rebuilt every tick from what
     /// stands (`layout::Coverage`); `None` on a spot map.
@@ -183,6 +189,7 @@ impl Distilled {
             turret: named("nanotc"),
             plant: named("vp"),
             sentry: named(sentry),
+            radar: named("rad"),
             aa_turret: named("rl"),
             air_plant: named("ap"),
             fighter: named(fighter),
@@ -221,8 +228,10 @@ impl Distilled {
         self.init_air(&table);
         self.init_nuke(&table);
         self.tiers = self.defs.values().filter_map(|d| table.index(&d.name).map(|i| (d.id, table.list[i].tech))).collect();
+        // The combat tables' rows for every type: D-REACH's turret weights read them whether the lane runs or not.
+        self.control.survey(&self.defs);
         let kit = &self.kit;
-        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank), ("silo", kit.silo)]
+        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("radar", kit.radar), ("anti-air turret", kit.aa_turret), ("aircraft plant", kit.air_plant), ("fighter", kit.fighter), ("bomber", kit.bomber), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank), ("silo", kit.silo)]
             .iter()
             .filter(|(_, def)| def.is_none())
             .map(|(name, _)| *name)
@@ -417,13 +426,19 @@ impl Bot for Distilled {
         let spots = hello.metal_spots.len();
         let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, economy: economy::Economy::new(spots), coverage, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
         self.frame = tick.frame;
         self.prev_own = std::mem::take(&mut self.own);
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
+        if let Some(sensors) = &tick.snapshot.sensors {
+            self.sensors = Some(sensors.clone());
+        }
+        if let Some(wrecks) = &tick.snapshot.wrecks {
+            self.wrecks = wrecks.clone();
+        }
         // D-RECEIVED: what allies' overflow puts into the stock is income to every rule here (the engine's income
         // leaves it out), at its mean over RECEIVED_WINDOW: a neighbour whose store sits full is an income.
         for event in &tick.events {
@@ -505,8 +520,8 @@ impl Bot for Distilled {
             eprintln!("[distilled ai={}] f={} jobs: commander {} | constructors {}", self.hello.ai_id, tick.frame, self.commander_job(), self.constructor_jobs());
             let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} aa={} air_shown={:.0} fighters={} bombers={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} received {:.1}/{:.0}",
-                self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.count(self.kit.aa_turret), self.air_shown().0, self.count(self.kit.fighter), self.count(self.kit.bomber), self.can_spend(),
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} radars={} reclaims={}/{:.0} wrecks_seen={} aa={} air_shown={:.0} fighters={} bombers={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} received {:.1}/{:.0}",
+                self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.count(self.kit.radar), self.economy.reclaims, self.economy.reclaim_metal, self.wrecks.len(), self.count(self.kit.aa_turret), self.air_shown().0, self.count(self.kit.fighter), self.count(self.kit.bomber), self.can_spend(),
                 self.army.home_guard.len(), self.army.strike.len(), self.army.raiders.len(), self.home_guard_weight(), self.launch_weight(), u8::from(self.field_won()), self.army.his_buildings.len(), self.economy.made(),
                 self.count(self.kit.advanced_plant), self.count(self.kit.advanced_constructor), self.count(self.kit.moho), self.count(self.kit.fusion), self.count(self.kit.advanced_fusion), self.count(self.kit.converter) + self.count(self.kit.advanced_converter), self.count(self.kit.assist), self.economy.t2_made, u8::from(self.plants_paused()), project, self.own.values().filter(|u| u.priority_low).count(),
                 tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage,
