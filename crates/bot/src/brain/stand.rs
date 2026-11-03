@@ -72,6 +72,7 @@ impl Brain {
             toward: self.enemy_base(unit.pos),
             open: &open,
             occupied,
+            coverage: self.coverage.as_ref().map(|c| (c, self.world.def(kit.extractor).map_or(0.001, |d| d.extracts_metal))),
         };
         let Some(stand) = layout::stand(&scene, &wants) else { return };
         let words = self.stand_words(&stand, unit, &wants);
@@ -87,7 +88,11 @@ impl Brain {
                 Slot::Extractor { spot, at } => {
                     let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance);
                     let walk = (at.dist2d(stand.at) - reach - 24.0).max(0.0);
-                    if walk > 0.0 { format!("extractor at spot_{spot} ({walk:.0} out of reach)") } else { format!("extractor at spot_{spot}") }
+                    let where_ = match spot {
+                        Some(spot) => format!("spot_{spot}"),
+                        None => format!("the metal at ({:.0}, {:.0})", at.x, at.z),
+                    };
+                    if walk > 0.0 { format!("extractor at {where_} ({walk:.0} out of reach)") } else { format!("extractor at {where_}") }
                 }
                 Slot::Building { def, at, facing } if self.world.is_factory_def(def) => format!("{} at ({:.0}, {:.0}) facing {}", self.name(def), at.x, at.z, ["south", "east", "north", "west"][facing.rem_euclid(4) as usize]),
                 Slot::Building { def, at, .. } => format!("{} at ({:.0}, {:.0})", self.name(def), at.x, at.z),
@@ -164,7 +169,7 @@ impl Brain {
             .slots
             .iter()
             .filter_map(|s| match *s {
-                Slot::Extractor { spot, .. } if free.iter().any(|(i, _)| *i == spot) => Some(spot),
+                Slot::Extractor { spot: Some(spot), .. } if free.iter().any(|(i, _)| *i == spot) => Some(spot),
                 _ => None,
             })
             .collect()

@@ -86,6 +86,8 @@ const CHASE_TURRET_AHEAD: f32 = 1500.0;
 pub(crate) enum Site {
     /// An extractor on this metal spot.
     Spot(usize),
+    /// An extractor on this tile of a metal map's coverage (`Brain::tile_site`), given to the engine exactly.
+    Tile(Vec3),
     /// At the named place (a defence stands a little toward the enemy from it; a tier-2 extractor goes over ours).
     Place(String),
     /// Where the base layout has it (`place_planned`): beside the builder, in the yard, on the back field.
@@ -1421,6 +1423,31 @@ impl Brain {
             // build at a place (a storage at spot_73, a factory at spot_45), and a builder's two best moves were
             // often one building at two places.
             let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
+            // On a metal map (no spots): the extractor on the metal nearest the builder, and one within each named
+            // cell or field (the metal-maps design §1.3: the coverage's best tile, given to the engine exactly).
+            if can(kit.extractor) && self.coverage.is_some() {
+                let (standing, coming) = self.count_of(kit.extractor, own, pianist);
+                let worth = self.world.hello.map.extractor_worth;
+                let nth = format!("our {}{}", ordinal(standing + coming + 1), if coming > 0 { format!(" ({coming} under way already)") } else { String::new() });
+                let mut sites: Vec<(String, Vec3, String)> = Vec::new();
+                if let Some(at) = self.tile_site(unit, own, pianist, unit.pos, super::super::economy::TILE_REACH, frame) {
+                    sites.push((format!("build_{}", self.name(kit.extractor)), at, format!("on the metal nearest it, at {} ({}, {})", self.world.grid(at), at.x as i32, at.z as i32)));
+                }
+                for place in named.iter().filter(|p| p.is_cell() || self.world.hello.metal_fields.iter().any(|f| f.name == p.name)) {
+                    if let Some(at) = self.tile_site(unit, own, pianist, place.at, self.place_reach(place), frame) {
+                        sites.push((format!("build_{}_{}", self.name(kit.extractor), place.name), at, format!("in {} at ({}, {}){}", place.name, at.x as i32, at.z as i32, near_words(place))));
+                    }
+                }
+                for (key, at, where_) in sites {
+                    push(
+                        key,
+                        Order::Build(kit.extractor, Site::Tile(at)),
+                        format!("{then}{name} builds a metal extractor {where_} ({}; it draws {worth:.1} metal a second, as every extractor on this map does): {nth}{leaves}", way_words(unit.pos.dist2d(at), speed)),
+                        format!("an extractor at {}", self.world.grid(at)),
+                        None,
+                    );
+                }
+            }
             if can(kit.extractor) {
                 let spots = self.free_spots(unit, pianist, picture, own, frame, kit);
                 let (standing, coming) = self.count_of(kit.extractor, own, pianist);
@@ -1683,7 +1710,7 @@ impl Brain {
                 match site {
                     Site::Spot(i) => reads.push(Read::Place(format!("spot_{i}"))),
                     Site::Place(place) => reads.push(Read::Place(place.clone())),
-                    Site::Planned => {}
+                    Site::Planned | Site::Tile(_) => {}
                 }
                 reads
             }

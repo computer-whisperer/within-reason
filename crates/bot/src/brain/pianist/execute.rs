@@ -126,6 +126,7 @@ impl Brain {
             Order::Build(def, Site::Planned) if ordered_def == Some(*def) => return None,
             Order::Build(def, Site::Place(named)) if ordered_def == Some(*def) && same_site(None, Some(named)) => return None,
             Order::Build(_, Site::Spot(i)) if ordered_def.is_some_and(|d| self.world.is_extractor_def(d)) && same_site(Some(*i), None) => return None,
+            Order::Build(def, Site::Tile(at)) if ordered_def == Some(*def) && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { near, .. }) if near.dist2d(*at) < SAME_SITE) => return None,
             Order::Help(target) if helping == Some(*target) => return None,
             // The frame this builder is finishing already is the same build going on.
             Order::Finish(target) if !queue && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { frame: Some(f), .. }) if f == target) => return None,
@@ -152,6 +153,9 @@ impl Brain {
         match order {
             Order::Build(_, Site::Spot(i)) => {
                 did = build(Plan::Extractor(self.world.hello.metal_spots[*i]), Some(*i));
+            }
+            Order::Build(_, Site::Tile(at)) => {
+                did = build(Plan::Extractor(*at), None);
             }
             Order::Build(def, Site::Planned) => {
                 let plan = self.place_planned(*def, unit, own);

@@ -102,6 +102,10 @@ pub struct Brain {
     spot_claims: HashMap<usize, i32>,
     /// Walking distances over the terrain, once our faction (and so our movement class) is known.
     routes: Option<routes::Routes>,
+    /// On a metal map (no spots published): the metal with the extractors' claims over it (`layout::Coverage`),
+    /// rebuilt every tick from what stands, ours, allied and his as seen; where an extractor goes is its best tile
+    /// (the metal-maps design §1.3).
+    coverage: Option<layout::Coverage>,
     /// The commander's stand (`layout::stand`, `docs/design/2026-10-29-base-layout.md` §1.1): the opening's slots
     /// solved once, when its list first plays, each taken by a step of its kind (`place_planned`) and the steps
     /// ordered as one queue (`play_lists`). The builder it was solved for, and the stand.
@@ -332,6 +336,7 @@ impl Brain {
         if let Some(p) = pianist.as_mut() {
             p.seat_tag = tag.clone();
         }
+        let coverage = world.hello.map.metal_map.then(|| layout::Coverage::new(&world.hello.terrain, world.hello.map.metal_scale, world.hello.map.extractor_radius)).flatten();
         Brain {
             world,
             kit: None,
@@ -348,6 +353,7 @@ impl Brain {
             boxes_honoured: true,
             spot_claims: HashMap::new(),
             routes: None,
+            coverage,
             stand: None,
             block: None,
             block_tried: i32::MIN / 2,
@@ -567,6 +573,7 @@ impl Brain {
         let Some(kit) = self.kit else { return Vec::new() };
         self.note_allies(tick);
         self.track_enemy_buildings(tick);
+        self.refresh_coverage(tick);
         self.survey_spots(tick);
         self.track_enemy_bases(tick);
         self.track_wrecks(tick);

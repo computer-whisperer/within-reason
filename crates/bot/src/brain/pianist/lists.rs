@@ -241,7 +241,7 @@ impl Brain {
             while let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit, &mut prefer, &mut batched_spots) {
                 let on_the_stand = match &order {
                     Order::Build(def, Site::Planned) => self.free_stand_slots(unit.id, *def, own, &pianist).len() > batched_defs.iter().filter(|d| *d == def).count(),
-                    Order::Build(_, Site::Spot(i)) => self.stand.as_ref().is_some_and(|(who, s)| *who == unit.id && s.slots.iter().any(|slot| matches!(slot, layout::Slot::Extractor { spot, .. } if spot == i))),
+                    Order::Build(_, Site::Spot(i)) => self.stand.as_ref().is_some_and(|(who, s)| *who == unit.id && s.slots.iter().any(|slot| matches!(slot, layout::Slot::Extractor { spot: Some(spot), .. } if spot == i))),
                     _ => false,
                 };
                 if let Order::Build(def, Site::Planned) = &order {
@@ -259,6 +259,7 @@ impl Brain {
         let site = |order: &Order| match order {
             Order::Build(_, Site::Place(name)) => picture.places.iter().find(|p| p.name == *name).map(|p| p.at),
             Order::Build(_, Site::Spot(i)) => self.world.hello.metal_spots.get(*i).copied(),
+            Order::Build(_, Site::Tile(at)) => Some(*at),
             _ => None,
         };
         nearest_first(&mut steps, site, |id| own.iter().find(|u| u.id == id).map(|u| u.pos));
@@ -411,6 +412,15 @@ impl Brain {
         }
     }
 
+    /// An `extractor [place]` step's tile on a metal map: nearest the builder within `TILE_REACH`, or within the
+    /// place's reach (`Brain::place_reach`); the refusal says which.
+    fn tile_for_step(&self, unit: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], frame: i32, place: Option<&Place>) -> Result<Vec3, String> {
+        match place {
+            None => self.tile_site(unit, own, pianist, unit.pos, super::super::economy::TILE_REACH, frame).ok_or_else(|| format!("no free metal within {:.0} of it", super::super::economy::TILE_REACH)),
+            Some(p) => self.tile_site(unit, own, pianist, p.at, self.place_reach(p), frame).ok_or_else(|| format!("no free metal within {} of {}", self.place_reach(p) as i32, p.name)),
+        }
+    }
+
     pub(super) fn wreck_field_at(&self, what: &str, places: &[Place]) -> Option<Vec3> {
         if let Some(cell) = self.world.cells.parse(what) {
             return self.reclaim.fields.iter().filter(|f| self.world.cells.cell_of(f.at) == cell).max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|f| f.at);
@@ -451,6 +461,16 @@ impl Brain {
             let extractor = if can(kit.extractor) { kit.extractor } else { kit.advanced_extractor };
             let resolved: Result<Order, String> = match kind {
                 "extractor" if !can(extractor) => Err("this builder cannot build it".to_string()),
+                // On a metal map (no spots): the coverage's best tile nearest the builder, or within the named place
+                // (a cell, a field, a mark), given to the engine exactly (the metal-maps design §1.3).
+                "extractor" if self.coverage.is_some() => match &place {
+                    None => self.tile_for_step(unit, pianist, own, frame, None),
+                    Some(p) => match picture.places.iter().find(|q| q.name == *p) {
+                        Some(q) => self.tile_for_step(unit, pianist, own, frame, Some(q)),
+                        None => Err(format!("{p} is not a place in the picture")),
+                    },
+                }
+                .map(|at| Order::Build(extractor, Site::Tile(at))),
                 "extractor" => {
                     let mut spots = self.free_spots(unit, pianist, picture, own, frame, kit);
                     spots.retain(|(i, _)| !batched.contains(i));

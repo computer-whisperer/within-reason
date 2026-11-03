@@ -32,6 +32,12 @@ const BACK_FIELD: f32 = 300.0;
 const BAND_BACK_FIELD: f32 = 500.0;
 /// A step with a place: the site is chosen within this of the place (a defence a little toward the enemy from it).
 pub(super) const BAND_PLACE: f32 = 200.0;
+/// On a metal map, how far from the builder its "nearest" extractor tile may lie (`tile_site`).
+pub(super) const TILE_REACH: f32 = 1_200.0;
+/// A tile the engine refused within this distance is left alone while the refusal stands.
+const TILE_REFUSED: f32 = 40.0;
+/// No extractor tile within this distance of a building of his (he holds that ground).
+const HIS_BUILDING_OFF: f32 = 200.0;
 pub(super) const BAND_DEFENCE: f32 = 150.0;
 /// Banks of converters and wind turbines stop at this many (§1.3: the chain sum); solars and the other generators
 /// at 8 (the people's clusters of 7 to 10; a longer bank is a wall the builders walk round: block-2, the user's word).
@@ -297,6 +303,9 @@ impl Brain {
             return None;
         }
         Some(match *plan {
+            // On a metal map the tile was chosen over the coverage and the ground: the shim searches nowhere and
+            // the engine's answer is that site or none.
+            Plan::Extractor(tile) if self.coverage.is_some() => (planned_def, BuildSite { near: tile, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }),
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
             Plan::Extractor(spot) => (planned_def, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }),
@@ -319,6 +328,77 @@ impl Brain {
 
     pub(super) fn spot_occupied_radius(&self) -> f32 {
         self.world.hello.map.spot_radius()
+    }
+
+    /// On a metal map, the extractors' claims as the engine holds them: every extractor standing or going up, ours,
+    /// an ally's or his as far as seen, claims the squares within the radius at its depth (the design §1.3).
+    pub(super) fn refresh_coverage(&mut self, tick: &bot_protocol::Tick) {
+        let Some(mut coverage) = self.coverage.take() else { return };
+        coverage.clear_claims();
+        let depth = |def: UnitDefId| self.world.def(def).map(|d| d.extracts_metal).filter(|e| *e > 0.0);
+        for u in &tick.snapshot.own_units {
+            if let Some(d) = depth(u.def) {
+                coverage.claim(u.pos, d);
+            }
+        }
+        for a in &self.allies {
+            if let Some(d) = depth(a.def) {
+                coverage.claim(a.pos, d);
+            }
+        }
+        for (def, pos, _) in self.enemy_buildings.values() {
+            if let Some(d) = depth(*def) {
+                coverage.claim(*pos, d);
+            }
+        }
+        self.coverage = Some(coverage);
+    }
+
+    /// On a metal map, the tile for a new extractor of `builder`'s: the most unclaimed metal nearest the builder
+    /// within `reach` of `anchor` (`Coverage::best_site`), where the ground stands, nothing standing or ordered
+    /// covers it, no plant's apron or reservation holds it, the engine has not refused it lately, and no building
+    /// of his stands within 200. None off a metal map or when nothing fits.
+    pub(super) fn tile_site(&self, builder: &OwnUnit, own: &[OwnUnit], pianist: &super::pianist::Pianist, anchor: Vec3, reach: f32, frame: i32) -> Option<Vec3> {
+        let coverage = self.coverage.as_ref()?;
+        let kit = self.kit?;
+        let def = if self.world.def(builder.def).is_some_and(|d| d.build_options.contains(&kit.extractor)) { kit.extractor } else { kit.advanced_extractor };
+        let d = self.world.def(def)?;
+        let facts = Facts::of(d);
+        let world = self.layout_world(own);
+        let ordered: Vec<layout::Rect> = pianist
+            .tasks
+            .values()
+            .chain(pianist.queued_tasks().map(|(_, t)| t))
+            .filter_map(|t| match t {
+                super::pianist::Task::Build { def: td, near, .. } if self.world.def(*td).is_some_and(|d| d.extracts_metal > 0.0) => Some(facts.footprint.rect(*near)),
+                _ => None,
+            })
+            .collect();
+        let refused = |p: Vec3| pianist.refused_sites.iter().any(|(rd, at, until)| *rd == def && *until > frame && at.dist2d(p) < TILE_REFUSED);
+        let ok = |p: Vec3, rect: &layout::Rect| {
+            !refused(p)
+                && world.ground.stands(facts.footprint, p, &facts)
+                && !world.standing.iter().any(|s| s.rect.overlaps(rect))
+                && !world.plants.iter().any(|pl| pl.apron().overlaps(rect))
+                && !world.reservations.iter().any(|r| r.rect.overlaps(rect))
+                && !ordered.iter().any(|o| o.overlaps(rect))
+                && !self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(p) < HIS_BUILDING_OFF)
+        };
+        coverage.best_site(facts.footprint, builder.pos, anchor, reach, d.extracts_metal, &ok).map(|(at, _)| at)
+    }
+
+    /// The reach round a named place an `extractor <place>` step or a `build_<extractor>_<place>` move sites within:
+    /// a cell's half-diagonal, a metal field's extent from its centre, else `BAND_PLACE` round a point.
+    pub(super) fn place_reach(&self, place: &super::pianist::picture::Place) -> f32 {
+        if place.is_cell() {
+            let (w, h) = self.world.cells.cell_size();
+            return (w * w + h * h).sqrt() / 2.0;
+        }
+        if let Some(field) = self.world.hello.metal_fields.iter().find(|f| f.name == place.name) {
+            let [west, north, east, south] = field.bounds;
+            return (field.centre.x - west).max(east - field.centre.x).hypot((field.centre.z - north).max(south - field.centre.z));
+        }
+        BAND_PLACE
     }
 
     /// The street of a plant of ours, for the report: open, or closed for its widest product and by what.

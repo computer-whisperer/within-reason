@@ -424,7 +424,8 @@ pub enum Want {
 /// One solved slot of the stand.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Slot {
-    Extractor { spot: usize, at: Vec3 },
+    /// An extractor: on the spot with this index, or (`None`) on a tile of a metal map's coverage.
+    Extractor { spot: Option<usize>, at: Vec3 },
     Building { def: UnitDefId, at: Vec3, facing: i32 },
 }
 
@@ -472,6 +473,9 @@ pub struct Scene<'a> {
     pub open: &'a dyn Fn(Vec3) -> bool,
     /// The ground already taken: what stands or is ordered.
     pub occupied: Vec<Rect>,
+    /// On a metal map (no spots published): the metal's coverage and the extractor's depth (`extractsMetal`), so
+    /// the stand's extractor slots are the tiles of full worth within the builder's reach of the stand.
+    pub coverage: Option<(&'a Coverage, f32)>,
 }
 
 /// The stand for these wants: the point near the start from which the most of them are within the builder's reach,
@@ -535,10 +539,21 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
         let key = (f.def.0, footprint.x, footprint.z, centre.x.round() as i32, centre.z.round() as i32);
         *memo.entry(key).or_insert_with(|| scene.ground.stands(footprint, centre, f))
     };
-    // Extractors first: their spots are given, and everything else keeps off them.
+    // Extractors first: their spots are given, and everything else keeps off them. On a metal map (no spots) each
+    // takes the tile of full worth nearest the stand within the builder's reach, the ground standing and free.
     let mex_reach = scene.extractor.reach_from(&scene.builder);
     for (k, want) in wants.iter().enumerate() {
         if *want != Want::Extractor {
+            continue;
+        }
+        if scene.spots.is_empty() {
+            let Some((coverage, depth)) = scene.coverage else { continue };
+            let footprint = scene.extractor.footprint;
+            let ok = |p: Vec3, rect: &Rect| scene.ground.stands(footprint, p, &scene.extractor) && !occupied.iter().any(|o| o.overlaps(rect));
+            let Some((at, _)) = coverage.best_site(footprint, s, s, mex_reach, depth, &ok) else { continue };
+            occupied.push(footprint.rect(at));
+            walk += 2.0 * (at.dist2d(s) - mex_reach).max(0.0);
+            slots[k] = Some(Slot::Extractor { spot: None, at });
             continue;
         }
         let nearest = spot_boxes.iter().enumerate().min_by(|(_, (i, _)), (_, (j, _))| scene.spots[*i].dist2d(s).total_cmp(&scene.spots[*j].dist2d(s)));
@@ -549,7 +564,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
         spot_boxes.remove(n);
         occupied.push(scene.extractor.footprint.rect(at));
         walk += 2.0 * (at.dist2d(s) - mex_reach).max(0.0);
-        slots[k] = Some(Slot::Extractor { spot: i, at });
+        slots[k] = Some(Slot::Extractor { spot: Some(i), at });
     }
     // The factories: the most ground, an apron the rest keeps out of, and a street to the open.
     let facings = facings_toward(s, scene.toward);
@@ -781,6 +796,7 @@ mod tests {
             toward: at(1000.0, 512.0),
             open,
             occupied: Vec::new(),
+            coverage: None,
         }
     }
 
@@ -815,6 +831,40 @@ mod tests {
         assert_eq!(r, Rect { x0: 416.0, z0: 144.0, x1: 608.0, z1: 464.0 });
     }
 
+    /// On a metal map (no spots) the stand's extractors are tiles of the coverage: full worth, within the builder's
+    /// reach of the stand, the ground standing, nothing overlapping; a third beyond the reach is unplaced.
+    #[test]
+    fn the_stand_lays_its_extractors_on_the_coverage_when_the_map_has_no_spots() {
+        let mut t = terrain(|_, _| false);
+        t.metal = vec![255; (t.width * t.height) as usize];
+        let coverage = Coverage::new(&t, 10.0, 30.0).expect("a coverage");
+        let open = |_: Vec3| true;
+        let mut sc = scene(&t, &[], &[], &open);
+        sc.coverage = Some((&coverage, 0.001));
+        let wants = [Want::Extractor, Want::Extractor, Want::Building(SOLAR), Want::Building(LAB)];
+        let stand = super::stand(&sc, &wants).expect("a stand");
+        let mexes: Vec<Vec3> = stand.slots.iter().filter_map(|s| if let Slot::Extractor { spot: None, at } = s { Some(*at) } else { None }).collect();
+        assert_eq!(mexes.len(), 2, "{:?}", stand.slots);
+        let reach = facts(MEX).unwrap().reach_from(&sc.builder);
+        for at in &mexes {
+            assert!(at.dist2d(stand.at) <= reach + 1.0, "within reach of the stand: {at:?} from {:?}", stand.at);
+            // Unclaimed metal under every square it reaches (the test's 6 by 6 footprint centres off a square corner,
+            // so the count is not SpeedMetal's twelve; the plateau is even, so both tiles are worth the same).
+            assert!(coverage.worth_at(*at, 0.001) > 15.0 && (coverage.worth_at(*at, 0.001) - coverage.worth_at(mexes[0], 0.001)).abs() < 0.01, "{}", coverage.worth_at(*at, 0.001));
+        }
+        let rects: Vec<Rect> = stand.slots.iter().map(|s| match *s { Slot::Extractor { at, .. } => facts(MEX).unwrap().footprint.rect(at), Slot::Building { def, at, facing } => facts(def).unwrap().footprint.faced(facing).rect(at) }).collect();
+        for (i, a) in rects.iter().enumerate() {
+            for b in &rects[i + 1..] {
+                assert!(!a.overlaps(b), "{a:?} overlaps {b:?}");
+            }
+        }
+        assert_eq!(stand.unplaced, 0);
+        // Without a coverage and without spots, the extractor wants find no slot.
+        sc.coverage = None;
+        let stand = super::stand(&sc, &wants).expect("a stand");
+        assert!(stand.slots.iter().all(|s| !matches!(s, Slot::Extractor { .. })));
+    }
+
     /// The opening's stand on flat ground: two extractors on their spots, the lab facing the enemy with its lane
     /// free, three solars touching, every slot within reach of the stand, nothing overlapping, the commander free to
     /// leave.
@@ -829,7 +879,7 @@ mod tests {
         let stand = stand(&sc, &wants).expect("a stand");
         assert_eq!(stand.unplaced, 0, "{stand:?}");
         assert_eq!(stand.slots.len(), 6);
-        let spots_taken: Vec<usize> = stand.slots.iter().filter_map(|s| if let Slot::Extractor { spot, .. } = s { Some(*spot) } else { None }).collect();
+        let spots_taken: Vec<usize> = stand.slots.iter().filter_map(|s| if let Slot::Extractor { spot, .. } = s { *spot } else { None }).collect();
         assert_eq!(spots_taken, vec![0, 1], "the two nearest spots, in the wants' order");
         let rects: Vec<Rect> = stand
             .slots
