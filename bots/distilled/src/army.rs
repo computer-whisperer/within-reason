@@ -75,12 +75,11 @@ const FIELD_HELD: i32 = 2 * MINUTE;
 const REORDER: i32 = 5 * SECOND;
 /// A radar contact's weight, as a raider's.
 const BLIP_WEIGHT: f32 = 110.0;
-/// D-RAIDERS (2026-10-20): a group of up to `RAIDERS` raiders drawn from the guard once it holds `RAIDERS_FROM`
+/// D-RAIDERS (2026-10-20): a group of up to `raid=N` raiders (four by default) drawn from the guard once it holds `RAIDERS_FROM`
 /// soldiers, sent at his known extractors with no known turret within `RAID_CLEAR` of them; it runs to the hold
 /// point for `RAID_FLEE` and avoids the place when an armed ground enemy within `RAID_SIGHT` of its core weighs
 /// `RAID_FLEE_SHARE` of it or a turret stands within `RAID_SIGHT`. The Opus player's raids held Apex to 13
 /// extractors (apex-v029-comet-sym0-opus-1); without them he reaches 29-40 at 15:00 (dist10-army-apex-v032-comet-cold-1).
-const RAIDERS: usize = 4;
 const RAIDERS_FROM: usize = 6;
 const RAID_CLEAR: f32 = 600.0;
 const RAID_SIGHT: f32 = 700.0;
@@ -94,7 +93,7 @@ pub(crate) struct Seen {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum Stance {
+pub(crate) enum Stance {
     Push,
     /// Walking to the hold point until this frame.
     Retreat(i32),
@@ -110,9 +109,9 @@ pub(crate) struct Army {
     pub his_buildings: BTreeMap<UnitId, Seen>,
     /// Metal spots a scout or the body has been sent to look at.
     looked: BTreeSet<usize>,
-    /// Where each body's core was last sent, and when.
-    strike_order: Option<(Vec3, i32)>,
-    guard_order: Option<(Vec3, i32)>,
+    /// Where each body's core was last sent, and when; under `lane=on` the lane's formations walk there (D-LANE).
+    pub(crate) strike_order: Option<(Vec3, i32)>,
+    pub(crate) guard_order: Option<(Vec3, i32)>,
     /// The raider group (D-RAIDERS), its order, and until when it is running away.
     pub raiders: BTreeSet<UnitId>,
     raid_order: Option<(Vec3, i32)>,
@@ -149,6 +148,10 @@ impl Army {
     pub(crate) fn forget(&mut self, enemy: UnitId) {
         self.his_buildings.remove(&enemy);
         self.his_army.remove(&enemy);
+    }
+
+    pub(crate) fn stance(&self) -> Option<Stance> {
+        self.stance
     }
 
     /// Where the strike body's core was last sent, and when.
@@ -375,6 +378,10 @@ impl Distilled {
             return;
         }
         *last = Some((to, self.frame));
+        // Under `lane=on` the strike body is a formation of the lane's and the order is its route (D-LANE, `lane.rs`).
+        if strike && self.options.lane {
+            return;
+        }
         let units = if strike { &self.army.strike } else { &self.army.home_guard };
         commands.extend(units.iter().map(|unit| if fight { Command::Fight { unit: *unit, to, queue: false } } else { Command::Move { unit: *unit, to, queue: false } }));
     }
@@ -500,6 +507,13 @@ impl Distilled {
                 self.hello.ai_id, self.frame, members.len(), whole, core.x, core.z, together.len(), members.len(), ours, his, self.stance_word(),
                 self.army.strike_order.map_or("none".to_string(), |(p, _)| format!("({:.0},{:.0})", p.x, p.z)), self.army.home_guard.len(), self.home_guard_weight(), self.his_army_weight(), self.army.repelled.0 * 0.5f32.powf((self.frame - self.army.repelled.1) as f32 / FORGET as f32)
             );
+            // Under `lane=on`, what the lane's formation of it reports (D-LANE).
+            if let Some(state) = self.control.lane.group_state(crate::lane::STRIKE) {
+                eprintln!(
+                    "[distilled ai={}] f={} formation: strike anchor=({:.0},{:.0}) pace={:.0}/{:.0} formed={}/{} exceptions={} arrived={} engaged={} legs={} companies={}",
+                    self.hello.ai_id, self.frame, state.anchor.x, state.anchor.z, state.pace, state.full_pace, state.formed.len(), members.len(), state.exceptions.len(), u8::from(state.arrived), u8::from(state.engaged.is_some()), state.legs_left, state.companies.len()
+                );
+            }
         }
         if retreating {
             return self.send(true, hold, false, commands);
@@ -537,7 +551,13 @@ impl Distilled {
         let moved = self.army.strike_order.is_none_or(|(at, frame)| at.dist2d(target) >= 100.0 || self.frame - frame >= REORDER);
         if moved {
             self.army.strike_order = Some((target, self.frame));
-            commands.extend(together.iter().map(|unit| Command::Fight { unit: *unit, to: target, queue: false }));
+            if !self.options.lane {
+                commands.extend(together.iter().map(|unit| Command::Fight { unit: *unit, to: target, queue: false }));
+            }
+        }
+        // Under `lane=on` the formation's slots gather the stragglers (D-LANE).
+        if self.options.lane {
+            return;
         }
         let together: BTreeSet<UnitId> = together.into_iter().collect();
         for (unit, _, _) in members.iter().filter(|(id, _, _)| !together.contains(id)) {
@@ -552,12 +572,13 @@ impl Distilled {
     /// fights to his known extractor nearest to it that has no known turret near, else to a spot on his half nobody
     /// has looked at. Its deaths carry `body=raiders` in the death instrument.
     fn run_raiders(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
-        if !self.options.raiders {
+        if self.options.raiders == 0 {
             return;
         }
         // Fill from the guard once it is big enough, raiders first.
-        if self.army.raiders.len() < RAIDERS && self.army.home_guard.len() >= RAIDERS_FROM {
-            let spare: Vec<UnitId> = self.army.home_guard.iter().filter(|id| self.own.get(id).is_some_and(|u| Some(u.def) == self.kit.raider)).take(RAIDERS - self.army.raiders.len()).copied().collect();
+        let wanted = self.options.raiders;
+        if self.army.raiders.len() < wanted && self.army.home_guard.len() >= RAIDERS_FROM {
+            let spare: Vec<UnitId> = self.army.home_guard.iter().filter(|id| self.own.get(id).is_some_and(|u| Some(u.def) == self.kit.raider)).take(wanted - self.army.raiders.len()).copied().collect();
             for id in spare {
                 self.army.home_guard.remove(&id);
                 self.army.raiders.insert(id);

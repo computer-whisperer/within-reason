@@ -93,11 +93,11 @@ pub(crate) struct Options {
     pub pause_t1: bool,
     /// What opens the advanced plant beside the income (D-T2-GATE).
     pub gate: Gate,
-    /// `lane=on`: the control lane under the army's orders (D-LANE); off by default, as wired it did not move the
-    /// exchange (apex-v029-distilled-comet-10: 1-14-1 over sixteen cold games against 3-12-1 without it).
+    /// `lane=off`: the strike body loose on its own Fight orders instead of a formation of the control lane's
+    /// (D-LANE, `lane.rs`; on by default since 2026-11-03: 7-2-7 against Apex v0.5.04 where the loose body went 2-4-10).
     pub lane: bool,
-    /// `raid=off`: no raider group (D-RAIDERS, 2026-10-20).
-    pub raiders: bool,
+    /// The raider group's size (D-RAIDERS, 2026-10-20): `raid=N`, `raid=off` none, `raid=on` the four of the rebuild.
+    pub raiders: usize,
     /// `received=off`: what allies' overflow puts into the stock is not counted as income (D-RECEIVED, 2026-10-25).
     pub received: bool,
     /// `air=off`: no aircraft plant, so no fighters and no bombers; the Nettles stay (`air.rs`, 2026-10-25).
@@ -108,7 +108,7 @@ pub(crate) struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: false, raiders: true, received: true, air: true, nuke: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true }
     }
 }
 
@@ -136,7 +136,9 @@ impl Options {
                 ("gate", "tech") => options.gate = Gate::Tech,
                 ("gate", "bank") => options.gate = Gate::Bank,
                 ("lane", v) => options.lane = v == "on",
-                ("raid", v) => options.raiders = v != "off",
+                ("raid", "off") => options.raiders = 0,
+                ("raid", "on") => options.raiders = 4,
+                ("raid", n) => options.raiders = n.parse().unwrap_or(options.raiders),
                 ("received", v) => options.received = v != "off",
                 ("air", v) => options.air = v != "off",
                 ("nuke", v) => options.nuke = v != "off",
@@ -161,7 +163,7 @@ impl Options {
             self.power,
             if self.pause_t1 { "on" } else { "off" },
             if self.lane { "on" } else { "off" },
-            if self.raiders { "on" } else { "off" },
+            self.raiders,
             if self.received { "on" } else { "off" },
             if self.air { "on" } else { "off" },
             if self.nuke { "on" } else { "off" }

@@ -977,7 +977,7 @@ impl Distilled {
             return kit.raider.or(kit.tank);
         }
         // D-RAIDERS: a raider in five after the tanks begin, so the group can be refilled.
-        if self.options.raiders && economy.made % 5 == 2 && kit.raider.is_some() {
+        if self.options.raiders > 0 && economy.made % 5 == 2 && kit.raider.is_some() {
             return kit.raider;
         }
         if economy.made % 6 == 5 { kit.artillery.or(kit.tank) } else { kit.tank }.or(kit.raider)

@@ -491,7 +491,7 @@ impl Bot for Distilled {
             self.run_army(&tick, &mut commands);
             self.run_air(&tick, &mut commands);
             self.run_nukes(&tick, &mut commands);
-            self.note_commitments();
+            self.declare_groups();
         }
         if tick.due() % (30 * SECOND) == 0 && tick.frame > 0 {
             self.log_air();

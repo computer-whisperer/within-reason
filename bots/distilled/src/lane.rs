@@ -1,24 +1,26 @@
-//! D-LANE: the control lane under the army's orders. The shared `crates/micro` lane (the flagship's hands' footwork:
-//! flee from what outguns a unit, fan under a D-gun, kite, the body's formation at contact) runs every tick over the
-//! soldiers' standing orders, which the army rules give at one hertz (`army.rs`). The lane never re-prices a fight;
-//! it spends a unit's order on staying alive, shooting well and standing in its slot. What it reads of this bot is
-//! `LaneView`; the fighting numbers come from the combat simulator's table (`crates/combatsim/data/units.json`), as
-//! the flagship's do. Off unless the arm `lane=on` says so: as wired here (the commitments by body; the ground the
-//! lane's own from the hello since design D17, before which nothing was snapped) it moved neither the exchange nor the result (apex-v029-distilled-comet-10, 1-14-1 over
-//! sixteen cold games against 3-12-1 without it, ours 12-24 dead by 10:00 for his 5-20 either way).
+//! D-LANE: the control lane under the army's orders. The shared `crates/micro` lane (the flagship's hands' footwork
+//! and group control: flee from what outguns a unit, fan under a D-gun, kite, and the formations of the drills of
+//! 2026-10-24: ranks, companies, the advance, the facing, the stand) runs every tick over the soldiers' standing
+//! orders, which the army rules give at one hertz (`army.rs`), and walks the strike body as a declared formation
+//! (`declare_groups`). The lane never re-prices a fight; it spends a unit's order on staying alive, shooting well and
+//! standing in its slot. What it reads of this bot is `LaneView`; the fighting numbers come from the combat
+//! simulator's table (`crates/combatsim/data/units.json`), as the flagship's do. On by default since 2026-11-03
+//! (`lane=off` for a row without it): with the strike body a formation the bot went 7-2-7 against Apex v0.5.04 on
+//! Comet where the loose body went 2-4-10 (dist66, dist59), and 8-4-4 against BARb hard_aggressive for 8-2-6.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use bot_protocol::{Command, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use combatsim::sim::Rules;
-use micro::{Commitment, Lane, Stats, View};
+use micro::{Commitment, GroupKind, GroupOrder, Lane, Stats, View};
 
+use crate::army::Stance;
 use crate::Distilled;
 
 /// The lane, the simulator's tables and the table's row for each of the game's unit types (filled at the start).
 pub(crate) struct Control {
-    lane: Lane,
+    pub(crate) lane: Lane,
     rules: Arc<Rules>,
     rows: HashMap<UnitDefId, usize>,
 }
@@ -136,22 +138,43 @@ impl Distilled {
         commands.extend(output.commands);
     }
 
-    /// What each soldier is priced against (D-LANE, with the army's bodies): the pushing body is committed to
-    /// everything, as a wave is; the home guard and a raiding body to the soldiers in sight and no turret, so the
-    /// lane steps them out of a turret's reach; a scout to nothing, so it flees every threat.
-    pub(crate) fn note_commitments(&mut self) {
+    /// D-LANE: the strike body is a formation of the lane's (the flagship's group control: ranks, the advance that
+    /// halts with every member in reach and fires on the move, the facing, the stand, the companies): it fights to
+    /// its target (`FightTo`) and walks home on a retreat (`Go`); the army's rules choose the places once a second
+    /// (`army.rs`), the lane walks them every tick and the stragglers are its exceptions. The guard and the raiders
+    /// stay loose on their own Fight orders under the footwork, priced against the soldiers in sight and no turret,
+    /// so the lane steps them out of a turret's reach; a scout is under every rule. (A guard declared as a `Hold`
+    /// formation stood at the engine's hold position while BARb's raiders stripped the economy round it:
+    /// dist63-lane-group-barb seed 2 lost 64 extractors and builders by 14:00 against 14 with the guard loose, the
+    /// row 6-8-2 against 8-2-6. Until 2026-11-03 the strike body was loose too, each member committed to everything
+    /// and walked on its own Fight order: apex-v029-distilled-comet-10, 1-14-1 against 3-12-1 without the lane.)
+    pub(crate) fn declare_groups(&mut self) {
         if !self.options.lane {
             return;
         }
-        // No raiding body since the rebuild of 2026-10-20: the strike body always pushes.
-        let pushing = true;
-        let mut commitment: HashMap<UnitId, Commitment> = HashMap::new();
-        for unit in &self.army.strike {
-            commitment.insert(*unit, if pushing { Commitment::All } else { Commitment::Priced { turrets: Vec::new(), commander: false } });
+        let hold = self.hold_point();
+        let mut lane = std::mem::take(&mut self.control.lane);
+        let strike: Vec<UnitId> = self.army.strike.iter().copied().collect();
+        if strike.is_empty() {
+            lane.clear_group(STRIKE);
+        } else {
+            // The retreat is marched too: unmarched (every member running to its slot at the hold point at its own
+            // speed) the row against Apex went 3-6-7 where the marched retreat's had gone 7-2-7 (dist68, dist66),
+            // and against BARb neither moved it (dist67 8-3-5, dist65 8-4-4).
+            let (kind, to) = match (self.army.stance(), self.army.strike_target()) {
+                (Some(Stance::Retreat(_)), _) => (GroupKind::Go, hold),
+                (_, Some((to, _))) => (GroupKind::FightTo, to),
+                _ => (GroupKind::Hold, hold),
+            };
+            lane.set_group(STRIKE, strike, GroupOrder::new(kind, vec![to]).with_cap(COMPANY));
         }
-        for unit in &self.army.home_guard {
-            commitment.insert(*unit, Commitment::Priced { turrets: Vec::new(), commander: false });
-        }
-        self.control.lane.set_commitments(commitment, HashMap::new());
+        let loose = self.army.home_guard.iter().chain(&self.army.raiders);
+        let commitment: HashMap<UnitId, Commitment> = loose.map(|unit| (*unit, Commitment::Priced { turrets: Vec::new(), commander: false })).collect();
+        lane.set_commitments(commitment, HashMap::new());
+        self.control.lane = lane;
     }
 }
+
+/// The lane's name for the strike body, and the members a company holds at most (the flagship's cap).
+pub(crate) const STRIKE: &str = "strike";
+const COMPANY: usize = 24;
