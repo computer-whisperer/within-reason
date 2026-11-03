@@ -271,7 +271,7 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    (both games, the plant a minute late); and the shim's exact-site search (`Map_findClosestBuildSite`) refuses any
    site within two squares of a building with yard squares in its yardmap, which a BAR extractor has, so the stand's
    turbines touching a mex were refused four times a game with the engine's own `isPossibleToBuildAt` true. Both
-   fixed in fd0ccdc (the stand's tiles first; an exact site asked as the order is).
+   fixed in fd0ccdc (the stand's tiles first; an exact site asked as the order is). **Judged 2026-11-03 (ledger metal-step3-fmp-1, metal-step3-speedmetal-1, metal-step3-speedmetal-2):** Full Metal Plate **won 13:05** against hard with 74 extractors at 10:00 and 109 at 12:00, every list step a cell, no spot word in 113 outputs; SpeedMetal ran to the 30-minute cap (the player chose turbines, plants and advanced extractors: income 3,246, army 1,038, the push through the gate failed) with no spot word in 366 outputs; on fd0ccdc the opening stood as laid (the lab at 0:24, no site refused) and 14 extractors at 5:00. **Step 3 judged met.** Open from the games: a cell place whose centre is off the group's ground (G2 on SpeedMetal) stops the group at the cliff's foot (aim at the cell's nearest walkable tile; a change to the hands' move, for the user's word); the player's turn cadence over a long game (149 turns, 142 M input tokens in 30 minutes) is a budget question before more such games.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at
    5/10/15/20 as the standing numbers are on Comet).
 
