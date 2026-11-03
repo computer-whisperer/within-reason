@@ -2,6 +2,7 @@
 //! Everything falls back to straight lines when the engine sent no terrain.
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, mpsc};
 
 use bot_protocol::{MoveClass, MoveKind, UnitDefId, Vec3};
 
@@ -11,6 +12,11 @@ use terrain::Field;
 
 /// The enemy-side field is rebuilt when our estimate of where an enemy lives has moved this far.
 const ENEMY_MOVED: f32 = 600.0;
+
+/// The place fields' cache, in bytes (the metal-maps design §1.2: route costs bounded by use, not by the count of
+/// places). A field is four bytes a terrain cell: 786 KB on Comet, 2.4 MB on Full Metal Plate; this holds every
+/// spot of Comet for three classes, and eighty places on the largest maps, the least recently asked evicted.
+const FIELD_CACHE_BYTES: usize = 192 << 20;
 
 /// How a unit gets about (docs/design/2026-09-22-domains.md, decision 8): aircraft go straight, everything else
 /// by the fields of its own movement class. The soldiers' default (the lab's raider's class) serves the picture's
@@ -49,12 +55,63 @@ pub struct Routes {
     passages: Vec<terrain::Passage>,
     enemy_origins: Vec<Vec3>,
     passable: Vec<bool>,
-    /// One field per metal spot (the map's order) per class, in effective elmos (slopes priced by the engine's
-    /// law), so that "nearest spot" means travel time from wherever a unit stands (the user, 2026-09-20: the
-    /// commander walked the cliffs behind the Quicksilver base to spots a straight line called near). Built on a
-    /// thread at the survey (10 ms a field); empty until they arrive.
-    spot_fields: HashMap<Walker, Vec<Option<Field>>>,
-    spot_fields_pending: Option<std::sync::mpsc::Receiver<HashMap<Walker, Vec<Option<Field>>>>>,
+    /// A field per place asked for, per class, in effective elmos (slopes priced by the engine's law), so that
+    /// "nearest" means travel time from wherever a unit stands (the user, 2026-09-20: the commander walked the
+    /// cliffs behind the Quicksilver base to spots a straight line called near). Computed on demand by a worker
+    /// thread the first time a place is asked for (10 ms a field) and kept while the cache has room: a place with
+    /// no field yet answers by the straight line this tick and has its field the next. On Comet the cache holds
+    /// every spot within seconds of the first menu, as the per-spot fields did; on a metal map it never holds ten
+    /// thousand (the metal-maps design §1.2).
+    fields: Arc<Mutex<FieldCache>>,
+    /// Asks the worker for a place's field; dropping it ends the worker.
+    ask: mpsc::Sender<(Walker, Vec3)>,
+}
+
+/// The place fields by walker and place (the terrain cell the place lies in), least recently used first out.
+struct FieldCache {
+    entries: HashMap<(Walker, (i32, i32)), (Field, u64)>,
+    /// Asked of the worker and not yet landed: asked once.
+    pending: std::collections::HashSet<(Walker, (i32, i32))>,
+    clock: u64,
+    bytes: usize,
+    /// The cache's room in bytes (`FIELD_CACHE_BYTES`; smaller in tests).
+    budget: usize,
+    cell: f32,
+}
+
+impl FieldCache {
+    fn key(&self, walker: Walker, at: Vec3) -> (Walker, (i32, i32)) {
+        (walker, ((at.x / self.cell) as i32, (at.z / self.cell) as i32))
+    }
+
+    /// The field for the place when the cache holds it (touched), else None and an ask recorded.
+    fn get(&mut self, walker: Walker, at: Vec3) -> Result<&Field, bool> {
+        let key = self.key(walker, at);
+        self.clock += 1;
+        let clock = self.clock;
+        match self.entries.get_mut(&key) {
+            Some((field, used)) => {
+                *used = clock;
+                Ok(field)
+            }
+            None => Err(self.pending.insert(key)),
+        }
+    }
+
+    fn insert(&mut self, walker: Walker, at: Vec3, field: Option<Field>) {
+        let key = self.key(walker, at);
+        self.pending.remove(&key);
+        let Some(field) = field else { return };
+        self.bytes += field.bytes();
+        self.clock += 1;
+        self.entries.insert(key, (field, self.clock));
+        while self.bytes > self.budget && self.entries.len() > 1 {
+            let oldest = *self.entries.iter().min_by_key(|(_, (_, used))| *used).map(|(k, _)| k).expect("entries");
+            if let Some((field, _)) = self.entries.remove(&oldest) {
+                self.bytes -= field.bytes();
+            }
+        }
+    }
 }
 
 impl Brain {
@@ -115,23 +172,24 @@ impl Brain {
             })
             .collect();
         eprintln!("[ai {}] terrain: fields for {} movement classes", self.ai(), classes.len());
-        let (sender, receiver) = std::sync::mpsc::channel();
+        // The place fields' worker: it prices each class's ground once and answers asks in the order they come.
+        let fields = Arc::new(Mutex::new(FieldCache { entries: HashMap::new(), pending: Default::default(), clock: 0, bytes: 0, budget: FIELD_CACHE_BYTES, cell: terrain.cell.max(1.0) }));
+        let (ask, asks) = mpsc::channel::<(Walker, Vec3)>();
         {
             let terrain = terrain.clone();
-            let spots = spots.clone();
-            let all_costs: Vec<(Walker, Vec<u32>)> = distinct.iter().map(|(key, mc)| (*key, terrain::costs(&terrain, *mc))).collect();
+            let all_costs: HashMap<Walker, Vec<u32>> = distinct.iter().map(|(key, mc)| (*key, terrain::costs(&terrain, *mc))).collect();
+            let fields = Arc::clone(&fields);
             std::thread::spawn(move || {
-                let mut fields = HashMap::new();
-                for (key, costs) in all_costs {
-                    fields.insert(key, spots.iter().map(|spot| Field::from_costs(&terrain, &costs, &[*spot])).collect());
+                while let Ok((walker, at)) = asks.recv() {
+                    let field = all_costs.get(&walker).and_then(|costs| Field::from_costs(&terrain, costs, &[at]));
+                    fields.lock().expect("the field cache").insert(walker, at, field);
                 }
-                let _ = sender.send(fields);
             });
         }
         self.routes = Some(Routes {
             soldiers: Walker::Class(ClassKey::of(class)),
             passages: from_enemy.as_ref().map(|enemy| terrain::passages(&from_home, enemy)).unwrap_or_default(),
-            from_home, classes, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
+            from_home, classes, from_enemy, enemy_origins, passable, fields, ask,
         });
         for p in self.passages() {
             eprintln!("[ai {}] terrain: passage at {} ({:.0}, {:.0}), {:.0} wide, {:.0} % of the way to the enemy", self.ai(), self.world.grid(p.at), p.at.x, p.at.z, p.width, p.along * 100.0);
@@ -155,17 +213,6 @@ impl Brain {
             routes.enemy_origins = origins;
             // The map the player reads names his starts, the passages and whose spots are whose by walk.
             self.publish_map();
-        }
-    }
-
-    /// Takes the spot fields once the thread has built them; call every think tick.
-    pub(super) fn receive_spot_fields(&mut self) {
-        let Some(routes) = &mut self.routes else { return };
-        if let Some(receiver) = &routes.spot_fields_pending
-            && let Ok(fields) = receiver.try_recv()
-        {
-            routes.spot_fields = fields;
-            routes.spot_fields_pending = None;
         }
     }
 
@@ -211,17 +258,35 @@ impl Brain {
         }
     }
 
-    /// Effective elmos (elmos at full speed, slopes priced) from `from` to the metal spot with this index for a
-    /// class; the straight line until the fields are built or where the spot cannot be walked to.
-    pub(super) fn walk_to_spot_as(&self, walker: Walker, index: usize, from: Vec3) -> f32 {
-        let spot = self.world.hello.metal_spots.get(index).copied().unwrap_or(from);
-        self.routes.as_ref().and_then(|r| r.spot_fields.get(&walker)?.get(index)?.as_ref()?.distance(from)).unwrap_or_else(|| spot.dist2d(from))
+    /// Effective elmos (elmos at full speed, slopes priced) from `from` to the place `at` for a class; the straight
+    /// line for aircraft, until the place's field is computed (asked of the worker now, there by the next tick) or
+    /// where the place cannot be walked to.
+    pub(super) fn walk_to_as(&self, walker: Walker, at: Vec3, from: Vec3) -> f32 {
+        let straight = at.dist2d(from);
+        let (Walker::Class(_), Some(routes)) = (walker, self.routes.as_ref()) else { return straight };
+        match routes.fields.lock().expect("the field cache").get(walker, at) {
+            Ok(field) => field.distance(from).unwrap_or(straight),
+            Err(asked) => {
+                if asked {
+                    let _ = routes.ask.send((walker, at));
+                }
+                straight
+            }
+        }
     }
 
-    /// Seconds a unit of this type takes from `from` to the spot (its speed over the effective elmos).
-    pub(super) fn seconds_to_spot(&self, def: UnitDefId, index: usize, from: Vec3) -> f32 {
+    /// Seconds a unit of this type takes from `from` to the place (its speed over the effective elmos).
+    pub(super) fn seconds_to(&self, def: UnitDefId, at: Vec3, from: Vec3) -> f32 {
         let speed = self.world.def(def).map_or(1.0, |d| d.speed.max(1.0));
-        self.walk_to_spot_as(self.walker_of(def), index, from) / speed
+        self.walk_to_as(self.walker_of(def), at, from) / speed
+    }
+
+    /// The place fields held now and their bytes: the record's and the log's measure of the cache.
+    pub(super) fn field_cache_size(&self) -> (usize, usize) {
+        self.routes.as_ref().map_or((0, 0), |r| {
+            let cache = r.fields.lock().expect("the field cache");
+            (cache.entries.len(), cache.bytes)
+        })
     }
 
     /// Whether our soldiers can walk from home to (next to) `pos`. True when we cannot tell.
@@ -335,4 +400,42 @@ fn nearest_passable(terrain: &bot_protocol::Terrain, passable: &[bool], pos: Vec
         }
     }
     best.map(|(_, at)| at)
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+    use bot_protocol::Terrain;
+
+    fn at(x: f32, z: f32) -> Vec3 {
+        Vec3 { x, y: 0.0, z }
+    }
+
+    /// A place is asked of the worker once and answered by the straight line until its field lands; the cache
+    /// holds its budget, the least recently asked place leaving first.
+    #[test]
+    fn a_place_is_asked_once_and_the_oldest_leaves_when_the_cache_is_full() {
+        let terrain = Terrain { cell: 16.0, width: 8, height: 8, heights: vec![10; 64], slopes: vec![0; 64], metal: Vec::new() };
+        let costs = vec![10u32; 64];
+        let field = |p: Vec3| Field::from_costs(&terrain, &costs, &[p]).expect("a field");
+        let walker = Walker::Class(ClassKey { kind: MoveKind::Tank, max_slope: 10, depth: 0 });
+        // Room for two fields of 64 cells.
+        let mut cache = FieldCache { entries: HashMap::new(), pending: Default::default(), clock: 0, bytes: 0, budget: 2 * 64 * 4, cell: 16.0 };
+        assert_eq!(cache.get(walker, at(8.0, 8.0)).err(), Some(true), "the first ask goes to the worker");
+        assert_eq!(cache.get(walker, at(9.0, 9.0)).err(), Some(false), "the same cell, asked already");
+        cache.insert(walker, at(8.0, 8.0), Some(field(at(8.0, 8.0))));
+        assert!(cache.pending.is_empty());
+        assert_eq!(cache.get(walker, at(8.0, 8.0)).ok().and_then(|f| f.distance(at(8.0, 120.0))).map(|d| d.round()), Some(112.0));
+        cache.insert(walker, at(40.0, 40.0), Some(field(at(40.0, 40.0))));
+        // The first place is touched, then a third lands: the second, least recently used, leaves.
+        assert!(cache.get(walker, at(8.0, 8.0)).is_ok());
+        cache.insert(walker, at(72.0, 72.0), Some(field(at(72.0, 72.0))));
+        assert_eq!(cache.entries.len(), 2);
+        assert!(cache.get(walker, at(8.0, 8.0)).is_ok() && cache.get(walker, at(72.0, 72.0)).is_ok());
+        assert_eq!(cache.get(walker, at(40.0, 40.0)).err(), Some(true), "evicted, asked again");
+        assert_eq!(cache.bytes, 2 * 64 * 4);
+        // A place no field reaches (off every class's ground) lands as nothing and is not pending any more.
+        cache.insert(walker, at(40.0, 40.0), None);
+        assert!(cache.pending.is_empty() && cache.entries.len() == 2);
+    }
 }

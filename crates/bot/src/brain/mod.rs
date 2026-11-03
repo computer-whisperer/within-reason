@@ -565,7 +565,6 @@ impl Brain {
             self.adopt_faction(&tick.snapshot.own_units);
         }
         let Some(kit) = self.kit else { return Vec::new() };
-        self.receive_spot_fields();
         self.note_allies(tick);
         self.track_enemy_buildings(tick);
         self.survey_spots(tick);
@@ -732,6 +731,8 @@ impl Brain {
                 count(kit.extractor) + count(kit.advanced_extractor), s.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(), count(kit.constructor) + count(kit.vehicle_constructor) + count(kit.advanced_constructor),
                 s.own_units.iter().filter(|u| self.is_army(u, kit)).count(), s.enemies.len()
             );
+            let (fields, bytes) = self.field_cache_size();
+            eprintln!("[ai {}] f={} place fields cached: {fields} ({:.0} MB)", self.ai(), tick.frame, bytes as f32 / 1_048_576.0);
             if !self.stuck_cells.is_empty() {
                 let mut cells: Vec<_> = std::mem::take(&mut self.stuck_cells).into_iter().collect();
                 cells.sort_by_key(|(_, n)| std::cmp::Reverse(*n));

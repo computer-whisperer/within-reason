@@ -1132,7 +1132,7 @@ impl Brain {
             let walks = layers::Walks {
                 kind: &|id| unit(id).map(|u| u.def),
                 named: &|name| diet::names(instructions, name),
-                seconds: &|id, spot| unit(id).map_or(f32::INFINITY, |u| self.seconds_to_spot(u.def, spot, u.pos)),
+                seconds: &|id, spot| unit(id).zip(self.world.hello.metal_spots.get(spot)).map_or(f32::INFINITY, |(u, at)| self.seconds_to(u.def, *at, u.pos)),
             };
             layers::near(&mut menus, &walks, &mut compose::draw)
         } else {

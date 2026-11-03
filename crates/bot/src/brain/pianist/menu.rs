@@ -511,7 +511,7 @@ impl Brain {
             .filter(|(_, at)| !own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(*at) < self.spot_occupied_radius()) && !self.allied_extractor_on(*at))
             .filter(|(i, at)| !self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(*at) < self.spot_occupied_radius() && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) && self.spot_open_to_us(*i, *at, frame))
             .filter(|(_, at)| self.reachable_for(self.walker_of(unit.def), *at))
-            .map(|(i, _)| (i, self.seconds_to_spot(unit.def, i, unit.pos)))
+            .map(|(i, at)| (i, self.seconds_to(unit.def, at, unit.pos)))
             .collect();
         spots.sort_by(|a, b| a.1.total_cmp(&b.1));
         spots

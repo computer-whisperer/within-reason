@@ -182,6 +182,11 @@ impl Field {
         Field::over(terrain.cell, terrain.width as usize, terrain.height as usize, costs, origins)
     }
 
+    /// The field's size in memory: four bytes a cell.
+    pub fn bytes(&self) -> usize {
+        self.cost.len() * std::mem::size_of::<u32>()
+    }
+
     /// As `from_costs`, searched no farther than `limit` effective elmos: the ground beyond it is left unreached,
     /// the cheap form when only the near ground is asked about (a region's spots, each a field of its own).
     pub fn from_costs_within(terrain: &Terrain, costs: &[u32], origins: &[Vec3], limit: f32) -> Option<Field> {
