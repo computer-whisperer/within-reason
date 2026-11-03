@@ -39,11 +39,17 @@ fn share_words(share: f32) -> &'static str {
     }
 }
 
-/// Cells as runs down a column, in the order given (columns A to H, rows 1 to 8): G4, G5, G6, H2 is "G4-G6, H2".
+/// Cells as runs down a column, in the order given (column by column, north to south): G4, G5, G6, H2 is
+/// "G4-G6, H2"; a row of two digits (E10) reads as the picture writes it.
 fn cell_runs(cells: &[&CellLook]) -> String {
+    let column_row = |name: &str| -> Option<(char, u32)> {
+        let mut chars = name.chars();
+        let column = chars.next()?;
+        Some((column, chars.as_str().parse().ok()?))
+    };
     let mut runs: Vec<(String, String)> = Vec::new();
     for cell in cells {
-        let next_in_column = |last: &str| last.as_bytes().first() == cell.cell.as_bytes().first() && last.as_bytes().get(1).map(|row| row + 1) == cell.cell.as_bytes().get(1).copied();
+        let next_in_column = |last: &str| matches!((column_row(last), column_row(&cell.cell)), (Some((a, r)), Some((b, s))) if a == b && r + 1 == s);
         match runs.last_mut() {
             Some((_, last)) if next_in_column(last) => *last = cell.cell.clone(),
             _ => runs.push((cell.cell.clone(), cell.cell.clone())),

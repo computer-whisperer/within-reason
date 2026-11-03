@@ -213,7 +213,21 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
 2. **Places without spots** (§1.2): square cells, cell destinations, rove goals as places, route fields on demand.
    Judge: a flagship game on SpeedMetal with the pianist alone on a fixed packet reaches 20 minutes with `late` 0,
    memory flat, and the groups walk to named cells; on Comet a lockstep game's route choices unchanged (the
-   route A/B script).
+   route A/B script). **Build plan (2026-11-02), one commit each:** (a) `terrain::Grid`, the one grid definition
+   (columns `ceil(width / 1024)`, rows likewise, the map divided equally so a cell is 1,024 on the usual sizes and
+   never under 768; names `A1`..`X99`, parse, centre, rect, words, neighbours), consumed by `World`, the scout (its
+   per-cell look bucketed into one pass over the tiles), the `mark` tool, the sheet, the report's runs (rows of two
+   digits), the briefing's grid words, the sketch's labels, the record header and `player.md`; (b) route fields on
+   demand: a cache keyed by walker and place, filled by a worker thread, bounded in bytes, the straight line until
+   a field lands; `walk_to_spot_as`/`seconds_to_spot` become `walk_to_as`/`seconds_to` over a position; (c) cells as
+   places: a cell the packet or a list step names is a `Place` (name the cell's, `cells` the one cell, so `rove_<cell>`
+   is a region move already), and each group's menu offers its four edge-neighbour cells as well (the open question
+   of §5: diagonals are two steps); rove goals on a metal map are the fields' centres and the cells the rover's class
+   reaches, seen as the scout's look says; (d) the flagship's extractor over the coverage: `Brain::coverage` rebuilt
+   each tick as the distilled bot's is, `Site::Tile` in the pianist, the `extractor` list step and the builder's
+   `build_<extractor>` move siting by `Coverage::best_site` within the named place (anchor the place, reach a cell's
+   half-diagonal; `nearest` from the builder), the engine told `exact`; the stand takes `Want::Extractor` from the
+   coverage when the spot list is empty.
 3. **What the player reads** (§1.4). Judge: a player game on Full Metal Plate and one on SpeedMetal against BARb
    hard: the packets name cells and fields, the hands build the carpet, the post-game review finds no spot words.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at

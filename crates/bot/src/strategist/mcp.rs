@@ -260,27 +260,28 @@ pub(super) fn signal(arguments: &Value, shared: &Shared) -> Result<String, Strin
     Ok(said.join("; "))
 }
 
+/// The map's grid (`terrain::Grid`), once the map is known.
+fn grid_of(width: f32, height: f32) -> Result<terrain::Grid, String> {
+    if width <= 0.0 {
+        return Err("the map is not known yet; give [x, z]".to_string());
+    }
+    Ok(terrain::Grid::of(width, height))
+}
+
 /// A grid cell's column and row, 0-based ("E7" gives (4, 6)).
-fn cell_of(cell: &str, label: &str) -> Result<(u8, u8), String> {
-    let mut chars = cell.trim().chars();
-    let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
-    let row: u32 = chars.as_str().parse().ok().filter(|r| (1..=8).contains(r)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
-    Ok((column as u8 - b'A', row as u8 - 1))
+fn cell_of(cell: &str, grid: &terrain::Grid, label: &str) -> Result<(u8, u8), String> {
+    grid.parse(cell).ok_or_else(|| format!("{label}: a grid cell is {} on this map", grid.range_words()))
 }
 
 /// A region the player marks: two cells with a dash between ("E1-H8", "H8-E1" the same), the rectangle they span;
 /// its point is the centre.
 fn region_of(range: &str, width: f32, height: f32, label: &str) -> Result<Mark, String> {
     let (a, b) = range.split_once('-').ok_or(format!("{label}: a region is two cells with a dash between (E1-H8)"))?;
-    let ((ca, ra), (cb, rb)) = (cell_of(a, label)?, cell_of(b, label)?);
+    let grid = grid_of(width, height)?;
+    let ((ca, ra), (cb, rb)) = (cell_of(a, &grid, label)?, cell_of(b, &grid, label)?);
     let cells = (ca.min(cb), ra.min(rb), ca.max(cb), ra.max(rb));
-    if width <= 0.0 {
-        return Err("the map is not known yet; give [x, z]".to_string());
-    }
-    let (c0, r0, c1, r1) = cells;
-    let x = (c0 as f32 + c1 as f32 + 1.0) / 2.0 * width / 8.0;
-    let z = (r0 as f32 + r1 as f32 + 1.0) / 2.0 * height / 8.0;
-    Ok(Mark { x, z, cells: Some(cells) })
+    let (nw, se) = grid.rect(cells);
+    Ok(Mark { x: (nw.x + se.x) / 2.0, z: (nw.z + se.z) / 2.0, cells: Some(cells) })
 }
 
 /// A place the player gives: `[x, z]` as numbers, the pair in a string as the model sometimes writes it ("[1264, 2832]":
@@ -303,11 +304,10 @@ fn point_of(value: &Value, width: f32, height: f32, label: &str) -> Result<(f32,
             on_map(x, z)
         }
         Value::String(cell) => {
-            let (column, row) = cell_of(cell, label)?;
-            if width <= 0.0 {
-                return Err("the map is not known yet; give [x, z]".to_string());
-            }
-            Ok((column as f32 * width / 8.0 + width / 16.0, row as f32 * height / 8.0 + height / 16.0))
+            let grid = grid_of(width, height)?;
+            let (column, row) = cell_of(cell, &grid, label)?;
+            let centre = grid.centre(column, row);
+            Ok((centre.x, centre.z))
         }
         _ => Err(format!("{label}: [x, z] or a grid cell such as \"E7\"")),
     }
@@ -756,7 +756,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 match mark {
                     Some(m) => {
                         said.push(match m.cells {
-                            Some(cells) => format!("{name}: the cells {} (its point the centre, ({:.0}, {:.0}))", super::shared::cells_words(cells), m.x, m.z),
+                            Some(cells) => format!("{name}: the cells {} (its point the centre, ({:.0}, {:.0}))", terrain::Grid::words(cells), m.x, m.z),
                             None => format!("{name} at ({:.0}, {:.0})", m.x, m.z),
                         });
                         marks.insert(name, m);
@@ -1051,9 +1051,10 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 if !cards.iter().any(|c| c.unit == kind) {
                     return Err(format!("{h}: no {kind} of ours stands (internal unit names, as the picture writes them)"));
                 }
-                let cell = at.len() == 2 && at.starts_with(|c: char| c.is_ascii_alphabetic()) && at.ends_with(|c: char| c.is_ascii_digit());
-                if !cell && !places.contains(&at.to_string()) {
-                    return Err(format!("{h}: {at} is not a place in the picture nor a grid cell (A1 to H8)"));
+                let map = shared.map.lock().unwrap().clone();
+                let grid = terrain::Grid::of(map["width"].as_f64().unwrap_or(0.0) as f32, map["height"].as_f64().unwrap_or(0.0) as f32);
+                if !grid.is_cell(at) && !places.contains(&at.to_string()) {
+                    return Err(format!("{h}: {at} is not a place in the picture nor a grid cell ({})", grid.range_words()));
                 }
                 Ok((kind.to_string(), at.to_string()))
             };
@@ -1225,6 +1226,7 @@ mod tests {
         use super::super::shared::{Field, Removal, UnitCard};
         use std::collections::BTreeMap;
         let shared = Arc::new(Shared::default());
+        *shared.map.lock().unwrap() = json!({ "width": 8192.0, "height": 6144.0 });
         shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "plant_7": {} }, "places": { "spot_64": { "grid": "E4" } } });
         let said = call_tool("produce", &json!({ "plant_7": { "units": ["armfav", "armflash"], "group": "by_type", "join_in": 4 } }), &shared).unwrap();
         assert!(said.contains("one group per unit type") && said.contains("walk to their group 4 together"), "{said}");
@@ -1272,14 +1274,15 @@ mod tests {
         assert!(shared.firings.lock().unwrap().is_empty(), "a refused firing orders nothing");
         let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": [6600, 3072] }), &shared).unwrap();
         assert!(said.contains("fires a missile at (6600, 3072)") && said.contains("1 missile left ready"), "{said}");
-        let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap();
+        assert!(call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap_err().contains("A1 to H6"), "no seventh row on Comet");
+        let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E5" }), &shared).unwrap();
         assert!(said.contains("0 missiles left ready"), "{said}");
-        let refused = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap_err();
+        let refused = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E5" }), &shared).unwrap_err();
         assert!(refused.contains("2 already ordered this turn"), "{refused}");
         let firings = shared.firings.lock().unwrap().clone();
         assert_eq!(firings.len(), 2);
         assert_eq!((firings[0].silo.as_str(), firings[0].at), ("armsilo_12", (6600.0, 3072.0)));
-        assert_eq!(firings[1].at, (4.0 * 1024.0 + 512.0, 6.0 * 768.0 + 384.0), "E7 is its cell's centre");
+        assert_eq!(firings[1].at, (4.0 * 1024.0 + 512.0, 4.0 * 1024.0 + 512.0), "E5 is its cell's centre");
     }
 
     /// `transfer` reaches an allied seat that is not ours with metal and energy, never with units (H-TRANSFER-TO-ALLIES).

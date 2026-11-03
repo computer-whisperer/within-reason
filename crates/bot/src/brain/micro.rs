@@ -281,7 +281,7 @@ impl Brain {
     fn region_of(&self, place: &str) -> Option<(Vec3, Vec3)> {
         let pianist = self.pianist.as_ref()?;
         let cells = pianist.places.iter().find(|p| p.name == place)?.cells?;
-        Some(self.world.cells_rect(cells))
+        Some(self.world.cells.rect(cells))
     }
 }
 

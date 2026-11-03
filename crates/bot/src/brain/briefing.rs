@@ -954,7 +954,7 @@ impl Brain {
         json!({
             "people": self.people_description(),
             "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
-            "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
+            "grid": self.world.cells.description(),
             "our_start": "not known before the game begins",
             "start_boxes": hello.start_boxes.iter().map(|b| json!({
                 "ally_team": b.ally_team, "ours": b.ally_team == hello.ally_team, "cells": self.world.box_cells(b),
@@ -1000,7 +1000,7 @@ impl Brain {
             name: &hello.map.name,
             terrain: &hello.terrain,
             size: (hello.map.width, hello.map.height),
-            grid: (8.0, 8.0),
+            grid: self.world.cells,
             wind: (hello.map.wind_min, hello.map.wind_max),
             tidal: hello.map.tidal,
             spots: hello.metal_spots.iter().map(|s| (*s, Some(s.y * rate))).collect(),
@@ -1047,7 +1047,7 @@ impl Brain {
             .collect();
         json!({
             "name": map.name, "width": map.width, "height": map.height,
-            "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
+            "grid": self.world.cells.description(),
             "our_start": self.place(self.home),
             "start_boxes": self.world.hello.start_boxes.iter().map(|b| json!({
                 "ally_team": b.ally_team, "ours": b.ally_team == self.world.hello.ally_team, "cells": self.world.box_cells(b),

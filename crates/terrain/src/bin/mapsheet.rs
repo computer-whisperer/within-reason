@@ -135,7 +135,7 @@ fn run(dir: &Path, mut starts: Vec<(String, Vec3)>, max_metal: Option<f32>) -> R
         name: map["name"].as_str().unwrap_or("?"),
         terrain: &ground,
         size: (number(&map["width"]), number(&map["height"])),
-        grid: (header["grid"]["columns"].as_f64().unwrap_or(8.0) as f32, header["grid"]["rows"].as_f64().unwrap_or(8.0) as f32),
+        grid: terrain::Grid::of(number(&map["width"]), number(&map["height"])),
         wind: (number(&map["wind_min"]), number(&map["wind_max"])),
         tidal: number(&map["tidal"]),
         spots,

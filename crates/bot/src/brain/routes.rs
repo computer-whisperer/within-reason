@@ -252,14 +252,20 @@ impl Brain {
         const SIZE: usize = 32;
         let routes = self.routes.as_ref()?;
         let rows = terrain::sketch(&self.world.hello.terrain, &routes.passable, &routes.from_home, SIZE);
-        // Four characters to a grid column, four rows to a grid row, so A1..H8 can be read off the picture.
-        let mut lines = vec!["   A   B   C   D   E   F   G   H".to_string()];
+        // The grid's columns lettered over the picture and its rows numbered down the side, each where its cell
+        // begins, so the cells can be read off it (a 32-wide sketch of eight columns has four characters a cell).
+        let grid = self.world.cells;
+        let mut header = vec![b' '; 3 + SIZE];
+        for column in 0..grid.columns {
+            header[3 + (column as usize * SIZE / grid.columns as usize)] = b'A' + column;
+        }
+        let mut lines = vec![String::from_utf8(header).expect("ascii")];
         lines.extend(rows.iter().enumerate().map(|(i, row)| {
-            let label = if i % 4 == 0 { format!("{} ", i / 4 + 1) } else { "  ".to_string() };
+            let label = (0..grid.rows).find(|r| *r as usize * rows.len() / grid.rows as usize == i).map_or("   ".to_string(), |r| format!("{:<3}", r + 1));
             format!("{label}{row}")
         }));
         Some(serde_json::json!({
-            "legend": "north is up; 4x4 characters per grid cell. ~ water, # cliff or slope our bots cannot cross, x ground we cannot walk to from our start, . o O walkable ground (low, middle, high)",
+            "legend": format!("north is up; {}x{} characters per grid cell, the cells' letters and numbers at the edges. ~ water, # cliff or slope our bots cannot cross, x ground we cannot walk to from our start, . o O walkable ground (low, middle, high)", SIZE / grid.columns as usize, rows.len() / grid.rows as usize),
             "rows": lines,
         }))
     }

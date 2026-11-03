@@ -1405,7 +1405,7 @@ impl Brain {
         for place in &places {
             let mut entry = json!({ "grid": self.world.grid(place.at) });
             if let Some(cells) = place.cells {
-                entry["grid"] = json!(format!("the cells {} (its point the centre, {})", crate::strategist::shared::cells_words(cells), self.world.grid(place.at)));
+                entry["grid"] = json!(format!("the cells {} (its point the centre, {})", terrain::Grid::words(cells), self.world.grid(place.at)));
             }
             let walk = self.walk_from_home(place.at);
             let straight = place.at.dist2d(self.home);
@@ -1466,7 +1466,7 @@ impl Brain {
                     }
                 }
                 None if place.cells.is_some() => {
-                    let (a, b) = self.world.cells_rect(place.cells.unwrap());
+                    let (a, b) = self.world.cells.rect(place.cells.unwrap());
                     let inside = spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
                     format!("a region the player marked ({inside} metal spots inside): a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it; as a place to go to, its centre", place.name, place.name)
                 }
@@ -2010,7 +2010,7 @@ impl Brain {
             }
             // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick).
             if let GroupTask::Rove { within: Some(region), .. } = &group.task {
-                let cells = places.iter().find(|p| p.name == *region).and_then(|p| p.cells).map_or(String::new(), |c| format!(" (the cells {})", crate::strategist::shared::cells_words(c)));
+                let cells = places.iter().find(|p| p.name == *region).and_then(|p| p.cells).map_or(String::new(), |c| format!(" (the cells {})", terrain::Grid::words(c)));
                 entry["lane"] = json!(format!("roving within {region}{cells}: its soldiers look only at places inside it, kill what they find unguarded there (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back, and a plain `rove` frees them of the region"));
             } else if group.roving() {
                 entry["lane"] = json!("roving: its soldiers look at the places nothing of ours has seen (his start box first), kill what they find unguarded (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back");

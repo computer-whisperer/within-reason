@@ -22,8 +22,6 @@ const SENSORS_FRESH_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 
 /// The side of a tile of the ground record, in elmos.
 const TILE: f32 = 128.0;
-/// The named cells across and down the map (`World::grid`).
-const CELLS: usize = 8;
 
 #[derive(Default)]
 pub struct Spots {
@@ -36,8 +34,6 @@ pub struct Spots {
 /// The map in tiles, each with the last frame its centre was within sight of a unit of ours.
 #[derive(Default)]
 pub struct Ground {
-    width: f32,
-    height: f32,
     cols: usize,
     seen: Vec<Option<i32>>,
 }
@@ -45,7 +41,7 @@ pub struct Ground {
 impl Ground {
     pub fn sized(width: f32, height: f32) -> Ground {
         let (cols, rows) = ((width / TILE).ceil().max(1.0) as usize, (height / TILE).ceil().max(1.0) as usize);
-        Ground { width, height, cols, seen: vec![None; cols * rows] }
+        Ground { cols, seen: vec![None; cols * rows] }
     }
 
     fn centre(&self, tile: usize) -> Vec3 {
@@ -78,35 +74,47 @@ impl Ground {
         }
     }
 
-    /// The share of one named cell's tiles whose centre `covered` holds for (a coverage grid, a jammer's ring).
-    pub fn cell_share(&self, column: usize, row: usize, covered: impl Fn(Vec3) -> bool) -> f32 {
-        let of = |value: f32, extent: f32| ((value / extent * CELLS as f32) as usize).min(CELLS - 1);
-        let (mut tiles, mut hits) = (0usize, 0usize);
+    /// Per named cell of `grid`, in its order, the share of the cell's tiles whose centre `covered` holds for (a
+    /// coverage grid, a jammer's ring). One pass over the tiles: 196 cells over 800,000 tiles are bucketed, not
+    /// scanned a cell at a time.
+    pub fn shares(&self, grid: &terrain::Grid, covered: impl Fn(Vec3) -> bool) -> Vec<f32> {
+        let (mut tiles, mut hits) = (vec![0usize; grid.count()], vec![0usize; grid.count()]);
         for tile in 0..self.seen.len() {
             let centre = self.centre(tile);
-            if of(centre.x, self.width) == column && of(centre.z, self.height) == row {
-                tiles += 1;
-                hits += usize::from(covered(centre));
-            }
+            let (column, row) = grid.cell_of(centre);
+            let i = grid.index(column, row);
+            tiles[i] += 1;
+            hits[i] += usize::from(covered(centre));
         }
-        hits as f32 / tiles.max(1) as f32
+        hits.iter().zip(&tiles).map(|(h, t)| *h as f32 / (*t).max(1) as f32).collect()
     }
 
-    /// One named cell (column and row from 0): the share of its tiles ever seen, and the frame the middle one of
-    /// those was last in sight (the age of the look: most of what was seen was seen about then).
-    pub fn cell(&self, column: usize, row: usize) -> (f32, Option<i32>) {
-        let of = |value: f32, extent: f32| ((value / extent * CELLS as f32) as usize).min(CELLS - 1);
-        let mut frames: Vec<i32> = Vec::new();
-        let mut tiles = 0;
+    /// Per named cell of `grid`, in its order: the share of its tiles ever seen, and the frame the middle one of
+    /// those was last in sight (the age of the look: most of what was seen was seen about then). One pass over
+    /// the tiles.
+    pub fn looks(&self, grid: &terrain::Grid) -> Vec<(f32, Option<i32>)> {
+        let mut tiles = vec![0usize; grid.count()];
+        let mut frames: Vec<Vec<i32>> = vec![Vec::new(); grid.count()];
         for tile in 0..self.seen.len() {
-            let centre = self.centre(tile);
-            if of(centre.x, self.width) == column && of(centre.z, self.height) == row {
-                tiles += 1;
-                frames.extend(self.seen[tile]);
-            }
+            let (column, row) = grid.cell_of(self.centre(tile));
+            let i = grid.index(column, row);
+            tiles[i] += 1;
+            frames[i].extend(self.seen[tile]);
         }
-        frames.sort_unstable();
-        (frames.len() as f32 / tiles.max(1) as f32, frames.get(frames.len() / 2).copied())
+        frames
+            .into_iter()
+            .zip(tiles)
+            .map(|(mut frames, tiles)| {
+                frames.sort_unstable();
+                (frames.len() as f32 / tiles.max(1) as f32, frames.get(frames.len() / 2).copied())
+            })
+            .collect()
+    }
+
+    /// One cell's look (`looks` for the one).
+    #[cfg(test)]
+    fn cell(&self, grid: &terrain::Grid, column: u8, row: u8) -> (f32, Option<i32>) {
+        self.looks(grid)[grid.index(column, row)]
     }
 }
 
@@ -196,46 +204,58 @@ impl Brain {
         }
     }
 
-    /// H-SCOUT-GLANCE: every named cell of the map as units of ours last saw it, columns A to H and rows 1 to 8
-    /// in order: how much of it, how long ago, his buildings remembered there (a type that cloaks marked so), its
+    /// H-SCOUT-GLANCE: every named cell of the map as units of ours last saw it, column by column and north to
+    /// south: how much of it, how long ago, his buildings remembered there (a type that cloaks marked so), its
     /// metal spots; and, with the engine's grids, how much of it our radar covers now, the radar contacts on it,
-    /// whether a seen jammer of his hides it, and the fire from out of sight laid to it.
+    /// whether a seen jammer of his hides it, and the fire from out of sight laid to it. Everything is bucketed by
+    /// cell in one pass: the grid has 196 cells on the largest maps played.
     pub(super) fn scouting(&self, tick: &Tick) -> Vec<CellLook> {
         let frame = tick.frame;
+        let grid = &self.world.cells;
         let boxes: Vec<&bot_protocol::StartBox> = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).collect();
-        let (width, height) = (self.world.hello.map.width, self.world.hello.map.height);
         let sensors = self.sensors_fresh(frame);
         let rings = self.jammer_rings();
-        let contacts: Vec<Vec3> = tick.snapshot.enemies.iter().filter(|e| e.def.is_none()).map(|e| e.pos).collect();
-        let mut cells = Vec::with_capacity(CELLS * CELLS);
-        for column in 0..CELLS {
-            for row in 0..CELLS {
-                let centre = Vec3 { x: (column as f32 + 0.5) * width / CELLS as f32, y: 0.0, z: (row as f32 + 0.5) * height / CELLS as f32 };
-                let cell = self.world.grid(centre);
-                let (seen_share, at) = self.spots.ground.cell(column, row);
-                let mut his: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
-                for (def, pos, _) in self.enemy_buildings.values() {
-                    if self.world.grid(*pos) == cell {
-                        let cloaks = if self.world.def(*def).is_some_and(|d| d.cloak.is_some()) { " (cloaks)" } else { "" };
-                        *his.entry(format!("{}{cloaks}", self.name(*def))).or_default() += 1;
-                    }
-                }
-                cells.push(CellLook {
+        let looks = self.spots.ground.looks(grid);
+        let radar = sensors.map(|s| self.spots.ground.shares(grid, |p| s.radar.at(p.x, p.z)));
+        let index_of = |pos: Vec3| {
+            let (column, row) = grid.cell_of(pos);
+            grid.index(column, row)
+        };
+        let mut his: Vec<std::collections::BTreeMap<String, usize>> = vec![std::collections::BTreeMap::new(); grid.count()];
+        for (def, pos, _) in self.enemy_buildings.values() {
+            let cloaks = if self.world.def(*def).is_some_and(|d| d.cloak.is_some()) { " (cloaks)" } else { "" };
+            *his[index_of(*pos)].entry(format!("{}{cloaks}", self.name(*def))).or_default() += 1;
+        }
+        let mut spots: Vec<Vec<usize>> = vec![Vec::new(); grid.count()];
+        for (i, s) in self.world.hello.metal_spots.iter().enumerate() {
+            spots[index_of(*s)].push(i);
+        }
+        let mut contacts = vec![0usize; grid.count()];
+        for e in tick.snapshot.enemies.iter().filter(|e| e.def.is_none()) {
+            contacts[index_of(e.pos)] += 1;
+        }
+        let commander_in = self.enemy_commander_seen.map(|(pos, _)| index_of(pos));
+        grid.cells()
+            .map(|(column, row)| {
+                let i = grid.index(column, row);
+                let centre = grid.centre(column, row);
+                let cell = terrain::Grid::name_of(column, row);
+                let (seen_share, at) = looks[i];
+                CellLook {
                     seen_share,
                     ago: at.map(|at| (frame - at) / FRAMES_PER_SECOND),
-                    his: his.into_iter().collect(),
-                    his_commander: self.enemy_commander_seen.is_some_and(|(pos, _)| self.world.grid(pos) == cell),
+                    his: std::mem::take(&mut his[i]).into_iter().collect(),
+                    his_commander: commander_in == Some(i),
                     in_his_box: boxes.iter().any(|b| b.contains(centre)),
-                    spots: self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| self.world.grid(**s) == cell).map(|(i, _)| i).collect(),
-                    radar_share: sensors.map(|s| self.spots.ground.cell_share(column, row, |p| s.radar.at(p.x, p.z))),
-                    contacts: contacts.iter().filter(|p| self.world.grid(**p) == cell).count(),
+                    spots: std::mem::take(&mut spots[i]),
+                    radar_share: radar.as_ref().map(|r| r[i]),
+                    contacts: contacts[i],
                     jammed: rings.iter().any(|(at, jam)| at.dist2d(centre) <= *jam),
                     guns: self.guns_in(&cell),
                     cell,
-                });
-            }
-        }
-        cells
+                }
+            })
+            .collect()
     }
 
     /// His shield generators seen standing (H-REPORT-SHIELDS): where, the bubble, and which of our soldiers' shots it
@@ -288,22 +308,23 @@ mod tests {
     #[test]
     fn a_units_sight_marks_the_ground_and_a_cell_rolls_it_up() {
         let mut ground = Ground::sized(8192.0, 6144.0);
-        assert_eq!(ground.cell(6, 0), (0.0, None));
-        // A Rover (sight 585) in the middle of G1 (6144..7168, 0..768) at frame 900: most of the cell, and part of
+        let grid = terrain::Grid::of(8192.0, 6144.0);
+        assert_eq!(ground.cell(&grid, 6, 0), (0.0, None));
+        // A Rover (sight 585) in the middle of G1 (6144..7168, 0..1024) at frame 900: most of the cell, and part of
         // the cells beside it.
-        ground.mark(Vec3 { x: 6656.0, y: 0.0, z: 384.0 }, 585.0, 900);
-        let (share, at) = ground.cell(6, 0);
+        ground.mark(Vec3 { x: 6656.0, y: 0.0, z: 512.0 }, 585.0, 900);
+        let (share, at) = ground.cell(&grid, 6, 0);
         assert!(share > 0.9, "{share}");
         assert_eq!(at, Some(900));
-        let (beside, _) = ground.cell(5, 0);
+        let (beside, _) = ground.cell(&grid, 5, 0);
         assert!(beside > 0.0 && beside < 0.2, "{beside}");
-        assert_eq!(ground.cell(0, 7), (0.0, None));
+        assert_eq!(ground.cell(&grid, 0, 5), (0.0, None));
         // A later look at one corner of the cell leaves the look's age with the middle tile.
         ground.mark(Vec3 { x: 6200.0, y: 0.0, z: 60.0 }, 200.0, 5000);
-        assert_eq!(ground.cell(6, 0).1, Some(900));
+        assert_eq!(ground.cell(&grid, 6, 0).1, Some(900));
         // A point off the map's edge marks nothing out of bounds.
         ground.mark(Vec3 { x: 8190.0, y: 0.0, z: 6140.0 }, 400.0, 100);
-        assert!(ground.cell(7, 7).0 > 0.0);
+        assert!(ground.cell(&grid, 7, 5).0 > 0.0);
     }
 
     /// The engine's grid marks the ground where it says we see, hills and all: a grid covering the west half of row
@@ -312,14 +333,16 @@ mod tests {
     #[test]
     fn the_engines_grid_marks_the_ground_and_a_cells_share_of_it() {
         let mut ground = Ground::sized(8192.0, 8192.0);
+        let cells = terrain::Grid::of(8192.0, 8192.0);
         // 64-elmo squares, 128 across: the west half of the first 16 rows (z < 1024, x < 4096) covered.
         let grid = bot_protocol::Grid::pack(128, 128, 64.0, (0..128 * 128).map(|i| i / 128 < 16 && i % 128 < 64));
         ground.mark_grid(&grid, 3000);
-        assert_eq!(ground.cell(0, 0), (1.0, Some(3000)));
-        assert_eq!(ground.cell(3, 0), (1.0, Some(3000)));
-        assert_eq!(ground.cell(4, 0), (0.0, None), "E1 is behind the hill");
-        assert_eq!(ground.cell(0, 1), (0.0, None));
-        assert_eq!(ground.cell_share(2, 0, |p| grid.at(p.x, p.z)), 1.0);
-        assert_eq!(ground.cell_share(5, 3, |p| grid.at(p.x, p.z)), 0.0);
+        assert_eq!(ground.cell(&cells, 0, 0), (1.0, Some(3000)));
+        assert_eq!(ground.cell(&cells, 3, 0), (1.0, Some(3000)));
+        assert_eq!(ground.cell(&cells, 4, 0), (0.0, None), "E1 is behind the hill");
+        assert_eq!(ground.cell(&cells, 0, 1), (0.0, None));
+        let shares = ground.shares(&cells, |p| grid.at(p.x, p.z));
+        assert_eq!(shares[cells.index(2, 0)], 1.0);
+        assert_eq!(shares[cells.index(5, 3)], 0.0);
     }
 }

@@ -65,9 +65,9 @@ pub struct Mover {
 pub struct Input<'a> {
     pub name: &'a str,
     pub terrain: &'a Terrain,
-    /// The map's size in elmos and the grid the cells are named on (columns, rows).
+    /// The map's size in elmos and the grid the cells are named on.
     pub size: (f32, f32),
-    pub grid: (f32, f32),
+    pub grid: crate::Grid,
     pub wind: (f32, f32),
     pub tidal: f32,
     /// Each spot and what a tier-1 extractor draws from it a second (`None`: not known for this record).
@@ -81,12 +81,7 @@ pub fn sheet(input: &Input) -> Value {
     let ground = input.terrain;
     let cells = (ground.width * ground.height) as usize;
     let (map_w, map_h) = input.size;
-    let (columns, rows) = input.grid;
-    let cell_name = |p: Vec3| {
-        let c = ((p.x / map_w * columns) as u8).min(columns as u8 - 1);
-        let r = ((p.z / map_h * rows) as u32).min(rows as u32 - 1);
-        format!("{}{}", (b'A' + c) as char, r + 1)
-    };
+    let cell_name = |p: Vec3| input.grid.name(p);
     let mover = |name: &str| input.movers.iter().find(|m| m.name == name);
     let starts = &input.starts;
     let spots = &input.spots;

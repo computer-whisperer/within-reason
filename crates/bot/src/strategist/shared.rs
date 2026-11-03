@@ -406,7 +406,7 @@ pub struct Score {
     /// The opponent's lobby start boxes, one per enemy ally team, as grid cell ranges: where its commander was
     /// placed at 0:00 and nothing more (docs/design/2026-09-22-enemy-evidence.md).
     pub enemy_start_boxes: Vec<String>,
-    /// Every named cell of the map as units of ours last saw it, columns A to H and rows 1 to 8 in order (the
+    /// Every named cell of the map as units of ours last saw it, column by column and north to south (the
     /// report's `scouting` block, `docs/design/2026-10-01-scouting-glance.md`).
     pub scouting: Vec<CellLook>,
     /// The opponent's soldiers seen in the last three minutes and not seen to die, and their metal. Older sightings
@@ -1054,14 +1054,7 @@ pub struct Mark {
 }
 
 /// A rectangle of grid cells: (first column, first row, last column, last row), 0-based, inclusive.
-pub type Cells = (u8, u8, u8, u8);
-
-/// The cells as the picture writes them: "E1-H8", or "E4" for one cell.
-pub fn cells_words(cells: Cells) -> String {
-    let (c0, r0, c1, r1) = cells;
-    let cell = |c: u8, r: u8| format!("{}{}", (b'A' + c) as char, r + 1);
-    if (c0, r0) == (c1, r1) { cell(c0, r0) } else { format!("{}-{}", cell(c0, r0), cell(c1, r1)) }
-}
+pub type Cells = terrain::Cells;
 
 /// One ally team as the player is told of it: ours or not, and its seats in words ("keithphw (a person, lobby skill
 /// 43)", "BARb medium (an AI)", "you (WReason)").

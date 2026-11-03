@@ -412,10 +412,8 @@ impl Brain {
     }
 
     pub(super) fn wreck_field_at(&self, what: &str, places: &[Place]) -> Option<Vec3> {
-        let cell = what.trim().to_ascii_uppercase();
-        let is_cell = cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c));
-        if is_cell {
-            return self.reclaim.fields.iter().filter(|f| self.world.grid(f.at) == cell).max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|f| f.at);
+        if let Some(cell) = self.world.cells.parse(what) {
+            return self.reclaim.fields.iter().filter(|f| self.world.cells.cell_of(f.at) == cell).max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|f| f.at);
         }
         let place = places.iter().find(|p| p.name == what.trim())?;
         self.reclaim.fields.iter().filter(|f| f.at.dist2d(place.at) < 2.0 * super::super::reclaim::FIELD_RADIUS).min_by(|a, b| a.at.dist2d(place.at).total_cmp(&b.at.dist2d(place.at))).map(|f| f.at)
@@ -664,15 +662,16 @@ mod tests {
         use bot_protocol::UnitDefId;
         use std::collections::VecDeque;
         let (mut brain, ours, _enemies, parties) = e3();
-        // Two fields in E4 (x 4096-5120, z 2304-3072 of a map 8192 by 6144), one far away.
+        // Two fields in E3 (x 4096-5120, z 2048-3072 of a map 8192 by 6144), one far away.
         brain.reclaim.fields = vec![
             WreckField { at: at(4500.0, 2600.0), metal: 300.0, safe: true, wrecks: Vec::new() },
             WreckField { at: at(4700.0, 2700.0), metal: 500.0, safe: true, wrecks: Vec::new() },
             WreckField { at: at(1000.0, 1000.0), metal: 200.0, safe: true, wrecks: Vec::new() },
         ];
         let places = vec![Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40), cells: None }, Place { name: "spot_1".into(), at: at(7000.0, 5000.0), spot: Some(1), cells: None }];
-        assert_eq!(brain.wreck_field_at("E4", &places), Some(at(4700.0, 2700.0)), "the richest in the cell");
-        assert_eq!(brain.wreck_field_at("e4", &places), Some(at(4700.0, 2700.0)));
+        assert_eq!(brain.wreck_field_at("E3", &places), Some(at(4700.0, 2700.0)), "the richest in the cell");
+        assert_eq!(brain.wreck_field_at("e3", &places), Some(at(4700.0, 2700.0)));
+        assert_eq!(brain.wreck_field_at("E7", &places), None, "no seventh row on a map 6,144 high");
         assert_eq!(brain.wreck_field_at("spot_40", &places), Some(at(4500.0, 2600.0)), "the nearest to the place");
         assert_eq!(brain.wreck_field_at("spot_1", &places), None);
         assert_eq!(brain.wreck_field_at("Z9", &places), None);
@@ -683,9 +682,9 @@ mod tests {
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let unit = &ours[0];
         let name = "constructor_100".to_string();
-        pianist.scripts.insert(name.clone(), VecDeque::from(["reclaim E4".to_string(), "reclaim Z9".to_string(), "reclaim".to_string(), "armwar #w1".to_string(), "armllt spot_40".to_string()]));
+        pianist.scripts.insert(name.clone(), VecDeque::from(["reclaim E3".to_string(), "reclaim Z9".to_string(), "reclaim".to_string(), "armwar #w1".to_string(), "armllt spot_40".to_string()]));
         let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit, &mut Vec::new(), &mut Vec::new());
-        assert!(matches!(&step, Some((Order::TakeApart(field), s)) if *field == at(4700.0, 2700.0) && s == "reclaim E4"), "{step:?}");
+        assert!(matches!(&step, Some((Order::TakeApart(field), s)) if *field == at(4700.0, 2700.0) && s == "reclaim E3"), "{step:?}");
         // The next two are skipped and said; the id step waits at the front for a builder that can start #w1.
         assert!(brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit, &mut Vec::new(), &mut Vec::new()).is_none());
         assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'reclaim Z9'") && d.contains("no wreck field is known at Z9")), "{:?}", pianist.done);

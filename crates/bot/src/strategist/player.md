@@ -423,8 +423,9 @@ type reaching a count, a missile coming ready in a silo of ours); you are also w
 when a group of yours has lost two soldiers or a quarter of its metal since your last orders, when a group meets a
 party it does not outweigh, and the moment your orders land if anything of ours died while they were on their way.
 While a fight is on (a group engaged, or a loss in the last 30 s) the quiet time is capped at 10 s whatever you set.
-Early, or when the plan is set and nothing is happening, wait long. Coordinates are map units; grid names (A1..H8) are for talking about places, but
-the hands only know the named places, so instructions name spots and passages, not cells.
+Early, or when the plan is set and nothing is happening, wait long. Coordinates are map units; grid names (A1, E7; the cells are 1,024
+elmos square and the `map` tool gives the grid's size) name places as spots and passages do: a cell you name in the
+instructions is on the hands' menu as a destination, and `rove_<cell>` keeps a group's rovers inside it.
 
 Each `instruct` re-asks every group whose sentence changed, and a group asked anew may change course: rewriting the
 packet every turn makes the army swing between your place and its own judgement (wake-3: 60 packets in 17 minutes,

@@ -160,9 +160,8 @@ impl Brain {
         let def = self.world.def_named(kind.trim())?;
         let at = at.trim();
         let standing = own.iter().filter(|u| u.def == def && u.being_built == unfinished);
-        let cell = at.to_ascii_uppercase();
-        if cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c)) {
-            return standing.filter(|u| self.world.grid(u.pos) == cell).min_by_key(|u| u.id.0);
+        if let Some(cell) = self.world.cells.parse(at) {
+            return standing.filter(|u| self.world.cells.cell_of(u.pos) == cell).min_by_key(|u| u.id.0);
         }
         let place = self.pianist.as_ref()?.places.iter().find(|p| p.name == at)?.at;
         standing.filter(|u| u.pos.dist2d(place) <= AT_PLACE).min_by(|a, b| a.pos.dist2d(place).total_cmp(&b.pos.dist2d(place)))
@@ -199,20 +198,20 @@ mod named_tests {
         pianist.places.push(crate::brain::pianist::picture::Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40), cells: None });
         brain.pianist = Some(pianist);
         let id = |u: Option<&OwnUnit>| u.map(|u| u.id.0);
-        assert_eq!(id(brain.unit_named("armllt at E4", &own)), Some(300));
-        assert_eq!(id(brain.unit_named("armllt at e4", &own)), Some(300));
-        assert_eq!(id(brain.unit_named("armwar at E4", &own)), Some(302));
+        assert_eq!(id(brain.unit_named("armllt at E3", &own)), Some(300));
+        assert_eq!(id(brain.unit_named("armllt at e3", &own)), Some(300));
+        assert_eq!(id(brain.unit_named("armwar at E3", &own)), Some(302));
         assert_eq!(id(brain.unit_named("armllt at spot_40", &own)), Some(300), "the nearest within 600");
         assert_eq!(id(brain.unit_named("armwar at spot_40", &own)), Some(302));
-        assert_eq!(id(brain.unit_named("armflash at E4", &own)), None);
+        assert_eq!(id(brain.unit_named("armflash at E3", &own)), None);
         assert_eq!(id(brain.unit_named("armllt at Z9", &own)), None);
         assert_eq!(id(brain.unit_named("armllt at A1", &own)), Some(303));
         assert_eq!(id(brain.unit_named("armllt_301", &own)), Some(301));
         // "unfinished <type> at <cell or place>" names a frame of the type there, never a standing one.
         let with_frame: Vec<OwnUnit> = own.iter().cloned().chain([OwnUnit { being_built: true, health: 40.0, max_health: 100.0, build_progress: 0.4, ..own[0].clone() }].into_iter().map(|mut u| { u.id = UnitId(310); u })).collect();
-        assert_eq!(id(brain.unit_named("unfinished armllt at E4", &with_frame)), Some(310));
+        assert_eq!(id(brain.unit_named("unfinished armllt at E3", &with_frame)), Some(310));
         assert_eq!(id(brain.unit_named("unfinished armllt at spot_40", &with_frame)), Some(310));
-        assert_eq!(id(brain.unit_named("armllt at E4", &with_frame)), Some(300), "the plain form keeps to standing units");
+        assert_eq!(id(brain.unit_named("armllt at E3", &with_frame)), Some(300), "the plain form keeps to standing units");
         assert_eq!(id(brain.unit_named("unfinished armwar at E4", &with_frame)), None);
     }
 }

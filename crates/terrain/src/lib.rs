@@ -2,7 +2,10 @@
 //! as the crow flies. Quicksilver has cliffs and water between points a straight line joins; every rule that says
 //! "nearer", "forward" or "our half" means walking distance (K-maps-terrain-not-straight-lines).
 
+pub mod grid;
 pub mod sheet;
+
+pub use grid::{Cells, Grid, CELL};
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;

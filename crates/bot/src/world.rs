@@ -26,6 +26,8 @@ impl Domain {
 
 pub struct World {
     pub hello: Hello,
+    /// The map's named cells (`terrain::Grid`): the vocabulary for places.
+    pub cells: terrain::Grid,
     defs: HashMap<UnitDefId, usize>,
     names: HashMap<String, UnitDefId>,
 }
@@ -34,7 +36,8 @@ impl World {
     pub fn new(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().enumerate().map(|(i, d)| (d.id, i)).collect();
         let names = hello.unit_defs.iter().map(|d| (d.name.clone(), d.id)).collect();
-        World { hello, defs, names }
+        let cells = terrain::Grid::of(hello.map.width, hello.map.height);
+        World { hello, cells, defs, names }
     }
 
     pub fn def(&self, id: UnitDefId) -> Option<&UnitDefInfo> {
@@ -45,26 +48,15 @@ impl World {
         self.names.get(name).copied()
     }
 
-    /// Name of the cell containing `pos` on an 8x8 grid: columns A-H west to east, rows 1-8 north to south.
+    /// Name of the cell containing `pos` ("E3"; `terrain::Grid`: columns lettered west to east, rows numbered north
+    /// to south, a cell 1,024 elmos square).
     pub fn grid(&self, pos: Vec3) -> String {
-        let cell = |value: f32, extent: f32| ((value / extent * 8.0) as i32).clamp(0, 7) as u8;
-        let (column, row) = (cell(pos.x, self.hello.map.width), cell(pos.z, self.hello.map.height));
-        format!("{}{}", (b'A' + column) as char, row + 1)
-    }
-
-    /// The ground a rectangle of grid cells covers (first column, first row, last column, last row, 0-based and
-    /// inclusive): its north-west and south-east corners.
-    pub fn cells_rect(&self, cells: (u8, u8, u8, u8)) -> (Vec3, Vec3) {
-        let (w, h) = (self.hello.map.width / 8.0, self.hello.map.height / 8.0);
-        let (c0, r0, c1, r1) = cells;
-        (Vec3 { x: c0 as f32 * w, y: 0.0, z: r0 as f32 * h }, Vec3 { x: (c1 as f32 + 1.0) * w, y: 0.0, z: (r1 as f32 + 1.0) * h })
+        self.cells.name(pos)
     }
 
     /// The grid cells a start box touches, as a range ("G1-H8", or "G3" for one cell).
     pub fn box_cells(&self, b: &bot_protocol::StartBox) -> String {
-        let a = self.grid(Vec3 { x: b.left + 1.0, y: 0.0, z: b.top + 1.0 });
-        let z = self.grid(Vec3 { x: b.right - 1.0, y: 0.0, z: b.bottom - 1.0 });
-        if a == z { a } else { format!("{a}-{z}") }
+        terrain::Grid::words(self.cells.cells_touching(b.left, b.top, b.right, b.bottom))
     }
 
     /// The point opposite `pos` through the map centre: the map's far side.

@@ -51,6 +51,9 @@ tokens (`bots/README.md`).
   the duel director both implement the view, so the drills (`docs/harness/duels.md`) run the bot's own group control;
   the flagship's hands declare their ground holds and walks since 2026-10-25 (`docs/design/2026-10-25-hands-migration.md`)
   and attach the rest chunk by chunk.
+- `terrain::Grid` — the map's named cells (2026-11-02, `docs/design/2026-11-01-metal-maps.md` §1.2): 1,024 elmos
+  square, columns lettered west to east and rows numbered north to south, as many as the map needs; the one
+  vocabulary for places on every map, shared by the scout, the report, the sheet, the tools, the record and the viewer.
 - `layout` — where a building goes (2026-10-29, `docs/design/2026-10-29-base-layout.md`): the build grid and
   footprints, the ground a footprint stands on (F-map-build, the engine's height tolerance per definition), an
   extractor's site inside its patch, a plant's apron and street (`street.rs`: the flood that says whether its widest

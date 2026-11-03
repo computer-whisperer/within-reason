@@ -544,6 +544,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         .collect();
     let spots: Vec<Value> = hello.metal_spots.iter().map(|s| json!([s.x as i32, s.z as i32, s.y])).collect();
     let map = &hello.map;
+    let grid = terrain::Grid::of(map.width, map.height);
     // The Claude Code session beside the brain keeps its own transcript (`strategist/transcript.rs`); the pianist its
     // own log of every call (`brain/pianist/mod.rs`).
     let mut decision_logs: Vec<String> = session.then(|| format!("strategist-{}.jsonl", hello.ai_id)).into_iter().collect();
@@ -559,7 +560,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "wall_start": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()),
         "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius, "metal_map": map.metal_map, "extractor_worth": map.extractor_worth, "metal_scale": map.metal_scale },
         "start_pos_type": hello.start_pos_type,
-        "grid": { "columns": 8, "rows": 8 },
+        "grid": { "columns": grid.columns, "rows": grid.rows, "cell": [grid.cell_size().0, grid.cell_size().1] },
         "metal_spots": spots,
         "metal_spots_amount": "worth",
         "metal_fields": hello.metal_fields.iter().map(|f| json!({ "name": f.name, "centre": [f.centre.x as i32, f.centre.z as i32], "bounds": f.bounds.map(|b| b as i32), "worth": f.worth, "room": f.room, "squares": f.squares })).collect::<Vec<_>>(),

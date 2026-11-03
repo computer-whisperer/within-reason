@@ -1265,9 +1265,9 @@ impl Brain {
             // and the move never came).
             let read = |p: &Place| !pianist.layers.fuse || pianist.decode.reads.get(&format!("{name}|place|{}", p.name)).is_some_and(|r| *r >= ROVE_READ);
             for region in scene.named.iter().copied().filter(|p| p.cells.is_some() && read(p)) {
-                let (a, b) = self.world.cells_rect(region.cells.expect("a region"));
+                let (a, b) = self.world.cells.rect(region.cells.expect("a region"));
                 let spots_inside = self.world.hello.metal_spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
-                let cells = format!("the cells {}, {spots_inside} metal spots inside", crate::strategist::shared::cells_words(region.cells.expect("a region")));
+                let cells = format!("the cells {}, {spots_inside} metal spots inside", terrain::Grid::words(region.cells.expect("a region")));
                 let key = format!("rove_{}", region.name);
                 if whole {
                     push(
