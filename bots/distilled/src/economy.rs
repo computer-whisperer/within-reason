@@ -37,8 +37,14 @@ const ASSIST_REVIEW: i32 = 10 * SECOND;
 /// A spot whose extractor could not be placed is left alone this long; a plant with no room for a turret, this long.
 const REFUSED: i32 = 60 * SECOND;
 const TURRET_REFUSED: i32 = 2 * MINUTE;
-/// The commander builds extractors this far from home and no farther (D-COMMANDER).
-const COMMANDER_WALK: f32 = 700.0;
+/// The commander builds extractors and the front's radar this far from home and no farther (D-COMMANDER). 700 until
+/// 2026-11-03 night: Comet has four spots within 700 of a start and the next at 1,081-1,427, so from 4:00 the
+/// commander assisted a metal-starved plant in fifteen of sixteen games (dist95) while the flagship's commander
+/// built the extractors 1,000 and 1,353 out at 3:39 and 4:00 (apex-v0504-comet-sym0-opus-1, its constructors on
+/// the farther ones). Its solar field stays within `COMMANDER_FIELD` of home: a solar where it stands a thousand
+/// out would be a generator on the frontier (the flagship's K-eco-generators-built-on-the-frontier).
+const COMMANDER_WALK: f32 = 1400.0;
+const COMMANDER_FIELD: f32 = 700.0;
 /// An extractor farther from home than this gets a sentry beside it, from the builder that built it (D-SENTRY).
 const SENTRY_FROM: f32 = 900.0;
 /// ... and only at extractors this far along the way to his start, with no sentry of ours within `SENTRY_SHARED`.
@@ -142,6 +148,11 @@ const TURRET_RETELL: i32 = 10 * SECOND;
 const TURRET_REACH: f32 = 330.0;
 /// The factory makes raiders until this frame and tanks with artillery after (D-PRODUCTION).
 const TANKS_FROM: i32 = 8 * MINUTE;
+/// Four scouts before the first soldier. Two were tried 2026-11-03 night (the guard empty until ~3:00 while BARb's
+/// first Grunt reaches our extractors at 2:50; the flagship sends two): the first soldier came at ~2:20 and the
+/// guard held three at 3:00, and the rows were worse on both counts, 4-3-9 against Apex and 89 of ours dead before
+/// 10:00 against 67 (dist108 against dist106), 5-3-8 and 132 against 114 against BARb (dist109 against dist107):
+/// one or two raiders at the hold point meet a Grunt at a home extractor no sooner, and two scouts see less.
 const SCOUTS_FIRST: usize = 4;
 /// Constructors wanted by the income when that is more than the clock asks: one for every this much metal a second
 /// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
@@ -999,7 +1010,7 @@ impl Distilled {
                 // Apex cost 12,900 energy, more than the thirteen solars of the same minutes made).
                 let toward = ((at.x - self.home.x) * (self.enemy_home.x - self.home.x) + (at.z - self.home.z) * (self.enemy_home.z - self.home.z)) / self.home.dist2d(self.enemy_home).max(1.0).powi(2);
                 let shared = self.own.values().any(|u| Some(u.def) == self.kit.sentry && u.pos.dist2d(at) < SENTRY_SHARED);
-                if self.options.army && at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
+                if self.options.army && self.options.sentry && at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
                     commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new(), exact: false }, true));
                 }
             }
@@ -1013,7 +1024,7 @@ impl Distilled {
                 // order, a different quarter of the field: the host's search is the same for the same point, and
                 // the engine dropped the same advanced-solar site 38 times for one builder (D-ORDERS).
                 let attempt = self.economy.attempts.get(&unit.id).copied().unwrap_or(0);
-                let commander = Some(unit.def) == self.kit.commander && unit.pos.dist2d(self.home) < COMMANDER_WALK;
+                let commander = Some(unit.def) == self.kit.commander && unit.pos.dist2d(self.home) < COMMANDER_FIELD;
                 let (near, radius) = if commander && attempt == 0 { (unit.pos, 600.0) } else { (self.back_field(attempt), 1500.0) };
                 commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements(), exact: false }, false));
             }

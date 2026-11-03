@@ -142,11 +142,14 @@ pub(crate) struct Options {
     /// `radar=off`, `reclaim=off`: without D-RADAR, without D-RECLAIM (2026-11-03, the attribution rows).
     pub radar: bool,
     pub reclaim: bool,
+    /// `sentry=off`: no sentry beside the outer extractors (D-SENTRY; 2026-11-03 night: 16-28 of them by 12:00
+    /// against Apex, 1,400-2,400 metal and 11,000-19,000 energy, a constructor's time for twenty minutes).
+    pub sentry: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true, sentry: true }
     }
 }
 
@@ -185,6 +188,7 @@ impl Options {
                 ("reach", v) => options.reach = v == "on",
                 ("radar", v) => options.radar = v != "off",
                 ("reclaim", v) => options.reclaim = v != "off",
+                ("sentry", v) => options.sentry = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -199,7 +203,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}, sentry={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -221,7 +225,8 @@ impl Options {
             if self.layout { "on" } else { "off" },
             if self.reach { "on" } else { "off" },
             if self.radar { "on" } else { "off" },
-            if self.reclaim { "on" } else { "off" }
+            if self.reclaim { "on" } else { "off" },
+            if self.sentry { "on" } else { "off" }
         )
     }
 }
