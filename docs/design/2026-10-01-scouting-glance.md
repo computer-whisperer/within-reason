@@ -37,7 +37,7 @@ maps lose nothing); another seat's units are not counted (as for the spots today
 
 ## The roll-up: the named cells
 
-The report speaks in the 8 by 8 cells A1 to H8 (`World::grid`); a cell is 8 by 6 tiles here. Per cell:
+The report speaks in the 8 by 8 cells A1 to H8 (`World::grid`); a cell is 8 by 6 tiles here. (Amended 2026-11-02: the cells are `terrain::Grid`'s, 1,024 elmos square, as many as the map needs; Comet is A1 to H6; `docs/design/2026-11-01-metal-maps.md` §1.2.) Per cell:
 
 - **how much**: the share of its tiles ever seen: "all of it" (90% or more), "most of it" (50%), "part of it" (15%),
   "a corner of it" (under 15%), "never seen" (none).

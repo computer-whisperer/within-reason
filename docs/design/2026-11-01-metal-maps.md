@@ -227,7 +227,16 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    each tick as the distilled bot's is, `Site::Tile` in the pianist, the `extractor` list step and the builder's
    `build_<extractor>` move siting by `Coverage::best_site` within the named place (anchor the place, reach a cell's
    half-diagonal; `nearest` from the builder), the engine told `exact`; the stand takes `Want::Extractor` from the
-   coverage when the spot list is empty.
+   coverage when the spot list is empty. **Built 2026-11-02** as planned, commits e2e26bf (2a), bb4d86a (2b), 9fa9525
+   (2c), fb1bd8c (2d); the packet `run/packets/speedmetal-cells-1.md` written for the judge. Two findings on the way:
+   the whole-word match for place names was one-sided (a cell W1 was named by `group_W1`), and once bounded on both
+   sides it exposed the pick state joining its texts with no separator; both fixed in 2c. **Judged 2026-11-02 (ledger
+   metal-step2-comet-check, metal-step2-speedmetal-1/-2):** Comet's lockstep game every tick on time, the field cache
+   48 fields (36 MB) for the 240 the per-spot build held, the extractor sequence the packet's table; SpeedMetal late 0,
+   memory flat at 42-59 MB, the stand's two extractors on the metal and 46 by 16:00 at 1,241 metal a second, group_A
+   walking to the named cell B1. Not met: twenty minutes; the arena's wall cap cut the game at 18.5 because the brain's
+   decide grows with the carpet (`best_site` ran to the map's corner for a full cell, fixed f9d8dac; a second cost from
+   12:00 at 46 extractors, p95 8 s, being profiled). Lockstep hides it; a realtime game would show it as late ticks.
 3. **What the player reads** (§1.4). Judge: a player game on Full Metal Plate and one on SpeedMetal against BARb
    hard: the packets name cells and fields, the hands build the carpet, the post-game review finds no spot words.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at

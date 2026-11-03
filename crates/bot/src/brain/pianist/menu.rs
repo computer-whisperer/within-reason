@@ -1539,9 +1539,12 @@ impl Brain {
                 if on_water {
                     continue;
                 }
-                // A place where the layout already puts it is the same site, not a second move.
+                // A place where the layout already puts it is the same site, not a second move. A cell of the grid
+                // takes the kinds that stand at a place, as a spot does, not every kind (metal-step2-speedmetal-2:
+                // five named cells put 184 build-at-cell moves on five constructors' menus, a plant and a storage
+                // at every cell among them, 4,900 gate questions a minute).
                 let stands_at_a_place = self.placed_at_place(def);
-                let mark = |p: &Place| p.spot.is_none() && p.name != "home" && !p.name.starts_with("passage_");
+                let mark = |p: &Place| p.spot.is_none() && !p.is_cell() && p.name != "home" && !p.name.starts_with("passage_");
                 for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE && p.at.dist2d(anchor) > HERE && (stands_at_a_place || mark(p))) {
                     // A defence's cover is words: what armed building of ours stands or is ordered there already.
                     let cover = if armed_building(def) {
