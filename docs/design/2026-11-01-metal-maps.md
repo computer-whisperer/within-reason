@@ -235,8 +235,12 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    48 fields (36 MB) for the 240 the per-spot build held, the extractor sequence the packet's table; SpeedMetal late 0,
    memory flat at 42-59 MB, the stand's two extractors on the metal and 46 by 16:00 at 1,241 metal a second, group_A
    walking to the named cell B1. Not met: twenty minutes; the arena's wall cap cut the game at 18.5 because the brain's
-   decide grows with the carpet (`best_site` ran to the map's corner for a full cell, fixed f9d8dac; a second cost from
-   12:00 at 46 extractors, p95 8 s, being profiled). Lockstep hides it; a realtime game would show it as late ticks.
+   decide grows with the carpet (`best_site` ran to the map's corner for a full cell, fixed f9d8dac). On f9d8dac the
+   game metal-step2-speedmetal-prof3 met the bar: 20 game minutes in 471 s wall, late 0, 48 extractors at 19:00,
+   decide p95 1.0-1.1 s throughout; -2's 8 s decides one in twenty seconds (the re-ask, every builder's menu rebuilt)
+   did not recur and point at the menu's layout searches (`choose`, 62-67 % of the brain's CPU on this map), the
+   econ-flagship arc's open lever, not step 2's code. Also found: a cell place was read as a mark and every kind was
+   offered at every named cell (184 of 286 gate keys at 18:00 in -2); a cell takes the placed-at-place kinds now (b2701d6), and metal-step2-speedmetal-3 on it: 20 game minutes in 534 s, late 0, decide p95 under 1.0 s throughout, 53 extractors at 19:00, a late gate of 154 keys. **Step 2 judged met.**
 3. **What the player reads** (§1.4). Judge: a player game on Full Metal Plate and one on SpeedMetal against BARb
    hard: the packets name cells and fields, the hands build the carpet, the post-game review finds no spot words.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at

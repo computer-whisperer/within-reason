@@ -27,3 +27,10 @@ onepass-norules-hard-7: it is, in the table's order, 10 extractors at 8:00 again
 hands (`docs/design/2026-10-01-hands-rebuild.md`): its station as a place it walks to and holds at, one-soldier
 detachments (`send 1`) and no larger, a named place to step back to (`home`), and the detachments told to join the
 group again. The first pianist-alone game of the rebuilt menu, rebuild-smoke-1.
+
+`speedmetal-cells-1.md` (2026-11-02, the metal-maps design's step 2 judge) is a packet for SpeedMetal BAR V2 (Armada
+from the west box, 13 by 2 cells of 1,024), the first written in the grid's vocabulary and on a map that publishes no
+spots: the commander and the constructors build extractors "on the metal nearest" them (the `extractor` step with no
+place, sited over the coverage), the constructors are told to stay in A1, A2, B1 and B2 and the commander never east of
+C1, and group_A's places are cells: B1 to hold, D1 and F1 to advance to. Energy is the game there (30.6 metal a mex), so
+the solars are keyed on STALLING and no converters are built. First game metal-step2-speedmetal-1.
