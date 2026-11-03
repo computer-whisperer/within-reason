@@ -722,7 +722,7 @@ impl Brain {
                     // Said to the player (the impedance tally, 2026-10-16: eleven such drops in the human games and
                     // no report line; human-30 Eclipsed's tier-2 plant, "the priority", first stood at 15:21 after
                     // four silent failures from 13:23).
-                    let line = format!("{} {}: no site could be found for a {} where it was asked, so the order is dropped: name another place or a spot for it", pianist::picture::clock(tick.frame), self.actor_name(unit), self.name(def));
+                    let line = format!("{} {}: no site could be found for a {} where it was asked, so the order is dropped: name another place for it", pianist::picture::clock(tick.frame), self.actor_name(unit), self.name(def));
                     if let Some(pianist) = self.pianist.as_mut() {
                         pianist.done.push(line);
                     }

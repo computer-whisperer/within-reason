@@ -416,7 +416,13 @@ impl Brain {
     /// place's reach (`Brain::place_reach`); the refusal says which.
     fn tile_for_step(&self, unit: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], frame: i32, place: Option<&Place>) -> Result<Vec3, String> {
         match place {
-            None => self.tile_site(unit, own, pianist, unit.pos, super::super::economy::TILE_REACH, frame).ok_or_else(|| format!("no free metal within {:.0} of it", super::super::economy::TILE_REACH)),
+            // The stand's own extractor tiles first, so its other slots stay clear; then the metal nearest the builder.
+            None => self
+                .stand_tiles(unit, pianist, own, frame)
+                .into_iter()
+                .next()
+                .or_else(|| self.tile_site(unit, own, pianist, unit.pos, super::super::economy::TILE_REACH, frame))
+                .ok_or_else(|| format!("no free metal within {:.0} of it", super::super::economy::TILE_REACH)),
             Some(p) => self.tile_site(unit, own, pianist, p.at, self.place_reach(p), frame).ok_or_else(|| format!("no free metal within {} of {}", self.place_reach(p) as i32, p.name)),
         }
     }

@@ -158,6 +158,23 @@ impl Brain {
             .collect()
     }
 
+    /// On a metal map, the stand's extractor tiles still free for `builder`, in the stand's order: a bare `extractor`
+    /// step takes them before the metal nearest the builder, as it takes the stand's spots on a spot map, so the
+    /// stand's other slots stay clear (metal-step3-speedmetal-1 and -fmp-1: the second extractor, sited nearest the
+    /// commander, stood on the plant's slot and the plant was refused for a minute).
+    pub(super) fn stand_tiles(&self, builder: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], frame: i32) -> Vec<Vec3> {
+        let Some((who, stand)) = self.stand.as_ref() else { return Vec::new() };
+        if *who != builder.id {
+            return Vec::new();
+        }
+        let taken = |at: Vec3| {
+            own.iter().any(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && u.pos.dist2d(at) < SLOT_TAKEN)
+                || pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)).any(|t| matches!(t, Task::Build { near, .. } if near.dist2d(at) < SLOT_TAKEN))
+                || pianist.refused_sites.iter().any(|(_, near, until)| *until > frame && near.dist2d(at) < SLOT_TAKEN)
+        };
+        stand.slots.iter().filter_map(|s| match *s { Slot::Extractor { spot: None, at } if !taken(at) => Some(at), _ => None }).collect()
+    }
+
     /// The stand's extractor spots still free for `builder`, in the stand's order.
     pub(super) fn stand_spots(&self, builder: &OwnUnit, pianist: &Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Vec<usize> {
         let Some((who, stand)) = self.stand.as_ref() else { return Vec::new() };
@@ -179,7 +196,7 @@ impl Brain {
     /// (`prefer`), or a building with a free slot beyond those already taken this tick (`batched`).
     pub(super) fn step_on_the_stand(&self, step: &str, unit: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], prefer: &[usize], batched: &[UnitDefId]) -> bool {
         match self.want_of(step, unit) {
-            Some(Want::Extractor) => !prefer.is_empty(),
+            Some(Want::Extractor) => !prefer.is_empty() || (self.coverage.is_some() && !self.stand_tiles(unit, pianist, own, i32::MAX).is_empty()),
             Some(Want::Building(def)) => self.free_stand_slots(unit.id, def, own, pianist).len() > batched.iter().filter(|d| **d == def).count(),
             None => false,
         }

@@ -74,13 +74,17 @@ fn constructor_kind(is: &str) -> Option<String> {
 /// On a metal map, the `metal` line (the metal-maps design §1.4): each cell's share of the map's metal and the
 /// extractors standing in it, ours / allied / his as seen; where the metal lies evenly over every cell (a plate)
 /// only the cells with extractors are named. Nothing on a spot map.
+/// Cells whose metal shares are all within this ratio of each other hold the metal "evenly" (a plate): no cell's
+/// share is worth saying (the same ratio as `terrain::sheet`'s).
+const EVEN_METAL: f32 = 1.5;
+
 fn metal_line(cells: &[CellLook]) -> Option<String> {
     let with_metal: Vec<&CellLook> = cells.iter().filter(|c| c.metal_share > 0.0).collect();
     if with_metal.is_empty() {
         return None;
     }
     let (low, high) = with_metal.iter().fold((f32::MAX, 0f32), |(lo, hi), c| (lo.min(c.metal_share), hi.max(c.metal_share)));
-    let even = with_metal.len() == cells.len() && high <= low * 1.5;
+    let even = with_metal.len() == cells.len() && high <= low * EVEN_METAL;
     let counts = |c: &CellLook| format!("{}/{}/{}", c.extractors[0], c.extractors[1], c.extractors[2]);
     let words = if even {
         let held: Vec<String> = with_metal.iter().filter(|c| c.extractors.iter().any(|n| *n > 0)).map(|c| format!("{} {}", c.cell, counts(c))).collect();
@@ -97,8 +101,15 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
     }
     // What a cell holds for the economy: its spots by number, or on a metal map its share of the metal (the
     // metal-maps design §1.4).
+    let with_metal: Vec<&CellLook> = cells.iter().filter(|c| c.metal_share > 0.0).collect();
+    let even_metal = !with_metal.is_empty() && with_metal.len() == cells.len() && {
+        let (low, high) = with_metal.iter().fold((f32::MAX, 0f32), |(lo, hi), c| (lo.min(c.metal_share), hi.max(c.metal_share)));
+        high <= low * EVEN_METAL
+    };
     let spots = |c: &CellLook| {
-        if c.metal_share > 0.0 {
+        if even_metal {
+            String::new()
+        } else if c.metal_share > 0.0 {
             format!("{:.0}% of the metal", c.metal_share * 100.0)
         } else if c.spots.is_empty() {
             String::new()
@@ -106,7 +117,7 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
             c.spots.iter().map(|n| format!("spot_{n}")).collect::<Vec<_>>().join(", ")
         }
     };
-    let has_metal = |c: &CellLook| c.metal_share > 0.0 || !c.spots.is_empty();
+    let has_metal = |c: &CellLook| (c.metal_share > 0.0 && !even_metal) || !c.spots.is_empty();
     let when = |ago: i32| if ago < 10 { "in sight now".to_string() } else { format!("seen {} ago", clock(ago)) };
     let look = |c: &CellLook| match c.ago {
         Some(ago) => format!("{} of it {}", share_words(c.seen_share), when(ago)),
@@ -278,7 +289,7 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     }
     if let Some((percent, seats)) = briefing.side_metal {
         lines.push(format!(
-            "metal: about {percent}% of the map's metal lies in cells nearer our side's start box than his, for the {seats} seat{} of our side; income here grows by room on the metal and build power, not by spots",
+            "metal: about {percent}% of the map's metal lies in cells nearer our side's start box than his, for the {seats} seat{} of our side; income here grows by the room on the metal and by build power",
             if seats == 1 { "" } else { "s" }
         ));
     }
@@ -915,7 +926,7 @@ mod sightings_tests {
         let briefing = Briefing { side_metal: Some((42, 1)), ..Briefing::default() };
         let lines = front(&briefing, &field, &[], false);
         assert!(lines[0].contains("extractors 24 (most held 0, no new high for 0:00; room on the metal for about 3120 more tier-1 extractors; his extractors as our units last saw them, by cell nearest our start first: G1 4 (0:14 ago), L2 9 (2:21 ago)) | army"), "{}", lines[0]);
-        assert!(lines.iter().any(|l| l == "metal: about 42% of the map's metal lies in cells nearer our side's start box than his, for the 1 seat of our side; income here grows by room on the metal and build power, not by spots"), "{lines:?}");
+        assert!(lines.iter().any(|l| l == "metal: about 42% of the map's metal lies in cells nearer our side's start box than his, for the 1 seat of our side; income here grows by the room on the metal and by build power"), "{lines:?}");
         for word in ["spot", "free spots"] {
             assert!(lines.iter().filter(|l| !l.starts_with("metal:")).all(|l| !l.contains(word)), "{word}: {lines:?}");
         }
@@ -942,6 +953,12 @@ mod sightings_tests {
         let line = metal_line(&plate).unwrap();
         assert_eq!(line, "metal (each cell's share of the map's metal, then the extractors standing in it: ours/allied/his as our units last saw them): the metal lies evenly over every cell (25.0% each); cells with extractors standing: A1 12/0/0, B2 0/0/7");
         assert!(metal_line(&[cell("A1", 1.0, Some(0))]).is_none());
+        let mut plate_unseen: Vec<CellLook> = ["A1", "B1", "A2", "B2"].iter().map(|n| cell(n, 0.0, None)).collect();
+        for c in &mut plate_unseen {
+            c.metal_share = 0.25;
+        }
+        let lines = scouting_lines(&plate_unseen, true);
+        assert!(lines.iter().any(|l| l == "  never seen, elsewhere: A1, B1, A2, B2"), "{lines:?}");
     }
 
     /// H-REPORT-FREE-SPOTS-BY-REACH: the free spots by who reaches them and by half, the nearest of our half first with

@@ -767,8 +767,16 @@ impl Engine {
     /// the unit's to the last digit when the unit counts as ours (terr2-nullai-comet-1: every tier-2 extractor order
     /// of seat 0 as Cortex dropped by the engine, Armada's at .00 begun; K-mech-tier-2-extractor-stands-on-ours).
     fn snap_to_build_grid(&self, def: UnitDefId, pos: Vec3) -> Vec3 {
+        self.snap_to_build_grid_facing(def, pos, 0)
+    }
+
+    /// `snap_to_build_grid` for a building facing `facing`: an odd facing turns the footprint a quarter.
+    fn snap_to_build_grid_facing(&self, def: UnitDefId, pos: Vec3, facing: c_int) -> Vec3 {
         let snap = |v: f32, size: c_int| if size & 2 != 0 { (v / 16.0).floor() * 16.0 + 8.0 } else { ((v + 8.0) / 16.0).floor() * 16.0 };
-        let (xs, zs) = (call!(self, UnitDef_getXSize(def.0)), call!(self, UnitDef_getZSize(def.0)));
+        let (mut xs, mut zs) = (call!(self, UnitDef_getXSize(def.0)), call!(self, UnitDef_getZSize(def.0)));
+        if facing >= 0 && facing & 1 == 1 {
+            std::mem::swap(&mut xs, &mut zs);
+        }
         Vec3 { x: snap(pos.x, xs), y: pos.y, z: snap(pos.z, zs) }
     }
 
@@ -777,6 +785,18 @@ impl Engine {
     /// exit for five to seven minutes behind a solar 165 elmos off its front).
     fn site_facing(&self, def: UnitDefId, site: &BuildSite, facing: c_int, keep_out: &[Lane]) -> Option<Vec3> {
         let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || keep_out.iter().any(|lane| lane.contains(pos));
+        // An exact site is asked of the engine as a build order would be: `Map_isPossibleToBuildAt`. The site
+        // search below (`Map_findClosestBuildSite`) refuses any site within two squares of a building whose yardmap
+        // has yard squares, and a BAR extractor's has, so a turbine the layout laid touching a mex was refused by
+        // the search while the order itself stands (metal-step3-speedmetal-1: four winds and the plant of the
+        // commander's stand "no site" with `possible_at_exact=true`).
+        if site.exact {
+            let at = self.snap_to_build_grid_facing(def, site.near, facing);
+            let mut pos = [at.x, at.y, at.z];
+            if call!(self, Map_isPossibleToBuildAt(def.0, pos.as_mut_ptr(), facing)) && !on_a_spot(at) {
+                return Some(at);
+            }
+        }
         // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear
         // (an exact site: the first ring only).
         let rings = [0.0, 1.0, 2.0, 3.0].map(|r| r * 2.0 * SPOT_KEEPOUT);
