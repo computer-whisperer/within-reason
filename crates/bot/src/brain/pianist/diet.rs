@@ -85,9 +85,12 @@ fn parse(value: Option<&str>) -> HandsEffort {
 fn first_named(text: &str, place: &str) -> Option<usize> {
     let mut from = 0;
     while let Some(i) = text[from..].find(place) {
-        let end = from + i + place.len();
-        if !text[end..].chars().next().is_some_and(|c| c.is_ascii_digit() || c == '_') {
-            return Some(from + i);
+        let (start, end) = (from + i, from + i + place.len());
+        // A whole word: "spot_4" is not in "spot_45", and a cell "W1" is not in "group_W1".
+        let before = text[..start].chars().next_back().is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
+        let after = text[end..].chars().next().is_some_and(|c| c.is_ascii_digit() || c == '_');
+        if !before && !after {
+            return Some(start);
         }
         from = end;
     }
@@ -443,6 +446,8 @@ mod tests {
         assert!(names("go to spot_4 now", "spot_4"));
         assert!(!names("go to spot_45 now", "spot_4"));
         assert!(names("spot_45 and spot_4.", "spot_4"));
+        assert!(names("group_A pushes to E3.", "E3") && names("(E3)", "E3"));
+        assert!(!names("group_W1 holds", "W1") && !names("E30 is far", "E3"));
     }
 }
 

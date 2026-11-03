@@ -89,6 +89,14 @@ pub(crate) struct Place {
     pub cells: Option<crate::strategist::shared::Cells>,
 }
 
+impl Place {
+    /// One cell of the map's grid as a place ("E3": its centre to go to, a region of one cell to rove within). A
+    /// marked region is lower-case words; a cell's name begins with its column's letter.
+    pub fn is_cell(&self) -> bool {
+        self.cells.is_some_and(|(c0, r0, c1, r1)| (c0, r0) == (c1, r1)) && self.name.starts_with(|c: char| c.is_ascii_uppercase())
+    }
+}
+
 impl Party {
     /// The enemy unit is in a fight with this party: a member, or one of another party beside it.
     pub(crate) fn in_fight(&self, id: bot_protocol::UnitId) -> bool {
@@ -1340,12 +1348,23 @@ impl Brain {
             .filter(|i| !i.trim().is_empty())
             .or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone()))
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
-        // Spots in runs ("spot_10, 5, 6") and spots the lists name are places too (13.2, 7.4).
+        // Spots in runs ("spot_10, 5, 6") and spots the lists name are places too (13.2, 7.4); so is a cell of the
+        // grid a list step names (the metal-maps design §1.2: cells are the vocabulary for places on every map).
+        let grid = self.world.cells;
+        let cell_place = |cells: &mut Vec<Place>, column: u8, row: u8| {
+            let name = terrain::Grid::name_of(column, row);
+            if !cells.iter().any(|p| p.name == name) {
+                cells.push(Place { name, at: grid.centre(column, row), spot: None, cells: Some((column, row, column, row)) });
+            }
+        };
         let mut extra_spots: Vec<usize> = super::diet::spot_runs(&instructions);
         for steps in pianist.scripts.values() {
             for step in steps {
                 if let Some(i) = step.split_whitespace().nth(1).and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok()) {
                     extra_spots.push(i);
+                }
+                if let Some((column, row)) = step.split_whitespace().nth(1).and_then(|p| grid.parse(p)) {
+                    cell_place(&mut places, column, row);
                 }
             }
         }
@@ -1364,6 +1383,18 @@ impl Brain {
             } else if let Some(n) = token.strip_prefix("passage_").and_then(|n| n.parse::<usize>().ok()) {
                 if n > PASSAGES && n <= passages.len() && !places.iter().any(|p| p.name == *token) {
                     places.push(Place { name: format!("passage_{n}{}", self.seat_tag()), at: passages[n - 1].at, spot: None, cells: None });
+                }
+            } else if let Some((column, row)) = grid.parse(token) {
+                cell_place(&mut places, column, row);
+            }
+        }
+        // The cells next to each group's own are places too, so a group has somewhere to go on a map without spots
+        // (its menu offers them; the picture's entries say what is known there).
+        for group in &pianist.groups {
+            if let Some(body) = group.body(own, None) {
+                let (column, row) = grid.cell_of(body.at);
+                for (c, r) in grid.neighbours(column, row) {
+                    cell_place(&mut places, c, r);
                 }
             }
         }
@@ -1464,6 +1495,14 @@ impl Brain {
                         Some(a) => format!("where the {} whose fire hits {whom} from out of our sight was last seen, {} s ago (not a sighting now: it may have moved); its range is {:.0}, {} hits on {whom} in the last {} s, the last {} s ago; anything of ours within {:.0} of it is in its reach; what sees it or outranges it decides, as the instructions say", a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
                         None => format!("an estimate, not a sighting: where the {} shelling {whom} from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on {whom} in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
                     }
+                }
+                None if place.is_cell() => {
+                    let (a, b) = self.world.cells.rect(place.cells.unwrap());
+                    let inside = |p: Vec3| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z;
+                    let spots_inside = spots.iter().filter(|s| inside(**s)).count();
+                    let ours = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && inside(u.pos)).count();
+                    let his = self.enemy_buildings.values().filter(|(_, pos, _)| inside(*pos)).count();
+                    format!("a cell of the map's grid, 1,024 elmos square ({spots_inside} metal spots, {ours} buildings of ours, {his} of his known inside): as a place to go to, its centre, on the nearest ground the group stands on; a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it", place.name, place.name)
                 }
                 None if place.cells.is_some() => {
                     let (a, b) = self.world.cells.rect(place.cells.unwrap());

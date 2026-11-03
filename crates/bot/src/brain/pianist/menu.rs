@@ -428,16 +428,19 @@ fn ordinal(n: usize) -> String {
     }
 }
 
-/// The places a move can be aimed at: every mark the player made, every spot, passage or `home` the packet's text
-/// names, every spot a list step names. Code recognises names; what the packet means by them is Jev's reading.
+/// The places a move can be aimed at: every mark the player made, every spot, passage, cell or `home` the packet's
+/// text names, every spot or cell a list step names (a cell the picture holds for a group's neighbourhood alone is
+/// that group's, `group_moves`). Code recognises names; what the packet means by them is Jev's reading.
 pub(super) fn named_places<'a>(places: &'a [Place], instructions: &str, scripts: &HashMap<String, VecDeque<String>>) -> Vec<&'a Place> {
     let listed: Vec<usize> = scripts.values().flatten().filter_map(|step| step.split_whitespace().nth(1).and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok())).collect();
+    let listed_cells: Vec<&str> = scripts.values().flatten().filter_map(|step| step.split_whitespace().nth(1)).collect();
     places
         .iter()
         .filter(|p| !p.name.starts_with("shelling"))
         .filter(|p| match p.spot {
             Some(i) => super::diet::names_spot(instructions, i) || listed.contains(&i),
             None if p.name == "home" || p.name.starts_with("passage_") => super::diet::names(instructions, &p.name),
+            None if p.is_cell() => super::diet::names(instructions, &p.name) || listed_cells.contains(&p.name.as_str()),
             None => true,
         })
         .collect()
@@ -955,8 +958,13 @@ impl Brain {
         // Hold (the gather move died with the hands' migration, chunk 2: the lane's pace and its joiners do its work).
         push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}"), format!("the hold at {at}"), None, false);
 
-        // Go and fight to: every named place, both ways; a place where his buildings are known is attacked.
-        for place in scene.named.iter().copied().filter(|p| p.at.dist2d(body.at) > HERE && self.reachable_for(walker, p.at)) {
+        // Go and fight to: every named place, both ways, and the cells next to the group's own (the metal-maps
+        // design §1.2: somewhere to go on a map without spots; the diagonals are two steps); a place where his
+        // buildings are known is attacked.
+        let (column, row) = self.world.cells.cell_of(body.at);
+        let next_door = self.world.cells.neighbours(column, row);
+        let neighbours = scene.picture.places.iter().filter(|p| p.is_cell() && next_door.contains(&self.world.cells.cell_of(p.at)) && !scene.named.iter().any(|n| n.name == p.name));
+        for place in scene.named.iter().copied().chain(neighbours).filter(|p| p.at.dist2d(body.at) > HERE && self.reachable_for(walker, p.at)) {
             // Which way the place lies: a walk that ends further from his base than the group stands is a walk
             // back (player-56, 6:11: ten Blitzes at spot_53 on their way into his base were turned to spot_59,
             // 2,200 behind them on our side, where one Rover stood at an extractor; the move's words said "some
@@ -2027,6 +2035,42 @@ pub(super) mod tests {
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert!(keys.contains(&"rove") && !keys.contains(&"rove_east_half") && !keys.contains(&"rove_1_east_half"), "{keys:?}");
         assert!(menu.moves[0].words.contains(" roves within east_half: "), "{}", menu.moves[0].words);
+    }
+
+    /// Cells of the map's grid are destinations (the metal-maps design §1.2): a cell the packet names is on every
+    /// menu as a walk and an advance, and a group has the cells next to its own as well, so it has somewhere to go on
+    /// a map without spots; a builder has the named cell only.
+    #[test]
+    fn a_named_cell_and_the_cells_next_door_are_destinations() {
+        use super::super::fixtures::{at, e3};
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, enemies, parties) = e3();
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        // Fourteen Blitzes round (4210, 1920): the cell E2 of a map 8,192 by 6,144.
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { picked: true, at: Vec3::default() }, 0));
+        brain.pianist = Some(pianist);
+        let mut own = ours.clone();
+        own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let grid = brain.world.cells;
+        let cell = |name: &str| {
+            let (c, r) = grid.parse(name).expect("a cell");
+            Place { name: name.to_string(), at: grid.centre(c, r), spot: None, cells: Some((c, r, c, r)) }
+        };
+        // The picture holds the named cell and the group's four neighbours, as `Brain::picture` lays them in.
+        let places = vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }, cell("H6"), cell("E1"), cell("F2"), cell("E3"), cell("D2")];
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A (Blitzes): pushes to H6, his corner. The constructor goes to H6 after it.", "actors": {}, "places": {} }), places, parties };
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_A").expect("the group's menu");
+        let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
+        for key in ["go_H6", "fight_to_H6", "go_E1", "fight_to_E1", "go_F2", "go_E3", "go_D2"] {
+            assert!(keys.contains(&key), "{key} missing from {keys:?}");
+        }
+        assert!(!keys.contains(&"go_home"), "home is not named: {keys:?}");
+        assert_eq!(keys.iter().filter(|k| k.starts_with("go_")).count(), 5, "the named cell and the four next door: {keys:?}");
     }
 
     /// A roving group keeps a menu (the rework of docs/design/2026-10-07-rove-approval.md): its course is the rove

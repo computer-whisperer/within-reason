@@ -765,11 +765,15 @@ pub(super) fn fit(lines: &[String], budget: usize) -> usize {
 pub(super) fn pick_state(state: &Value, menus: &[Menu], worlds: &[World], lines: &[String]) -> Value {
     let mut state = state.clone();
     let moved: BTreeSet<&str> = worlds.iter().flat_map(|w| menus.iter().zip(w).filter(|(_, i)| **i != 0).map(|(m, _)| m.name.as_str())).collect();
+    // The texts are joined with a break between: run together, a name at one's end hid the next's start
+    // ("spot_4group_B" named neither; found by the whole-word match of 2026-11-02).
     let mut text = lines.join("\n");
+    text.push('\n');
     text.push_str(state["instructions"].as_str().unwrap_or_default());
     if let Some(actors) = state["actors"].as_object_mut() {
         for (name, entry) in actors.iter_mut() {
             if moved.contains(name.as_str()) || super::diet::names(&text, name) {
+                text.push('\n');
                 text.push_str(&entry.to_string());
             } else {
                 super::diet::brief(entry);

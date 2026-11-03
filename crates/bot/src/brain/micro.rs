@@ -269,8 +269,24 @@ impl Brain {
         let theirs = |at: Vec3| (honoured && self.world.hello.start_boxes.iter().any(|b| b.ally_team != ours && b.contains(at))) || base.is_some_and(|b| b.dist2d(at) < BASE_RADIUS);
         let spots = &self.world.hello.metal_spots;
         let mut goals: Vec<micro::RoveGoal> = spots.iter().enumerate().filter(|(_, at)| self.reachable_for(walker, **at)).map(|(i, at)| micro::RoveGoal { name: format!("spot_{i}"), at: *at, seen: self.spot_seen(i), theirs: theirs(*at) }).collect();
+        // On a map without spots (a metal map) the places are the metal fields' centres and the cells of the grid,
+        // each seen when the scout's look at its cell says (the metal-maps design §1.2).
+        let mut cell_looks = Vec::new();
+        if spots.is_empty() {
+            let grid = self.world.cells;
+            cell_looks = self.cell_looks();
+            let seen_at = |at: Vec3| {
+                let (c, r) = grid.cell_of(at);
+                cell_looks[grid.index(c, r)].1
+            };
+            goals.extend(self.world.hello.metal_fields.iter().filter(|f| self.reachable_for(walker, f.centre)).map(|f| micro::RoveGoal { name: f.name.clone(), at: f.centre, seen: seen_at(f.centre), theirs: theirs(f.centre) }));
+            goals.extend(grid.cells().map(|(c, r)| grid.centre(c, r)).filter(|at| self.reachable_for(walker, *at)).map(|at| micro::RoveGoal { name: grid.name(at), at, seen: seen_at(at), theirs: theirs(at) }));
+        }
         if let Some(at) = base.filter(|b| self.reachable_for(walker, *b)) {
-            let seen = (0..spots.len()).filter(|i| spots[*i].dist2d(at) < BASE_RADIUS).filter_map(|i| self.spot_seen(i)).max();
+            let seen = (0..spots.len()).filter(|i| spots[*i].dist2d(at) < BASE_RADIUS).filter_map(|i| self.spot_seen(i)).max().or_else(|| {
+                let (c, r) = self.world.cells.cell_of(at);
+                cell_looks.get(self.world.cells.index(c, r)).and_then(|l| l.1)
+            });
             goals.push(micro::RoveGoal { name: "his base".to_string(), at, seen, theirs: true });
         }
         goals

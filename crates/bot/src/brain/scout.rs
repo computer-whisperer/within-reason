@@ -119,6 +119,12 @@ impl Ground {
 }
 
 impl Brain {
+    /// Every cell of the map's grid as units of ours last saw it (`Ground::looks`), for the rove goals on a map
+    /// without spots.
+    pub(super) fn cell_looks(&self) -> Vec<(f32, Option<i32>)> {
+        self.spots.ground.looks(&self.world.cells)
+    }
+
     /// Sight of a unit type over flat ground: the engine's figure when the shim sends it, else the simulator's table,
     /// else a default.
     pub(super) fn sight_of(&self, def: UnitDefId) -> f32 {
