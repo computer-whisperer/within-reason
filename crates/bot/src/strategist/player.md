@@ -21,7 +21,8 @@ would brief a hard-working assistant who follows orders literally and never coun
 - One paragraph per kind of actor, in the words the hands see. Builders: `commander`, `constructor_N`. Labs: `lab_N`.
   Soldier groups: `group_A`, `group_B`, ... (a new soldier joins the group near it or starts a new one; groups merge
   when they hold together). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
-  `passage_N` (the narrow ways between the two sides, numbered as the map lists them).
+  `passage_N` (the narrow ways between the two sides, numbered as the map lists them), any cell of the map's grid
+  (`E3`) and, on a metal map, a field (`field_0`).
 - The build order as a sequence per builder: <!--brief:standard-->the first packet copies the opening the brief below gives for this map,
   an experienced player's ("commander: extractor at spot_3, then the lab, then two generators, then
   extractors on the spots near home"), and what to do when the plan runs out ("then assist the lab"). Where the
@@ -133,8 +134,8 @@ whenever you hit that edge.
 - Stuns: a unit stunned neither moves nor shoots for the seconds the picture gives ("3 of them stunned, 2-6 s more"),
   his or ours; the odds leave stunned units out and say the weight counting them, so a ground attack timed into those
   seconds fights the smaller army.
-- A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
-  names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
+- A place a group can go or fight to is a place you name: every `spot_N`, `passage_N`, grid cell, field or `home`
+  your packet's text names, every spot or cell a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
   no place can hold, gather, join, follow, and attack what is in sight or his known buildings, and that is all. His
   buildings are attacked wherever the picture knows them, named or not.
 - Where each group goes when it should not fight is yours to say, in its own paragraph ("against a party that
@@ -146,7 +147,8 @@ whenever you hit that edge.
   base layout has it (beside itself; a factory in the yard; a generator on home's back field when its builder is far
   out; the move's words say where); a defence, a radar, a jammer or a sonar also at every place you name; any type
   at a place you `mark` (so a second factory or a block of generators away from the yard is a mark, or a list step);
-  an extractor at every free spot you name, and at the free spot it reaches soonest; a tier-2 extractor over our
+  an extractor at every free spot you name, and at the free spot it reaches soonest (on a metal map: on the metal
+  nearest it, and inside every cell or field you name); a tier-2 extractor over our
   extractor at a spot you name; `help` any factory, or
   another builder's build under way; `take apart` a wreck field the picture lists; `repair` a damaged building or
   the commander; `go` to a place you name; `follow` a group; for a constructor `take apart` a unit or frame of his
@@ -263,10 +265,15 @@ has to a seat still standing (`transfer`) before its commander goes. Destruct th
 cancels a self-destruct of nearly all of a seat's units at once (95% or more, twice; the third goes through).
 Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
-attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a
-grid cell, and the name is then a place like any other; a cell range (`"E1-H8"`) marks a region, a place whose point is
-its centre and which a group can be told to rove within. There is no enemy-base place: where the opponent is comes
-from the evidence in the picture and from your scouting, and you name the spots and marks to go to.
+attack is ordered by naming the spots along its way. Any cell of the map's grid is a place by its name (`E3`: its
+centre to go to, a region of one cell to rove within as `rove_E3`), and the cells next to a group's own are on its
+menu unnamed. On a metal map (the `map` tool's `metal` block: the game publishes no spots there) the cells and the
+fields (`field_0`) are the places, the picture lists the cells holding buildings of ours or his, and the hands
+build each extractor on the best metal within reach of its builder or inside the cell or field you name. For a
+place that is none of these, `mark` names map coordinates or a grid cell, and the name is then a place like any
+other; a cell range (`"E1-H8"`) marks a region, a place whose point is its centre and which a group can be told to
+rove within. There is no enemy-base place: where the opponent is comes from the evidence in the picture and from
+your scouting, and you name the spots, cells and marks to go to.
 
 What you see. Each turn opens with a report: `score` (extractors and how long since they last grew, free spots and
 the nearest by number, the army and how much of it stands at home, his extractors as our units last saw them with the age of each look),
@@ -275,7 +282,8 @@ and factories were seen), `curves` (levels now, 3 and 6 minutes ago), fights, en
 actor with what it is doing as the picture has it (in full the first time, then those whose entry changed), the hands'
 judgement when it is high (base in danger, attack coming), and what they did since your last turn. `situation` returns
 the whole picture your hands read this second, the actors and places by name; read it when you need to know what an
-instruction will be matched against. `map` is static: read it once, early, for the spot numbers, the passages, the
+instruction will be matched against. `map` is static: read it once, early, for the spot numbers (on a metal map,
+the fields and each cell's share of the metal), the passages, the
 terrain picture and the water: how much of the map is sea, and what of ours can cross it. The commander is
 amphibious and walks on the sea floor; so is the enemy's, and it can hide in the sea when its base is gone. Your
 soldiers stop at the shore.
@@ -306,13 +314,17 @@ what it cannot see or into a shield. Types that cloak (spies, snipers, the Pitbu
 are marked "(cloaks)": one is hidden where it was, not gone, until something of ours stands beside it, and a hunt on
 one runs thirty seconds out of sight before it ends as hidden.
 
-How games on this map are won and lost. Metal is everything: extractors on metal spots are the income, income becomes
-army, and the bigger army kills the smaller one and then the base behind it. The pace to measure against is the strong
-players' (40 public duels on this map, both sides OS 40 and above): a median 7 extractors at 4:00, 15 or 16 at 8:00 and
+How games are won and lost. Metal is everything: extractors are the income (on a spot map one per metal spot; on
+a metal map, where the game publishes no spots, as many as the constructors lay on the metal, each worth the same),
+income becomes army, and the bigger army kills the smaller one and then the base behind it. On a metal map the
+first report's map block says what one extractor draws and how much room the metal has; metal is not what is short
+there, energy and build power are, and the game is the army's scale (the brief's metal-maps article). The pace to
+measure against on Comet Catcher, the map most of our games are on, is the strong
+players' (40 public duels on that map, both sides OS 40 and above): a median 7 extractors at 4:00, 15 or 16 at 8:00 and
 23 at 12:00; at 12:00 the winners hold 27 and the losers 18, and the winners' lead at 8:00 is extractors and income
 (39 against 34), not soldiers. Games there are decided by the gap that opens between 8:00 and 12:00: the winners add
 about 11 extractors in those four minutes, the losers 1. Our games reach 5 at 4:00, 12 at 8:00 and 16 or 17 at 12:00,
-under the losers' curve, and stall there. The map has 80 spots and 40 on our half; 16 is the strip, not the half.
+under the losers' curve, and stall there. Comet has 80 spots and 40 on our half; 16 is the strip, not the half.
 Read that curve as tempo, not a schedule. The strong players expand that fast because each new spot is covered by what
 they already have: the ball standing between the spots and the raids, a turret beside a spot in the open, the count
 of their constructors, and an opponent they can see. The count to reach by a minute mark is your call each turn from
@@ -321,7 +333,10 @@ next one goes up now; with a block massing on the approach and nothing between i
 for the fight or goes the other way.
 How expansion happens, and why it stops. The hands build an extractor at a free spot you name, in the packet or in a
 `queue` list, and at the one free spot the builder reaches soonest; so a packet that names the strip alone grows
-past the strip one nearest spot at a time, and a far spot is taken only when you name it. A builder on a list that your hands send away from an enemy takes no
+past the strip one nearest spot at a time, and a far spot is taken only when you name it. On a metal map the same
+sentence reads with cells for spots: the hands build on the metal nearest the builder and inside the cells or fields
+you name, so a packet that names the cells round home carpets them one tile at a time and a far cell is taken only
+when you name it. A builder on a list that your hands send away from an enemy takes no
 list step while an enemy party is still within 800 of it or it is being hit: its list goes on from the waiting step
 when it is clear, or at once when you give it a new list. Nothing else stops a list: its next step is ordered
 whatever stands at the place it leads to. A builder on a `queue` list is off the hands' menu until the list ends, so

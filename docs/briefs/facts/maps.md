@@ -93,6 +93,34 @@ second extractor on a spot the same side already holds (an upgrade in place exce
 be placed a little off for cover and no spot holds two of one side's. Nothing but an extractor is refused on a spot:
 a turret or a solar built there blocks the spot until reclaimed.
 <!--meta
+id: F-map-metal-maps
+layer: fact
+sources: {code: [upstream/Beyond-All-Reason/common/upgets/api_resource_spot_finder.lua:33-40, 207-223 (mex_count -1: the name list and the six-radii strip), upstream/Beyond-All-Reason/luaui/Widgets/cmd_extractor_snap.lua:184, cmd_area_mex.lua:276, luarules/gadgets/cmd_mex_denier.lua:40-44 (off without spots), upstream/RecoilEngine/rts/Map/MetalMap.cpp:98-113, rts/Sim/Units/UnitTypes/ExtractorBuilding.cpp:128-146 (the squares within the radius, at the deepest claim), crates/ai-host/src/metal.rs (the fields, extractor_worth), run/data/maps/speedmetal_bar_v2.sd7 and full_metal_plate_1.7.sd7 mapinfo.lua], games: [speedmetal-probe-1, speedmetal-probe-2, fmp-probe-1, metal-step2-speedmetal-3 (the ledger, 2026-11-01/02)], claims: [K-mech-a-metal-map-publishes-no-spots]}
+status: live
+-->
+### Metal maps: metal everywhere, no spots
+
+On a few maps the metal is not in spots but spread over the ground, and the game publishes no spot list at all (its
+finder gives up on a map on its name list, SpeedMetal among six, or on any metal strip longer than six extractor
+radii); the snapping, the area-mex command and the duplicate-mex refusal switch themselves off with it. An extractor
+then stands anywhere its footprint fits and draws every metal square whose centre lies within the extractor radius
+of it, at its depth, the same rule as on a spot map with the spots gone: a square already claimed yields a later
+extractor only the depth above the claim, so two tier-1 extractors share nothing and an advanced one over a tier-1
+draws the difference. With the radius at 24 or 30 and a mex's footprint 64 wide, touching mexes lose nothing to each
+other: a mex at radius 30 claims twelve squares 80 elmos across and the nearest square a neighbour 64 away could want
+is 40 from its centre. There are no `spot_N` places on such a map; the places are the grid's cells and the fields
+the metal forms, and the first report's map block says what one extractor draws, the fields with their room, and
+each cell's share of the metal. The two such maps we hold: SpeedMetal BAR V2 (13,312 by 2,048 elmos, A1-M2; metal
+scale 10, radius 30, wind a steady 30, no tidal; 48% of its 16-elmo squares carry metal at the full 255, one field
+A1-M2 with room for about 3,180 tier-1 extractors; a tier-1 extractor draws 30.6 metal a second, thirteen Comet
+spots' worth; the corner plateaus A1-B2 and L1-M2 hold 8% of the metal a cell and the highway cells 1-2% each; 15%
+of the map is water) and Full Metal Plate 1.7 (12,288 by 12,288, A1-L12; every square at 79 on scale 7.5, radius 24,
+wind a steady 25, tidal 1; one plate of a field with room for about 36,900 extractors; a tier-1 extractor draws
+2.3 to 2.4 a second, one Comet spot's worth, so the plate rewards the count, not the place). In our games on
+SpeedMetal the constructors laid 22 / 29 / 43 / 53 extractors by 8 / 12 / 16 / 19 minutes for 675 / 767 / 997 / 1,624
+metal a second with the energy store at zero most of the game: thirty extractors draw 90 energy a second before the
+first lab, and the generators, not the metal, set the pace.
+<!--meta
 id: F-map-build
 layer: fact
 sources: {code: [upstream/RecoilEngine/rts/Game/GameHelper.cpp:984-1000 (snapping), 1190-1262 (GetBuildHeight: the floor is the centre square's height, xsize and zsize 1), 1419-1500 (TestBuildSquare: features, units, yardmaps), 1582-1640 (CheckTerrainConstraints: each square within maxHeightDif of the floor either way), upstream/RecoilEngine/rts/Sim/Units/UnitDef.cpp:423-430 (maxHeightDif = 40 tan(maxSlope); water depths), 609, 692 (levelGround), 847-848 (geothermal yardmap), upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:575-577 (maxslope times 1.5, rounded, for every def), 708-714 (terraformspeed set to thirty times the build power), upstream/RecoilEngine/rts/Sim/Units/UnitTypes/Builder.cpp:114, 205-235, 849-867, 890-910 (levelling the footprint; the cost at least three times the height moved), upstream/Beyond-All-Reason/units (maxslope: 276 defs at 10, 81 at 20, 75 at 18, 61 at 16, 50 at 15; maxwaterdepth 0 in 449 defs; armmex.lua no depth limit, category CANBEUW; armtide.lua minwaterdepth 20; armsy.lua 30; armfhp.lua 5; armgeo.lua maxwaterdepth 5; corllt.lua maxslope 10, corgeo.lua 15; armvp.lua:18, corvp.lua:19 levelground false), run/data/maps/great_divide_v1.sd7 mapinfo.lua (notDeformable true)], game: 54199a0d}

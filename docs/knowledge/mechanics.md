@@ -771,7 +771,7 @@ with two mexes and the commander, every solar refused by the spot keep-out; fmp-
 Metal Plate however dense.
 **Would be wrong if.** A metal map with a radius past about 41 (the engine default is 500) were played: there
 neighbours do share squares, and the rule's arithmetic, not its mechanism, changes.
-**Used by.** [[H-ECO-SPOT-CENTROID]] (amended 2026-11-02), `docs/design/2026-11-01-metal-maps.md`.
+**Used by.** [[H-ECO-SPOT-CENTROID]] (amended 2026-11-02), `docs/design/2026-11-01-metal-maps.md`; the player's reading of a metal map (step 3, 2026-11-03): [[H-SCOUT-GLANCE]], [[H-HANDS-NAMED-PLACES]], [[H-REPORT-SIDE-SPOTS]], [[H-REPORT-FREE-SPOTS-BY-REACH]], [[H-REPORT-ALLIES-LINE]] (all amended), the brief's F-map-metal-maps and D-metal-maps.
 
 ### K-hands-a-role-word-named-a-unit-the-plant-cannot-build
 **Claim.** The role words of a `produce` list were the bot lab's units whatever the factory: `raider:5` written before

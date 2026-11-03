@@ -1,10 +1,10 @@
 <!--meta
 id: D-metal-maps
 layer: derived
-premises: [D-late-economy, D-metal-is-the-game, D-energy-second, F-map-metal, F-eco-extractors, F-eco-build, F-eco-conversion, F-eco-consequences, F-unit-armmex, F-unit-armwin, F-unit-armnanotc, F-unit-armvp, M-gecko-duels, M-pool-energy-and-power]
+premises: [D-late-economy, D-metal-is-the-game, D-energy-second, F-map-metal, F-map-metal-maps, F-eco-extractors, F-eco-build, F-eco-conversion, F-eco-consequences, F-unit-armmex, F-unit-armwin, F-unit-armnanotc, F-unit-armvp, M-gecko-duels, M-pool-energy-and-power]
 lessons: [L-gecko-three-resources, L-sheet-economy]
 sources: {people: [thebluegecko], dates: [2026-09-12, 2026-10-30], relay: his two Full Metal Plate 1.7 duels against Artur91 as carded (M-gecko-duels; the replays `2dcaa56a3025256cccfdd7c22622190f` and `51d2a56ad4a0322bfc5192a02066b262`, run/data/maps/full_metal_plate_1.7.sd7 held and not yet read), the pool's energy survey (M-pool-energy-and-power); the rest is arithmetic on the facts}
-status: draft (2026-10-30, for the user's read; in no manifest; two games of one player, the map file unread: the thinnest evidence of any derived article, and it says so)
+status: live (2026-11-03, the metal-maps design step 3: in the rework manifest; the two maps read by the shim and played by our hands, F-map-metal-maps; the play still rests on two games of one player, and the article says so)
 -->
 ### Metal maps: the loop cut
 
@@ -57,9 +57,10 @@ only prices, and the army is counted by the hundred.
 4. *Count his army, not his income.* Why: both sides have metal; the game is decided by the army that arrives first
    at scale, as his loss at 16:27 shows against a side that built 200 tanks on fewer extractors.
 
-**Where it bends.** (1) Which maps: Full Metal Plate is the one in the pool; the map file is held and not yet read,
-so whether its bytes cover the whole plate or a wide band is to be read from it, and a map with metal in bands
-rather than everywhere keeps a part of the spot economy. (2) Tier 2: the advanced extractor's four times the spot
+**Where it bends.** (1) Which maps: Full Metal Plate is the one in the pool, and it is one plate, every square the
+same (F-map-metal-maps), so its places are the grid's cells alone; SpeedMetal is 48% metal in one field whose
+corners hold most of it and whose highway holds little, so there the fight is for the corners and the ground
+between them, and a map with metal in bands rather than everywhere keeps a part of the spot economy. (2) Tier 2: the advanced extractor's four times the spot
 is four times a square's worth too, so the upgrade's price per metal a second is the same ratio as elsewhere, but
 against a 50-metal extractor on the next square it is never the cheaper buy; his tier 2 was plants and gantries, not
 mohos. (3) The late economy's dispersal rules hold with the targets changed: the turbines are the field and the
@@ -69,6 +70,7 @@ plants the block. (4) Reclaim is nothing here: a wreck's metal is a square's few
 are already more than the plants can spend. When the wind is low: the solar's steady 20 at the map's price, read as
 D-energy-second says.
 
-**The tests.** Two games of one player, both read from cards; the map unread. The cheap test when the map is read:
-the metal bytes' coverage and the extractor radius give the metal a second a square, and the two cards' extractor
-counts give the incomes, which should agree. A game of ours on the map would be the first real one.
+**The tests.** Two games of one player, both read from cards. The map is read now (F-map-metal-maps): a tier-1
+extractor on Full Metal Plate draws 2.3 to 2.4 a second, so his 154 extractors at 10:00 were about 360 metal a second,
+and on SpeedMetal our hands' 53 extractors at 19:00 drew 1,624 with the energy store at zero most of the game, the
+generators setting the pace as the mechanism says. A game of ours against a person on either map is still to come.
