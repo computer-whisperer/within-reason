@@ -273,7 +273,37 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    turbines touching a mex were refused four times a game with the engine's own `isPossibleToBuildAt` true. Both
    fixed in fd0ccdc (the stand's tiles first; an exact site asked as the order is). **Judged 2026-11-03 (ledger metal-step3-fmp-1, metal-step3-speedmetal-1, metal-step3-speedmetal-2):** Full Metal Plate **won 13:05** against hard with 74 extractors at 10:00 and 109 at 12:00, every list step a cell, no spot word in 113 outputs; SpeedMetal ran to the 30-minute cap (the player chose turbines, plants and advanced extractors: income 3,246, army 1,038, the push through the gate failed) with no spot word in 366 outputs; on fd0ccdc the opening stood as laid (the lab at 0:24, no site refused) and 14 extractors at 5:00. **Step 3 judged met.** Open from the games: a cell place whose centre is off the group's ground (G2 on SpeedMetal) stops the group at the cliff's foot (aim at the cell's nearest walkable tile; a change to the hands' move, for the user's word); the player's turn cadence over a long game (149 turns, 142 M input tokens in 30 minutes) is a budget question before more such games.
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at
-   5/10/15/20 as the standing numbers are on Comet).
+   5/10/15/20 as the standing numbers are on Comet). **Build plan (2026-11-03), one commit each.** Read first: the
+   territory bot plans over `buildorder`'s `Scenario::spots` (the LP's rings are distance quantiles of that list; the
+   anneal's simulator takes the nearest free one), sites by `free_spot` over `hello.metal_spots` with `SPOT_TAKEN`
+   discs, prices a standing extractor by `spot_amount`, keeps the farm off the spots, and makes its regions from
+   `Game::spots`; on a metal map every one of those lists is empty, so it builds no extractor and its standing ones
+   pay nothing in the plan. The distilled bot took the coverage in step 1 (`free_site`); its army's spot scouting
+   falls back to his start with no spots, left so. (a) `layout::Coverage` gains `tiles(footprint, depth, centre,
+   radius)`: the free lattice of extractor tiles on the build grid at the shim's room stride (64 elmos, so a ring's
+   room agrees with the fields' `room`), each with its unclaimed worth; and `amount_at(centre)`: the metal within the
+   radius with no claim counted, a spot's `amount` for a tile. The planner's extractor options on a metal map are
+   that lattice as the scenario's `spots` (the territory bot's `scenario()` builds it from the coverage each plan,
+   nearest home first, less the dead ground and the allies' claims), so the LP's rings are over the coverage with no
+   change to the program; the rings' quantiles are taken over the nearest `RING_ROOM` tiles (400: a hundred a ring,
+   Comet's shape of twenty spots a ring at growing distances), the rest in the last ring, since quantiles over a
+   plate of 36,864 tiles put every ring at a mean of thousands of elmos and the program would price each extractor at
+   that walk. The hands never see the lattice. (b) The territory bot's hands over the coverage: `Territory::coverage`
+   rebuilt each tick from what stands (ours, the allies', his in sight), `free_spot` becomes `free_site` returning a
+   position (the spot's on a spot map; on a metal map `Coverage::best_site` from the builder within the leash or the
+   named point, the tile allowed when the ground stands for the footprint, it is not dead ground or an ally's claim,
+   it lies in the asked ring, it is out of the factories' lanes and yards and the pending sites, nothing standing or
+   ordered covers it, and it was not refused lately), given to the shim `exact` as the distilled bot's is; `refused`
+   keyed by the site's position on both kinds of map; `pays` from `amount_at`; the opening's three-spot test from
+   the room within the opening radius; the plan request's commander and far-spot walks from the scenario's free
+   options (the nearest `RING_ROOM`); regions none on a metal map (`Game::spots` empty: T-COVER, T-RADAR, T-AIR and
+   T-RACE stay inert there, the regions over cells an open item), his start from his box's centre (`GuessOne` needs
+   spots). (c) The template bot: its one rule over the coverage on a metal map (the nearest free tile, the claims
+   from its own extractors and the tiles it has sent a builder to). (d) The judge: `--our-ai WRTerritory:0.1
+   --opponent NullAI:0.1` on Full Metal Plate, four seeds to 20:00 (`terr365-metal-fmp`), extractors and income at
+   5/10/15/20 from the bot's `curve:` lines (`run/territory_curves.py`); and Comet from thebluegecko's start on the
+   same code (`terr366-metal-comet-his-start`) against the nukes bench's rows (terr358), to show the spot path
+   unchanged.
 
 Each step is a commit with its ledger row; the design is amended where a step finds it wrong.
 
