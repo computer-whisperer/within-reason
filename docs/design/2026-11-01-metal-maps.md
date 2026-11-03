@@ -303,7 +303,21 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    --opponent NullAI:0.1` on Full Metal Plate, four seeds to 20:00 (`terr365-metal-fmp`), extractors and income at
    5/10/15/20 from the bot's `curve:` lines (`run/territory_curves.py`); and Comet from thebluegecko's start on the
    same code (`terr366-metal-comet-his-start`) against the nukes bench's rows (terr358), to show the spot path
-   unchanged.
+   unchanged. **Built 2026-11-03** as planned, commit 09a3d44 (4a-4c in one: the territory bot's pieces lean on each
+   other). The one departure from the plan: the territory bot tests a tile's ground with its own `farm_ground` (slope
+   and height over the footprint), not `layout::Ground`, which builds a whole-map range table per instance.
+   **Judged 2026-11-03 (ledger terr-metal-fmp-smoke, terr365-metal-fmp, terr366-metal-comet-his-start):** Full Metal
+   Plate against NullAI, four seeds: extractors 17-20 / 144-171 / 283-385 / 393-514 at 5 / 10 / 15 / 20, income
+   42-49 / 391-453 / 857-1,294 / 1,633-2,262 (Comet's standing bench 46 / 176 / 465 / 1,005), plans 89-112 ms, no
+   extractor site refused by the host; Comet from thebluegecko's start on the same code 47.4 / 178 / 448 / 1,010
+   against terr358's 46.2 / 176 / 465 / 1,005, every extractor on its spot. The template bot 11 extractors at 4:00.
+   **Step 4 judged met.** Found on the way, open: from 15:00 the territory bot's orders dropped as `held` rise to
+   100-162 a game (12-20 % of the orders), a constructor ordered to a tile 150-400 elmos off standing at the same
+   distance two minutes later, not idle: the carpet walls the vehicle constructors in. §1.3 says the next free tile
+   "along the street grid"; what is built is the next free tile on the 16-elmo build grid, extractors touching.
+   A street rule for the carpet (the room lattice's 64-elmo stride as the siting lattice, or lanes every so many
+   tiles) is a change to `Coverage::best_site`, shared by both regimes and by §3's rejection of a spacing constant,
+   so it is raised to the user, not built.
 
 Each step is a commit with its ledger row; the design is amended where a step finds it wrong.
 
@@ -330,5 +344,13 @@ Each step is a commit with its ledger row; the design is amended where a step fi
   engine, not by us (the `no site` path already re-plans).
 - Metal maps with a large extractor radius (the engine default is 500) where sharing does bite: none installed; the
   rule covers them untested.
+- The carpet's streets (step 4's finding): with hundreds of extractors touching on the 16-elmo build grid, vehicle
+  constructors stand walled in (terr365-metal-fmp, 12-20 % of the orders dropped `held` from 15:00). §1.3's "along
+  the street grid" is not built; §3 rejected a spacing constant for the metal's sake, not for pathing. The candidates:
+  the room lattice (64 elmos, 40 clear between footprints) as `best_site`'s lattice on a metal map, or a lane left
+  every N tiles. For the user's word: a shared-crate change that moves the flagship's extractors too.
+- The territory bot's regions on a metal map are none (`Game::spots` empty), so T-COVER, T-RADAR, T-AIR and T-RACE
+  are inert there, and his start is his box's centre (`GuessOne` needs spots; the game's `GuessTwo` from the metal
+  map is not replayed). The judge against NullAI did not need them; a BARb game on a metal map would.
 - Energy on SpeedMetal: thirty mexes draw 90 energy a second before the first lab; the brief's spending words, or
   the planner's energy line, decide whether the carpet waits for power. A player question, not a code rule.
