@@ -12,6 +12,7 @@ mod air;
 mod army;
 mod economy;
 mod lane;
+mod siting;
 mod nuke;
 mod tier2;
 

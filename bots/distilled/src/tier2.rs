@@ -26,6 +26,8 @@ const BANK_SECONDS: f32 = 90.0;
 /// Builders helping one frame at the most, the commander among them (distilled-t2-smoke-4: an advanced fusion at 830
 /// power against a budget of ten thousand took seven minutes under a cap of six).
 const HELPERS: usize = 12;
+/// Helpers on one frame on a floating bank (D-FLOAT): the bank pays for the power.
+const FLOAT_HELPERS: usize = 24;
 /// A fusion from this metal income when energy is short, an advanced fusion from this with a fusion standing; under
 /// `energy=fusion` the first fusion comes before any tier-2 extractor, from this income.
 const FUSION_FROM: f32 = 35.0;
@@ -37,6 +39,27 @@ const MOHO_ENERGY_STORE: f32 = 0.5;
 const MOHO_ENERGY_SPARE: f32 = 25.0;
 /// Advanced constructors: two first, then one every so many tier-2 units up to this many.
 const ADVANCED_CONSTRUCTORS: usize = 4;
+/// Under `army=off` (the econ bench) the constructors and advanced constructors the plants make, at most: the
+/// territory bot's LP cap of forty queues, which the flagship's econ games (52-95 constructors) ran past.
+pub(crate) const ECON_CONSTRUCTORS: usize = 40;
+const ECON_ADVANCED_CONSTRUCTORS: usize = 20;
+/// D-FLOAT: metal banked beyond this is floating, and goes into converters and the energy for them (the econ bench
+/// dist76: 15,000 banked at 15:00 and 34,000 at 20:00 with one converter and one fusion, the advanced constructors
+/// helping frames; the flagship's econ games raised 23 fusions and 84-161 converters). A floating bank admits this
+/// many converters, and this many reactors going up at once.
+pub(crate) const FLOAT: f32 = 2000.0;
+const FLOAT_CONVERTERS_AT_MOST: usize = 80;
+const FLOAT_REACTORS_AT_ONCE: usize = 2;
+const FLOAT_REACTORS_AT_MOST: usize = 2;
+const ENERGY_FULL_FOR_REACTORS: f32 = 0.9;
+/// The advanced fusion (9,700 metal, 312,500 build time for 3,000 energy) only once the bank holds this many of its
+/// bills: the fusion (3,350, 54,000 for 750) is the same energy a metal and raised four times as fast, and the
+/// flagship's econ games raised 23 of them by 20:00.
+const ADVANCED_FUSION_BANKS: f32 = 2.0;
+/// Converters going up at once on a floating bank, at most: each is sized by the steady spare (dist81: eight at once
+/// on a full store drained it by 9,000 energy of build and starved the tier-2 extractors; one game made no tier-2
+/// extractor at all and stalled at seven advanced constructors).
+const FLOAT_CONVERTERS_AT_ONCE: usize = 16;
 const ADVANCED_CONSTRUCTOR_EVERY: usize = 8;
 /// Converters run only above 75% of energy storage (K-mech-converter-threshold), so one is built only while the store
 /// is over that level and the surplus would feed it; never while a free spot is left to take.
@@ -104,11 +127,18 @@ pub(crate) struct Options {
     pub air: bool,
     /// `nuke=off`: no silo (D-NUKE, `nuke.rs`, 2026-10-27).
     pub nuke: bool,
+    /// `army=off`: the econ-only bench (NullAI, 20 minutes): the plants make constructors alone, up to
+    /// `ECON_CONSTRUCTORS`, the advanced plants advanced constructors alone; no scouts, no aircraft plant, no silo, and
+    /// the army rules idle (2026-11-03, the user: the 20-minute econ-only games as the benchmark of building production).
+    pub army: bool,
+    /// `layout=off`: the buildings sited by the rules' own points and the engine's search instead of the base layout
+    /// engine (D-LAYOUT, `siting.rs`, 2026-11-03).
+    pub layout: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true }
     }
 }
 
@@ -142,15 +172,23 @@ impl Options {
                 ("received", v) => options.received = v != "off",
                 ("air", v) => options.air = v != "off",
                 ("nuke", v) => options.nuke = v != "off",
+                ("army", v) => options.army = v != "off",
+                ("layout", v) => options.layout = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
+        }
+        // No army, no field: the advanced plant on income alone.
+        if !options.army {
+            options.air = false;
+            options.nuke = false;
+            options.gate = Gate::Income;
         }
         options
     }
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -166,7 +204,11 @@ impl Options {
             self.raiders,
             if self.received { "on" } else { "off" },
             if self.air { "on" } else { "off" },
-            if self.nuke { "on" } else { "off" }
+            if self.nuke { "on" } else { "off" },
+
+            if self.army { "on" } else { "off" },
+
+            if self.layout { "on" } else { "off" }
         )
     }
 }
@@ -178,9 +220,14 @@ impl Distilled {
 
     /// The current project: the dearest unfinished advanced plant, fusion, advanced fusion or silo of ours.
     pub(crate) fn project_frame(&self) -> Option<&OwnUnit> {
-        let defs = self.project_defs();
         let cost = |u: &OwnUnit| self.def(u.def).map_or(0.0, |d| d.metal_cost);
-        self.own.values().filter(|u| u.being_built && defs.contains(&Some(u.def))).max_by(|a, b| cost(a).total_cmp(&cost(b)))
+        self.project_frames().max_by(|a, b| cost(a).total_cmp(&cost(b)))
+    }
+
+    /// Every project frame of ours going up (several reactors at once under D-FLOAT).
+    pub(crate) fn project_frames(&self) -> impl Iterator<Item = &OwnUnit> {
+        let defs = self.project_defs();
+        self.own.values().filter(move |u| u.being_built && defs.contains(&Some(u.def)))
     }
 
     /// A project is under way: its frame stands, or a builder has been told to place one.
@@ -206,11 +253,19 @@ impl Distilled {
         def.build_time * spend / def.metal_cost.max(1.0)
     }
 
-    /// A builder joins the project while the power on it is under what it can use and the helpers are few.
+    /// A builder joins a project while the power on it is under what it can use and the helpers are few: the frame
+    /// with the least of its wanted power first (several reactors go up at once under D-FLOAT; with one frame helped
+    /// the others were raised alone, an advanced fusion at 20-59 % at 20:00, dist82).
     pub(crate) fn project_help(&self, tick: &Tick) -> Option<Job> {
-        let frame = self.project_frame()?;
-        let helping = self.economy.working_on(|job| matches!(job, Job::Help(target) if target == frame.id));
-        (helping < HELPERS && self.power_on(frame) < self.power_wanted(frame, tick)).then_some(Job::Help(frame.id))
+        let helpers = if tick.snapshot.metal.current >= FLOAT { FLOAT_HELPERS } else { HELPERS };
+        self.project_frames()
+            .filter_map(|frame| {
+                let helping = self.economy.working_on(|job| matches!(job, Job::Help(target) if target == frame.id));
+                let (on, wanted) = (self.power_on(frame), self.power_wanted(frame, tick));
+                (helping < helpers && on < wanted).then_some((on / wanted.max(1.0), frame.id))
+            })
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, id)| Job::Help(id))
     }
 
     /// What the project's frame draws in energy: the power on it at full speed, but no more than the metal it can get
@@ -306,6 +361,11 @@ impl Distilled {
         {
             return Some(job);
         }
+        // D-FLOAT: a bank nothing else spends becomes converters, and the reactors that feed them, before the extractors
+        // (an advanced converter is 380 metal for ten a second; a tier-2 extractor 620 for one or two).
+        if let Some(job) = self.float_job(builder, tick) {
+            return Some(job);
+        }
         // The tier-2 extractor is what only an advanced constructor can build, so it comes before helping a frame
         // (distilled-t2-smoke-3: both sat on a fusion for twelve minutes and one extractor was upgraded).
         let energy_for_moho = energy.current >= MOHO_ENERGY_STORE * energy.storage || energy.income - energy.usage >= MOHO_ENERGY_SPARE;
@@ -332,6 +392,57 @@ impl Distilled {
         Some(Job::Assist)
     }
 
+    /// D-FLOAT: with `FLOAT` metal banked, an advanced converter while the energy income is spare for it beyond the
+    /// converters going up, else a reactor for the next ones (the advanced fusion when the bank holds its bill, else
+    /// the fusion), at most `FLOAT_REACTORS_AT_ONCE` going up; nothing while the bank is below the kind's bill.
+    fn float_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
+        let kit = &self.kit;
+        let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
+        if !self.options.converters || metal.current < FLOAT {
+            return None;
+        }
+        let can = |def: Option<UnitDefId>| def.is_some_and(|d| builder.build_options.contains(&d));
+        let bill = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).map_or(f32::MAX, |d| d.metal_cost);
+        let converters = self.count(kit.converter) + self.count(kit.advanced_converter);
+        let converters_under_way = self.economy.working_on(|job| matches!(job, Job::Converter | Job::AdvancedConverter));
+        let spare = self.steady_spare(tick);
+        if can(kit.advanced_converter) && metal.current >= bill(kit.advanced_converter) && spare >= ADVANCED_CONVERTER_FEED * (1 + converters_under_way) as f32 && converters < FLOAT_CONVERTERS_AT_MOST {
+            return Some(Job::AdvancedConverter);
+        }
+        // Reactors going up at once: as many as the bank holds fusions' bills, between two and the cap (dist83: up to
+        // six, 2-6 advanced fusions going up at 20:00, took the helpers from the converters and the income fell to 569
+        // from 624; the cap is two again, the energy store being the measure of want).
+        // No reactor while the energy store is full: its energy would be thrown away until the converters catch up
+        // (dist83: six advanced fusions going up with 36,000 energy stored).
+        if energy.current >= ENERGY_FULL_FOR_REACTORS * energy.storage {
+            return None;
+        }
+        let reactors_under_way = self.economy.working_on(|job| matches!(job, Job::Fusion | Job::AdvancedFusion)) + self.own.values().filter(|u| u.being_built && (Some(u.def) == kit.fusion || Some(u.def) == kit.advanced_fusion)).count();
+        let at_once = ((metal.current / bill(kit.fusion).min(bill(kit.advanced_fusion))) as usize).clamp(FLOAT_REACTORS_AT_ONCE, FLOAT_REACTORS_AT_MOST);
+        if reactors_under_way >= at_once {
+            return None;
+        }
+        if can(kit.advanced_fusion) && metal.current >= ADVANCED_FUSION_BANKS * bill(kit.advanced_fusion) {
+            return Some(Job::AdvancedFusion);
+        }
+        if can(kit.fusion) && metal.current >= bill(kit.fusion) {
+            return Some(Job::Fusion);
+        }
+        if can(kit.advanced_fusion) && metal.current >= bill(kit.advanced_fusion) {
+            return Some(Job::AdvancedFusion);
+        }
+        None
+    }
+
+    /// The energy income spare over what the standing economy draws steadily: the finished units' upkeep and the
+    /// finished converters' feed. The engine's usage figure carries the frames' draw too (an advanced fusion going
+    /// up draws thousands), which read as no spare for a converter while the store sat full (dist79), and a full store
+    /// read as spare for eight converters at once, which starved the extractors (dist81).
+    pub(crate) fn steady_spare(&self, tick: &Tick) -> f32 {
+        let upkeep: f32 = self.own.values().filter(|u| !u.being_built).filter_map(|u| self.def(u.def)).map(|d| d.energy_upkeep.max(0.0) + d.converter.map_or(0.0, |c| c.capacity)).sum();
+        tick.snapshot.energy.income - upkeep
+    }
+
     /// D-T2-MOHO: the finished tier-1 extractor of ours nearest home with no tier-2 frame on it, not refused lately,
     /// no armed enemy near it, and not another builder's.
     fn moho_target(&self, tick: &Tick) -> Option<UnitId> {
@@ -347,12 +458,19 @@ impl Distilled {
     }
 
     /// D-CONVERT: with no free spot left to take, surplus energy becomes metal: a tier-1 converter while the store is
-    /// over the converters' level and the surplus would feed one more.
+    /// over the converters' level (or metal floats, D-FLOAT) and the surplus would feed one more.
     pub(crate) fn saturated_job(&self, tick: &Tick) -> Option<Job> {
-        let energy = tick.snapshot.energy;
+        let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let converters = self.count(self.kit.converter) + self.count(self.kit.advanced_converter);
-        let wanted = self.options.converters && self.kit.converter.is_some() && energy.current > CONVERTER_LEVEL * energy.storage && energy.income - energy.usage > CONVERTER_FEED && converters < CONVERTERS_AT_MOST;
-        (wanted && self.economy.working_on(|job| matches!(job, Job::Converter | Job::AdvancedConverter)) == 0).then_some(Job::Converter)
+        let floating = metal.current >= FLOAT;
+        let at_most = if floating { FLOAT_CONVERTERS_AT_MOST } else { CONVERTERS_AT_MOST };
+        let under_way = self.economy.working_on(|job| matches!(job, Job::Converter | Job::AdvancedConverter));
+        let spare = self.steady_spare(tick) - CONVERTER_FEED * under_way as f32;
+        let wanted = self.options.converters && self.kit.converter.is_some() && (floating || energy.current > CONVERTER_LEVEL * energy.storage) && spare > CONVERTER_FEED && converters < at_most;
+        // One at a time on a measured surplus; on a floating bank as many as the steady spare feeds, to a cap (37
+        // constructors assisted idle plants at one converter a time, dist79).
+        let at_once = if floating { FLOAT_CONVERTERS_AT_ONCE } else { 1 };
+        (wanted && under_way < at_once).then_some(Job::Converter)
     }
 
     /// `power=ring`: construction turrets within reach of the project's frame, up to `RING`, one builder at a time.
@@ -380,6 +498,10 @@ impl Distilled {
         if kit.advanced_constructor.is_some() && (advanced < 2 || (advanced < ADVANCED_CONSTRUCTORS && economy.since_advanced_constructor >= ADVANCED_CONSTRUCTOR_EVERY)) {
             economy.since_advanced_constructor = 0;
             return kit.advanced_constructor;
+        }
+        // `army=off`: advanced constructors alone, to the econ cap.
+        if !self.options.army {
+            return (advanced < ECON_ADVANCED_CONSTRUCTORS).then_some(kit.advanced_constructor).flatten();
         }
         economy.since_advanced_constructor += 1;
         if swarm {

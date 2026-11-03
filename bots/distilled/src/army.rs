@@ -228,6 +228,10 @@ impl Distilled {
     }
 
     pub(crate) fn run_army(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
+        // `army=off` (the econ bench): nothing is enlisted and nothing moves.
+        if !self.options.army {
+            return;
+        }
         self.remember(tick);
         self.enlist();
         self.run_scouts(commands);

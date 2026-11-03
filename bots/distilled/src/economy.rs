@@ -24,6 +24,9 @@ const GRACE: i32 = 45;
 /// minute instead.
 const DROPPED: i32 = 3 * SECOND;
 const HELD: i32 = 2 * MINUTE;
+/// An order this old with no frame of ours in the builder's reach is dropped whether the builder stands still or not
+/// (dist82: the commander walked at one solar order for 744 s, jammed among its own buildings, never still).
+const HELD_LONG: i32 = 5 * MINUTE;
 const ATTEMPTS: u32 = 4;
 /// How often a builder that is assisting is asked whether something better has come up.
 const ASSIST_REVIEW: i32 = 10 * SECOND;
@@ -185,6 +188,8 @@ impl Job {
 
 pub(crate) struct Order {
     pub(crate) job: Job,
+    /// The slot the layout layer chose for it, and its facing (D-LAYOUT, `siting.rs`): ground taken until the frame begins.
+    pub(crate) site: Option<(Vec3, i32)>,
     since: i32,
     /// Since when the builder has stood still on it (D-ORDERS).
     still_since: Option<i32>,
@@ -206,6 +211,8 @@ enum Review {
 
 pub(crate) struct Economy {
     pub(crate) orders: BTreeMap<UnitId, Order>,
+    /// Per kind, the minute the layer's refusal was last said (D-LAYOUT).
+    layout_said: std::cell::RefCell<BTreeMap<UnitDefId, i32>>,
     /// Per builder, orders refused or dropped in a row, and the frame until which it is sidelined (D-ORDERS).
     attempts: BTreeMap<UnitId, u32>,
     sidelined: BTreeMap<UnitId, i32>,
@@ -244,7 +251,7 @@ pub(crate) struct Economy {
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new() }
+        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new() }
     }
 
     /// An extractor site that came to nothing is left alone until `until`.
@@ -395,10 +402,11 @@ impl Distilled {
                 eprintln!("[distilled ai={}] f={} unit {} cannot build {job:?}: helping instead", self.hello.ai_id, self.frame, unit.id.0);
                 job = Job::Assist;
             }
+            let mut site = None;
             if !(matches!(job, Job::Assist | Job::AirAssist) && was == Some(job) && !unit.idle) {
-                self.order(&unit, job, commands);
+                site = self.order(&unit, job, tick, commands);
             }
-            self.economy.orders.insert(unit.id, Order { job, since: self.frame, still_since: None });
+            self.economy.orders.insert(unit.id, Order { job, site, since: self.frame, still_since: None });
         }
     }
 
@@ -450,7 +458,7 @@ impl Distilled {
         }
         let still = unit.vel.x.hypot(unit.vel.z) < 0.05;
         order.still_since = if still { order.still_since.or(Some(frame)) } else { None };
-        let stuck = order.still_since.is_some_and(|since| frame - since >= HELD);
+        let stuck = order.still_since.is_some_and(|since| frame - since >= HELD) || age >= HELD_LONG;
         if stuck && !self.frame_beside(unit) { Review::Held } else { Review::Busy }
     }
 
@@ -540,6 +548,15 @@ impl Distilled {
         if self.air_plant_wanted(def) {
             return Some(Job::AirPlant);
         }
+        // D-FLOAT: on a floating bank a converter on the spare before a hand on a reactor's frame (dist83: 39
+        // constructors helping six reactor frames with the energy store full and 21-43 converters, against 43-59 with
+        // the helpers capped); before the bank floats the converter keeps its place after the expansion (dist84: the
+        // rung ahead of the extractors put converters up at 5:00 and the income at 5:00 fell from 35 to 23).
+        if tick.snapshot.metal.current >= crate::tier2::FLOAT
+            && let Some(job) = self.saturated_job(tick)
+        {
+            return Some(job);
+        }
         if let Some(help) = self.project_help(tick) {
             return Some(help);
         }
@@ -554,7 +571,10 @@ impl Distilled {
         if let Some(job) = self.build_power_wanted(def, tick) {
             return Some(job);
         }
-        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
+        // D-FLOAT for the tier-1 constructors: with the spots taken and no spare for a converter, an advanced solar for
+        // the next one (80 energy a second for 350 metal) rather than assisting an idle plant (23-30 of them, dist82).
+        let float_energy = || (tick.snapshot.metal.current >= crate::tier2::FLOAT && self.steady_spare(tick) < CONSTRUCTOR_ENERGY_PER_EXTRACTOR * 4.0 && def.build_options.contains(&self.kit.advanced_solar?)).then_some(Job::AdvancedSolar);
+        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(float_energy).or_else(assist)
     }
 
     /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
@@ -660,6 +680,12 @@ impl Distilled {
         // it before 2:30).
         let short = self.frame >= BUILD_POWER_FROM && self.can_spend() < SOLDIERS_SHARE * (metal.income - self.builders_draw()).max(0.0);
         if !short && !piling {
+            return None;
+        }
+        // `army=off` (the econ bench): the plants make constructors alone, so two plants with a turret each are the
+        // build power; a floating bank goes to converters and reactors (D-FLOAT), not to a pile of turrets (dist76:
+        // 60 construction turrets and 4 advanced plants at 20:00 on a bank of 34,000).
+        if !self.options.army && self.count(self.kit.plant) >= 2 && self.count(self.kit.turret) >= 2 {
             return None;
         }
         // The aircraft plant counts among the plants, and is one to add power to while the fighters are short
@@ -803,8 +829,29 @@ impl Distilled {
         (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b))).map(Site::Spot)
     }
 
-    fn order(&self, unit: &OwnUnit, job: Job, commands: &mut Vec<Command>) {
+    /// The job's order to the engine. Returns the slot the layout layer chose, when it placed the building
+    /// (D-LAYOUT, `siting.rs`: the kinds with a band, under `layout=on`); every other site is the engine's search
+    /// round a point of the rule's, as before the layer.
+    fn order(&self, unit: &OwnUnit, job: Job, tick: &Tick, commands: &mut Vec<Command>) -> Option<(Vec3, i32)> {
         let build = |def: Option<UnitDefId>, site: BuildSite, queue: bool| def.map(|def| Command::Build { unit: unit.id, def, site: Some(site), queue });
+        if self.options.layout && self.band_for(job, unit).is_some() {
+            let world = self.layout_world(tick);
+            match self.layout_site(&world, job, unit) {
+                Ok((at, facing)) => {
+                    commands.extend(build(job.def(&self.kit), Self::slot_site(at, facing), false));
+                    return Some((at, facing));
+                }
+                // Said once a minute per kind: the layer is asked again at every order of the kind (dist77: 382 lines
+                // for one turret site in a game).
+                Err(why) => {
+                    if let Some(def) = job.def(&self.kit)
+                        && self.economy.layout_said.borrow_mut().insert(def, self.frame / MINUTE) != Some(self.frame / MINUTE)
+                    {
+                        eprintln!("[distilled ai={}] f={} no layout site for {job:?} for unit {}: {why}; the engine's search", self.hello.ai_id, self.frame, unit.id.0);
+                    }
+                }
+            }
+        }
         // Nothing is built in a plant's exit lane, and a plant faces the enemy: its units leave through its front.
         let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.exit_lanes() }];
         match job {
@@ -818,7 +865,7 @@ impl Distilled {
                 // Apex cost 12,900 energy, more than the thirteen solars of the same minutes made).
                 let toward = ((at.x - self.home.x) * (self.enemy_home.x - self.home.x) + (at.z - self.home.z) * (self.enemy_home.z - self.home.z)) / self.home.dist2d(self.enemy_home).max(1.0).powi(2);
                 let shared = self.own.values().any(|u| Some(u.def) == self.kit.sentry && u.pos.dist2d(at) < SENTRY_SHARED);
-                if at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
+                if self.options.army && at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
                     commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new(), exact: false }, true));
                 }
             }
@@ -837,7 +884,7 @@ impl Distilled {
                 commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements(), exact: false }, false));
             }
             Job::Turret(target) => {
-                let Some(target) = self.own.get(&target) else { return };
+                let Some(target) = self.own.get(&target) else { return None };
                 let plant = Some(target.def) == self.kit.plant || Some(target.def) == self.kit.advanced_plant || Some(target.def) == self.kit.air_plant;
                 // Behind a plant, away from its front; after a refusal to its left, its right, then its front (the
                 // exit lane is kept out of); round a project's frame, inside the turret's reach of it.
@@ -879,7 +926,7 @@ impl Distilled {
             Job::Help(target) => commands.push(Command::Repair { unit: unit.id, target, queue: false }),
             Job::Moho(target) => {
                 // Over the extractor, where the engine lets the tier-2 one replace it (K-mech-tier-2-extractor-stands-on-ours).
-                let Some(extractor) = self.own.get(&target) else { return };
+                let Some(extractor) = self.own.get(&target) else { return None };
                 commands.extend(build(self.kit.moho, BuildSite { near: extractor.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }, false));
             }
             Job::Assist => {
@@ -887,6 +934,7 @@ impl Distilled {
                 commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
             }
         }
+        None
     }
 
     /// The back field: 450 behind home, away from the enemy; on the next attempts the same distance to the left of
@@ -957,7 +1005,11 @@ impl Distilled {
         let minutes = self.frame as f32 / MINUTE as f32;
         let by_clock = if minutes < 3.0 { 3 } else { (3.0 + 1.2 * (minutes - 3.0)) as usize };
         let by_income = (self.metal_income / CONSTRUCTOR_PER_INCOME) as usize;
-        let constructors_wanted = by_clock.max(by_income).min(14);
+        let constructors_wanted = by_clock.max(by_income).min(if self.options.army { 14 } else { crate::tier2::ECON_CONSTRUCTORS });
+        // `army=off` (the econ bench): constructors alone.
+        if !self.options.army {
+            return (constructors < constructors_wanted).then_some(kit.constructor).flatten();
+        }
         let between = if constructors < 3 { 2 } else { 4 };
         let economy = &mut self.economy;
         economy.made += 1;
