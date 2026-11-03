@@ -89,8 +89,9 @@ const EVEN: f32 = 1.5;
 /// A cell with less than this share of the map's metal is left off the by-cell list.
 const CELL_SHARE_FLOOR: f32 = 0.005;
 
-/// Each cell's share of the map's metal, by the squares' values, cells with none left out, in the grid's order.
-pub fn metal_by_cell(terrain: &Terrain, grid: &crate::Grid) -> Vec<(String, f32)> {
+/// Each cell's share of the map's metal, by the squares' values, indexed as the grid indexes its cells; empty when
+/// the terrain carries no metal.
+pub fn metal_shares(terrain: &Terrain, grid: &crate::Grid) -> Vec<f32> {
     let width = terrain.width as usize;
     let mut by_cell = vec![0f64; grid.count()];
     for (i, v) in terrain.metal.iter().enumerate().filter(|(_, v)| **v > 0) {
@@ -102,7 +103,17 @@ pub fn metal_by_cell(terrain: &Terrain, grid: &crate::Grid) -> Vec<(String, f32)
     if total <= 0.0 {
         return Vec::new();
     }
-    grid.cells().filter(|(c, r)| by_cell[grid.index(*c, *r)] > 0.0).map(|(c, r)| (crate::Grid::name_of(c, r), (by_cell[grid.index(c, r)] / total) as f32)).collect()
+    by_cell.iter().map(|v| (v / total) as f32).collect()
+}
+
+/// The cells with metal, named, with their shares, in the grid's order (`metal_shares` by name).
+pub fn named_shares(shares: &[f32], grid: &crate::Grid) -> Vec<(String, f32)> {
+    grid.cells().filter(|(c, r)| shares.get(grid.index(*c, *r)).is_some_and(|s| *s > 0.0)).map(|(c, r)| (crate::Grid::name_of(c, r), shares[grid.index(c, r)])).collect()
+}
+
+/// Each cell's share of the map's metal, cells with none left out, in the grid's order.
+pub fn metal_by_cell(terrain: &Terrain, grid: &crate::Grid) -> Vec<(String, f32)> {
+    named_shares(&metal_shares(terrain, grid), grid)
 }
 
 /// The by-cell shares in words: "evenly over every cell (0.7 % each)" when every cell has metal and the shares are

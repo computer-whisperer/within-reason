@@ -236,6 +236,18 @@ impl Brain {
         for (i, s) in self.world.hello.metal_spots.iter().enumerate() {
             spots[index_of(*s)].push(i);
         }
+        // The extractors standing in each cell, ours, allied and his as seen (the metal-maps design §1.4: on a
+        // metal map the cell's metal share and its extractors stand in for the spot list).
+        let mut extractors = vec![[0usize; 3]; grid.count()];
+        for u in tick.snapshot.own_units.iter().filter(|u| self.world.is_extractor_def(u.def)) {
+            extractors[index_of(u.pos)][0] += 1;
+        }
+        for a in self.allies.iter().filter(|a| self.world.def(a.def).is_some_and(|d| d.extracts_metal > 0.0)) {
+            extractors[index_of(a.pos)][1] += 1;
+        }
+        for (_, pos, _) in self.enemy_buildings.values().filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) {
+            extractors[index_of(*pos)][2] += 1;
+        }
         let mut contacts = vec![0usize; grid.count()];
         for e in tick.snapshot.enemies.iter().filter(|e| e.def.is_none()) {
             contacts[index_of(e.pos)] += 1;
@@ -254,6 +266,8 @@ impl Brain {
                     his_commander: commander_in == Some(i),
                     in_his_box: boxes.iter().any(|b| b.contains(centre)),
                     spots: std::mem::take(&mut spots[i]),
+                    metal_share: self.cell_metal.get(i).copied().unwrap_or(0.0),
+                    extractors: extractors[i],
                     radar_share: radar.as_ref().map(|r| r[i]),
                     contacts: contacts[i],
                     jammed: rings.iter().any(|(at, jam)| at.dist2d(centre) <= *jam),

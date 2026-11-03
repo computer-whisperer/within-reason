@@ -68,8 +68,11 @@ pub struct Briefing {
     /// Our side's commanders standing, and the seats the side started with (one commander each).
     pub side_commanders: (usize, usize),
     /// Metal spots nearer our side's start box than his, the map's total, and the seats of our side sharing them;
-    /// None without both boxes (H-REPORT-SIDE-SPOTS).
+    /// None without both boxes (H-REPORT-SIDE-SPOTS), and None on a metal map.
     pub side_spots: Option<(usize, usize, usize)>,
+    /// On a metal map: the percent of the map's metal lying in cells nearer our side's start box than his, and the
+    /// seats of our side sharing it; None without both boxes (the metal-maps design §1.4).
+    pub side_metal: Option<(u32, usize)>,
 }
 
 /// An allied seat's economy and army as our units see them (allies share sight), for the report's `allies` line.
@@ -225,6 +228,10 @@ pub struct CellLook {
     pub in_his_box: bool,
     /// The metal spots in the cell, by number.
     pub spots: Vec<usize>,
+    /// On a metal map: the cell's share of the map's metal (0 on a spot map, and in a cell without metal).
+    pub metal_share: f32,
+    /// The extractors standing in the cell: ours, allied, and his as our units last saw them.
+    pub extractors: [usize; 3],
     /// The share of the cell under our radar now, from the engine's grid (`Snapshot::sensors`, terrain-cut); None
     /// without the grid (a shim before 2026-10-18).
     pub radar_share: Option<f32>,
@@ -374,6 +381,12 @@ pub struct Score {
     /// never where, and the whole army went four times at a strip where nothing of his stood, his extractors being
     /// on the D1-E4 column and at his start.)
     pub enemy_spots: Vec<(usize, Place, i32)>,
+    /// On a metal map (no spots; the metal-maps design §1.4): room for about this many more tier-1 extractors on
+    /// the metal (the fields' room less the extractors standing, ours, allied and his as seen); None on a spot map.
+    pub room: Option<u32>,
+    /// On a metal map: his extractors as our units last saw them, by cell: the cell, how many stood in it, and the
+    /// game seconds since the youngest look; nearest our start first.
+    pub enemy_extractor_cells: Vec<(String, usize, i32)>,
     pub soldiers: usize,
     pub army_metal: u32,
     pub soldiers_near_home: usize,

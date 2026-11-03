@@ -808,6 +808,7 @@ impl Brain {
             game_end,
             side_commanders,
             side_spots: self.side_spots(),
+            side_metal: self.side_metal(),
             seats: Vec::new(),
             build_power: self.build_power(&snapshot.own_units),
             spending: self.spending(&snapshot.own_units),
@@ -950,8 +951,7 @@ impl Brain {
     /// The `map` tool's answer before the game: what does not depend on where we start.
     fn map_before_the_game(&self) -> serde_json::Value {
         let hello = &self.world.hello;
-        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
-        json!({
+        let mut map = json!({
             "people": self.people_description(),
             "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
             "grid": self.world.cells.description(),
@@ -960,8 +960,33 @@ impl Brain {
                 "ally_team": b.ally_team, "ours": b.ally_team == hello.ally_team, "cells": self.world.box_cells(b),
                 "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
             })).collect::<Vec<_>>(),
-            "metal_spots": spots,
-            "note": "spot_N is metal spot n. The walking distances from our start, the terrain sketch, the water and the passages come with the first report of the running game, when our start is known.",
+            "note": "The walking distances from our start, the terrain sketch, the water and the passages come with the first report of the running game, when our start is known.",
+        });
+        if hello.map.metal_map {
+            map["metal"] = self.metal_description();
+        } else {
+            map["metal_spots"] = json!(hello.metal_spots.iter().enumerate().map(|(n, s)| json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect::<Vec<_>>());
+            map["metal_spots_note"] = json!("spot_N is metal spot n");
+        }
+        map
+    }
+
+    /// A metal map's metal for the `map` tool (the metal-maps design §1.4): no spots; what an extractor draws
+    /// anywhere on the metal, the fields with their cells and room, each cell's share, and how a place is named.
+    fn metal_description(&self) -> serde_json::Value {
+        let hello = &self.world.hello;
+        let grid = &self.world.cells;
+        let shares = terrain::sheet::named_shares(&self.cell_metal, grid);
+        json!({
+            "metal_map": true,
+            "extractor_worth": format!("{:.1}", hello.map.extractor_worth),
+            "comet_spots_worth": format!("{:.1}", hello.map.extractor_worth / 2.3),
+            "fields": hello.metal_fields.iter().map(|f| json!({
+                "name": f.name, "cells": terrain::Grid::words(grid.cells_touching(f.bounds[0], f.bounds[1], f.bounds[2], f.bounds[3])),
+                "centre": self.place(f.centre), "room": f.room, "filled_draws_a_second": (f.room as f32 * hello.map.extractor_worth).round() as i32,
+            })).collect::<Vec<_>>(),
+            "by_cell": terrain::sheet::cell_share_words(&shares, grid.count()),
+            "note": format!("A metal map: the game publishes no metal spots, and there are no spot_N places. An extractor stands anywhere on the metal and draws {:.1} metal a second ({:.1} Comet Catcher spots' worth), so metal is not what is short here; energy and build power are. Your hands site each extractor on the best metal within reach of the builder: a bare `extractor` list step or the builder's own move takes the metal nearest it, `extractor <cell>` or `extractor <field>` takes the best tile inside that cell or field. Places on this map are the grid's cells and the fields: name a cell (E3) or a field (field_0) in the packet or a list step and it is on the hands' menu, however far (walk, advance, rove within it as `rove_E3`); the report's scouting block gives each cell's share of the metal and the extractors standing in it, ours, allied and his as seen.", hello.map.extractor_worth, hello.map.extractor_worth / 2.3),
         })
     }
 
@@ -1028,6 +1053,11 @@ impl Brain {
 
     fn map_description(&self) -> serde_json::Value {
         let map = &self.world.hello.map;
+        let mut description = self.map_description_common();
+        if map.metal_map {
+            description["metal"] = self.metal_description();
+            return description;
+        }
         let spots: Vec<_> = self
             .world
             .hello
@@ -1048,6 +1078,17 @@ impl Brain {
                 entry
             })
             .collect();
+        description["metal_spots"] = json!(spots);
+        description["metal_spots_summary"] = json!(self.spots_summary());
+        description["metal_spots_note"] = json!("n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there, and `reached_by` says what of ours can: our commander from the first minute, and the amphibious, hover and ship constructors once a plant makes them) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it");
+        description
+    }
+
+    /// The first report's map, the part a spot map and a metal map share.
+    fn map_description_common(&self) -> serde_json::Value {
+        let map = &self.world.hello.map;
+        let whose = if map.metal_map { "whose metal is whose by walk" } else { "whose spots are whose by walk" };
+        let expansion = if map.metal_map { "the seconds from each start to the nearest metal" } else { "how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds" };
         json!({
             "name": map.name, "width": map.width, "height": map.height,
             "grid": self.world.cells.description(),
@@ -1061,13 +1102,10 @@ impl Brain {
                 _ if self.boxes_honoured => "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
                 _ => "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is",
             },
-            "metal_spots": spots,
-            "metal_spots_summary": self.spots_summary(),
-            "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there, and `reached_by` says what of ours can: our commander from the first minute, and the amphibious, hover and ship constructors once a plant makes them) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
             "people": self.people_description(),
             "sheet": self.map_sheet(),
-            "sheet_note": "the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to his start as the lobby gave it (the script's position, or the centre of his box), whose spots are whose by walk, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds",
+            "sheet_note": format!("the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to his start as the lobby gave it (the script's position, or the centre of his box), {whose}, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and {expansion}"),
             "water": self.water_description(),
             "passages": self.passages().iter().map(|p| json!({ "at": self.place(p.at), "width": p.width as i32, "share_of_the_way_from_our_start": (p.along * 100.0) as i32 })).collect::<Vec<_>>(),
             "passages_note": "narrow places every walking route between our start and the opponent's goes through (cliffs or water on both sides), the narrowest first",
@@ -1168,6 +1206,8 @@ impl Brain {
                     if moho { seat.mohos += 1 } else { seat.extractors += 1 }
                     if let Some(spot) = hello.metal_spots.iter().find(|s| s.dist2d(u.pos) < spot_radius) {
                         worth += spot.y * if moho { 4.0 } else { 1.0 };
+                    } else if hello.map.metal_map {
+                        worth += hello.map.extractor_worth * if moho { 4.0 } else { 1.0 };
                     }
                 } else if d.speed == 0.0 && !d.build_options.is_empty() {
                     seat.factories += 1;
@@ -1228,6 +1268,27 @@ impl Brain {
     /// (H-REPORT-SIDE-SPOTS; human-8v8-1: 43 of 84 in the south half for five seats, all taken by 12:00, and the
     /// players read "stuck at 9 extractors" as a fault of theirs).
     pub(super) fn side_spots(&self) -> Option<(usize, usize, usize)> {
+        if self.world.hello.map.metal_map {
+            return None;
+        }
+        let (near, seats) = self.side_share(self.world.hello.metal_spots.iter().map(|s| (*s, 1.0)))?;
+        Some((near as usize, self.world.hello.metal_spots.len(), seats))
+    }
+
+    /// On a metal map, the percent of the map's metal lying in cells nearer our side's start box than his, by the
+    /// cells' centres and shares (the metal-maps design §1.4), and the seats of our side sharing it.
+    pub(super) fn side_metal(&self) -> Option<(u32, usize)> {
+        if !self.world.hello.map.metal_map || self.cell_metal.is_empty() {
+            return None;
+        }
+        let grid = &self.world.cells;
+        let (share, seats) = self.side_share(grid.cells().map(|(c, r)| (grid.centre(c, r), self.cell_metal[grid.index(c, r)])))?;
+        Some(((share * 100.0).round() as u32, seats))
+    }
+
+    /// The weight of the given points nearer our side's start box than his, and the seats of our side; None
+    /// without both boxes.
+    fn side_share(&self, points: impl Iterator<Item = (Vec3, f32)>) -> Option<(f32, usize)> {
         use bot_protocol::Controller;
         let hello = &self.world.hello;
         let (ours, theirs): (Vec<_>, Vec<_>) = hello.start_boxes.iter().partition(|b| b.ally_team == hello.ally_team);
@@ -1240,9 +1301,9 @@ impl Brain {
             (dx * dx + dz * dz).sqrt()
         };
         let nearest = |boxes: &[&bot_protocol::StartBox], p: &Vec3| boxes.iter().map(|b| dist(b, p)).fold(f32::MAX, f32::min);
-        let near = hello.metal_spots.iter().filter(|s| nearest(&ours, s) < nearest(&theirs, s)).count();
+        let near = points.filter(|(p, _)| nearest(&ours, p) < nearest(&theirs, p)).map(|(_, w)| w).sum();
         let seats = hello.teams.iter().filter(|t| t.ally_team == hello.ally_team && t.controller != Controller::Gaia).count();
-        Some((near, hello.metal_spots.len(), seats))
+        Some((near, seats))
     }
 
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
@@ -1502,6 +1563,26 @@ impl Brain {
                     .collect();
                 spots.sort_by(|a, b| a.0.total_cmp(&b.0));
                 spots.into_iter().map(|(_, n, ago)| (n, self.place(self.world.hello.metal_spots[n]), ago)).collect()
+            },
+            // On a metal map (the metal-maps design §1.4): the room left on the metal, and his extractors by cell.
+            room: self.world.hello.map.metal_map.then(|| {
+                let allied = self.allies.iter().filter(|a| self.world.def(a.def).is_some_and(|d| d.extracts_metal > 0.0)).count();
+                let standing = own.iter().filter(|u| kit.is_extractor(u.def)).count() + allied + enemy_extractors.len();
+                self.world.hello.metal_fields.iter().map(|f| f.room).sum::<u32>().saturating_sub(standing as u32)
+            }),
+            enemy_extractor_cells: if self.world.hello.map.metal_map {
+                let grid = &self.world.cells;
+                let mut by_cell: BTreeMap<(u8, u8), (usize, i32)> = BTreeMap::new();
+                for (pos, seen) in &enemy_extractors {
+                    let e = by_cell.entry(grid.cell_of(*pos)).or_insert((0, *seen));
+                    e.0 += 1;
+                    e.1 = e.1.max(*seen);
+                }
+                let mut cells: Vec<((u8, u8), (usize, i32))> = by_cell.into_iter().collect();
+                cells.sort_by(|a, b| grid.centre(a.0.0, a.0.1).dist2d(self.home).total_cmp(&grid.centre(b.0.0, b.0.1).dist2d(self.home)));
+                cells.into_iter().map(|((c, r), (count, seen))| (terrain::Grid::name_of(c, r), count, (tick.frame - seen) / FRAMES_PER_SECOND)).collect()
+            } else {
+                Vec::new()
             },
             enemy_factories: self
                 .enemy_buildings

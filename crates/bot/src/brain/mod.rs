@@ -106,6 +106,9 @@ pub struct Brain {
     /// rebuilt every tick from what stands, ours, allied and his as seen; where an extractor goes is its best tile
     /// (the metal-maps design §1.3).
     coverage: Option<layout::Coverage>,
+    /// On a metal map: each grid cell's share of the map's metal, by the grid's index (the metal-maps design §1.4);
+    /// empty on a spot map.
+    cell_metal: Vec<f32>,
     /// The commander's stand (`layout::stand`, `docs/design/2026-10-29-base-layout.md` §1.1): the opening's slots
     /// solved once, when its list first plays, each taken by a step of its kind (`place_planned`) and the steps
     /// ordered as one queue (`play_lists`). The builder it was solved for, and the stand.
@@ -337,7 +340,9 @@ impl Brain {
             p.seat_tag = tag.clone();
         }
         let coverage = world.hello.map.metal_map.then(|| layout::Coverage::new(&world.hello.terrain, world.hello.map.metal_scale, world.hello.map.extractor_radius)).flatten();
+        let cell_metal = if world.hello.map.metal_map { terrain::sheet::metal_shares(&world.hello.terrain, &world.cells) } else { Vec::new() };
         Brain {
+            cell_metal,
             world,
             kit: None,
             home: Vec3::default(),
