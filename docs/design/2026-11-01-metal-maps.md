@@ -264,7 +264,14 @@ and report, the brief); `crates/buildorder` (rings over coverage); `bots/*` last
    names Comet as the measured map and gives the metal map's sentence beside the spot map's, its places paragraph
    names cells and fields, `docs/briefs/facts/maps.md` gets the metal-map paragraph (the extraction rule as it falls on
    SpeedMetal and Full Metal Plate, both maps' numbers from the probes), and `docs/briefs/derived/metal-maps.md` is
-   amended where the probes read the map and joins the rework manifest.
+   amended where the probes read the map and joins the rework manifest. **Built 2026-11-03** as planned, commits
+   07977de (3a), 23f7131 (3b-3c), 0574079 (3d), 1cccb05 (3e), f1088b0 (the brief's map sheets regenerated). The judge
+   games found two openings refused on the stand, neither step 3's: a bare `extractor` list step on a metal map sited
+   nearest the builder and ignored the stand's extractor tiles, so the second extractor stood on the plant's slot
+   (both games, the plant a minute late); and the shim's exact-site search (`Map_findClosestBuildSite`) refuses any
+   site within two squares of a building with yard squares in its yardmap, which a BAR extractor has, so the stand's
+   turbines touching a mex were refused four times a game with the engine's own `isPossibleToBuildAt` true. Both
+   fixed in fd0ccdc (the stand's tiles first; an exact site asked as the order is).
 4. **Territory and template** (§1.5). Judge: the territory benchmark on Full Metal Plate against NullAI (extractors at
    5/10/15/20 as the standing numbers are on Comet).
 

@@ -773,6 +773,13 @@ Metal Plate however dense.
 neighbours do share squares, and the rule's arithmetic, not its mechanism, changes.
 **Used by.** [[H-ECO-SPOT-CENTROID]] (amended 2026-11-02), `docs/design/2026-11-01-metal-maps.md`; the player's reading of a metal map (step 3, 2026-11-03): [[H-SCOUT-GLANCE]], [[H-HANDS-NAMED-PLACES]], [[H-REPORT-SIDE-SPOTS]], [[H-REPORT-FREE-SPOTS-BY-REACH]], [[H-REPORT-ALLIES-LINE]] (all amended), the brief's F-map-metal-maps and D-metal-maps.
 
+### K-mech-closest-build-site-keeps-off-yards
+**Claim.** The engine's site search the shim used for every exact site (`Map_findClosestBuildSite`, `CGameHelper::ClosestBuildPos`) refuses a candidate whose footprint plus two squares on every side touches any standing building whose `yardOpen` flag is set, and BAR's tier-1 extractors have yard squares in their high-resolution yardmap (`armmex.lua`: `h cbbbbbbc bsossbsb ...`), so a building the layout lays touching a mex (a 3 by 3 turbine on the mex's edge) is refused by the search while the build order itself is allowed: `Map_isPossibleToBuildAt` (`TestUnitBuildSquare` on the footprint alone) says yes and the engine takes the order. The margin is the search's courtesy to factories' yards, not a rule of placement.
+**Status.** demonstrated 2026-11-03 (metal-step3-speedmetal-1 and -fmp-1: the stand's turbines at (824, 440) and (744, 824) "no site" four times a game with `possible_at_exact=true friendly:armmex` in the engine log; the plant's refusals in the same games were the extractor on its slot, K-mech-a-metal-map-publishes-no-spots' siting, not this).
+**Evidence.** `upstream/RecoilEngine/rts/Game/GameHelper.cpp:1092-1175` (the footprint loop over immobile blockers, then the footprint widened by two squares over `yardOpen` ones); `rts/ExternalAI/AICallback.cpp:1102-1114` (`CanBuildAt` is `TestUnitBuildSquare` alone); `upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armmex.lua:32`; the two games' `engine.log` lines `[wreason ai=0] no site ...` (`WITHIN_REASON_TRACE_BUILDS`).
+**Would be wrong if.** A build order at such a site were refused by the engine itself (the hands' "the engine refused ... the site was bad" after the shim's change): then the margin is the game's and the layout must keep it.
+**Used by.** [[H-ECO-STAND]] (amended 2026-11-03), `crates/ai-host/src/engine.rs` `site_facing` (an exact site asked as the order is, first).
+
 ### K-hands-a-role-word-named-a-unit-the-plant-cannot-build
 **Claim.** The role words of a `produce` list were the bot lab's units whatever the factory: `raider:5` written before
 the game was `armpw:5` at an Armada vehicle plant, which builds no Pawn; the tool took it without a word and the plant
