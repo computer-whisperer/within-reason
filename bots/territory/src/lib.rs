@@ -27,8 +27,8 @@ use std::time::Duration;
 
 use bot_protocol::{AllyUnit, Bot, Command, Commands, Controller, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
-use buildorder::game::{Game, Ground};
-use buildorder::lp::LpOptions;
+use buildorder::game::{distance, Game, Ground};
+use buildorder::lp::{LpOptions, RING_ROOM};
 use buildorder::regions::{Regions, REGION_SECONDS};
 use buildorder::plan::{Item, Plan};
 use buildorder::units::Role;
@@ -68,8 +68,12 @@ pub(crate) struct Territory {
     pub hands: hands::Hands,
     /// The constructors' walks measured in the game, which the program prices its pairs from (T-WALKS).
     pub walks: walks::Walks,
-    /// The spots the hands may take (the scenario's), as indices into the game's list.
+    /// The spots the hands may take (the scenario's), as indices into the game's list; empty on a metal map.
     pub spots: Vec<usize>,
+    /// On a metal map, the metal under the ground and the extractors' claims over it (`layout::Coverage`), rebuilt
+    /// every tick from what stands: ours, the allies', his in sight. `None` on a spot map. The planner's options are
+    /// its free lattice (`scenario`), the hands' sites `best_site` over it (`free_site`); design §2 step 4.
+    pub coverage: Option<layout::Coverage>,
     /// The map's spots in regions (T-REGIONS), made at the start.
     pub regions: Option<Regions>,
     /// The race of force per region (T-RACE), taken on its own thread; T-RADAR reads its warnings.
@@ -106,6 +110,30 @@ impl Territory {
 
     pub(crate) fn unit_index(&self, def: UnitDefId) -> Option<usize> {
         self.index.get(&def).copied()
+    }
+
+    /// On a metal map, the extractors' claims as the engine holds them: every extractor standing or going up, ours,
+    /// an ally's or his in sight, claims the squares within the radius at its depth (the distilled bot's rule).
+    fn refresh_coverage(&mut self) {
+        let Some(mut coverage) = self.coverage.take() else { return };
+        coverage.clear_claims();
+        let depth = |def: UnitDefId| self.defs.get(&def).map(|d| d.extracts_metal).filter(|e| *e > 0.0);
+        for u in self.own.values() {
+            if let Some(d) = depth(u.def) {
+                coverage.claim(u.pos, d);
+            }
+        }
+        for u in &self.allies {
+            if let Some(d) = depth(u.def) {
+                coverage.claim(u.pos, d);
+            }
+        }
+        for e in &self.enemies {
+            if let Some(d) = e.def.and_then(depth) {
+                coverage.claim(e.pos, d);
+            }
+        }
+        self.coverage = Some(coverage);
     }
 
     pub(crate) fn role_of_def(&self, def: UnitDefId) -> Option<Role> {
@@ -190,7 +218,9 @@ impl Territory {
         // home.
         if !self.options.lp {
             let began = std::time::Instant::now();
-            let mut places: Vec<(f64, f64)> = scenario.spots.iter().map(|s| s.at).collect();
+            // On a metal map the scenario's options are the coverage's lattice, tens of thousands: the nearest
+            // RING_ROOM are walked, as the program's rings are over them.
+            let mut places: Vec<(f64, f64)> = scenario.spots.iter().take(if self.coverage.is_some() { RING_ROOM } else { usize::MAX }).map(|s| s.at).collect();
             let mut slots = hands::farm_slots(origin, origin, 500.0, false);
             slots.extend(hands::farm_slots(origin, self.home, 400.0, false));
             places.extend(slots.iter().map(|p| (p.x as f64, p.z as f64)));
@@ -199,11 +229,13 @@ impl Territory {
             self.log(format_args!("ground: {} places walked in {} ms", places.len(), began.elapsed().as_millis()));
         }
         self.log(format_args!(
-            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); every enemy start {}; allied starts {}; {} spots of {} in the scenario; arms: {}; palette mobile: {mobile}; factory: {factory}",
+            "home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}) ({source}); every enemy start {}; allied starts {}; {} spots of {} in the scenario{}; arms: {}; palette mobile: {mobile}; factory: {factory}",
             self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z,
             starts.iter().map(|(at, why)| format!("({:.0}, {:.0}) {why}", at.x, at.z)).collect::<Vec<_>>().join(", "),
             if self.ally_starts.is_empty() { "none".to_string() } else { self.ally_starts.iter().map(|(team, at)| format!("team {team} ({:.0}, {:.0})", at.x, at.z)).collect::<Vec<_>>().join(", ") },
-            self.spots.len(), self.hello.metal_spots.len(), self.options.describe()
+            self.spots.len(), self.hello.metal_spots.len(),
+            if self.coverage.is_some() { format!(" (a metal map: {} free tiles of room in the lattice, {:.1} metal a second each at the median)", scenario.spots.len(), scenario.spots.get(scenario.spots.len() / 2).map_or(0.0, |s| s.metal)) } else { String::new() },
+            self.options.describe()
         ));
         if self.options.dump {
             self.dump(commander.def);
@@ -239,12 +271,24 @@ impl Territory {
         // bounded by their number (his commander's two at 1,007 and 1,215 at 2:06-2:13 and none after; one walk of
         // 40 for the whole map gave it none after the opening's, terr76-89).
         let spots = &self.hello.metal_spots;
-        let near: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let home = (f64::from(self.home.x), f64::from(self.home.z));
+        // On a metal map the scenario's options are the coverage's free tiles, nearest home first: the commander's
+        // are those within its leash, and the far ones the nearest RING_ROOM (the rings' own horizon; the plate's
+        // mean lies thousands of elmos out and would send every upgrade home from the first minute).
+        let near: Vec<f64> = if self.coverage.is_some() {
+            scenario.spots.iter().map(|s| distance(s.at, home)).filter(|d| *d < f64::from(o.com_leash)).collect()
+        } else {
+            self.spots.iter().copied().filter(|&i| !self.spot_taken(i) && spots[i].dist2d(self.home) < o.com_leash).map(|i| f64::from(spots[i].dist2d(self.home))).collect()
+        };
         let commander_speed = self.game().units.list[self.game().commander].speed.max(1.0);
         // The advanced constructor's spots priced from home (the plant ramp's second change, terr97): born at the
         // plant, it reaches a free spot at the free spots' mean distance from home, not at a constructor's chain
         // walk, so from the minute the free spots lie far its upgrade beside home wins, as his did from 7:00.
-        let free_far: Vec<f64> = self.spots.iter().copied().filter(|&i| !self.spot_taken(i)).map(|i| f64::from(spots[i].dist2d(self.home))).collect();
+        let free_far: Vec<f64> = if self.coverage.is_some() {
+            scenario.spots.iter().take(RING_ROOM).map(|s| distance(s.at, home)).collect()
+        } else {
+            self.spots.iter().copied().filter(|&i| !self.spot_taken(i)).map(|i| f64::from(spots[i].dist2d(self.home))).collect()
+        };
         let advanced_speed = self.game().units.list.iter().filter(|d| d.role == Role::Builder && d.builds.iter().any(|u| self.is_upgrade(*u))).map(|d| d.speed).fold(0.0, f64::max).max(1.0);
         // The plants' rings (T-PLANT): per factory type, the turrets its plants' rings hold, the program's bound on
         // the turrets' assist on that type's products.
@@ -455,6 +499,7 @@ impl Bot for Territory {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let index = hello.unit_defs.iter().enumerate().map(|(i, d)| (d.id, i)).collect();
+        let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         Territory {
             hello,
             defs,
@@ -476,6 +521,7 @@ impl Bot for Territory {
             hands: hands::Hands::default(),
             walks: walks::Walks::default(),
             spots: Vec::new(),
+            coverage,
             regions: None,
             race: race::Race::default(),
             defence: defence::Defence::default(),
@@ -497,6 +543,7 @@ impl Bot for Territory {
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
         self.allies = tick.snapshot.allies.clone();
+        self.refresh_coverage();
         self.metal = tick.snapshot.metal;
         self.energy = tick.snapshot.energy;
         if let Some(sensors) = &tick.snapshot.sensors {

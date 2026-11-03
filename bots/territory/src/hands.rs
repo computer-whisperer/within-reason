@@ -160,6 +160,13 @@ const FARM_MOBILE: f32 = 32.0;
 const ASSIST_GUARDS: usize = 6;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
 pub(crate) const SPOT_TAKEN: f32 = 100.0;
+/// On a metal map, a tile this near a refused site is refused with it (half the room stride and a grid step).
+const TILE_REFUSED: f32 = 48.0;
+
+/// The key of an extractor site in `Hands::refused`.
+fn site_key(p: Vec3) -> (i32, i32) {
+    (p.x.round() as i32, p.z.round() as i32)
+}
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
 /// A unit type the host found no site for this many times within the window is left alone for the window by every
@@ -280,8 +287,9 @@ pub(crate) struct Hands {
     pub spare_factory_queues: VecDeque<usize>,
     pub spare_constructor_queues: VecDeque<usize>,
     pub attempts: BTreeMap<UnitId, u32>,
-    /// Spots (indices into the game's list) refused by the host or the engine, until this frame.
-    pub refused: BTreeMap<usize, i32>,
+    /// Extractor sites refused by the host or the engine, by position (`site_key`: a spot's own on a spot map, the
+    /// tile's on a metal map), until this frame.
+    pub refused: BTreeMap<(i32, i32), i32>,
     /// Unit types the host found no site for, until this frame.
     pub type_refused: BTreeMap<usize, i32>,
     /// The frames of the "no site" drops of each type within the window (NO_SITE_STRIKES).
@@ -593,7 +601,7 @@ impl Territory {
         }
         // T-OPENING: the commander's first minute is the spots beside the start, while the energy stock covers half
         // an extractor's.
-        if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && (self.energy.current as f64) >= self.game().units.list[extractor].energy_cost / 2.0 && self.free_spot(builder.pos, None, Some((self.home, self.options.opening_spots)), None).is_some() {
+        if role == Role::Commander && self.frame < OPENING && let Some(extractor) = self.game().units.extractor(unit) && (self.energy.current as f64) >= self.game().units.list[extractor].energy_cost / 2.0 && self.free_site(extractor, builder.pos, None, Some((self.home, self.options.opening_spots)), None).is_some() {
             let cost = self.game().units.list[extractor].build_time;
             if self.order_one(id, unit, role, extractor, cost, Some(self.ring_of_pos(self.home)), "opening", commands) {
                 return;
@@ -839,7 +847,7 @@ impl Territory {
         // a third spot 1,850 away with the plant unguarded to 3:00 (terr92, 5:00 down 7-18 in all four games).
         let com_far = role == Role::Commander
             && builder.pos.dist2d(self.home) > BESIDE
-            && self.free_spot(builder.pos, None, Some((self.home, self.options.com_leash)), None).is_some_and(|i| self.hello.metal_spots[i].dist2d(builder.pos) < builder.pos.dist2d(self.home));
+            && self.game().units.extractor(unit).and_then(|e| self.free_site(e, builder.pos, None, Some((self.home, self.options.com_leash)), None)).is_some_and(|at| at.dist2d(builder.pos) < builder.pos.dist2d(self.home));
         let far = far || com_far;
         // A constructor with a spot's credit, at the base too: a new constructor's first order was the stall's
         // solar beside the plant (terr75-81, 1:43-1:49, the first extractor at 2:33 against his first constructor's
@@ -1319,8 +1327,13 @@ impl Territory {
         true
     }
 
-    /// Whether the opening's radius holds three spots or more: his opening, with the solars before the plant.
+    /// Whether the opening's radius holds three spots or more: his opening, with the solars before the plant. On a
+    /// metal map, room for three in the coverage's lattice within it.
     fn opening_three(&self) -> bool {
+        if let (Some(coverage), Some(extractor)) = (&self.coverage, self.game().units.extractor(self.game().commander)) {
+            let fp = self.hello.unit_defs[extractor].footprint;
+            return coverage.tiles(layout::Footprint { x: fp.0, z: fp.1 }, self.game().units.list[extractor].extracts_metal as f32, self.home, self.options.opening_spots).len() >= 3;
+        }
         self.hello.metal_spots.iter().filter(|s| s.dist2d(self.home) < self.options.opening_spots).count() >= 3
     }
 
@@ -1457,9 +1470,10 @@ impl Territory {
         self.log(format_args!("dropped: unit {} {what} after {:.1} s: {why}", id.0, (self.frame - order.given) as f32 / SECOND as f32));
         if let What::Build { unit, near, .. } = &order.what
             && self.game().units.list[*unit].extracts_metal > 0.0
-            && let Some(spot) = self.hello.metal_spots.iter().position(|s| s.dist2d(*near) < SPOT_TAKEN)
         {
-            self.hands.refused.insert(spot, self.frame + SPOT_REFUSED);
+            // The spot's own position on a spot map (an upgrade's `near` is the standing extractor's), the tile's on a metal map.
+            let at = self.hello.metal_spots.iter().find(|s| s.dist2d(*near) < SPOT_TAKEN).copied().unwrap_or(*near);
+            self.hands.refused.insert(site_key(at), self.frame + SPOT_REFUSED);
         }
         // A farm slot or a factory site the host found no site at, or held with no frame begun, is the site's fault,
         // not the type's (the bot chose the ground, and the engine sees features it does not, or the builder cannot
@@ -1591,8 +1605,9 @@ impl Territory {
                     BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
                 } else if target.extracts_metal > 0.0 {
                     let leash = (role == Role::Commander).then_some((self.home, self.options.com_leash));
-                    let spot = self.free_spot(builder.pos, step.site, leash, ring)?;
-                    BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
+                    let at = self.free_site(unit, builder.pos, step.site, leash, ring)?;
+                    // A tile chosen over the coverage and the ground is the site itself: the shim searches nowhere for it.
+                    BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: self.coverage.is_some() }
                 } else {
                     // T-FARM: turrets and the economy's buildings on the farm's lattice (before it, a turret went
                     // behind the nearest factory and an economy building beside its builder or on the simulator's
@@ -2052,8 +2067,8 @@ impl Territory {
         };
         let mut picks: Vec<(f32, usize)> = Vec::new();
         let leash = (role == Role::Commander).then_some((self.home, self.options.com_leash));
-        if let Some(u) = extractor && let Some(spot) = self.free_spot(builder.pos, None, leash, None) && self.hello.metal_spots[spot].dist2d(builder.pos) < home {
-            picks.push((self.hello.metal_spots[spot].dist2d(builder.pos), u));
+        if let Some(u) = extractor && let Some(at) = self.free_site(u, builder.pos, None, leash, None) && at.dist2d(builder.pos) < home {
+            picks.push((at.dist2d(builder.pos), u));
         }
         if let Some(u) = upgrade && let Some(basic) = self.basic_to_upgrade(builder.pos, id, role, None) && basic.pos.dist2d(builder.pos) < home {
             picks.push((basic.pos.dist2d(builder.pos), u));
@@ -2071,15 +2086,41 @@ impl Territory {
     /// A spot refused lately, with an extractor standing on it, or with one ordered to it.
     pub(crate) fn spot_taken(&self, i: usize) -> bool {
         let at = self.hello.metal_spots[i];
-        self.hands.refused.get(&i).is_some_and(|until| self.frame < *until)
+        self.hands.refused.get(&site_key(at)).is_some_and(|until| self.frame < *until)
             || self.own.values().any(|u| self.unit_index(u.def).is_some_and(|x| self.game().units.list[x].extracts_metal > 0.0) && u.pos.dist2d(at) < SPOT_TAKEN)
             || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && near.dist2d(at) < SPOT_TAKEN))
             || self.ally_holds(at)
     }
 
-    /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
-    /// with `leash`, within that radius of that point.
-    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
+    /// Where this builder's next extractor of type `unit` goes. On a spot map the free spot of the scenario's list
+    /// nearest `from` (with `named`, the free spot within 100 of it or none; with `leash`, within that radius of
+    /// that point; with `ring`, in that ring of the program's). On a metal map the tile of the most unclaimed metal
+    /// nearest the builder within the same bounds (`layout::Coverage::best_site`; design §2 step 4b), where the
+    /// ground takes the footprint, it is not dead ground or an ally's claim, it is out of the factories' lanes and
+    /// yards and the pending sites, nothing standing or ordered covers it, and it was not refused lately.
+    fn free_site(&self, unit: usize, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<Vec3> {
+        if let Some(coverage) = &self.coverage {
+            let fp = self.hello.unit_defs[unit].footprint;
+            let half = fp.0.max(fp.1) as f32 * 4.0;
+            let depth = self.game().units.list[unit].extracts_metal as f32;
+            let (anchor, reach) = match (named, leash) {
+                (Some((x, z)), _) => (Vec3 { x: x as f32, y: 0.0, z: z as f32 }, SPOT_TAKEN),
+                (None, Some((centre, radius))) => (centre, radius),
+                (None, None) => (self.home, f32::MAX),
+            };
+            let (mut taken, lanes, _) = self.site_blockers();
+            taken.extend(self.allies.iter().filter_map(|u| self.def(u.def).filter(|d| d.speed == 0.0).map(|d| (u.pos, d.footprint.0.max(d.footprint.1) as f32 * 4.0))));
+            let ok = |p: Vec3, _: &layout::Rect| {
+                self.farm_ground(p, half)
+                    && !self.dead_ground(p)
+                    && !self.ally_claims(p)
+                    && ring.is_none_or(|k| self.ring_of_pos(p) == k)
+                    && !lanes.iter().any(|l| l.contains(p))
+                    && !taken.iter().any(|(q, h)| (q.x - p.x).abs().max((q.z - p.z).abs()) < h + half)
+                    && !self.hands.refused.iter().any(|((x, z), until)| self.frame < *until && (*x as f32 - p.x).abs().max((*z as f32 - p.z).abs()) < TILE_REFUSED)
+            };
+            return coverage.best_site(layout::Footprint { x: fp.0, z: fp.1 }, from, anchor, reach, depth, &ok).map(|(p, _)| p);
+        }
         let spots = &self.hello.metal_spots;
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
         let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
@@ -2087,7 +2128,7 @@ impl Territory {
         // Nearest, with no heading kept: a turn penalty on the distance (the spot's distance over again for the
         // share of a turn back from the line out of home through the builder) moved neither the chains' step nor
         // their interval in terr59 (673-1,008 elmos and 42-59 s against terr57's 791-1,071 and 46-56).
-        self.spots.iter().copied().filter(|i| !self.spot_taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
+        self.spots.iter().copied().filter(|i| !self.spot_taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from))).map(|i| spots[i])
     }
 
     /// Factories standing or ordered, so a plan cannot start more than it has queues for (the simulator's rule).

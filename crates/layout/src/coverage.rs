@@ -13,6 +13,10 @@ use crate::{Footprint, GRID, Rect};
 /// The rings the site search grows by: a lattice within this much of the builder is tried before a wider one.
 const RING: f32 = 256.0;
 
+/// The stride of the room lattice (`tiles`): a tier-1 extractor's footprint with the gap the shim counts a field's
+/// room in (`ai_host::metal::FOOTPRINT_SQUARES`, 4 by 4 metal squares of 16 elmos).
+pub const ROOM_STRIDE: f32 = 64.0;
+
 /// The metal map with the extractors' claims over it.
 #[derive(Clone, Debug)]
 pub struct Coverage {
@@ -72,6 +76,45 @@ impl Coverage {
     /// within its radius times the square's metal.
     pub fn worth_at(&self, centre: Vec3, depth: f32) -> f32 {
         self.squares_within(centre).map(|k| (depth - self.claimed[k]).max(0.0) * f32::from(self.values[k]) * self.scale).sum()
+    }
+
+    /// The metal within the radius of `centre` with no claim counted: what a spot's `amount` is on a spot map, so
+    /// that an extractor standing there is priced as a spot's would be (`amount` times its `extractsMetal`).
+    pub fn amount_at(&self, centre: Vec3) -> f32 {
+        self.squares_within(centre).map(|k| f32::from(self.values[k]) * self.scale).sum()
+    }
+
+    /// The free lattice of extractor tiles within `radius` of `centre`: footprint centres on the build grid at
+    /// `ROOM_STRIDE` apart (the shim's room stride, so a count of these agrees with a field's `room`), each with
+    /// its unclaimed worth at `depth`, the tiles worth nothing left out. The planner's extractor options on a metal
+    /// map (`docs/design/2026-11-01-metal-maps.md` §1.3: a ring's worth is its unclaimed metal over its room in
+    /// footprints); the hands site by `best_site`, never from this list.
+    pub fn tiles(&self, footprint: Footprint, depth: f32, centre: Vec3, radius: f32) -> Vec<(Vec3, f32)> {
+        let (width, height) = (self.width as f32 * self.cell, self.height as f32 * self.cell);
+        let (x0, z0) = ((centre.x - radius).max(0.0), (centre.z - radius).max(0.0));
+        let (x1, z1) = ((centre.x + radius).min(width), (centre.z + radius).min(height));
+        if x1 < x0 || z1 < z0 {
+            return Vec::new();
+        }
+        // The lattice starts at the first centre whose footprint lies on the map.
+        let (hx, hz) = footprint.half();
+        let first = footprint.snap(Vec3 { x: x0 + hx, y: 0.0, z: z0 + hz });
+        let (steps_x, steps_z) = (((x1 - first.x) / ROOM_STRIDE) as i32 + 1, ((z1 - first.z) / ROOM_STRIDE) as i32 + 1);
+        let mut tiles = Vec::new();
+        for i in 0..steps_x {
+            for j in 0..steps_z {
+                let p = Vec3 { x: first.x + i as f32 * ROOM_STRIDE, y: 0.0, z: first.z + j as f32 * ROOM_STRIDE };
+                // The whole footprint on the map.
+                if p.x - hx < 0.0 || p.z - hz < 0.0 || p.x + hx > width || p.z + hz > height || p.dist2d(centre) > radius {
+                    continue;
+                }
+                let worth = self.worth_at(p, depth);
+                if worth > 0.0 {
+                    tiles.push((p, worth));
+                }
+            }
+        }
+        tiles
     }
 
     /// Whether any metal lies within the radius of `centre`, claimed or not.
@@ -244,6 +287,30 @@ mod tests {
         assert!((w2 - 30.6).abs() < 0.01);
         // Within reach of the anchor only.
         assert!(c.best_site(MEX, from, from, 50.0, 0.001, &|_, _| true).is_none());
+    }
+
+    /// The room lattice: on a plate the tiles come at the room stride with the engine's worth each, a claimed tile
+    /// drops out, and the radius bounds the list; the amount under a tile is the spot amount a standing extractor
+    /// is priced by.
+    #[test]
+    fn the_room_lattice_counts_the_free_tiles_at_the_shims_stride() {
+        let t = terrain(64, 64, |_, _| 255);
+        let mut c = Coverage::new(&t, 10.0, 30.0).unwrap();
+        let all = c.tiles(MEX, 0.001, at(512.0, 512.0), f32::MAX);
+        assert_eq!(all.len(), 16 * 16, "1,024 elmos a side at a 64 stride");
+        // An inner tile draws the engine's income; a tile by the map's edge less (its radius spills off the map).
+        let inner = |p: &Vec3| p.x > 32.0 && p.z > 32.0 && p.x < 992.0 && p.z < 992.0;
+        assert!(all.iter().filter(|(p, _)| inner(p)).all(|(_, w)| (w - 30.6).abs() < 0.01));
+        assert!(all.iter().all(|(p, w)| *w > 0.0 && *w <= 30.61 && p.x.rem_euclid(ROOM_STRIDE) == all[0].0.x.rem_euclid(ROOM_STRIDE)));
+        let (first, _) = all.iter().copied().find(|(p, _)| inner(p)).unwrap();
+        c.claim(first, 0.001);
+        let after = c.tiles(MEX, 0.001, at(512.0, 512.0), f32::MAX);
+        assert_eq!(after.len(), 16 * 16 - 1, "the claimed tile is no option");
+        assert!(!after.iter().any(|(p, _)| *p == first));
+        let near = c.tiles(MEX, 0.001, at(512.0, 512.0), 100.0);
+        assert!(near.len() < 12 && near.iter().all(|(p, _)| p.dist2d(at(512.0, 512.0)) <= 100.0), "{}", near.len());
+        // The amount under a tile counts the claim away: the spot amount a standing extractor's income is priced by.
+        assert!((c.amount_at(first) * 0.001 - 30.6).abs() < 0.01, "{}", c.amount_at(first));
     }
 
     #[test]

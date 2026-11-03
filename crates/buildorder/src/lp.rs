@@ -260,6 +260,10 @@ pub struct Column {
     pub class: Class,
 }
 
+/// The extractor options the rings' quantiles are taken over, nearest home first: a hundred a ring at four rings
+/// (Comet's shape is twenty spots a ring at growing distances; `docs/design/2026-11-01-metal-maps.md` §2 step 4a).
+pub const RING_ROOM: usize = 400;
+
 /// A distance ring of spots: its outer bound from home, the spots in it, their mean metal and mean distance.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ring {
@@ -455,6 +459,10 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     let rings_n = options.rings.max(1);
     let mut sorted: Vec<f64> = scenario.spots.iter().map(|s| dist(s.at)).collect();
     sorted.sort_by(|a, b| a.total_cmp(b));
+    // The quantiles over the nearest RING_ROOM options: a metal map's lattice is tens of thousands of tiles, and
+    // quantiles over the plate would put every ring's mean at thousands of elmos and price each extractor at that
+    // walk; the rest of the plate lies in the last ring. No spot map played has that many spots.
+    sorted.truncate(RING_ROOM);
     let bounds: Vec<f64> = (1..=rings_n).map(|k| if k == rings_n { f64::INFINITY } else { sorted.get(k * sorted.len() / rings_n).copied().unwrap_or(f64::INFINITY) }).collect();
     let ring_of = |p: (f64, f64)| bounds.iter().position(|b| dist(p) < *b).unwrap_or(rings_n - 1);
     let rings: Vec<Ring> = (0..rings_n)

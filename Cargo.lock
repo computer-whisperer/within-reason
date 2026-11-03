@@ -153,6 +153,7 @@ version = "0.1.0"
 dependencies = [
  "ai-host",
  "bot-protocol",
+ "layout",
 ]
 
 [[package]]
@@ -163,6 +164,7 @@ dependencies = [
  "bot-protocol",
  "buildorder",
  "combatsim",
+ "layout",
  "nukes",
  "serde_json",
  "terrain",

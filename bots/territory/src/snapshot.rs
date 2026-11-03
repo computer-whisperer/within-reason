@@ -36,8 +36,12 @@ impl Territory {
         self.ally_starts.iter().any(|(team, at)| at.dist2d(p) <= crate::his_start::CLAIM_RADIUS && self.allies.iter().any(|u| u.team == *team))
     }
 
-    /// The amount of the metal spot under `pos`, 0 off any spot.
+    /// The amount of the metal spot under `pos`, 0 off any spot; on a metal map the metal within the extractor
+    /// radius of `pos` (`Coverage::amount_at`), what the extractor standing there draws at `extractsMetal` 1.
     pub(crate) fn spot_amount(&self, pos: Vec3) -> f64 {
+        if let Some(coverage) = &self.coverage {
+            return f64::from(coverage.amount_at(pos));
+        }
         let radius = self.hello.map.spot_radius();
         self.hello.metal_spots.iter().filter(|s| s.dist2d(pos) < radius).map(|s| s.y as f64).next().unwrap_or(0.0)
     }
@@ -137,10 +141,22 @@ impl Territory {
 
     /// The scenario a plan is priced in: every spot (our half with `spots=half`) but the dead and the allies', nearest first;
     /// constructors with an empty queue take the nearest free spot; construction turrets feed the first factory, as
-    /// the hands have them do.
+    /// the hands have them do. On a metal map the options are the coverage's free lattice (`Coverage::tiles`, the
+    /// shim's room stride, each tile at its unclaimed worth), so the program's rings are over the coverage with no
+    /// change to the program (design §2 step 4a); the hands never take a site from this list.
     pub(crate) fn scenario(&self) -> Scenario {
         let game = self.game();
-        let mut spots: Vec<Spot> = if self.options.all_spots {
+        let mut spots: Vec<Spot> = if let (Some(coverage), Some(extractor)) = (&self.coverage, game.units.extractor(game.commander)) {
+            let fp = self.hello.unit_defs[extractor].footprint;
+            let centre = Vec3 { x: self.hello.map.width / 2.0, y: 0.0, z: self.hello.map.height / 2.0 };
+            let mut spots: Vec<Spot> = coverage
+                .tiles(layout::Footprint { x: fp.0, z: fp.1 }, game.units.list[extractor].extracts_metal as f32, centre, f32::MAX)
+                .into_iter()
+                .map(|(p, worth)| Spot { at: (f64::from(p.x), f64::from(p.z)), metal: f64::from(worth) })
+                .collect();
+            spots.sort_by(|a, b| distance(a.at, game.home).total_cmp(&distance(b.at, game.home)));
+            spots
+        } else if self.options.all_spots {
             let mut spots: Vec<Spot> = game.spots.iter().map(|(at, amount)| Spot { at: *at, metal: game.spot_metal(*amount) }).collect();
             spots.sort_by(|a, b| distance(a.at, game.home).total_cmp(&distance(b.at, game.home)));
             spots
