@@ -95,6 +95,9 @@ pub(crate) const TURRET_REACH_SLACK: f32 = 100.0;
 /// energy at 9:00 and 12:00).
 const ENERGY_BUILDERS: usize = 3;
 const ENERGY_BUILDERS_PER: usize = 3;
+/// A constructor builds energy ahead of the free spots only while the energy store is under this share (D-ENERGY,
+/// 2026-11-04): the commander is the energy engine, the constructors its backstop in a stall.
+const ENERGY_STALL: f32 = 0.4;
 /// D-ENERGY's ratio (2026-10-20): the energy income is kept at this much a second for every finished extractor, the
 /// flagship's 555 for 20 at 10:00 and 1,020 for 29 at 15:00 (28 and 35); the bot ran 18 and 25.
 const ENERGY_PER_EXTRACTOR: f32 = 28.0;
@@ -544,11 +547,19 @@ impl Distilled {
             return Some(Job::Assist);
         }
         if Some(unit.def) == self.kit.advanced_constructor {
-            return self.advanced_job(def, tick);
+            return self.advanced_job(unit, def, tick);
         }
         let commander = Some(unit.def) == self.kit.commander;
+        // D-ENERGY (2026-11-04): the commander is the energy engine and the constructors answer a stall alone (the
+        // store under `ENERGY_STALL`, or no commander), three and one per three of them; otherwise their energy comes
+        // after the free spots. The constructors used to fill the energy quota first and the commander, finding it
+        // filled, assisted the plant: on the econ bench four or five of eight to twelve constructors were on solars
+        // from 5:00 to 9:00 and one to four on extractors (dist115), where the flagship's commander built its solars
+        // and its constructors claimed forty spots in those minutes (econ-flagship-4: 20 to 60 extractors).
         let on_energy = self.economy.working_on(|job| matches!(job, Job::Solar | Job::AdvancedSolar));
-        let energy = self.energy_short(tick) && on_energy < ENERGY_BUILDERS + self.count(self.kit.constructor) / ENERGY_BUILDERS_PER;
+        let energy_room = on_energy < ENERGY_BUILDERS + self.count(self.kit.constructor) / ENERGY_BUILDERS_PER;
+        let stall = tick.snapshot.energy.current < ENERGY_STALL * tick.snapshot.energy.storage || self.count(self.kit.commander) == 0;
+        let energy = self.energy_short(tick) && energy_room && stall;
         // D-AIR-POWER: while the fighters are short, help goes to the aircraft plant.
         let assist = || {
             if self.air_power_wanted() {
@@ -578,7 +589,7 @@ impl Distilled {
             // counted) or energy is short by the other tests; its 300 build power stands a solar in nine seconds and
             // the flagship's commander built two to three a minute from 1:30 to 10:00 (barb-hard-1, spending-player-1,
             // apex-v029-comet-sym0-opus-1), where ours averaged one with three-minute gaps of assisting.
-            if energy || (self.energy_below_ratio(tick) && tick.snapshot.energy.current < COMMANDER_SOLAR_STORE * tick.snapshot.energy.storage) {
+            if self.energy_short(tick) || (self.energy_below_ratio(tick) && tick.snapshot.energy.current < COMMANDER_SOLAR_STORE * tick.snapshot.energy.storage) {
                 return Some(Job::Solar);
             }
             // D-RADAR: the front's radar when it is within the commander's walk.
@@ -594,7 +605,7 @@ impl Distilled {
                 return Some(Job::AirPlant);
             }
             // D-PROJECT: the commander's 300 is the biggest build power we own.
-            if let Some(help) = self.project_help(tick) {
+            if let Some(help) = self.project_help(tick, false) {
                 return Some(help);
             }
             // D-RECLAIM: a wreck beside it, at 75 metal a second.
@@ -617,10 +628,13 @@ impl Distilled {
             }
             return assist();
         }
-        if energy {
+        let energy_job = || {
             let advanced = self.kit.advanced_solar.filter(|d| def.build_options.contains(d));
             let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
-            return Some(if metal.income >= ADVANCED_FROM && energy.current >= ADVANCED_ENERGY_STORE * energy.storage && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar });
+            Some(if metal.income >= ADVANCED_FROM && energy.current >= ADVANCED_ENERGY_STORE * energy.storage && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar })
+        };
+        if energy {
+            return energy_job();
         }
         // D-RADAR: the front's radar before the next extractor ("if not metal starved, prioritize over even mexes").
         if self.kit.radar.is_some_and(|r| def.build_options.contains(&r))
@@ -642,13 +656,24 @@ impl Distilled {
         // D-FLOAT: on a floating bank a converter on the spare before a hand on a reactor's frame (dist83: 39
         // constructors helping six reactor frames with the energy store full and 21-43 converters, against 43-59 with
         // the helpers capped); before the bank floats the converter keeps its place after the expansion (dist84: the
-        // rung ahead of the extractors put converters up at 5:00 and the income at 5:00 fell from 35 to 23).
-        if tick.snapshot.metal.current >= crate::tier2::FLOAT
+        // rung ahead of the extractors put converters up at 5:00 and the income at 5:00 fell from 35 to 23). Never
+        // ahead of a free spot (2026-11-04): a bank floats at 6:00-7:00 because the plant is short of constructors,
+        // not because the spots are gone, and three constructors of eight were on converters with forty spots free
+        // (dist115); a spot is two metal a second for 50, a converter one for 100 and 70 energy.
+        let site = self.free_site(unit, tick, f32::MAX);
+        if site.is_none()
+            && tick.snapshot.metal.current >= crate::tier2::FLOAT
             && let Some(job) = self.saturated_job(tick)
         {
             return Some(job);
         }
-        if let Some(help) = self.project_help(tick) {
+        // D-PROJECT: a hand on the project's frame ahead of the spots through the transition (the first advanced plant,
+        // a sprint); after it the spots come first (2026-11-04: with a floating bank from 10:00 the reactors' frames
+        // took 16-26 of 20-40 constructors at 11:00-12:00 while twenty spots were free, dist116).
+        let project_help = self.project_help(tick, false);
+        if self.transition()
+            && let Some(help) = project_help
+        {
             return Some(help);
         }
         if let Some(why) = self.t2_gate(def, tick) {
@@ -656,16 +681,33 @@ impl Distilled {
             eprintln!("[distilled ai={}] f={} t2 gate: {why} (bank {:.0} of {:.0}, income {:.1}, field won {})", self.hello.ai_id, self.frame, metal.current, metal.storage, metal.income, u8::from(self.field_won()));
             return Some(Job::AdvancedPlant);
         }
-        if let Some(job) = self.ring_turret_job(tick) {
+        if let Some(job) = self.ring_turret_job(tick, site.is_none()) {
             return Some(job);
         }
         if let Some(job) = self.build_power_wanted(def, tick) {
             return Some(job);
         }
-        // D-FLOAT for the tier-1 constructors: with the spots taken and no spare for a converter, an advanced solar for
-        // the next one (80 energy a second for 350 metal) rather than assisting an idle plant (23-30 of them, dist82).
-        let float_energy = || (tick.snapshot.metal.current >= crate::tier2::FLOAT && self.steady_spare(tick) < CONSTRUCTOR_ENERGY_PER_EXTRACTOR * 4.0 && def.build_options.contains(&self.kit.advanced_solar?)).then_some(Job::AdvancedSolar);
-        self.free_site(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.wreck_job(unit, tick, WRECK_WALK, WRECK_LEAST, 0.0)).or_else(|| self.saturated_job(tick)).or_else(float_energy).or_else(assist)
+        // D-FLOAT for the tier-1 constructors: with the spots taken, an advanced solar (75 energy a second for 350
+        // metal, 7,950 of build time: forty constructors stand twenty-four a minute) whenever the builders' energy
+        // draw is not covered, ahead of a hand on a frame or a converter (2026-11-04: the frames starved behind the
+        // converters while 17,000-43,000 metal sat banked, dist120-dist121; before, an advanced solar only once no
+        // spare was left for a converter, and 23-30 constructors assisted idle plants, dist82).
+        // Paced by the energy (2026-11-04): each one draws fifty a second for its hundred seconds, and sixteen to
+        // twenty-three begun at once on an income of 2,900 emptied the store at 13:00 and stalled every frame for two
+        // minutes (dist122); one more only while the spare and what the store holds above the stall line, spread
+        // over the build, cover its draw.
+        let float_energy = || {
+            let advanced_def = self.kit.advanced_solar.filter(|d| def.build_options.contains(d))?;
+            let advanced = self.def(advanced_def)?;
+            let energy = tick.snapshot.energy;
+            let seconds = advanced.build_time / def.build_speed.max(1.0);
+            let draw = advanced.energy_cost / seconds;
+            let buffer = (energy.current - ENERGY_STALL * energy.storage) / seconds;
+            let spare = self.build_spare(tick);
+            (tick.snapshot.metal.current >= crate::tier2::FLOAT && spare < CONSTRUCTOR_ENERGY_PER_EXTRACTOR * 4.0 && spare + buffer >= draw).then_some(Job::AdvancedSolar)
+        };
+        let energy_after_spots = || (self.energy_short(tick) && energy_room).then(energy_job).flatten();
+        site.map(Job::Extractor).or_else(energy_after_spots).or_else(float_energy).or(project_help).or_else(|| self.wreck_job(unit, tick, WRECK_WALK, WRECK_LEAST, 0.0)).or_else(|| self.saturated_job(tick)).or_else(assist)
     }
 
     /// D-RADAR: where the next radar goes, if one is wanted: `RADAR_BACK` behind our finished extractor nearest his
@@ -763,6 +805,17 @@ impl Distilled {
     /// (apex-v029-distilled-comet-3 against -1: 17-23 against 21-25); the pros' first turret comes at 5:56 and the
     /// second factory at 8:11, the Opus player's at 5:32 and 5:50 on fourteen extractors.
     pub(crate) fn builders_draw(&self) -> f32 {
+        self.builders_draw_of(|def| def.metal_cost)
+    }
+
+    /// Energy a second the builders with a build order draw at full speed, the same way (D-FLOAT, 2026-11-04: the
+    /// converters are sized net of it, else they eat the energy the reactors' frames need: dist121's advanced fusion
+    /// at 2,700 power assigned and 180 effective behind 81 converters, the energy usage level with its income).
+    pub(crate) fn builders_energy_draw(&self) -> f32 {
+        self.builders_draw_of(|def| def.energy_cost)
+    }
+
+    fn builders_draw_of(&self, cost: impl Fn(&UnitDefInfo) -> f32) -> f32 {
         self.economy
             .orders
             .iter()
@@ -772,7 +825,7 @@ impl Distilled {
                     job => job.def(&self.kit),
                 }?;
                 let (builder, def) = (self.def(self.own.get(id)?.def)?, self.def(built)?);
-                Some(builder.build_speed * def.metal_cost / def.build_time.max(1.0))
+                Some(builder.build_speed * cost(def) / def.build_time.max(1.0))
             })
             .sum()
     }
@@ -1106,7 +1159,7 @@ impl Distilled {
 
     /// The back field: 450 behind home, away from the enemy; on the next attempts the same distance to the left of
     /// home, to the right, then home itself.
-    fn back_field(&self, attempt: u32) -> Vec3 {
+    pub(crate) fn back_field(&self, attempt: u32) -> Vec3 {
         let (dx, dz) = (self.home.x - self.enemy_home.x, self.home.z - self.enemy_home.z);
         let length = dx.hypot(dz).max(1.0);
         let (ux, uz) = (dx / length, dz / length);

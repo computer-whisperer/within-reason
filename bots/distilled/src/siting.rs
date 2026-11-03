@@ -224,7 +224,9 @@ impl Distilled {
             Job::Plant | Job::AdvancedPlant => (def, self.toward_enemy(self.home, 350.0), BAND_PLANT),
             Job::AirPlant => (def, self.air_plant_site(), BAND_PLANT),
             Job::Fusion | Job::AdvancedFusion | Job::Silo | Job::AdvancedConverter => (def, back, BAND_FRAME),
-            Job::Converter => (def, back, BAND_GENERATOR),
+            // Beside its builder, as a solar (2026-11-04: at the back field every converter cost its builder the walk
+            // there, eleven a minute standing of forty constructors on the job, dist122).
+            Job::Converter => (def, unit.pos, BAND_GENERATOR),
             Job::AntiAir => (def, self.anti_air_site(), BAND_PLACE),
             Job::Radar(at) => (def, at, BAND_PLACE),
             Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand => {

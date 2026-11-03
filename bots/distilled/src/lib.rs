@@ -377,12 +377,17 @@ impl Distilled {
     }
 
     /// The constructors' recorded jobs, counted by word.
+    /// The constructors' jobs by count, and after a bar the advanced constructors' when any stand.
     fn constructor_jobs(&self) -> String {
-        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
-        for u in self.own.values().filter(|u| !u.being_built && Some(u.def) == self.kit.constructor) {
-            *counts.entry(self.economy.job_word(u.id)).or_default() += 1;
-        }
-        counts.iter().map(|(k, n)| format!("{k}:{n}")).collect::<Vec<_>>().join(" ")
+        let jobs = |def: Option<UnitDefId>| {
+            let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+            for u in self.own.values().filter(|u| !u.being_built && Some(u.def) == def) {
+                *counts.entry(self.economy.job_word(u.id)).or_default() += 1;
+            }
+            counts.iter().map(|(k, n)| format!("{k}:{n}")).collect::<Vec<_>>().join(" ")
+        };
+        let advanced = jobs(self.kit.advanced_constructor);
+        if advanced.is_empty() { jobs(self.kit.constructor) } else { format!("{} | advanced {advanced}", jobs(self.kit.constructor)) }
     }
 }
 
