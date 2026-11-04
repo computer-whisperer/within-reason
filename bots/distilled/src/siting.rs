@@ -215,12 +215,20 @@ impl Distilled {
             .collect();
         let frames: Vec<Frame> =
             self.own.values().filter(|u| u.being_built && self.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| Some(Frame { rect: rect_of(u.def, u.pos, u.facing)?, metal: self.def(u.def)?.metal_cost })).collect();
+        // Our mobile builders, each kept a way out of what the layer places round it (on the world's `open`).
+        let builders: Vec<layout::Builder> = self
+            .own
+            .values()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| self.def(u.def).filter(|d| d.speed > 0.0 && d.build_speed > 0.0).map(|d| layout::Builder { at: u.pos, half: d.footprint.0.max(d.footprint.1) as f32 * 4.0, passable: None }))
+            .collect();
         World {
             ground: Ground::new(&hello.terrain, hello.map.width, hello.map.height),
             spots: &hello.metal_spots,
             spot_keep_out: SPOT_KEEPOUT,
             standing,
             plants,
+            builders,
             workers,
             frames,
             frame_slots: Vec::new(),

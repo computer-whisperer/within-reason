@@ -45,6 +45,10 @@ const BANK_CAP: usize = 6;
 const BANK_CAP_GENERATOR: usize = 8;
 /// A sea building's site: the engine's search this far round the nearest water.
 const WATER_SEARCH: f32 = 600.0;
+/// The layer's fallback keeps the engine's search off every plant's lane this far out from its front: the apron and
+/// the street's first stretch, where the search put a solar, a storage, a turret and an advanced plant in front of
+/// one door (1793769060-human, plant_28133 8:01-10:48).
+const FALLBACK_LANE: f32 = 300.0;
 /// No orders before this frame: the engine loses them.
 pub(super) const FIRST_ORDER_FRAME: i32 = 60;
 /// A builder is not judged idle for this long after an order: the order has to reach it first.
@@ -125,7 +129,7 @@ impl Brain {
     }
 
     /// The world the layout layer chooses over, from this tick's units: what stands (ours finished and framed, every
-    /// unstarted build of ours, allies' with a square of margin, his known buildings), the plants with their aprons
+    /// unstarted build of ours, allies' buildings with a square of margin, his known buildings), the plants with their aprons
     /// and streets (ours and allies'), our construction turrets as build power, our frames, the stand's free slots as
     /// reservations, the sites the engine refused lately, and the block's rows, gantry slot and sub-lattice.
     pub(super) fn layout_world<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
@@ -161,7 +165,9 @@ impl Brain {
                 }
             }
         }
-        for a in &self.allies {
+        // Allies' buildings; their units are not walls (until 2026-11-04 every allied unit stood as one, and an Apex
+        // soldier or constructor in its own lab's door closed that lab's street in our world: 1793769060-human).
+        for a in self.allies.iter().filter(|a| self.world.def(a.def).is_some_and(|d| d.speed == 0.0)) {
             let name = format!("an allied {} at {}", self.name(a.def), self.world.grid(a.pos));
             standing.extend(standing_of(a.def, a.pos, a.facing, false, name.clone()));
             if self.world.is_factory_def(a.def) {
@@ -177,6 +183,15 @@ impl Brain {
             .filter_map(|u| self.world.def(u.def).map(|d| Worker { at: u.pos, reach: d.build_distance, power: d.build_speed }))
             .collect();
         let frames: Vec<Frame> = own.iter().filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| Some(Frame { rect: rect_of(u.def, u.pos, u.facing)?, metal: self.world.def(u.def)?.metal_cost })).collect();
+        // Our mobile builders, each kept a way out of what the layer places round it.
+        let builders: Vec<layout::Builder> = own
+            .iter()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| {
+                let d = self.world.def(u.def)?;
+                (d.speed > 0.0 && d.build_speed > 0.0).then(|| layout::Builder { at: u.pos, half: d.footprint.0.max(d.footprint.1) as f32 * 4.0, passable: self.passable_for_class(d.move_class) })
+            })
+            .collect();
         let reservations: Vec<Reservation> = match (&self.stand, self.pianist.as_ref()) {
             (Some((who, stand)), Some(pianist)) => stand
                 .slots
@@ -205,6 +220,7 @@ impl Brain {
             spot_keep_out: SPOT_KEEPOUT,
             standing,
             plants,
+            builders,
             workers,
             frames,
             frame_slots: Vec::new(),
@@ -318,12 +334,29 @@ impl Brain {
             {
                 (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false })
             }
-            // The engine's search, the default facing, a gap of two squares: the water, or the layer's fallback.
-            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: WATER_SEARCH, min_dist: 2, placements: Vec::new(), exact: false }),
+            // The engine's search with a gap of two squares, off every plant's lane, a plant facing the enemy: the
+            // water, or the layer's fallback.
+            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: WATER_SEARCH, min_dist: 2, placements: self.fallback_placements(def_id, anchor, own), exact: false }),
             // The layout's slot, exactly: the layer kept it off every apron, street and spot itself, and the engine's
             // answer is that site or none (then the refusal is remembered and the slot is passed over).
             Plan::Slot(def_id, at, facing) => (def_id, BuildSite { near: at, search_radius: SLOT_SEARCH, min_dist: 0, placements: vec![Placement { facing, keep_out: Vec::new() }], exact: true }),
         })
+    }
+
+    /// The engine's search for a site the layer found none for: kept off every plant's lane (ours standing or
+    /// framed, allies'), `FALLBACK_LANE` out from the front, and for a plant the facings toward the enemy in order.
+    /// Until 2026-11-04 the search went bare, and the apron the layer had kept empty was its nearest free ground:
+    /// plant_28133's door filled with a solar, a storage, a turret and the advanced plant, and plant_5506 went up
+    /// facing south into the turbine field (1793769060-human).
+    fn fallback_placements(&self, def: UnitDefId, anchor: Vec3, own: &[OwnUnit]) -> Vec<Placement> {
+        let lane = |d: UnitDefId, at: Vec3, facing: i32| self.facts_of(d).filter(|f| f.factory).map(|f| layout::lane(f.footprint, at, facing, FALLBACK_LANE, f.product_half));
+        let keep_out: Vec<bot_protocol::Lane> = own
+            .iter()
+            .filter_map(|u| lane(u.def, u.pos, u.facing))
+            .chain(self.allies.iter().filter_map(|a| lane(a.def, a.pos, a.facing)))
+            .collect();
+        let facings: Vec<i32> = if self.world.is_factory_def(def) { layout::facings_toward(anchor, self.enemy_base(self.home)).to_vec() } else { vec![0] };
+        facings.into_iter().map(|facing| Placement { facing, keep_out: keep_out.clone() }).collect()
     }
 
     pub(super) fn spot_occupied_radius(&self) -> f32 {
@@ -495,6 +528,50 @@ mod tests {
         }
         let words = brain.street_words(&plant, &ringed).unwrap();
         assert!(words.starts_with("closed for") && words.contains("armsolar_") && words.contains("reclaim it to open"), "{words}");
+    }
+
+    /// Allies' units are not walls, their buildings are; and the layer's fallback asks the engine off every plant's
+    /// lane, a plant facing the enemy first (1793769060-human: an Apex soldier in its lab's door read as a wall,
+    /// and the bare search filled our own plant's door).
+    #[test]
+    fn allied_units_are_not_walls_and_the_fallback_keeps_off_the_lanes() {
+        use bot_protocol::{AllyUnit, Terrain, UnitId};
+        let mut brain = brain_of(&["armcom", "armsolar", "armvp", "armflash"]);
+        let (com, solar, vp, flash) = (UnitDefId(1), UnitDefId(2), UnitDefId(3), UnitDefId(4));
+        {
+            let defs = &mut brain.world.hello.unit_defs;
+            defs[0].build_distance = 145.0;
+            defs[0].build_speed = 300.0;
+            defs[0].build_options = vec![solar, vp];
+            defs[1].footprint = (10, 10);
+            defs[1].energy_make = 20.0;
+            defs[2].footprint = (12, 12);
+            defs[2].build_options = vec![flash];
+            let (w, h) = (512u32, 384u32);
+            brain.world.hello.terrain = Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: Vec::new() };
+        }
+        brain.home = Vec3 { x: 2000.0, y: 0.0, z: 2000.0 };
+        let commander = own(10, 1, Vec3 { x: 2008.0, y: 0.0, z: 2104.0 });
+        let plant = OwnUnit { facing: 1, ..own(11, 3, Vec3 { x: 2000.0, y: 0.0, z: 2000.0 }) };
+        let ours = vec![commander.clone(), plant.clone()];
+        let ally = |id: i32, def: UnitDefId, x: f32, z: f32| AllyUnit { id: UnitId(id), def, pos: Vec3 { x, y: 0.0, z }, team: 7, being_built: false, facing: 0 };
+        brain.allies = vec![ally(50, flash, 2600.0, 2000.0), ally(51, solar, 2600.0, 2400.0)];
+        let world = brain.layout_world(&ours);
+        let names: Vec<&str> = world.standing.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.iter().any(|n| n.starts_with("an allied armsolar")), "{names:?}");
+        assert!(!names.iter().any(|n| n.starts_with("an allied armflash")), "a unit is no wall: {names:?}");
+        assert_eq!(world.builders.len(), 1, "the commander keeps a way out");
+        // The fallback: a solar's site off the plant's lane; a plant's with the facings toward the enemy first.
+        let kit = Kit { commander: com, extractor: com, converter: com, lab: vp, turret: com, constructor: com, vehicle_constructor: com, advanced_constructor: com, advanced_extractor: com, raider: flash, line: flash, resurrector: com, roster: &ROSTERS[0] };
+        let anchor = Vec3 { x: 2200.0, y: 0.0, z: 2000.0 };
+        let (_, site) = brain.build_site_for(&Plan::Near(solar, anchor), &commander, &ours, &kit).expect("a site");
+        assert_eq!(site.placements.len(), 1);
+        assert_eq!(site.placements[0].facing, 0);
+        assert!(site.placements[0].keep_out.iter().any(|l| l.contains(Vec3 { x: 2200.0, y: 0.0, z: 2000.0 })), "the plant's lane east of its front: {:?}", site.placements[0].keep_out);
+        assert!(!site.placements[0].keep_out.iter().any(|l| l.contains(Vec3 { x: 1800.0, y: 0.0, z: 2000.0 })), "behind the plant is free");
+        let (_, site) = brain.build_site_for(&Plan::Near(vp, anchor), &commander, &ours, &kit).expect("a site");
+        assert_eq!(site.placements.len(), 4);
+        assert_eq!(site.placements[0].facing, layout::facings_toward(anchor, brain.enemy_base(brain.home))[0]);
     }
 
     /// The kinds' purposes and bands: a solar banks without a cap, a converter and a wind turbine to six, a

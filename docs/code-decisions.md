@@ -121,7 +121,10 @@ point 300 behind home, the player's place 200 round it, a defence 150 round a po
 purpose (neighbours of its kind, pads and frames in reach, turrets in reach and the facing toward the enemy, seconds
 to stand), then the chain sum, then the builder's walk (the way round what stands, by a flood, since 2026-10-30), then
 home. Generators bank to eight and converters to six, banks a street of 48 apart (2026-10-30, the user: a bank of
-eighteen solars was a wall the commander walked round). The old rules (the yard 350 ahead, the turret line
+eighteen solars was a wall the commander walked round). Since 2026-11-04 (1793769060-human, the user: "we blocked units
+in despite our layout engine"): the street test blames a site only for a street open without it, allies' units are not
+walls, the engine's fallback keeps off every plant's lane and faces a plant toward the enemy, and a site that would
+wall in one of our working builders is passed over (H-ECO-LAYOUT's amendment). The old rules (the yard 350 ahead, the turret line
 650 ahead, the back field for generators, `beside_builder`, the 320 lane, the spot clearances, the gaps) are deleted.
 The block (H-ECO-BLOCK) is the one global decision after the stand: when our first advanced plant is placed its centre
 is found once, at the player's `block` mark or on the flattest ground beside the plant that holds two frame rows and the

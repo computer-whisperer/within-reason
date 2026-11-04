@@ -178,6 +178,21 @@ in apex-v0409-comet-sym0-opus-2 the three vehicle plants' pocket had a crater's 
 no vehicle's, so the street was open through the rim all game while every vehicle was penned from 10:30 / 12:00
 (K-eco-a-plants-street-on-anothers-ground-is-no-street).
 
+**Amended 2026-11-04 (1793769060-human, the 3v10 lobby game).** The test has a baseline: a candidate is passed over
+only for a street that was open without it. Until then a street closed by anything was "closed by" every candidate
+within its window, the chooser failed every try, and the bot's fallback asked the engine's search at the band's
+centre with no street awareness at all: the apron the layer had kept empty was the search's nearest free ground, so
+the fallback walled the doors the rule exists to keep (plant_28133's door: a storage, a solar, a turret and the
+advanced plant, 8:01-10:48; plant_5506 placed facing south, the default, into the turbine field). What closed the
+first streets was not a building: the world took every allied unit as a footprint with the ally margin, and an Apex
+unit standing in its own lab's door closed that lab's street for the moment it stood there, which was enough to send
+every site of ours within 1,200 to the search. Now allies' units are not walls; the fallback keeps the search off
+every plant's lane 300 out and faces a plant toward the enemy; and the same flood, run from a builder's own position
+(`World::builders`, `way_out`), passes over a site that would leave one of our working builders no way to the open
+(t16's advanced constructor at its extractor, walled in by the commander's turbines 4:55-6:46). The engine's search
+remains the fallback where every site in three widenings would newly close a street; it keeps off the lanes but not
+off a street in general, and the log says why.
+
 ### 1.3 The chain sum, the second criterion
 
 The user's ruling (2026-10-29): avoiding chain death is "a second or third optimization criteria rather than a

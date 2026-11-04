@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use bot_protocol::{UnitDefId, Vec3};
 
 use crate::block::Lattice;
-use crate::street::{Plant, street_open};
+use crate::street::{Builder, Plant, street_open, way_out};
 use crate::{Facts, Footprint, GRID, Ground, Rect, facings_toward};
 
 /// The margin round an ally's footprint: one build square, so nothing of ours touches theirs.
@@ -32,6 +32,8 @@ const TOUCHING_CAP: f32 = 2.0;
 const FOUNDING: f32 = 1.0;
 /// How many candidates, best first, the street check tries before the band is widened.
 const STREET_TRIES: usize = 12;
+/// A builder of ours this close to a candidate's footprint is asked whether the site walls it in.
+const BUILDER_NEAR: f32 = 200.0;
 /// The band of distance is widened this many times by doubling when nothing in it passes.
 const WIDENINGS: u32 = 2;
 /// The bands: a candidate within the band of the best at a level goes to the next level.
@@ -110,6 +112,8 @@ pub struct World<'a> {
     pub spot_keep_out: f32,
     pub standing: Vec<Standing>,
     pub plants: Vec<Plant>,
+    /// Our mobile builders: a site that walls one in is passed over (`way_out`).
+    pub builders: Vec<Builder>,
     pub workers: Vec<Worker>,
     pub frames: Vec<Frame>,
     /// The block's frame slots (their centres), once the block is laid: what a construction turret is for then.
@@ -281,6 +285,13 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
     let mut why = String::new();
     // The blocks of the street rule: what stands, and the candidate under test pushed behind them.
     let mut blocks: Vec<Rect> = world.standing.iter().map(World::blocking_rect).collect();
+    // A street closed before the candidate is not the candidate's to close, nor a builder walled in already: until
+    // 2026-11-04 a street closed by anything (an ally's unit in its own lab's door, a door walled by earlier
+    // fallbacks) read as closed by every site within 1,200 of the plant, and the whole base went to the engine's
+    // search (1793769060-human, seats 2 and 3 from 1:04 and 5:21). Found once per plant or builder, as it comes
+    // into question.
+    let mut open_before: Vec<Option<bool>> = vec![None; world.plants.len()];
+    let mut out_before: Vec<Option<bool>> = vec![None; world.builders.len()];
     for widening in 0..=WIDENINGS {
         let radius = req.radius * 2f32.powi(widening as i32);
         // The flood for this widening alone: most searches end at the first, and a flood over four times the band
@@ -300,13 +311,24 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
             continue;
         }
         let ordered = by_bands(candidates, &bands);
-        let plants_own: Vec<Plant> = Vec::new();
         for c in ordered.iter().take(STREET_TRIES) {
             blocks.push(c.rect);
-            let plants = world.plants.iter().chain(plants_own.iter());
-            let mut closed = plants.filter(|p| p.concerns(&c.rect)).filter(|p| !street_open(&world.ground, p, &blocks, &*world.open));
-            if let Some(p) = closed.next() {
+            let before = &blocks[..blocks.len() - 1];
+            let closed = world.plants.iter().enumerate().filter(|(_, p)| p.concerns(&c.rect)).find(|(i, p)| {
+                let was_open = *open_before[*i].get_or_insert_with(|| street_open(&world.ground, p, before, &*world.open));
+                was_open && !street_open(&world.ground, p, &blocks, &*world.open)
+            });
+            if let Some((_, p)) = closed {
                 why = format!("the best site at ({:.0}, {:.0}) would close {}'s street for its {}", c.at.x, c.at.z, p.name, p.widest);
+                blocks.pop();
+                continue;
+            }
+            let walled = world.builders.iter().enumerate().filter(|(_, b)| distance_to(&c.rect, b.at) <= BUILDER_NEAR && b.concerns(&c.rect)).find(|(i, b)| {
+                let had_way = *out_before[*i].get_or_insert_with(|| way_out(&world.ground, b, before, &*world.open));
+                had_way && !way_out(&world.ground, b, &blocks, &*world.open)
+            });
+            if let Some((_, b)) = walled {
+                why = format!("the best site at ({:.0}, {:.0}) would wall in our builder at ({:.0}, {:.0})", c.at.x, c.at.z, b.at.x, b.at.z);
                 blocks.pop();
                 continue;
             }
@@ -694,7 +716,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -830,6 +852,53 @@ mod tests {
         assert!(!rect.overlaps(&Rect { x0: 2160.0, z0: 1960.0, x1: 2240.0, z1: 2040.0 }), "placed in the gap: {site:?}");
         assert!(!w.plants[0].apron().overlaps(&rect));
     }
+
+    /// A street closed already is nobody's to close: with the plant ringed by solars (closed before any candidate),
+    /// a solar asked for 700 away, inside the plant's window, gets its site; until 2026-11-04 every site in the
+    /// window was refused as closing the street and the engine's search took over (1793769060-human).
+    #[test]
+    fn an_already_closed_street_does_not_veto_a_site_in_its_window() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), passable: None });
+        w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
+        for k in -3..=3 {
+            let o = 80.0 * k as f32;
+            for (x, z) in [(2240.0, 2000.0 + o), (1760.0, 2000.0 + o), (2000.0 + o, 1760.0), (2000.0 + o, 2240.0)] {
+                w.standing.push(standing(3, 10, at(x, z), 155.0, 340.0, None));
+            }
+        }
+        assert!(!street_open(&w.ground, &w.plants[0], &w.standing.iter().map(|s| s.rect).collect::<Vec<_>>(), &*w.open), "the ring closes the street");
+        let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: at(2700.0, 2000.0), radius: 120.0, builder_at: at(2700.0, 2000.0), builder: builder() };
+        let site = choose(&w, &req).expect("a site, the street being closed already");
+        assert!(site.at.dist2d(at(2700.0, 2000.0)) < 200.0, "{site:?}");
+    }
+
+    /// A working builder keeps its way out: in a bay of turbines open to the west, the turbine that would shut the
+    /// bay is passed over for one that leaves it open (t16's advanced constructor, 1793769060-human 4:55).
+    #[test]
+    fn a_site_that_would_wall_in_a_working_builder_is_passed_over() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        let builder_at = at(2048.0, 2048.0);
+        w.builders.push(Builder { at: builder_at, half: 24.0, passable: None });
+        for k in -2..=2 {
+            let o = 48.0 * k as f32;
+            for (x, z) in [(2048.0 + o, 1960.0), (2048.0 + o, 2136.0), (2136.0, 2048.0 + o)] {
+                w.standing.push(standing(5, 6, at(x, z), 40.0, 200.0, None));
+            }
+        }
+        let wind = facts(5, 6, 40.0, 200.0, None);
+        // Asked for at the bay's mouth: touching the bank there would shut it.
+        let req = Request { facts: wind.clone(), purpose: Purpose::Generator { cap: None }, centre: at(1960.0, 2048.0), radius: 100.0, builder_at: at(1900.0, 2048.0), builder: builder() };
+        let site = choose(&w, &req).expect("a site");
+        let mut with: Vec<Rect> = w.standing.iter().map(|s| s.rect).collect();
+        with.push(Footprint { x: 6, z: 6 }.rect(site.at));
+        assert!(way_out(&w.ground, &w.builders[0], &with, &*w.open), "walled in by the site: {site:?}");
+    }
 }
 
 #[cfg(test)]
@@ -840,7 +909,7 @@ mod sea_tests {
         // Land everywhere at 50: a shipyard wanting 30 of water stands nowhere, and the answer says so at once.
         let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
         let open = |_: Vec3| true;
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         assert!(!w.ground.depths_on_map(&shipyard));
@@ -887,7 +956,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
@@ -904,7 +973,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() };
         let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);

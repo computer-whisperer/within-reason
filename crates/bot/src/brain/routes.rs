@@ -367,6 +367,13 @@ impl Brain {
         Some(strictest.cloned().unwrap_or_else(|| routes.passable.clone().into()))
     }
 
+    /// Where a unit of this movement class stands, as the route survey has it; None without terrain or for a
+    /// class the survey did not price (the layout layer then judges on its `open`).
+    pub(super) fn passable_for_class(&self, class: Option<MoveClass>) -> Option<layout::Passable> {
+        let routes = self.routes.as_ref()?;
+        routes.classes.get(&Walker::Class(ClassKey::of(class?))).map(|(passable, _)| passable.clone())
+    }
+
     /// The reachable ground nearest `pos`; `pos` itself when we cannot tell.
     pub(super) fn snap_to_reachable(&self, pos: Vec3) -> Vec3 {
         self.routes.as_ref().and_then(|r| r.from_home.snap(pos)).unwrap_or(pos)

@@ -1,5 +1,22 @@
 # Economy
 
+### K-eco-the-engines-site-search-fills-a-kept-apron-first
+**Claim.** The engine's closest-build-site search (`Map_findClosestBuildSite`), asked near a plant, puts the building
+in the plant's apron whenever the apron is the nearest free ground; a layer that keeps aprons empty and then falls
+back to that search hands the search exactly the ground it kept.
+**Status.** supported (2026-11-04)
+**Evidence.** 1793769060-human (3v10 on Plains and Passes): once the layer refused every site near t12's home
+(5:21 on), its fallback asked the search at the band's centre, and the search placed a storage at plant_28133's door
+edge (8:01), a solar dead in front of the door (8:31), a construction turret (10:34) and the advanced plant itself
+(10:48, 200 in front, facing south by the search's default) while the rest of the base was packed. plant_5506, placed
+by the search at 10:00 facing south, had an extractor, four turbines, three converters and two solars 66-300 in front
+of its door from the opening; seven of its thirteen soldiers stood stuck in its lane three minutes. Allied Apex labs
+read closed only because their units stood in their doors (the bot's world counted allied units as walls until this
+date).
+**Would be wrong if.** A fallback-placed building landed off a kept apron while the apron was the nearest free ground.
+**Used by.** H-ECO-LAYOUT (amended 2026-11-04: the fallback keeps off every plant's lane, the street test has a
+baseline, allies' units are not walls).
+
 ### K-eco-judge-energy-by-storage
 **Claim.** Energy shortage must be judged by stored energy, not by income against usage: metal converters absorb any
 surplus, so usage always rises to meet income.

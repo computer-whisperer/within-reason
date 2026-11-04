@@ -2,7 +2,9 @@
 //! ground before its door kept clear outright, and a street: wherever its widest product can walk from the door to
 //! the open, through the ground its units stand on and round every footprint. The check floods a window round the
 //! plant with the candidate footprint added; a site that closes any plant's street, ours or an ally's, is passed over.
-//! The same check reports a street's state for the player ("closed for Bulls by armsolar_3041").
+//! The same check reports a street's state for the player ("closed for Bulls by armsolar_3041"). The same flood,
+//! from where a builder of ours stands, keeps a working builder a way out (`way_out`): a bank of turbines chained
+//! edge to edge round a constructor at its extractor walled it in for two minutes (1793769060-human, t16 at 4:55).
 
 use bot_protocol::Vec3;
 
@@ -66,9 +68,43 @@ impl Plant {
 
     /// Whether `rect` lies where it could affect this plant's street.
     pub fn concerns(&self, rect: &Rect) -> bool {
-        let window = Rect { x0: self.centre.x - STREET_REACH, z0: self.centre.z - STREET_REACH, x1: self.centre.x + STREET_REACH, z1: self.centre.z + STREET_REACH };
-        window.overlaps(rect)
+        window(self.centre).overlaps(rect)
     }
+}
+
+/// The ground a flood from `centre` runs over: within `STREET_REACH` of it.
+fn window(centre: Vec3) -> Rect {
+    Rect { x0: centre.x - STREET_REACH, z0: centre.z - STREET_REACH, x1: centre.x + STREET_REACH, z1: centre.z + STREET_REACH }
+}
+
+/// A mobile builder of ours that must keep a way out: where it stands, half its footprint's width and the ground
+/// it walks (the caller's `open` when it has none).
+#[derive(Clone, Debug)]
+pub struct Builder {
+    pub at: Vec3,
+    pub half: f32,
+    pub passable: Option<Passable>,
+}
+
+impl Builder {
+    /// Whether `rect` lies where it could wall this builder in.
+    pub fn concerns(&self, rect: &Rect) -> bool {
+        window(self.at).overlaps(rect)
+    }
+
+    fn stands(&self, ground: &Ground, open: &dyn Fn(Vec3) -> bool, p: Vec3) -> bool {
+        match &self.passable {
+            Some(walk) => ground.walks(walk, p.x, p.z),
+            None => open(p),
+        }
+    }
+}
+
+/// Whether the builder walks from where it stands to the open, over its own ground and round every rect of
+/// `blocks`: the street test from a unit's own position, its own body the product.
+pub fn way_out(ground: &Ground, builder: &Builder, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> bool {
+    let k = ((builder.half * 2.0) / GRID).ceil().max(1.0) as i32;
+    Flood::around(ground, builder.at, builder.at, k, &|p| builder.stands(ground, open, p), blocks).reaches_the_open()
 }
 
 /// The state of a plant's street.
@@ -124,25 +160,30 @@ struct Flood {
 
 impl Flood {
     fn new(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
+        Flood::around(ground, plant.centre, plant.door(), plant.product_cells(), &|p| plant.stands(ground, open, p), blocks)
+    }
+
+    /// The flood over the window round `centre`, starting with a block of `k` cells a side at `door`, over the
+    /// cells `stands` and round every rect of `blocks` in the window.
+    fn around(ground: &Ground, centre: Vec3, door: Vec3, k: i32, stands: &dyn Fn(Vec3) -> bool, blocks: &[Rect]) -> Flood {
         let (map_w, map_h) = ground.extent();
-        let x0 = (plant.centre.x - STREET_REACH).max(0.0);
-        let z0 = (plant.centre.z - STREET_REACH).max(0.0);
-        let x1 = (plant.centre.x + STREET_REACH).min(map_w);
-        let z1 = (plant.centre.z + STREET_REACH).min(map_h);
+        let x0 = (centre.x - STREET_REACH).max(0.0);
+        let z0 = (centre.z - STREET_REACH).max(0.0);
+        let x1 = (centre.x + STREET_REACH).min(map_w);
+        let z1 = (centre.z + STREET_REACH).min(map_h);
         let nx = ((x1 - x0) / GRID).floor().max(1.0) as i32;
         let nz = ((z1 - z0) / GRID).floor().max(1.0) as i32;
-        let near: Vec<&Rect> = blocks.iter().filter(|r| plant.concerns(r)).collect();
+        let win = window(centre);
+        let near: Vec<&Rect> = blocks.iter().filter(|r| win.overlaps(r)).collect();
         let mut sums = vec![0i32; ((nx + 1) * (nz + 1)) as usize];
         let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
         for j in 0..nz {
             for i in 0..nx {
                 let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
-                let blocked = !plant.stands(ground, open, p) || near.iter().any(|r| r.contains(p));
+                let blocked = !stands(p) || near.iter().any(|r| r.contains(p));
                 sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(blocked);
             }
         }
-        let k = plant.product_cells();
-        let door = plant.door();
         let (di, dj) = (((door.x - x0) / GRID).floor() as i32 - k / 2, ((door.z - z0) / GRID).floor() as i32 - k / 2);
         let start = (di >= 0 && dj >= 0 && di + k <= nx && dj + k <= nz).then_some((di, dj));
         Flood { nx, nz, k, x0, z0, sums, start, door }
@@ -338,5 +379,28 @@ mod sea_tests {
         }
         assert!(street_open(&ground, &plant(None), &walls, &bots_walk), "on the bots' ground the street is open");
         assert!(!street_open(&ground, &plant(Some(vehicles)), &walls, &bots_walk), "on the vehicles' ground the rim pens it");
+    }
+
+    /// A builder standing in a bay of turbines has its way out while one side is open; the turbine that shuts the
+    /// bay walls it in (t16's advanced constructor at its extractor, 1793769060-human 4:55).
+    #[test]
+    fn a_builder_in_a_bay_of_turbines_keeps_its_way_out_until_the_bay_shuts() {
+        let t = shore(50, |_, _| false);
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |_: Vec3| true;
+        let builder = Builder { at: at(2048.0, 2048.0), half: 24.0, passable: None };
+        let wind = |x: f32, z: f32| Footprint { x: 6, z: 6 }.rect(at(x, z));
+        // Turbines (48 square) touching, on the north, east and south of the builder, 64 off it.
+        let mut bay: Vec<Rect> = Vec::new();
+        for k in -2..=2 {
+            bay.push(wind(2048.0 + 48.0 * k as f32, 1960.0));
+            bay.push(wind(2048.0 + 48.0 * k as f32, 2136.0));
+            bay.push(wind(2136.0, 2048.0 + 48.0 * k as f32));
+        }
+        assert!(way_out(&ground, &builder, &bay, &open), "the west is open");
+        for k in -2..=2 {
+            bay.push(wind(1960.0, 2048.0 + 48.0 * k as f32));
+        }
+        assert!(!way_out(&ground, &builder, &bay, &open), "walled in");
     }
 }
