@@ -717,11 +717,11 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         (opening.asked && !opening.prompted).then(|| {
             opening.prompted = true;
             opening.map_owed = true;
-            opening.seats.values().cloned().collect::<Vec<String>>()
+            (opening.seats.values().cloned().collect::<Vec<String>>(), opening.sides.clone())
         })
     };
-    if let Some(seats) = before_the_game {
-        return opening_prompt(&seats, &shared.map.lock().unwrap());
+    if let Some((seats, sides)) = before_the_game {
+        return opening_prompt(&seats, &sides, &shared.map.lock().unwrap());
     }
     // The first report of the running game after an opening turn: a full one, with the map now that our start
     // is in it.
@@ -815,17 +815,20 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
 }
 
 /// The opening turn's prompt (`docs/design/2026-09-30-opening-turn.md`): taken before the game, with the map, the
-/// seats and our start box, and no start yet.
-fn opening_prompt(seats: &[String], map: &Value) -> String {
+/// sides as the lobby set them, the seats and our start box, and no start yet.
+fn opening_prompt(seats: &[String], sides: &[shared::Side], map: &Value) -> String {
     let mut prompt = String::from(
         "[before the game] The game has not begun: the starts are being placed and the countdown has not run. This turn costs nothing: no game time passes while you think, and what you order is in force from the first second.\n\n\
-What is known now: the map, the seats and our start box. What is not: where inside the box each commander will stand (the game or a teammate places it), so no spot can be called nearest home yet. Write the opening so that it holds from any start in the box:\n\
+What is known now: the map, who plays each side (the sides line below: a person's faction is the lobby's word, which a person may change at the start, and its lobby skill is beside its name), the seats and our start box. What is not: where inside the box each commander will stand (the game or a teammate places it), so no spot can be called nearest home yet. Write the opening so that it holds from any start in the box:\n\
 - `queue` for each commander with a bare `extractor` for every opening extractor: the hands take the free spot it reaches soonest when the step comes up. A building given without a place (a solar, the plant) stands beside it. End every step with an id of your own (`extractor #m1`, `solar #s1`, `plant #vp1`): a step sent again with its id is the same building, done or under way, so a list you re-send later credits what the hands have done by then. When a seat's faction is not known yet (its seat line says so), give its commander one list per faction, `{\"commander\": {\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}`, each in that faction's own names and clock (the factions' openings differ: a Cortex vehicle plant makes a constructor first and wants its third solar before the plant or right after it; the Armada plant's first unit is a Rover): the hands take the list of the faction the game gives the seat at their first look, the first report's hands lines say which, and a faction left out plays from the menu. Role words (`solar`, `wind`, `lab` (the bot lab), `plant` (the vehicle plant), `air_plant`, `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`, `advanced_extractor`) are for a step that is the same in every faction, and a plain list of them alone serves every faction with one opening.\n\
 - `produce` with `all`, likewise one list per faction before the faction is known (`{\"all\": {\"armada\": [\"armcv:1\", ...], \"cortex\": [...], \"legion\": [...]}}`), or by role words when the lists would be the same (`constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor`; with counts as usual, `constructor:1`), and `instruct` with the plan and each kind of actor's standing job, naming no place that depends on the start.\n\
 - then `wait` with a short `max_seconds` (10): your first report of the running game comes then, with the start, the walking distances and every spot named. The lists go on running through it: re-send a list only for what you change, with the ids kept, since a new list replaces the old one whole and lands twenty to thirty seconds after the report you read.\n\n",
     );
     if realtime() {
         prompt.push_str("Once it begins this game runs in real time: it does not pause while you take a turn, and your orders land when the turn ends, five to ten seconds later. Decide from the report, write states that hold, and keep turns short.\n\n");
+    }
+    if let Some(sides) = report::sides_line(sides) {
+        prompt += &format!("{sides}\n\n");
     }
     prompt += &format!("Seats of ours:\n{}\n\nMap: {map}", seats.join("\n"));
     prompt
@@ -881,10 +884,17 @@ mod tests {
     #[test]
     fn the_opening_prompt_comes_once_and_the_first_report_carries_the_map_again() {
         let shared = Shared::default();
-        shared.seat_said_hello(0, 1, "commander (team 0): Armada; its start will be somewhere inside our start box (cells A4-B8)".into(), json!({ "name": "Comet", "our_start": "not known before the game begins" }));
+        let sides = vec![
+            shared::Side { ours: true, ally_team: 1, seats: vec!["you (WReason), faction chosen by the game at the start, red in the lobby's colours".into()] },
+            shared::Side { ours: false, ally_team: 0, seats: vec!["[gecko]u6bkep (a person, lobby skill 19), Armada in the lobby (a person may change faction at the start; none of its units seen yet), blue in the lobby's colours".into()] },
+        ];
+        shared.seat_said_hello(0, 1, "commander (team 0): Armada; its start will be somewhere inside our start box (cells A4-B8)".into(), json!({ "name": "Comet", "our_start": "not known before the game begins" }), sides);
         let mut seen = report::Seen::default();
         let opening = player_prompt("", "the game has not begun: the opening is yours", &shared, &mut seen, true, 0);
         assert!(opening.starts_with("[before the game]") && opening.contains("a bare `extractor`") && opening.contains("commander (team 0): Armada") && opening.contains("not known before the game begins"), "{opening}");
+        // The sides as the lobby set them come before the game, in the running report's words (1793584014-human
+        // told the player its opponent's faction and skill at 0:10, after the opening was written).
+        assert!(opening.contains("sides (a 1v1): yours: you (WReason), faction chosen by the game at the start") && opening.contains("against you: [gecko]u6bkep (a person, lobby skill 19), Armada in the lobby"), "{opening}");
         assert!(!opening.contains("Woken because"));
         *shared.map.lock().unwrap() = json!({ "name": "Comet", "our_start": { "grid": "B8" } });
         let first = player_prompt("0:10", "10 s have passed", &shared, &mut seen, false, 0);

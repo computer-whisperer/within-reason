@@ -945,7 +945,7 @@ impl Brain {
             *shared.own_commander.lock().unwrap() = Some(self.commander_handle());
         }
         let line = format!("{} (team {}): {faction}; {start}", self.commander_handle(), hello.team);
-        shared.seat_said_hello(hello.team, self.seats_of_the_player(), line, self.map_before_the_game());
+        shared.seat_said_hello(hello.team, self.seats_of_the_player(), line, self.map_before_the_game(), self.sides());
     }
 
     /// The `map` tool's answer before the game: what does not depend on where we start.
@@ -1327,7 +1327,11 @@ impl Brain {
                         // The engine lowercases faction names; a lobby seat on side Random keeps the word, its
                         // faction picked by the game at start (our own is read from the commander).
                         let side = if t.team == hello.team {
-                            self.faction()
+                            // Before the game a seat on Random has no commander to read: the words of its seat line.
+                            match self.faction() {
+                                f if f.eq_ignore_ascii_case("random") => "faction chosen by the game at the start".to_string(),
+                                f => f,
+                            }
                         } else if t.side.eq_ignore_ascii_case("random") {
                             if t.ally_team == hello.ally_team { "faction in the seats line".to_string() } else { "faction chosen at start (Random in the lobby)".to_string() }
                         } else {

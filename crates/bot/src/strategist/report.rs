@@ -329,19 +329,7 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
         lines.push(format!("wrecks: {} | resurrection bots {}", if fields.is_empty() { "none known".to_string() } else { fields.join(", ") }, field.resurrection_bots));
     }
     // Who is in the game (H-PLAYER-SIDES; human-9: a 2v1 against a person and BARb, and the player was never told).
-    if !briefing.sides.is_empty() {
-        let ours: Vec<&Side> = briefing.sides.iter().filter(|s| s.ours).collect();
-        let theirs: Vec<&Side> = briefing.sides.iter().filter(|s| !s.ours).collect();
-        let our_seats: usize = ours.iter().map(|s| s.seats.len()).sum();
-        let their_seats: usize = theirs.iter().map(|s| s.seats.len()).sum();
-        let shape = if theirs.len() > 1 { format!("{our_seats} of ours against {} sides of {their_seats} seats", theirs.len()) } else { format!("a {our_seats}v{their_seats}") };
-        lines.push(format!(
-            "sides ({shape}): yours: {}{} | against you: {}",
-            ours.iter().flat_map(|s| s.seats.iter()).cloned().collect::<Vec<_>>().join(", "),
-            if our_seats > 1 { " (allies fight beside you; their units are theirs to order)" } else { "" },
-            if theirs.is_empty() { "nobody".to_string() } else { theirs.iter().map(|s| s.seats.join(", ")).collect::<Vec<_>>().join(" | ") }
-        ));
-    }
+    lines.extend(sides_line(&briefing.sides));
     // The lobby's game-end rule (H-REPORT-GAME-END; human-8v8-1 ran `deathmode=com` with five seats a side, and the
     // role text said "lose when ours dies" of a game a side loses only when it has no commander left).
     if !briefing.game_end.is_empty() {
@@ -417,6 +405,27 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
 /// Every unfinished structure of ours, those nobody is building first, with the handle a `finish <handle>` list
 /// step or a `remove` takes (the unfinished-structures sweep, 2026-10-17: a frame nobody was building was in no
 /// report until it decayed, 205 such in 23 games).
+/// The sides line: every seat of the game by who plays it, its faction (a person's is the lobby's word until its
+/// units are seen) and its lobby colour, ours first. The same words before the game (the opening prompt: the hello
+/// carries the lobby's factions and skills, and 1793584014-human told the player its opponent's only at 0:10, after
+/// it had written the opening) and in the running report.
+pub(crate) fn sides_line(sides: &[Side]) -> Option<String> {
+    if sides.is_empty() {
+        return None;
+    }
+    let ours: Vec<&Side> = sides.iter().filter(|s| s.ours).collect();
+    let theirs: Vec<&Side> = sides.iter().filter(|s| !s.ours).collect();
+    let our_seats: usize = ours.iter().map(|s| s.seats.len()).sum();
+    let their_seats: usize = theirs.iter().map(|s| s.seats.len()).sum();
+    let shape = if theirs.len() > 1 { format!("{our_seats} of ours against {} sides of {their_seats} seats", theirs.len()) } else { format!("a {our_seats}v{their_seats}") };
+    Some(format!(
+        "sides ({shape}): yours: {}{} | against you: {}",
+        ours.iter().flat_map(|s| s.seats.iter()).cloned().collect::<Vec<_>>().join(", "),
+        if our_seats > 1 { " (allies fight beside you; their units are theirs to order)" } else { "" },
+        if theirs.is_empty() { "nobody".to_string() } else { theirs.iter().map(|s| s.seats.join(", ")).collect::<Vec<_>>().join(" | ") }
+    ))
+}
+
 pub(super) fn unfinished_line(briefing: &Briefing) -> Option<String> {
     if briefing.frames.is_empty() {
         return None;

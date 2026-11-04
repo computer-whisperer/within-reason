@@ -791,6 +791,9 @@ pub struct Shared {
 pub struct Opening {
     /// Each seat of ours that has said Hello, by team: its line for the turn's prompt.
     pub seats: BTreeMap<i32, String>,
+    /// Every side of the game as the hello gives it (who plays each seat, with the lobby's faction and skill), for
+    /// the turn's sides line: the same words the running report's carries.
+    pub sides: Vec<Side>,
     /// The turn has been asked for.
     pub asked: bool,
     /// The driver has taken the turn's prompt.
@@ -867,10 +870,11 @@ impl Shared {
     /// Brain side, at Hello: a seat of ours is in, with its line for the opening turn's prompt and the map as it
     /// can be known before the start. When all `expected` seats are in, the opening turn is asked for; nobody
     /// waits here (lockstep waits at its first tick, `hold_for_opening`).
-    pub fn seat_said_hello(&self, team: i32, expected: usize, line: String, map: serde_json::Value) {
+    pub fn seat_said_hello(&self, team: i32, expected: usize, line: String, map: serde_json::Value, sides: Vec<Side>) {
         {
             let mut opening = self.opening.lock().unwrap();
             opening.seats.insert(team, line);
+            opening.sides = sides;
             if opening.asked || opening.seats.len() < expected {
                 return;
             }
@@ -1167,10 +1171,10 @@ mod tests {
         let shared = std::sync::Arc::new(Shared::default());
         shared.gated.store(true, Relaxed);
         assert!(shared.opening_pending());
-        shared.seat_said_hello(0, 2, "commander_t0 (team 0): Armada".into(), serde_json::json!({ "name": "one" }));
+        shared.seat_said_hello(0, 2, "commander_t0 (team 0): Armada".into(), serde_json::json!({ "name": "one" }), vec![]);
         assert!(shared.gate.lock().unwrap().requested.is_none(), "one seat of two");
         shared.hold_for_opening();
-        shared.seat_said_hello(1, 2, "commander_t1 (team 1): Cortex".into(), serde_json::json!({ "name": "both" }));
+        shared.seat_said_hello(1, 2, "commander_t1 (team 1): Cortex".into(), serde_json::json!({ "name": "both" }), vec![]);
         assert_eq!(shared.gate.lock().unwrap().requested.as_deref(), Some("the game has not begun: the opening is yours"));
         assert_eq!(shared.last_turn_frame.load(Relaxed), 1);
         assert_eq!(shared.map.lock().unwrap()["name"], "both");
@@ -1185,7 +1189,7 @@ mod tests {
         // A session that is gone ends the wait as well.
         let gone = Shared::default();
         gone.gated.store(true, Relaxed);
-        gone.seat_said_hello(0, 1, "commander (team 0): Armada".into(), serde_json::Value::Null);
+        gone.seat_said_hello(0, 1, "commander (team 0): Armada".into(), serde_json::Value::Null, vec![]);
         gone.close_gate();
         gone.hold_for_opening();
         assert!(!gone.opening_pending());

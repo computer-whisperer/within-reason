@@ -85,3 +85,12 @@ builder of another faction (an ally's gift) takes its own faction's list. A fact
 plays from the menu, and the line says so. Role words stay for a step that is the same in every faction. The arena
 fixes the side, so only a lobby seat on Random exercises the form; it is unmeasured in a game.
 
+## The sides before the game (2026-11-04)
+
+The review of what the player reads in order (2026-11-04) found the opponent's lobby faction and skill known at Hello
+(the start script's `side` and `skill` per team, in `hello.teams`) and withheld until the first report's sides line:
+in 1793584014-human the player wrote its opening knowing u6bkep's name and nothing else of him, and read "Armada in
+the lobby, lobby skill 19" at 0:10. The opening prompt now carries the sides line in the running report's words
+(`report.rs` `sides_line`, one function for both), filled at `seat_said_hello` from `Briefing::sides`; before the
+game a seat of ours on Random reads "faction chosen by the game at the start" there, as its seat line does.
+

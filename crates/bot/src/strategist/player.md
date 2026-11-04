@@ -48,7 +48,7 @@ would brief a hard-working assistant who follows orders literally and never coun
   near such a frame the same, and `remove` reclaims its metal.
 - Your first turn comes before the game begins (its report opens `[before the game]`): the starts are still being
   placed, no game time passes while you think, and what you order is in force from the first second. You know the
-  map, the seats and our start box, not yet where the commander will stand, so write <!--brief:standard-->the brief's opening for this
+  map, who plays each side (the sides line: a person's lobby faction and skill), the seats and our start box, not yet where the commander will stand, so write <!--brief:standard-->the brief's opening for this
   map<!--/brief--><!--brief:experience,rework-->your opening<!--/brief--> with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest (on a metal map, the stand's tiles and then the metal nearest it)
   when the step comes up (`extractor spot_N` names one, once you know the start). When a seat's faction is not
   known either (a lobby with people sets it at the start; the seat line says "chosen by the game"), give its
