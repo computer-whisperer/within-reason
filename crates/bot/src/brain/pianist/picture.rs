@@ -421,6 +421,11 @@ impl Brain {
                         None => "is attacking an unguarded unit of his".to_string(),
                     },
                     "looking" => r.goal.as_ref().map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(*look))),
+                    "threading" => match (r.target.and_then(|t| enemies.iter().find(|e| e.id == t)), r.goal.as_ref()) {
+                        (Some(e), _) => format!("is threading between what can shoot it toward his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos)),
+                        (None, Some((name, _))) => format!("is threading between what can shoot it toward {name}"),
+                        (None, None) => "is threading between what can shoot it".to_string(),
+                    },
                     _ => "waits where it is safe: every way to a place worth a look passes the reach of something that can shoot it".to_string(),
                 };
                 let evaded = if r.evasions > 0 { format!(" ({} evasion{} so far)", r.evasions, if r.evasions == 1 { "" } else { "s" }) } else { String::new() };

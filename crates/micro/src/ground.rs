@@ -310,6 +310,48 @@ impl Ground {
         // the follower through the ward's ranks to the end `keep_off` had put beside it (foot3-pair-follow: 1 of 8
         // arrived, 179 s of overlap).
         let standing: Vec<&Formation> = others.iter().filter(|o| !o.contains(goal, KEEP_OFF_MARGIN)).collect();
+        self.way_over(costs, from, to, &|a, b| !self.line_crosses(a, b, &standing))
+    }
+
+    /// The way's price a cell, as built: a copy of it is the start of a way priced for one walk (the rover's needle
+    /// closes the cells inside every shooter's bar and prices the lips, `rove.rs`).
+    pub fn costs(&self) -> &[u32] {
+        &self.costs
+    }
+
+    /// The cells whose centres lie within `radius` of `at`: each one's index and centre.
+    pub fn cells_within(&self, at: Vec3, radius: f32) -> Vec<(usize, Vec3)> {
+        let r = (radius / self.cell).ceil() as i32;
+        let (cx, cz) = ((at.x / self.cell).floor() as i32, (at.z / self.cell).floor() as i32);
+        let mut cells = Vec::new();
+        for z in (cz - r).max(0)..=(cz + r).min(self.height as i32 - 1) {
+            for x in (cx - r).max(0)..=(cx + r).min(self.width as i32 - 1) {
+                let centre = Vec3 { x: (x as f32 + 0.5) * self.cell, y: 0.0, z: (z as f32 + 0.5) * self.cell };
+                if centre.dist2d(at) <= radius {
+                    cells.push((z as usize * self.width + x as usize, centre));
+                }
+            }
+        }
+        cells
+    }
+
+    /// Every cell whose centre lies within `radius` of `at` costs `extra` more, or is closed (`None`); a closed
+    /// cell stays closed.
+    pub fn stamp_disc(&self, costs: &mut [u32], at: Vec3, radius: f32, extra: Option<u32>) {
+        for (i, _) in self.cells_within(at, radius) {
+            costs[i] = match extra {
+                _ if costs[i] == terrain::IMPASSABLE => terrain::IMPASSABLE,
+                Some(e) => costs[i].saturating_add(e),
+                None => terrain::IMPASSABLE,
+            };
+        }
+    }
+
+    /// The way from `from` to `to` over `costs` (this ground's, or a copy priced for the walk): the field's cell chain
+    /// straightened by line of sight with the room the way kept, each straight line also one `allowed` says the
+    /// walker may take (a formation's way cuts across no standing formation, a rover's needle across no margin).
+    pub fn way_over(&self, costs: &[u32], from: Vec3, to: Vec3, allowed: &dyn Fn(Vec3, Vec3) -> bool) -> Option<Vec<Vec3>> {
+        let goal = self.snap(to)?;
         let field = Field::over_until(self.cell, self.width, self.height, costs, &[goal], Some(from))?;
         let cells = field.route(from);
         if cells.is_empty() {
@@ -333,7 +375,7 @@ impl Ground {
                 least[j] = running;
             }
             let mut j = points.len() - 1;
-            while j > i + 1 && !(self.clear_line(points[i], points[j], self.wanted.min(least[j]) * 0.9) && !self.line_crosses(points[i], points[j], &standing)) {
+            while j > i + 1 && !(self.clear_line(points[i], points[j], self.wanted.min(least[j]) * 0.9) && allowed(points[i], points[j])) {
                 j -= 1;
             }
             way.push(points[j]);

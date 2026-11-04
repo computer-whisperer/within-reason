@@ -83,6 +83,14 @@ pub(crate) struct Host {
     pub(crate) defs: Vec<UnitDefInfo>,
     pub(crate) buildings: Vec<(UnitId, UnitDefId, Vec3)>,
     pub(crate) goals: Vec<RoveGoal>,
+    /// The map's terrain, when a test wants ground (the needle routes over it); none by default.
+    pub(crate) terrain: Option<bot_protocol::Terrain>,
+}
+
+/// A flat map the test host's grid spec names: 256 cells of 16 a side, 4,096 elmos.
+pub(crate) fn flat_terrain() -> bot_protocol::Terrain {
+    let (w, h) = (256usize, 256usize);
+    bot_protocol::Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() }
 }
 
 impl Host {
@@ -91,12 +99,13 @@ impl Host {
             def(ROVER, "armfav", 168.0, 1, 0.0, 0.0),
             def(PAWN, "armpw", 87.0, 1, 0.0, 0.0),
             def(TOWER, "armllt", 0.0, 1, 0.0, 0.0),
-            def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
+            // Its death blast reaches 120 (a stand keeps outside it).
+            UnitDefInfo { death_blast: Some(bot_protocol::Blast { radius: 120.0, damage: 50.0 }), ..def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002) },
             def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             UnitDefInfo { move_class: None, ..def(BANSHEE, "armkam", 185.0, 1, 0.0, 0.0) },
             def(THISTLE, "corrl", 0.0, 1, 0.0, 0.0),
         ];
-        Host { defs, buildings: Vec::new(), goals }
+        Host { defs, buildings: Vec::new(), goals, terrain: None }
     }
 }
 
@@ -120,7 +129,7 @@ impl View for Host {
         (16.0, 256, 256)
     }
     fn terrain(&self) -> Option<&bot_protocol::Terrain> {
-        None
+        self.terrain.as_ref()
     }
     fn home(&self) -> Vec3 {
         at(200.0, 200.0)

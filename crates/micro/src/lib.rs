@@ -424,6 +424,9 @@ pub struct Lane {
     hunts: HashMap<String, HuntState>,
     /// Each rover's memory (H-MICRO-ROVE).
     rovers: HashMap<UnitId, rove::Rover>,
+    /// Each rover type's ground (its class's passable grid priced for its half-width and a cell), for the needle;
+    /// `None` kept for a type without terrain or class.
+    rover_grounds: HashMap<UnitDefId, Option<std::sync::Arc<ground::Ground>>>,
     /// Enemy units some rover has already reported finding.
     rove_found: HashSet<UnitId>,
     /// H-MICRO-FORM-SPACING's numbers.

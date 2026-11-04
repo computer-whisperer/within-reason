@@ -8,7 +8,11 @@
 //! §2). It is only ever moved, with its target set beside the move (`Command::SetTarget`, BAR's target-on-the-move
 //! gadget), so it shoots on the way in, where it stands and on the way out, and the stand is only where it stops
 //! (the user, 2026-11-04: never stop attacking a structure on the way in or out of its range); and otherwise it drives to
-//! look at the place we know least (the spots in his start box and his base never seen or not seen for a minute,
+//! look at the place we know least. Its way to a stand or a look point is the needle (design §5): the straight line
+//! when that keeps every shooter at its bar, else a route over its own ground with every cell inside a bar closed and
+//! the lips priced (so it walks the middle of a gap between two turrets, not a lip), straightened and cut into legs
+//! of 320 queued as one chain of moves; a way is planned again every 5 s, when a shooter comes to cover a leg, and
+//! after an evasion; one field a tick a rover, and none for 3 s after a search found nothing. The place (the spots in his start box and his base never seen or not seen for a minute,
 //! first; then any spot never seen; then the spot longest out of sight), stopping short of it by six tenths of its
 //! sight, on a way that passes no reach. His places go stale in a minute, not three, so it comes back to his
 //! perimeter that often (the user, 2026-09-28: "the rovers tend to explore the whole map rather than bother the
@@ -30,9 +34,11 @@
 //! sight of his commander, one walked into two Pawns beside his lab, one diverted onto a hunt.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use bot_protocol::{Command, EnemyUnit, OwnUnit, UnitDefId, UnitId, Vec3};
 
+use super::ground::Ground;
 use super::{FAINT, FRAMES_PER_SECOND, LOOKAHEAD_FRAMES, Lane, REORDER_DISTANCE, REORDER_FRAMES, STEP_REACH, Source, View, to_segment};
 
 /// A mobile shooter is kept at its reach plus what it covers in this long, and never less than `MARGIN_MIN`: a
@@ -76,8 +82,11 @@ pub const AIR_DANGER_SECONDS: f32 = 15.0;
 /// A stand is at most this short of the rover's reach from its target (the engine's own in-range test has slack of
 /// its own; a stand on the reach's edge would have the rover edging in and out).
 const STAND_SLACK: f32 = 20.0;
-/// No stand nearer its target than this: the target's body and the rover's (an extractor is 48 across, a Rover 21).
+/// No stand nearer its target than this: the target's body and the rover's (an extractor is 48 across, a Rover 21);
+/// nor nearer than the target's death blast reaches plus `BLAST_SLACK` (drill N: a quarter of a Rover's health to
+/// an extractor's blast at 80), within the rover's reach.
 const STAND_MIN: f32 = 60.0;
+const BLAST_SLACK: f32 = 10.0;
 /// Stands are tried this many ways round the target, at radii this far apart in from the reach.
 const STAND_DIRECTIONS: usize = 16;
 const STAND_STEP: f32 = 40.0;
@@ -89,6 +98,23 @@ const STAND_DRIFT: f32 = 24.0;
 const STAND_CLEAR: f32 = 40.0;
 /// Where it stands is kept as its stand unless another kills this much sooner: no shuffle for a hair of falloff.
 const STAND_HOLD_SECONDS: f32 = 0.5;
+/// The needle (the module's comment): cells within this of a shooter's bar cost `NEEDLE_LIP_COST` more a cell (the
+/// flat rate is 10), so a way keeps to the middle of a gap.
+const NEEDLE_SLACK: f32 = 100.0;
+const NEEDLE_LIP_COST: u32 = 10;
+/// A way is sent as legs no longer than this (two Rover-seconds), queued as one chain.
+const NEEDLE_LEG: f32 = 320.0;
+/// A way is planned again after this long, and when a shooter comes to cover one of its legs.
+const NEEDLE_REPLAN_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// After a search that found no way, no field is run for this long: the straight ways alone.
+const NEEDLE_RETRY_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
+/// A leg's cell quantisation: a leg this much inside a bar is not "covered" (a cell's half diagonal is 11).
+const NEEDLE_TOLERANCE: f32 = 16.0;
+/// A route keeps this much beyond the bar (the cells closed, the straightening's lines): the engine's path follows
+/// a leg within a few elmos, and the evade reads the bar exactly where the rover stands.
+const NEEDLE_CLEAR: f32 = 24.0;
+/// A leg is passed when the rover is within this of its point.
+const LEG_DONE: f32 = 48.0;
 /// Standing at its stand this long without the target's health falling, it gives the target up: nothing in the
 /// lane knows the ground between (drill R: an extractor on a mound, the beam from below blocked by the slope).
 const STAND_PATIENCE_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
@@ -138,7 +164,8 @@ pub struct RoveEvent {
 /// What a rover is doing this tick, for the host's picture.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RoveReport {
-    /// "evading", "attacking", "looking" or "waiting" (every way to a place worth a look passes a reach).
+    /// "evading", "threading" (on a way of more than one leg, to its stand or its look point), "attacking", "looking"
+    /// or "waiting" (every way to a place worth a look passes a reach).
     pub doing: &'static str,
     /// The place it is going to look at, and where that is.
     pub goal: Option<(String, Vec3)>,
@@ -166,6 +193,105 @@ impl Order {
     }
 }
 
+/// A way to the rover's stand or look point: its legs, the point last, and when it was planned.
+struct Way {
+    legs: Vec<Vec3>,
+    planned: i32,
+    /// Planned this tick: sent whatever was sent before.
+    fresh: bool,
+}
+
+/// What the needle found.
+enum Found {
+    Way(Vec<Vec3>),
+    NoWay,
+    /// The tick's one field was spent on another search; the straight way alone was tried.
+    Untried,
+}
+
+/// The way from `from` to `to` keeping every shooter at its `bar`: the straight line when that is clear, else a route
+/// over the rover's ground with every cell inside a bar closed and the lips priced, straightened (no straight line
+/// across a bar) and cut into legs (the module's comment). One field a tick: `budget`.
+fn needle(ground: Option<&Ground>, danger: &[&Source], bar: &dyn Fn(&Source) -> f32, from: Vec3, to: Vec3, budget: &mut bool) -> Found {
+    if danger.iter().all(|s| to_segment(s.pos, from, to) >= bar(s)) {
+        return Found::Way(vec![to]);
+    }
+    // The point itself inside a bar: no way reaches it, and no field is spent to say so.
+    if danger.iter().any(|s| s.pos.dist2d(to) < bar(s)) {
+        return Found::NoWay;
+    }
+    let Some(ground) = ground else { return Found::NoWay };
+    if !*budget {
+        return Found::Untried;
+    }
+    *budget = false;
+    let mut costs = ground.costs().to_vec();
+    let half_diagonal = ground.cell() * std::f32::consts::FRAC_1_SQRT_2;
+    for s in danger {
+        ground.stamp_disc(&mut costs, s.pos, bar(s) + NEEDLE_CLEAR + NEEDLE_SLACK, Some(NEEDLE_LIP_COST));
+        ground.stamp_disc(&mut costs, s.pos, bar(s) + NEEDLE_CLEAR + half_diagonal, None);
+    }
+    // The way's end may itself lie within the clearance of a bar (a stand on the rim keeps the bar and no more):
+    // the pocket round it is opened again as the ground has it, down to the bar.
+    let original = ground.costs();
+    for (i, centre) in ground.cells_within(to, NEEDLE_CLEAR + half_diagonal + ground.cell()) {
+        if danger.iter().all(|s| s.pos.dist2d(centre) >= bar(s)) {
+            costs[i] = original[i];
+        }
+    }
+    let roomy = |a: Vec3, b: Vec3| danger.iter().all(|s| to_segment(s.pos, a, b) >= bar(s) + NEEDLE_CLEAR);
+    match ground.way_over(&costs, from, to, &roomy) {
+        Some(points) => Found::Way(legs_of(from, &points, to)),
+        None => Found::NoWay,
+    }
+}
+
+/// The point `along` elmos ahead on a way from `from` through `legs`: where a rover on the way will be.
+fn along_way(from: Vec3, legs: &[Vec3], along: f32) -> Vec3 {
+    let mut left = along;
+    let mut a = from;
+    for b in legs {
+        let d = a.dist2d(*b);
+        if d >= left {
+            let t = if d > 0.0 { left / d } else { 0.0 };
+            return Vec3 { x: a.x + (b.x - a.x) * t, y: 0.0, z: a.z + (b.z - a.z) * t };
+        }
+        left -= d;
+        a = *b;
+    }
+    a
+}
+
+/// The way's points cut into legs no longer than `NEEDLE_LEG`, `to` itself last.
+fn legs_of(from: Vec3, points: &[Vec3], to: Vec3) -> Vec<Vec3> {
+    let mut legs = Vec::new();
+    let mut last = from;
+    for p in points {
+        let n = (last.dist2d(*p) / NEEDLE_LEG).ceil().max(1.0) as usize;
+        for k in 1..=n {
+            let t = k as f32 / n as f32;
+            legs.push(Vec3 { x: last.x + (p.x - last.x) * t, y: 0.0, z: last.z + (p.z - last.z) * t });
+        }
+        last = *p;
+    }
+    if legs.last().is_none_or(|l| l.dist2d(to) > 1.0) {
+        legs.push(to);
+    }
+    legs
+}
+
+/// Whether every leg of a way from `from` keeps every shooter at its bar, less a cell of tolerance.
+fn legs_clear(danger: &[&Source], bar: &dyn Fn(&Source) -> f32, from: Vec3, legs: &[Vec3]) -> bool {
+    let mut a = from;
+    for b in legs {
+        if danger.iter().any(|s| to_segment(s.pos, a, *b) < bar(s) - NEEDLE_TOLERANCE) {
+            return false;
+        }
+        a = *b;
+    }
+    true
+}
+
 struct Goal {
     name: String,
     look: Vec3,
@@ -184,6 +310,10 @@ pub(crate) struct Rover {
     target_sent: Option<i32>,
     /// Since when it has stood at its stand, and the target's health then; the patience clock.
     stand_since: Option<(i32, f32)>,
+    /// The way it is on, to its stand or its look point.
+    way: Option<Way>,
+    /// No field is run before this frame (a search found no way).
+    no_way_until: i32,
     /// Targets it will not take again until the frame.
     blocked_targets: Vec<(UnitId, i32)>,
     /// The cell it is stepping to, and when it was sent there.
@@ -199,6 +329,8 @@ impl Rover {
     fn report(&self) -> RoveReport {
         let doing = if self.evading.is_some() {
             "evading"
+        } else if self.way.as_ref().is_some_and(|w| w.legs.len() > 1) {
+            "threading"
         } else if self.target.is_some() {
             "attacking"
         } else if self.goal.is_some() {
@@ -234,11 +366,6 @@ fn depth(danger: &[&Source], p: Vec3, slack: f32) -> f32 {
     danger.iter().map(|s| (keep_off(s) + slack - s.pos.dist2d(p)).max(0.0)).sum()
 }
 
-/// Nothing that can shoot covers the way from `a` to `b`, `b` included.
-fn clear_way(danger: &[&Source], a: Vec3, b: Vec3) -> bool {
-    danger.iter().all(|s| to_segment(s.pos, a, b) >= keep_off(s))
-}
-
 /// What an aircraft with this much health keeps off, of the shooters that hit aircraft (the module's comment).
 fn air_danger(sources: &[Source], health: f32) -> Vec<&Source> {
     sources
@@ -264,6 +391,21 @@ fn target_class(d: &bot_protocol::UnitDefInfo) -> u8 {
 }
 
 impl Lane {
+    /// A rover type's ground for the needle: its class's passable grid priced for its half-width and a cell, built
+    /// once and kept; `None` without terrain or a class.
+    fn rover_ground(&mut self, view: &dyn View, def: UnitDefId) -> Option<Arc<Ground>> {
+        if let Some(g) = self.rover_grounds.get(&def) {
+            return g.clone();
+        }
+        let ground = view.terrain().zip(view.def(def)).and_then(|(terrain, d)| {
+            let grid = self.classes.passable(terrain, d.move_class?);
+            let wanted = d.footprint.0.max(d.footprint.1) as f32 * 4.0 + terrain.cell;
+            Ground::new(terrain, &[grid], wanted).map(Arc::new)
+        });
+        self.rover_grounds.insert(def, ground.clone());
+        ground
+    }
+
     /// What this unit is doing as a rover, if it is one (H-MICRO-ROVE).
     pub fn roving(&self, unit: UnitId) -> Option<RoveReport> {
         self.rovers.get(&unit).map(Rover::report)
@@ -296,6 +438,7 @@ impl Lane {
             // A region the order confines it to: nothing outside it is looked at or attacked.
             let inside = |p: Vec3| within.is_none_or(|(a, b)| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z);
             let name = view.def(unit.def).map_or("?", |d| d.name.as_str()).to_string();
+            let ground = self.rover_ground(view, unit.def);
             let mut rover = match self.rovers.remove(&unit.id) {
                 Some(r) => r,
                 None => {
@@ -304,7 +447,7 @@ impl Lane {
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} roves", view.label(), unit.id.0);
                     }
-                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
+                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, way: None, no_way_until: 0, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
@@ -334,14 +477,13 @@ impl Lane {
                 }
             }
 
-            // 1. Out of every reach. Where it stands, and where half a second of its velocity takes it, or its stand
-            // when that comes first (it brakes there: at full speed onto the rim the lookahead reached past it, drill R).
-            let mut next = Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES };
-            if let Some((stand, _)) = rover.stand
-                && stand.dist2d(unit.pos) < next.dist2d(unit.pos)
-            {
-                next = stand;
-            }
+            // 1. Out of every reach. Where it stands, and where half a second of its velocity takes it: along its way
+            // when it is on one (the way keeps the bar; the velocity's line poked into a margin on every bend of a
+            // chain and at full speed onto the rim, drills N and R), the straight velocity otherwise.
+            let next = match rover.way.as_ref() {
+                Some(way) => along_way(unit.pos, &way.legs, unit.vel.x.hypot(unit.vel.z) * LOOKAHEAD_FRAMES),
+                None => Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES },
+            };
             let bar = |s: &Source| if rover.stand.is_some() { keep_off_standing(s) } else { keep_off(s) };
             let threat = danger.iter().copied().filter(|s| s.pos.dist2d(unit.pos) < bar(s) || s.pos.dist2d(next) < bar(s)).min_by(|a, b| (a.pos.dist2d(unit.pos) - bar(a)).total_cmp(&(b.pos.dist2d(unit.pos) - bar(b))));
             let hit_unseen = threat.is_none() && unit.health < rover.health - 1.0 && !known_cover(unit.pos);
@@ -360,9 +502,11 @@ impl Lane {
                     Vec3 { x: unit.pos.x + dx / d * STEP_RADIUS, y: 0.0, z: unit.pos.z + dz / d * STEP_RADIUS }
                 });
                 let fresh = rover.evading.is_none();
-                // The target stays set through the step: it shoots on the way out while the target is in reach.
+                // The target stays set through the step: it shoots on the way out while the target is in reach. The
+                // way is planned again from where the step ends.
                 if fresh {
                     rover.evasions += 1;
+                    rover.way = None;
                     events.push(RoveEvent { rover: unit.id, what: RoveWhat::Evades { from: s.def, at: unit.pos } });
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} evades a shooter {:.0} away (keeps {:.0}) to ({:.0}, {:.0})", view.label(), unit.id.0, s.pos.dist2d(unit.pos), keep_off(s), cell.x, cell.z);
@@ -392,9 +536,7 @@ impl Lane {
             let still = unit.vel.x.hypot(unit.vel.z) < STILL;
             let send = |lane: &mut Lane, rover: &mut Rover, order: Order, commands: &mut Vec<Command>| {
                 let same = rover.sent.is_some_and(|(o, _)| o.same(order));
-                // Only a move is sent again for standing still, and not one it stands at (its stand): a stopped rover stands.
-                let stale = matches!(order, Order::Move(to) if to.dist2d(unit.pos) > STAND_DRIFT) && still && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
-                if !same || after_evading || stale {
+                if !same || after_evading {
                     rover.sent = Some((order, frame));
                     lane.counts.1 += 1;
                     commands.push(match order {
@@ -403,6 +545,28 @@ impl Lane {
                     });
                 }
             };
+            // The way it is on, sent as one queued chain of moves: when planned this tick, when its end is new, after
+            // an evasion, and when the rover stands still short of its end (not at it: a stopped rover stands).
+            let send_way = |lane: &mut Lane, rover: &mut Rover, commands: &mut Vec<Command>| {
+                let Some(way) = rover.way.as_mut() else { return };
+                while way.legs.len() > 1 && unit.pos.dist2d(way.legs[0]) < LEG_DONE {
+                    way.legs.remove(0);
+                }
+                let end = *way.legs.last().expect("a way has a leg");
+                let order = Order::Move(end);
+                let same = rover.sent.is_some_and(|(o, _)| o.same(order));
+                let stale = still && end.dist2d(unit.pos) > STAND_DRIFT && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
+                if way.fresh || !same || after_evading || stale {
+                    rover.sent = Some((order, frame));
+                    lane.counts.1 += 1;
+                    for (i, leg) in way.legs.iter().enumerate() {
+                        commands.push(Command::Move { unit: unit.id, to: *leg, queue: i > 0 });
+                    }
+                }
+                way.fresh = false;
+            };
+            // One field a tick, none for a while after a search found nothing.
+            let mut budget = frame >= rover.no_way_until;
 
             // 2. Kill what is unarmed near it, from a stand (the module's comment; `docs/design/2026-11-04-rove-2.md`
             // §2): a point within its reach of the target, outside every margin, with a clear way to it. The rover is
@@ -413,22 +577,31 @@ impl Lane {
             // Unarmed (or a turret still being built, or stunned for longer than the way there and the kill take:
             // harmless until it is dead), on the ground, killable from close in within the limit, within the radius
             // and the region.
+            let blocked_targets: Vec<UnitId> = rover.blocked_targets.iter().map(|b| b.0).collect();
             let attackable = |e: &EnemyUnit| -> Option<u8> {
                 let d = view.def(e.def?)?;
                 let air = d.speed > 0.0 && d.move_class.is_none();
                 let asleep = e.stunned > e.pos.dist2d(unit.pos) / stats.speed.max(1.0) + kill_at(e, STAND_MIN);
-                let blocked = rover.blocked_targets.iter().any(|(id, _)| *id == e.id);
+                let blocked = blocked_targets.contains(&e.id);
                 ((d.weapon_count == 0 || e.being_built || asleep) && !air && !blocked && stats.dps > 0.0 && kill_at(e, STAND_MIN) <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos)).then(|| target_class(d))
             };
-            // Outside what a standing rover keeps off, and the way there outside it too (the way's end is the stand).
-            let stand_ok = |p: Vec3, e: &EnemyUnit| p.dist2d(e.pos) <= reach && p.dist2d(e.pos) >= STAND_MIN && danger.iter().all(|s| to_segment(s.pos, unit.pos, p) >= keep_off_standing(s));
-            // The stand that kills soonest: the walk there and the kill from there, the laser's falloff counted (a
-            // beam laser does half its damage at its full reach, so the rim is twice as slow as close in).
-            let mut stand_for = |e: &EnemyUnit| -> Option<(Vec3, f32)> {
+            // The nearest a stand comes to the target: its body, or its death blast.
+            let stand_min = |e: &EnemyUnit| e.def.and_then(|d| view.def(d)).and_then(|d| d.death_blast).map_or(STAND_MIN, |b| (b.radius + BLAST_SLACK).max(STAND_MIN).min(reach));
+            // A candidate snapped to its cell's centre moves up to half a diagonal: that much of the reach's slack
+            // goes to the snap.
+            let snap_slack = ground.as_ref().map_or(0.0, |g| g.cell() * std::f32::consts::FRAC_1_SQRT_2);
+            // Outside what a standing rover keeps off; the way there is the needle's.
+            let stand_ok = |p: Vec3, e: &EnemyUnit| p.dist2d(e.pos) <= reach + snap_slack && p.dist2d(e.pos) >= stand_min(e) && danger.iter().all(|s| s.pos.dist2d(p) >= keep_off_standing(s));
+            let standing_bar = |s: &Source| keep_off_standing(s);
+            // The stand that kills soonest among those with a way: the walk there and the kill from there, the
+            // laser's falloff counted (a beam laser does half its damage at its full reach, so the rim is twice as
+            // slow as close in); the straight ways cost nothing to test, the tick's one field goes to the best stand
+            // whose straight way is covered.
+            let mut stand_for = |e: &EnemyUnit, budget: &mut bool| -> Option<(Vec3, f32, Vec<Vec3>)> {
                 // Where it stands, when that will do, with a head start: no shuffle for a hair of falloff.
-                let mut best: Option<(Vec3, f32)> = stand_ok(unit.pos, e).then(|| (unit.pos, kill_at(e, unit.pos.dist2d(e.pos)))).filter(|(_, kill)| *kill <= KILL_SECONDS).map(|(p, kill)| (p, kill - STAND_HOLD_SECONDS));
+                let mut candidates: Vec<(Vec3, f32)> = stand_ok(unit.pos, e).then(|| (unit.pos, kill_at(e, unit.pos.dist2d(e.pos)))).filter(|(_, kill)| *kill <= KILL_SECONDS).map(|(p, kill)| (p, kill - STAND_HOLD_SECONDS)).into_iter().collect();
                 let mut r = reach;
-                while r >= STAND_MIN {
+                while r >= stand_min(e) {
                     for k in 0..STAND_DIRECTIONS {
                         let a = k as f32 * std::f32::consts::TAU / STAND_DIRECTIONS as f32;
                         let p = self.classes.snap_for(view, unit.def, Vec3 { x: e.pos.x + r * a.cos(), y: 0.0, z: e.pos.z + r * a.sin() });
@@ -436,36 +609,79 @@ impl Lane {
                             continue;
                         }
                         let kill = kill_at(e, p.dist2d(e.pos));
-                        let seconds = unit.pos.dist2d(p) / stats.speed.max(1.0) + kill;
-                        if kill <= KILL_SECONDS && best.is_none_or(|(_, s)| seconds < s) {
-                            best = Some((p, seconds));
+                        if kill <= KILL_SECONDS {
+                            candidates.push((p, unit.pos.dist2d(p) / stats.speed.max(1.0) + kill));
                         }
                     }
                     r -= STAND_STEP;
                 }
-                best
+                candidates.sort_by(|a, b| a.1.total_cmp(&b.1));
+                for (p, seconds) in candidates {
+                    if let Found::Way(legs) = needle(ground.as_deref(), &danger, &standing_bar, unit.pos, p, budget) {
+                        return Some((p, seconds, legs));
+                    }
+                }
+                None
+            };
+            // A target whose stands a field found no way to is rested a while: the next tick's field goes elsewhere.
+            let rest = |rover: &mut Rover, e: &EnemyUnit, had: bool, has: bool| {
+                if had && !has {
+                    rover.blocked_targets.push((e.id, frame + NEEDLE_RETRY_FRAMES));
+                }
             };
             let kind_of = |e: &EnemyUnit| if depth(&danger, e.pos, 0.0) > 0.0 { StandKind::Rim } else { StandKind::Open };
             // Its target is kept while it is still worth it and it has a stand: the stand it has while that is still
-            // outside every margin, in reach and reachable, else another; neither, and the target is let go.
+            // outside every margin and in reach, with its way kept while its legs are clear and it is fresh (else
+            // planned again), else another stand; neither, and the target is let go.
             let mut chosen: Option<(&EnemyUnit, Vec3)> = None;
             if let Some(e) = rover.target.and_then(|t| enemies.iter().find(|e| e.id == t)).filter(|e| attackable(e).is_some()) {
                 let kept = rover.stand.map(|s| s.0).filter(|s| stand_ok(*s, e));
-                if let Some(stand) = kept.or_else(|| stand_for(e).map(|(p, _)| p)) {
-                    chosen = Some((e, stand));
+                match kept {
+                    Some(stand) => {
+                        let at_stand = stand.dist2d(unit.pos) <= STAND_DRIFT;
+                        let way_ok = at_stand || rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &standing_bar, unit.pos, &w.legs));
+                        if way_ok {
+                            chosen = Some((e, stand));
+                        } else {
+                            match needle(ground.as_deref(), &danger, &standing_bar, unit.pos, stand, &mut budget) {
+                                Found::Way(legs) => {
+                                    rover.way = Some(Way { legs, planned: frame, fresh: true });
+                                    chosen = Some((e, stand));
+                                }
+                                // The old way stays for the tick; the search comes next tick.
+                                Found::Untried if rover.way.is_some() => chosen = Some((e, stand)),
+                                _ => rover.way = None,
+                            }
+                        }
+                    }
+                    None => rover.way = None,
+                }
+                if chosen.is_none() {
+                    let had = budget;
+                    match stand_for(e, &mut budget) {
+                        Some((stand, _, legs)) => {
+                            rover.way = Some(Way { legs, planned: frame, fresh: true });
+                            chosen = Some((e, stand));
+                        }
+                        None => rest(&mut rover, e, had, budget),
+                    }
                 }
             }
             if chosen.is_none() {
                 let others: HashSet<UnitId> = self.rovers.values().filter_map(|r| r.target).collect();
-                let best = enemies
-                    .iter()
-                    .filter_map(|e| {
-                        let class = attackable(e)?;
-                        let (stand, seconds) = stand_for(e)?;
-                        Some((class, !others.contains(&e.id), seconds, e, stand))
-                    })
-                    .min_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)).then(a.2.total_cmp(&b.2)));
-                if let Some((_, _, _, e, stand)) = best {
+                let mut ranked: Vec<(u8, bool, f32, &EnemyUnit)> = enemies.iter().filter_map(|e| Some((attackable(e)?, !others.contains(&e.id), e.pos.dist2d(unit.pos), e))).collect();
+                ranked.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)).then(a.2.total_cmp(&b.2)));
+                let mut best = None;
+                for (.., e) in ranked {
+                    let had = budget;
+                    if let Some((stand, _, legs)) = stand_for(e, &mut budget) {
+                        best = Some((e, stand, legs));
+                        break;
+                    }
+                    rest(&mut rover, e, had, budget);
+                }
+                if let Some((e, stand, legs)) = best {
+                    rover.way = Some(Way { legs, planned: frame, fresh: true });
                     if rover.target != Some(e.id) {
                         let from = kind_of(e);
                         events.push(RoveEvent { rover: unit.id, what: RoveWhat::Attacks { target: e.id, def: e.def.expect("attackable has a type"), at: e.pos, from } });
@@ -512,14 +728,18 @@ impl Lane {
                         self.counts.1 += 1;
                         commands.push(Command::SetTarget { unit: unit.id, target: e.id });
                     }
-                    send(self, &mut rover, Order::Move(stand), commands);
+                    send_way(self, &mut rover, commands);
                     self.rovers.insert(unit.id, rover);
                     continue;
                 }
                 None => {
-                    if rover.target.take().is_some() && rover.target_sent.take().is_some() {
-                        self.counts.1 += 1;
-                        commands.push(Command::ClearTarget { unit: unit.id });
+                    // A target let go takes its stand and its way with it; a look's way is not the attack rung's.
+                    if rover.target.take().is_some() {
+                        if rover.target_sent.take().is_some() {
+                            self.counts.1 += 1;
+                            commands.push(Command::ClearTarget { unit: unit.id });
+                        }
+                        rover.way = None;
                     }
                     rover.stand = None;
                     rover.stand_since = None;
@@ -547,11 +767,26 @@ impl Lane {
                     give_up(&mut rover, format!("not reached in {} s", GOAL_FRAMES / FRAMES_PER_SECOND), BLOCK_FRAMES, events);
                 } else if arrived_blind {
                     give_up(&mut rover, "reached, and it still does not count as seen".to_string(), STALE_FRAMES, events);
-                } else if !clear_way(&danger, unit.pos, goal.look) {
-                    give_up(&mut rover, "its way passes the reach of something that can shoot it".to_string(), BLOCK_FRAMES, events);
+                } else {
+                    // Its way: kept while its legs are clear and it is fresh, else planned again; none, and the
+                    // place is given up.
+                    let look = goal.look;
+                    let way_ok = rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &keep_off, unit.pos, &w.legs));
+                    if !way_ok {
+                        match needle(ground.as_deref(), &danger, &keep_off, unit.pos, look, &mut budget) {
+                            Found::Way(legs) => rover.way = Some(Way { legs, planned: frame, fresh: true }),
+                            Found::Untried if rover.way.is_some() => {}
+                            Found::Untried => rover.way = None,
+                            Found::NoWay => {
+                                rover.way = None;
+                                give_up(&mut rover, "its way passes the reach of something that can shoot it".to_string(), BLOCK_FRAMES, events);
+                            }
+                        }
+                    }
                 }
             }
             if rover.goal.is_none() {
+                rover.way = None;
                 let taken: HashSet<&str> = self.rovers.values().filter_map(|r| r.goal.as_ref().map(|g| g.name.as_str())).collect();
                 let tier = |g: &RoveGoal| -> u8 {
                     if g.theirs && g.seen.is_none_or(|f| frame - f > PERIMETER_STALE) {
@@ -562,14 +797,13 @@ impl Lane {
                         2
                     }
                 };
-                let best = goals
+                let mut ranked: Vec<_> = goals
                     .iter()
                     .filter(|g| inside(g.at))
                     .filter(|g| !rover.blocked.iter().any(|(n, _)| *n == g.name))
                     // In its sight now: being looked at already.
                     .filter(|g| g.at.dist2d(unit.pos) > sight)
                     .map(|g| (g, look_at(g.at)))
-                    .filter(|(_, look)| clear_way(&danger, unit.pos, *look))
                     .map(|(g, look)| {
                         // By the minute, nearest first; a place seen this last minute after every other, the oldest of
                         // those first (by the minute alone it tied with the place just looked at, the nearest).
@@ -578,19 +812,42 @@ impl Lane {
                         let staleness = if tier(g) != 2 { 0 } else if recent { -age } else { -(age / STALE_STEP) };
                         ((taken.contains(g.name.as_str()), tier(g), recent, staleness), unit.pos.dist2d(look), g, look)
                     })
-                    .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
-                if let Some((_, _, g, look)) = best {
+                    .collect();
+                ranked.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
+                // The first in rank with a way: the straight ways cost nothing, the tick's one field goes to the best
+                // place whose straight way is covered; a field that found nothing rests the fields for a while.
+                let had_budget = budget;
+                let mut best = None;
+                for (_, _, g, look) in ranked {
+                    let had = budget;
+                    match needle(ground.as_deref(), &danger, &keep_off, unit.pos, look, &mut budget) {
+                        Found::Way(legs) => {
+                            best = Some((g, look, legs));
+                            break;
+                        }
+                        // A field that found no way: the place is given up as one whose way is covered.
+                        Found::NoWay if had && !budget => rover.blocked.push((g.name.clone(), frame + BLOCK_FRAMES)),
+                        _ => {}
+                    }
+                }
+                if best.is_none() && had_budget && !budget {
+                    rover.no_way_until = frame + NEEDLE_RETRY_FRAMES;
+                }
+                if let Some((g, look, legs)) = best {
                     if debug {
-                        eprintln!("{} f={frame} micro: {name}#{} goes to look at {} from ({:.0}, {:.0})", view.label(), unit.id.0, g.name, look.x, look.z);
+                        eprintln!("{} f={frame} micro: {name}#{} goes to look at {} from ({:.0}, {:.0}){}", view.label(), unit.id.0, g.name, look.x, look.z, if legs.len() > 1 { format!(" by {} legs", legs.len()) } else { String::new() });
                     }
                     rover.goal = Some(Goal { name: g.name.clone(), look, since: frame, arrived: None });
+                    rover.way = Some(Way { legs, planned: frame, fresh: true });
                 }
             }
-            match rover.goal.as_ref().map(|g| g.look) {
-                Some(look) => send(self, &mut rover, Order::Move(look), commands),
+            match (rover.goal.is_some(), rover.way.is_some()) {
+                (true, true) => send_way(self, &mut rover, commands),
+                // A way not yet found this tick (the field spent): nothing until the next.
+                (true, false) => {}
                 // Nowhere to go without passing a reach: it stands where it is safe.
-                None if rover.sent.is_some_and(|(o, _)| !matches!(o, Order::Stop)) => send(self, &mut rover, Order::Stop, commands),
-                None => {}
+                (false, _) if rover.sent.is_some_and(|(o, _)| !matches!(o, Order::Stop)) => send(self, &mut rover, Order::Stop, commands),
+                (false, _) => {}
             }
             self.rovers.insert(unit.id, rover);
         }
@@ -766,7 +1023,7 @@ mod tests {
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "never an attack order: {:?}", out.commands);
         let stand = moves_of(&out.commands, 10);
         assert_eq!(stand.len(), 1, "{:?}", out.commands);
-        assert!(stand[0].dist2d(at(1000.0, 500.0)) <= 160.0 && stand[0].dist2d(at(1000.0, 500.0)) >= 60.0, "the stand is within reach of the extractor: {:?}", stand[0]);
+        assert!(stand[0].dist2d(at(1000.0, 500.0)) <= 160.0 && stand[0].dist2d(at(1000.0, 500.0)) >= 130.0, "the stand is within reach of the extractor and outside its death blast (120): {:?}", stand[0]);
         assert!(stand[0].dist2d(at(1500.0, 1000.0)) >= 470.0, "and outside the tower's reach with the stand's clearance: {:?}", stand[0]);
         let report = lane.roving(UnitId(10)).unwrap();
         assert_eq!((report.doing, report.target, report.rim), ("attacking", Some(UnitId(71)), false));
@@ -778,18 +1035,19 @@ mod tests {
         assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { target: UnitId(72), .. })), "{:?}", out.commands);
     }
 
-    /// The rim (the rove-2 design §2): an extractor 350 from a tower is inside the tower's margin, but a point 120
+    /// The rim (the rove-2 design §2): an extractor 320 from a tower is inside the tower's margin, but a point 150
     /// or more beyond it on the far side is 470 or more from the tower, outside its reach with the stand's clearance,
-    /// and within the rover's reach of the extractor; the rover approaching from that side takes the stand there
-    /// and sets the extractor as its target. Standing there still, it is neither sent again nor given an attack;
-    /// the set target is sent again as a heartbeat every three seconds; the target dead, the set is cleared.
+    /// and within the rover's reach of the extractor (and outside its death blast of 120); the rover approaching
+    /// from that side takes the stand there and sets the extractor as its target. Standing there still, it is
+    /// neither sent again nor given an attack; the set target is sent again as a heartbeat every three seconds;
+    /// the target dead, the set is cleared.
     #[test]
     fn a_rover_kills_a_guarded_extractor_from_the_rim_of_the_guards_reach() {
         // The place to look at afterwards lies away from the tower, so the way there is clear.
         let mut host = Host::new(vec![goal("spot_2", 300.0, 3000.0, None, true)]);
         host.buildings.push((UnitId(60), TOWER, at(1500.0, 1000.0)));
         let mut lane = roving_lane(&[10]);
-        let guarded = enemy(70, EXTRACTOR, 1150.0, 1000.0);
+        let guarded = enemy(70, EXTRACTOR, 1180.0, 1000.0);
         let out = lane.tick(&host, &tick(30, vec![rover(10, 600.0, 1000.0)], vec![guarded.clone()]), &mut Vec::new(), false);
         assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(70) })), "{:?}", out.commands);
         let stand = moves_of(&out.commands, 10);
@@ -856,6 +1114,58 @@ mod tests {
         assert!(!out.commands.iter().any(|c| matches!(c, Command::SetTarget { .. })), "{:?}", out.commands);
         let out = lane.tick(&host, &tick(393 + 30 * 30 + 3, vec![standing], vec![hurt]), &mut Vec::new(), false);
         assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { target: UnitId(70), .. })), "{:?}", out.commands);
+    }
+
+    /// The needle (the rove-2 design §5): with ground, a place whose straight way passes a tower's margin is reached
+    /// round it: the way is a chain of queued moves, the first unqueued, every leg clear of the margin, the look
+    /// point last; the rover is "threading" on it.
+    #[test]
+    fn a_place_behind_a_tower_is_reached_round_its_margin() {
+        let mut host = Host::new(vec![goal("spot_2", 3000.0, 1000.0, None, true)]);
+        host.terrain = Some(flat_terrain());
+        host.buildings.push((UnitId(60), TOWER, at(2000.0, 1000.0)));
+        let mut lane = roving_lane(&[10]);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], Vec::new()), &mut Vec::new(), false);
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.goal.as_ref().map(|g| g.0.as_str())), ("threading", Some("spot_2")));
+        let moves: Vec<(Vec3, bool)> = out.commands.iter().filter_map(|c| match c { Command::Move { unit: UnitId(10), to, queue } => Some((*to, *queue)), _ => None }).collect();
+        assert!(moves.len() > 1, "{moves:?}");
+        assert!(!moves[0].1 && moves[1..].iter().all(|m| m.1), "the first unqueued, the rest queued: {moves:?}");
+        let mut a = at(1000.0, 1000.0);
+        for (b, _) in &moves {
+            assert!(to_segment(at(2000.0, 1000.0), a, *b) >= 490.0 - NEEDLE_TOLERANCE, "a leg inside the margin: {a:?} to {b:?} of {moves:?}");
+            a = *b;
+        }
+        assert!(a.dist2d(at(2619.0, 1000.0)) < 20.0, "the look point last: {a:?}");
+        // The same tick again sends nothing; three seconds on, standing still short of the end, the chain goes again.
+        let out = lane.tick(&host, &tick(33, vec![rover(10, 1000.0, 1000.0)], Vec::new()), &mut Vec::new(), false);
+        assert!(out.commands.is_empty(), "{:?}", out.commands);
+    }
+
+    /// The rim from the near side (drill R's missing half): the straight way to the stand on the far side of the
+    /// extractor passes the tower; with ground the rover threads round the tower's reach to it.
+    #[test]
+    fn a_rim_stand_on_the_far_side_is_reached_round_the_tower() {
+        let mut host = Host::new(vec![goal("spot_2", 300.0, 3000.0, None, true)]);
+        host.terrain = Some(flat_terrain());
+        host.buildings.push((UnitId(60), TOWER, at(1500.0, 1000.0)));
+        let mut lane = roving_lane(&[10]);
+        let guarded = enemy(70, EXTRACTOR, 1150.0, 1000.0);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 1700.0, 1700.0)], vec![guarded.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(70) })), "{:?}", out.commands);
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.rim), ("threading", true));
+        let stand = report.stand.expect("a stand");
+        // Snapped to its cell's centre: up to half a diagonal (11) past the reach's slack.
+        assert!(stand.x < guarded.pos.x && stand.dist2d(guarded.pos) <= 172.0, "the stand on the far side within reach: {stand:?}");
+        let moves = moves_of(&out.commands, 10);
+        assert!(moves.len() > 1, "{moves:?}");
+        let mut a = at(1700.0, 1700.0);
+        for b in &moves {
+            assert!(to_segment(at(1500.0, 1000.0), a, *b) >= 470.0 - NEEDLE_TOLERANCE, "a leg inside the tower's reach with the clearance: {a:?} to {b:?} of {moves:?}");
+            a = *b;
+        }
+        assert!(a.dist2d(stand) < 1.0, "the stand last: {a:?} against {stand:?}");
     }
 
     #[test]

@@ -1,0 +1,48 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2850,
+  4400
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill N of docs/design/2026-11-04-rove-2.md. Two corllts 1,300 apart on a line (the gap between their margins 310), a cormex 600 behind the line's middle, the Rover 1,200 before it and 500 off the middle so its straight way crosses one margin; on flat ground (the scan of 2026-11-04). Expected: the extractor dead, the Rover never inside a reach"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2350,
+     "z": 5600
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2200,
+     "z": 4400
+    },
+    {
+     "type": "corllt",
+     "x": 3500,
+     "z": 4400
+    },
+    {
+     "type": "cormex",
+     "x": 2850,
+     "z": 3800
+    }
+   ]
+  }
+ ]
+}
