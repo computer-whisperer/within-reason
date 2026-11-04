@@ -206,6 +206,7 @@ struct Table {
 }
 
 /// Every unit type the simulation knows, indexed for the hot loop.
+#[derive(Clone)]
 pub struct Units {
     pub list: Vec<Unit>,
     pub names: Vec<String>,

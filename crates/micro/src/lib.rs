@@ -33,7 +33,7 @@ pub use army::{Army, Company, CompanyState, Role};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
-pub use rove::{AIR_DANGER_SECONDS, HEAL, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
+pub use rove::{AIR_DANGER_SECONDS, HEAL, PUSH, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -251,6 +251,12 @@ pub trait View {
     fn heals(&self, _builder: UnitId, _def: UnitDefId) -> bool {
         true
     }
+    /// The odds of these units of ours, where they stand, against these of his, where they stand (H-MICRO-PUSH):
+    /// the share of fights won and the metal of ours expected lost; `None` from a host with no simulator, which
+    /// then pushes nothing.
+    fn odds(&self, _ours: &[(UnitDefId, Vec3)], _theirs: &[(UnitDefId, Vec3)]) -> Option<(f32, f32)> {
+        None
+    }
     /// Where a remembered building of theirs stands (an Attack order's goal when the target is out of sight).
     fn building_at(&self, id: UnitId) -> Option<Vec3>;
     /// Whether a soldier of theirs seen lately is still believed alive.
@@ -433,6 +439,9 @@ pub struct Lane {
     /// Each rover type's ground (its class's passable grid priced for its half-width and a cell), for the needle;
     /// `None` kept for a type without terrain or class.
     rover_grounds: HashMap<UnitDefId, Option<std::sync::Arc<ground::Ground>>>,
+    /// The push's odds by target (H-MICRO-PUSH): the frame they were read, the pack's size then, the share of wins
+    /// and the metal expected lost; one read a second a target for every rover of the pack.
+    push_odds: HashMap<UnitId, (i32, usize, f32, f32)>,
     /// Enemy units some rover has already reported finding.
     rove_found: HashSet<UnitId>,
     /// H-MICRO-FORM-SPACING's numbers.

@@ -32,6 +32,8 @@ pub(crate) struct LaneFixed {
     /// The types the lane commands and the host's orders to which are standing orders: armed, mobile, not a builder,
     /// not the commander, not aircraft.
     pub soldier_defs: HashSet<UnitDefId>,
+    /// The combat simulator's rules and each type's row in its table, for the push's odds (H-MICRO-PUSH).
+    pub sim: Option<(Arc<combatsim::sim::Rules>, HashMap<UnitDefId, usize>)>,
 }
 
 /// The lane's view of the brain, the part that changes: built by the brain at every think, from its trackers.
@@ -88,6 +90,13 @@ impl View for SceneView {
     /// hands' `Repair` (H-HANDS-HEAL, `brain/heal.rs`), except the commander while it is under fire or on an attack.
     fn heals(&self, builder: UnitId, _def: UnitDefId) -> bool {
         !self.scene.no_heal.contains(&builder)
+    }
+
+    /// The simulator's verdict on the units as they stand, eight seeds; `None` for a type the table lacks.
+    fn odds(&self, ours: &[(UnitDefId, Vec3)], theirs: &[(UnitDefId, Vec3)]) -> Option<(f32, f32)> {
+        let (rules, rows) = self.fixed.sim.as_ref()?;
+        let placed = |side: &[(UnitDefId, Vec3)]| side.iter().map(|(def, at)| Some((*rows.get(def)?, combatsim::scenario::Vec2::new(at.x, at.z)))).collect::<Option<Vec<_>>>();
+        Some(combatsim::scenario::odds_placed(rules, &placed(ours)?, &placed(theirs)?, 8))
     }
 
     fn building_at(&self, id: UnitId) -> Option<Vec3> {

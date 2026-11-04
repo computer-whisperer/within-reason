@@ -421,6 +421,10 @@ impl Brain {
                         None => "is attacking an unguarded unit of his".to_string(),
                     },
                     "looking" => r.goal.as_ref().map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(*look))),
+                    "pushing" => match r.pushing.and_then(|q| enemies.iter().find(|e| e.id == q)) {
+                        Some(e) => format!("is pushing with its pack at his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos)),
+                        None => "is pushing with its pack at the target behind the shooters".to_string(),
+                    },
                     "healing" => match r.healer.and_then(|h| own.iter().find(|b| b.id == h)) {
                         Some(b) => format!("is hurt ({:.0}%) and at or on its way to our {} at {} to be healed", u.health / u.max_health.max(1.0) * 100.0, self.short_words(b.def), self.place_words(places, b.pos)),
                         None => format!("is hurt ({:.0}%) and on its way to a builder of ours to be healed", u.health / u.max_health.max(1.0) * 100.0),

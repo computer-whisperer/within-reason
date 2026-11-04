@@ -827,6 +827,11 @@ impl Brain {
                     micro::RoveWhat::GivesUp { goal, why } => format!("{clock} gave up looking at {goal}: {why}"),
                     micro::RoveWhat::Abandons { def, at, why, .. } => format!("{clock} gave up attacking his {} at {}: {why}", self.short_words(*def), self.place_words(&pianist.places, *at)),
                     micro::RoveWhat::Heals { def, at, .. } => format!("{clock} group_{}'s rover, hurt, goes to our {} at {} to be healed", group.name, self.short_words(*def), self.place_words(&pianist.places, *at)),
+                    micro::RoveWhat::Pushes { def, at, against, pack, .. } => {
+                        let text = format!("{clock} group_{}'s {pack} rovers push through {against} shooter{} at his {} at {} (the odds allow it)", group.name, if *against == 1 { "" } else { "s" }, self.short_words(*def), self.place_words(&pianist.places, *at));
+                        pianist.done.push(text.clone());
+                        text
+                    }
                 };
                 pianist.rove_events.push(format!("group_{} {line}", group.name));
                 group.rove_log.push((frame, line));

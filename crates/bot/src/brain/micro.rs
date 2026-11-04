@@ -192,7 +192,8 @@ impl Brain {
             let map = &self.world.hello.map;
             (None, (16.0, (map.width / 16.0).ceil() as usize, (map.height / 16.0).ceil() as usize))
         };
-        Arc::new(LaneFixed { defs, stats, terrain, grid_spec, home: self.home, disabled: self.disabled.clone(), label: format!("[ai {}]", self.ai()), soldier_defs })
+        let sim = (!self.sim.defs.is_empty()).then(|| (self.sim.rules.clone(), self.sim.defs.clone()));
+        Arc::new(LaneFixed { defs, stats, terrain, grid_spec, home: self.home, disabled: self.disabled.clone(), label: format!("[ai {}]", self.ai()), soldier_defs, sim })
     }
 
     /// The lane's view of what the brain's trackers hold, as of this think.

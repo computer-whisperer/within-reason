@@ -234,9 +234,56 @@ pub struct Odds {
     pub mean_seconds: f32,
 }
 
+/// The odds of a fight as it stands on the ground: each unit a group of one at its place (x, z), ours facing the
+/// other side's centre and theirs ours, buildings holding as they always do, over `reps` seeds; the share of wins
+/// (a draw half) and the mean metal of ours lost. A short fight: 60 s, a stalemate at 20. The rove-2 design's push
+/// (H-MICRO-PUSH) asks this of its host.
+pub fn odds_placed(rules: &crate::sim::Rules, ours: &[(usize, Vec2)], theirs: &[(usize, Vec2)], reps: u32) -> (f32, f32) {
+    let centre = |side: &[(usize, Vec2)]| {
+        let n = side.len().max(1) as f32;
+        Vec2::new(side.iter().map(|(_, p)| p.x).sum::<f32>() / n, side.iter().map(|(_, p)| p.z).sum::<f32>() / n)
+    };
+    let (ours_centre, theirs_centre) = (centre(ours), centre(theirs));
+    let mut scenario = Scenario::new();
+    scenario.time_limit = 60.0;
+    scenario.stalemate = 20.0;
+    scenario.sides[0] = ours.iter().map(|(def, at)| Group::new(*def, 1, *at, at.towards(theirs_centre))).collect();
+    scenario.sides[1] = theirs.iter().map(|(def, at)| Group::new(*def, 1, *at, at.towards(ours_centre))).collect();
+    let mut odds = Odds::default();
+    let mut lost = 0.0;
+    for seed in 0..reps.max(1) {
+        let outcome = crate::sim::simulate(rules, &scenario, u64::from(seed));
+        match outcome.winner {
+            Some(0) => odds.wins += 1,
+            Some(_) => odds.losses += 1,
+            None => odds.draws += 1,
+        }
+        lost += outcome.metal_lost[0];
+    }
+    (odds.win_probability(), lost / reps.max(1) as f32)
+}
+
 impl Odds {
     pub fn win_probability(&self) -> f32 {
         let total = self.wins + self.losses + self.draws;
         if total == 0 { 0.5 } else { (self.wins as f32 + self.draws as f32 / 2.0) / total as f32 }
+    }
+}
+
+#[cfg(test)]
+mod odds_placed_tests {
+    use super::*;
+
+    /// Four Rovers 800 from a Grunt beside a constructor, as drill P stands them: the simulator's command line gives
+    /// side A every fight (margin +0.74, 10 s); the placed odds must agree.
+    #[test]
+    fn four_rovers_beat_a_grunt_and_its_constructor_where_they_stand() {
+        let rules = crate::sim::Rules::default();
+        let index = |name: &str| rules.units.index(name).expect(name);
+        let ours: Vec<(usize, Vec2)> = [(2700.0, 3800.0), (2750.0, 3800.0), (2700.0, 3850.0), (2750.0, 3850.0)].iter().map(|(x, z)| (index("armfav"), Vec2::new(*x, *z))).collect();
+        let theirs = vec![(index("corak"), Vec2::new(2850.0, 4550.0)), (index("corck"), Vec2::new(2900.0, 4600.0))];
+        let (win, lost) = odds_placed(&rules, &ours, &theirs, 8);
+        assert!(win >= 0.8, "win {win}, lost {lost}");
+        assert!(lost < 93.0, "lost {lost}");
     }
 }

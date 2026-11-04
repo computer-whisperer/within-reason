@@ -86,6 +86,27 @@ pub const AIR_DANGER_SECONDS: f32 = 15.0;
 /// not rising. The rule's id for the host's switch; the group's order has one too (`GroupOrder::heal`).
 pub const HEAL: &str = "H-MICRO-HEAL";
 const HEAL_BELOW: f32 = 0.5;
+/// The push (the rove-2 design §4): rovers within `PACK_RADIUS` of each other are a pack; a target of the usual
+/// classes with no stand is pushed when every shooter covering it or the pack's way to it is in sight, the host's
+/// odds for the pack against them and the target are `PUSH_ODDS` or more, and the metal expected lost is under the
+/// cover's and the target's together; the pack attacks the cover nearest first, every member on one, then the
+/// target, the cover exempt from the evade meanwhile; read again every `PUSH_REREAD_FRAMES`, ended by a member lost,
+/// a new shooter covering, or odds under `PUSH_BREAK`, the target then blocked.
+pub const PUSH: &str = "H-MICRO-PUSH";
+const PACK_RADIUS: f32 = 400.0;
+const PUSH_ODDS: f32 = 0.8;
+const PUSH_BREAK: f32 = 0.6;
+const PUSH_REREAD_FRAMES: i32 = FRAMES_PER_SECOND;
+/// The pack gathers at a rally point this far beyond the cover's reach before it charges, all within
+/// `PUSH_GATHER_RADIUS` of it or `PUSH_GATHER_FRAMES` gone (drill P: Rovers that arrived one by one across a Grunt's
+/// longer reach were killed one by one), and charges to `PUSH_CLOSE` of the quarry (a laser at point blank does its
+/// whole damage).
+const PUSH_RALLY_BEYOND: f32 = 60.0;
+const PUSH_GATHER_RADIUS: f32 = 100.0;
+const PUSH_GATHER_FRAMES: i32 = 8 * FRAMES_PER_SECOND;
+const PUSH_CLOSE: f32 = 40.0;
+/// The pack's damage at the charge, as a share of its muzzle damage (the falloff over the last steps in).
+const PUSH_CLOSE_SHARE: f32 = 0.9;
 const HEAL_UNTIL: f32 = 0.9;
 const HEAL_WALK: f32 = 2000.0;
 const HEAL_SLACK: f32 = 30.0;
@@ -166,6 +187,8 @@ pub enum RoveWhat {
     Abandons { target: UnitId, def: UnitDefId, at: Vec3, why: String },
     /// Hurt, it goes to this builder of ours to be healed, standing here.
     Heals { healer: UnitId, def: UnitDefId, at: Vec3 },
+    /// With its pack of `pack` rovers it pushes through `against` shooters at this target.
+    Pushes { target: UnitId, def: UnitDefId, at: Vec3, against: usize, pack: usize },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -178,7 +201,7 @@ pub struct RoveEvent {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RoveReport {
     /// "evading", "threading" (on a way of more than one leg, to its stand, its heal point or its look point),
-    /// "healing", "attacking", "looking" or "waiting" (every way to a place worth a look passes a reach).
+    /// "pushing", "healing", "attacking", "looking" or "waiting" (every way to a place worth a look passes a reach).
     pub doing: &'static str,
     /// The place it is going to look at, and where that is.
     pub goal: Option<(String, Vec3)>,
@@ -188,6 +211,8 @@ pub struct RoveReport {
     pub rim: bool,
     /// The builder of ours it is going to or standing at to be healed.
     pub healer: Option<UnitId>,
+    /// The shooter its pack is pushing through now, on the way to `target`.
+    pub pushing: Option<UnitId>,
     /// Evasions since it began roving.
     pub evasions: u32,
 }
@@ -307,6 +332,17 @@ fn legs_clear(danger: &[&Source], bar: &dyn Fn(&Source) -> f32, from: Vec3, legs
     true
 }
 
+/// A push under way: the target, the shooters covering it, and the shooter the pack is on now (`None`: the target
+/// itself).
+struct Push {
+    target: UnitId,
+    cover: Vec<UnitId>,
+    quarry: Option<UnitId>,
+    /// When the push began, for the gather's patience; `charging` once the pack is gathered.
+    since: i32,
+    charging: bool,
+}
+
 /// A heal under way: the builder, the point beside it, when the rover last gained health there and what it had.
 struct Healing {
     healer: UnitId,
@@ -337,6 +373,8 @@ pub(crate) struct Rover {
     way: Option<Way>,
     /// The heal it is on.
     healing: Option<Healing>,
+    /// The push it is on.
+    push: Option<Push>,
     /// No heal is taken before this frame (the last was given up).
     heal_rest_until: i32,
     /// No field is run before this frame (a search found no way).
@@ -358,6 +396,8 @@ impl Rover {
             "evading"
         } else if self.way.as_ref().is_some_and(|w| w.legs.len() > 1) {
             "threading"
+        } else if self.push.is_some() {
+            "pushing"
         } else if self.healing.is_some() {
             "healing"
         } else if self.target.is_some() {
@@ -367,7 +407,7 @@ impl Rover {
         } else {
             "waiting"
         };
-        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, stand: self.stand.map(|s| s.0), rim: self.stand.is_some_and(|s| s.1 == StandKind::Rim), healer: self.healing.as_ref().map(|h| h.healer), evasions: self.evasions }
+        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, stand: self.stand.map(|s| s.0), rim: self.stand.is_some_and(|s| s.1 == StandKind::Rim), healer: self.healing.as_ref().map(|h| h.healer), pushing: self.push.as_ref().and_then(|p| p.quarry), evasions: self.evasions }
     }
 }
 
@@ -451,14 +491,18 @@ impl Lane {
         let danger_all: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
         let mut goals_of: HashMap<UnitDefId, Vec<RoveGoal>> = HashMap::new();
         let heal_on = view.enabled(HEAL);
+        let push_on = view.enabled(PUSH);
         for (unit, within, heal) in rovers {
             let flies = view.def(unit.def).is_some_and(super::is_air_soldier);
-            let danger: Vec<&Source> = if flies {
+            let danger_whole: Vec<&Source> = if flies {
                 air_danger(air_sources, unit.health)
             } else {
                 // A torpedo shooter is no danger to a rover on land (the engine: water weapons reach only what is in the water).
                 danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect()
             };
+            // The shooters a push under way is through are no threat to its members for the push's length.
+            let pushed: Vec<UnitId> = self.rovers.get(&unit.id).and_then(|r| r.push.as_ref()).map(|p| p.cover.clone()).unwrap_or_default();
+            let danger: Vec<&Source> = danger_whole.iter().copied().filter(|s| !pushed.contains(&s.id)).collect();
             // What it knows can hit it where it stands: an aircraft hit by a shooter it chose not to keep off (a
             // light laser turret beside its extractor) is not hit by something unseen (the air rove drill: every
             // Banshee gave up its next place under the turret's fire).
@@ -477,7 +521,7 @@ impl Lane {
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} roves", view.label(), unit.id.0);
                     }
-                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, way: None, no_way_until: 0, healing: None, heal_rest_until: 0, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
+                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, way: None, no_way_until: 0, healing: None, push: None, heal_rest_until: 0, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
@@ -663,8 +707,12 @@ impl Lane {
             // Its target is kept while it is still worth it and it has a stand: the stand it has while that is still
             // outside every margin and in reach, with its way kept while its legs are clear and it is fresh (else
             // planned again), else another stand; neither, and the target is let go.
+            // On a push the pack's order is the push rung's (the cover first): no stand of its own, which with the cover
+            // exempt from the evade would stand it beside the shooter at the target (drill P: four Rovers on the
+            // constructor beside the Grunt, all four dead in ten seconds).
             let mut chosen: Option<(&EnemyUnit, Vec3)> = None;
-            if let Some(e) = rover.target.and_then(|t| enemies.iter().find(|e| e.id == t)).filter(|e| attackable(e).is_some()) {
+            let pushing = rover.push.is_some();
+            if !pushing && let Some(e) = rover.target.and_then(|t| enemies.iter().find(|e| e.id == t)).filter(|e| attackable(e).is_some()) {
                 let kept = rover.stand.map(|s| s.0).filter(|s| stand_ok(*s, e));
                 match kept {
                     Some(stand) => {
@@ -798,7 +846,7 @@ impl Lane {
             } else if rover.healing.take().is_some() {
                 rover.way = None;
             }
-            if chosen.is_none() {
+            if chosen.is_none() && !pushing {
                 let others: HashSet<UnitId> = self.rovers.values().filter_map(|r| r.target).collect();
                 let mut ranked: Vec<(u8, bool, f32, &EnemyUnit)> = enemies.iter().filter_map(|e| Some((attackable(e)?, !others.contains(&e.id), e.pos.dist2d(unit.pos), e))).collect();
                 ranked.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)).then(a.2.total_cmp(&b.2)));
@@ -875,6 +923,159 @@ impl Lane {
                     rover.stand = None;
                     rover.stand_since = None;
                 }
+            }
+
+            // 2c. The push (the module's `PUSH`): the pack against light resistance, when the host's odds allow.
+            if chosen.is_none() && push_on && !flies {
+                let pack: Vec<&OwnUnit> = rovers.iter().map(|(u, ..)| *u).filter(|u| u.pos.dist2d(unit.pos) <= PACK_RADIUS && !view.def(u.def).is_some_and(super::is_air_soldier)).collect();
+                let centroid = Vec3 { x: pack.iter().map(|u| u.pos.x).sum::<f32>() / pack.len().max(1) as f32, y: 0.0, z: pack.iter().map(|u| u.pos.z).sum::<f32>() / pack.len().max(1) as f32 };
+                let seen = |id: UnitId| enemies.iter().any(|e| e.id == id);
+                let metal = |def: Option<UnitDefId>| def.and_then(|d| view.def(d)).map_or(0.0, |d| d.metal_cost);
+                // The shooters whose margin covers the target or the pack's way to it.
+                let cover_of = |target: Vec3| -> Vec<&Source> { danger_whole.iter().copied().filter(|s| to_segment(s.pos, centroid, target) < keep_off(s)).collect() };
+                let mut ended: Option<String> = None;
+                if let Some(push) = rover.push.as_ref() {
+                    let target = enemies.iter().find(|e| e.id == push.target).filter(|e| attackable(e).is_some());
+                    let cover: Vec<&Source> = target.map(|e| cover_of(e.pos)).unwrap_or_default();
+                    let new_shooter = cover.iter().any(|s| !push.cover.contains(&s.id));
+                    if target.is_none() {
+                        ended = Some("the target is gone".to_string());
+                    } else if new_shooter {
+                        ended = Some("another shooter covers the target".to_string());
+                    } else if pack.is_empty() {
+                        ended = Some("the pack is gone".to_string());
+                    } else if push.charging {
+                        // Charging, the rest of the fight is priced from what stands: the cover's health left at the
+                        // pack's close damage, the cover's damage over that time in rovers; more than the cover and
+                        // the target are worth, and the push ends (not on the first loss: drill P broke off with the
+                        // Grunt at a quarter of its health).
+                        let e = target.expect("checked");
+                        let alive: Vec<&EnemyUnit> = push.cover.iter().filter_map(|id| enemies.iter().find(|c| c.id == *id)).collect();
+                        let cover_health: f32 = alive.iter().map(|c| c.health).sum();
+                        let cover_dps: f32 = alive.iter().map(|c| cover.iter().find(|s| s.id == c.id).map_or(0.0, |s| s.weight)).sum();
+                        let seconds = cover_health / (pack.len() as f32 * stats.dps * PUSH_CLOSE_SHARE).max(1.0);
+                        let rovers_lost = cover_dps * seconds / unit.max_health.max(1.0);
+                        let cost = rovers_lost * metal(Some(unit.def));
+                        let worth = cover.iter().map(|s| metal(s.def)).sum::<f32>() + metal(e.def);
+                        if cost >= worth {
+                            ended = Some(format!("what is left would cost {cost:.0} for {worth:.0}"));
+                        }
+                    } else {
+                        // Gathering: the odds read again every second against what is left of the cover.
+                        let e = target.expect("checked");
+                        let stale = self.push_odds.get(&e.id).is_none_or(|(at, n, ..)| frame - at >= PUSH_REREAD_FRAMES || *n != pack.len());
+                        if stale {
+                            let ours: Vec<(UnitDefId, Vec3)> = pack.iter().map(|u| (u.def, u.pos)).collect();
+                            let theirs: Vec<(UnitDefId, Vec3)> = cover.iter().filter_map(|s| Some((s.def?, s.pos))).chain(e.def.map(|d| (d, e.pos))).collect();
+                            let (win, lost) = view.odds(&ours, &theirs).unwrap_or((0.0, f32::INFINITY));
+                            self.push_odds.insert(e.id, (frame, pack.len(), win, lost));
+                        }
+                        let (_, _, win, _) = self.push_odds[&e.id];
+                        if win < PUSH_BREAK {
+                            ended = Some(format!("the odds fell to {win:.2}"));
+                        }
+                    }
+                }
+                if let Some(why) = ended {
+                    let push = rover.push.take().expect("ended");
+                    if debug {
+                        eprintln!("{} f={frame} micro: {name}#{} ends its push at {} ({why})", view.label(), unit.id.0, push.target.0);
+                    }
+                    rover.blocked_targets.push((push.target, frame + BLOCK_FRAMES));
+                    if rover.target.take().is_some() && rover.target_sent.take().is_some() {
+                        self.counts.1 += 1;
+                        commands.push(Command::ClearTarget { unit: unit.id });
+                    }
+                    rover.way = None;
+                }
+                if rover.push.is_none() && pack.len() >= 2 {
+                    // A target of the usual classes, nearest first, whose cover is all in sight, worth the trade.
+                    let mut ranked: Vec<(u8, f32, &EnemyUnit)> = enemies.iter().filter_map(|e| Some((attackable(e)?, e.pos.dist2d(unit.pos), e))).collect();
+                    ranked.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
+                    for (_, _, e) in ranked {
+                        let cover = cover_of(e.pos);
+                        if cover.is_empty() || cover.iter().any(|s| !seen(s.id) || s.def.is_none()) {
+                            continue;
+                        }
+                        let stale = self.push_odds.get(&e.id).is_none_or(|(at, n, ..)| frame - at >= PUSH_REREAD_FRAMES || *n != pack.len());
+                        if stale {
+                            let ours: Vec<(UnitDefId, Vec3)> = pack.iter().map(|u| (u.def, u.pos)).collect();
+                            let theirs: Vec<(UnitDefId, Vec3)> = cover.iter().filter_map(|s| Some((s.def?, s.pos))).chain(e.def.map(|d| (d, e.pos))).collect();
+                            let (win, lost) = view.odds(&ours, &theirs).unwrap_or((0.0, f32::INFINITY));
+                            self.push_odds.insert(e.id, (frame, pack.len(), win, lost));
+                        }
+                        let (_, _, win, lost) = self.push_odds[&e.id];
+                        let worth = cover.iter().map(|s| metal(s.def)).sum::<f32>() + metal(e.def);
+                        if debug && stale {
+                            let places = |side: &[(UnitDefId, Vec3)]| side.iter().map(|(d, p)| format!("{}@({:.0},{:.0})", d.0, p.x, p.z)).collect::<Vec<_>>().join(" ");
+                            let ours: Vec<(UnitDefId, Vec3)> = pack.iter().map(|u| (u.def, u.pos)).collect();
+                            let theirs: Vec<(UnitDefId, Vec3)> = cover.iter().filter_map(|s| Some((s.def?, s.pos))).chain(e.def.map(|d| (d, e.pos))).collect();
+                            eprintln!("{} f={frame} micro: {name}#{} reads the odds of {} rovers at {} through {} shooters: {win:.2}, {lost:.0} of ours lost for {worth:.0} of his; ours {} theirs {}", view.label(), unit.id.0, pack.len(), e.id.0, cover.len(), places(&ours), places(&theirs));
+                        }
+                        if win >= PUSH_ODDS && lost < worth {
+                            fired.push(PUSH);
+                            if debug {
+                                eprintln!("{} f={frame} micro: {name}#{} and {} more push at {} through {} shooters (odds {win:.2}, {lost:.0} of ours for {worth:.0})", view.label(), unit.id.0, pack.len() - 1, e.id.0, cover.len());
+                            }
+                            events.push(RoveEvent { rover: unit.id, what: RoveWhat::Pushes { target: e.id, def: e.def.expect("attackable has a type"), at: e.pos, against: cover.len(), pack: pack.len() } });
+                            rover.push = Some(Push { target: e.id, cover: cover.iter().map(|s| s.id).collect(), quarry: None, since: frame, charging: false });
+                            break;
+                        }
+                    }
+                }
+                if let Some(push) = rover.push.as_mut() {
+                    // The cover's nearest shooter to the pack first, then the target: the quarry, set as the target
+                    // beside the move. Gathering first: the rally point lies beyond the quarry's reach on the pack's
+                    // side, and the charge begins when the whole pack stands within the radius of it, or at the
+                    // gather's patience; charging, every member moves to point blank of the quarry.
+                    let quarry = push.cover.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).min_by(|a, b| a.pos.dist2d(centroid).total_cmp(&b.pos.dist2d(centroid))).map(|e| (e.id, e.pos));
+                    let (quarry_id, at) = match quarry {
+                        Some(q) => (q.0, q.1),
+                        None => {
+                            let e = enemies.iter().find(|e| e.id == push.target).expect("the push's target stands");
+                            (e.id, e.pos)
+                        }
+                    };
+                    push.quarry = quarry.map(|q| q.0);
+                    let reach_of_quarry = danger_whole.iter().find(|s| s.id == quarry_id).map_or(0.0, |s| s.reach.max(s.dgun));
+                    let (dx, dz) = (centroid.x - at.x, centroid.z - at.z);
+                    let len = dx.hypot(dz).max(1.0);
+                    let rally = Vec3 { x: at.x + dx / len * (reach_of_quarry + PUSH_RALLY_BEYOND), y: 0.0, z: at.z + dz / len * (reach_of_quarry + PUSH_RALLY_BEYOND) };
+                    if !push.charging {
+                        let gathered = pack.iter().all(|u| u.pos.dist2d(rally) <= PUSH_GATHER_RADIUS);
+                        if gathered || frame - push.since >= PUSH_GATHER_FRAMES {
+                            push.charging = true;
+                            if debug {
+                                eprintln!("{} f={frame} micro: {name}#{} charges {} with its pack of {}{}", view.label(), unit.id.0, quarry_id.0, pack.len(), if gathered { "" } else { " (the gather's patience over)" });
+                            }
+                        }
+                    }
+                    let charging = push.charging;
+                    if charging {
+                        if rover.target != Some(quarry_id) {
+                            rover.target = Some(quarry_id);
+                            rover.target_sent = None;
+                        }
+                        if rover.target_sent.is_none_or(|at| frame - at >= TARGET_RESEND_FRAMES) {
+                            rover.target_sent = Some(frame);
+                            self.counts.1 += 1;
+                            commands.push(Command::SetTarget { unit: unit.id, target: quarry_id });
+                        }
+                    }
+                    let to = if charging {
+                        let (dx, dz) = (unit.pos.x - at.x, unit.pos.z - at.z);
+                        let len = dx.hypot(dz).max(1.0);
+                        let close = PUSH_CLOSE.min(len);
+                        Vec3 { x: at.x + dx / len * close, y: 0.0, z: at.z + dz / len * close }
+                    } else {
+                        rally
+                    };
+                    send(self, &mut rover, Order::Move(to), commands);
+                    self.rovers.insert(unit.id, rover);
+                    continue;
+                }
+            } else if rover.push.take().is_some() {
+                rover.way = None;
             }
 
             // 3. Look at the place we know least.
@@ -1341,6 +1542,56 @@ mod tests {
         (far_nano.id, far_nano.pos) = (UnitId(22), at(3500.0, 1000.0));
         lane.tick(&host, &tick(33, vec![hurt, far_nano], Vec::new()), &mut Vec::new(), false);
         assert_eq!(lane.roving(UnitId(10)).unwrap().healer, Some(UnitId(22)));
+    }
+
+    /// H-MICRO-PUSH (the rove-2 design §4): four Rovers in a pack against a constructor with a Pawn beside it
+    /// (no stand: the Pawn's margin covers the constructor): the host's odds 0.9 with 31 of ours lost against the
+    /// Pawn's and the constructor's 100, so the pack pushes: every rover sets the Pawn as its target and moves to
+    /// within reach of it, "pushing"; the Pawn dead, the constructor is next. A lone rover never pushes; a host
+    /// with no odds never pushes; odds under 0.8 push nothing.
+    #[test]
+    fn a_pack_pushes_through_a_light_escort_when_the_odds_allow() {
+        let mut host = Host::new(vec![goal("spot_2", 300.0, 3000.0, None, true)]);
+        host.odds = Some((0.9, 31.0));
+        let mut lane = roving_lane(&[10, 11, 12, 13]);
+        let pack = vec![rover(10, 1000.0, 1000.0), rover(11, 1040.0, 1000.0), rover(12, 1000.0, 1040.0), rover(13, 1040.0, 1040.0)];
+        let pawn = enemy(80, PAWN, 1500.0, 1000.0);
+        let builder = enemy(72, CONSTRUCTOR, 1550.0, 1000.0);
+        let out = lane.tick(&host, &tick(30, pack.clone(), vec![pawn.clone(), builder.clone()]), &mut Vec::new(), false);
+        // First the gather: every rover to the rally point 240 from the Pawn (its reach and 60) on the pack's side.
+        for id in [10, 11, 12, 13] {
+            let moves = moves_of(&out.commands, id);
+            assert_eq!(moves.len(), 1, "{:?}", out.commands);
+            assert!((moves[0].dist2d(pawn.pos) - 240.0).abs() < 2.0 && moves[0].x < pawn.pos.x, "to the rally beyond the Pawn's reach: {:?}", moves[0]);
+            let report = lane.roving(UnitId(id)).unwrap();
+            assert_eq!((report.doing, report.pushing), ("pushing", Some(UnitId(80))));
+        }
+        assert!(out.rove.iter().any(|e| matches!(e.what, RoveWhat::Pushes { target: UnitId(72), against: 1, pack: 4, .. })), "{:?}", out.rove);
+        assert!(out.fired.contains(&"H-MICRO-PUSH"));
+        // Gathered at the rally: the charge, every rover on the Pawn to point blank.
+        let rally = moves_of(&out.commands, 10)[0];
+        let gathered: Vec<OwnUnit> = [10, 11, 12, 13].iter().enumerate().map(|(i, id)| rover(*id, rally.x - 20.0 + 20.0 * (i % 2) as f32, rally.z - 20.0 + 20.0 * (i / 2) as f32)).collect();
+        let out = lane.tick(&host, &tick(33, gathered.clone(), vec![pawn.clone(), builder.clone()]), &mut Vec::new(), false);
+        for id in [10, 11, 12, 13] {
+            assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit, target: UnitId(80) } if unit.0 == id)), "rover {id} on the Pawn: {:?}", out.commands);
+            let moves = moves_of(&out.commands, id);
+            assert_eq!(moves.len(), 1, "{:?}", out.commands);
+            assert!(moves[0].dist2d(pawn.pos) <= 40.0 + 1.0, "to point blank of the Pawn: {:?}", moves[0]);
+        }
+        // The Pawn dead: the constructor is the quarry, and it is attacked from a stand as any unguarded unit.
+        let out = lane.tick(&host, &tick(60, gathered, vec![builder.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(72) })), "{:?}", out.commands);
+        // A lone rover: no push, the constructor is left and it looks instead.
+        let mut lane = roving_lane(&[10]);
+        lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![pawn.clone(), builder.clone()]), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "looking");
+        // No odds from the host, or odds under the bar: no push.
+        for odds in [None, Some((0.7, 31.0)), Some((0.9, 200.0))] {
+            host.odds = odds;
+            let mut lane = roving_lane(&[10, 11, 12, 13]);
+            lane.tick(&host, &tick(30, pack.clone(), vec![pawn.clone(), builder.clone()]), &mut Vec::new(), false);
+            assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "looking", "{odds:?}");
+        }
     }
 
     #[test]

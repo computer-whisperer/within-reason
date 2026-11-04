@@ -86,6 +86,8 @@ pub(crate) struct Host {
     pub(crate) goals: Vec<RoveGoal>,
     /// The map's terrain, when a test wants ground (the needle routes over it); none by default.
     pub(crate) terrain: Option<bot_protocol::Terrain>,
+    /// What the host answers for any odds (the share of wins, the metal lost); none by default.
+    pub(crate) odds: Option<(f32, f32)>,
 }
 
 /// A flat map the test host's grid spec names: 256 cells of 16 a side, 4,096 elmos.
@@ -108,7 +110,7 @@ impl Host {
             // A construction turret: 200 build power over 220 of build distance, no build options.
             UnitDefInfo { build_distance: 220.0, ..def(NANO, "armnanotc", 0.0, 0, 200.0, 0.0) },
         ];
-        Host { defs, buildings: Vec::new(), goals, terrain: None }
+        Host { defs, buildings: Vec::new(), goals, terrain: None, odds: None }
     }
 }
 
@@ -134,6 +136,9 @@ impl View for Host {
     }
     fn terrain(&self) -> Option<&bot_protocol::Terrain> {
         self.terrain.as_ref()
+    }
+    fn odds(&self, _ours: &[(UnitDefId, Vec3)], _theirs: &[(UnitDefId, Vec3)]) -> Option<(f32, f32)> {
+        self.odds
     }
     fn home(&self) -> Vec3 {
         at(200.0, 200.0)

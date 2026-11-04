@@ -1,0 +1,72 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2800,
+  3900
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill P's second half: a corllt beside the constructor instead of the Grunt. Expected: no push (a bad trade the simulator sees); the constructor left, or killed from the rim if it walks out Side 1 carries a track of its own places at 0 s and is run with `--theirs track`, so the escort stands beside the constructor instead of walking at the pack (the director's idle attack-move)."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2700,
+     "z": 4000
+    },
+    {
+     "type": "armfav",
+     "x": 2750,
+     "z": 4000
+    },
+    {
+     "type": "armfav",
+     "x": 2700,
+     "z": 4050
+    },
+    {
+     "type": "armfav",
+     "x": 2750,
+     "z": 4050
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corck",
+     "x": 2900,
+     "z": 4600
+    },
+    {
+     "type": "corllt",
+     "x": 2850,
+     "z": 4550
+    }
+   ],
+   "track": [
+    {
+     "t": 0.0,
+     "unit": 0,
+     "x": 2900,
+     "z": 4600
+    },
+    {
+     "t": 0.0,
+     "unit": 1,
+     "x": 2850,
+     "z": 4550
+    }
+   ]
+  }
+ ]
+}

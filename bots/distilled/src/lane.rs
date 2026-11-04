@@ -110,6 +110,13 @@ impl View for LaneView<'_> {
         true
     }
 
+    /// The simulator's verdict on the units as they stand (H-MICRO-PUSH); the raiders do not rove yet, so unasked.
+    fn odds(&self, ours: &[(UnitDefId, Vec3)], theirs: &[(UnitDefId, Vec3)]) -> Option<(f32, f32)> {
+        let rows = &self.bot.control.rows;
+        let placed = |side: &[(UnitDefId, Vec3)]| side.iter().map(|(def, at)| Some((*rows.get(def)?, combatsim::scenario::Vec2::new(at.x, at.z)))).collect::<Option<Vec<_>>>();
+        Some(combatsim::scenario::odds_placed(&self.bot.control.rules, &placed(ours)?, &placed(theirs)?, 8))
+    }
+
     fn mine(&self, _unit: UnitId) -> bool {
         true
     }

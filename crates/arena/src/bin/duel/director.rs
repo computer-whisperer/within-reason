@@ -450,6 +450,8 @@ pub struct Director {
     duel_budget: u32,
     defs: HashMap<String, UnitDefInfo>,
     defs_by_id: HashMap<UnitDefId, UnitDefInfo>,
+    /// The combat simulator's rules over the batch's table, built on first use for the push's odds (H-MICRO-PUSH).
+    sim: std::cell::OnceCell<combatsim::sim::Rules>,
     /// Lane rule IDs switched off for this batch (`WITHIN_REASON_DISABLE`).
     disabled: Vec<String>,
     hello: Option<Hello>,
@@ -476,6 +478,7 @@ impl Director {
             duel_budget,
             defs: HashMap::new(),
             defs_by_id: HashMap::new(),
+            sim: std::cell::OnceCell::new(),
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             hello: None,
             seed,
@@ -572,6 +575,7 @@ impl Director {
                 script_delay: self.batch.script_delay,
                 theirs: self.batch.theirs,
                 track: self.batch.scenario.as_ref().map_or(&[], |s| s.sides[1].track.as_slice()),
+                sim: self.sim.get_or_init(|| combatsim::sim::Rules::new(self.batch.units.clone(), combatsim::sim::Tuning::default())),
             };
             if let Some(result) = advance(duel, team, tick, &rules, &mut commands) {
                 let mut log = String::new();
@@ -1195,6 +1199,8 @@ struct Rules<'a> {
     theirs: Control,
     /// Side 1's recorded track (`Side::track`; empty outside a scenario).
     track: &'a [TrackRow],
+    /// The simulator's rules, for the push's odds.
+    sim: &'a combatsim::sim::Rules,
 }
 
 /// What the lane reads of a duel: the game's definitions, the simulator's numbers, the map, and the other army.
@@ -1226,6 +1232,12 @@ impl View for DuelView<'_> {
     fn grid_spec(&self) -> (f32, usize, usize) {
         let t = self.rules.terrain;
         (t.cell, t.width as usize, t.height as usize)
+    }
+
+    /// The simulator's verdict on the units as they stand, eight seeds (H-MICRO-PUSH).
+    fn odds(&self, ours: &[(UnitDefId, Vec3)], theirs: &[(UnitDefId, Vec3)]) -> Option<(f32, f32)> {
+        let placed = |side: &[(UnitDefId, Vec3)]| side.iter().map(|(def, at)| Some((self.rules.units.index(&self.rules.defs.get(def)?.name)?, combatsim::scenario::Vec2::new(at.x, at.z)))).collect::<Option<Vec<_>>>();
+        Some(combatsim::scenario::odds_placed(self.rules.sim, &placed(ours)?, &placed(theirs)?, 8))
     }
 
     fn terrain(&self) -> Option<&Terrain> {
