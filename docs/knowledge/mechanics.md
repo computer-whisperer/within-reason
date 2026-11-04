@@ -137,40 +137,27 @@ while out of sight drew fire once the unit came in sight of it.
 **Used by.** `Command::SetTarget`/`ClearTarget` (`bot-protocol`, `COMMAND_UNIT_CUSTOM` in `ai-host`); the rove-2 stand
 (`docs/design/2026-11-04-rove-2.md` §2: the rover moves with its target set and shoots on the way in and out).
 
-### K-mech-turret-beam-clears-its-own-extractor
-**Claim.** A light laser turret fires over its own extractor: a unit standing on the ray from the turret through the
-extractor, 170 behind it with the extractor 200 from the turret, is hit at the turret's full rate. Whatever
-`avoidFriendly` does for a shot across an ally (`CWeapon::HaveFreeLineOfFire` refuses one whose cone crosses an ally's
-collision volume), the beam from a 77-tall turret's muzzle to a 21-wide, 16-tall rover 370 away passes over a 48-wide,
-33-tall extractor between them. So an unarmed structure of his is no cover from the turret guarding it.
-**Status.** supported (2026-11-04) from drill C0 (rove2-cover-fact-on: a Rover holding fire on the ray took 47 in the
-first second and died in two; -off, 40 off the ray: the same). One placing, one map; the geometry is the common one
-(the extractor a footprint of 4 x 4 beside its spot, the turret 200 off).
-**Evidence.** `docs/data/scenarios-2026-11-04/cover-fact-on.json`, `cover-fact-off.json`; `run/matches/*-duel-rove2-cover-fact-*`;
-the engine's `Weapon.cpp` `HaveFreeLineOfFire`, `WeaponDef.cpp` `avoidFriendly` (default true, the turret's def sets
-nothing against it), `armmex.lua`/`cormex.lua` (CylY 48 x 33), `armllt.lua` (CylY 32 x 77).
-**Would be wrong if.** A rover on the ray behind a taller structure (a radar, a wind generator, a lab) went unhit: the
-height is the variable, and a taller cover was not tried.
-**Used by.** The rove-2 design §2.1 (dropped on this claim: no shadow stand; the rim stand is the whole of the mex-and-
-turret gain).
-
-### K-mech-a-turrets-fight-order-ends-when-it-finds-nothing
-**Claim.** A construction turret's fight order (BAR's ImmobileBuilder default: a fight with the META bit at a point
-50 elmos off the turret) makes the engine's builder fight loop repair or help build whatever of ours stands within
-the turret's build distance each slow update, and ends the moment a search finds nothing: `CBuilderCAI::ExecuteFight`
-runs its repair and reclaim searches first and then finishes the command when the unit stands within 64 of the
-fight's point, which a point 50 off always is. So a turret told once searches once; told again every second while
-idle (the flagship's `nanos.rs`, `RETELL_FRAMES`) it tends whatever comes into reach.
-**Status.** supported (2026-11-04) from the engine source and drill H (rove2-H2 against rove2-H3, `docs/experiments.md`):
-told once, a turret healed nothing of a Rover that came to 370 of its 400 nine seconds later and stood 12 s; told
-again every second while idle, it healed the Rover from 0.4 % to whole in 5 s.
-**Evidence.** `BuilderCAI.cpp` `ExecuteFight` (the searches, then `if (f3SqDist(owner->pos, pos) < Square(64.0f))
-StopMoveAndFinishCommand()`), `FindRepairTargetAndRepair` (`IsInBuildRange` for an immobile owner); `armnanotc.lua`
-(`builddistance = 400`, `canfight = true`); `run/matches/*-duel-rove2-H2`, `*-rove2-H3`.
-**Would be wrong if.** A turret told its fight order once went on repairing units that came into its reach a minute
-later with no order since.
-**Used by.** H-ECO-NANO-GUARD (`nanos.rs` tells idle turrets again every second), H-MICRO-HEAL (the drill's `tend`
-row told again while idle, `director.rs` `tend_again`).
+### K-mech-a-mex-shades-a-short-band-behind-it
+**Claim.** A light laser turret's friendly check is one ray (its weapon has no accuracy and no spray angle, so
+`CWeapon::HaveFreeLineOfFire` traces a line, not a cone) from the turret's aim piece high on its 72-tall body to the
+target's aim point low on a 16-tall Rover, against the extractor's collision cylinder (48 wide, 30 tall). A unit on the
+ray behind the extractor is unhit only where that line passes through the cylinder: a band from the extractor out to
+about 0.55 to 0.6 of the extractor's own distance from the turret (a cormex 200 from a corllt shades a Rover 60 and 100
+behind it and not 140 or 170; at 300 it shades all of 60 to 170); a 70-tall Armada moho shades the whole of a Rover's
+reach at 200. Beyond the band the beam clears the extractor and the unit is hit at the turret's full rate. The band's
+edge fits an aim piece about 60 up, an aim point about 8 up and an extractor top about 27 up.
+**Status.** supported (2026-11-04) from the engine source and the cover scan (`docs/experiments.md` rove2-cover-scan:
+ten scenes, a Rover holding fire 20 s; the C0 drill of the same day, read as "the beam clears its own extractor", had
+stood the Rover 170 behind at 200, past the band, and that reading is withdrawn).
+**Evidence.** `Weapon.cpp` `HaveFreeLineOfFire` (`spread < 0.001` → `TraceRay::TraceRay` with `NOENEMIES | NOGROUND`
+against allied collision volumes), `TraceRay.cpp` `TestCone`/`TestConeHelper`; `corllt.lua` (no `accuracy`, no
+`sprayangle`; CylY 32 x 72), `cormex.lua` (CylY 48 x 30, offset -3), `armmoho.lua` (CylY 70 x 70);
+`docs/data/scenarios-2026-11-04/cover-scan/`.
+**Would be wrong if.** A Rover 100 behind a cormex 200 from a corllt were hit, or one 170 behind a cormex 300 from it.
+**Used by.** The rove-2 design §2.1 (the cover stand, not built as of 2026-11-04: the stand must lie close behind the
+extractor, inside the band, which at 200 from the turret is inside the extractor's death blast and 175 elmos of open
+reach from the band's mouth; from about 250 to 315 the band's end lies near the reach's edge and the stand is entered
+from outside the reach; beyond 315 the rim stand serves).
 
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition

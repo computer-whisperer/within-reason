@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5500
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: the cover geometry scan (the user: thebluegecko says a mex covers; it depends on the turret, the mex and the rover). A Rover holding fire 170 behind a cormex that is 200 from a corllt, on the ray from the turret through the extractor. The engine's friendly check is a ray from the turret's aim piece to the Rover's aim point against the extractor's collision cylinder (no spray on a light laser), so the shadow is short and the Rover must stand close behind."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5670
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5500
+    }
+   ]
+  }
+ ]
+}
