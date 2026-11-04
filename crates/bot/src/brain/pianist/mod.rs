@@ -12,6 +12,7 @@
 pub mod glossary;
 pub(super) mod groups;
 mod execute;
+mod heal;
 pub(super) mod lists;
 mod priority;
 pub(crate) use lists::{step_id, step_low, step_start};
@@ -203,6 +204,9 @@ pub struct Pianist {
     pub(super) tagged: HashMap<String, Tagged>,
     /// The builders helping an id's building up, and which: they take no list step until it stands or is gone.
     pub(super) helping: HashMap<UnitId, String>,
+    /// The mobile builders healing a rover that stands beside them (H-HANDS-HEAL, `brain/heal.rs`): the rover, and
+    /// when the repair was last told; they take no list step meanwhile.
+    pub(super) healing: HashMap<UnitId, (UnitId, i32)>,
     /// The priority flag last sent per unit and when, while the engine has not read it back (`priority.rs`).
     pub(super) priority_sent: HashMap<UnitId, (bool, i32)>,
     /// Units a lab has been told to build and not yet started, oldest first.
@@ -747,6 +751,7 @@ impl Pianist {
             stale_queue: HashSet::new(),
             tagged: HashMap::new(),
             helping: HashMap::new(),
+            healing: HashMap::new(),
             priority_sent: HashMap::new(),
             done: Vec::new(),
             rounds: HashMap::new(),
@@ -956,6 +961,7 @@ impl Brain {
             let actors = picture.state["actors"].as_object();
             pianist.rated.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
         }
+        self.heal_rovers(tick, kit, &picture, commands);
         self.play_lists(tick, kit, &picture, commands);
         self.play_sequences(tick, commands);
         self.pass(tick, kit, &picture, commands);

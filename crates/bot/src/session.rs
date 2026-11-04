@@ -49,6 +49,8 @@ pub(crate) struct LaneScene {
     pub stunned: HashMap<UnitId, f32>,
     /// The rove goals for every type of ours that can rove.
     pub rove_goals: HashMap<UnitDefId, Vec<RoveGoal>>,
+    /// Builders of ours that heal no rover now: the commander under fire or on an attack (H-HANDS-HEAL).
+    pub no_heal: HashSet<UnitId>,
 }
 
 /// The two parts together: what `Lane::tick` reads. Nothing borrows the brain.
@@ -82,11 +84,10 @@ impl View for SceneView {
         self.scene.remembered.clone()
     }
 
-    /// Construction turrets heal under their standing order (`nanos.rs`); a constructor or the commander would need
-    /// the hands' `Repair`, which is not built (the rove-2 design §3, the hands' half), so a rover is not walked to
-    /// one to stand for nothing.
-    fn heals(&self, _builder: UnitId, def: UnitDefId) -> bool {
-        self.fixed.defs.get(&def).is_some_and(|d| d.speed == 0.0)
+    /// Construction turrets heal under their standing order (`nanos.rs`), constructors and the commander under the
+    /// hands' `Repair` (H-HANDS-HEAL, `brain/heal.rs`), except the commander while it is under fire or on an attack.
+    fn heals(&self, builder: UnitId, _def: UnitDefId) -> bool {
+        !self.scene.no_heal.contains(&builder)
     }
 
     fn building_at(&self, id: UnitId) -> Option<Vec3> {

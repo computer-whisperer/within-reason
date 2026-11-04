@@ -181,7 +181,8 @@ impl Brain {
             // builder was out of the Dolphin's reach and the list sending it back in).
             let site_covered = pianist.list_held.contains(&unit.id)
                 && self.step_site(pianist.scripts.get(&name).and_then(|s| s.front()).map(String::as_str), &picture.places).is_some_and(|site| picture.parties.iter().any(|p| p.at.dist2d(site) < super::menu::THREATENED));
-            if pianist.list_is_held(unit.id, status.threatened || site_covered) {
+            // A builder healing a rover beside it (H-HANDS-HEAL) takes no step until the rover leaves.
+            if pianist.list_is_held(unit.id, status.threatened || site_covered || pianist.healing.contains_key(&unit.id)) {
                 continue;
             }
             let task = pianist.tasks.get(&unit.id).cloned();

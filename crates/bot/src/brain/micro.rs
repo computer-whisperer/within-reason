@@ -196,7 +196,7 @@ impl Brain {
     }
 
     /// The lane's view of what the brain's trackers hold, as of this think.
-    pub(super) fn lane_scene(&self) -> Arc<LaneScene> {
+    pub(super) fn lane_scene(&self, frame: i32) -> Arc<LaneScene> {
         // A building last seen being built is remembered, but it shoots nothing.
         let remembered = self.enemy_buildings.iter().filter(|(id, _)| !self.enemy_unfinished.contains(id)).map(|(id, (def, pos, _))| (*id, *def, *pos)).collect();
         let buildings = self.enemy_buildings.iter().map(|(id, b)| (*id, b.1)).collect();
@@ -207,7 +207,17 @@ impl Brain {
         let blip = counted.into_iter().max_by_key(|(def, n)| (*n, def.0)).map(|(def, _)| def).or(self.kit.as_ref().map(|k| k.line));
         let rovers: HashSet<UnitDefId> = self.known_units.values().map(|(def, _)| *def).filter(|def| self.world.def(*def).is_some_and(|d| d.speed > 0.0 && d.weapon_count > 0) && self.can_rove(*def)).collect();
         let rove_goals = rovers.into_iter().map(|def| (def, self.rove_goals_of(def))).collect();
-        Arc::new(LaneScene { remembered, buildings, known_soldiers, blip, stunned: self.enemy_stunned.clone(), rove_goals })
+        // The commander heals no rover while it is under fire or on an attack (H-HANDS-HEAL).
+        let no_heal: HashSet<UnitId> = self
+            .pianist
+            .as_ref()
+            .map(|p| {
+                let mut set: HashSet<UnitId> = p.under_fire(frame).collect();
+                set.extend(p.tasks.iter().filter(|(_, t)| matches!(t, super::pianist::Task::Attack { .. })).map(|(id, _)| *id));
+                set
+            })
+            .unwrap_or_default();
+        Arc::new(LaneScene { remembered, buildings, known_soldiers, blip, stunned: self.enemy_stunned.clone(), rove_goals, no_heal })
     }
 
     pub(super) fn survey_sim_defs(&mut self) {

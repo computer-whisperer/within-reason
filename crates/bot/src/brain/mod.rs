@@ -561,7 +561,7 @@ impl Brain {
                 self.think(&whole)
             };
             commands.extend(thought);
-            (Some(self.declare_groups()), self.kit.is_some().then(|| self.lane_scene()))
+            (Some(self.declare_groups()), self.kit.is_some().then(|| self.lane_scene(tick.frame)))
         };
         self.echo.said(&commands, tick.frame);
         let fixed = (self.kit.is_some() && !self.lane_fixed_sent).then(|| {
