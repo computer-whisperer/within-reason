@@ -4,6 +4,7 @@
 //! opponent); the tail is the player's hands.
 
 use crate::brain::pianist::flow_words;
+use serde_json::Value;
 use super::shared::{Bins, Briefing, CellLook, Field, Hands, Side, Traded};
 
 /// The hands' `did` lines a player's report carries at most.
@@ -683,23 +684,13 @@ pub struct Aside<'a> {
     pub standing: &'a [String],
 }
 
-pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands: &Hands, aside: &Aside, full: bool) -> String {
-    let mut lines = front(briefing, field, aside.fights, true);
-    if !aside.others.is_empty() {
-        lines.push(format!("our other seats (under the same commander; `transfer` reaches them by tag, and a seat whose plant is going up is fed by the others): {}", aside.others.join(" | ")));
-    }
-    if !aside.standing.is_empty() {
-        lines.push(format!("standing transfers: {}", aside.standing.join("; ")));
-    }
-    lines.extend(contact(briefing, field));
-    lines.extend(recently_seen(&hands.picture));
-    extractor_lines(seen, field, full, &mut lines);
-    if full {
-        lines.push(roster_lines(field));
-    }
-    // Each actor on one line, as the hands see it: the words the instructions have to speak to.
+/// Each actor on one line, as the hands see it: the words the instructions have to speak to. A builder's line
+/// carries the build queued behind its current one and the steps its list has left (the 2v2 of 2026-11-04 on
+/// Ravaged: the picture had both for the hands and the report showed neither, so the player re-sent its opening
+/// from a 27-second-old picture and two solars went up twice before the plant).
+fn actor_lines(picture: &Value) -> Vec<String> {
     let mut actors: Vec<String> = Vec::new();
-    if let Some(entries) = hands.picture["actors"].as_object() {
+    if let Some(entries) = picture["actors"].as_object() {
         for (name, entry) in entries {
             let field = |key: &str| entry[key].as_str().map(str::to_string);
             let mut parts: Vec<String> = Vec::new();
@@ -711,6 +702,12 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands:
             }
             if let Some(doing) = field("doing") {
                 parts.push(doing);
+            }
+            if let Some(next) = field("next") {
+                parts.push(next);
+            }
+            if let Some(list) = field("list") {
+                parts.push(list.replacen("the player's list, done by the bot without asking: ", "its list, the steps left, done in order without asking: ", 1));
             }
             if let Some(health) = field("health").filter(|h| !h.starts_with("full")) {
                 parts.push(format!("health {health}"));
@@ -736,6 +733,24 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands:
             actors.push(format!("{name}{kind}: {}", parts.join("; ")));
         }
     }
+    actors
+}
+
+pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands: &Hands, aside: &Aside, full: bool) -> String {
+    let mut lines = front(briefing, field, aside.fights, true);
+    if !aside.others.is_empty() {
+        lines.push(format!("our other seats (under the same commander; `transfer` reaches them by tag, and a seat whose plant is going up is fed by the others): {}", aside.others.join(" | ")));
+    }
+    if !aside.standing.is_empty() {
+        lines.push(format!("standing transfers: {}", aside.standing.join("; ")));
+    }
+    lines.extend(contact(briefing, field));
+    lines.extend(recently_seen(&hands.picture));
+    extractor_lines(seen, field, full, &mut lines);
+    if full {
+        lines.push(roster_lines(field));
+    }
+    let actors = actor_lines(&hands.picture);
     let changed: Vec<&String> = actors.iter().filter(|a| full || !seen.hands.contains(a)).collect();
     if !changed.is_empty() {
         lines.push(format!("your hands' actors{}:", if full { "" } else { " (those whose entry changed)" }));
@@ -764,6 +779,22 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands:
 #[cfg(test)]
 mod tests {
     use super::{CellLook, cell_runs, constructor_kind, recently_seen, scouting_lines};
+
+    /// A builder's line carries the build queued behind its current one and the steps its list has left, in the
+    /// picture's words with the list's label turned to the player; an actor without them says nothing of them.
+    #[test]
+    fn a_builders_line_says_what_is_queued_and_what_its_list_has_left() {
+        let picture = serde_json::json!({ "actors": {
+            "commander": { "at": "home (E4)", "doing": "building a Solar Collector (legsolar) at spot_21 (E4) (53 % built)", "health": "full (100%)",
+                "next": "queued to start the moment this is done: build a legsolar at home (E4)",
+                "list": "the player's list, done by the bot without asking: plant #vp1, assist 30 low, extractor" },
+            "group_A": { "units": "3 Rovers", "at": "C3" },
+        } });
+        let lines = super::actor_lines(&picture);
+        assert_eq!(lines.len(), 2, "{lines:?}");
+        assert_eq!(lines[0], "commander: at home (E4); building a Solar Collector (legsolar) at spot_21 (E4) (53 % built); queued to start the moment this is done: build a legsolar at home (E4); its list, the steps left, done in order without asking: plant #vp1, assist 30 low, extractor");
+        assert_eq!(lines[1], "group_A: 3 Rovers; at C3");
+    }
 
     /// The actor line's type suffix is the internal name alone, from the entry's gloss.
     #[test]
