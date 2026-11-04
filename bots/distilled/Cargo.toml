@@ -15,3 +15,4 @@ combatsim = { path = "../../crates/combatsim" }
 layout = { path = "../../crates/layout" }
 micro = { path = "../../crates/micro" }
 nukes = { path = "../../crates/nukes" }
+terrain = { path = "../../crates/terrain" }

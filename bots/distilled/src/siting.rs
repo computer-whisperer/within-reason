@@ -94,9 +94,8 @@ impl Distilled {
         Some(stand)
     }
 
-    /// What the layer knows of a kind: its footprint and, for a factory, its street's half-width (its widest product's).
-    /// Its products' ground is not known here (the bot keeps no walk sets), so the street is judged on the world's
-    /// `open`, which is everywhere.
+    /// What the layer knows of a kind: its footprint and, for a factory, its street's half-width (its widest product's)
+    /// and the ground its products stand on (`product_walk`), as the flagship's layer has them.
     pub(crate) fn facts_of(&self, def: UnitDefId) -> Option<Facts> {
         let d = self.def(def)?;
         let facts = Facts::of(d);
@@ -104,7 +103,40 @@ impl Distilled {
             return Some(facts);
         }
         let products = d.build_options.iter().filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some());
-        Some(facts.with_products(Facts::product_half_of(products.map(|p| Footprint { x: p.footprint.0, z: p.footprint.1 })), None))
+        Some(facts.with_products(Facts::product_half_of(products.map(|p| Footprint { x: p.footprint.0, z: p.footprint.1 })), self.product_walk(def)))
+    }
+
+    /// The ground a factory's products stand on: the strictest movement class among them over the hello's terrain
+    /// (the fewest cells passable), found once a kind. Without it the street rule was judged on the world's `open`,
+    /// which is everywhere, and on 2026-11-04 (dist119 game 02) the advanced vehicle plant stood facing Comet's crater
+    /// wall 60 elmos before its door with the street called open; the solars the layer then placed round it closed
+    /// the real ways out and every advanced constructor sat in the yard to the end. The flagship's layer has had the
+    /// products' ground since 2026-10-31 (apex-v0409-comet-sym0-opus-2's three plants penned by the rim).
+    fn product_walk(&self, def: UnitDefId) -> Option<layout::Passable> {
+        if let Some(walk) = self.product_walks.borrow().get(&def) {
+            return walk.clone();
+        }
+        let terrain = &self.hello.terrain;
+        let walk = (terrain.cell > 0.0 && !terrain.heights.is_empty()).then(|| {
+            let classes = self.def(def).into_iter().flat_map(|d| d.build_options.iter()).filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0).filter_map(|p| p.move_class);
+            let mut seen: Vec<(bot_protocol::MoveKind, i32, i32)> = Vec::new();
+            let mut strictest: Option<Vec<bool>> = None;
+            for class in classes {
+                let key = (class.kind, (class.max_slope * 255.0).round() as i32, class.depth as i32);
+                if seen.contains(&key) {
+                    continue;
+                }
+                seen.push(key);
+                let passable = terrain::passable(terrain, class);
+                if strictest.as_ref().is_none_or(|s| passable.iter().filter(|p| **p).count() < s.iter().filter(|p| **p).count()) {
+                    strictest = Some(passable);
+                }
+            }
+            strictest.map(layout::Passable::from)
+        })
+        .flatten();
+        self.product_walks.borrow_mut().insert(def, walk.clone());
+        walk
     }
 
     /// What a kind is placed for (the design's level 1), as the flagship reads it.
@@ -134,7 +166,7 @@ impl Distilled {
         let f = self.facts_of(def)?;
         let d = self.def(def)?;
         let widest = d.build_options.iter().filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1));
-        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), passable: None })
+        Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), passable: f.product_passable.clone() })
     }
 
     /// The world the layer chooses over this tick: what stands (ours, finished or framed; our orders with a site

@@ -137,6 +137,7 @@ dependencies = [
  "layout",
  "micro",
  "nukes",
+ "terrain",
 ]
 
 [[package]]

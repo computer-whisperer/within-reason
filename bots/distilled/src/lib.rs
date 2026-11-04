@@ -100,6 +100,8 @@ pub(crate) struct Distilled {
     pub coverage: Option<layout::Coverage>,
     /// D-STAND: the commander's opening slots, solved once at the start (`siting.rs` `solve_stand`).
     pub(crate) stand: Option<layout::Stand>,
+    /// Per factory kind, the ground its products stand on (`siting.rs` `product_walk`), found once when first asked.
+    pub(crate) product_walks: std::cell::RefCell<BTreeMap<UnitDefId, Option<layout::Passable>>>,
     pub army: army::Army,
     pub air: air::Air,
     /// The silos and their strikes (D-NUKE, `nuke.rs`).
@@ -434,7 +436,7 @@ impl Bot for Distilled {
         let spots = hello.metal_spots.len();
         let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, product_walks: Default::default(), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
