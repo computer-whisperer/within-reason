@@ -476,7 +476,7 @@ impl Default for Wake {
 pub struct TurnOutputs {
     pub wake: Wake,
     pub instructions: String,
-    pub queues: BTreeMap<String, Option<Vec<String>>>,
+    pub queues: BTreeMap<String, Listed>,
     pub company: BTreeMap<String, usize>,
     pub heal: BTreeMap<String, bool>,
     pub marks: BTreeMap<String, Mark>,
@@ -694,7 +694,7 @@ pub struct Shared {
     pub instructions: Mutex<String>,
     /// Builders' lists from the `queue` tool, by actor name: `Some` replaces the list, `None` cancels it; the brain drains
     /// this at each ask (H-HANDS-SCRIPT).
-    pub queues: Mutex<BTreeMap<String, Option<Vec<String>>>>,
+    pub queues: Mutex<BTreeMap<String, Listed>>,
     /// What each seat's pianist publishes for the player (`brain/pianist`), by team; the report reads the merge
     /// (`seats.rs` `hands_merged`).
     pub hands: Mutex<BTreeMap<i32, Hands>>,
@@ -1050,12 +1050,36 @@ impl Shared {
     }
 }
 
+/// A builder's list as the `queue` tool took it: the steps (None cancels), or one list per faction when the seat's
+/// faction is the game's to choose (the opening turn before the game on a lobby seat set to Random, 1793584014-human:
+/// the Armada two-solar clock written in role words ran on a Cortex plant that makes a constructor first). The
+/// hands take the faction's list at their first look and say which (`Brain::take_lists`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Listed {
+    Steps(Option<Vec<String>>),
+    ByFaction(BTreeMap<String, Vec<String>>),
+}
+
+impl Listed {
+    /// The steps of a plain list (None for a cancelled or a per-faction one): the tests' read.
+    #[cfg(test)]
+    pub fn steps(&self) -> Option<&Vec<String>> {
+        match self {
+            Listed::Steps(steps) => steps.as_ref(),
+            Listed::ByFaction(_) => None,
+        }
+    }
+}
+
 /// What the player lets an actor build (`produce`): the units, with the number of the call that set them, so the
 /// hands restart their caps whenever the player speaks again, even in the same words.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Allowance {
     pub call: u64,
     pub units: Vec<String>,
+    /// One list per faction, given before the seat's faction is known (as `Listed::ByFaction`); the hands move the
+    /// faction's list into `units` at their first look and say which (`Brain::take_allowances`). Empty otherwise.
+    pub by_faction: BTreeMap<String, Vec<String>>,
     /// For a factory: the group its new soldiers join (`group_X`), `new` for a fresh group of this factory's own,
     /// or `by_type` for one group of this factory's per unit type (H-HANDS-GROUPS: groups are the player's, nothing
     /// merges by proximity; the impedance tally, 2026-10-16: "the Rovers rove while the Blitzes fight" in eight

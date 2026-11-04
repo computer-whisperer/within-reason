@@ -51,10 +51,17 @@ would brief a hard-working assistant who follows orders literally and never coun
   map, the seats and our start box, not yet where the commander will stand, so write <!--brief:standard-->the brief's opening for this
   map<!--/brief--><!--brief:experience,rework-->your opening<!--/brief--> with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest (on a metal map, the stand's tiles and then the metal nearest it)
   when the step comes up (`extractor spot_N` names one, once you know the start). When a seat's faction is not
-  known either (a lobby with people sets it at the start), write every step and `produce` entry as a role word
-  and the faction fills it in: `solar`, `wind`, `lab`, `plant`, `air_plant`, `turret`, `radar`, `nano`,
-  `metal_storage`, `energy_storage`, `converter`, `advanced_lab`, `advanced_extractor` for buildings;
-  `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor` for units (a role word is
+  known either (a lobby with people sets it at the start; the seat line says "chosen by the game"), give its
+  commander one list per faction, `{"commander": {"armada": [...], "cortex": [...], "legion": [...]}}`, and
+  `produce` the same, each in that faction's names and on that faction's clock: the hands take the list of the
+  faction the game gives the seat at their first look, and the first report's hands lines say which was taken
+  and which dropped (1793584014-human, Comet against u6bkep: one list in role words put the Armada two-solar
+  clock, plant at 0:37 and a constructor first, on a Cortex seat, and the energy store sat at zero from 1:19 to
+  4:00; the Cortex pool opens with a turret and a third extractor before the plant at 0:59). A step that is the
+  same in every faction may be a role word the faction fills in: `solar`, `wind`, `lab`, `plant`, `air_plant`,
+  `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`,
+  `advanced_extractor` for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,
+  `advanced_constructor` for units (a role word is
   filled in by the builder's or factory's own faction: a constructor another seat of a different faction gave you
   builds its own faction's things, by their names, `cormoho` on a Cortex constructor at an Armada seat, or by role
   words, and the `units` tool answers any faction's name), with counts and

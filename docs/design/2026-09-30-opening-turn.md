@@ -71,3 +71,17 @@ The fallback when a seat never says Hello: the first turn is asked at a tick as 
 
 Not yet seen: that `init` precedes the placing phase in a lobby-hosted game as the engine source says (a rehearsal
 with a person in the lobby shows it). The shim changed: `run/install_to_bar.sh` before a game with people.
+
+## One list per faction (2026-11-04)
+
+The role words made one opening serve whichever faction the lobby gave the seat, and in 1793584014-human that one
+opening was Armada's clock on a Cortex seat (K-player-a-faction-blind-opening-ran-the-armada-clock-on-a-cortex-seat).
+There are three factions, so the pre-game `queue` and `produce` now take one list per faction for a builder or an
+actor (`{"commander": {"armada": [...], "cortex": [...], "legion": [...]}}`): the tools check each list in its own
+faction's names (`check_steps` with the faction, the id and factory checks run once per faction's game), the shared
+state holds them as `Listed::ByFaction` and `Allowance::by_faction`, and the hands take the seat's faction's list at
+their first look (`take_lists`, `take_allowances`), saying in their first line which was taken and which dropped. A
+builder of another faction (an ally's gift) takes its own faction's list. A faction left out keeps what it had, or
+plays from the menu, and the line says so. Role words stay for a step that is the same in every faction. The arena
+fixes the side, so only a lobby seat on Random exercises the form; it is unmeasured in a game.
+

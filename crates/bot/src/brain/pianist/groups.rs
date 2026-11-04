@@ -1330,7 +1330,7 @@ mod tests {
         let mut brain = brain_of(&["armflash", "armwar", "armllt"]);
         let shared = std::sync::Arc::new(Shared::default());
         // The plant is unknown to the brain's units, so its name is constructor_50; the allowance is keyed by it.
-        shared.allowed.lock().unwrap().insert("constructor_50".into(), Allowance { call: 1, units: Vec::new(), group: Some("by_type".into()), join_in: None });
+        shared.allowed.lock().unwrap().insert("constructor_50".into(), Allowance { call: 1, units: Vec::new(), by_faction: Default::default(), group: Some("by_type".into()), join_in: None });
         brain.strategist = Some(shared);
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         for id in [1, 2, 3] {

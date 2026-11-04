@@ -43,7 +43,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
 use super::HandleOwner;
 
-use crate::strategist::shared::Allowance;
+use crate::strategist::shared::{Allowance, Listed};
+use crate::world::World;
 use std::fs::File;
 use std::io::Write as _;
 use std::path::Path;
@@ -448,6 +449,12 @@ fn spawn_worker(client: jev::Client) -> Worker {
 }
 
 /// A `produce` list entry: the unit name and, after a colon, how many more of it are allowed ("corck:1").
+
+/// A faction's name as the report writes it (Armada, Cortex, Legion).
+pub fn faction_title(faction: &str) -> String {
+    let mut chars = faction.chars();
+    chars.next().map(|c| c.to_uppercase().collect::<String>() + chars.as_str()).unwrap_or_default()
+}
 
 pub fn allowance(entry: &str) -> (&str, Option<usize>) {
     match entry.split_once(':') {
@@ -932,6 +939,7 @@ impl Brain {
         }
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
         self.take_lists(tick, commands);
+        self.take_allowances(tick);
         let picture = self.picture(tick, kit);
         {
             // A changed packet is asked afresh: its frame is part of the signature.
@@ -982,23 +990,48 @@ impl Brain {
         let Some(kit) = self.kit else { return };
         let own_units = &tick.snapshot.own_units;
         let roster_of = |name: &str| self.unit_by_handle(name, own_units).and_then(|u| self.world.def(u.def)).map_or(kit.roster, |d| crate::brain::roster::of_unit(&d.name));
-        let lists: BTreeMap<String, Option<Vec<String>>> = std::mem::take(&mut *shared.queues.lock().unwrap()).into_iter().map(|(name, list)| { let roster = roster_of(&name); (name, list.map(|steps| steps.iter().map(|step| roster.resolve_words(step)).collect())) }).collect();
-        let mut others: BTreeMap<String, Option<Vec<String>>> = BTreeMap::new();
-        for (name, list) in lists {
-            // A list is for the seat that owns the builder: another seat's stays for it (bluegecko-2v1-great-divide:
-            // the Cortex list went to the Armada seat, which could build none of it, and the Cortex seat got nothing).
-            match self.handle_owner(&name, &tick.snapshot.own_units) {
+        // A list is for the seat that owns the builder: another seat's stays for it (bluegecko-2v1-great-divide:
+        // the Cortex list went to the Armada seat, which could build none of it, and the Cortex seat got nothing).
+        // A list given per faction (the opening turn before the faction was known) is the builder's faction's
+        // one, said; with none under that faction the builder keeps what it had and plays from the menu.
+        let taken: Vec<(String, HandleOwner, Listed)> = std::mem::take(&mut *shared.queues.lock().unwrap()).into_iter().map(|(name, list)| (name.clone(), self.handle_owner(&name, own_units), list)).collect();
+        let mut others: BTreeMap<String, Listed> = BTreeMap::new();
+        let mut lists: Vec<(String, Option<Vec<String>>)> = Vec::new();
+        let mut lines: Vec<String> = Vec::new();
+        for (name, owner, list) in taken {
+            match owner {
                 HandleOwner::Ours => {}
                 HandleOwner::AnotherSeat => {
                     others.insert(name, list);
                     continue;
                 }
                 HandleOwner::Nobody => {
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.done.push(format!("{} {name}: no builder of ours by that name stands; its list is dropped", picture::clock(tick.frame)));
+                    lines.push(format!("{} {name}: no builder of ours by that name stands; its list is dropped", picture::clock(tick.frame)));
                     continue;
                 }
             }
+            let roster = roster_of(&name);
+            let steps = match list {
+                Listed::Steps(steps) => steps,
+                Listed::ByFaction(map) => {
+                    let others: Vec<&str> = map.keys().map(String::as_str).filter(|f| *f != roster.faction).collect();
+                    let dropped = if others.is_empty() { String::new() } else { format!("; its {} list{} dropped", others.join(" and "), if others.len() > 1 { "s" } else { "" }) };
+                    match map.get(roster.faction) {
+                        Some(steps) => {
+                            lines.push(format!("{} {name}: {}: its {} list taken ({} steps){dropped}", picture::clock(tick.frame), faction_title(roster.faction), roster.faction, steps.len()));
+                            Some(steps.clone())
+                        }
+                        None => {
+                            lines.push(format!("{} {name}: {}: no list for {} among those given ({}): it keeps what it had, else the menu", picture::clock(tick.frame), faction_title(roster.faction), roster.faction, others.join(", ")));
+                            continue;
+                        }
+                    }
+                }
+            };
+            lists.push((name, steps.map(|steps| steps.iter().map(|step| roster.resolve_words(step)).collect())));
+        }
+        self.pianist.as_mut().expect("pianist mode").done.extend(lines);
+        for (name, list) in lists {
             // A list beginning with `stop` (or the bare word) drops what the builder is doing now: the build in
             // progress is abandoned and its frame decays. `null` cancels the list and lets that build finish. A
             // build whose frame the engine made after the report the player read is finished first even so (the
@@ -1070,6 +1103,42 @@ impl Brain {
         }
         if !others.is_empty() {
             shared.queues.lock().unwrap().extend(others);
+        }
+    }
+
+    /// A `produce` list given per faction before the seat's faction was known (`Allowance::by_faction`): the
+    /// actor's faction's list is its allowance from this look on, said once in the hands' lines; the others are
+    /// dropped, and an actor with no list under its faction may build anything.
+    fn take_allowances(&mut self, tick: &Tick) {
+        let Some(shared) = self.strategist.clone() else { return };
+        let Some(kit) = self.kit else { return };
+        let own_units = &tick.snapshot.own_units;
+        let mut lines: Vec<String> = Vec::new();
+        {
+            let mut allowed = shared.allowed.lock().unwrap();
+            let names: Vec<String> = allowed.iter().filter(|(_, a)| !a.by_faction.is_empty()).map(|(name, _)| name.clone()).collect();
+            for name in names {
+                let faction = self.unit_by_handle(&name, own_units).and_then(|u| self.world.def(u.def)).map_or(kit.roster.faction, |d| World::faction_of(&d.name));
+                let Some(allowance) = allowed.get_mut(&name) else { continue };
+                let by_faction = std::mem::take(&mut allowance.by_faction);
+                let others: Vec<&str> = by_faction.keys().map(String::as_str).filter(|f| *f != faction).collect();
+                let dropped = if others.is_empty() { String::new() } else { format!("; its {} list{} dropped", others.join(" and "), if others.len() > 1 { "s" } else { "" }) };
+                match by_faction.get(faction) {
+                    Some(units) => {
+                        lines.push(format!("{} produce {name}: {}: its {faction} list taken ({}){dropped}", picture::clock(tick.frame), faction_title(faction), units.join(", ")));
+                        allowance.units = units.clone();
+                    }
+                    None => {
+                        lines.push(format!("{} produce {name}: {}: no list for {faction} among those given ({}): it may build anything", picture::clock(tick.frame), faction_title(faction), others.join(", ")));
+                        allowed.remove(&name);
+                    }
+                }
+            }
+        }
+        if !lines.is_empty() {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.done.extend(lines);
+            pianist.events.insert("lists".to_string());
         }
     }
 
@@ -2149,7 +2218,7 @@ mod stop_tests {
     use super::fixtures::{at, brain_of, own};
     use super::{Pianist, Task};
     use crate::brain::roster::Kit;
-    use crate::strategist::shared::Shared;
+    use crate::strategist::shared::{Listed, Shared};
 
     /// A list headed by `stop` drops the build in progress, naming it and its share; a build whose frame began
     /// after the report the player read is kept to finish first, and said (the user, 2026-10-17: "Go with the
@@ -2163,7 +2232,7 @@ mod stop_tests {
             brain.kit = Some(kit);
             let shared = std::sync::Arc::new(Shared::default());
             shared.last_turn_frame.store(100, std::sync::atomic::Ordering::Relaxed);
-            shared.queues.lock().unwrap().insert("constructor_1".into(), Some(vec!["stop".to_string(), "armsolar".to_string()]));
+            shared.queues.lock().unwrap().insert("constructor_1".into(), Listed::Steps(Some(vec!["stop".to_string(), "armsolar".to_string()])));
             brain.strategist = Some(shared);
             let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
             pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 60, started: true, frame: Some(UnitId(20)), facing: 0 });
@@ -2187,5 +2256,46 @@ mod stop_tests {
         assert!(!commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");
         assert!(kept);
         assert!(done.iter().any(|d| d.contains("constructor_1: kept its Solar Collector") && d.contains("it began after your 0:03 report, so it finishes first")), "{done:?}");
+    }
+
+    /// A list or a `produce` allowance given per faction before the faction was known: at the first look the
+    /// seat's faction's one is taken, its role words resolved, and the line says which; a faction with no list
+    /// under it keeps what it had (1793584014-human).
+    #[test]
+    fn a_list_per_faction_is_the_seats_factions_at_the_first_look_and_said() {
+        use std::collections::BTreeMap;
+        let id = UnitDefId(9);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[1] };
+        let run = |lists: BTreeMap<String, Vec<String>>, allowance: BTreeMap<String, Vec<String>>| {
+            let mut brain = brain_of(&["corcom", "corsolar"]);
+            brain.kit = Some(kit);
+            let shared = std::sync::Arc::new(Shared::default());
+            shared.queues.lock().unwrap().insert("constructor_1".into(), Listed::ByFaction(lists));
+            shared.allowed.lock().unwrap().insert("all".into(), crate::strategist::shared::Allowance { call: 1, by_faction: allowance, ..Default::default() });
+            brain.strategist = Some(shared.clone());
+            brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+            let ours = vec![own(1, 1, at(1000.0, 950.0))];
+            let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+            let tick = Tick { frame: 1, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, ..Default::default() } };
+            let mut commands = Vec::new();
+            brain.take_lists(&tick, &mut commands);
+            brain.take_allowances(&tick);
+            let pianist = brain.pianist.as_ref().unwrap();
+            (pianist.done.clone(), pianist.scripts.get("constructor_1").map(|s| s.iter().cloned().collect::<Vec<String>>()), shared.allowed.lock().unwrap().get("all").cloned())
+        };
+        let lists = |pairs: &[(&str, &[&str])]| pairs.iter().map(|(f, s)| (f.to_string(), s.iter().map(|s| s.to_string()).collect())).collect::<BTreeMap<String, Vec<String>>>();
+        // The builder is Cortex (a corcom; the fixture's commander has no build speed, so it goes by id): the cortex
+        // list, role words filled in; the armada one dropped.
+        let (done, script, allowance) = run(lists(&[("armada", &["extractor", "solar", "armvp"]), ("cortex", &["extractor", "solar", "plant #vp1"])]), lists(&[("armada", &["armcv:1", "armflash"]), ("cortex", &["constructor:1", "corgator"])]));
+        assert_eq!(script, Some(vec!["extractor".to_string(), "corsolar".to_string(), "corvp #vp1".to_string()]));
+        assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex: its cortex list taken (3 steps); its armada list dropped"), "{done:?}");
+        assert!(done.iter().any(|d| d == "0:00 produce all: Cortex: its cortex list taken (constructor:1, corgator); its armada list dropped"), "{done:?}");
+        assert_eq!(allowance.map(|a| (a.units, a.by_faction.len())), Some((vec!["constructor:1".to_string(), "corgator".to_string()], 0)));
+        // No list under the seat's faction: nothing taken, said; the allowance lifted.
+        let (done, script, allowance) = run(lists(&[("armada", &["extractor"]), ("legion", &["extractor"])]), lists(&[("armada", &["armcv:1"])]));
+        assert_eq!(script, None);
+        assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex: no list for cortex among those given (armada, legion): it keeps what it had, else the menu"), "{done:?}");
+        assert!(done.iter().any(|d| d == "0:00 produce all: Cortex: no list for cortex among those given (armada): it may build anything"), "{done:?}");
+        assert!(allowance.is_none());
     }
 }

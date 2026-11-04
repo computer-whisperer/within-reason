@@ -4,8 +4,14 @@ use bot_protocol::UnitDefId;
 
 use crate::world::World;
 
+/// The three factions by the name `World::faction_of` gives, the keys of a per-faction `queue` or `produce` (the
+/// opening turn before the game, when the seat's faction is the game's to choose).
+pub const FACTIONS: [&str; 3] = ["armada", "cortex", "legion"];
+
 /// Unit names for one faction.
 pub struct Roster {
+    /// The faction's name as `World::faction_of` gives it (armada, cortex, legion).
+    pub faction: &'static str,
     pub commander: &'static str,
     extractor: &'static str,
     converter: &'static str,
@@ -105,6 +111,7 @@ impl Roster {
 
 pub static ROSTERS: [Roster; 3] = [
     Roster {
+        faction: "armada",
         commander: "armcom", extractor: "armmex",
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
@@ -113,6 +120,7 @@ pub static ROSTERS: [Roster; 3] = [
         solar: "armsolar", wind: "armwin", air_plant: "armap", radar: "armrad", nano: "armnanotc", metal_storage: "armmstor", energy_storage: "armestor",
     },
     Roster {
+        faction: "cortex",
         commander: "corcom", extractor: "cormex",
         converter: "cormakr", lab: "corlab", turret: "corllt", constructor: "corck",
         plant: "corvp", vehicle_constructor: "corcv",
@@ -125,6 +133,7 @@ pub static ROSTERS: [Roster; 3] = [
     // line (plasma at 400, his mid-game body; Karkinos `legkark` is the heavy one), Alaris and Decurion at the
     // plant, the Pharos heat ray as the turret, the drone plant as the air plant.
     Roster {
+        faction: "legion",
         commander: "legcom", extractor: "legmex",
         converter: "legeconv", lab: "leglab", turret: "leglht", constructor: "legck",
         plant: "legvp", vehicle_constructor: "legcv",
