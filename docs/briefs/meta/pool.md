@@ -382,15 +382,12 @@ map: Comet Catcher Remake 1.8
 dates: 2026-10-22
 ground: card
 sources: {code: [docs/knowledge/replays.md, run/replays/card.py, run/data/replays/manifest.jsonl]}
+note: the cards' limits, kept here since 2026-11-04 (ours, not the player's): no unit positions over time, so held back against chasing cannot be read and a raid's answer is inferred from turret counts and fight cells; the first extractor's killer is unnamed on 10 of 58 sides; a resign's self-destruct counts among the winner's kills, so a hunted commander and a resign look alike; nine game versions test-30922 to test-31383 (we play test-31677); the map sheet carries the walks and spot counts that let a number travel to another map, and the derivations say which numbers travel
 status: live
 -->
 ### What the pool cannot say
 
-The cards carry no unit positions over time, so "held back" against "chasing" cannot be read, and a raid's answer is
-inferred from turret counts and fight cells. The killer of the first extractor is unnamed on 10 of 58 sides. A resign's
-self-destruct is counted among the winner's kills, so a hunted commander and a resign look alike at the end. Tier 2
-and the sea are nearly absent (four advanced factories in 80 sides) and air is late (no side opened with an aircraft
-plant; 22 of 80 built one, at 11:48 at the median: M-pool-air). The
-numbers are nine game versions from test-30922 to test-31383 (we play test-31677) and one map; the map sheet carries the walks and
-spot counts that let a number be carried to another map, and the derivations say which numbers travel. Team games with
-people are not in the pool at all: what the people we play do in them is the people document.
+The pool is duels on one map. Tier 2 and the sea are nearly absent in it (four advanced factories in 80 sides) and air
+is late (no side opened with an aircraft plant; 22 of 80 built one, at 11:48 at the median: M-pool-air), so its numbers
+say little of either. Team games with people are not in the pool at all: what the people we play do in them is the
+people document.

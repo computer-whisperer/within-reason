@@ -32,7 +32,7 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
   with the commander assisting; a moho takes it 51 seconds alone and 22 beside two construction turrets. From the
   placement: plant 0:41, constructor 1:08, six mohos standing by 3:20 with the turrets or 6:14 without, the whole
   6,870 repaid 5.2 or 6.9 minutes after placement, income from 55 to 96. The army forgone is the bill over income,
-  about two minutes of production at 55 and nothing from a bank of 2,600. The old brief's "three to five minutes" is
+  about two minutes of production at 55 and nothing from a bank of 2,600. A repayment in "three to five minutes" is
   the one-constructor case, or a sprint the income cannot pay.
 - *Energy is the second bill.* Plant, constructor and six mohos take 67,000 energy; tier-2 units draw 13.7 to 14.5
   energy a metal against the Stout's 9.3, a plant alone on Bulls 339 a second; six mohos' upkeep is 120. One advanced

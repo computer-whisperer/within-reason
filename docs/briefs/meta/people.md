@@ -80,8 +80,7 @@ aircraft plant at 16:43 (three Whirlwinds, four Shurikens); 10 spots at 12:00, 1
 18:00 into both bases that ended it. The shape in both: the whole side's spots early, one unit type massed into one
 body on its own turrets, and one push when it outweighs what stands there.
 
-Quicksilver, Armada, against one BARb medium (2026-09-20; the record the old brief transcribed as "Matt's opening",
-the user's Quicksilver line to copy): extractors 0:03 and 0:10, wind 0:16, 0:22 and 0:28, the bot lab 0:33 standing
+Quicksilver, Armada, against one BARb medium (2026-09-20; the user's Quicksilver line to copy): extractors 0:03 and 0:10, wind 0:16, 0:22 and 0:28, the bot lab 0:33 standing
 0:50 with energy at 490 and rising; the commander guards the lab at 0:50, orders six wind generators and a solar as one
 batch at 0:53-1:04 and has them by 1:35 (ten generators), then guards the lab again from 1:36 (a reclaim and a second
 guard order at 2:02). The lab: a constructor at 0:50, then Pawns from 1:12 every eleven seconds alone and every four to

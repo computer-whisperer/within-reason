@@ -158,7 +158,7 @@ or two constructors to 6:00, four at 8:00 and a median never above seven (upper 
 metal into army: 550 at 4:00, 1,220 at 6:00, 2,038 at
 8:00, 3,303 at 10:00, 4,663 at 12:00, 5,108 at 14:00, 5,972 at 20:00, with 5 of its 14 soldiers in our half at 6:00, 10 of
 20 at 8:00, 13 of 33 at 12:00 and 11 to 22 of 38 to 45 from 14:00 (the raids in fives from 6:00 and the block near
-10:00 of the old brief's reading, not measured here). Blitzes are 95% of its metal at 2:00, 73% at 4:00, 59% at 6:00,
+10:00 were seen in earlier games, not measured here). Blitzes are 95% of its metal at 2:00, 73% at 4:00, 59% at 6:00,
 41% at 8:00; then Maces, Janus, Stouts and Rocketeers (Stouts 24-32% from 14:00, Janus 19-25%). An advanced factory in 9 of 29 games (9 of the 21 that lasted fifteen minutes)
 at 19:32 / 19:52 / 21:16, with 26 extractors and 7,814 of army when placed.
 

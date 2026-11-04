@@ -501,13 +501,9 @@ saves you from having to build solar."**
 id: L-gecko-nuke-surprise
 layer: lesson
 sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: the same evening's second recording (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md); the speaker reading is ours}
+note: his words are quoted whole in the weapons-of-surprise article (D-surprise, its heuristic); the copy here was removed 2026-11-04 as a duplicate
 status: live
 -->
-**"It's possible to build enough nukes to overpower a number of anti-nukes. It just scales. It just scales worse. The
-anti-nukes are denser in every way. They are cheaper, they're smaller, they reload faster, they cost less to reload. So
-an anti-nuke versus nuke escalation results in anti-nuke winning. So the nuke is a weapon of surprise."** And, on what
-else reaches past a defended front (our reading of the exchange): **"There are certain uses of spybots and air ledger
-bombers [as heard]."**
 
 <!--meta
 id: L-gecko-one-more-con
@@ -686,14 +682,9 @@ on land due to this range difference."**
 id: L-sheet-surprises
 layer: lesson
 sources: {people: [thebluegecko], dates: [2026-10-23], relay: the glossary sheet shared with the experienced players (docs/knowledge/_inbox/gecko-units-2026-10-23.csv, his rows as downloaded; the attribution is the user's, the sheet's who column being empty), spelling: his}
+note: both rows (the Banshee, the Twilight) are quoted whole in the weapons-of-surprise article (D-surprise); the copy here was removed 2026-11-04 as a duplicate
 status: live
 -->
-On the Banshee: **"when loseing a game, rather than try and recover by matching a stronger oponent, making 8+ banshee
-and sniping the oposing com is a strong option if suprise can be maintained. A com cannot build aa fast enough to stop
-8 banshees if you shoot the aa that is building then refocus the com each time. might even work with as few as 6, but
-15 starts to be a pretty safe way win a otherwise lost game."** On the Twilight (the tier-1 extractor that
-self-destructs with a stun): **"a well timed Twilight self destruct can turn the tide of a game if you stun one of the
-first few oposing armies, giving you a chance to counter attack unblocked, or attack the frozen amy"**.
 
 ### Said by less experienced players
 

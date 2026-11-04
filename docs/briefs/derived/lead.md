@@ -47,15 +47,12 @@ The pool's close follows from the three: the winner first holds twice the army a
 minutes later, with the loser's commander and every factory among the kills in 29 of 29. Nobody there holds a lead
 long enough for the clocks to matter, which is the discipline.
 
-**The three ways a lead goes unconverted.** Named here so the episode index can keep them apart; the article names
-them, it does not find them in any game. (1) *Not seen:* the player's turns never name the surplus, the ratio read as
+**The three ways a lead goes unconverted.** (1) *Not seen:* the player's turns never name the surplus, the ratio read as
 noise or the margin below the threshold, no reference line to read it against. (2) *Not sent:* named, and the orders
 keep it home, or the hands do not carry them: the picket, the raid answer, "no detachments", a group that never
 leaves. (3) *Not landed:* it went, three tenths or more of it in his half, and his extractor count did not fall:
 groups arriving one at a time, a walk into his turrets, roving the near side of his half, the wrong instrument
 against his cover ("your armies keep not fighting together", "not mobilizing fast enough is what lost you the game").
-The curves separate (3) from the other two; only the transcripts separate (1) from (2). Harness bugs live in (2) and
-(3) and are found there, not here.
 
 **Where it bends.** When his base is past tier-1 reach (Gauntlets by 20:00 against BARb), the conversion is his outer
 spots and the map, not the kill, while tier 2 comes. Against a bonus opponent his income runs 1.5 times by handicap

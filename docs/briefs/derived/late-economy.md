@@ -162,7 +162,7 @@ at 14:42, 45,000 banked at the end, and every turn's reading "about five times t
 Glitters 2v6 (store at cap 19:00 to 41:00, no constructor after 13:26 and no turret after 16:29, the allies'
 overflow unread); the Altored +50 3v3 (fusions from 16:20, no advanced fusion, 2,000 energy a second banked unused).
 
-**The ways the discipline fails** (names for the episode index). *The float:* the store at cap with the income
+**The ways the discipline fails.** *The float:* the store at cap with the income
 unspent. *The lone clock:* frames begun with no standing power in reach, each on one or two walking builders. *The
 wrong curve:* reading the side as ahead against the duel's medians while a passive opponent or a fed seat puts it on
 the uncapped curve. *The withheld converter:* converters refused because energy is "in balance" while fusions stand.
@@ -175,7 +175,7 @@ spots to run out of, conversion buys nothing and the regime is build power and e
 beginning to 0:00 and makes conversion the best buy per generator; the share is still set by the knob. (4) While no
 fusion stands the energy column is real and the duel's order holds: one turret on the plant, then the factory; the
 flip is conditional on the energy being paid, not on the clock. (5) Who builds the block is a choice of its own: his
-econ game used construction aircraft, which huddle at one frame and die to anything (the old brief's note); the
+econ game used construction aircraft, which huddle at one frame and die to anything; the
 Center Command sprint used tier-1 constructors and turrets finishing frames the advanced constructors began
 (K-t2-moho-frames-finished-by-tier-1-build-power). (6) On few spots (the tech seat's six, Great Divide's eleven a
 side) the mohos are done early and the loop is the whole income; on Comet's 39 a side the spots carry the growth to

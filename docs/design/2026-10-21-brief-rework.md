@@ -506,3 +506,33 @@ is not enough and the words need a shorter leash.
 went wrong, each under 150 words, none without a person-grade root (the user's review). The defect register (known
 operational flaws with an id, a status of open, deferred or fixed in a commit, and the symptom a player sees) guards
 the boundary between the live edge and the durable layers; it is not built yet.
+
+## 12. What the runtime prompt carries of our own method (the user, 2026-11-04)
+
+A review of the player's prompt (496,375 chars) for the base.md pattern, material kept for designing the bots that
+the player never acts on, found it small once the meta blocks are stripped (149 of them, `texts.rs strip`): the
+derived articles' closing "The tests." paragraphs (16,200 chars over eleven articles), the failure taxonomies named
+"for the episode index" (2,200), pool.md's "What the pool cannot say" (900), formats.md's unread-demos section (600),
+ten "the old brief" / "the old code" sentences and the unit tables' five provenance sentences. Verbatim duplication
+inside the brief, measured by 8-word phrases, is under 1% between the layers except the lessons' quotations re-quoted
+in the derived articles (about 6,000 chars) and the unit tables' legend repeated five times (2,500).
+
+**The user's rulings.** Sections that give mechanistic colour stay even where the game at hand does not use them
+(the 8v8 section in a duel, the people not in the game): "the color for why those play the game differently is
+valuable for overall comprehension". The tests paragraphs stay: they carry evidentiary weight for how far the player
+should believe an article, "we may decide to remove them some day". The rest goes: cleaned, deleted, or moved into a
+meta block. A lesson quoted whole in a derived article leaves lessons.md (the words live once, beside the argument);
+a lesson quoted in part stays whole, since cutting the quoted sentences out of a transcript would break it.
+
+**Done 2026-11-04.** The taxonomies keep their content and lose the episode-index framing and the "harness bugs live
+in (2) and (3)" sentence; the pool's limits moved into its meta block's `note`, the passage keeps the one line the
+player can use (duels on one map, tier 2, sea and air thin, team games elsewhere); the unread-demos section is a
+`note` in its meta block until the cards are read; the four old-brief sentences outside tests paragraphs are reworded
+(barb, people, tier2, late-economy), the six inside them stay with the tests; `run/fact_units.py` writes its
+provenance as an HTML comment; L-gecko-nuke-surprise and L-sheet-surprises (quoted whole in D-surprise-weapons) are
+`note`s in their meta blocks. 3,242 chars off the prompt (493,133). Left as partial overlaps: L-sheet-raids (64% of
+its words in D-raid-answer and D-reach-nests), L-sheet-fighting (48%), L-sheet-labs (39%), L-other-u6bkep-nests-and-air
+(31%), L-gecko-three-resources (29%), L-gecko-one-more-con (26%), L-sheet-economy (21%), L-gecko-bots-vs-vehicles
+(19%); the legend five times; "when the episode index exists" inside five tests paragraphs. The larger levers are
+outside the brief: the first report's roster (37,000 chars a session, the tables with a gloss each) and the role
+text's restatement of the tool descriptions.

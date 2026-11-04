@@ -179,7 +179,7 @@ is seldom built before it is needed, ships are weak to Shurikens, and a sunk fle
 so the first sea battle is worth more than a first battle on land (L-gecko-air-details; not worked out here, nor the
 torpedo aircraft).
 
-**How it fails** (for the episode index): *not built* (the store full, no air plant past 15:00: the Glitters
+**How it fails:** *not built* (the store full, no air plant past 15:00: the Glitters
 lobby game, 2026-10-25); *not seen* (his air plant unscouted until his wing came); *not answered* (his bombers or
 gunships over our fields and commanders with ground anti-air alone, built after they came); *packed* (a converter,
 construction turret or turbine block lost to one pass's chain); *Banshees on units* (sent at an army, dead to his

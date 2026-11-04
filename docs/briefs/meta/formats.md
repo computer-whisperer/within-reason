@@ -389,12 +389,6 @@ population: two or three people against five to sixteen BARb: the user's own gam
 dates: 2026-09-22 to 2026-10-18
 ground: card (the six demos copied to run/data/demos-client, replayed and carded 2026-10-22 once their game versions and maps were fetched; not yet read)
 sources: {code: [run/data/demos-client]}
+note: the cards are not read (the people won five of the six; in the Azurite Shores game two people lost to three BARb and two distilled seats of ours at +50); the passage that said so was removed 2026-11-04 as nothing the player can use, and a passage returns when the cards are read (how people hold and win against many stock BARbs with a shared economy, the format closest to the 8v8 lobbies from the people's side)
 status: live
 -->
-### Two or three people against many AIs
-
-A fourth format the user plays himself: two or three people against five to sixteen BARb on a large map, thirty to
-seventy minutes long. Six such demos are copied from his client and listed above, replayed and carded on 2026-10-22: the people won
-five; in the Azurite Shores game two people lost to three BARb and two distilled seats of ours at +50. The cards
-are not read yet. What they will show is how people hold and win against many
-stock BARbs with a shared economy, the format closest to the 8v8 lobbies from the people's side.
