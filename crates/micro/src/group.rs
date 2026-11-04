@@ -119,12 +119,20 @@ pub struct GroupOrder {
     /// composed), and whose footprint outranks this one's end whatever their sizes; a route the host moves does not
     /// re-aim such a group. None: the route is the route.
     pub ward: Option<String>,
+    /// A roving group's hurt rovers go to a builder of ours to be healed (H-MICRO-HEAL, the rove-2 design §3); the
+    /// player's `lane` tool turns it off per group (`{"heal": false}`). On by default.
+    pub heal: bool,
 }
 
 impl GroupOrder {
     /// A marching order of this kind along this route.
     pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
-        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new(), ward: None }
+        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new(), ward: None, heal: true }
+    }
+
+    /// The same order with the rovers' healing on or off.
+    pub fn with_heal(self, heal: bool) -> GroupOrder {
+        GroupOrder { heal, ..self }
     }
 
     /// The same order with a company cap.

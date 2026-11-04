@@ -39,6 +39,8 @@
 //!     { "t": 4.5, "unit": "all", "cmd": "fight", "x": 4527, "z": 1436, "queue": true },
 //!     { "t": 4.5, "unit": 7, "cmd": "fight_reclaiming_enemies", "x": 4527, "z": 1436 },   // a builder: takes enemies apart
 //!     { "t": 9.0, "unit": 5, "cmd": "guard", "target": 6 },                     // guard: an index into side 0
+//!     { "t": 0.0, "unit": 8, "cmd": "tend" },                                   // a construction turret's standing order (Command::Tend)
+//!     { "t": 20.0, "unit": 5, "cmd": "repair", "target": 0 },                   // a builder repairs a unit of side 0
 //!     { "t": 9.0, "unit": 5, "cmd": "stop" },
 //!     { "t": 9.0, "unit": 5, "cmd": "firestate", "state": 0 },             // 0 hold fire, 1 return fire, 2 fire at will
 //!     { "t": 150.0, "unit": 0, "cmd": "fire", "x": 6500, "z": 3072 },        // a manual-fire weapon at the ground (a silo's missile)
@@ -161,6 +163,11 @@ pub enum ScriptCmd {
     ClearTarget,
     Stop,
     Guard,
+    /// A static builder's standing order (`Command::Tend` with the manoeuvre move state): the construction turret
+    /// repairs or helps build whatever of ours stands in its reach, as the flagship's `nanos.rs` orders.
+    Tend,
+    /// A builder repairs `target`, an index into side 0 (`Command::Repair`).
+    Repair,
     Firestate,
     /// A manual-fire weapon at the ground at x, z: a silo's missile (`Command::FireAt`).
     Fire,
@@ -207,7 +214,7 @@ impl Script {
             match row.cmd {
                 ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::FightReclaimingEnemies | ScriptCmd::Fire | ScriptCmd::Probe if row.x.is_none() || row.z.is_none() => return problem("move, fight, fire and probe need x and z"),
                 ScriptCmd::Attack | ScriptCmd::SetTarget if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack and set_target need a target below {theirs}")),
-                ScriptCmd::Guard if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard needs a target (of side 0) below {ours}")),
+                ScriptCmd::Guard | ScriptCmd::Repair if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard and repair need a target (of side 0) below {ours}")),
                 ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),
                 _ => {}
             }

@@ -1,0 +1,44 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2850,
+  4700
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill H of docs/design/2026-11-04-rove-2.md (the rover's half of the heal). A Rover at a quarter of its health roves with a construction turret of ours 1,450 to its east under the turret's standing order and his extractor 1,870 to its north. Expected: the Rover walks to the turret first, stands in its reach until 90 %, then goes for the extractor. (The first placing at (2600, 4300) stood on ground no move order left, hurt or whole: the probe scan read it flat, the engine would not path from it.)"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2350,
+     "z": 5600,
+     "health": 0.25
+    },
+    {
+     "type": "armnanotc",
+     "x": 3800,
+     "z": 5600
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "cormex",
+     "x": 2850,
+     "z": 3800
+    }
+   ]
+  }
+ ]
+}

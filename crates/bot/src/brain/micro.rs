@@ -51,7 +51,8 @@ impl Brain {
                 // A roving group is the lane's whole (H-MICRO-ROVE), within the region the player marked, if one.
                 super::pianist::GroupTask::Rove { within } => {
                     let within = within.as_ref().and_then(|name| self.region_of(name));
-                    declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new())));
+                    let heal = self.heal_of(&name);
+                    declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()).with_heal(heal)));
                 }
                 // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
                 // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane
@@ -123,6 +124,14 @@ impl Brain {
         let Some(shared) = &self.strategist else { return super::pianist::groups::COMPANY_CAP };
         let company = shared.company.lock().unwrap();
         company.get(&format!("group_{group}")).or_else(|| company.get("all")).copied().unwrap_or(super::pianist::groups::COMPANY_CAP)
+    }
+
+    /// The player's word on a roving group's healing (`lane` tool, `heal`; H-MICRO-HEAL): the group's own, else
+    /// `all`, else on.
+    pub(super) fn heal_of(&self, group: &str) -> bool {
+        let Some(shared) = &self.strategist else { return true };
+        let heal = shared.heal.lock().unwrap();
+        heal.get(&format!("group_{group}")).or_else(|| heal.get("all")).copied().unwrap_or(true)
     }
 
     /// The lane's word of the previous tick: its firings for the per-minute line (the record counts them on the

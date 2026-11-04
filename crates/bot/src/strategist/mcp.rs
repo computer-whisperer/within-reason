@@ -181,8 +181,8 @@ fn tool_list() -> Value {
               "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows (a build whose frame began after the report you read is finished first even so, since your stop was written before it stood; the hands' line says which). Steps: \"finish <handle>\" (resume an unfinished structure of ours by the handle the report's `unfinished structures` line gives, whoever began it: it is this builder's own build from then on, finished first before any later list), \"extractor spot_N\" (or \"extractor\" for the nearest free spot; an advanced constructor's extractor is its advanced one), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home, out of every factory's exit lane either way (the builder walks: the pros' solars are at base; a generator at a place you mark is walked to and back from, so a mark far from the plant costs the commander that walk twice at every solar: migration-3-1 marked one 970 from home and the commander left the plant it was helping for 70 s per pair), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). A step may carry the word \"low\" (\"assist 90 low\", \"armsolar low\"): on that step the builder draws only the team's surplus and stands still in a metal stall, so the other builders' work comes first; the pros set their commander low while it guards the plant or builds a solar in the opening while the constructors claim spots, and high again for a build of its own. Plants and construction turrets are low always, as every human's are; a step without the word is high. Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building (one type; a helper's step may leave the place out, \"armavp #avp1\", and takes the place another list in the same call gives it): the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step naming a building this builder cannot make, or a turret, radar or jammer with no place, is refused here; a step that cannot be done when its turn comes (the spot taken, a place unknown) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
-              "description": "How your hands' code marches a group between your orders is fixed: the group keeps its ranks, every soldier walks to its slot firing at what it can hit, the block halts in its ranks when every soldier has an armed enemy in reach (or its front is inside half its reach) and walks on when that is no longer so, and an advance at its end closes on what it sees; its soldiers never step out of the ranks one by one (no fleeing, no sidestep, no stepping back), and a retreat is a walk your hands pick. This tool sets the one thing left to you, per group name or for \"all\": `company`, the most soldiers a company of the group holds (24 unless you set it: six files by four ranks; 0 lifts the cap, one formation). Each company is a formation of its own on the group's order, a plant's new soldiers muster beside the plant and walk to the army as a company of their own, and two companies that fit in one merge when they meet. Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting stands until you change it.",
-              "inputSchema": { "type": "object", "additionalProperties": { "type": "object", "properties": { "company": { "type": "integer", "minimum": 0, "maximum": 64 } }, "required": ["company"] }, "description": "Group name (group_A) or \"all\" to {\"company\": N}." } },
+              "description": "How your hands' code marches a group between your orders is fixed: the group keeps its ranks, every soldier walks to its slot firing at what it can hit, the block halts in its ranks when every soldier has an armed enemy in reach (or its front is inside half its reach) and walks on when that is no longer so, and an advance at its end closes on what it sees; its soldiers never step out of the ranks one by one (no fleeing, no sidestep, no stepping back), and a retreat is a walk your hands pick. This tool sets the two things left to you, per group name or for \"all\": `company`, the most soldiers a company of the group holds (24 unless you set it: six files by four ranks; 0 lifts the cap, one formation), and `heal`, whether a roving group's hurt rovers (under half their health, nothing in hand) go to the nearest builder of ours to be healed before roving on (true unless you set it: a construction turret heals a Rover in 3 s, the commander in 2, a constructor in 7, and the rover stands in the builder's reach so the builder never walks). Each company is a formation of its own on the group's order, a plant's new soldiers muster beside the plant and walk to the army as a company of their own, and two companies that fit in one merge when they meet. Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting stands until you change it.",
+              "inputSchema": { "type": "object", "additionalProperties": { "type": "object", "properties": { "company": { "type": "integer", "minimum": 0, "maximum": 64 }, "heal": { "type": "boolean" } } }, "description": "Group name (group_A) or \"all\" to {\"company\": N} and/or {\"heal\": false}." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates, a grid cell (\"E7\": its centre), or a range of cells (\"E1-H8\": the rectangle from E1 to H8, a region whose point is its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. A region is also where a group can be told to rove: a packet that names it for a group puts `rove_<region>` and `rove_1_<region>` on that group's menu (its soldiers look only at places inside the region), so \"the Rovers rove in his half\" is a mark of his half and a packet naming it. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
@@ -701,33 +701,53 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             Ok(said.join("; "))
         }
         "lane" => {
-            let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to {\"company\": N}")?;
+            let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to {\"company\": N} and/or {\"heal\": false}")?;
             // Roving is the hands' `rove` move, a pick, since 2026-10-07, and any later pick the way back since
             // 2026-10-08 (docs/design/2026-10-07-rove-approval.md); the footwork rules went 2026-10-28 with the
-            // reflexes in a group (docs/design/2026-10-28-contact-cleanup.md §5): this tool is the company cap.
-            let mut parsed: Vec<(String, usize)> = Vec::new();
+            // reflexes in a group (docs/design/2026-10-28-contact-cleanup.md §5): this tool is the company cap and,
+            // from 2026-11-04, the rovers' heal (H-MICRO-HEAL, docs/design/2026-11-04-rove-2.md §3).
+            let gone = "the footwork rules are gone (a group's soldiers never step out of their ranks one by one)";
+            let mut parsed: Vec<(String, Option<usize>, Option<bool>)> = Vec::new();
             for (name, value) in settings {
                 if name != "all" && !name.starts_with("group_") {
                     return Err(format!("{name}: settings are by group name (group_A) or \"all\""));
                 }
-                let company = match value {
+                let fields = match value {
                     Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move (or `rove_1` for one soldier), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
-                    Value::Object(fields) => match fields.get("company") {
-                        Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
-                            Some(n) if n <= 64 => n as usize,
-                            _ => return Err(format!("{name}: company is a whole number of soldiers a company holds at most, 1 to 64, or 0 for no cap")),
-                        },
-                        None => return Err(format!("{name}: the setting is {{\"company\": N}}; the footwork rules are gone (a group's soldiers never step out of their ranks one by one)")),
-                    },
-                    _ => return Err(format!("{name}: the setting is {{\"company\": N}}; the footwork rules are gone (a group's soldiers never step out of their ranks one by one)")),
+                    Value::Object(fields) => fields,
+                    _ => return Err(format!("{name}: the setting is {{\"company\": N}} and/or {{\"heal\": false}}; {gone}")),
                 };
-                parsed.push((name.clone(), company));
+                let company = match fields.get("company") {
+                    Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
+                        Some(n) if n <= 64 => Some(n as usize),
+                        _ => return Err(format!("{name}: company is a whole number of soldiers a company holds at most, 1 to 64, or 0 for no cap")),
+                    },
+                    None => None,
+                };
+                let heal = match fields.get("heal") {
+                    Some(v) => match v.as_bool().or_else(|| v.as_str().and_then(|s| match s.trim() { "on" | "true" => Some(true), "off" | "false" => Some(false), _ => None })) {
+                        Some(b) => Some(b),
+                        None => return Err(format!("{name}: heal is true or false (whether the group's hurt rovers go to a builder of ours to be healed)")),
+                    },
+                    None => None,
+                };
+                if company.is_none() && heal.is_none() {
+                    return Err(format!("{name}: the setting is {{\"company\": N}} and/or {{\"heal\": false}}; {gone}"));
+                }
+                parsed.push((name.clone(), company, heal));
             }
             let mut companies = shared.company.lock().unwrap();
+            let mut heals = shared.heal.lock().unwrap();
             let mut said: Vec<String> = Vec::new();
-            for (name, n) in parsed {
-                said.push(if n == 0 { format!("{name}: no company cap, one formation") } else { format!("{name}: companies of up to {n} soldiers") });
-                companies.insert(name, n);
+            for (name, company, heal) in parsed {
+                if let Some(n) = company {
+                    said.push(if n == 0 { format!("{name}: no company cap, one formation") } else { format!("{name}: companies of up to {n} soldiers") });
+                    companies.insert(name.clone(), n);
+                }
+                if let Some(h) = heal {
+                    said.push(if h { format!("{name}: hurt rovers go to a builder of ours to be healed") } else { format!("{name}: hurt rovers rove on, no healing") });
+                    heals.insert(name, h);
+                }
             }
             Ok(format!("lane set; {}", said.join("; ")))
         }
@@ -1423,6 +1443,12 @@ mod tests {
         let said = call_tool("lane", &json!({ "group_A": { "company": 16 }, "group_C": { "company": 0 } }), &shared).unwrap();
         assert!(said.contains("group_A: companies of up to 16") && said.contains("group_C: no company cap"), "{said}");
         assert_eq!(shared.company.lock().unwrap()["group_A"], 16);
+        // The rovers' heal (H-MICRO-HEAL), alone or beside the cap, as a bool or a word.
+        let said = call_tool("lane", &json!({ "group_R": { "heal": false }, "all": { "company": 8, "heal": "on" } }), &shared).unwrap();
+        assert!(said.contains("group_R: hurt rovers rove on, no healing") && said.contains("all: hurt rovers go to a builder"), "{said}");
+        assert!(!shared.heal.lock().unwrap()["group_R"]);
+        assert_eq!(shared.company.lock().unwrap()["all"], 8);
+        assert!(call_tool("lane", &json!({ "group_R": { "heal": "maybe" } }), &shared).unwrap_err().contains("heal is true or false"));
         assert_eq!(shared.company.lock().unwrap()["group_C"], 0);
         assert!(call_tool("lane", &json!({ "group_A": { "company": 100 } }), &shared).is_err());
         assert!(call_tool("lane", &json!({ "group_A": {} }), &shared).is_err());

@@ -710,11 +710,11 @@ pub enum Command {
     FightReclaimingEnemies { unit: UnitId, to: Vec3, queue: bool },
     /// A static builder's standing order, the game's own default for a construction turret (BAR's ImmobileBuilder
     /// widget, on by default in the UI; the engine itself gives a turret nothing): a fight with the META bit alone at
-    /// a point beside the unit that an immobile unit never reaches (a fight finishes within 64 elmos), so every slow
-    /// update `CBuilderCAI::ExecuteFight` repairs or helps build whatever of ours stands within its build distance
-    /// (stationary targets first, the nearest), else takes apart wrecks and enemy units there. Needs the maneuver
-    /// move state (`MoveState` 1): under hold position the loop skips mobile units being built, a factory's products
-    /// among them.
+    /// a point beside the unit, under which every slow update `CBuilderCAI::ExecuteFight` repairs or helps build
+    /// whatever of ours stands within its build distance (stationary targets first, the nearest), else takes apart
+    /// wrecks and enemy units there; finding nothing, the fight ends (its point is within the 64 a fight finishes
+    /// in), so the host tells it again while the turret is idle. Needs the maneuver move state (`MoveState` 1):
+    /// under hold position the loop skips mobile units being built, a factory's products among them.
     Tend { unit: UnitId, to: Vec3 },
     Stop { unit: UnitId },
     SetRepeat { unit: UnitId, repeat: bool },

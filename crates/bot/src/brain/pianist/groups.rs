@@ -826,6 +826,7 @@ impl Brain {
                     micro::RoveWhat::Evades { from, at } => format!("{clock} ran from {} at {}", from.map_or("a radar contact".to_string(), |d| format!("his {}", self.short_words(d))), self.place_words(&pianist.places, *at)),
                     micro::RoveWhat::GivesUp { goal, why } => format!("{clock} gave up looking at {goal}: {why}"),
                     micro::RoveWhat::Abandons { def, at, why, .. } => format!("{clock} gave up attacking his {} at {}: {why}", self.short_words(*def), self.place_words(&pianist.places, *at)),
+                    micro::RoveWhat::Heals { def, at, .. } => format!("{clock} group_{}'s rover, hurt, goes to our {} at {} to be healed", group.name, self.short_words(*def), self.place_words(&pianist.places, *at)),
                 };
                 pianist.rove_events.push(format!("group_{} {line}", group.name));
                 group.rove_log.push((frame, line));

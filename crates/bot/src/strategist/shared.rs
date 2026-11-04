@@ -478,6 +478,7 @@ pub struct TurnOutputs {
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
     pub company: BTreeMap<String, usize>,
+    pub heal: BTreeMap<String, bool>,
     pub marks: BTreeMap<String, Mark>,
     pub block_dense: bool,
     pub allowed: BTreeMap<String, Allowance>,
@@ -705,6 +706,9 @@ pub struct Shared {
     /// The player's company cap by group name or `all` (`lane` tool, `company`; the companies design §4): members a
     /// company of the group's army holds at most, 0 for no cap; unset, the hands' `COMPANY_CAP`.
     pub company: Mutex<BTreeMap<String, usize>>,
+    /// The player's word on whether a roving group's hurt rovers go to a builder of ours to be healed (`lane` tool,
+    /// `heal`; H-MICRO-HEAL, the rove-2 design §3), by group name or `all`; unset, on.
+    pub heal: Mutex<BTreeMap<String, bool>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
     pub marks: Mutex<BTreeMap<String, Mark>>,
     /// The block's pitch at the player's word (`block` tool): dense packs the construction turrets at 48, else 96.
@@ -933,6 +937,7 @@ impl Shared {
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
             company: self.company.lock().unwrap().clone(),
+            heal: self.heal.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             block_dense: self.block_dense.load(std::sync::atomic::Ordering::Relaxed),
             allowed: self.allowed.lock().unwrap().clone(),
@@ -946,6 +951,7 @@ impl Shared {
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
         *self.company.lock().unwrap() = o.company;
+        *self.heal.lock().unwrap() = o.heal;
         *self.marks.lock().unwrap() = o.marks;
         self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
         *self.allowed.lock().unwrap() = o.allowed;
@@ -976,6 +982,7 @@ impl Shared {
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.company.lock().unwrap() = o.company;
+                *self.heal.lock().unwrap() = o.heal;
                 *self.marks.lock().unwrap() = o.marks;
                 self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
                 *self.allowed.lock().unwrap() = o.allowed;

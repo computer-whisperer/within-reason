@@ -82,6 +82,13 @@ impl View for SceneView {
         self.scene.remembered.clone()
     }
 
+    /// Construction turrets heal under their standing order (`nanos.rs`); a constructor or the commander would need
+    /// the hands' `Repair`, which is not built (the rove-2 design §3, the hands' half), so a rover is not walked to
+    /// one to stand for nothing.
+    fn heals(&self, _builder: UnitId, def: UnitDefId) -> bool {
+        self.fixed.defs.get(&def).is_some_and(|d| d.speed == 0.0)
+    }
+
     fn building_at(&self, id: UnitId) -> Option<Vec3> {
         self.scene.buildings.get(&id).copied()
     }

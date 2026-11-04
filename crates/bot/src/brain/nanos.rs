@@ -2,10 +2,13 @@
 //! nano turrets beside the plant, no command to any of them, idle in every sample; the user, watching: "the
 //! construction turrets don't actually appear to be configured to assist the lab they were placed near"). The game's
 //! UI does: BAR's ImmobileBuilder widget, on by default, sets every immobile builder to the maneuver move state and
-//! gives it a fight order with the META bit at a point 50 elmos off its position toward the map's centre, which an
-//! immobile unit never reaches (a fight finishes within 64), so every slow update the engine's builder fight loop
-//! repairs or helps build whatever of ours stands within its build distance, stationary targets first and the
-//! nearest of them, else takes apart wrecks and enemy units there (`CBuilderCAI::ExecuteFight`). The maneuver state
+//! gives it a fight order with the META bit at a point 50 elmos off its position toward the map's centre, under
+//! which every slow update the engine's builder fight loop repairs or helps build whatever of ours stands within
+//! its build distance, stationary targets first and the nearest of them, else takes apart wrecks and enemy units
+//! there (`CBuilderCAI::ExecuteFight`); finding nothing, the fight ends at once (its point is within the 64 a fight
+//! finishes in), which is why the order is told again every second while the turret is idle (`RETELL_FRAMES`): a
+//! turret told once searches once (drill H of the rove-2 design, 2026-11-04: told once, a turret healed nothing
+//! that came in reach nine seconds later). The maneuver state
 //! matters: under hold position the loop skips mobile units being built, a factory's products among them. A second
 //! default widget, Priority Construction Turrets, puts every such turret in reach of a newly started turret frame
 //! onto that frame, so a row of turrets builds itself.

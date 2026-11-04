@@ -298,6 +298,9 @@ struct Army {
     next_row: usize,
     /// The units a script's `rove` rows handed to the lane's roving group.
     roving: Vec<UnitId>,
+    /// The construction turrets a script's `tend` rows put under their standing order, and when each was last told:
+    /// told again every second while idle, as the flagship's `nanos.rs` does (the fight ends whenever it finds nothing).
+    tending: HashMap<UnitId, i32>,
     /// A track's last place sent per spawn index, with the row's time (side 1 under `--theirs track`).
     track_sent: HashMap<usize, (f32, Vec3)>,
 }
@@ -350,6 +353,7 @@ impl Army {
             second_hits: Vec::new(),
             next_row: 0,
             roving: Vec::new(),
+            tending: HashMap::new(),
             track_sent: HashMap::new(),
         }
     }
@@ -1599,6 +1603,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let settled = army.ordered_at.is_some_and(|at| !scenario || frame - at >= FPS);
                 if let Some(script) = script {
                     script_orders(army, enemy, script, rules.script_delay, frame, &mut duel.notes, commands);
+                    tend_again(army, tick, frame, commands);
                 } else if on_track {
                     track_orders(army, rules.track, frame, commands);
                 } else if settled && let Some(drill) = duel.drill.as_mut() {
@@ -2078,13 +2083,22 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                         continue;
                     }
                 },
-                ScriptCmd::Guard => match row.target.and_then(|t| living(army, t)) {
-                    Some(target) => Command::Guard { unit, target },
+                ScriptCmd::Guard | ScriptCmd::Repair => match row.target.and_then(|t| living(army, t)) {
+                    Some(target) if row.cmd == ScriptCmd::Guard => Command::Guard { unit, target },
+                    Some(target) => Command::Repair { unit, target, queue: row.queue },
                     None => {
                         skipped.push(i);
                         continue;
                     }
                 },
+                // The manoeuvre state first (under hold position the fight loop skips mobile units being built), then
+                // the fight at a point beside it that an immobile unit never reaches.
+                ScriptCmd::Tend => {
+                    army.tending.insert(unit, frame);
+                    let at = army.seen_at.get(&unit).copied().unwrap_or(to);
+                    commands.push(Command::MoveState { unit, state: 1 });
+                    Command::Tend { unit, to: Vec3 { x: at.x + 50.0, y: 0.0, z: at.z } }
+                }
             };
             commands.push(command);
             sent.push(i);
@@ -2094,6 +2108,20 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
             note["skipped"] = json!(skipped);
         }
         notes.push(note);
+    }
+}
+
+/// A script's tending turrets told their standing order again, every second while idle (the engine's fight ends
+/// whenever its search finds nothing; the flagship re-tells its turrets the same way).
+fn tend_again(army: &mut Army, tick: &Tick, frame: i32, commands: &mut Vec<Command>) {
+    for unit in tick.snapshot.own_units.iter().filter(|u| u.idle) {
+        let Some(told) = army.tending.get_mut(&unit.id) else { continue };
+        if frame - *told < FPS {
+            continue;
+        }
+        *told = frame;
+        commands.push(Command::MoveState { unit: unit.id, state: 1 });
+        commands.push(Command::Tend { unit: unit.id, to: Vec3 { x: unit.pos.x + 50.0, y: 0.0, z: unit.pos.z } });
     }
 }
 

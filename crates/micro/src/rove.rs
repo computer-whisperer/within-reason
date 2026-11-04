@@ -79,6 +79,17 @@ const STALE_STEP: i32 = 60 * FRAMES_PER_SECOND;
 /// An aircraft rover keeps off a shooter whose cover, with every other shooter within its reach, would kill it in
 /// this long (the module's comment).
 pub const AIR_DANGER_SECONDS: f32 = 15.0;
+/// The heal (the rove-2 design §3): a rover under `HEAL_BELOW` of its health with nothing in hand goes to the builder
+/// of ours that gets it back soonest (the walk and the heal at the builder's power; a construction turret anywhere,
+/// the commander or a constructor within `HEAL_WALK`), stands inside its build distance less `HEAL_SLACK` on the
+/// side away from the nearest shooter, and leaves at `HEAL_UNTIL` or after `HEAL_PATIENCE_FRAMES` with its health
+/// not rising. The rule's id for the host's switch; the group's order has one too (`GroupOrder::heal`).
+pub const HEAL: &str = "H-MICRO-HEAL";
+const HEAL_BELOW: f32 = 0.5;
+const HEAL_UNTIL: f32 = 0.9;
+const HEAL_WALK: f32 = 2000.0;
+const HEAL_SLACK: f32 = 30.0;
+const HEAL_PATIENCE_FRAMES: i32 = 20 * FRAMES_PER_SECOND;
 /// A stand is at most this short of the rover's reach from its target (the engine's own in-range test has slack of
 /// its own; a stand on the reach's edge would have the rover edging in and out).
 const STAND_SLACK: f32 = 20.0;
@@ -153,6 +164,8 @@ pub enum RoveWhat {
     GivesUp { goal: String, why: String },
     /// It gave up a target it stood at without hurting it (the ground between, the lane supposes), and why.
     Abandons { target: UnitId, def: UnitDefId, at: Vec3, why: String },
+    /// Hurt, it goes to this builder of ours to be healed, standing here.
+    Heals { healer: UnitId, def: UnitDefId, at: Vec3 },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -164,8 +177,8 @@ pub struct RoveEvent {
 /// What a rover is doing this tick, for the host's picture.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RoveReport {
-    /// "evading", "threading" (on a way of more than one leg, to its stand or its look point), "attacking", "looking"
-    /// or "waiting" (every way to a place worth a look passes a reach).
+    /// "evading", "threading" (on a way of more than one leg, to its stand, its heal point or its look point),
+    /// "healing", "attacking", "looking" or "waiting" (every way to a place worth a look passes a reach).
     pub doing: &'static str,
     /// The place it is going to look at, and where that is.
     pub goal: Option<(String, Vec3)>,
@@ -173,6 +186,8 @@ pub struct RoveReport {
     /// Where it stands to shoot the target, and whether that is the rim of a guard's reach.
     pub stand: Option<Vec3>,
     pub rim: bool,
+    /// The builder of ours it is going to or standing at to be healed.
+    pub healer: Option<UnitId>,
     /// Evasions since it began roving.
     pub evasions: u32,
 }
@@ -292,6 +307,14 @@ fn legs_clear(danger: &[&Source], bar: &dyn Fn(&Source) -> f32, from: Vec3, legs
     true
 }
 
+/// A heal under way: the builder, the point beside it, when the rover last gained health there and what it had.
+struct Healing {
+    healer: UnitId,
+    at: Vec3,
+    since: i32,
+    health_then: f32,
+}
+
 struct Goal {
     name: String,
     look: Vec3,
@@ -310,8 +333,12 @@ pub(crate) struct Rover {
     target_sent: Option<i32>,
     /// Since when it has stood at its stand, and the target's health then; the patience clock.
     stand_since: Option<(i32, f32)>,
-    /// The way it is on, to its stand or its look point.
+    /// The way it is on, to its stand, its heal point or its look point.
     way: Option<Way>,
+    /// The heal it is on.
+    healing: Option<Healing>,
+    /// No heal is taken before this frame (the last was given up).
+    heal_rest_until: i32,
     /// No field is run before this frame (a search found no way).
     no_way_until: i32,
     /// Targets it will not take again until the frame.
@@ -331,6 +358,8 @@ impl Rover {
             "evading"
         } else if self.way.as_ref().is_some_and(|w| w.legs.len() > 1) {
             "threading"
+        } else if self.healing.is_some() {
+            "healing"
         } else if self.target.is_some() {
             "attacking"
         } else if self.goal.is_some() {
@@ -338,7 +367,7 @@ impl Rover {
         } else {
             "waiting"
         };
-        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, stand: self.stand.map(|s| s.0), rim: self.stand.is_some_and(|s| s.1 == StandKind::Rim), evasions: self.evasions }
+        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, stand: self.stand.map(|s| s.0), rim: self.stand.is_some_and(|s| s.1 == StandKind::Rim), healer: self.healing.as_ref().map(|h| h.healer), evasions: self.evasions }
     }
 }
 
@@ -418,10 +447,11 @@ impl Lane {
 
     /// H-MICRO-ROVE, every tick, for every rover: evade, else attack, else look (the module's comment).
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[(&OwnUnit, Option<(Vec3, Vec3)>)], enemies: &[EnemyUnit], sources: &[Source], air_sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
+    pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[(&OwnUnit, Option<(Vec3, Vec3)>, bool)], own: &[OwnUnit], enemies: &[EnemyUnit], sources: &[Source], air_sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
         let danger_all: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
         let mut goals_of: HashMap<UnitDefId, Vec<RoveGoal>> = HashMap::new();
-        for (unit, within) in rovers {
+        let heal_on = view.enabled(HEAL);
+        for (unit, within, heal) in rovers {
             let flies = view.def(unit.def).is_some_and(super::is_air_soldier);
             let danger: Vec<&Source> = if flies {
                 air_danger(air_sources, unit.health)
@@ -447,7 +477,7 @@ impl Lane {
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} roves", view.label(), unit.id.0);
                     }
-                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, way: None, no_way_until: 0, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
+                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, way: None, no_way_until: 0, healing: None, heal_rest_until: 0, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
@@ -666,6 +696,107 @@ impl Lane {
                         None => rest(&mut rover, e, had, budget),
                     }
                 }
+            }
+            // 2a. Hurt, with nothing in hand: to a builder of ours to be healed (the module's `HEAL`). A target in
+            // hand is finished first; a heal under way is kept while the builder stands and the health is short of
+            // `HEAL_UNTIL`, and given up when it does not rise for the patience.
+            let hurt = unit.health < HEAL_BELOW * unit.max_health.max(1.0);
+            if chosen.is_none() && heal_on && *heal {
+                let rover_def = view.def(unit.def);
+                // A builder that heals: build power and a build distance, mobile (a constructor, the commander) or a
+                // construction turret (no build options), itself not hurt, and the mobile ones within the walk.
+                let healers: Vec<(&OwnUnit, &bot_protocol::UnitDefInfo)> = own
+                    .iter()
+                    .filter(|b| b.id != unit.id && !b.being_built && b.stunned <= 0.0 && b.health >= HEAL_BELOW * b.max_health.max(1.0))
+                    .filter_map(|b| Some((b, view.def(b.def)?)))
+                    .filter(|(b, d)| d.build_speed > 0.0 && d.build_distance > 0.0 && (d.speed > 0.0 || d.build_options.is_empty()) && (d.speed == 0.0 || b.pos.dist2d(unit.pos) <= HEAL_WALK) && view.heals(b.id, b.def))
+                    .collect();
+                // Seconds at this builder's power to reach `HEAL_UNTIL`: a rover's health over its build time is what
+                // a point of build power restores a second.
+                let heal_seconds = |d: &bot_protocol::UnitDefInfo| {
+                    let rate = rover_def.map_or(0.0, |r| d.build_speed / r.build_time.max(1.0) * unit.max_health);
+                    (HEAL_UNTIL * unit.max_health - unit.health).max(0.0) / rate.max(0.01)
+                };
+                // The point beside the builder: inside its build distance less the slack, away from the nearest shooter
+                // (toward the rover when none is about); the needle snaps it to the rover's ground.
+                let point_beside = |b: &OwnUnit, d: &bot_protocol::UnitDefInfo| {
+                    let from = danger.iter().min_by(|a, c| a.pos.dist2d(b.pos).total_cmp(&c.pos.dist2d(b.pos))).map_or(unit.pos, |s| Vec3 { x: 2.0 * b.pos.x - s.pos.x, y: 0.0, z: 2.0 * b.pos.z - s.pos.z });
+                    let (dx, dz) = (from.x - b.pos.x, from.z - b.pos.z);
+                    let len = dx.hypot(dz).max(1.0);
+                    let r = (d.build_distance - HEAL_SLACK).max(16.0);
+                    Vec3 { x: b.pos.x + dx / len * r, y: 0.0, z: b.pos.z + dz / len * r }
+                };
+                let there = |b: &OwnUnit, d: &bot_protocol::UnitDefInfo| unit.pos.dist2d(b.pos) <= d.build_distance - HEAL_SLACK + STAND_DRIFT;
+                let mut keep = false;
+                if let Some(h) = rover.healing.as_mut() {
+                    match healers.iter().find(|(b, _)| b.id == h.healer) {
+                        Some((b, d)) if unit.health < HEAL_UNTIL * unit.max_health => {
+                            if unit.health > h.health_then + 0.5 {
+                                h.since = frame;
+                                h.health_then = unit.health;
+                            }
+                            if frame - h.since >= HEAL_PATIENCE_FRAMES && there(b, d) {
+                                if debug {
+                                    eprintln!("{} f={frame} micro: {name}#{} gives up healing at {} ({} s without gaining)", view.label(), unit.id.0, b.id.0, HEAL_PATIENCE_FRAMES / FRAMES_PER_SECOND);
+                                }
+                                rover.heal_rest_until = frame + BLOCK_FRAMES;
+                            } else {
+                                h.at = point_beside(b, d);
+                                keep = true;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if !keep {
+                    if rover.healing.take().is_some() {
+                        rover.way = None;
+                    }
+                    if hurt && frame >= rover.heal_rest_until {
+                        let mut ranked: Vec<(f32, &OwnUnit, &bot_protocol::UnitDefInfo)> = healers.iter().map(|(b, d)| (b.pos.dist2d(unit.pos) / stats.speed.max(1.0) + heal_seconds(d), *b, *d)).collect();
+                        ranked.sort_by(|a, c| a.0.total_cmp(&c.0));
+                        for (_, b, d) in ranked {
+                            let at = point_beside(b, d);
+                            if let Found::Way(legs) = needle(ground.as_deref(), &danger, &keep_off, unit.pos, at, &mut budget) {
+                                if debug {
+                                    eprintln!("{} f={frame} micro: {name}#{} at {:.0} of {:.0} goes to be healed by {} at ({:.0}, {:.0})", view.label(), unit.id.0, unit.health, unit.max_health, b.id.0, at.x, at.z);
+                                }
+                                fired.push(HEAL);
+                                events.push(RoveEvent { rover: unit.id, what: RoveWhat::Heals { healer: b.id, def: b.def, at } });
+                                rover.healing = Some(Healing { healer: b.id, at, since: frame, health_then: unit.health });
+                                rover.way = Some(Way { legs, planned: frame, fresh: true });
+                                keep = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if keep {
+                    let h = rover.healing.as_ref().expect("kept");
+                    let at = h.at;
+                    // The point moves with the builder: the way is planned again when its end has moved, when a leg is
+                    // covered, or when it is stale; at the point the rover stands.
+                    let at_point = rover.way.as_ref().is_some_and(|w| w.legs.last().is_some_and(|l| l.dist2d(at) < SAME_MOVE));
+                    let way_ok = at_point && rover.way.as_ref().is_some_and(|w| frame - w.planned < NEEDLE_REPLAN_FRAMES && legs_clear(&danger, &keep_off, unit.pos, &w.legs));
+                    if !way_ok && unit.pos.dist2d(at) > STAND_DRIFT {
+                        match needle(ground.as_deref(), &danger, &keep_off, unit.pos, at, &mut budget) {
+                            Found::Way(legs) => rover.way = Some(Way { legs, planned: frame, fresh: true }),
+                            Found::Untried => {}
+                            Found::NoWay => {
+                                rover.way = None;
+                                rover.healing = None;
+                                rover.heal_rest_until = frame + BLOCK_FRAMES;
+                            }
+                        }
+                    }
+                    if rover.healing.is_some() {
+                        send_way(self, &mut rover, commands);
+                        self.rovers.insert(unit.id, rover);
+                        continue;
+                    }
+                }
+            } else if rover.healing.take().is_some() {
+                rover.way = None;
             }
             if chosen.is_none() {
                 let others: HashSet<UnitId> = self.rovers.values().filter_map(|r| r.target).collect();
@@ -1166,6 +1297,50 @@ mod tests {
             a = *b;
         }
         assert!(a.dist2d(stand) < 1.0, "the stand last: {a:?} against {stand:?}");
+    }
+
+    /// H-MICRO-HEAL (the rove-2 design §3): a Rover at 40 % with nothing in hand goes to the construction turret
+    /// beside it, to a point inside the turret's build distance less the slack; standing there it is "healing"; at
+    /// 95 % it leaves and looks again. The group's order can turn it off; a constructor 2,500 away is no healer (a
+    /// turret that far is).
+    #[test]
+    fn a_hurt_rover_goes_to_a_builder_of_ours_and_leaves_healed() {
+        let host = Host::new(vec![goal("spot_2", 3000.0, 3000.0, None, true)]);
+        let mut lane = roving_lane(&[10]);
+        let mut hurt = rover(10, 1000.0, 1000.0);
+        hurt.health = 42.0;
+        let mut nano = rover(20, 400.0, 1000.0);
+        (nano.def, nano.health, nano.max_health) = (NANO, 400.0, 400.0);
+        let out = lane.tick(&host, &tick(30, vec![hurt.clone(), nano.clone()], Vec::new()), &mut Vec::new(), false);
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.healer), ("healing", Some(UnitId(20))), "{:?}", out.commands);
+        let moves = moves_of(&out.commands, 10);
+        assert_eq!(moves.len(), 1, "{:?}", out.commands);
+        let d = moves[0].dist2d(nano.pos);
+        assert!(d <= 190.0 && d >= 150.0, "inside the turret's build distance less the slack: {:?} ({d:.0} from it)", moves[0]);
+        assert!(out.rove.iter().any(|e| matches!(e.what, RoveWhat::Heals { healer: UnitId(20), .. })), "{:?}", out.rove);
+        assert!(out.fired.contains(&"H-MICRO-HEAL"));
+        // At the point, still, healed to 95 %: it leaves and looks again.
+        let mut healed = rover(10, moves[0].x, moves[0].z);
+        healed.health = 100.0;
+        lane.tick(&host, &tick(60, vec![healed.clone(), nano.clone()], Vec::new()), &mut Vec::new(), false);
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.healer), ("looking", None));
+        // The heal off for the group: the hurt rover looks instead.
+        let mut lane = Lane::default();
+        lane.set_group("scouts", vec![UnitId(10)], GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()).with_heal(false));
+        lane.tick(&host, &tick(30, vec![hurt.clone(), nano.clone()], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "looking");
+        // A constructor 2,500 away is beyond the walk; a turret that far is not.
+        let mut lane = roving_lane(&[10]);
+        let mut far_builder = rover(21, 3500.0, 1000.0);
+        (far_builder.def, far_builder.health, far_builder.max_health) = (CONSTRUCTOR, 760.0, 760.0);
+        lane.tick(&host, &tick(30, vec![hurt.clone(), far_builder.clone()], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().healer, None);
+        let mut far_nano = nano.clone();
+        (far_nano.id, far_nano.pos) = (UnitId(22), at(3500.0, 1000.0));
+        lane.tick(&host, &tick(33, vec![hurt, far_nano], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().healer, Some(UnitId(22)));
     }
 
     #[test]

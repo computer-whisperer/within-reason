@@ -1,0 +1,17 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the turret under its standing order, the Rover roving",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": 1,
+   "cmd": "tend"
+  },
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "rove"
+  }
+ ]
+}

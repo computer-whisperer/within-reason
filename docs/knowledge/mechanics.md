@@ -154,6 +154,24 @@ height is the variable, and a taller cover was not tried.
 **Used by.** The rove-2 design §2.1 (dropped on this claim: no shadow stand; the rim stand is the whole of the mex-and-
 turret gain).
 
+### K-mech-a-turrets-fight-order-ends-when-it-finds-nothing
+**Claim.** A construction turret's fight order (BAR's ImmobileBuilder default: a fight with the META bit at a point
+50 elmos off the turret) makes the engine's builder fight loop repair or help build whatever of ours stands within
+the turret's build distance each slow update, and ends the moment a search finds nothing: `CBuilderCAI::ExecuteFight`
+runs its repair and reclaim searches first and then finishes the command when the unit stands within 64 of the
+fight's point, which a point 50 off always is. So a turret told once searches once; told again every second while
+idle (the flagship's `nanos.rs`, `RETELL_FRAMES`) it tends whatever comes into reach.
+**Status.** supported (2026-11-04) from the engine source and drill H (rove2-H2 against rove2-H3, `docs/experiments.md`):
+told once, a turret healed nothing of a Rover that came to 370 of its 400 nine seconds later and stood 12 s; told
+again every second while idle, it healed the Rover from 0.4 % to whole in 5 s.
+**Evidence.** `BuilderCAI.cpp` `ExecuteFight` (the searches, then `if (f3SqDist(owner->pos, pos) < Square(64.0f))
+StopMoveAndFinishCommand()`), `FindRepairTargetAndRepair` (`IsInBuildRange` for an immobile owner); `armnanotc.lua`
+(`builddistance = 400`, `canfight = true`); `run/matches/*-duel-rove2-H2`, `*-rove2-H3`.
+**Would be wrong if.** A turret told its fight order once went on repairing units that came into its reach a minute
+later with no order since.
+**Used by.** H-ECO-NANO-GUARD (`nanos.rs` tells idle turrets again every second), H-MICRO-HEAL (the drill's `tend`
+row told again while idle, `director.rs` `tend_again`).
+
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition
 queue runs forever without the bot re-issuing orders. Guides treat "factory always on repeat, never idle" as a basic rule.

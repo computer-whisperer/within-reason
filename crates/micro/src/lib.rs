@@ -33,7 +33,7 @@ pub use army::{Army, Company, CompanyState, Role};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
-pub use rove::{AIR_DANGER_SECONDS, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
+pub use rove::{AIR_DANGER_SECONDS, HEAL, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -245,6 +245,12 @@ pub trait View {
     fn home(&self) -> Vec3;
     /// Armed buildings of theirs the host remembers, in sight or not: id, type, place.
     fn remembered_buildings(&self) -> Vec<(UnitId, UnitDefId, Vec3)>;
+    /// Whether this builder of ours heals a rover that stands in its reach (H-MICRO-HEAL): a construction turret
+    /// under its standing order does on its own; a constructor or the commander only under a `Repair` the host
+    /// gives, so a host without that half says no for them. Every builder by default.
+    fn heals(&self, _builder: UnitId, _def: UnitDefId) -> bool {
+        true
+    }
     /// Where a remembered building of theirs stands (an Attack order's goal when the target is out of sight).
     fn building_at(&self, id: UnitId) -> Option<Vec3>;
     /// Whether a soldier of theirs seen lately is still believed alive.
@@ -718,13 +724,13 @@ impl Lane {
         // that kind (design D15), the lane's alone, under no other rule and in no body, and nothing the host said to
         // it this tick reaches the engine.
         let mut owned: HashSet<UnitId> = HashSet::new();
-        let mut rovers: Vec<(&OwnUnit, Option<(Vec3, Vec3)>)> = Vec::new();
+        let mut rovers: Vec<(&OwnUnit, Option<(Vec3, Vec3)>, bool)> = Vec::new();
         let mut hunts: Vec<(String, HuntOrder, Vec<&OwnUnit>)> = Vec::new();
         for (name, d) in &self.groups {
             match d.order.kind {
                 GroupKind::Rove { within } => {
                     for u in soldiers.iter().chain(&fliers).filter(|u| d.members.contains(&u.id)) {
-                        rovers.push((*u, within));
+                        rovers.push((*u, within, d.order.heal));
                         owned.insert(u.id);
                     }
                 }
@@ -743,10 +749,10 @@ impl Lane {
             }
             soldiers.retain(|u| !owned.contains(&u.id));
         }
-        self.rovers.retain(|id, _| rovers.iter().any(|(u, _)| u.id == *id));
+        self.rovers.retain(|id, _| rovers.iter().any(|(u, ..)| u.id == *id));
         if !rovers.is_empty() {
-            let air_sources = if rovers.iter().any(|(u, _)| view.def(u.def).is_some_and(is_air_soldier)) { self.threat_sources(view, snapshot.enemies.as_slice(), frame, true) } else { Vec::new() };
-            self.rove(view, &rovers, snapshot.enemies.as_slice(), &sources, &air_sources, frame, commands, fired, &mut out.rove, debug);
+            let air_sources = if rovers.iter().any(|(u, ..)| view.def(u.def).is_some_and(is_air_soldier)) { self.threat_sources(view, snapshot.enemies.as_slice(), frame, true) } else { Vec::new() };
+            self.rove(view, &rovers, snapshot.own_units.as_slice(), snapshot.enemies.as_slice(), &sources, &air_sources, frame, commands, fired, &mut out.rove, debug);
         }
         self.hunts.retain(|name, _| hunts.iter().any(|(n, ..)| n == name));
         for (name, order, hunters) in &hunts {

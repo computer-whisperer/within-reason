@@ -20,6 +20,7 @@ pub(crate) const CONSTRUCTOR: UnitDefId = UnitDefId(5);
 pub(crate) const BANSHEE: UnitDefId = UnitDefId(6);
 
 pub(crate) const THISTLE: UnitDefId = UnitDefId(7);
+pub(crate) const NANO: UnitDefId = UnitDefId(8);
 
 pub(crate) fn at(x: f32, z: f32) -> Vec3 {
     Vec3 { x, y: 0.0, z }
@@ -33,8 +34,8 @@ pub(crate) fn def(id: UnitDefId, name: &str, speed: f32, weapons: i32, build_spe
         energy_cost: 0.0,
         speed,
         build_speed,
-        build_time: 1.0,
-        build_distance: 0.0,
+        build_time: if speed > 0.0 { 1100.0 } else { 1.0 },
+        build_distance: if build_speed > 0.0 { 128.0 } else { 0.0 },
         extracts_metal: extracts,
         metal_make: 0.0,
         energy_make: 0.0,
@@ -104,6 +105,8 @@ impl Host {
             def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             UnitDefInfo { move_class: None, ..def(BANSHEE, "armkam", 185.0, 1, 0.0, 0.0) },
             def(THISTLE, "corrl", 0.0, 1, 0.0, 0.0),
+            // A construction turret: 200 build power over 220 of build distance, no build options.
+            UnitDefInfo { build_distance: 220.0, ..def(NANO, "armnanotc", 0.0, 0, 200.0, 0.0) },
         ];
         Host { defs, buildings: Vec::new(), goals, terrain: None }
     }
@@ -122,6 +125,7 @@ impl View for Host {
             THISTLE => Stats { health: 335.0, sight: 500.0, air_reach: 765.0, air_dps: 67.6, ..Stats::default() },
             EXTRACTOR => Stats { health: 300.0, ..Stats::default() },
             CONSTRUCTOR => Stats { speed: 36.0, health: 760.0, ..Stats::default() },
+            NANO => Stats { health: 400.0, ..Stats::default() },
             _ => return None,
         })
     }
