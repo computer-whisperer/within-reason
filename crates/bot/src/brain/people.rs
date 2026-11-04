@@ -1,9 +1,24 @@
 //! Who is in the game, from the start script: every person by the name the lobby knows them by, playing a seat or
 //! watching, and the person our chat goes out under.
 
+use bot_protocol::ChatTo;
 use serde_json::{Value, json};
 
 use super::Brain;
+
+/// Whether a player on our side would be shown a line (H-CHAT-PERMISSIONS, the engine's rule in
+/// `CGame::HandleChatMsg`): a player's all-chat and a spectator's while the players can see it, team chat from a
+/// player of our own side; never the spectators' channel or a whisper. A line with no label (`relay` false: no
+/// relay widget on the host's client) is taken only from a player of our side; with the widget running an
+/// unlabelled line is one the host was not shown.
+pub(super) fn hearing(to: ChatTo, ours: bool, relay: bool) -> bool {
+    match to {
+        ChatTo::Everyone | ChatTo::Watching => true,
+        ChatTo::Allies => ours,
+        ChatTo::Spectators | ChatTo::Private => false,
+        ChatTo::Unknown => !relay && ours,
+    }
+}
 
 /// A `[PLAYERn]` section of the start script. `player` is the engine's player number, the one a chat line carries.
 #[derive(Clone, Debug, PartialEq)]
@@ -75,6 +90,29 @@ pub(super) fn host_of(script: &str, team: i32) -> Option<i32> {
 }
 
 impl Brain {
+    /// The person hosting this AI, when the script names one.
+    fn host(&self) -> Option<Person> {
+        let script = &self.world.hello.script;
+        let host = host_of(script, self.world.hello.team)?;
+        people(script).into_iter().find(|p| p.player == host)
+    }
+
+    /// The player number our chat goes out under.
+    pub(super) fn host_player(&self) -> Option<i32> {
+        self.host().map(|p| p.player)
+    }
+
+    /// The person hosting this AI watches as a spectator: our lines are a spectator's (docs/design/2026-11-04-chat-permissions.md).
+    pub(super) fn host_watches(&self) -> bool {
+        self.host().is_some_and(|p| p.spectator)
+    }
+
+    /// The person plays a seat on our side.
+    pub(super) fn plays_with_us(&self, player: i32) -> bool {
+        let hello = &self.world.hello;
+        people(&hello.script).into_iter().find(|p| p.player == player).and_then(|p| p.team).and_then(|t| hello.teams.iter().find(|x| x.team == t)).is_some_and(|seat| seat.ally_team == hello.ally_team)
+    }
+
     /// Who a chat line is from, as the player reads it: the name, and whether that person plays a seat or watches.
     pub(super) fn speaker(&self, player: i32) -> String {
         let hello = &self.world.hello;
@@ -98,13 +136,19 @@ impl Brain {
             let seat = hello.teams.iter().find(|t| Some(t.team) == p.team)?;
             Some(format!("plays team {}, {}", seat.team, if seat.ally_team == hello.ally_team { "on our side" } else { "against us" }))
         };
+        let host_person = self.host();
+        let your_chat = match (&host, &host_person) {
+            (Some(name), Some(p)) if p.spectator => format!("an AI cannot chat under its own seat: the game sends what you `say` as chat from the person hosting you, {name}, who watches as a spectator. Your lines go to everyone in the game, his side too, tagged as a spectator's; a player can hide spectator chat, and a game with spectator chat off shows them to nobody playing (the report says so when that is the case). Nothing you say can reach our allies alone (`say` to allies is refused). A line of yours should say it is the AI speaking; a line from {name} in your report is that person's own (yours are not shown back to you)."),
+            (Some(name), Some(p)) => {
+                let side = seat(p).map_or("no seat".to_string(), |s| s.to_string());
+                format!("an AI cannot chat under its own seat: the game sends what you `say` as chat from the person hosting you, {name}, who {side}. `say` to everyone reaches both sides; `say` to allies reaches the side {name} plays on alone. A line of yours should say it is the AI speaking; a line from {name} in your report is that person's own (yours are not shown back to you).")
+            }
+            _ => "an AI cannot chat under its own seat: the game sends what you `say` as chat from the person hosting you, so a line of yours says it is the AI speaking.".to_string(),
+        };
         json!({
             "in_the_game": all.iter().filter(|p| !p.name.is_empty()).map(|p| json!({ "name": p.name, "role": seat(p).unwrap_or_else(|| "watching (a spectator)".to_string()) })).collect::<Vec<_>>(),
-            "your_chat": match &host {
-                Some(name) => format!("an AI cannot chat under its own seat: the game sends what you `say` as chat from the person hosting you, {name}. Everyone reads your lines under {name}'s name, so a line of yours says it is the AI speaking; a line from {name} in your report is that person's own (yours are not shown back to you)."),
-                None => "an AI cannot chat under its own seat: the game sends what you `say` as chat from the person hosting you, so a line of yours says it is the AI speaking.".to_string(),
-            },
-            "note": "chat lines in your report carry the name of who said them and whether they play or watch; the AI seats are in `sides`",
+            "your_chat": your_chat,
+            "you_hear": "what a player on our side is shown: all-chat, our allies' team chat, and spectators' lines when the players can see them; not his team chat, the spectators' own channel or others' whispers. Each line in your report carries the name of who said it and whether they play or watch; the AI seats are in `sides`",
         })
     }
 }
@@ -126,6 +170,24 @@ mod tests {
         assert_eq!(people(arena), vec![Person { player: 0, name: "arena".into(), spectator: true, team: None }]);
         assert_eq!(host_of(arena, 1), Some(0));
         assert_eq!(host_of(arena, 5), None);
+        let host = people(lobby).into_iter().find(|p| p.player == host_of(lobby, 1).unwrap()).unwrap();
+        assert!(host.spectator, "the lobby's host watches");
+    }
+
+    /// A player on our side is shown all-chat, our allies' team chat and spectators' visible lines; nothing else.
+    /// Unlabelled lines (no relay widget) are taken from allied players only.
+    #[test]
+    fn a_player_on_our_side_hears_by_the_games_rule() {
+        for ours in [false, true] {
+            for relay in [false, true] {
+                assert!(hearing(ChatTo::Everyone, ours, relay));
+                assert!(hearing(ChatTo::Watching, ours, relay));
+                assert_eq!(hearing(ChatTo::Allies, ours, relay), ours);
+                assert!(!hearing(ChatTo::Spectators, ours, relay));
+                assert!(!hearing(ChatTo::Private, ours, relay));
+                assert_eq!(hearing(ChatTo::Unknown, ours, relay), ours && !relay);
+            }
+        }
     }
 
     /// The lobby's game-end rule is read from the script's `[modoptions]`, whatever the case of the keys.

@@ -22,6 +22,7 @@ removed changes its row here.
 | A new soldier joins its plant's group and is walked to the body | `ADOPT_RADIUS = 400`, `FOLLOW_STEP = 150` | `P/groups.rs` | H-HANDS-GROUPS, H-HANDS-JOINERS | the user, 2026-09-28: the newcomer walk stays |
 | Every plant and construction turret of ours carries the game's builder-priority flag low (it draws only the team's surplus, full speed or nothing), as every human's do from the stock widget's birth defaults; the flag is read back each tick and set when it differs | none | `P/priority.rs` `tend_priorities` | H-HANDS-PRIORITY-BIRTH | the user, 2026-10-13: "the changed default sounds like a good thing to try" (the study `docs/studies/2026-10-13-builder-priority.md`) |
 | The micro engine (§5) | | `M/` | H-MICRO-* | the ruling's own exception |
+| The player is shown the chat a player on our side would be shown, and no other line (his team chat, the spectators' channel, whispers); with no relay widget, allied players' lines only. `say` to allies is refused from a spectating host | `CHAT_RELAY_WAIT = 30` frames (the shim) | `B/people.rs` `hearing`, `B/mod.rs` `relay_chat`, `S/mcp.rs` `say` | H-CHAT-PERMISSIONS | the user, 2026-11-04: "fix our chat participation to match the game's intended permission system" |
 
 ## 2. Orders given, changed or ended with no pick
 

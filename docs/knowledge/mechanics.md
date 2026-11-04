@@ -384,6 +384,37 @@ the AI's host, and woke the player ("That was my own chat echoed back"); the ban
 frame 75, came back under the same number).
 **Used by.** `relay_chat`: lines we said and have not yet seen back are dropped when they come back.
 
+### K-mech-the-engine-hands-an-ai-every-chat-line
+**Claim.** The engine gives a skirmish AI every chat line of the game, whoever it was for: `CGame::HandleChatMsg`
+filters what the client shows (a player sees all-chat, allies' team chat, spectators' all-chat while spectator chat is
+on, whispers to it; a spectator sees everything) and then calls `eoh->SendChatMessage(msg, fromPlayer)` for every
+line, the server having broadcast every chat packet to every client (`CGameServer::GotChatMessage`). The event carries
+the player number and the text, no destination. The client's console carries the destination: `<name> text`, `<name>
+Allies: text`, `[name] text` (a spectator's all-chat the players see), `[name] Spectators: text` (the spectators'
+channel, or a spectator's all-chat while `/nospectatorchat` is on), `Private:`; console lines reach widgets from
+`CGame::Update`, after the AI's event.
+**Status.** demonstrated (2026-11-04, read from the engine 2026.07.04; chat-relay-2: the banner's event at frame 62,
+its console label `[arena]` at 68)
+**Evidence.** `rts/Game/Game.cpp` `HandleChatMsg` (the filter, then the unconditional send), `rts/Net/GameServer.cpp`
+`GotChatMessage` (Broadcast), `rts/Game/UI/InfoConsole.cpp` `PushNewLinesToEventHandler` from `Game.cpp:1396`.
+**Would be wrong if.** A build of the engine filtered the AI's event; a game whose gadgets replaced the chat (BAR's
+`gui_chat.lua` reads the same console lines).
+**Used by.** H-CHAT-PERMISSIONS: the relay widget and the shim's pairing (`docs/design/2026-11-04-chat-permissions.md`).
+
+### K-mech-a-spectating-hosts-ai-speaks-as-a-spectator
+**Claim.** An AI's line goes out as its host player's (`/say`, `CGame::SendNetChat`), so with a spectating host it is a
+spectator's all-chat: every side reads it, BAR's chat tags it as a spectator's and a player can hide those
+(`HideSpecChat`), and under `/nospectatorchat` (SPADS `noSpecChat`) no player sees it. A spectator's `a:` line goes to
+the spectators, and a spectator's whisper to a player is dropped: no line of a spectating host's AI reaches its allies
+alone. In every lobby game so far the user hosted as a spectator (the twelve `run/matches/*-human` start scripts).
+**Status.** demonstrated (2026-11-04, read from the engine; bluegecko-2v1 1:13, thebluegecko to the player's
+"south-east seat here, Cortex": "shhh dont say that, your oponent will know what faction you are playing")
+**Evidence.** `rts/Game/Game.cpp` `HandleChatMsg` (TO_ALLIES shown when `allied && !player->spectator`; a whisper shown
+when `player->spectator == gu->spectating`), `SendNetChat` (the `a:` and `s:` prefixes), `SyncedGameCommands.cpp`
+`NoSpectatorChat`; BAR's `gui_chat.lua` `shouldHideSpecMessage`; SPADS `spads.pl` `/nospectatorchat` on game start.
+**Would be wrong if.** The user hosted as a player (then `a:` reaches the side he plays on).
+**Used by.** H-CHAT-PERMISSIONS: `say` to allies refused from a spectating host; the brief's words on chat.
+
 ### K-engine-orders-run-at-the-servers-frame
 **Claim.** An AI's orders and chat lines go to the game's server and run at the frame it stamps them with, in the
 order sent. A host running behind the server (a client stalled at the start of a lobby game, catching up after)

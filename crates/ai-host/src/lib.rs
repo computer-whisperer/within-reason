@@ -15,7 +15,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use bot_protocol::{Bot, Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
+use bot_protocol::{Bot, ChatTo, Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
 pub use recoil_ai_sys as sys;
 
 use engine::Engine;
@@ -108,6 +108,13 @@ struct Instance<L: Transport> {
     /// Where the opponent's true state is written for post-game analysis; the bot never sees it.
     truth: Option<std::io::BufWriter<std::fs::File>>,
     events: Vec<Event>,
+    /// Chat lines heard from the engine and not yet labelled by the host's relay widget, with the frame heard: the
+    /// console reaches widgets from `CGame::Update`, after the engine's message event, so a line waits up to
+    /// `CHAT_RELAY_WAIT` frames for its label before it goes out unlabelled.
+    chat_pending: Vec<(i32, i32, String)>,
+    /// Lines the relay widget has labelled whose engine event has not come (it comes first in every case seen; kept
+    /// a frame in case it did not): the frame heard, where it went, the player, the text.
+    relayed: Vec<(i32, ChatTo, i32, String)>,
     /// Units to create once the export has let go of the instance table (see `engine::Spawner`).
     spawns: Vec<(UnitDefId, Vec3)>,
     /// The frame `/cheat 1` last went out, which `/give` needs (`engine::Spawner::give`). It goes out with the first
@@ -143,6 +150,10 @@ const SLOW_CALL: f64 = 0.05;
 /// Frames between `timing` lines: once a game minute.
 const TIMING_INTERVAL: i32 = 60 * 30;
 
+/// Frames a chat line waits for the relay widget's label: the console reaches widgets from the game's update loop,
+/// within the frame in a client drawing the game and within a few at the arena's speed.
+const CHAT_RELAY_WAIT: i32 = 30;
+
 /// Frames from `/cheat 1` to the first `/give`: the command comes back from the server within a frame in a local game
 /// when it comes back at all; half a second covers the second sending too.
 const CHEAT_LAG: i32 = 15;
@@ -171,6 +182,12 @@ impl<L: Transport> Instance<L> {
         }
     }
 
+    /// A chat line goes to the bot with where it went.
+    fn chat(&mut self, player: i32, text: String, to: ChatTo) {
+        self.log(format_args!("f={} chat from player {player} to {to:?}: {text}", self.frame));
+        self.events.push(Event::Chat { player, text, to });
+    }
+
     fn cheat(&mut self) {
         if let Err(code) = self.engine.console("/cheat 1") {
             self.log(format!("/cheat 1 refused: {code}"));
@@ -178,6 +195,13 @@ impl<L: Transport> Instance<L> {
     }
 
     fn update(&mut self, frame: i32) {
+        // A line the relay widget has not labelled in time goes out unlabelled (no widget on this client, or the
+        // host was not shown the line); a label with no line behind it is dropped.
+        while let Some(i) = self.chat_pending.iter().position(|(heard, _, _)| frame - heard > CHAT_RELAY_WAIT) {
+            let (_, player, text) = self.chat_pending.remove(i);
+            self.chat(player, text, ChatTo::Unknown);
+        }
+        self.relayed.retain(|(heard, _, _, _)| frame - heard <= CHAT_RELAY_WAIT);
         self.frame = frame;
         if self.cheats_sent_at.is_some_and(|sent| frame == sent + CHEAT_RESEND) {
             self.cheat();
@@ -423,7 +447,30 @@ impl<L: Transport> Instance<L> {
                 if text.trim().is_empty() {
                     return;
                 }
-                Event::Chat { player: e.player, text }
+                // The engine gives every line of the game with no destination; the relay widget on this client, when
+                // it runs, says where this one went when the console reaches it (docs/design/2026-11-04-chat-permissions.md).
+                match self.relayed.iter().position(|(_, _, player, relayed)| *player == e.player && *relayed == text) {
+                    Some(i) => {
+                        let (_, to, _, _) = self.relayed.remove(i);
+                        self.chat(e.player, text, to)
+                    }
+                    None => self.chat_pending.push((self.frame, e.player, text)),
+                }
+                return;
+            }
+            sys::EVENT_LUA_MESSAGE => {
+                let e = event!(SLuaMessageEvent);
+                let data = if e.inData.is_null() { String::new() } else { unsafe { std::ffi::CStr::from_ptr(e.inData) }.to_string_lossy().into_owned() };
+                if let Some((to, player, text)) = relayed_chat(&data) {
+                    match self.chat_pending.iter().position(|(_, p, t)| *p == player && *t == text) {
+                        Some(i) => {
+                            let (_, player, text) = self.chat_pending.remove(i);
+                            self.chat(player, text, to);
+                        }
+                        None => self.relayed.push((self.frame, to, player, text)),
+                    }
+                }
+                return;
             }
             sys::EVENT_ENEMY_DESTROYED => {
                 // The engine's `attacker` is an allied unit's id, or -1 for none or a killer not allied with us.
@@ -451,6 +498,24 @@ impl<L: Transport> Instance<L> {
         };
         self.events.push(event);
     }
+}
+
+/// A relay widget's Lua message, `wr-chat\t<to>\t<player>\t<text>`: where the line went, the player, the text.
+fn relayed_chat(data: &str) -> Option<(ChatTo, i32, String)> {
+    let mut parts = data.splitn(4, '\t');
+    if parts.next()? != "wr-chat" {
+        return None;
+    }
+    let to = match parts.next()? {
+        "everyone" => ChatTo::Everyone,
+        "allies" => ChatTo::Allies,
+        "watching" => ChatTo::Watching,
+        "spectators" => ChatTo::Spectators,
+        "private" => ChatTo::Private,
+        _ => return None,
+    };
+    let player = parts.next()?.parse().ok()?;
+    Some((to, player, parts.next()?.to_string()))
 }
 
 /// `WITHIN_REASON_TICK_FRAMES` when it divides the brain's interval, else the default.
@@ -513,6 +578,8 @@ impl<L: Transport> Host<L> {
                     .and_then(|dir| std::fs::File::create(std::path::Path::new(&dir).join(format!("truth-{skirmish_ai_id}.jsonl"))).ok())
                     .map(std::io::BufWriter::new),
                 events: Vec::new(),
+                chat_pending: Vec::new(),
+                relayed: Vec::new(),
                 spawns: Vec::new(),
                 cheats_sent_at: None,
                 mismatch_at: None,
@@ -592,4 +659,18 @@ macro_rules! export {
             unsafe { HOST.handle_event(skirmish_ai_id, topic, data) }
         }
     };
+}
+
+#[cfg(test)]
+mod relay_tests {
+    use super::*;
+
+    #[test]
+    fn a_relayed_line_names_its_channel_player_and_text() {
+        assert_eq!(relayed_chat("wr-chat\tallies\t3\tgl hf"), Some((ChatTo::Allies, 3, "gl hf".to_string())));
+        assert_eq!(relayed_chat("wr-chat\twatching\t0\ta line with\ta tab in it"), Some((ChatTo::Watching, 0, "a line with\ta tab in it".to_string())));
+        assert_eq!(relayed_chat("wr-chat\tspectators\t1\t"), Some((ChatTo::Spectators, 1, String::new())));
+        assert_eq!(relayed_chat("wr-chat\televeryone\t1\tx"), None);
+        assert_eq!(relayed_chat("something else"), None);
+    }
 }

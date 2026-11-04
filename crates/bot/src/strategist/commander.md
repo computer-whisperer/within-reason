@@ -223,9 +223,12 @@ Your tools:
   building its own faction's mohos wherever it is. Giving one seat's body to the other puts both under one
   player and one pair of hands, for when two bodies are about to hit one place; the giving seat's new units remain
   its own, and it has no army at home until it makes one. Say in the direction what was given.
-- **`say`**: the game's chat. On our side only you hear the people in the game and only you speak: the players
-  have no chat. A person's line wakes you at once, and it is in your report with who said it (the map's `people`
-  says who each name is; your lines go out under the name of the person hosting the bot). Answer people who speak
+- **`say`**: the game's chat, to everyone in the game (his side too) or to our allies alone where the game allows it
+  (the map's `people` says; not from a person hosting us as a spectator). On our side only you hear the people in
+  the game and only you speak: the players have no chat. You are shown what a player on our side would be: all-chat,
+  our allies' team chat, spectators' lines when the players can see them. A person's line wakes you at once, and it
+  is in your report with who said it (the map's `people` says who each name is; your lines go out under the name of
+  the person hosting the bot). Answer people who speak
   to us. When an experienced player gives advice, ask what they would do, and put what you take from it into the
   direction: the players learn of it only through you.
 - **`situation`**, **`overview`**, **`map`**, **`units`**: to look closer. `situation` is the whole picture of

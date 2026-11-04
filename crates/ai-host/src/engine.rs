@@ -1058,15 +1058,20 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
                 timeOut: NO_TIMEOUT,
                 toAttackUnitId: target.0,
             }),
-            Command::Say { ref text } => {
+            Command::Say { ref text, to } => {
                 // The engine takes an AI's text only as a slash command (`CGame::ProcessCommandText`); `/say` is chat
-                // from the AI's host player. `{name}` becomes the name the game gave this AI (`ai_namer.lua` puts it
-                // in the rules parameter `ainame_<team>`), so the line says which of the random names is ours.
+                // from the AI's host player, and `a:` in front of the text is the host's team chat (`CGame::SendNetChat`).
+                // `{name}` becomes the name the game gave this AI (`ai_namer.lua` puts it in the rules parameter
+                // `ainame_<team>`), so the line says which of the random names is ours.
                 let team = call!(self, SkirmishAI_getTeamId());
                 let key = CString::new(format!("ainame_{team}")).unwrap_or_default();
                 let none = CString::default();
                 let name = self.string(call!(self, Game_getRulesParamString(key.as_ptr(), none.as_ptr())));
-                let line = CString::new(format!("/say {}", text.replace("{name}", if name.is_empty() { "an AI" } else { &name }))).unwrap_or_default();
+                let channel = match to {
+                    bot_protocol::SayTo::Everyone => "",
+                    bot_protocol::SayTo::Allies => "a:",
+                };
+                let line = CString::new(format!("/say {channel}{}", text.replace("{name}", if name.is_empty() { "an AI" } else { &name }))).unwrap_or_default();
                 self.handle(sys::COMMAND_SEND_TEXT_MESSAGE, &mut sys::SSendTextMessageCommand { text: line.as_ptr(), zone: 0 })
             }
             Command::Stop { unit } => self.handle(sys::COMMAND_UNIT_STOP, &mut sys::SStopUnitCommand {

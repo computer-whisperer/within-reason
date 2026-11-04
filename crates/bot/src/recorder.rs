@@ -226,7 +226,7 @@ impl Recorder {
             // into the stock is in the stock's samples.
             // A probe's heights are the bot's own business (`Command::Probe`).
             Event::UnitIdle { .. } | Event::Received { .. } | Event::Ground { .. } => return,
-            Event::Chat { player, ref text } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text }),
+            Event::Chat { player, ref text, to } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text, "to": to }),
             Event::UnitDamaged { unit, attacker, damage, .. } => {
                 *self.damage.entry(unit).or_default() += damage;
                 if let Some(attacker) = attacker {
@@ -351,7 +351,7 @@ impl Recorder {
                 Command::ReclaimFeature { unit, feature, .. } => json!(["reclaim_feature", unit.0, feature.0]),
                 Command::ReclaimUnit { unit, target, .. } => json!(["reclaim_unit", unit.0, target.0]),
                 Command::Resurrect { unit, feature, .. } => json!(["resurrect", unit.0, feature.0]),
-                Command::Say { ref text } => json!(["say", text]),
+                Command::Say { ref text, to } => json!(["say", text, to]),
                 Command::Attack { unit, target, .. } => json!(["attack", unit.0, target.0]),
                 Command::SetTarget { unit, target } => json!(["set_target", unit.0, target.0]),
                 Command::ClearTarget { unit } => json!(["clear_target", unit.0]),

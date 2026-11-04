@@ -34,7 +34,7 @@ impl Echo {
     /// Our own lines among the commands sent this frame.
     pub(super) fn said(&mut self, commands: &[Command], frame: i32) {
         for command in commands {
-            if let Command::Say { text } = command {
+            if let Command::Say { text, .. } = command {
                 self.probes.push((key(text), frame));
                 self.first_said.get_or_insert(frame);
             }
@@ -62,7 +62,7 @@ mod tests {
     use super::*;
 
     fn say(text: &str) -> Vec<Command> {
-        vec![Command::Say { text: text.to_string() }]
+        vec![Command::Say { text: text.to_string(), to: bot_protocol::SayTo::Everyone }]
     }
 
     #[test]

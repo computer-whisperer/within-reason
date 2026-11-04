@@ -20,6 +20,10 @@ AI runs on his machine (his compute, his inference subscriptions). Own autohost 
   lobby** (Armada, what the brief's openings assume): a seat left on side Random draws its faction at start, and
   bluegecko-3v1-comet-catcher-3 got one Armada and two Cortex seats (K-team-random-side-gives-the-seats-two-factions;
   the tools now take both rosters, but the brief speaks Armada).
+- `run/install_to_bar.sh` also copies the chat relay widget to `<data dir>/LuaUI/Widgets/wr_chat_relay.lua`
+  (docs/design/2026-11-04-chat-permissions.md). BAR loads user widgets when the lobby's `allowuserwidgets` option
+  is on and always for a spectating client (`barwidgets.lua`), which the host of our games is; the game's anonymous
+  team-colour mode turns them off. Without it the bot hears allied players only and says so once to the player.
 - Start `target/release/bot` with `WITHIN_REASON_SOCKET` unset; shim and bot both default to `$XDG_RUNTIME_DIR/within-reason.sock`.
   The shim retries about once a second, so the bot may start late or be restarted mid-game.
 - **Text edits need no rebuild** (`crates/bot/src/texts.rs`): the prompts (`crates/bot/src/strategist/*.md`), the

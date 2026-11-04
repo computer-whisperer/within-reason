@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use serde_json::{Value, json};
 
-use bot_protocol::{Command, Event, Hello, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Command, Event, Hello, SayTo, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use micro::{Commitment, GroupKind, GroupOrder, Lane, Stats, View};
 
 use crate::drill::{self, Drill, Walker};
@@ -530,7 +530,7 @@ impl Director {
             if self.fatal.is_some() {
                 return Vec::new();
             }
-            commands.push(Command::Say { text: self.batch.banner.clone() });
+            commands.push(Command::Say { text: self.batch.banner.clone(), to: SayTo::Everyone });
         }
         if self.batch.fed
             && !self.fed.contains(&team)
@@ -552,7 +552,7 @@ impl Director {
                 if let Some(duel) = &field.duel {
                     self.begun += 1;
                     let [x, y] = self.batch.shapes[duel.job.shape].map(|f| f.label());
-                    commands.push(Command::Say { text: format!("duel {} of this match (field {index}): {} v {}, rep {}, {x}/{y}", self.begun, duel.job.x, duel.job.y, duel.job.rep) });
+                    commands.push(Command::Say { text: format!("duel {} of this match (field {index}): {} v {}, rep {}, {x}/{y}", self.begun, duel.job.x, duel.job.y, duel.job.rep), to: SayTo::Everyone });
                 }
             }
             let Some(duel) = &mut field.duel else { continue };

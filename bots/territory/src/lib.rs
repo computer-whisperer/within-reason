@@ -591,7 +591,7 @@ impl Bot for Territory {
         let mut commands: Vec<Command> = Vec::new();
         if !self.announced && tick.frame >= 2 * SECOND {
             self.announced = true;
-            commands.push(Command::Say { text: self.banner() });
+            commands.push(Command::Say { text: self.banner(), to: bot_protocol::SayTo::Everyone });
         }
         self.remember_buildings(&tick);
         self.made += tick.snapshot.metal.income as f64 * (tick.frame - self.last_frame) as f64 / SECOND as f64;

@@ -32,7 +32,9 @@ use std::sync::Arc;
 /// A tick's spacing in frames, for periodic work keyed on `frame % N` (ticks come every few frames).
 const TICK_FRAMES_GUESS: i32 = 8;
 
-use bot_protocol::{Command, Event, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
+use std::sync::atomic::Ordering;
+
+use bot_protocol::{ChatTo, Command, Event, OwnUnit, SayTo, Tick, UnitDefId, UnitId, Vec3};
 
 use crate::session::{BrainResult, LaneReport};
 use crate::strategist::shared::Shared;
@@ -189,6 +191,10 @@ pub struct Brain {
     said: Vec<String>,
     /// The frame of the last chat line that was not our own echo (the wake reads it; comet-2: the banner's echo woke the player).
     heard_chat_at: i32,
+    /// A chat line has come with its destination: the relay widget runs on the host's client.
+    chat_relay: bool,
+    /// The player has been told (no relay widget, spectator chat off), once each.
+    chat_told: (bool, bool),
     /// Buildings `forget_razed_buildings` dropped this tick, for the team board.
     razed: Vec<UnitId>,
     /// Remembered buildings whose place is in sight with nothing there, by the frame that began (the gone rule's
@@ -398,6 +404,8 @@ impl Brain {
             nanos: nanos::Nanos::default(),
             said: Vec::new(),
             heard_chat_at: -1,
+            chat_relay: false,
+            chat_told: (false, false),
             razed: Vec::new(),
             missing_in_sight: HashMap::new(),
             enemy_factories_gone: Vec::new(),
@@ -439,52 +447,95 @@ impl Brain {
         }
     }
 
-    /// Chat from the people in the game goes to the player's next report; what the player said goes into the game
-    /// (the user, 2026-09-22: in human games, letting Opus talk "could actually help gain direct feedback from
-    /// experienced players").
+    /// Chat from the people in the game goes to the player's next report, as a player on our side would be shown it
+    /// (H-CHAT-PERMISSIONS: `hears`); what the player said goes into the game (the user, 2026-09-22: in human games,
+    /// letting Opus talk "could actually help gain direct feedback from experienced players"). Under a commander
+    /// chat is the commander's: people's lines go to it and its lines go out here, by whichever seat comes first
+    /// (`docs/design/2026-10-03-commander-seat.md`).
     fn relay_chat(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
-        let Some(shared) = &self.strategist else { return };
-        // Under a commander chat is the commander's: people's lines go to it and its lines go out here, by
-        // whichever seat comes first (`docs/design/2026-10-03-commander-seat.md`).
+        let Some(shared) = self.strategist.clone() else { return };
+        let host_watches = self.host_watches();
+        shared.host_watches.store(host_watches, Ordering::Relaxed);
         if let Some(side) = shared.side.get() {
-            for event in &tick.events {
-                if let Event::Chat { player, text } = event
-                    && side.hear(tick.frame, *player, text, format!("{}: {text}", self.speaker(*player)))
-                {
-                    eprintln!("[ai {}] f={} chat from player {player}: {text}", self.world.hello.ai_id, tick.frame);
-                }
-            }
-            for text in std::mem::take(&mut *side.chat_out.lock().unwrap()) {
-                for line in chat_lines(&text) {
-                    let mut said = side.said.lock().unwrap();
-                    said.push(line.clone());
-                    let excess = said.len().saturating_sub(16);
-                    said.drain(..excess);
-                    commands.push(Command::Say { text: line });
-                }
-            }
-            return;
+            side.host_watches.store(host_watches, Ordering::Relaxed);
         }
         for event in &tick.events {
-            if let Event::Chat { player, text } = event {
-                // The game cuts a chat line at about 120 characters, so a long line of ours is known by its first
-                // words after the name the game filled in.
-                if let Some(i) = self.said.iter().position(|s| s == text || text.contains(s.get(..24).unwrap_or(s.as_str()))) {
-                    self.said.remove(i);
-                    continue;
+            let Event::Chat { player, text, to } = event else { continue };
+            if *to != ChatTo::Unknown {
+                self.chat_relay = true;
+            }
+            if self.own_echo(&shared, text) {
+                self.read_echo(&shared, tick.frame, *to);
+                continue;
+            }
+            if !self.hears(*player, *to, text) {
+                eprintln!("[ai {}] f={} chat from player {player} to {to:?}, not for a player on our side: {text}", self.world.hello.ai_id, tick.frame);
+                continue;
+            }
+            let line = format!("{}: {text}", self.speaker(*player));
+            let heard = match shared.side.get() {
+                Some(side) => side.hear(tick.frame, *player, text, line),
+                None => {
+                    shared.chat_in.lock().unwrap().push((tick.frame, *player, line));
+                    self.heard_chat_at = tick.frame;
+                    true
                 }
-                eprintln!("[ai {}] f={} chat from player {player}: {text}", self.world.hello.ai_id, tick.frame);
-                shared.chat_in.lock().unwrap().push((tick.frame, *player, format!("{}: {text}", self.speaker(*player))));
-                self.heard_chat_at = tick.frame;
+            };
+            if heard {
+                eprintln!("[ai {}] f={} chat from player {player} to {to:?}: {text}", self.world.hello.ai_id, tick.frame);
             }
         }
-        for text in std::mem::take(&mut *shared.chat_out.lock().unwrap()) {
+        let out = std::mem::take(&mut *shared.side.get().map_or(shared.as_ref(), |side| side.as_ref()).chat_out.lock().unwrap());
+        for (to, text) in out {
             for line in chat_lines(&text) {
-                self.said.push(line.clone());
-                self.said.truncate(16);
-                commands.push(Command::Say { text: line });
+                self.remember_said(line.clone());
+                commands.push(Command::Say { text: line, to });
             }
         }
+    }
+
+    /// A line heard is one of ours coming back (K-mech-chat-echoes-our-own-lines): this seat's, dropped from its
+    /// waiting list, or under a commander any seat's of the side (every seat hears each, so the side's list keeps
+    /// it). The game cuts a line at about 120 characters, so a long line of ours is known by its first words after
+    /// the name the game filled in.
+    fn own_echo(&mut self, shared: &Shared, text: &str) -> bool {
+        let matches = |s: &String| s == text || text.contains(s.get(..24).unwrap_or(s.as_str()));
+        if let Some(i) = self.said.iter().position(matches) {
+            self.said.remove(i);
+            return true;
+        }
+        shared.side.get().is_some_and(|side| side.said.lock().unwrap().iter().any(matches))
+    }
+
+    /// What the echo of our own line says of the host's chat, told to the player once each: no label at all (no
+    /// relay widget on the host's client: destinations unknown), or the spectators' channel (spectator chat is off
+    /// in this game: no player sees our lines).
+    fn read_echo(&mut self, shared: &Shared, frame: i32, to: ChatTo) {
+        let notice = match to {
+            ChatTo::Unknown if !self.chat_relay && !self.chat_told.0 => {
+                self.chat_told.0 = true;
+                "the chat relay widget is not running on the client hosting you, so where a line went is not known: you are shown allied players' lines only, and whether the players see yours is not known"
+            }
+            ChatTo::Spectators if !self.chat_told.1 => {
+                self.chat_told.1 = true;
+                "spectator chat is off in this game: the players do not see your lines, the spectators do"
+            }
+            _ => return,
+        };
+        eprintln!("[ai {}] f={frame} chat: {notice}", self.world.hello.ai_id);
+        shared.side.get().map_or(shared, |side| side.as_ref()).chat_in.lock().unwrap().push((frame, -1, format!("(the game: {notice})")));
+    }
+
+    /// Whether a line is one a player on our side would be shown (H-CHAT-PERMISSIONS, the engine's rule in
+    /// `CGame::HandleChatMsg`): all-chat from players, team chat from our own allies, spectators' lines when the
+    /// players can see them. With no label (no relay widget) only allied players' lines; with the widget running an
+    /// unlabelled line is one the host was not shown. Our host's lines for the other seats of ours (banners, the
+    /// hands' lines, the player's own lines sent by another seat) are nobody's words.
+    fn hears(&self, player: i32, to: ChatTo, text: &str) -> bool {
+        if Some(player) == self.host_player() && (text.contains(" is Within Reason ") || text.contains(" is WR") || text.contains("'s hands: ") || text.contains(CHAT_PREFIX.trim_end())) {
+            return false;
+        }
+        people::hearing(to, self.plays_with_us(player), self.chat_relay)
     }
 
     /// A line this seat is about to say by itself (its banner, its hands' line): its echo is not chat, to this
@@ -492,9 +543,14 @@ impl Brain {
     /// as four lines of chat from the host, and the hands' line woke it at 1:34).
     pub(crate) fn remember_said(&mut self, line: String) {
         if let Some(side) = self.strategist.as_ref().and_then(|s| s.side.get()) {
-            side.said.lock().unwrap().push(line.clone());
+            let mut said = side.said.lock().unwrap();
+            said.push(line.clone());
+            let excess = said.len().saturating_sub(16);
+            said.drain(..excess);
         }
         self.said.push(line);
+        let excess = self.said.len().saturating_sub(16);
+        self.said.drain(..excess);
     }
 
     /// One tick: the lane's report of the last tick taken up first; then the whole brain (`think`) on the frames due at
@@ -596,7 +652,7 @@ impl Brain {
             // The echo comes back with the name filled in, so the tail is what `relay_chat` drops (comet-1: the
             // banner woke the player at 0:05 as "someone in the game said something").
             self.remember_said(tail.clone());
-            commands.push(Command::Say { text: format!("{{name}}{tail}") });
+            commands.push(Command::Say { text: format!("{{name}}{tail}"), to: SayTo::Everyone });
         }
         self.track_shelling(tick);
         self.track_guns(tick);

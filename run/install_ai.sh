@@ -44,6 +44,15 @@ install() {
     done
     echo "installed to $dest"
 }
+# The chat relay widget (docs/design/2026-11-04-chat-permissions.md) goes beside the AI in a BAR install, where the
+# client hosting the AI loads it as a user widget; the arena's matches take it from run/match-template instead, and
+# a copy in the arena's data dir would load twice.
+if [ "$data" != "$root/run/data" ]; then
+    mkdir -p "$data/LuaUI/Widgets"
+    cp "$root/run/match-template/LuaUI/Widgets/wr_chat_relay.lua" "$data/LuaUI/Widgets/.wr_chat_relay.lua.new"
+    mv -f "$data/LuaUI/Widgets/.wr_chat_relay.lua.new" "$data/LuaUI/Widgets/wr_chat_relay.lua"
+    echo "installed the chat relay widget to $data/LuaUI/Widgets"
+fi
 if [ $# -eq 0 ]; then
     names="WReason WRTemplate WRDistilled WRTerritory"
 elif [ $# -eq 1 ]; then

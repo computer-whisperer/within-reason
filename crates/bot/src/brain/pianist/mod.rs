@@ -1585,7 +1585,7 @@ impl Brain {
         pianist.announced = true;
         let tail = format!("'s hands: Jev {} ({} ms to the first answer)", response.model, response.latency.as_millis());
         self.remember_said(tail.clone());
-        commands.push(Command::Say { text: format!("{{name}}{tail}") });
+        commands.push(Command::Say { text: format!("{{name}}{tail}"), to: bot_protocol::SayTo::Everyone });
     }
 
     /// Realtime: plays the answer to the request in flight when it has come, and drops a request whose answer is too

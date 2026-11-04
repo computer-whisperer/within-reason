@@ -644,6 +644,33 @@ pub struct EnemyUnit {
 /// is above its health, so its seconds left are `STUN_DECLINE * (stun / health - 1)`.
 pub const STUN_DECLINE: f32 = 40.0;
 
+/// Where a chat line went, as the host's client was shown it (`CGame::HandleChatMsg`'s labels): what a player of
+/// the speaker's side, the players, or the spectators alone were shown.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChatTo {
+    /// No relay widget on the host's client, or the host was not shown the line (another's whisper).
+    #[default]
+    Unknown,
+    /// A player's all-chat: every player sees it.
+    Everyone,
+    /// A player's team chat: the players of the speaker's ally team see it.
+    Allies,
+    /// A spectator's all-chat while spectator chat is on: every player sees it, tagged as a spectator's.
+    Watching,
+    /// The spectators' channel, or a spectator's all-chat while spectator chat is off: no player sees it.
+    Spectators,
+    /// A whisper to the host.
+    Private,
+}
+
+/// The channel of a line the AI says, through its host player.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SayTo {
+    #[default]
+    Everyone,
+    Allies,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
     UnitCreated { unit: UnitId, builder: Option<UnitId> },
@@ -663,8 +690,11 @@ pub enum Event {
     /// A unit of ours fired a weapon; with `EnemyDamaged` the record tells a soldier that shoots from one that stands
     /// in reach with its line of fire blocked by a friend (the engine refuses the shot: `avoidFriendly`).
     WeaponFired { unit: UnitId, #[serde(default)] weapon: Option<Weapon> },
-    /// A chat line from a player in the game (the engine's message event), by player number.
-    Chat { player: i32, text: String },
+    /// A chat line from a person in the game (the engine's message event), by player number. The engine hands an
+    /// AI every line of the game with no destination; `to` is what the host's relay widget read off its console
+    /// (`docs/design/2026-11-04-chat-permissions.md`), `Unknown` when no widget runs there or the host was not
+    /// shown the line.
+    Chat { player: i32, text: String, #[serde(default)] to: ChatTo },
     EnemyEnterLos { enemy: UnitId },
     EnemyLeaveLos { enemy: UnitId },
     /// An enemy died in the team's sight (allies share sight, so every seat hears of it). `attacker` is the unit
@@ -756,9 +786,10 @@ pub enum Command {
     /// The engine's move state: 0 hold position, 1 manoeuvre, 2 roam. An aircraft with an empty queue hunts targets
     /// within 1000 times its move state, so an air group holds by setting 0 (docs/design/2026-09-22-domains.md).
     MoveState { unit: UnitId, state: i32 },
-    /// A line in the game chat, to everyone: the bot names itself at the start (the game gives AIs random names;
-    /// `{name}` in the text becomes the one given to this AI).
-    Say { text: String },
+    /// A line in the game chat, from the AI's host player: the bot names itself at the start (the game gives AIs
+    /// random names; `{name}` in the text becomes the one given to this AI). `to` picks the channel: everyone, or
+    /// the host's allies (the engine's `a:` prefix; from a spectating host that is the spectators' channel).
+    Say { text: String, #[serde(default)] to: SayTo },
     /// The engine's fire state: 0 hold fire, 1 return fire, 2 fire at will. A unit holding fire still carries out an
     /// explicit `Attack`. The duel harness holds a scenario's units while it prepares them (`docs/harness/duels.md`).
     FireState { unit: UnitId, state: i32 },

@@ -504,7 +504,7 @@ impl Bot for Distilled {
         // Once the engine takes orders (its first seconds drop them), the bot says who it is.
         if !self.announced && tick.frame >= 2 * SECOND {
             self.announced = true;
-            commands.push(Command::Say { text: self.banner() });
+            commands.push(Command::Say { text: self.banner(), to: bot_protocol::SayTo::Everyone });
         }
         // Twice a second for the economy, once for the army: nothing here needs the tick's 10 Hz.
         if tick.due() % (SECOND / 2) == 0 {

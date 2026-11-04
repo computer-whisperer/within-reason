@@ -146,6 +146,16 @@ are shown a glowing crater where one landed (the user, 2026-10-27), so the groun
 bit. The distilled bot's silos read it (D-NUKE-VERDICT); the flagship's recorder writes the order as `probe` and passes
 over the answer.
 
+### Chat by the game's permissions (2026-11-04)
+The engine hands an AI every chat line of the game with no destination, and a line the AI says goes out as its host
+player's, a spectator's in our lobby games. The host's client prints each line it is shown with a label saying where
+it went, so the relay widget `run/match-template/LuaUI/Widgets/wr_chat_relay.lua` (a BAR install's `LuaUI/Widgets/`,
+by `run/install_ai.sh`) reads its console and tells every Within Reason AI on that client, as a Lua message; the
+shim pairs the label with the engine's event (holding a line 30 frames for it) and sends `Event::Chat { player, text,
+to }`, `to: Unknown` where no widget runs. The bot shows the player what a player on its side would be shown
+(H-CHAT-PERMISSIONS); `Command::Say { to }` picks everyone or the host's allies (`/say a:`), the latter refused from a
+spectating host. `docs/design/2026-11-04-chat-permissions.md`.
+
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at
 its first orders (frame 60) the bot says a chat line: `<its given name> is Within Reason <commit, "+" when the tree

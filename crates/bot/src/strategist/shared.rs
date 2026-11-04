@@ -738,8 +738,11 @@ pub struct Shared {
     pub wake: Mutex<Wake>,
     /// Chat from people in the game, unread by the player: (frame, player number, the line with who said it).
     pub chat_in: Mutex<Vec<(i32, i32, String)>>,
-    /// What the player wants said in the game chat (`say` tool), sent by the brain on its next tick.
-    pub chat_out: Mutex<Vec<String>>,
+    /// What the player wants said in the game chat (`say` tool) and to whom, sent by the brain on its next tick.
+    pub chat_out: Mutex<Vec<(bot_protocol::SayTo, String)>>,
+    /// The person hosting us watches as a spectator: our lines are a spectator's, and none can reach our allies
+    /// alone (docs/design/2026-11-04-chat-permissions.md). Set by the brain every tick.
+    pub host_watches: std::sync::atomic::AtomicBool,
     /// True when turns are taken in lockstep with the game (the field commander, the player in arena study runs).
     pub lockstep: std::sync::atomic::AtomicBool,
     /// True when a commander or player session takes turns at the brain's request at all (either way of holding).

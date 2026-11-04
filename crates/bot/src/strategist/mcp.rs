@@ -202,8 +202,8 @@ fn tool_list() -> Value {
               "description": "Fire a nuclear silo's ready missile at a place: {\"silo\": \"armsilo_31002\" (its handle as the picture's `stockpilers` entry writes it), \"at\": [x, z] or a grid cell (\"E7\": its centre)}. The silo launches about nine seconds after the order and the warhead lands thirteen seconds later: 12,500 damage at the point, nothing 640 away, so aim at the point itself (his advanced plant, his fusions, his commander standing still), not at a cell. The game keeps a silo stockpiling to ten missiles on its own, each two minutes and about 1,042 energy a second; `fire` spends one. His anti-nuke takes any missile aimed within 2,000 of it once it has an interceptor (90 s after it stands); the enemy's buildings by place name his anti-nukes with that coverage. Refused when no missile is ready.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["silo", "at"], "properties": { "silo": { "type": "string" }, "at": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" } ] } } } },
             { "name": "say",
-              "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
+              "description": "Say something in the game's chat: `to` \"everyone\" (the default: everyone in the game, his side too) or \"allies\" (our side alone; refused when the person hosting you watches as a spectator, whose team chat goes to the spectators: the map's `people` says). Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you, as a player on our side would be shown it; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 }, "to": { "type": "string", "enum": ["everyone", "allies"] } } } },
             signal_tool(),
             orders(&["instruct", "queue", "lane", "mark", "block", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, the block's pitch, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
@@ -803,8 +803,16 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         "say" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("say needs text")?;
             let text: String = text.chars().take(240).collect();
-            shared.chat_out.lock().unwrap().push(text.clone());
-            Ok(format!("said: {text}"))
+            let to = match arguments["to"].as_str().unwrap_or("everyone") {
+                "everyone" => bot_protocol::SayTo::Everyone,
+                "allies" if shared.host_watches.load(std::sync::atomic::Ordering::Relaxed) => {
+                    return Err("not said: the person hosting you watches as a spectator, and the game sends a spectator's team chat to the spectators, not to our allies. Say it to everyone (his side reads it too) or leave it".into());
+                }
+                "allies" => bot_protocol::SayTo::Allies,
+                other => return Err(format!("to must be \"everyone\" or \"allies\", not {other:?}")),
+            };
+            shared.chat_out.lock().unwrap().push((to, text.clone()));
+            Ok(format!("said to {}: {text}", if to == bot_protocol::SayTo::Allies { "our allies" } else { "everyone" }))
         }
         "produce" => {
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\" | \"by_type\", \"join_in\": N} for a factory")?;

@@ -246,12 +246,16 @@ the moment it stands and keeps it at ten, each drawing about 1,042 energy a seco
 know, his start and his plant among them. An anti-nuke of his takes any missile aimed
 within 2,000 of it once it has an interceptor (90 seconds after it stands); the enemy's buildings by place name his
 anti-nukes with that coverage.
-People: in a game with people, what they say in the chat comes in your report, each line with the name of who said
-it and whether that person plays on our side, plays against us or is watching, and `say` answers them (short lines,
-to everyone). The map's `people` entry lists everyone in the game by name. An AI has no chat of its own: what you
-`say` goes out under the name of the person hosting you (the `people` entry says who; in this project's games that
-is the user, `computer_whisperer`), so people read your lines as that person's unless the line says it is the AI,
-and a line from that name in your report is the person's own words, not yours. An experienced player watching you
+People: in a game with people, what they say in the chat comes in your report as a player on our side would be
+shown it (all-chat, our allies' team chat, spectators' lines when the players can see them; never his team chat or
+the spectators' own channel), each line with the name of who said it and whether that person plays on our side,
+plays against us or is watching, and `say` answers them (short lines, to everyone in the game, his side too, or to
+our allies alone where the game allows it: the map's `people` entry says). The `people` entry lists everyone in the
+game by name. An AI has no chat of its own: what you `say` goes out under the name of the person hosting you (the
+`people` entry says who; in this project's games that is the user, `computer_whisperer`, usually watching as a
+spectator, whose lines every side reads and none of whose lines can reach our allies alone), so people read your
+lines as that person's unless the line says it is the AI, and a line from that name in your report is the person's
+own words, not yours. An experienced player watching you
 is the best feedback this project gets: answer their questions, say what you are trying to do, and ask what they
 would do in your place. `signal` names a moment for your hands: `{"go": "6:00"}` or `{"go": "now"}`. Their picture
 states each signal as a fact every second ("go: not yet given (set for 6:00)", then "go: given, at 6:00"), and they
