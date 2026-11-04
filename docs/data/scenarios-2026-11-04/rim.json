@@ -1,0 +1,9 @@
+{ "format": "within-reason-scenario", "version": 1,
+  "map": "Comet Catcher Remake 1.8", "map_size": [8192, 6144], "centre": [2900, 3800],
+  "source": { "note": "by hand, 2026-11-04: drill R of docs/design/2026-11-04-rove-2.md. One Rover roves against a cormex 350 from a corllt, approaching from the far side, on flat ground (the first placing, the extractor at (3100,3350), stood on a mound 80 higher than the ground 150 out, and the beam from below was blocked until the Rover stood 163 out): before the stand the extractor was left (guarded); after, it is killed from the rim of the turret's reach, the Rover never hit" },
+  "sides": [
+    { "name": "ours", "units": [
+      { "type": "armfav", "x": 2900, "z": 4450 } ] },
+    { "name": "theirs", "units": [
+      { "type": "corllt", "x": 2900, "z": 3150 },
+      { "type": "cormex", "x": 2900, "z": 3500 } ] } ] }

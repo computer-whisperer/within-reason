@@ -164,6 +164,17 @@ impl Unit {
         self.weapons.iter().filter(|w| w.hits_ground()).map(|w| w.range).fold(0.0, f32::max)
     }
 
+    /// The share of its damage the longest ground weapon loses at its full reach: a beam laser's hit does
+    /// `1 - distance / (2 x range)` of its damage (`BeamLaser.cpp`, and BAR sets no `minIntensity`), so half at the
+    /// edge; every other kind the whole way (K-mech-set-target-fires-on-the-move's neighbour, the rove-2 design §2).
+    pub fn falloff(&self) -> f32 {
+        let longest = self.weapons.iter().filter(|w| w.hits_ground()).max_by(|a, b| a.range.total_cmp(&b.range));
+        match longest.map(|w| w.kind) {
+            Some(Kind::BeamLaser) => 0.5,
+            _ => 0.0,
+        }
+    }
+
     /// Longest reach against aircraft; 0 for a unit that cannot hit one.
     pub fn reach_air(&self) -> f32 {
         self.weapons.iter().filter(|w| w.hits_air()).map(|w| w.range).fold(0.0, f32::max)

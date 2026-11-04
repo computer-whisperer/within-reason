@@ -106,9 +106,9 @@ impl View for Host {
     }
     fn stats(&self, def: UnitDefId) -> Option<Stats> {
         Some(match def {
-            ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0, ..Stats::default() },
+            ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0, falloff: 0.5, ..Stats::default() },
             PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0, area: 0.0, ..Stats::default() },
-            TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0, air_reach: 430.0, air_dps: 10.7 },
+            TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0, air_reach: 430.0, air_dps: 10.7, falloff: 0.5 },
             BANSHEE => Stats { reach: 350.0, dps: 38.6, speed: 185.0, health: 560.0, sight: 520.0, ..Stats::default() },
             THISTLE => Stats { health: 335.0, sight: 500.0, air_reach: 765.0, air_dps: 67.6, ..Stats::default() },
             EXTRACTOR => Stats { health: 300.0, ..Stats::default() },

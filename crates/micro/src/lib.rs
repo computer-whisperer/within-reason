@@ -33,7 +33,7 @@ pub use army::{Army, Company, CompanyState, Role};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
-pub use rove::{AIR_DANGER_SECONDS, RoveEvent, RoveGoal, RoveReport, RoveWhat};
+pub use rove::{AIR_DANGER_SECONDS, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -227,6 +227,9 @@ pub struct Stats {
     pub area: f32,
     pub air_reach: f32,
     pub air_dps: f32,
+    /// The share of its damage the longest ground weapon loses at its full reach (0: none; 0.5: a beam laser, half
+    /// at the edge). Its damage at distance `d` is `dps x (1 - falloff x d / reach)`.
+    pub falloff: f32,
 }
 
 /// What the lane reads of its host.
@@ -512,7 +515,7 @@ fn same_order(a: &Command, b: &Command) -> bool {
 
 fn unit_of(command: &Command) -> Option<UnitId> {
     match *command {
-        Command::Move { unit, .. } | Command::Fight { unit, .. } | Command::Attack { unit, .. } | Command::Stop { unit } => Some(unit),
+        Command::Move { unit, .. } | Command::Fight { unit, .. } | Command::Attack { unit, .. } | Command::Stop { unit } | Command::SetTarget { unit, .. } | Command::ClearTarget { unit } => Some(unit),
         _ => None,
     }
 }

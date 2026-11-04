@@ -810,13 +810,22 @@ impl Brain {
                         *found.entry(self.place_words(&pianist.places, *at)).or_default().entry(self.short_words(*def)).or_default() += 1;
                         continue;
                     }
-                    micro::RoveWhat::Attacks { def, at, .. } => {
-                        let text = format!("{clock} group_{}'s rover attacks his unguarded {} at {}", group.name, self.short_words(*def), self.place_words(&pianist.places, *at));
+                    micro::RoveWhat::Attacks { def, at, from, .. } => {
+                        let how = match from {
+                            micro::StandKind::Open => "unguarded ".to_string(),
+                            micro::StandKind::Rim => String::new(),
+                        };
+                        let rim = match from {
+                            micro::StandKind::Open => "",
+                            micro::StandKind::Rim => " from outside the reach of what guards it",
+                        };
+                        let text = format!("{clock} group_{}'s rover attacks his {how}{} at {}{rim}", group.name, self.short_words(*def), self.place_words(&pianist.places, *at));
                         pianist.done.push(text.clone());
                         text
                     }
                     micro::RoveWhat::Evades { from, at } => format!("{clock} ran from {} at {}", from.map_or("a radar contact".to_string(), |d| format!("his {}", self.short_words(d))), self.place_words(&pianist.places, *at)),
                     micro::RoveWhat::GivesUp { goal, why } => format!("{clock} gave up looking at {goal}: {why}"),
+                    micro::RoveWhat::Abandons { def, at, why, .. } => format!("{clock} gave up attacking his {} at {}: {why}", self.short_words(*def), self.place_words(&pianist.places, *at)),
                 };
                 pianist.rove_events.push(format!("group_{} {line}", group.name));
                 group.rove_log.push((frame, line));

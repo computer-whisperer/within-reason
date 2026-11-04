@@ -2,7 +2,12 @@
 //! it never stands inside the reach of anything that can shoot it (plus a margin: what a mobile shooter covers in
 //! 1.5 s, 60 for a building), stepping to the least threatened ground nearby when it is or is about to be; it kills
 //! what it finds unguarded within 1,000 (a lone constructor first, then an extractor, a radar, anything else unarmed
-//! it kills within 45 s), when nothing armed covers the target and the way there is clear; and otherwise it drives to
+//! it kills within 45 s) from a stand: a point within its reach of the target, outside every margin, with a clear way
+//! to it, the one that kills soonest counting the walk and its laser's falloff (so an extractor 350 from a light
+//! laser turret is killed from the rim of the turret's reach on the far side; `docs/design/2026-11-04-rove-2.md`
+//! §2). It is only ever moved, with its target set beside the move (`Command::SetTarget`, BAR's target-on-the-move
+//! gadget), so it shoots on the way in, where it stands and on the way out, and the stand is only where it stops
+//! (the user, 2026-11-04: never stop attacking a structure on the way in or out of its range); and otherwise it drives to
 //! look at the place we know least (the spots in his start box and his base never seen or not seen for a minute,
 //! first; then any spot never seen; then the spot longest out of sight), stopping short of it by six tenths of its
 //! sight, on a way that passes no reach. His places go stale in a minute, not three, so it comes back to his
@@ -68,6 +73,28 @@ const STALE_STEP: i32 = 60 * FRAMES_PER_SECOND;
 /// An aircraft rover keeps off a shooter whose cover, with every other shooter within its reach, would kill it in
 /// this long (the module's comment).
 pub const AIR_DANGER_SECONDS: f32 = 15.0;
+/// A stand is at most this short of the rover's reach from its target (the engine's own in-range test has slack of
+/// its own; a stand on the reach's edge would have the rover edging in and out).
+const STAND_SLACK: f32 = 20.0;
+/// No stand nearer its target than this: the target's body and the rover's (an extractor is 48 across, a Rover 21).
+const STAND_MIN: f32 = 60.0;
+/// Stands are tried this many ways round the target, at radii this far apart in from the reach.
+const STAND_DIRECTIONS: usize = 16;
+const STAND_STEP: f32 = 40.0;
+/// A rover standing still this far off the point it was sent to is sent again.
+const STAND_DRIFT: f32 = 24.0;
+/// A stand keeps this much beyond a building's reach, not the margin a moving rover keeps (the margin is for
+/// crossing at speed): the engine's own overshoot on arrival (16 elmos in drill R) and a standing rover's jitter.
+/// While it attacks from a stand the evade reads buildings at this bar too, else the stand's own rim starts it.
+const STAND_CLEAR: f32 = 40.0;
+/// Where it stands is kept as its stand unless another kills this much sooner: no shuffle for a hair of falloff.
+const STAND_HOLD_SECONDS: f32 = 0.5;
+/// Standing at its stand this long without the target's health falling, it gives the target up: nothing in the
+/// lane knows the ground between (drill R: an extractor on a mound, the beam from below blocked by the slope).
+const STAND_PATIENCE_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+/// The target is set again this often while it attacks: the gadget refuses a target out of sight as the order
+/// goes out (K-mech-set-target-fires-on-the-move) and drops one unseen, so the set is a heartbeat, not a word.
+const TARGET_RESEND_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 
 /// A place a rover may look at: its name in the host's words, where it is, the frame it was last within sight of
 /// anything of ours (`None`: never), and whether it is his (in his start box, or his base).
@@ -79,17 +106,27 @@ pub struct RoveGoal {
     pub theirs: bool,
 }
 
+/// Where a rover attacks a target from: the open (nothing armed reaches the target itself), or the rim of a guard's
+/// reach (the target stands inside a margin and the stand outside it).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StandKind {
+    Open,
+    Rim,
+}
+
 /// What a rover did that the host should hear about, each once.
 #[derive(Clone, Debug, PartialEq)]
 pub enum RoveWhat {
     /// An enemy unit came within its sight for the first time any rover saw it.
     Found { enemy: UnitId, def: UnitDefId, at: Vec3 },
-    /// It started attacking this unguarded unit.
-    Attacks { target: UnitId, def: UnitDefId, at: Vec3 },
+    /// It started attacking this unarmed unit, from this kind of stand.
+    Attacks { target: UnitId, def: UnitDefId, at: Vec3, from: StandKind },
     /// It stepped away from this shooter (`None`: a radar contact), standing here.
     Evades { from: Option<UnitDefId>, at: Vec3 },
     /// It gave up a place, and why.
     GivesUp { goal: String, why: String },
+    /// It gave up a target it stood at without hurting it (the ground between, the lane supposes), and why.
+    Abandons { target: UnitId, def: UnitDefId, at: Vec3, why: String },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -106,6 +143,9 @@ pub struct RoveReport {
     /// The place it is going to look at, and where that is.
     pub goal: Option<(String, Vec3)>,
     pub target: Option<UnitId>,
+    /// Where it stands to shoot the target, and whether that is the rim of a guard's reach.
+    pub stand: Option<Vec3>,
+    pub rim: bool,
     /// Evasions since it began roving.
     pub evasions: u32,
 }
@@ -113,7 +153,6 @@ pub struct RoveReport {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Order {
     Move(Vec3),
-    Attack(UnitId),
     Stop,
 }
 
@@ -121,7 +160,6 @@ impl Order {
     fn same(self, other: Order) -> bool {
         match (self, other) {
             (Order::Move(a), Order::Move(b)) => a.dist2d(b) < SAME_MOVE,
-            (Order::Attack(a), Order::Attack(b)) => a == b,
             (Order::Stop, Order::Stop) => true,
             _ => false,
         }
@@ -140,6 +178,14 @@ struct Goal {
 pub(crate) struct Rover {
     goal: Option<Goal>,
     target: Option<UnitId>,
+    /// The stand it attacks the target from, and whether that is the rim of a guard's reach.
+    stand: Option<(Vec3, StandKind)>,
+    /// The frame the target was last set on the unit (`Command::SetTarget`); `None` while nothing is set.
+    target_sent: Option<i32>,
+    /// Since when it has stood at its stand, and the target's health then; the patience clock.
+    stand_since: Option<(i32, f32)>,
+    /// Targets it will not take again until the frame.
+    blocked_targets: Vec<(UnitId, i32)>,
     /// The cell it is stepping to, and when it was sent there.
     evading: Option<(Vec3, i32)>,
     sent: Option<(Order, i32)>,
@@ -160,7 +206,7 @@ impl Rover {
         } else {
             "waiting"
         };
-        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, evasions: self.evasions }
+        RoveReport { doing, goal: self.goal.as_ref().map(|g| (g.name.clone(), g.look)), target: self.target, stand: self.stand.map(|s| s.0), rim: self.stand.is_some_and(|s| s.1 == StandKind::Rim), evasions: self.evasions }
     }
 }
 
@@ -172,6 +218,12 @@ fn margin(s: &Source) -> f32 {
 /// A shooter's reach with its margin: its D-gun counts.
 fn keep_off(s: &Source) -> f32 {
     s.reach.max(s.dgun) + margin(s)
+}
+
+/// What a rover standing to shoot keeps off: a building's reach plus `STAND_CLEAR`, a mobile shooter's whole
+/// margin (it closes).
+fn keep_off_standing(s: &Source) -> f32 {
+    if s.mobile { keep_off(s) } else { s.reach.max(s.dgun) + STAND_CLEAR }
 }
 
 /// How deep `p` stands inside the kept-off distances widened by `slack`, summed over the shooters. An evasion
@@ -252,10 +304,11 @@ impl Lane {
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} roves", view.label(), unit.id.0);
                     }
-                    Rover { goal: None, target: None, evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
+                    Rover { goal: None, target: None, stand: None, target_sent: None, stand_since: None, blocked_targets: Vec::new(), evading: None, sent: None, blocked: Vec::new(), health: unit.health, evasions: 0 }
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
+            rover.blocked_targets.retain(|(_, until)| *until > frame);
             // Stunned: nothing it is sent does anything until it wakes.
             if unit.stunned > 0.0 {
                 rover.health = unit.health;
@@ -281,9 +334,16 @@ impl Lane {
                 }
             }
 
-            // 1. Out of every reach. Where it stands, and where half a second of its velocity takes it.
-            let next = Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES };
-            let threat = danger.iter().copied().filter(|s| s.pos.dist2d(unit.pos) < keep_off(s) || s.pos.dist2d(next) < keep_off(s)).min_by(|a, b| (a.pos.dist2d(unit.pos) - keep_off(a)).total_cmp(&(b.pos.dist2d(unit.pos) - keep_off(b))));
+            // 1. Out of every reach. Where it stands, and where half a second of its velocity takes it, or its stand
+            // when that comes first (it brakes there: at full speed onto the rim the lookahead reached past it, drill R).
+            let mut next = Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES };
+            if let Some((stand, _)) = rover.stand
+                && stand.dist2d(unit.pos) < next.dist2d(unit.pos)
+            {
+                next = stand;
+            }
+            let bar = |s: &Source| if rover.stand.is_some() { keep_off_standing(s) } else { keep_off(s) };
+            let threat = danger.iter().copied().filter(|s| s.pos.dist2d(unit.pos) < bar(s) || s.pos.dist2d(next) < bar(s)).min_by(|a, b| (a.pos.dist2d(unit.pos) - bar(a)).total_cmp(&(b.pos.dist2d(unit.pos) - bar(b))));
             let hit_unseen = threat.is_none() && unit.health < rover.health - 1.0 && !known_cover(unit.pos);
             rover.health = unit.health;
             if let Some(s) = threat {
@@ -300,9 +360,9 @@ impl Lane {
                     Vec3 { x: unit.pos.x + dx / d * STEP_RADIUS, y: 0.0, z: unit.pos.z + dz / d * STEP_RADIUS }
                 });
                 let fresh = rover.evading.is_none();
+                // The target stays set through the step: it shoots on the way out while the target is in reach.
                 if fresh {
                     rover.evasions += 1;
-                    rover.target = None;
                     events.push(RoveEvent { rover: unit.id, what: RoveWhat::Evades { from: s.def, at: unit.pos } });
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} evades a shooter {:.0} away (keeps {:.0}) to ({:.0}, {:.0})", view.label(), unit.id.0, s.pos.dist2d(unit.pos), keep_off(s), cell.x, cell.z);
@@ -332,46 +392,138 @@ impl Lane {
             let still = unit.vel.x.hypot(unit.vel.z) < STILL;
             let send = |lane: &mut Lane, rover: &mut Rover, order: Order, commands: &mut Vec<Command>| {
                 let same = rover.sent.is_some_and(|(o, _)| o.same(order));
-                // Only a move is sent again for standing still: an attacker stands to shoot, a stopped rover stands.
-                let stale = matches!(order, Order::Move(_)) && still && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
+                // Only a move is sent again for standing still, and not one it stands at (its stand): a stopped rover stands.
+                let stale = matches!(order, Order::Move(to) if to.dist2d(unit.pos) > STAND_DRIFT) && still && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
                 if !same || after_evading || stale {
                     rover.sent = Some((order, frame));
                     lane.counts.1 += 1;
                     commands.push(match order {
                         Order::Move(to) => Command::Move { unit: unit.id, to, queue: false },
-                        Order::Attack(target) => Command::Attack { unit: unit.id, target, queue: false },
                         Order::Stop => Command::Stop { unit: unit.id },
                     });
                 }
             };
 
-            // 2. Kill what is unguarded near it.
-            let undefended = |p: Vec3| danger.iter().all(|s| s.pos.dist2d(p) >= keep_off(s));
+            // 2. Kill what is unarmed near it, from a stand (the module's comment; `docs/design/2026-11-04-rove-2.md`
+            // §2): a point within its reach of the target, outside every margin, with a clear way to it. The rover is
+            // only ever moved, its target set beside the move, so it shoots from the moment the target is in reach.
+            let reach = stats.reach - STAND_SLACK;
+            let damage_at = |d: f32| stats.dps * (1.0 - stats.falloff * (d / stats.reach.max(1.0)).min(1.0));
+            let kill_at = |e: &EnemyUnit, d: f32| e.health.max(1.0) / damage_at(d).max(0.01);
+            // Unarmed (or a turret still being built, or stunned for longer than the way there and the kill take:
+            // harmless until it is dead), on the ground, killable from close in within the limit, within the radius
+            // and the region.
             let attackable = |e: &EnemyUnit| -> Option<u8> {
                 let d = view.def(e.def?)?;
                 let air = d.speed > 0.0 && d.move_class.is_none();
-                let kill_seconds = e.health.max(1.0) / stats.dps.max(0.01);
-                // Stunned for longer than the way there and the kill take: harmless until it is dead.
-                let asleep = e.stunned > e.pos.dist2d(unit.pos) / stats.speed.max(1.0) + kill_seconds;
-                // Unarmed, or a turret still being built: harmless and worth its whole metal.
-                ((d.weapon_count == 0 || e.being_built || asleep) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos) && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
+                let asleep = e.stunned > e.pos.dist2d(unit.pos) / stats.speed.max(1.0) + kill_at(e, STAND_MIN);
+                let blocked = rover.blocked_targets.iter().any(|(id, _)| *id == e.id);
+                ((d.weapon_count == 0 || e.being_built || asleep) && !air && !blocked && stats.dps > 0.0 && kill_at(e, STAND_MIN) <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos)).then(|| target_class(d))
             };
-            rover.target = rover.target.filter(|t| enemies.iter().find(|e| e.id == *t).and_then(&attackable).is_some());
-            if rover.target.is_none() {
-                let others: HashSet<UnitId> = self.rovers.values().filter_map(|r| r.target).collect();
-                let best = enemies.iter().filter_map(|e| Some((attackable(e)?, !others.contains(&e.id), e.pos.dist2d(unit.pos), e))).min_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)).then(a.2.total_cmp(&b.2)));
-                if let Some((_, _, _, e)) = best {
-                    rover.target = Some(e.id);
-                    events.push(RoveEvent { rover: unit.id, what: RoveWhat::Attacks { target: e.id, def: e.def.expect("attackable has a type"), at: e.pos } });
-                    if debug {
-                        eprintln!("{} f={frame} micro: {name}#{} attacks {} at ({:.0}, {:.0})", view.label(), unit.id.0, e.id.0, e.pos.x, e.pos.z);
+            // Outside what a standing rover keeps off, and the way there outside it too (the way's end is the stand).
+            let stand_ok = |p: Vec3, e: &EnemyUnit| p.dist2d(e.pos) <= reach && p.dist2d(e.pos) >= STAND_MIN && danger.iter().all(|s| to_segment(s.pos, unit.pos, p) >= keep_off_standing(s));
+            // The stand that kills soonest: the walk there and the kill from there, the laser's falloff counted (a
+            // beam laser does half its damage at its full reach, so the rim is twice as slow as close in).
+            let mut stand_for = |e: &EnemyUnit| -> Option<(Vec3, f32)> {
+                // Where it stands, when that will do, with a head start: no shuffle for a hair of falloff.
+                let mut best: Option<(Vec3, f32)> = stand_ok(unit.pos, e).then(|| (unit.pos, kill_at(e, unit.pos.dist2d(e.pos)))).filter(|(_, kill)| *kill <= KILL_SECONDS).map(|(p, kill)| (p, kill - STAND_HOLD_SECONDS));
+                let mut r = reach;
+                while r >= STAND_MIN {
+                    for k in 0..STAND_DIRECTIONS {
+                        let a = k as f32 * std::f32::consts::TAU / STAND_DIRECTIONS as f32;
+                        let p = self.classes.snap_for(view, unit.def, Vec3 { x: e.pos.x + r * a.cos(), y: 0.0, z: e.pos.z + r * a.sin() });
+                        if !stand_ok(p, e) {
+                            continue;
+                        }
+                        let kill = kill_at(e, p.dist2d(e.pos));
+                        let seconds = unit.pos.dist2d(p) / stats.speed.max(1.0) + kill;
+                        if kill <= KILL_SECONDS && best.is_none_or(|(_, s)| seconds < s) {
+                            best = Some((p, seconds));
+                        }
                     }
+                    r -= STAND_STEP;
+                }
+                best
+            };
+            let kind_of = |e: &EnemyUnit| if depth(&danger, e.pos, 0.0) > 0.0 { StandKind::Rim } else { StandKind::Open };
+            // Its target is kept while it is still worth it and it has a stand: the stand it has while that is still
+            // outside every margin, in reach and reachable, else another; neither, and the target is let go.
+            let mut chosen: Option<(&EnemyUnit, Vec3)> = None;
+            if let Some(e) = rover.target.and_then(|t| enemies.iter().find(|e| e.id == t)).filter(|e| attackable(e).is_some()) {
+                let kept = rover.stand.map(|s| s.0).filter(|s| stand_ok(*s, e));
+                if let Some(stand) = kept.or_else(|| stand_for(e).map(|(p, _)| p)) {
+                    chosen = Some((e, stand));
                 }
             }
-            if let Some(target) = rover.target {
-                send(self, &mut rover, Order::Attack(target), commands);
-                self.rovers.insert(unit.id, rover);
-                continue;
+            if chosen.is_none() {
+                let others: HashSet<UnitId> = self.rovers.values().filter_map(|r| r.target).collect();
+                let best = enemies
+                    .iter()
+                    .filter_map(|e| {
+                        let class = attackable(e)?;
+                        let (stand, seconds) = stand_for(e)?;
+                        Some((class, !others.contains(&e.id), seconds, e, stand))
+                    })
+                    .min_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)).then(a.2.total_cmp(&b.2)));
+                if let Some((_, _, _, e, stand)) = best {
+                    if rover.target != Some(e.id) {
+                        let from = kind_of(e);
+                        events.push(RoveEvent { rover: unit.id, what: RoveWhat::Attacks { target: e.id, def: e.def.expect("attackable has a type"), at: e.pos, from } });
+                        if debug {
+                            eprintln!("{} f={frame} micro: {name}#{} attacks {} at ({:.0}, {:.0}) from ({:.0}, {:.0}){}", view.label(), unit.id.0, e.id.0, e.pos.x, e.pos.z, stand.x, stand.z, if from == StandKind::Rim { ", the rim of its guard's reach" } else { "" });
+                        }
+                    }
+                    chosen = Some((e, stand));
+                }
+            }
+            // At its stand with the target's health not falling for the patience: the target is given up for a while.
+            if let Some((e, stand)) = chosen
+                && stand.dist2d(unit.pos) <= STAND_DRIFT
+            {
+                match rover.stand_since {
+                    Some((_, h)) if e.health < h - 0.5 => rover.stand_since = Some((frame, e.health)),
+                    Some((since, _)) if frame - since >= STAND_PATIENCE_FRAMES => {
+                        let why = format!("stood {} s at its stand without hurting it", STAND_PATIENCE_FRAMES / FRAMES_PER_SECOND);
+                        if debug {
+                            eprintln!("{} f={frame} micro: {name}#{} gives up {} ({why})", view.label(), unit.id.0, e.id.0);
+                        }
+                        events.push(RoveEvent { rover: unit.id, what: RoveWhat::Abandons { target: e.id, def: e.def.expect("attackable has a type"), at: e.pos, why } });
+                        rover.blocked_targets.push((e.id, frame + BLOCK_FRAMES));
+                        chosen = None;
+                    }
+                    Some(_) => {}
+                    None => rover.stand_since = Some((frame, e.health)),
+                }
+            }
+            match chosen {
+                Some((e, stand)) => {
+                    if rover.target != Some(e.id) {
+                        // A set target replaces the one the gadget held: no clear between two.
+                        rover.target = Some(e.id);
+                        rover.target_sent = None;
+                        rover.stand_since = None;
+                    }
+                    if rover.stand.is_none_or(|s| s.0.dist2d(stand) > 1.0) {
+                        rover.stand_since = None;
+                    }
+                    rover.stand = Some((stand, kind_of(e)));
+                    if rover.target_sent.is_none_or(|at| frame - at >= TARGET_RESEND_FRAMES) {
+                        rover.target_sent = Some(frame);
+                        self.counts.1 += 1;
+                        commands.push(Command::SetTarget { unit: unit.id, target: e.id });
+                    }
+                    send(self, &mut rover, Order::Move(stand), commands);
+                    self.rovers.insert(unit.id, rover);
+                    continue;
+                }
+                None => {
+                    if rover.target.take().is_some() && rover.target_sent.take().is_some() {
+                        self.counts.1 += 1;
+                        commands.push(Command::ClearTarget { unit: unit.id });
+                    }
+                    rover.stand = None;
+                    rover.stand_since = None;
+                }
             }
 
             // 3. Look at the place we know least.
@@ -461,13 +613,13 @@ mod tests {
         let mut free = roving_lane(&[10]);
         let host = Host::new(goals.clone());
         let out = free.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor.clone()]), &mut Vec::new(), false);
-        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 50)), "free, it attacks the extractor beside it: {:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit, target } if unit.0 == 10 && target.0 == 50)), "free, it attacks the extractor beside it: {:?}", out.commands);
         let mut confined = Lane::default();
         let within = Some((at(2000.0, 2000.0), at(4000.0, 4000.0)));
         confined.set_group("scouts", vec![UnitId(10)], GroupOrder::new(GroupKind::Rove { within }, Vec::new()));
         let host = Host::new(goals);
         let out = confined.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor]), &mut Vec::new(), false);
-        assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "confined, the extractor outside is left: {:?}", out.commands);
+        assert!(!out.commands.iter().any(|c| matches!(c, Command::SetTarget { .. })), "confined, the extractor outside is left: {:?}", out.commands);
         let report = confined.roving(UnitId(10)).expect("roving");
         assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
     }
@@ -478,7 +630,7 @@ mod tests {
     #[test]
     fn a_stunned_turret_is_no_threat_and_a_target_while_it_sleeps() {
         let tower = |stunned: f32| EnemyUnit { stunned, ..enemy(60, TOWER, 1300.0, 1000.0) };
-        let attacks = |out: &crate::Output| out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 60));
+        let attacks = |out: &crate::Output| out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit, target } if unit.0 == 10 && target.0 == 60));
         let evades = |out: &crate::Output| out.rove.iter().any(|e| matches!(e.what, RoveWhat::Evades { .. }));
         let host = Host::new(Vec::new());
         let out = roving_lane(&[10]).tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![tower(0.0)]), &mut Vec::new(), false);
@@ -500,7 +652,7 @@ mod tests {
     #[test]
     fn an_aircraft_rover_keeps_off_anti_air_that_would_kill_it_and_nothing_else() {
         let banshee = |health: f32| OwnUnit { def: BANSHEE, health, max_health: health, ..rover(10, 1000.0, 1500.0) };
-        let attacks = |out: &crate::Output| out.commands.iter().find_map(|c| match c { Command::Attack { unit, target, .. } if unit.0 == 10 => Some(target.0), _ => None });
+        let attacks = |out: &crate::Output| out.commands.iter().find_map(|c| match c { Command::SetTarget { unit, target } if unit.0 == 10 => Some(target.0), _ => None });
         let guarded = enemy(50, EXTRACTOR, 1800.0, 1500.0);
         let open = enemy(51, EXTRACTOR, 1000.0, 2300.0);
 
@@ -593,26 +745,117 @@ mod tests {
         let mut frame_of_tower = enemy(60, TOWER, 1100.0, 1000.0);
         (frame_of_tower.being_built, frame_of_tower.health) = (true, 50.0);
         let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![frame_of_tower]), &mut Vec::new(), false);
-        assert!(moves_of(&out.commands, 10).is_empty(), "no evasion from a tower that cannot shoot: {:?}", out.commands);
-        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit: UnitId(10), target: UnitId(60), .. })), "{:?}", out.commands);
+        // Already within reach of it, it stands where it is: no evasion, no walk.
+        assert!(moves_of(&out.commands, 10).iter().all(|m| m.dist2d(at(1000.0, 1000.0)) < 1.0), "no evasion from a tower that cannot shoot: {:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(60) })), "{:?}", out.commands);
     }
 
+    /// The target is set beside a move to the stand, never an attack order (the rover shoots on the way in and out,
+    /// the stand is only where it stops); the stand is within its reach of the target and outside every margin.
     #[test]
     fn a_rover_kills_the_unguarded_extractor_and_leaves_the_guarded_one() {
         let mut host = Host::new(vec![goal("spot_2", 3000.0, 3000.0, None, true)]);
-        // The nearer extractor stands 200 from a tower.
+        // The nearer extractor stands 200 from a tower: no point within the rover's reach of it is outside the
+        // tower's reach with the stand's clearance (470).
         host.buildings.push((UnitId(60), TOWER, at(1500.0, 1000.0)));
         let mut lane = roving_lane(&[10]);
         let guarded = enemy(70, EXTRACTOR, 1300.0, 1000.0);
         let open = enemy(71, EXTRACTOR, 1000.0, 500.0);
         let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![guarded, open]), &mut Vec::new(), false);
-        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit: UnitId(10), target: UnitId(71), .. })), "{:?}", out.commands);
-        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "attacking");
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(71) })), "{:?}", out.commands);
+        assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "never an attack order: {:?}", out.commands);
+        let stand = moves_of(&out.commands, 10);
+        assert_eq!(stand.len(), 1, "{:?}", out.commands);
+        assert!(stand[0].dist2d(at(1000.0, 500.0)) <= 160.0 && stand[0].dist2d(at(1000.0, 500.0)) >= 60.0, "the stand is within reach of the extractor: {:?}", stand[0]);
+        assert!(stand[0].dist2d(at(1500.0, 1000.0)) >= 470.0, "and outside the tower's reach with the stand's clearance: {:?}", stand[0]);
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.target, report.rim), ("attacking", Some(UnitId(71)), false));
+        assert!(out.rove.iter().any(|e| matches!(e.what, RoveWhat::Attacks { target: UnitId(71), from: StandKind::Open, .. })), "{:?}", out.rove);
         // A constructor walking about comes before an extractor.
         let mut lane = roving_lane(&[10]);
         let builder = enemy(72, CONSTRUCTOR, 700.0, 1000.0);
         let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![enemy(71, EXTRACTOR, 1000.0, 800.0), builder]), &mut Vec::new(), false);
-        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { target: UnitId(72), .. })), "{:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { target: UnitId(72), .. })), "{:?}", out.commands);
+    }
+
+    /// The rim (the rove-2 design §2): an extractor 350 from a tower is inside the tower's margin, but a point 120
+    /// or more beyond it on the far side is 470 or more from the tower, outside its reach with the stand's clearance,
+    /// and within the rover's reach of the extractor; the rover approaching from that side takes the stand there
+    /// and sets the extractor as its target. Standing there still, it is neither sent again nor given an attack;
+    /// the set target is sent again as a heartbeat every three seconds; the target dead, the set is cleared.
+    #[test]
+    fn a_rover_kills_a_guarded_extractor_from_the_rim_of_the_guards_reach() {
+        // The place to look at afterwards lies away from the tower, so the way there is clear.
+        let mut host = Host::new(vec![goal("spot_2", 300.0, 3000.0, None, true)]);
+        host.buildings.push((UnitId(60), TOWER, at(1500.0, 1000.0)));
+        let mut lane = roving_lane(&[10]);
+        let guarded = enemy(70, EXTRACTOR, 1150.0, 1000.0);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 600.0, 1000.0)], vec![guarded.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { unit: UnitId(10), target: UnitId(70) })), "{:?}", out.commands);
+        let stand = moves_of(&out.commands, 10);
+        assert_eq!(stand.len(), 1, "{:?}", out.commands);
+        let stand = stand[0];
+        assert!(stand.dist2d(guarded.pos) <= 160.0, "within reach of the extractor: {stand:?}");
+        assert!(stand.dist2d(at(1500.0, 1000.0)) >= 470.0, "outside the tower's reach with the stand's clearance: {stand:?}");
+        assert!(stand.dist2d(at(1500.0, 1000.0)) < 490.0, "inside the margin a moving rover keeps (the rim is the gain): {stand:?}");
+        assert!(stand.x < guarded.pos.x, "on the far side from the tower: {stand:?}");
+        let report = lane.roving(UnitId(10)).unwrap();
+        assert_eq!((report.doing, report.rim, report.stand), ("attacking", true, Some(stand)));
+        assert!(out.rove.iter().any(|e| matches!(e.what, RoveWhat::Attacks { target: UnitId(70), from: StandKind::Rim, .. })), "{:?}", out.rove);
+        // Fifty short of the stand at full speed toward the tower: no evasion, it brakes at the stand.
+        let mut arriving = rover(10, stand.x - 50.0, stand.z);
+        arriving.vel = at(5.6, 0.0);
+        let out = lane.tick(&host, &tick(33, vec![arriving], vec![guarded.clone()]), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "attacking", "{:?}", out.commands);
+        // At the stand, still: nothing sent for 3 s but the heartbeat, which comes at 3 s.
+        let mut standing = rover(10, stand.x, stand.z);
+        standing.vel = at(0.0, 0.0);
+        let out = lane.tick(&host, &tick(60, vec![standing.clone()], vec![guarded.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.is_empty(), "{:?}", out.commands);
+        let out = lane.tick(&host, &tick(150, vec![standing.clone()], vec![guarded.clone()]), &mut Vec::new(), false);
+        assert_eq!(out.commands.len(), 1, "{:?}", out.commands);
+        assert!(matches!(out.commands[0], Command::SetTarget { target: UnitId(70), .. }));
+        // The extractor dead: the set target is cleared; the stand lay inside the margin a moving rover keeps, so the
+        // next tick steps out of it before it goes to look at the next place.
+        let out = lane.tick(&host, &tick(153, vec![standing.clone()], Vec::new()), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::ClearTarget { unit: UnitId(10) })), "{:?}", out.commands);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().target, None);
+        lane.tick(&host, &tick(156, vec![standing], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "evading");
+    }
+
+    /// Standing at its stand six seconds without the target's health falling (drill R: an extractor on a mound,
+    /// the beam from below blocked by the slope), the rover gives the target up for thirty seconds and says so.
+    #[test]
+    fn a_stand_that_hurts_nothing_for_six_seconds_is_given_up() {
+        let host = Host::new(vec![goal("spot_2", 300.0, 3000.0, None, true)]);
+        let mut lane = roving_lane(&[10]);
+        let target = enemy(70, EXTRACTOR, 1150.0, 1000.0);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![target.clone()]), &mut Vec::new(), false);
+        let stand = lane.roving(UnitId(10)).unwrap().stand.expect("a stand");
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { target: UnitId(70), .. })), "{:?}", out.commands);
+        let mut standing = rover(10, stand.x, stand.z);
+        standing.vel = at(0.0, 0.0);
+        // Five seconds at the stand, the health unchanged: still attacking.
+        for f in [33, 60, 90, 120, 150, 180] {
+            lane.tick(&host, &tick(f, vec![standing.clone()], vec![target.clone()]), &mut Vec::new(), false);
+        }
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "attacking");
+        // The health falling resets the clock; not falling for six seconds ends it.
+        let mut hurt = target.clone();
+        hurt.health = 250.0;
+        lane.tick(&host, &tick(210, vec![standing.clone()], vec![hurt.clone()]), &mut Vec::new(), false);
+        lane.tick(&host, &tick(360, vec![standing.clone()], vec![hurt.clone()]), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "attacking");
+        let out = lane.tick(&host, &tick(393, vec![standing.clone()], vec![hurt.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::ClearTarget { unit: UnitId(10) })), "{:?}", out.commands);
+        assert!(out.rove.iter().any(|e| matches!(&e.what, RoveWhat::Abandons { target: UnitId(70), .. })), "{:?}", out.rove);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().doing, "looking");
+        // Not taken again for thirty seconds.
+        let out = lane.tick(&host, &tick(600, vec![standing.clone()], vec![hurt.clone()]), &mut Vec::new(), false);
+        assert!(!out.commands.iter().any(|c| matches!(c, Command::SetTarget { .. })), "{:?}", out.commands);
+        let out = lane.tick(&host, &tick(393 + 30 * 30 + 3, vec![standing], vec![hurt]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::SetTarget { target: UnitId(70), .. })), "{:?}", out.commands);
     }
 
     #[test]
