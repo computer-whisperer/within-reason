@@ -137,6 +137,23 @@ while out of sight drew fire once the unit came in sight of it.
 **Used by.** `Command::SetTarget`/`ClearTarget` (`bot-protocol`, `COMMAND_UNIT_CUSTOM` in `ai-host`); the rove-2 stand
 (`docs/design/2026-11-04-rove-2.md` §2: the rover moves with its target set and shoots on the way in and out).
 
+### K-mech-turret-beam-clears-its-own-extractor
+**Claim.** A light laser turret fires over its own extractor: a unit standing on the ray from the turret through the
+extractor, 170 behind it with the extractor 200 from the turret, is hit at the turret's full rate. Whatever
+`avoidFriendly` does for a shot across an ally (`CWeapon::HaveFreeLineOfFire` refuses one whose cone crosses an ally's
+collision volume), the beam from a 77-tall turret's muzzle to a 21-wide, 16-tall rover 370 away passes over a 48-wide,
+33-tall extractor between them. So an unarmed structure of his is no cover from the turret guarding it.
+**Status.** supported (2026-11-04) from drill C0 (rove2-cover-fact-on: a Rover holding fire on the ray took 47 in the
+first second and died in two; -off, 40 off the ray: the same). One placing, one map; the geometry is the common one
+(the extractor a footprint of 4 x 4 beside its spot, the turret 200 off).
+**Evidence.** `docs/data/scenarios-2026-11-04/cover-fact-on.json`, `cover-fact-off.json`; `run/matches/*-duel-rove2-cover-fact-*`;
+the engine's `Weapon.cpp` `HaveFreeLineOfFire`, `WeaponDef.cpp` `avoidFriendly` (default true, the turret's def sets
+nothing against it), `armmex.lua`/`cormex.lua` (CylY 48 x 33), `armllt.lua` (CylY 32 x 77).
+**Would be wrong if.** A rover on the ray behind a taller structure (a radar, a wind generator, a lab) went unhit: the
+height is the variable, and a taller cover was not tried.
+**Used by.** The rove-2 design §2.1 (dropped on this claim: no shadow stand; the rim stand is the whole of the mex-and-
+turret gain).
+
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition
 queue runs forever without the bot re-issuing orders. Guides treat "factory always on repeat, never idle" as a basic rule.

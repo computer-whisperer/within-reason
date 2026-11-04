@@ -1,0 +1,13 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the Rover holds fire and stands",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "firestate",
+   "state": 0
+  }
+ ]
+}

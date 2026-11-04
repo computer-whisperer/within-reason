@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5500
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill C0's control: the same Rover 40 off the shadow line. Expected: dead within a second of the first orders"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2940,
+     "z": 5670
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5500
+    }
+   ]
+  }
+ ]
+}
