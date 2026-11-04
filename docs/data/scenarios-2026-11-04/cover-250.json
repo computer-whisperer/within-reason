@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5600
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill C at 250 (docs/design/2026-11-04-rove-2.md \u00a77). The same with the cormex 250 from the corllt: the band ends 125 behind it, the stand 94, the mouth 244, the open stretch 119 in and 150 out at the turret's damage there; the lane's exposure price decides whether a shadow stand is offered at all (the design expects about the limit)."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5880
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5550
+    }
+   ]
+  }
+ ]
+}

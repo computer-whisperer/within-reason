@@ -120,12 +120,15 @@ impl View for Host {
     }
     fn stats(&self, def: UnitDefId) -> Option<Stats> {
         Some(match def {
-            ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0, falloff: 0.5, ..Stats::default() },
+            // The heights are the game's (the simulator's table): the Rover's aim point 6 up, the Armada turret's
+            // collision cylinder 72.5 tall (its aim piece, 67, is the rove engine's `COVER_KINDS`), the armmex's top 27.5
+            // of radius 24.
+            ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0, falloff: 0.5, aim: 6.0, top: 15.0, radius: 11.75, ..Stats::default() },
             PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0, area: 0.0, ..Stats::default() },
-            TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0, air_reach: 430.0, air_dps: 10.7, falloff: 0.5 },
+            TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0, air_reach: 430.0, air_dps: 10.7, falloff: 0.5, aim: 35.0, top: 72.5, radius: 16.0 },
             BANSHEE => Stats { reach: 350.0, dps: 38.6, speed: 185.0, health: 560.0, sight: 520.0, ..Stats::default() },
             THISTLE => Stats { health: 335.0, sight: 500.0, air_reach: 765.0, air_dps: 67.6, ..Stats::default() },
-            EXTRACTOR => Stats { health: 300.0, ..Stats::default() },
+            EXTRACTOR => Stats { health: 300.0, aim: 13.0, top: 27.5, radius: 24.0, ..Stats::default() },
             CONSTRUCTOR => Stats { speed: 36.0, health: 760.0, ..Stats::default() },
             NANO => Stats { health: 400.0, ..Stats::default() },
             _ => return None,

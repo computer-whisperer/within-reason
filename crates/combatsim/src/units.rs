@@ -140,6 +140,14 @@ pub struct Unit {
     /// Collision radius, from the unit's collision volume: a shot that lands within it hits the unit, and two
     /// units cannot get closer than the sum of two of these.
     pub radius: f32,
+    /// Heights above the unit's ground, in elmos, from its model's mid point and its collision volume (the rove-2
+    /// design §2.1; `tools/extract_units.py`): `mid` is its aim point, where a shot at it is aimed (the engine's
+    /// `relMidPos`, its `aimPos` too); `top` is the top of its collision volume, what a shot from a friend behind it
+    /// is tested against (an armmex's is 27.5 under a model 41 tall). 0 in a table from before 2026-11-04.
+    #[serde(default)]
+    pub mid: f32,
+    #[serde(default)]
+    pub top: f32,
     pub armor: String,
     pub air: bool,
     pub builder: bool,

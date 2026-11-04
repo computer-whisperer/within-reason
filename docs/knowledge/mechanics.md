@@ -139,16 +139,23 @@ while out of sight drew fire once the unit came in sight of it.
 
 ### K-mech-a-mex-shades-a-short-band-behind-it
 **Claim.** A light laser turret's friendly check is one ray (its weapon has no accuracy and no spray angle, so
-`CWeapon::HaveFreeLineOfFire` traces a line, not a cone) from the turret's aim piece high on its 72-tall body to the
-target's aim point low on a 16-tall Rover, against the extractor's collision cylinder (48 wide, 30 tall). A unit on the
-ray behind the extractor is unhit only where that line passes through the cylinder: a band from the extractor out to
-about 0.55 to 0.6 of the extractor's own distance from the turret (a cormex 200 from a corllt shades a Rover 60 and 100
-behind it and not 140 or 170; at 300 it shades all of 60 to 170); a 70-tall Armada moho shades the whole of a Rover's
-reach at 200. Beyond the band the beam clears the extractor and the unit is hit at the turret's full rate. The band's
-edge fits an aim piece about 60 up, an aim point about 8 up and an extractor top about 27 up.
-**Status.** supported (2026-11-04) from the engine source and the cover scan (`docs/experiments.md` rove2-cover-scan:
-ten scenes, a Rover holding fire 20 s; the C0 drill of the same day, read as "the beam clears its own extractor", had
-stood the Rover 170 behind at 200, past the band, and that reading is withdrawn).
+`CWeapon::HaveFreeLineOfFire` traces a line, not a cone) from the turret's aim piece (corllt's `turret` 60 above its
+ground, armllt's `sleeve` 67: the scripts' `AimFromWeapon` pieces at their places in the models) to the target's aim
+point (its model's mid point, a Rover's 6; no BAR unit file sets `aimposoffset`) against the cover's collision volume
+(a cormex: a cylinder of radius 24 whose top is 24 above its ground; the volume, not the model: an armmex's tops out
+at 27.5 under a model 41 tall, a Cortex moho's at 15.5 under 34, an Armada moho's at 68). A unit on the ray behind the
+cover is unhit where that line passes through the volume: a band from the cover out to `d (M - R) / (T - M)` behind
+it for a cover of top M at d from a turret of aim height T and a unit of aim height R (a cormex 200 from a corllt:
+100 for a Rover; 300: 150; the scan: at 200, 60 and 100 behind shaded and 140 and 170 not; at 300, all of 60 to 170,
+the model under-promising there by the few elmos it cannot see), the band's width the cover's radius widening with
+the distance; a moho, taller than the aim piece, shades everything behind it. Beyond the band the beam clears the
+cover and the unit is hit at the turret's full rate. The shade lasts exactly as long as the cover: see
+K-mech-a-turret-fires-within-the-second-its-cover-dies.
+**Status.** supported (2026-11-04) from the engine source, the models and the cover scan (`docs/experiments.md`
+rove2-cover-scan: ten scenes, a Rover holding fire 20 s; the C0 drill of the same day, read as "the beam clears its own
+extractor", had stood the Rover 170 behind at 200, past the band, and that reading is withdrawn), and drill C
+(rove2-C: a Rover 115 and 97 behind a cormex 300 and 275 from a corllt stood unhit 8 s and killed it; a Rover holding
+fire 115 behind unhit 45 s).
 **Evidence.** `Weapon.cpp` `HaveFreeLineOfFire` (`spread < 0.001` → `TraceRay::TraceRay` with `NOENEMIES | NOGROUND`
 against allied collision volumes), `TraceRay.cpp` `TestCone`/`TestConeHelper`; `corllt.lua` (no `accuracy`, no
 `sprayangle`; CylY 32 x 72), `cormex.lua` (CylY 48 x 30, offset -3), `armmoho.lua` (CylY 70 x 70);
@@ -159,6 +166,24 @@ extractor, inside the band, which at 200 from the turret is inside the extractor
 reach from the band's mouth; from about 250 to 315 the band's end lies near the reach's edge and the stand is entered
 from outside the reach; beyond 315 the rim stand serves).
 
+
+### K-mech-a-turret-fires-within-the-second-its-cover-dies
+**Claim.** The shade of K-mech-a-mex-shades-a-short-band-behind-it ends the instant the cover dies: the turret's next
+target search (every slow update) finds the line clear and it fires within the second. A Rover (105 health, 168 a
+second) standing inside a light laser turret's reach when its cover dies pays a second to turn and get going plus the
+run to the reach's edge, two or three hits at the turret's damage there (43 then 87 at 18 inside the reach: dead; 87
+at 63 inside: alive at 15 %). A unit standing in the band but outside the reach (a holder 140 behind a cormex 300
+from a corllt, 440 off) is never hit. So a shadow stand inside the turret's reach is worth taking only for a unit
+that can pay the exit (a Blitz, 730 health: out at 77.5 % from 120 behind at 300), and the stand goes beyond the reach
+wherever the band reaches that far.
+**Status.** supported (2026-11-04) from drill C and its controls (`docs/experiments.md` rove2-C: C2, C275, C-blitz;
+C-hold115 unhit 45 s holding fire, C-fire115 hit at the kill, C-hold140-shooter100 the shooter at 100 behind dead at
+the kill and the holder at 140 never hit, C-hold115-rocko the holder at 115 dead when a Rocko outside the reach killed
+the extractor). The duel's per-side health column had hidden the death behind the side's share (0.643 with the
+extractor gone), which read for an hour as "the extractor's state changes at 65 %" before the unit list was checked.
+**Evidence.** The runs above; `Weapon.cpp` `AutoTarget`/`HaveFreeLineOfFire`; the rove engine's `SHADOW_EXIT_SECONDS`
+and `SHADOW_BEYOND` (`crates/micro/src/rove.rs`).
+**Exploits.** H-MICRO-ROVE (the shadow stand's exposure price and its placing beyond the reach).
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition
 queue runs forever without the bot re-issuing orders. Guides treat "factory always on repeat, never idle" as a basic rule.

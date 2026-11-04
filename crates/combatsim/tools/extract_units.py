@@ -12,7 +12,7 @@ default mod options (every `multiplier_*` is 1): reload and burst times are roun
 and a BeamLaser with `impactonly` becomes areaofeffect 11 / edgeeffectiveness 1. Nothing else in `_post` touches
 health, damage, range or speed; the rest is graphics, mod options and categories.
 """
-import json, math, re, subprocess, sys, pathlib
+import json, math, re, struct, subprocess, sys, pathlib
 
 root = pathlib.Path(sys.argv[1])
 FPS = 30
@@ -133,6 +133,28 @@ def radius(udef):
     return max(udef.get("footprintx", 1), udef.get("footprintz", 1)) * 8.0 / 2.0
 
 
+def heights(udef):
+    """The aim point's and the collision volume's top's heights above the unit's ground, in elmos: what the rove
+    engine's shadow stand needs (docs/design/2026-11-04-rove-2.md §2.1). A unit's mid point is its model's `midy`
+    (the s3o header; the engine's `relMidPos`, and its aim point too, since no BAR unit file sets `aimposoffset`
+    or `midposoffset`); its collision volume sits at the mid point plus `collisionvolumeoffsets` and reaches half
+    its `collisionvolumescales` up (`CollisionVolume::GetWorldSpacePos`). A unit with no volume in its file takes
+    the engine's default, the model's own height (`CUnit::PreInit`). The model's height (`UnitDef_getHeight`) is
+    no stand-in for the top: an armmex's volume tops out at 27.5 under a model 41 tall."""
+    name = udef.get("objectname", "")
+    model = next((p for p in (root / "objects3d").rglob("*") if p.name.lower() == pathlib.Path(name).name.lower()), None)
+    if model is None:
+        return 0.0, 0.0
+    header = model.read_bytes()[:52]
+    _, _, _, height, _, midy, _, _, _, _, _ = struct.unpack("<12sifffffiiii", header)
+    scales = udef.get("collisionvolumescales")
+    if scales:
+        _, sy, _ = (float(v) for v in scales.split())
+        oy = float(udef.get("collisionvolumeoffsets", "0 0 0").split()[1])
+        return round(midy, 2), round(midy + oy + sy / 2.0, 2)
+    return round(midy, 2), round(height, 2)
+
+
 def weapon(wdef, mount):
     """One weapon, post-processed. `mount` is the unit's `weapons[i]` entry (target categories live there)."""
     kind = wdef.get("weapontype", "Cannon")
@@ -235,6 +257,8 @@ def main():
             "speed": udef.get("speed", 0.0),
             "sight": udef.get("sightdistance", 0.0),
             "radius": round(radius(udef), 2),
+            "mid": heights(udef)[0],
+            "top": heights(udef)[1],
             "armor": classes.get(name, "standard"),
             "air": bool(udef.get("canfly")),
             "builder": bool(udef.get("workertime")),

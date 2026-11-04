@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5600
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill C with a Blitz (armflash, 730 health, 101 a second, a cannon of 180 with no falloff) in the Rover's place, the cormex 300 from the corllt. Drill C's Rover (rove2-C2) killed the extractor from the shadow unhit and died on the exit (the turret fires within the second its cover dies; 43 then 87); the price now charges that second, which refuses a Rover inside the reach and allows a Blitz (about 94 of its 730). Expected: the shadow stand taken, the extractor dead, the Blitz out with about 130 of damage, alive."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armflash",
+     "x": 2900,
+     "z": 5880
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5600
+    }
+   ]
+  }
+ ]
+}

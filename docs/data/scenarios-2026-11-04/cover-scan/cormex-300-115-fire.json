@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5500
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04, after drill C (rove2-C2: the Rover took the shadow stand 115 behind a cormex 300 from a corllt, stood unhit six seconds, then was hit and died on the exit): the Rover 115 behind with the extractor set as its target (firing, as drill C's rover does), 45 s: does firing change the turret's answer?"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5715
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5600
+    }
+   ]
+  }
+ ]
+}

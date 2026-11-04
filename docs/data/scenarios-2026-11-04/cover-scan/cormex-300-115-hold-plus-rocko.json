@@ -1,0 +1,48 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5500
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04, after rove2-C-hold140-shooter100 (the firing Rover in the band was hit the moment the extractor passed 65 %, the holding one behind it never): the Rover holds fire 115 behind the extractor while a Rocko 424 from it and 671 from the turret (outside its reach) rockets the extractor past 65 %. If the held Rover is hit then, the extractor's state changes with its damage; if not, the firing unit's own state opens the turret's line."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5715
+    },
+    {
+     "type": "armrock",
+     "x": 3200,
+     "z": 5900
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5600
+    }
+   ]
+  }
+ ]
+}

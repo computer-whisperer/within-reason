@@ -1,0 +1,33 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the Rover roves from the first orders; the probes read the ground at the turret, the extractor and the stand",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "rove"
+  },
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "probe",
+   "x": 2900,
+   "z": 5300
+  },
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "probe",
+   "x": 2900,
+   "z": 5600
+  },
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "probe",
+   "x": 2900,
+   "z": 5712
+  }
+ ]
+}

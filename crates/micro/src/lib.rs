@@ -230,6 +230,13 @@ pub struct Stats {
     /// The share of its damage the longest ground weapon loses at its full reach (0: none; 0.5: a beam laser, half
     /// at the edge). Its damage at distance `d` is `dps x (1 - falloff x d / reach)`.
     pub falloff: f32,
+    /// Heights above its ground in elmos, for the shadow stand (the rove-2 design §2.1): `aim` where a shot at it
+    /// is aimed (its mid point), `top` the top of its collision volume, what a friend's shot from behind it is
+    /// tested against; `radius` its collision radius, the shadow's width at it. 0 for a host without them: no
+    /// shadow stand then.
+    pub aim: f32,
+    pub top: f32,
+    pub radius: f32,
 }
 
 /// What the lane reads of its host.

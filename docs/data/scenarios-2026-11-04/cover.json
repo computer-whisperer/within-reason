@@ -1,0 +1,43 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5600
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04: drill C of docs/design/2026-11-04-rove-2.md \u00a77 (the shadow stand, \u00a72.1 as rewritten after the cover scan). One Rover roves against a cormex 300 from a corllt, approaching from behind the extractor on the flat ground south of the turret (z 5300-5900 flat). No rim stand (the rim, 470 off, is 170 from the extractor, past the Rover's 160); the shadow stand is on the ray 112 behind the extractor (the band ends 150 behind it: aim piece 60, top 24, aim point 6), the way to the band's mouth 194 behind it then down the ray, the open stretch 44 in and 82 out. Expected: the extractor dead, the Rover's health read at the exit."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5880
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5600
+    }
+   ]
+  }
+ ]
+}

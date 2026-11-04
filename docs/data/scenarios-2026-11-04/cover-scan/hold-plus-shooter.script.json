@@ -1,0 +1,19 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the first Rover holds fire; the second shoots the extractor",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "firestate",
+   "state": 0
+  },
+  {
+   "t": 0.0,
+   "unit": 1,
+   "cmd": "set_target",
+   "target": 1
+  }
+ ]
+}

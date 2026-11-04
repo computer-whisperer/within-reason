@@ -262,19 +262,19 @@ impl Brain {
     /// The lane's numbers for a type: the simulator's where the table has it, the glossary's otherwise.
     fn stats_of(&self, def: UnitDefId) -> Option<Stats> {
         let (reach, dps, speed) = self.sim_stats(def)?;
-        let (health, dgun, air_reach, air_dps, falloff) = match self.sim.defs.get(&def) {
+        let (health, dgun, air_reach, air_dps, falloff, heights) = match self.sim.defs.get(&def) {
             Some(i) => {
                 let unit = &self.sim.rules.units.list[*i];
-                (unit.health, unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max), unit.reach_air(), unit.dps_air(), unit.falloff())
+                (unit.health, unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max), unit.reach_air(), unit.dps_air(), unit.falloff(), (unit.mid, unit.top, unit.radius))
             }
             None => match super::pianist::glossary::entry(self.name(def)) {
                 // The glossary has one reach for all of a type's weapons: its anti-air's when it has some, and no
-                // weapon kind, so no falloff.
-                Some(e) => (e.health, 0.0, e.dps_air.filter(|d| *d > 0.0).map_or(0.0, |_| e.range), e.dps_air.unwrap_or(0.0), 0.0),
-                None => (0.0, 0.0, 0.0, 0.0, 0.0),
+                // weapon kind, so no falloff; and no heights, so no shadow stand on or behind it.
+                Some(e) => (e.health, 0.0, e.dps_air.filter(|d| *d > 0.0).map_or(0.0, |_| e.range), e.dps_air.unwrap_or(0.0), 0.0, (0.0, 0.0, 0.0)),
+                None => (0.0, 0.0, 0.0, 0.0, 0.0, (0.0, 0.0, 0.0)),
             },
         };
-        Some(Stats { reach, dps, speed, health, dgun, sight: self.sight_of(def), area: self.world.def(def).map_or(0.0, |d| d.blast_radius), air_reach, air_dps, falloff })
+        Some(Stats { reach, dps, speed, health, dgun, sight: self.sight_of(def), area: self.world.def(def).map_or(0.0, |d| d.blast_radius), air_reach, air_dps, falloff, aim: heights.0, top: heights.1, radius: heights.2 })
     }
 
     /// Every metal spot a unit of this type can reach from home, with when it was last within sight of ours

@@ -417,7 +417,7 @@ impl Brain {
                 let what = match r.doing {
                     "evading" => "is stepping out of the reach of something that can shoot it".to_string(),
                     "attacking" => match r.target.and_then(|t| enemies.iter().find(|e| e.id == t)) {
-                        Some(e) => format!("is attacking his {}{} at {}{}", if r.rim { "" } else { "unguarded " }, e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos), if r.rim { " from outside the reach of what guards it" } else { "" }),
+                        Some(e) => format!("is attacking his {}{} at {}{}", if r.kind == Some(micro::StandKind::Open) { "unguarded " } else { "" }, e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos), match r.kind { Some(micro::StandKind::Rim) => " from outside the reach of what guards it", Some(micro::StandKind::Shadow) => " from behind it, where its guard cannot shoot through it", _ => "" }),
                         None => "is attacking an unguarded unit of his".to_string(),
                     },
                     "looking" => r.goal.as_ref().map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(*look))),

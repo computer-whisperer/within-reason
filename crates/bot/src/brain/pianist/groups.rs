@@ -813,11 +813,12 @@ impl Brain {
                     micro::RoveWhat::Attacks { def, at, from, .. } => {
                         let how = match from {
                             micro::StandKind::Open => "unguarded ".to_string(),
-                            micro::StandKind::Rim => String::new(),
+                            micro::StandKind::Rim | micro::StandKind::Shadow => String::new(),
                         };
                         let rim = match from {
                             micro::StandKind::Open => "",
                             micro::StandKind::Rim => " from outside the reach of what guards it",
+                            micro::StandKind::Shadow => " from behind it, where its guard cannot shoot through it",
                         };
                         let text = format!("{clock} group_{}'s rover attacks his {how}{} at {}{rim}", group.name, self.short_words(*def), self.place_words(&pianist.places, *at));
                         pianist.done.push(text.clone());

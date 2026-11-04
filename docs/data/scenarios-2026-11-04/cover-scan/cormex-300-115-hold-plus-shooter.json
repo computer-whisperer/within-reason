@@ -1,0 +1,48 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  2900,
+  5500
+ ],
+ "source": {
+  "note": "by hand, 2026-11-04, after rove2-C2/C275/C-fire115 (the turret fired the moment the extractor reached 0.643 of its health, in all three) and C-hold115-shooter (a shooter 160 behind on the ray was blocked by the held Rover in front of it and dealt nothing): the holder stands 140 behind the extractor (shaded in the scan), the shooter 100 behind, in front of it, firing. If the holder is hit when the extractor passes 65 % (the unit scripts' damaged-smoke threshold), the extractor's own state changes with its damage."
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5740
+    },
+    {
+     "type": "armfav",
+     "x": 2900,
+     "z": 5700
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 2900,
+     "z": 5300
+    },
+    {
+     "type": "cormex",
+     "x": 2900,
+     "z": 5600
+    }
+   ]
+  }
+ ]
+}

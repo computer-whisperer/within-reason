@@ -1,0 +1,13 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the Rover fires at the extractor from where it stands",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": 0,
+   "cmd": "set_target",
+   "target": 1
+  }
+ ]
+}
