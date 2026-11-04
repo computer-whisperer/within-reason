@@ -132,6 +132,11 @@ minutes before his anti-nuke while nothing the player read named them. `Command:
 parameter, 0 low and 1 high): a low builder draws only the team's surplus, full speed or nothing; the gadget consumes the
 order in `AllowCommand`, nothing is queued, and the shim reads the flag back as `OwnUnit::priority_low` from the unit
 rules param `builderPriority` (K-mech-builder-priority-is-a-builder-flag; the study `docs/studies/2026-10-13-builder-priority.md`).
+`Command::SetTarget { unit, target }` and `ClearTarget { unit }` (2026-11-04) are BAR's target-on-the-move gadget the same
+way (`CMD_UNIT_SET_TARGET` 34923 with the target's id, `CMD_UNIT_CANCEL_TARGET` 34924 with no parameter): the unit's
+weapons fire at the target whenever they reach it while it carries out its orders, a move among them, so a rover shoots on
+its way in and out of reach (`docs/design/2026-11-04-rove-2.md` §2); the target must be in sight or on radar when the
+order goes out, else the gadget sets nothing (K-mech-set-target-fires-on-the-move).
 
 `Command::Probe { points }` (2026-10-27) asks the ground's height at a few points; the shim answers it itself in the
 next tick as `Event::Ground { points }`, each point with `y` the synced ground's height (`Map_getElevationAt`), and sends

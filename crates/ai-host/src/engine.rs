@@ -991,6 +991,9 @@ impl Engine {
         const META_KEY: i16 = 1 << 2;
 /// BAR's `CMD_PRIORITY` (`modules/customcommands.lua`), the builder-priority gadget's command id.
 const BUILDER_PRIORITY_COMMAND: c_int = 34571;
+/// BAR's target-on-the-move gadget (`modules/customcommands.lua`: `UNIT_SET_TARGET`, `UNIT_CANCEL_TARGET`).
+const SET_TARGET_COMMAND: c_int = 34923;
+const CANCEL_TARGET_COMMAND: c_int = 34924;
         match *command {
             Command::Build { unit, def, ref site, queue } => {
                 let mut pos = site.as_ref().map_or([0.0; 3], |s| self.on_the_ground(s.near));
@@ -1234,6 +1237,32 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
                     cmdId: BUILDER_PRIORITY_COMMAND,
                     params: params.as_mut_ptr(),
                     params_size: 1,
+                })
+            }
+            // The target-on-the-move gadget takes the target's id as its one parameter and consumes the order in
+            // `AllowCommand`; its cancel takes none and clears every target it holds for the unit.
+            Command::SetTarget { unit, target } => {
+                let mut params = [target.0 as f32];
+                self.handle(sys::COMMAND_UNIT_CUSTOM, &mut sys::SCustomUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: 0,
+                    timeOut: NO_TIMEOUT,
+                    cmdId: SET_TARGET_COMMAND,
+                    params: params.as_mut_ptr(),
+                    params_size: 1,
+                })
+            }
+            Command::ClearTarget { unit } => {
+                let mut params = [0.0f32];
+                self.handle(sys::COMMAND_UNIT_CUSTOM, &mut sys::SCustomUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: 0,
+                    timeOut: NO_TIMEOUT,
+                    cmdId: CANCEL_TARGET_COMMAND,
+                    params: params.as_mut_ptr(),
+                    params_size: 0,
                 })
             }
             // The shim answers these itself (`lib.rs` `apply`): nothing reaches the engine.

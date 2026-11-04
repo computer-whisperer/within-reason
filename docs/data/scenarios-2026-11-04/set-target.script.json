@@ -1,0 +1,12 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the Rover under return fire (its own weapon never picks the extractor): out with the target set once the extractor is in sight (the gadget refuses one out of sight) and 400 off, back with it cleared",
+ "rows": [
+  { "t": 0.0, "unit": 0, "cmd": "firestate", "state": 1 },
+  { "t": 0.0, "unit": 0, "cmd": "move", "x": 3800, "z": 3800 },
+  { "t": 3.0, "unit": 0, "cmd": "set_target", "target": 0 },
+  { "t": 14.0, "unit": 0, "cmd": "clear_target" },
+  { "t": 14.0, "unit": 0, "cmd": "move", "x": 2400, "z": 3800 }
+ ]
+}

@@ -353,6 +353,8 @@ impl Recorder {
                 Command::Resurrect { unit, feature, .. } => json!(["resurrect", unit.0, feature.0]),
                 Command::Say { ref text } => json!(["say", text]),
                 Command::Attack { unit, target, .. } => json!(["attack", unit.0, target.0]),
+                Command::SetTarget { unit, target } => json!(["set_target", unit.0, target.0]),
+                Command::ClearTarget { unit } => json!(["clear_target", unit.0]),
                 Command::GiveUnit { def, at } => json!(["give", self.def(Some(def)), at.x as i32, at.z as i32]),
                 Command::GiveResource { metal, energy } => json!(["give_resource", metal as i32, energy as i32]),
                 Command::SelfDestruct { unit } => json!(["selfdestruct", unit.0]),

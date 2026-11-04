@@ -2059,6 +2059,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                 ScriptCmd::Fight => Command::Fight { unit, to, queue: row.queue },
                 ScriptCmd::FightReclaimingEnemies => Command::FightReclaimingEnemies { unit, to, queue: row.queue },
                 ScriptCmd::Stop => Command::Stop { unit },
+                ScriptCmd::ClearTarget => Command::ClearTarget { unit },
                 ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
                 ScriptCmd::Fire => Command::FireAt { unit, at: to },
                 ScriptCmd::Rove => {
@@ -2069,8 +2070,9 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                     continue;
                 }
                 ScriptCmd::Probe => unreachable!("a probe row goes out before the units' loop"),
-                ScriptCmd::Attack => match row.target.and_then(|t| living(enemy, t)) {
-                    Some(target) => Command::Attack { unit, target, queue: row.queue },
+                ScriptCmd::Attack | ScriptCmd::SetTarget => match row.target.and_then(|t| living(enemy, t)) {
+                    Some(target) if row.cmd == ScriptCmd::Attack => Command::Attack { unit, target, queue: row.queue },
+                    Some(target) => Command::SetTarget { unit, target },
                     None => {
                         skipped.push(i);
                         continue;

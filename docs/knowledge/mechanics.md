@@ -112,6 +112,31 @@ progressing while the team's metal sat at zero with a high constructor stalled.
 D-PRIORITY (`bots/distilled`). What the pros do with it: K-econ-commander-low-while-assisting,
 K-econ-expanding-constructor-high (economy.md).
 
+### K-mech-set-target-fires-on-the-move
+**Claim.** BAR's target-on-the-move gadget (`luarules/gadgets/unit_target_on_the_move.lua`, `CMD_UNIT_SET_TARGET`
+34923 with the target's id as its one parameter, `CMD_UNIT_CANCEL_TARGET` 34924 with none) sets a target beside whatever
+else the unit does: its weapons fire at it whenever they reach it while the unit carries out a move, under return fire
+too (the target counts as the user's, which the fire state does not gate), and go on firing after the unit has passed
+it; the cancel ends it. The gadget consumes the order in `AllowCommand` (nothing queued), polls the target into the
+weapons every few frames, keeps a building's target out of sight and drops a mobile one unseen for 1.5 s, drops every
+target on a `Stop` (unless the order carried the control bit), and gives an `Attack` of the unit's own precedence. The
+order sets nothing when the target is out of sight and off radar as it goes out: the gadget tests the target through the
+engine's weapon test (`Spring.GetUnitWeaponTestTarget`, `CWeapon::TestTarget`), which refuses a unit with no LOS or radar
+bit, a remembered building among them.
+**Status.** supported (2026-11-04) from the gadget's source and the rove2-T drills (`docs/experiments.md`): one Rover
+under return fire walking 1,400 past a cormex 120 off its line; the target set with the extractor 711 away (sight 635)
+set nothing and no shot landed; set at 400, hits in the two seconds the Rover was in reach at full speed (23 + 32 of 275),
+none on the way back after the cancel.
+**Evidence.** `unit_target_on_the_move.lua` (`processCommand`: `nParams == 1`, `allowTargetUnit`; `hasTargetPrecedence`;
+`setTargetActive` → `Spring.SetUnitTarget(unitID, target, false, userTarget)`; `wasTargetLost`; `UnitCommand` on
+`CMD_STOP`), `modules/customcommands.lua:35-36`; the engine's `CWeapon::TestTarget` (the LOS_INLOS | LOS_INRADAR test) and
+`CWeapon::AutoTarget` (the fire state gates auto targets only); `run/matches/1793757964-duel-rove2-T`,
+`1793758014-duel-rove2-T2` (`docs/data/scenarios-2026-11-04/set-target.json`).
+**Would be wrong if.** A set target on a unit in sight drew no fire from a moving unit under return fire; or a target set
+while out of sight drew fire once the unit came in sight of it.
+**Used by.** `Command::SetTarget`/`ClearTarget` (`bot-protocol`, `COMMAND_UNIT_CUSTOM` in `ai-host`); the rove-2 stand
+(`docs/design/2026-11-04-rove-2.md` §2: the rover moves with its target set and shoots on the way in and out).
+
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition
 queue runs forever without the bot re-issuing orders. Guides treat "factory always on repeat, never idle" as a basic rule.

@@ -740,6 +740,19 @@ pub enum Command {
     SelfDestruct { unit: UnitId },
     /// Attack one unit of theirs: the turret first, deliberately, when a raid or an answer is priced against it.
     Attack { unit: UnitId, target: UnitId, queue: bool },
+    /// Set the unit's target beside whatever else it does (BAR's target-on-the-move gadget,
+    /// `luarules/gadgets/unit_target_on_the_move.lua`, `CMD_UNIT_SET_TARGET` 34923 with the target's id as its one
+    /// parameter): its weapons fire at `target` whenever they reach it while it carries out its orders, a move among
+    /// them, so a rover shoots on its way in and out of reach and the stand is only where it stops
+    /// (docs/design/2026-11-04-rove-2.md §2). The gadget consumes the order in `AllowCommand` (nothing is queued),
+    /// polls the target into the weapons as they come in reach, keeps a building's target out of sight and drops a
+    /// mobile one unseen for 1.5 s; a `Stop` clears it, and an `Attack` of the unit's own takes precedence. The
+    /// target must be in sight or on radar when the order goes out: the gadget tests it through the engine's weapon
+    /// test, which refuses one out of sight, and the order then sets nothing (K-mech-set-target-fires-on-the-move:
+    /// the rove2-T drill, the target set 711 away with 635 sight, no shot; set at 400, hits on the move).
+    SetTarget { unit: UnitId, target: UnitId },
+    /// Clears what `SetTarget` set (`CMD_UNIT_CANCEL_TARGET` 34924 with no parameter: every target the gadget holds).
+    ClearTarget { unit: UnitId },
     /// The engine's move state: 0 hold position, 1 manoeuvre, 2 roam. An aircraft with an empty queue hunts targets
     /// within 1000 times its move state, so an air group holds by setting 0 (docs/design/2026-09-22-domains.md).
     MoveState { unit: UnitId, state: i32 },

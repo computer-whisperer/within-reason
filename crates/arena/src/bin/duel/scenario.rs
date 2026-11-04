@@ -34,6 +34,8 @@
 //!   "rows": [
 //!     { "t": 0.0, "unit": [0, 1, 2], "cmd": "move", "x": 4300, "z": 1900 },   // unit: an index into side 0, a list, or "all"
 //!     { "t": 0.0, "unit": 3, "cmd": "attack", "target": 4 },                    // target: an index into side 1
+//!     { "t": 0.0, "unit": 3, "cmd": "set_target", "target": 4 },                // the target set beside its orders (Command::SetTarget)
+//!     { "t": 8.0, "unit": 3, "cmd": "clear_target" },
 //!     { "t": 4.5, "unit": "all", "cmd": "fight", "x": 4527, "z": 1436, "queue": true },
 //!     { "t": 4.5, "unit": 7, "cmd": "fight_reclaiming_enemies", "x": 4527, "z": 1436 },   // a builder: takes enemies apart
 //!     { "t": 9.0, "unit": 5, "cmd": "guard", "target": 6 },                     // guard: an index into side 0
@@ -151,6 +153,12 @@ pub enum ScriptCmd {
     #[serde(rename = "fight_reclaiming_enemies")]
     FightReclaimingEnemies,
     Attack,
+    /// The unit's target set beside whatever else it does (`Command::SetTarget`, BAR's target-on-the-move gadget):
+    /// it fires at the target whenever its weapons reach it, on the move too; `clear_target` takes it away.
+    #[serde(rename = "set_target")]
+    SetTarget,
+    #[serde(rename = "clear_target")]
+    ClearTarget,
     Stop,
     Guard,
     Firestate,
@@ -198,7 +206,7 @@ impl Script {
             }
             match row.cmd {
                 ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::FightReclaimingEnemies | ScriptCmd::Fire | ScriptCmd::Probe if row.x.is_none() || row.z.is_none() => return problem("move, fight, fire and probe need x and z"),
-                ScriptCmd::Attack if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack needs a target below {theirs}")),
+                ScriptCmd::Attack | ScriptCmd::SetTarget if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack and set_target need a target below {theirs}")),
                 ScriptCmd::Guard if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard needs a target (of side 0) below {ours}")),
                 ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),
                 _ => {}
