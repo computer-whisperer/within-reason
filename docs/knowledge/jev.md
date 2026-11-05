@@ -2436,3 +2436,26 @@ by Jev against the packet returned at the rate of human-22 (a body joining its o
 **Evidence.** The `tool_call` rows of `run/matches/*-human/*/strategist-*.jsonl`, counted 2026-11-04 (the brief review, docs/design/2026-10-21-brief-rework.md §12); the u6bkep duel 1793584014-human alone: 42 turns, none of those tools.
 **Would be wrong if.** A session's transcript showed `units` or `map` calls at a rate that changed what the prompt need carry.
 **Used by.** H-PLAYER-UNIT-CONTEXT (the report introduces a type at first sight instead of leaving it to `units`), the brief trim of 2026-11-04 (only what applies to no game is cut).
+
+### K-bot-a-stalled-brain-drops-its-seat-from-the-side
+**Claim.** In a realtime game a seat's brain thread stops for 3 to 45 s dozens of times a game (barb-5v5-altored-1: 25 to 35
+samples over 3 s a seat, 240 to 366 s of its 1,709; the lobby game 1793769060-human: 373, 690 and 1,068 s of 2,031 for its
+three seats), and the side counts a seat live only while its last published briefing is within 90 frames of the newest
+seat's (`LIVE_FRAMES`, `strategist/seats.rs`; the briefing is published once a decide). So a stalled seat vanishes from the
+side for the length of its stall: the `transfer` tool refuses it ("t2 is not a seat of our side in this game (ours: t0, t3,
+t4)": 12 of 40 transfers in the 5v5, 20 of 46 in the lobby game, the refusals' clocks inside the stalls), the side's
+briefing lists the live seats only, and the lead shifts. Two stall sources. (1) The fuse layer's decode is a synchronous
+Jev call on the brain thread (`pianist/mod.rs`; the worker takes the gate's calls only, and only in realtime), and 2 to 6 %
+of Jev's answers come back after 16.1 to 16.4 s with no retry and no size pattern (one question of 700 tokens as often as
+154 of 13,000), in every game and in the lockstep duel's gate calls too: the provider's latency, not our load; 97 to 211 s a
+seat in the 5v5, 291 to 355 s in the lobby game. (2) Stalls the Jev log does not explain: 5 to 14 s every few seconds for
+the lobby's seat 3 from 8:00 to 15:00 (735 of its 1,068 s), 33 to 45 s for the 5v5's seat 0 at 16:59 to 19:02, each ending
+as its nano sites were placed; no finer timing exists in the logs. In lockstep the engine waits and every seat's frame
+stays aligned (legion-apex-2: 126 stalls, 1,453 s, three quarters of its 31.6 wall minutes), so the hands' stalls cost wall
+time there and nothing else; since the control lane came off the brain's thread (ca72f429, 2026-11-01) realtime runs on,
+and the same stalls freeze a seat's hands for their length and drop the seat from the side. Of the sixteen commander games
+on disk, no game before that commit shows a refusal and both after it do.
+**Status.** measured (2026-11-05): the records' `brain_ms` per sample against the Jev logs' `decode` and `call` rows and the
+commander's and players' `transfer` results; `git log -S LIVE_FRAMES` (791c6013, 2026-09-20, lockstep only then).
+**Would be wrong if.** a seat's published frame stayed current through a brain stall (the briefing published from another
+thread), or the refusals' clocks fell outside the stalls.
