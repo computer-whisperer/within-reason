@@ -291,6 +291,9 @@ pub struct Field {
     pub builders: BTreeMap<String, BTreeMap<String, bool>>,
     /// This seat's faction as the start script names it (Armada, Cortex, Legion); merged, every seat's with its team.
     pub factions: Vec<(i32, String)>,
+    /// Types of his this seat knows: buildings and soldiers seen and not known destroyed, and this tick's enemies in
+    /// sight, by internal name (the unit context's sightings, docs/design/2026-11-04-unit-context.md §5).
+    pub enemy_types_seen: Vec<String>,
     pub score: Score,
     /// Wreck fields known: place, metal, whether it is safe to work (no enemy in sight near it, a way to walk there).
     pub wreck_fields: Vec<(Place, u32, bool)>,

@@ -12,6 +12,9 @@ use serde::Deserialize;
 pub struct Entry {
     #[serde(default, deserialize_with = "or_default")]
     pub name: String,
+    /// armada, cortex or legion.
+    #[serde(default, deserialize_with = "or_default")]
+    pub faction: String,
     #[serde(default, deserialize_with = "or_default")]
     pub tier: u8,
     #[serde(default, deserialize_with = "or_default")]
@@ -22,6 +25,16 @@ pub struct Entry {
     pub metal: f32,
     #[serde(default, deserialize_with = "or_default")]
     pub energy: f32,
+    #[serde(default, deserialize_with = "or_default")]
+    pub build_time: f32,
+    #[serde(default)]
+    pub energy_make: Option<f32>,
+    #[serde(default)]
+    pub energy_upkeep: Option<f32>,
+    #[serde(default)]
+    pub energy_storage: Option<f32>,
+    #[serde(default)]
+    pub metal_storage: Option<f32>,
     #[serde(default, deserialize_with = "or_default")]
     pub health: f32,
     #[serde(default, deserialize_with = "or_default")]
@@ -121,6 +134,11 @@ fn parse(text: &str) -> HashMap<String, Entry> {
 
 pub fn entry(internal: &str) -> Option<&'static Entry> {
     GLOSSARY.get(internal)
+}
+
+/// Every entry with its internal name, in no order.
+pub fn entries() -> impl Iterator<Item = (&'static str, &'static Entry)> {
+    GLOSSARY.iter().map(|(k, v)| (k.as_str(), v))
 }
 
 #[cfg(test)]

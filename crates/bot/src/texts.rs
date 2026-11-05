@@ -122,7 +122,14 @@ pub fn snapshot(dir: &Path) -> std::io::Result<()> {
     for manifest in MANIFESTS {
         copy(manifest, &mut files)?;
         for document in documents_at(&checkout, manifest)? {
-            copy(&document, &mut files)?;
+            match generated_part(&document) {
+                Some((_, sources)) => {
+                    for source in sources {
+                        copy(source, &mut files)?;
+                    }
+                }
+                None => copy(&document, &mut files)?,
+            }
         }
     }
     for directory in DIRECTORIES {
@@ -198,7 +205,21 @@ pub fn documents(manifest: &str) -> std::io::Result<Vec<String>> {
 /// deprecated passages, trimmed, and shaped as a blank line, the text, a newline, so that the parts concatenated are
 /// the brief whole (the shape the assembled file had before manifests, so the context did not change with them).
 pub fn assemble_parts(manifest: &str) -> std::io::Result<Vec<(String, String)>> {
-    documents(manifest)?.into_iter().map(|path| Ok((path.clone(), format!("\n\n{}\n", strip(&read_required(&path)?).trim())))).collect()
+    documents(manifest)?
+        .into_iter()
+        .map(|path| match generated_part(&path) {
+            Some((name, _)) => Ok((format!("(generated: {name})"), format!("\n\n{}\n", crate::strategist::generated(name)?.trim()))),
+            None => Ok((path.clone(), format!("\n\n{}\n", strip(&read_required(&path)?).trim()))),
+        })
+        .collect()
+}
+
+/// A manifest line `generated:NAME <- doc doc ...`: a part the bot writes at assembly in place of the documents
+/// named after the arrow (which the brief's scripts read for their meta blocks, and the snapshot copies).
+pub fn generated_part(line: &str) -> Option<(&str, Vec<&str>)> {
+    let rest = line.strip_prefix("generated:")?;
+    let (name, sources) = rest.split_once("<-").unwrap_or((rest, ""));
+    Some((name.trim(), sources.split_whitespace().collect()))
 }
 
 /// The text as a model gets it: every HTML comment removed, and the passage after a `<!--meta ... -->` block that
@@ -314,7 +335,10 @@ mod tests {
         for manifest in super::MANIFESTS {
             assert!(dir.join(manifest).is_file(), "{manifest} is in the snapshot");
             for document in super::documents(manifest).unwrap() {
-                assert!(dir.join(&document).is_file(), "{document} of {manifest} is in the snapshot");
+                let files = super::generated_part(&document).map_or(vec![document.as_str()], |(_, sources)| sources);
+                for file in files {
+                    assert!(dir.join(file).is_file(), "{file} of {manifest} is in the snapshot");
+                }
             }
         }
         for directory in super::DIRECTORIES {

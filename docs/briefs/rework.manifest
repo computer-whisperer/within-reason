@@ -8,11 +8,10 @@
 docs/briefs/facts/economy.md
 docs/briefs/facts/fights.md
 docs/briefs/facts/maps.md
-docs/briefs/facts/units-economy.md
-docs/briefs/facts/units-land.md
-docs/briefs/facts/units-structures.md
-docs/briefs/facts/units-air.md
-docs/briefs/facts/units-sea.md
+# The unit tables are generated at assembly from the glossary for the factions in the game, each unit at the level
+# the unit context's rules give it (docs/design/2026-11-04-unit-context.md, crates/bot/src/strategist/unit_context.rs);
+# the documents after the arrow are the same tables whole, for the scripts and the meta ids.
+generated:units <- docs/briefs/facts/units-economy.md docs/briefs/facts/units-land.md docs/briefs/facts/units-structures.md docs/briefs/facts/units-air.md docs/briefs/facts/units-sea.md
 docs/briefs/meta/pool.md
 docs/briefs/meta/people.md
 docs/briefs/meta/barb.md

@@ -80,6 +80,8 @@ should be able to easily include the full unit set and game rule descriptions").
    tokens) and the opponent faction's the same way when it is known; the prose is behind a `units` tool that returns
    the full entry for any names asked, ours or theirs. The report's sightings and losses use the glossary's names
    ("2 Grunts (corak, raider bots)") so the picture reads the same as the roster.
+   **Amended 2026-11-04:** the roster is gone; the prompt's generated unit tables carry the gloss as a column and
+   the report introduces a type at first sight (docs/design/2026-11-04-unit-context.md, H-PLAYER-UNIT-CONTEXT).
 8. **The Kit stays** for the bot's heuristics, the openings and the arena's non-player modes. The player, the hands
    and the policy no longer go through it for what may be built.
 9. **Roles by definition, not by faction table** (the user, 2026-09-22: "it is possible for a cortex commander to

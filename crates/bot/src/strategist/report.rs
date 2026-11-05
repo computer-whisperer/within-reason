@@ -517,35 +517,34 @@ fn extractor_lines(seen: &mut Seen, field: &Field, full: bool, lines: &mut Vec<S
 
 /// The player's report: the front, then its hands: every actor as the picture has it (in full at first, then the
 /// ones whose entry changed), Jev's judgements when they are high, and what the hands did since the last turn.
-/// The faction's whole roster once a session (docs/design/2026-09-22-full-roster.md, decision 7): one line a unit
-/// from the glossary, by tier; what stands now can build the ones marked. The `units` tool has the prose.
-fn roster_lines(field: &Field) -> String {
-    use crate::brain::pianist::glossary;
-    let now: Vec<&str> = field.buildable.iter().map(|(n, _)| n.as_str()).collect();
-    let mut entries: Vec<(u8, String)> = field
-        .roster
-        .iter()
-        .map(|(name, metal)| match glossary::entry(name) {
-            Some(e) => (e.tier, format!("{}{}", e.line(name), if now.contains(&name.as_str()) { " [now]" } else { "" })),
-            None => (9, format!("{name} ({metal} metal){}", if now.contains(&name.as_str()) { " [now]" } else { "" })),
-        })
-        .collect();
-    entries.sort();
+/// What a builder or factory standing now can build, once a session (the one thing the prompt's tables cannot
+/// say; the roster that stood here until 2026-11-04 is the tables now, docs/design/2026-11-04-unit-context.md §5).
+fn now_line(field: &Field) -> String {
+    let names: Vec<&str> = field.buildable.iter().map(|(n, _)| n.as_str()).collect();
     let sides: Vec<&str> = field.factions.iter().map(|(_, side)| side.as_str()).collect::<std::collections::BTreeSet<_>>().into_iter().collect();
-    let mut lines = vec![format!(
-        "our roster ({} units the commander reaches by build lists; [now] marks what a builder or factory standing now can build; `units` gives any entry's full prose){}:",
-        entries.len(),
+    format!(
+        "can build now (a builder or factory standing now makes these; your tables hold every unit of your faction){}: {}",
         if sides.len() > 1 {
             format!(
-                "; the seats are of more than one faction ({}), so the roster holds every one of them: a seat's builders and factories take their own faction's names (arm..., cor... or leg...) and skip the others'",
+                "; the seats are of more than one faction ({}): a seat's builders and factories take their own faction's names (arm..., cor... or leg...) and skip the others'",
                 field.factions.iter().map(|(team, side)| format!("t{team} {side}")).collect::<Vec<_>>().join(", ")
             )
         } else {
             String::new()
-        }
-    )];
-    lines.extend(entries.into_iter().map(|(_, line)| format!("  {line}")));
-    lines.join("\n")
+        },
+        if names.is_empty() { "nothing yet".to_string() } else { names.join(", ") }
+    )
+}
+
+/// The types this report meets first (H-PLAYER-UNIT-CONTEXT): one glossary line each, once in the game.
+fn new_unit_lines(briefing: &Briefing, field: &Field) -> Vec<String> {
+    let fresh = super::unit_context::fresh_lines(briefing.frame, field);
+    if fresh.is_empty() {
+        return Vec::new();
+    }
+    let mut lines = vec!["new units this report (the first time a type is seen of his or buildable of ours; its row is in your next session's tables; `units` has the prose):".to_string()];
+    lines.extend(fresh.into_iter().map(|l| format!("  {l}")));
+    lines
 }
 
 /// The parties out of sight now, as the hands' picture remembers them (H-HANDS-ENEMY-MEMORY): the picture had
@@ -757,8 +756,9 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands:
     lines.extend(recently_seen(&hands.picture));
     extractor_lines(seen, field, full, &mut lines);
     if full {
-        lines.push(roster_lines(field));
+        lines.push(now_line(field));
     }
+    lines.extend(new_unit_lines(briefing, field));
     let actors = actor_lines(&hands.picture);
     let changed: Vec<&String> = actors.iter().filter(|a| full || !seen.hands.contains(a)).collect();
     if !changed.is_empty() {

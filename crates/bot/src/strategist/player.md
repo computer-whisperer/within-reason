@@ -167,7 +167,8 @@ whenever you hit that edge.
   was hit in the last seconds, or a party stands within 800) it has its ways out alone: go, follow, take apart his,
   attack, D-gun.
 - A factory (`lab_N`, `plant_N`, `factory_N`): `stay`, or `make` any unit of its own (those your `produce` list
-  allows). Your first report carries the whole roster, one line a unit by internal name; `units` gives any unit's
+  allows). Your unit tables hold every unit of your faction and what of the other sides' the game has reached; a
+  type first seen of his or first buildable of ours comes in the report with one line; `units` gives any unit's
   full entry, ours or theirs.
 Taking his units apart: a builder can reclaim an enemy unit as it reclaims ours. It drains the unit's health and,
 when the health is gone, pays the unit's whole metal cost (a frame its cost times its progress) and leaves no

@@ -181,6 +181,11 @@ impl Shared {
                 }
             }
             merged.factions.extend(f.factions.iter().cloned());
+            for name in &f.enemy_types_seen {
+                if !merged.enemy_types_seen.contains(name) {
+                    merged.enemy_types_seen.push(name.clone());
+                }
+            }
             merged.builders.extend(f.builders.iter().map(|(k, v)| (k.clone(), v.clone())));
             merged.resurrection_bots += f.resurrection_bots;
             for field in &f.wreck_fields {

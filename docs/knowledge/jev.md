@@ -2429,3 +2429,10 @@ recorded (its turns carry tool calls alone).
 **Would be wrong if.** A player given the two moves still built a leader out of follows, or a merge's direction picked
 by Jev against the packet returned at the rate of human-22 (a body joining its own detachment).
 **Used by.** H-HANDS-MENU, H-HANDS-FOLLOW, the brief's group verbs.
+
+### K-player-nothing-is-fetched-on-demand
+**Claim.** The player fetches nothing on demand: over 32 recent sessions with people (2,065 turns, up to 2026-11-04) it called `units`, `map`, `overview`, `plan` and `search` 0 times and `situation` 3 times, so a unit, map or article the prompt and the reports omit is unknown to it for the game.
+**Status.** supported (2026-11-04)
+**Evidence.** The `tool_call` rows of `run/matches/*-human/*/strategist-*.jsonl`, counted 2026-11-04 (the brief review, docs/design/2026-10-21-brief-rework.md §12); the u6bkep duel 1793584014-human alone: 42 turns, none of those tools.
+**Would be wrong if.** A session's transcript showed `units` or `map` calls at a rate that changed what the prompt need carry.
+**Used by.** H-PLAYER-UNIT-CONTEXT (the report introduces a type at first sight instead of leaving it to `units`), the brief trim of 2026-11-04 (only what applies to no game is cut).

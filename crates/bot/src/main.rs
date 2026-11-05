@@ -124,6 +124,7 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
     let board = team::TeamBoard::of(&hello);
     strategist::note_bonuses(&hello);
     strategist::live_edge::note(&hello);
+    strategist::unit_context::note(&hello);
     let strategist = player
         .then(|| {
             let start = || Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new);

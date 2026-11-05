@@ -16,6 +16,7 @@ mod report;
 pub mod seats;
 pub mod shared;
 mod transcript;
+pub mod unit_context;
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -91,6 +92,14 @@ pub(crate) fn player_parts() -> std::io::Result<Vec<(String, String)>> {
     parts.push(("(the game's bonus)".into(), bonus()));
     parts.push(("(the game's objective)".into(), objective()));
     Ok(parts.into_iter().map(|(source, text)| (source, strip(&text))).collect())
+}
+
+/// A manifest's `generated:NAME` part (`texts::assemble_parts`): the unit tables today.
+pub(crate) fn generated(name: &str) -> std::io::Result<String> {
+    match name {
+        "units" => Ok(unit_context::part()),
+        other => Err(std::io::Error::other(format!("no generated part named {other}: units"))),
+    }
 }
 
 fn system_prompt() -> std::io::Result<String> {
@@ -382,6 +391,9 @@ impl Launch {
     }
 
     fn spawn(&self) -> std::io::Result<Session> {
+        // The unit tables' snapshot for this session (docs/design/2026-11-04-unit-context.md §2): taken here and read
+        // by every prompt build until the next spawn, so the edit check's digest holds still.
+        unit_context::refresh();
         let prompt = (self.prompt)()?;
         let model = || self.model.clone();
         if Backend::for_model(&model()) == Backend::Api {

@@ -33,7 +33,11 @@ LIST = re.compile(r"^\[(.*)\]$", re.S)
 
 
 def documents(manifest):
-    return [l.strip() for l in open(manifest) if l.strip() and not l.strip().startswith("#")]
+    """The documents a manifest names; a `generated:NAME <- doc doc` line stands for the documents after the arrow."""
+    out = []
+    for line in (l.strip() for l in open(manifest) if l.strip() and not l.strip().startswith("#")):
+        out.extend(line.split("<-", 1)[1].split() if line.startswith("generated:") else [line])
+    return out
 
 
 def parse_block(body):

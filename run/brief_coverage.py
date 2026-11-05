@@ -54,7 +54,7 @@ def covers(manifests):
     for manifest in manifests:
         if not os.path.exists(manifest):
             continue
-        for document in [l.strip() for l in open(manifest) if l.strip() and not l.strip().startswith("#")]:
+        for document in [d for l in open(manifest) if l.strip() and not l.strip().startswith("#") for d in (l.strip().split("<-", 1)[1].split() if l.strip().startswith("generated:") else [l.strip()])]:
             if not os.path.exists(document):
                 continue
             text = open(document).read()

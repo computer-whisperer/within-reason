@@ -1602,6 +1602,17 @@ impl Brain {
         };
         let mut wreck_fields: Vec<(crate::strategist::shared::Place, u32, bool)> = self.reclaim.fields.iter().map(|f| (self.place(f.at), f.metal as u32, f.safe)).collect();
         wreck_fields.sort_by_key(|f| std::cmp::Reverse(f.1));
+        // Types of his this seat knows, for the unit context (docs/design/2026-11-04-unit-context.md §5).
+        let mut enemy_types_seen: Vec<String> = self
+            .enemy_buildings
+            .values()
+            .chain(self.enemy_soldiers.values())
+            .map(|(def, _, _)| *def)
+            .chain(tick.snapshot.enemies.iter().filter_map(|e| e.def))
+            .map(|def| self.name(def).to_string())
+            .collect();
+        enemy_types_seen.sort();
+        enemy_types_seen.dedup();
         shared.publish_field(self.world.hello.team, Field {
             score,
             wreck_fields,
@@ -1614,6 +1625,7 @@ impl Brain {
             roster,
             builders,
             factions: vec![(self.world.hello.team, self.faction())],
+            enemy_types_seen,
         });
     }
 }
