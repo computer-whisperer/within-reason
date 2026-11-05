@@ -58,7 +58,9 @@ pub fn note(hello: &bot_protocol::Hello) {
     let water_share = if heights.is_empty() { 0.0 } else { under as f32 / heights.len() as f32 * 100.0 };
     with_state(|s| {
         s.water_share = water_share;
-        for team in &hello.teams {
+        // Gaia (the engine's neutral team, in the list with no side) reaches no faction: unit-context-apex-1 read its
+        // empty side as Random and carried all three factions' tables in a mirror.
+        for team in hello.teams.iter().filter(|t| t.controller != bot_protocol::Controller::Gaia) {
             let into = if team.team == hello.team {
                 &mut s.ours
             } else if team.ally_team == hello.ally_team {
@@ -73,10 +75,16 @@ pub fn note(hello: &bot_protocol::Hello) {
     });
 }
 
-/// A lobby side's factions: its own, or all three for Random or an unknown word.
+/// A lobby side's factions: its own, all three for Random, none for an empty side (Gaia's).
 fn factions_of_side(side: &str) -> Vec<String> {
     let low = side.trim().to_ascii_lowercase();
-    if FACTIONS.contains(&low.as_str()) { vec![low] } else { FACTIONS.iter().map(|f| f.to_string()).collect() }
+    if FACTIONS.contains(&low.as_str()) {
+        vec![low]
+    } else if low.is_empty() {
+        Vec::new()
+    } else {
+        FACTIONS.iter().map(|f| f.to_string()).collect()
+    }
 }
 
 /// The game at a report: the minute, what we can build, what of his is seen, and our seats' factions once known
@@ -405,6 +413,7 @@ mod tests {
     fn a_random_side_counts_as_every_faction_until_named() {
         assert_eq!(factions_of_side("Random"), vec!["armada", "cortex", "legion"]);
         assert_eq!(factions_of_side("Cortex"), vec!["cortex"]);
+        assert!(factions_of_side("").is_empty(), "Gaia's empty side is nobody's faction");
         let mut s = state(&["armada", "cortex", "legion"], &["cortex"]);
         let field = Field { factions: vec![(0, "Legion".into())], ..Field::default() };
         // The field names the seat's faction; the state keeps it alone.
