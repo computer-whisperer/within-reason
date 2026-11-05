@@ -2464,6 +2464,7 @@ stays aligned (legion-apex-2: 126 stalls, 1,453 s, three quarters of its 31.6 wa
 time there and nothing else; since the control lane came off the brain's thread (ca72f429, 2026-11-01) realtime runs on,
 and the same stalls freeze a seat's hands for their length and drop the seat from the side. Of the sixteen commander games
 on disk, no game before that commit shows a refusal and both after it do.
+At eight seats (barb-8v8-glitters-1, 2026-11-05, the build with the decoder thread and the IPv4 pin): samples over 3 s a seat 6/89/76/144/22/85/90/10, the longest 3.7 to 30.0 s, and `phase_ms` names every one `builder_menus`; the commander's transfers refused 18 of 52 and the seats' own 15, and the commander re-planned around a seat the tool would not take (22:50); 600 gate answers dropped as "not come in 3 s" with the calls themselves at median 131 ms and none over 1.6 s, so the drops are the brain's stalls and nothing is left of the connection's. The site search is the one stall source now.
 **Status.** measured (2026-11-05): the records' `brain_ms` per sample against the Jev logs' `decode` and `call` rows and the
 commander's and players' `transfer` results; `git log -S LIVE_FRAMES` (791c6013, 2026-09-20, lockstep only then).
 **Would be wrong if.** a seat's published frame stayed current through a brain stall (the briefing published from another
