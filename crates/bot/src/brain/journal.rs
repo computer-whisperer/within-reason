@@ -41,9 +41,17 @@ pub struct Journal {
     pub groups: Vec<(String, GroupState)>,
     pub notes: Vec<Note>,
     pub intent: Intent,
+    /// The wall milliseconds of each phase of the brain's decides since the last drain (`Brain::timed`): the record's
+    /// `phase_ms`, the slowest of each per sample, says what a stalled brain was doing
+    /// (K-bot-a-stalled-brain-drops-its-seat-from-the-side).
+    pub phases: Vec<(&'static str, f32)>,
 }
 
 impl Journal {
+    pub fn phase(&mut self, phase: &'static str, ms: f32) {
+        self.phases.push((phase, ms));
+    }
+
     pub fn rule(&mut self, rule: &'static str) {
         *self.rules.entry(rule).or_default() += 1;
     }

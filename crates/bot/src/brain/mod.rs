@@ -591,13 +591,15 @@ impl Brain {
         }
         self.received.retain(|(at, _, _)| tick.frame - at < RECEIVED_WINDOW);
         let mut commands = Vec::new();
-        for report in reports {
-            self.take_lane_report(report, tick, &mut commands);
-        }
+        self.timed("lane_reports", |b| {
+            for report in reports {
+                b.take_lane_report(report, tick, &mut commands);
+            }
+        });
         let (declared, scene) = if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
             if self.pianist.is_some() {
-                self.poll_hands(tick, &mut commands);
+                self.timed("poll", |b| b.poll_hands(tick, &mut commands));
             }
             // The hands' answers arrive on any tick in a realtime game, and what they order is the soldiers'
             // standing order as much as what a thinking tick orders. Without this the lane rewrote a body's new
@@ -606,18 +608,18 @@ impl Brain {
             // commands at our own base, the body standing there 22 s; human-22 11:30: a body under "advance to
             // spot_46" walking home; 13 of 118 walks and advances played between thinking ticks in four games
             // with people pointed elsewhere, 1 of 97 played on them).
-            ((!commands.is_empty()).then(|| self.declare_groups()), None)
+            ((!commands.is_empty()).then(|| self.timed("declare", |b| b.declare_groups())), None)
         } else {
             let thought = if self.carried_events.is_empty() {
-                self.think(tick)
+                self.timed("think", |b| b.think(tick))
             } else {
                 let mut events = std::mem::take(&mut self.carried_events);
                 events.extend(tick.events.iter().cloned());
                 let whole = Tick { frame: tick.frame, late: tick.late, events, snapshot: tick.snapshot.clone() };
-                self.think(&whole)
+                self.timed("think", |b| b.think(&whole))
             };
             commands.extend(thought);
-            (Some(self.declare_groups()), self.kit.is_some().then(|| self.lane_scene(tick.frame)))
+            (Some(self.timed("declare", |b| b.declare_groups())), self.kit.is_some().then(|| self.timed("scene", |b| b.lane_scene(tick.frame))))
         };
         self.echo.said(&commands, tick.frame);
         let fixed = (self.kit.is_some() && !self.lane_fixed_sent).then(|| {
@@ -627,22 +629,34 @@ impl Brain {
         BrainResult { frame: tick.frame, commands, declared, fixed, scene, journal: self.take_journal(), decide_ms: 0.0 }
     }
 
+    /// One phase of a decide, its wall time journaled (the record's `phase_ms`, the slowest of each phase per sample):
+    /// what a brain that stalled for seconds was doing (K-bot-a-stalled-brain-drops-its-seat-from-the-side; in a
+    /// realtime game the seat's hands and its place in the side wait on it).
+    pub(super) fn timed<T>(&mut self, phase: &'static str, run: impl FnOnce(&mut Self) -> T) -> T {
+        let started = std::time::Instant::now();
+        let out = run(self);
+        self.journal.phase(phase, started.elapsed().as_secs_f32() * 1000.0);
+        out
+    }
+
     fn think(&mut self, tick: &Tick) -> Vec<Command> {
         if self.kit.is_none() {
-            self.adopt_faction(&tick.snapshot.own_units);
+            self.timed("adopt", |b| b.adopt_faction(&tick.snapshot.own_units));
         }
         let Some(kit) = self.kit else { return Vec::new() };
-        self.note_allies(tick);
-        self.track_enemy_buildings(tick);
-        self.refresh_coverage(tick);
-        self.survey_spots(tick);
-        self.track_enemy_bases(tick);
-        self.track_wrecks(tick);
-        self.track_losses(tick, &kit);
-        self.track_yards(tick);
+        self.timed("track", |b| {
+            b.note_allies(tick);
+            b.track_enemy_buildings(tick);
+            b.refresh_coverage(tick);
+            b.survey_spots(tick);
+            b.track_enemy_bases(tick);
+            b.track_wrecks(tick);
+            b.track_losses(tick, &kit);
+            b.track_yards(tick);
+        });
         let mut commands = Vec::new();
-        self.tend_nanos(tick, &mut commands);
-        self.relay_chat(tick, &mut commands);
+        self.timed("nanos", |b| b.tend_nanos(tick, &mut commands));
+        self.timed("chat", |b| b.relay_chat(tick, &mut commands));
         // The game names AIs at random (ai_namer.lua), so the bot says who it is, once the engine takes orders.
         if tick.frame >= 2 * FRAMES_PER_SECOND
             && let Some(banner) = self.banner.take()
@@ -654,24 +668,26 @@ impl Brain {
             self.remember_said(tail.clone());
             commands.push(Command::Say { text: format!("{{name}}{tail}"), to: SayTo::Everyone });
         }
-        self.track_shelling(tick);
-        self.track_guns(tick);
-        self.track_fire(tick);
-        self.track_hits(tick);
-        self.track_takings(tick);
-        self.tend_block(&tick.snapshot.own_units, &kit, tick.frame);
-        self.run_pianist(tick, &kit, &mut commands);
+        self.timed("fire", |b| {
+            b.track_shelling(tick);
+            b.track_guns(tick);
+            b.track_fire(tick);
+            b.track_hits(tick);
+            b.track_takings(tick);
+        });
+        self.timed("block", |b| b.tend_block(&tick.snapshot.own_units, &kit, tick.frame));
+        self.timed("pianist", |b| b.run_pianist(tick, &kit, &mut commands));
         if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
-            self.publish_plan_context(tick, &kit);
+            self.timed("plan_context", |b| b.publish_plan_context(tick, &kit));
         }
         // The spots this seat's builders are on their way to, for the team board (13.1: the board shared no claims,
         // `spot_claims` was never filled, and 57 of 114 abandoned extractor orders were spots another seat took).
         self.spot_claims = self.pianist.as_ref().map(|p| p.tasks.values().chain(p.queued_tasks().map(|(_, t)| t)).filter_map(|t| if let pianist::Task::Build { spot: Some(i), .. } = t { Some((*i, tick.frame)) } else { None }).collect()).unwrap_or_default();
-        self.exchange_with_team(tick);
+        self.timed("exchange", |b| b.exchange_with_team(tick));
         self.journal_intent();
-        self.report(tick, &kit);
-        self.publish_briefing(tick, &kit);
-        self.wake_commander_if_due(tick, &kit);
+        self.timed("report", |b| b.report(tick, &kit));
+        self.timed("briefing", |b| b.publish_briefing(tick, &kit));
+        self.timed("wake", |b| b.wake_commander_if_due(tick, &kit));
         commands
     }
 

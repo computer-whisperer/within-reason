@@ -195,7 +195,12 @@ impl Client {
     }
 
     pub fn new(key: String, model: String) -> Client {
-        let config = ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).http_status_as_error(false).user_agent("within-reason").build();
+        // IPv4 only: the service's two IPv6 addresses do not answer from the user's machine (a SYN to either times out;
+        // 2026-11-05), and ureq tries the resolved addresses in order with the global timeout split between them by
+        // halving weights, so every new connection waited 10.7 s on the first and 5.3 s on the second before the first
+        // IPv4 address answered in 10 ms: the 16.1 s that 2 to 6 % of calls took in every game, each a connection the
+        // pool had let go idle (K-bot-a-stalled-brain-drops-its-seat-from-the-side).
+        let config = ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).ip_family(ureq::config::IpFamily::Ipv4Only).http_status_as_error(false).user_agent("within-reason").build();
         Client { key, model, agent: ureq::Agent::new_with_config(config), wire: None }
     }
 

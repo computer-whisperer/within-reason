@@ -236,6 +236,7 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
                 *journal.rules.entry(rule).or_default() += n;
             }
             journal.notes.extend(answer.journal.notes);
+            journal.phases.extend(answer.journal.phases);
             journal.intent = answer.journal.intent;
             intent = answer.journal.intent;
             brain_ms = brain_ms.max(answer.decide_ms);

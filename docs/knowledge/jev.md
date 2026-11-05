@@ -2444,13 +2444,22 @@ three seats), and the side counts a seat live only while its last published brie
 seat's (`LIVE_FRAMES`, `strategist/seats.rs`; the briefing is published once a decide). So a stalled seat vanishes from the
 side for the length of its stall: the `transfer` tool refuses it ("t2 is not a seat of our side in this game (ours: t0, t3,
 t4)": 12 of 40 transfers in the 5v5, 20 of 46 in the lobby game, the refusals' clocks inside the stalls), the side's
-briefing lists the live seats only, and the lead shifts. Two stall sources. (1) The fuse layer's decode is a synchronous
+briefing lists the live seats only, and the lead shifts. Two stall sources. (1) The fuse layer's decode was a synchronous
 Jev call on the brain thread (`pianist/mod.rs`; the worker takes the gate's calls only, and only in realtime), and 2 to 6 %
-of Jev's answers come back after 16.1 to 16.4 s with no retry and no size pattern (one question of 700 tokens as often as
-154 of 13,000), in every game and in the lockstep duel's gate calls too: the provider's latency, not our load; 97 to 211 s a
-seat in the 5v5, 291 to 355 s in the lobby game. (2) Stalls the Jev log does not explain: 5 to 14 s every few seconds for
+of Jev's answers came back after 16.1 to 16.4 s with no retry and no size pattern (one question of 700 tokens as often as
+154 of 13,000), in every game and in the lockstep duel's gate calls too; 97 to 211 s a seat in the 5v5, 291 to 355 s in the
+lobby game. The 16 s is the connection, not the provider: the service's two IPv6 addresses do not answer from the user's
+machine (a SYN to either times out, the IPv4 address connects in 10 ms; `curl -6` hangs, `curl -4` answers in 0.09 s), and
+ureq 3.4 tries the resolved addresses in order with the client's 20 s global timeout split between them by halving
+weights (`transport/connect.rs`: 10.7 s on the first IPv6 address, 5.3 s on the second, then the IPv4 one), so every new
+connection cost 16 s, and a connection the pool had let go idle was a new one: the decode's, used every 15 to 25 s, nearly
+always; the gate's in lockstep after a player's turn held the game. Pinned to IPv4 (`crates/jev`, 2026-11-05):
+decoder-smoke-2's four decodes took 85 to 154 ms and no gate answer was dropped, against decoder-smoke-1's two at 16.1 s
+and 21 dropped on the same build a few minutes earlier. (2) Stalls the Jev log does not explain: 5 to 14 s every few seconds for
 the lobby's seat 3 from 8:00 to 15:00 (735 of its 1,068 s), 33 to 45 s for the 5v5's seat 0 at 16:59 to 19:02, each ending
-as its nano sites were placed; no finer timing exists in the logs. In lockstep the engine waits and every seat's frame
+as its nano sites were placed; the record's `phase_ms` (from 2026-11-05) names them: in decoder-smoke-2, a four-minute 1v1
+with no player, the pass's `builder_menus` (the builders' site search, `fill_builder_menus`) ran 1.9 s of a 1.9 s decide,
+every other phase under 160 ms. In lockstep the engine waits and every seat's frame
 stays aligned (legion-apex-2: 126 stalls, 1,453 s, three quarters of its 31.6 wall minutes), so the hands' stalls cost wall
 time there and nothing else; since the control lane came off the brain's thread (ca72f429, 2026-11-01) realtime runs on,
 and the same stalls freeze a seat's hands for their length and drop the seat from the side. Of the sixteen commander games
@@ -2459,3 +2468,5 @@ on disk, no game before that commit shows a refusal and both after it do.
 commander's and players' `transfer` results; `git log -S LIVE_FRAMES` (791c6013, 2026-09-20, lockstep only then).
 **Would be wrong if.** a seat's published frame stayed current through a brain stall (the briefing published from another
 thread), or the refusals' clocks fell outside the stalls.
+**Used by.** H-HANDS-FUSE-CUT (the decode on its own thread in realtime, 2026-11-05) and the record's `phase_ms`
+(`Brain::timed`, the same day), which attributes the stalls the Jev log does not explain.

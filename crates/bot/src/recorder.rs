@@ -68,6 +68,8 @@ pub struct Recorder {
     slowest_decide_ms: f32,
     /// The slowest brain `decide` whose answer landed in the interval (`session.rs`).
     slowest_brain_ms: f32,
+    /// The slowest run of each phase of those decides (`Brain::timed`), the sample's `phase_ms`.
+    slowest_phases: BTreeMap<&'static str, f32>,
     /// The most frames a tick of the interval arrived late by (`Tick::late`).
     latest_tick: i32,
     intent: Option<Intent>,
@@ -116,6 +118,7 @@ impl Recorder {
                 rounds: HashMap::new(),
                 slowest_decide_ms: 0.0,
                 slowest_brain_ms: 0.0,
+                slowest_phases: BTreeMap::new(),
                 latest_tick: 0,
                 intent: None,
             }),
@@ -188,6 +191,10 @@ impl Recorder {
         self.commands(tick.frame, commands);
         self.slowest_decide_ms = self.slowest_decide_ms.max(decide_ms);
         self.slowest_brain_ms = self.slowest_brain_ms.max(brain_ms);
+        for (phase, ms) in journal.phases {
+            let slowest = self.slowest_phases.entry(phase).or_default();
+            *slowest = slowest.max(ms);
+        }
         self.latest_tick = self.latest_tick.max(tick.late);
         if tick.frame >= self.next_sample {
             self.next_sample = tick.frame - tick.frame % SAMPLE_FRAMES + SAMPLE_FRAMES;
@@ -436,6 +443,11 @@ impl Recorder {
             let _ = write!(self.buffer, "{comma}[{from},{to},{damage:.0}]");
         }
         let _ = write!(self.buffer, "],\"ms\":{:.2},\"brain_ms\":{:.2},\"late\":{}", std::mem::take(&mut self.slowest_decide_ms), std::mem::take(&mut self.slowest_brain_ms), std::mem::take(&mut self.latest_tick));
+        // The phases of a millisecond or more, a tenth of a millisecond: what the slowest decides of the sample spent.
+        let phases: serde_json::Map<String, Value> = std::mem::take(&mut self.slowest_phases).into_iter().filter(|(_, ms)| *ms >= 1.0).map(|(phase, ms)| (phase.to_string(), json!((ms * 10.0).round() / 10.0))).collect();
+        if !phases.is_empty() {
+            let _ = write!(self.buffer, ",\"phase_ms\":{}", Value::Object(phases));
+        }
         let milling = std::mem::take(&mut self.milling);
         if milling.claims > 0 {
             let _ = write!(self.buffer, ",\"lane\":[{},{:.0},{:.0},{}]", milling.claims, milling.path, milling.net, milling.reversals);

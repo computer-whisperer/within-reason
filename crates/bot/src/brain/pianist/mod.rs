@@ -174,6 +174,10 @@ pub struct Pianist {
     /// arrives, so the game and the control lane never wait on Jev; in lockstep the call is made in place.
     worker: Option<Worker>,
     pending: Option<Pending>,
+    /// Realtime: the `fuse` layer's decode runs on its own thread too (`spawn_decoder`), one in flight, with the
+    /// packet it reads and the frame it was sent; in lockstep the decode is made in place.
+    decoder: Option<Decoder>,
+    decode_pending: Option<(String, i32)>,
     next_request: u64,
     interval_frames: i32,
     last_ask_frame: i32,
@@ -347,6 +351,51 @@ const EVENT_GAP: i32 = 5 * FRAMES_PER_SECOND;
 struct Worker {
     to: std::sync::mpsc::Sender<(u64, jev::Request, Follow)>,
     from: std::sync::mpsc::Receiver<(u64, Result<jev::Response, jev::Error>, Option<Followed>)>,
+}
+
+/// The thread that reads the packet for the `fuse` layer in real time (`decode.rs`): one request in flight, the
+/// packet it was asked over with it, so an answer to a packet since replaced is dropped. Off the brain's thread
+/// because 2 to 6 % of Jev's answers take 16 s, and a seat whose brain waits that long freezes its hands and drops
+/// out of the side (K-bot-a-stalled-brain-drops-its-seat-from-the-side; the user, 2026-11-05).
+struct Decoder {
+    to: std::sync::mpsc::Sender<(String, jev::Request)>,
+    from: std::sync::mpsc::Receiver<(String, jev::Request, Result<jev::Response, jev::Error>)>,
+}
+
+/// A decode nobody answered for this long is given up, so the next pass may ask again (the client's timeout is 20 s,
+/// with retries).
+const DECODE_STALE_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
+
+fn spawn_decoder(client: jev::Client) -> Decoder {
+    let (to, requests) = std::sync::mpsc::channel::<(String, jev::Request)>();
+    let (answers, from) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        while let Ok((packet, request)) = requests.recv() {
+            let result = client.ask(&request);
+            if answers.send((packet, request, result)).is_err() {
+                break;
+            }
+        }
+    });
+    Decoder { to, from }
+}
+
+/// A decode's answer, from the decoder's thread or in place: the clear readings into the decode, the call logged
+/// (`waited`: the frames between the request and its answer landing, 0 in place).
+fn decode_answered(pianist: &mut Pianist, frame: i32, request: &jev::Request, result: Result<jev::Response, jev::Error>, waited: i32) {
+    match result {
+        Ok(response) => {
+            pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
+            pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+            let reads: BTreeMap<String, f64> = response.answers.iter().filter_map(|(k, a)| if let jev::Answer::Noul { noul } = a { Some((k.clone(), *noul)) } else { None }).collect();
+            pianist.write_log(json!({ "t": "decode", "f": frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "waited": waited, "usage": response.usage, "batches": response.batches, "asked": request.questions.len(), "reads": reads }));
+            pianist.decode.reads.extend(reads);
+        }
+        Err(e) => {
+            pianist.stats.errors += 1;
+            pianist.write_log(json!({ "t": "error", "f": frame, "error": format!("the decode: {e}") }));
+        }
+    }
 }
 
 /// What composing the worlds after a gate takes, sent along with the gate request.
@@ -688,6 +737,7 @@ impl Pianist {
             None => None,
         };
         let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(wired).map(spawn_worker) } else { None };
+        let decoder = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(wired).map(spawn_decoder) } else { None };
         let packet = match std::env::var_os("WITHIN_REASON_PACKET") {
             Some(path) => Some(std::fs::read_to_string(&path).map_err(|e| format!("the packet file {} cannot be read: {e}", path.to_string_lossy()))?),
             None => None,
@@ -699,6 +749,8 @@ impl Pianist {
             packet,
             worker,
             pending: None,
+            decoder,
+            decode_pending: None,
             next_request: 0,
             interval_frames: ((seconds * FRAMES_PER_SECOND as f32) as i32).max(super::BRAIN_FRAMES),
             last_ask_frame: i32::MIN / 2,
@@ -882,9 +934,11 @@ impl Brain {
 
     /// The pianist's whole turn of the brain: bookkeeping every think, the pass when one is due.
     pub(super) fn run_pianist(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
-        self.pianist_housekeeping(tick, kit, commands);
-        self.keep_groups(tick, kit, commands);
-        self.end_timed_assists(tick.frame, commands);
+        self.timed("housekeeping", |b| {
+            b.pianist_housekeeping(tick, kit, commands);
+            b.keep_groups(tick, kit, commands);
+            b.end_timed_assists(tick.frame, commands);
+        });
         // H-REC-CREW under the pianist: resurrection bots are the player's to produce and the bot's to work. They build
         // nothing, so the hands never ask them, and the economy loop that drives them does not run here (2026-09-24:
         // a produced Lazarus would have idled all game).
@@ -892,29 +946,35 @@ impl Brain {
             commands.push(Command::Repair { unit: bot, target: raised, queue: false });
         }
         // H-REC-TAKE-APART before the wrecks: his units and frames beside a bot that come apart in seconds.
-        let crew: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && kit.is_resurrector(u.def)).collect();
-        let taking = self.take_apart_his(&crew, &tick.snapshot.enemies, commands);
-        for unit in crew.into_iter().filter(|u| u.idle && !taking.contains(&u.id)) {
-            self.work_wrecks(unit, tick, commands);
-        }
+        self.timed("wrecks", |b| {
+            let crew: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && kit.is_resurrector(u.def)).collect();
+            let taking = b.take_apart_his(&crew, &tick.snapshot.enemies, commands);
+            for unit in crew.into_iter().filter(|u| u.idle && !taking.contains(&u.id)) {
+                b.work_wrecks(unit, tick, commands);
+            }
+        });
         // The growth history (the curves and the stagnation wake) and the field the player's report and wake
         // conditions read.
-        self.track_growth(tick, kit);
-        self.note_rounds(tick);
+        self.timed("growth", |b| {
+            b.track_growth(tick, kit);
+            b.note_rounds(tick);
+        });
         if let Some(shared) = self.strategist.clone() {
-            let soldiers: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
-            self.publish_field(tick, kit, &soldiers, &shared);
-            if let Some(side) = shared.side.get() {
-                self.publish_field(tick, kit, &soldiers, side);
-            }
-            self.publish_cards(tick, &shared);
-            if let Some(side) = shared.side.get() {
-                self.publish_cards(tick, side);
-                self.take_transfers(tick, commands, side);
-            }
-            self.take_removals(tick, commands, &shared);
-            self.take_firings(tick, commands, &shared);
-            self.take_transfers(tick, commands, &shared);
+            self.timed("publish", |b| {
+                let soldiers: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && b.is_army(u, kit)).collect();
+                b.publish_field(tick, kit, &soldiers, &shared);
+                if let Some(side) = shared.side.get() {
+                    b.publish_field(tick, kit, &soldiers, side);
+                }
+                b.publish_cards(tick, &shared);
+                if let Some(side) = shared.side.get() {
+                    b.publish_cards(tick, side);
+                    b.take_transfers(tick, commands, side);
+                }
+                b.take_removals(tick, commands, &shared);
+                b.take_firings(tick, commands, &shared);
+                b.take_transfers(tick, commands, &shared);
+            });
         }
         if tick.frame < FIRST_ORDER_FRAME {
             return;
@@ -925,10 +985,13 @@ impl Brain {
         if self.strategist.as_ref().is_some_and(|shared| shared.opening_pending()) {
             return;
         }
-        if self.pianist.as_ref().expect("pianist mode").worker.is_some() {
-            self.collect_answer(tick, kit, commands);
-        }
-        self.schedule_asks(tick);
+        self.timed("collect", |b| {
+            if b.pianist.as_ref().expect("pianist mode").worker.is_some() {
+                b.collect_answer(tick, kit, commands);
+            }
+            b.collect_decode(tick);
+        });
+        self.timed("schedule", |b| b.schedule_asks(tick));
         let due = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             // Realtime: one request in flight at a time; this second's pass waits for the answer.
@@ -938,9 +1001,11 @@ impl Brain {
             return;
         }
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
-        self.take_lists(tick, commands);
-        self.take_allowances(tick);
-        let picture = self.picture(tick, kit);
+        self.timed("lists", |b| {
+            b.take_lists(tick, commands);
+            b.take_allowances(tick);
+        });
+        let picture = self.timed("picture", |b| b.picture(tick, kit));
         {
             // A changed packet is asked afresh: its frame is part of the signature.
             let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -969,12 +1034,12 @@ impl Brain {
             let actors = picture.state["actors"].as_object();
             pianist.rated.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
         }
-        self.heal_rovers(tick, kit, &picture, commands);
-        self.play_lists(tick, kit, &picture, commands);
-        self.play_sequences(tick, commands);
-        self.pass(tick, kit, &picture, commands);
-        self.tend_priorities(tick, commands);
-        self.publish_hands(&picture);
+        self.timed("heal", |b| b.heal_rovers(tick, kit, &picture, commands));
+        self.timed("play_lists", |b| b.play_lists(tick, kit, &picture, commands));
+        self.timed("sequences", |b| b.play_sequences(tick, commands));
+        self.timed("pass", |b| b.pass(tick, kit, &picture, commands));
+        self.timed("priorities", |b| b.tend_priorities(tick, commands));
+        self.timed("publish_hands", |b| b.publish_hands(&picture));
         let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
         if status_due {
             self.pianist_status_line(tick.frame);
@@ -1147,7 +1212,7 @@ impl Brain {
     /// the layers leave open (`layers.rs`); the worlds and the pick follow in `gate_answered`.
     fn pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, commands: &mut Vec<Command>) {
         let frame = tick.frame;
-        let mut menus = self.menus(tick, kit, picture);
+        let mut menus = self.timed("menus", |b| b.menus(tick, kit, picture));
         let parties = &picture.parties;
         let mut line = json!({ "t": "pass", "f": frame });
         {
@@ -1190,7 +1255,7 @@ impl Brain {
             }
         };
         // The open builders' moves, now that the news layer has closed the calm ones (`menu::fill_builder_menus`).
-        self.fill_builder_menus(tick, kit, picture, &mut menus);
+        self.timed("builder_menus", |b| b.fill_builder_menus(tick, kit, picture, &mut menus));
         // The log's header, before the first request of any kind (the decode's may be the first).
         if jev_on && self.pianist.as_ref().is_some_and(|p| !p.header_logged) {
             let rules = diet::rules_for(&picture.rules, &|_| true);
@@ -1214,7 +1279,7 @@ impl Brain {
             (0, 0)
         };
         // The `fuse` layer: what the packet clearly does not give an actor is not asked.
-        let (fused, fuse_audited) = if self.pianist.as_ref().is_some_and(|p| p.layers.fuse && p.client.is_some()) { self.decode_and_fuse(tick, picture, &mut menus) } else { (0, 0) };
+        let (fused, fuse_audited) = if self.pianist.as_ref().is_some_and(|p| p.layers.fuse && p.client.is_some()) { self.timed("decode", |b| b.decode_and_fuse(tick, picture, &mut menus)) } else { (0, 0) };
         // The `openers` layer: a move whose openers said no at the last gate waits for one to open.
         let (held, held_audited) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
@@ -1306,7 +1371,7 @@ impl Brain {
         // against 36, for 18% fewer tokens): a move's words say its place's distance and what stands at it.
         let asked: Vec<(String, Option<Vec3>)> = menus.iter().filter(|m| m.asked()).map(|m| (m.name.clone(), m.at)).collect();
         let diet = pianist.diet.clone();
-        let mut state = self.trim_state(&diet, picture, &asked);
+        let mut state = self.timed("state", |b| b.trim_state(&diet, picture, &asked));
         if let Some(obj) = state.as_object_mut() {
             obj.remove("places");
         }
@@ -1321,9 +1386,11 @@ impl Brain {
     }
 
     /// The `fuse` layer's turn of the pass (`decode.rs`): the readings the menus need that the decode does not hold
-    /// (all of them when the packet is new) are asked of Jev in one lean request over the instructions alone, made in
-    /// place; then the clear readings are put on the menus. A decode that fails fuses nothing: its questions are
-    /// then the second's own, as in the base. Returns the questions not sent and the moves audited.
+    /// (all of them when the packet is new) are asked of Jev in one lean request over the instructions alone: in
+    /// realtime on the decoder's thread, one in flight, its readings fused from the pass they land in
+    /// (`collect_decode`); in lockstep in place. Then the clear readings are put on the menus. A decode that fails
+    /// or has not come fuses nothing: its questions are then the second's own, as in the base. Returns the questions
+    /// not sent and the moves audited.
     fn decode_and_fuse(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut [menu::Menu]) -> (usize, usize) {
         let instructions = picture.state["instructions"].as_str().unwrap_or_default();
         let extractor = self.kit.map(|k| self.name(k.extractor).to_string()).unwrap_or_default();
@@ -1351,23 +1418,70 @@ impl Brain {
         let asks = decode::needed(menus, &pianist.decode, &newer, &what);
         if !asks.is_empty() {
             let request = jev::Request { state: json!({ "instructions": instructions }), questions: asks };
-            pianist.stats.calls += 1;
-            pianist.stats.questions += request.questions.len() as u32;
-            match pianist.client.as_ref().expect("the fuse layer needs Jev").ask(&request) {
-                Ok(response) => {
-                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
-                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
-                    let reads: BTreeMap<String, f64> = response.answers.iter().filter_map(|(k, a)| if let jev::Answer::Noul { noul } = a { Some((k.clone(), *noul)) } else { None }).collect();
-                    pianist.write_log(json!({ "t": "decode", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "usage": response.usage, "batches": response.batches, "asked": request.questions.len(), "reads": reads }));
-                    pianist.decode.reads.extend(reads);
+            match &pianist.decoder {
+                Some(decoder) => {
+                    // A decode of this packet in flight carries these questions already (`needed` asks again for
+                    // whatever has no reading), so nothing is sent until it lands.
+                    if pianist.decode_pending.is_none() {
+                        pianist.stats.calls += 1;
+                        pianist.stats.questions += request.questions.len() as u32;
+                        if decoder.to.send((instructions.to_string(), request)).is_ok() {
+                            pianist.decode_pending = Some((instructions.to_string(), tick.frame));
+                        }
+                    }
                 }
-                Err(e) => {
-                    pianist.stats.errors += 1;
-                    pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": format!("the decode: {e}") }));
+                None => {
+                    pianist.stats.calls += 1;
+                    pianist.stats.questions += request.questions.len() as u32;
+                    let result = pianist.client.as_ref().expect("the fuse layer needs Jev").ask(&request);
+                    decode_answered(pianist, tick.frame, &request, result, 0);
                 }
             }
         }
         decode::fuse(menus, &pianist.decode, &newer, &extractor, &mut compose::draw)
+    }
+
+    /// The decoder's answers (realtime): the readings of the packet in force go into the decode, logged with the
+    /// frames they waited; an answer to a packet since replaced is dropped. A decode nobody answered in
+    /// `DECODE_STALE_FRAMES` is given up.
+    fn collect_decode(&mut self, tick: &Tick) {
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        let Some(decoder) = &pianist.decoder else { return };
+        let mut answers = Vec::new();
+        let mut ended = false;
+        loop {
+            match decoder.from.try_recv() {
+                Ok(answer) => answers.push(answer),
+                Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    ended = true;
+                    break;
+                }
+            }
+        }
+        if ended {
+            pianist.decoder = None;
+            pianist.decode_pending = None;
+            pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": "the decoder's thread has ended: decodes are made in place from here" }));
+        }
+        for (packet, request, result) in answers {
+            if packet != pianist.decode.packet {
+                pianist.write_log(json!({ "t": "decode", "f": tick.frame, "dropped": "its packet was replaced while Jev read it", "asked": request.questions.len() }));
+                continue;
+            }
+            let sent = match pianist.decode_pending.take() {
+                Some((_, sent)) => sent,
+                None => tick.frame,
+            };
+            decode_answered(pianist, tick.frame, &request, result, tick.frame - sent);
+        }
+        if let Some((_, sent)) = pianist.decode_pending
+            && tick.frame - sent > DECODE_STALE_FRAMES
+        {
+            pianist.decode_pending = None;
+            pianist.stats.dropped += 1;
+            pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": format!("the decode sent at frame {sent} has not come in {} s; given up", DECODE_STALE_FRAMES / FRAMES_PER_SECOND) }));
+        }
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
@@ -1389,9 +1503,12 @@ impl Brain {
             }
             return;
         }
-        let client = pianist.client.as_ref().expect("a call needs Jev");
-        let result = client.ask(&request);
-        let followed = result.as_ref().ok().map(|response| followed(&|r| client.ask(r), &follow, &response.answers, &request.state));
+        let (result, followed) = self.timed("gate", |b| {
+            let client = b.pianist.as_ref().expect("pianist mode").client.as_ref().expect("a call needs Jev");
+            let result = client.ask(&request);
+            let followed = result.as_ref().ok().map(|response| followed(&|r| client.ask(r), &follow, &response.answers, &request.state));
+            (result, followed)
+        });
         self.gate_answered(tick, kit, &picture, follow.menus, &follow.audited, &request, result, followed, commands);
     }
 
