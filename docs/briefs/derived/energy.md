@@ -118,8 +118,10 @@ and 4,080 energy, 41 seconds of its own output to charge against the Armada one'
 draw is one advanced solar, not one per 80; the fusion 950 for 4,000; and the per-unit bill runs the other way round
 from Armada's, the Goblin at 14.0 and the Satyr at 8.3 against the Alaris at 13.1 and the Decurion at 12.0, so a
 Legion bot stream draws about what a Blitz stream does (a Goblin 70 a second at the plant alone, a Blitz 68) and the
-vehicle plant is the dear one (a Decurion 112 against a Stout's 93). The one strong Legion sample fed 173 Goblins by
-10:00 off thirty turbines on a map with wind to 14 (M-leg-duel-opening).
+vehicle plant is the dear one (a Decurion 112 against a Stout's 93). The strong Legion players open the vehicle plant
+two times in three all the same, for the Wheelie's and the Alaris's speed, and pay the bill from the map: turbines by
+the dozen where the wind tops 14, solars on Flats and Rosetta; one Goblin stream of 173 by 10:00 ran off thirty
+turbines on a map with wind to 14 (M-leg-duel-opening).
 
 **When to depart from the line.** When the metal store is banked and the energy store full: build power, not energy.
 When both stores are empty: nothing, the stall is metal's and a generator only delays the next extractor. When his air

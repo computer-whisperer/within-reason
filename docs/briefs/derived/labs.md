@@ -141,14 +141,18 @@ mixed duels. (7) Legion inverts the energy mechanism (F-eco-legion): its bot lab
 Goblin 30 metal and 420 energy at 14.0 a metal level with the Alaris's 13.1 and the Satyr's 8.3 under the Decurion's
 12.0; there is no scout bot, the Wheelie being the vehicle plant's; and the construction bot is the cheapest
 constructor in the game at 100 metal, 75 build power and speed 39 (12 s of walking and 25 of building on Comet's
-pairs, 37 against the construction vehicle's 30.5, so the vehicle still expands faster). The sample is small and all
-one way: both Legion duels at OS 49 and both at OS 27 opened the bot lab before 1:00 and never built a vehicle plant,
-and the OS-49 player streamed 173 Goblins by 10:00 from one lab under turrets, then two more labs, and won from
-behind on income, on army value at 8:00 and on the Blitz exchange (61 to 73 Goblins a game to Blitzes) once the stream
-outgrew his Blitz count (M-leg-duel-opening). Reading his lab when he is Legion: the bot lab is the expected opener
-and says nothing about a window, and the Goblin is a 30-metal unit that dies in numbers and keeps coming, so the
-count that matters is his labs and turrets, not his army; a Legion vehicle plant is the unusual, energy-heavy choice
-(BARb medium's as Legion, M-leg-ais). Our own lab as Legion: the bot lab, by the same arithmetic.
+pairs, 37 against the construction vehicle's 30.5, so the vehicle still expands faster). The strong Legion players
+do not follow the energy arithmetic: over 36 sides above OS 40 they open the vehicle plant 24 times and the bot lab
+12, on solar and wind maps alike (M-leg-duel-opening), and the vehicle opener is a speed opener, a Wheelie mass (34
+to 49 of the 23-metal, speed-160 car by 5:00, then Alaris) or Alaris from the first minute, the Legion form of the
+Rover mass and the pin above. The bot lab's form is constructors first, then a Goblin stream, 24 to 57 by 10:00 at
+the median's low end and 242 at the top; it won 7 of 12 and both Legion mirrors in which the openers differed, and
+one such stream won from behind on income, on army value at 8:00 and on the Blitz exchange once it outgrew his Blitz
+count. Reading his lab when he is Legion: a vehicle plant means Wheelies at our outer pairs from about 1:30 and Alaris
+at 99 a second behind them, the pin with a faster car; a bot lab means a Goblin that dies in numbers and keeps
+coming, so the count that matters is his labs and turrets, not his army. Our own lab as Legion is a choice the
+sample does not settle: the vehicle plant for the pin and the expansion, the bot lab for the energy and the stream,
+and the two Legion mirrors say the stream beat the Alaris army.
 
 **When to depart from the line.** The line is the vehicle plant on Comet and the reading of his. Depart from the
 plant on a map with triples and wind; from the reading when his second factory changes the race (a bot player's vehicle

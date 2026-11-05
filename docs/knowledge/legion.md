@@ -340,14 +340,16 @@ and 13.0, Cortex 10.6 and 13.2). At the plant alone (150) and with the commander
 energy a second (a Pawn 82 and 245), a Satyr 62 and 188, an Alaris 77 and 232 (a Blitz 68 and 202), a Decurion 112
 and 338 (a Stout 93 and 278). So for Legion the bot lab is the cheap-energy opener and the vehicle plant the dear one,
 and "the vehicle plant on solar maps" has no Legion reading.
-**Status.** supported (2026-11-05) for the arithmetic (unit files); as a statement about play, reported: the two
-OS-49 duels and the two OS-27 duels all opened the bot lab and none built a vehicle plant
-(K-leg-open-os49-canis-river, K-leg-open-os27-great-divide); BARb medium as Legion opens the vehicle plant and Apex the
-bot lab (K-leg-both-stock-ais-play-legion)
+**Status.** supported (2026-11-05) for the arithmetic (unit files); as a statement about play, refuted the same day:
+the 36 Legion sides above OS 40 open the vehicle plant 24 times and the bot lab 12 (K-leg-duel-openers-os40), and the
+vehicle openers run a Wheelie mass or Alaris from the first minute, so the lab is chosen for the raiders' speed
+(Wheelie 160, Alaris 99, Goblin 75) and the player's habit, not for the energy bill; BARb medium as Legion opens the
+vehicle plant and Apex the bot lab (K-leg-both-stock-ais-play-legion)
 **Evidence.** `Bots/leggob.lua`, `leglob.lua`, `legkark.lua`, `legbal.lua`; `Vehicles/leghades.lua`, `leggat.lua`,
 `leghelios.lua`, `legrail.lua`, `legbar.lua`; the Armada and Cortex twins; every factory's `buildoptions` at 54199a0d
 (the draws are energy times build power over build time, F-eco-build).
-**Would be wrong if.** Legion duels above OS 40 on solar maps opened the vehicle plant as Armada's do there.
+**Would be wrong if.** (as a play statement) Legion duels above OS 40 opened the vehicle plant as Armada's do: they do,
+2 to 1, on solar and wind maps alike.
 **Used by.** D-lab-choice's Legion bend; M-leg-duel-opening (docs/briefs/meta/legion.md)
 
 ### K-leg-open-os49-canis-river
@@ -372,6 +374,51 @@ there and are the test
 **Evidence.** http://b-dtop.b.gecko.network:8770/match/d011c16a8ebd392b093b7dcb82c9d784 and
 /match/9d0ec16a69d1a0c01178d7a69ef203ea (`/api/match/<id>` and `/api/game-event/<id>` for the events); read with
 `run/replays/bar_replays.py <id>`.
+**Checked 2026-11-05 (the queued games read, K-leg-duel-openers-os40).** The vehicle plant opens 24 of the 36 sides at
+this level and the bot lab 12; ozvideo's Goblin stream is one of the bot lab's forms, and Altf4_ubivator (OS 57) plays
+it with Phobos. The claim stands as what this player does, not as the Legion opening.
 **Would be wrong if.** The queued 36 showed vehicle-plant openers at this level, or lab-first Legion losing its duels.
+(They did, 24 of 36; the lab-first sides won 7 of 12.)
 **Used by.** M-leg-duel-opening (docs/briefs/meta/legion.md); D-lab-choice's Legion bend; K-leg-open-os27-great-divide
 (checked against it)
+
+### K-leg-duel-openers-os40
+**Claim.** Over the 36 Legion sides of the 29 public duels with both players above OS 40 that replay under the current
+engine (selection 6 of the bar-replays tool, 2026-02 to 2026-10, game versions test-29538 to test-31723; nine maps,
+sixteen players, OS 43 to 60), Legion opens the vehicle plant 24 times and the bot lab 12, never air. The openers:
+- *Vehicle plant* (24 sides, 10 won; placed at 0:41 median, 0:31 to 0:52, after three or four extractors and a solar or
+  two turbines). Two forms. (a) *The Wheelie mass*, the Legion form of thebluegecko's Rover mass (K-open-matt-order-
+  timings): two or three constructors, then Wheelies without a pause, 34 to 49 by 5:00, the first Alaris only at 4:44
+  to 7:09 and 45 to 88 of them by 10:00; the Wheelies kill his scout cars and bare extractors (PRO_Fiddler112, OS 54
+  to 55, 21 to 74 kills a game, 59 to 117 Wheelies lost) and the Alaris then kill his raiders and extractors by the
+  hundred (Blitzes 73 and 97 in two games). Played by PRO_Fiddler112 (six sides), Chomolungma, Altf4_ubivator (one
+  side), phosphophyllite, cooolcat1239, BM_Lovish, erevos, mostly on Flats and Forests (wind to 12) and Hades Ponds
+  (14). (b) *Alaris first*: a constructor, a Wheelie, then Alaris from 1:15 to 1:53, 14 to 23 by 5:00, 51 to 111 by
+  10:00, Helios from 5:00 ([APM]Glados OS 51, four sides, four wins on Eternal Consequences; GlorpChud, modulo,
+  cooolcat1239). An Alaris army killed 231 Goblins in one game and still lost to the stream (Rosetta, GlorpChud
+  against iyc).
+- *Bot lab* (12 sides, 7 won; placed at 0:31 median, 0:20 to 0:47, after one to three extractors and a solar or a
+  turbine). Constructors first (two to five before the first Goblin in eight of twelve), then Goblins from 1:07 to
+  2:18, 24 to 57 by 5:00 and 50 to 242 by 10:00; Altf4_ubivator (OS 57, three sides on Hades Ponds, two won) adds
+  Phobos, 8 to 15 by 10:00, and the Satyr comes in the long games. Played by ozvideo, Altf4_ubivator, Haundreyy and
+  VonComet (an Argent Strata mirror), iyc, GlorpChud, cooolcat1239, I0NST0RM, C3BO; on Canis River, Hades Ponds,
+  Carrot Mountains, Argent Strata.
+- The opener follows the player more than the map: Flats and Forests is vehicles in 8 of 8, Eternal Consequences 6
+  of 7, Hades Ponds 4 vehicles (0 won) and 3 bot labs (2 won), Rosetta (a solar map, wind to 10) 3 vehicles and 1
+  bot lab (the bot lab won their meeting). In the two Legion mirrors where the openers differed the bot lab won both
+  (Rosetta, Hades Ponds). The wins by opener are 10 of 24 and 7 of 12, within noise of each other and of the OS
+  gaps in the pairings.
+- Common to both: five constructors by 5:00 (median 5.5 and 5), 15 extractors by 5:00 and 34 to 40 by 10:00, one
+  or two construction turrets by 5:00, two or three Pharos by 5:00, the second factory a second vehicle plant (14),
+  the drone plant (8, at 6:08 to 11:08) or a bot lab (7). No Hive in any side by 10:00. The energy is the map's:
+  turbines by the dozen where the wind tops 14 or more (28 to 68 by 10:00), solars on Flats and Rosetta (15 to 45).
+**Status.** supported (2026-11-05) as a count of what strong players do; the win rates are noise-level (36 sides,
+mirrors and OS gaps mixed in); the energy-bill arithmetic (K-leg-lab-energy-inverts) does not decide the Legion
+lab, the player's habit and the Wheelie's and Alaris's speed do
+**Evidence.** `run/replays/legion_openings.py` over `run/data/bar-replays/selection6.ids` (the cached
+`/api/match` and `/api/game-event` of the 29 games; the ten June 2025 games of the selection crashed the engine
+in replay, signal 11, and are not in the count). The per-side table is the script's output.
+**Would be wrong if.** A larger cut (above OS 35: 63 games in the catalogue) reversed the 2:1, or the bot lab's
+wins held up over more mixed mirrors.
+**Used by.** M-leg-duel-opening (docs/briefs/meta/legion.md); D-lab-choice's Legion bend; K-leg-open-os49-canis-river
+(one of its two forms)
