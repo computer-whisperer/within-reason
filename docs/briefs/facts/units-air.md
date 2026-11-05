@@ -67,18 +67,19 @@ status: live
 | cortitan | Angler | 2 | torpedo bomber | coraap | 410 | 8200 | 18000 | 1960 | 279 | 400 | 150 |  | 500 | 4.78 | 0.37 | flies, sonar |
 | corseah | Skyhook | 2 | transport aircraft | coraap | 370 | 9000 | 12500 | 2200 | 185 |  |  |  | 500 | 5.95 |  | transport, flies |
 
-### Legion: air (24 units)
+### Legion: air (27 units)
 
 <!--meta
 id: F-units-air-legion
 layer: fact
-ids: [F-unit-legafigdef, F-unit-legatorpbomber, F-unit-legatrans, F-unit-legcib, F-unit-legeallterrainmech, F-unit-legfhive, F-unit-legfig, F-unit-legfort, F-unit-leghive, F-unit-legkam, F-unit-leglts, F-unit-legmineb, F-unit-legmos, F-unit-legphoenix, F-unit-legspbomber, F-unit-legspcarrier, F-unit-legspfighter, F-unit-legspradarsonarplane, F-unit-legspsurfacegunship, F-unit-legsptorpgunship, F-unit-legstronghold, F-unit-legvcarry, F-unit-legvenator, F-unit-legwhisper]
+ids: [F-unit-legafigdef, F-unit-legatorpbomber, F-unit-legatrans, F-unit-legcib, F-unit-legdrone, F-unit-legeallterrainmech, F-unit-legfhive, F-unit-legfig, F-unit-legfort, F-unit-legheavydrone, F-unit-legheavydronesmall, F-unit-leghive, F-unit-legkam, F-unit-leglts, F-unit-legmineb, F-unit-legmos, F-unit-legphoenix, F-unit-legspbomber, F-unit-legspcarrier, F-unit-legspfighter, F-unit-legspradarsonarplane, F-unit-legspsurfacegunship, F-unit-legsptorpgunship, F-unit-legstronghold, F-unit-legvcarry, F-unit-legvenator, F-unit-legwhisper]
 grounding: crates/bot/data/units.json at game commit 54199a0d3f9a3aadd18cc731a44f6bba6e0f92aa (run/unit_stats.py)
 generated: run/fact_units.py
 status: live
 -->
 | unit | name | tier | class | from | metal | energy | build time | health | speed | range | dps | dps vs air | sight | health per metal | dps per metal | flags |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| legdrone | Legion Drone | 1 | aircraft | leganavyantinukecarrier/legfhive/leghive/legnavydestro/legspcarrier/legvcarry | 15 | 500 | 1000 | 325 | 280.5 | 300 | 26.7 | 13.3 | 600 | 21.67 | 1.78 | flies |
 | legspbomber | Pyrphoros | 1 | bomber | legsplab | 240 | 7500 | 9890 | 1170 | 267.3 | 1280 | 150 | 150 | 455 | 4.88 | 0.62 | flies, anti_air |
 | legspcarrier | Hecatoncheir | 1 | drone carrier aircraft | legsplab | 250 | 5000 | 9250 | 1500 | 93 |  |  |  | 600 | 6.00 |  | flies |
 | legfhive | Naval Hive | 1 | drone hive | leganavyengineer/legch/legnavyconship/legotter/legspcon | 350 | 9000 | 7500 | 1200 |  |  |  |  | 455 | 3.43 |  | submerged, on_water |
@@ -93,6 +94,7 @@ status: live
 | legsptorpgunship | Ladon | 1 | torpedo bomber | legsplab | 190 | 5000 | 10720 | 900 | 273 | 460 | 62.2 |  | 535 | 4.74 | 0.33 | flies, sonar |
 | leglts | Aeolus | 1 | transport aircraft | legap | 68 | 1300 | 3850 | 265 | 207 |  |  |  | 430 | 3.90 |  | transport, flies |
 | legatrans | Hippotes | 1 | transport aircraft | legap | 190 | 4000 | 8500 | 800 | 100 |  |  |  | 430 | 4.21 |  | transport, flies |
+| legheavydrone | Legion Heavy Drone | 2 | aircraft | legrampart | 90 | 1000 | 5820 | 1650 | 180.5 | 430 | 125 | 25 | 750 | 18.33 | 1.39 | flies |
 | legfort | Tyrannus | 2 | assault gunship | legaap | 5600 | 79000 | 119750 | 16700 | 93 | 915 | 555.3 | 95 | 600 | 2.98 | 0.10 | flies |
 | legphoenix | Phoenix | 2 | bomber | legaap | 450 | 25000 | 46600 | 2000 | 270 | 950 | 18.1 |  | 430 | 4.44 | 0.04 | needs_energy_to_fire, flies |
 | legvcarry | Mantis | 2 | drone carrier vehicle | legavp | 450 | 9000 | 11550 | 1400 | 45 |  |  |  | 400 | 3.11 |  |  |
@@ -102,4 +104,5 @@ status: live
 | legwhisper | Whisper | 2 | radar plane | legaap | 210 | 9000 | 16480 | 990 | 321 |  |  |  | 1250 | 4.71 |  | stealth, flies, sonar |
 | legatorpbomber | Aesacus | 2 | torpedo bomber | legaap | 480 | 9480 | 21970 | 1900 | 290 | 400 | 214.3 |  | 500 | 3.96 | 0.45 | flies, sonar |
 | legstronghold | Stronghold | 2 | transport gunship | legaap | 550 | 13000 | 24200 | 2600 | 160 | 450 | 150 | 60 | 430 | 4.73 | 0.27 | transport, flies |
+| legheavydronesmall | Legion Heavy Drone | 3 | aircraft | legeallterrainmech | 90 | 1000 | 5820 | 1650 | 180.5 | 430 | 125 | 25 | 750 | 18.33 | 1.39 | flies |
 | legeallterrainmech | Myrmidon | 3 | drone carrier mech | leggant | 3950 | 78000 | 120250 | 9200 | 33 | 1100 | 300 | 55.5 | 625 | 2.33 | 0.08 | gantry |

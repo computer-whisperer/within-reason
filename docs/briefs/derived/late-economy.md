@@ -1,7 +1,7 @@
 <!--meta
 id: D-late-economy
 layer: derived
-premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, D-air-not-optional, D-surprise-weapons, F-eco-store, F-eco-build, F-eco-reclaim, F-eco-conversion, F-eco-multipliers, F-eco-consequences, F-unit-armnanotc, F-unit-armfus, F-unit-armafus, F-unit-armmakr, F-unit-armmmkr, F-unit-armmoho, F-unit-armadvsol, F-unit-armaca, F-unit-armacv, F-unit-armack, M-pool-energy-and-power, M-pool-closing, M-gecko-team, M-format-8v8, M-barb-bonus, M-apex-economy]
+premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, D-air-not-optional, D-surprise-weapons, F-eco-store, F-eco-build, F-eco-reclaim, F-eco-conversion, F-eco-multipliers, F-eco-consequences, F-eco-legion, F-unit-armnanotc, F-unit-armfus, F-unit-armafus, F-unit-armmakr, F-unit-armmmkr, F-unit-armmoho, F-unit-armadvsol, F-unit-armaca, F-unit-armacv, F-unit-armack, F-unit-legmohocon, F-unit-legrampart, F-unit-leghive, M-pool-energy-and-power, M-pool-closing, M-gecko-team, M-format-8v8, M-barb-bonus, M-apex-economy]
 lessons: [L-gecko-three-resources, L-energy-nanos, L-energy-converters, L-sheet-economy, L-sheet-labs, L-tier2-go, L-tier2-tier1-under-tier2]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-18, 2026-10-21, 2026-10-30], relay: the 3v1 chat lines, his unit sheet, the user's recollection of the fusion-to-converter ladder (2026-10-18), his game against an inactive opponent played through our engine (K-eco-pro-curve-against-a-passive-opponent), the Center Command sprint, the 8v8 replay set's tech seats; the prices are arithmetic on the facts (K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend); the failures are ours (econ-flagship-1 to -4, the Glitters 2v6 of 2026-10-25, the Altored +50 3v3 of 2026-10-18)}
 claims: [K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
@@ -180,7 +180,13 @@ Center Command sprint used tier-1 constructors and turrets finishing frames the 
 (K-t2-moho-frames-finished-by-tier-1-build-power). (6) On few spots (the tech seat's six, Great Divide's eleven a
 side) the mohos are done early and the loop is the whole income; on Comet's 39 a side the spots carry the growth to
 about 15:00 and the loop takes over after. (7) The pool's medians are the right reference for a duel and the wrong
-one for every other setting of the knob: the comparator is the instance with the same setting.
+one for every other setting of the knob: the comparator is the instance with the same setting. (8) A Legion seat
+(F-eco-legion): the ladder costs the same per metal a second in larger pieces (the fusion 950 for 4,000, the advanced
+fusion 3,300 for 10,500, the fusion frame 244 seconds on one advanced construction vehicle against 186), so each step
+wants more power standing beside it; the standing power can be the Fortifiers at the spots, 400 each, as well as a
+block; a vent takes the Rampart (600 a second, an anti-nuke, three heavy drones) in place of a hardened geothermal,
+which is the field's anti-nuke placed for it; and a Hive is an energy sink that stands beside the converters, 50
+energy and 1.5 metal a second while it restocks six drones at 15 metal and 500 energy each.
 
 **When to depart from the line.** When his army is at the field or our extractors with nothing answering: the raid
 answer first, as in every article. When the kill is in sight within the frame's payback: the surplus goes into the

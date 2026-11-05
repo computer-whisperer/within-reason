@@ -1,7 +1,7 @@
 <!--meta
 id: D-lab-choice
 layer: derived
-premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-corlevlr, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-eco-energy, F-eco-build, F-eco-conversion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-barb-sparring, M-gecko-duels, D-lead-convert-it, D-reach-nests, D-raid-answer]
+premises: [F-unit-armlab, F-unit-armvp, F-unit-corlab, F-unit-corvp, F-unit-armck, F-unit-armcv, F-unit-armpw, F-unit-corak, F-unit-armflash, F-unit-corgator, F-unit-corlevlr, F-unit-armfav, F-unit-corfav, F-unit-armflea, F-unit-armllt, F-unit-leglab, F-unit-legck, F-unit-leggob, F-unit-leghades, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-legion, F-fight-consequences, F-map-metal, F-map-catalogue, F-barb-how-it-decides, M-pool-opening, M-pool-first-units, M-pool-pressure, M-pool-openers, M-barb-hard-aggressive-comet, M-barb-sparring, M-gecko-duels, M-leg-duel-opening, M-leg-ais, D-lead-convert-it, D-reach-nests, D-raid-answer]
 lessons: [L-gecko-bots-vs-vehicles, L-sheet-labs, L-sheet-raids, L-gecko-one-more-con, L-gecko-three-resources]
 sources: {people: [thebluegecko, the user], dates: [2026-10-23], relay: his spoken account of a vehicle opener against a bot opener, recorded by the user and transcribed locally (L-gecko-bots-vs-vehicles), his unit-sheet rows on the labs (L-sheet-labs), his reading of the metal article aloud (L-gecko-one-more-con); the user's request that the derivations stay lean, ideas with their arithmetic and no doctrine}
 status: draft, checked (run/metal_killtest.py openers, 2026-10-23: the pool's 80 Comet sides by first factory and our 280 model-played duels with both first factories read; the numbers in the tests)
@@ -137,7 +137,18 @@ itself, before it answers, "just a better unit than the Blitz"; the Blitz's own 
 it "can also beat grunts and pawns per cost if you can get close" (L-sheet-raids); and "on some maps, mash Pounder for the defensive
 value" (315 of reach, 1,400 health, 106 a second for 220 metal, too slow at 40 to raid). None of this is in the
 pool's cut, whose bot sides are Cortex Grunts in 15 of 16; the Grunt's reach may be part of why they win half the
-mixed duels.
+mixed duels. (7) Legion inverts the energy mechanism (F-eco-legion): its bot lab is the cheap-energy opener, the
+Goblin 30 metal and 420 energy at 14.0 a metal level with the Alaris's 13.1 and the Satyr's 8.3 under the Decurion's
+12.0; there is no scout bot, the Wheelie being the vehicle plant's; and the construction bot is the cheapest
+constructor in the game at 100 metal, 75 build power and speed 39 (12 s of walking and 25 of building on Comet's
+pairs, 37 against the construction vehicle's 30.5, so the vehicle still expands faster). The sample is small and all
+one way: both Legion duels at OS 49 and both at OS 27 opened the bot lab before 1:00 and never built a vehicle plant,
+and the OS-49 player streamed 173 Goblins by 10:00 from one lab under turrets, then two more labs, and won from
+behind on income, on army value at 8:00 and on the Blitz exchange (61 to 73 Goblins a game to Blitzes) once the stream
+outgrew his Blitz count (M-leg-duel-opening). Reading his lab when he is Legion: the bot lab is the expected opener
+and says nothing about a window, and the Goblin is a 30-metal unit that dies in numbers and keeps coming, so the
+count that matters is his labs and turrets, not his army; a Legion vehicle plant is the unusual, energy-heavy choice
+(BARb medium's as Legion, M-leg-ais). Our own lab as Legion: the bot lab, by the same arithmetic.
 
 **When to depart from the line.** The line is the vehicle plant on Comet and the reading of his. Depart from the
 plant on a map with triples and wind; from the reading when his second factory changes the race (a bot player's vehicle

@@ -78,7 +78,9 @@ fusion 750 (Cortex's 850), an advanced fusion 3,000.
 
 The commander makes 30 energy and 2 metal a second by itself. A construction vehicle makes 10 energy, a construction
 bot 7, an advanced constructor 14 to 20. These run whether the unit works or not. Numbers here are Armada's; a Cortex
-twin differs by a few percent where the unit tables say so.
+twin differs by a few percent where the unit tables say so. Legion's differ more: its advanced solar makes 100 for 465
+metal and 4,080 energy, its fusion 950 for 4,000, its advanced fusion 3,300 for 10,500, and its construction bot and
+aircraft make 5 energy, its construction vehicle 7 (the Legion section below).
 
 <!--meta
 id: F-eco-build
@@ -267,3 +269,55 @@ their own value in.
   less for every unit the last blows overkilled; a construction vehicle collects about 38 metal of wreck a second, a
   resurrection bot 58, the commander 75, so three constructors clear a 1,200-metal field in about ten seconds. Eating
   a bot lab returns 500 metal in 17 seconds of the commander's time, a vehicle plant 590 in 19.
+
+<!--meta
+id: F-eco-legion
+layer: fact
+premises: [F-eco-extractors, F-eco-energy, F-eco-build, F-eco-conversion]
+sources: {code: [upstream/Beyond-All-Reason/units/Legion/Economy/legmohocon.lua, legrampart.lua, legadvsol.lua, legfus.lua, legafus.lua, legmext15.lua, upstream/Beyond-All-Reason/units/Legion/Defenses/leghive.lua, upstream/Beyond-All-Reason/units/Legion/Air/legdrone.lua, upstream/Beyond-All-Reason/units/Legion/Constructors/legck.lua, legcv.lua, legafcv.lua, legaceb.lua, upstream/Beyond-All-Reason/units/Legion/Bots/leggob.lua, leglob.lua, upstream/Beyond-All-Reason/units/Legion/Vehicles/leghades.lua, leggat.lua, upstream/Beyond-All-Reason/luarules/gadgets/unit_attached_con_turret_mex.lua, upstream/Beyond-All-Reason/luarules/gadgets/unit_carrier_spawner.lua, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:376-383], game: 54199a0d, claims: [K-leg-economy-structures, K-leg-lab-energy-inverts], dates: [2026-11-05]}
+status: live
+-->
+### Legion: where its economy differs
+
+Legion's buildings cost what the other factions' do: the extractor 50 metal, the solar 150, the wind turbine 43, the
+bot lab 470, the vehicle plant 570, the converter 1 metal and 1,150 energy for 70 energy a second into 1 metal, the
+construction turret 230, the advanced extractor 640, the advanced plants 2,500 to 2,900, and its late ladder costs
+the same per metal a second as Armada's (a fusion with its converters 280 against 296, an advanced fusion with its
+five and a half converters 220 against 224). What differs:
+
+- *The Fortifier `legmohocon`, built by the advanced constructors.* An advanced extractor (the same four times the
+  spot, 20 energy a second of upkeep, 600 storage) that carries a 400-build-power construction turret of 400 reach,
+  assisting, repairing and reclaiming like any turret: 1,060 metal, 14,500 energy, 19,400 of build. The extractor and
+  two turrets bought apart are 1,100 metal, the same energy and 24,700 of build. The area upgrade and the role word
+  `advanced_extractor` make the plain extractor; the Fortifier has to be named by its id.
+- *The Rampart `legrampart`, on a vent.* 600 energy a second with 4,000 storage, an anti-nuke of coverage 1,600 (one
+  missile every 90 seconds for 150 metal and 7,500 energy), radar 2,100, a jammer and three heavy drones of 1,650
+  health that fight within 1,500 of it (90 metal and 1,000 energy each, replaced when lost): 2,600 metal, 38,000
+  energy, 8,600 health. Armada's vent building past the geothermal is a hardened 750 a second for 1,150; the plain
+  Legion anti-nuke is 1,500 metal and 40,000 energy.
+- *Hives.* A Hive is 350 metal and 9,000 energy and keeps six drones of 325 health that fight within 1,100 of it and
+  never leave 1,000: three come with it, and it restocks one every ten seconds at 15 metal and 500 energy, a lost
+  one too, drawing 50 energy and 1.5 metal a second while it does. The drones dock to heal and die within seconds of
+  the Hive. The Mantis truck (450 metal, advanced vehicle plant) is the same with six drones within 900 of it. Energy
+  becomes a standing picket at 33 energy per metal with no factory and no build power on it.
+- *No tier-1 extractor upgrade.* Armada's Twilight and Cortex's Exploiter have no buildable Legion twin in this
+  version: the only step past the 50-metal extractor is the 640-metal advanced one or the Fortifier.
+- *Energy in bigger lumps.* The advanced solar makes 100 a second for 465 metal and 4,080 energy (4.65 metal per
+  energy a second, 41 seconds of its own output to charge, a 5x5 footprint of 80 elmos; Armada's 80 for 350 and
+  5,000 is 4.4 and 63 seconds on 4x4); the fusion 950 for 4,000 metal, 25,000 energy and 66,000 of build (4.2;
+  Armada's 750 for 3,350 is 4.5, and a Legion fusion on one advanced construction vehicle takes 244 seconds against
+  186); the advanced fusion 3,300 for 10,500 (3.2, the same as Armada's 3,000 for 9,700).
+- *Constructors cheaper, faster and weaker.* The construction bot is 100 metal, 1,600 energy, 75 build power at speed
+  39 with 700 health (Armada's 110, 80, 36, 760); the construction vehicle 125, 2,100, 85 at 57 with 1,330 (135, 90,
+  54, 1,380); the construction aircraft 100 for 45; the advanced construction bot 410 for 195, the advanced vehicle
+  530 for 270 (Armada's 430 for 210 and 550 for 290). The Aceso from the advanced vehicle plant is 200 metal for 120
+  build power at speed 110 and builds only extractors, solars, turbines, radars, Pharos and dragon's teeth. The drone
+  plant is 430 metal against the aircraft plants' 630 to 650.
+- *The labs' energy bill is the other way round.* A Goblin is 30 metal and 420 energy (14.0 a metal) against the
+  Alaris's 65 and 850 (13.1); a Satyr 60 and 500 (8.3) against the Decurion's 300 and 3,600 (12.0); the Karkinos 7.7,
+  the Helios and the Lance 15.0. Legion's tier-1 bots run 11.4 energy a metal at the median and its tier-1 vehicles
+  15.0, where Armada's run 11.1 and 13.0. At the plant alone a Goblin draws 70 energy a second and 210 with the
+  commander assisting (a Pawn 82 and 245, a Blitz 68 and 202), a Satyr 62 and 188, an Alaris 77 and 232, a Decurion
+  112 and 338 (a Stout 93 and 278).
+- The tier-1 heat rays, the Pharos among them, cost no energy a shot, so a Legion base keeps firing through an energy
+  stall where a laser tower stops.

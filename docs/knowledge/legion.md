@@ -64,7 +64,17 @@ manifest's 317 games (665 sides) 21 have a Legion side (27 sides). The best Legi
 5-minute game that was not kept; the rest are OS 8-23, most on Great Divide and Comet Catcher. Legion knowledge
 therefore comes from the unit files, from Apex's Legion scripts, and from our own games, until the fetcher is pointed
 at Legion sides of high OS on purpose.
-**Status.** supported (2026-10-14) — a count over `run/data/replays/manifest.jsonl` (`players[].faction`)
+**Amended 2026-11-05.** Our manifest has grown to 576 games, 103 with a Legion side (240 sides): 14 sides at OS 30 or
+above, all 8v8 lane seats on All That Glitters from the human-8v8 set ([Cookie]Maco at 53.7 in four games, Air_China
+46.1, NullRay and Minigoal 33, Eclipse 32.5, Thors_Hammer 31.2, elderWhite 30.9; all carded), and 14 duel sides none
+above Warmoob's 27.1. The friend's bar-replays processing of the public replay bucket (http://b-dtop.b.gecko.network:8770;
+a DuckDB of the engine replay's events, 1,000 recent public duels above OS 40 processed) holds the whole catalogue:
+public duels with a Legion side number 39 with both players above OS 40 (29 of them in 2026, 6 since June), 63 above
+35, 164 above 30, 7 Legion mirrors above 40, against 14,212 public duels above 40 in all; so Legion is about one duel
+in forty at that level. Two of the 39 are read (K-leg-open-os49-canis-river), the other 36 are queued there as
+selection 6, legion-1v1-os40 (2026-11-05, about one CPU-hour), and `run/replays/bar_replays.py` reads a processed game.
+**Status.** supported (2026-10-14) — a count over `run/data/replays/manifest.jsonl` (`players[].faction`); the
+bucket-wide counts 2026-11-05 from the bar-replays catalogue preview
 **Evidence.** The manifest; the two carded games `run/matches/1791940127-replay-f90fb66a6c09d540a2efdcf14f3fb980`
 (22 min) and `run/matches/1791939987-replay-a915b66a6f0eb566c5821435469ccba9` (6 min).
 **Would be wrong if.** The BAR replay API, asked for Legion sides above OS 35, returned a usable pool (not asked yet).
@@ -93,6 +103,13 @@ A Legion vehicle army therefore wants more energy per metal of income than an Ar
 energy use matched income in minutes 10-14, the metal store sat at its cap for 146 s and spent 2,203 metal into
 nothing while the advanced solars ordered at 5:52-6:48 had been overwritten by later lists (the first stood at
 13:13). The opening arithmetic holds; the army's energy does not.
+**Amended 2026-11-05 (every economy, constructor, lab and commander file of the three factions dumped with Lua, and
+the energy per metal of every factory's list computed).** The buildings' prices are the same to within a few percent,
+as above, and the "30 to 60 %" is the twin pairs named, which are the extremes, not the roster: by factory, the median
+energy per metal of what it makes is level between the factions everywhere but the tier-1 vehicle plant (Legion 15.0
+against Armada 13.0 and Cortex 13.2; tier-1 bots 11.4 against 11.1 and 10.6; tier 2, air and tier 3 within a point).
+The consequence holds for a Legion vehicle army and inverts for a bot one (K-leg-lab-energy-inverts). Where Legion's
+economy differs from the other two is structural, not in price: K-leg-economy-structures.
 **Status.** supported (2026-10-14) — local source; the energy-per-metal consequence seen in one game
 **Evidence.** `Economy/legmex.lua`, `legsolar.lua`, `legwin.lua`, `legeconv.lua`, `legadvsol.lua`, `legfus.lua`,
 `legmoho.lua`, `legmstor.lua`, `legestor.lua`; `Labs/leglab.lua`, `legvp.lua`, `legalab.lua`; `Utilities/legnanotc.lua`;
@@ -174,8 +191,11 @@ from 10:00). The engine will show them as units of ours that no factory made. Th
 (`legmohobp`) is in no build list; the reachable Fortifier is `legmohocon`, an advanced extractor carrying an
 unselectable 400-build-power construction turret and no drones (the agent's reading, 2026-10-14; first written here as
 `legmohobp`).
-**Status.** supported (2026-10-14) for the numbers and build lists (local source); the drone-spawn mechanics are the
-descriptions' and the replay's, not read in the gadget
+**Amended 2026-11-05 (the gadget read).** A Hive's drones are a picket, not an army: they fight within 1,100 of it and
+never leave 1,000, dock to heal, and the Hive restocks a lost one every ten seconds at 15 metal and 500 energy through
+its stockpile (K-leg-economy-structures item 3). The OS-27 player's "army of drones from 10:00" was Hive pickets.
+**Status.** supported (2026-10-14) for the numbers and build lists (local source); the drone-spawn mechanics read in
+the gadget 2026-11-05 (`unit_carrier_spawner.lua`), not timed in a game
 **Evidence.** `Labs/legap.lua`, `Air/*.lua`, `Defenses/leghive.lua`, `Economy/legmohobp.lua`; the 22-minute carded
 game's `army_by_type` (below).
 **Would be wrong if.** A Hive of ours produced nothing, or its drones could be built from a factory menu.
@@ -215,6 +235,8 @@ before any tier 2.
 baselines, so a sketch of what Legion play looks like, not a standard
 **Evidence.** `card.json` of `run/matches/1791940127-replay-f90fb66a6c09d540a2efdcf14f3fb980` and
 `run/matches/1791939987-replay-a915b66a6f0eb566c5821435469ccba9` (`build_order`, `army_by_type`, `factories`).
+**Checked 2026-11-05.** The two OS-49 duels opened the same way (K-leg-open-os49-canis-river): the bot lab at 0:47, a
+constructor, then Goblins, with Satyrs from 7:25 and no Ballista and no Phobos; the shape holds across 22 OS.
 **Would be wrong if.** Higher-OS Legion games, once fetched, opened with the vehicle plant or Phobos pressure instead.
 **Used by.** (candidate: the brief's opening snippet for a Legion seat; the Legion `Roster`'s `raider`/`line` picks)
 
@@ -241,3 +263,115 @@ resolves to the Alaris) and `plant` (1); `line`, `turret` and `lab` never. (Coun
 log holds each call three times, and a first count here was three times too high.) It built no bot lab in the game (vehicle plants only, four of them, then the advanced
 vehicle plant), so the Goblin/Satyr half of the mapping is unexercised.
 **Used by.** the Legion `Roster` (`crates/bot/src/brain/roster.rs`)
+
+### K-leg-economy-structures
+**Claim.** Where Legion's economy differs from Armada's and Cortex's is five things it has and one it lacks, not the
+prices (K-leg-economy-is-the-cortex-economy); unit files at 54199a0d, the two gadgets read.
+1. *The Fortifier `legmohocon`* (the advanced constructors' lists): a tier-2 extractor (the moho's 0.004 a square, 20
+   energy a second of upkeep, 600 storage, 3,900 hp) carrying a 400-build-power construction turret of 400 reach that
+   assists, repairs and reclaims; 1,060 M / 14,500 E / 19,400 build time, against the moho's 640 / 8,100 / 14,100 plus
+   two construction turrets' 460 / 6,400 / 10,600 (1,100 / 14,500 / 24,700 bought apart). The game builds it as one
+   frame and at completion swaps in an extractor and a turret unit (`unit_attached_con_turret_mex.lua`). The advanced
+   constructors' `area_mex_def` is the plain moho, so an area upgrade never makes one, and our role word
+   `advanced_extractor` resolves to `legmoho`; it has to be named. `legmohobp`, a moho with a drone pad, is in no
+   build list.
+2. *The Rampart `legrampart`* (the advanced constructors' lists; needs a vent): 600 energy a second with 4,000
+   storage, an anti-nuke (coverage 1,600, one missile stockpiled in 90 s for 150 M / 7,500 E), radar 2,100, a jammer and
+   three heavy drones `legheavydrone` (90 M / 1,000 E each, 1,650 hp, range 430, kept within 1,500); 2,600 M / 38,000 E,
+   8,600 hp, 5x5. Armada's vent building past the geo is the Prude `armgmm`, 1,150 M for 750 a second with 13,900 hp
+   and nothing attached; Cortex's the Cerberus `corbhmth`, a geothermal plasma battery, 3,100 M for 450. Legion's plain anti-nuke `legabm` (1,500 M / 40,000 E)
+   exists beside it.
+3. *Hives and carriers.* A Hive `leghive` (the tier-1 constructors' lists) is 350 M / 9,000 E and holds up to six
+   drones `legdrone` (15 M / 500 E, 325 hp, speed 280, a two-shot 12-damage gun at 300 every 0.9 s): three at
+   completion, the rest and every replacement one per ten seconds at the drone's cost through the Hive's stockpile (the
+   weapon's `metalpershot` 15, `energypershot` 500, `stockpiletime` 10; the gadget's stockpile branch). The drones
+   engage within 1,100, never leave 1,000 of the Hive, dock to heal, and lose 20 hp a second once the Hive is dead. The
+   Mantis `legvcarry` (450 M, advanced vehicle plant) is the mobile form (three at start, six, within 900) and the
+   Rampart's heavy drones the same mechanism. So Legion turns energy into a standing picket at 33 energy per metal with
+   no factory and no build power on it: a Hive restocking draws 50 energy and 1.5 metal a second.
+4. *Energy in bigger lumps at the same price.* Advanced solar 100 a second for 465 M / 4,080 E / 12,500 build (5x5)
+   against Armada's 80 for 350 / 5,000 / 7,950 (4x4) and Cortex's 80 for 370 / 4,000 / 8,150: 4.65 metal per energy a
+   second against 4.4 and 4.6, and 41 seconds of its own output to charge against 63 and 50. Fusion 950 for 4,000 /
+   25,000 / 66,000 against 750 for 3,350 / 18,000 / 54,000 (Cortex 850 for 3,600 / 22,000 / 59,000): 4.2 against 4.5
+   and 4.2. Advanced fusion 3,300 for 10,500 / 69,000 / 340,000 against 3,000 for 9,700 / 69,000 / 312,500: 3.2 against
+   3.2. Converters identical (`legeconv` = `armmakr`; `legadveconv` = `cormmkr`, 370 M, 600 into 10.3). The ladder per
+   metal a second: fusion with its converters 280 against Armada's 296, advanced fusion with five and a half
+   converters 220 against 224. The fusion frame on one advanced construction vehicle: 244 s against 186.
+5. *Constructors cheaper, weaker and faster, and a 200-metal claim buggy.* Bot `legck` 100 M / 1,600 E / 75 build power /
+   speed 39 / 700 hp (Armada 110 / 1,600 / 80 / 36 / 760; Cortex 120 / 1,750 / 85 / 34.5 / 820); vehicle `legcv` 125 /
+   2,100 / 85 / 57 / 1,330 (Armada 135 / 1,950 / 90 / 54 / 1,380); aircraft `legca` 100 / 2,200 / 45 (Armada 110 /
+   2,100 / 50); advanced bot `legack` 410 / 195 / 36 (430 / 210 / 33); advanced vehicle `legacv` 530 / 270 / 55.5 (550 /
+   290 / 52.5; Cortex 580 / 310 / 49.5); advanced aircraft `legaca` 330 / 115 / 203. Their own energy make is 5 (bot,
+   aircraft) and 7 (vehicle) against Armada's 7 and 10. The Aceso `legafcv` (advanced vehicle plant) is 200 M / 2,900 E,
+   120 build power at speed 110, and builds only the extractor, solar, wind, radar, Pharos and dragon's teeth: the slot
+   of Armada's Consul (250 M / 150 / 78) and Butler (210 / 140 / 75), cheaper and faster. The Proteus `legaceb` (310 M,
+   all-terrain, 125 build power) builds tier-1 basics, towers and units in the field, as Cortex's Twitcher and
+   Armada's Consul do. The drone plant `legap` is 430 M against the aircraft plants' 650 and 630.
+6. *No tier-1 extractor upgrade.* The Overcharged extractor `legmext15` (250 M / 5,000 E, 0.002 a square, 30 energy a
+   second of upkeep, 1,110 hp; the game's own faction-substitution table pairs it with Armada's Twilight `armamex` and
+   Cortex's Exploiter `corexp`) is in no builder's list at this commit, BARb medium's Legion config marks it "disabled,
+   lack of efficiency", and the `legionsimplifiedmexes` lobby option only blocks it further. Legion's step from one to
+   four times a spot is the moho or the Fortifier. ([Cookie]Maco at 0:31 of an 8v8: "only legion doesn't get the extra
+   t1 mex".)
+Beside these, the tier-1 heat rays cost no energy a shot (K-leg-defences), so a Legion base stays armed through a stall.
+**Status.** supported (2026-11-05) — local source and the two gadgets; the Hive's rate is the file's and the gadget's
+branch, not timed in a game; none of the six built or met in a game of ours
+**Evidence.** `units/Legion/Economy/legmohocon.lua`, `legmohoconct.lua`, `legmohoconin.lua`, `legmohobp.lua`,
+`legrampart.lua`, `legadvsol.lua`, `legfus.lua`, `legafus.lua`, `legmext15.lua`; `Defenses/leghive.lua` (the carrier
+weapon's customparams), `Air/legdrone.lua`, `Air/T2 Air/legheavydrone.lua`, `Vehicles/T2 Vehicles/legvcarry.lua`;
+`Constructors/*.lua`; `luarules/gadgets/unit_attached_con_turret_mex.lua`, `unit_carrier_spawner.lua:595-660`;
+`gamedata/alldefs_post.lua:376-383`; `luaui/Include/blueprint_substitution/definitions.lua:59`;
+`luarules/configs/BARb/stable/config/medium/behaviour_leg.json:318`; the Armada and Cortex files beside them
+(`ArmBuildings/LandEconomy/`, `CorBuildings/LandEconomy/`, `ArmVehicles/T2/armacv.lua`, `CorVehicles/T2/coracv.lua`);
+`run/matches/1792687833-replay-1787cd6a347311cd1b9559af95fc7a4e/card.json` (Maco's chat). The dump: `lua5.1` over the files, one `print`
+per field (the session's scratch, 2026-11-05).
+**Would be wrong if.** A Legion game's Hello carried other numbers; a Hive restocked at another rate in a game;
+`legmext15` appeared in a constructor's menu in the version we run.
+**Used by.** F-eco-legion (docs/briefs/facts/economy.md); the Legion bends of D-energy-second, D-tier2-sprint and
+D-late-economy; the glossary's `legdrone` and `legheavydrone` entries (run/unit_stats.py follows `carried_unit`)
+
+### K-leg-lab-energy-inverts
+**Claim.** The lab article's premise, that bots cost about twice the energy per metal of vehicles (Pawn 16.7, Grunt
+19.1 against Blitz 8.2, Incisor 9.2), does not hold for Legion. Its raider pair is level, Goblin 14.0 (30 M / 420 E)
+against Alaris 13.1 (65 / 850), and its lines go the other way: Satyr 8.3 (60 / 500), Karkinos 7.7 (310 / 2,400),
+Ballista 12.0 (160 / 1,920) against Decurion 12.0 (300 / 3,600), Helios 15.0 (160 / 2,400), Lance 15.0 (240 / 3,600),
+Barrage 12.8 (250 / 3,200). By factory list the medians are tier-1 bots 11.4 and tier-1 vehicles 15.0 (Armada 11.1
+and 13.0, Cortex 10.6 and 13.2). At the plant alone (150) and with the commander (450): a Goblin draws 70 and 210
+energy a second (a Pawn 82 and 245), a Satyr 62 and 188, an Alaris 77 and 232 (a Blitz 68 and 202), a Decurion 112
+and 338 (a Stout 93 and 278). So for Legion the bot lab is the cheap-energy opener and the vehicle plant the dear one,
+and "the vehicle plant on solar maps" has no Legion reading.
+**Status.** supported (2026-11-05) for the arithmetic (unit files); as a statement about play, reported: the two
+OS-49 duels and the two OS-27 duels all opened the bot lab and none built a vehicle plant
+(K-leg-open-os49-canis-river, K-leg-open-os27-great-divide); BARb medium as Legion opens the vehicle plant and Apex the
+bot lab (K-leg-both-stock-ais-play-legion)
+**Evidence.** `Bots/leggob.lua`, `leglob.lua`, `legkark.lua`, `legbal.lua`; `Vehicles/leghades.lua`, `leggat.lua`,
+`leghelios.lua`, `legrail.lua`, `legbar.lua`; the Armada and Cortex twins; every factory's `buildoptions` at 54199a0d
+(the draws are energy times build power over build time, F-eco-build).
+**Would be wrong if.** Legion duels above OS 40 on solar maps opened the vehicle plant as Armada's do there.
+**Used by.** D-lab-choice's Legion bend; M-leg-duel-opening (docs/briefs/meta/legion.md)
+
+### K-leg-open-os49-canis-river
+**Claim.** The two highest-rated Legion duels available, ozvideo (OS 49.0 and 48.4) as Legion against maratus (OS 49.1
+and 49.5) as Armada on Canis River v1.4 (wind 4 to 14, tidal 10), 2026-10-03, game version test-31479, both won by Legion at 13:25 and 12:11,
+opened identically: three extractors at 0:03, 0:10 and 0:17, a solar at 0:24, turbines at 0:34 and 0:40, the bot lab
+at 0:47, then seven to nine turbines to about 1:57 and nothing else; the lab's first product a constructor at 1:26
+(a second at 1:43 in game two), then Goblins without a pause, one every three to six seconds, 173 and 179 by 10:00; a
+construction turret on the lab at 2:09 (three or four by 10:00); Zagreus four and seven; a second bot lab at 5:08 and
+6:36, a third at 6:21 and 7:56, a fourth at 9:29; eight or nine solars from 4:11 and one advanced solar at 8:57 and
+7:11; energy storages at 5:29 and 8:15 in game two; Satyrs joining the stream from 7:25 (26 by 10:00) in game one;
+four to fifteen Pharos, four to nine radars; no vehicle plant in either game. Won without an income lead: cumulative
+metal at 10:00 16,750 against his 17,630 and 12,850 against 15,490, energy 187,000 against 175,000 and 162,000
+against 152,000, units produced 326 against 192 and 286 against 176; army value behind at 8:00 (2,700 against 3,863;
+1,530 against 1,943) and ahead at the end (7,210 against 3,300 at 12:00; 3,174 against 1,665 at 10:00); Goblins died
+by the dozen to Blitzes (61 and 73 of them a game) and Stouts, and the last minute of each game is his base dying (25
+and 28 extractors, 18 and 21 solars). The opponent: bot lab at 0:28 for Fleas and Pawns, a vehicle plant at 3:13 and
+3:45 for Blitzes (28 and 47 by 10:00) and Stouts.
+**Status.** reported (2026-11-05) — one player, one opponent, one map, one session; read from the bar-replays
+processing of the engine replay, not our cards; the 36 other Legion duels above OS 40 in that catalogue are queued
+there and are the test
+**Evidence.** http://b-dtop.b.gecko.network:8770/match/d011c16a8ebd392b093b7dcb82c9d784 and
+/match/9d0ec16a69d1a0c01178d7a69ef203ea (`/api/match/<id>` and `/api/game-event/<id>` for the events); read with
+`run/replays/bar_replays.py <id>`.
+**Would be wrong if.** The queued 36 showed vehicle-plant openers at this level, or lab-first Legion losing its duels.
+**Used by.** M-leg-duel-opening (docs/briefs/meta/legion.md); D-lab-choice's Legion bend; K-leg-open-os27-great-divide
+(checked against it)

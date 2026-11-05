@@ -1,7 +1,7 @@
 <!--meta
 id: D-tier2-sprint
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
+premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-eco-legion, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, F-unit-legmohocon, F-unit-legmoho, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
 lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units, L-reclaim-field, L-reclaim-spread]
 sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-28, 2026-10-18, 2026-10-23], relay: the lessons' chat lines; the user's framing of tier 2 as a sprint whose gap is covered or not (2026-10-18) and his ruling that in a close duel the opponent's tech is the moment to kill his base (2026-09-28); his steer of 2026-10-23 that the derivations stay lean, ideas with worked arithmetic rather than rules, and his three reclaim patterns of the same evening (the field after a won fight, the tier-1 lab into the plant, the plant itself eaten for mohos) with a person's line relayed}
 status: live, checked (the kill-test run 2026-10-23 with run/metal_killtest.py tier2 over 1,641 recorded 1v1s of fourteen minutes or more; the tests are correlations across our own games and say so)
@@ -107,7 +107,11 @@ on income that cannot pay stalls (the +50 game: plant at 8:12, the constructor 1
 at 13:06, lost); there the window is before his lab stands, and the sprint is from a bank or waits until it is. On
 eleven spots a side (Great Divide) the moho is the only growth and the sprint is the plan from the first bank. The
 first product a tier-2 soldier instead of the constructor (one game of today's five) puts the mohos a minute later
-for one unit.
+for one unit. For a Legion seat the bill has a second shape (F-eco-legion): its moho is 640 and its first constructor
+410 or 530, and the Fortifier at 1,060 is a moho carrying two construction turrets' power at the spot for 40 metal
+less than the three bought apart and 5,300 less of build, so a cluster's first upgrade can be the Fortifier and the
+rest go up under its 400 beside the constructor; its tier-2 vehicles draw 16.0 energy a metal at the median against
+the 13.7 to 14.5 above; and its reach cliff is the Prometheus at 450, the Arquebus at 850 and the Thanatos at 1,200.
 
 **When to depart from the line.** When his raiders are on our extractors with nothing answering: the raid answer
 first, the plant after (D-metal-is-the-game). When the kill is in sight within the payback: no sprint, the surplus

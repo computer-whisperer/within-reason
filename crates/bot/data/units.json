@@ -12002,6 +12002,35 @@
    "gloss": "8-metal wall block with 2800 health; funnels tier-1 units and stops low shots; heavy tanks roll over it",
    "prose": "The Dragon's Teeth is an 8-metal wall block with 2800 health, the same as the other factions'. A line of them blocks most tier-1 units and low projectiles and funnels a push into a Dragon's Jaw's (legdtr) or a tower's fire; heavy tier-2 tanks crush it. Enemies do not target it automatically, so it is reclaimed or shot by hand. It costs nothing worth counting, and the Sapper (legmlv) and Aceso (legafcv) lay it too."
   },
+  "legdrone": {
+   "name": "Legion Drone",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyantinukecarrier",
+    "legfhive",
+    "leghive",
+    "legnavydestro",
+    "legspcarrier",
+    "legvcarry"
+   ],
+   "class": "aircraft",
+   "metal": 15,
+   "energy": 500,
+   "build_time": 1000,
+   "health": 325,
+   "speed": 280.5,
+   "range": 300,
+   "dps": 26.7,
+   "dps_air": 13.3,
+   "air": "13 dps against aircraft (50% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 600,
+   "flags": [
+    "flies"
+   ],
+   "gloss": "the Hive's, Mantis's and carriers' 15-metal 500-energy drone: a 325-health gun platform at 300 that fights within about 1,000 of its carrier, docks to heal, and is restocked one every ten seconds; dies within seconds of its carrier; no twin",
+   "prose": "The Legion Drone is the light drone the Hive (leghive), the Naval Hive, the Mantis (legvcarry), the Syracusia destroyer, the Hecate anti-nuke carrier and the seaplane carrier make by themselves: 15 metal and 500 energy, 325 health, speed 280, sight 600, a machine gun of two 12-damage rounds every 0.9 seconds at 300 (about 27 a second). Its carrier stockpiles one every ten seconds up to six, three free at completion, and replaces every loss at the same price, so a drone is energy turned into a picket with no factory and no build power on it. It fights within about 1,100 of its carrier and never leaves 1,000 of it, docks to heal, and loses 20 health a second once the carrier is dead. It is a unit of ours that no factory made; it is never ordered, only its carrier is placed."
+  },
   "legdtr": {
    "name": "Dragon's Jaw",
    "faction": "legion",
@@ -12800,6 +12829,54 @@
    "flags": [],
    "gloss": "65-metal fast raider tank, speed 99, a five-pellet shotgun at 211 (36 a second); cheap and light, dies to towers",
    "prose": "The Alaris is Legion's vehicle raider: 65 metal, 425 health, speed 99, a five-pellet shotgun doing 75 a blast every 2.1 seconds (36 a second) at range 211. It takes the Blitz's (armflash) place at 60 per cent of its metal and health, with 31 more range and about two-thirds of its damage per metal; its unit file also defines a gauss cannon, but the unit does not mount it. It is for constructors, extractors and radar (alone it needs about eight seconds for an extractor, five together under two), and any Pharos (leglht) or Sentry (armllt), the Pounder (corlevlr) or a line tank kills it."
+  },
+  "legheavydrone": {
+   "name": "Legion Heavy Drone",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legrampart"
+   ],
+   "class": "aircraft",
+   "metal": 90,
+   "energy": 1000,
+   "build_time": 5820,
+   "health": 1650,
+   "speed": 180.5,
+   "range": 430,
+   "dps": 125,
+   "dps_air": 25,
+   "air": "25 dps against aircraft (20% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 750,
+   "flags": [
+    "flies"
+   ],
+   "gloss": "the Rampart's and the anti-nuke carrier's heavy drone, 90 metal and 1,000 energy: 1,650 health, 125 damage a second at 430, three to a Rampart within 1,500 of it; restocked when lost; no twin",
+   "prose": "The Legion Heavy Drone is the Rampart's (legrampart) and the Hecate anti-nuke carrier's drone: 90 metal and 1,000 energy, 1,650 health, speed 180, sight 750, a laser burst of about 125 damage a second at 430 (25 against aircraft). A Rampart keeps three, one free at completion and the rest stockpiled eight seconds apart, replaces losses at the same price, and holds them within 1,500 of itself, so a Rampart on a vent is a geothermal plant with three tier-2 gunships standing over it. They dock to heal and decay once the Rampart is dead. Units of ours that no factory made."
+  },
+  "legheavydronesmall": {
+   "name": "Legion Heavy Drone",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "legeallterrainmech"
+   ],
+   "class": "aircraft",
+   "metal": 90,
+   "energy": 1000,
+   "build_time": 5820,
+   "health": 1650,
+   "speed": 180.5,
+   "range": 430,
+   "dps": 125,
+   "dps_air": 25,
+   "air": "25 dps against aircraft (20% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 750,
+   "flags": [
+    "flies"
+   ],
+   "gloss": "the Myrmidon mech's heavy drone, the Rampart's with another model: 90 metal and 1,000 energy, 1,650 health, 125 damage a second at 430, kept near the mech; no twin",
+   "prose": "The Myrmidon mech's (legeallterrainmech) heavy drone, the Rampart's (legheavydrone) with another model: 90 metal and 1,000 energy, 1,650 health, speed 180, a laser burst of about 125 damage a second at 430. The Myrmidon makes and keeps them itself, replaces losses at the same price and holds them near the mech, so a Myrmidon walks with its own air cover; they dock to it to heal and decay when it dies. Units of ours that no factory made."
   },
   "leghelios": {
    "name": "Helios",

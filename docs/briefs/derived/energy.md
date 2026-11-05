@@ -1,7 +1,7 @@
 <!--meta
 id: D-energy-second
 layer: derived
-premises: [D-metal-is-the-game, D-lab-choice, D-tier2-sprint, F-eco-store, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-map-weather, F-map-catalogue, F-map-consequences, F-unit-armsolar, F-unit-armwin, F-unit-armadvsol, F-unit-armtide, F-unit-armfus, F-unit-armestor, F-unit-armmakr, F-unit-armnanotc, F-unit-armap, M-pool-energy-and-power, M-pool-openers, M-pool-opening, M-gecko-vs-us-comet, M-barb-sparring]
+premises: [D-metal-is-the-game, D-lab-choice, D-tier2-sprint, F-eco-store, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-eco-legion, F-map-weather, F-map-catalogue, F-map-consequences, F-unit-armsolar, F-unit-armwin, F-unit-armadvsol, F-unit-armtide, F-unit-armfus, F-unit-armestor, F-unit-armmakr, F-unit-armnanotc, F-unit-armap, M-pool-energy-and-power, M-pool-openers, M-pool-opening, M-gecko-vs-us-comet, M-barb-sparring, M-leg-duel-opening]
 lessons: [L-gecko-three-resources, L-opening-solars, L-opening-solar-cap, L-energy-converters, L-energy-nanos, L-energy-priority, L-sheet-economy, L-sheet-labs, L-gecko-bots-vs-vehicles]
 sources: {people: [thebluegecko, Koochie (as heard), Irishstud14, the user], dates: [2026-09-27, 2026-10-23, 2026-10-24], relay: thebluegecko reading metal.md's "Where it bends" aloud (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the first recording), his unit sheet rows, the 3v1 chat lines; the prices are arithmetic on the facts; the habits are the pool's and our own games' (run/metal_killtest.py energy)}
 status: draft, checked (run/metal_killtest.py energy, 2026-10-24: the pool's 84 sides and 242 model-played games of ours)
@@ -113,7 +113,13 @@ income at 5:00 to the vehicle sides' 8.4, three solars more on the same metal, w
 (D-lab-choice). (5) Tier 2 changes the prices and the draw at once: units at 13.7 to 14.5 energy a metal and the
 fusion at 3,350 metal (D-tier2-sprint). (6) In a team the energy is the seat's unless shared, while the metal gifts
 go to the compounding seat (D-metal-is-the-game); a seat that builds the side's air plant carries the side's energy
-bill for it.
+bill for it. (7) A Legion seat reads its own prices (F-eco-legion): the advanced solar is 100 a second for 465 metal
+and 4,080 energy, 41 seconds of its own output to charge against the Armada one's 63, so the generator for 100 of new
+draw is one advanced solar, not one per 80; the fusion 950 for 4,000; and the per-unit bill runs the other way round
+from Armada's, the Goblin at 14.0 and the Satyr at 8.3 against the Alaris at 13.1 and the Decurion at 12.0, so a
+Legion bot stream draws about what a Blitz stream does (a Goblin 70 a second at the plant alone, a Blitz 68) and the
+vehicle plant is the dear one (a Decurion 112 against a Stout's 93). The one strong Legion sample fed 173 Goblins by
+10:00 off thirty turbines on a map with wind to 14 (M-leg-duel-opening).
 
 **When to depart from the line.** When the metal store is banked and the energy store full: build power, not energy.
 When both stores are empty: nothing, the stall is metal's and a generator only delays the next extractor. When his air

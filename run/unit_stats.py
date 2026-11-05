@@ -165,12 +165,18 @@ def checkout_commit(checkout):
 
 # ---------------------------------------------------------------- reachability and tiers
 
+def spawns(u):
+    """The units a carrier makes by itself (a carrier weapon's customparams.carried_unit: Legion's Hives, Mantis,
+    Rampart and Myrmidon make drones no factory lists); counted as made by the carrier, at the carrier's tier."""
+    return [c for c in ((w.get("customparams") or {}).get("carried_unit") for w in (u.get("weapondefs") or {}).values()) if c]
+
+
 def reachable(defs, root):
     seen = {root}
     stack = [root]
     while stack:
         n = stack.pop()
-        for b in defs.get(n, {}).get("buildoptions") or []:
+        for b in list(defs.get(n, {}).get("buildoptions") or []) + spawns(defs.get(n, {})):
             if b in defs and b not in seen:
                 seen.add(b)
                 stack.append(b)
@@ -693,7 +699,7 @@ def build(checkout):
         units |= reachable(defs, r)
     made_by = {}
     for n in units:
-        for b in defs[n].get("buildoptions") or []:
+        for b in list(defs[n].get("buildoptions") or []) + spawns(defs[n]):
             if b in units:
                 made_by.setdefault(b, set()).add(n)
     for n in units:
