@@ -90,6 +90,11 @@ pub struct Builder {
 }
 
 impl Builder {
+    /// The ground its body takes: no site goes over it (`choose::candidate`).
+    pub fn body(&self) -> Rect {
+        Rect { x0: self.at.x - self.half, z0: self.at.z - self.half, x1: self.at.x + self.half, z1: self.at.z + self.half }
+    }
+
     /// Whether `rect` lies where it could wall this builder in.
     pub fn concerns(&self, rect: &Rect) -> bool {
         window(self.at).overlaps(rect)

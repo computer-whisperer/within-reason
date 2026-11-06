@@ -384,6 +384,13 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if world.standing_near(&rect).any(|(_, s)| World::blocking_rect(s).overlaps(&rect)) {
         return None;
     }
+    // No site over a mobile builder of ours: the sites under the asking builder are the best by every band (its
+    // walk to them is nothing) and were the twelve tries of every widening, each refused as walling it in, so no
+    // search anchored at a builder reached a site beside it (site-dump-1, 2026-11-05; 6,814 of an 8v8's 6,910
+    // refusals).
+    if world.builders.iter().any(|b| b.body().overlaps(&rect)) {
+        return None;
+    }
     if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f, req.purpose)) {
         return None;
     }
@@ -925,6 +932,27 @@ mod tests {
         let mut with: Vec<Rect> = w.standing.iter().map(|s| s.rect).collect();
         with.push(Footprint { x: 6, z: 6 }.rect(site.at));
         assert!(way_out(&w.ground, &w.builders[0], &with, &*w.open), "walled in by the site: {site:?}");
+    }
+
+    /// A builder alone on open ground asking for a solar in its own band gets one beside itself, in the first
+    /// widening at the first try: the sites under its body are no candidates (site-dump-1, 2026-11-05: they were the
+    /// twelve tries of every widening, each refused as walling the builder in, so every search anchored at a builder
+    /// ran all three widenings and ended at the engine).
+    #[test]
+    fn no_site_goes_over_the_asking_builder() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        let builder_at = at(2054.0, 2061.0);
+        w.builders.push(Builder { at: builder_at, half: 24.0, passable: None });
+        let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: builder_at, radius: 300.0, builder_at, builder: builder() };
+        let mut trace = Vec::new();
+        let site = choose_traced(&w, &req, Some(&mut trace)).expect("a site");
+        assert!(!Footprint { x: 10, z: 10 }.rect(site.at).overlaps(&w.builders[0].body()), "over the builder: {site:?}");
+        assert!(site.at.dist2d(builder_at) < 120.0, "beside it: {site:?}");
+        assert_eq!(trace.len(), 2, "one widening, one try: {trace:?}");
+        assert!(trace[1].contains("try 0") && trace[1].contains("chosen"), "{trace:?}");
     }
 }
 
