@@ -45,6 +45,11 @@ is current upstream. The arena resolves the tag from that file and the engine di
 archive "beyond all reason test-NNNNN" not found` (escalate-1-easy, 2026-09-22: the aborted match, no game). After
 fetching a version for a replay, fetch `byar:test` too (docs/harness/engine.md, the same command with the tag) before
 the next batch; the pool dedups, so it is a few hundred files.
+When the version fetched is itself the current one nothing dies: the arena's next batch plays the newer game with no
+word of it, and its rows are not comparable with the ones before (2026-11-06: test-31836 fetched for a lobby replay
+while a bench on test-31691 was running; the tag's line in `versions.gz` was rewritten by hand to name test-31691
+again before the next row started, and the arena has stayed on test-31691 since). Check `GameType` in a row's
+`_script.txt` after any fetch.
 
 ## A replay that names the game by rapid tag will not open in the lobby
 

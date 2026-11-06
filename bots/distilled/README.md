@@ -336,10 +336,65 @@ the bank full, one more a minute), the constructors' walking (46 % of their time
 cost dealt), the aircraft plant idle once its eight aircraft are made, seven solars by 3:00, 205 orders a soldier a
 minute from the lane.
 
+## The maps: the rows of 2026-11-06
+
+Every row before these was played on Comet Catcher (a few on Quicksilver and All That Glitters). The map bench
+(`run/distilled_maps.sh <apex|barb> <first number>`, read with `run/bot_maps.py <label> ...`) plays eight games on
+each of twelve 1v1 maps of different kinds on the lobby's start boxes, 30:00, played out (docs/experiments.md
+dist148-dist176). The library of cd7d4c66:
+
+| Map | Kind | Apex v0.5.04 | BARb hard_aggressive | What the rows show |
+|---|---|---|---|---|
+| Comet Catcher Remake 1.8 (16 games, dist144/145) | 16x12, flat | 15-0-1 | 15-0-1 | the ground every rule was tuned on |
+| Red Comet Remake 1.8 | 12x8, flat | 8-0-0 | 8-0-0 | |
+| Argent Strata 1.1 | 16x16, plateaus, many ways | 8-0-0 | 6-0-2 | |
+| TitanDuel V3 | 10x10, flat | 7-0-1 | 7-1-0 | |
+| Ravaged Remake v1.2 | 10x10, hills | 7-0-1 | 3-1-4 | against BARb the first body at 20:22; a guard of 81 at home against his 9 at 30:00 |
+| Sertaleina v9.2 | 12x8, flat, wind | 7-0-1 | 2-3-3 | against BARb no body in the median game; his Bulldogs |
+| Quicksilver Remake 1.24 | 14x14, flat, some sea | 6-0-2 | 5-1-2 | both Apex timeouts won on the ground: his commander alone from 19:00; a shipyard in the sea |
+| Onyx Cauldron 2.2.2 | 16x16, plateaus over a river | 4-0-4 | 2-2-4 | two timeouts with 128 and 206 soldiers against 4 and 2 |
+| The Halite Maze v1.4 | 12x8, a maze, little metal | 4-0-4 | 3-0-5 | income 30 to 35 a second; the launch weight seldom met |
+| Zed Remake 3.3.1 | 12x12, hills, little metal | 2-1-5 | 4-3-1 | income 30; the guard at home; his Bulldogs and Sumos |
+| Avalanche 3.4 | 8x8, little metal | 1-0-7 | 1-5-2 | income 21; twice his soldiers from 6:00, the first body at 16:52 |
+| Flooded Valley V5 | 10x10, the metal under water | 0-7-1 | 0-4-4 | two extractors and 7 metal a second all game |
+| Hooked 1.1.1 | 6x4, few spots | 0-8-0 | 0-8-0 | the plant begun at 2:38 |
+| All twelve | | 54-16-26 | 41-28-27 | |
+
+The faults, by the games they cost. None is mended yet.
+
+1. **The army stays home (every map).** Against Apex we have twice his soldiers from minute 5 to 8 on ten of the
+   maps, the first body leaves 3.4 to 10.8 minutes later, and one to three bodies go out in a game. D-LAUNCH waits
+   for a weight that grows by the clock and for 1.5 times what he has shown with his commander at 1,800; D-TARGET and
+   the retreat count his turrets at three times their metal. On a map with 21 to 35 metal a second the weight is
+   seldom met at all (Avalanche, Zed, The Halite Maze: 16 of 24 games against Apex timed out, ours ahead in soldiers
+   in most). Against BARb the guard is the body we lose most of on nine of the twelve maps: the army dies at home
+   in parties. Ravaged game 02 against BARb ends with 81 soldiers in the guard against his 9, the launch weight met
+   four times over, three bodies each called back as outweighed.
+2. **A game won on the ground is not finished.** Seven of the 26 timeouts against Apex end with his army at 0 to 9
+   and ours at 78 to 423. Three causes read from the logs: the body's target is a place it never reaches (Quicksilver
+   game 05: his commander alone from 19:00, the body of 160 growing to 375 standing 750 from its order point until
+   30:00; a target is given up only when the core has stood within 450 of it); what is left of his stands where
+   vehicles cannot go (Quicksilver game 02: a shipyard, tidal generators and six construction ships in the sea);
+   and his commander is never a target (D-TARGET takes buildings, then unlooked spots, then his start). The library
+   before the audit's army changes does the same (dist172-dist175: 293, 353 and 315 soldiers against his commander
+   alone).
+3. **Nothing asks whether a place can be reached.** On Flooded Valley the metal is under water: six constructors
+   stand at the shore with extractor orders all game, the income is 7 a second, and against BARb our 42 soldiers
+   face nothing on the ground while his aircraft take the base. The same blindness is behind the unreachable
+   targets of (2) and prices every walk as a straight line (the stand's walk, the builders' nearest spot).
+4. **The opening walks.** D-STAND takes two extractors first whatever the walk: on Hooked the second spot is 1,000
+   from the first (the stand's own line says "walk 1741"), the commander walks 75 s to it before any solar, and the
+   plant is begun at 2:38 against 0:37 to 0:54 on the other maps. All sixteen Hooked games were lost, eleven of them
+   by 9:30. (The user's game of 2026-11-05 on Onyx Cauldron, lost by the library of 2026-11-01, had the older form of
+   it: a 43 s walk back past the start for a solar and the plant at 2:17. Today's library begins that plant at 0:39
+   and did not lose in eight games against the same Apex v0.4.05, dist176.)
+5. **One kit.** Vehicles of tier 1 on every map: no ships or hovercraft where the metal is wet, no tier 2 when the
+   game runs long (BARb's Bulldogs are among the three types that kill most of ours on Zed and Sertaleina).
+
 ## Running it
 
 `target/release/arena --our-ai WRDistilled:0.1 --matches 8 --parallel 8 --speed 50 --profile medium --map "Comet Catcher Remake 1.8" --label <label>`.
-Its own line a game minute is in `engine.log` (`[distilled ai=N] f=... extractors=... strike=...`). Per game of a batch, both sides by minute from the census lines: `run/bot_sides.py <label>`; every build order by game clock from the host's build trace, with who ordered the first construction turret and the plants: `run/bot_orders.py <label> [--full NN | --unit U]`; the exchange by a minute (his soldiers dead of those seen, from the truth file, against ours as made less alive): `run/bot_exchange.py <label> [minute]`. Apex carries its exchange record between games (`run/data/opponent-state/Apex-v0.2.9/skirmish/apex-record.txt`, the arena's doing; 2 pairs cold, 115 after forty games against this bot; both copies kept beside it in `run/data/opponent-state/apex-v0.2.9-records/`, which the arena does not carry): a row that is to be compared with another starts from the same copy of it (`cp .../cold-2-pairs.txt run/data/opponent-state/Apex-v0.2.9/skirmish/apex-record.txt` before each), and an eight-game row against Apex v0.2.9 scatters by three wins for an unchanged bot (0-8 and 3-5 from the same state), so a verdict on a change wants sixteen games an arm. At its first
+Its own line a game minute is in `engine.log` (`[distilled ai=N] f=... extractors=... strike=...`). One block a batch across maps (results, the first plant and body, both sides at 5 to 20 minutes, what every unwon game ended on): `run/bot_maps.py <label> ...`. Per game of a batch, both sides by minute from the census lines: `run/bot_sides.py <label>`; every build order by game clock from the host's build trace, with who ordered the first construction turret and the plants: `run/bot_orders.py <label> [--full NN | --unit U]`; the exchange by a minute (his soldiers dead of those seen, from the truth file, against ours as made less alive): `run/bot_exchange.py <label> [minute]`. Apex carries its exchange record between games (`run/data/opponent-state/Apex-v0.2.9/skirmish/apex-record.txt`, the arena's doing; 2 pairs cold, 115 after forty games against this bot; both copies kept beside it in `run/data/opponent-state/apex-v0.2.9-records/`, which the arena does not carry): a row that is to be compared with another starts from the same copy of it (`cp .../cold-2-pairs.txt run/data/opponent-state/Apex-v0.2.9/skirmish/apex-record.txt` before each), and an eight-game row against Apex v0.2.9 scatters by three wins for an unchanged bot (0-8 and 3-5 from the same state), so a verdict on a change wants sixteen games an arm. At its first
 orders it says in the game chat which of the random AI names is ours, the commit it was built from (`ai_host::commit`),
 its arms, the seat's income bonus and the seat (`<name> is WRDistilled 23812d1 | arms: t2=..., ... | bonus +0% | seat
 ai1 team 1 armada`), as the flagship does, so a replay or an engine log says which build played.

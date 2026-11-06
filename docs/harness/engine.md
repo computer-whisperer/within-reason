@@ -19,7 +19,9 @@ A 31MB Linux archive ships `spring`, `spring-headless`, `spring-dedicated`, `pr-
 `pr-downloader --filesystem-writepath run/data --download-game byar:test` (and `--download-map "<name>"`) with env
 `PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz
 PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find`. Currently: test-31383 (2026-09-22 evening; test-31362 and, for the players' replay, test-31251 stay in the pool); maps Quicksilver Remake 1.24, Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8,
-Mithril Mountain v2.0.1, Great Divide V1 (the team-game test ground, fetched 2026-09-20: four starts, two north and two
+Mithril Mountain v2.0.1, the distilled bot's map bench (fetched 2026-11-06: Onyx Cauldron 2.2.2, Ravaged Remake v1.2, Avalanche 3.4,
+Zed Remake 3.3.1, Red Comet Remake 1.8, The Halite Maze v1.4, Hooked 1.1.1, Flooded_Valley_V5, Argent Strata 1.1, Sertaleina_v9.2,
+TitanDuel_V3; `run/distilled_maps.sh`), Great Divide V1 (the team-game test ground, fetched 2026-09-20: four starts, two north and two
 south; `--boxes north-south`) (the middle four fetched 2026-09-20 as the most played on gex.honu.pw; pass the exact name to the
 arena's `--map`). The arena's start boxes default to the north-west and south-east 30 % corners, which is not
 where people start on a left-against-right map such as Comet Catcher (`--boxes west-east` is there for it, untried).

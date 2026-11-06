@@ -70,4 +70,5 @@ def main():
             print(f"  {minute:>3} | {cell('mex')} | {cell('cons')} | {cell('army')} | {labnano} | {cell('turret')} | {ours:>20} | {eco}")
 
 
-main()
+if __name__ == "__main__":
+    main()
