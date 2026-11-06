@@ -765,6 +765,8 @@ name = "layout"
 version = "0.1.0"
 dependencies = [
  "bot-protocol",
+ "postcard",
+ "serde",
 ]
 
 [[package]]

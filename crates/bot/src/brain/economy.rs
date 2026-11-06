@@ -32,6 +32,9 @@ const BACK_FIELD: f32 = 300.0;
 const BAND_BACK_FIELD: f32 = 500.0;
 /// A step with a place: the site is chosen within this of the place (a defence a little toward the enemy from it).
 pub(super) const BAND_PLACE: f32 = 200.0;
+/// How many failing site searches a game dumps for replay, and how many of one kind (`dump_layout_failure`).
+const LAYOUT_DUMPS: usize = 6;
+const LAYOUT_DUMPS_PER_KIND: usize = 2;
 /// On a metal map, how far from the builder its "nearest" extractor tile may lie (`tile_site`).
 pub(super) const TILE_REACH: f32 = 1_200.0;
 /// A tile the engine refused within this distance is left alone while the refusal stands.
@@ -270,15 +273,49 @@ impl Brain {
     fn place_in_world(&self, world: &World, def: UnitDefId, builder: &OwnUnit, centre: Vec3, radius: f32) -> Plan {
         let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
         let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };
+        let started = std::time::Instant::now();
         match layout::choose(world, &req) {
             Ok(site) => Plan::Slot(def, site.at, site.facing),
             Err(why) => {
+                let ms = started.elapsed().as_secs_f32() * 1000.0;
                 let said = format!("no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.name(def), self.actor_name(builder.id), centre.x, centre.z);
                 if self.layout_refusal_said.borrow_mut().insert(def, said.clone()) != Some(said.clone()) {
                     eprintln!("[ai {}] {said}", self.ai());
                 }
+                self.dump_layout_failure(world, &req, builder, &why, ms);
                 Plan::Near(def, centre)
             }
+        }
+    }
+
+    /// A failing search saved whole for replay (`layout::Dump`, `site_replay`): the first `LAYOUT_DUMPS` of a game,
+    /// at most `LAYOUT_DUMPS_PER_KIND` a kind, into `layout-fail-<ai>-<n>.bin` beside the record, when the record
+    /// is on. The search is run once more, traced, for the file.
+    fn dump_layout_failure(&self, world: &World, req: &Request, builder: &OwnUnit, why: &str, ms: f32) {
+        if !crate::recorder::enabled() {
+            return;
+        }
+        let n = {
+            let mut dumped = self.layout_dumped.borrow_mut();
+            let (total, a_kind) = &mut *dumped;
+            let a_kind = a_kind.entry(req.facts.def).or_insert(0);
+            if *total >= LAYOUT_DUMPS || *a_kind >= LAYOUT_DUMPS_PER_KIND {
+                return;
+            }
+            *a_kind += 1;
+            *total += 1;
+            *total
+        };
+        let mut trace = Vec::new();
+        let _ = layout::choose_traced(world, req, Some(&mut trace));
+        // The last tick's frame: `stun_frame` is set by every tick's enemy reading (`briefing.rs`).
+        let seconds = self.stun_frame / super::FRAMES_PER_SECOND;
+        let label = format!("{} for {} at {}:{:02}", self.name(req.facts.def), self.actor_name(builder.id), seconds / 60, seconds % 60);
+        let dump = layout::Dump::of(world, req, &self.world.hello.terrain, self.routes_passable(), label, why.to_string(), ms, trace);
+        let path = crate::log_dir().join(format!("layout-fail-{}-{}.bin", self.ai(), n));
+        match dump.write(&path) {
+            Ok(()) => eprintln!("[ai {}] layout failure {n} dumped to {} ({ms:.0} ms)", self.ai(), path.display()),
+            Err(e) => eprintln!("[ai {}] layout failure {n} not dumped: {e}", self.ai()),
         }
     }
 

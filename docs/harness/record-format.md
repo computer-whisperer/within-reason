@@ -309,6 +309,13 @@ largest value), which the viewer draws as the "metal patches" layer beside the s
 shallowest floated in; `units`: how many unit types use it), so a reader can work out where each kind cannot go. The
 viewer renders relief with water and the "bots cannot go" / "vehicles cannot go" layers from it.
 
+A failing site search of the layout layer is saved whole beside the record as `layout-fail-<ai_id>-<n>.bin` (the
+first six of a game, at most two a kind; `crates/layout/src/dump.rs`, postcard): the terrain, the world the search ran
+over (what stands, the plants and builders with their walk sets, the reservations, the refused sites) and the request,
+with the game's answer, its time and its trace. `target/release/site_replay <file>...` runs the search again off the
+game and prints the trace (each widening's points, candidates and time; each tried candidate's verdict);
+`--without-asker` first takes the asking builder out of the world's builders.
+
 ## Opponent ground truth
 
 `truth-<ai_id>.jsonl`, written by the shim (not the bot) when the match runs with `WITHIN_REASON_OBSERVE=1`: one line

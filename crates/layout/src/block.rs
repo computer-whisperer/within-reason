@@ -52,7 +52,7 @@ const SPOT_BOX_HALF: f32 = 32.0;
 const ALLY_MARGIN: f32 = 8.0;
 
 /// The turrets' sub-lattice: the points `centre + pitch * (i, j)`.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Lattice {
     pub centre: Vec3,
     pub pitch: f32,

@@ -7,3 +7,5 @@ description = "Where a building goes: the build grid, footprints, the ground a f
 
 [dependencies]
 bot-protocol = { path = "../bot-protocol" }
+serde = { version = "1", features = ["derive"] }
+postcard = { version = "1", features = ["use-std"] }

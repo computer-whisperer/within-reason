@@ -7,6 +7,7 @@
 //! edge to edge round a constructor at its extractor walled it in for two minutes (1793769060-human, t16 at 4:55).
 
 use bot_protocol::Vec3;
+use serde::{Deserialize, Serialize};
 
 use crate::{Footprint, GRID, Ground, Passable, Rect, facing_dir, lane_rect};
 
@@ -17,7 +18,7 @@ pub const APRON: f32 = 96.0;
 pub const STREET_REACH: f32 = 1200.0;
 
 /// A plant whose street the rule keeps: ours or an ally's.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Plant {
     pub centre: Vec3,
     /// Before facing.
@@ -32,6 +33,7 @@ pub struct Plant {
     pub widest: String,
     /// The ground its products stand on (`Facts::product_passable`); its street runs over it, and over the caller's
     /// `open` when it has none.
+    #[serde(with = "crate::dump::walk_bits")]
     pub passable: Option<Passable>,
 }
 
@@ -79,10 +81,11 @@ fn window(centre: Vec3) -> Rect {
 
 /// A mobile builder of ours that must keep a way out: where it stands, half its footprint's width and the ground
 /// it walks (the caller's `open` when it has none).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Builder {
     pub at: Vec3,
     pub half: f32,
+    #[serde(with = "crate::dump::walk_bits")]
     pub passable: Option<Passable>,
 }
 

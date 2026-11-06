@@ -10,15 +10,18 @@
 mod block;
 mod choose;
 mod coverage;
+mod dump;
 mod street;
 
 use std::collections::HashMap;
 
 use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
+use serde::{Deserialize, Serialize};
 
 pub use block::{Block, DENSE_PITCH, Lattice, MAX_TIERS, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
-pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose};
+pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced};
 pub use coverage::Coverage;
+pub use dump::Dump;
 pub use street::{APRON, Builder, Plant, STREET_REACH, StreetState, street_open, street_state, way_out};
 
 /// A build square (`SQUARE_SIZE`): footprints count them.
@@ -53,7 +56,7 @@ const ESCAPE_MARGIN: f32 = 96.0;
 const CHANNEL: f32 = 2.0 * COMMANDER_HALF;
 
 /// A building's footprint in build squares (x across its front, z front to back), as the definitions give it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Footprint {
     pub x: i32,
     pub z: i32,
@@ -88,7 +91,7 @@ fn snap_axis(v: f32, size: i32) -> f32 {
 }
 
 /// An axis-aligned piece of ground, in elmos.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Rect {
     pub x0: f32,
     pub z0: f32,
@@ -128,7 +131,7 @@ impl Rect {
 pub type Passable = std::sync::Arc<[bool]>;
 
 /// What the layer needs to know of a definition.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Facts {
     pub def: UnitDefId,
     pub footprint: Footprint,
@@ -163,6 +166,7 @@ pub struct Facts {
     /// the world's `open` when the caller has none (apex-v0409-comet-sym0-opus-2: the three vehicle plants' streets
     /// were judged on the Pawn's ground, which climbs a crater's rim a Stumpy cannot, and all three were penned by
     /// 12:00 with the street line saying open). None for every other kind.
+    #[serde(with = "dump::walk_bits")]
     pub product_passable: Option<Passable>,
 }
 

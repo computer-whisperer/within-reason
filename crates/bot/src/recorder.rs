@@ -75,11 +75,17 @@ pub struct Recorder {
     intent: Option<Intent>,
 }
 
+/// Whether the record is on: `WITHIN_REASON_RECORD` set to something other than `0` (the arena sets it). The
+/// layout dumps (`brain/economy.rs`) follow it.
+pub fn enabled() -> bool {
+    std::env::var("WITHIN_REASON_RECORD").is_ok_and(|v| !v.is_empty() && v != "0")
+}
+
 impl Recorder {
-    /// `None` unless `WITHIN_REASON_RECORD` is set to something other than `0`.
+    /// `None` unless the record is on (`enabled`).
     /// `session`: a Claude Code session writes `strategist-<ai>.jsonl` beside the record; `pianist`: `jev-<ai>.jsonl`.
     pub fn from_env(dir: &Path, hello: &Hello, mode: &str, session: bool, pianist: bool) -> Option<Recorder> {
-        if std::env::var("WITHIN_REASON_RECORD").map_or(true, |v| v.is_empty() || v == "0") {
+        if !enabled() {
             return None;
         }
         let path = dir.join(format!("record-{}.jsonl", hello.ai_id));

@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 
 use bot_protocol::{UnitDefId, Vec3};
+use serde::{Deserialize, Serialize};
 
 use crate::block::Lattice;
 use crate::street::{Builder, Plant, street_open, way_out};
@@ -44,7 +45,7 @@ const BAND_CHAIN_METAL: f32 = 100.0;
 const BAND_WALK: f32 = 48.0;
 
 /// A footprint standing on the ground: ours or an ally's, finished or ordered.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Standing {
     pub rect: Rect,
     pub def: Option<UnitDefId>,
@@ -62,7 +63,7 @@ pub struct Standing {
 }
 
 /// A standing construction turret: build power that reaches a site.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Worker {
     pub at: Vec3,
     pub reach: f32,
@@ -70,20 +71,20 @@ pub struct Worker {
 }
 
 /// An unfinished building a turret could help.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Frame {
     pub rect: Rect,
     pub metal: f32,
 }
 
 /// Ground kept for something not yet ordered, and for what.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Reservation {
     pub rect: Rect,
     pub for_: Reserved,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Reserved {
     /// Nothing goes here (the stand's slots, which their kinds take directly; a gantry's apron).
     Nothing,
@@ -218,7 +219,7 @@ impl World<'_> {
 }
 
 /// What a building is for: the score of level 1.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Purpose {
     /// A generator or basic converter: beside its own kind, in a bank of at most `cap` (None: unbounded).
     Generator { cap: Option<usize> },
@@ -232,6 +233,7 @@ pub enum Purpose {
     Place,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Request {
     pub facts: Facts,
     pub purpose: Purpose,
@@ -243,7 +245,7 @@ pub struct Request {
 }
 
 /// A chosen site, with its reasons for the hands' line.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Site {
     pub at: Vec3,
     pub facing: i32,
@@ -261,6 +263,13 @@ struct Candidate {
 
 /// The site for `req` in `world`, or why there is none.
 pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
+    choose_traced(world, req, None)
+}
+
+/// `choose`, with every step written into `trace` when one is given: each widening's points, candidates and time,
+/// and each tried candidate's verdict, with the walled builder's position against the site (the dump's replay,
+/// `dump.rs`; site-probe-1 left open why a search that finds a site on flat ground fails in the game).
+pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<String>>) -> Result<Site, String> {
     let f = &req.facts;
     let facings: Vec<i32> = if f.factory { facings_toward(req.centre, world.toward).to_vec() } else { vec![0] };
     let bands = match req.purpose {
@@ -293,25 +302,36 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
     let mut open_before: Vec<Option<bool>> = vec![None; world.plants.len()];
     let mut out_before: Vec<Option<bool>> = vec![None; world.builders.len()];
     for widening in 0..=WIDENINGS {
+        let started = std::time::Instant::now();
         let radius = req.radius * 2f32.powi(widening as i32);
         // The flood for this widening alone: most searches end at the first, and a flood over four times the band
         // is sixteen times the cells.
         let walk = Walk::cached(world, req.builder_at, req.centre, radius);
         let mut candidates: Vec<Candidate> = Vec::new();
+        let mut points = 0usize;
         for (rank, facing) in facings.iter().enumerate() {
             let fp = f.footprint.faced(*facing);
             for at in lattice(fp, req.centre, radius) {
+                points += 1;
                 if let Some(c) = candidate(world, req, &banks, &walk, fp, at, *facing, rank) {
                     candidates.push(c);
                 }
             }
+        }
+        if let Some(t) = trace.as_deref_mut() {
+            t.push(format!("widening {widening}: radius {radius:.0} round ({:.0}, {:.0}), {points} points, {} candidates, {:.1} ms", req.centre.x, req.centre.z, candidates.len(), started.elapsed().as_secs_f32() * 1000.0));
         }
         if candidates.is_empty() {
             why = format!("no ground within {radius:.0} of ({:.0}, {:.0}) takes a {} there", req.centre.x, req.centre.z, f.footprint.x * 8);
             continue;
         }
         let ordered = by_bands(candidates, &bands);
-        for c in ordered.iter().take(STREET_TRIES) {
+        for (n, c) in ordered.iter().take(STREET_TRIES).enumerate() {
+            let mut verdict = |what: String| {
+                if let Some(t) = trace.as_deref_mut() {
+                    t.push(format!("  try {n}: ({:.0}, {:.0}) facing {} scores {:?}: {what}", c.at.x, c.at.z, c.facing, c.scores));
+                }
+            };
             blocks.push(c.rect);
             let before = &blocks[..blocks.len() - 1];
             let closed = world.plants.iter().enumerate().filter(|(_, p)| p.concerns(&c.rect)).find(|(i, p)| {
@@ -320,6 +340,7 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
             });
             if let Some((_, p)) = closed {
                 why = format!("the best site at ({:.0}, {:.0}) would close {}'s street for its {}", c.at.x, c.at.z, p.name, p.widest);
+                verdict(format!("closes {}'s street", p.name));
                 blocks.pop();
                 continue;
             }
@@ -327,8 +348,9 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
                 let had_way = *out_before[*i].get_or_insert_with(|| way_out(&world.ground, b, before, &*world.open));
                 had_way && !way_out(&world.ground, b, &blocks, &*world.open)
             });
-            if let Some((_, b)) = walled {
+            if let Some((i, b)) = walled {
                 why = format!("the best site at ({:.0}, {:.0}) would wall in our builder at ({:.0}, {:.0})", c.at.x, c.at.z, b.at.x, b.at.z);
+                verdict(format!("walls in builder {i} at ({:.0}, {:.0}), {:.0} from the site's edge, {}", b.at.x, b.at.z, distance_to(&c.rect, b.at), if c.rect.contains(b.at) { "standing under the site" } else { "beside it" }));
                 blocks.pop();
                 continue;
             }
@@ -337,12 +359,17 @@ pub fn choose(world: &World, req: &Request) -> Result<Site, String> {
                 let own = Plant { centre: c.at, footprint: f.footprint, facing: c.facing, product_half: f.product_half, ours: true, name: "it".into(), widest: String::new(), passable: f.product_passable.clone() };
                 if !street_open(&world.ground, &own, &blocks, &*world.open) {
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
+                    verdict("no street of its own to the open".to_string());
                     blocks.pop();
                     continue;
                 }
             }
+            verdict(format!("chosen: {}", c.words));
             return Ok(Site { at: c.at, facing: c.facing, words: c.words.clone() });
         }
+    }
+    if let Some(t) = trace {
+        t.push(format!("no site: {why}"));
     }
     Err(why)
 }

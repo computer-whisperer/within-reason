@@ -126,6 +126,9 @@ pub struct Brain {
     /// The last refusal said for each kind (the menu asks where every kind would go each turn; the same answer is
     /// logged once).
     layout_refusal_said: std::cell::RefCell<HashMap<UnitDefId, String>>,
+    /// The failing site searches dumped for replay (`economy.rs` `dump_layout_failure`): how many, and how many a
+    /// kind.
+    layout_dumped: std::cell::RefCell<(usize, HashMap<UnitDefId, usize>)>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
@@ -371,6 +374,7 @@ impl Brain {
             block_failed: None,
             block_grow_failed: None,
             layout_refusal_said: std::cell::RefCell::new(HashMap::new()),
+            layout_dumped: Default::default(),
             reclaim: Default::default(),
             plan_game: None,
             pianist,
