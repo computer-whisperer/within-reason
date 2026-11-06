@@ -76,6 +76,28 @@ const GATHERED: f32 = 900.0;
 const STOOD_AT: f32 = 450.0;
 const STOOD_FOR: i32 = 12 * SECOND;
 const STOOD_GONE: f32 = 250.0;
+/// D-KING (2026-11-06): the game ends when his commander dies (the arena's games carry the game's default end,
+/// and every win of the map bench was that: dist157 game 01 won at 11:18 with his ten extractors, fourteen
+/// constructors and eight turrets standing), and no rule aimed at him: D-TARGET took buildings, then spots nobody
+/// had looked at, then his start. Seven of 26 timeouts against Apex on the map bench ended with his army at 0 to 9
+/// and ours at 78 to 423, his commander alone on the map from 19:00 to the cap in one of them (dist149 game 05).
+/// His commander where last seen within `KING_SEEN_FOR` is the body's target before any building, on D-TARGET's own
+/// odds (his turrets within `TARGET_REACH` of him and what he has shown, of which he is 1,800).
+const KING_SEEN_FOR: i32 = 2 * MINUTE;
+/// His commander defends where he stands: his 1,800 counts in the defence of a target within this of where he was
+/// last seen (his start while he has not been seen for `SEEN_FOR`), and in the odds of a fight he is in. Until
+/// 2026-11-06 it counted in what he had shown of his army, so one sighting of him held every launch and every
+/// target on the map, his farthest extractor included, to 2,700 more of ours for five minutes: what he had shown
+/// bound the launch weight on 78 to 92 % of the minutes before the first body on the map bench, and without his
+/// 1,800 in it the guard met the weight a median 1 to 9 minutes sooner on 19 of 22 rows (dist144-dist171, the
+/// minute lines' `launch=` read back).
+const KING_REACH: f32 = 1200.0;
+/// D-STUCK (2026-11-06): a target the body's core has not come `STUCK_GAIN` nearer to over `STUCK_FOR`, with nothing
+/// of his in the fight's reach, is given up for `UNREACHED_FOR`, as is everything within `STOOD_GONE` of it: the
+/// body of dist149 game 05 stood 750 from its order point for eleven minutes, the formation reporting no legs.
+const STUCK_FOR: i32 = 40 * SECOND;
+const STUCK_GAIN: f32 = 100.0;
+const UNREACHED_FOR: i32 = 5 * MINUTE;
 /// A launch leaves this much metal of soldiers at home, the nearest to it (times the income bonus): with the whole
 /// guard out, packs of one to eight Grunts killed 23 extractors and 16 builders of one game with nothing of ours
 /// near (dist9-army-apex-v032-comet-cold-1 game 00). The body comes home only for a raid worth this share of
@@ -183,6 +205,12 @@ pub(crate) struct Army {
     threats: Vec<(Vec3, i32)>,
     /// The target the body's core stands at, and since when (`STOOD_FOR`).
     stood: Option<(Vec3, i32)>,
+    /// His commander where last seen, and when (D-KING).
+    pub his_commander: Option<(Vec3, i32)>,
+    /// The body's target, how far its core stood from it when the window began, and when that was (D-STUCK).
+    closing: Option<(Vec3, f32, i32)>,
+    /// Targets the body gave up as not reached, and when (D-STUCK).
+    unreached: Vec<(Vec3, i32)>,
     /// Where the raiders ran, and when: theirs alone. Until 2026-11-06 a raider's scare went into `threats`, and four
     /// raiders running from 390 metal of his made every known building of his a place the strike body avoided:
     /// dist135-audit-apex 18:20, "no target" for 137 soldiers of 26,125 against his shown 3,558, and the body walked
@@ -282,7 +310,7 @@ impl Distilled {
         at.dist2d(self.enemy_home) < at.dist2d(self.home)
     }
 
-    /// What he has shown of his army in the last `SEEN_FOR`, in metal.
+    /// What he has shown of his army in the last `SEEN_FOR`, in metal (his commander apart: `KING_REACH`).
     pub(crate) fn his_army_weight(&self) -> f32 {
         self.army.his_army.values().map(|(w, _)| w).sum()
     }
@@ -398,11 +426,20 @@ impl Distilled {
             if def.speed == 0.0 {
                 self.army.his_buildings.insert(enemy.id, Seen { pos: enemy.pos, def: enemy.def });
             } else if def.weapon_count > 0 && def.move_class.is_some() {
+                // An armed builder that walks is his commander (as D-WEIGHT reads it): he counts where he stands
+                // (`KING_REACH`), not in what his army has shown.
+                if !def.build_options.is_empty() {
+                    self.army.his_commander = Some((enemy.pos, self.frame));
+                    if self.options.king_local {
+                        continue;
+                    }
+                }
                 let weight = self.weight(enemy.def, TURRET_WEIGHT);
                 self.army.his_army.insert(enemy.id, (weight, self.frame));
             }
         }
         let frame = self.frame;
+        self.army.unreached.retain(|(_, at)| frame - *at < UNREACHED_FOR);
         self.army.his_army.retain(|_, (_, seen)| frame - *seen < SEEN_FOR);
         self.army.threats.retain(|(_, at)| frame - *at < AVOID_FOR);
         self.army.raid_threats.retain(|(_, at)| frame - *at < AVOID_FOR);
@@ -456,7 +493,7 @@ impl Distilled {
 
     fn unlooked(&self, from: Vec3) -> Option<usize> {
         let spots = &self.hello.metal_spots;
-        (0..spots.len()).filter(|i| self.his_half(spots[*i]) && !self.army.looked.contains(i)).min_by(|a, b| from.dist2d(spots[*a]).total_cmp(&from.dist2d(spots[*b])))
+        (0..spots.len()).filter(|i| self.his_half(spots[*i]) && !self.army.looked.contains(i) && self.army_reaches(spots[*i])).min_by(|a, b| from.dist2d(spots[*a]).total_cmp(&from.dist2d(spots[*b])))
     }
 
     /// D-HOLD: the raids: his armed mobile ground units within `DEFEND` of a building of ours, those within
@@ -622,10 +659,12 @@ impl Distilled {
         self.army.column_order.map(|(at, _)| at)
     }
 
-    /// D-TARGET: the feasible target nearest to `from` for a body of these units: a known building of his whose
-    /// defence (his turrets within `TARGET_REACH` of it, weighted, plus what he has shown of his army) the body
-    /// outweighs by `odds` (`PUSH_ODDS` to launch, `KEEP_ODDS` once out) and that is not a place lately avoided;
-    /// with nothing of his known, the nearest spot on his half nobody has looked at, else his start.
+    /// D-TARGET: the feasible target for a body of these units. Feasible: a place the army can walk to (D-GROUND)
+    /// that the body has not given up (D-STUCK) or lately been driven from, whose defence (his turrets within
+    /// `TARGET_REACH` of it, weighted, plus what he has shown of his army) the body outweighs by `odds` (`PUSH_ODDS`
+    /// to launch, `KEEP_ODDS` once out). First his commander where last seen (D-KING); then the known building of
+    /// his nearest to `from`; with nothing of his known that can be walked to, the nearest spot on his half nobody
+    /// has looked at, else his start.
     ///
     /// `kept` is the target the body is on: it stays the target while a building of his is known there and it is
     /// still feasible (2026-11-06: the nearest to a moving core is another building every few seconds, and the body
@@ -634,10 +673,19 @@ impl Distilled {
         let whole = self.weight_of(units);
         let factor = self.turret_factor(units);
         let avoided = |at: Vec3| self.army.threats.iter().any(|(t, _)| t.dist2d(at) < AVOID);
-        let defence = |at: Vec3| self.army.his_buildings.values().filter(|b| b.pos.dist2d(at) < TARGET_REACH).map(|b| self.weight(b.def, factor)).sum::<f32>() + self.his_army_weight();
+        let given_up = |at: Vec3| self.army.unreached.iter().any(|(t, _)| t.dist2d(at) < STOOD_GONE);
+        let open = |at: Vec3| !given_up(at) && self.army_reaches(at);
+        let king_at = self.army.his_commander.filter(|(_, seen)| self.frame - *seen < SEEN_FOR).map_or(self.enemy_home, |(at, _)| at);
+        let defence = |at: Vec3| {
+            let turrets: f32 = self.army.his_buildings.values().filter(|b| b.pos.dist2d(at) < TARGET_REACH).map(|b| self.weight(b.def, factor)).sum();
+            turrets + self.his_army_weight() + if self.options.king_local && king_at.dist2d(at) < KING_REACH { COMMANDER_WEIGHT } else { 0.0 }
+        };
         let nearest = |a: &Vec3, b: &Vec3| a.dist2d(from).total_cmp(&b.dist2d(from));
-        if !self.army.his_buildings.is_empty() {
-            let feasible = |p: &Vec3| !avoided(*p) && whole >= odds * defence(*p);
+        let feasible = |p: &Vec3| open(*p) && !avoided(*p) && whole >= odds * defence(*p);
+        if let Some(king) = self.army.his_commander.filter(|(_, seen)| self.options.king && self.frame - *seen < KING_SEEN_FOR).map(|(at, _)| at).filter(feasible) {
+            return Some(king);
+        }
+        if self.army.his_buildings.values().any(|b| open(b.pos)) {
             if let Some(kept) = kept.filter(|k| self.army.his_buildings.values().any(|b| b.pos.dist2d(*k) < 50.0)).filter(feasible) {
                 return Some(kept);
             }
@@ -655,7 +703,7 @@ impl Distilled {
             return None;
         }
         // A spot the body is walking to stays its target until it is looked at.
-        if let Some(kept) = kept.filter(|k| (0..self.hello.metal_spots.len()).any(|i| !self.army.looked.contains(&i) && self.his_half(self.hello.metal_spots[i]) && self.hello.metal_spots[i].dist2d(*k) < 50.0)) {
+        if let Some(kept) = kept.filter(|k| !given_up(*k) && (0..self.hello.metal_spots.len()).any(|i| !self.army.looked.contains(&i) && self.his_half(self.hello.metal_spots[i]) && self.hello.metal_spots[i].dist2d(*k) < 50.0)) {
             return Some(kept);
         }
         Some(self.unlooked(from).map_or(self.enemy_home, |spot| self.hello.metal_spots[spot]))
@@ -715,6 +763,10 @@ impl Distilled {
                 );
             }
         }
+        if retreating || outweighed {
+            // A body driven back begins its walk to the target anew (D-STUCK).
+            self.army.closing = None;
+        }
         if retreating {
             return self.send(true, hold, false, commands);
         }
@@ -761,12 +813,38 @@ impl Distilled {
             self.army.stood = Some((target, since));
             if self.frame - since >= STOOD_FOR {
                 self.army.his_buildings.retain(|_, seen| seen.pos.dist2d(target) >= STOOD_GONE);
+                if self.army.his_commander.is_some_and(|(at, _)| at.dist2d(target) < STOOD_GONE) {
+                    self.army.his_commander = None;
+                }
                 let spots: Vec<usize> = (0..self.hello.metal_spots.len()).filter(|i| self.hello.metal_spots[*i].dist2d(target) < STOOD_GONE).collect();
                 self.army.looked.extend(spots);
                 self.army.stood = None;
             }
         } else {
             self.army.stood = None;
+        }
+        // D-STUCK: a target the core has come no nearer to over a window of `STUCK_FOR`, with nothing of his at hand,
+        // is given up. The window begins again while the body fights or stands at the target (D-TARGET's own release).
+        let gap = core.dist2d(target);
+        match self.army.closing {
+            Some((at, _, _)) if at.dist2d(target) < 100.0 && (his > 0.0 || gap < STOOD_AT) => self.army.closing = Some((target, gap, self.frame)),
+            Some((at, from, since)) if at.dist2d(target) < 100.0 => {
+                if self.frame - since >= STUCK_FOR {
+                    if self.options.ground && gap > from - STUCK_GAIN {
+                        eprintln!("[distilled ai={}] f={} gave up: n={} w{:.0} from {:.0} to {:.0} of ({:.0},{:.0}) in {} s", self.hello.ai_id, self.frame, members.len(), whole, from, gap, target.x, target.z, (self.frame - since) / SECOND);
+                        self.army.unreached.push((target, self.frame));
+                        if self.army.his_commander.is_some_and(|(at, _)| at.dist2d(target) < STOOD_GONE) {
+                            self.army.his_commander = None;
+                        }
+                        let spots: Vec<usize> = (0..self.hello.metal_spots.len()).filter(|i| self.hello.metal_spots[*i].dist2d(target) < STOOD_GONE).collect();
+                        self.army.looked.extend(spots);
+                        self.army.closing = None;
+                    } else {
+                        self.army.closing = Some((target, gap, self.frame));
+                    }
+                }
+            }
+            _ => self.army.closing = Some((target, gap, self.frame)),
         }
         // The core's members carry the order; the stragglers close on the core.
         let moved = self.army.strike_order.is_none_or(|(at, frame)| at.dist2d(target) >= 100.0 || self.frame - frame >= REORDER);

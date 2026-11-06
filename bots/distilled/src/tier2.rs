@@ -170,11 +170,18 @@ pub(crate) struct Options {
     /// `sentry=off`: no sentry beside the outer extractors (D-SENTRY; 2026-11-03 night: 16-28 of them by 12:00
     /// against Apex, 1,400-2,400 metal and 11,000-19,000 energy, a constructor's time for twenty minutes).
     pub sentry: bool,
+    /// `king=off`: his commander is not a target (D-KING, 2026-11-06).
+    pub king: bool,
+    /// `ground=off`: no place is asked whether it can be walked to and every walk is the straight line (D-GROUND,
+    /// D-STUCK and the opening's walk, 2026-11-06).
+    pub ground: bool,
+    /// `kingat=on`: his commander's weight counts where he stands and not in what his army has shown (`KING_REACH`).
+    pub king_local: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true, sentry: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true, sentry: true, king: true, ground: true, king_local: false }
     }
 }
 
@@ -214,6 +221,9 @@ impl Options {
                 ("radar", v) => options.radar = v != "off",
                 ("reclaim", v) => options.reclaim = v != "off",
                 ("sentry", v) => options.sentry = v != "off",
+                ("king", v) => options.king = v != "off",
+                ("ground", v) => options.ground = v != "off",
+                ("kingat", v) => options.king_local = v == "on",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -228,7 +238,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}, sentry={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}, sentry={}, king={}, ground={}, kingat={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -251,7 +261,10 @@ impl Options {
             if self.reach { "on" } else { "off" },
             if self.radar { "on" } else { "off" },
             if self.reclaim { "on" } else { "off" },
-            if self.sentry { "on" } else { "off" }
+            if self.sentry { "on" } else { "off" },
+            if self.king { "on" } else { "off" },
+            if self.ground { "on" } else { "off" },
+            if self.king_local { "on" } else { "off" }
         )
     }
 }

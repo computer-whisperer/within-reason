@@ -487,6 +487,9 @@ pub struct Scene<'a> {
     pub coverage: Option<(&'a Coverage, f32)>,
 }
 
+/// How many of a factory's sites the stand tests for an open street, the best first.
+const STREET_TRIES: usize = 32;
+
 /// The stand for these wants: the point near the start from which the most of them are within the builder's reach,
 /// with the least walking, and the slots there. Solved in the wants' kinds' order of need (extractors on their
 /// spots, then factories with their lanes, then the rest) and returned in the wants' order. `None` when there is no
@@ -590,7 +593,7 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
             continue;
         }
         let reach = f.reach_from(&scene.builder);
-        let mut best: Option<(usize, f32, Vec3, i32, Rect, Rect, Plant)> = None;
+        let mut found: Vec<(usize, f32, Vec3, i32, Rect, Rect, Plant)> = Vec::new();
         for (rank, facing) in facings.iter().enumerate() {
             let fp = f.footprint.faced(*facing);
             for centre in lattice(fp, s, reach) {
@@ -601,26 +604,29 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
                 if !stands(fp, centre, &f) {
                     continue;
                 }
-                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: None };
+                let plant = Plant { centre, footprint: f.footprint, facing: *facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: f.product_passable.clone() };
                 let apron = plant.apron();
                 if !scene.ground.in_map(&apron) || occupied.iter().any(|r| r.overlaps(&apron)) || spot_boxes.iter().any(|(_, r)| r.overlaps(&apron)) || !lane_open(&apron, scene.open) {
                     continue;
                 }
-                let score = (rank, centre.dist2d(s));
-                if best.as_ref().is_none_or(|b| score < (b.0, b.1)) {
-                    best = Some((rank, centre.dist2d(s), centre, *facing, rect, apron, plant));
-                }
+                found.push((rank, centre.dist2d(s), centre, *facing, rect, apron, plant));
             }
         }
-        if let Some((_, _, centre, facing, rect, apron, plant)) = best {
+        // The best by facing and nearness whose street reaches the open, over the ground its products stand on
+        // (2026-11-06: the street was tested for the single best site alone, by the caller's `open` and never by the
+        // products' ground, so on Hooked the distilled bot's plant stood with its door 16 elmos from a cliff and its
+        // constructors jittered there from 1:20, the plant blocked from 2:52: dist155, dist167). No more than
+        // `STREET_TRIES` floods a factory.
+        found.sort_by(|a, b| (a.0, a.1).partial_cmp(&(b.0, b.1)).unwrap_or(std::cmp::Ordering::Equal));
+        for (_, _, centre, facing, rect, apron, plant) in found.into_iter().take(STREET_TRIES) {
             occupied.push(rect);
             if street_open(&scene.ground, &plant, &occupied, scene.open) {
                 aprons.push(apron);
                 plants.push(plant);
                 slots[k] = Some(Slot::Building { def, at: centre, facing });
-            } else {
-                occupied.pop();
+                break;
             }
+            occupied.pop();
         }
     }
     // The rest: packed, touching their own kind, out of every lane, leaving the commander a way out.

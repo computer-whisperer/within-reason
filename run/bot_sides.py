@@ -12,7 +12,7 @@ import collections, glob, json, math, re, sys
 CLASSES = [("mex", r"mex$|moho$"), ("energy", r"win$|solar$|advsol$|tide$|fus$|geo$"), ("conv", r"makr$"),
            ("store", r"mstor$|estor$"), ("lab", r"lab$|vp$|ap$|sy$|alab$|avp$|hp$"), ("nano", r"nanotc$"),
            ("turret", r"llt$|hllt$|hlt$|beamer$|rl$|guard$|pb$|dl$|ferret$|madsam$|mg$|rad$|jamt$|drag$|fort$"),
-           ("com", r"^com$"), ("cons", r"^(ck|cv|ca|cs|ack|acv|aca|rectr|necro|fark|consul)$")]
+           ("com", r"^com$"), ("cons", r"^(ck|cv|ca|cs|ch|beaver|muskrat|ack|acv|aca|rectr|necro|fark|consul)$")]
 
 
 def classify(name):

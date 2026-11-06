@@ -48,8 +48,8 @@ the next batch; the pool dedups, so it is a few hundred files.
 When the version fetched is itself the current one nothing dies: the arena's next batch plays the newer game with no
 word of it, and its rows are not comparable with the ones before (2026-11-06: test-31836 fetched for a lobby replay
 while a bench on test-31691 was running; the tag's line in `versions.gz` was rewritten by hand to name test-31691
-again before the next row started, and the arena has stayed on test-31691 since). Check `GameType` in a row's
-`_script.txt` after any fetch.
+again before the next row started; the tag was set to test-31836 the same afternoon on the user's word and the
+rows from dist177 on are that game's). Check `GameType` in a row's `_script.txt` after any fetch.
 
 ## A replay that names the game by rapid tag will not open in the lobby
 

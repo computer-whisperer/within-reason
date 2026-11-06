@@ -44,6 +44,12 @@ const TURRET_REFUSED: i32 = 2 * MINUTE;
 /// the farther ones). Its solar field stays within `COMMANDER_FIELD` of home: a solar where it stands a thousand
 /// out would be a generator on the frontier (the flagship's K-eco-generators-built-on-the-frontier).
 const COMMANDER_WALK: f32 = 1400.0;
+/// Before the plant stands the commander walks this far from home for an extractor and no farther (2026-11-06). The
+/// opening took two extractors first whatever the walk: on Hooked the second spot is 1,000 from the first, the
+/// commander walked 75 s to it before any solar, and the plant was begun at 2:38 against 0:37 to 0:54 on eleven other
+/// maps; all sixteen games were lost, eleven by 9:30 (dist155, dist167). The far spot is the commander's after the
+/// plant (`COMMANDER_WALK`) or a constructor's.
+const OPENING_WALK: f32 = 500.0;
 const COMMANDER_FIELD: f32 = 700.0;
 /// An extractor farther from home than this gets a sentry beside it, from the builder that built it (D-SENTRY).
 const SENTRY_FROM: f32 = 900.0;
@@ -574,7 +580,7 @@ impl Distilled {
             }
             // The opening, read off what stands: two extractors, two solars, the plant.
             if self.count(self.kit.extractor) < 2
-                && let Some(site) = self.free_site(unit, tick, f32::MAX)
+                && let Some(site) = self.free_site(unit, tick, if self.options.ground { OPENING_WALK } else { f32::MAX })
             {
                 return Some(Job::Extractor(site));
             }
@@ -1010,17 +1016,23 @@ impl Distilled {
             };
             return coverage.best_site(facts.footprint, unit.pos, self.home, reach, def.extracts_metal, &ok).map(|(p, _)| Site::Tile(p.x as i32, p.z as i32));
         }
+        // D-GROUND: a spot is this builder's only when its kind can walk there from home, and the nearest is the
+        // nearest on foot (from where it stands over the coarse ground, twice the straight line where that has no
+        // answer; from home at half weight as before).
+        let from = self.field_from(unit.def, unit.pos);
+        let walk = |at: Vec3| from.as_ref().map_or(unit.pos.dist2d(at), |field| field.distance(at).unwrap_or(2.0 * unit.pos.dist2d(at)));
+        let home_walk = |at: Vec3| self.walk_from_home(Some(unit.def), at);
         let free = |i: &usize| {
             let at = self.hello.metal_spots[*i];
             !self.economy.is_refused(Site::Spot(*i), self.frame)
-                && at.dist2d(self.home) <= reach
+                && home_walk(at).is_some_and(|w| w <= reach)
                 && !self.economy.orders.values().any(|o| o.job == Job::Extractor(Site::Spot(*i)))
                 && !self.own.values().any(|u| extractor(u.def) && u.pos.dist2d(at) < 90.0)
                 && !tick.snapshot.allies.iter().any(|u| extractor(u.def) && u.pos.dist2d(at) < 90.0)
                 && !self.army.his_buildings.values().any(|b| b.pos.dist2d(at) < 200.0)
                 && !tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(at) < SPOT_DANGER)
         };
-        let cost = |i: &usize| unit.pos.dist2d(self.hello.metal_spots[*i]) + 0.5 * self.home.dist2d(self.hello.metal_spots[*i]);
+        let cost = |i: &usize| walk(self.hello.metal_spots[*i]) + 0.5 * home_walk(self.hello.metal_spots[*i]).unwrap_or(f32::MAX);
         (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b))).map(Site::Spot)
     }
 
@@ -1112,12 +1124,16 @@ impl Distilled {
             // extractor's point as it is).
             Job::Stand => {
                 let Some(stand) = &self.stand else { return None };
-                for (i, slot) in stand.slots.iter().enumerate() {
+                let mut queued = false;
+                for slot in &stand.slots {
                     let (def, site) = match *slot {
+                        // An extractor beyond the opening's walk is not the opening's (`OPENING_WALK`).
+                        layout::Slot::Extractor { at, .. } if self.options.ground && self.walk_from_home(Some(unit.def), at).is_none_or(|w| w > OPENING_WALK) => continue,
                         layout::Slot::Extractor { at, .. } => (self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }),
                         layout::Slot::Building { def, at, facing } => (Some(def), Self::slot_site(at, facing)),
                     };
-                    commands.extend(build(def, site, i > 0));
+                    commands.extend(build(def, site, queued));
+                    queued = true;
                 }
             }
             Job::Reclaim(feature) => {

@@ -289,7 +289,7 @@ impl Distilled {
         bot_protocol::BuildSite { near: at, search_radius: SLOT_SEARCH, min_dist: 0, placements: vec![bot_protocol::Placement { facing, keep_out: Vec::new() }], exact: true }
     }
 
-    fn name_of(&self, def: UnitDefId) -> String {
+    pub(crate) fn name_of(&self, def: UnitDefId) -> String {
         self.def(def).map_or_else(|| format!("def {}", def.0), |d| d.name.clone())
     }
 }

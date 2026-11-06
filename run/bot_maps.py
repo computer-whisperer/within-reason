@@ -4,6 +4,7 @@ ours beside his, from the census lines and the bot's own lines in engine.log. Th
 `run/bot_sides.py` (one game by minute) and `run/bot_curves.py` (one batch by minute).
 
     run/bot_maps.py <batch dir or label> [<batch dir or label> ...]
+    run/bot_maps.py --results <batch dir or label> ...      one line a batch and the sum
 
 Per batch: the result and the wins' clock; when the first plant was begun and the first soldier stood; extractors,
 soldiers and turrets of both sides and our income at 5, 10, 15 and 20 minutes (medians over the games still running);
@@ -78,7 +79,32 @@ def count(census, minute, side, label):
     return sum(n for name, n in c[side].items() if classify(name) == label)
 
 
+def results_table(names):
+    """`--results`: one line a batch (result, the wins' clock, unwon games we led two to one in soldiers at the end)
+    and the sum, for laying benches side by side."""
+    total = collections.Counter()
+    for name in names:
+        batch = batch_of(name)
+        meta = json.load(open(f'{batch}/batch.json')) if glob.glob(f'{batch}/batch.json') else {}
+        results = [json.loads(l) for l in open(f'{batch}/results.jsonl')]
+        outcomes = collections.Counter(r['outcome'] for r in results)
+        total.update(outcomes)
+        wins = [r['game_minutes'] for r in results if r['outcome'] == 'Win']
+        led = 0
+        for r in results:
+            if r['outcome'] == 'Win':
+                continue
+            g = read(f"{batch}/{r['index']:02d}")
+            last = max((m for m in g['own'] if m in g['census']), default=None)
+            if last is not None and (count(g['census'], last, 'own', 'army') or 0) >= max(5, 2 * (count(g['census'], last, 'enemy', 'army') or 0)):
+                led += 1
+        print(f"{batch.split('-', 1)[1]:40} {(meta.get('map') or '')[:22]:22} {outcomes['Win']:>2}-{outcomes['Loss']}-{outcomes['Timeout']}  wins at {show(med(wins), 1):>5}  unwon while two to one in soldiers: {led}")
+    print(f"{'':63} {total['Win']}-{total['Loss']}-{total['Timeout']}")
+
+
 def main():
+    if sys.argv[1:2] == ['--results']:
+        return results_table(sys.argv[2:])
     for name in sys.argv[1:]:
         batch = batch_of(name)
         meta = json.load(open(f'{batch}/batch.json')) if glob.glob(f'{batch}/batch.json') else {}
