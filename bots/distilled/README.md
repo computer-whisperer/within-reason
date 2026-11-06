@@ -410,8 +410,12 @@ and 3-5-0 -> 1-6-1; Zed 4-2-2 -> 3-0-5 and 3-5-0 -> 3-5-0; Halite 4-0-4 -> 6-0-2
 3-3-2; TitanDuel 8-0-0 -> 7-0-1 and 5-1-2 -> 3-2-3; the rest within a game or two. Unwon games we led two to one
 in soldiers at the end: 12 -> 7 against Apex, 15 -> 4 against BARb. Tried beside it and withdrawn: the guard
 falling back to the base point when outweighed at the hold point (`guardback`, dist233-dist236: 8-14-10 against
-the baseline's 10-16-6 on Avalanche, Zed, Sertaleina and Ravaged against BARb). Still open from the list: the
-launch (1, measured next as `kingat`), the small maps against BARb (our soldiers die alone or in threes while his
+the baseline's 10-16-6 on Avalanche, Zed, Sertaleina and Ravaged against BARb). Measured after it and not kept: `kingat=on`, his commander's 1,800 counted
+only within 1,200 of where he stands instead of in what he has shown (dist237-dist262: 136-44-44 against the
+pass's 144-42-38; sooner launches at outlying targets did not turn into sooner wins); and the guard answering raids
+as one with a relay at the base point (dist263-dist266, level with the pass on the four small maps, the guard's
+deaths out to raids unchanged: `run/bot_deaths.py` now reads guard:party, guard:hold and guard:way). Still open
+from the list: the launch (1), the small maps against BARb (our soldiers die alone or in threes while his
 army arrives massed: Avalanche dist163 game 01, equal economies, all of ours lost for 2,574 of his), tier 2.
 
 ## Running it

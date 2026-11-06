@@ -176,6 +176,7 @@ pub(crate) struct Options {
     /// D-STUCK and the opening's walk, 2026-11-06).
     pub ground: bool,
     /// `kingat=on`: his commander's weight counts where he stands and not in what his army has shown (`KING_REACH`).
+    /// Off: measured 136-44-44 against the first pass's 144-42-38 over Comet and the map bench (dist237-dist262).
     pub king_local: bool,
 }
 
