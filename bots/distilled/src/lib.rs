@@ -305,7 +305,14 @@ impl Distilled {
         } else if self.army.column.contains(&unit) {
             "column"
         } else if self.army.home_guard.contains(&unit) {
-            "guard"
+            // The guard's dead by what they were at: out to a raid (D-PARTY), at the hold point, or on the way to it.
+            if self.army.is_responding(unit) {
+                "guard:party"
+            } else if fallen.pos.dist2d(self.hold_point()) < 900.0 {
+                "guard:hold"
+            } else {
+                "guard:way"
+            }
         } else if self.army.is_scout(unit) {
             "scout"
         } else if self.army.is_raider(unit) {

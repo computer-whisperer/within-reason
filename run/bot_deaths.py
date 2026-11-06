@@ -12,7 +12,7 @@ Written 2026-10-20: the exchange is the distilled bot's wall and the census says
 import collections, glob, json, re, statistics, sys
 
 LINE = re.compile(
-    r"\[distilled ai=\d\] f=(\d+) died: (\S+) unit (\d+) at \((-?\d+),(-?\d+)\) half=(\w+) body=(\w+) mode=(\w+) killer=(\S+) kind=(\w+) attacker=(\S+) "
+    r"\[distilled ai=\d\] f=(\d+) died: (\S+) unit (\d+) at \((-?\d+),(-?\d+)\) half=(\w+) body=([\w:]+) mode=(\w+) killer=(\S+) kind=(\w+) attacker=(\S+) "
     r"near600: turrets (\d+) w(\d+) mobiles (\d+) w(\d+) ours (\d+) w(\d+); body n=(\d+) w(\d+) order=(\S+)"
 )
 BANDS = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 30), (30, 99)]
@@ -52,8 +52,10 @@ def main():
         r = results.get(int(nn))
         every = [d for d in deaths_of(game) if d["minute"] < to]
         # Soldiers by body; the builders and buildings the instrument logs since 2026-10-20 evening are counted apart.
-        deaths = [d for d in every if d["body"] in SOLDIER_BODIES]
-        others = collections.Counter(d["body"] for d in every if d["body"] not in SOLDIER_BODIES)
+        # The guard's dead carry what they were at since 2026-11-06 (guard:party, guard:hold, guard:way).
+        soldier = lambda d: d["body"].split(":")[0] in SOLDIER_BODIES
+        deaths = [d for d in every if soldier(d)]
+        others = collections.Counter(d["body"] for d in every if not soldier(d))
         head = f"{r['outcome'][0]}{r['game_minutes']:.0f} seed {r['seed']} {r['our_side']}" if r else "?"
         if others:
             head += " | lost " + " ".join(f"{k} {n}" for k, n in others.most_common())

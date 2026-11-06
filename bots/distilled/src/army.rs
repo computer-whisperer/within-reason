@@ -227,6 +227,11 @@ impl Army {
         self.raiders.contains(&unit)
     }
 
+    /// Out to a raid as a party's member (D-PARTY).
+    pub(crate) fn is_responding(&self, unit: UnitId) -> bool {
+        self.responding.contains_key(&unit)
+    }
+
     /// An enemy seen destroyed is no longer shown, nor known as a building.
     pub(crate) fn forget(&mut self, enemy: UnitId) {
         self.his_buildings.remove(&enemy);

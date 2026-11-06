@@ -65,7 +65,7 @@ def read(game):
                 launches += 1
                 launch = f if launch is None else launch
         elif ' died: ' in line:
-            d = re.search(r' died: (\w+) unit \d+ .*? body=(\w+) .*? killer=(\w+)', line)
+            d = re.search(r' died: (\w+) unit \d+ .*? body=([\w:]+) .*? killer=(\w+)', line)
             if d:
                 killers[d[3]] += 1
                 lost[d[2]] += 1
