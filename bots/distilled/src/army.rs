@@ -23,23 +23,59 @@ const DEFEND: f32 = 900.0;
 const HOLD_BACK: f32 = 300.0;
 const HOLD_LEAST: f32 = 500.0;
 const BASE_OUT: f32 = 300.0;
-/// With no raid for this long the guard returns to the hold point.
-const RAID_OVER: i32 = 20 * SECOND;
+/// D-PARTY (2026-11-06): each raid (his raiders within `RAID_CLUSTER` of each other) is answered by the guard's
+/// members nearest to it up to `PARTY_ODDS` times its weight, and the rest of the guard stays at the hold point.
+/// Until then the whole guard walked to the raider nearest home, wherever on the map our building stood, and came
+/// back: dist137-column-smoke2 held 40 to 81 soldiers of 8,100 to 15,750 metal in the guard from 15:30 to 18:30
+/// beside a body of 25 to 38, of which a launch found 13 to 41 gathered; and while the guard answered his Thugs in
+/// the middle one Grunt took two constructors, three extractors and two turret frames in the north in eighty
+/// seconds with nothing of ours within 1,700 (dist135-audit-apex 13:09-14:29).
+const RAID_CLUSTER: f32 = 600.0;
+const PARTY_ODDS: f32 = 2.0;
+/// The hold point moves to a new frontier only this far from it, and no sooner than this after its last move: an
+/// extractor begun or lost at the frontier moved the whole guard between places 500 to 1,000 apart.
+const HOLD_MOVED: f32 = 400.0;
+const HOLD_FOR: i32 = 20 * SECOND;
 /// D-LAUNCH: the guard goes out at this much metal of soldiers (times the income bonus), plus `LAUNCH_A_MINUTE` for
 /// every minute past `LAUNCH_FROM` up to `LAUNCH_AT_MOST` (his army grows whether or not we have seen it: twelve
 /// Blitzes launched at 5:56 toward his start with 686 metal of his seen met his commander and twenty soldiers,
 /// dist7-army-barb-hardagg-comet-1 game 00), and `PUSH_ODDS` of what he has shown; a body out keeps its target down
 /// to `KEEP_ODDS` (without the hysteresis the body launched, saw more of his army, found no target and merged back
-/// every thirty seconds for four minutes, game 04). With the body out, the guard joins it at this share of the
-/// body's weight, and at least `REINFORCE`.
+/// every thirty seconds for four minutes, game 04). With the body out, whatever of the guard is beyond the reserve
+/// follows it as its column (D-COLUMN) from `REINFORCE` on, from wherever it stands: the plants are 85 seconds'
+/// walk behind the hold point, and with the followers gathered there first and sent at a third of the body's
+/// weight, 44 % of the soldiers' weight was the guard's while a body was out (dist140-cohesion-apex).
 const LAUNCH: f32 = 1200.0;
 const LAUNCH_FROM: i32 = 5 * MINUTE;
 const LAUNCH_A_MINUTE: f32 = 250.0;
 const LAUNCH_AT_MOST: f32 = 4000.0;
 const PUSH_ODDS: f32 = 1.5;
 const KEEP_ODDS: f32 = 1.0;
-const REINFORCE_SHARE: f32 = 0.34;
 const REINFORCE: f32 = 600.0;
+/// D-COLUMN (2026-11-06): a reinforcement is the body's once it stands within this of the body's core; until then
+/// it is the column, walking there. Until then every joiner was a member the second it left the hold point: the
+/// body's core fell on the empty ground between the head and the joiners, so the odds round the core read nobody of
+/// ours (dist135-audit-apex 15:01: 55 soldiers of 10,710 "repelled" by 220 metal of his with none of ours within
+/// 900 of the core, and the whole body walked back for twenty seconds), the target nearest that core changed every
+/// ten seconds between the two sides of his base, and the head fought his turrets with a tenth of the body
+/// (run/audit.py's cohesion table: 6 of 42 out with the head at 14:00). In the two rows before it the body was
+/// under 60 % together on 53 % and 79 % of its trace lines, and 28 of 33 retreats were called with under 30 % of
+/// the body within 900 of the core (dist132-econ2-apex, dist134-street-ground-barb).
+const JOIN: f32 = 900.0;
+/// Only the guard's members within this of the hold point, none of them out to a raid (D-PARTY), weigh for the
+/// launch of a body and go out with it. A body sent back to the guard was the guard that second and the launch counted
+/// it where it stood: dist136-column-smoke 14:15 "no target" for 18 soldiers at his base, 14:17 a launch of 37
+/// with two of them together, the old body on its way back and the guard at the hold point in one formation.
+const GATHERED: f32 = 900.0;
+/// A body whose core has stood within `STOOD_AT` of its target for `STOOD_FOR` with nothing of his in sight there
+/// has taken it: what was remembered within `STOOD_GONE` of the place is forgotten and a spot there is looked at.
+/// A remembered building is otherwise forgotten only when a soldier stands within 150 of it and sees none, and a
+/// kept target (D-TARGET) none of them reached held the body for good: dist140-cohesion-apex game 06, 325 soldiers
+/// of 67,140 standing 250 from a place sent at 24:00 to the cap at 30:00, his commander and one extractor left
+/// 2,000 away; game 01 the same with 333.
+const STOOD_AT: f32 = 450.0;
+const STOOD_FOR: i32 = 12 * SECOND;
+const STOOD_GONE: f32 = 250.0;
 /// A launch leaves this much metal of soldiers at home, the nearest to it (times the income bonus): with the whole
 /// guard out, packs of one to eight Grunts killed 23 extractors and 16 builders of one game with nothing of ours
 /// near (dist9-army-apex-v032-comet-cold-1 game 00). The body comes home only for a raid worth this share of
@@ -108,6 +144,9 @@ pub(crate) enum Stance {
 pub(crate) struct Army {
     pub home_guard: BTreeSet<UnitId>,
     pub strike: BTreeSet<UnitId>,
+    /// Reinforcements walking to the strike body (D-COLUMN), and where they were last sent.
+    pub column: BTreeSet<UnitId>,
+    column_order: Option<(Vec3, i32)>,
     /// Each scout and the frame of its last order.
     scouts: BTreeMap<UnitId, i32>,
     /// His buildings as last seen.
@@ -121,6 +160,10 @@ pub(crate) struct Army {
     pub raiders: BTreeSet<UnitId>,
     raid_order: Option<(Vec3, i32)>,
     raid_fleeing: Option<i32>,
+    /// The guard's members out answering a raid (D-PARTY): the raid's place and the frame of the order.
+    responding: BTreeMap<UnitId, (Vec3, i32)>,
+    /// The hold point in force, and since when (`HOLD_FOR`).
+    hold: Option<(Vec3, i32)>,
     /// Per straggler, when it was last told to close on the core.
     told: BTreeMap<UnitId, i32>,
     stance: Option<Stance>,
@@ -138,6 +181,13 @@ pub(crate) struct Army {
     pub his_army: BTreeMap<UnitId, (f32, i32)>,
     /// Where the body was outweighed, and when.
     threats: Vec<(Vec3, i32)>,
+    /// The target the body's core stands at, and since when (`STOOD_FOR`).
+    stood: Option<(Vec3, i32)>,
+    /// Where the raiders ran, and when: theirs alone. Until 2026-11-06 a raider's scare went into `threats`, and four
+    /// raiders running from 390 metal of his made every known building of his a place the strike body avoided:
+    /// dist135-audit-apex 18:20, "no target" for 137 soldiers of 26,125 against his shown 3,558, and the body walked
+    /// home (sixteen such walks home by a body over three times his shown army in dist132-econ2-apex's games).
+    raid_threats: Vec<(Vec3, i32)>,
 }
 
 impl Army {
@@ -237,13 +287,26 @@ impl Distilled {
         self.army.his_army.values().map(|(w, _)| w).sum()
     }
 
-    /// D-HOLD's hold point: the frontier extractor pulled back toward home.
+    /// D-HOLD's hold point: the frontier extractor pulled back toward home, as last settled (`settle_hold`).
     pub(crate) fn hold_point(&self) -> Vec3 {
+        self.army.hold.map_or_else(|| self.frontier_hold(), |(at, _)| at)
+    }
+
+    fn frontier_hold(&self) -> Vec3 {
         let frontier = self.finished(self.kit.extractor).map(|u| u.pos).min_by(|a, b| a.dist2d(self.enemy_home).total_cmp(&b.dist2d(self.enemy_home)));
         let least = self.toward_enemy(self.home, HOLD_LEAST);
         let Some(frontier) = frontier else { return least };
         let back = self.toward_point(frontier, self.home, HOLD_BACK);
         if back.dist2d(self.home) < HOLD_LEAST { least } else { back }
+    }
+
+    /// The hold point follows the frontier in steps: only a frontier `HOLD_MOVED` from it moves it, and not within
+    /// `HOLD_FOR` of its last move.
+    fn settle_hold(&mut self) {
+        let now = self.frontier_hold();
+        if self.army.hold.is_none_or(|(at, since)| at.dist2d(now) >= HOLD_MOVED && self.frame - since >= HOLD_FOR) {
+            self.army.hold = Some((now, self.frame));
+        }
     }
 
     fn base_point(&self) -> Vec3 {
@@ -265,13 +328,17 @@ impl Distilled {
         }
         self.remember(tick);
         self.enlist();
+        self.settle_hold();
         self.run_scouts(commands);
-        let raid = self.raid(tick);
+        let raids = self.raids(tick);
+        // The raid nearest home with the weight of them all: what the strike body weighs coming home for (D-HOLD).
+        let raid = raids.first().map(|(at, _)| (*at, raids.iter().map(|(_, w)| w).sum::<f32>()));
         if raid.is_some() {
             self.army.last_raid = self.frame;
         }
-        self.run_guard(raid, commands);
+        self.run_guard(&raids, commands);
         self.launch();
+        self.run_column(commands);
         self.run_strike(tick, raid, commands);
         self.run_raiders(tick, commands);
         self.army.field_since = if self.field_now() { self.army.field_since.or(Some(self.frame)) } else { None };
@@ -306,7 +373,7 @@ impl Distilled {
             let by_clock = LAUNCH + LAUNCH_A_MINUTE * ((self.frame - LAUNCH_FROM).max(0) as f32 / MINUTE as f32);
             (scale * by_clock.min(LAUNCH_AT_MOST)).max(PUSH_ODDS * self.his_army_weight())
         } else {
-            (REINFORCE_SHARE * self.strike_weight()).max(scale * REINFORCE)
+            scale * REINFORCE
         }
     }
 
@@ -338,6 +405,7 @@ impl Distilled {
         let frame = self.frame;
         self.army.his_army.retain(|_, (_, seen)| frame - *seen < SEEN_FOR);
         self.army.threats.retain(|(_, at)| frame - *at < AVOID_FOR);
+        self.army.raid_threats.retain(|(_, at)| frame - *at < AVOID_FOR);
         let in_sight: BTreeSet<UnitId> = tick.snapshot.enemies.iter().map(|e| e.id).collect();
         let soldiers: Vec<Vec3> = self.army.strike.iter().chain(self.army.home_guard.iter()).chain(self.army.scouts.keys()).filter_map(|id| self.own.get(id)).map(|u| u.pos).collect();
         self.army.his_buildings.retain(|id, seen| in_sight.contains(id) || !soldiers.iter().any(|p| p.dist2d(seen.pos) < 150.0));
@@ -348,14 +416,16 @@ impl Distilled {
         let alive = |id: &UnitId| self.own.contains_key(id);
         self.army.home_guard.retain(alive);
         self.army.strike.retain(alive);
+        self.army.column.retain(alive);
         self.army.raiders.retain(alive);
         self.army.scouts.retain(|id, _| self.own.contains_key(id));
         self.army.told.retain(|id, _| self.own.contains_key(id));
+        self.army.responding.retain(|id, _| self.own.contains_key(id) && self.army.home_guard.contains(id));
         let new: Vec<(UnitId, UnitDefId)> = self
             .own
             .values()
             .filter(|u| !u.being_built && self.def(u.def).is_some_and(|d| d.speed > 0.0 && d.move_class.is_some() && d.weapon_count > 0 && d.build_options.is_empty()))
-            .filter(|u| !self.army.home_guard.contains(&u.id) && !self.army.strike.contains(&u.id) && !self.army.scouts.contains_key(&u.id) && !self.army.raiders.contains(&u.id))
+            .filter(|u| !self.army.home_guard.contains(&u.id) && !self.army.strike.contains(&u.id) && !self.army.column.contains(&u.id) && !self.army.scouts.contains_key(&u.id) && !self.army.raiders.contains(&u.id))
             .map(|u| (u.id, u.def))
             .collect();
         for (unit, def) in new {
@@ -389,21 +459,29 @@ impl Distilled {
         (0..spots.len()).filter(|i| self.his_half(spots[*i]) && !self.army.looked.contains(i)).min_by(|a, b| from.dist2d(spots[*a]).total_cmp(&from.dist2d(spots[*b])))
     }
 
-    /// D-HOLD: the armed mobile ground enemy within `DEFEND` of a building of ours that is nearest to home, and the
-    /// weight of all of them (an aircraft is not a raid the body can answer: 105 Brutes stood at home under Apex's
-    /// bombers chasing them, dist8-army-apex-v032-comet-cold-1 game 02).
-    fn raid(&self, tick: &Tick) -> Option<(Vec3, f32)> {
+    /// D-HOLD: the raids: his armed mobile ground units within `DEFEND` of a building of ours, those within
+    /// `RAID_CLUSTER` of each other one raid, each its middle and weight, the nearest to home first (an aircraft is
+    /// not a raid the body can answer: 105 Brutes stood at home under Apex's bombers chasing them,
+    /// dist8-army-apex-v032-comet-cold-1 game 02).
+    fn raids(&self, tick: &Tick) -> Vec<(Vec3, f32)> {
         let buildings: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos).collect();
-        let raiders: Vec<(Vec3, f32)> = tick
-            .snapshot
-            .enemies
-            .iter()
-            .filter(|e| e.def.and_then(|d| self.def(d)).is_none_or(|d| d.speed > 0.0 && d.weapon_count > 0 && d.move_class.is_some()))
-            .filter(|e| buildings.iter().any(|b| b.dist2d(e.pos) < DEFEND))
-            .map(|e| (e.pos, self.weight(e.def, TURRET_WEIGHT)))
-            .collect();
-        let weight: f32 = raiders.iter().map(|(_, w)| w).sum();
-        raiders.into_iter().map(|(at, _)| at).min_by(|a, b| a.dist2d(self.home).total_cmp(&b.dist2d(self.home))).map(|at| (at, weight))
+        let mut raids: Vec<(Vec3, f32, f32)> = Vec::new();
+        for enemy in &tick.snapshot.enemies {
+            if !enemy.def.and_then(|d| self.def(d)).is_none_or(|d| d.speed > 0.0 && d.weapon_count > 0 && d.move_class.is_some()) || !buildings.iter().any(|b| b.dist2d(enemy.pos) < DEFEND) {
+                continue;
+            }
+            let weight = self.weight(enemy.def, TURRET_WEIGHT);
+            match raids.iter_mut().find(|(at, _, _)| at.dist2d(enemy.pos) < RAID_CLUSTER) {
+                Some((at, total, n)) => {
+                    *n += 1.0;
+                    *at = Vec3 { x: at.x + (enemy.pos.x - at.x) / *n, y: at.y, z: at.z + (enemy.pos.z - at.z) / *n };
+                    *total += weight;
+                }
+                None => raids.push((enemy.pos, weight, 1.0)),
+            }
+        }
+        raids.sort_by(|a, b| a.0.dist2d(self.home).total_cmp(&b.0.dist2d(self.home)));
+        raids.into_iter().map(|(at, weight, _)| (at, weight)).collect()
     }
 
     /// Orders a body to a place, again only when the place has moved or `REORDER` has passed.
@@ -421,41 +499,66 @@ impl Distilled {
         commands.extend(units.iter().map(|unit| if fight { Command::Fight { unit: *unit, to, queue: false } } else { Command::Move { unit: *unit, to, queue: false } }));
     }
 
-    /// D-HOLD: the guard answers a raid it can match at the raid's place, meets a heavier one at the base, and
-    /// otherwise stands at the hold point.
-    fn run_guard(&mut self, raid: Option<(Vec3, f32)>, commands: &mut Vec<Command>) {
+    /// D-HOLD, D-PARTY: each raid is answered at its place by the guard's members nearest to it up to `PARTY_ODDS`
+    /// times its weight (a member already out to it before a nearer one); raids heavier together than the whole
+    /// guard are met at the base by all of it; everyone else stands at the hold point.
+    fn run_guard(&mut self, raids: &[(Vec3, f32)], commands: &mut Vec<Command>) {
         if self.army.home_guard.is_empty() {
             return;
         }
-        if let Some((at, weight)) = raid {
-            let to = if self.home_guard_weight() >= weight { at } else { self.base_point() };
-            return self.send(false, to, true, commands);
+        let whole: f32 = raids.iter().map(|(_, w)| w).sum();
+        if !raids.is_empty() && self.home_guard_weight() < whole {
+            self.army.responding.clear();
+            return self.send(false, self.base_point(), true, commands);
         }
-        if self.frame - self.army.last_raid < RAID_OVER {
-            return;
+        let mut free: Vec<(UnitId, Vec3, f32)> = self.army.home_guard.iter().filter_map(|id| self.own.get(id)).map(|u| (u.id, u.pos, self.weight(Some(u.def), TURRET_WEIGHT))).collect();
+        let mut parties: BTreeMap<UnitId, Vec3> = BTreeMap::new();
+        for (at, weight) in raids {
+            // Those already out to this raid keep it: 400 nearer than they stand.
+            let out = |id: &UnitId| self.army.responding.get(id).is_some_and(|(to, _)| to.dist2d(*at) < RAID_CLUSTER);
+            free.sort_by(|a, b| (a.1.dist2d(*at) - if out(&a.0) { 400.0 } else { 0.0 }).total_cmp(&(b.1.dist2d(*at) - if out(&b.0) { 400.0 } else { 0.0 })));
+            let mut sent = 0.0;
+            while sent < PARTY_ODDS * weight && !free.is_empty() {
+                let (id, _, w) = free.remove(0);
+                sent += w;
+                parties.insert(id, *at);
+            }
+        }
+        self.army.responding.retain(|id, _| parties.contains_key(id));
+        for (unit, at) in &parties {
+            if self.army.responding.get(unit).is_none_or(|(to, frame)| to.dist2d(*at) >= 100.0 || self.frame - frame >= REORDER) {
+                self.army.responding.insert(*unit, (*at, self.frame));
+                commands.push(Command::Fight { unit: *unit, to: *at, queue: false });
+            }
         }
         let hold = self.hold_point();
-        self.send(false, hold, true, commands);
+        if self.army.guard_order.is_some_and(|(at, frame)| at.dist2d(hold) < 100.0 && self.frame - frame < REORDER) {
+            return;
+        }
+        self.army.guard_order = Some((hold, self.frame));
+        commands.extend(free.iter().map(|(unit, _, _)| Command::Fight { unit: *unit, to: hold, queue: false }));
     }
 
     /// D-LAUNCH: the guard goes out as the strike body when it is heavy enough and has a feasible target, and
-    /// follows a body that is out once it is a third of it.
+    /// follows a body that is out as its column (D-COLUMN).
     fn launch(&mut self) {
         // Not held by a raid: against BARb hard_aggressive a raid is on every twenty seconds, and the guard of 57
         // Stouts sat at home from 15:00 to 17:30 for it (dist8-army-barb-hardagg-comet-1 game 05).
-        let guard = self.home_guard_weight();
+        let hold = self.hold_point();
+        let out = !self.army.strike.is_empty();
+        let ready: BTreeSet<UnitId> = self.army.home_guard.iter().filter(|id| !self.army.responding.contains_key(id) && self.own.get(id).is_some_and(|u| out || u.pos.dist2d(hold) < GATHERED)).copied().collect();
+        let guard = self.weight_of(&ready);
         if guard < self.launch_weight() {
             return;
         }
         if self.army.strike.is_empty() {
-            let from = self.hold_point();
-            if self.target_for(&self.army.home_guard, from, PUSH_ODDS).is_none() {
+            if self.target_for(&ready, hold, PUSH_ODDS, None).is_none() {
                 return;
             }
             self.army.stance = Some(Stance::Push);
         }
-        // The reserve stays: the guard's members nearest to home up to `GUARD_RESERVE`.
-        let mut by_home: Vec<(f32, UnitId, f32)> = self.army.home_guard.iter().filter_map(|id| self.own.get(id)).map(|u| (u.pos.dist2d(self.home), u.id, self.weight(Some(u.def), TURRET_WEIGHT))).collect();
+        // The reserve stays: the gathered members nearest to home up to `GUARD_RESERVE`.
+        let mut by_home: Vec<(f32, UnitId, f32)> = ready.iter().filter_map(|id| self.own.get(id)).map(|u| (u.pos.dist2d(self.home), u.id, self.weight(Some(u.def), TURRET_WEIGHT))).collect();
         by_home.sort_by(|a, b| a.0.total_cmp(&b.0));
         let reserve = self.income_multiplier * GUARD_RESERVE;
         let (mut kept, mut staying) = (0.0, BTreeSet::new());
@@ -466,22 +569,68 @@ impl Distilled {
             kept += weight;
             staying.insert(*id);
         }
-        let going: BTreeSet<UnitId> = self.army.home_guard.difference(&staying).copied().collect();
+        let going: BTreeSet<UnitId> = ready.difference(&staying).copied().collect();
         if going.is_empty() {
             return;
         }
-        eprintln!("[distilled ai={}] f={} launch: guard n={} w{:.0} joins a body of n={} w{:.0}; {} stay", self.hello.ai_id, self.frame, going.len(), guard - kept, self.army.strike.len(), self.strike_weight(), staying.len());
-        self.army.home_guard = staying;
+        eprintln!("[distilled ai={}] f={} launch: guard n={} w{:.0} joins a body of n={} w{:.0}; {} stay{}", self.hello.ai_id, self.frame, going.len(), guard - kept, self.army.strike.len(), self.strike_weight(), staying.len(), if self.army.strike.is_empty() { "" } else { " (as its column)" });
+        self.army.home_guard.retain(|id| !going.contains(id));
         self.army.guard_order = None;
-        self.army.strike.extend(going);
-        self.army.strike_order = None;
+        if self.army.strike.is_empty() {
+            self.army.strike = going;
+            self.army.strike_order = None;
+        } else {
+            self.army.column.extend(going);
+            self.army.column_order = None;
+        }
+    }
+
+    /// D-COLUMN: the reinforcements fight their way to the body's core and are the body's once within `JOIN` of
+    /// it; with no body left to join they are the guard again.
+    fn run_column(&mut self, commands: &mut Vec<Command>) {
+        if self.army.column.is_empty() {
+            return;
+        }
+        let members: Vec<(UnitId, Vec3, UnitDefId)> = self.army.strike.iter().filter_map(|id| self.own.get(id)).map(|u| (u.id, u.pos, u.def)).collect();
+        if members.is_empty() {
+            let column = std::mem::take(&mut self.army.column);
+            self.army.home_guard.extend(column);
+            self.army.guard_order = None;
+            return;
+        }
+        let core = self.core(&members);
+        let arrived: Vec<UnitId> = self.army.column.iter().filter(|id| self.own.get(id).is_some_and(|u| u.pos.dist2d(core) < JOIN)).copied().collect();
+        if !arrived.is_empty() {
+            eprintln!("[distilled ai={}] f={} column: n={} joins the body of n={} at ({:.0},{:.0}); {} still walking", self.hello.ai_id, self.frame, arrived.len(), members.len(), core.x, core.z, self.army.column.len() - arrived.len());
+            for id in arrived {
+                self.army.column.remove(&id);
+                self.army.strike.insert(id);
+            }
+        }
+        if self.army.column_order.is_some_and(|(at, frame)| at.dist2d(core) < 200.0 && self.frame - frame < REORDER) {
+            return;
+        }
+        self.army.column_order = Some((core, self.frame));
+        // Under `lane=on` the column is a formation of the lane's, as the body is (D-LANE).
+        if !self.options.lane {
+            commands.extend(self.army.column.iter().map(|unit| Command::Fight { unit: *unit, to: core, queue: false }));
+        }
+    }
+
+    /// Where the column was last sent: the body's core then.
+    pub(crate) fn column_target(&self) -> Option<Vec3> {
+        self.army.column_order.map(|(at, _)| at)
     }
 
     /// D-TARGET: the feasible target nearest to `from` for a body of these units: a known building of his whose
     /// defence (his turrets within `TARGET_REACH` of it, weighted, plus what he has shown of his army) the body
     /// outweighs by `odds` (`PUSH_ODDS` to launch, `KEEP_ODDS` once out) and that is not a place lately avoided;
     /// with nothing of his known, the nearest spot on his half nobody has looked at, else his start.
-    fn target_for(&self, units: &BTreeSet<UnitId>, from: Vec3, odds: f32) -> Option<Vec3> {
+    ///
+    /// `kept` is the target the body is on: it stays the target while a building of his is known there and it is
+    /// still feasible (2026-11-06: the nearest to a moving core is another building every few seconds, and the body
+    /// of dist135-audit-apex was sent to twelve places in two minutes, one side of his base and the other).
+    fn target_for(&self, units: &BTreeSet<UnitId>, from: Vec3, odds: f32, kept: Option<Vec3>) -> Option<Vec3> {
         let whole = self.weight_of(units);
         let factor = self.turret_factor(units);
         let avoided = |at: Vec3| self.army.threats.iter().any(|(t, _)| t.dist2d(at) < AVOID);
@@ -489,6 +638,9 @@ impl Distilled {
         let nearest = |a: &Vec3, b: &Vec3| a.dist2d(from).total_cmp(&b.dist2d(from));
         if !self.army.his_buildings.is_empty() {
             let feasible = |p: &Vec3| !avoided(*p) && whole >= odds * defence(*p);
+            if let Some(kept) = kept.filter(|k| self.army.his_buildings.values().any(|b| b.pos.dist2d(*k) < 50.0)).filter(feasible) {
+                return Some(kept);
+            }
             // D-REACH: "a post is a toll, not a wall; the economy behind it is the target": what his turrets cover
             // (his unarmed buildings) before the turrets themselves, which the body walks through to reach it.
             if self.options.reach {
@@ -501,6 +653,10 @@ impl Distilled {
         }
         if whole < odds * self.his_army_weight() {
             return None;
+        }
+        // A spot the body is walking to stays its target until it is looked at.
+        if let Some(kept) = kept.filter(|k| (0..self.hello.metal_spots.len()).any(|i| !self.army.looked.contains(&i) && self.his_half(self.hello.metal_spots[i]) && self.hello.metal_spots[i].dist2d(*k) < 50.0)) {
+            return Some(kept);
         }
         Some(self.unlooked(from).map_or(self.enemy_home, |spot| self.hello.metal_spots[spot]))
     }
@@ -577,7 +733,14 @@ impl Distilled {
         // D-HOLD: a raid in our half the guard cannot match, worth `DEFEND_SHARE` of the body, is the body's business
         // before its target.
         let defend = raid.filter(|(at, weight)| self.home_guard_weight() < *weight && *weight >= DEFEND_SHARE * whole && !self.his_half(*at)).map(|(at, _)| at);
-        let Some(target) = defend.or_else(|| self.target_for(&self.army.strike, core, KEEP_ODDS)) else {
+        let kept = self.army.strike_order.map(|(at, _)| at);
+        // A target is kept on the weight of the body and its column together: what is on its way counts for whether
+        // to stay out, as it did while every follower was a member (the odds of the fight at hand, above, are the
+        // body's alone). On the body alone the walks home for want of a target rose from 22 to 36 a row against BARb
+        // hard_aggressive, each with the body at his shown army's weight and the column behind it uncounted, and
+        // the wins came two minutes later (dist143-stream-barb against dist139-base-barb).
+        let committed: BTreeSet<UnitId> = self.army.strike.union(&self.army.column).copied().collect();
+        let Some(target) = defend.or_else(|| self.target_for(&committed, core, KEEP_ODDS, kept)) else {
             // Nothing the body can take: it goes back to the hold point and is the guard again.
             eprintln!("[distilled ai={}] f={} no target: n={} w{:.0} against his shown w{:.0}; back to the guard", self.hello.ai_id, self.frame, members.len(), whole, self.his_army_weight());
             self.send(true, hold, true, commands);
@@ -590,6 +753,20 @@ impl Distilled {
         // A spot the core stands on is looked at.
         if let Some(spot) = self.unlooked(core).filter(|s| self.hello.metal_spots[*s].dist2d(core) < 300.0) {
             self.army.looked.insert(spot);
+        }
+        // A target the core has stood at with nothing of his in sight is taken (`STOOD_FOR`).
+        let nothing_there = !tick.snapshot.enemies.iter().any(|e| e.pos.dist2d(target) < STOOD_AT);
+        if core.dist2d(target) < STOOD_AT && nothing_there {
+            let since = self.army.stood.filter(|(at, _)| at.dist2d(target) < 50.0).map_or(self.frame, |(_, since)| since);
+            self.army.stood = Some((target, since));
+            if self.frame - since >= STOOD_FOR {
+                self.army.his_buildings.retain(|_, seen| seen.pos.dist2d(target) >= STOOD_GONE);
+                let spots: Vec<usize> = (0..self.hello.metal_spots.len()).filter(|i| self.hello.metal_spots[*i].dist2d(target) < STOOD_GONE).collect();
+                self.army.looked.extend(spots);
+                self.army.stood = None;
+            }
+        } else {
+            self.army.stood = None;
         }
         // The core's members carry the order; the stragglers close on the core.
         let moved = self.army.strike_order.is_none_or(|(at, frame)| at.dist2d(target) >= 100.0 || self.frame - frame >= REORDER);
@@ -645,13 +822,13 @@ impl Distilled {
             self.army.raid_fleeing = None;
         }
         if turret_near || his > RAID_FLEE_SHARE * ours {
-            self.army.threats.push((core, self.frame));
+            self.army.raid_threats.push((core, self.frame));
             self.army.raid_fleeing = Some(self.frame + RAID_FLEE);
             self.army.raid_order = None;
             eprintln!("[distilled ai={}] f={} raiders flee: n={} w{:.0} from his w{:.0} turret={} at ({:.0},{:.0})", self.hello.ai_id, self.frame, members.len(), ours, his, u8::from(turret_near), core.x, core.z);
             return self.send_raiders(hold, false, commands);
         }
-        let avoided = |at: Vec3| self.army.threats.iter().any(|(t, _)| t.dist2d(at) < AVOID);
+        let avoided = |at: Vec3| self.army.raid_threats.iter().any(|(t, _)| t.dist2d(at) < AVOID);
         let extractor = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).is_some_and(|d| d.extracts_metal > 0.0);
         let turret_by = |at: Vec3| self.army.his_buildings.values().any(|b| b.pos.dist2d(at) < RAID_CLEAR && b.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0));
         let nearest = |a: &Vec3, b: &Vec3| a.dist2d(core).total_cmp(&b.dist2d(core));

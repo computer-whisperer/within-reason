@@ -3,12 +3,13 @@
 records for every team of it, so run/army_use.py, run/batch_trade.py, run/contact_use.py and the viewer read it as
 they read an arena match.
 
-    run/replay_match.py <demo.sdfz> [--label NAME] [--timeout SECONDS] [--kill-on-timeout] [--port N]
+    run/replay_match.py <demo.sdfz> [--label NAME] [--timeout SECONDS] [--kill-on-timeout] [--port N] [--audit]
 
 Makes run/matches/<unix time>-replay-<label>/ from run/replay-template/ (the LuaUI widget replay_dump.lua does the
 writing: record-<team>.jsonl and truth-<team>.jsonl per team), copies the demo in, runs `spring-headless` on it with
 the arena's data directory (the engine build the demo's header names when run/engines has it, else run/engine), and
-prints where the records are. On `--timeout` the engine is left running (a slow replay by hand is not lost) unless
+prints where the records are. With `--audit` the widget audit_dump.lua also writes audit.jsonl, every unit's order,
+build power and damage once a second for run/audit.py (docs/harness/audit.md; about 2 MB a game minute). On `--timeout` the engine is left running (a slow replay by hand is not lost) unless
 `--kill-on-timeout` is given, which a batch passes so the port is free for the next demo. The game version the demo names must be in run/data
 (pr-downloader --download-game "<full name>", docs/harness/engine.md); the engine says so in infolog.txt if not.
 """
@@ -34,6 +35,8 @@ def main():
         settings.write(f"HostPortDefault = {port}\n")
     # The dump widget may write only under LuaUI/Config/ (game test-31677 on, barwidgets.lua `userWritableFolders`).
     os.makedirs(os.path.join(out, "LuaUI", "Config", "within-reason"), exist_ok=True)
+    if "--audit" in args:  # the marker audit_dump.lua looks for
+        open(os.path.join(out, "LuaUI", "Config", "within-reason", "audit.on"), "w").close()
     log = open(os.path.join(out, "engine.log"), "w")
     started = time.time()
     # The engine build the demo names when it is under run/engines (a demo plays only on its own engine's version);
@@ -68,7 +71,7 @@ def main():
         return
     written = os.path.join(out, "LuaUI", "Config", "within-reason")
     for name in sorted(os.listdir(written)) if os.path.isdir(written) else []:
-        if name.startswith(("record-", "truth-")) and name.endswith(".jsonl"):
+        if name.startswith(("record-", "truth-", "audit")) and name.endswith(".jsonl"):
             os.replace(os.path.join(written, name), os.path.join(out, name))
     records = sorted(f for f in os.listdir(out) if f.startswith("record-"))
     print(f"{out}\n  engine exit {engine.returncode} after {time.time() - started:.0f} s; records: {', '.join(records) or 'none (see engine.log and infolog.txt)'}")

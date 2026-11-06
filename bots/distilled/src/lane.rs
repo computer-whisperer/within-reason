@@ -172,6 +172,14 @@ impl Distilled {
             };
             lane.set_group(STRIKE, strike, GroupOrder::new(kind, vec![to]).with_cap(COMPANY));
         }
+        // The column (D-COLUMN) is a formation of its own fighting its way to the body's core: loose, under the
+        // footwork priced against no turret, it was stepped out of every turret's reach on the way and never reached
+        // a body inside his turrets (dist136-column-smoke: 21 walking at 14:04, joiners one at a time).
+        let column: Vec<UnitId> = self.army.column.iter().copied().collect();
+        match self.column_target() {
+            Some(to) if !column.is_empty() => lane.set_group(COLUMN, column, GroupOrder::new(GroupKind::FightTo, vec![to]).with_cap(COMPANY)),
+            _ => lane.clear_group(COLUMN),
+        }
         let loose = self.army.home_guard.iter().chain(&self.army.raiders);
         let commitment: HashMap<UnitId, Commitment> = loose.map(|unit| (*unit, Commitment::Priced { turrets: Vec::new(), commander: false })).collect();
         lane.set_commitments(commitment, HashMap::new());
@@ -181,4 +189,5 @@ impl Distilled {
 
 /// The lane's name for the strike body, and the members a company holds at most (the flagship's cap).
 pub(crate) const STRIKE: &str = "strike";
+const COLUMN: &str = "column";
 const COMPANY: usize = 24;

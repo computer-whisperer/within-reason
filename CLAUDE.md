@@ -9,6 +9,8 @@ and an arena that runs headless batches against the stock BARb AI.
   every arena batch gets a line in `docs/experiments.md`.
 - `docs/harness/record-format.md` — the per-match record the bot writes; `run/view_match.py` (the matches directory, or one match) replays it in `viewer/`.
 - `docs/harness/pitfalls.md` — read before running engines or installing the AI.
+- `docs/harness/audit.md` — the waste audit: `run/replay_match.py <demo> --audit`, then `run/audit.py <replay dir>` accounts for every
+  builder's, plant's and soldier's second of both sides (the store, the walks, the front). Start a game review there.
 - `upstream/`, `run/engines/`, `run/data/`, `run/matches/` are git-ignored working data.
 
 Two regimes, by directory. Know which one you are in before adding a decision:

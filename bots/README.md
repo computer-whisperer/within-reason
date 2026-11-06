@@ -38,7 +38,10 @@ install.
   tick|reads|apply N ms` for any one call of 50 ms or more, and `timing f=0 hello: ...` at the start;
   `run/seat_time.py` tallies them.
 - A panic in the bot is caught at the library's edge and the bot's state is whatever the panic left.
-- No match record is written (`record-<ai>.jsonl` is the flagship's recorder, in `crates/bot`), so the viewer and the
-  review tools have nothing to read for these games yet; the engine log's census, balance and truth lines are there.
+- No match record is written during the game (`record-<ai>.jsonl` is the flagship's recorder, in `crates/bot`); the
+  engine log's census, balance and truth lines are there. Afterwards the game's demo gives everything: `run/replay_match.py
+  <match dir>/demos/<demo>.sdfz --label <name> --audit` replays it into the match records of both sides (the viewer and
+  the record's tools read them) and the audit dump, and `run/audit.py` reads that as the waste audit: every builder's,
+  plant's and soldier's seconds, the store, the front (`docs/harness/audit.md`). Review a bot's game there first.
 - Linux only so far; nothing builds the library for Windows.
 - Linking the host makes the library GPL-2.0-or-later (the engine's headers).

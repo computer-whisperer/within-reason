@@ -298,6 +298,8 @@ impl Distilled {
             "air"
         } else if self.army.strike.contains(&unit) {
             "strike"
+        } else if self.army.column.contains(&unit) {
+            "column"
         } else if self.army.home_guard.contains(&unit) {
             "guard"
         } else if self.army.is_scout(unit) {

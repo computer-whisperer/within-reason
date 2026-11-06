@@ -69,6 +69,17 @@ Run each from the repository root; keep the outputs, you will quote them. Times 
 11. `docs/experiments.md` (grep the batch label) for what the batch was testing and what the main session already
    found; `docs/knowledge/_inbox/player-notes.md` for the experienced players' notes in force.
 
+12. The waste audit, before any of the reading above when the game has a demo (`docs/harness/audit.md`, 2026-11-06):
+   `run/replay_match.py <match>/demos/<demo>.sdfz --label <name> --audit`, then `run/audit.py run/matches/<time>-replay-<name>`.
+   It reads the engine's state for every unit of both sides once a second and prints ledgers, not moments: the
+   store's floats with what every builder did meanwhile, each builder's seconds building, walking, waiting and idle,
+   each plant's stands, the army's metal by tenths of the way to him (`front`) and how much of it stood with its
+   head (`cohesion`), what each unit type dealt for its cost, soldiers that never fought, each raider's takings and
+   how long it was in sight first, the spots that stood free. Start at `summary` and follow the largest number; a
+   fault nobody listed in section 2 still has to sit in some unit's seconds. Its first game (dist135-audit-apex, a
+   win) showed a 4x army lead held eleven minutes, a 3,500 bank and constructors walking 46 % of their time, none of
+   which the earlier sweeps of that bot's games had named.
+
 The viewer (`run/view_match.py`, see docs/harness/record-format.md) is for a person; you have the tools above.
 
 ## 2. What to look for, phase by phase
