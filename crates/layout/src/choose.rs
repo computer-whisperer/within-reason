@@ -293,12 +293,6 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
         };
         return Err(format!("no ground on this map takes it: it wants {wants} and the map's heights run {lo:.0} to {hi:.0}"));
     }
-    if req.purpose == Purpose::Turret && let Some(why) = nothing_to_assist(world, req) {
-        if let Some(t) = trace {
-            t.push(format!("no site: {why}"));
-        }
-        return Err(why);
-    }
     let banks = bank_sizes(world, f.def);
     let mut why = String::new();
     // The candidates refused in any widening, by position and facing: the world is the same, so a street closed or
@@ -393,22 +387,6 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
     Err(why)
 }
 
-/// Why a construction turret has no site before any search: nothing it could assist within its reach of the widest
-/// band. Said in its own words; the search's "no ground takes it" was false for these (three dumps of 2026-11-07, a
-/// turret asked for at a hold point with no plant or frame within 800).
-fn nothing_to_assist(world: &World, req: &Request) -> Option<String> {
-    let within = req.radius * 2f32.powi(WIDENINGS as i32) + req.facts.build_distance;
-    let frames = world.frames.iter().any(|fr| distance_to(&fr.rect, req.centre) <= within);
-    let (what, found) = if world.lattice.is_some() {
-        ("frame slot or frame", frames || world.frame_slots.iter().any(|s| s.dist2d(req.centre) <= within))
-    } else if world.plants.is_empty() && world.frames.is_empty() {
-        return None;
-    } else {
-        ("plant or frame", frames || world.plants.iter().any(|p| distance_to(&p.rect(), req.centre) <= within))
-    };
-    (!found).then(|| format!("no {what} within reach of ({:.0}, {:.0}) for a construction turret", req.centre.x, req.centre.z))
-}
-
 /// One lattice point as a candidate, or None when a constraint fails.
 fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: &Walk, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
     let f = &req.facts;
@@ -485,24 +463,27 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         Purpose::Turret => {
             let reach = f.build_distance;
             let frames = world.frames.iter().filter(|fr| distance_to(&fr.rect, at) <= reach).count();
-            if world.lattice.is_some() {
+            let plural = |n: usize| if n == 1 { "" } else { "s" };
+            let (assisted, said) = if world.lattice.is_some() {
                 // The block is laid: a turret is for the frame slots and frames it reaches, and a plant's pad counts
                 // for nothing (econ-flagship-5: turrets scored by pads stood by the running advanced plant, whose
                 // product took their power by the engine's nearest rule, while the frames stood at the block's edge
                 // with a third of the turrets in reach).
                 let slots = world.frame_slots.iter().filter(|s| s.dist2d(at) <= reach).count();
-                if slots + frames == 0 {
-                    return None;
-                }
-                words = format!("{slots} frame slot{} and {frames} frame{} in reach", if slots == 1 { "" } else { "s" }, if frames == 1 { "" } else { "s" });
-                [-((slots + frames) as f32), 0.0]
+                (slots + frames, format!("{slots} frame slot{} and {frames} frame{} in reach", plural(slots), plural(frames)))
             } else {
                 let pads = world.plants.iter().filter(|p| distance_to(&p.rect(), at) <= reach).count();
-                if pads + frames == 0 && !(world.plants.is_empty() && world.frames.is_empty()) {
-                    return None;
-                }
-                words = format!("{pads} pad{} and {frames} frame{} in reach", if pads == 1 { "" } else { "s" }, if frames == 1 { "" } else { "s" });
-                [-((pads + frames) as f32), 0.0]
+                (pads + frames, format!("{pads} pad{} and {frames} frame{} in reach", plural(pads), plural(frames)))
+            };
+            if assisted == 0 {
+                // Nothing to assist yet: the turret prepares the ground for what comes (a nano before the fusions, the
+                // people's order of a farm) and stands nearest the asked place. Until 2026-11-07 this was a refusal,
+                // and a turret asked for at a place with nothing in reach went to the engine's search.
+                words = format!("nothing in reach yet, {:.0} from the asked place", at.dist2d(req.centre));
+                [at.dist2d(req.centre) / GRID, 0.0]
+            } else {
+                words = said;
+                [-(assisted as f32), 0.0]
             }
         }
         Purpose::Plant => {
@@ -1052,18 +1033,19 @@ mod tests {
     /// else (the first one). Three dumps of 2026-11-07 were turrets asked for at hold points, refused as "no
     /// ground takes it" after three widenings over nothing.
     #[test]
-    fn a_turret_with_nothing_to_assist_is_refused_before_the_search() {
+    fn a_turret_with_nothing_to_assist_stands_at_the_asked_place() {
+        // A nano before the fusions: nothing of ours within reach of the asked place, a plant far off. The turret is
+        // sited nearest the place, not refused (2026-11-07: three dumped searches of hold points said "no ground").
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        let nano = Facts { build_distance: 240.0, build_speed: 200.0, ..facts(5, 6, 300.0, 560.0, Some((100.0, 530.0))) };
-        let req = Request { facts: nano.clone(), purpose: Purpose::Turret, centre: at(3500.0, 3500.0), radius: 200.0, builder_at: at(3500.0, 3500.0), builder: builder() };
-        choose(&w, &req).expect("a site with no plant or frame anywhere");
         w.plants.push(Plant { centre: at(500.0, 500.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into(), passable: None });
+        let nano = Facts { build_distance: 240.0, build_speed: 200.0, ..facts(5, 6, 300.0, 560.0, Some((100.0, 530.0))) };
+        let req = Request { facts: nano.clone(), purpose: Purpose::Turret, centre: at(3500.0, 3500.0), radius: 200.0, builder_at: at(3300.0, 3500.0), builder: builder() };
         let mut trace = Vec::new();
-        let why = choose_traced(&w, &req, Some(&mut trace)).expect_err("nothing to assist");
-        assert_eq!(why, "no plant or frame within reach of (3500, 3500) for a construction turret");
-        assert_eq!(trace.len(), 1, "no widening was run: {trace:?}");
+        let site = choose_traced(&w, &req, Some(&mut trace)).expect("a site at the asked place");
+        assert!(site.at.dist2d(req.centre) <= 48.0, "{site:?} {trace:#?}");
+        assert!(site.words.contains("nothing in reach yet"), "{site:?}");
     }
 }
 
