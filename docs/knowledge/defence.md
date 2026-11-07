@@ -47,6 +47,11 @@ home towers above 0.8.
 1.4-2.4, 3:00-6:00 0.34 (bought at the holds before he came; he mostly did not come), from 15:00 0.05-0.11 (Sentries at
 taken spots in his half, 4,000 and more out); 10,040 of towers in all, 935 lost. Consistent; the early band's low number
 is the bet not called, not the tower misplaced.
+**Third game (defence-apex-8v8-1, WON 26:47 against eight Apex v0.5.04 at +0).** Apex held its line at home and never
+came to the holds: the hold towers (3,000 metal, 1,000-3,000 out) returned 0.03, the 42 Sentries at taken spots in his
+half returned 1.1-2.1 on his raiders; 8,155 of towers in all, 765 lost, yield 0.57. The claim's band by minute holds
+(6-15 min 1.0-2.2, after 15:00 under 0.25); the band by distance inverts with the opponent, which is item 2's point: the
+tower earns where he comes, and against a side that stays home that is at the spots his raiders return to.
 **Used by.** D-defence-hold items 1 and 2 and its "How it fails" (revised 2026-11-07).
 
 ### K-def-the-cheap-tower-is-the-tower-and-the-heavy-laser-is-one-in-three
