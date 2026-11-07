@@ -625,7 +625,7 @@ mod weighted {
                 terrain.slopes[z * 32 + x] = 51;
             }
         }
-        let class = MoveClass { kind: MoveKind::Bot, max_slope: 0.5, depth: 20.0, slope_mod: 4.0 };
+        let class = MoveClass { kind: MoveKind::Bot, max_slope: 0.5, depth: 20.0, slope_mod: 4.0, footprint: 0 };
         let costs = costs(&terrain, class);
         assert_eq!(costs[5], 10);
         assert_eq!(costs[15], 18);
@@ -640,7 +640,7 @@ mod weighted {
     #[test]
     fn a_route_goes_round_a_wall_and_says_so() {
         let terrain = flat(32, 32);
-        let class = MoveClass { kind: MoveKind::Bot, max_slope: 0.5, depth: 20.0, slope_mod: 0.0 };
+        let class = MoveClass { kind: MoveKind::Bot, max_slope: 0.5, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let mut costs = costs(&terrain, class);
         // A wall down column 16 with a gap at the bottom.
         for z in 0..28 {
@@ -765,7 +765,7 @@ mod passage_tests {
         let slopes: Vec<u8> = bytes[2 * n..3 * n].to_vec();
         let terrain = bot_protocol::Terrain { cell: 16.0, width: w as u32, height: h as u32, heights, slopes, metal: vec![0; n] };
         let kind = if std::env::var("WR_KIND").as_deref() == Ok("tank") { bot_protocol::MoveKind::Tank } else { bot_protocol::MoveKind::Bot };
-        let class = bot_protocol::MoveClass { kind, max_slope: if matches!(kind, bot_protocol::MoveKind::Tank) { 0.2 } else { 0.4122 }, depth: 20.0, slope_mod: 1.0 };
+        let class = bot_protocol::MoveClass { kind, max_slope: if matches!(kind, bot_protocol::MoveKind::Tank) { 0.2 } else { 0.4122 }, depth: 20.0, slope_mod: 1.0, footprint: 0 };
         let passable = passable(&terrain, class);
         let from = Field::from(&terrain, &passable, xz("WR_HOME")).unwrap();
         let to = Field::from(&terrain, &passable, xz("WR_ENEMY")).unwrap();

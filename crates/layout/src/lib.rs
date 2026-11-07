@@ -158,8 +158,8 @@ pub struct Facts {
     pub factory: bool,
     /// A structure: it does not move.
     pub building: bool,
-    /// For a factory, half the width of the widest unit it makes, in elmos: its street's half-width. 0 otherwise;
-    /// the caller sets it (`with_products`), since it needs the products' definitions.
+    /// For a factory, half the pathing width of the widest unit it makes, in elmos: its street's half-width. 0
+    /// otherwise; the caller sets it (`with_products`), since it needs the products' definitions.
     pub product_half: f32,
     /// For a factory, the ground its products stand on, the strictest of their movement classes (a vehicle plant's
     /// Stumpy on slopes to 28, a shipyard's Corsair in water 30 deep): its apron and street are judged on it, and on
@@ -199,11 +199,12 @@ impl Facts {
         Facts { product_half, product_passable, ..self }
     }
 
-    /// The width of a factory's street, as the design has it: as wide as its widest product. A product's movement
-    /// footprint is half its collision footprint in build squares, in 16-elmo cells (a Bull's 4), so the street is
-    /// that many cells; in elmos, eight times the squares.
-    pub fn product_half_of(products: impl Iterator<Item = Footprint>) -> f32 {
-        products.map(|fp| fp.x.max(fp.z) as f32 * SQUARE / 2.0).fold(0.0, f32::max)
+    /// The width of a factory's street, as the design has it: as wide as its widest product, half of it. `widths`
+    /// are the products' pathing widths in elmos (`UnitDefInfo::path_width`: the move class's footprint, which the
+    /// engine's block test spans, not the unit's; 1794060468-human: the layer took a Fatboy as 48 and left it two
+    /// 48-elmo corridors, and the engine, which paths a Fatboy at 56, kept seventeen of them in the pocket).
+    pub fn product_half_of(widths: impl Iterator<Item = f32>) -> f32 {
+        widths.fold(0.0, f32::max) / 2.0
     }
 
     /// How far from `builder`'s position this building's centre may be for the builder to raise it without a step:

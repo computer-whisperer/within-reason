@@ -193,6 +193,13 @@ every plant's lane 300 out and faces a plant toward the enemy; and the same floo
 remains the fallback where every site in three widenings would newly close a street; it keeps off the lanes but not
 off a street in general, and the log says why.
 
+**Amended 2026-11-07 (1794060468-human, the lobby 8v7).** The product's clearance is its *pathing* width, the move
+class's footprint as the engine makes it (doubled, odd; `MoveClass::footprint`, sent by the shim from
+`UnitDef_MoveData_getXSize`), not its unit footprint: a Fatboy is 56 by HBOT4 and 48 by its unit footprint, and t8's
+advanced lab kept all 17 of its Fatboys in a pocket whose two ways out were 48-elmo corridors the flood accepted and
+the engine refused, the street line reading "open for everything it makes" to the end. The builders' `way_out` and
+the yard lane's margin take the same width. K-eco-a-street-is-the-pathing-footprints-width.
+
 ### 1.3 The chain sum, the second criterion
 
 The user's ruling (2026-10-29): avoiding chain death is "a second or third optimization criteria rather than a

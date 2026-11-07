@@ -1897,7 +1897,8 @@ impl Brain {
                 }
                 // The street rule's state (docs/design/2026-10-29-base-layout.md §1.4): the player acts when a street
                 // is closed by what the layer could not prevent (an ally's building, his, the ground).
-                if let Some(street) = self.street_words(unit, own) {
+                let street = self.street_words(unit, own);
+                if let Some(street) = &street {
                     entry["street"] = json!(street);
                 }
                 if let Some(lane) = self.lane_of(unit) {
@@ -1909,7 +1910,11 @@ impl Brain {
                             "blocked: {} of ours have stood in its exit lane unable to move, the longest for {}; nothing it finishes can leave. {}",
                             stuck.len(),
                             clock(longest),
-                            if blockers.is_empty() { "Nothing of ours stands in the lane: the jam is the units themselves or the ground.".to_string() } else { format!("In the lane: {}; the player's remove tool takes them away.", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")) }
+                            match (blockers.is_empty(), street.as_deref().filter(|w| !w.starts_with("open"))) {
+                                (true, Some(street)) => format!("Nothing of ours stands in the lane; its street to the open is {street}."),
+                                (true, None) => "Nothing of ours stands in the lane: the jam is the units themselves or the ground.".to_string(),
+                                (false, _) => format!("In the lane: {}; the player's remove tool takes them away.", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")),
+                            }
                         ));
                     }
                 }

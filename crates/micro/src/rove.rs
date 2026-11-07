@@ -539,7 +539,9 @@ impl Lane {
         }
         let ground = view.terrain().zip(view.def(def)).and_then(|(terrain, d)| {
             let grid = self.classes.passable(terrain, d.move_class?);
-            let wanted = d.footprint.0.max(d.footprint.1) as f32 * 4.0 + terrain.cell;
+            // Its pathing half-width (the move class's footprint, which the engine's block test spans), not the
+            // unit footprint's (K-eco-a-street-is-the-pathing-footprints-width).
+            let wanted = d.path_width() / 2.0 + terrain.cell;
             Ground::new(terrain, &[grid], wanted).map(Arc::new)
         });
         self.rover_grounds.insert(def, ground.clone());

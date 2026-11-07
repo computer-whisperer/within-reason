@@ -134,7 +134,7 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             build_options: d["builds"].as_array().map(|b| b.iter().filter_map(|id| id.as_i64().map(|id| UnitDefId(id as i32))).collect()).unwrap_or_default(),
             move_class: d["move"].as_array().and_then(|m| {
                 // `slope_mod` is in records from 2026-09-20 night on; older ones walk flat ground at full speed everywhere.
-                Some(MoveClass { kind: kind(m[0].as_str()?)?, max_slope: m[1].as_f64()? as f32, depth: m[2].as_f64()? as f32, slope_mod: m.get(3).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32 })
+                Some(MoveClass { kind: kind(m[0].as_str()?)?, max_slope: m[1].as_f64()? as f32, depth: m[2].as_f64()? as f32, slope_mod: m.get(3).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32, footprint: m.get(4).and_then(|v| v.as_i64()).unwrap_or(0) as i32 })
             }),
             // Records from 2026-09-22 late night on; the simulator reads none of these.
             footprint: d["footprint"].as_array().map_or((0, 0), |f| (f[0].as_i64().unwrap_or(0) as i32, f[1].as_i64().unwrap_or(0) as i32)),

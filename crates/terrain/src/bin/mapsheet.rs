@@ -97,7 +97,7 @@ fn run(dir: &Path, mut starts: Vec<(String, Vec3)>, max_metal: Option<f32>) -> R
                 "hover" => MoveKind::Hover,
                 _ => MoveKind::Ship,
             };
-            let class = MoveClass { kind, max_slope: m[1].as_f64()? as f32, depth: m[2].as_f64()? as f32, slope_mod: m.get(3).and_then(Value::as_f64).unwrap_or(0.0) as f32 };
+            let class = MoveClass { kind, max_slope: m[1].as_f64()? as f32, depth: m[2].as_f64()? as f32, slope_mod: m.get(3).and_then(Value::as_f64).unwrap_or(0.0) as f32, footprint: m.get(4).and_then(Value::as_i64).unwrap_or(0) as i32 };
             Some(Mover { name: d["name"].as_str()?.to_string(), speed: number(&d["speed"]), class })
         })
         .collect();

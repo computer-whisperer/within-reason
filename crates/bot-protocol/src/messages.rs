@@ -262,6 +262,12 @@ pub struct MoveClass {
     pub depth: f32,
     /// The engine slows a unit on a slope to `1 / (1 + slope * slope_mod)` of its speed (`GroundMoveMath.cpp`).
     pub slope_mod: f32,
+    /// The footprint the engine paths it by, in 8-elmo squares: its move class's footprint doubled and made odd
+    /// (`MoveDefHandler.cpp` `xsize`; a Fatboy's HBOT4 is 7, its unit footprint 6), and `IsBlockedNoSpeedModCheck`
+    /// tests that many squares round its centre square, so a gap narrower than `footprint * 8` elmos never passes
+    /// it. 0 from a shim or record that predates it (2026-11-07), when the unit footprint stands in.
+    #[serde(default)]
+    pub footprint: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -400,6 +406,44 @@ pub struct UnitDefInfo {
     /// Its stun weapon, when it has one (the largest stun a shot of its paralyzer weapons).
     #[serde(default)]
     pub stun: Option<Stun>,
+}
+
+impl UnitDefInfo {
+    /// The width the engine's pathing needs for this unit, in elmos: its move class's pathing footprint
+    /// (`MoveClass::footprint`) times a square, or its unit footprint's longer side when the shim sent none. The
+    /// two differ for the heavier classes (1794060468-human: a Fatboy is 48 by its unit footprint and 56 by HBOT4,
+    /// and seventeen of them stood in a pocket whose only ways out were 48 wide).
+    pub fn path_width(&self) -> f32 {
+        match self.move_class {
+            Some(m) if m.footprint > 0 => m.footprint as f32 * 8.0,
+            _ => self.footprint.0.max(self.footprint.1) as f32 * 8.0,
+        }
+    }
+}
+
+#[cfg(test)]
+mod path_width_tests {
+    use super::*;
+
+    /// The pathing width is the move class's footprint when the shim sent one, else the unit footprint's longer side
+    /// (a Fatboy: 48 by its unit footprint, 56 by HBOT4).
+    #[test]
+    fn the_pathing_width_is_the_move_classs_or_the_unit_footprints() {
+        let mut fatboy = UnitDefInfo {
+            id: UnitDefId(1), name: "armfboy".into(), metal_cost: 1400.0, energy_cost: 0.0, speed: 30.0,
+            build_speed: 0.0, build_time: 1.0, build_distance: 0.0, extracts_metal: 0.0, metal_make: 0.0,
+            energy_make: 0.0, energy_upkeep: 0.0, wind_cap: 0.0, tidal_make: 0.0, metal_storage: 0.0,
+            energy_storage: 0.0, sonar_range: 0.0, hits_submerged: false, water_only: false, radar_range: 0.0,
+            converter: None, weapon_count: 1, build_options: Vec::new(),
+            move_class: Some(MoveClass { kind: MoveKind::Bot, max_slope: 0.412, depth: 25.0, slope_mod: 4.0, footprint: 0 }),
+            footprint: (6, 6), max_height_dif: 0.0, min_water_depth: 0.0, max_water_depth: 0.0, floater: false,
+            death_blast: None, self_destruct_blast: None, self_destruct_seconds: 0.0, reach: 700.0, reload: 7.0,
+            blast_radius: 150.0, stockpile_seconds: 0.0, stockpile_energy: 0.0, coverage: 0.0, sight: 0.0, jam_range: 0.0, stealth: false, cloak: None, shield: None, intercepted_by: 0, health: 0.0, reclaim_speed: 0.0, reclaimable: false, stun_taken: 1.0, stun: None,
+        };
+        assert_eq!(fatboy.path_width(), 48.0);
+        fatboy.move_class.as_mut().unwrap().footprint = 7;
+        assert_eq!(fatboy.path_width(), 56.0);
+    }
 }
 
 fn full_share() -> f32 {

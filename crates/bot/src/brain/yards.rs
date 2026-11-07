@@ -106,11 +106,16 @@ impl Brain {
                 let name = self.actor_name(factory);
                 let blockers = self.lane_blockers(&lane, own, factory);
                 let names: Vec<String> = stuck.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).map(|u| self.handle(u)).collect();
-                let ground = own.iter().find(|u| u.id == factory).and_then(|f| self.lane_ground(f, &lane));
-                let cause = match (ground, blockers.is_empty()) {
-                    (Some(ground), _) => format!("; its exit lane {ground}: its units cannot leave it, and only removing {name} frees them"),
-                    (None, true) => "; nothing of ours stands in the lane".to_string(),
-                    (None, false) => format!("; in the lane: {} (the remove tool takes them away)", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")),
+                let factory_unit = own.iter().find(|u| u.id == factory);
+                let ground = factory_unit.and_then(|f| self.lane_ground(f, &lane));
+                // The lane clear but the street beyond it shut: the street's state names the opener (1794060468-human:
+                // seventeen Fatboys in a pocket past the lane, "nothing of ours stands in the lane" three times).
+                let street = factory_unit.and_then(|f| self.street_words(f, own)).filter(|w| !w.starts_with("open"));
+                let cause = match (ground, blockers.is_empty(), street) {
+                    (Some(ground), _, _) => format!("; its exit lane {ground}: its units cannot leave it, and only removing {name} frees them"),
+                    (None, true, Some(street)) => format!("; nothing of ours stands in the lane, but its street to the open is {street}"),
+                    (None, true, None) => "; nothing of ours stands in the lane".to_string(),
+                    (None, false, _) => format!("; in the lane: {} (the remove tool takes them away)", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")),
                 };
                 let text = format!(
                     "{name}'s exit lane is blocked: {} of ours ({}) have stood in it for {} (stuck, or standing there working){cause}",

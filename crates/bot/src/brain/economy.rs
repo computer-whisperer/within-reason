@@ -88,7 +88,7 @@ impl Brain {
         // The ground its products stand on: the strictest class among them (a vehicle plant's on slopes to 28 where
         // the route survey's Pawn climbs 105: apex-v0409-comet-sym0-opus-2's three plants penned by a crater's rim).
         let walk = self.passable_for_factory(def);
-        Some(facts.with_products(Facts::product_half_of(products.iter().map(|p| layout::Footprint { x: p.footprint.0, z: p.footprint.1 })), walk))
+        Some(facts.with_products(Facts::product_half_of(products.iter().map(|p| p.path_width())), walk))
     }
 
     /// What a kind is placed for (the design's level 1).
@@ -192,7 +192,7 @@ impl Brain {
             .filter(|u| !u.being_built)
             .filter_map(|u| {
                 let d = self.world.def(u.def)?;
-                (d.speed > 0.0 && d.build_speed > 0.0).then(|| layout::Builder { at: u.pos, half: d.footprint.0.max(d.footprint.1) as f32 * 4.0, passable: self.passable_for_class(d.move_class) })
+                (d.speed > 0.0 && d.build_speed > 0.0).then(|| layout::Builder { at: u.pos, half: d.path_width() / 2.0, passable: self.passable_for_class(d.move_class) })
             })
             .collect();
         let reservations: Vec<Reservation> = match (&self.stand, self.pianist.as_ref()) {
@@ -241,7 +241,7 @@ impl Brain {
     pub(super) fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
         let f = self.facts_of(def)?;
         let d = self.world.def(def)?;
-        let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1));
+        let widest = d.build_options.iter().filter_map(|p| self.world.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by(|a, b| a.path_width().total_cmp(&b.path_width()));
         Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), passable: f.product_passable.clone() })
     }
 

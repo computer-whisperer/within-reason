@@ -51,7 +51,7 @@ pub(crate) fn def(id: UnitDefId, name: &str, speed: f32, weapons: i32, build_spe
         converter: None,
         weapon_count: weapons,
         build_options: Vec::new(),
-        move_class: (speed > 0.0).then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0 }),
+        move_class: (speed > 0.0).then_some(MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0, footprint: 0 }),
         footprint: (2, 2),
         max_height_dif: 0.0,
         min_water_depth: 0.0,

@@ -314,6 +314,26 @@ mod tests {
         assert!(street_open(&Ground::new(&small, 1024.0, 1024.0), &corner, &[], &open));
     }
 
+    /// A gap exactly the product's unit footprint wide is no street when the engine paths it wider: t8's advanced lab
+    /// in 1794060468-human had two 48-elmo corridors round a moho as its only ways out, a Fatboy's unit footprint
+    /// (6 squares) but under its HBOT4 pathing footprint (7 squares, 56), and seventeen Fatboys never left.
+    #[test]
+    fn a_gap_of_the_unit_footprint_is_no_street_at_the_pathing_width() {
+        let t = flat();
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |_: Vec3| true;
+        // Facing east: a wall 48 beyond the apron, with a 48-elmo gap in it before the door, and walls closing the
+        // sides so the gap is the only way.
+        let wall = |x: f32, z0: f32, z1: f32| Rect { x0: x, z0, x1: x + 48.0, z1 };
+        let blocks = vec![wall(2240.0, 1400.0, 2024.0), wall(2240.0, 2072.0, 2700.0), Rect { x0: 1400.0, z0: 1400.0, x1: 2288.0, z1: 1448.0 }, Rect { x0: 1400.0, z0: 2652.0, x1: 2288.0, z1: 2700.0 }, Rect { x0: 1400.0, z0: 1400.0, x1: 1448.0, z1: 2700.0 }];
+        let by_unit = Plant { product_half: 24.0, widest: "Fatboy".into(), ..plant(1) };
+        assert!(street_open(&ground, &by_unit, &blocks, &open), "48 passes a 48 product");
+        let by_pathing = Plant { product_half: 28.0, widest: "Fatboy".into(), ..plant(1) };
+        assert!(!street_open(&ground, &by_pathing, &blocks, &open), "48 does not pass a 56 product");
+        let bull = Plant { product_half: 20.0, widest: "Bull".into(), ..plant(1) };
+        assert!(street_open(&ground, &bull, &blocks, &open), "a Bull (TANK3, 40) passes");
+    }
+
     #[test]
     fn the_door_lies_before_the_front_face() {
         let p = plant(1);

@@ -480,6 +480,33 @@ builder, per player and game).
 same versions show other players' constructors born high, so no).
 **Used by.** none directly: H-HANDS-LIST-LOW writes the same outcome the other way round (what can wait is tagged low)
 
+### K-eco-a-street-is-the-pathing-footprints-width
+**Claim.** The engine paths a unit by its move class's footprint, not its unit footprint, and a gap narrower than
+that never passes it. `MoveDefHandler.cpp:314-319` takes the class's `footprint` (BAR's `movedefs.lua`), doubles it
+and makes it odd, and `CMoveMath::IsBlockedNoSpeedModCheck` (`MoveMath.cpp:152`) tests `xsizeh` squares each side of
+the centre square, that many squares in all: a Fatboy (HBOT4, footprint 4) needs 7 squares, 56 elmos, where its unit
+footprint is 6 squares, 48; an Archangel (ABOT3, footprint 3) 40 where its unit footprint is 4 squares, 32; a Hammer
+or a Thud (BOT3) 40 against 32; the commander (COMMANDERBOT, footprint 3) 40 against 48 and a Bull (TANK3) 40 against
+48, the other way. The layout layer measured a street by the unit footprint. In 1794060468-human (2026-11-07) t8's
+advanced bot lab at (1656, 9640) in B10, facing north, made 17 Fatboys from 13:04 and 6 Archangels from 23:31, and none
+of the 17 ever got more than 203 elmos from the pad (the audit, once a second): the pocket x 1572-1772, z 9412-9580
+was shut on the west and north by the solar bank of 8:04-8:38 and the wind row of 1:23-3:05, and its only ways out
+were the two corridors above and below the moho at (1824, 9520), 48 elmos tall each, between the moho and wind rows
+laid touching at a 48 pitch. Every building of both sides replayed through a copy of the layer's flood: at 48 the
+street is open all game; at 64 (four cells, the first cell count over 56) and under the engine's own 7-square test it
+closes at frame 14526 (8:04) with the solar at (1560, 9416) and never reopens; of 990 pairs of buildings near the
+pocket exactly one removal reopens it (the solars at (1640, 9352) and (1688, 9272)). The street line said "open for
+everything it makes" in every report to 26:04 and the yard wake "nothing of ours stands in the lane" at 14:34, 21:08
+and 22:16, and the player transferred the stuck Fatboys to t12 each time; 26,900 metal never fought. t10's lab had
+195 `move_failed` within 250 (Hammers) and t7's 112 (Thuds), the same mismatch one size down, not flooded.
+**Evidence.** `run/matches/1794060468-human/00/review.md` §9 (the pocket drawn), `record-1.jsonl` (`move_failed`,
+`placed`), the audit in `run/matches/1794062778-replay-human-8v7-glitters`; the flood replica in the session's
+scratchpad `flood.py`; the engine source as cited; `units/ArmBots/T2/armfboy.lua`, `gamedata/movedefs.lua`.
+**Status.** Fixed 2026-11-07 (`MoveClass::footprint` from `UnitDef_MoveData_getXSize`, `UnitDefInfo::path_width`,
+`Facts::product_half_of` on it, the yard words carrying the street's state), unmeasured in a game; judge by
+`move_failed` within 250 of a lab and the street lines in the next games. Exploited by [[H-ECO-YARD-LANE]],
+[[H-ECO-LAYOUT]].
+
 ### K-eco-under-water-spots-are-the-amphibious-builders
 **Claim.** A metal spot under water takes the ordinary tier-1 extractor (BAR on Recoil 2026.07.04 has no separate
 under-water extractor: `armuwmex` and `coruwmex` are not in the game's unit defs), and only a builder whose movement

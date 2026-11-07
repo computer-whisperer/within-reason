@@ -1669,7 +1669,7 @@ mod tests {
     }
 
     fn ground_of(terrain: &Terrain) -> Arc<Ground> {
-        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let mut classes = Classes::default();
         Arc::new(Ground::new(terrain, &[classes.passable(terrain, tank)], wanted_room(64.0)).unwrap())
     }
@@ -2119,7 +2119,7 @@ mod tests {
     fn a_set_down_anchor_stands_where_the_ranks_have_room() {
         let (w, h) = (128usize, 64usize);
         let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
-        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let mut classes = Classes::default();
         let (blocked, _) = crate::ground::structures(&terrain, &[crate::ground::Footprint::of(at(1200.0, 500.0), (10, 8), 0)]);
         let ground = Arc::new(Ground::new(&terrain, &[classes.passable(&terrain, tank), blocked], wanted_room(64.0)).unwrap());
@@ -2279,7 +2279,7 @@ mod tests {
         // A flat map with a factory of 80 x 64 at (1,200, 500).
         let (w, h) = (128usize, 64usize);
         let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
-        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let mut classes = Classes::default();
         let (blocked, _) = crate::ground::structures(&terrain, &[crate::ground::Footprint::of(at(1200.0, 500.0), (10, 8), 0)]);
         let ground = Arc::new(Ground::new(&terrain, &[classes.passable(&terrain, tank), blocked], wanted_room(64.0)).unwrap());
@@ -2299,7 +2299,7 @@ mod tests {
     fn a_route_ending_at_a_defended_extractor_stands_the_body_beside_it() {
         let (w, h) = (128usize, 64usize);
         let terrain = Terrain { cell: 16.0, width: w as u32, height: h as u32, heights: vec![100; w * h], slopes: vec![0u8; w * h], metal: Vec::new() };
-        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 };
+        let tank = MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let mut classes = Classes::default();
         let spot = at(1200.0, 500.0);
         // An extractor (3 x 3 squares) on the spot, a turret (2 x 2) 80 north-east and one 80 south-west of it.

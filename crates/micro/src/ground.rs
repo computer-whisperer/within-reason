@@ -493,7 +493,7 @@ mod tests {
     }
 
     fn tank() -> MoveClass {
-        MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0 }
+        MoveClass { kind: MoveKind::Tank, max_slope: 0.3, depth: 20.0, slope_mod: 0.0, footprint: 0 }
     }
 
     fn ground(wanted: f32) -> Ground {
@@ -665,7 +665,7 @@ mod tests {
         assert!(g.room_at(at(200.0, 500.0)) > 150.0);
         let terrain = walled();
         let mut classes = Classes::default();
-        let bot = MoveClass { kind: MoveKind::Bot, max_slope: 1.0, depth: 20.0, slope_mod: 0.0 };
+        let bot = MoveClass { kind: MoveKind::Bot, max_slope: 1.0, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let both = Ground::new(&terrain, &[classes.passable(&terrain, bot), classes.passable(&terrain, tank())], 96.0).unwrap();
         assert!(!both.passable_at(at(500.0, 300.0)), "the tank cannot climb the wall, so the body cannot");
         let bots = Ground::new(&terrain, &[classes.passable(&terrain, bot)], 96.0).unwrap();

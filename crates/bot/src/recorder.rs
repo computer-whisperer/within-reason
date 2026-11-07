@@ -510,7 +510,7 @@ fn move_classes(hello: &Hello) -> Vec<Value> {
         let key = (kind.clone(), (class.max_slope * 1000.0) as i32, class.depth as i32);
         match classes.iter_mut().find(|(k, _, _)| *k == key) {
             Some((_, _, units)) => *units += 1,
-            None => classes.push((key, json!({ "kind": kind, "max_slope": class.max_slope, "depth": class.depth, "example": def.name }), 1)),
+            None => classes.push((key, json!({ "kind": kind, "max_slope": class.max_slope, "depth": class.depth, "footprint": class.footprint, "example": def.name }), 1)),
         }
     }
     // `units` tells the ordinary class of a kind (most unit types) from the specialists (amphibians, climbers).
@@ -538,7 +538,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "selfd_seconds": d.self_destruct_seconds,
                 "reach": d.reach, "reload": d.reload, "blast_radius": d.blast_radius,
                 "converter": d.converter.map(|c| json!([c.capacity, c.efficiency])),
-                "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod])),
+                "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod, m.footprint])),
                 // Sight, jamming, stealth, cloak and shields (records and shims from 2026-10-18): a cloak as
                 // [energy a second, decloak distance, decloaks on fire 0/1, starts cloaked 0/1], a shield as
                 // [radius, power, intercept mask, exterior 0/1]; `intercepted_by` the mask of shields that stop its shots.

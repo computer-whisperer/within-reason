@@ -202,8 +202,8 @@ mod tests {
     use super::*;
     use bot_protocol::{MoveKind, Terrain};
 
-    const BOT: MoveClass = MoveClass { kind: MoveKind::Bot, max_slope: 0.412, depth: 5000.0, slope_mod: 4.0 };
-    const TANK: MoveClass = MoveClass { kind: MoveKind::Tank, max_slope: 0.109, depth: 20.0, slope_mod: 18.0 };
+    const BOT: MoveClass = MoveClass { kind: MoveKind::Bot, max_slope: 0.412, depth: 5000.0, slope_mod: 4.0, footprint: 0 };
+    const TANK: MoveClass = MoveClass { kind: MoveKind::Tank, max_slope: 0.109, depth: 20.0, slope_mod: 18.0, footprint: 0 };
 
     /// The Quicksilver fixture's units on a flat 4,096 square map with home at (400, 400), the commander walking as a
     /// bot and the vehicle constructor as a tank; `ground` shapes the slopes.

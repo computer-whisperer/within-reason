@@ -263,7 +263,7 @@ mod ground_tests {
 
     #[test]
     fn prepared_fields_walk_as_fields_made_when_asked() {
-        let class = MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0 };
+        let class = MoveClass { kind: MoveKind::Tank, max_slope: 0.5, depth: 20.0, slope_mod: 0.0, footprint: 0 };
         let places: Vec<(f64, f64)> = (0..40).map(|i| (40.0 + 24.0 * i as f64, 40.0 + 17.0 * i as f64)).collect();
         let (asked, prepared) = (Walked::new(&walled(), class).unwrap(), Walked::new(&walled(), class).unwrap());
         prepared.prepare(&places);

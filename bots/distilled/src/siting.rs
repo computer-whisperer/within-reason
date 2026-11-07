@@ -13,7 +13,7 @@
 //! turrets to one of four points round a plant, its plants to a point 350 toward the enemy with a 900 search.
 
 use bot_protocol::{OwnUnit, Tick, UnitDefId, Vec3};
-use layout::{Facts, Footprint, Frame, Ground, Plant, Purpose, Request, Scene, Slot, Standing, Want, Worker, World};
+use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Scene, Slot, Standing, Want, Worker, World};
 
 use crate::Distilled;
 use crate::economy::Job;
@@ -103,7 +103,7 @@ impl Distilled {
             return Some(facts);
         }
         let products = d.build_options.iter().filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some());
-        Some(facts.with_products(Facts::product_half_of(products.map(|p| Footprint { x: p.footprint.0, z: p.footprint.1 })), self.product_walk(def)))
+        Some(facts.with_products(Facts::product_half_of(products.map(|p| p.path_width())), self.product_walk(def)))
     }
 
     /// The ground a factory's products stand on: the strictest movement class among them over the hello's terrain
@@ -165,7 +165,7 @@ impl Distilled {
     fn plant_of(&self, def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String) -> Option<Plant> {
         let f = self.facts_of(def)?;
         let d = self.def(def)?;
-        let widest = d.build_options.iter().filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by_key(|p| p.footprint.0.max(p.footprint.1));
+        let widest = d.build_options.iter().filter_map(|p| self.def(*p)).filter(|p| p.speed > 0.0 && p.move_class.is_some()).max_by(|a, b| a.path_width().total_cmp(&b.path_width()));
         Some(Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours, name, widest: widest.map_or(String::new(), |p| p.name.clone()), passable: f.product_passable.clone() })
     }
 
@@ -220,7 +220,7 @@ impl Distilled {
             .own
             .values()
             .filter(|u| !u.being_built)
-            .filter_map(|u| self.def(u.def).filter(|d| d.speed > 0.0 && d.build_speed > 0.0).map(|d| layout::Builder { at: u.pos, half: d.footprint.0.max(d.footprint.1) as f32 * 4.0, passable: None }))
+            .filter_map(|u| self.def(u.def).filter(|d| d.speed > 0.0 && d.build_speed > 0.0).map(|d| layout::Builder { at: u.pos, half: d.path_width() / 2.0, passable: None }))
             .collect();
         World {
             ground: Ground::new(&hello.terrain, hello.map.width, hello.map.height),
