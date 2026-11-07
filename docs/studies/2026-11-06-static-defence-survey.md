@@ -107,7 +107,29 @@ ally-aware mode before the batch (proposal 1).
 **The 5v5 against people (the user's second check: human-8v8-1, Altored Divide, 2026-10-18, 57:38).** Two flagship
 seats (t5 Legion, t9 Cortex, +50 % income) beside three Apex v0.3.0 seats against five people (OS 8 to 36); the
 people left one by one from 44:26. From our two seats' records (fair view; the two-sided replay is
-`defence-5v5-altored-humans`, FIVE_TWO_SIDED):
+`defence-5v5-altored-humans`, read two-sidedly after the replay (`run/matches/1794014650-replay-defence-5v5-altored-humans`, 57 minutes of
+engine time; every seat's own record):
+
+| seat | ground defence built | soldiers built | defence as % | killed by defence | yield | defence lost | first defence |
+|---|---|---|---|---|---|---|---|
+| SSFA (OS 17, Legion, the north-east turtle) | 78,640 (+20,420 anti-air) | 193,765 | 41 | 180,090 | 2.3 | 114,910 | 1:24 |
+| drakcore (OS 11, Legion) | 11,360 (+14,300 anti-air) | 63,965 | 18 | 53,261 | 4.7 | 38,770 | 2:06 |
+| apexearth (OS 31) | 17,340 | 25,091 | 69 | 23,085 | 1.3 | 34,365 | 1:42 |
+| Gabiiiiiii7 (OS 36) | 12,500 | 47,123 | 27 | 15,092 | 1.2 | 16,430 | 3:24 |
+| TimmyT (OS 8) | 7,695 | 11,427 | 67 | 1,605 | 0.2 | 13,535 | 2:18 |
+| our t5 (Legion) | 2,030 | 345,300 | 1 | 616 | 0.3 | 570 | 2:18 |
+| our t9 (Cortex) | 6,210 | 252,583 | 2 | 525 | 0.1 | 2,610 | 3:54 |
+| the three Apex seats | 24,590 to 42,035 each | 256,325 to 700,500 | 4 to 10 | 150 to 9,499 | 0.0 to 0.2 | 25,150 to 33,430 | 6:00 to 8:06 |
+
+The people's five seats killed 273,000 of our side's metal with towers; our five killed 12,500 of theirs. SSFA's
+hold: 16 Bastions from 27:22 (median 46:39) a median 915 from his start, 9 Xystons from 42:28, 7 Soteria shields from
+36:50, 4 Eviscerators from 34:31, with four anti-nukes (22:42, then three at 50:10 to 51:26); drakcore 7 Xystons from
+28:52 and a Supernova at 44:31 (killed 48:50 by a Tyrannus). Every person had an anti-nuke by 24:52. Apex's silos:
+eight at the Legion seat t7 from 33:24, eight at t6 from 42:26, five at t8 from 52:47; 21 finished, 23 standing in
+our records at 57:00. The people's anti-nukes died at 36:47 (a Marauder), 40:37 (Thanatos), 51:03 and 51:13
+(Tyrannus), and the last four at 56:40 and 56:41, one to an Armageddon's warhead and three unattributed in the same
+second: the stock ran out and the missiles took the anti-nukes themselves, twenty-three minutes after the first
+silo stood. Apex's own towers, 98,000 metal at home, killed 11,000 and never saw the fight.):
 
 - *Their escalation, as seen:* Cacophonies 5:59, Beamers from 8:33 (20 seen, median 12:25), Overwatches 12:25 (10),
   Twin Guards 15:17, a Pit Bull 19:13, Scorpions 22:38 (5), a Pulsar 23:48, Rattlesnakes 24:23 (3), Chimeras 26:56,

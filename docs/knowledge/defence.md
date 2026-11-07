@@ -106,10 +106,14 @@ the shields".)
 and covers 2,000 (`legabm.lua` `coverage`, `stockpiletime`, `energypershot`); each interceptor takes one missile. A
 silo stockpiles one missile per 180 s (Legion and Cortex; Armada 120) for 187,500 energy (Armada 125,000). So N
 silos firing within one coverage beat the interceptors stocked there, and the people's eight anti-nukes in the 5v5
-(two Prevailers from 27:23, two Citadels from 30:23, four Aegis at 51:00) fell to Apex's 23 silos (14 Supernovas and
-9 Armageddons standing at 57:00). A turtle on tier-2 and tier-3 defence ends that way or not at all.
+(two Prevailers from 27:23, two Citadels from 30:23, four Aegis at 51:00) fell to Apex's silos (21 finished from 33:24, eight, eight and five at three seats; 23 standing at 57:00): the
+last four anti-nukes died at 56:40-56:41, one to an Armageddon's warhead and three in the same second unattributed,
+twenty-three minutes after the first silo stood. A turtle on tier-2 and tier-3 defence ends that way or not at all.
+Two-sided: SSFA's 78,640 of ground defence (16 Bastions, 9 Xystons, 7 shields) killed 180,090 of our side's metal
+(yield 2.3); the five people's towers killed 273,000, our five seats' 12,500.
 **Status.** supported (2026-11-06): unit files; the 5v5's `al` rows at 57:00 (`record-0.jsonl`).
-**Evidence.** As cited; the 5v5's two-sided replay (`defence-5v5-altored-humans`) for the strike clocks.
+**Evidence.** As cited; the 5v5's two-sided replay `run/matches/1794014650-replay-defence-5v5-altored-humans`
+(the dump widget's records; every seat's silos, anti-nukes and their deaths by clock).
 **Would be wrong if.** An anti-nuke was seen intercepting two missiles within 90 s of each other with one interceptor stocked.
 **Used by.** the brief's anti-nuke paragraph (one under every home); `crates/nukes` (the strike engine).
 
