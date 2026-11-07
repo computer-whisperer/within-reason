@@ -278,6 +278,7 @@ impl Brain {
             Ok(site) => Plan::Slot(def, site.at, site.facing),
             Err(why) => {
                 let ms = started.elapsed().as_secs_f32() * 1000.0;
+                *self.layout_refused.borrow_mut().entry(def).or_insert(0) += 1;
                 let said = format!("no layout site for a {} for {}: {why}; the engine is asked at ({:.0}, {:.0})", self.name(def), self.actor_name(builder.id), centre.x, centre.z);
                 if self.layout_refusal_said.borrow_mut().insert(def, said.clone()) != Some(said.clone()) {
                     eprintln!("[ai {}] {said}", self.ai());

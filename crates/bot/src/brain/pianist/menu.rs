@@ -1545,7 +1545,14 @@ impl Brain {
                 // at every cell among them, 4,900 gate questions a minute).
                 let stands_at_a_place = self.placed_at_place(def);
                 let mark = |p: &Place| p.spot.is_none() && !p.is_cell() && p.name != "home" && !p.name.starts_with("passage_");
-                for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE && p.at.dist2d(anchor) > HERE && (stands_at_a_place || mark(p))) {
+                // A construction turret is offered at a place only with something there to assist: a plant or a frame
+                // of ours within its reach of the place's band. Three of 2026-11-07's dumped searches were turrets
+                // asked for at hold points with nothing within 800, refused as "no ground" and built by the engine.
+                let assists = |p: &Place| {
+                    let within = d.build_distance + super::super::economy::BAND_PLACE;
+                    own.iter().any(|u| (self.world.is_factory_def(u.def) || u.being_built) && u.pos.dist2d(p.at) <= within)
+                };
+                for place in named.iter().filter(|p| p.at.dist2d(unit.pos) > HERE && p.at.dist2d(anchor) > HERE && (stands_at_a_place || mark(p)) && (!nano || assists(p))) {
                     // A defence's cover is words: what armed building of ours stands or is ordered there already.
                     let cover = if armed_building(def) {
                         let covering = own.iter().filter(|t| armed_building(t.def) && t.pos.dist2d(place.at) < 350.0).count() + pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)).filter(|t| matches!(t, Task::Build { def: td, near, .. } if armed_building(*td) && near.dist2d(place.at) < 350.0)).count();

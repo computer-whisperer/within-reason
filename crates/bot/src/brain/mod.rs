@@ -129,6 +129,9 @@ pub struct Brain {
     /// The failing site searches dumped for replay (`economy.rs` `dump_layout_failure`): how many, and how many a
     /// kind.
     layout_dumped: std::cell::RefCell<(usize, HashMap<UnitDefId, usize>)>,
+    /// Every site search the layout layer refused this game, by kind: the engine placed those. Said once a minute
+    /// while it grows, so a game's pile is sized from the log without its dumps.
+    layout_refused: std::cell::RefCell<HashMap<UnitDefId, usize>>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
@@ -260,6 +263,8 @@ pub struct Brain {
     /// Metal spots (by index) where an extractor offset toward the builder was refused: the exact centre from then on.
     centre_only: HashSet<usize>,
     dropped_orders: u32,
+    /// The refused-searches total last said in the minute line (`layout_refused`).
+    layout_refused_said: usize,
     move_failures: u32,
     /// Heuristic IDs switched off for an ablation run (`WITHIN_REASON_DISABLE=H-A,H-B`).
     disabled: Vec<String>,
@@ -375,6 +380,7 @@ impl Brain {
             block_grow_failed: None,
             layout_refusal_said: std::cell::RefCell::new(HashMap::new()),
             layout_dumped: Default::default(),
+            layout_refused: Default::default(),
             reclaim: Default::default(),
             plan_game: None,
             pianist,
@@ -436,6 +442,7 @@ impl Brain {
             unit_losses: VecDeque::new(),
             centre_only: HashSet::new(),
             dropped_orders: 0,
+            layout_refused_said: 0,
             move_failures: 0,
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             last_trigger_frame: HashMap::new(),
@@ -832,6 +839,17 @@ impl Brain {
                 eprintln!("[ai {}] f={} fights: {}", self.ai(), tick.frame, ledger.join(", "));
             }
             eprintln!("[ai {}] f={} dropped build orders so far: {}, move failures: {}", self.ai(), tick.frame, self.dropped_orders, self.move_failures);
+            {
+                let refused = self.layout_refused.borrow();
+                let total: usize = refused.values().sum();
+                if total > 0 && total != self.layout_refused_said {
+                    self.layout_refused_said = total;
+                    let mut kinds: Vec<(&UnitDefId, &usize)> = refused.iter().collect();
+                    kinds.sort_by_key(|(_, n)| std::cmp::Reverse(**n));
+                    let kinds: Vec<String> = kinds.iter().map(|(d, n)| format!("{} x{n}", self.name(**d))).collect();
+                    eprintln!("[ai {}] f={} site searches refused so far: {total} ({})", self.ai(), tick.frame, kinds.join(", "));
+                }
+            }
             if self.late_ticks.0 > 0 {
                 let (count, most) = std::mem::take(&mut self.late_ticks);
                 eprintln!("[ai {}] f={} ticks late this minute: {count}, the latest by {most} frames", self.ai(), tick.frame);

@@ -31,7 +31,10 @@ const TOUCHING_CAP: f32 = 2.0;
 /// A site that founds a bank scores this at level 1: worse than touching one by more than the band, so a bank grows
 /// before a new one is founded, while touching one near the builder and touching two far away both pass to the walk.
 const FOUNDING: f32 = 1.0;
-/// How many candidates, best first, the street check tries before the band is widened.
+/// How many candidates, best first, the street check tries before the band is widened. A candidate refused once is
+/// not tried again: until 2026-11-07 the widenings re-tried the same twelve (the ranking is the distance's, so the
+/// twelve best of the wider band were the twelve nearest, already refused), and 31 of 34 dumped searches ran all
+/// three widenings over one set of sites.
 const STREET_TRIES: usize = 12;
 /// A builder of ours this close to a candidate's footprint is asked whether the site walls it in.
 const BUILDER_NEAR: f32 = 200.0;
@@ -290,8 +293,17 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
         };
         return Err(format!("no ground on this map takes it: it wants {wants} and the map's heights run {lo:.0} to {hi:.0}"));
     }
+    if req.purpose == Purpose::Turret && let Some(why) = nothing_to_assist(world, req) {
+        if let Some(t) = trace {
+            t.push(format!("no site: {why}"));
+        }
+        return Err(why);
+    }
     let banks = bank_sizes(world, f.def);
     let mut why = String::new();
+    // The candidates refused in any widening, by position and facing: the world is the same, so a street closed or
+    // a builder walled in at the first widening is so at the next, and the next widening's tries are new sites.
+    let mut refused: Vec<(Vec3, i32)> = Vec::new();
     // The blocks of the street rule: what stands, and the candidate under test pushed behind them.
     let mut blocks: Vec<Rect> = world.standing.iter().map(World::blocking_rect).collect();
     // A street closed before the candidate is not the candidate's to close, nor a builder walled in already: until
@@ -326,7 +338,8 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
             continue;
         }
         let ordered = by_bands(candidates, &bands);
-        for (n, c) in ordered.iter().take(STREET_TRIES).enumerate() {
+        let tries: Vec<&Candidate> = ordered.iter().filter(|c| !refused.iter().any(|(p, facing)| *facing == c.facing && p.dist2d(c.at) < 1.0)).take(STREET_TRIES).collect();
+        for (n, c) in tries.into_iter().enumerate() {
             let mut verdict = |what: String| {
                 if let Some(t) = trace.as_deref_mut() {
                     t.push(format!("  try {n}: ({:.0}, {:.0}) facing {} scores {:?}: {what}", c.at.x, c.at.z, c.facing, c.scores));
@@ -342,9 +355,13 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
                 why = format!("the best site at ({:.0}, {:.0}) would close {}'s street for its {}", c.at.x, c.at.z, p.name, p.widest);
                 verdict(format!("closes {}'s street", p.name));
                 blocks.pop();
+                refused.push((c.at, c.facing));
                 continue;
             }
-            let walled = world.builders.iter().enumerate().filter(|(_, b)| distance_to(&c.rect, b.at) <= BUILDER_NEAR && b.concerns(&c.rect)).find(|(i, b)| {
+            // The asker is not among them: it walks to its site and stands beside what it builds, and a flood from
+            // beside the site failed for it in six of the eight walled-in dumps of 2026-11-07 (46 to 95 from the
+            // site's edge, a site found at once without it). A builder it would shut in is the street check's.
+            let walled = world.builders.iter().enumerate().filter(|(_, b)| b.at.dist2d(req.builder_at) >= 1.0 && distance_to(&c.rect, b.at) <= BUILDER_NEAR && b.concerns(&c.rect)).find(|(i, b)| {
                 let had_way = *out_before[*i].get_or_insert_with(|| way_out(&world.ground, b, before, &*world.open));
                 had_way && !way_out(&world.ground, b, &blocks, &*world.open)
             });
@@ -352,6 +369,7 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
                 why = format!("the best site at ({:.0}, {:.0}) would wall in our builder at ({:.0}, {:.0})", c.at.x, c.at.z, b.at.x, b.at.z);
                 verdict(format!("walls in builder {i} at ({:.0}, {:.0}), {:.0} from the site's edge, {}", b.at.x, b.at.z, distance_to(&c.rect, b.at), if c.rect.contains(b.at) { "standing under the site" } else { "beside it" }));
                 blocks.pop();
+                refused.push((c.at, c.facing));
                 continue;
             }
             // A plant's own street, from the site it would stand at.
@@ -361,6 +379,7 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
                     why = format!("the best site at ({:.0}, {:.0}) has no street to the open", c.at.x, c.at.z);
                     verdict("no street of its own to the open".to_string());
                     blocks.pop();
+                    refused.push((c.at, c.facing));
                     continue;
                 }
             }
@@ -372,6 +391,22 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
         t.push(format!("no site: {why}"));
     }
     Err(why)
+}
+
+/// Why a construction turret has no site before any search: nothing it could assist within its reach of the widest
+/// band. Said in its own words; the search's "no ground takes it" was false for these (three dumps of 2026-11-07, a
+/// turret asked for at a hold point with no plant or frame within 800).
+fn nothing_to_assist(world: &World, req: &Request) -> Option<String> {
+    let within = req.radius * 2f32.powi(WIDENINGS as i32) + req.facts.build_distance;
+    let frames = world.frames.iter().any(|fr| distance_to(&fr.rect, req.centre) <= within);
+    let (what, found) = if world.lattice.is_some() {
+        ("frame slot or frame", frames || world.frame_slots.iter().any(|s| s.dist2d(req.centre) <= within))
+    } else if world.plants.is_empty() && world.frames.is_empty() {
+        return None;
+    } else {
+        ("plant or frame", frames || world.plants.iter().any(|p| distance_to(&p.rect(), req.centre) <= within))
+    };
+    (!found).then(|| format!("no {what} within reach of ({:.0}, {:.0}) for a construction turret", req.centre.x, req.centre.z))
 }
 
 /// One lattice point as a candidate, or None when a constraint fails.
@@ -953,6 +988,82 @@ mod tests {
         assert!(site.at.dist2d(builder_at) < 120.0, "beside it: {site:?}");
         assert_eq!(trace.len(), 2, "one widening, one try: {trace:?}");
         assert!(trace[1].contains("try 0") && trace[1].contains("chosen"), "{trace:?}");
+    }
+
+    /// A widening tries new sites: a solar asked for in a plant's street (the band so narrow that every candidate
+    /// of the first widening closes it) is found farther out, and no position is tried twice. Until 2026-11-07 the
+    /// widenings re-tried the first widening's twelve (the twelve best of the wider band were the twelve nearest),
+    /// and 31 of 34 dumped searches ran all three over one set of sites.
+    #[test]
+    fn a_widening_tries_sites_the_last_one_did_not() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        w.plants.push(Plant { centre: at(2000.0, 2000.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant_1".into(), widest: "Bull".into(), passable: None });
+        w.standing.push(Standing { rect: Footprint { x: 12, z: 12 }.rect(at(2000.0, 2000.0)), def: Some(UnitDefId(9)), kind: "plant".into(), ours: true, bank: false, metal: 700.0, health: 3000.0, blast: None, name: "plant_1".into() });
+        for k in -12..=12 {
+            if k == 0 {
+                continue;
+            }
+            w.standing.push(standing(3, 10, at(2200.0, 2000.0 + 80.0 * k as f32), 155.0, 340.0, None));
+        }
+        let solar = facts(3, 10, 155.0, 340.0, Some((50.0, 89.0)));
+        let req = Request { facts: solar.clone(), purpose: Purpose::Generator { cap: None }, centre: at(2200.0, 2000.0), radius: 40.0, builder_at: at(2100.0, 2000.0), builder: builder() };
+        let mut trace = Vec::new();
+        let site = choose_traced(&w, &req, Some(&mut trace)).expect("a site");
+        assert!(!Footprint { x: 10, z: 10 }.rect(site.at).overlaps(&Rect { x0: 2160.0, z0: 1960.0, x1: 2240.0, z1: 2040.0 }), "placed in the gap: {site:?}");
+        let widenings = trace.iter().filter(|l| l.starts_with("widening")).count();
+        assert!(widenings >= 2, "found in the first widening, the test proves nothing: {trace:?}");
+        let tried: Vec<&str> = trace.iter().filter(|l| l.trim_start().starts_with("try ")).map(|l| l.split(" scores").next().unwrap().split(": ").nth(1).unwrap()).collect();
+        let mut seen = std::collections::HashSet::new();
+        for t in &tried {
+            assert!(seen.insert(*t), "tried twice: {t} in {trace:?}");
+        }
+    }
+
+    /// The asker is not walled in by what it builds: standing inside the bay of turbines, asking for one at the
+    /// bay's mouth, it gets a site there and no try is refused for walling a builder in. (Six of the eight walled-in
+    /// dumps of 2026-11-07 named the asker itself, 46 to 95 from the site's edge; the way-out flood from beside the
+    /// site failed for it, and the search found a site at once without it.)
+    #[test]
+    fn the_asker_is_not_walled_in_by_its_own_build() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        let asker = at(2048.0, 2048.0);
+        w.builders.push(Builder { at: asker, half: 24.0, passable: None });
+        for k in -2..=2 {
+            let o = 48.0 * k as f32;
+            for (x, z) in [(2048.0 + o, 1960.0), (2048.0 + o, 2136.0), (2136.0, 2048.0 + o)] {
+                w.standing.push(standing(5, 6, at(x, z), 40.0, 200.0, None));
+            }
+        }
+        // Another kind than the bay's turbines, so the bank gap rule leaves the mouth's sites as candidates.
+        let wind = facts(7, 6, 40.0, 200.0, None);
+        let req = Request { facts: wind.clone(), purpose: Purpose::Generator { cap: None }, centre: at(1960.0, 2048.0), radius: 100.0, builder_at: asker, builder: builder() };
+        let mut trace = Vec::new();
+        let site = choose_traced(&w, &req, Some(&mut trace)).expect("a site");
+        assert!(site.at.dist2d(at(1960.0, 2048.0)) < 100.0, "{site:?} {trace:#?}");
+        assert!(trace.iter().all(|l| !l.contains("walls in")), "{trace:?}");
+    }
+
+    /// A construction turret with nothing to assist is refused in its own words before any search: a plant 3,500
+    /// away is out of reach of the widest band. With no plant or frame anywhere a turret is placed like anything
+    /// else (the first one). Three dumps of 2026-11-07 were turrets asked for at hold points, refused as "no
+    /// ground takes it" after three widenings over nothing.
+    #[test]
+    fn a_turret_with_nothing_to_assist_is_refused_before_the_search() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let mut w = world(&t, &open);
+        let nano = Facts { build_distance: 240.0, build_speed: 200.0, ..facts(5, 6, 300.0, 560.0, Some((100.0, 530.0))) };
+        let req = Request { facts: nano.clone(), purpose: Purpose::Turret, centre: at(3500.0, 3500.0), radius: 200.0, builder_at: at(3500.0, 3500.0), builder: builder() };
+        choose(&w, &req).expect("a site with no plant or frame anywhere");
+        w.plants.push(Plant { centre: at(500.0, 500.0), footprint: Footprint { x: 12, z: 12 }, facing: 1, product_half: 32.0, ours: true, name: "plant".into(), widest: "Bull".into(), passable: None });
+        let mut trace = Vec::new();
+        let why = choose_traced(&w, &req, Some(&mut trace)).expect_err("nothing to assist");
+        assert_eq!(why, "no plant or frame within reach of (3500, 3500) for a construction turret");
+        assert_eq!(trace.len(), 1, "no widening was run: {trace:?}");
     }
 }
 
