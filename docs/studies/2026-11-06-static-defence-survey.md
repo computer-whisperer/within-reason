@@ -169,6 +169,42 @@ with the body; the standing share ran to half the standing army at 8:00 before t
 built almost nothing. One game, seed 3; the win may be the article's or the commander's hold points' or the
 cap's; the ledger rows have the curves.
 
+**defence-barb-8v8-1 read tower by tower** (scratch script over the eight records: every ground defence finished, where it
+stood from its seat's start, when, what it killed by last hit, whether and to what it died):
+
+| towers built in minutes | n | metal | killed | yield | lost |
+|---|---|---|---|---|---|
+| 0-3 | 2 | 170 | 503 | 2.96 | 0 |
+| 3-6 | 29 | 2,465 | 2,281 | 0.93 | 1,785 |
+| 6-9 | 31 | 3,265 | 4,287 | 1.31 | 2,440 |
+| 9-12 | 3 | 465 | 1,103 | 2.37 | 0 |
+| 12-15 | 4 | 550 | 273 | 0.50 | 0 |
+| 15-30 | 95 | 14,705 | 2,180 | 0.15 | 1,780 |
+
+| distance from the seat's start | n | metal | killed | yield | lost | median build minute |
+|---|---|---|---|---|---|---|
+| under 1,000 (home) | 55 | 9,405 | 1,770 | 0.19 | 190 | 18 |
+| 1,000-2,000 (the row-4 holds) | 47 | 5,955 | 4,513 | 0.76 | 2,015 | 7 |
+| 2,000-3,000 | 37 | 4,265 | 2,730 | 0.64 | 1,910 | 20 |
+| 3,000-4,000 | 20 | 1,910 | 1,571 | 0.82 | 1,465 | 6 |
+| 4,000 and more | 5 | 425 | 43 | 0.10 | 425 | 7 |
+
+The towers bought while the hold was contested (3:00 to 12:00, 6,400 metal, at the holds and beyond) returned their price
+and more, the people's number, though the ones past 3,000 lost three quarters of themselves (Thuds 16, Grunts 10, Incisors
+8, unseen 12 of the 56 tower deaths); the five past 4,000 returned nothing. Two thirds of the game's tower metal (14,705)
+was bought from 15:00 at home, at a lead of 1.3 to 5 to 1, and returned a sixth of its price. It was bought against a real
+problem: from 15:00 to 25:00 Grunts, Thuds, Stumps and Incisors walking past the armies killed 20,000 of our structures
+and 76 extractors (41 in 15-20 alone), and the commander lifted its own "no towers" for "two Beamers and a Nettle at each
+home's spots" at 15:30 and "every spot behind the armies with a Sentry" at 28:15. That is the raid article's item 1 again,
+beside the extractor, after the raider has shown; the towers caught 2,180 of the raiders while 20,000 of structures died
+around them. (2,965 + 950 of the losses after 15:00 were our own constructors reclaiming our structures, a layout matter
+for its own ledger, not this one.) The early overshoot has a stated mechanism: at 7:42 the commander read 73 towers for
+6,500 metal and said why, "a plant alone spends only 10 metal a second while seats earn 25 to 30, so constructors with
+nothing else build towers and banks climb"; the sixth was understood and the overflow went to towers anyway. Beamers
+returned 0.47 to the Sentries' 0.64 only because most were the late home ones; the two best towers of the game were t7's
+Beamers 1,800 forward at 7:39 and 10:03, 1,060 each, standing at the end. The three Pit Bulls and the Overwatch, late and
+at home, killed nothing.
+
 ## 3. Background: what high-OS duellists do with defence (pool A)
 
 Quartiles are lower / median / upper over sides. "Ground defence" is every armed structure that shoots the ground
