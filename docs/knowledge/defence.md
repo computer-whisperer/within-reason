@@ -43,6 +43,10 @@ with three quarters of itself lost, past 4,000 0.10. The game's yield of 0.51 is
 commander.jsonl (the overflow at 7:42, the home towers lifted at 15:30).
 **Would be wrong if.** A second 8v8 with the same hold points showed the early hold towers under 0.5, or the late
 home towers above 0.8.
+**Second game (defence-barb3-8v8-1, the revised article, WON 20:56 against eight Barb3).** Towers bought 6:00-12:00 returned
+1.4-2.4, 3:00-6:00 0.34 (bought at the holds before he came; he mostly did not come), from 15:00 0.05-0.11 (Sentries at
+taken spots in his half, 4,000 and more out); 10,040 of towers in all, 935 lost. Consistent; the early band's low number
+is the bet not called, not the tower misplaced.
 **Used by.** D-defence-hold items 1 and 2 and its "How it fails" (revised 2026-11-07).
 
 ### K-def-the-cheap-tower-is-the-tower-and-the-heavy-laser-is-one-in-three

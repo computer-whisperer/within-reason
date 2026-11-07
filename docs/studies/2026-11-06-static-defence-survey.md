@@ -205,6 +205,13 @@ returned 0.47 to the Sentries' 0.64 only because most were the late home ones; t
 Beamers 1,800 forward at 7:39 and 10:03, 1,060 each, standing at the end. The three Pit Bulls and the Overwatch, late and
 at home, killed nothing.
 
+**defence-barb3-8v8-1 (2026-11-07, the revised article, Barb3 experimental_balanced, WON 20:56 by elimination).** The
+zero-token baseline (barb3-distilled-8v8-1) had lost to Barb3 at 32:17 on the flagship's old curve. With the revision
+the commander put towers and bodies together at five hold points by 3:00, bought nothing at home after the raiders, sent
+the bodies past the holds at 5:00, and the ratio rose every minute from 6:00; his tier 2 never came. Towers 10,040
+(104 Sentries, 4 Beamers, an Overwatch), 9 % of standing army at the end, 935 lost; by build minute 3-6 0.34, 6-12
+1.4-2.4, 15-21 0.05-0.11 (Sentries at taken spots in his half). The ledger row has the curve.
+
 ## 3. Background: what high-OS duellists do with defence (pool A)
 
 Quartiles are lower / median / upper over sides. "Ground defence" is every armed structure that shoots the ground
