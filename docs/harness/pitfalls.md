@@ -366,3 +366,14 @@ each arm's log opens with its Compiling lines, which say what it rebuilt). No Ru
 before/after over one source file is a script that copies the old file in, runs the before arms, copies the new file
 back and runs the after arms (`cmp` at the end). `WITHIN_REASON_KEEP_INSTALLED=1` (install_ai.sh, from this evening)
 skips the build and the install for a bench that built and installed once; it does not make an edited checkout safe.
+
+## A lobby demo replays its pre-game wait in real time (2026-11-07)
+
+A demo recorded from a lobby game begins when the battle room opens, not at frame 0, and the headless engine plays
+that stretch at wall speed: 18 minutes before frame 0 for both the Altored 5v5 (`1794014650-replay-...`, frame 0 at
+t=18:51) and the Glitters 8v7 (`1794062778-replay-human-8v7-glitters`). A big game then runs under real time (the 8v7's
+26 minutes took 32 of wall at one core), so `run/replay_match.py --timeout 3000` killed the engine after the last
+frame and, on the timeout path, left the records under `LuaUI/Config/within-reason/` (moved by hand). Give a lobby
+demo the default timeout (3600) or more, and read the output's "no records" line as "not moved", not "not written".
+`run/audit.py` is two-sided by team: in a team game "his" is team 0 alone unless `--team` names a seat, and without
+`--team` "ours" is the first AI name starting with WR, which a person called WRench satisfied.
