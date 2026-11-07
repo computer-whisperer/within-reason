@@ -30,6 +30,21 @@ towers and capped the share; 21,960 of towers (6 % of soldiers; 56 Beamers to 10
 lost on (6.8 to 1 in army at 30:26). The yield did not rise; the share and the placement changed. One game.
 **Used by.** D-defence-hold (docs/briefs/derived/defence.md, in the manifest since 2026-11-06); (candidates: D-SENTRY's site; the hands' menu.)
 
+### K-def-a-tower-earns-while-the-hold-is-contested-and-nothing-after-the-lead
+**Claim.** A tower's yield is set by when and where it is bought, not by the game's share: in defence-barb-8v8-1 the
+towers finished from 3:00 to 12:00 at the four hold points (1,000 to 2,500 from the seats' starts, the bodies beside
+them) returned 0.9 to 2.4 of their price by last hit, the people's number; the 14,700 (two thirds of the game's tower
+metal) finished from 15:00 at home, at an army lead of 1.3 to 5 to 1, returned 0.15, though they were bought against a
+real raid (20,000 of structures and 76 extractors lost 15:00-25:00 to Grunts and Thuds walking past the armies). By
+distance: under 1,000 returned 0.19 (median build minute 18), 1,000-2,000 0.76, 2,000-3,000 0.64, 3,000-4,000 0.82
+with three quarters of itself lost, past 4,000 0.10. The game's yield of 0.51 is the first band diluted by the second.
+**Status.** supported by one game (2026-11-07): `run/defence_towers.py run/matches/1794016705-defence-barb-8v8-1/00`.
+**Evidence.** The study §2 "defence-barb-8v8-1 read tower by tower"; the commander's turns in that match's
+commander.jsonl (the overflow at 7:42, the home towers lifted at 15:30).
+**Would be wrong if.** A second 8v8 with the same hold points showed the early hold towers under 0.5, or the late
+home towers above 0.8.
+**Used by.** D-defence-hold items 1 and 2 and its "How it fails" (revised 2026-11-07).
+
 ### K-def-the-cheap-tower-is-the-tower-and-the-heavy-laser-is-one-in-three
 **Claim.** Per high-OS duel side: 14.9 Sentries and 3.3 Beamers (Armada), 14.1 Guards, 5.1 Exploiters and 3.7 Twin
 Guards (Cortex: the armed extractor is the outpost tower in 61 % of Cortex sides, five where it is), 28 Pharos
