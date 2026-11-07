@@ -153,6 +153,22 @@ silo stood. Apex's own towers, 98,000 metal at home, killed 11,000 and never saw
 
 The derived claims from this game are in `docs/knowledge/defence.md`.
 
+**The article's first tests (2026-11-06 night, D-defence-hold in the manifest).** defence-barb-1, a duel against
+BARb hard_aggressive on Comet: WON 15:44 with 26 Sentries beside extractors, 10 % of soldier metal, yield 0.24, no
+Beamer, as the article allows in a duel. defence-barb-8v8-1, eight seats against eight BARb hard_aggressive on All
+That Glitters, the line the four earlier 8v8s lost on at 28 to 30 minutes: called a win by the user at 30:26 with
+our army 198,807 against his 29,133 (6.8 to 1), extractors 68 against 67 and seven of his commanders still alive.
+The commander directed the seats with the article's words (a sixth, towers where he comes, four hold points on row
+4 with radar by 3:00, a cap at 10:00 when 38 stood), the seats built 104 Sentries, 56 Beamers, 38 Nettles, 9
+Ferrets, 3 Pit Bulls and 2 Chainsaws (21,960 metal, 6 % of soldier metal built; the people's 15 %), yield 0.51 (the
+flagship's team games before: 0.7 median over 244 sides, so no gain there), his towers 32,195 seen and 22,165
+killed. The army ratio held above one through minutes 10 to 16, where the earlier games turned, and then ran away.
+Faults for the article's wording: the first Sentry posts went 3,000 to 5,100 forward and died to Thugs and Grunts by
+11:00 (4,365 of the first 6,280 lost), "where he comes" having been read as deep in the lane rather than at the hold
+with the body; the standing share ran to half the standing army at 8:00 before the commander capped it; two seats
+built almost nothing. One game, seed 3; the win may be the article's or the commander's hold points' or the
+cap's; the ledger rows have the curves.
+
 ## 3. Background: what high-OS duellists do with defence (pool A)
 
 Quartiles are lower / median / upper over sides. "Ground defence" is every armed structure that shoots the ground

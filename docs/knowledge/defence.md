@@ -24,7 +24,11 @@ two thirds beyond 1,500 from the start and one in six nearer his start than thei
 **Status.** supported (2026-11-06): 609 flagship sides, 1,541 heuristic-bot games, the placement over 23,700 duel towers.
 **Evidence.** The study §2, §3 (placement), §4.
 **Would be wrong if.** A batch with towers sited at the hold point or the raid's lane showed no rise in the yield column.
-**Used by.** (candidates: the brief; D-SENTRY's site; the hands' menu.)
+**First test (2026-11-06 night, defence-barb-8v8-1, D-defence-hold live).** The commander held four lane points with
+towers and capped the share; 21,960 of towers (6 % of soldiers; 56 Beamers to 104 Sentries, 3 Pit Bulls) at yield
+0.51, the first Sentry posts 3,000-5,100 forward lost by 11:00; the 8v8 was won on the clock the four before were
+lost on (6.8 to 1 in army at 30:26). The yield did not rise; the share and the placement changed. One game.
+**Used by.** D-defence-hold (docs/briefs/derived/defence.md, in the manifest since 2026-11-06); (candidates: D-SENTRY's site; the hands' menu.)
 
 ### K-def-the-cheap-tower-is-the-tower-and-the-heavy-laser-is-one-in-three
 **Claim.** Per high-OS duel side: 14.9 Sentries and 3.3 Beamers (Armada), 14.1 Guards, 5.1 Exploiters and 3.7 Twin
