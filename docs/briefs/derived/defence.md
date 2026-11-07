@@ -3,8 +3,8 @@ id: D-defence-hold
 layer: derived
 premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-raid-answer, D-energy-second, D-tier2-sprint, F-fight-range, F-fight-sight, F-fight-health, F-fight-big-weapons, F-fight-consequences, F-eco-energy, F-unit-armllt, F-unit-corllt, F-unit-leglht, F-unit-armbeamer, F-unit-corhllt, F-unit-corexp, F-unit-armhlt, F-unit-corhlt, F-unit-armclaw, F-unit-cormaw, F-unit-armpb, F-unit-corvipe, F-unit-legapopupdef, F-unit-armanni, F-unit-cordoom, F-unit-legbastion, F-unit-armguard, F-unit-corpun, F-unit-armamb, F-unit-cortoast, F-unit-armrl, F-unit-corrl, F-unit-armflak, F-unit-leglraa, F-unit-armamd, F-unit-corfmd, F-unit-legabm, F-unit-armsilo, F-unit-corgate, F-unit-armdrag, F-unit-armrock, F-unit-corstorm, F-unit-armflash, F-unit-corgator, F-unit-armstump, M-pool-pressure, M-pool-fights, M-format-8v8, M-barb-bonus, M-barb-team, M-lobby-5v5, M-gecko-team]
 lessons: [L-other-infern8-defences, L-other-u6bkep-nests-and-air, L-gecko-nuke-surprise, L-sheet-fighting]
-sources: {people: [Infern8, apexearth, thebluegecko, u6bkep, the user], dates: [2026-09-27, 2026-10-18, 2026-10-23, 2026-11-06], relay: Infern8 watching our raiders die on a Beamer (L-other-infern8-defences); apexearth in the 5v5 ("mass bastions does hold off enemies pretty well", 49:59); the user's observation that opened the survey (2026-11-06: we use stationary attacking structures far less than our opponents; people hold off far more BARb seats than they have by damage efficiency while they out-scale), his framing of the three cases (the duel's perimeter, the 8v8's cross-section with no way round, the one seat against two); the survey docs/studies/2026-11-06-static-defence-survey.md and its claims in docs/knowledge/defence.md}
-status: in the manifest since 2026-11-06 (the user, on the draft: "Good. Let's enable this article, then run a BARb 1v1, then an 8v8"); the numbers are the survey's (run/replays/defence_duels.py, run/defence_pool.py, run/defence_census.py on 2026-11-06) and the unit files on game source 54199a0d
+sources: {people: [Infern8, apexearth, thebluegecko, u6bkep, the user], dates: [2026-09-27, 2026-10-18, 2026-10-23, 2026-11-06, 2026-11-07], relay: Infern8 watching our raiders die on a Beamer (L-other-infern8-defences); apexearth in the 5v5 ("mass bastions does hold off enemies pretty well", 49:59); the user's observation that opened the survey (2026-11-06: we use stationary attacking structures far less than our opponents; people hold off far more BARb seats than they have by damage efficiency while they out-scale), his framing of the three cases (the duel's perimeter, the 8v8's cross-section with no way round, the one seat against two); the survey docs/studies/2026-11-06-static-defence-survey.md and its claims in docs/knowledge/defence.md}
+status: in the manifest since 2026-11-06 (the user, on the draft: "Good. Let's enable this article, then run a BARb 1v1, then an 8v8"); revised 2026-11-07 after its first two tests (defence-barb-1, defence-barb-8v8-1) and the 5v5 read two-sidedly, on the user's word ("let's apply those edits"); the numbers are the survey's (run/replays/defence_duels.py, run/defence_pool.py, run/defence_census.py, run/defence_towers.py on 2026-11-06) and the unit files on game source 54199a0d
 -->
 ### The hold: what a tower is for, and where it earns
 
@@ -82,7 +82,12 @@ The multiple is in the reach and the standing still, cashed only by what comes t
   line at 2:00 to 4:00 at the base's edge, and those four seats' towers returned 1.4 to 6.8 of their metal; the
   best seat (OS 38) built 4,240 of towers and 729,000 of army. The BARbs' towers all stood at home and died to the
   Pulsars' reach. In the people's team games in our own replays (OS 35+, 132 sides) the share is 15 percent and the
-  yield 1.1; ours 9 percent and 0.7.
+  yield 1.1; ours 9 percent and 0.7. Our own test of this (eight seats against eight BARb hard_aggressive on All
+  That Glitters, 2026-11-06, the first 8v8 of that series won on the clock the earlier four were lost on): the
+  towers bought from 3:00 to 12:00 at the four hold points on row 4, 1,000 to 2,500 from the starts with the bodies
+  beside them, returned 0.9 to 2.4 of their price; the two best towers of the game were two Beamers 1,800 forward,
+  1,060 each, standing at the end. The two thirds of the tower metal bought from 15:00 at home, at a lead of 1.3 to
+  5 to 1, returned 0.15.
 - *The asymmetric game.* One seat against two BARbs or two weak people: the two arrive piecemeal and from known
   directions, which is the tower's bet made certain again, and the seat's economy and tier run while the towers
   hold (the user's reading; in the public record a dozen such wins in 1,200 games, unread). The duel has none of
@@ -95,6 +100,14 @@ The multiple is in the reach and the standing still, cashed only by what comes t
   stocked, and a silo stocks one missile per 120 to 180 s. A shield stops cannon shells and nothing else: Thugs,
   Stouts, Fatboys, Mausers and artillery die on it, rockets, lasers, heat rays, bombs and the nuke pass, and the
   generator (3,550 health, 273 of sight) is the target, not the bubble.
+- *The people's escalation clock.* In the lobby 5v5 (M-lobby-5v5, five people OS 8 to 36 against two of our seats
+  and three Apex) the people's defence came up in this order: Cacophonies at 6:00, Beamers from 8:30 (twenty of
+  them, median 12:25), Overwatches at 12:30, Twin Guards at 15:00, a Pit Bull at 19:00, Scorpions from 22:30,
+  a Pulsar and Rattlesnakes at 24:00, Chimeras at 27:00, Bastions from 27:30, shields from 37:00, Xystons from
+  42:30, and every person had an anti-nuke by 25:00. What reaches their line has to climb that ladder with it:
+  what out-reaches a Beamer at 12:00 is under an Overwatch at 13:00 and under a Pulsar at 24:00. Their five seats'
+  towers killed 273,000 of our side's metal; our two seats held 1 to 2 percent of soldier metal in towers and
+  killed 1,100 of theirs.
 - *Our record.* The flagship's 13,000 towers over 609 sides: 11,550 Sentries, 1,348 Guards, 835 Nettles, 167 Beamers,
   122 Twin Guards, no tier-2 defence; 9 to 10 percent of its soldiers' metal, placed beside extractors (the raid
   article's item 1, which is right as far as it goes), yielding 0.3 in duels and 0.7 in team games. The same towers
@@ -102,18 +115,32 @@ The multiple is in the reach and the standing still, cashed only by what comes t
 
 **Consider, and why it may work.**
 
-1. *A sixth, from the third minute, and never more than that while the fight is open.* Why: it is what every pool
-   does at every level and in every size of game, and a tower bought while his army is in the open is metal that
-   does not walk to the fight (lead.md). The share is the budget, not the plan; the plan is item 2.
-2. *Buy the tower for the place the enemy comes to, not for the thing it stands beside.* The hold point in front of
-   the base, the lane's choke, the outer pair raided last game, the ground his trickle crossed this minute: a tower
-   there fires all game; a tower beside an extractor nobody raids earns nothing and dies to the first Rocketeer.
-   Why: the yield gap between the people's towers and ours is placement, not count or type. The raid article's
+1. *A sixth from the third minute while the hold is contested, and nothing once the lead is converted.* Why: it
+   is what every pool does at every level and in every size of game, and the tower earns exactly while his units
+   come to the hold: in the Glitters 8v8 the towers bought from 3:00 to 12:00 returned their price and more, the
+   14,700 bought from 15:00 at a lead of 1.3 to 5 to 1 returned a sixth of it; a tower bought once ours outweighs
+   him is metal that does not walk to the fight (lead.md). The share is the budget, not the plan; the plan is item
+   2. And the share is spent on purpose, never as the overflow: when the plants cannot spend the income (a plant
+   alone spends about 10 metal a second against a seat's 25 to 30), the overflow is a second plant, construction
+   turrets on the first, or mohos, not towers; in that 8v8 73 towers stood at 7:42 because constructors with
+   nothing else to do built them.
+2. *Buy the tower for the place the enemy comes to, not for the thing it stands beside, and buy it before he
+   comes.* The hold point in front of the base where the body stands, the lane's choke, the outer pair raided last
+   game, the ground his trickle crossed this minute: a tower there fires all game; a tower beside an extractor
+   nobody raids earns nothing and dies to the first Rocketeer. The hold is where the body stands and no deeper: the
+   tower and the body hold each other (the body keeps the Thuds off the tower, the tower makes the ground the body
+   stands on cost him), and a Sentry alone past the body dies to three Thuds; in the Glitters 8v8 the towers 1,000
+   to 2,500 out with the bodies returned 0.76, the ones 3,000 to 4,000 out returned 0.82 and lost three quarters
+   of themselves, the five past 4,000 nothing. Before he comes: the people's Beamer line stands at the base's edge
+   on the raiders' road at 2:00 to 4:00; a tower bought after the raider has shown stands where he was (the same
+   8v8: two Beamers and a Nettle at each home's spots from 15:30, 0.15 returned, while the raids went on). Why: the
+   yield gap between the people's towers and ours is placement and timing, not count or type. The raid article's
    Sentry at each outer pair stays, as the raid answer; the hold's towers are these.
 3. *One Beamer or Twin Guard per two or three light towers, where his line units have shown.* Why: it is the
    people's ratio; the heavy laser out-reaches every tier-1 unit but the skirmishers and takes three Blitzes to
-   kill, and its 60 energy a second is one solar. Cortex puts the gun on the extractor (the Exploiter): an outpost
-   that is its own tower at 240.
+   kill, and its 60 energy a second is one solar; the two best towers of the Glitters 8v8 were Beamers at the hold,
+   1,800 forward, 1,060 each. Cortex puts the gun on the extractor (the Exploiter): an outpost that is its own
+   tower at 240.
 4. *Past the first tier-2 bank in a lane game: the long gun forward.* Pulsars (or Bulwarks, Bastions) 2,000 to
    2,800 out on the lane, after the base's Beamer line and not instead of it, with anti-air beside them and energy
    for them (1,500 a shot). Why: his trickle arrives at the same ground every minute and nothing tier 1 or tier 2
@@ -126,9 +153,12 @@ The multiple is in the reach and the standing still, cashed only by what comes t
 7. *Walls where the lane is narrow.* Dragon's Teeth at 8 metal for 2,800 health funnel tier-1 units and stop low
    shots; a funnel that puts the trickle inside the towers' reach for longer is the cheapest reach in the game.
    Unmeasured in our record (the knowledge file says so); the people's walls are for the replay batch to read.
-8. *Against a turtle, silos in numbers and the rockets that pass shields, not the army.* Why: an anti-nuke holds one
-   interceptor per 90 s; the 5v5 ended by 23 silos against eight anti-nukes and by nothing else in thirty minutes;
-   a shielded nest is shelled with rockets, lasers and bombs, and the generator is the target.
+8. *Against a turtle, silos in numbers and the rockets that pass shields, not the army, and from the minute the
+   Bastion line is seen.* Why: an anti-nuke holds one interceptor per 90 s; the 5v5 ended by 23 silos against eight
+   anti-nukes and by nothing else in thirty minutes, and the kill took twenty-three minutes from the first silo
+   (33:24 to 56:40), so silos begun when the Bastions appeared at 27:30 would have ended it before 50:00; a
+   shielded nest is shelled with rockets, lasers and bombs, and the generator is the target. The other half: every
+   person in that game had an anti-nuke by 25:00, so against people ours stands by then too.
 9. *Count a tower at its reach, not at three times its metal.* Why: the three is reach.md's fight-on-the-spot
    number for a Sentry against a stream of raiders and nothing else; a tower that out-reaches the body is a toll
    until something that out-reaches it arrives, and a tower the body out-reaches is a wall of 620 health.
@@ -151,7 +181,11 @@ the answer is item 8 or the air.
 **How it fails.** *Beside the extractor* (ours: half the people's share, half the yield, every game). *The line
 without the energy* (a Beamer line on a stalling store). *The line without the radar* (a Pulsar that sees 780).
 *Bought in the open fight* (the Glitters 8v8s: towers at home while his 2.6 times the army stood in our half,
-M-barb-team). *Walked into* (reach.md's toll: 94 tanks on 15 Bulls, 6,800 of Blitzes in a Beamer camp).
+M-barb-team). *Bought as the overflow* (73 towers at 7:42 because the plants could not spend the income). *Bought
+after the raider* (two Beamers and a Nettle at each home's spots at 15:30 after Grunts walked past the armies:
+2,180 of raiders caught while 20,000 of structures died around them). *Bought after the lead* (14,700 of towers
+from 15:00 at 1.3 to 5 to 1, a sixth returned). *Walked into* (reach.md's toll: 94 tanks on 15 Bulls, 6,800 of
+Blitzes in a Beamer camp; the 5v5: 180,000 of our side's metal on one seat's 78,640 of towers at home).
 
 **The tests.** The survey's pools (docs/studies/2026-11-06-static-defence-survey.md; the claims K-def-* in
 docs/knowledge/defence.md): 1,054 sides of public duels above OS 40 with the engine's own defence value every half
@@ -161,4 +195,8 @@ the lobby 5v5 read two-sidedly. The yield is by last hit, a floor; the people's 
 played in, so the people's towers there faced us and Apex, not BARb; the forward-Pulsar hold is one game's reading
 until the replay batch (twenty public 8v8s against bonused BARb) confirms it; walls are unmeasured. The mechanics
 (radar-fire, the towers' own radar, the shield's interception bit, the anti-nuke's stock) are read from the engine
-and the unit files and cited there.
+and the unit files and cited there. The article's own tests so far: a duel against BARb hard_aggressive (WON 15:44,
+tower play unchanged, as the duel paragraph allows) and one 8v8 against eight BARb hard_aggressive on Glitters, seed
+3, called a win at 30:26 at 6.8 to 1, the first of that series won on the clock the four before were lost on, read
+tower by tower (run/defence_towers.py): towers bought 3:00 to 12:00 at the holds 0.9 to 2.4 returned, from 15:00 at
+home 0.15; one game, so the win may be the article's, the commander's hold points' or the cap's.
