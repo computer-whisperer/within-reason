@@ -103,6 +103,34 @@ at the base's edge; the top seat spends on army instead; the BARbs' own towers a
 Pulsars' reach. The audit's FRONT and ARMY tables read one seat against everyone else, so for an 8v8 they need an
 ally-aware mode before the batch (proposal 1).
 
+
+**The 5v5 against people (the user's second check: human-8v8-1, Altored Divide, 2026-10-18, 57:38).** Two flagship
+seats (t5 Legion, t9 Cortex, +50 % income) beside three Apex v0.3.0 seats against five people (OS 8 to 36); the
+people left one by one from 44:26. From our two seats' records (fair view; the two-sided replay is
+`defence-5v5-altored-humans`, FIVE_TWO_SIDED):
+
+- *Their escalation, as seen:* Cacophonies 5:59, Beamers from 8:33 (20 seen, median 12:25), Overwatches 12:25 (10),
+  Twin Guards 15:17, a Pit Bull 19:13, Scorpions 22:38 (5), a Pulsar 23:48, Rattlesnakes 24:23 (3), Chimeras 26:56,
+  **Bastions from 26:57 (23 seen, median 48:03)**, anti-nukes from 27:23 (two Prevailers, two Citadels by 36:03, four
+  Aegis at 51:00), an Overseer shield 37:18, Bulwarks 37:19, **Xystons from 44:55 (12)**, a Supernova silo 45:08,
+  Eviscerators 49:35. The line stood at E1-H2, the north-east.
+- *Ours:* t5 29 Pharos and 4 Brambles (2,030 metal, 0.6 % of 347,550 of soldiers), t9 69 Guards (6,210, 2.4 % of
+  254,383), one anti-nuke each; our allies (Apex) stood at 57:00 eight Bastions, a Pulsar, three Basilicas, three
+  Olympus, seven anti-nukes and **23 nuclear silos** (14 Supernovas, 9 Armageddons).
+- *How we died:* t5 lost 16,300 to towers in sight, 57,300 to units in sight, 62,350 to attackers it never saw (the
+  Bastions' 1,100 reach on their own 1,200 radar, the Astraeus at 3,100) and 136,200 to no attacker at all (missile
+  strikes and blasts; 93,900 of it in 45:00-50:00, the Supernova's minutes); t9 9,045, 40,900, 4,230 and 108,600.
+  The towers in sight were a tenth of it.
+- *What the player knew:* its turns name the Bastion's 1,100 and the Pulsar's 1,400, hold the bodies outside them,
+  and send Thanatos and Arbiters (1,200) to shell "with radar sight"; the loss at E2 (45:35-47:38, 205 soldiers to
+  59) came from a strike a minute early into an unscouted line (the ledger row's break 2). The shield at C3 it
+  could not read (the user, 46:50); a shield stops cannon shells and nothing else, so the Thugs' plasma died on it and
+  the Thanatos' and Arbiters' rockets would have passed (K-def-shields-stop-cannon-shells-and-nothing-else).
+- *How it ended:* the people's eight anti-nukes against 23 allied silos; the turtle's tier-2 and tier-3 line was
+  never broken by units, it was erased (K-def-anti-nukes-are-one-interceptor-per-90-s-and-silos-outnumber-them).
+
+The derived claims from this game are in `docs/knowledge/defence.md`.
+
 ## 3. Background: what high-OS duellists do with defence (pool A)
 
 Quartiles are lower / median / upper over sides. "Ground defence" is every armed structure that shoots the ground
@@ -261,9 +289,10 @@ What the table says, from first principles:
 - The Overwatch and Warden (620) out-reach every tier-1 ground unit but the artillery; the Beamer and Twin Guard (490)
   out-reach every tier-1 unit but the skirmishers and artillery. The pros build the cheap tower fifteen to one
   over the big one: the cheap tower's job is raiders, and raiders are what comes in a duel.
-- Energy. A Sentry's 20 a shot is 40 a second firing; a Beamer line firing is a solar farm. The tier-2 towers need
-  energy to fire too. This is the hidden cost the people's "con turrets take a lot of e" lesson already names for
-  construction turrets, and the simulator does not charge it.
+- Energy. A Sentry's 20 a shot is 40 a second firing; a Beamer's 6 a shot at ten shots a second is 60; an Overwatch
+  75 a shot, a Pulsar 1,500, a Bastion 500 every 3 s, a Xyston 1,800. A line of them firing is a solar farm, and
+  in a stall it is silent. The simulator charges this (`crates/combatsim` `energy_per_shot`, a weapon holds its shot
+  until the store can pay); the brief says "turrets stop firing in a stall" and no more.
 - The pop-ups (Claw, Maw, Pit Bull, Scorpion) take no damage closed and are cloaked; they are the ambush towers.
   Pros place 0.4 Pit Bulls and 0.5 Scorpions a side: the tier-2 tower that gets built is the pop-up, not the Pulsar.
 - Walls at 8 metal for 2,800 health are the cheapest health in the game by forty times; what they do is geometry
@@ -313,29 +342,74 @@ What the table says, from first principles:
    from light lasers to Beamers to pop-ups to plasma, and how much of the BARb trickle dies to towers against units
    standing on them.
 
-## 8. Proposals (not built)
+## 8. Survey steps still open (not run)
 
-None of these is built; the order is a suggestion.
+1. **Replay batch, pool E**: twenty public 8-humans-against-8-BARb games at +50 or more with a 30+ OS seat, and the
+   dozen asymmetric wins (one or two people against three or four BARbs) from the same list, through
+   `run/replay_match.py --audit`; one engine at a time, outside arena batches. First `run/audit.py` needs an
+   ally-aware mode (it reads one seat against everyone else). Then an Opus reading of the twenty for placement,
+   walls and the step-ups in tower class, as claims in `docs/knowledge/defence.md`.
+2. **An asymmetric bench**: the flagship (and the distilled bot) one against two BARbs on a lane map, judged by the
+   yield column of `run/defence_pool.py --summary` and the clock of the break-out.
+3. **The friend's tool**: 2,134 all-human 8v8s above OS 30 are in his catalogue and none ingested (100 CPU-s a game,
+   on the user's word): the all-human lane game, for how people hold a cross-section against people.
 
-1. **Replay batch, pool E** (survey, no brain change): twenty public 8-humans-against-8-BARb games at +50 or more
-   with a 30+ OS seat, and the dozen asymmetric wins (one or two people against three or four BARbs) from the same
-   list, through `run/replay_match.py --audit`, the audit's FIGHTS, FRONT and LOSSES tables and a
-   new table per side: defence metal by minute and by distance from the start, the metal killed per defence by
-   type, the towers' deaths with killers. One engine at a time, outside arena batches (eight 8v8 engines run at
-   0.6 of game speed, pitfalls 2026-10-22). Then an Opus reading of the twenty for the people's placement, the
-   walls and the step-ups in tower class, as claims in `docs/knowledge/`.
-2. **The brief** (a brain change, the user's word): a defence paragraph that says what the survey says: the share
-   people hold, that a tower pays only where the raiders come (the lane, the choke, the outer pair that was raided
-   last game), one Beamer or Twin Guard per two or three light towers where his line units come, the pop-up at tier
-   2, and that a line of lasers is an energy bill. The economy page's "metal in the bank is army we do not have"
-   gets its counterpart: a tower that nothing walks into is metal in the ground.
-3. **The hands' menu**: the heavy laser towers and the pop-ups beside the light one, with the same one-line cost
-   and reach gloss; the `queue` step's place words already serve the placement (`armbeamer spot_35`).
-4. **An asymmetric bench**: the flagship (and the distilled bot) one against two BARbs on a lane map, judged by
-   the yield column and the clock of the break-out, as the test bed for "build up under light static defences".
-5. **The distilled bot** (the user's project to iterate): D-SENTRY sites a Sentry by the extractor; the survey says
-   the site should be where the raid comes from, which the hold point and the threat grid already know; and the
-   Twin Guard or Beamer at the hold point once his line units have shown. Both are additive rules with a kill test
-   (the yield column of `run/defence_pool.py --summary` on a batch, against its 0.4 today).
-6. **The simulator**: charge the energy per shot of towers and count the pop-up's closed state, before any
-   matchup table is read for a tower decision.
+## 9. What is established, what we may be missing, what to change
+
+The claims are filed in `docs/knowledge/defence.md` with their evidence; this is the reading of them.
+
+**Established (supported by the pools or the files):**
+
+1. People hold ground defence at a sixth of their soldier metal from the third minute on, at every level and in
+   every game size; our seats hold a tenth and WRDistilled a third of BARb's. The share is not what wins; losing
+   the defence is what loses.
+2. The yield is placement: the people's towers stand where the raiders come and earn their metal back; ours stand
+   beside extractors and earn half.
+3. The cheap tower is the tower, one heavy laser per two or three light ones, the Exploiter for Cortex, the pop-up
+   at tier 2; in the lane game against bonused BARb the hold is a Pulsar line at 14-24 minutes, 2,000-2,800 forward.
+4. A tower is a raider's gun on a line unit's body at twice the reach, paid in energy: its edge is what comes inside
+   the reach, and everything that out-reaches it makes it dead metal. "Three times its metal" is the number for a
+   fight on the spot, not an efficiency.
+5. Towers fire on radar, and the tier-2 towers carry radar past their reach; a Bastion line kills what nothing of
+   his sees. Shields stop cannon shells and nothing else. Anti-nukes stock one interceptor per
+   90 s; silos in numbers beat them, and that is how the 5v5's turtle ended.
+
+**Mechanics we may be missing (the ones the games turned up, each with where it would live):**
+
+- *A tower's own radar and radar-fire.* The report's "turrets covering it reach N" carries the reach, not that the
+  reach needs no sight of his; the simulator's towers have sight only. Both read a Bastion line as safe to shell
+  from 1,200 with radar, which it is, and as blind beyond 780, which it is not.
+- *What a shield stops.* The report names a shield seen (`scout.rs`); the fact layer says a shield stops cannon
+  shells and nothing else (F-fight-big-weapons), and that is right for stock lobby options; what is missing is the
+  consequence written for the player: a shielded nest is shelled with rockets, lasers and bombs, not with Thugs,
+  Stouts, Fatboys or Mausers, and the generator (3,550 health, 273 of sight) is the target. Some lobbies run
+  `experimentalshields` (the public 8v8 pilot did: everything bounced), and the start script says which.
+- *The pop-up's closed state* (cloaked, no damage taken until it fires; `armpb.lua` `cloakcost` 16, `mincloakdistance`
+  55): the simulator and the odds lines count it as a standing tower.
+- *Walls and mines* (`armdrag` 8 metal, 2,800 health; `armmine1-3`): not on any menu, not in the odds, not in the
+  layout engine's vocabulary. Their value is geometry (a funnel that puts the trickle inside the towers' reach),
+  which no metal ledger shows and the replay batch has to read.
+- *The energy bill of a line.* Charged by the simulator, unsaid by the brief: a seat that stands ten Beamers has
+  bought 600 energy a second of firing.
+- *Silo counts against interceptor stock.* The brief says one anti-nuke under every home; it does not say that two
+  silos firing together pass one anti-nuke, nor that the way out of a turtle on tier-2 defence is silos in numbers,
+  which Apex knew and we did not (23 against our two).
+
+**How to adjust play (the user's decision; none built):**
+
+1. *The brief's defence paragraph* (the flagship): the share people hold and when; a tower pays where the raiders
+   come (the hold point, the lane, the outer pair raided last game), not beside every extractor; one Beamer or Twin
+   Guard per two or three light towers once his line units have shown; the pop-up at tier 2; a line is an energy
+   bill; against bonused BARb in a lane game the hold is Pulsars forward from the first tier-2 bank; a tier-2 tower
+   fires by radar past its sight; a shield stops cannon shells only; a turtle on tier-2 defence is ended by silos in
+   numbers, not by the army. The economy page's "metal in the bank is army we do not have" gets its twin: a tower
+   nothing walks into is metal in the ground.
+2. *The hands' menu* (`roster.rs` `USUAL_*`): add the Beamer and Twin Guard (the people's second tower), the Exploiter
+   for Cortex, the Dragon's Teeth and the shield generators, each with the gloss it has; the place words
+   (`armbeamer spot_35`) already serve the siting.
+3. *The report*: the covering-turret line carries the tower's radar reach and "fires by radar"; the shield line
+   says what it stops; the losses line already separates unseen attackers and no attacker (K-mech-missile-and-blast-deaths-unattributed).
+4. *WRDistilled*: D-SENTRY sites the Sentry at the raid's source (the hold point and the threat grid know it), a
+   Twin Guard or Beamer at the hold point once his line units have shown, and the yield column as the kill test
+   against today's 0.4; the silo rule (D-NUKE) counts his anti-nukes' interceptor stock before firing one at a time.
+5. *The simulator*: towers with their radar; the pop-up's closed state.

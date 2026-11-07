@@ -18,7 +18,7 @@ the arena or verified in source we run; `retired` = was true, stopped mattering 
 Scope every claim: opponent and tier, map, game version. Almost everything here was learned against BARb `easy` on
 Quicksilver Remake 1.24 with game `byar:test` (test-31357) and is unverified anywhere else.
 
-Topics: [game-rules](game-rules.md) · [economy](economy.md) · [army](army.md) · [opponents](opponents.md) ·
+Topics: [game-rules](game-rules.md) · [economy](economy.md) · [army](army.md) · [defence](defence.md) · [opponents](opponents.md) ·
 [opponents-barb](opponents-barb.md) · [openings](openings.md) · [tier2](tier2.md) · [units](units.md) · [legion](legion.md) · [scouting](scouting.md) ·
 [maps](maps.md) · [mechanics](mechanics.md) · [jev](jev.md) · [formations](formations.md) · [heuristic-bot](heuristic-bot.md) (what the deleted rules measured) · per-map files under [maps/](maps/) and the replay index [replays](replays.md) (the replay survey, `docs/design/2026-09-23-replay-survey.md`)
 
