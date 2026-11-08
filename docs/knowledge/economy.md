@@ -599,3 +599,22 @@ while the distilled bot had read it since the same day (D-RECEIVED). Build power
 AddResources` with `useIncomeMultiplier` false books them to `resReceived`), or a seat reading the inflow still
 sat at cap as long.
 **Used by.** H-PLAYER-ALLIES-INFLOW (the eco line and the hands' picture, 2026-10-30); D-late-economy's team item.
+
+### K-eco-a-commander-at-its-stand-builds-from-where-it-stands
+**Claim.** A builder ordered a structure within its build distance builds it from where it stands, and a commander at
+its stand builds its whole opening that way; so a siting rule that lets a builder's own build close its last way out,
+on the premise that it walks to the site and stands beside it, pens the commander, and on a metal map, where every
+tile is metal, the opening packs tight enough round it to do so.
+**Status.** supported (2026-11-07)
+**Evidence.** 1794106612-human (Full Metal Plate 1.7, 3v2): the stand of each of our three Cortex commanders put its
+two extractors 7 elmos off its south and west sides and its plant and turbines 9 off the others, and the structure that
+closed the last way out was the commander's own in every seat (t3 two turbines north-east by 0:28, t2 a turbine due
+north at 0:56, t4 a turbine east and an extractor north-east by 1:19), each sited after the layout search had stopped
+asking whether the asking builder keeps a way out (2026-11-07 13:13, the 34-dump review). t2's and t4's commanders
+stood on their start tiles at 5:39; t3's plant had no site, its "plant at J2" never started, its player had it take
+apart a turbine at 2:05 and an extractor at 3:00, and its plant stood at about 4:00 (2 extractors at 5:00 against
+t2's 30). The same map on 2026-11-03 (1793682628-metal-step3-fmp-1) had the same stand shape and a commander that
+walked freely, since the hands did not then take the stand's tiles.
+**Would be wrong if.** A commander ordered a structure within its reach walked to a new standing place before building
+it, or the engine's builder left a pen of its own buildings by itself.
+**Used by.** H-ECO-STAND and H-ECO-LAYOUT (9), (10), both amended 2026-11-07 night.

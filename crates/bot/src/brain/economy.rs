@@ -136,7 +136,14 @@ impl Brain {
     /// and streets (ours and allies'), our construction turrets as build power, our frames, the stand's free slots as
     /// reservations, the sites the engine refused lately, and the block's rows, gantry slot and sub-lattice.
     pub(super) fn layout_world<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
-        let mut world = self.layout_world_without_block(own);
+        self.layout_world_for(own, self.pianist.as_ref())
+    }
+
+    /// `layout_world` with the pianist named: while the lists play the pianist is out of `self` (`lists.rs`
+    /// `play_lists`), and a world built then from `self.pianist` knew neither the stand's slots nor the builds the
+    /// list had ordered (1794106612-human on Full Metal Plate: t3's third extractor went over its plant's slot).
+    pub(super) fn layout_world_for<'a>(&'a self, own: &[OwnUnit], pianist: Option<&super::pianist::Pianist>) -> World<'a> {
+        let mut world = self.layout_world_without_block_for(own, pianist);
         if let Some(block) = self.block.as_ref() {
             world.reservations.extend(block.reservations());
             world.lattice = Some(block.lattice());
@@ -147,6 +154,10 @@ impl Brain {
 
     /// The world before the block is laid: what `lay_block` chooses the block's ground over.
     pub(super) fn layout_world_without_block<'a>(&'a self, own: &[OwnUnit]) -> World<'a> {
+        self.layout_world_without_block_for(own, self.pianist.as_ref())
+    }
+
+    fn layout_world_without_block_for<'a>(&'a self, own: &[OwnUnit], pianist: Option<&super::pianist::Pianist>) -> World<'a> {
         let hello = &self.world.hello;
         let rect_of = |def: UnitDefId, at: Vec3, facing: i32| self.facts_of(def).map(|f| f.footprint.faced(facing).rect(at));
         let standing_of = |def: UnitDefId, at: Vec3, facing: i32, ours: bool, name: String| {
@@ -156,7 +167,7 @@ impl Brain {
         };
         let mut standing: Vec<Standing> = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).filter_map(|u| standing_of(u.def, u.pos, u.facing, true, self.handle(u))).collect();
         let mut plants: Vec<Plant> = own.iter().filter(|u| self.world.is_factory_def(u.def)).filter_map(|u| self.plant_of(u.def, u.pos, u.facing, true, self.actor_name(u.id))).collect();
-        if let Some(pianist) = self.pianist.as_ref() {
+        if let Some(pianist) = pianist {
             for task in pianist.tasks.values().chain(pianist.queued_tasks().map(|(_, t)| t)) {
                 if let super::pianist::Task::Build { def, near, started: false, facing, .. } = task
                     && self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)
@@ -195,16 +206,23 @@ impl Brain {
                 (d.speed > 0.0 && d.build_speed > 0.0).then(|| layout::Builder { at: u.pos, half: d.path_width() / 2.0, passable: self.passable_for_class(d.move_class) })
             })
             .collect();
-        let reservations: Vec<Reservation> = match (&self.stand, self.pianist.as_ref()) {
-            (Some((who, stand)), Some(pianist)) => stand
-                .slots
-                .iter()
-                .filter_map(|s| match *s {
-                    layout::Slot::Building { def, at, facing } if self.free_stand_slots(*who, def, own, pianist).iter().any(|(a, _)| *a == at) => rect_of(def, at, facing),
-                    _ => None,
-                })
-                .map(|rect| Reservation { rect, for_: Reserved::Nothing })
-                .collect(),
+        // The stand's free slots and, on a metal map, its free extractor tiles: a turbine the stand could not place
+        // took the third extractor's tile in 1794106612-human (t3), and the extractor went over the plant's slot.
+        let reservations: Vec<Reservation> = match (&self.stand, pianist) {
+            (Some((who, stand)), Some(pianist)) => {
+                let commander = own.iter().find(|u| u.id == *who);
+                let tiles: Vec<Vec3> = commander.map(|c| self.stand_tiles(c, pianist, own, i32::MAX)).unwrap_or_default();
+                stand
+                    .slots
+                    .iter()
+                    .filter_map(|s| match *s {
+                        layout::Slot::Building { def, at, facing } if self.free_stand_slots(*who, def, own, pianist).iter().any(|(a, _)| *a == at) => rect_of(def, at, facing),
+                        layout::Slot::Extractor { spot: None, at } if tiles.contains(&at) => self.kit.and_then(|k| rect_of(k.extractor, at, 0)),
+                        _ => None,
+                    })
+                    .map(|rect| Reservation { rect, for_: Reserved::Nothing })
+                    .collect()
+            }
             _ => Vec::new(),
         };
         let refused: Vec<(UnitDefId, Vec3)> = self.pianist.as_ref().map(|p| p.refused_sites.iter().map(|(d, at, _)| (*d, *at)).collect()).unwrap_or_default();
@@ -435,7 +453,7 @@ impl Brain {
         let def = if self.world.def(builder.def).is_some_and(|d| d.build_options.contains(&kit.extractor)) { kit.extractor } else { kit.advanced_extractor };
         let d = self.world.def(def)?;
         let facts = Facts::of(d);
-        let world = self.layout_world(own);
+        let world = self.layout_world_for(own, Some(pianist));
         let ordered: Vec<layout::Rect> = pianist
             .tasks
             .values()

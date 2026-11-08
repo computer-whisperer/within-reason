@@ -386,10 +386,14 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
                 refused.push((c.at, c.facing));
                 continue;
             }
-            // The asker is not among them: it walks to its site and stands beside what it builds, and a flood from
-            // beside the site failed for it in six of the eight walled-in dumps of 2026-11-07 (46 to 95 from the
-            // site's edge, a site found at once without it). A builder it would shut in is the street check's.
-            let walled = world.builders.iter().enumerate().filter(|(_, b)| b.at.dist2d(req.builder_at) >= 1.0 && distance_to(&c.rect, b.at) <= BUILDER_NEAR && b.concerns(&c.rect)).find(|(i, _)| {
+            // The asker is among them when the site is within its reach from where it stands, since then it builds
+            // without moving: beyond its reach it walks to the site and stands beside what it builds, and the flood
+            // from where it stands now says nothing (six of the eight walled-in dumps of 2026-11-07 named such an
+            // asker, 46 to 95 from the site's edge). Left out altogether, as it was from that review until
+            // 1794106612-human on Full Metal Plate, all three commanders shut the last way out of their own stands
+            // with a turbine or an extractor built from where they stood.
+            let checked = |b: &Builder| b.at.dist2d(req.builder_at) >= 1.0 || distance_to(&c.rect, b.at) <= req.builder.build_distance;
+            let walled = world.builders.iter().enumerate().filter(|(_, b)| checked(b) && distance_to(&c.rect, b.at) <= BUILDER_NEAR && b.concerns(&c.rect)).find(|(i, _)| {
                 let way = world.builder_way(*i);
                 let had_way = *out_before[*i].get_or_insert_with(|| way.reaches_the_open());
                 had_way && !way.reaches_the_open_round(&[c.rect])
@@ -1032,30 +1036,44 @@ mod tests {
         }
     }
 
-    /// The asker is not walled in by what it builds: standing inside the bay of turbines, asking for one at the
-    /// bay's mouth, it gets a site there and no try is refused for walling a builder in. (Six of the eight walled-in
-    /// dumps of 2026-11-07 named the asker itself, 46 to 95 from the site's edge; the way-out flood from beside the
-    /// site failed for it, and the search found a site at once without it.)
+    /// The asker keeps its own way out when the site is within its reach, since it builds from where it stands:
+    /// inside a bay of turbines whose mouth is 56 wide, asking for a turbine at the mouth, whose nearest sites are
+    /// 32 from it, with a reach of 145, every site in the mouth is refused for walling it in and the site found
+    /// leaves it a way out (1794106612-human on Full Metal Plate: three commanders penned by their own turbines and
+    /// extractors, built within reach from their stands). With a reach of 20 the same asker walks to the site and
+    /// stands beside it, so it is not asked: the site is in the mouth (the eight walled-in dumps of 2026-11-07, six
+    /// naming the asker 46 to 95 from the site's edge, had the asker left out altogether).
     #[test]
-    fn the_asker_is_not_walled_in_by_its_own_build() {
+    fn the_asker_keeps_its_way_out_within_reach_and_walks_beyond_it() {
         let t = flat();
         let open = |_: Vec3| true;
         let mut w = world(&t, &open);
-        let asker = at(2048.0, 2048.0);
+        let asker = at(2048.0, 2012.0);
         w.builders.push(Builder { at: asker, half: 24.0, passable: None });
+        // Rows at z 1960 and 2064 (edges 1984 and 2040: a mouth of 56), the east end closed.
         for k in -2..=2 {
             let o = 48.0 * k as f32;
-            for (x, z) in [(2048.0 + o, 1960.0), (2048.0 + o, 2136.0), (2136.0, 2048.0 + o)] {
-                w.standing.push(standing(5, 6, at(x, z), 40.0, 200.0, None));
-            }
+            w.standing.push(standing(5, 6, at(2048.0 + o, 1960.0), 40.0, 200.0, None));
+            w.standing.push(standing(5, 6, at(2048.0 + o, 2064.0), 40.0, 200.0, None));
         }
+        w.standing.push(standing(5, 6, at(2136.0, 2012.0), 40.0, 200.0, None));
         // Another kind than the bay's turbines, so the bank gap rule leaves the mouth's sites as candidates.
         let wind = facts(7, 6, 40.0, 200.0, None);
-        let req = Request { facts: wind.clone(), purpose: Purpose::Generator { cap: None }, centre: at(1960.0, 2048.0), radius: 100.0, builder_at: asker, builder: builder() };
+        let mouth = at(1952.0, 2012.0);
+        let req = Request { facts: wind.clone(), purpose: Purpose::Generator { cap: None }, centre: mouth, radius: 100.0, builder_at: asker, builder: builder() };
         let mut trace = Vec::new();
         let site = choose_traced(&w, &req, Some(&mut trace)).expect("a site");
-        assert!(site.at.dist2d(at(1960.0, 2048.0)) < 100.0, "{site:?} {trace:#?}");
+        assert!(trace.iter().any(|l| l.contains("walls in")), "{trace:?}");
+        let mut with: Vec<Rect> = w.standing.iter().map(|s| s.rect).collect();
+        with.push(Footprint { x: 6, z: 6 }.rect(site.at));
+        assert!(way_out(&w.ground, &w.builders[0], &with, &*w.open), "walled in by its own site: {site:?} {trace:#?}");
+        let walker = Request { builder: Facts { build_distance: 20.0, ..builder() }, ..req };
+        let mut trace = Vec::new();
+        let site = choose_traced(&w, &walker, Some(&mut trace)).expect("a site");
         assert!(trace.iter().all(|l| !l.contains("walls in")), "{trace:?}");
+        with.pop();
+        with.push(Footprint { x: 6, z: 6 }.rect(site.at));
+        assert!(!way_out(&w.ground, &w.builders[0], &with, &*w.open), "the walker's site is in the mouth: {site:?} {trace:#?}");
     }
 
     /// A construction turret with nothing to assist is refused in its own words before any search: a plant 3,500

@@ -277,4 +277,63 @@ mod tests {
         assert!(pianist.done.iter().any(|d| d.contains("the stand for its opening")), "{:?}", pianist.done);
         assert!(brain.stand.is_some());
     }
+
+    /// On a metal map the stand's extractor tiles and its plant's slot are kept while the list plays: a bare
+    /// `extractor` step whose stand tile is gone takes no tile over them, and the world built while the pianist
+    /// is out of `self` (the lists' pass) carries the reservations (1794106612-human, Full Metal Plate: a turbine
+    /// took t3's third tile, the extractor went over the plant's slot, and the plant had no site).
+    #[test]
+    fn on_a_metal_map_the_stands_tiles_and_slots_are_kept_while_the_list_plays() {
+        let mut brain = brain_of(&["armcom", "armmex", "armsolar", "armvp"]);
+        let (com, mex, solar, vp) = (UnitDefId(1), UnitDefId(2), UnitDefId(3), UnitDefId(4));
+        let (w, h) = (128u32, 128u32);
+        {
+            let defs = &mut brain.world.hello.unit_defs;
+            defs[0].build_distance = 145.0;
+            defs[0].build_speed = 300.0;
+            defs[0].build_options = vec![mex, solar, vp];
+            defs[1].footprint = (6, 6);
+            defs[1].extracts_metal = 1.8;
+            defs[2].footprint = (10, 10);
+            defs[3].footprint = (12, 12);
+            defs[3].build_options = vec![com];
+            brain.world.hello.terrain = Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: vec![200; (w * h) as usize] };
+            brain.world.hello.map.metal_map = true;
+            brain.world.hello.map.width = 2048.0;
+            brain.world.hello.map.height = 2048.0;
+        }
+        brain.coverage = layout::Coverage::new(&brain.world.hello.terrain, 1.0, 24.0);
+        let commander = OwnUnit { idle: true, ..own(10, 1, at(1000.0, 1000.0)) };
+        brain.known_units.insert(commander.id, (com, commander.pos));
+        brain.home = commander.pos;
+        let kit = Kit { commander: com, extractor: mex, converter: solar, lab: vp, turret: solar, constructor: com, vehicle_constructor: com, advanced_constructor: com, advanced_extractor: mex, raider: com, line: com, resurrector: com, roster: &ROSTERS[0] };
+        brain.kit = Some(kit);
+        let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.scripts.insert("commander".to_string(), ["extractor", "extractor", "armsolar", "armvp"].iter().map(|s| s.to_string()).collect::<VecDeque<_>>());
+        let own_units = vec![commander.clone()];
+        brain.solve_stand(&commander, &mut pianist, &picture, &own_units, 60, &kit);
+        let (_, stand) = brain.stand.clone().expect("a stand");
+        let rects: Vec<(layout::Rect, &str)> = stand
+            .slots
+            .iter()
+            .map(|s| match *s {
+                layout::Slot::Extractor { at, .. } => (brain.facts_of(mex).unwrap().footprint.rect(at), "tile"),
+                layout::Slot::Building { def, at, facing } => (brain.facts_of(def).unwrap().footprint.faced(facing).rect(at), "slot"),
+            })
+            .collect();
+        assert_eq!(rects.iter().filter(|r| r.1 == "tile").count(), 2, "{stand:?}");
+        assert_eq!(rects.len(), 4, "{stand:?}");
+        // The world of the lists' pass, the pianist out of `self`.
+        let world = brain.layout_world_for(&own_units, Some(&pianist));
+        for (rect, what) in &rects {
+            assert!(world.reservations.iter().any(|r| r.rect.overlaps(rect)), "the stand's {what} at {rect:?} is not kept: {:?}", world.reservations);
+        }
+        // A tile for a third extractor, asked while the list plays: off every slot of the stand.
+        let tile = brain.tile_site(&commander, &own_units, &pianist, commander.pos, super::super::economy::TILE_REACH, 60).expect("a tile");
+        let third = brain.facts_of(mex).unwrap().footprint.rect(tile);
+        for (rect, what) in &rects {
+            assert!(!third.overlaps(rect), "the third extractor at {tile:?} over the stand's {what} at {rect:?}");
+        }
+    }
 }

@@ -536,7 +536,8 @@ pub fn stand(scene: &Scene, wants: &[Want]) -> Option<Stand> {
 
 fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32, i32, i32, i32), bool>) -> Stand {
     let mut occupied: Vec<Rect> = scene.occupied.clone();
-    occupied.push(Rect { x0: s.x - COMMANDER_HALF, z0: s.z - COMMANDER_HALF, x1: s.x + COMMANDER_HALF, z1: s.z + COMMANDER_HALF });
+    let own_ground = Rect { x0: s.x - COMMANDER_HALF, z0: s.z - COMMANDER_HALF, x1: s.x + COMMANDER_HALF, z1: s.z + COMMANDER_HALF };
+    occupied.push(own_ground);
     let mut spot_boxes: Vec<(usize, Rect)> = scene
         .spots
         .iter()
@@ -568,7 +569,10 @@ fn solve_at(scene: &Scene, s: Vec3, wants: &[Want], memo: &mut HashMap<(i32, i32
         if scene.spots.is_empty() {
             let Some((coverage, depth)) = scene.coverage else { continue };
             let footprint = scene.extractor.footprint;
-            let ok = |p: Vec3, rect: &Rect| scene.ground.stands(footprint, p, &scene.extractor) && !occupied.iter().any(|o| o.overlaps(rect));
+            // A commander's width off the commander, as between any two of the stand's rects: the tile nearest the
+            // stand is otherwise 7 elmos off its side, and two of them with the plant and a turbine are a pen
+            // (1794106612-human on Full Metal Plate, all three commanders).
+            let ok = |p: Vec3, rect: &Rect| scene.ground.stands(footprint, p, &scene.extractor) && !occupied.iter().any(|o| o.overlaps(rect)) && !own_ground.grown(CHANNEL).overlaps(rect);
             let Some((at, _)) = coverage.best_site(footprint, s, s, mex_reach, depth, &ok) else { continue };
             occupied.push(footprint.rect(at));
             walk += 2.0 * (at.dist2d(s) - mex_reach).max(0.0);
@@ -820,6 +824,30 @@ mod tests {
             occupied: Vec::new(),
             coverage: None,
         }
+    }
+
+    /// On a metal map the stand's extractor tiles keep a commander's width off the commander, as any two of the
+    /// stand's rects keep between them: the nearest full tile is otherwise 7 elmos off its side, and two of them
+    /// with the plant and a turbine were a pen (1794106612-human on Full Metal Plate, all three commanders).
+    #[test]
+    fn on_a_metal_map_the_extractor_tiles_keep_off_the_commander() {
+        let (w, h) = (64u32, 64u32);
+        let t = Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: vec![200; (w * h) as usize] };
+        let coverage = crate::Coverage::new(&t, 1.0, 24.0).expect("a metal map");
+        let open = |_: Vec3| true;
+        let mut sc = scene(&t, &[], &[], &open);
+        sc.coverage = Some((&coverage, 1.8));
+        let wants = [Want::Extractor, Want::Extractor, Want::Building(SOLAR), Want::Building(SOLAR), Want::Building(LAB)];
+        let stand = stand(&sc, &wants).expect("a stand");
+        let own = Rect { x0: stand.at.x - COMMANDER_HALF, z0: stand.at.z - COMMANDER_HALF, x1: stand.at.x + COMMANDER_HALF, z1: stand.at.z + COMMANDER_HALF };
+        let tiles: Vec<Vec3> = stand.slots.iter().filter_map(|s| match *s { Slot::Extractor { spot: None, at } => Some(at), _ => None }).collect();
+        assert_eq!(tiles.len(), 2, "{stand:?}");
+        for at in tiles {
+            let rect = Footprint { x: 6, z: 6 }.rect(at);
+            assert!(!own.grown(CHANNEL).overlaps(&rect), "tile at ({}, {}) within a commander's width of the stand at ({}, {})", at.x, at.z, stand.at.x, stand.at.z);
+            assert!(at.dist2d(stand.at) <= 145.0, "{at:?} beyond reach of the stand");
+        }
+        assert_eq!(stand.unplaced, 0, "{stand:?}");
     }
 
     #[test]
