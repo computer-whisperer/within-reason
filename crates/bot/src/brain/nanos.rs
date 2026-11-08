@@ -47,6 +47,12 @@ const FACTORY_REACH_SLACK: f32 = 100.0;
 const BESIDE: f32 = 50.0;
 /// The engine's maneuver move state.
 const MANEUVER: i32 = 1;
+/// How long a frame's share stands still with nobody of ours on it before a turret in reach is put onto it whatever
+/// the `tend` order says (the keep-alive, H-ECO-NANO-GUARD): two seconds, past the snapshot's lag and well inside the
+/// nine the engine waits before a frame decays (K-mech-frame-decay). econ-flagship-16: 33 frames gone 10 to 17 s after
+/// their `start` builders left, 5 to 29 turrets in reach of each and every one on something the order ranked higher
+/// or nearer; the player reordered `tend` ten times chasing them and stopped placing turrets.
+const KEEP_STILL_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
 
 /// The kinds a `tend` order names, in the hands' default order (H-ECO-NANO-GUARD): the game's own first (a turret
 /// frame pulls the turrets in reach, the Priority Construction Turrets widget), then the frames by what they are,
@@ -71,6 +77,9 @@ pub(super) struct Nanos {
     /// When each turret was last told and what (`None`: its standing fight-in-place, nothing ranked in reach).
     pub(super) told: HashMap<UnitId, (i32, Option<UnitId>)>,
     set_up: HashSet<UnitId>,
+    /// The turrets keeping a frame alive and the frame each keeps: put on when the frame stood still two seconds
+    /// with nobody on it, kept until the frame stands or leaves its reach, out of the ranked pass meanwhile.
+    pub(super) keeping: HashMap<UnitId, UnitId>,
 }
 
 /// The player's `tend` order parsed: the words best first, and where `never` cut it (everything from there gets no
@@ -147,6 +156,26 @@ impl Brain {
         TendOrder::of(&words)
     }
 
+    /// Whether one turret keeps every frame in its reach alive, whatever the order (on unless the player's `tend`
+    /// said `keep_alive: false`).
+    pub(super) fn keep_alive(&self) -> bool {
+        !self.strategist.as_ref().is_some_and(|s| s.tend_keep_off.load(std::sync::atomic::Ordering::Relaxed))
+    }
+
+    /// How many turrets are keeping frames alive and how many frames they keep, for the block line.
+    pub(super) fn keeping_count(&self) -> (usize, usize) {
+        let frames: HashSet<UnitId> = self.nanos.keeping.values().copied().collect();
+        (self.nanos.keeping.len(), frames.len())
+    }
+
+    /// Whether a frame's share has not risen over the last KEEP_STILL_FRAMES (a frame younger than that is not yet
+    /// still: its builder may be walking off).
+    fn frame_still(&self, frame: UnitId, now: i32) -> bool {
+        let Some(history) = self.frame_progress.get(&frame) else { return false };
+        let Some((_, share_now)) = history.back() else { return false };
+        history.iter().rev().find(|(f, _)| now - f >= KEEP_STILL_FRAMES).is_some_and(|(_, then)| then >= share_now)
+    }
+
     /// The words the block line reads the order back with.
     pub(super) fn tend_words(&self) -> String {
         let order = self.tend_order();
@@ -187,7 +216,63 @@ impl Brain {
             })
             .collect();
         let mut told: Vec<(UnitId, Option<UnitId>)> = Vec::new();
+        // The keep-alive: a frame nobody of ours is on, its share still for two seconds, gets the nearest turret in
+        // reach whatever the order says, and that turret stays on it until it stands; one builder on a frame is what
+        // stops the decay (K-mech-frame-decay), and the order spends the rest of the power.
+        let mut kept: HashSet<UnitId> = HashSet::new();
+        if self.keep_alive() {
+            let on = self.builders_on_frames_by_id();
+            let keeping: HashMap<UnitId, UnitId> = self
+                .nanos
+                .keeping
+                .iter()
+                .filter(|(nano, frame)| {
+                    let Some(t) = turrets.iter().find(|t| t.id == **nano) else { return false };
+                    candidates.iter().any(|(u, plant, _)| !plant && u.id == **frame && self.turret_reaches(t, u))
+                })
+                .map(|(nano, frame)| (*nano, *frame))
+                .collect();
+            self.nanos.keeping = keeping;
+            let held: HashSet<UnitId> = self.nanos.told.values().filter_map(|(_, t)| *t).chain(self.nanos.keeping.values().copied()).collect();
+            let starving: Vec<&OwnUnit> = candidates
+                .iter()
+                .filter(|(u, plant, _)| !plant && !held.contains(&u.id) && !on.contains_key(&u.id) && self.frame_still(u.id, tick.frame))
+                .map(|(u, ..)| *u)
+                .collect();
+            for frame in starving {
+                // The nearest turret in reach: one with nothing of its own first (idle, or on the fight-in-place),
+                // then one whose target has another turret on it, then any.
+                let on_a_shared_target = |nano: &OwnUnit| {
+                    self.nanos.told.get(&nano.id).and_then(|(_, t)| *t).is_some_and(|t| self.nanos.told.iter().any(|(n, (_, tt))| *n != nano.id && *tt == Some(t)))
+                };
+                let pick = turrets
+                    .iter()
+                    .filter(|t| !self.nanos.keeping.contains_key(&t.id) && self.turret_reaches(t, frame))
+                    .min_by_key(|t| {
+                        let class = if t.idle || self.nanos.told.get(&t.id).is_none_or(|(_, tt)| tt.is_none()) { 0 } else if on_a_shared_target(t) { 1 } else { 2 };
+                        (class, t.pos.dist2d(frame.pos) as i64)
+                    })
+                    .map(|t| t.id);
+                if let Some(nano) = pick {
+                    self.nanos.keeping.insert(nano, frame.id);
+                }
+            }
+            for (nano_id, frame_id) in self.nanos.keeping.clone() {
+                let Some(nano) = turrets.iter().find(|t| t.id == nano_id) else { continue };
+                kept.insert(nano_id);
+                let (told_at, told_to) = self.nanos.told.get(&nano_id).copied().unwrap_or((i32::MIN / 2, None));
+                if told_to != Some(frame_id) || (nano.idle && tick.frame - told_at >= RETELL_FRAMES) {
+                    commands.push(Command::Repair { unit: nano_id, target: frame_id, queue: false });
+                    told.push((nano_id, Some(frame_id)));
+                }
+            }
+        } else {
+            self.nanos.keeping.clear();
+        }
         for nano in turrets {
+            if kept.contains(&nano.id) {
+                continue;
+            }
             let (told_at, told_to) = self.nanos.told.get(&nano.id).copied().unwrap_or((i32::MIN / 2, None));
             let fresh = tick.frame - told_at >= RETELL_FRAMES;
             let mut best: Option<(usize, f32, UnitId, bool)> = None;
@@ -345,5 +430,51 @@ mod tests {
         brain.tend_nanos(&tick(vec![nano.clone()], 500), &mut commands);
         assert!(commands.iter().any(|c| matches!(c, Command::Tend { unit: UnitId(1), .. })), "{commands:?}");
         assert!(brain.tend_words().starts_with("fusion, never, advanced_plant"));
+    }
+
+    /// A frame nobody is on whose share stood still two seconds gets the nearest turret in reach whatever the order
+    /// ranks it (the keep-alive), and that turret stays on it; `keep_alive: false` returns the turret to the order.
+    #[test]
+    fn a_frame_standing_still_with_nobody_on_it_gets_a_turret_whatever_the_order() {
+        let mut brain = brain_of(&["armcom", "armnanotc", "armavp", "armfus", "armafus"]);
+        for d in brain.world.hello.unit_defs.iter_mut() {
+            if d.name == "armnanotc" {
+                d.build_speed = 200.0;
+                d.build_distance = 400.0;
+            }
+        }
+        let shared = std::sync::Arc::new(crate::strategist::shared::Shared::default());
+        brain.strategist = Some(shared.clone());
+        let nano = unit(&brain, 1, "armnanotc", 1000.0, false, true);
+        let fus = unit(&brain, 3, "armfus", 1050.0, true, false);
+        let afus = unit(&brain, 4, "armafus", 1300.0, true, false);
+        let mut commands = Vec::new();
+        // The order ranks the advanced fusion first: the turret goes there.
+        brain.tend_nanos(&tick(vec![nano.clone(), fus.clone(), afus.clone()], 100), &mut commands);
+        assert!(matches!(commands.as_slice(), [Command::Repair { unit: UnitId(1), target: UnitId(4), .. }]), "{commands:?}");
+        let busy = OwnUnit { idle: false, ..nano.clone() };
+        // The fusion's share has not moved for two seconds and nobody is on it: the turret leaves the advanced
+        // fusion to keep it alive, and the block line counts it.
+        brain.frame_progress.entry(UnitId(3)).or_default().extend([(100, 0.01), (130, 0.01), (160, 0.01), (170, 0.01)]);
+        commands.clear();
+        brain.tend_nanos(&tick(vec![busy.clone(), fus.clone(), afus.clone()], 170), &mut commands);
+        assert!(matches!(commands.as_slice(), [Command::Repair { unit: UnitId(1), target: UnitId(3), .. }]), "{commands:?}");
+        assert_eq!(brain.keeping_count(), (1, 1));
+        // It stays on the frame while the frame stands, told nothing new.
+        commands.clear();
+        brain.tend_nanos(&tick(vec![busy.clone(), fus.clone(), afus.clone()], 230), &mut commands);
+        assert!(commands.is_empty(), "{commands:?}");
+        // The keep-alive turned off: the turret follows the order again.
+        shared.tend_keep_off.store(true, std::sync::atomic::Ordering::Relaxed);
+        commands.clear();
+        brain.tend_nanos(&tick(vec![busy.clone(), fus.clone(), afus.clone()], 300), &mut commands);
+        assert!(matches!(commands.as_slice(), [Command::Repair { unit: UnitId(1), target: UnitId(4), .. }]), "{commands:?}");
+        assert_eq!(brain.keeping_count(), (0, 0));
+        // A frame younger than two seconds is not yet still: its builder may be walking off.
+        shared.tend_keep_off.store(false, std::sync::atomic::Ordering::Relaxed);
+        brain.frame_progress.insert(UnitId(3), [(330, 0.01), (345, 0.01)].into_iter().collect());
+        commands.clear();
+        brain.tend_nanos(&tick(vec![busy.clone(), fus.clone(), afus.clone()], 345), &mut commands);
+        assert!(commands.is_empty(), "{commands:?}");
     }
 }

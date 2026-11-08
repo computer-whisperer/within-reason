@@ -1130,9 +1130,10 @@ order to it in the `cmd` rows, the turrets on other frames (K-mech-tending-turre
 elsewhere and the frame decayed".
 **Would be wrong if.** A frame untouched for 9 s kept its progress, or a cheap frame outlived a dear one left at the same
 share.
-**Used by.** H-HANDS-SCRIPT's `start` word (a frame left to the turrets in reach; the farm-holds design's start-stays rule
-asks whether a turret reaches the site, not whether one is free for it); the report's abandoned-frame words (which say the
-builder was sent elsewhere when a `start` step's leaving is the design).
+**Used by.** H-ECO-NANO-GUARD's keep-alive (2026-11-08 night: a frame still two seconds with nobody on it gets one turret in
+reach whatever the order, which stays until it stands); H-HANDS-SCRIPT's `start` word (a frame left to the turrets in reach,
+safe once the keep-alive holds); the report's abandoned-frame words (a decay now means no turret reached the frame, or the
+keep-alive is off).
 
 ### K-hands-a-standoff-from-the-groups-centroid-walks-the-guns-out-of-their-shot
 **Claim** (2026-10-31, from barb-ladder3-20-1). A shell order whose standoff is measured along the line from the target

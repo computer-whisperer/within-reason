@@ -530,6 +530,7 @@ pub struct TurnOutputs {
     pub block_dense: bool,
     pub block_holds: Vec<String>,
     pub tend: Vec<String>,
+    pub tend_keep_off: bool,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
     pub firings: Vec<Firing>,
@@ -772,6 +773,10 @@ pub struct Shared {
     /// The order the construction turrets take their work in (`tend` tool, H-ECO-NANO-GUARD): category words,
     /// handles and ids, best first, `never` before what gets nothing; empty, the hands' default order.
     pub tend: Mutex<Vec<String>>,
+    /// The player turned the turrets' keep-alive off (`tend` tool, `keep_alive: false`): on, one turret in reach
+    /// stays on any frame nobody of ours is building, whatever the order, so no frame in reach decays
+    /// (H-ECO-NANO-GUARD; false by default, the keep-alive on).
+    pub tend_keep_off: std::sync::atomic::AtomicBool,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
     pub allowed: Mutex<BTreeMap<String, Allowance>>,
@@ -1008,6 +1013,7 @@ impl Shared {
             block_dense: self.block_dense.load(std::sync::atomic::Ordering::Relaxed),
             block_holds: self.block_holds.lock().unwrap().clone(),
             tend: self.tend.lock().unwrap().clone(),
+            tend_keep_off: self.tend_keep_off.load(std::sync::atomic::Ordering::Relaxed),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
             firings: self.firings.lock().unwrap().clone(),
@@ -1024,6 +1030,7 @@ impl Shared {
         self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
         *self.block_holds.lock().unwrap() = o.block_holds;
         *self.tend.lock().unwrap() = o.tend;
+        self.tend_keep_off.store(o.tend_keep_off, std::sync::atomic::Ordering::Relaxed);
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
         *self.firings.lock().unwrap() = o.firings;
@@ -1056,6 +1063,7 @@ impl Shared {
                 *self.marks.lock().unwrap() = o.marks;
                 self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
                 *self.tend.lock().unwrap() = o.tend;
+                self.tend_keep_off.store(o.tend_keep_off, std::sync::atomic::Ordering::Relaxed);
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
                 self.removals.lock().unwrap().extend(o.removals);

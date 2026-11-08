@@ -2013,7 +2013,8 @@ impl Brain {
                         let (what, place, built) = (self.name(loss.def), self.world.grid(loss.pos), loss.share * 100.0);
                         let text = match loss.fate {
                             super::briefing::FrameFate::Decayed { builder_dead: true } => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder died and the frame decayed"),
-                            super::briefing::FrameFate::Decayed { builder_dead: false } => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder was sent elsewhere and the frame decayed"),
+                            super::briefing::FrameFate::Decayed { builder_dead: false } if self.keep_alive() => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder left it, no construction turret reached it and nobody went back, so the frame decayed"),
+                            super::briefing::FrameFate::Decayed { builder_dead: false } => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder left it and the turrets' keep-alive is off, so the frame decayed"),
                             super::briefing::FrameFate::ShotUnseen => format!("lost our unfinished {what} at {place} ({built:.0}% built) to fire from something out of sight: nothing of ours saw the shooter"),
                             super::briefing::FrameFate::Killed => {
                                 let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("something unseen".to_string(), |d| self.name(*d).to_string());

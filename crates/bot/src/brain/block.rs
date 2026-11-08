@@ -227,8 +227,14 @@ impl Brain {
             let h = self.block_holds();
             if h.is_empty() { "nothing".to_string() } else { h.join(", ") }
         };
+        let keep = if self.keep_alive() {
+            let (keepers, frames) = self.keeping_count();
+            format!("; {keepers} of the turrets keeping {frames} frame{} alive (one turret stays on any frame in reach nobody is building, whatever the order, so no frame in reach decays; `tend` with keep_alive false ends that)", if frames == 1 { "" } else { "s" })
+        } else {
+            "; the keep-alive is off: a frame nobody is on decays in reach of the turrets (`tend` with keep_alive true restores it)".to_string()
+        };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; holds: {holds} (the kinds whose frames go on its ground when a step names no place; `block` changes the list, `<name> block` on a step puts any frame here, another place keeps one off); {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; holds: {holds} (the kinds whose frames go on its ground when a step names no place; `block` changes the list, `<name> block` on a step puts any frame here, another place keeps one off); {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}{keep}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
@@ -341,6 +347,7 @@ mod tests {
         assert!(line.contains("18 of 18 frame slots free in 3 tiers of rows") && line.contains("sparse"), "{line}");
         assert!(line.contains("holds: advanced_fusion, fusion, advanced_converter, storage ("), "{line}");
         assert!(line.contains("in this order, one thing at a time (`tend` changes it): turret, advanced_fusion, fusion"), "{line}");
+        assert!(line.contains("0 of the turrets keeping 0 frames alive (one turret stays on any frame in reach nobody is building"), "{line}");
         assert!(block.centre.dist2d(plant.pos) >= 400.0 + 100.0 + 72.0, "the block within the turrets' reach of the plant: {block:?}");
         // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
         // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.

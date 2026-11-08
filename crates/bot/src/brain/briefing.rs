@@ -584,7 +584,7 @@ impl Brain {
     }
 
     /// The same by the builders' ids: the unfinished line's expected rate sums their build speeds.
-    fn builders_on_frames_by_id(&self) -> HashMap<UnitId, Vec<UnitId>> {
+    pub(super) fn builders_on_frames_by_id(&self) -> HashMap<UnitId, Vec<UnitId>> {
         use super::pianist::Task;
         let mut on: HashMap<UnitId, Vec<UnitId>> = HashMap::new();
         let Some(pianist) = self.pianist.as_ref() else { return on };
