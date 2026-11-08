@@ -46,6 +46,43 @@ pub(crate) fn step_is_low(step: &str) -> bool {
 /// and nanos the player lists with `finish`, the pick's finish moves), the way the people run one advanced
 /// constructor over many moho frames (H-HANDS-LIST-START; Center Command 2v4, 2026-10-19: u6bkep's borrowed Cortex
 /// constructor left two of its frames to his Armada constructors). "cormoho spot_28 start", "armfus home start #f1".
+/// A count on a step's first word (`extractor:20`, `corwin:6 low`, `corllt:2 spot_3`) repeats the step, as a
+/// `produce` entry's count repeats a unit: the step without it and how many. A step without a count is one. A
+/// count of 0 or over 60 is refused with the reason (a builder's standing work is twenty extractors, eight minutes).
+pub(crate) fn step_count(step: &str) -> Result<(String, u32), String> {
+    let step = step.trim();
+    let (first, rest) = step.split_once(' ').map_or((step, ""), |(a, b)| (a, b));
+    let Some((kind, count)) = first.split_once(':') else { return Ok((step.to_string(), 1)) };
+    let count: u32 = count.parse().map_err(|_| format!("a count is a number after the step's first word (extractor:20), not '{first}'"))?;
+    if !(1..=60).contains(&count) {
+        return Err(format!("a count is 1 to 60 (extractor:20), not {count}"));
+    }
+    if kind.is_empty() {
+        return Err(format!("a count goes after the step's first word (extractor:20), not '{first}'"));
+    }
+    Ok((if rest.is_empty() { kind.to_string() } else { format!("{kind} {rest}") }, count))
+}
+
+/// A list as the player reads it back: runs of one step (without an id) as the tool's own count (`extractor:20`),
+/// so a list of twenty reads as one entry and goes back in as written.
+pub(crate) fn compress_steps<'a>(steps: impl IntoIterator<Item = &'a String>) -> String {
+    let mut runs: Vec<(String, usize)> = Vec::new();
+    for step in steps {
+        match runs.last_mut() {
+            Some((last, n)) if last == step && step_id(step).1.is_none() => *n += 1,
+            _ => runs.push((step.clone(), 1)),
+        }
+    }
+    runs.into_iter()
+        .map(|(step, n)| match (n, step.split_once(' ')) {
+            (1, _) => step,
+            (n, Some((kind, rest))) => format!("{kind}:{n} {rest}"),
+            (n, None) => format!("{step}:{n}"),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 pub(crate) fn step_start(body: &str) -> (String, bool) {
     let start = body.split_whitespace().any(|w| w == "start");
     (body.split_whitespace().filter(|w| *w != "start").collect::<Vec<_>>().join(" "), start)
@@ -893,5 +930,23 @@ mod finish_tests {
         // The same finish again is the build going on, not a new order.
         let again = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, None, &mut commands);
         assert!(again.is_none(), "{again:?}");
+    }
+}
+
+#[cfg(test)]
+mod count_tests {
+    use super::{compress_steps, step_count};
+
+    #[test]
+    fn a_count_on_the_first_word_repeats_the_step_and_reads_back_the_same() {
+        assert_eq!(step_count("extractor:20"), Ok(("extractor".to_string(), 20)));
+        assert_eq!(step_count("corwin:6 low"), Ok(("corwin low".to_string(), 6)));
+        assert_eq!(step_count("corllt:2 spot_3"), Ok(("corllt spot_3".to_string(), 2)));
+        assert_eq!(step_count("armsolar low #s3"), Ok(("armsolar low #s3".to_string(), 1)));
+        assert!(step_count("extractor:0").is_err());
+        assert!(step_count("extractor:61").is_err());
+        assert!(step_count("extractor:many").is_err());
+        let steps: Vec<String> = ["extractor", "extractor", "extractor", "corwin low", "corwin low", "armvp #vp1", "armvp #vp1", "assist"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(compress_steps(steps.iter()), "extractor:3, corwin:2 low, armvp #vp1, armvp #vp1, assist");
     }
 }

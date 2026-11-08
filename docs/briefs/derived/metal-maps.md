@@ -33,7 +33,11 @@ only prices, and the army is counted by the hundred.
   extractor 10, a constructor 14.4, a turret 13.9, a Blitz 8.2, a Stout 9.3. With metal at cap the generator is bought
   for the draw, not the store (D-energy-second item 1), and on this map the generator is the turbine: the pool's two
   duels built no solar, 48 turbines by 5:00 and 186 by 8:00 for 1,180 energy a second at 5:00 against Comet's 190
-  (M-pool-energy-and-power). The map's wind is the first thing to read (F-map-weather), as on every map.
+  (M-pool-energy-and-power). The map's wind is the first thing to read (F-map-weather), as on every map. An extractor itself draws 3 energy a second, one turbine per eight at this wind: the turbines are for the plants' draw
+  and the army's, bought by the energy line's income against use as D-energy-second says, never by the extractor count;
+  a turbine for every two or three extractors with the energy store full is a constructor's minute taken from
+  extractors (our 3v2 of 2026-11-07: one seat built 69 turbines for 67 extractors with the store full, 55 turbine orders
+  against 17 extractors in minutes 7 to 11, and its extractor count stood still).
 - *Build power is factories.* With metal unlimited the limit on the army is how fast it can be made, and a plant at
   590 metal for 150 of power that also makes the units is the build power to buy: his won game had a vehicle plant at
   0:50 and seven more by 8:48, two advanced plants at 11:09, a gantry at 14:45 and four more by 21:00. Turrets on the

@@ -1846,7 +1846,7 @@ impl Brain {
                         let cannot = !self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
                         (cannot && !pianist.tagged.contains_key(tag)).then(|| format!("; its first step waits for a builder that can build #{tag} to start it, and then helps"))
                     }).unwrap_or_default();
-                    entry["list"] = json!(format!("the player's list, done by the bot without asking: {}{waits}{for_starter}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
+                    entry["list"] = json!(format!("the player's list, done by the bot without asking: {}{waits}{for_starter}", super::compress_steps(steps.iter())));
                 }
                 let from_home = unit.pos.dist2d(self.home);
                 entry["from_home"] = json!(format!("{} ({from_home:.0})", distance_words(from_home)));

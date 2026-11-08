@@ -15,7 +15,7 @@ mod execute;
 mod heal;
 pub(super) mod lists;
 mod priority;
-pub(crate) use lists::{step_id, step_low, step_start};
+pub(crate) use lists::{compress_steps, step_count, step_id, step_low, step_start};
 pub(super) mod picture;
 mod remove;
 mod fire;
