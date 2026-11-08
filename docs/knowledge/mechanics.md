@@ -1111,6 +1111,29 @@ with no job in reach stayed busy under the fight order (not measured: from 13:00
 tiers), D-late-economy's "each tier's infrastructure is eaten for the next" (the plant beside the block takes the
 nearest turrets' power while it runs).
 
+### K-mech-frame-decay
+**Claim.** An unfinished frame no builder has touched for 9 seconds (BAR's `constructionDecayTime`; the engine's default
+is 6.66) loses build progress every slow update (16 frames) at 1 / (buildTime x 0.03) (`constructionDecaySpeed`), the
+metal of the lost progress refunded, and dies at 0. The rate is the inverse of the type's build time: a construction
+turret (buildTime 5,300) loses 0.63 % an update, 1.2 % a second, so a frame left at 3 % is gone 12 s after its builder
+leaves; an advanced converter (35,000) 0.095 % an update, a 1 % frame gone in 15 s; a fusion (54,000) 0.06 %; an
+advanced fusion (313,000) 0.01 %, so a frame of one at 36 % holds for an hour. A `start` step that places a frame and
+leaves it is therefore a 10-to-17-second bet that a turret or builder comes, and for the cheap types the bet is lost the
+moment nobody does.
+**Status.** observed (2026-11-08, econ-flagship-16) and read from the source (`upstream/RecoilEngine/rts/Sim/Units/Unit.cpp`
+`CUnit::SlowUpdate`, the `beingBuilt` branch; `upstream/Beyond-All-Reason/gamedata/modrules.lua` `construction`).
+**Evidence.** `run/matches/1794166654-econ-flagship-16/00/record-0.jsonl`: 33 frames decayed, 16 construction turrets
+(lived 9-13 s, two at 65 and 74 s that had been built to 58 and 74 % first), 14 advanced converters (14-18 s, one at 44 s),
+2 fusions (14 and 21 s), 1 advanced fusion (15 s at 0 %); every one with 5 to 29 finished turrets in reach and no repair
+order to it in the `cmd` rows, the turrets on other frames (K-mech-tending-turret-takes-the-nearest-frame and the hands'
+`tend` order). The player's report named each: "abandoned an unfinished armnanotc at B3 (3 % built): its builder was sent
+elsewhere and the frame decayed".
+**Would be wrong if.** A frame untouched for 9 s kept its progress, or a cheap frame outlived a dear one left at the same
+share.
+**Used by.** H-HANDS-SCRIPT's `start` word (a frame left to the turrets in reach; the farm-holds design's start-stays rule
+asks whether a turret reaches the site, not whether one is free for it); the report's abandoned-frame words (which say the
+builder was sent elsewhere when a `start` step's leaving is the design).
+
 ### K-hands-a-standoff-from-the-groups-centroid-walks-the-guns-out-of-their-shot
 **Claim** (2026-10-31, from barb-ladder3-20-1). A shell order whose standoff is measured along the line from the target
 to the group's centroid, and walked to regardless of where the guns stand, takes guns that already have the shot out
