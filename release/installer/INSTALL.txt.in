@@ -1,0 +1,39 @@
+@NAME@ @VERSION@ -- a custom AI for Beyond All Reason
+@DESCRIPTION@
+
+Source, changelog and where to report problems: @URL@
+
+WHO NEEDS THIS
+  Only the player HOSTING the game. Everyone else just joins the lobby.
+
+WINDOWS
+  Close BAR. Right-click the zip, choose "Extract All...", open the extracted
+  folder and double-click Install.bat. It finds BAR, copies the AI into BAR's
+  data folder and switches the lobby to its full AI list (the simple list
+  hides every custom AI).
+
+LINUX
+  tar xzf @SHORT@-@VERSION@-LINUX.tar.gz && sh install.sh
+  It looks in ~/.local/share/BeyondAllReason and the usual Flatpak and Steam
+  places. If BAR is elsewhere: sh install.sh "/path/to/BAR data folder"
+
+INSTALL BY HAND
+  1. Find BAR's data folder, the one holding engine, games and maps:
+       Windows: <BAR install>\data   (usually
+                C:\Users\<you>\AppData\Local\Programs\Beyond-All-Reason\data)
+       Linux:   ~/.local/share/BeyondAllReason
+  2. Copy the folder payload\@SHORT@ from this archive into <data>\AI\Skirmish\
+     so that this file exists:
+       <data>\AI\Skirmish\@SHORT@\@VERSION@\AIInfo.lua
+     Remove any other version folder under @SHORT@: a hosted game loads the
+     highest one by name, and "0.10.0" sorts below "0.9.0".
+  3. With BAR closed, make an empty file named devmode.txt in <data>.
+     Start BAR, open Settings > Developer and untick "Simple AI list".
+  4. In a skirmish or a lobby you host, Add AI and pick @SHORT@ @VERSION@
+     (the lobby lists AIs by their short name; the long name is "@NAME@").
+
+NOTES
+  - The AI lives in the data folder, not the engine folder, so a BAR engine
+    update keeps it. Tested on BAR engine @ENGINE@.
+  - Close BAR before installing: a loaded AI cannot be replaced.
+  - Uninstall: delete <data>\AI\Skirmish\@SHORT@.

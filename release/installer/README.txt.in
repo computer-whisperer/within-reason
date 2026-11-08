@@ -1,0 +1,9 @@
+@NAME@ @VERSION@
+@DESCRIPTION@
+
+A skirmish AI for Beyond All Reason, one of the Within Reason bots. It plays
+inside the game process: no model, no account, nothing to run beside the game.
+
+Install: see INSTALL.txt (Windows: Install.bat; Linux: install.sh).
+Source and issues: @URL@
+License: GPL-2.0-or-later (LICENSE in this archive).
