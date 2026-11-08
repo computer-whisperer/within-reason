@@ -189,6 +189,19 @@ impl Brain {
 
     /// The report's block line: where it stands, its pitch, what it holds and what stands on its ground; or why
     /// there is none when an advanced plant is placed and no ground held one.
+    /// The kinds the block holds (`block` tool, `holds`): the player's list, else the default.
+    pub(super) fn block_holds(&self) -> Vec<String> {
+        let said = self.strategist.as_ref().map(|s| s.block_holds.lock().unwrap().clone()).unwrap_or_default();
+        if said.is_empty() { super::nanos::HOLDS_DEFAULT.iter().map(|w| w.to_string()).collect() } else { said }
+    }
+
+    /// Whether a building's kind is one the block holds: its frame takes the block's ground when its step names no
+    /// place (the farm-holds design §1.1).
+    pub(super) fn held(&self, def: UnitDefId) -> bool {
+        let kind = self.tend_category(def);
+        self.block_holds().iter().any(|w| w == kind)
+    }
+
     pub(super) fn block_line(&self, own: &[OwnUnit], metal_income: f32) -> Option<String> {
         let Some(block) = self.block.as_ref() else {
             return self.block_failed.clone().map(|why| format!("the block (where your construction turrets and frames stand): {why}"));
@@ -210,8 +223,12 @@ impl Brain {
         let ground = self.on_block_ground(block, own);
         let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground: {} (reclaim them as the block's slots reach them: `remove`)", ground.join(", ")) };
         let placed = if block.marked { "at your `block` mark".to_string() } else { "beside the advanced plant; a `block` mark moves it".to_string() };
+        let holds = {
+            let h = self.block_holds();
+            if h.is_empty() { "nothing".to_string() } else { h.join(", ") }
+        };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; holds: {holds} (the kinds whose frames go on its ground when a step names no place; `block` changes the list, `<name> block` on a step puts any frame here, another place keeps one off); {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
@@ -322,6 +339,7 @@ mod tests {
         let line = brain.block_line(&ours, 0.0).expect("a line");
         // Laid clear of the turrets' reach of the plant (2026-11-08), all three tiers hold at laying: eighteen slots.
         assert!(line.contains("18 of 18 frame slots free in 3 tiers of rows") && line.contains("sparse"), "{line}");
+        assert!(line.contains("holds: advanced_fusion, fusion, advanced_converter, storage ("), "{line}");
         assert!(line.contains("in this order, one thing at a time (`tend` changes it): turret, advanced_fusion, fusion"), "{line}");
         assert!(block.centre.dist2d(plant.pos) >= 400.0 + 100.0 + 72.0, "the block within the turrets' reach of the plant: {block:?}");
         // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000

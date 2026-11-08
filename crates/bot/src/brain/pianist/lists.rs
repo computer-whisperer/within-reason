@@ -270,7 +270,7 @@ impl Brain {
             let list_frame = pianist.script_frame.get(&name).copied().unwrap_or(0);
             // A build on a `start` step: the builder leaves the frame the moment it stands up, and its next order
             // replaces the build rather than queueing behind it (H-HANDS-LIST-START).
-            let leaving = matches!(&task, Some(Task::Build { started: true, frame: Some(_), .. })) && pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step_is_start(step));
+            let leaving = matches!(&task, Some(Task::Build { started: true, frame: Some(_), .. })) && !pianist.start_stayed.contains(&unit.id) && pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step_is_start(step));
             let ready = match &task {
                 None => unit.idle,
                 Some(Task::Build { started: true, .. }) => status.queue_ahead || leaving,
@@ -1060,6 +1060,48 @@ mod finish_tests {
         assert!(commands.iter().any(|c| matches!(c, Command::Build { unit: UnitId(1), def: UnitDefId(2), .. })), "{commands:?}");
         let task = brain.pianist.as_ref().unwrap().tasks.get(&UnitId(1)).cloned();
         assert!(matches!(task, Some(Task::Build { def: UnitDefId(2), started: false, frame: None, .. })), "{task:?}");
+        // No construction turret reaches the new site: the start is set aside and the builder stays (the farm-holds
+        // design §4), so the next look at the same step is the build going on, not another frame.
+        assert!(next.as_deref().is_some_and(|d| d.contains("no construction turret reaches the site")), "{next:?}");
+        assert!(brain.pianist.as_ref().unwrap().start_stayed.contains(&UnitId(1)));
+        if let Some(Task::Build { started, frame: f, .. }) = brain.pianist.as_mut().unwrap().tasks.get_mut(&UnitId(1)) {
+            *started = true;
+            *f = Some(UnitId(21));
+        }
+        let mut again = Vec::new();
+        let stays = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Build(UnitDefId(2), Site::Planned), false, Some("armsolar start"), &mut again);
+        assert!(stays.is_none() && again.is_empty(), "{stays:?} {again:?}");
+    }
+
+    /// With a construction turret in reach of the site, a `start` step leaves the frame to it as before.
+    #[test]
+    fn a_start_step_leaves_a_frame_a_construction_turret_reaches() {
+        use super::super::menu::Site;
+        let mut brain = brain_of(&["armcv", "armsolar", "armnanotc"]);
+        for d in brain.world.hello.unit_defs.iter_mut() {
+            match d.id {
+                UnitDefId(1) => d.build_options.push(UnitDefId(2)),
+                UnitDefId(3) => {
+                    d.speed = 0.0;
+                    d.build_speed = 200.0;
+                    d.build_distance = 400.0;
+                }
+                _ => {}
+            }
+        }
+        let ours = vec![own(1, 1, at(1000.0, 950.0)), own(30, 3, at(1050.0, 1000.0))];
+        let id = UnitDefId(9);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };
+        brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        brain.home = at(1000.0, 1000.0);
+        brain.kit = Some(kit.clone());
+        let resource = || bot_protocol::Resource { current: 1000.0, income: 10.0, usage: 0.0, storage: 2000.0 };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } };
+        let mut commands = Vec::new();
+        let did = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Build(UnitDefId(2), Site::Planned), false, Some("armsolar start"), &mut commands);
+        assert!(did.as_deref().is_some_and(|d| d.starts_with("build a") && !d.contains("no construction turret")), "{did:?}");
+        assert!(!brain.pianist.as_ref().unwrap().start_stayed.contains(&UnitId(1)));
     }
 }
 

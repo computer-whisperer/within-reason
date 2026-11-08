@@ -198,6 +198,9 @@ pub struct Pianist {
     /// The frame each builder's list ran out by play (by actor name; cleared by a new list or a cancel; a list
     /// ending in a bare `assist` does not end): the report's lists line and the `lists_ended` wake read it.
     pub(super) list_ended: HashMap<String, i32>,
+    /// Builders whose `start` step was set aside because no construction turret reached the frame's site: they stay
+    /// on the frame (the farm-holds design §4).
+    pub(super) start_stayed: std::collections::HashSet<UnitId>,
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
@@ -815,6 +818,7 @@ impl Pianist {
             recent: VecDeque::new(),
             scripts: HashMap::new(),
             list_ended: HashMap::new(),
+            start_stayed: std::collections::HashSet::new(),
             list_steps: HashMap::new(),
             list_held: HashSet::new(),
             stale_queue: HashSet::new(),

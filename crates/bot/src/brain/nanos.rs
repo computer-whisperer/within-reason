@@ -51,7 +51,15 @@ const MANEUVER: i32 = 1;
 /// The kinds a `tend` order names, in the hands' default order (H-ECO-NANO-GUARD): the game's own first (a turret
 /// frame pulls the turrets in reach, the Priority Construction Turrets widget), then the frames by what they are,
 /// the plants' products last. A frame of a kind not named comes after the named ones.
-pub const TEND_CATEGORIES: [&str; 10] = ["turret", "advanced_fusion", "fusion", "converter", "extractor", "generator", "storage", "building", "advanced_plant", "plant"];
+pub const TEND_CATEGORIES: [&str; 11] = ["turret", "advanced_fusion", "fusion", "advanced_converter", "converter", "extractor", "generator", "storage", "building", "advanced_plant", "plant"];
+/// The kinds the block's `holds` list may name (the farm-holds design §1.1): the frames; not turrets (they are the
+/// farm), plants or extractors (their own ground).
+pub const HOLDS_KINDS: [&str; 7] = ["advanced_fusion", "fusion", "advanced_converter", "converter", "generator", "storage", "building"];
+/// What the block holds when the player has not said (the user, 2026-11-08: keep a default, stated every report).
+pub const HOLDS_DEFAULT: [&str; 4] = ["advanced_fusion", "fusion", "advanced_converter", "storage"];
+/// A converter taking this much energy a second or more is the advanced one (600 against the basic 70: the
+/// conversion gadget's own figures), eight times the build time a square of ground (the farm-holds design §0).
+const ADVANCED_CONVERTER_CAPACITY: f32 = 300.0;
 /// A fusion reactor costing this much metal or more is the advanced one (the advanced fusion 9,700 against the
 /// fusion's 3,350 and the cloakable fusion's 4,300).
 const ADVANCED_FUSION_METAL: f32 = 6000.0;
@@ -112,7 +120,10 @@ impl Brain {
         if class.contains("fusion") {
             return if d.metal_cost >= ADVANCED_FUSION_METAL { "advanced_fusion" } else { "fusion" };
         }
-        if d.converter.is_some() || class.contains("converter") {
+        if let Some(c) = &d.converter {
+            return if c.capacity >= ADVANCED_CONVERTER_CAPACITY { "advanced_converter" } else { "converter" };
+        }
+        if class.contains("converter") {
             return "converter";
         }
         if d.extracts_metal > 0.0 || class.contains("extractor") {

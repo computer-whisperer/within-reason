@@ -112,7 +112,9 @@ impl Brain {
         // frame the builder is leaving on a `start` step (H-HANDS-LIST-START): that frame is handed to whoever
         // finishes it, and the next step of the same type is the next building (econ-flagship-12, 10:49: ten
         // constructors' `armsolar:8 start` built one solar each, the seven repeats "already under way: taken as done").
-        let leaving = list_step.is_some_and(super::lists::step_is_start) && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { started: true, frame: Some(_), .. }));
+        let leaving = list_step.is_some_and(super::lists::step_is_start)
+            && !self.pianist.as_ref().is_some_and(|p| p.start_stayed.contains(&id))
+            && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { started: true, frame: Some(_), .. }));
         let (ordered_def, helping) = match self.pianist.as_ref().and_then(|p| p.tasks.get(&id)) {
             Some(Task::Build { .. }) if leaving => (None, None),
             Some(Task::Build { def, started, .. }) if !queue && (*started || list_step.is_some()) => (Some(*def), None),
@@ -195,6 +197,9 @@ impl Brain {
                     let (dx, dz) = (enemy.x - at.x, enemy.z - at.z);
                     let len = dx.hypot(dz).max(1.0);
                     (Vec3 { x: at.x + dx / len * DEFENCE_FORWARD, y: at.y, z: at.z + dz / len * DEFENCE_FORWARD }, super::super::economy::BAND_DEFENCE)
+                } else if place_name == "block" {
+                    // The block as the place: the frame goes where its turrets reach (the farm-holds design §1.2).
+                    (at, self.block.as_ref().map_or(super::super::economy::BAND_PLACE, |b| b.reach))
                 } else {
                     (at, super::super::economy::BAND_PLACE)
                 };
@@ -285,6 +290,19 @@ impl Brain {
                 }
             }
             _ => {}
+        }
+        // A `start` step whose frame no construction turret reaches: the builder stays on it and the start is set
+        // aside (the farm-holds design §4): a frame left there only decays (econ-flagship-15: 54 advanced converter
+        // frames placed beside their builders out of reach).
+        if let Some(Task::Build { near, started: false, .. }) = &task {
+            let stays = list_step.is_some_and(super::lists::step_is_start) && !own.iter().any(|t| !t.being_built && self.is_static_builder(t.def) && self.world.def(t.def).is_some_and(|d| t.pos.dist2d(*near) <= d.build_distance));
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            if stays {
+                pianist.start_stayed.insert(id);
+                did = did.map(|d| format!("{d}; no construction turret reaches the site, so it stays to finish it (the step's start set aside)"));
+            } else {
+                pianist.start_stayed.remove(&id);
+            }
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(task) = task {

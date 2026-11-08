@@ -24,7 +24,7 @@ mod wake;
 pub(crate) mod roster;
 mod routes;
 mod nanos;
-pub use nanos::TEND_CATEGORIES;
+pub use nanos::{HOLDS_KINDS, TEND_CATEGORIES};
 mod yards;
 
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};

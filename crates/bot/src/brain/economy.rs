@@ -92,6 +92,12 @@ impl Brain {
     }
 
     /// What a kind is placed for (the design's level 1).
+    /// The layout layer's purpose for a building: the kinds that are geometry (a plant has a street, a construction
+    /// turret a reach, a defence the player's place, a silo the back field), and for everything else the player's
+    /// word: a kind the block holds (`holds`, the farm-holds design §1.1) is a frame and takes the block's ground;
+    /// any other stands beside its builder in a bank of its kind. Until 2026-11-08 a sorter of unit data decided
+    /// this, and it classed the advanced converter (380 metal) a generator: 54 frames decayed beside their builders
+    /// in econ-flagship-15.
     pub(super) fn purpose_of(&self, def: UnitDefId) -> Purpose {
         let Some(d) = self.world.def(def) else { return Purpose::Place };
         let static_builder = d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty();
@@ -99,14 +105,12 @@ impl Brain {
             Purpose::Plant
         } else if static_builder {
             Purpose::Turret
-        } else if (d.converter.is_some() && d.metal_cost < 500.0) || d.wind_cap > 0.0 {
-            Purpose::Generator { cap: Some(BANK_CAP) }
-        } else if (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.tidal_make > 0.0) && d.metal_cost < 500.0 {
-            Purpose::Generator { cap: Some(BANK_CAP_GENERATOR) }
         } else if self.placed_at_place(def) {
             Purpose::Place
-        } else {
+        } else if d.stockpile_seconds > 0.0 || self.held(def) {
             Purpose::Frame
+        } else {
+            Purpose::Generator { cap: Some(if d.converter.is_some() || d.wind_cap > 0.0 { BANK_CAP } else { BANK_CAP_GENERATOR }) }
         }
     }
 
@@ -635,7 +639,7 @@ mod tests {
     /// band is behind home, a solar's beside its builder.
     #[test]
     fn kinds_have_their_purposes_and_bands() {
-        let mut brain = brain_of(&["armsolar", "armmakr", "armwin", "armnanotc", "armvp", "armfus", "armllt", "armsilo", "armcom"]);
+        let mut brain = brain_of(&["armsolar", "armmakr", "armwin", "armnanotc", "armvp", "armfus", "armllt", "armsilo", "armcom", "armmmkr"]);
         {
             let defs = &mut brain.world.hello.unit_defs;
             defs[0].energy_make = 20.0;
@@ -646,9 +650,13 @@ mod tests {
             defs[5].energy_make = 1000.0;
             defs[8].build_speed = 300.0;
             defs[8].build_options = vec![UnitDefId(1)];
+            defs[9].converter = Some(bot_protocol::Converter { capacity: 600.0, efficiency: 0.01724 });
+            defs[9].metal_cost = 380.0;
         }
         brain.home = Vec3 { x: 1000.0, y: 0.0, z: 1000.0 };
         let p = |i: i32| brain.purpose_of(UnitDefId(i));
+        // The block holds the advanced converter by default and not the basic one (the farm-holds design §1.1).
+        assert_eq!(p(10), Purpose::Frame);
         assert_eq!(p(1), Purpose::Generator { cap: Some(BANK_CAP_GENERATOR) });
         assert_eq!(p(2), Purpose::Generator { cap: Some(BANK_CAP) });
         assert_eq!(p(3), Purpose::Generator { cap: Some(BANK_CAP) });

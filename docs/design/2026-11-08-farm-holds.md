@@ -170,22 +170,21 @@ It does not move solars or storages the player never mentioned: unheld kinds sta
 touch `tend` beyond the one word, nor the harness's 45-second turn cap and the session replacement that cost econ-15 its
 17:01 and 17:36 turns, which is a separate matter (the econ-15 ledger row).
 
-## 4. Decisions taken
+## 4. Decisions taken (the user, 2026-11-08)
 
-- The player decides what holds the farm; the engine does the two-dimensional placement (the user, 2026-11-08).
-- A default `holds` list, stated in the block line every report (the user, 2026-11-08: "keep the default").
+- The player decides what holds the farm; the engine does the two-dimensional placement.
+- A default `holds` list, stated in the block line every report: advanced_fusion, fusion, advanced_converter, storage.
+- `advanced_converter` is a word in `tend` as well as `holds`; `converter` means the basic one; `tend`'s default order
+  gains the entry after fusion.
+- A held frame that finds no room above the lower power line is placed at the farm's edge and said.
+- A `start` step whose frame would have no construction turret in reach is built as a plain step (the builder stays
+  on it) and the hands' line says so: a frame left there only decays.
+- The room figure's two power lines are 30 and 10 turrets.
 
 ## 5. Decisions this design still needs
 
-1. The default list: advanced_fusion, fusion, advanced_converter, storage is proposed. Storage is in because the advanced
-   storages are 20,000 of build time; the basic ones are not worth the ground, and a player who wants them off says so.
-2. `advanced_converter` as a word in `tend` as well as `holds`, changing `tend`'s default order by one entry.
-3. A held frame that finds no room above the lower power line: placed at the farm's edge and said (proposed), or the
-   step skipped and said. The first keeps the frame; the second keeps the player's rule exact.
-4. Whether a `start` step may ever place a frame outside the farm's reach, or is refused there and said: a frame left
-   by `start` with no turret in reach decays, which is the whole of the 54.
-5. The two power lines of the room figure, 30 and 10 turrets, or the one line of the player's choosing.
+None open. (The five questions of the first draft were ruled as §4 records.)
 
 ## Status
 
-Written 2026-11-08 after econ-flagship-15, before any code. Awaiting the user's reading of §5.
+Written 2026-11-08 after econ-flagship-15, before any code; the user agreed the shape and ruled §5 the same evening. Step 1 built 2026-11-08 (`holds`, the `block` place word, `advanced_converter` in both vocabularies, the start-stays rule, the block line's holds words; H-ECO-BLOCK and H-ECO-LAYOUT amended); judged in econ-flagship-16. Steps 2 and 3 not begun.

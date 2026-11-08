@@ -1307,6 +1307,10 @@ impl Brain {
 
         // Places.
         let mut places: Vec<Place> = vec![Place { name: "home".into(), at: self.home, spot: None, cells: None }];
+        // The construction turrets' block as a place a step may name (`armmmkr block`; the farm-holds design §1.2).
+        if let Some(block) = self.block.as_ref() {
+            places.push(Place { name: "block".into(), at: block.centre, spot: None, cells: None });
+        }
         let extractor_at = |spot: Vec3| own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.spot_occupied_radius());
         let taken_by_task: Vec<usize> = pianist.tasks.values().filter_map(|t| if let Task::Build { spot: Some(i), .. } = t { Some(*i) } else { None }).collect();
         let mut listed: Vec<usize> = Vec::new();
