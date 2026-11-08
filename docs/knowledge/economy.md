@@ -618,3 +618,21 @@ walked freely, since the hands did not then take the stand's tiles.
 **Would be wrong if.** A commander ordered a structure within its reach walked to a new standing place before building
 it, or the engine's builder left a pen of its own buildings by itself.
 **Used by.** H-ECO-STAND and H-ECO-LAYOUT (9), (10), both amended 2026-11-07 night.
+
+### K-eco-the-metal-map-pace-is-constructors-by-the-fifty
+**Claim.** On Full Metal Plate a high-OS player's economy doubles every two minutes from minute 4 to minute 12 by
+making constructors by the fifty from several plants and putting them on extractors and turbines about one to one by
+count, then construction turrets by the hundred; per constructor his build power delivered is no better than ours
+(about 35 to 40 % of standing, the rest walking), so the pace is the count and the allocation, not the efficiency.
+**Status.** supported (2026-11-07)
+**Evidence.** 1794106612-human replayed with the audit (replay-human-fmp-3v2): thebluegecko's extractors 24 / 52 /
+105 / 193 / 318 / 391 / 475 / 619 at 4 / 6 / 8 / 10 / 12 / 14 / 16 / 18 minutes, constructors 8 / 18 / 50 / 68 / 73 /
+83 / 126 / 127, turbines 21 / 50 / 153 / 315 / 402 / 470, construction turrets 3 / 18 / 39 / 60 / 179 / 294 / 323 / 360,
+plants 1 / 3 / 5 / 7 / 9 / 10 / 13, income 59 / 125 / 248 / 457 / 772 / 1,021 / 1,663 / 2,557 a second; his 155
+constructors over the game delivered 37 % of their standing build power (39 % walking, 11 % idle), ours 35 % (26 %
+walking, 17 % idle, 12 % guarding). His commander stood idle from 9:29 on. Our three seats together matched his
+extractor count at 8:00 (102 to 105) with 56 constructors to his 50, and had a third of it at 10:00.
+**Would be wrong if.** A replay of his on this map showed the doubling with constructors under twenty, or his
+constructors delivering well over half their build power.
+**Used by.** D-metal-maps (the brief's article: the plant is the build power, the turbines by the draw), H-HANDS-SCRIPT
+(2026-11-07: lists with counts for a constructor's standing work).
