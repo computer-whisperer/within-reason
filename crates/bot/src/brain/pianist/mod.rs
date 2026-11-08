@@ -55,6 +55,7 @@ use serde_json::json;
 use super::economy::FIRST_ORDER_FRAME;
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
+use std::time::{Duration, Instant};
 pub(super) use groups::{Group, GroupTask};
 pub(super) use picture::{Party, Place};
 pub(crate) use picture::clock;
@@ -155,7 +156,7 @@ impl Task {
 struct Stats {
     calls: u32,
     errors: u32,
-    /// Realtime: requests whose answer had not come after `STALE_FRAMES`, dropped unplayed.
+    /// Realtime: requests whose answer had not come `STALE` after the send, dropped unplayed.
     dropped: u32,
     latencies_ms: Vec<f32>,
     tokens: u64,
@@ -177,7 +178,8 @@ pub struct Pianist {
     /// Realtime: the `fuse` layer's decode runs on its own thread too (`spawn_decoder`), one in flight, with the
     /// packet it reads and the frame it was sent; in lockstep the decode is made in place.
     decoder: Option<Decoder>,
-    decode_pending: Option<(String, i32)>,
+    /// The decode in flight: its instructions, the frame it was sent at, and when.
+    decode_pending: Option<(String, i32, Instant)>,
     next_request: u64,
     interval_frames: i32,
     last_ask_frame: i32,
@@ -340,8 +342,11 @@ pub struct Pianist {
 
 /// The pianist's log format version (`docs/harness/record-format.md`).
 const LOG_VERSION: u32 = 3;
-/// Realtime: an answer older than this judges a picture too old to play.
-const STALE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
+/// Realtime: a request whose answer has not come this long after it was sent is dropped. Wall time from the send:
+/// until 2026-11-07 the clock was the tick's frame, stamped before the brain's pass, read at the next tick, which
+/// is the frame at the pass's end, so a pass over 3 s dropped every request at the next tick's start before Jev's
+/// 120 ms answer could land, and the seat froze for as long as its passes ran long (1794076407-human, t8 and t11).
+const STALE: Duration = Duration::from_secs(3);
 /// An event alone (a hit, a sighting, an alarm) asks again no oftener than this.
 const EVENT_GAP: i32 = 5 * FRAMES_PER_SECOND;
 
@@ -364,7 +369,7 @@ struct Decoder {
 
 /// A decode nobody answered for this long is given up, so the next pass may ask again (the client's timeout is 20 s,
 /// with retries).
-const DECODE_STALE_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
+const DECODE_STALE: Duration = Duration::from_secs(60);
 
 fn spawn_decoder(client: jev::Client) -> Decoder {
     let (to, requests) = std::sync::mpsc::channel::<(String, jev::Request)>();
@@ -463,6 +468,8 @@ fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, fo
 struct Pending {
     id: u64,
     frame: i32,
+    /// When the request went to the worker: the stale clock's start (after the pass, not the tick's frame).
+    sent: Instant,
     picture: picture::Picture,
     menus: Vec<menu::Menu>,
     request: jev::Request,
@@ -1426,7 +1433,7 @@ impl Brain {
                         pianist.stats.calls += 1;
                         pianist.stats.questions += request.questions.len() as u32;
                         if decoder.to.send((instructions.to_string(), request)).is_ok() {
-                            pianist.decode_pending = Some((instructions.to_string(), tick.frame));
+                            pianist.decode_pending = Some((instructions.to_string(), tick.frame, Instant::now()));
                         }
                     }
                 }
@@ -1443,7 +1450,7 @@ impl Brain {
 
     /// The decoder's answers (realtime): the readings of the packet in force go into the decode, logged with the
     /// frames they waited; an answer to a packet since replaced is dropped. A decode nobody answered in
-    /// `DECODE_STALE_FRAMES` is given up.
+    /// `DECODE_STALE` after its send is given up.
     fn collect_decode(&mut self, tick: &Tick) {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let Some(decoder) = &pianist.decoder else { return };
@@ -1470,17 +1477,17 @@ impl Brain {
                 continue;
             }
             let sent = match pianist.decode_pending.take() {
-                Some((_, sent)) => sent,
+                Some((_, sent, _)) => sent,
                 None => tick.frame,
             };
             decode_answered(pianist, tick.frame, &request, result, tick.frame - sent);
         }
-        if let Some((_, sent)) = pianist.decode_pending
-            && tick.frame - sent > DECODE_STALE_FRAMES
+        if let Some((_, sent, at)) = pianist.decode_pending
+            && at.elapsed() > DECODE_STALE
         {
             pianist.decode_pending = None;
             pianist.stats.dropped += 1;
-            pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": format!("the decode sent at frame {sent} has not come in {} s; given up", DECODE_STALE_FRAMES / FRAMES_PER_SECOND) }));
+            pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": format!("the decode sent at frame {sent} has not come in {} s; given up", DECODE_STALE.as_secs()) }));
         }
     }
 
@@ -1499,7 +1506,7 @@ impl Brain {
             let id = pianist.next_request;
             pianist.next_request += 1;
             if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow.clone())).is_ok() {
-                pianist.pending = Some(Pending { id, frame: tick.frame, picture, menus: follow.menus, request, audited: follow.audited });
+                pianist.pending = Some(Pending { id, frame: tick.frame, sent: Instant::now(), picture, menus: follow.menus, request, audited: follow.audited });
             }
             return;
         }
@@ -1774,8 +1781,8 @@ impl Brain {
         commands.push(Command::Say { text: format!("{{name}}{tail}"), to: bot_protocol::SayTo::Everyone });
     }
 
-    /// Realtime: plays the answer to the request in flight when it has come, and drops a request whose answer is too
-    /// late to judge the picture it was built from.
+    /// Realtime: plays the answer to the request in flight when it has come, and drops a request whose answer has not
+    /// come `STALE` after it was sent (the picture's age at play is the pass's own, which the pass owes, not the answer).
     fn collect_answer(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         let mut stale: Option<String> = None;
         let arrived = {
@@ -1792,10 +1799,10 @@ impl Brain {
                 Some((result, followed)) => Some((pianist.pending.take().expect("a matched request is pending"), result, followed)),
                 None => {
                     if let Some(p) = &pianist.pending
-                        && tick.frame - p.frame > STALE_FRAMES
+                        && p.sent.elapsed() > STALE
                     {
                         pianist.stats.dropped += 1;
-                        stale = Some(format!("the answer to the request of frame {} has not come in {} s; dropped", p.frame, STALE_FRAMES / FRAMES_PER_SECOND));
+                        stale = Some(format!("the answer to the request of frame {} has not come in {} s; dropped", p.frame, STALE.as_secs()));
                         pianist.pending = None;
                     }
                     None

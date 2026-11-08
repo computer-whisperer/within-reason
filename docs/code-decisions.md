@@ -82,7 +82,7 @@ six games ran `news` alone by a launch without the flag; `run/human_game.sh` set
 | What goes to the pick: the change and the move at 0.5; an idle actor's best at 0.3 | `FLAG = 0.5`, `IDLE_BAR = 0.3` | `P/compose.rs` |
 | The pick: one Choice over the worlds, world 1 among them; the world is drawn by its probability, nothing holds the course (the user, 2026-10-24; two stages until then). Amended 2026-10-31 (the user's word): a min-p floor on the draw, a world under 0.1 of the leader's probability not drawn (H-HANDS-MIN-P; the tail held the forbidden detachments of barb-ladder3-20-1, 25:23 at 0.03 against 0.95) | | `P/compose.rs` `MIN_P` |
 | Audits: 2% of what a layer skips is asked anyway and never played | `AUDIT_SHARE = 0.02` | `P/layers.rs`, `P/decode.rs` |
-| Failures: a failed gate leaves every course standing; in realtime an answer older than 3 s is dropped | `STALE_FRAMES` 3 s | `P/mod.rs` |
+| Failures: a failed gate leaves every course standing; in realtime a request whose answer has not come 3 s after it was sent is dropped (wall time from the send; until 2026-11-07 the clock was the tick's frame stamped before the pass, and a pass over 3 s dropped every request unplayed: 1794076407-human, t8 and t11 frozen) | `STALE` 3 s | `P/mod.rs` |
 
 ## 5. The micro engine (10 Hz, ground soldiers; the player's `lane` tool sets the reflexes a group's soldiers are under)
 
