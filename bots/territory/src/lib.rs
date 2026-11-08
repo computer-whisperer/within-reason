@@ -457,7 +457,7 @@ impl Territory {
 
     fn banner(&self) -> String {
         let side = self.hello.teams.iter().find(|t| t.team == self.hello.team).map_or("?", |t| t.side.as_str());
-        format!("{{name}} is WRTerritory {} | arms: {} | seat ai{} team {} {side}", ai_host::commit(), self.options.describe(), self.hello.ai_id, self.hello.team)
+        format!("{{name}} is WRTerritory {} ({}) | arms: {} | seat ai{} team {} {side}", env!("CARGO_PKG_VERSION"), ai_host::commit(), self.options.describe(), self.hello.ai_id, self.hello.team)
     }
 
     pub(crate) fn count_role(&self, role: Role) -> usize {

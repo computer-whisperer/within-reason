@@ -1,6 +1,7 @@
 #!/bin/sh
 # Build the AI libraries and install them where an engine discovers skirmish AIs:
 # <data dir>/AI/Skirmish/<shortName>/<version>/{AIInfo.lua,libSkirmishAI.so}
+# A bot of bots/ is installed at the version of its Cargo.toml (run/bot_payload.sh), the flagship's shim at 0.1.
 # usage: install_ai.sh [DATA_DIR [AI...]]   (default: the arena's run/data)
 # The arena's data dir takes every AI. Another data dir (a BAR install) takes the flagship (WReason, the shim of the
 # bot process) alone unless AIs are named: WReason, WRTemplate, WRDistilled, WRTerritory, or Apex:<version> (an
@@ -34,13 +35,32 @@ install_apex() {
     rm -rf "$dest.old"
     echo "installed to $dest"
 }
-# install <shortName>/<version> <AIInfo.lua> <library>
+# install <shortName>/<version> <AIInfo.lua> <library>: the flagship's shim, at its fixed version.
 install() {
     dest="$data/AI/Skirmish/$1"
     mkdir -p "$dest"
     for pair in "$2:AIInfo.lua" "target/release/$3:libSkirmishAI.so"; do
         cp "$root/${pair%%:*}" "$dest/.${pair##*:}.new"
         mv -f "$dest/.${pair##*:}.new" "$dest/${pair##*:}"
+    done
+    echo "installed to $dest"
+}
+# install_bot <bot dir> <shortName> <library>: a bot of bots/, laid out by run/bot_payload.sh at the version of its
+# Cargo.toml (docs/design/2026-11-07-bot-releases.md §3.1). The other versions of the bot are removed: a lobby lists
+# each, a hosted game loads the highest, and the arena resolves a bare name to the one installed, so a version left
+# behind is a trap.
+install_bot() {
+    mkdir -p "$data/AI/Skirmish/$2"
+    stage=$(mktemp -d "$data/AI/Skirmish/$2/.new.XXXXXX")
+    version=$("$root/run/bot_payload.sh" "$1" "$root/target/release/$3" "$stage")
+    dest="$data/AI/Skirmish/$2/$version"
+    mkdir -p "$dest"
+    for file in AIInfo.lua libSkirmishAI.so; do
+        mv -f "$stage/$file" "$dest/$file"
+    done
+    rmdir "$stage"
+    for other in "$data/AI/Skirmish/$2"/*/; do
+        [ "${other%/}" = "$dest" ] || rm -rf "$other"
     done
     echo "installed to $dest"
 }
@@ -64,9 +84,9 @@ fi
 for name in $names; do
     case $name in
         WReason) install WReason/0.1 crates/ai-shim/data/AIInfo.lua libai_shim.so ;;
-        WRTemplate) install WRTemplate/0.1 bots/template/data/AIInfo.lua libbot_template.so ;;
-        WRDistilled) install WRDistilled/0.1 bots/distilled/data/AIInfo.lua libbot_distilled.so ;;
-        WRTerritory) install WRTerritory/0.1 bots/territory/data/AIInfo.lua libbot_territory.so ;;
+        WRTemplate) install_bot template WRTemplate libbot_template.so ;;
+        WRDistilled) install_bot distilled WRDistilled libbot_distilled.so ;;
+        WRTerritory) install_bot territory WRTerritory libbot_territory.so ;;
         Apex:*) install_apex "${name#Apex:}" ;;
         *) echo "unknown AI: $name" >&2; exit 2 ;;
     esac

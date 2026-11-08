@@ -34,7 +34,7 @@ run() {
   n=$((n + 1))
   cp "$record" "$live"
   echo "=== $label on $map $(date +%T)"
-  target/release/arena --our-ai WRDistilled:0.1 --matches 8 --parallel 8 --speed 50 --map "$map" --max-minutes 30 \
+  target/release/arena --our-ai WRDistilled --matches 8 --parallel 8 --speed 50 --map "$map" --max-minutes 30 \
     --play-out --seed-base 1 --base-port 9500 --label "$label" "$@" 2>&1 | grep -E "^match|^==|->"
 }
 run comet "Comet Catcher Remake 1.8" "$@"

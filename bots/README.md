@@ -23,7 +23,7 @@ that shape which anyone in the BAR community can run for nothing.
 
 ## Running one
 
-`target/release/arena --our-ai WRTemplate:0.1 --map "<map>" ...` seats it in place of the flagship; the arena then
+`target/release/arena --our-ai WRTemplate --map "<map>" ...` seats it in place of the flagship; the arena then
 starts no bot process. `run/install_ai.sh` installs the bots into the arena's data directory only, never into a BAR
 install.
 
@@ -43,5 +43,6 @@ install.
   <match dir>/demos/<demo>.sdfz --label <name> --audit` replays it into the match records of both sides (the viewer and
   the record's tools read them) and the audit dump, and `run/audit.py` reads that as the waste audit: every builder's,
   plant's and soldier's seconds, the store, the front (`docs/harness/audit.md`). Review a bot's game there first.
-- Linux only so far; nothing builds the library for Windows.
+- Windows and Linux downloads of a bot, its version and the release process: `docs/design/2026-11-07-bot-releases.md` (the
+  arena takes a bare `--our-ai WRDistilled`, the version installed by `run/install_ai.sh` from the crate's Cargo.toml).
 - Linking the host makes the library GPL-2.0-or-later (the engine's headers).

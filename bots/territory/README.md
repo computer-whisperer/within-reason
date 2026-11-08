@@ -66,7 +66,7 @@ The bot's engine line prints them all at the start (`arms:`).
 ## Running
 
 ```
-target/release/arena --our-ai WRTerritory:0.1 --opponent NullAI:0.1 --matches 4 --parallel 4 --speed 50 \
+target/release/arena --our-ai WRTerritory --opponent NullAI:0.1 --matches 4 --parallel 4 --speed 50 \
     --map "Comet Catcher Remake 1.8" --max-minutes 20 --play-out --starts 941,2534:6899,684 --seed-base 1 --label terr-...
 run/territory_curves.py terr-... --oracle
 ```

@@ -25,7 +25,7 @@ else
 fi
 row() { # <map> <name> <port> <the opponent's flags...>
     map="$1"; name="$2"; port="$3"; shift 3
-    target/release/arena --our-ai WRDistilled:0.1 --matches 8 --parallel 8 --speed 50 --map "$map" --seed-base 1 --max-minutes 30 --play-out \
+    target/release/arena --our-ai WRDistilled --matches 8 --parallel 8 --speed 50 --map "$map" --seed-base 1 --max-minutes 30 --play-out \
         --base-port "$port" --label "dist$n-$tag$name-$who" "$@" 2>&1 | grep -E "^==|->|rror|usage"
 }
 pair() { # <map> <name> <map> <name>

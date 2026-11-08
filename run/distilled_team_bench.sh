@@ -30,7 +30,7 @@ for arm in "${arms[@]}"; do
   label="dist$n-$tag-$(echo "$arm" | tr '=,' '--')"
   n=$((n + 1))
   echo "=== $label $(date +%T)"
-  WITHIN_REASON_DISTILLED="$arm" target/release/arena --our-ai WRDistilled:0.1 --ours 2 --enemies 2 --profile hard_aggressive \
+  WITHIN_REASON_DISTILLED="$arm" target/release/arena --our-ai WRDistilled --ours 2 --enemies 2 --profile hard_aggressive \
     --matches 16 --parallel 8 --speed 50 --map "All That Glitters v2.2.3" --max-minutes "${MINUTES:-40}" --play-out --seed-base 1 \
     --base-port 9500 --label "$label" "$@" 2>&1 | grep -E "^==|->"
 done

@@ -8,4 +8,4 @@
 set -eu
 arms="$1"; label="$2"; shift 2
 root=$(cd "$(dirname "$0")/.." && pwd)
-WITHIN_REASON_DISTILLED="$arms" exec "$root/target/release/arena" --our-ai WRDistilled:0.1 --matches 8 --parallel 8 --speed 50 --map "Comet Catcher Remake 1.8" --seed-base 1 --max-minutes 40 --play-out --label "$label" "$@"
+WITHIN_REASON_DISTILLED="$arms" exec "$root/target/release/arena" --our-ai WRDistilled --matches 8 --parallel 8 --speed 50 --map "Comet Catcher Remake 1.8" --seed-base 1 --max-minutes 40 --play-out --label "$label" "$@"

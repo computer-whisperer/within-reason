@@ -97,7 +97,7 @@ export PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyo
 cd ..
 
 # no key needed: the template heuristic bot against BARb easy, five game minutes
-target/release/arena --our-ai WRTemplate:0.1 --matches 1 --speed 50 --profile easy \
+target/release/arena --our-ai WRTemplate --matches 1 --speed 50 --profile easy \
     --map "Comet Catcher Remake 1.8" --max-minutes 5 --label my-first-game
 
 # the flagship, one headless game: an Opus player over the hands (each engine needs ~4 GB of memory)

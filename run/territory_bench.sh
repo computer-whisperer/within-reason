@@ -29,7 +29,7 @@ run() {
   label="terr$n-$tag-$start"
   n=$((n + 1))
   echo "=== $label on $map $(date +%T)"
-  target/release/arena --our-ai WRTerritory:0.1 --opponent NullAI:0.1 --matches 4 --parallel 4 --speed 50 \
+  target/release/arena --our-ai WRTerritory --opponent NullAI:0.1 --matches 4 --parallel 4 --speed 50 \
     --map "$map" --max-minutes 20 --play-out --seed-base 1 --base-port 9400 --label "$label" "$@" 2>&1 | grep -E "^match|^==|->"
 }
 # The starts, as run/territory_bench.py names them. Comet from thebluegecko's start fixes both starts in the script;

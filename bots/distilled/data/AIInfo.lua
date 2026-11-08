@@ -21,7 +21,7 @@ local infos = {
 	},
 	{
 		key    = 'version',
-		value  = '0.1', -- AI version - !This comment is used for parsing!
+		value  = '@VERSION@', -- AI version - !This comment is used for parsing! (filled from the crate's Cargo.toml by run/bot_payload.sh)
 	},
 	{
 		key    = 'name',
@@ -35,7 +35,7 @@ local infos = {
 	},
 	{
 		key    = 'url',
-		value  = 'https://github.com/',
+		value  = '@URL@',
 		desc   = 'URL with more detailed info about the AI',
 	},
 	{

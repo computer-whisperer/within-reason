@@ -254,11 +254,13 @@ impl Distilled {
 
     /// What the bot says in the game chat at its first orders, as the flagship does (`crates/bot/src/main.rs`): the
     /// game names AIs at random, so the line says which name is ours, the commit it was built from, its arms, the
-    /// seat's income bonus and the seat. A replay or an engine log then says which build played.
+    /// seat's income bonus and the seat; the version is the crate's (the released number) before the commit. A replay or an
+    /// engine log then says which build played.
     fn banner(&self) -> String {
         let side = self.hello.teams.iter().find(|t| t.team == self.hello.team).map_or("?", |t| t.side.as_str());
         format!(
-            "{{name}} is WRDistilled {} | arms: {} | bonus {:+.0}% | seat ai{} team {} {side}",
+            "{{name}} is WRDistilled {} ({}) | arms: {} | bonus {:+.0}% | seat ai{} team {} {side}",
+            env!("CARGO_PKG_VERSION"),
             ai_host::commit(),
             self.options.describe(),
             (self.income_multiplier - 1.0) * 100.0,

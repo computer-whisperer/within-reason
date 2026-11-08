@@ -10,10 +10,11 @@
 //!                                                               writes the game's experimentallegionfaction option; BARb and Apex both play Legion)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
-//!              [--ally-ai NAME:VERSION]   (the allied seats' AI in place of BARb, e.g. WRDistilled:0.1 beside --our-ai WRTerritory:0.1)
+//!              [--ally-ai NAME[:VERSION]]   (the allied seats' AI in place of BARb, e.g. WRDistilled beside --our-ai WRTerritory)
 //!              [--boxes standard|corners|north-south|west-east]   (where the ally teams start; default the lobby's boxes for the map)
-//!              [--our-ai NAME:VERSION]   (the AI on our seats; default WReason:0.1, the flagship, played by the bot process; a bot of
-//!                                         bots/ (WRTemplate:0.1) plays inside its library: no bot process, no bot.log, no record)
+//!              [--our-ai NAME[:VERSION]]   (the AI on our seats; default WReason, the flagship, played by the bot process; a bot of
+//!                                         bots/ (WRTemplate) plays inside its library: no bot process, no bot.log, no record; a bare
+//!                                         name is the version installed under run/data by install_ai.sh)
 //!              [--bot PATH]   (bot binary from another build, for A/B runs)
 //!              [--disable H-ID,H-ID]   (ablation: switch heuristics off by registry ID)
 //!              [--ab-disable H-ID,H-ID]   (interleaved A/B: arm B also switches these off; blocks of four matches)
@@ -133,12 +134,12 @@ struct Options {
     corner: Option<bool>,
     ours: usize,
     allies: usize,
-    /// `--ally-ai NAME:VERSION`: the allied seats' AI, BARb when unset.
+    /// `--ally-ai NAME[:VERSION]`: the allied seats' AI, BARb when unset.
     ally_ai: Option<String>,
     enemies: usize,
     free_for_all: bool,
     boxes: Boxes,
-    /// `--our-ai NAME:VERSION`: the AI on our seats. The flagship's library by default, played by the bot process;
+    /// `--our-ai NAME[:VERSION]`: the AI on our seats. The flagship's library by default, played by the bot process;
     /// any other is a bot inside its own library (`bots/`), and no bot process is started.
     our_ai: String,
     /// Bot binary to run instead of this workspace's, for A/B runs against an older build.
@@ -212,7 +213,7 @@ struct MatchResult {
 }
 
 fn main() -> io::Result<()> {
-    let options = parse_args();
+    let mut options = parse_args();
     if let Some(dir) = &options.compress_logs {
         return compress_logs_command(dir);
     }
@@ -220,6 +221,10 @@ fn main() -> io::Result<()> {
     let status = Command::new(repo.join("run/install_ai.sh")).stdout(Stdio::null()).status()?;
     if !status.success() {
         return Err(io::Error::other("install_ai.sh failed"));
+    }
+    options.our_ai = installed_ai(&repo, &options.our_ai)?;
+    if let Some(ally) = &options.ally_ai {
+        options.ally_ai = Some(installed_ai(&repo, ally)?);
     }
 
     let available_gb = available_memory_gb()?;
@@ -940,6 +945,10 @@ fn parse_args() -> Options {
     if options.compress_logs.is_some() {
         return options; // a chore on recorded matches: no game's options to check
     }
+    // The flagship's version is fixed (`crates/ai-shim/data/AIInfo.lua`); a bot's is resolved once installed (`installed_ai`).
+    if options.our_ai == "WReason" {
+        options.our_ai = FLAGSHIP_AI.into();
+    }
     // `--player` is the pianist's player.
     if options.our_ai != FLAGSHIP_AI && (options.pianist || options.player || options.bot.is_some() || options.packet.is_some()) {
         usage("--our-ai names a bot that plays inside its library: --pianist, --player, --packet and --bot are the flagship's");
@@ -954,8 +963,28 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME[:VERSION]] [--ally-ai NAME[:VERSION]] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
+}
+
+/// `NAME` resolved to `NAME:VERSION`: the one version of the AI installed under the arena's data dir by
+/// `install_ai.sh`, which keeps one per bot (a bot's version is its crate's, `run/bot_payload.sh`). `NAME:VERSION` is
+/// kept as given.
+fn installed_ai(repo: &Path, ai: &str) -> io::Result<String> {
+    if ai.contains(':') {
+        return Ok(ai.to_string());
+    }
+    let dir = repo.join("run/data/AI/Skirmish").join(ai);
+    let mut versions: Vec<String> = match fs::read_dir(&dir) {
+        Ok(entries) => entries.filter_map(Result::ok).filter(|e| e.path().is_dir()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| !n.starts_with('.')).collect(),
+        Err(_) => Vec::new(),
+    };
+    versions.sort();
+    match versions.as_slice() {
+        [version] => Ok(format!("{ai}:{version}")),
+        [] => Err(io::Error::other(format!("no {ai} installed under {} (install_ai.sh installs WReason, WRTemplate, WRDistilled and WRTerritory)", dir.display()))),
+        many => Err(io::Error::other(format!("{ai} is installed at several versions under {}: {}; name one as {ai}:VERSION", dir.display(), many.join(", ")))),
+    }
 }
 
 /// The directory of an AI (`ShortName:Version`) below `AI/Skirmish`.

@@ -57,7 +57,8 @@ pub struct MatchSetup<'a> {
     /// The game's full name, not a rapid tag: the lobby reads it from a replay's header and cannot resolve a tag.
     pub game: &'a str,
     pub map: &'a str,
-    /// Our seats' AI, `ShortName:Version`: the flagship's library (`WReason:0.1`) or a bot of `bots/`.
+    /// Our seats' AI, `ShortName:Version` (the arena resolves a bare name before rendering): the flagship's library
+    /// (`WReason:0.1`) or a bot of `bots/`.
     pub our_ai: &'a str,
     /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`).
     pub opponent: &'a str,
@@ -115,6 +116,12 @@ struct Seat {
     side: &'static str,
 }
 
+/// `ShortName:Version` split; our seats' AIs reach the script resolved (`installed_ai` in main.rs), so a bare name here
+/// is a bug of the caller, not a default to guess.
+fn name_version(ai: &str) -> (&str, &str) {
+    ai.split_once(':').unwrap_or_else(|| panic!("{ai}: an AI reaches the start script as ShortName:Version"))
+}
+
 impl MatchSetup<'_> {
     pub fn our_ally_team(&self) -> u8 {
         if self.we_are_first { 0 } else { 1 }
@@ -151,7 +158,7 @@ impl MatchSetup<'_> {
     }
 
     pub fn render(&self) -> String {
-        let (name, version) = self.our_ai.split_once(':').unwrap_or((self.our_ai, "0.1"));
+        let (name, version) = name_version(self.our_ai);
         let ours = format!("ShortName={name}; Version={version};");
         // `random_seed` is read by BARb (CircuitAI.cpp) though the lobby does not offer it. It does NOT make BARb
         // repeatable: it draws from the C library's `rand()`, which the whole engine process shares, and the same seed
@@ -174,7 +181,7 @@ impl MatchSetup<'_> {
         seats.extend((0..self.ours).map(|_| Seat { ai: ours.clone(), bonus: self.our_bonus, ally_team: us, side: self.our_side }));
         // An allied seat plays the other faction, so nothing of ours may assume an ally's units are our kind.
         let ally = self.ally_ai.map_or(barb.clone(), |ai| {
-            let (name, version) = ai.split_once(':').unwrap_or((ai, "0.1"));
+            let (name, version) = name_version(ai);
             format!("ShortName={name}; Version={version};")
         });
         seats.extend((0..self.allies).map(|_| Seat { ai: ally.clone(), bonus: 0, ally_team: us, side: other_side }));

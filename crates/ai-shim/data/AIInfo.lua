@@ -35,7 +35,7 @@ local infos = {
 	},
 	{
 		key    = 'url',
-		value  = 'https://github.com/',
+		value  = 'https://github.com/computer-whisperer/within-reason',
 		desc   = 'URL with more detailed info about the AI',
 	},
 	{
