@@ -62,7 +62,8 @@ field is far ahead of its medians at every mark while far behind what the same m
 - *Build power takes the form of what it builds.* Extractors are spread over the map and want builders that walk;
   the frames of this regime (fusions 3,350, advanced fusions 9,700, converters 380, the gantry) all stand in one
   place and want power that stands there. A construction turret helps any frame within 400 (K-mech-turrets-assist-
-  in-radius) and is the cheapest build power in metal, 1.15 a point against the advanced constructor's 1.9 to 2.0
+  in-radius), one at a time in your `tend` order (the plants' products last: left to the game a turret takes the nearest
+  thing under construction, and a running plant is always that; your hands lay the block out of every plant's reach) and is the cheapest build power in metal, 1.15 a point against the advanced constructor's 1.9 to 2.0
   (F-eco-consequences); a frame placed among turrets builds at their sum. The clocks: a fusion 186 seconds on one
   advanced construction vehicle, 54 at 1,000 power (five turrets); an advanced fusion 539 seconds on two advanced
   constructors, 226 with four turrets beside them, 143 with eight (K-t2-build-power-for-a-project-follows-the-spend);

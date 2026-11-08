@@ -211,12 +211,13 @@ impl Brain {
         let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground: {} (reclaim them as the block's slots reach them: `remove`)", ground.join(", ")) };
         let placed = if block.marked { "at your `block` mark".to_string() } else { "beside the advanced plant; a `block` mark moves it".to_string() };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
             if turrets == 1 { "" } else { "s" },
-            block.frame_slots.len()
+            block.frame_slots.len(),
+            self.tend_words()
         ))
     }
 
@@ -307,8 +308,10 @@ mod tests {
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("armafus slots")), "{:?}", brain.pianist.as_ref().unwrap().done);
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
         let line = brain.block_line(&ours).expect("a line");
-        // Two tiers held at laying (the third's rows run into the plant's side of the ground), twelve slots.
-        assert!(line.contains("12 of 12 frame slots free in 2 tiers of rows") && line.contains("sparse"), "{line}");
+        // Laid clear of the turrets' reach of the plant (2026-11-08), all three tiers hold at laying: eighteen slots.
+        assert!(line.contains("18 of 18 frame slots free in 3 tiers of rows") && line.contains("sparse"), "{line}");
+        assert!(line.contains("in this order, one thing at a time (`tend` changes it): turret, advanced_fusion, fusion"), "{line}");
+        assert!(block.centre.dist2d(plant.pos) >= 400.0 + 100.0 + 72.0, "the block within the turrets' reach of the plant: {block:?}");
         // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
         // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.
         brain.kit = Some(kit.clone());

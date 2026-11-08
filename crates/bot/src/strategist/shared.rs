@@ -489,6 +489,7 @@ pub struct TurnOutputs {
     pub heal: BTreeMap<String, bool>,
     pub marks: BTreeMap<String, Mark>,
     pub block_dense: bool,
+    pub tend: Vec<String>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
     pub firings: Vec<Firing>,
@@ -721,6 +722,9 @@ pub struct Shared {
     pub marks: Mutex<BTreeMap<String, Mark>>,
     /// The block's pitch at the player's word (`block` tool): dense packs the construction turrets at 48, else 96.
     pub block_dense: std::sync::atomic::AtomicBool,
+    /// The order the construction turrets take their work in (`tend` tool, H-ECO-NANO-GUARD): category words,
+    /// handles and ids, best first, `never` before what gets nothing; empty, the hands' default order.
+    pub tend: Mutex<Vec<String>>,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
     pub allowed: Mutex<BTreeMap<String, Allowance>>,
@@ -955,6 +959,7 @@ impl Shared {
             heal: self.heal.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             block_dense: self.block_dense.load(std::sync::atomic::Ordering::Relaxed),
+            tend: self.tend.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
             firings: self.firings.lock().unwrap().clone(),
@@ -969,6 +974,7 @@ impl Shared {
         *self.heal.lock().unwrap() = o.heal;
         *self.marks.lock().unwrap() = o.marks;
         self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
+        *self.tend.lock().unwrap() = o.tend;
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
         *self.firings.lock().unwrap() = o.firings;
@@ -1000,6 +1006,7 @@ impl Shared {
                 *self.heal.lock().unwrap() = o.heal;
                 *self.marks.lock().unwrap() = o.marks;
                 self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
+                *self.tend.lock().unwrap() = o.tend;
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
                 self.removals.lock().unwrap().extend(o.removals);

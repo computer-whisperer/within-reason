@@ -25,6 +25,11 @@ pub const SPARSE_PITCH: f32 = 96.0;
 pub const DENSE_PITCH: f32 = 48.0;
 /// How far from the advanced plant the block's centre is looked for before the search widens (twice, doubling).
 const BLOCK_SEARCH: f32 = 600.0;
+/// Slack over a turret's build distance for a plant's own size (the engine adds the target's radius): an unmarked
+/// block's centre keeps the turret's reach plus this from every plant, so the block's turrets do not see a plant,
+/// whose product under way is always the nearest thing to help (econ-flagship-8 and -9: blocks 499 and 304 from the
+/// advanced plant, their turrets on the plant while the fusion frames crawled). A marked block is the player's word.
+const PLANT_CLEARANCE_SLACK: f32 = 100.0;
 /// The candidate centres' step: three build squares (a street check runs on each).
 const SEARCH_STEP: f32 = 48.0;
 const WIDENINGS: u32 = 2;
@@ -260,7 +265,11 @@ pub fn lay(world: &World, wants: &Wants, mark: Option<Vec3>) -> Result<Block, St
     };
     let mut best: Option<(Vec3, Shape, f32, f32, f32)> = None;
     let mut why = format!("no ground for a block within {:.0} of the advanced plant", BLOCK_SEARCH * 2f32.powi(WIDENINGS as i32));
+    let clearance = wants.turret.build_distance + PLANT_CLEARANCE_SLACK;
     for (centre, distance) in candidates {
+        if mark.is_none() && world.plants.iter().any(|p| crate::choose::distance_to(&p.rect(), centre) < clearance) {
+            continue;
+        }
         let s = shape(centre, along_x, wants, world.toward);
         let Some((spread, metal)) = holds(world, wants, &s) else { continue };
         // Marked: the nearest point to the mark that holds, banks on it accepted (the mark is the player's word).
@@ -446,7 +455,9 @@ mod tests {
         let wants = wants();
         with_plant(&mut w, &wants);
         let block = lay(&w, &wants, None).expect("a block");
-        assert!(block.from_plant <= BLOCK_SEARCH, "{block:?}");
+        assert!(block.from_plant <= 2.0 * BLOCK_SEARCH, "{block:?}");
+        // Out of the turrets' reach of the plant: the block's turrets never see it (econ-flagship-9).
+        assert!(crate::choose::distance_to(&wants.plant.rect(), block.centre) >= wants.turret.build_distance + PLANT_CLEARANCE_SLACK, "{block:?}");
         assert_eq!(block.frame_slots.len(), 6);
         let apron = wants.plant.apron();
         for r in block.reservations() {
@@ -530,10 +541,11 @@ mod tests {
     }
 
     /// The block grows a tier at a time on clear ground, two rows and six slots each, every slot within the turrets'
-    /// reach of the centre. Laid beside the plant along its front, the third tier's rows fall on the plant's own
-    /// ground, so it is refused while the plant stands and holds once the plant is eaten (his way: each plant
-    /// reclaimed for the next tier's frames); a fourth is never laid; a turret of ours standing on the next tier's
-    /// ground stops the growth there (econ-flagship-5: six slots full by 11:28, the later frames outside).
+    /// reach of the centre. A building of ours (not a bank) on the third tier's ground refuses it while it stands
+    /// and the tier holds once it is eaten (his way: each plant reclaimed for the next tier's frames; before
+    /// 2026-11-08 the block lay close enough for the plant itself to be that building); a fourth is never laid; a
+    /// turret of ours standing on the next tier's ground stops the growth there (econ-flagship-5: six slots full by
+    /// 11:28, the later frames outside).
     #[test]
     fn the_block_grows_by_tiers_within_reach_and_stops_at_what_stands() {
         let t = flat();
@@ -544,11 +556,14 @@ mod tests {
         let mut block = lay(&w, &wants, None).expect("a block");
         assert_eq!((block.tiers, block.frame_slots.len(), block.frame_rows.len()), (1, 6, 2));
         assert_eq!(block.grow(&w), Ok(6));
-        assert!(block.grow(&w).unwrap_err().contains("no clear ground"), "the third tier is the plant's ground: {block:?}");
+        let (third, _) = tier_rows(block.centre, block.along_x, &block.frame, 3);
+        let in_the_way = |r: &Rect| Standing { rect: wants.turret.footprint.rect(Vec3 { x: (r.x0 + r.x1) / 2.0, y: 0.0, z: (r.z0 + r.z1) / 2.0 }), def: Some(UnitDefId(6)), kind: "armrad".into(), ours: true, bank: false, metal: 60.0, health: 500.0, blast: None, name: "radar_1".into() };
+        let before = w.standing.len();
+        w.standing.extend(third.iter().map(in_the_way));
+        assert!(block.grow(&w).unwrap_err().contains("no clear ground"), "the third tier's ground is taken: {block:?}");
         assert_eq!((block.tiers, block.frame_slots.len()), (2, 12));
-        // The plant eaten: the third tier holds.
-        w.plants.clear();
-        w.standing.clear();
+        // What stood there eaten: the third tier holds.
+        w.standing.truncate(before);
         assert_eq!(block.grow(&w), Ok(6));
         assert_eq!((block.tiers, block.frame_slots.len(), block.frame_rows.len()), (3, 18, 6));
         for s in &block.frame_slots {

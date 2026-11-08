@@ -192,6 +192,9 @@ fn tool_list() -> Value {
             { "name": "block",
               "description": "The block is where your construction turrets and frames (fusions, advanced fusions, advanced converters, the gantry) stand: your hands lay it once your first advanced plant is placed, beside that plant on flat ground that holds two rows of frame slots and the gantry's slot, or at a place you `mark` as `block`; the report's block line says where it is and what stands on its ground. This tool sets its pitch: {\"pitch\": \"sparse\"} (the default) stands the turrets 96 apart, so no turret's death reaches another and about 68 reach any frame; {\"pitch\": \"dense\"} packs them at 48, touching, the experienced players' end state (more build power in reach of every frame; a dying turret's neighbours take its blast, and the rows are a train once two die together). Say dense when your anti-air is up and your lists want more turrets in reach than the sparse slots give.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["pitch"], "properties": { "pitch": { "type": "string", "enum": ["sparse", "dense"] } } } },
+            { "name": "tend",
+              "description": "The order your construction turrets take their work in. A turret helps one thing in its reach at a time until it stands, then the next; left to the game it takes the nearest thing under construction, and a plant with a product under way is always that, so turrets in reach of a plant feed the plant and a fusion frame beside them waits (econ-flagship-9: 2,800 build power on the old vehicle plant, the fusion at 74 % gaining under 1 % a second). Your hands order each turret onto the highest-ranked thing in its reach instead, the nearest among equals: {\"order\": [\"turret\", \"advanced_fusion\", \"fusion\", \"converter\", \"extractor\", \"generator\", \"storage\", \"building\", \"advanced_plant\", \"plant\"]} is the default and the words it takes (a frame by its kind; `building` any other frame; `advanced_plant` and `plant` a factory's own products); a handle (`plant_17116`, `armafus_54`) or an id of your lists (`#af2`) stands anywhere in the order as itself; what follows the word `never` gets no turret's order, and a turret with nothing ranked in its reach and a `never` thing there stands idle rather than feed it. A kind not named comes after the named ones, before `never`. The order stands until you send another; [] restores the default; the report's block line reads it back.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["order"], "properties": { "order": { "type": "array", "items": { "type": "string", "maxLength": 40 }, "maxItems": 40 } } } },
             { "name": "produce",
               "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers muster beside the plant, out of its lane, and walk to their group four together as a company of their own; unset, they walk when a company's worth stands, or after a wait: see the `lane` tool's `company`): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words; before the faction is known, one list per faction instead, {\"all\": {\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}, and the hands take the faction's list at their first look and say which), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
@@ -208,7 +211,7 @@ fn tool_list() -> Value {
               "description": "Say something in the game's chat: `to` \"everyone\" (the default: everyone in the game, his side too) or \"allies\" (our side alone; refused when the person hosting you watches as a spectator, whose team chat goes to the spectators: the map's `people` says). Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you, as a player on our side would be shown it; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 }, "to": { "type": "string", "enum": ["everyone", "allies"] } } } },
             signal_tool(),
-            orders(&["instruct", "queue", "lane", "mark", "block", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, the block's pitch, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
+            orders(&["instruct", "queue", "lane", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, the block's pitch, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
             predict_tool(),
@@ -363,7 +366,7 @@ pub(super) fn predict(arguments: &Value, shared: &Arc<Shared>) -> Result<String,
 }
 
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "lane", "mark", "block", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
+    &["instruct", "queue", "lane", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -881,6 +884,23 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             shared.block_dense.store(dense, std::sync::atomic::Ordering::Relaxed);
             Ok(if dense { "the block is dense: its construction turrets stand 48 apart, touching, from the next one placed".to_string() } else { "the block is sparse: its construction turrets stand 96 apart from the next one placed".to_string() })
+        }
+        "tend" => {
+            let order = arguments.get("order").and_then(Value::as_array).ok_or("tend takes {\"order\": [\"advanced_fusion\", \"fusion\", ...]}")?;
+            let mut words: Vec<String> = Vec::new();
+            for entry in order {
+                let word = entry.as_str().map(|w| w.trim().to_ascii_lowercase()).filter(|w| !w.is_empty()).ok_or("tend: the order is a list of words")?;
+                let known = crate::brain::TEND_CATEGORIES.contains(&word.as_str()) || word == "never" || word.starts_with('#') || word.contains('_');
+                if !known {
+                    return Err(format!("tend: '{word}' is not a kind ({}), never, a handle (plant_17116, armafus_54) or an id (#af2)", crate::brain::TEND_CATEGORIES.join(", ")));
+                }
+                if words.contains(&word) {
+                    return Err(format!("tend: '{word}' twice"));
+                }
+                words.push(word);
+            }
+            *shared.tend.lock().unwrap() = words.clone();
+            Ok(if words.is_empty() { format!("the turrets take their work in the default order: {}", crate::brain::TEND_CATEGORIES.join(", ")) } else { format!("the turrets take their work in this order from their next look: {}", words.join(", ")) })
         }
         "signal" => signal(arguments, shared),
         "say" => {
@@ -1442,10 +1462,23 @@ mod tests {
         assert!(err.contains("not a seat of our side") && err.contains("allies: t6, t7"), "{err}");
     }
 
+    /// `tend` takes kinds, handles, ids and `never`, refuses an unknown word, and [] restores the default.
+    #[test]
+    fn tend_takes_an_order_of_kinds_handles_and_ids() {
+        let shared = Arc::new(Shared::default());
+        let said = call_tool("tend", &json!({ "order": ["#af2", "advanced_fusion", "fusion", "never", "plant_17116", "plant"] }), &shared).unwrap();
+        assert!(said.contains("#af2, advanced_fusion, fusion, never, plant_17116, plant"), "{said}");
+        assert_eq!(*shared.tend.lock().unwrap(), vec!["#af2", "advanced_fusion", "fusion", "never", "plant_17116", "plant"]);
+        assert!(call_tool("tend", &json!({ "order": ["fusions"] }), &shared).unwrap_err().contains("not a kind"));
+        assert!(call_tool("tend", &json!({ "order": ["fusion", "fusion"] }), &shared).unwrap_err().contains("twice"));
+        assert!(call_tool("tend", &json!({ "order": [] }), &shared).unwrap().contains("default order"));
+        assert!(shared.tend.lock().unwrap().is_empty());
+    }
+
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "block", "produce", "transfer", "remove", "fire", "say", "signal", "orders", "wait", "note", "predict"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "block", "tend", "produce", "transfer", "remove", "fire", "say", "signal", "orders", "wait", "note", "predict"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
