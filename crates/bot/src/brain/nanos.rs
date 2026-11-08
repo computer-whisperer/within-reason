@@ -118,6 +118,13 @@ impl Brain {
         nano.pos.dist2d(target.pos) <= self.world.def(nano.def).map_or(0.0, |d| d.build_distance) + FACTORY_REACH_SLACK
     }
 
+    /// Whether a turret is told onto `target` now (a frame by a repair order, a plant by a guard): in reach is not
+    /// on it, since the `tend` order puts a turret on one thing at a time (econ-flagship-17, 14:17: the player read
+    /// "1,600 build power helping" a plant its order had put after `never`, the figure being the turrets in reach).
+    pub(super) fn turret_on(&self, nano: &OwnUnit, target: &OwnUnit) -> bool {
+        self.nanos.told.get(&nano.id).is_some_and(|(_, to)| *to == Some(target.id))
+    }
+
     /// The `tend` kind of a building: what a turret's order ranks it as.
     pub(super) fn tend_category(&self, def: UnitDefId) -> &'static str {
         let Some(d) = self.world.def(def) else { return "building" };
@@ -216,12 +223,13 @@ impl Brain {
             })
             .collect();
         let mut told: Vec<(UnitId, Option<UnitId>)> = Vec::new();
-        // The keep-alive: a frame nobody of ours is on, its share still for two seconds, gets the nearest turret in
-        // reach whatever the order says, and that turret stays on it until it stands; one builder on a frame is what
-        // stops the decay (K-mech-frame-decay), and the order spends the rest of the power.
+        // The keep-alive: a frame no turret is told onto whose share has stood still two seconds gets the nearest
+        // turret in reach whatever the order says, and that turret stays on it until it stands; one builder on a
+        // frame is what stops the decay (K-mech-frame-decay), and the order spends the rest of the power. The share
+        // is the test, not whom the hands count as on the frame: econ-flagship-17's three decays under the
+        // keep-alive were frames whose builders stood 113 to 195 away, penned or wandering, building nothing.
         let mut kept: HashSet<UnitId> = HashSet::new();
         if self.keep_alive() {
-            let on = self.builders_on_frames_by_id();
             let keeping: HashMap<UnitId, UnitId> = self
                 .nanos
                 .keeping
@@ -236,7 +244,7 @@ impl Brain {
             let held: HashSet<UnitId> = self.nanos.told.values().filter_map(|(_, t)| *t).chain(self.nanos.keeping.values().copied()).collect();
             let starving: Vec<&OwnUnit> = candidates
                 .iter()
-                .filter(|(u, plant, _)| !plant && !held.contains(&u.id) && !on.contains_key(&u.id) && self.frame_still(u.id, tick.frame))
+                .filter(|(u, plant, _)| !plant && !held.contains(&u.id) && self.frame_still(u.id, tick.frame))
                 .map(|(u, ..)| *u)
                 .collect();
             for frame in starving {
@@ -324,8 +332,8 @@ impl Brain {
         self.nanos.set_up.retain(|nano| own.iter().any(|u| u.id == *nano));
     }
 
-    /// The seat's build power by kind, and what of it stands in reach of each factory now (a builder is in reach
-    /// when its build range covers the factory, with the slack `nanos_on` allows).
+    /// The seat's build power by kind, and what of it is on each factory now: the turrets told onto it (`turret_on`),
+    /// and the mobile builders whose build range covers it (with the slack `nanos_on` allows).
     pub(super) fn build_power(&self, own: &[OwnUnit]) -> crate::strategist::shared::BuildPower {
         use crate::strategist::shared::{BuildPower, FactoryPower};
         let power = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.build_speed);
@@ -344,24 +352,24 @@ impl Brain {
                 .map(|f| FactoryPower {
                     name: format!("{}_{}", self.world.def(f.def).map_or("factory", |d| d.name.as_str()), f.id.0),
                     own: power(f),
-                    turrets: sum(&turrets.iter().copied().filter(|b| reaches(b, f)).collect::<Vec<_>>()),
+                    turrets: sum(&turrets.iter().copied().filter(|b| self.turret_on(b, f)).collect::<Vec<_>>()),
                     mobile: sum(&mobile.iter().copied().filter(|b| reaches(b, f)).collect::<Vec<_>>()),
                 })
                 .collect(),
         }
     }
 
-    /// (turrets within reach of this factory, of them idle) for the picture's factory entry.
+    /// (turrets within reach of this factory, of them told onto it now) for the picture's factory entry.
     pub(super) fn nanos_on(&self, factory: &OwnUnit, own: &[OwnUnit]) -> (usize, usize) {
         let mut near = 0;
-        let mut idle = 0;
+        let mut on = 0;
         for nano in own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def)) {
             if self.turret_reaches(nano, factory) {
                 near += 1;
-                idle += usize::from(nano.idle);
+                on += usize::from(self.turret_on(nano, factory));
             }
         }
-        (near, idle)
+        (near, on)
     }
 }
 

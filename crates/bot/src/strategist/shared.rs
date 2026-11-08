@@ -191,7 +191,8 @@ pub struct FactoryPower {
     /// The factory's type and unit id (`armvp_13578`; the picture's actor for it ends in the same id).
     pub name: String,
     pub own: f32,
-    /// Construction turrets and mobile builders whose build range reaches it now: how many, their power.
+    /// Construction turrets told onto it now (the `tend` order; in reach is not on it), and mobile builders whose
+    /// build range reaches it: how many, their power.
     pub turrets: (usize, f32),
     pub mobile: (usize, f32),
 }
