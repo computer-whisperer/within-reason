@@ -386,7 +386,7 @@ impl Recorder {
     fn sample(&mut self, tick: &Tick) {
         let s = &tick.snapshot;
         let resource = |r: Resource| format!("[{:.0},{:.1},{:.1},{:.0}]", r.current, r.income, r.usage, r.storage);
-        let _ = write!(self.buffer, "{{\"t\":\"s\",\"f\":{},\"m\":{},\"e\":{},\"own\":[", tick.frame, resource(s.metal), resource(s.energy));
+        let _ = write!(self.buffer, "{{\"t\":\"s\",\"f\":{},\"m\":{},\"e\":{},\"mm\":{:.0},\"own\":[", tick.frame, resource(s.metal), resource(s.energy), s.conversion);
         for (i, u) in s.own_units.iter().enumerate() {
             let flags = u8::from(u.being_built) * FLAG_BEING_BUILT | u8::from(u.idle) * FLAG_IDLE | u8::from(u.stunned > 0.0) * FLAG_STUNNED;
             let health = (u.health / u.max_health.max(1.0) * 100.0).round() as i32;

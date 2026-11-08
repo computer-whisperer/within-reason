@@ -167,7 +167,7 @@ mod tests {
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } }
     }
 
     /// Hits of one weapon from one bearing become a gun with a stable name and a place; a second weapon is another

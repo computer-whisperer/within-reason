@@ -562,3 +562,12 @@ its words in D-raid-answer and D-reach-nests), L-sheet-fighting (48%), L-sheet-l
 (19%); the legend five times; "when the episode index exists" inside five tests paragraphs. The larger levers are
 outside the brief: the first report's roster (37,000 chars a session, the tables with a gloss each) and the role
 text's restatement of the tool descriptions.
+
+**Conversion bounded by energy (2026-11-08, after econ-flagship-14).** The late-economy article's converter sentence
+gains the bound: what the converters make is the energy above the line, the most efficient fed first, a converter past
+the energy a body, a full metal store still fed; and the slow-frame question (the power told onto it, not the store).
+The eco line's energy clause says what the converters took and made against what they could take, and the unfinished
+line reads each frame's rate against the pace its power would give, naming an empty store when one is, and says
+"begun 1 s ago" for a frame with no rate yet. econ-flagship-14: 153 converters that could take 31,380 on 23,270 of
+energy income, 101 of them built against a metal float; four advanced fusions at the pace of 9-23 turrets each read as
+an energy shortage at a 97 % store; a turret frame placed that second read "standing still" and was reclaimed.

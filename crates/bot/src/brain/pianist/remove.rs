@@ -159,7 +159,7 @@ mod tests {
         let ours = vec![own(7, 1, at(1000.0, 1000.0))];
         let tick = |frame: i32| {
             let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-            Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
+            Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } }
         };
         let handle = brain.handle(&ours[0]);
         let sent = |brain: &mut Brain, frame: i32| {

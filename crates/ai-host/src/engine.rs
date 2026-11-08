@@ -675,7 +675,7 @@ impl Engine {
             })
             .collect();
 
-        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None, sensors: None }
+        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None, sensors: None, conversion: self.conversion() }
     }
 
     /// The reclaimable features in sight that hold metal worth a walk, the richest first.
@@ -706,6 +706,13 @@ impl Engine {
         wrecks.sort_by(|a, b| b.metal.total_cmp(&a.metal));
         wrecks.truncate(MAX_WRECKS);
         wrecks
+    }
+
+    /// Energy a second the team's converters took this second: the conversion gadget's `mmUse` team rules param,
+    /// set when the figure changes and never set before the first converter stands (so 0 then).
+    fn conversion(&self) -> f32 {
+        let team = call!(self, SkirmishAI_getTeamId());
+        call!(self, Team_getRulesParamFloat(team, c"mmUse".as_ptr(), 0.0))
     }
 
     fn resource(&self, id: c_int) -> Resource {

@@ -248,7 +248,7 @@ mod tests {
         pianist.scripts.insert("commander".to_string(), steps.iter().map(|s| s.to_string()).collect::<VecDeque<_>>());
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 60, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: vec![commander.clone()], allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
+        let tick = Tick { frame: 60, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: vec![commander.clone()], allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } };
         let mut commands = Vec::new();
         brain.play_lists(&tick, &kit, &picture, &mut commands);
         let builds: Vec<(UnitDefId, bool, Option<Vec3>, bool)> = commands

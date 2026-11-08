@@ -643,6 +643,25 @@ ground constructor goes round a block (nothing passes between turrets at 48 pitc
 when the block has frame slots free and turrets idle while the constructors walk, and only where the air over the
 block is ours or nobody's.
 **Status.** observed (2026-11-08; his game and two of ours; the trade's energy and fragility are the unit tables')
+
+### K-eco-conversion-income-is-bounded-by-the-energy-above-the-line
+**Claim.** What the converters make is set by the energy standing above three quarters of the energy store, not by
+their number: the conversion gadget (`game_energy_conversion.lua`, F-eco-conversion) takes that excess every half
+second, feeds the most efficient converters first up to their capacity (an advanced converter 600 energy a second at
+0.01724 metal an energy, a basic one 70 at 0.01429), and never reads the metal store, so converters run and their metal
+falls on a full store. Once the advanced converters' capacity meets the energy income, a basic converter beside them
+converts nothing, and any converter built against a metal float is a body. Energy a frame draws is energy not
+converted, so late metal income reads lower by about one metal for each metal a second spent on advanced converter
+frames (55 energy a metal), and a seat's income at a mark depends on what its frames drew that second.
+**Evidence.** econ-flagship-14 (2026-11-08): from 18:30 energy use equalled energy income (23,213 against 23,270 at
+the mean, the store sampled at 85-87 % of 77,300: drained to the line every tick); 39 advanced converters could take
+23,400, the whole income, so the 114 basic converters converted nothing and the 101 of them begun 17:00-20:00 added
+no income (the player ordered them at 17:16 "to spend" a 30,000 metal float; each costs 1 metal); metal income against
+metal usage over the 121 samples 18:00-20:00 correlated at -0.76 with a slope of -0.99, an implied 58 energy a metal of
+what was building. The gap to his 1,706: his 116 advanced converters on about 90,000 of energy (30 advanced fusions)
+make about 1,200; our 39 on 23,270 about 400; extractors about 620 against his 500.
+**Status.** the gadget's rule read from its source; measured in one game (2026-11-08). Carried by the late-economy
+article and the eco line's conversion clause (H-PLAYER-ECO-WORDS).
 **Evidence.** thebluegecko against InactiveAI (K-eco-pro-curve-against-a-passive-opponent): an air plant at 10:27 and
 46 construction aircraft placing 276 turrets, 30 advanced fusions and 116 advanced converters inside the block from
 13:23. econ-flagship-11 and -12 audits (replay-econ-flagship-11, -12): constructors walking 54 % and 43 % of their

@@ -4,7 +4,7 @@ layer: derived
 premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, D-air-not-optional, D-surprise-weapons, F-eco-store, F-eco-build, F-eco-reclaim, F-eco-conversion, F-eco-multipliers, F-eco-consequences, F-eco-legion, F-unit-armnanotc, F-unit-armfus, F-unit-armafus, F-unit-armmakr, F-unit-armmmkr, F-unit-armmoho, F-unit-armadvsol, F-unit-armaca, F-unit-armacv, F-unit-armack, F-unit-legmohocon, F-unit-legrampart, F-unit-leghive, M-pool-energy-and-power, M-pool-closing, M-gecko-team, M-format-8v8, M-barb-bonus, M-apex-economy]
 lessons: [L-gecko-three-resources, L-energy-nanos, L-energy-converters, L-sheet-economy, L-sheet-labs, L-tier2-go, L-tier2-tier1-under-tier2]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-18, 2026-10-21, 2026-10-30], relay: the 3v1 chat lines, his unit sheet, the user's recollection of the fusion-to-converter ladder (2026-10-18), his game against an inactive opponent played through our engine (K-eco-pro-curve-against-a-passive-opponent), the Center Command sprint, the 8v8 replay set's tech seats; the prices are arithmetic on the facts (K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend); the failures are ours (econ-flagship-1 to -4, the Glitters 2v6 of 2026-10-25, the Altored +50 3v3 of 2026-10-18)}
-claims: [K-eco-standing-power-spends-by-the-frame, K-eco-the-starter-of-a-frame-pays-the-walk, K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
+claims: [K-eco-standing-power-spends-by-the-frame, K-eco-the-starter-of-a-frame-pays-the-walk, K-eco-conversion-income-is-bounded-by-the-energy-above-the-line, K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
 status: draft (2026-10-30, for the user's read; in no manifest; the derivations marked "ours" are not yet in a card, and the kill-test is named but not run)
 -->
 ### The late economy: when nothing is short
@@ -50,8 +50,18 @@ field is far ahead of its medians at every mark while far behind what the same m
   repaid in 3.7 minutes); a fusion with its 1.25 converters 296; a basic converter with the solars to feed it 540
   (F-eco-consequences). The converter takes only the energy standing above three quarters of the energy store
   (F-eco-conversion), so a converter never starves a builder, and "energy in balance" with converters standing is the
-  converters at work, not a reason to build none: the balance is theirs. From this point on, energy is the metal, and
-  his "luxury resource" has become the basic one.
+  converters at work, not a reason to build none: the balance is theirs. What they make is bounded by that energy,
+  not by their number: the gadget feeds the most efficient first, so once the advanced converters' capacity meets the
+  energy income (39 of them take 23,400 a second) a basic converter beside them converts nothing, a converter built
+  against a metal float is a body, and the gadget never reads the metal store, so a full one is still fed and the
+  metal is lost (K-eco-conversion-income-is-bounded-by-the-energy-above-the-line; econ-flagship-14: 114 basic
+  converters beside 39 advanced on 23,270 of energy, the last 101 of them adding nothing). The energy a frame draws is
+  energy not converted, so each metal a second spent on advanced converter frames reads as about a metal a second less
+  income while it builds. From this point on, energy is the metal, and his "luxury resource" has become the basic
+  one, and the question of a slow frame is the power on it, not the store: a frame rises at the power told onto it
+  over its build time, so four advanced fusions placed at once under 50 turrets go at a quarter of the block's pace
+  each, and only an empty store makes a frame slower than its power (econ-flagship-14, 15:08: 0.4-0.9 % a second
+  under 9-23 turrets apiece with the energy store at 97 %, read as an energy shortage, and 104 solars ordered).
 
 - *The loop closes and compounds.* Energy buys metal through the converter; metal and build power buy energy through
   the fusion; metal and energy buy build power through the turret. Each engine (one advanced fusion and its five

@@ -573,8 +573,20 @@ impl Brain {
     /// The builders working on each unfinished frame of ours, by the hands' tasks: the frame's own builder, a
     /// builder finishing or repairing it, one guarding it, or one guarding its builder.
     pub(super) fn builders_on_frames(&self) -> HashMap<UnitId, Vec<String>> {
+        self.builders_on_frames_by_id()
+            .into_iter()
+            .map(|(frame, ids)| {
+                let mut names: Vec<String> = ids.iter().map(|b| self.actor_name(*b)).collect();
+                names.sort();
+                (frame, names)
+            })
+            .collect()
+    }
+
+    /// The same by the builders' ids: the unfinished line's expected rate sums their build speeds.
+    fn builders_on_frames_by_id(&self) -> HashMap<UnitId, Vec<UnitId>> {
         use super::pianist::Task;
-        let mut on: HashMap<UnitId, Vec<String>> = HashMap::new();
+        let mut on: HashMap<UnitId, Vec<UnitId>> = HashMap::new();
         let Some(pianist) = self.pianist.as_ref() else { return on };
         let frame_of = |builder: UnitId| match pianist.tasks.get(&builder) {
             Some(Task::Build { frame: Some(f), .. }) | Some(Task::Repair { target: f, .. }) => Some(*f),
@@ -587,11 +599,8 @@ impl Brain {
                 _ => None,
             });
             if let Some(frame) = frame {
-                on.entry(frame).or_default().push(self.actor_name(*builder));
+                on.entry(frame).or_default().push(*builder);
             }
-        }
-        for names in on.values_mut() {
-            names.sort();
         }
         on
     }
@@ -601,28 +610,50 @@ impl Brain {
     /// is read in the share alone (econ-flagship-8, 12:48: an advanced fusion rising a percent a second under
     /// fourteen turrets read "nobody is building it, decaying").
     fn unfinished_frames(&self, own: &[OwnUnit], frame: i32) -> Vec<crate::strategist::shared::UnfinishedFrame> {
-        let on = self.builders_on_frames();
+        let on = self.builders_on_frames_by_id();
         let turrets: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def)).collect();
+        // A standing unit's build speed, for the power told onto a frame.
+        let speed = |id: UnitId| own.iter().find(|o| o.id == id && !o.being_built).and_then(|o| self.world.def(o.def)).map_or(0.0, |d| d.build_speed);
         let mut frames: Vec<crate::strategist::shared::UnfinishedFrame> = own
             .iter()
             .filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
-            .map(|u| crate::strategist::shared::UnfinishedFrame {
-                handle: self.handle(u),
-                unit: self.name(u.def).to_string(),
-                at: self.place(u.pos),
-                share: u.build_progress,
-                cost: self.world.def(u.def).map_or(0.0, |d| d.metal_cost),
-                builders: on.get(&u.id).cloned().unwrap_or_default(),
-                rate: self.frame_progress.get(&u.id).map_or(0.0, |h| frame_rate(h)),
-                turrets: turrets.iter().filter(|t| self.turret_reaches(t, u)).count(),
-                turrets_on: turrets.iter().filter(|t| self.turret_reaches(t, u) && self.nanos.told.get(&t.id).is_some_and(|(_, to)| *to == Some(u.id))).count(),
-                turrets_elsewhere: self.turrets_elsewhere(&turrets, u, own),
-                alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
+            .map(|u| {
+                let told = |t: &OwnUnit| self.turret_reaches(t, u) && self.nanos.told.get(&t.id).is_some_and(|(_, to)| *to == Some(u.id));
+                let builders = on.get(&u.id).cloned().unwrap_or_default();
+                let power: f32 = builders.iter().map(|b| speed(*b)).sum::<f32>() + turrets.iter().filter(|t| told(t)).map(|t| speed(t.id)).sum::<f32>();
+                let mut names: Vec<String> = builders.iter().map(|b| self.actor_name(*b)).collect();
+                names.sort();
+                crate::strategist::shared::UnfinishedFrame {
+                    handle: self.handle(u),
+                    unit: self.name(u.def).to_string(),
+                    at: self.place(u.pos),
+                    share: u.build_progress,
+                    cost: self.world.def(u.def).map_or(0.0, |d| d.metal_cost),
+                    builders: names,
+                    rate: self.frame_progress.get(&u.id).map_or(0.0, |h| frame_rate(h)),
+                    turrets: turrets.iter().filter(|t| self.turret_reaches(t, u)).count(),
+                    turrets_on: turrets.iter().filter(|t| told(t)).count(),
+                    turrets_elsewhere: self.turrets_elsewhere(&turrets, u, own),
+                    alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
+                    expected_rate: self.world.def(u.def).filter(|d| d.build_time > 0.0).map_or(0.0, |d| power / d.build_time),
+                    age_seconds: self.frame_progress.get(&u.id).and_then(|h| h.front()).map(|(f0, _)| (frame - f0) / FRAMES_PER_SECOND),
+                }
             })
             .collect();
         let orphan = |f: &crate::strategist::shared::UnfinishedFrame| f.builders.is_empty() && f.rate <= RATE_STILL;
         frames.sort_by(|a, b| orphan(b).cmp(&orphan(a)).then(b.share.total_cmp(&a.share)));
         frames
+    }
+
+    /// What our standing converters took this second (the snapshot's `conversion`), the metal that made, and what they
+    /// could take (H-PLAYER-ECO-WORDS, amended 2026-11-08).
+    fn conversion(&self, own: &[OwnUnit], energy: f32) -> crate::strategist::shared::Conversion {
+        let converters: Vec<(f32, f32)> = own
+            .iter()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| self.world.def(u.def).and_then(|d| d.converter.as_ref()).map(|c| (c.capacity, c.efficiency)))
+            .collect();
+        crate::strategist::shared::Conversion { energy, metal: conversion_metal(energy, &converters), capacity: converters.iter().map(|c| c.0).sum(), converters: converters.len() }
     }
 
     /// The lists line: how many builders' lists have run out with nothing in their place, how long ago (median and
@@ -887,6 +918,7 @@ impl Brain {
             seats: Vec::new(),
             build_power: self.build_power(&snapshot.own_units),
             spending: self.spending(&snapshot.own_units),
+            conversion: self.conversion(&snapshot.own_units, snapshot.conversion),
             lists: self.lists_line(&snapshot.own_units, tick.frame),
             game_time: clock(tick.frame),
             frame: tick.frame,
@@ -1710,6 +1742,19 @@ impl Brain {
 mod colour_tests {
     use super::colour_name;
 
+    /// The gadget feeds the most efficient converters first: 39 advanced converters take all of an energy income
+    /// they can cover, and 114 basic ones beside them make nothing until the energy passes 23,400 (econ-flagship-14).
+    #[test]
+    fn conversion_metal_feeds_the_most_efficient_converters_first() {
+        let mut converters: Vec<(f32, f32)> = vec![(70.0, 0.01429); 114];
+        converters.extend(std::iter::repeat_n((600.0, 0.01724), 39));
+        let all_advanced = super::conversion_metal(23270.0, &converters);
+        assert!((all_advanced - 23270.0 * 0.01724).abs() < 0.5, "{all_advanced}");
+        let past = super::conversion_metal(30000.0, &converters);
+        assert!((past - (23400.0 * 0.01724 + 6600.0 * 0.01429)).abs() < 0.5, "{past}");
+        assert_eq!(super::conversion_metal(0.0, &converters), 0.0);
+    }
+
     #[test]
     fn lobby_colours_get_their_everyday_names() {
         // The lobby colours of the games with people on 2026-09-27.
@@ -1738,7 +1783,7 @@ mod frame_loss_tests {
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } }
     }
 
     /// An unfinished frame destroyed by nobody named is a decay when the kill event says so, and a shot from out of
@@ -1979,6 +2024,24 @@ mod frame_loss_tests {
         }
         assert!(has(&brain, 52), "no sight over the place in the engine's grid: kept");
     }
+}
+
+/// The metal a second `energy` a second makes through converters of (capacity, metal per energy), by the conversion
+/// gadget's order (`game_energy_conversion.lua`): the most efficient take first, each up to its capacity, so energy past
+/// the advanced converters' capacity is what the basic ones get, and energy short of it leaves them nothing.
+pub(super) fn conversion_metal(energy: f32, converters: &[(f32, f32)]) -> f32 {
+    let mut steps: Vec<(f32, f32)> = converters.to_vec();
+    steps.sort_by(|a, b| b.1.total_cmp(&a.1));
+    let (mut left, mut metal) = (energy, 0.0);
+    for (capacity, efficiency) in steps {
+        if left <= 0.0 {
+            break;
+        }
+        let take = capacity.min(left);
+        metal += take * efficiency;
+        left -= take;
+    }
+    metal
 }
 
 /// A frame's share per second over its recorded window: its last share against its first, 0 with under a second

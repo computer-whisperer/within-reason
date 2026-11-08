@@ -537,6 +537,11 @@ pub struct Snapshot {
     /// did not read it (it reads once a second), and always from a shim before 2026-10-18.
     #[serde(default)]
     pub sensors: Option<Sensors>,
+    /// Energy a second our converters took this second: the game's `mmUse` team rules param (F-eco-conversion: the
+    /// conversion gadget takes what stands above three quarters of the energy store every half second, the most
+    /// efficient converters first, and never looks at the metal store). 0 in records and shims from before 2026-11-08.
+    #[serde(default)]
+    pub conversion: f32,
 }
 
 /// Where our ally team sees, hears radar and sees aircraft right now: the engine's own coverage grids, cut by terrain

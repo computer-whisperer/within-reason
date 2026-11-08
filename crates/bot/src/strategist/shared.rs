@@ -39,6 +39,9 @@ pub struct Briefing {
     pub build_power: BuildPower,
     /// What the factories and builders would take at full speed, for the player's `spending` line.
     pub spending: Spending,
+    /// What our converters took and made this second against what they could take (H-PLAYER-ECO-WORDS, amended
+    /// 2026-11-08): the eco line's energy clause.
+    pub conversion: Conversion,
     /// Our silos and anti-nukes with their rounds, for the report's `missiles` line every turn (nuke-2-hard, 2026-10-09:
     /// two missiles sat ready five minutes before his anti-nuke while nothing the player read named them).
     pub stockpilers: Vec<Stockpiler>,
@@ -104,6 +107,19 @@ pub struct AllySeat {
     pub income_estimate: f32,
 }
 
+/// What our converters took and made this second: the energy the conversion gadget took (the snapshot's
+/// `conversion`, F-eco-conversion: what stands above three quarters of the energy store, the most efficient first),
+/// the metal that made by the gadget's own order, the energy a second every standing converter of ours could take, and
+/// how many stand. econ-flagship-14: 39 advanced converters could take 23,400 of an energy income of 23,270, so the
+/// 114 basic ones beside them made nothing and 101 of them were built in the last three minutes against a metal float.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Conversion {
+    pub energy: f32,
+    pub metal: f32,
+    pub capacity: f32,
+    pub converters: usize,
+}
+
 /// An unfinished structure of ours (a nanoframe the engine has made), for the report's `unfinished structures` line.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct UnfinishedFrame {
@@ -130,6 +146,16 @@ pub struct UnfinishedFrame {
     pub turrets_elsewhere: Vec<(String, usize)>,
     /// Seconds since a builder of ours was last on it or its share last rose, when neither holds now.
     pub alone_seconds: Option<i32>,
+    /// The share a second the power told onto it would give at full work: the builders on it and the turrets told
+    /// onto it, their build speeds summed, over its build time (F-eco-build). The line reads the measured rate against
+    /// it: a frame at the pace of its power is short of nothing, one well under it is held by an empty store or by
+    /// builders not yet at work (econ-flagship-14, 15:08: four advanced fusions at 0.4-0.9 % a second under 9-23
+    /// turrets each, the pace of that power, read as an energy shortage with the store at 97 %, and 104 solars ordered).
+    pub expected_rate: f32,
+    /// Seconds since the frame was first seen: a frame begun this second has no rate yet and the line says so instead
+    /// of "standing still" (econ-flagship-14, 16:10: a turret frame placed that second read "0 % built, standing
+    /// still, 50 turrets on it", and the player had the finished turret reclaimed for a stall).
+    pub age_seconds: Option<i32>,
 }
 
 /// A silo or anti-nuke of ours and its rounds, as the engine counts them.

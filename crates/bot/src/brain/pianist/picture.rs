@@ -2615,6 +2615,7 @@ mod tests {
                 enemies: vec![enemy(9, 3, at(1100.0, 1000.0))],
                 wrecks: None,
                 sensors: None,
+                conversion: 0.0,
             },
         };
         brain.track_takings(&tick(30, 100.0, Vec::new()));

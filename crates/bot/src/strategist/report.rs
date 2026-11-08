@@ -234,10 +234,24 @@ fn eco_line(briefing: &Briefing) -> String {
     let (rm, re) = briefing.received;
     let from_allies = |r: f32| if r >= 0.5 { format!(", and {r:+.0} a second arriving from allies") } else { String::new() };
     let full = m.storage > 0.0 && m.current / m.storage >= 0.98;
+    // What the converters took and made against what they could take, so "in balance" with converters standing reads
+    // as their work and a converter past the energy reads as a body (econ-flagship-14: 153 converters that could take
+    // 31,380 on an energy income of 23,270, 101 of them built in the last three minutes against a metal float). Under
+    // three quarters of the store the gadget converts nothing, and the line says that instead.
+    let conv = &briefing.conversion;
+    let conversion = if conv.converters == 0 {
+        String::new()
+    } else if conv.energy >= 1.0 {
+        format!("; {:.0} of it to the {} converters making {:.0} metal (they could take {:.0}), the other {:.0} to building and upkeep", conv.energy, conv.converters, conv.metal, conv.capacity, (e.usage - conv.energy).max(0.0))
+    } else if e.storage > 0.0 && e.current / e.storage < 0.75 {
+        format!("; the {} converters taking nothing: the store is under three quarters, where conversion begins", conv.converters)
+    } else {
+        String::new()
+    };
     format!(
-        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}{}; {}){}, energy {:.0}/{:.0} ({:+.0}/-{:.0}{}; {}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
+        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}{}; {}){}, energy {:.0}/{:.0} ({:+.0}/-{:.0}{}; {}{}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
         m.current, m.storage, m.income, m.usage, from_allies(rm), flow_words(m.income + rm, m.usage, m.current, m.storage), if full { " FULL: what comes in beyond the store is wasted" } else { "" },
-        e.current, e.storage, e.income, e.usage, from_allies(re), flow_words(e.income + re, e.usage, e.current, e.storage),
+        e.current, e.storage, e.income, e.usage, from_allies(re), flow_words(e.income + re, e.usage, e.current, e.storage), conversion,
         briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     )
 }
@@ -442,7 +456,33 @@ pub(super) fn unfinished_line(briefing: &Briefing) -> Option<String> {
         let head = format!("{} at {} ({:.0}% built, {:.0} of {:.0} metal in it", f.handle, f.at.grid, f.share * 100.0, f.share * f.cost, f.cost);
         let turrets = |n: usize| if n == 1 { "1 construction turret".to_string() } else { format!("{n} construction turrets") };
         let rising = format!("rising {:.1} % a second", f.rate * 100.0);
-        let trend = if f.rate > STILL { format!(", {rising}") } else if f.rate < -STILL { ", falling".to_string() } else { ", standing still".to_string() };
+        // The measured rate against what the power told onto it would give (F-eco-build): at that pace nothing is
+        // short; well under it, an empty store is named when one is. A frame begun this second has no rate yet
+        // (econ-flagship-14, 16:10: "0 % built, standing still, 50 turrets on it" on a frame placed that second, and
+        // the player reclaimed the turret it became two seconds later).
+        let store_empty = || {
+            let empty = |r: &bot_protocol::Resource| r.storage > 0.0 && r.current / r.storage < 0.02;
+            if empty(&briefing.metal) { ", the metal store is empty" } else if empty(&briefing.energy) { ", the energy store is empty" } else { "" }
+        };
+        let against = |words: String| {
+            if f.expected_rate <= 0.0 {
+                words
+            } else if f.rate >= 0.7 * f.expected_rate {
+                format!("{words}, the pace of what is told onto it")
+            } else {
+                format!("{words} against the {:.1} % what is told onto it would give{}", f.expected_rate * 100.0, store_empty())
+            }
+        };
+        let young = f.age_seconds.is_some_and(|age| age < 2);
+        let trend = if young {
+            format!(", begun {} s ago", f.age_seconds.unwrap_or(0))
+        } else if f.rate > STILL {
+            format!(", {}", against(rising.clone()))
+        } else if f.rate < -STILL {
+            ", falling".to_string()
+        } else {
+            format!(", {}", against("standing still".to_string()))
+        };
         // The turrets in reach, and how many of them the hands have on this frame: "in reach" is not "on it" (a
         // turret takes one thing at a time), and reading it so bought 72 solars in econ-flagship-12.
         let elsewhere = || if f.turrets_elsewhere.is_empty() { String::new() } else { format!(" (the rest: {})", f.turrets_elsewhere.iter().map(|(what, n)| format!("{n} on {what}")).collect::<Vec<_>>().join(", ")) };
@@ -457,7 +497,7 @@ pub(super) fn unfinished_line(briefing: &Briefing) -> Option<String> {
             let with = if f.turrets > 0 { format!(" with {}", reach()) } else { String::new() };
             format!("{head}{trend}) by {}{with}", f.builders.join(", "))
         } else if f.rate > STILL && f.turrets > 0 {
-            format!("{head}; {rising}: no builder of ours is on it, {})", reach())
+            format!("{head}; {}: no builder of ours is on it, {})", against(rising.clone()), reach())
         } else if f.rate > STILL {
             format!("{head}; {rising} with no builder of ours on it)")
         } else {
@@ -916,7 +956,7 @@ mod tests {
 #[cfg(test)]
 mod unfinished_tests {
     use super::super::shared::{Briefing, Place, UnfinishedFrame};
-    use super::unfinished_line;
+    use super::{eco_line, unfinished_line};
 
     /// Every unfinished structure of ours is in the report, those nobody is building first, with the handle a
     /// `finish` step or a `remove` takes.
@@ -926,8 +966,8 @@ mod unfinished_tests {
         let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
         let briefing = Briefing {
             frames: vec![
-                UnfinishedFrame { handle: "armnanotc_17819".into(), unit: "armnanotc".into(), at: at("C8"), share: 0.45, cost: 230.0, builders: Vec::new(), rate: -0.002, turrets: 0, turrets_on: 0, turrets_elsewhere: Vec::new(), alone_seconds: Some(40) },
-                UnfinishedFrame { handle: "armsolar_26962".into(), unit: "armsolar".into(), at: at("B8"), share: 0.86, cost: 155.0, builders: vec!["constructor_26737".into()], rate: 0.02, turrets: 0, turrets_on: 0, turrets_elsewhere: Vec::new(), alone_seconds: None },
+                UnfinishedFrame { handle: "armnanotc_17819".into(), unit: "armnanotc".into(), at: at("C8"), share: 0.45, cost: 230.0, builders: Vec::new(), rate: -0.002, turrets: 0, turrets_on: 0, turrets_elsewhere: Vec::new(), alone_seconds: Some(40), expected_rate: 0.0, age_seconds: None },
+                UnfinishedFrame { handle: "armsolar_26962".into(), unit: "armsolar".into(), at: at("B8"), share: 0.86, cost: 155.0, builders: vec!["constructor_26737".into()], rate: 0.02, turrets: 0, turrets_on: 0, turrets_elsewhere: Vec::new(), alone_seconds: None, expected_rate: 0.0, age_seconds: None },
             ],
             ..Briefing::default()
         };
@@ -943,9 +983,9 @@ mod unfinished_tests {
         let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
         let briefing = Briefing {
             frames: vec![
-                UnfinishedFrame { handle: "armafus_5949".into(), unit: "armafus".into(), at: at("B3"), share: 0.04, cost: 9700.0, builders: Vec::new(), rate: 0.0, turrets: 11, turrets_on: 11, turrets_elsewhere: Vec::new(), alone_seconds: Some(12) },
-                UnfinishedFrame { handle: "armafus_54".into(), unit: "armafus".into(), at: at("B3"), share: 0.17, cost: 9700.0, builders: Vec::new(), rate: 0.011, turrets: 14, turrets_on: 14, turrets_elsewhere: Vec::new(), alone_seconds: None },
-                UnfinishedFrame { handle: "armafus_21961".into(), unit: "armafus".into(), at: at("B3"), share: 0.62, cost: 9700.0, builders: vec!["commander".into(), "constructor_1774".into()], rate: 0.013, turrets: 13, turrets_on: 13, turrets_elsewhere: Vec::new(), alone_seconds: None },
+                UnfinishedFrame { handle: "armafus_5949".into(), unit: "armafus".into(), at: at("B3"), share: 0.04, cost: 9700.0, builders: Vec::new(), rate: 0.0, turrets: 11, turrets_on: 11, turrets_elsewhere: Vec::new(), alone_seconds: Some(12), expected_rate: 0.0, age_seconds: None },
+                UnfinishedFrame { handle: "armafus_54".into(), unit: "armafus".into(), at: at("B3"), share: 0.17, cost: 9700.0, builders: Vec::new(), rate: 0.011, turrets: 14, turrets_on: 14, turrets_elsewhere: Vec::new(), alone_seconds: None, expected_rate: 0.0, age_seconds: None },
+                UnfinishedFrame { handle: "armafus_21961".into(), unit: "armafus".into(), at: at("B3"), share: 0.62, cost: 9700.0, builders: vec!["commander".into(), "constructor_1774".into()], rate: 0.013, turrets: 13, turrets_on: 13, turrets_elsewhere: Vec::new(), alone_seconds: None, expected_rate: 0.0, age_seconds: None },
             ],
             ..Briefing::default()
         };
@@ -954,6 +994,52 @@ mod unfinished_tests {
         assert!(line.contains("armafus_21961 at B3 (62% built, 6014 of 9700 metal in it, rising 1.3 % a second) by commander, constructor_1774 with 13 construction turrets in reach, all on it"), "{line}");
         assert!(line.contains("armafus_5949 at B3 (4% built, 388 of 9700 metal in it; nobody is building it, 12 s since anything was (11 construction turrets in reach, on other work), standing still)"), "{line}");
         assert!(line.contains("`finish <handle>`"), "{line}");
+    }
+
+    /// The rate is read against the power told onto the frame: at its pace nothing is short, well under it the empty
+    /// store is named, and a frame begun this second has no rate to read (econ-flagship-14, 15:08 and 16:10).
+    #[test]
+    fn a_frames_rate_is_read_against_the_power_told_onto_it() {
+        let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
+        let frame = |handle: &str, share: f32, rate: f32, expected: f32, age: Option<i32>, turrets: usize| UnfinishedFrame {
+            handle: handle.into(),
+            unit: handle.split('_').next().unwrap_or_default().into(),
+            at: at("C3"),
+            share,
+            cost: if handle.starts_with("armafus") { 9700.0 } else { 230.0 },
+            builders: vec!["constructor_19709".into()],
+            rate,
+            turrets,
+            turrets_on: turrets,
+            turrets_elsewhere: Vec::new(),
+            alone_seconds: None,
+            expected_rate: expected,
+            age_seconds: age,
+        };
+        let briefing = Briefing {
+            frames: vec![frame("armafus_13005", 0.51, 0.009, 0.0115, Some(50), 18), frame("armafus_7477", 0.21, 0.003, 0.012, Some(40), 9), frame("armnanotc_14631", 0.0, 0.0, 0.03, Some(0), 50)],
+            metal: bot_protocol::Resource { current: 10.0, income: 400.0, usage: 500.0, storage: 28200.0 },
+            ..Briefing::default()
+        };
+        let line = unfinished_line(&briefing).unwrap();
+        assert!(line.contains("armafus_13005 at C3 (51% built, 4947 of 9700 metal in it, rising 0.9 % a second, the pace of what is told onto it) by constructor_19709 with 18 construction turrets in reach, all on it"), "{line}");
+        assert!(line.contains("armafus_7477 at C3 (21% built, 2037 of 9700 metal in it, rising 0.3 % a second against the 1.2 % what is told onto it would give, the metal store is empty) by constructor_19709 with 9 construction turrets in reach, all on it"), "{line}");
+        assert!(line.contains("armnanotc_14631 at C3 (0% built, 0 of 230 metal in it, begun 0 s ago) by constructor_19709 with 50 construction turrets in reach, all on it"), "{line}");
+    }
+
+    /// The eco line's energy clause says what the converters took and made against what they could take, so a
+    /// converter past the energy reads as a body (econ-flagship-14: 153 that could take 31,380 on 23,270 of income).
+    #[test]
+    fn the_eco_line_says_what_the_converters_took_and_could_take() {
+        let briefing = Briefing {
+            energy: bot_protocol::Resource { current: 66000.0, income: 23270.0, usage: 23213.0, storage: 77300.0 },
+            conversion: super::super::shared::Conversion { energy: 21000.0, metal: 362.0, capacity: 31380.0, converters: 153 },
+            ..Briefing::default()
+        };
+        let line = eco_line(&briefing);
+        assert!(line.contains("energy 66000/77300 (+23270/-23213; in balance; 21000 of it to the 153 converters making 362 metal (they could take 31380), the other 2213 to building and upkeep)"), "{line}");
+        let low = Briefing { energy: bot_protocol::Resource { current: 30000.0, income: 9000.0, usage: 8000.0, storage: 77300.0 }, conversion: super::super::shared::Conversion { energy: 0.0, metal: 0.0, capacity: 1960.0, converters: 28 }, ..Briefing::default() };
+        assert!(eco_line(&low).contains("; the 28 converters taking nothing: the store is under three quarters, where conversion begins)"), "{}", eco_line(&low));
     }
 }
 

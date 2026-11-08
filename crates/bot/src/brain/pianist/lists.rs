@@ -981,7 +981,7 @@ mod finish_tests {
         // Executed: a repair command on the frame, and a started build task that keeps the frame's id.
         brain.pianist = Some(pianist);
         let resource = || bot_protocol::Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } };
         let mut commands = Vec::new();
         let did = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, Some("finish armsolar_20"), &mut commands);
         assert!(did.as_deref().is_some_and(|d| d.starts_with("finish our Solar Collector")), "{did:?}");
@@ -1048,7 +1048,7 @@ mod finish_tests {
         brain.home = at(1000.0, 1000.0);
         brain.kit = Some(kit.clone());
         let resource = || bot_protocol::Resource { current: 1000.0, income: 10.0, usage: 0.0, storage: 2000.0 };
-        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } };
         let mut commands = Vec::new();
         // Without `start`: the same type is the build under way.
         let same = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Build(UnitDefId(2), Site::Planned), false, Some("armsolar"), &mut commands);
