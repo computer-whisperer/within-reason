@@ -606,8 +606,13 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
         // A fresh session at the cap, and as soon as the prompt on disk has been edited (the user, 2026-09-22: text
         // updates without a rebuild); either way the new session is handed the notes.
+        // The replacement's spawn took a new unit-context snapshot, and the prompt built now reads as that session's:
+        // not an edit (econ-flagship-19: the warmed replacement was ended as "edited" at turn 38 and a cold one spawned).
         let edited = match (launch.prompt)() {
-            Ok(text) => crate::texts::digest(&text) != session.prompt,
+            Ok(text) => {
+                let digest = crate::texts::digest(&text);
+                digest != session.prompt && next.as_ref().is_none_or(|warm| digest != warm.prompt)
+            }
             Err(e) => {
                 eprintln!("[ai {ai_id}] the prompt on disk cannot be read ({e}); the session goes on");
                 false
