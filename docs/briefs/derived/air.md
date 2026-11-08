@@ -127,7 +127,10 @@ at 60 metal a second is eleven seconds of income.
   against 36 and above every building and cliff: across a crowded base, to a far spot, onto ground nothing else stands
   on. Some maps have spots that only they reach: on Project SD-129, 25 of 148 stand on islands in the void, beyond the
   build distance of anything that walks, drives, hovers or sails (the map sheet's "built by air alone"; none on the six
-  other maps we hold terrain for). In the pool they were few (5 of the 22 air sides, three each).
+  other maps we hold terrain for). In the pool they were few (5 of the 22 air sides, three each). Their other job is
+  the late economy's: starting frames inside a turret block that a vehicle has to walk round, where the starter pays
+  the walk and not the build (D-late-economy, "who starts the frames"); 156 health and no wreck, so only under a sky
+  that is ours or nobody's.
 - *His air against us.* thebluegecko had an air plant at 11:29 to 17:06 in the replayed Comet games against our seats,
   Stormbringers 3 to 10 and Banshees 6 to 20 from 14:00 (M-gecko-vs-us-comet). On All That Glitters on 2026-10-25
   (M-gecko-team) his air was tier 2: Wasps from 27:17, 62 in sight at once at most, Dragons from 37:07, and air

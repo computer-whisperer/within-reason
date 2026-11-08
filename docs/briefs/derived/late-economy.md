@@ -4,7 +4,7 @@ layer: derived
 premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, D-air-not-optional, D-surprise-weapons, F-eco-store, F-eco-build, F-eco-reclaim, F-eco-conversion, F-eco-multipliers, F-eco-consequences, F-eco-legion, F-unit-armnanotc, F-unit-armfus, F-unit-armafus, F-unit-armmakr, F-unit-armmmkr, F-unit-armmoho, F-unit-armadvsol, F-unit-armaca, F-unit-armacv, F-unit-armack, F-unit-legmohocon, F-unit-legrampart, F-unit-leghive, M-pool-energy-and-power, M-pool-closing, M-gecko-team, M-format-8v8, M-barb-bonus, M-apex-economy]
 lessons: [L-gecko-three-resources, L-energy-nanos, L-energy-converters, L-sheet-economy, L-sheet-labs, L-tier2-go, L-tier2-tier1-under-tier2]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-18, 2026-10-21, 2026-10-30], relay: the 3v1 chat lines, his unit sheet, the user's recollection of the fusion-to-converter ladder (2026-10-18), his game against an inactive opponent played through our engine (K-eco-pro-curve-against-a-passive-opponent), the Center Command sprint, the 8v8 replay set's tech seats; the prices are arithmetic on the facts (K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend); the failures are ours (econ-flagship-1 to -4, the Glitters 2v6 of 2026-10-25, the Altored +50 3v3 of 2026-10-18)}
-claims: [K-eco-standing-power-spends-by-the-frame, K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
+claims: [K-eco-standing-power-spends-by-the-frame, K-eco-the-starter-of-a-frame-pays-the-walk, K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
 status: draft (2026-10-30, for the user's read; in no manifest; the derivations marked "ours" are not yet in a card, and the kill-test is named but not run)
 -->
 ### The late economy: when nothing is short
@@ -92,6 +92,35 @@ field is far ahead of its medians at every mark while far behind what the same m
   come first in the hands' default `tend` order, and the reason moving them down costs the curve more than it
   costs the frame (econ-flagship-11 at 15:57: turret frames moved below converters and the fusions, 45 turrets at
   18:00 and none after).
+
+- *The block is ground before it is power.* A turret helps what stands within 400 of it, a circle of about 500,000
+  square elmos, and the power a frame gets is whatever stands inside that circle round it, so the block is an area
+  and what stands on the area is the whole question. The pitch sets how many turrets a frame can see: touching, 48
+  apart, 274 turrets fit within reach of a frame's centre; at 96 apart, the hands' default until the `block` tool's
+  `dense`, 68. His block stood at 48, his frames saw 46 to 53 turrets when placed; ours at 96 in econ-flagship-12
+  saw 17 to 33 of 128, 74 of 102 turrets had no frame within reach at 18:00, and the block's 18 frame slots were down
+  to two. Anything else on the ground is turrets not standing and frames not in reach: a solar's footprint is two
+  and three quarter turrets', and the seventeen solars he reclaimed at 13:44 to 14:41 stood where thirteen to twenty
+  turret frames went a minute later (the base article has the lattice arithmetic; D-air-not-optional's dispersal is
+  the price of the same ground against bombers). So a generator belongs on the block's ground only when it will be
+  eaten for it, and the block's room is a quantity to read beside its power: slots free, turrets in reach of a slot.
+
+- *Who starts the frames pays the walk, not the build.* Under `start` a builder places a frame and leaves it the
+  moment it stands up, about a second, so a starter's rate is frames a minute and its cost is the walk between them.
+  A construction vehicle walks 54 a second and goes round a block, not through it: at 48 pitch nothing passes
+  between the turrets, at 96 a vehicle fits the street. In econ-flagship-11 and -12 the constructors spent 54 and 43
+  percent of their seconds walking (the audits), the advanced constructors 1,100 to 1,400 elmos a minute from 13:00
+  to 19:00, a third to a half of every minute. The construction aircraft (110 metal, 2,100 energy, 50 of build, 136 a
+  second, 156 health) flies over the block at two and a half times the vehicle's pace, and its 50 of build is beside
+  the point for a starter; the advanced one (340 metal, 12,000 energy, 120 of build, 192 a second) starts the
+  advanced frames. That is what his 46 construction aircraft were: from an air plant at 10:27 they placed 276 turrets,
+  30 advanced fusions and 116 advanced converters inside the block from 13:23, the turrets finishing each. The
+  trade: the flyer costs energy above all (19 energy a metal; his 46 were 97,000 energy, half a minute of his energy
+  income at 15:00) and dies to anything (a Thistle or a fighter kills it in a pass, and it leaves no wreck), so it is
+  the starter only where the air over the block is ours or nobody's; a ground constructor walks slower and lives.
+  The sign that the starter is the limit, not the power: frame slots free and turrets in reach of them idle while the
+  constructors are walking, which is the block waiting for frames. Before that the flyer is 110 metal and 2,100 energy
+  for nothing, and under his air it is a gift.
 
 - *The turret's energy column is paid once a fusion stands (ours).* D-energy-second prices the turret by its 3,200
   energy, "five and a third minutes of one solar", and that is why the duel builds one and then a factory. Beside a
@@ -204,9 +233,9 @@ game that outlives it. (2) A metal map cuts the loop (D-metal-maps): with metal 
 spots to run out of, conversion buys nothing and the regime is build power and energy alone. (3) A bonus moves the
 beginning to 0:00 and makes conversion the best buy per generator; the share is still set by the knob. (4) While no
 fusion stands the energy column is real and the duel's order holds: one turret on the plant, then the factory; the
-flip is conditional on the energy being paid, not on the clock. (5) Who builds the block is a choice of its own: his
-econ game used construction aircraft, which huddle at one frame and die to anything; the
-Center Command sprint used tier-1 constructors and turrets finishing frames the advanced constructors began
+flip is conditional on the energy being paid, not on the clock. (5) Who starts the block's frames is a choice of its own, and the mechanism above has the trade: his econ game used
+construction aircraft under an empty sky; the Center Command sprint, under two people's armies, used tier-1
+constructors and turrets finishing frames the advanced constructors began
 (K-t2-moho-frames-finished-by-tier-1-build-power). (6) On few spots (the tech seat's six, Great Divide's eleven a
 side) the mohos are done early and the loop is the whole income; on Comet's 39 a side the spots carry the growth to
 about 15:00 and the loop takes over after. (7) The pool's medians are the right reference for a duel and the wrong

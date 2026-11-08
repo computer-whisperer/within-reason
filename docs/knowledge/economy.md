@@ -635,6 +635,25 @@ than N times the figure.
 **Used by.** D-late-economy ("Standing power is a spending rate"), D-energy-second's departure line, H-ECO-BLOCK's
 block line (the spend the standing power can move, 2026-11-08).
 
+### K-eco-the-starter-of-a-frame-pays-the-walk
+**Claim.** In a turret block, a builder that starts a frame and leaves it (`start`) spends its time walking between
+frames, not building them, so the starter's worth is its pace over the block's ground and not its build power; a
+ground constructor goes round a block (nothing passes between turrets at 48 pitch; a vehicle fits the 96 street) at
+54 a second, a construction aircraft over it at 136 with 50 of build and 156 health. The flyer is the better starter
+when the block has frame slots free and turrets idle while the constructors walk, and only where the air over the
+block is ours or nobody's.
+**Status.** observed (2026-11-08; his game and two of ours; the trade's energy and fragility are the unit tables')
+**Evidence.** thebluegecko against InactiveAI (K-eco-pro-curve-against-a-passive-opponent): an air plant at 10:27 and
+46 construction aircraft placing 276 turrets, 30 advanced fusions and 116 advanced converters inside the block from
+13:23. econ-flagship-11 and -12 audits (replay-econ-flagship-11, -12): constructors walking 54 % and 43 % of their
+seconds; the advanced constructors 1,100-1,400 elmos a minute from 13:00 to 19:00 (the records, sampled a second);
+econ-12 at 18:00: 74 of 102 turrets with no frame within 400 and 2-3 of 18 frame slots free while the frames went up
+one or two at a time.
+**Would be wrong if.** A flagship econ game whose frames were started by construction aircraft did not raise the
+frames begun a minute or the share of the block's turrets with a frame in reach; or the aircraft starters died to
+nothing on an empty map.
+**Used by.** D-late-economy ("Who starts the frames pays the walk"), D-air-not-optional's air-constructor bullet.
+
 ### K-team-allies-overflow-is-income-the-engine-leaves-out
 **Claim.** In a team game the metal and energy allies put into a seat's stores (gifts, and the overflow of a full
 neighbour) is income to that seat, and the engine's income figures (`Economy_getIncome`, the eco line's "+N") leave it

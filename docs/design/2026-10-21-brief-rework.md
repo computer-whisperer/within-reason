@@ -366,6 +366,18 @@ store rising past 30 percent while the commander walks as the sign). Its claim i
 K-eco-the-commander-at-the-plant-is-the-openings-build-power (observed, three games); K-eco-pro-curve's evidence
 amended with where his commander stood. In the manifest after energy.md, unread by him.
 
+**The spending rate, the ground and the starters (2026-11-08, late-economy.md, from econ-flagship-11 and -12 and the
+user's rulings: a very common failure mode, correct it toward build power before it is needed by understanding rather
+than command; the real reason not to put solars in the turret farm is the ground; air constructors as the starters of
+frames once ground constructors' pathing round the base is the limit, with the trade-offs understood rather than the
+use prescribed).** Three mechanism bullets: standing power as a spending rate (one turret 6.2 metal a second into an
+advanced fusion, one turret per six of income his, the flat block), the block as ground before power (the 400 reach
+as an area, 274 turrets in reach at 48 against 68 at 96, a solar two and three quarter turrets, his seventeen solars
+eaten for the ground), and who starts the frames pays the walk (the vehicle round the block at 54, the aircraft over it
+at 136 with 156 health and 19 energy a metal, his 46 aircraft from 10:27, the sign that the starter is the limit).
+Claims K-eco-standing-power-spends-by-the-frame and K-eco-the-starter-of-a-frame-pays-the-walk. The air article's
+constructor bullet points to the second. The block line carries the spend figures beside the income.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. (2026-10-23: the control that
