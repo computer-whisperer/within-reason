@@ -47,6 +47,11 @@ one version installed. The banner in the game chat says `WRDistilled 0.2.0 (<com
   3 minutes end to end (Linux build with tests 1:28, Windows 2:48, package 8 s). The Windows DLL is a PE32+ x64 with
   exactly `handleEvent`, `init`, `release` exported (undecorated); 2.7 MB with the static C runtime, the stripped
   Linux library 2.7 MB. libclang was found on both runners without more than `libclang-dev` and `LIBCLANG_PATH`.
+- 2026-11-07, the first release: tag `distilled-v0.2.0` on db2cc739 (the commit dates the changelog section), run
+  42437043866 passed in 3 minutes and published https://github.com/computer-whisperer/within-reason/releases/tag/distilled-v0.2.0
+  with both archives and the notes from `run/release_notes.sh`. The published Linux tarball was downloaded, installed
+  by its own `install.sh` into `run/data` and played (release-published-distilled): the banner said 0.2.0 from the
+  release's files.
 - The runners warn that `actions/checkout@v4`, `upload-artifact@v4` and `download-artifact@v4` target Node 20 and are
   run on Node 24; they work. Bumping the majors clears the warning and costs one dry run to verify.
 - Not yet tested: the Windows package played in BAR (the installer's BAR search, `Unblock-File`, the engine listing an
