@@ -114,7 +114,12 @@ pub struct UnfinishedFrame {
     pub cost: f32,
     /// The builders working on it, by actor name; empty when nobody is.
     pub builders: Vec<String>,
-    /// Seconds since the last builder left it, when nobody is on it.
+    /// How its share has moved over the last few seconds, a share per second: positive, something is building it
+    /// (the construction turrets' work is read here alone: the hands see no turret's target); negative, it decays.
+    pub rate: f32,
+    /// Finished construction turrets of ours whose reach covers it.
+    pub turrets: usize,
+    /// Seconds since a builder of ours was last on it or its share last rose, when neither holds now.
     pub alone_seconds: Option<i32>,
 }
 

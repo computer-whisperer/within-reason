@@ -225,8 +225,14 @@ pub struct Brain {
     /// The builder each frame was created by and the frame it was made, so a decayed frame's line says whether its
     /// builder died (`briefing.rs` `track_losses`), and a `stop` spares a frame begun after the report the player read.
     frame_builders: HashMap<UnitId, (UnitId, i32)>,
-    /// Since when each unfinished frame has had no builder of ours on it (the report's `unfinished structures` line).
+    /// Since when each unfinished frame has had no builder of ours on it and its share has not risen (the report's
+    /// `unfinished structures` line).
     frame_alone_since: HashMap<UnitId, i32>,
+    /// Each unfinished frame's share at the ticks of the last `briefing::RATE_WINDOW_FRAMES`, oldest first: its rate of
+    /// building, which is the only read of the construction turrets' work on it (the hands see no turret's target;
+    /// econ-flagship-8: an advanced fusion rising a percent a second under fourteen turrets read "nobody is building
+    /// it, decaying", and the player bought builders instead of turrets).
+    frame_progress: HashMap<UnitId, std::collections::VecDeque<(i32, f32)>>,
     /// The unfinished frames among this think's `UnitDestroyed` events and what became of each (`track_losses` fills
     /// it; the pianist's housekeeping runs after and words the line).
     frame_losses_now: HashMap<UnitId, briefing::FrameLoss>,
@@ -427,6 +433,7 @@ impl Brain {
             unfinished: HashMap::new(),
             frame_builders: HashMap::new(),
             frame_alone_since: HashMap::new(),
+            frame_progress: HashMap::new(),
             frame_losses_now: HashMap::new(),
             recent_blasts: Vec::new(),
             enemy_defs: HashMap::new(),

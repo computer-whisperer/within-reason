@@ -40,6 +40,10 @@ const MAX_RECENT_EVENTS: usize = 25;
 const BASE_RADIUS: f32 = 1400.0;
 /// The same kind of trigger wakes the strategist at most this often.
 const TRIGGER_COOLDOWN_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
+/// Over how long a frame's rate of building is read (its share now against its share this long ago).
+pub(super) const RATE_WINDOW_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// A share a second below this is standing still: neither rising nor decaying.
+const RATE_STILL: f32 = 0.0005;
 
 fn clock(frame: i32) -> String {
     let seconds = frame / FRAMES_PER_SECOND;
@@ -543,12 +547,22 @@ impl Brain {
             })
             .collect();
         self.frame_builders.retain(|id, _| self.unfinished.contains_key(id));
-        // Since when each frame has stood with nobody of ours building it.
+        // Each frame's share over the last window, for its rate of building.
+        self.frame_progress.retain(|id, _| self.unfinished.contains_key(id));
+        for u in tick.snapshot.own_units.iter().filter(|u| u.being_built) {
+            let history = self.frame_progress.entry(u.id).or_default();
+            history.push_back((tick.frame, u.build_progress));
+            while history.front().is_some_and(|(f, _)| tick.frame - f > RATE_WINDOW_FRAMES) {
+                history.pop_front();
+            }
+        }
+        // Since when each frame has stood with nobody of ours building it and its share not rising (the turrets'
+        // work shows in the share alone).
         let on = self.builders_on_frames();
         let (unfinished, alone) = (&self.unfinished, &mut self.frame_alone_since);
         alone.retain(|id, _| unfinished.contains_key(id));
         for id in unfinished.keys() {
-            if on.contains_key(id) {
+            if on.contains_key(id) || self.frame_progress.get(id).is_some_and(|h| frame_rate(h) > RATE_STILL) {
                 alone.remove(id);
             } else {
                 alone.entry(*id).or_insert(tick.frame);
@@ -582,10 +596,13 @@ impl Brain {
         on
     }
 
-    /// Every unfinished structure of ours for the report: those nobody is building first, the furthest along first
-    /// among them.
+    /// Every unfinished structure of ours for the report: those nothing is building first, the furthest along first
+    /// among them. A frame's rate of building and the turrets in its reach go with it: the turrets' work on a frame
+    /// is read in the share alone (econ-flagship-8, 12:48: an advanced fusion rising a percent a second under
+    /// fourteen turrets read "nobody is building it, decaying").
     fn unfinished_frames(&self, own: &[OwnUnit], frame: i32) -> Vec<crate::strategist::shared::UnfinishedFrame> {
         let on = self.builders_on_frames();
+        let turrets: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def)).collect();
         let mut frames: Vec<crate::strategist::shared::UnfinishedFrame> = own
             .iter()
             .filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
@@ -596,10 +613,13 @@ impl Brain {
                 share: u.build_progress,
                 cost: self.world.def(u.def).map_or(0.0, |d| d.metal_cost),
                 builders: on.get(&u.id).cloned().unwrap_or_default(),
+                rate: self.frame_progress.get(&u.id).map_or(0.0, |h| frame_rate(h)),
+                turrets: turrets.iter().filter(|t| self.turret_reaches(t, u)).count(),
                 alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
             })
             .collect();
-        frames.sort_by(|a, b| b.builders.is_empty().cmp(&a.builders.is_empty()).then(b.share.total_cmp(&a.share)));
+        let orphan = |f: &crate::strategist::shared::UnfinishedFrame| f.builders.is_empty() && f.rate <= RATE_STILL;
+        frames.sort_by(|a, b| orphan(b).cmp(&orphan(a)).then(b.share.total_cmp(&a.share)));
         frames
     }
 
@@ -1902,5 +1922,14 @@ mod frame_loss_tests {
             brain.track_enemy_buildings(&look(frame, vec![own(10, 1, at(5000.0, 1000.0))], Vec::new()));
         }
         assert!(has(&brain, 52), "no sight over the place in the engine's grid: kept");
+    }
+}
+
+/// A frame's share per second over its recorded window: its last share against its first, 0 with under a second
+/// between them.
+pub(super) fn frame_rate(history: &std::collections::VecDeque<(i32, f32)>) -> f32 {
+    match (history.front(), history.back()) {
+        (Some((f0, s0)), Some((f1, s1))) if f1 - f0 >= FRAMES_PER_SECOND => (s1 - s0) / ((f1 - f0) as f32 / FRAMES_PER_SECOND as f32),
+        _ => 0.0,
     }
 }

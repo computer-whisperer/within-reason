@@ -43,7 +43,7 @@ would brief a hard-working assistant who follows orders literally and never coun
   drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
   bare word `stop`; a build whose frame began after the report you read is finished first even then, since your
   stop was written before it stood, and the hands' line says which. The report's `unfinished structures` line
-  lists every frame of ours with its handle, those nobody is building first: `finish <handle>` on any builder's
+  lists every frame of ours with its handle and how its share is moving (a frame the construction turrets in reach are raising says so and needs no builder sent; the turrets take the nearest frame in reach one at a time, so a second frame beside one going up waits its turn), those nothing is building first: `finish <handle>` on any builder's
   list resumes one as that builder's own build (finished first before any later list), your hands offer a builder
   near such a frame the same, and `remove` reclaims its metal.
 - Your first turn comes before the game begins (its report opens `[before the game]`): the starts are still being

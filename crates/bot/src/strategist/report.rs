@@ -430,15 +430,32 @@ pub(super) fn unfinished_line(briefing: &Briefing) -> Option<String> {
     if briefing.frames.is_empty() {
         return None;
     }
+    // The turrets' work on a frame shows in its share alone (the hands see no turret's target), so the line says what
+    // the share is doing before who is on it: "nobody is building it" only when nothing is (econ-flagship-8, 12:48:
+    // an advanced fusion rising a percent a second under fourteen turrets read so, and the player bought builders).
+    const STILL: f32 = 0.0005;
     let entry = |f: &super::shared::UnfinishedFrame| {
-        let metal = format!("{:.0} of {:.0} metal in it", f.share * f.cost, f.cost);
-        match (f.builders.as_slice(), f.alone_seconds) {
-            ([], Some(s)) => format!("{} at {} ({:.0}% built, {metal}; nobody is building it, left {s} s ago, decaying)", f.handle, f.at.grid, f.share * 100.0),
-            ([], None) => format!("{} at {} ({:.0}% built, {metal}; nobody is building it)", f.handle, f.at.grid, f.share * 100.0),
-            (by, _) => format!("{} at {} ({:.0}% built, {metal}) by {}", f.handle, f.at.grid, f.share * 100.0, by.join(", ")),
+        let head = format!("{} at {} ({:.0}% built, {:.0} of {:.0} metal in it", f.handle, f.at.grid, f.share * 100.0, f.share * f.cost, f.cost);
+        let turrets = |n: usize| if n == 1 { "1 construction turret".to_string() } else { format!("{n} construction turrets") };
+        let rising = format!("rising {:.1} % a second", f.rate * 100.0);
+        let trend = if f.rate > STILL { format!(", {rising}") } else if f.rate < -STILL { ", falling".to_string() } else { ", standing still".to_string() };
+        if !f.builders.is_empty() {
+            let with = if f.turrets > 0 { format!(" with {} in reach", turrets(f.turrets)) } else { String::new() };
+            format!("{head}{trend}) by {}{with}", f.builders.join(", "))
+        } else if f.rate > STILL && f.turrets > 0 {
+            format!("{head}; {rising}: no builder of ours is on it, the {} in reach are building it)", turrets(f.turrets))
+        } else if f.rate > STILL {
+            format!("{head}; {rising} with no builder of ours on it)")
+        } else {
+            format!(
+                "{head}; nobody is building it{}{}, {})",
+                f.alone_seconds.map_or(String::new(), |s| format!(", {s} s since anything was")),
+                if f.turrets > 0 { format!(" ({} in reach are on other work)", turrets(f.turrets)) } else { String::new() },
+                if f.rate < -STILL { "decaying" } else { "standing still" }
+            )
         }
     };
-    let alone = briefing.frames.iter().filter(|f| f.builders.is_empty()).count();
+    let alone = briefing.frames.iter().filter(|f| f.builders.is_empty() && f.rate <= STILL).count();
     let hint = if alone > 0 { "; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal" } else { "" };
     Some(format!("unfinished structures of ours: {}{hint}", briefing.frames.iter().map(entry).collect::<Vec<_>>().join("; ")))
 }
@@ -895,13 +912,34 @@ mod unfinished_tests {
         let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
         let briefing = Briefing {
             frames: vec![
-                UnfinishedFrame { handle: "armnanotc_17819".into(), unit: "armnanotc".into(), at: at("C8"), share: 0.45, cost: 230.0, builders: Vec::new(), alone_seconds: Some(40) },
-                UnfinishedFrame { handle: "armsolar_26962".into(), unit: "armsolar".into(), at: at("B8"), share: 0.86, cost: 155.0, builders: vec!["constructor_26737".into()], alone_seconds: None },
+                UnfinishedFrame { handle: "armnanotc_17819".into(), unit: "armnanotc".into(), at: at("C8"), share: 0.45, cost: 230.0, builders: Vec::new(), rate: -0.002, turrets: 0, alone_seconds: Some(40) },
+                UnfinishedFrame { handle: "armsolar_26962".into(), unit: "armsolar".into(), at: at("B8"), share: 0.86, cost: 155.0, builders: vec!["constructor_26737".into()], rate: 0.02, turrets: 0, alone_seconds: None },
             ],
             ..Briefing::default()
         };
         let line = unfinished_line(&briefing).unwrap();
-        assert_eq!(line, "unfinished structures of ours: armnanotc_17819 at C8 (45% built, 104 of 230 metal in it; nobody is building it, left 40 s ago, decaying); armsolar_26962 at B8 (86% built, 133 of 155 metal in it) by constructor_26737; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal");
+        assert_eq!(line, "unfinished structures of ours: armnanotc_17819 at C8 (45% built, 104 of 230 metal in it; nobody is building it, 40 s since anything was, decaying); armsolar_26962 at B8 (86% built, 133 of 155 metal in it, rising 2.0 % a second) by constructor_26737; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal");
+    }
+
+    /// A frame the construction turrets are raising is not an orphan: the share says what the turrets do (the hands
+    /// see no turret's target; econ-flagship-8, 12:48: 17 %, rising a percent a second under 14 turrets, read "nobody
+    /// is building it, decaying"), and a frame the turrets in reach have left for other work says so.
+    #[test]
+    fn a_frame_rising_under_the_turrets_is_said_to_be_built_by_them() {
+        let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
+        let briefing = Briefing {
+            frames: vec![
+                UnfinishedFrame { handle: "armafus_5949".into(), unit: "armafus".into(), at: at("B3"), share: 0.04, cost: 9700.0, builders: Vec::new(), rate: 0.0, turrets: 11, alone_seconds: Some(12) },
+                UnfinishedFrame { handle: "armafus_54".into(), unit: "armafus".into(), at: at("B3"), share: 0.17, cost: 9700.0, builders: Vec::new(), rate: 0.011, turrets: 14, alone_seconds: None },
+                UnfinishedFrame { handle: "armafus_21961".into(), unit: "armafus".into(), at: at("B3"), share: 0.62, cost: 9700.0, builders: vec!["commander".into(), "constructor_1774".into()], rate: 0.013, turrets: 13, alone_seconds: None },
+            ],
+            ..Briefing::default()
+        };
+        let line = unfinished_line(&briefing).unwrap();
+        assert!(line.contains("armafus_54 at B3 (17% built, 1649 of 9700 metal in it; rising 1.1 % a second: no builder of ours is on it, the 14 construction turrets in reach are building it)"), "{line}");
+        assert!(line.contains("armafus_21961 at B3 (62% built, 6014 of 9700 metal in it, rising 1.3 % a second) by commander, constructor_1774 with 13 construction turrets in reach"), "{line}");
+        assert!(line.contains("armafus_5949 at B3 (4% built, 388 of 9700 metal in it; nobody is building it, 12 s since anything was (11 construction turrets in reach are on other work), standing still)"), "{line}");
+        assert!(line.contains("`finish <handle>`"), "{line}");
     }
 }
 
