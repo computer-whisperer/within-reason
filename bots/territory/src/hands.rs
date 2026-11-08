@@ -442,7 +442,7 @@ impl Territory {
                 let same = match (&order.what, steps.get(next).map(|s| s.item)) {
                     // A frame begun since the snapshot is in the log above; one begun before it was the snapshot's job.
                     (What::Build { unit, .. }, Some(Item::Build(u))) => *unit == u && !begun,
-                    (What::Assist { .. }, Some(Item::Assist)) | (What::Help { .. }, Some(Item::Help)) => true,
+                    (What::Assist { .. }, Some(Item::Assist | Item::AssistFor(_))) | (What::Help { .. }, Some(Item::Help)) => true,
                     _ => false,
                 };
                 order.step = if same { Some(next) } else { None };
@@ -1564,12 +1564,16 @@ impl Territory {
         let game = self.game();
         let units = &game.units;
         match step.item {
-            Item::Assist => {
+            Item::Assist | Item::AssistFor(_) => {
                 if role == Role::Factory {
                     return None;
                 }
                 let factory = self.first_factory()?;
-                Some((Command::Guard { unit: id, target: factory }, What::Assist { factory, until: self.frame + ASSIST_CHUNK }))
+                let chunk = match step.item {
+                    Item::AssistFor(s) if s.is_finite() => (s * 30.0) as i32,
+                    _ => ASSIST_CHUNK,
+                };
+                Some((Command::Guard { unit: id, target: factory }, What::Assist { factory, until: self.frame + chunk }))
             }
             Item::Help => {
                 if role == Role::Factory {

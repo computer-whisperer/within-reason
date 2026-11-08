@@ -469,7 +469,8 @@ you want in instructions the hands can follow, say exactly what you wished you c
 version of your hands.
 
 Build orders are yours to explore, not to inherit. `plan` simulates lists of steps per builder from the game as it
-stands (the same words as `queue`), and `search` asks a simulator to find an order for an objective you name (`income`,
+stands (the `queue` tool's grammar whole: counts, ids shared across lists as one building the others help, `assist N`
+for N seconds on the plant and a bare `assist` to the end; a builder you leave out plays the list it has), and `search` asks a simulator to find an order for an objective you name (`income`,
 `army`, `mix`, or `target` goals after commas, each a unit with an optional count and time: `target armflash:4 by
 3:30, armbull by 9:00, income:40 by 10:00`) over the whole roster, advanced solar, fusion, tier-2 plants and all. A
 search pays only for what its goals name: a target order is a chain to the thing asked and nothing else, so a search

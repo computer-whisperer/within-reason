@@ -172,7 +172,7 @@ fn tool_list() -> Value {
               "description": "The glossary entry for units by internal name, ours or the opponent's (your unit tables list the factions in the game; a type first seen or first buildable comes in the report with one line; sightings and losses name theirs): what it is for, what it beats and loses to, when to build it, its numbers. Several names at once.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["names"], "properties": { "names": { "type": "array", "items": { "type": "string" }, "minItems": 1 } } } },
             { "name": "plan",
-              "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's words (`extractor spot_N`, `assist`, any unit's internal name with an optional spot or marked place; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
+              "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's own grammar (`extractor spot_N`, role words and internal names with an optional spot or marked place, counts (`extractor:6`), `assist N` for N seconds of help on the first factory and a bare `assist` ending a list for help to the horizon, ids shared across lists (`armavp #avp1` on two lists is one plant, the second builder helping its frame), `low` and `start` taken and set aside; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. A standing builder you do not name plays the list it has with your hands. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["queues"], "properties": { "queues": { "type": "object" }, "minutes": { "type": "number", "description": "How far ahead to simulate (default 8, at most 20)." } } } },
             { "name": "search",
               "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target`: goals after commas, each a unit with an optional count and time, or `income:N by M:SS` for metal a second by then, e.g. `target armflash:4 by 3:30, armbull by 9:00, income:40 by 10:00`; only what the goals name counts, so name the raiders and the income you want beside the heavy units, or the search leaves them out: a target order is a chain to the thing asked and nothing else), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 3 s: every second of your turn is a second your orders land late, in a live game and under the arena's think penalty alike; 20 s only in an arena run with the penalty off). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
@@ -1313,7 +1313,7 @@ mod tests {
         let state = buildorder::sim::State::start(&scenario);
         let wind = game.mean_wind();
         let spots = game.spots.iter().map(|(at, _)| *at).collect();
-        Arc::new(PlanContext { game: Arc::new(game), scenario, state, actors: vec![("commander".into(), 0)], standing_factories: 0, standing_constructors: 0, spots, spot_radius: 120.0, turret: None, water: true, wind, frame: 0 })
+        Arc::new(PlanContext { game: Arc::new(game), scenario, state, actors: vec![("commander".into(), 0)], standing_factories: 0, standing_constructors: 0, spots, spot_radius: 120.0, turret: None, water: true, wind, frame: 0, lists: Default::default() })
     }
 
     #[test]
@@ -1324,6 +1324,24 @@ mod tests {
         let planned = call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab", "assist"], "next_factory_1": ["armck", "armpw"] }, "minutes": 4 }), &shared).unwrap();
         assert!(planned.contains("curves") && planned.contains("armlab at") && planned.contains("next_factory_1"), "{planned}");
         assert!(call_tool("plan", &json!({ "queues": { "commander": ["armnothing"] } }), &shared).unwrap_err().contains("not a unit"));
+        // The queue tool's grammar whole (econ-flagship-10, 0:10: `assist 25 low` refused as a place, the player took
+        // the commander's help on the plant out of the plan it tuned): seconds of assist, counts, low, role words, and
+        // one id on two lists being one building the second builder helps.
+        let ctx = plan_context();
+        let plan = planning::plan_from_queues(&ctx, &json!({ "commander": ["extractor", "assist 25 low", "wind:2", "armlab #l1", "assist"], "next_factory_1": ["armck"], "next_constructor_1": ["armlab #l1", "extractor nearest"] }), &BTreeMap::new()).unwrap();
+        assert_eq!(plan.commander.len(), 6, "{:?}", plan.commander);
+        assert_eq!(plan.commander[1].item, buildorder::plan::Item::AssistFor(25.0));
+        assert_eq!(plan.commander[2].item, plan.commander[3].item);
+        assert_eq!(plan.commander[5].item, buildorder::plan::Item::AssistFor(f64::INFINITY));
+        assert!(plan.commander[4].tag.is_some() && plan.commander[4].tag == plan.constructors[0][0].tag, "{:?} {:?}", plan.commander[4], plan.constructors[0]);
+        assert!(plan.constructors[0][1].tag.is_none() && plan.constructors[0][1].site.is_none());
+        let planned = call_tool("plan", &json!({ "queues": { "commander": ["extractor", "assist 25 low", "wind:2", "armlab #l1", "assist"], "next_factory_1": ["armck"], "next_constructor_1": ["armlab #l1", "extractor"] }, "minutes": 4 }), &shared).unwrap();
+        assert!(planned.contains("assist 25"), "{planned}");
+        // A standing builder the call leaves out keeps the list it has with the hands.
+        let mut kept = plan_context();
+        Arc::get_mut(&mut kept).unwrap().lists.insert("commander".into(), vec!["armwin".into(), "armwin".into()]);
+        let plan = planning::plan_from_queues(&kept, &json!({ "next_factory_1": ["armck"] }), &BTreeMap::new()).unwrap();
+        assert_eq!(plan.commander.len(), 2, "{:?}", plan.commander);
         // Beside the game: an answer at once, the result and a wake within the budget and a little.
         let started = call_tool("search", &json!({ "objective": "income", "minutes": 3, "seconds": 1 }), &shared).unwrap();
         assert!(started.starts_with("searching for 1 s beside the game"), "{started}");
@@ -1844,15 +1862,78 @@ mod planning {
         }
     }
 
-    fn plan_from_queues(ctx: &PlanContext, queues: &Value, marks: &BTreeMap<String, (f32, f32)>) -> Result<Plan, String> {
+    /// The plan the player's queues describe, in the `queue` tool's own grammar (`step_count`, `step_canonical`: counts,
+    /// `low` and `start` taken and set aside, ids as tags shared across the queues, `assist N` with its seconds and a
+    /// bare `assist` ending a list to the horizon, role words through the seat's roster). A standing builder the call
+    /// does not name keeps the list it has with the hands (`PlanContext::lists`).
+    pub(super) fn plan_from_queues(ctx: &PlanContext, queues: &Value, marks: &BTreeMap<String, (f32, f32)>) -> Result<Plan, String> {
         let units = &ctx.game.units;
-        let object = queues.as_object().ok_or("queues is an object")?;
+        let object = queues.as_object().ok_or("queues is an object: actor name to a list of steps")?;
         let next_of = |name: &str, prefix: &str| name.strip_prefix(prefix).and_then(|n| n.parse::<usize>().ok()).filter(|n| *n >= 1);
         let extra_factories = object.keys().filter_map(|k| next_of(k, "next_factory_")).max().unwrap_or(0);
         let extra_constructors = object.keys().filter_map(|k| next_of(k, "next_constructor_")).max().unwrap_or(0);
         let factories = ctx.standing_factories + extra_factories;
         let mut plan = Plan::empty(factories, ctx.standing_constructors + extra_constructors);
         let basic = units.extractor(ctx.game.commander).ok_or("the commander builds no extractor")?;
+        // The seat's roster for the role words (`solar`, `plant`, `nano`), by the commander's faction prefix.
+        let roster = crate::brain::roster::for_faction(match &units.list[ctx.game.commander].name[..3] {
+            "cor" => "cortex",
+            "leg" => "legion",
+            _ => "armada",
+        });
+        let mut tags: BTreeMap<String, u32> = BTreeMap::new();
+        let mut steps_of = |name: &str, items: &[String]| -> Result<Vec<Step>, String> {
+            let mut steps = Vec::new();
+            for (i, text) in items.iter().enumerate() {
+                let (plain, count) = crate::brain::pianist::step_count(text).map_err(|why| format!("{name}: '{text}': {why}"))?;
+                let plain = crate::brain::pianist::step_canonical(&plain).map_err(|why| format!("{name}: '{text}': {why}"))?;
+                let (body, tag) = crate::brain::pianist::step_id(&plain);
+                let tag = tag.map(|t| {
+                    let next = tags.len() as u32;
+                    *tags.entry(t.to_string()).or_insert(next)
+                });
+                let (body, _low) = crate::brain::pianist::step_low(body);
+                let (body, _start) = crate::brain::pianist::step_start(&body);
+                let mut words = body.split_whitespace();
+                let kind = words.next().unwrap_or_default();
+                let rest: Vec<&str> = words.collect();
+                let (item, site) = match kind {
+                    "assist" => {
+                        let item = match rest.first().and_then(|w| w.parse::<f64>().ok()) {
+                            Some(seconds) => Item::AssistFor(seconds),
+                            None if i + 1 == items.len() => Item::AssistFor(f64::INFINITY),
+                            None => Item::Assist,
+                        };
+                        (item, None)
+                    }
+                    // `finish <handle>` is help on a frame; `stop` and `reclaim` build nothing the simulator knows.
+                    "help" | "finish" => (Item::Help, None),
+                    "stop" | "reclaim" => continue,
+                    _ => {
+                        let unit = if kind == "extractor" {
+                            basic
+                        } else {
+                            let internal = roster.role(kind).unwrap_or(kind);
+                            units.index(internal).ok_or_else(|| format!("{name}: {kind} is not a unit of this game"))?
+                        };
+                        let place = rest.first().copied().filter(|p| !matches!(*p, "nearest" | "home"));
+                        let site = match place {
+                            None => None,
+                            Some(p) => Some(if let Some(n) = p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
+                                *ctx.spots.get(n).ok_or_else(|| format!("{name}: {p} is not a spot"))?
+                            } else if let Some((x, z)) = marks.get(p) {
+                                (*x as f64, *z as f64)
+                            } else {
+                                return Err(format!("{name}: {p} is neither a spot nor a marked place"));
+                            }),
+                        };
+                        (Item::Build(unit), site)
+                    }
+                };
+                steps.extend(std::iter::repeat_n(Step { item, site, tag }, count as usize));
+            }
+            Ok(steps)
+        };
         for (name, list) in object {
             let queue = if let Some((_, q)) = ctx.actors.iter().find(|(n, _)| n == name) {
                 *q
@@ -1865,36 +1946,22 @@ mod planning {
             } else {
                 return Err(format!("{name}: not a builder standing now ({}) nor next_factory_N / next_constructor_N", ctx.actors.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", ")));
             };
-            let items = match list {
+            let items: Vec<String> = match list {
                 Value::Array(items) => items.iter().map(|v| v.as_str().map(|s| s.trim().to_string()).ok_or_else(|| format!("{name}: steps are strings"))).collect::<Result<Vec<_>, _>>()?,
                 Value::String(s) => s.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect(),
+                Value::Null => Vec::new(),
                 _ => return Err(format!("{name}: a list of steps")),
             };
-            let mut steps = Vec::new();
-            for text in items {
-                let text = crate::brain::pianist::step_canonical(&text).map_err(|why| format!("{name}: '{text}': {why}"))?;
-                let mut words = crate::brain::pianist::step_id(&text).0.split_whitespace();
-                let kind = words.next().unwrap_or_default();
-                let place = words.next();
-                let site = match place {
-                    None => None,
-                    Some(p) => Some(if let Some(n) = p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
-                        *ctx.spots.get(n).ok_or_else(|| format!("{name}: {p} is not a spot"))?
-                    } else if let Some((x, z)) = marks.get(p) {
-                        (*x as f64, *z as f64)
-                    } else {
-                        return Err(format!("{name}: {p} is neither a spot nor a marked place"));
-                    }),
-                };
-                let item = match kind {
-                    "assist" => Item::Assist,
-                    "help" => Item::Help,
-                    "extractor" => Item::Build(basic),
-                    other => Item::Build(units.index(other).ok_or_else(|| format!("{name}: {other} is not a unit of this game"))?),
-                };
-                steps.push(Step { item, site });
+            *plan.queue_mut(queue) = steps_of(name, &items)?;
+        }
+        // The builders the call leaves out play the lists they have.
+        for (name, queue) in &ctx.actors {
+            if object.contains_key(name) || *queue >= plan.queue_count() {
+                continue;
             }
-            *plan.queue_mut(queue) = steps;
+            if let Some(items) = ctx.lists.get(name).filter(|l| !l.is_empty()) {
+                *plan.queue_mut(*queue) = steps_of(name, items)?;
+            }
         }
         Ok(plan)
     }
@@ -1903,6 +1970,8 @@ mod planning {
         let units = &ctx.game.units;
         let name = match step.item {
             Item::Assist => return "assist".into(),
+            Item::AssistFor(s) if s.is_infinite() => return "assist".into(),
+            Item::AssistFor(s) => return format!("assist {s:.0}"),
             Item::Help => return "help".into(),
             Item::Build(u) if units.list[u].extracts_metal > 0.0 && units.list[u].extracts_metal <= units.basic_extraction() * 1.5 => "extractor".to_string(),
             Item::Build(u) => units.list[u].name.clone(),

@@ -33,7 +33,7 @@ fn run(units: &Units, scenario: &Scenario, plan: &Plan, seconds: f64) -> Outcome
 }
 
 fn at_home(units: &Units, names: &[&str]) -> Vec<Step> {
-    names.iter().map(|n| Step { item: Item::Build(units.index(n).unwrap()), site: Some(HOME) }).collect()
+    names.iter().map(|n| Step { item: Item::Build(units.index(n).unwrap()), site: Some(HOME), tag: None }).collect()
 }
 
 fn finish_time(units: &Units, outcome: &Outcome, name: &str) -> f64 {
@@ -96,7 +96,7 @@ fn walking_takes_distance_beyond_reach_over_speed() {
     let game = game();
     let units = &game.units;
     let mut plan = Plan::empty(1, 0);
-    plan.commander = vec![Step { item: Item::Build(units.index("armmex").unwrap()), site: Some((1000.0, 3000.0)) }];
+    plan.commander = vec![Step { item: Item::Build(units.index("armmex").unwrap()), site: Some((1000.0, 3000.0)), tag: None }];
     let outcome = run(units, &bare(&game), &plan, 80.0);
     let expected = (2000.0 - 145.0) / 37.5 + 6.0;
     assert!((finish_time(units, &outcome, "armmex") - expected).abs() < 0.3);
@@ -194,7 +194,7 @@ fn target_goals_count_up_to_their_count_and_seed_every_chain() {
     let pw = units.index("armpw").unwrap();
     let list = |n: usize| {
         let mut plan = Plan::empty(1, 1);
-        plan.commander = [Item::Build(units.extractor(game.commander).unwrap()); 2].into_iter().chain([Item::Build(units.index("armwin").unwrap()); 2]).chain([Item::Build(units.index("armlab").unwrap())]).map(|item| Step { item, site: None }).collect();
+        plan.commander = [Item::Build(units.extractor(game.commander).unwrap()); 2].into_iter().chain([Item::Build(units.index("armwin").unwrap()); 2]).chain([Item::Build(units.index("armlab").unwrap())]).map(|item| Step { item, site: None, tag: None }).collect();
         plan.factories[0] = std::iter::once(Step::build(ck)).chain(std::iter::repeat_n(Step::build(pw), n)).collect();
         run(units, &scenario, &plan, 300.0)
     };
@@ -246,8 +246,8 @@ fn help_puts_a_builders_power_on_the_dearest_frame_until_it_stands() {
         plan.constructors[0] = at_home(units, &["armnanotc"]);
         plan.constructors[1] = at_home(units, &["armsolar"]);
         if help {
-            plan.commander.push(Step { item: Item::Help, site: None });
-            plan.constructors[1].push(Step { item: Item::Help, site: None });
+            plan.commander.push(Step { item: Item::Help, site: None, tag: None });
+            plan.constructors[1].push(Step { item: Item::Help, site: None, tag: None });
         }
         run(units, &rich(&game), &plan, 300.0)
     };
@@ -286,7 +286,7 @@ fn a_turret_helps_the_dearest_frame_in_its_reach_when_told() {
         let mut state = State::start(&scenario);
         state.standing.push(Standing { unit: units.index("armnanotc").unwrap(), site: HOME, pays: 0.0 });
         let mut plan = Plan::empty(0, 0);
-        plan.commander = vec![Step { item: Item::Build(units.index("armestor").unwrap()), site: Some(site) }];
+        plan.commander = vec![Step { item: Item::Build(units.index("armestor").unwrap()), site: Some(site), tag: None }];
         finish_time(units, &simulate(units, &scenario, &state, &plan, 200.0), "armestor")
     };
     assert!((storage_at(HOME, true) - (0.1 + 4110.0 / 500.0)).abs() < 0.3, "300 + 200 on the frame: {}", storage_at(HOME, true));
@@ -347,7 +347,7 @@ fn a_silo_stockpiles_at_the_engines_rate_and_nobody_can_help_it() {
     assert!((idle.last().metal - (1e6 + 250.0 * commander.metal_make - paid * 1000.0)).abs() < 2.0, "metal {}", idle.last().metal);
     assert!((idle.last().energy - (1e6 + 250.0 * commander.energy_make - paid * 125_000.0)).abs() < 60.0, "energy {}", idle.last().energy);
     let mut helping = Plan::empty(0, 0);
-    helping.commander = vec![Step { item: Item::Help, site: None }];
+    helping.commander = vec![Step { item: Item::Help, site: None, tag: None }];
     let helped = piled(&helping);
     assert_eq!(helped.stockpiled.iter().map(|r| (r.0 * 10.0).round()).collect::<Vec<_>>(), rounds.iter().map(|r| (r.0 * 10.0).round()).collect::<Vec<_>>(), "the rounds come at the same seconds");
     assert!(helped.effective[0].is_empty(), "a stockpile is not a frame: the help step was passed over");
@@ -601,4 +601,67 @@ fn the_linear_program_prices_a_pair_at_the_walks_measured_in_the_game() {
     assert!((direct - (build + units.list[acv].worker_time * 40.0)).abs() < 1.0, "the unmeasured pair keeps its constant price: {direct}");
     let power = |plan: &buildorder::lp::LpPlan| -> f64 { plan.flows.iter().filter(|f| f.kind == Kind::Help && f.builder == cv && f.unit == moho).map(|f| f.per_bucket.iter().sum::<f64>() / f.cost).sum() };
     assert!(power(&plan) < power(&plain), "fewer upgrades' worth of help at the dearer price: {} against {}", power(&plan), power(&plain));
+}
+
+/// A tagged step (the hands' list id) on two queues is one building: the first builder to reach it builds it, the
+/// second helps its frame, and the frame stands sooner than alone (econ-flagship-10, 3:48: the plan tool read a
+/// second builder's `armavp #avp1` as a second plant and showed "one constructor alone finishing the plant").
+#[test]
+fn a_tagged_step_on_two_queues_is_one_building_the_second_builder_helps() {
+    let game = game();
+    let units = &game.units;
+    let (lab, ck, win) = (units.index("armlab").unwrap(), units.index("armck").unwrap(), units.index("armwin").unwrap());
+    let tagged = Step { item: Item::Build(lab), site: Some((1200.0, 1000.0)), tag: Some(1) };
+    // Alone: the commander raises the first lab, the lab makes a constructor, the commander raises a second lab by itself.
+    // Two factory queues: the simulator starts no factory beyond the plan's queues.
+    let mut alone = Plan::empty(2, 1);
+    // Six turbines between the labs, so the constructor is out before the second lab is begun.
+    let mut commander = vec![Step { item: Item::Build(lab), site: Some(HOME), tag: None }];
+    commander.extend(std::iter::repeat_n(Step { item: Item::Build(win), site: Some(HOME), tag: None }, 6));
+    commander.push(tagged);
+    alone.commander = commander;
+    alone.factories[0] = vec![Step::build(ck)];
+    alone.constructors[0] = vec![Step { item: Item::Build(win), site: Some(HOME), tag: None }];
+    // A rich store, so the lab is bound by build power and not by the two spots' metal.
+    let mut rich = bare(&game);
+    rich.start_metal = 10_000.0;
+    rich.start_energy = 10_000.0;
+    rich.base_storage = 20_000.0;
+    let outcome_alone = run(units, &rich, &alone, 240.0);
+    // Helped: the constructor's first step carries the same tag, so it helps the commander's frame instead of starting a third lab.
+    let mut helped = alone.clone();
+    helped.constructors[0] = vec![tagged, Step { item: Item::Build(win), site: Some(HOME), tag: None }];
+    let outcome = run(units, &rich, &helped, 240.0);
+    let labs = |o: &Outcome| o.finished.iter().filter(|f| f.unit == lab).map(|f| f.t).collect::<Vec<_>>();
+    assert_eq!(labs(&outcome).len(), 2, "one tag, one second lab: {:?}", labs(&outcome));
+    assert_eq!(labs(&outcome_alone).len(), 2);
+    assert!(labs(&outcome)[1] < labs(&outcome_alone)[1] - 5.0, "helped {:?} against alone {:?}", labs(&outcome), labs(&outcome_alone));
+    // The helper's step is on its effective list, and the tag read back in the text form.
+    assert_eq!(outcome.effective[3][0], tagged);
+    assert!(helped.to_text(units).contains("lab#1@1200,1000"), "{}", helped.to_text(units));
+    // The text form keeps the tag (empty queues are not written, so the plans are compared queue by queue).
+    let back = Plan::from_text(&helped.to_text(units), "arm", units).unwrap();
+    assert_eq!((back.commander, back.constructors), (helped.commander.clone(), helped.constructors.clone()));
+}
+
+/// `assist N` holds the builder on the first factory for N seconds, then its next step; the bare assist that ends a
+/// list holds it to the horizon.
+#[test]
+fn assist_for_seconds_then_the_next_step_and_the_bare_assist_to_the_end() {
+    let game = game();
+    let units = &game.units;
+    let (lab, win) = (units.index("armlab").unwrap(), units.index("armwin").unwrap());
+    let plan_with = |assist: Item| {
+        let mut plan = Plan::empty(1, 0);
+        plan.commander = vec![Step { item: Item::Build(lab), site: Some(HOME), tag: None }, Step { item: assist, site: None, tag: None }, Step { item: Item::Build(win), site: Some(HOME), tag: None }];
+        plan
+    };
+    let five = run(units, &bare(&game), &plan_with(Item::AssistFor(5.0)), 120.0);
+    let chunk = run(units, &bare(&game), &plan_with(Item::Assist), 120.0);
+    let lab_t = finish_time(units, &five, "armlab");
+    assert!((finish_time(units, &five, "armwin") - lab_t - 5.0 - 5.33).abs() < 0.5, "assist 5 then the turbine: {} after the lab at {lab_t}", finish_time(units, &five, "armwin"));
+    assert!((finish_time(units, &chunk, "armwin") - lab_t - 20.0 - 5.33).abs() < 0.5, "the chunk is 20 s: {}", finish_time(units, &chunk, "armwin"));
+    let forever = run(units, &bare(&game), &plan_with(Item::AssistFor(f64::INFINITY)), 120.0);
+    assert!(forever.finished.iter().all(|f| f.unit != win), "the bare assist never ends");
+    assert!(Plan::from_text("com: lab assist:end win", "arm", units).unwrap().commander[1].item == Item::AssistFor(f64::INFINITY));
 }

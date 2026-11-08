@@ -590,6 +590,10 @@ pub struct PlanContext {
     pub water: bool,
     pub wind: f64,
     pub frame: i32,
+    /// Each builder's list as it stands with the hands (the steps left, actor name to steps): a `plan` that does not
+    /// name a builder simulates it on this list, not on nothing (econ-flagship-10, 3:48: "it dropped the existing
+    /// constructors' lists, so it showed one constructor alone finishing the plant at 9:25").
+    pub lists: BTreeMap<String, Vec<String>>,
 }
 
 /// One unit of ours as the player may name it: `handle` is `<unit>_<id>` (armsolar_31002), `actor` the name the

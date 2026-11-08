@@ -141,6 +141,7 @@ impl Brain {
             water: hello.terrain.heights.iter().any(|h| *h < 0),
             wind,
             frame: tick.frame,
+            lists: self.pianist.as_ref().map(|p| p.scripts.iter().map(|(actor, steps)| (actor.clone(), steps.iter().cloned().collect())).collect()).unwrap_or_default(),
         };
         *shared.plan_context.lock().unwrap() = Some(Arc::new(context));
     }

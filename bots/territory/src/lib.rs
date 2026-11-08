@@ -177,7 +177,7 @@ impl Territory {
         }
         // The line arm: the factories the program may open with.
         palette.keep_line(&game.units, game.commander, &self.options.line);
-        let names = |items: &[Item]| items.iter().map(|i| match i { Item::Build(u) => game.units.list[*u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() }).collect::<Vec<_>>().join(" ");
+        let names = |items: &[Item]| items.iter().map(|i| match i { Item::Build(u) => game.units.list[*u].name.clone(), Item::Assist | Item::AssistFor(_) => "assist".into(), Item::Help => "help".into() }).collect::<Vec<_>>().join(" ");
         let (mobile, factory) = (names(&palette.mobile), names(&palette.factory));
         let builders = palette.builders(&game.units, game.commander);
         let line_constructor = palette.constructor;

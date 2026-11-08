@@ -293,9 +293,19 @@ impl State {
 enum Then {
     /// Build this unit at this site; `pays` as in `Doing::Build`.
     Build(usize, (f64, f64), f64),
-    Assist,
+    /// Assist the first factory for this many seconds.
+    Assist(f64),
     /// Help the frame the builder of this index is on.
     Help(usize),
+    /// Look at the same step again (a tagged step whose starter has not placed the frame yet).
+    Wait,
+}
+
+/// A tagged building's state across the queues (`Step::tag`): begun by a builder, or standing.
+#[derive(Clone, Copy)]
+enum Tagged {
+    UnderWay(usize),
+    Stands,
 }
 
 enum Doing {
@@ -459,6 +469,9 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
     }
 
     let mut outcome = Outcome { samples: Vec::new(), finished: Vec::new(), effective: vec![Vec::new(); plan.queue_count()], army_in_progress: 0.0, exposed_income: 0.0, stockpiled: Vec::new() };
+    // The tagged buildings (one per tag across the queues) and which builder's build carries which tag.
+    let mut tags: std::collections::HashMap<u32, Tagged> = std::collections::HashMap::new();
+    let mut building_tag: std::collections::HashMap<usize, u32> = std::collections::HashMap::new();
     let (mut second_metal, mut second_energy, mut second_stall, mut second_steps) = (0.0, 0.0, 0.0, 0u32);
     let steps = (seconds / sc.dt).round() as usize;
 
@@ -485,12 +498,16 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                 builders[b].next += 1;
                 let builder = &builders[b];
                 match next.item {
-                    Item::Assist => {
+                    Item::Assist | Item::AssistFor(_) => {
                         if builder.is_factory {
                             continue;
                         }
+                        let seconds = match next.item {
+                            Item::AssistFor(s) => s,
+                            _ => sc.assist_chunk,
+                        };
                         let walk = (sc.ground.walk(builder.place, sc.home) - builder.range - sc.reach_bonus).max(0.0) / builder.speed;
-                        builders[b].state = Doing::Travel { left: walk, then: Then::Assist };
+                        builders[b].state = Doing::Travel { left: walk, then: Then::Assist(seconds) };
                         outcome.effective[queue].push(*next);
                     }
                     Item::Help => {
@@ -506,6 +523,34 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                     }
                     Item::Build(unit) => {
                         let def = &units.list[unit];
+                        // A tagged step (the hands' list id): one building across the queues. Begun by another
+                        // builder, this one helps its frame; standing, the step is done; not begun and this builder
+                        // cannot start it, it waits for one that can (the hands' rule for `armsilo #silo1` on a
+                        // tier-1 constructor).
+                        if let Some(tag) = next.tag {
+                            match tags.get(&tag).copied() {
+                                Some(Tagged::Stands) => continue,
+                                Some(Tagged::UnderWay(f)) => {
+                                    if let Doing::Build { site, .. } = builders[f].state {
+                                        let (left, stands) = sc.trip(builder.place, site, builder.range, builder.speed);
+                                        builders[b].place = stands;
+                                        builders[b].state = if left > 1e-9 { Doing::Travel { left, then: Then::Help(f) } } else { Doing::Help { frame: f, site } };
+                                    } else {
+                                        // The starter is still walking to it: look again next step.
+                                        builders[b].next -= 1;
+                                        builders[b].state = Doing::Travel { left: sc.dt, then: Then::Wait };
+                                    }
+                                    outcome.effective[queue].push(*next);
+                                    continue;
+                                }
+                                None if !builder.is_factory && !units.list[builder.unit].builds.contains(&unit) => {
+                                    builders[b].next -= 1;
+                                    builders[b].state = Doing::Travel { left: sc.dt, then: Then::Wait };
+                                    continue;
+                                }
+                                None => {}
+                            }
+                        }
                         if !units.list[builder.unit].builds.contains(&unit) {
                             // The default extractor a builder cannot build (an advanced constructor builds only the
                             // advanced one): this builder is finished, or it would be handed the default forever.
@@ -593,6 +638,10 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                         let (left, stands) = sc.trip(builder.place, site, builder.range, builder.speed);
                         builders[b].place = stands;
                         builders[b].state = Doing::begin(left, unit, site, pays);
+                        if let Some(tag) = next.tag {
+                            tags.insert(tag, Tagged::UnderWay(b));
+                            building_tag.insert(b, tag);
+                        }
                         outcome.effective[queue].push(*next);
                     }
                 }
@@ -724,6 +773,9 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
             let (unit, site, pays) = (*unit, *site, *pays);
             let queue = builders[b].queue;
             builders[b].state = Doing::Idle;
+            if let Some(tag) = building_tag.remove(&b) {
+                tags.insert(tag, Tagged::Stands);
+            }
             outcome.finished.push(Finished { t: t + sc.dt, unit, queue });
             let def = &units.list[unit];
             steady_metal += def.metal_make;
@@ -798,11 +850,12 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                     if *left <= 1e-9 {
                         builder.state = match *then {
                             Then::Build(unit, site, pays) => Doing::Build { unit, site, pays, progress: 0.0 },
-                            Then::Assist => Doing::Assist { left: sc.assist_chunk },
+                            Then::Assist(seconds) => Doing::Assist { left: seconds },
                             Then::Help(frame) => match frames[frame] {
                                 Some(site) => Doing::Help { frame, site },
                                 None => Doing::Idle,
                             },
+                            Then::Wait => Doing::Idle,
                         };
                     }
                 }

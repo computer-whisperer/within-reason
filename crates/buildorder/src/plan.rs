@@ -9,6 +9,9 @@ pub enum Item {
     Build(usize),
     /// Mobile builders only: walk home and add build power to the first factory for `Scenario::assist_chunk` seconds.
     Assist,
+    /// As `Assist`, for this many seconds (the hands' `assist N`; `f64::INFINITY` is the bare `assist` that ends a
+    /// list: to the horizon).
+    AssistFor(f64),
     /// Mobile builders only: walk to the dearest frame begun by any builder (the most metal still to build; a factory's
     /// pad is not a frame) and add build power to it until it stands. Passed over when no frame is begun.
     Help,
@@ -20,11 +23,15 @@ pub struct Step {
     /// Where to build. `None` lets the simulator choose: the nearest free metal spot for an extractor, a site in the
     /// base for everything else.
     pub site: Option<(f64, f64)>,
+    /// The hands' list id (`armavp avp_yard #avp1`), numbered: steps carrying the same tag on any queues are one
+    /// building. The first builder to reach it builds it, every other helps its frame (a builder that cannot start
+    /// it waits for one that can), and once it stands the step is done for all.
+    pub tag: Option<u32>,
 }
 
 impl Step {
     pub fn build(unit: usize) -> Step {
-        Step { item: Item::Build(unit), site: None }
+        Step { item: Item::Build(unit), site: None, tag: None }
     }
 }
 
@@ -114,7 +121,13 @@ impl Plan {
                     let name = match step.item {
                         Item::Build(unit) => units.list[unit].name[3..].to_string(),
                         Item::Assist => "assist".to_string(),
+                        Item::AssistFor(s) if s.is_infinite() => "assist:end".to_string(),
+                        Item::AssistFor(s) => format!("assist:{s:.0}"),
                         Item::Help => "help".to_string(),
+                    };
+                    let name = match step.tag {
+                        Some(tag) => format!("{name}#{tag}"),
+                        None => name,
                     };
                     match step.site {
                         Some((x, z)) => format!("{name}@{x:.0},{z:.0}"),
@@ -142,14 +155,20 @@ impl Plan {
                     }
                     None => (word, None),
                 };
+                let (name, tag) = match name.split_once('#') {
+                    Some((name, tag)) => (name, Some(tag.parse::<u32>().map_err(|_| format!("bad tag in {word:?}"))?)),
+                    None => (name, None),
+                };
                 let item = if name == "assist" {
                     Item::Assist
+                } else if let Some(seconds) = name.strip_prefix("assist:") {
+                    Item::AssistFor(if seconds == "end" { f64::INFINITY } else { seconds.parse::<f64>().map_err(|_| format!("bad assist in {word:?}"))? })
                 } else if name == "help" {
                     Item::Help
                 } else {
                     Item::Build(units.index(name).or_else(|| units.index(&format!("{side}{name}"))).ok_or_else(|| format!("unknown unit {name}"))?)
                 };
-                steps.push(Step { item, site });
+                steps.push(Step { item, site, tag });
             }
             let slot = |prefix: &str| label.strip_prefix(prefix).and_then(|n| n.parse::<usize>().ok());
             if label == "com" {

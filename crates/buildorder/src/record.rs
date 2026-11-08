@@ -261,7 +261,7 @@ pub fn read(path: &str, seconds: f64) -> Result<Replay, String> {
                 }
                 match units.index(&name) {
                     Some(unit) => {
-                        pending.entry(by).or_default().push(Step { item: Item::Build(unit), site: Some(site) });
+                        pending.entry(by).or_default().push(Step { item: Item::Build(unit), site: Some(site), tag: None });
                         steps.push(Started { at: r["f"].as_f64().unwrap_or(0.0) / 30.0, builder: by, unit, site });
                     }
                     None => unknown.push(name),
@@ -434,7 +434,7 @@ impl Replay {
             })
             .collect();
         later.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
-        let queue_for = |builder: u64| -> Vec<Step> { self.steps.iter().filter(|s| s.at > t && s.builder == builder).map(|s| Step { item: Item::Build(s.unit), site: Some(s.site) }).collect() };
+        let queue_for = |builder: u64| -> Vec<Step> { self.steps.iter().filter(|s| s.at > t && s.builder == builder).map(|s| Step { item: Item::Build(s.unit), site: Some(s.site), tag: None }).collect() };
         let mut plan = Plan::empty(0, 0);
         for b in &builders {
             match units.list[b.unit].role {

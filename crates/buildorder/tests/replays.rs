@@ -13,7 +13,7 @@ fn game() -> Game {
 }
 
 fn queue(game: &Game, names: &str) -> Vec<Step> {
-    names.split_whitespace().map(|n| if n == "assist" { Step { item: Item::Assist, site: None } } else { Step::build(game.units.index(n).unwrap_or_else(|| panic!("no {n}"))) }).collect()
+    names.split_whitespace().map(|n| if n == "assist" { Step { item: Item::Assist, site: None, tag: None } } else { Step::build(game.units.index(n).unwrap_or_else(|| panic!("no {n}"))) }).collect()
 }
 
 /// (commander, lab, constructors), as the engine recorded each builder's units in creation order, within five minutes;
@@ -41,7 +41,7 @@ fn both_players_openings_are_on_the_palette() {
         for (q, steps) in [vec![plan.commander.clone()], plan.factories.clone(), plan.constructors.clone()].concat().iter().enumerate() {
             let offered = if q == 1 { &palette.factory } else { &palette.mobile };
             for step in steps {
-                let name = match step.item { Item::Build(u) => units.list[u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() };
+                let name = match step.item { Item::Build(u) => units.list[u].name.clone(), Item::Assist | Item::AssistFor(_) => "assist".into(), Item::Help => "help".into() };
                 assert!(offered.contains(&step.item), "{who}: {name} in queue {q} is not on the palette");
             }
         }

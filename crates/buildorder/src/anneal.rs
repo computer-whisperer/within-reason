@@ -540,7 +540,7 @@ impl Palette {
 
     fn pick(&self, kind: QueueKind, rng: &mut Rng) -> Step {
         let list = if kind == QueueKind::Factory { &self.factory } else { &self.mobile };
-        Step { item: list[rng.below(list.len())], site: None }
+        Step { item: list[rng.below(list.len())], site: None, tag: None }
     }
 
     /// A plain opening to start the search from.
@@ -549,12 +549,12 @@ impl Palette {
         let (mex, wind) = (self.mobile[0], self.mobile[1]);
         let factory = Item::Build(self.factory_unit);
         for item in [mex, mex, wind, wind, factory, wind, wind, mex] {
-            plan.commander.push(Step { item, site: None });
+            plan.commander.push(Step { item, site: None, tag: None });
         }
         plan.factories[0].push(Step::build(self.constructor));
         let soldier = *self.factory.get(1).unwrap_or(&self.factory[0]);
-        plan.factories[0].extend(std::iter::repeat_n(Step { item: soldier, site: None }, 4));
-        plan.constructors[0].extend(std::iter::repeat_n(Step { item: mex, site: None }, 3));
+        plan.factories[0].extend(std::iter::repeat_n(Step { item: soldier, site: None, tag: None }, 4));
+        plan.constructors[0].extend(std::iter::repeat_n(Step { item: mex, site: None, tag: None }, 3));
         plan
     }
 
