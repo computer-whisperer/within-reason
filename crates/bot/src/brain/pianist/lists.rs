@@ -20,12 +20,44 @@ use super::{Pianist, TagState, Tagged, Task};
 
 /// A list step's words and its id: a last word beginning with `#` names the building the step is ("armavp
 /// avp_yard #avp1"), so that steps carrying the same id on several builders' lists, or in a list sent again, are
-/// one building (`Pianist::tag_state`).
+/// one building (`Pianist::tag_state`). Steps reach here in `step_canonical`'s order, the id last.
 pub(crate) fn step_id(step: &str) -> (&str, Option<&str>) {
     match step.trim_end().rsplit_once(char::is_whitespace) {
         Some((words, last)) if last.len() > 1 && last.starts_with('#') => (words.trim_end(), Some(&last[1..])),
         _ => (step, None),
     }
+}
+
+/// A step as the tools store it: the builder's words, then `low`, then `start`, then the id. The player writes the
+/// three in any order after the building's name (`armafus #af1 start`, `armsolar #s3 low`: econ-flagship-8 and
+/// 1794105281-human each lost a turn's lists to the order when the id had to come last), and every reader after
+/// the tool sees one order. Refused: an id before the building's name, a bare `#`, two ids.
+pub(crate) fn step_canonical(step: &str) -> Result<String, String> {
+    let mut words: Vec<&str> = Vec::new();
+    let (mut low, mut start, mut id) = (false, false, None);
+    for (i, word) in step.split_whitespace().enumerate() {
+        if let Some(name) = word.strip_prefix('#') {
+            if i == 0 {
+                return Err("an id follows the building's name (armavp avp_yard #avp1); it does not begin the step".to_string());
+            }
+            if name.is_empty() {
+                return Err("an id is `#` and a name (armavp avp_yard #avp1)".to_string());
+            }
+            if id.replace(word).is_some() {
+                return Err("one id a step (armavp avp_yard #avp1)".to_string());
+            }
+        } else if word == "low" {
+            low = true;
+        } else if word == "start" {
+            start = true;
+        } else {
+            words.push(word);
+        }
+    }
+    words.extend(low.then_some("low"));
+    words.extend(start.then_some("start"));
+    words.extend(id);
+    Ok(words.join(" "))
 }
 
 /// A list step's words without the word `low`, and whether it carried it: the builder draws only the team's surplus
@@ -788,6 +820,26 @@ mod tests {
         assert_eq!(step_id("extractor spot_5"), ("extractor spot_5", None));
         assert_eq!(step_id("armsolar #"), ("armsolar #", None));
         assert_eq!(step_id("#x"), ("#x", None));
+    }
+
+    /// The id, `low` and `start` are written in any order after the building's name and stored in one
+    /// (econ-flagship-8: `armafus #af1 start` refused a turn's lists; 1794105281-human: `solar #s3 low`).
+    #[test]
+    fn a_steps_id_low_and_start_are_written_in_any_order_and_stored_in_one() {
+        use super::step_canonical;
+        for written in ["armafus #af1 start", "armafus start #af1", "armafus #af1 low start", "armafus low #af1 start"] {
+            let stored = step_canonical(written).unwrap();
+            let expected = if written.contains("low") { "armafus low start #af1" } else { "armafus start #af1" };
+            assert_eq!(stored, expected, "{written}");
+            assert!(super::step_is_start(&stored) && step_canonical(&stored).unwrap() == stored, "{written}");
+        }
+        assert_eq!(step_canonical("armvp #vp2 home").unwrap(), "armvp home #vp2");
+        assert_eq!(step_canonical("solar #s3 low").unwrap(), "solar low #s3");
+        assert_eq!(step_canonical("assist 90 low").unwrap(), "assist 90 low");
+        assert_eq!(step_canonical("extractor spot_5").unwrap(), "extractor spot_5");
+        assert!(step_canonical("#vp1 armvp").unwrap_err().contains("does not begin the step"));
+        assert!(step_canonical("armvp #a #b").unwrap_err().contains("one id a step"));
+        assert!(step_canonical("armvp #").unwrap_err().contains("`#` and a name"));
     }
 
     /// Several builders reaching one id's step on the same tick: the nearest to the site plays first and starts
