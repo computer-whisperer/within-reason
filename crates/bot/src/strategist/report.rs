@@ -242,9 +242,10 @@ fn eco_line(briefing: &Briefing) -> String {
     let conversion = if conv.converters == 0 {
         String::new()
     } else if conv.energy >= 1.0 {
-        format!("; {:.0} of it to the {} converters making {:.0} metal (they could take {:.0}), the other {:.0} to building and upkeep", conv.energy, conv.converters, conv.metal, conv.capacity, (e.usage - conv.energy).max(0.0))
+        let (them, they) = if conv.converters == 1 { ("the 1 converter".to_string(), "it") } else { (format!("the {} converters", conv.converters), "they") };
+        format!("; {:.0} of it to {them} making {:.0} metal ({they} could take {:.0}), the other {:.0} to building and upkeep", conv.energy, conv.metal, conv.capacity, (e.usage - conv.energy).max(0.0))
     } else if e.storage > 0.0 && e.current / e.storage < 0.75 {
-        format!("; the {} converters taking nothing: the store is under three quarters, where conversion begins", conv.converters)
+        format!("; the {} converter{} taking nothing: the store is under three quarters, where conversion begins", conv.converters, if conv.converters == 1 { "" } else { "s" })
     } else {
         String::new()
     };
@@ -1040,6 +1041,8 @@ mod unfinished_tests {
         assert!(line.contains("energy 66000/77300 (+23270/-23213; in balance; 21000 of it to the 153 converters making 362 metal (they could take 31380), the other 2213 to building and upkeep)"), "{line}");
         let low = Briefing { energy: bot_protocol::Resource { current: 30000.0, income: 9000.0, usage: 8000.0, storage: 77300.0 }, conversion: super::super::shared::Conversion { energy: 0.0, metal: 0.0, capacity: 1960.0, converters: 28 }, ..Briefing::default() };
         assert!(eco_line(&low).contains("; the 28 converters taking nothing: the store is under three quarters, where conversion begins)"), "{}", eco_line(&low));
+        let one = Briefing { energy: bot_protocol::Resource { current: 70000.0, income: 9000.0, usage: 8000.0, storage: 77300.0 }, conversion: super::super::shared::Conversion { energy: 600.0, metal: 10.3, capacity: 600.0, converters: 1 }, ..Briefing::default() };
+        assert!(eco_line(&one).contains("; 600 of it to the 1 converter making 10 metal (it could take 600), the other 7400 to building and upkeep)"), "{}", eco_line(&one));
     }
 }
 
