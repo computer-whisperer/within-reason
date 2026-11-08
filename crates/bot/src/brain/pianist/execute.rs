@@ -108,8 +108,13 @@ impl Brain {
         // H-HANDS-STARTED: the build already started, ordered again at the same site, is the same build going on,
         // not a second frame; helping the lab it already helps is the same task going on, not a new guard order.
         // A list step naming the type of the actor's current order, started or not, keeps that order (11.3: a
-        // list's `corsolar` step re-issued a pick's solar 15 frames after it, and the first frame decayed).
+        // list's `corsolar` step re-issued a pick's solar 15 frames after it, and the first frame decayed). Not a
+        // frame the builder is leaving on a `start` step (H-HANDS-LIST-START): that frame is handed to whoever
+        // finishes it, and the next step of the same type is the next building (econ-flagship-12, 10:49: ten
+        // constructors' `armsolar:8 start` built one solar each, the seven repeats "already under way: taken as done").
+        let leaving = list_step.is_some_and(super::lists::step_is_start) && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { started: true, frame: Some(_), .. }));
         let (ordered_def, helping) = match self.pianist.as_ref().and_then(|p| p.tasks.get(&id)) {
+            Some(Task::Build { .. }) if leaving => (None, None),
             Some(Task::Build { def, started, .. }) if !queue && (*started || list_step.is_some()) => (Some(*def), None),
             Some(Task::Assist { lab, .. }) if !queue => (None, Some(*lab)),
             _ => (None, None),

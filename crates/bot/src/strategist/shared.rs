@@ -119,6 +119,13 @@ pub struct UnfinishedFrame {
     pub rate: f32,
     /// Finished construction turrets of ours whose reach covers it.
     pub turrets: usize,
+    /// Of those, the turrets the hands have told onto this frame (the rest are on other work in their reach, or on
+    /// nothing): econ-flagship-12, 14:36, "the 36 construction turrets in reach are building it" read as all of them
+    /// while 18 were, and the player bought solars for an energy shortage that was not there.
+    pub turrets_on: usize,
+    /// Where the other turrets in reach are, by what they are told onto ("turret frames", "armmmkr frames", a plant's
+    /// name, "nothing"), most first.
+    pub turrets_elsewhere: Vec<(String, usize)>,
     /// Seconds since a builder of ours was last on it or its share last rose, when neither holds now.
     pub alone_seconds: Option<i32>,
 }

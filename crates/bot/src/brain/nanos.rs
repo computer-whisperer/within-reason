@@ -60,7 +60,8 @@ const ADVANCED_FUSION_METAL: f32 = 6000.0;
 /// their move state set.
 #[derive(Default)]
 pub(super) struct Nanos {
-    told: HashMap<UnitId, (i32, Option<UnitId>)>,
+    /// When each turret was last told and what (`None`: its standing fight-in-place, nothing ranked in reach).
+    pub(super) told: HashMap<UnitId, (i32, Option<UnitId>)>,
     set_up: HashSet<UnitId>,
 }
 

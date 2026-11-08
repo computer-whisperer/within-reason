@@ -983,6 +983,43 @@ mod finish_tests {
         let again = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, None, &mut commands);
         assert!(again.is_none(), "{again:?}");
     }
+
+    /// A builder leaving a frame on a `start` step takes the next step of the same type as the next building, not
+    /// as the build already under way: ten constructors' `armsolar:8 start` built one solar each (econ-flagship-12,
+    /// 10:49, the seven repeats "already under way: taken as done"). Without `start` the same-type step is the build
+    /// going on, as before.
+    #[test]
+    fn a_start_steps_repeat_is_the_next_frame_not_the_one_being_left() {
+        use super::super::menu::Site;
+        let mut brain = brain_of(&["armcv", "armsolar"]);
+        // The fixture's constructor builds the solar (the site search refuses a type the builder cannot make).
+        if let Some(d) = brain.world.hello.unit_defs.iter_mut().find(|d| d.id == UnitDefId(1)) {
+            d.build_options.push(UnitDefId(2));
+        }
+        let frame = OwnUnit { being_built: true, health: 10.0, max_health: 100.0, build_progress: 0.1, ..own(20, 2, at(1000.0, 1000.0)) };
+        let ours = vec![own(1, 1, at(1000.0, 950.0)), frame];
+        let id = UnitDefId(9);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 50, started: true, frame: Some(UnitId(20)), facing: 0 });
+        brain.pianist = Some(pianist);
+        brain.home = at(1000.0, 1000.0);
+        brain.kit = Some(kit.clone());
+        let resource = || bot_protocol::Resource { current: 1000.0, income: 10.0, usage: 0.0, storage: 2000.0 };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
+        let mut commands = Vec::new();
+        // Without `start`: the same type is the build under way.
+        let same = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Build(UnitDefId(2), Site::Planned), false, Some("armsolar"), &mut commands);
+        assert!(same.is_none(), "{same:?}");
+        assert!(commands.is_empty());
+        // With `start`: a new frame is ordered and becomes the task.
+        let next = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Build(UnitDefId(2), Site::Planned), false, Some("armsolar start"), &mut commands);
+        assert!(next.as_deref().is_some_and(|d| d.starts_with("build a")), "{next:?}");
+        assert!(commands.iter().any(|c| matches!(c, Command::Build { unit: UnitId(1), def: UnitDefId(2), .. })), "{commands:?}");
+        let task = brain.pianist.as_ref().unwrap().tasks.get(&UnitId(1)).cloned();
+        assert!(matches!(task, Some(Task::Build { def: UnitDefId(2), started: false, frame: None, .. })), "{task:?}");
+    }
 }
 
 #[cfg(test)]

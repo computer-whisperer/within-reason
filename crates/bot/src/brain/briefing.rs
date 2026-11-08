@@ -615,12 +615,38 @@ impl Brain {
                 builders: on.get(&u.id).cloned().unwrap_or_default(),
                 rate: self.frame_progress.get(&u.id).map_or(0.0, |h| frame_rate(h)),
                 turrets: turrets.iter().filter(|t| self.turret_reaches(t, u)).count(),
+                turrets_on: turrets.iter().filter(|t| self.turret_reaches(t, u) && self.nanos.told.get(&t.id).is_some_and(|(_, to)| *to == Some(u.id))).count(),
+                turrets_elsewhere: self.turrets_elsewhere(&turrets, u, own),
                 alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
             })
             .collect();
         let orphan = |f: &crate::strategist::shared::UnfinishedFrame| f.builders.is_empty() && f.rate <= RATE_STILL;
         frames.sort_by(|a, b| orphan(b).cmp(&orphan(a)).then(b.share.total_cmp(&a.share)));
         frames
+    }
+
+    /// What the construction turrets in reach of a frame that are not on it are told onto, by kind and count, most
+    /// first: another frame's type ("armnanotc frames"), a plant's name (guarding it), or "nothing" (the standing
+    /// fight-in-place, nothing ranked in their reach).
+    fn turrets_elsewhere(&self, turrets: &[&OwnUnit], frame: &OwnUnit, own: &[OwnUnit]) -> Vec<(String, usize)> {
+        let mut counts: Vec<(String, usize)> = Vec::new();
+        for t in turrets.iter().filter(|t| self.turret_reaches(t, frame)) {
+            let to = self.nanos.told.get(&t.id).and_then(|(_, to)| *to);
+            if to == Some(frame.id) {
+                continue;
+            }
+            let what = match to.and_then(|id| own.iter().find(|u| u.id == id)) {
+                Some(target) if target.being_built => format!("{} frames", self.name(target.def)),
+                Some(target) => self.handle(target),
+                None => "nothing".to_string(),
+            };
+            match counts.iter_mut().find(|(w, _)| *w == what) {
+                Some((_, n)) => *n += 1,
+                None => counts.push((what, 1)),
+            }
+        }
+        counts.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        counts
     }
 
     pub(super) fn track_enemy_buildings(&mut self, tick: &Tick) {
