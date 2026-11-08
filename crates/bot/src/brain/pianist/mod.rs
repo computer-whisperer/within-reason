@@ -45,8 +45,6 @@ use super::HandleOwner;
 
 use crate::strategist::shared::{Allowance, Listed};
 use crate::world::World;
-use std::fs::File;
-use std::io::Write as _;
 use std::path::Path;
 
 use bot_protocol::{Command, Event, Tick, UnitDefId, UnitId, Vec3};
@@ -326,7 +324,8 @@ pub struct Pianist {
     pub(super) rounds: HashMap<UnitId, i32>,
     /// The whole request and answer per call, when `WITHIN_REASON_JEV_LOG` is set (`docs/harness/record-format.md`,
     /// "The pianist's log").
-    log: Option<File>,
+    /// `jev-<ai>.jsonl`, written through the logs thread (`crate::logs`).
+    log: Option<crate::logs::Log>,
     /// The instructions as last written to the log: a call carries them only when they changed.
     logged_instructions: String,
     /// The rules as last logged (the header, then every change: they are read from disk each call).
@@ -740,7 +739,7 @@ impl Pianist {
         let client = if jev { Some(wired(jev::Client::from_env().map_err(|e| e.to_string())?)) } else { None };
         let seconds: f32 = std::env::var("WITHIN_REASON_JEV_INTERVAL").ok().and_then(|v| v.parse().ok()).unwrap_or(INTERVAL_SECONDS);
         let log = match std::env::var("WITHIN_REASON_JEV_LOG").ok().filter(|v| !v.is_empty() && v != "0") {
-            Some(_) => File::create(log_dir.join(format!("jev-{ai_id}.jsonl"))).ok(),
+            Some(_) => crate::logs::Log::create(log_dir.join(format!("jev-{ai_id}.jsonl"))).ok(),
             None => None,
         };
         let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(wired).map(spawn_worker) } else { None };
@@ -842,9 +841,7 @@ impl Pianist {
                 // The calls are logged as built; under these Jev was sent them cut (`diet::gate_cut` is in the logged state, `wire.rs` is not).
                 "standing_cut": self.diet.standing_cut, "wire_cut": self.diet.wire_cut,
             });
-            let mut text = line.to_string();
-            text.push('\n');
-            let _ = log.write_all(text.as_bytes());
+            log.write_json(line);
         }
     }
 
@@ -906,12 +903,10 @@ impl Pianist {
     }
 
     fn write_log(&mut self, line: serde_json::Value) {
-        if let Some(log) = &mut self.log {
-            // One write a line: a `Value` written straight to the file is a system call a fragment, and the
-            // pass's line is about a megabyte (player-51's profile: a quarter of the bot's time).
-            let mut text = line.to_string();
-            text.push('\n');
-            let _ = log.write_all(text.as_bytes());
+        // Serialised and written on the logs thread: a pass's row is a megabyte or more (player-51's profile: a
+        // quarter of the bot's time when it was written a fragment at a time on this thread).
+        if let Some(log) = &self.log {
+            log.write_json(line);
         }
     }
 }

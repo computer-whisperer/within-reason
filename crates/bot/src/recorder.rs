@@ -5,8 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
-use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
+use std::io;
 use std::path::Path;
 
 use bot_protocol::{Command, Event, Hello, Resource, Tick, UnitDefId, UnitId, Vec3};
@@ -27,7 +26,8 @@ const FLAG_IDLE: u8 = 2;
 const FLAG_STUNNED: u8 = 16;
 
 pub struct Recorder {
-    out: File,
+    /// `record-<ai>.jsonl`, written through the logs thread (`crate::logs`): the lane never waits on the disk.
+    out: crate::logs::Log,
     /// The line being assembled; one write per tick.
     buffer: String,
     /// Engine definition id to index in the header's table.
@@ -99,7 +99,7 @@ impl Recorder {
             eprintln!("[ai {}] no terrain file: {e}", hello.ai_id);
         }
         // Appending: a bot restarted mid-match continues the same record with a second header line.
-        match OpenOptions::new().create(true).append(true).open(&path) {
+        match crate::logs::Log::append(path.clone()) {
             Ok(out) => Some(Recorder {
                 out,
                 buffer: String::new(),
@@ -141,9 +141,7 @@ impl Recorder {
     /// sample and the process waited on for a game that was over).
     pub fn ended(&mut self, frame: i32, own_units: usize, why: &str) {
         self.line(&json!({ "t": "end", "f": frame, "own_units": own_units, "why": why }));
-        let _ = self.out.write_all(self.buffer.as_bytes());
-        self.buffer.clear();
-        let _ = self.out.flush();
+        self.out.write(std::mem::take(&mut self.buffer));
     }
 
     /// Records one tick: the events, the brain's journal, the commands it answered with, and a sample when due.
@@ -215,8 +213,7 @@ impl Recorder {
             let grid = |g: &bot_protocol::Grid| json!([g.cols, g.rows, g.square, base64(&g.bits)]);
             self.line(&json!({ "t": "sense", "f": tick.frame, "los": grid(&sensors.los), "radar": grid(&sensors.radar), "air": grid(&sensors.air) }));
         }
-        self.out.write_all(self.buffer.as_bytes())?;
-        self.buffer.clear();
+        self.out.write(std::mem::take(&mut self.buffer));
         Ok(())
     }
 

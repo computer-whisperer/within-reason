@@ -1,6 +1,7 @@
 //! Bot process. Listens on the socket the AI shims connect to and runs one session per AI.
 
 mod brain;
+mod logs;
 mod recorder;
 mod session;
 mod strategist;
@@ -100,6 +101,7 @@ fn main() -> io::Result<()> {
             if LIVE.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) == 1 && leave_when_over {
                 eprintln!("every session has ended: the game is over; leaving");
                 let _ = std::fs::remove_file(socket_path());
+                crate::logs::flush();
                 std::process::exit(0);
             }
         });
