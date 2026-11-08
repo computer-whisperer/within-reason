@@ -4,7 +4,7 @@ layer: derived
 premises: [D-metal-is-the-game, D-energy-second, D-tier2-sprint, D-air-not-optional, D-surprise-weapons, F-eco-store, F-eco-build, F-eco-reclaim, F-eco-conversion, F-eco-multipliers, F-eco-consequences, F-eco-legion, F-unit-armnanotc, F-unit-armfus, F-unit-armafus, F-unit-armmakr, F-unit-armmmkr, F-unit-armmoho, F-unit-armadvsol, F-unit-armaca, F-unit-armacv, F-unit-armack, F-unit-legmohocon, F-unit-legrampart, F-unit-leghive, M-pool-energy-and-power, M-pool-closing, M-gecko-team, M-format-8v8, M-barb-bonus, M-apex-economy]
 lessons: [L-gecko-three-resources, L-energy-nanos, L-energy-converters, L-sheet-economy, L-sheet-labs, L-tier2-go, L-tier2-tier1-under-tier2]
 sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-10-18, 2026-10-21, 2026-10-30], relay: the 3v1 chat lines, his unit sheet, the user's recollection of the fusion-to-converter ladder (2026-10-18), his game against an inactive opponent played through our engine (K-eco-pro-curve-against-a-passive-opponent), the Center Command sprint, the 8v8 replay set's tech seats; the prices are arithmetic on the facts (K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend); the failures are ours (econ-flagship-1 to -4, the Glitters 2v6 of 2026-10-25, the Altored +50 3v3 of 2026-10-18)}
-claims: [K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
+claims: [K-eco-standing-power-spends-by-the-frame, K-eco-pro-curve-against-a-passive-opponent, K-t2-post-moho-scaling, K-t2-build-power-for-a-project-follows-the-spend, K-mech-turrets-assist-in-radius, K-t2-people-eat-each-plant-for-the-next, K-t2-moho-frames-finished-by-tier-1-build-power, K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants, K-team-two-seats-feed-one-seats-tier-2, K-t2-the-gap-is-covered-by-allies]
 status: draft (2026-10-30, for the user's read; in no manifest; the derivations marked "ours" are not yet in a card, and the kill-test is named but not run)
 -->
 ### The late economy: when nothing is short
@@ -62,14 +62,36 @@ field is far ahead of its medians at every mark while far behind what the same m
 - *Build power takes the form of what it builds.* Extractors are spread over the map and want builders that walk;
   the frames of this regime (fusions 3,350, advanced fusions 9,700, converters 380, the gantry) all stand in one
   place and want power that stands there. A construction turret helps any frame within 400 (K-mech-turrets-assist-
-  in-radius), one at a time in your `tend` order (the plants' products last: left to the game a turret takes the nearest
-  thing under construction, and a running plant is always that; your hands lay the block out of every plant's reach) and is the cheapest build power in metal, 1.15 a point against the advanced constructor's 1.9 to 2.0
+  in-radius), one at a time in your `tend` order (the highest-ranked kind in its reach takes the whole turret; the
+  plants' products last: left to the game a turret takes the nearest thing under construction, and a running plant is
+  always that; your hands lay the block out of every plant's reach; why turret frames come first in the default order
+  is in the next bullet) and is the cheapest build power in metal, 1.15 a point against the advanced constructor's 1.9 to 2.0
   (F-eco-consequences); a frame placed among turrets builds at their sum. The clocks: a fusion 186 seconds on one
   advanced construction vehicle, 54 at 1,000 power (five turrets); an advanced fusion 539 seconds on two advanced
   constructors, 226 with four turrets beside them, 143 with eight (K-t2-build-power-for-a-project-follows-the-spend);
   in his econ game, under a block that reached 304 turrets, an advanced fusion stood in 38 to 60 seconds and an
   advanced converter in about 5 (the record, read 2026-10-30). The duel's clock for a fusion, "about three minutes",
   is the lone constructor's and nothing else.
+
+- *Standing power is a spending rate, and the kind sets it.* A frame draws its metal cost times the power on it
+  over its build time (F-eco-build), so one construction turret spends, every second it works: 6.2 metal on an
+  advanced fusion, 12.4 on a fusion, 8.3 on an advanced extractor, 8.7 on another turret, 19 on an advanced plant,
+  2.2 on an advanced converter; and in energy 44, 67, 103, 121, 104 and 120 (K-eco-standing-power-spends-by-the-
+  frame). A block's spend is its power times the kind under it: 24 turrets on advanced fusion frames move 150 metal
+  a second and no order among them moves more; 112 turrets move 700. So the bank's rise, divided by the kind's
+  figure, is the turrets the block is short, and the block's energy draw at full work (24 turrets on fusions: 1,600
+  a second) is the energy that has to stand before the power is bought, which is why the fusion comes before the
+  converters that will feed on it. The measure that travels is turrets per metal a second of income. His econ game
+  held one turret for every six, at 10:00, 15:00 and 20:00 alike (29 / 213, 112 / 651, 304 / 1,706): his block
+  could put his whole income into advanced fusions at any minute. Ours held one for every twenty (econ-flagship-11:
+  24 / 458, 45 / 958; econ-10 one for thirteen), and the bank was the difference. The bank is a lagging sign: it
+  says the power was short a minute ago, and in this regime income triples every five minutes, so a block that
+  matches the income now is a third of what the next five minutes want. Turret frames under the block stand in about
+  a second and the block's growth is the share of its power on them: his kept about a tenth of itself on new
+  turrets, 35 a minute at the end, and lost almost nothing on the frames for it. That is the reason turret frames
+  come first in the hands' default `tend` order, and the reason moving them down costs the curve more than it
+  costs the frame (econ-flagship-11 at 15:57: turret frames moved below converters and the fusions, 45 turrets at
+  18:00 and none after).
 
 - *The turret's energy column is paid once a fusion stands (ours).* D-energy-second prices the turret by its 3,200
   energy, "five and a third minutes of one solar", and that is why the duel builds one and then a factory. Beside a
@@ -130,7 +152,10 @@ field is far ahead of its medians at every mark while far behind what the same m
 2. *Buy build power with the bank, in its cheapest form, where the frames will stand.* Why: 1.15 metal a point and
    the energy column paid once a fusion runs; a frame placed among turrets builds at their sum, so the same bank buys
    the frame and its clock together. A second advanced plant and forty advanced constructors is the same purchase at
-   1.9 a point, each needing the plant's 600 of power to be born, each walking to its frame alone.
+   1.9 a point, each needing the plant's 600 of power to be born, each walking to its frame alone. And buy it ahead
+   of the bank, sized to the income the next five minutes will bring: a turret bought while the store is flat is
+   spend capacity for the rest of the game, one bought after the store caps is yesterday's shortfall, and the bank's
+   rise divided by six is the turrets the block was already short.
 3. *Upgrade every spot first, then the ladder, and converters with the fusions, not after them.* Why: 104 metal per
    metal a second against 224 and 296, so the spots come first while any stands free; and a fusion without its
    converters is energy at cap, which is a bill paid and nothing bought (the Altored +50 3v3: a seat banked 2,000
@@ -161,13 +186,17 @@ out. Ours, where the discipline failed: econ-flagship-4 (48 / 154 / 422 / 900 ag
 the same task; 14 turrets, 23 fusions each a hundred seconds on one or two advanced constructors, the first converter
 at 14:42, 45,000 banked at the end, and every turn's reading "about five times the strong players' median"); the
 Glitters 2v6 (store at cap 19:00 to 41:00, no constructor after 13:26 and no turret after 16:29, the allies'
-overflow unread); the Altored +50 3v3 (fusions from 16:20, no advanced fusion, 2,000 energy a second banked unused).
+overflow unread); the Altored +50 3v3 (fusions from 16:20, no advanced fusion, 2,000 energy a second banked unused);
+econ-flagship-11 (41 / 142 / 458 / 958: 24 turrets from 12:00 to 15:17 while the bank rose 3,700 to 17,000, 45 at the
+end and none after 18:00, one turret per twenty of income, the three advanced fusions 113 to 190 s each under 14 to 20
+turrets that were on converters and new turrets, 83,563 of 318,338 overflowed).
 
 **The ways the discipline fails.** *The float:* the store at cap with the income
 unspent. *The lone clock:* frames begun with no standing power in reach, each on one or two walking builders. *The
 wrong curve:* reading the side as ahead against the duel's medians while a passive opponent or a fed seat puts it on
 the uncapped curve. *The withheld converter:* converters refused because energy is "in balance" while fusions stand.
-*The frozen power:* no builder of any kind begun for minutes while the store rises.
+*The frozen power:* no builder of any kind begun for minutes while the store rises. *The flat block:* the turret count
+standing still while the income doubles, the block's spend a fixed fraction of a rising income.
 
 **Where it bends.** (1) The duel does not reach it: a Comet duel ends at 12:39 at the median and an advanced fusion
 repays in 224 seconds only if the game lasts them; there D-tier2-sprint's gate holds and this article is for the

@@ -124,6 +124,7 @@ the dozen where the wind tops 14, solars on Flats and Rosetta; one Goblin stream
 turbines on a map with wind to 14 (M-leg-duel-opening).
 
 **When to depart from the line.** When the metal store is banked and the energy store full: build power, not energy.
+How much: the late-economy article's spending rate, one turret for every six metal a second of income.
 When both stores are empty: nothing, the stall is metal's and a generator only delays the next extractor. When his air
 plant stands: the solars are his target and the field's anti-air is energy spending too. When a spot stands free:
 never a converter. When the wind tops 19 and the store can carry the swing: turbines even for the opening.

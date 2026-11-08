@@ -615,6 +615,26 @@ advanced plant, guard orders between its solars, did not pass eight constructors
 faster than the constructors it displaced would have; or a plant alone made constructors faster than one per 27 s.
 **Used by.** D-commander-cost (`docs/briefs/derived/commander.md`, in the rework manifest after energy.md).
 
+### K-eco-standing-power-spends-by-the-frame
+**Claim.** Build power is a spending rate set by the kind of frame under it: a frame draws its metal cost times the
+power on it over its build time, so one construction turret (200) at full work spends 6.2 metal a second on an
+advanced fusion (9,700 over 312,500), 12.4 on a fusion (3,350 over 54,000), 8.3 on an advanced extractor, 8.7 on
+another turret, 19.3 on an advanced plant, 2.2 on an advanced converter (380 over 35,000); in energy 44, 67, 103,
+121, 104 and 120. A block's spend is its power times that figure and no ordering of its turrets raises it; so the
+unspent income divided by the kind's figure is the turrets the block is short. The measured ratio: thebluegecko's
+econ game held one turret per six metal a second of income at 10:00, 15:00 and 20:00 (29 / 213, 112 / 651,
+304 / 1,706), ours one per twenty (econ-flagship-11: 24 / 458, 45 / 958) and one per thirteen (econ-10: 73 / 976).
+**Status.** the arithmetic is the engine's rule (F-eco-build); the ratio observed (2026-11-08; one game of his, two of ours)
+**Evidence.** `crates/bot/data/units.json` costs and build times; K-eco-pro-curve-against-a-passive-opponent's
+turret and income marks; econ-flagship-10 and -11 (`run/eco_marks.py --minutes`); the econ-11 audit
+(replay-econ-flagship-11): 24 turrets on advanced fusion frames could move 150 a second against an income of 466 at
+15:00, and 83,563 of 318,338 overflowed.
+**Would be wrong if.** A flagship game on the econ task held one turret per six of income from 10:00 and still
+floated (the store at cap with turrets in reach of free frame slots), or a frame among N working turrets drew other
+than N times the figure.
+**Used by.** D-late-economy ("Standing power is a spending rate"), D-energy-second's departure line, H-ECO-BLOCK's
+block line (the spend the standing power can move, 2026-11-08).
+
 ### K-team-allies-overflow-is-income-the-engine-leaves-out
 **Claim.** In a team game the metal and energy allies put into a seat's stores (gifts, and the overflow of a full
 neighbour) is income to that seat, and the engine's income figures (`Economy_getIncome`, the eco line's "+N") leave it

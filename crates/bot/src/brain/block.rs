@@ -189,14 +189,14 @@ impl Brain {
 
     /// The report's block line: where it stands, its pitch, what it holds and what stands on its ground; or why
     /// there is none when an advanced plant is placed and no ground held one.
-    pub(super) fn block_line(&self, own: &[OwnUnit]) -> Option<String> {
+    pub(super) fn block_line(&self, own: &[OwnUnit], metal_income: f32) -> Option<String> {
         let Some(block) = self.block.as_ref() else {
             return self.block_failed.clone().map(|why| format!("the block (where your construction turrets and frames stand): {why}"));
         };
         let on_it = || own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def) && block.lattice().holds(u.pos));
         let turrets = on_it().count();
         let power: f32 = on_it().filter_map(|u| self.world.def(u.def)).map(|d| d.build_speed).sum();
-        let clocks = self.block_clocks(power);
+        let clocks = self.block_clocks(power, metal_income);
         let free = self.block_free_slots(block, own);
         let tiers = match &self.block_grow_failed {
             Some(why) if free < 2 => format!(" in {} tier{} of rows ({why})", block.tiers, if block.tiers == 1 { "" } else { "s" }),
@@ -226,8 +226,12 @@ impl Brain {
     /// the power standing on the block, beside the lone advanced constructor's clock for the same kinds, so the two
     /// are read side by side (econ-flagship-4 at 18:32, 11 turrets on the block and 6 of 6 slots free: "a fusion
     /// takes about 186 s for a single advanced constructor, so new ones can't stand in time"). A clock, not advice:
-    /// the draw the stores must carry is the spending line's.
-    fn block_clocks(&self, power: f32) -> String {
+    /// the draw the stores must carry is the spending line's. Since 2026-11-08 the line also says what the standing
+    /// power moves a second into frames of each kind (its power times the kind's metal and energy over its build
+    /// time) beside the seat's metal income, so the block is read against the income it has to spend
+    /// (econ-flagship-11: 24 turrets, 150 a second into advanced fusions, income 466 to 958, 83,563 overflowed;
+    /// K-eco-standing-power-spends-by-the-frame).
+    fn block_clocks(&self, power: f32, metal_income: f32) -> String {
         let Some(kit) = self.kit.as_ref() else { return String::new() };
         let Some(con) = self.world.def(kit.advanced_constructor) else { return String::new() };
         let mut kinds: Vec<&UnitDefInfo> = con
@@ -244,7 +248,15 @@ impl Brain {
         let at = |p: f32| kinds.iter().map(|d| format!("{} {:.0} s", self.name(d.id), d.build_time / p)).collect::<Vec<_>>().join(", ");
         let alone = format!("the {} alone: {}", self.name(con.id), at(con.build_speed.max(1.0)));
         if power > 0.0 {
-            format!("; {power:.0} build power standing on it: a frame placed there stands in {} ({alone})", at(power))
+            let spend = kinds
+                .iter()
+                .map(|d| format!("{} {:.0} metal and {:.0} energy", self.name(d.id), power * d.metal_cost / d.build_time, power * d.energy_cost / d.build_time))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!(
+                "; {power:.0} build power standing on it: a frame placed there stands in {} ({alone}); all of it on frames of one kind moves a second {spend} (our metal income is {metal_income:.0} a second)",
+                at(power)
+            )
         } else {
             format!("; no construction turret's power on it yet: a frame there builds at what walks to it ({alone})")
         }
@@ -307,7 +319,7 @@ mod tests {
         assert_eq!(block.reach, 400.0, "the construction turret's reach, not the kit's turret's");
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("armafus slots")), "{:?}", brain.pianist.as_ref().unwrap().done);
         assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
-        let line = brain.block_line(&ours).expect("a line");
+        let line = brain.block_line(&ours, 0.0).expect("a line");
         // Laid clear of the turrets' reach of the plant (2026-11-08), all three tiers hold at laying: eighteen slots.
         assert!(line.contains("18 of 18 frame slots free in 3 tiers of rows") && line.contains("sparse"), "{line}");
         assert!(line.contains("in this order, one thing at a time (`tend` changes it): turret, advanced_fusion, fusion"), "{line}");
@@ -315,8 +327,12 @@ mod tests {
         // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
         // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.
         brain.kit = Some(kit.clone());
-        let line = brain.block_line(&ours).expect("a line");
+        let line = brain.block_line(&ours, 0.0).expect("a line");
         assert!(line.contains("no construction turret's power on it yet") && line.contains("(the armack alone: armckfus 217 s, armafus 1043 s)"), "{line}");
+        // The spend: 24 turrets' 4,800 on advanced fusion frames is 9,700 x 4,800 / 312,500 = 149 metal and 1,058 energy a
+        // second, read beside the income (K-eco-standing-power-spends-by-the-frame).
+        let clocks = brain.block_clocks(4800.0, 466.0);
+        assert!(clocks.contains("armafus 149 metal and 1058 energy") && clocks.contains("(our metal income is 466 a second)"), "{clocks}");
         // The bands: a turret's and a frame's are the block's.
         assert_eq!(brain.band_for(nano, &commander, &ours), (block.centre, block.reach));
         assert_eq!(brain.band_for(afus, &commander, &ours), (block.centre, block.reach));
