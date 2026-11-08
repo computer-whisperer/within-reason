@@ -9,7 +9,7 @@ won't work as well for parallel arena games, but it seems likely we can find som
 ## What stands today
 
 - A player session is replaced after 40 turns by a fresh one handed its notes (`strategist/mod.rs`
-  `turns_per_session`); a 20-minute game peaks near 110k tokens of context, so a whole game fits one session with
+  `TURNS_PER_SESSION`; since 2026-11-08 the replacement is spawned and warmed three turns ahead, `PREWARM_TURNS`); a 20-minute game peaks near 110k tokens of context, so a whole game fits one session with
   room for the roster (about 10k) and a carry file.
 - After a game, `run/debrief.py` asks a fresh session to read the logs and writes a debrief into
   `docs/briefs/inbox/`; the brief (`docs/briefs/player.md`) is edited by hand from those and from the ledger.

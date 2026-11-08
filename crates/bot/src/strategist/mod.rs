@@ -189,6 +189,17 @@ pub(crate) fn lockstep() -> bool {
 
 /// Turns after which the session is replaced by a fresh one that is handed the notes, to bound its context.
 const TURNS_PER_SESSION: usize = 40;
+/// How many turns before the cap the replacement is spawned and warmed (econ-flagship-15 to -18: every abandoned
+/// turn was turn 41 or its cascade; a fresh Claude process's first answer took 21 to 38 s to its first token,
+/// the process and the MCP connection to start and a 265k-token prompt with 34k new to the cache, against 6 to 15 s
+/// on the warm session, and under the 45 s cap it was abandoned in three games of four, which spawned another cold
+/// session: econ-16 lost four turns in a row). Warmed, the replacement has run one request on the standing prompt,
+/// and its first turn of the game is a warm one.
+const PREWARM_TURNS: usize = 3;
+/// How long the rotation waits for a warming replacement's warm-up to finish before giving it up for a cold spawn.
+const WARM_UP_WAIT_SECS: u64 = 10;
+/// The warm-up's prompt: one request over the standing prompt, no tool (the tool server is the game's).
+const WARM_UP: &str = "Warm-up: a new session is being readied while the current one plays the game. Reply with the one word ready and nothing else; call no tool. Your first report of the game follows in the next message.";
 
 /// A requirement the user set for this game (`arena --objective`, `WITHIN_REASON_OBJECTIVE`): "kill the commander
 /// with Thunder bombers", to prove a branch of the roster reachable. Appended to the player's role text.
@@ -566,6 +577,8 @@ impl Session {
 /// brain holds the game until the turn ends.
 fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBool, ai_id: i32) {
     let mut turns_this_session = 0;
+    // The replacement session, spawned and warmed `PREWARM_TURNS` turns before the cap.
+    let mut next: Option<Session> = None;
     let mut seen = report::Seen::default();
     let mut owed_result = false;
     let turn_limit: f32 = std::env::var("WITHIN_REASON_TURN_LIMIT").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
@@ -605,13 +618,16 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
         if turns_this_session >= TURNS_PER_SESSION || edited {
             session.end();
-            session = match launch.spawn() {
-                Ok(next) => next,
-                Err(e) => {
-                    eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
-                    shared.close_gate();
-                    return;
-                }
+            session = match readied(&launch, &mut next, edited) {
+                Some(warm) => warm,
+                None => match launch.spawn() {
+                    Ok(fresh) => fresh,
+                    Err(e) => {
+                        eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
+                        shared.close_gate();
+                        return;
+                    }
+                },
             };
             turns_this_session = 0;
         }
@@ -619,7 +635,8 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             let briefing = shared.briefing();
             (briefing.frame, briefing.game_time)
         };
-        let prompt = player_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0, previous_turn);
+        let first_turn = turns_this_session == 0;
+        let prompt = player_prompt(&game_time, &headline, shared, &mut seen, first_turn, previous_turn);
         previous_turn = frame;
         turns_this_session += 1;
         let started = Instant::now();
@@ -639,7 +656,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
                     // A turn that has held the game this long is a hung session (pianist-player-10: the first turn
                     // never returned, and the engine's watchdog killed the game at three minutes): the game goes on
                     // and the session is replaced.
-                    Err(RecvTimeoutError::Timeout) if started.elapsed() > turn_cap() => {
+                    Err(RecvTimeoutError::Timeout) if started.elapsed() > turn_cap(first_turn) => {
                         abandoned = true;
                         break true;
                     }
@@ -667,13 +684,16 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             launch.transcript.record(json!({ "kind": "turn_end", "wall_seconds": started.elapsed().as_secs_f32(), "ended_by": "abandoned" }));
             shared.end_turn();
             session.end();
-            session = match launch.spawn() {
-                Ok(next) => next,
-                Err(e) => {
-                    eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
-                    shared.close_gate();
-                    return;
-                }
+            session = match readied(&launch, &mut next, false) {
+                Some(warm) => warm,
+                None => match launch.spawn() {
+                    Ok(fresh) => fresh,
+                    Err(e) => {
+                        eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
+                        shared.close_gate();
+                        return;
+                    }
+                },
             };
             turns_this_session = 0;
             owed_result = false;
@@ -687,9 +707,26 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             }
             break;
         }
+        // The replacement, spawned and sent its warm-up while this session plays its last turns.
+        if next.is_none() && Backend::for_model(&model()) == Backend::Claude && turns_this_session >= TURNS_PER_SESSION.saturating_sub(PREWARM_TURNS) {
+            match launch.spawn() {
+                Ok(mut warm) => {
+                    if warm.send(WARM_UP) {
+                        launch.transcript.record(json!({ "kind": "prewarm", "after_turn": turns_this_session }));
+                        next = Some(warm);
+                    } else {
+                        warm.end();
+                    }
+                }
+                Err(e) => eprintln!("[ai {ai_id}] could not spawn the replacement session: {e}; the cap spawns a cold one"),
+            }
+        }
     }
     shared.close_gate();
     session.end();
+    if let Some(warm) = next {
+        warm.end();
+    }
 }
 
 /// `--turn-limit`: the match is called when the median of this many latest turns' wall seconds exceeds the limit;
@@ -702,16 +739,56 @@ fn median_of_last(walls: &[f32], n: usize) -> f32 {
     last[last.len() / 2]
 }
 
+#[cfg(test)]
+mod cap_tests {
+    /// In lockstep a Claude turn is abandoned at 45 s, a session's first turn at 90 (a cold session's first answer
+    /// runs 21 to 38 s to its first token).
+    #[test]
+    fn a_sessions_first_turn_gets_twice_the_cap() {
+        if super::lockstep() && super::Backend::for_model(&super::model()) == super::Backend::Claude {
+            assert_eq!(super::turn_cap(false).as_secs(), 45);
+            assert_eq!(super::turn_cap(true).as_secs(), 90);
+        } else {
+            assert_eq!(super::turn_cap(true).as_secs(), 120);
+        }
+    }
+}
+
 fn over_turn_limit(walls: &[f32], limit: f32) -> bool {
     limit > 0.0 && walls.len() >= TURN_LIMIT_WINDOW && median_of_last(walls, TURN_LIMIT_WINDOW) > limit
 }
 
 /// A turn is abandoned after this long with no answer: in lockstep 45 s (the engine's watchdog, HangTimeout, is 60 s by
-/// default and the arena raises it to 600; turns run 1 to 11 s), in real time 120 s (the game runs on meanwhile).
-fn turn_cap() -> Duration {
+/// default and the arena raises it to 600; turns run 1 to 11 s), in real time 120 s (the game runs on meanwhile). A
+/// session's first turn gets 90 s in lockstep: a cold session's first answer runs 21 to 38 s to its first token and
+/// its turn past 45 (the four games above `PREWARM_TURNS`), and abandoning it only spawns another cold one.
+fn turn_cap(first_turn: bool) -> Duration {
     // A Codex turn is one process with a 3 s floor and 20-60 s of writing (docs/studies/policy-models.md): the
     // lockstep cap that catches a hung Claude session would discard most of them.
-    Duration::from_secs(if lockstep() && Backend::for_model(&model()) == Backend::Claude { 45 } else { 120 })
+    Duration::from_secs(match (lockstep() && Backend::for_model(&model()) == Backend::Claude, first_turn) {
+        (true, false) => 45,
+        (true, true) => 90,
+        (false, _) => 120,
+    })
+}
+
+/// The replacement readied `PREWARM_TURNS` turns ago, once its warm-up has answered (waited for up to
+/// `WARM_UP_WAIT_SECS`); none when there is none, when its warm-up has not answered (it is ended), or when the prompt
+/// on disk was edited (a fresh session must read it). The transcript says which.
+fn readied(launch: &Launch, next: &mut Option<Session>, edited: bool) -> Option<Session> {
+    let warm = next.take()?;
+    if edited {
+        warm.end();
+        return None;
+    }
+    let answered = matches!(warm.turn_done.recv_timeout(Duration::from_secs(WARM_UP_WAIT_SECS)), Ok(()));
+    launch.transcript.record(json!({ "kind": "prewarmed", "answered": answered }));
+    if answered {
+        Some(warm)
+    } else {
+        warm.end();
+        None
+    }
 }
 
 /// `WITHIN_REASON_REALTIME`: the game is never held for a turn or an answer (a game against people; the arena's
