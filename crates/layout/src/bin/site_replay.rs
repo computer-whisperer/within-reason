@@ -1,7 +1,10 @@
-//! `site_replay [--without-asker] <layout-fail-N-M.bin>...`: a site search the bot dumped when it failed
-//! (`dump.rs`), run again off the game over the same world and traced: each widening's points, candidates and time,
-//! and each tried candidate's verdict. `--without-asker` takes the asking builder out of the world's builders
-//! before the search, to show whether the site was refused for walling in the builder that asked for it.
+//! `site_replay [--without-asker] [--without-kind NAME] [--near] <layout-fail-N-M.bin>...`: a site search the bot
+//! dumped when it failed (`dump.rs`), run again off the game over the same world and traced: each widening's points,
+//! candidates and time, and each tried candidate's verdict. `--without-asker` takes the asking builder out of the
+//! world's builders before the search, to show whether the site was refused for walling in the builder that asked
+//! for it; `--without-kind NAME` takes every standing building of that kind (its internal name, `armnanotc`) out, to
+//! show which buildings close a street (econ-flagship-8: every advanced fusion site within 800 of the block refused
+//! for the plant's street); `--near` lists what stands within the request's band of its centre.
 
 use std::time::Instant;
 
@@ -10,9 +13,11 @@ use layout::{Dump, choose_traced};
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let without_asker = args.iter().any(|a| a == "--without-asker");
-    let files: Vec<&String> = args.iter().filter(|a| !a.starts_with("--")).collect();
+    let near = args.iter().any(|a| a == "--near");
+    let without_kinds: Vec<&String> = args.windows(2).filter(|w| w[0] == "--without-kind").map(|w| &w[1]).collect();
+    let files: Vec<&String> = args.iter().enumerate().filter(|(i, a)| !a.starts_with("--") && !(*i > 0 && args[i - 1] == "--without-kind")).map(|(_, a)| a).collect();
     if files.is_empty() {
-        eprintln!("usage: site_replay [--without-asker] <layout-fail-N-M.bin>...");
+        eprintln!("usage: site_replay [--without-asker] [--without-kind NAME] [--near] <layout-fail-N-M.bin>...");
         std::process::exit(2);
     }
     for file in files {
@@ -71,7 +76,20 @@ fn main() {
                 under.map_or(String::new(), |s| format!(", standing on {}", s.name)),
             );
         }
+        if near {
+            let mut close: Vec<&layout::Standing> = dump.standing.iter().filter(|s| layout::distance_to(&s.rect, req.centre) <= req.radius).collect();
+            close.sort_by(|a, b| layout::distance_to(&a.rect, req.centre).total_cmp(&layout::distance_to(&b.rect, req.centre)));
+            println!("standing within {:.0} of the centre: {}", req.radius, close.len());
+            for s in close {
+                println!("  {} ({:.0}..{:.0}, {:.0}..{:.0}) {:.0} from the centre{}", s.kind, s.rect.x0, s.rect.x1, s.rect.z0, s.rect.z1, layout::distance_to(&s.rect, req.centre), if s.bank { ", a bank" } else { "" });
+            }
+        }
         let mut world = dump.world();
+        if !without_kinds.is_empty() {
+            let before = world.standing.len();
+            world.standing.retain(|s| !without_kinds.iter().any(|k| **k == s.kind));
+            println!("without {}: {} of {} standing kept", without_kinds.iter().map(|k| k.as_str()).collect::<Vec<_>>().join(", "), world.standing.len(), before);
+        }
         if without_asker {
             let before = world.builders.len();
             world.builders.retain(|b| b.at.dist2d(req.builder_at) >= 1.0);
@@ -90,7 +108,7 @@ fn main() {
         }
         // The same world gives the same verdicts; only the widenings' times differ between the game and here.
         let verdicts = |t: &[String]| t.iter().filter(|l| !l.starts_with("widening")).cloned().collect::<Vec<String>>();
-        if !without_asker && verdicts(&trace) != verdicts(&dump.trace) {
+        if !without_asker && without_kinds.is_empty() && verdicts(&trace) != verdicts(&dump.trace) {
             println!("the game's trace differed:");
             for line in &dump.trace {
                 println!("  {line}");

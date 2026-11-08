@@ -749,7 +749,8 @@ fn apron_open(apron: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
 }
 
 /// The distance from a point to a rect's nearest ground; 0 inside.
-fn distance_to(r: &Rect, p: Vec3) -> f32 {
+/// The distance from a point to a rectangle, 0 inside it.
+pub fn distance_to(r: &Rect, p: Vec3) -> f32 {
     let dx = (r.x0 - p.x).max(0.0).max(p.x - r.x1);
     let dz = (r.z0 - p.z).max(0.0).max(p.z - r.z1);
     (dx * dx + dz * dz).sqrt()

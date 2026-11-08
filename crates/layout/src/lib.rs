@@ -19,7 +19,7 @@ use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
 use serde::{Deserialize, Serialize};
 
 pub use block::{Block, DENSE_PITCH, Lattice, MAX_TIERS, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
-pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced};
+pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced, distance_to};
 pub use coverage::Coverage;
 pub use dump::Dump;
 pub use street::{APRON, Builder, Plant, STREET_REACH, StreetState, street_open, street_state, way_out};
