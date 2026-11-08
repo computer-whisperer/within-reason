@@ -2925,7 +2925,8 @@ mod tests {
         let goal = at(4000.0, 1000.0);
         lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![goal]));
         let first_of = |commands: &[Command], id: i32| commands.iter().find_map(|c| match c { Command::Move { unit, to, queue: false } if unit.0 == id => Some(*to), _ => None });
-        let out = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
+        let first = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
+        let out = &first;
         let rover_to = first_of(&out.commands, 10).expect("the Rover is ordered");
         assert!(rover_to.x - 1000.0 < 300.0 && rover_to.dist2d(goal) > 2500.0, "the Rover's slot is by the body, not the goal: {rover_to:?}");
         // Six slot orders, and on the first tick each member put at hold position (H-MICRO-FORM-HOLDPOS).
@@ -2938,12 +2939,24 @@ mod tests {
         assert_eq!(state.formed.len(), 4, "{:?}", state.exceptions);
         assert!(state.exceptions.iter().all(|(_, cause, s)| *cause == crate::Cause::Joining && *s < 2.0), "{:?}", state.exceptions);
         assert!(!state.arrived);
-        // Three frames on the slots have walked 8.7 elmos: every member is sent again; two frames on, nobody.
+        // Three frames on the slots have walked 8.7 elmos east, along the line each member was sent on: the order it
+        // has still serves (`point_still_serves`) and nobody is sent again (until 2026-11-07 every member was, every
+        // tick: 96 orders a unit-minute in a lobby, the people's lag).
         let out = lane.tick(&host, &tick(33, body.clone(), Vec::new()), &mut Vec::new(), false);
-        assert_eq!(out.commands.len(), 6, "{:?}", out.commands);
+        assert!(out.commands.is_empty(), "{:?}", out.commands);
+        // Every member closed to within `REISSUE_NEAR` of its point: each is sent again, to a slot that has walked on.
+        let mut closed = body.clone();
+        for u in closed.iter_mut() {
+            let to = first_of(&first.commands, u.id.0).expect("ordered on the first tick");
+            u.pos = at(to.x - 50.0, to.z);
+        }
+        let out = lane.tick(&host, &tick(36, closed.clone(), Vec::new()), &mut Vec::new(), false);
+        let moves = out.commands.iter().filter(|c| matches!(c, Command::Move { .. })).count();
+        assert_eq!(moves, 6, "{:?}", out.commands);
         let again = first_of(&out.commands, 10).unwrap();
-        assert!((again.x - rover_to.x - 8.7).abs() < 1.0, "the slot moved a tick's pace east: {again:?} from {rover_to:?}");
-        let out = lane.tick(&host, &tick(35, body, Vec::new()), &mut Vec::new(), false);
+        assert!(again.x > rover_to.x + 8.0, "the slot walked on east: {again:?} from {rover_to:?}");
+        // Two frames on, under the cadence, nobody.
+        let out = lane.tick(&host, &tick(38, closed, Vec::new()), &mut Vec::new(), false);
         assert!(out.commands.is_empty(), "{:?}", out.commands);
     }
 }

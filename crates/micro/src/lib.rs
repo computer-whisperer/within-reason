@@ -115,6 +115,14 @@ const STAND_KEEP: f32 = REACH_SLACK;
 /// On the march a member's slot order goes out again every `Pacing::cadence` frames while the slot has moved this
 /// far since the last one (at the pace it moves about five a tick); a stopped anchor's slots are sent once.
 const REISSUE_MIN: f32 = 4.0;
+/// A marching member is sent again only when its last point no longer serves: it has closed to within this of it (the
+/// pace type's point is carried `LEAD` ahead, so at pace that is every few seconds), or the new point lies off the line
+/// to the old one by more than the formed band or short of it by more (a turn, a halt, a close). Until 2026-11-07 any
+/// move of the point past `REISSUE_MIN` sent the order again, every tick at pace (the point moves 4.8 a tick at 48):
+/// 99 % of a lobby seat's orders, 96 a unit-minute against a BARb seat's 15, 41 % within 3 frames of the unit's
+/// previous order and 68 % under 32 elmos from its last point (1794062778, t12; the people lagged out of two lobby
+/// games on the volume). A standing body sends nothing either way: the point does not move.
+const REISSUE_NEAR: f32 = 100.0;
 /// H-MICRO-FORM-SPACING: an area weapon of theirs in sight or remembered this near a body's centre sets its spacing.
 const AREA_HORIZON: f32 = 1500.0;
 /// H-MICRO-FORM-HOLDPOS's ID (a host switches it off by it), and the engine's move states it sets: hold position
@@ -168,7 +176,14 @@ struct HuntState {
     ended: Option<&'static str>,
     /// The frame of the sighting each hunter was last sent to when the quarry was out of sight.
     sent_to_sighting: HashMap<UnitId, i32>,
+    /// The hunters whose last order was the attack on the quarry, with its frame: the attack is not sent again while
+    /// it stands (until 2026-11-07 it went out every tick the quarry was in sight, ten a second a hunter), only after
+    /// a move to a sighting or `HUNT_RESEND_FRAMES`.
+    attacking: HashMap<UnitId, i32>,
 }
+
+/// A standing attack on the quarry is sent again this often, against anything that cleared it in the engine.
+const HUNT_RESEND_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
 
 impl Commitment {
     fn covers(&self, source: &Source) -> bool {
@@ -525,6 +540,23 @@ impl Lane {
         }
         out
     }
+}
+
+/// Whether a marching member at `at`, last sent to `sent`, is still served by that order against the new point `to`
+/// (`REISSUE_NEAR`): it is farther than `REISSUE_NEAR` from `sent`, and `to` lies within `band` of the line from it
+/// through `sent`, no more than `band` short of `sent` along it. A straight march keeps the order; a turn, a halt (the
+/// point falls back to the slot) or a close sends a new one at once.
+fn point_still_serves(at: Vec3, sent: Vec3, to: Vec3, band: f32) -> bool {
+    let (ax, az) = (sent.x - at.x, sent.z - at.z);
+    let len = ax.hypot(az);
+    if len < REISSUE_NEAR {
+        return false;
+    }
+    let (ux, uz) = (ax / len, az / len);
+    let (bx, bz) = (to.x - at.x, to.z - at.z);
+    let along = bx * ux + bz * uz;
+    let lateral = (bx * uz - bz * ux).abs();
+    along >= len - band && lateral <= band
 }
 
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
@@ -884,8 +916,8 @@ impl Lane {
         });
     }
 
-    /// H-MICRO-HUNT for one declared group of kind `Hunt` (design D15): every member is sent at the quarry by id every
-    /// tick while the quarry is in sight or on radar, and once to the last sighting (carried along its velocity) while
+    /// H-MICRO-HUNT for one declared group of kind `Hunt` (design D15): every member is sent at the quarry by id while
+    /// the quarry is in sight or on radar (once per run of sight, `HuntState::attacking`), and once to the last sighting (carried along its velocity) while
     /// it is not; the hunt ends when the quarry is dead, out of sight and radar for the order's `lost_frames`, or the
     /// quarry has run past the leash from where it stood when the lane first ran this hunt. The end is reported
     /// once, with the group's name; the host changes or clears the group (worlds-2: four Rovers at 168 never closed on
@@ -894,7 +926,7 @@ impl Lane {
     #[allow(clippy::too_many_arguments)]
     fn hunt(&mut self, view: &dyn View, name: &str, hunters: &[&OwnUnit], order: &HuntOrder, enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<HuntEvent>, debug: bool) {
         let quarry = order.quarry;
-        let mut state = self.hunts.remove(name).unwrap_or_else(|| HuntState { started: frame, quarry_from: None, last_seen: None, ended: None, sent_to_sighting: HashMap::new() });
+        let mut state = self.hunts.remove(name).unwrap_or_else(|| HuntState { started: frame, quarry_from: None, last_seen: None, ended: None, sent_to_sighting: HashMap::new(), attacking: HashMap::new() });
         if state.ended.is_some() {
             self.hunts.insert(name.to_string(), state);
             return;
@@ -940,13 +972,17 @@ impl Lane {
             match (seen, state.last_seen) {
                 (Some(e), _) => {
                     self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame });
-                    self.counts.1 += 1;
-                    commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
+                    if fresh || state.attacking.get(&unit.id).is_none_or(|&at| frame - at >= HUNT_RESEND_FRAMES) {
+                        state.attacking.insert(unit.id, frame);
+                        self.counts.1 += 1;
+                        commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
+                    }
                 }
                 (None, Some((pos, vel, at))) => {
                     // Out of sight: once per sighting, to where it was heading.
                     if state.sent_to_sighting.get(&unit.id) != Some(&at) {
                         state.sent_to_sighting.insert(unit.id, at);
+                        state.attacking.remove(&unit.id);
                         let ahead = (frame - at) as f32;
                         let to = self.classes.snap_for(view, unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
                         self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame });
@@ -1388,14 +1424,15 @@ impl Lane {
     }
 
     /// A free unit with a form order takes it: a Move to its point, out when the claim is fresh (the group just formed,
-    /// or the unit came back from a reflex) and on the march every `Pacing::cadence` frames while the point has moved
-    /// `REISSUE_MIN` since the last order: the loop that holds the pace (a halted anchor's slots go out once, and a
-    /// member in reach fires at will on the way and where it stands; an order costs no shot under a Move).
+    /// or the unit came back from a reflex) and on the march every `Pacing::cadence` frames once the point has moved
+    /// `REISSUE_MIN` since the last order and that order no longer serves (`point_still_serves`, `REISSUE_NEAR`): the
+    /// loop that holds the pace at a few orders a member-minute (a halted anchor's slots go out once, and a member in
+    /// reach fires at will on the way and where it stands; an order costs no shot under a Move).
     #[allow(clippy::too_many_arguments)]
     fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, to: Vec3, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
-        let due = claim.is_some_and(|c| c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN);
+        let due = claim.is_some_and(|c| c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN && !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within));
         if !(fresh || due) {
             return;
         }

@@ -370,3 +370,36 @@ drills ledger ward0 / ward1.
 point did (face1 / stand1: anchors 486-509 apart, overlap under 1 s, arrival 49-51 s), or a follower twice its ward's
 size stood on it.
 **Used by.** H-HANDS-FOLLOW, the contact cleanup's §5.3.
+
+### K-group-the-march-re-sent-every-member-every-tick
+**Claim** (2026-11-07, from the two lobby 8v8s of the day). The lane's march was the order rate the people lagged on:
+`take_slot` sent a member its point again every lane tick once the point had moved 4 elmos, and a point carried along
+at pace moves 4.8 a tick, so every marching member was re-ordered ten times a second, and a standing body not at all.
+In the morning's game (`1794062778-replay-human-8v7-glitters`) 99 % of t12's 383,000 orders went to formation members,
+96 a unit-minute over every unit the seat owned against a BARb seat's 15 and a busy person's 8.6 (the public Failed
+Negotiations 8v8, `1794011179-replay-defence-pilot-fn-8v8-barb100`); 41 % came within 3 frames of the same unit's
+previous order and 68 % under 32 elmos from its last point. A BARb unit gets one order every 2 s, 74 % of them more
+than 100 elmos from the last. The engine's AI commands are one net message a unit, relayed by the host to every client:
+this client sent 246 packets and 65 KB a second against 52 KB a second from the other fifteen players together.
+**The rule now** (`point_still_serves`, `REISSUE_NEAR` 100): a member is sent again when it has closed to within 100 of
+its point, or the new point lies off the line from it through the old one by more than the formed band, or short of
+it by more (a turn, a halt, a close); a straight march keeps its order. The hunt's attack goes out once per run of
+sight and every 5 s, not every tick.
+**Evidence.** Six drills, the binary before and after (`run/matches/17940994*-duel-orders-*` to `1794099619`), every
+movement number equal within a duel's noise: arrival first/median/last, formed share (walk 1.00/1.00, Pawns 0.98/0.98,
+reverse 0.92/0.91, into 0.85/0.87, circuit 0.95/0.95, pair 0.97/0.97), speed share, stopped seconds, the into drill's
+first shot (21/20 s) and shot ramp, the circuit's lap (180/179 s, anchor back 576 → 502). Orders to the army per duel:
+walk of 20 Pawns 2,560 → 188 (−93 %), into with 12 Flashes 1,538 → 106 (−93 %), the Pawn circuit 25,900 → 3,980
+(−85 %), the mixed walk 1,489 → 1,244 (−16 %), the mixed reverse 1,002 → 645 (−36 %), the mixed pair walk 4,122 →
+2,805 (−32 %). The pair drill's spin-up column read 35-37 s in 3 of 4 after-duels against 1 of 4 before, with the same
+arrival, formed share and per-second median speed (50-66 through the march in both arms, no stop-go); one unit left
+behind once.
+**What is left.** The gain is the pace type's: its point is carried `LEAD` 300 ahead, so it closes on it every few
+seconds. A faster type's point is its learned following distance, under 100, so it is still sent every tick, and lobby
+bodies are mixed: t12's orders were 67 % to Thuds (speed 45) beside Levelers (40) and Fatboys (30), 8 % to AKs (81),
+7.5 % to Stormers (47.7), each type at 110-250 orders a unit-minute. Under BARb's 15 needs the faster types too: a
+cadence of a second for them (the drills doc's measured arm, "held the per-second mean"), judged by the same drills
+and by an 8v8's audit orders per team.
+**Status.** measured (2026-11-07): the morning audit's cmd rows by unit, type and minute joined to the record's groups
+(scratch `orders_by_team.py`, `order_anatomy.py`, `member_share.py`), tcpdump on the game socket, the twelve drill
+batches above.
