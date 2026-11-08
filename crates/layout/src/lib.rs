@@ -11,6 +11,7 @@ mod block;
 mod choose;
 mod coverage;
 mod dump;
+mod farm;
 mod street;
 
 use std::collections::HashMap;
@@ -18,7 +19,8 @@ use std::collections::HashMap;
 use bot_protocol::{Lane, Terrain, UnitDefId, UnitDefInfo, Vec3};
 use serde::{Deserialize, Serialize};
 
-pub use block::{Block, DENSE_PITCH, Lattice, MAX_TIERS, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
+pub use block::{Block, DENSE_PITCH, Lattice, SPARSE_PITCH, Wants as BlockWants, lay as lay_block};
+pub use farm::{FARM_EXTENT, Farm, ROOM_HIGH, ROOM_LOW, cells_of as farm_cells_of, footprints as farm_footprints};
 pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced, distance_to};
 pub use coverage::Coverage;
 pub use dump::Dump;

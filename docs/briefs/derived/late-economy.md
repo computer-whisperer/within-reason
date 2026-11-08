@@ -103,17 +103,29 @@ field is far ahead of its medians at every mark while far behind what the same m
   costs the frame (econ-flagship-11 at 15:57: turret frames moved below converters and the fusions, 45 turrets at
   18:00 and none after).
 
+- *Build power is bought for the income five minutes out, never for the income now.* In this regime income triples
+  every five minutes (62 / 213 / 651 / 1,706 in his game; 50 / 152 / 456 / 1,098 in econ-flagship-19), so the test
+  of the block is not whether it can spend what comes in this minute but whether it will spend three times that in
+  five. An empty metal store with the pull above the income is the state to play for, not a sign to stop: his bank
+  sat between 88 and 613 from 13:00 to 17:00 while he laid 46 to 50 turrets a minute. The arithmetic from the
+  report's block line is one division: the turrets standing over the income now, held against one per six of the
+  income the curve says is coming; the block line's measured intake (what the frames in the turrets' reach took
+  over the last minute) is what the power did, and the share of turrets with no frame in reach is what it could
+  not. Econ-flagship-19 stopped at 60 turrets for 284 of income at 12:44 ("12,000 build power, which is enough"),
+  the income was 1,098 at 20:00, and 93,578 metal overflowed from 17:09 with the turrets idle 40 percent of the time.
+
 - *The block is ground before it is power.* A turret helps what stands within 400 of it, a circle of about 500,000
   square elmos, and the power a frame gets is whatever stands inside that circle round it, so the block is an area
   and what stands on the area is the whole question. The pitch sets how many turrets a frame can see: touching, 48
   apart, 274 turrets fit within reach of a frame's centre; at 96 apart, the hands' default until the `block` tool's
   `dense`, 68. His block stood at 48, his frames saw 46 to 53 turrets when placed; ours at 96 in econ-flagship-12
-  saw 17 to 33 of 128, 74 of 102 turrets had no frame within reach at 18:00, and the block's 18 frame slots were down
-  to two. Anything else on the ground is turrets not standing and frames not in reach: a solar's footprint is two
+  saw 17 to 33 of 128, 74 of 102 turrets had no frame within reach at 18:00, and the block's reserved frame slots (a
+  count the hands no longer keep: the farm is the ground the turrets reach) read as full. Anything else on the ground is turrets not standing and frames not in reach: a solar's footprint is two
   and three quarter turrets', and the seventeen solars he reclaimed at 13:44 to 14:41 stood where thirteen to twenty
   turret frames went a minute later (the base article has the lattice arithmetic; D-air-not-optional's dispersal is
   the price of the same ground against bombers). So a generator belongs on the block's ground only when it will be
-  eaten for it, and the block's room is a quantity to read beside its power: slots free, turrets in reach of a slot.
+  eaten for it, and the block's room is a quantity to read beside its power: the block line counts it in the held
+  kinds' footprints, free ground in reach of thirty turrets and of ten.
 
 - *Who starts the frames pays the walk, not the build.* Under `start` a builder places a frame and leaves it the
   moment it stands up, about a second, so a starter's rate is frames a minute and its cost is the walk between them.
@@ -128,8 +140,8 @@ field is far ahead of its medians at every mark while far behind what the same m
   trade: the flyer costs energy above all (19 energy a metal; his 46 were 97,000 energy, half a minute of his energy
   income at 15:00) and dies to anything (a Thistle or a fighter kills it in a pass, and it leaves no wreck), so it is
   the starter only where the air over the block is ours or nobody's; a ground constructor walks slower and lives.
-  The sign that the starter is the limit, not the power: frame slots free and turrets in reach of them idle while the
-  constructors are walking, which is the block waiting for frames. Before that the flyer is 110 metal and 2,100 energy
+  The sign that the starter is the limit, not the power: room on the farm and turrets with no frame in reach while
+  the constructors are walking, which is the block waiting for frames. Before that the flyer is 110 metal and 2,100 energy
   for nothing, and under his air it is a gift.
 
 - *The turret's energy column is paid once a fusion stands (ours).* D-energy-second prices the turret by its 3,200

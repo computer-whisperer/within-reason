@@ -121,13 +121,29 @@ What is not held keeps the band beside its builder (300) and the layer's tie-bre
 tidiness, not a decision; the bank caps that stopped a bank at six or eight go, since the chain sum (§1.3 of the
 base-layout design) already prices a bank that would kill itself and the player can read the blast words.
 
-### 1.4 The report: room, in footprints
+### 1.4 The report: room, in footprints; what is measured, nothing promised
 
 The block line stops counting slots. It says what the farm holds and how much room it has, in the footprints of the
-held kinds at two power lines: "holds: advanced_fusion, fusion, advanced_converter, storage (`block` changes it); room:
-about 24 advanced fusions or 54 advanced converters in reach of 30 or more turrets, 68 or 154 in reach of 10 or more".
-The figures are the free-ground count of §0's table, which the engine computes from the same world it places over, so
-the line and the placement cannot disagree the way the slots and the ground did.
+held kinds at two power lines: "holds: advanced_fusion, fusion, advanced_converter, storage (`block` changes it); room
+on the farm (free ground its turrets reach): about 24 armafus or 54 armmmkr in reach of 30 or more turrets, 68 or 154
+in reach of 10 or more". The figures are the free-ground count of §0's table, which the engine computes from the same
+world it places over (`layout/farm.rs`, the largest and the smallest held kind the advanced constructor builds), so the
+line and the placement cannot disagree the way the slots and the ground did.
+
+(2026-11-08 night, the user, after econ-flagship-19: "the scripted reports should not be trying to predict game
+state".) The line's two potentials went with the slots: what a frame placed there would stand in at the block's power
+("armafus 26 s") and what all of the power on one kind would move a second beside the income ("armfus 744 metal ...
+(our metal income is 284 a second)"). At 12:44 of econ-flagship-19 the player read the second as "12,000 build power,
+which is enough" and the slot count (2 of 12) as full, stopped buying turrets for good, sited every later frame outside
+the farm, and the block's turrets stood idle 40 percent of the time from 14:00 with 93,578 metal overflowing. In their
+place the line says what is measured: the turrets standing and how many have no frame in reach now, and what the frames
+in the turrets' reach took over the last minute beside the income ("71 turrets on it, 42 with no frame in reach; the
+frames in their reach rose by 190 metal a second over the last minute (whoever built them), against our income of 868";
+`Brain::farm_intake`, a minute's window of the share each frame a turret reaches gained a tick, times its metal). The
+hands' site words lose their clock the same way: "29 turrets with 6090 build power in reach", not "6 s to stand". The
+eco line's flow words lose their verdicts: "STALLING: the store is empty", "spending faster than it comes in: empty in
+about N s", "more coming in than is spent: banking it", "in balance"; "everything that needs it builds slowly; more
+income is needed" and "banking it unused" are gone.
 
 When a held frame finds no room above the lower line, the hands' line says so and where it went: "armafus_1234: no room
 on the block in reach of 10 turrets; placed at its edge with 4 in reach" or, on the player's word (§5), the step is
@@ -136,7 +152,8 @@ and the words give it what it needs. The sentence about tiers and "a second bloc
 
 ### 1.5 What goes
 
-`economy.rs`: `purpose_of`, `band_for` as a kind sorter, `BAND_FRAME`, `BANK_CAP` and `BANK_CAP_GENERATOR`,
+(Step 1 rewrote `purpose_of` as the holds question; steps 2 and 3 deleted the rows, slots and tiers as listed; the bank
+caps stay, see Status.) `economy.rs`: `purpose_of`, `band_for` as a kind sorter, `BAND_FRAME`, `BANK_CAP` and `BANK_CAP_GENERATOR`,
 `Purpose::Generator { cap }` as a decision. In their place one question: held, by the list or by the word, or not;
 then the engine's own kinds (plant, turret, extractor, place) which are geometry. `layout/block.rs`: `frame_rows`,
 `frame_slots`, `tiers`, `grow`, `MAX_TIERS`, `ROW_SLOTS`, `free_frame_slots`, `Reserved::Frames`; `choose.rs`: the
@@ -189,5 +206,26 @@ touch `tend` beyond the one word, nor the harness's 45-second turn cap and the s
 None open. (The five questions of the first draft were ruled as §4 records.)
 
 ## Status
+
+**Steps 2 and 3 built 2026-11-08 night (the user: "Proceed", after the econ-flagship-19 comparison with thebluegecko's
+game).** `layout/block.rs`: `frame_rows`, `frame_slots`, `tiers`, `grow`, `MAX_TIERS`, `free_frame_slots` and
+`Reserved::Frames` deleted; the block keeps its centre, pitch, reach, gantry reservation and the frame it is for; the
+two rows are a footing the laying tests and does not keep. `layout/farm.rs` (new): the farm as cells over the window
+the turrets within FARM_EXTENT (1,600) of the centre reach, each cell free (buildable, nothing standing, off spots,
+aprons and reservations) and carrying the count of turrets reaching it; `room(at_least)`, `gain(at, reach)` (free farm
+cells a turret there would share with the standing ones, by row prefix sums), made once per layout world
+(`World::farm`). `choose.rs`: a turret's level-1 score with the block laid is the free farm ground it shares with the
+standing turrets, in frames' worth, plus the frames it reaches (contiguous growth with the power stacked where frames
+go; with no turret standing, nearest the asked place as before); a frame's score is unchanged (seconds under the power
+in reach) and its words say the power alone. `economy.rs`: a turret's and a frame's band is `farm_band`, the centre out
+to the farthest turret's reach, never under the block's reach (his turrets stood a median 820 from the centroid). The
+block line as §1.4 says. Judge for step 2: the room line against the free-ground count read from the record, and no
+frame decaying for want of reach while the room line said there was room. Judge for step 3: the farm's turrets within
+500 of its centre as a share, and the turrets in reach of the fusions at the median against his 46-53; and the one this
+arc is for, whether the turret count follows the income past 13:00 with the measured idle share and intake in front of
+the player (econ-flagship-19: 72 for 1,098, one per 15; his one per 5.6). Not done from §1.3's last paragraph: the
+bank caps on generators and converters stay (a longer bank is a wall round its builder; econ-17's solar rings), with
+the way-out veto now standing between a bank and a pen.
+
 
 Written 2026-11-08 after econ-flagship-15, before any code; the user agreed the shape and ruled §5 the same evening. Step 1 built 2026-11-08 (`holds`, the `block` place word, `advanced_converter` in both vocabularies, the start-stays rule, the block line's holds words; H-ECO-BLOCK and H-ECO-LAYOUT amended); judged in econ-flagship-16 (its ledger row): the placement half met, 42 of 42 advanced converter frames with turrets in reach (econ-15 55 of 95), but by the place word on every frame step, not the list, which the player never changed nor mentioned; and the decays went on (14 of 42 advanced converters, 16 of 49 turrets) with 5 to 29 turrets in reach of each, none told onto it: a `start` leaves a frame to turrets that are each on the nearest frame of the top-ranked kind in their reach, and a new frame farther off than those gets none of them, and a 0-3 % frame is gone in 10-17 s (K-mech-frame-decay). The turret count was the player's own call at 14:35 ('most were decaying before the turrets got to them'). So the start rule of §4 is the wrong test: a turret in reach is not a turret that will come, and what a start needs is a turret free for it, or the frame fed until one is. Answered the same night by the keep-alive (§4's last ruling; H-ECO-NANO-GUARD), judged met in econ-flagship-18 (7 decays, none in a turret's reach, two `tend` calls) after econ-flagship-17: decays 33 -> 10, turrets 33 -> 95, three misses from the hands' notion of a builder being on a frame (fixed: the share alone), five while the player had it off. econ-17 also showed ten constructors penned for 2,525 constructor-seconds, three advanced constructors inside the dense block and two tier-1 constructors inside rings of their own solars: step 2's farm as ground wants lanes out, and the generator band wants the builder's way out kept, both open. Steps 2 and 3 not begun.

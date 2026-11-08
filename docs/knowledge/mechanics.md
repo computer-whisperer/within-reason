@@ -1107,8 +1107,8 @@ priority read low for every turret (`bp` 0 in 3,872 of 3,889 samples, the hands'
 (stock less a margin plus the interval's income over the high builders' draw) did not throttle them at 5-27k banked.
 **Would be wrong if.** A turret with a frame nearer than the factory's product kept helping the product, or a turret
 with no job in reach stayed busy under the fight order (not measured: from 13:00 every turret had a frame in reach).
-**Used by.** H-ECO-NANO-GUARD (the one-second re-tell), H-ECO-BLOCK (the turret score by frame slots, the block's
-tiers), D-late-economy's "each tier's infrastructure is eaten for the next" (the plant beside the block takes the
+**Used by.** H-ECO-NANO-GUARD (the one-second re-tell), H-ECO-BLOCK (the turret score by free farm ground in reach; the
+block's frame slots and tiers until 2026-11-08), D-late-economy's "each tier's infrastructure is eaten for the next" (the plant beside the block takes the
 nearest turrets' power while it runs).
 
 ### K-mech-frame-decay

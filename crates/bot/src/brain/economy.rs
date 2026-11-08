@@ -122,7 +122,7 @@ impl Brain {
         if stockpiler {
             return (self.forward_of_home(-BACK_FIELD), BAND_BACK_FIELD);
         }
-        let block = self.block.as_ref().map(|b| (b.centre, b.reach));
+        let block = self.block.as_ref().map(|b| self.farm_band(b, own));
         match self.purpose_of(def) {
             Purpose::Generator { .. } => (builder.pos, BAND_GENERATOR),
             Purpose::Turret => block.unwrap_or_else(|| {
@@ -133,6 +133,20 @@ impl Brain {
             Purpose::Frame => block.unwrap_or((builder.pos, BAND_FRAME)),
             Purpose::Place => (builder.pos, BAND_PLACE),
         }
+    }
+
+    /// The farm's band: the block's centre, and a radius that covers the farthest of its construction turrets and
+    /// that turret's reach, never under the block's own reach, so a turret can grow the farm at its edge and a
+    /// frame can stand wherever the turrets reach (the farm-holds design §1.3; his farm's turrets stood a median
+    /// 820 from its centre and a tenth past 1,200).
+    pub(super) fn farm_band(&self, block: &layout::Block, own: &[OwnUnit]) -> (Vec3, f32) {
+        let farthest = own
+            .iter()
+            .filter(|u| !u.being_built && self.is_static_builder(u.def))
+            .map(|u| u.pos.dist2d(block.centre))
+            .filter(|d| *d <= layout::FARM_EXTENT)
+            .fold(0.0f32, f32::max);
+        (block.centre, block.reach.max(farthest + block.reach))
     }
 
     /// The world the layout layer chooses over, from this tick's units: what stands (ours finished and framed, every
@@ -151,7 +165,7 @@ impl Brain {
         if let Some(block) = self.block.as_ref() {
             world.reservations.extend(block.reservations());
             world.lattice = Some(block.lattice());
-            world.frame_slots = block.frame_slots.clone();
+            world.farm_frame = Some(block.frame.footprint);
         }
         world
     }
@@ -248,14 +262,14 @@ impl Brain {
             builders,
             workers,
             frames,
-            frame_slots: Vec::new(),
+            farm_frame: None,
             reservations,
             lattice: None,
             refused,
             home: self.home,
             toward: self.enemy_base(self.home),
             open: Box::new(open),
-            walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(),
+            walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default(),
         }
     }
 

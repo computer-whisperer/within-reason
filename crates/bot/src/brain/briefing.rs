@@ -42,6 +42,8 @@ const BASE_RADIUS: f32 = 1400.0;
 const TRIGGER_COOLDOWN_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// Over how long a frame's rate of building is read (its share now against its share this long ago).
 pub(super) const RATE_WINDOW_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// The block line's intake window: a minute.
+const INTAKE_WINDOW_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// A share a second below this is standing still: neither rising nor decaying.
 const RATE_STILL: f32 = 0.0005;
 
@@ -547,14 +549,29 @@ impl Brain {
             })
             .collect();
         self.frame_builders.retain(|id, _| self.unfinished.contains_key(id));
-        // Each frame's share over the last window, for its rate of building.
+        // Each frame's share over the last window, for its rate of building; and the metal that went this tick
+        // into frames a construction turret reaches, for the block line's intake over the last minute.
         self.frame_progress.retain(|id, _| self.unfinished.contains_key(id));
+        let turrets: Vec<&OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_static_builder(u.def)).collect();
+        let mut intake = 0.0;
         for u in tick.snapshot.own_units.iter().filter(|u| u.being_built) {
+            let last = self.frame_progress.get(&u.id).and_then(|h| h.back()).map(|(_, share)| *share);
+            if let Some(last) = last
+                && u.build_progress > last
+                && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)
+                && turrets.iter().any(|t| self.turret_reaches(t, u))
+            {
+                intake += (u.build_progress - last) * self.world.def(u.def).map_or(0.0, |d| d.metal_cost);
+            }
             let history = self.frame_progress.entry(u.id).or_default();
             history.push_back((tick.frame, u.build_progress));
             while history.front().is_some_and(|(f, _)| tick.frame - f > RATE_WINDOW_FRAMES) {
                 history.pop_front();
             }
+        }
+        self.farm_intake.push_back((tick.frame, intake));
+        while self.farm_intake.front().is_some_and(|(f, _)| tick.frame - f > INTAKE_WINDOW_FRAMES) {
+            self.farm_intake.pop_front();
         }
         // Since when each frame has stood with nobody of ours building it and its share not rising (the turrets'
         // work shows in the share alone).

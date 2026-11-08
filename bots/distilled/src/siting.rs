@@ -231,16 +231,16 @@ impl Distilled {
             builders,
             workers,
             frames,
-            frame_slots: Vec::new(),
             reservations: Vec::new(),
             lattice: None,
+            farm_frame: None,
             refused: Vec::new(),
             home: self.home,
             toward: self.enemy_home,
             open: Box::new(|_| true),
             walks: Default::default(),
             standing_near: Default::default(),
-            spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(),
+            spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default(),
         }
     }
 

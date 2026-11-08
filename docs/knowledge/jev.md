@@ -1310,7 +1310,7 @@ the counts (extractors 2 against 3 at 1:45, "labs 1" at 1:00 of a plant standing
 frames as standing.
 **Evidence.** `run/matches/1790535786-player-12-post-human/00/strategist-0.jsonl` (the 1:45 turn), the record's
 samples, `00/review.md` (Z3, the candidate harness note).
-**Status.** observed 2026-09-28; fixed the same day: the eco line says "STALLING: the energy store is empty and
+**Status.** observed 2026-09-28; fixed the same day (the words trimmed 2026-11-08 night to "STALLING: the store is empty", K-player-a-potential-beside-the-income-reads-as-enough): the eco line says "STALLING: the energy store is empty and
 everything that needs it builds slowly" under the hands' condition (store under 5% with usage at 90% of income or
 more), and its counts are of standing units. Exploited by [[H-PLAYER-ECO-WORDS]].
 
@@ -2429,6 +2429,29 @@ recorded (its turns carry tool calls alone).
 **Would be wrong if.** A player given the two moves still built a leader out of follows, or a merge's direction picked
 by Jev against the packet returned at the rate of human-22 (a body joining its own detachment).
 **Used by.** H-HANDS-MENU, H-HANDS-FOLLOW, the brief's group verbs.
+
+### K-player-a-potential-beside-the-income-reads-as-enough
+**Claim.** When a scripted report puts a capability at full use beside the income, the player reads the capability as
+what it has and judges by the comparison, and a judgment made once from such a line is not revisited unless a later
+line reopens it. Econ-flagship-19: the block line read "12000 build power standing on it: a frame placed there stands
+in armafus 26 s; all of it on frames of one kind moves a second armfus 744 metal, armafus 372 metal (our metal income
+is 284 a second)" and "2 of 12 frame slots free"; the player wrote "12,000 build power, which is enough", cancelled
+ten turret lists at 12:44 and began no turret after 14:00 (72 at 20:00 for 1,098 of income, his 304 for 1,706); the
+power delivered was 57 % over the game and the turrets stood idle 40 % from 14:00, and no line carried either; the
+slot count sent every later frame outside the farm (8 of 99 large frames from 13:00 under 30 or more turrets against
+his 138 of 192; advanced converters 20 s against his 5.6, advanced fusions 70 against 35). The eco line's "STALLING:
+... more income is needed" the same turn was echoed as "Metal is now the limit." The brief's forward rule (income
+triples every five minutes; a block that fits the income now is a third of what the next five minutes want) stood in
+the prompt and was never quoted in 47 turns; the report's present-tense numbers were quoted every turn.
+**Status.** observed 2026-11-08 (one game read turn by turn; econ-flagship-15 to -18 show the same stop at the
+player's own "enough"). The remedy built the same night: the block line carries the measured intake and the turrets
+with no frame in reach, the room in footprints, and no potential (H-ECO-BLOCK); the flow words lose their verdicts
+(H-PLAYER-ECO-WORDS); the forward rule has its own bullet in D-late-economy. Judge: econ-flagship-20.
+**Evidence.** `run/matches/1794175163-econ-flagship-19/00/strategist-0.jsonl` (the 12:44 turn's prompt and text;
+13:04, 14:04, 16:54, 18:39), the game's audit (replay-econ-flagship-19), thebluegecko's (replay-gecko-audit).
+**Would be wrong if.** A game with the measured line and no potential still stopped the turrets at a power that
+fits the present income; then the gap is the model's reading of the curve, not the report's framing, and a standing
+lever (a share of the block on turret frames, the player's) is the next thing to try.
 
 ### K-player-nothing-is-fetched-on-demand
 **Claim.** The player fetches nothing on demand: over 32 recent sessions with people (2,065 turns, up to 2026-11-04) it called `units`, `map`, `overview`, `plan` and `search` 0 times and `situation` 3 times, so a unit, map or article the prompt and the reports omit is unknown to it for the game.

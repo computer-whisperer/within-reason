@@ -162,7 +162,7 @@ case from another scenario still teaches, but its clock does not transfer.
   fusion feeds five, 11,600 metal for +52 metal a second, repaid in under four minutes, and the next engine is paid
   from the last. The advanced fusion's frame is 312,500 build time, nine minutes for two advanced constructors alone
   and 143 s with eight construction turrets beside them, so it goes where the turrets can stand round it, after the
-  fusions, alone and under anti-air. Energy "banking it unused" beside a metal store at STALLING is this chain not
+  fusions, alone and under anti-air. Energy "banking it" beside a metal store at STALLING is this chain not
   begun: the +50 Altored 3v3 (2026-10-18) banked 2,000 energy a second for sixteen minutes on one converter.
 
 - **An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
@@ -378,7 +378,7 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   three seconds; an energy storage is 170 metal for 6,000 more, the cheapest buffer in the game, and the experienced
   players build one by 9:36 in 23 of 80 duels. It is what the D-gun's 500 a shot, a turret line and the wind's swing
   (4 to 19 on Altored) draw on, and it is the working room of converters, which run only on the energy above three
-  quarters of the store. Energy "banking it unused" with the store full is income thrown away: a converter or a
+  quarters of the store. Energy "banking it" with the store full is income thrown away: a converter or a
   storage, never a shrug (the +50 Altored 3v3: a seat wasted 820 energy a second for thirty minutes on one converter).
   A metal storage is 330 for 3,000 and matters only when a frame worth more than the store is banked for: the advanced
   plant's 2,600 fits; an advanced fusion's 9,700 is streamed into the frame as it builds, not banked.

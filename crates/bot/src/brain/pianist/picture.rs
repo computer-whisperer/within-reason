@@ -265,15 +265,16 @@ pub(crate) fn stock_words(current: f32, storage: f32) -> &'static str {
 pub(crate) fn flow_words(income: f32, usage: f32, current: f32, storage: f32) -> String {
     let share = if storage > 0.0 { current / storage } else { 0.0 };
     // The engine caps spending at income once the store is empty, so a stall reads as "in balance" by the numbers.
+    // The words state the store and the flows and nothing more: until 2026-11-08 the empty store read "everything
+    // that needs it builds slowly; more income is needed", a verdict, and the player took it as one at the moment
+    // it stopped buying build power (econ-flagship-19 12:44: "Metal is now the limit").
     if share < 0.05 && usage >= income * 0.9 {
-        "STALLING: the store is empty and everything that needs it builds slowly; more income is needed".into()
-    } else if usage > income * 1.15 && share < 0.25 {
-        "spending faster than it comes in: stalling, everything builds slowly".into()
+        "STALLING: the store is empty".into()
     } else if usage > income * 1.15 {
         // Seconds to empty beside the trend (human-3: the lab was chosen at 351 energy running down 56 a second).
-        format!("spending faster than it comes in, running the store down: empty in about {:.0} s", current / (usage - income))
+        format!("spending faster than it comes in: empty in about {:.0} s", current / (usage - income))
     } else if income > usage * 1.3 && share > 0.6 {
-        "more coming in than is spent: banking it unused".into()
+        "more coming in than is spent: banking it".into()
     } else {
         "in balance".into()
     }

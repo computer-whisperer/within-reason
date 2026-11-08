@@ -124,7 +124,6 @@ pub struct Brain {
     block_tried: i32,
     block_failed: Option<String>,
     /// Why the block's next tier of rows was not laid when its slots ran short, for the report (`block.rs`).
-    block_grow_failed: Option<String>,
     /// The last refusal said for each kind (the menu asks where every kind would go each turn; the same answer is
     /// logged once).
     layout_refusal_said: std::cell::RefCell<HashMap<UnitDefId, String>>,
@@ -245,6 +244,9 @@ pub struct Brain {
     /// econ-flagship-8: an advanced fusion rising a percent a second under fourteen turrets read "nobody is building
     /// it, decaying", and the player bought builders instead of turrets).
     frame_progress: HashMap<UnitId, std::collections::VecDeque<(i32, f32)>>,
+    /// The metal that went into frames within a construction turret's reach, by tick, over the last minute: the
+    /// block line's measured intake (`block_line`; the farm-holds design §1.4).
+    farm_intake: std::collections::VecDeque<(i32, f32)>,
     /// The unfinished frames among this think's `UnitDestroyed` events and what became of each (`track_losses` fills
     /// it; the pianist's housekeeping runs after and words the line).
     frame_losses_now: HashMap<UnitId, briefing::FrameLoss>,
@@ -395,7 +397,6 @@ impl Brain {
             block: None,
             block_tried: i32::MIN / 2,
             block_failed: None,
-            block_grow_failed: None,
             layout_refusal_said: std::cell::RefCell::new(HashMap::new()),
             layout_dumped: Default::default(),
             layout_refused: Default::default(),
@@ -452,6 +453,7 @@ impl Brain {
             frame_builders: HashMap::new(),
             frame_alone_since: HashMap::new(),
             frame_progress: HashMap::new(),
+            farm_intake: std::collections::VecDeque::new(),
             frame_losses_now: HashMap::new(),
             recent_blasts: Vec::new(),
             enemy_defs: HashMap::new(),

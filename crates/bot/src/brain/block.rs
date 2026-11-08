@@ -1,13 +1,21 @@
-//! The block (`layout::lay_block`; `docs/design/2026-10-29-base-layout.md` §1.1, step 3): the one global decision
-//! after the stand. When our first advanced plant is placed (ordered or standing) the block's centre is found once, at
-//! the player's `block` mark or on the flattest ground beside the plant that holds two frame rows and the gantry's
-//! slot; from then on the layer (`economy.rs` `layout_world`) carries its reservations (the rows for frames, the slot
-//! for the gantry) and its sub-lattice for construction turrets (96 apart while sparse, 48 once the player says
-//! `dense` through the `block` tool), and the bands of a turret and a frame are centred on it. Banks standing on its
-//! ground are listed in the report for reclaim-for-ground; the player decides (the `remove` tool).
+//! The block (`layout::lay_block`; `docs/design/2026-10-29-base-layout.md` §1.1, step 3; the farm-holds design
+//! `docs/design/2026-11-08-farm-holds.md` §1.3-1.4): the one global decision after the stand. When our first
+//! advanced plant is placed (ordered or standing) the block's centre is found once, at the player's `block` mark or
+//! on the flattest ground beside the plant that holds a footing of two frame rows and the gantry's slot; from then
+//! on the layer (`economy.rs` `layout_world`) carries the gantry's reservation and the block's sub-lattice for
+//! construction turrets (96 apart while sparse, 48 once the player says `dense` through the `block` tool), and the
+//! bands of a turret and a frame are the farm's: the block's centre out to the farthest turret's reach. The farm,
+//! the ground the frames go on, is whatever the turrets reach, nothing is reserved for it, and the report's block
+//! line says what is measured of it: the turrets standing and how many have no frame in reach, what the frames in
+//! their reach took over the last minute beside the income, and the room, free ground in reach of thirty and of ten
+//! turrets counted in the held kinds' footprints. Until 2026-11-08 the line carried the block's potential (what a
+//! frame placed there would stand in, what all its power on one kind would move a second beside the income) and a
+//! count of reserved frame slots; the player read the first as "enough" and the second as "full" at 12:44 of
+//! econ-flagship-19 and bought no turret after it. Banks standing on the farm's ground are listed in the report for
+//! reclaim-for-ground; the player decides (the `remove` tool).
 
-use bot_protocol::{OwnUnit, UnitDefId, UnitDefInfo, Vec3};
-use layout::{Block, BlockWants, DENSE_PITCH, Facts, SPARSE_PITCH};
+use bot_protocol::{OwnUnit, UnitDefId, Vec3};
+use layout::{Block, BlockWants, DENSE_PITCH, FARM_EXTENT, Facts, ROOM_HIGH, ROOM_LOW, SPARSE_PITCH, distance_to};
 
 use super::pianist::glossary;
 use super::pianist::picture::clock;
@@ -35,10 +43,7 @@ impl Brain {
             match mark {
                 Some(m) if block.centre.dist2d(m) > MARK_MOVED => {}
                 None if plant_gone => {}
-                _ => {
-                    self.grow_block(own, frame);
-                    return;
-                }
+                _ => return,
             }
         } else if frame < self.block_tried + RETRY_FRAMES {
             return;
@@ -53,14 +58,7 @@ impl Brain {
         match laid {
             Ok(mut block) => {
                 block.pitch = if dense { DENSE_PITCH } else { SPARSE_PITCH };
-                // Every tier the ground holds is reserved now, before turrets and banks take the ground (later a
-                // tier is laid as the slots run short, `grow_block`).
-                {
-                    let world = self.layout_world_without_block(own);
-                    while block.grow(&world).is_ok() {}
-                }
-                self.block_grow_failed = None;
-                let words = self.block_laid_words(&block, &wants, own);
+                let words = self.block_laid_words(&block, &wants);
                 eprintln!("[ai {}] f={frame} {words}", self.ai());
                 if let Some(pianist) = self.pianist.as_mut() {
                     pianist.done.push(format!("{} {words}", clock(frame)));
@@ -76,44 +74,6 @@ impl Brain {
                 self.block_failed = Some(said);
             }
         }
-    }
-
-    /// Lays the block's next tier of rows when fewer than two of its frame slots are free, at most once per
-    /// RETRY_FRAMES; what stopped it is kept for the report's block line.
-    fn grow_block(&mut self, own: &[OwnUnit], frame: i32) {
-        let Some(block) = self.block.as_ref() else { return };
-        if block.tiers >= layout::MAX_TIERS || frame < self.block_tried + RETRY_FRAMES || self.block_free_slots(block, own) >= 2 {
-            return;
-        }
-        self.block_tried = frame;
-        let mut grown = block.clone();
-        let result = {
-            let world = self.layout_world_without_block(own);
-            grown.grow(&world)
-        };
-        match result {
-            Ok(slots) => {
-                let words = format!("the block grew: tier {} of rows, {slots} more frame slots ({} in all)", grown.tiers, grown.frame_slots.len());
-                eprintln!("[ai {}] f={frame} {words}", self.ai());
-                if let Some(pianist) = self.pianist.as_mut() {
-                    pianist.done.push(format!("{} {words}", clock(frame)));
-                }
-                self.block = Some(grown);
-                self.block_grow_failed = None;
-            }
-            Err(why) => {
-                if self.block_grow_failed.as_deref() != Some(&why) {
-                    eprintln!("[ai {}] f={frame} {why}", self.ai());
-                }
-                self.block_grow_failed = Some(why);
-            }
-        }
-    }
-
-    /// The block's frame slots not covered by anything of ours standing or framed.
-    fn block_free_slots(&self, block: &Block, own: &[OwnUnit]) -> usize {
-        let standing: Vec<layout::Rect> = own.iter().filter_map(|u| self.facts_of(u.def).filter(|f| f.building).map(|f| f.footprint.faced(u.facing).rect(u.pos))).collect();
-        block.free_frame_slots(&standing, block.frame.footprint)
     }
 
     /// Our first advanced plant standing or being built: a factory of tier 2 or above by the glossary.
@@ -159,36 +119,39 @@ impl Brain {
     }
 
     /// The hands' line when the block is laid.
-    fn block_laid_words(&self, block: &Block, wants: &BlockWants, own: &[OwnUnit]) -> String {
+    fn block_laid_words(&self, block: &Block, wants: &BlockWants) -> String {
         let gantry = match &block.gantry {
-            Some((g, _, facing, _)) => format!(" and a {}'s slot facing {}", self.name(g.def), ["south", "east", "north", "west"][facing.rem_euclid(4) as usize]),
+            Some((g, _, facing, _)) => format!("; a {}'s slot facing {}", self.name(g.def), ["south", "east", "north", "west"][facing.rem_euclid(4) as usize]),
             None => String::new(),
         };
         let where_ = if block.marked { "at your mark".to_string() } else { format!("{:.0} from {}", block.from_plant, wants.plant.name) };
-        let ground = self.on_block_ground(block, own);
-        let reclaim = if ground.is_empty() { String::new() } else { format!("; its ground holds {}: reclaim them as the block's slots reach them", ground.join(", ")) };
         format!(
-            "the block for the construction turrets and the frames at ({:.0}, {:.0}) {where_}: {} rows of {} slots, {} in all{gantry}; turrets {:.0} apart until you say dense{reclaim}",
-            block.centre.x,
-            block.centre.z,
-            block.frame_rows.len(),
-            self.name(wants.frame.def),
-            block.frame_slots.len(),
-            block.pitch
+            "the block for the construction turrets and the frames at ({:.0}, {:.0}) {where_}: its farm is the ground its turrets reach and grows with them{gantry}; turrets {:.0} apart until you say dense",
+            block.centre.x, block.centre.z, block.pitch
         )
     }
 
-    /// Our finished banks (generators, converters) standing on the block's reserved ground, by handle.
+    /// The farm's construction turrets: ours finished, within FARM_EXTENT of the block's centre.
+    fn farm_turrets<'a>(&self, block: &Block, own: &'a [OwnUnit]) -> Vec<&'a OwnUnit> {
+        own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def) && u.pos.dist2d(block.centre) <= FARM_EXTENT).collect()
+    }
+
+    /// Our finished banks (generators, converters) standing on the farm's ground, in reach of ROOM_LOW or more of its
+    /// turrets, by handle: ground the player may reclaim for frames.
     fn on_block_ground(&self, block: &Block, own: &[OwnUnit]) -> Vec<String> {
+        let turrets = self.farm_turrets(block, own);
         own.iter()
             .filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0) && matches!(self.purpose_of(u.def), layout::Purpose::Generator { .. }))
-            .filter(|u| self.facts_of(u.def).is_some_and(|f| block.holds(&f.footprint.faced(u.facing).rect(u.pos))))
+            .filter(|u| {
+                self.facts_of(u.def).is_some_and(|f| {
+                    let rect = f.footprint.faced(u.facing).rect(u.pos);
+                    turrets.iter().filter(|t| distance_to(&rect, t.pos) <= block.reach).count() >= ROOM_LOW as usize
+                })
+            })
             .map(|u| self.handle(u))
             .collect()
     }
 
-    /// The report's block line: where it stands, its pitch, what it holds and what stands on its ground; or why
-    /// there is none when an advanced plant is placed and no ground held one.
     /// The kinds the block holds (`block` tool, `holds`): the player's list, else the default.
     pub(super) fn block_holds(&self) -> Vec<String> {
         let said = self.strategist.as_ref().map(|s| s.block_holds.lock().unwrap().clone()).unwrap_or_default();
@@ -202,26 +165,71 @@ impl Brain {
         self.block_holds().iter().any(|w| w == kind)
     }
 
+    /// The largest and the smallest held kind the advanced constructor builds, for the room's footprints (the
+    /// advanced fusion and the advanced converter under the default list), or the farm's frame alone.
+    fn room_kinds(&self, block: &Block) -> Vec<(String, layout::Footprint)> {
+        let mut held: Vec<(String, layout::Footprint)> = self
+            .kit
+            .as_ref()
+            .and_then(|k| self.world.def(k.advanced_constructor))
+            .map(|d| d.build_options.clone())
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|d| self.held(*d) && self.world.def(*d).is_some_and(|u| u.speed == 0.0))
+            .filter_map(|d| self.facts_of(d).map(|f| (self.name(d).to_string(), f.footprint)))
+            .collect();
+        held.sort_by_key(|(_, fp)| std::cmp::Reverse(layout::farm_cells_of(*fp)));
+        held.dedup_by_key(|(_, fp)| layout::farm_cells_of(*fp));
+        match held.len() {
+            0 => vec![(self.name(block.frame.def).to_string(), block.frame.footprint)],
+            1 => held,
+            n => vec![held[0].clone(), held[n - 1].clone()],
+        }
+    }
+
+    /// The report's block line: where it stands, its pitch, what it holds, its turrets and what they have in reach,
+    /// what the frames in their reach took over the last minute beside the income, the room on the farm in the held
+    /// kinds' footprints, the gantry's slot, the banks on its ground; or why there is none when an advanced plant is
+    /// placed and no ground held one. Measured quantities only (the user, 2026-11-08: the scripted reports do not
+    /// predict the game's state).
     pub(super) fn block_line(&self, own: &[OwnUnit], metal_income: f32) -> Option<String> {
         let Some(block) = self.block.as_ref() else {
             return self.block_failed.clone().map(|why| format!("the block (where your construction turrets and frames stand): {why}"));
         };
-        let on_it = || own.iter().filter(|u| !u.being_built && self.is_static_builder(u.def) && block.lattice().holds(u.pos));
-        let turrets = on_it().count();
-        let power: f32 = on_it().filter_map(|u| self.world.def(u.def)).map(|d| d.build_speed).sum();
-        let clocks = self.block_clocks(power, metal_income);
-        let free = self.block_free_slots(block, own);
-        let tiers = match &self.block_grow_failed {
-            Some(why) if free < 2 => format!(" in {} tier{} of rows ({why})", block.tiers, if block.tiers == 1 { "" } else { "s" }),
-            _ => format!(" in {} tier{} of rows", block.tiers, if block.tiers == 1 { "" } else { "s" }),
+        let turrets = self.farm_turrets(block, own);
+        let frames: Vec<&OwnUnit> = own.iter().filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).collect();
+        let without = turrets.iter().filter(|t| !frames.iter().any(|f| self.turret_reaches(t, f))).count();
+        let turret_words = if turrets.is_empty() {
+            "no turret on it yet".to_string()
+        } else {
+            let (span, metal) = self.farm_intake.iter().fold((0i32, 0.0f32), |(span, m), (f, x)| (span.max(self.frame_now() - f), m + x));
+            let seconds = (span as f32 / super::FRAMES_PER_SECOND as f32).max(1.0);
+            format!(
+                "{} turret{} on it, {without} with no frame in reach; the frames in their reach rose by {:.0} metal a second over the last {} (whoever built them), against our income of {metal_income:.0}",
+                turrets.len(),
+                if turrets.len() == 1 { "" } else { "s" },
+                metal / seconds,
+                if seconds >= 59.0 { "minute".to_string() } else { format!("{seconds:.0} s") }
+            )
+        };
+        let room = {
+            let world = self.layout_world(own);
+            match world.farm(block.reach, &block.frame) {
+                Some(farm) if farm.stands() => {
+                    let kinds = self.room_kinds(block);
+                    let count = |line: u16| kinds.iter().map(|(name, fp)| format!("{} {name}", layout::farm_footprints(farm.room(line), *fp))).collect::<Vec<_>>().join(" or ");
+                    format!("; room on the farm (free ground its turrets reach): about {} in reach of {ROOM_HIGH} or more turrets, {} in reach of {ROOM_LOW} or more", count(ROOM_HIGH), count(ROOM_LOW))
+                }
+                _ => "; room on the farm: none yet, the farm being the ground its turrets reach".to_string(),
+            }
         };
         let pitch = if block.pitch <= DENSE_PITCH { "dense (turrets touching, 48 apart)".to_string() } else { format!("sparse (turrets {:.0} apart; the `block` tool's dense packs them at 48)", block.pitch) };
         let gantry = match &block.gantry {
-            Some((g, at, _, _)) => format!(", a {}'s slot at {}", self.name(g.def), self.world.grid(*at)),
+            Some((g, at, _, _)) => format!("; a {}'s slot at {}", self.name(g.def), self.world.grid(*at)),
             None => String::new(),
         };
         let ground = self.on_block_ground(block, own);
-        let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground: {} (reclaim them as the block's slots reach them: `remove`)", ground.join(", ")) };
+        let reclaim = if ground.is_empty() { String::new() } else { format!("; on its ground, in reach of {ROOM_LOW} or more of its turrets: {} (`remove` frees the ground)", ground.join(", ")) };
         let placed = if block.marked { "at your `block` mark".to_string() } else { "beside the advanced plant; a `block` mark moves it".to_string() };
         let holds = {
             let h = self.block_holds();
@@ -234,57 +242,18 @@ impl Brain {
             "; the keep-alive is off: a frame nobody is on decays in reach of the turrets (`tend` with keep_alive true restores it)".to_string()
         };
         Some(format!(
-            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; holds: {holds} (the kinds whose frames go on its ground when a step names no place; `block` changes the list, `<name> block` on a step puts any frame here, another place keeps one off); {turrets} turret{} on it, {free} of {} frame slots free{tiers}{clocks}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}{keep}",
+            "the block (where your construction turrets and frames stand): centre ({:.0}, {:.0}) at {}, {placed}; {pitch}; holds: {holds} (the kinds whose frames go on its ground when a step names no place; `block` changes the list, `<name> block` on a step puts any frame here, another place keeps one off); {turret_words}{room}{gantry}{reclaim}; every turret of ours takes the work in its reach in this order, one thing at a time (`tend` changes it): {}{keep}",
             block.centre.x,
             block.centre.z,
             self.world.grid(block.centre),
-            if turrets == 1 { "" } else { "s" },
-            block.frame_slots.len(),
             self.tend_words()
         ))
     }
 
-    /// What a frame placed in the block stands in: the advanced constructor's generators and converter (the fusion,
-    /// the advanced fusion, the advanced converter; not the geothermal, which wants a vent), each its build time over
-    /// the power standing on the block, beside the lone advanced constructor's clock for the same kinds, so the two
-    /// are read side by side (econ-flagship-4 at 18:32, 11 turrets on the block and 6 of 6 slots free: "a fusion
-    /// takes about 186 s for a single advanced constructor, so new ones can't stand in time"). A clock, not advice:
-    /// the draw the stores must carry is the spending line's. Since 2026-11-08 the line also says what the standing
-    /// power moves a second into frames of each kind (its power times the kind's metal and energy over its build
-    /// time) beside the seat's metal income, so the block is read against the income it has to spend
-    /// (econ-flagship-11: 24 turrets, 150 a second into advanced fusions, income 466 to 958, 83,563 overflowed;
-    /// K-eco-standing-power-spends-by-the-frame).
-    fn block_clocks(&self, power: f32, metal_income: f32) -> String {
-        let Some(kit) = self.kit.as_ref() else { return String::new() };
-        let Some(con) = self.world.def(kit.advanced_constructor) else { return String::new() };
-        let mut kinds: Vec<&UnitDefInfo> = con
-            .build_options
-            .iter()
-            .filter_map(|d| self.world.def(*d))
-            .filter(|d| d.speed == 0.0 && !self.world.is_factory_def(d.id) && !self.world.is_sea_def(d.id) && (d.energy_make > 0.0 || d.converter.is_some()))
-            .filter(|d| !glossary::entry(&d.name).is_some_and(|e| e.class.contains("geo")))
-            .collect();
-        kinds.sort_by(|a, b| a.build_time.total_cmp(&b.build_time));
-        if kinds.is_empty() {
-            return String::new();
-        }
-        let at = |p: f32| kinds.iter().map(|d| format!("{} {:.0} s", self.name(d.id), d.build_time / p)).collect::<Vec<_>>().join(", ");
-        let alone = format!("the {} alone: {}", self.name(con.id), at(con.build_speed.max(1.0)));
-        if power > 0.0 {
-            let spend = kinds
-                .iter()
-                .map(|d| format!("{} {:.0} metal and {:.0} energy", self.name(d.id), power * d.metal_cost / d.build_time, power * d.energy_cost / d.build_time))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!(
-                "; {power:.0} build power standing on it: a frame placed there stands in {} ({alone}); all of it on frames of one kind moves a second {spend} (our metal income is {metal_income:.0} a second)",
-                at(power)
-            )
-        } else {
-            format!("; no construction turret's power on it yet: a frame there builds at what walks to it ({alone})")
-        }
+    /// The last frame the brain saw, for the intake window's span.
+    fn frame_now(&self) -> i32 {
+        self.farm_intake.back().map_or(0, |(f, _)| *f)
     }
-
 }
 
 #[cfg(test)]
@@ -294,8 +263,9 @@ mod tests {
     use crate::brain::roster::{Kit, ROSTERS};
     use bot_protocol::Terrain;
 
-    /// An advanced plant standing lays the block beside it: its line is said, the report has it, a turret's band and a
-    /// frame's band centre on it, and a turret's site is on its sub-lattice.
+    /// An advanced plant standing lays the block beside it: its line is said, the report has it with the holds, the
+    /// tend order, the keep-alive and no promise of what a frame would stand in; a turret's band and a frame's band
+    /// are the farm's (the block's reach with no turret standing), and a turret's site is on its sub-lattice.
     #[test]
     fn the_block_is_laid_at_the_advanced_plant_and_the_bands_follow_it() {
         use crate::brain::pianist::Pianist;
@@ -321,7 +291,7 @@ mod tests {
             defs[5].build_options = vec![com];
             defs[6].footprint = (10, 10);
             defs[6].energy_make = 20.0;
-            // A fusion as wide as the advanced fusion but shallower: the rows are laid for the larger.
+            // A fusion as wide as the advanced fusion but shallower: the footing is laid for the larger.
             defs[9].footprint = (12, 10);
             defs[9].energy_make = 750.0;
             defs[4].build_time = 313_000.0;
@@ -340,32 +310,34 @@ mod tests {
         assert!(block.gantry.is_some(), "the gantry's slot: {block:?}");
         assert_eq!(block.pitch, SPARSE_PITCH);
         assert_eq!(block.reach, 400.0, "the construction turret's reach, not the kit's turret's");
-        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("armafus slots")), "{:?}", brain.pianist.as_ref().unwrap().done);
-        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets")), "{:?}", brain.pianist.as_ref().unwrap().done);
-        let line = brain.block_line(&ours, 0.0).expect("a line");
-        // Laid clear of the turrets' reach of the plant (2026-11-08), all three tiers hold at laying: eighteen slots.
-        assert!(line.contains("18 of 18 frame slots free in 3 tiers of rows") && line.contains("sparse"), "{line}");
+        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("the block for the construction turrets") && d.contains("its farm is the ground its turrets reach")), "{:?}", brain.pianist.as_ref().unwrap().done);
+        brain.kit = Some(kit.clone());
+        let line = brain.block_line(&ours, 466.0).expect("a line");
+        // Laid clear of the turrets' reach of the plant (2026-11-08); no turret yet, so no room and no intake; and
+        // nothing of what a frame would stand in or what the power would move (the user, 2026-11-08).
+        assert!(line.contains("sparse") && line.contains("no turret on it yet") && line.contains("room on the farm: none yet"), "{line}");
+        assert!(!line.contains("stands in") && !line.contains("moves a second") && !line.contains("frame slots"), "{line}");
         assert!(line.contains("holds: advanced_fusion, fusion, advanced_converter, storage ("), "{line}");
         assert!(line.contains("in this order, one thing at a time (`tend` changes it): turret, advanced_fusion, fusion"), "{line}");
         assert!(line.contains("0 of the turrets keeping 0 frames alive (one turret stays on any frame in reach nobody is building"), "{line}");
         assert!(block.centre.dist2d(plant.pos) >= 400.0 + 100.0 + 72.0, "the block within the turrets' reach of the plant: {block:?}");
-        // The clocks: no turret on it yet, so a frame's clock is the advanced constructor's alone (65,000 and 313,000
-        // of build time over its 300), the kinds in order of build time, the gantry and the solar left out.
-        brain.kit = Some(kit.clone());
-        let line = brain.block_line(&ours, 0.0).expect("a line");
-        assert!(line.contains("no construction turret's power on it yet") && line.contains("(the armack alone: armckfus 217 s, armafus 1043 s)"), "{line}");
-        // The spend: 24 turrets' 4,800 on advanced fusion frames is 9,700 x 4,800 / 312,500 = 149 metal and 1,058 energy a
-        // second, read beside the income (K-eco-standing-power-spends-by-the-frame).
-        let clocks = brain.block_clocks(4800.0, 466.0);
-        assert!(clocks.contains("armafus 149 metal and 1058 energy") && clocks.contains("(our metal income is 466 a second)"), "{clocks}");
-        // The bands: a turret's and a frame's are the block's.
+        // The bands: a turret's and a frame's are the farm's, the block's reach with no turret standing.
         assert_eq!(brain.band_for(nano, &commander, &ours), (block.centre, block.reach));
         assert_eq!(brain.band_for(afus, &commander, &ours), (block.centre, block.reach));
-        // A turret's site is on the sub-lattice, off the rows.
+        // A turret's site is on the sub-lattice.
         let plan = brain.place_planned(nano, &commander, &ours);
         let super::super::economy::Plan::Slot(_, at, _) = plan else { panic!("a slot") };
         assert!(block.lattice().holds(at), "{at:?} off the lattice at {:?}", block.centre);
-        assert!(!block.holds(&layout::Footprint { x: 6, z: 6 }.rect(at)));
+        // A turret standing 300 from the centre: the band grows to cover its reach, the line counts it, with no
+        // frame in reach, and the room is the ground it reaches, in advanced fusions (the one held kind here).
+        let turret = own(12, 2, Vec3 { x: block.centre.x + 288.0, y: 0.0, z: block.centre.z });
+        let with_turret = vec![commander.clone(), plant.clone(), turret];
+        assert_eq!(brain.band_for(afus, &commander, &with_turret), (block.centre, 288.0 + 400.0));
+        brain.farm_intake.extend([(100, 0.0), (1000, 300.0), (1900, 600.0)]);
+        let line = brain.block_line(&with_turret, 466.0).expect("a line");
+        assert!(line.contains("1 turret on it, 1 with no frame in reach; the frames in their reach rose by 15 metal a second over the last minute (whoever built them), against our income of 466"), "{line}");
+        // The held kinds the advanced constructor builds, largest and smallest: the advanced fusion and the fusion.
+        assert!(line.contains("room on the farm (free ground its turrets reach): about 0 armafus or 0 armckfus in reach of 30 or more turrets, 0 armafus or 0 armckfus in reach of 10 or more"), "{line}");
         // The plant gone and another standing elsewhere: the block is laid again beside the new one.
         let moved = OwnUnit { facing: 1, ..own(12, 3, Vec3 { x: 3200.0, y: 0.0, z: 2000.0 }) };
         brain.tend_block(&[commander.clone(), moved.clone()], &kit, 150);

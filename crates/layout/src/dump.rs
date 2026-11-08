@@ -39,7 +39,7 @@ pub struct Dump {
     pub builders: Vec<Builder>,
     pub workers: Vec<Worker>,
     pub frames: Vec<Frame>,
-    pub frame_slots: Vec<Vec3>,
+    pub farm_frame: Option<crate::Footprint>,
     pub reservations: Vec<Reservation>,
     pub lattice: Option<Lattice>,
     pub refused: Vec<(UnitDefId, Vec3)>,
@@ -68,7 +68,7 @@ impl Dump {
             builders: world.builders.clone(),
             workers: world.workers.clone(),
             frames: world.frames.clone(),
-            frame_slots: world.frame_slots.clone(),
+            farm_frame: world.farm_frame,
             reservations: world.reservations.clone(),
             lattice: world.lattice,
             refused: world.refused.clone(),
@@ -104,7 +104,7 @@ impl Dump {
             builders: self.builders.clone(),
             workers: self.workers.clone(),
             frames: self.frames.clone(),
-            frame_slots: self.frame_slots.clone(),
+            farm_frame: self.farm_frame,
             reservations: self.reservations.clone(),
             lattice: self.lattice,
             refused: self.refused.clone(),
@@ -115,6 +115,7 @@ impl Dump {
             standing_near: Default::default(),
             spots_near: Default::default(),
             streets: Default::default(), blasts_near: Default::default(),
+            farm: Default::default(),
         }
     }
 }
@@ -188,7 +189,7 @@ mod tests {
             builders: vec![Builder { at: at(480.0, 400.0), half: 8.0, passable: Some(vehicles.clone()) }],
             workers: Vec::new(),
             frames: Vec::new(),
-            frame_slots: Vec::new(),
+            farm_frame: None,
             reservations: Vec::new(),
             lattice: None,
             refused: Vec::new(),
@@ -199,6 +200,7 @@ mod tests {
             standing_near: Default::default(),
             spots_near: Default::default(),
             streets: Default::default(), blasts_near: Default::default(),
+            farm: Default::default(),
         };
         let req = Request { facts: facts(1, 10), purpose: Purpose::Generator { cap: Some(8) }, centre: at(480.0, 400.0), radius: 300.0, builder_at: at(480.0, 400.0), builder: facts(2, 2) };
         let answer = crate::choose(&world, &req);

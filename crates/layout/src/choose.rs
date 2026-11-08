@@ -14,6 +14,7 @@ use bot_protocol::{UnitDefId, Vec3};
 use serde::{Deserialize, Serialize};
 
 use crate::block::Lattice;
+use crate::farm::Farm;
 use crate::street::{Builder, Flood, Plant};
 use crate::{Facts, Footprint, GRID, Ground, Rect, facings_toward};
 
@@ -91,18 +92,15 @@ pub struct Reservation {
 pub enum Reserved {
     /// Nothing goes here (the stand's slots, which their kinds take directly; a gantry's apron).
     Nothing,
-    /// The block's frame rows: a frame may stand here.
-    Frames,
     /// One kind's slot (the gantry's).
     Kind(UnitDefId),
 }
 
 impl Reservation {
     /// Whether a building of `facts` placed for `purpose` may stand on this ground.
-    fn admits(&self, facts: &Facts, purpose: Purpose) -> bool {
+    fn admits(&self, facts: &Facts) -> bool {
         match self.for_ {
             Reserved::Nothing => false,
-            Reserved::Frames => purpose == Purpose::Frame,
             Reserved::Kind(def) => facts.def == def,
         }
     }
@@ -120,12 +118,13 @@ pub struct World<'a> {
     pub builders: Vec<Builder>,
     pub workers: Vec<Worker>,
     pub frames: Vec<Frame>,
-    /// The block's frame slots (their centres), once the block is laid: what a construction turret is for then.
-    pub frame_slots: Vec<Vec3>,
-    /// Ground kept for something not yet ordered: the stand's free slots, the block's rows and gantry slot.
+    /// Ground kept for something not yet ordered: the stand's free slots, the block's gantry slot and apron.
     pub reservations: Vec<Reservation>,
-    /// The block's sub-lattice for construction turrets, once the block is laid.
+    /// The block's sub-lattice for construction turrets, once the block is laid; its centre is the farm's.
     pub lattice: Option<Lattice>,
+    /// The frame the farm is for (the advanced fusion's footprint), once the block is laid: the turret score's
+    /// words count free farm ground in it.
+    pub farm_frame: Option<Footprint>,
     /// Sites the engine refused lately, by type.
     pub refused: Vec<(UnitDefId, Vec3)>,
     pub home: Vec3,
@@ -145,6 +144,8 @@ pub struct World<'a> {
     pub streets: std::cell::RefCell<HashMap<(bool, usize), std::rc::Rc<Flood>>>,
     /// What stands with a death blast, by the buckets its blast reaches (`blasts_near`).
     pub blasts_near: std::cell::RefCell<Option<(usize, Buckets)>>,
+    /// The farm round the block, made once when first asked (`farm`).
+    pub farm: std::cell::RefCell<Option<std::rc::Rc<Farm>>>,
 }
 
 /// The edge of a bucket of ground.
@@ -209,6 +210,14 @@ impl World<'_> {
         self.standing.iter().map(World::blocking_rect).collect()
     }
 
+    /// The farm round the block's centre (`lattice`), made once: the free ground every construction turret within
+    /// FARM_EXTENT reaches. `reach` is a turret's, `facts` the ground test's (the first asker's; a turret's and a
+    /// frame's agree on land). None before the block is laid.
+    pub fn farm(&self, reach: f32, facts: &Facts) -> Option<std::rc::Rc<Farm>> {
+        let lattice = self.lattice?;
+        Some(self.farm.borrow_mut().get_or_insert_with(|| std::rc::Rc::new(Farm::over(self, lattice.centre, reach, facts))).clone())
+    }
+
     /// Plant `i`'s street flood over what stands, made once.
     pub fn plant_street(&self, i: usize) -> std::rc::Rc<Flood> {
         self.streets.borrow_mut().entry((true, i)).or_insert_with(|| std::rc::Rc::new(Flood::of_plant(&self.ground, &self.plants[i], &self.blocking_rects(), &*self.open))).clone()
@@ -246,12 +255,12 @@ impl World<'_> {
     }
 
     /// What stands in the buckets `r` touches, with each one's index in `standing`.
-    fn standing_near(&self, r: &Rect) -> impl Iterator<Item = (usize, &Standing)> {
+    pub(crate) fn standing_near(&self, r: &Rect) -> impl Iterator<Item = (usize, &Standing)> {
         World::near(&self.standing_near, self.standing.len(), || Buckets::new(self.ground.extent(), self.standing.iter().map(World::blocking_rect)), r).into_iter().map(|i| (i, &self.standing[i]))
     }
 
     /// The spots whose keep-out (the greater of the shim's and the box's) touches the buckets `r` touches.
-    fn spots_near(&self, r: &Rect) -> impl Iterator<Item = &Vec3> {
+    pub(crate) fn spots_near(&self, r: &Rect) -> impl Iterator<Item = &Vec3> {
         let half = self.spot_keep_out.max(SPOT_BOX_HALF);
         World::near(&self.spots_near, self.spots.len(), || Buckets::new(self.ground.extent(), self.spots.iter().map(|p| Rect { x0: p.x - half, z0: p.z - half, x1: p.x + half, z1: p.z + half })), r).into_iter().map(|i| &self.spots[i])
     }
@@ -441,7 +450,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if world.builders.iter().any(|b| b.body().overlaps(&rect)) {
         return None;
     }
-    if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f, req.purpose)) {
+    if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f)) {
         return None;
     }
     if req.purpose == Purpose::Turret && world.lattice.is_some_and(|l| !l.holds(at)) {
@@ -459,7 +468,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     if f.factory {
         let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: f.product_passable.clone() };
         let apron = own.apron();
-        if !world.ground.in_map(&apron) || world.standing_near(&apron).any(|(_, s)| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f, req.purpose)) {
+        if !world.ground.in_map(&apron) || world.standing_near(&apron).any(|(_, s)| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f)) {
             return None;
         }
         if world.spots_near(&apron).any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
@@ -501,13 +510,17 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
             let reach = f.build_distance;
             let frames = world.frames.iter().filter(|fr| distance_to(&fr.rect, at) <= reach).count();
             let plural = |n: usize| if n == 1 { "" } else { "s" };
-            let (assisted, said) = if world.lattice.is_some() {
-                // The block is laid: a turret is for the frame slots and frames it reaches, and a plant's pad counts
-                // for nothing (econ-flagship-5: turrets scored by pads stood by the running advanced plant, whose
-                // product took their power by the engine's nearest rule, while the frames stood at the block's edge
-                // with a third of the turrets in reach).
-                let slots = world.frame_slots.iter().filter(|s| s.dist2d(at) <= reach).count();
-                (slots + frames, format!("{slots} frame slot{} and {frames} frame{} in reach", plural(slots), plural(frames)))
+            let (assisted, said) = if let Some(farm) = world.farm(reach, f) {
+                // The block is laid: a turret is for the free farm ground it shares with the turrets standing (the
+                // farm grows as one piece and the power stacks where the frames will go) and the frames it
+                // reaches, and a plant's pad counts for nothing (econ-flagship-5: turrets scored by pads stood by
+                // the running advanced plant, whose product took their power by the engine's nearest rule, while
+                // the frames stood at the block's edge with a third of the turrets in reach). Until 2026-11-08 the
+                // block's reserved frame slots stood here; the farm-holds design §1.3.
+                let gain = farm.gain(at, reach);
+                let frame_cells = world.farm_frame.map_or(1, crate::farm::cells_of).max(1);
+                let worth = gain / frame_cells;
+                (worth + frames, format!("{worth} frame{}' worth of free farm ground and {frames} frame{} in reach", if worth == 1 { "" } else { "s" }, plural(frames)))
             } else {
                 let pads = world.plants.iter().filter(|p| distance_to(&p.rect(), at) <= reach).count();
                 (pads + frames, format!("{pads} pad{} and {frames} frame{} in reach", plural(pads), plural(frames)))
@@ -531,19 +544,11 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         Purpose::Frame => {
             let in_reach: Vec<&Worker> = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).collect();
             let power: f32 = in_reach.iter().map(|w| w.power).sum::<f32>() + req.builder.build_speed;
+            // The score is the seconds to stand at that power; the words say the power alone, what is measured,
+            // not the clock (the user, 2026-11-08: the scripted reports do not predict the game's state).
             let seconds = if power > 0.0 { f.build_time / power } else { f32::INFINITY };
-            // Ground reserved for frames (the block's rows) wins among sites equally quick to stand: the rows are
-            // where the turrets will gather, and a frame outside them takes the lattice (block-5: both frames went
-            // beside the rows on the builder's walk).
-            let in_rows = world.reservations.iter().any(|r| r.for_ == Reserved::Frames && r.rect.overlaps(&rect));
-            words = format!(
-                "{} turret{} with {:.0} build power in reach, {seconds:.0} s to stand{}",
-                in_reach.len(),
-                if in_reach.len() == 1 { "" } else { "s" },
-                power,
-                if in_rows { ", in a frame row" } else { "" }
-            );
-            [seconds, if in_rows { 0.0 } else { 1.0 }]
+            words = format!("{} turret{} with {:.0} build power in reach", in_reach.len(), if in_reach.len() == 1 { "" } else { "s" }, power);
+            [seconds, 0.0]
         }
         Purpose::Place => [at.dist2d(req.centre), 0.0],
     };
@@ -801,7 +806,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -1106,7 +1111,7 @@ mod sea_tests {
         // Land everywhere at 50: a shipyard wanting 30 of water stands nowhere, and the answer says so at once.
         let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
         let open = |_: Vec3| true;
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
         let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         assert!(!w.ground.depths_on_map(&shipyard));
@@ -1153,7 +1158,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
         let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
@@ -1170,7 +1175,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
         let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
