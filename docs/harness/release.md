@@ -43,4 +43,11 @@ one version installed. The banner in the game chat says `WRDistilled 0.2.0 (<com
 
 ## Pitfalls as they are found
 
-(None yet: the first release has not been cut.)
+- 2026-11-07, the first dry run (`gh workflow run release.yml -f bot=distilled`, run 42436685696) passed as written:
+  3 minutes end to end (Linux build with tests 1:28, Windows 2:48, package 8 s). The Windows DLL is a PE32+ x64 with
+  exactly `handleEvent`, `init`, `release` exported (undecorated); 2.7 MB with the static C runtime, the stripped
+  Linux library 2.7 MB. libclang was found on both runners without more than `libclang-dev` and `LIBCLANG_PATH`.
+- The runners warn that `actions/checkout@v4`, `upload-artifact@v4` and `download-artifact@v4` target Node 20 and are
+  run on Node 24; they work. Bumping the majors clears the warning and costs one dry run to verify.
+- Not yet tested: the Windows package played in BAR (the installer's BAR search, `Unblock-File`, the engine listing an
+  AI from `<install>\data\AI\Skirmish`). The first Windows player's report goes here.
