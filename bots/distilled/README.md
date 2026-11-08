@@ -292,6 +292,8 @@ from 13:00, and 4,300 energy a second thrown away; the flagship's 900 and WRTerr
 second against our 16,500, and WRTerritory's of 96-158 construction turrets.
 The duel checks of the settled code: BARb hard_aggressive 8-0-8 (dist131; dist111 8-2-6), Apex v0.5.04 9-1-6 (dist132;
 dist110 3-1-12, dist106 6-3-7), the economy at 15:00 ahead in both (income 81 and 97 against 78 and 82).
+The third pass's baseline (dist267, 2026-11-07, the code at dc868777): **33 / 118 / 345 / 731** on the eight seeds, the settled
+level inside the scatter; 41,000 banked at 20:00, 278 of 731 spent, the energy store full at 13,800 a second of income.
 
 ## The brief: the rows of 2026-11-03 evening
 
