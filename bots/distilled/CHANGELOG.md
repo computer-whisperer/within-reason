@@ -4,7 +4,7 @@ The player-facing record: what changed for someone who plays against the bot. Th
 rules, their sources and the benchmarks, is `README.md`. The top section is the release notes of the version it names
 (`run/release_package.py` takes it).
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-07)
 
 The first release as a download. Everything a development game ran to this date played as "0.1"; this is that bot:
 
