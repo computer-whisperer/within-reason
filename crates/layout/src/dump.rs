@@ -114,6 +114,7 @@ impl Dump {
             walks: Default::default(),
             standing_near: Default::default(),
             spots_near: Default::default(),
+            streets: Default::default(), blasts_near: Default::default(),
         }
     }
 }
@@ -197,6 +198,7 @@ mod tests {
             walks: Default::default(),
             standing_near: Default::default(),
             spots_near: Default::default(),
+            streets: Default::default(), blasts_near: Default::default(),
         };
         let req = Request { facts: facts(1, 10), purpose: Purpose::Generator { cap: Some(8) }, centre: at(480.0, 400.0), radius: 300.0, builder_at: at(480.0, 400.0), builder: facts(2, 2) };
         let answer = crate::choose(&world, &req);

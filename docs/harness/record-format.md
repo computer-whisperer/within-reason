@@ -314,7 +314,7 @@ first six of a game, at most two a kind; `crates/layout/src/dump.rs`, postcard):
 over (what stands, the plants and builders with their walk sets, the reservations, the refused sites) and the request,
 with the game's answer, its time and its trace. `target/release/site_replay <file>...` runs the search again off the
 game and prints the trace (each widening's points, candidates and time; each tried candidate's verdict);
-`--without-asker` first takes the asking builder out of the world's builders.
+`--without-asker` first takes the asking builder out of the world's builders. `target/release/site_bench [--repeat N] [--list] <file>...` is the builder menu's pass over a dump's world off the game: every builder asks for eight kinds, as `menu.rs` asks each pass; it prints the pass's time, the per-search median and worst, and a digest of the answers (`--list` each one), so a change to the search is judged on identical answers and its time (2026-11-07: 2,583 → 490 ms a pass over five dumps, every one of 336 answers the same).
 
 ## Opponent ground truth
 

@@ -16,7 +16,7 @@
 use bot_protocol::Vec3;
 
 use crate::choose::{Reservation, Reserved, World};
-use crate::street::{Plant, street_open};
+use crate::street::{Flood, Plant};
 use crate::{Facts, Footprint, GRID, Rect, facing_dir, facings_toward};
 
 /// The sub-lattice's pitch while the block is sparse: a turret's blast (64) reaches no neighbour.
@@ -330,9 +330,7 @@ fn holds(world: &World, wants: &Wants, s: &Shape) -> Option<(f32, f32)> {
     if let Some((at, facing, _)) = &s.gantry {
         let g = wants.gantry.as_ref()?;
         let own = Plant { centre: *at, footprint: g.footprint, facing: *facing, product_half: g.product_half, ours: true, name: String::new(), widest: String::new(), passable: g.product_passable.clone() };
-        let mut blocks: Vec<Rect> = world.standing.iter().map(|st| if st.ours { st.rect } else { st.rect.grown(ALLY_MARGIN) }).collect();
-        blocks.extend(solid.iter().copied());
-        if !street_open(&world.ground, &own, &blocks, &*world.open) {
+        if !Flood::of_plant(&world.ground, &own, &world.blocking_rects(), &*world.open).reaches_the_open_round(&solid) {
             return None;
         }
     }
@@ -395,9 +393,7 @@ fn ground_holds(world: &World, frame: &Facts, rects: &[Rect], solid: &[Rect], sl
         }
     }
     // The solid ground as blocks, the rows filled: no plant's street may close.
-    let mut blocks: Vec<Rect> = world.standing.iter().map(|st| if st.ours { st.rect } else { st.rect.grown(ALLY_MARGIN) }).collect();
-    blocks.extend(solid.iter().copied());
-    if world.plants.iter().filter(|p| rects.iter().any(|r| p.concerns(r))).any(|p| !street_open(&world.ground, p, &blocks, &*world.open)) {
+    if world.plants.iter().enumerate().filter(|(_, p)| rects.iter().any(|r| p.concerns(r))).any(|(i, _)| !world.plant_street(i).reaches_the_open_round(solid)) {
         return None;
     }
     Some(metal)
@@ -424,7 +420,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), frame_slots: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default() }
     }
 
     fn wants() -> Wants {

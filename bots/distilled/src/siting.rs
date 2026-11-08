@@ -240,7 +240,7 @@ impl Distilled {
             open: Box::new(|_| true),
             walks: Default::default(),
             standing_near: Default::default(),
-            spots_near: Default::default(),
+            spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(),
         }
     }
 

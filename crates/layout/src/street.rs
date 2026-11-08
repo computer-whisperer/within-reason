@@ -111,8 +111,7 @@ impl Builder {
 /// Whether the builder walks from where it stands to the open, over its own ground and round every rect of
 /// `blocks`: the street test from a unit's own position, its own body the product.
 pub fn way_out(ground: &Ground, builder: &Builder, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> bool {
-    let k = ((builder.half * 2.0) / GRID).ceil().max(1.0) as i32;
-    Flood::around(ground, builder.at, builder.at, k, &|p| builder.stands(ground, open, p), blocks).reaches_the_open()
+    Flood::of_builder(ground, builder, blocks, open).reaches_the_open()
 }
 
 /// The state of a plant's street.
@@ -127,7 +126,7 @@ pub enum StreetState {
 /// plant without one) and round every rect of `blocks` (the plant's own footprint among them or not: its door lies
 /// outside it).
 pub fn street_open(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> bool {
-    Flood::new(ground, plant, blocks, open).reaches_the_open()
+    Flood::of_plant(ground, plant, blocks, open).reaches_the_open()
 }
 
 /// The street's state, and the one block of `ours` (indices into `blocks`) whose removal would open a closed one:
@@ -152,9 +151,12 @@ pub fn street_state(ground: &Ground, plant: &Plant, blocks: &[Rect], ours: &[usi
 /// window has such cells (a small map's edge beside the door is no way out).
 const OPEN_FROM_DOOR: f32 = 300.0;
 
-/// The flood's window: the ground within `STREET_REACH` of the plant, clamped to the map, in cells of GRID; blocked
-/// cells summed for the product's block test.
-struct Flood {
+/// The flood's window: the ground within `STREET_REACH` of the plant or builder, clamped to the map, in cells of
+/// GRID; blocked cells summed for the product's block test. Made once over the ground and what stands, and run for
+/// every try with the try's own rects on top (`reaches_the_open_round`): a world keeps one per plant and per builder
+/// (`World::plant_street`, `World::builder_way`). Until 2026-11-07 every try rasterised the window again, 22,500
+/// cells against every rect near it, three quarters of a builder menu's pass (1794076407-human, `site_bench`).
+pub struct Flood {
     nx: i32,
     nz: i32,
     k: i32,
@@ -164,11 +166,24 @@ struct Flood {
     sums: Vec<i32>,
     start: Option<(i32, i32)>,
     door: Vec3,
+    /// Whether the window has an edge far enough from the door to count as the open at all (a small map may not).
+    far_edge: bool,
 }
 
+/// The cells of the window a rect covers, their centres inside it as the rasteriser tests them: (i0, j0, i1, j1),
+/// inclusive.
+type CellBox = (i32, i32, i32, i32);
+
 impl Flood {
-    fn new(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
+    /// A plant's street flood over `blocks`.
+    pub fn of_plant(ground: &Ground, plant: &Plant, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
         Flood::around(ground, plant.centre, plant.door(), plant.product_cells(), &|p| plant.stands(ground, open, p), blocks)
+    }
+
+    /// A builder's way-out flood over `blocks`: from where it stands, its own body the product.
+    pub fn of_builder(ground: &Ground, builder: &Builder, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
+        let k = ((builder.half * 2.0) / GRID).ceil().max(1.0) as i32;
+        Flood::around(ground, builder.at, builder.at, k, &|p| builder.stands(ground, open, p), blocks)
     }
 
     /// The flood over the window round `centre`, starting with a block of `k` cells a side at `door`, over the
@@ -194,7 +209,9 @@ impl Flood {
         }
         let (di, dj) = (((door.x - x0) / GRID).floor() as i32 - k / 2, ((door.z - z0) / GRID).floor() as i32 - k / 2);
         let start = (di >= 0 && dj >= 0 && di + k <= nx && dj + k <= nz).then_some((di, dj));
-        Flood { nx, nz, k, x0, z0, sums, start, door }
+        let mut flood = Flood { nx, nz, k, x0, z0, sums, start, door, far_edge: false };
+        flood.far_edge = flood.has_far_edge();
+        flood
     }
 
     /// Whether the product's block with its corner at (i, j) stands on unblocked cells.
@@ -208,6 +225,29 @@ impl Flood {
         blocked == 0
     }
 
+    /// `free`, and clear of the extra rects' cells too.
+    fn free_round(&self, i: i32, j: i32, boxes: &[CellBox]) -> bool {
+        self.free(i, j) && !boxes.iter().any(|(a0, b0, a1, b1)| *a0 <= i + self.k - 1 && i <= *a1 && *b0 <= j + self.k - 1 && j <= *b1)
+    }
+
+    /// The cells a rect covers, each axis found as the rasteriser tests a cell's centre (`Rect::contains`).
+    fn cell_box(&self, r: &Rect) -> Option<CellBox> {
+        let axis = |lo: f32, hi: f32, origin: f32, n: i32| -> Option<(i32, i32)> {
+            let est_lo = (((lo - origin) / GRID - 0.5).floor() as i32 - 1).max(0);
+            let est_hi = (((hi - origin) / GRID - 0.5).ceil() as i32 + 1).min(n - 1);
+            let inside = |i: i32| {
+                let c = origin + (i as f32 + 0.5) * GRID;
+                c >= lo && c < hi
+            };
+            let a = (est_lo..=est_hi).find(|&i| inside(i))?;
+            let b = (est_lo..=est_hi).rev().find(|&i| inside(i))?;
+            Some((a, b))
+        };
+        let (i0, i1) = axis(r.x0, r.x1, self.x0, self.nx)?;
+        let (j0, j1) = axis(r.z0, r.z1, self.z0, self.nz)?;
+        Some((i0, j0, i1, j1))
+    }
+
     fn on_edge(&self, i: i32, j: i32) -> bool {
         i == 0 || j == 0 || i + self.k == self.nx || j + self.k == self.nz
     }
@@ -216,32 +256,39 @@ impl Flood {
         Vec3 { x: self.x0 + (i as f32 + self.k as f32 / 2.0) * GRID, y: 0.0, z: self.z0 + (j as f32 + self.k as f32 / 2.0) * GRID }
     }
 
-    fn reaches_the_open(&self) -> bool {
+    /// Does the window have an edge far enough from the door at all (a small map may not)?
+    fn has_far_edge(&self) -> bool {
+        let mut any = false;
+        for i in 0..=(self.nx - self.k) {
+            for j in [0, self.nz - self.k] {
+                any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
+            }
+        }
+        for j in 0..=(self.nz - self.k) {
+            for i in [0, self.nx - self.k] {
+                any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
+            }
+        }
+        any
+    }
+
+    pub fn reaches_the_open(&self) -> bool {
+        self.reaches_the_open_round(&[])
+    }
+
+    /// Whether the product walks from the door to the open round what stood when the flood was made and `extras`.
+    pub fn reaches_the_open_round(&self, extras: &[Rect]) -> bool {
         let Some(start) = self.start else { return false };
-        if !self.free(start.0, start.1) {
+        let boxes: Vec<CellBox> = extras.iter().filter_map(|r| self.cell_box(r)).collect();
+        if !self.free_round(start.0, start.1, &boxes) {
             return false;
         }
-        // Does the window have an edge far enough from the door at all (a small map may not)?
-        let far_edge = {
-            let mut any = false;
-            for i in 0..=(self.nx - self.k) {
-                for j in [0, self.nz - self.k] {
-                    any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
-                }
-            }
-            for j in 0..=(self.nz - self.k) {
-                for i in [0, self.nx - self.k] {
-                    any |= self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR;
-                }
-            }
-            any
-        };
         let (nx, nz, k) = (self.nx, self.nz, self.k);
         let mut seen = vec![false; (nx * nz) as usize];
         let mut stack = vec![start];
         seen[(start.1 * nx + start.0) as usize] = true;
         while let Some((i, j)) = stack.pop() {
-            if self.on_edge(i, j) && (!far_edge || self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR) {
+            if self.on_edge(i, j) && (!self.far_edge || self.centre_of(i, j).dist2d(self.door) >= OPEN_FROM_DOOR) {
                 return true;
             }
             for (di, dj) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
@@ -250,7 +297,7 @@ impl Flood {
                     continue;
                 }
                 seen[(nj * nx + ni) as usize] = true;
-                if self.free(ni, nj) {
+                if self.free_round(ni, nj, &boxes) {
                     stack.push((ni, nj));
                 }
             }
@@ -341,7 +388,7 @@ mod tests {
         assert_eq!(p.door(), at(2096.0 + 48.0, 2048.0));
         assert_eq!(p.apron(), Rect { x0: 2096.0, z0: 2048.0 - 48.0 - 32.0, x1: 2192.0, z1: 2048.0 + 48.0 + 32.0 });
         let t = flat();
-        let f = Flood::new(&Ground::new(&t, 4096.0, 4096.0), &p, &[], &|_| true);
+        let f = Flood::of_plant(&Ground::new(&t, 4096.0, 4096.0), &p, &[], &|_| true);
         assert_eq!((f.x0, f.z0), (2048.0 - STREET_REACH, 2048.0 - STREET_REACH));
         assert!(f.start.is_some());
     }
