@@ -574,7 +574,11 @@ played through the headless engine: `run/matches/1792859881-replay-gecko-inactiv
 / 3,710 / 14,010 / 79,690. Reclaimed: the plant 4:41 (570), the advanced plant 10:22 (2,600, seven seconds under
 the turrets), 17 solars 13:44-14:41 (2,550), 4 advanced solars 15:01-15:26 (1,480): 7,200 before 20:00, a seventieth
 of the metal made, each lump five to twelve seconds of his income then; the first six solars reclaimed stood where
-13-20 turret frames and the advanced fusions went. Beside it the flagship's game on the same task (terr-flagship-nullai-1: 36 / 177 / 463 /
+13-20 turret frames and the advanced fusions went. His commander, re-read 2026-11-08 beside econ-flagship-10 and -11: within
+260 of the plant 54 s of minute 1 and 60 s of each of minutes 3 to 7, with guard orders between its solars (one every
+thirty seconds, 9 s each, in the plant's reach), out once in minute 2 for two spots 1,000-1,200 from the start and two
+solars there, back by 3:00; "the commander builds the solars" is what it built, not where it stood. Its constructors
+came 10-16 s apart in minute 3 at a metal store of 6-14 %. Beside it the flagship's game on the same task (terr-flagship-nullai-1: 36 / 177 / 463 /
 802, basic converters on fusions and solars, two turrets) and the territory bot (terr45: 33-39 / 125-144 / 304-359 /
 705-858, the same late shape). Builders' time, read from the record: his nine constructors took 55 s an extractor
 including the build; the program's walk constant of 65 s plus the build is the bot's own realized median.
@@ -582,7 +586,34 @@ including the build; the program's walk constant of 65 s plus the build is the b
 under 1,200 at 20:00, or reached 1,700 with basic converters or without the turret block; or the engine's turrets
 did not add their power to a frame placed among them (K-mech).
 **Used by.** The territory bot's benchmark (`bots/territory/README.md`, the reference rows), its T-LP room (the
-turret cap of six a factory) and T-COMMIT's opening; the brief's economy passages do not cite it yet.
+turret cap of six a factory) and T-COMMIT's opening; the brief's late-economy article (D-late-economy) and the
+commander article (D-commander-cost, 2026-11-08).
+
+### K-eco-the-commander-at-the-plant-is-the-openings-build-power
+**Claim.** In the opening on Comet Catcher against a passive opponent, the plant's constructor rate is set by whether
+the commander guards it once the metal store rises: a plant alone (150) makes a construction vehicle in 27 s, every
+29 s whatever the bank; with the commander guarding (450) in 9 to 16 s as the metal allows (the ceiling is 15 metal a
+second for the 9 s build); and a commander sent to far spots claims about one extractor per 40 s and nothing while it
+walks, against the two constructors a minute it forgoes, each then worth a spot every 55 s. The sign is the metal
+store rising past 30 % while the plant runs alone.
+**Status.** observed (2026-11-08; three games on one map and task, one his and two ours)
+**Evidence.** thebluegecko's inactive-opponent game (`run/matches/1793321961-replay-gecko-inactiveai-comet-2026-10-21-base`):
+commander within 260 of the plant 60 s of each of minutes 3 to 7, guard orders between its solars, one trip in
+minute 2 (two spots 1,000-1,200 out, back by 3:00); constructors 3:04-3:46 in 10, 16, 11, 14 s at a metal store of
+6-14 % and incomes of 20-30; 8 constructors at 4:00, nine by 3:46, 26 extractors and 62 income at 5:00.
+econ-flagship-10 (`run/matches/1794116700-econ-flagship-10/00`): commander at the plant 0 s in minutes 3-4 (two spots
+2,700 elmos away), constructors 27, 27, 27, 40 s with the store at 13-70 %; 5 at 4:00, nine by 5:47; 20 and 34 at
+5:00. econ-flagship-11 (`run/matches/1794119279-econ-flagship-11/00`): the commander sent out at 2:06 to spots 850-1,600
+from the start, 4,500 elmos in minutes 2-4, 0 s at the plant from minute 3 to 7; three extractors and a solar from the
+trip; constructors every 29 s (27 s builds) 2:38-4:33 while the store rose 13 to 72 %; 4 at 4:00, nine by 6:25; 17
+and 41 at 5:00. The bank's rise (about 500 metal) is three constructors unmade by 4:30. The tally: a per-minute read
+of the records (walk, seconds within 260 of the plant, the commander's builds, the constructors' births with the store
+at each), a scratch script, not kept.
+**Would be wrong if.** A flagship game on the task with the commander within 260 of the plant from its standing to the
+advanced plant, guard orders between its solars, did not pass eight constructors by 4:00 and 24 extractors by 5:00
+(the plant's metal would then be the ceiling, not the power); or a commander's field trip in minutes 2-4 claimed spots
+faster than the constructors it displaced would have; or a plant alone made constructors faster than one per 27 s.
+**Used by.** D-commander-cost (`docs/briefs/derived/commander.md`, in the rework manifest after energy.md).
 
 ### K-team-allies-overflow-is-income-the-engine-leaves-out
 **Claim.** In a team game the metal and energy allies put into a seat's stores (gifts, and the overflow of a full

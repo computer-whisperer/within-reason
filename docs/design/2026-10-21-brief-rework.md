@@ -352,6 +352,20 @@ manifest after tier2.md on the user's read the same day ("This looks good"). Bes
 hundred; two carded games of his and the map file unread), out of the manifest. The user's ruling on `derived/base.md`
 stands: a strongly-derived input to the base-construction arc and the layout engine, not the player's reading.
 
+**The commander article (2026-11-08; from the econ-flagship-10 and -11 openings read against thebluegecko's inactive-opponent
+game: his commander at the plant 60 s of every minute from 3 to 7 with guard orders between its solars, ours sent to
+far spots at 2:06 and 0 s at the plant from minute 3 on, the metal store rising to 70 percent behind a plant making a
+constructor every 29 s; the user: a short derived article on the opportunity cost of the commander as a mobile
+builder, with a couple of typical early scenarios).** `derived/commander.md` (D-commander-cost: Irishstud14's "you're
+missing out on the BP for the lab" as the heuristic; constructors at 4:00 and the plant's power as the quantity; three
+prices from F-eco-build: the constructor at 27 s alone and 9 s under the commander when 15 metal a second is there,
+the field trip at one extractor per 30-45 s against two constructors a minute each worth a spot every 55 s, the solar
+at two thirds of a constructor when the commander builds it with the store rising and free when the store is empty
+and falling; the three openings in one table; the advanced plant alone as the same mistake at a larger price; the
+store rising past 30 percent while the commander walks as the sign). Its claim is
+K-eco-the-commander-at-the-plant-is-the-openings-build-power (observed, three games); K-eco-pro-curve's evidence
+amended with where his commander stood. In the manifest after energy.md, unread by him.
+
 ## 7. Measurement
 
 The standing brief is the control: the same seeds in the arena and a game with people. (2026-10-23: the control that
