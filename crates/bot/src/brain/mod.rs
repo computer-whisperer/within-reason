@@ -26,6 +26,7 @@ mod routes;
 mod nanos;
 pub use nanos::{HOLDS_KINDS, TEND_CATEGORIES};
 mod yards;
+mod ways;
 
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
@@ -188,6 +189,16 @@ pub struct Brain {
     /// Our factories' exit lanes this tick, kept clear of new buildings; our mobile units that cannot move; the
     /// factories whose blocked yard the player has been told of (`yards.rs`).
     stuck: HashMap<UnitId, yards::Stuck>,
+    /// The way-out watch (`ways.rs`): each mobile builder's way to the open at the last look, the frame of that
+    /// look, our standing footprints' handles then (a pen's closer is one that came up since), the builders penned
+    /// and every penned or stuck unit's cheapest way out; the veto's verdicts from the site searches since the
+    /// last tick, written to the record by the watch.
+    ways: HashMap<UnitId, bool>,
+    ways_frame: i32,
+    ways_seen: HashSet<String>,
+    pens: HashMap<UnitId, ways::Pen>,
+    freeings: HashMap<UnitId, ways::Freeing>,
+    layout_verdicts: std::cell::RefCell<Vec<(serde_json::Value, serde_json::Value)>>,
     /// Mobile units standing still in a standing factory's exit lane: since when, where they stood, which factory.
     lane_standers: HashMap<UnitId, (i32, Vec3, UnitId)>,
     yard_warned: HashSet<UnitId>,
@@ -416,6 +427,12 @@ impl Brain {
             building_health: HashMap::new(),
             building_health_frame: 0,
             stuck: HashMap::new(),
+            ways: HashMap::new(),
+            ways_frame: i32::MIN / 2,
+            ways_seen: HashSet::new(),
+            pens: HashMap::new(),
+            freeings: HashMap::new(),
+            layout_verdicts: std::cell::RefCell::new(Vec::new()),
             lane_standers: HashMap::new(),
             yard_warned: HashSet::new(),
             nanos: nanos::Nanos::default(),
@@ -673,6 +690,7 @@ impl Brain {
             b.track_losses(tick, &kit);
             b.track_yards(tick);
         });
+        self.timed("ways", |b| b.track_ways(tick));
         let mut commands = Vec::new();
         self.timed("nanos", |b| b.tend_nanos(tick, &mut commands));
         self.timed("chat", |b| b.relay_chat(tick, &mut commands));

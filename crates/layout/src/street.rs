@@ -114,6 +114,57 @@ pub fn way_out(ground: &Ground, builder: &Builder, blocks: &[Rect], open: &dyn F
     Flood::of_builder(ground, builder, blocks, open).reaches_the_open()
 }
 
+/// A body's way to the open, and when it has none, the cheapest way to give it one.
+#[derive(Clone, Debug, PartialEq)]
+pub enum WayOut {
+    Open,
+    /// Shut, and removing these of `ours` (indices into `blocks`, the fewest that open a way and the least metal
+    /// among as many) opens it.
+    Freed { remove: Vec<usize>, metal: f32 },
+    /// Shut by the ground or by what is not ours to remove: no one or two of ours opens it.
+    Shut,
+}
+
+/// How many of our footprints nearest the body are tried alone, and how many in pairs.
+const FREEING_SINGLES: usize = 24;
+const FREEING_PAIRS: usize = 10;
+
+/// The cheapest way to free a body: whether it walks to the open over `blocks`, and if not, the one footprint of
+/// `ours` ((index into `blocks`, its metal)) whose removal opens a way, the least metal among those that do, else the
+/// pair; tried nearest the body first, so a pen a long way round is not searched for ever. For a unit the engine
+/// gave up moving, or a builder the watch saw walled in (the bot's `ways.rs`), the answer the player's `remove`
+/// acts on (econ-flagship-17: ten constructors penned 2,525 constructor-seconds, two by rings of their own solars,
+/// three advanced constructors inside the dense block, and the stuck words named nothing to remove).
+pub fn way_out_state(ground: &Ground, body: &Builder, blocks: &[Rect], ours: &[(usize, f32)], open: &dyn Fn(Vec3) -> bool) -> WayOut {
+    if way_out(ground, body, blocks, open) {
+        return WayOut::Open;
+    }
+    let mut near: Vec<(usize, f32)> = ours.iter().copied().filter(|(i, _)| body.concerns(&blocks[*i])).collect();
+    near.sort_by(|a, b| blocks[a.0].centre().dist2d(body.at).total_cmp(&blocks[b.0].centre().dist2d(body.at)));
+    let without = |drop: &[usize]| -> Vec<Rect> { blocks.iter().enumerate().filter(|(j, _)| !drop.contains(j)).map(|(_, r)| *r).collect() };
+    let singles: Vec<&(usize, f32)> = near.iter().take(FREEING_SINGLES).collect();
+    if let Some((i, metal)) = singles.iter().filter(|(i, _)| way_out(ground, body, &without(&[*i]), open)).min_by(|a, b| a.1.total_cmp(&b.1)) {
+        return WayOut::Freed { remove: vec![*i], metal: *metal };
+    }
+    let pairs: Vec<&(usize, f32)> = near.iter().take(FREEING_PAIRS).collect();
+    let mut best: Option<(Vec<usize>, f32)> = None;
+    for (a, (i, mi)) in pairs.iter().enumerate() {
+        for (j, mj) in pairs.iter().skip(a + 1) {
+            let metal = mi + mj;
+            if best.as_ref().is_some_and(|(_, m)| *m <= metal) {
+                continue;
+            }
+            if way_out(ground, body, &without(&[*i, *j]), open) {
+                best = Some((vec![*i, *j], metal));
+            }
+        }
+    }
+    match best {
+        Some((remove, metal)) => WayOut::Freed { remove, metal },
+        None => WayOut::Shut,
+    }
+}
+
 /// The state of a plant's street.
 #[derive(Clone, Debug, PartialEq)]
 pub enum StreetState {
@@ -308,6 +359,27 @@ impl Flood {
 
 #[cfg(test)]
 mod tests {
+    /// A body boxed in by four footprints: the cheapest single footprint of ours that opens a way is the answer, a
+    /// pair when no single one does, and nothing when what shuts it is not ours.
+    #[test]
+    fn the_cheapest_way_to_free_a_boxed_body_is_the_least_metal_that_opens_a_way() {
+        let t = flat();
+        let ground = Ground::new(&t, 4096.0, 4096.0);
+        let open = |_: Vec3| true;
+        let body = Builder { at: Vec3 { x: 2000.0, y: 0.0, z: 2000.0 }, half: 20.0, passable: None };
+        let wall = |x0: f32, z0: f32, x1: f32, z1: f32| Rect { x0, z0, x1, z1 };
+        // North, south, east and west walls, each 200 long and 40 thick, overlapping at the corners.
+        let blocks = vec![wall(1900.0, 1900.0, 2100.0, 1940.0), wall(1900.0, 2060.0, 2100.0, 2100.0), wall(2060.0, 1900.0, 2100.0, 2100.0), wall(1900.0, 1900.0, 1940.0, 2100.0)];
+        assert_eq!(way_out_state(&ground, &body, &blocks, &[(0, 300.0), (1, 100.0), (2, 200.0), (3, 150.0)], &open), WayOut::Freed { remove: vec![1], metal: 100.0 });
+        // Only the two eastern footprints are ours, and the east wall is doubled: both must go.
+        let doubled = vec![blocks[0], blocks[1], blocks[2], blocks[3], wall(2100.0, 1900.0, 2140.0, 2100.0)];
+        assert_eq!(way_out_state(&ground, &body, &doubled, &[(2, 200.0), (4, 50.0)], &open), WayOut::Freed { remove: vec![2, 4], metal: 250.0 });
+        // Nothing of ours in the box: shut.
+        assert_eq!(way_out_state(&ground, &body, &blocks, &[], &open), WayOut::Shut);
+        // No box: open.
+        assert_eq!(way_out_state(&ground, &body, &blocks[..3], &[(0, 300.0)], &open), WayOut::Open);
+    }
+
     use super::*;
     use bot_protocol::Terrain;
 

@@ -1250,6 +1250,10 @@ impl Brain {
         if let Some(stuck) = self.stuck.get(&unit.id) {
             words.push_str(&format!("; stuck: it cannot move from {}, its moves have failed since {}", self.place_words(places, stuck.at), ago(stuck.since)));
         }
+        // Walled in where it stands, and the cheapest footprints of ours whose removal frees it (`ways.rs`).
+        if let Some(pen) = self.pen_words(unit.id, frame) {
+            words.push_str(&pen);
+        }
         // Standing in a factory's exit lane (a builder working from the pad): the factory's units cannot leave
         // (wake-3: the plant made nothing from 4:47 to 7:45 behind a constructor building nano turrets on its pad).
         if let Some((since, factory)) = self.lane_stander(unit.id, frame) {
@@ -2167,8 +2171,9 @@ impl Brain {
             if !stuck.is_empty() {
                 let longest = stuck.iter().filter_map(|u| self.stuck.get(&u.id)).map(|s| frame - s.since).max().unwrap_or(0);
                 let yard = own.iter().filter(|f| self.lane_of(f).is_some_and(|lane| stuck.iter().any(|u| lane.contains(u.pos)))).map(|f| self.actor_name(f.id)).next();
+                let freeing = stuck.iter().find_map(|u| self.pen_words(u.id, frame)).unwrap_or_default();
                 entry["stuck"] = json!(format!(
-                    "{} of its {} soldiers cannot move (the engine gives up their moves), the longest for {}{}",
+                    "{} of its {} soldiers cannot move (the engine gives up their moves), the longest for {}{}{freeing}",
                     stuck.len(),
                     units.len(),
                     clock(longest),

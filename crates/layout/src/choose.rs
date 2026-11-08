@@ -205,7 +205,7 @@ impl World<'_> {
     }
 
     /// What stands, as the street rule's blocks.
-    pub(crate) fn blocking_rects(&self) -> Vec<Rect> {
+    pub fn blocking_rects(&self) -> Vec<Rect> {
         self.standing.iter().map(World::blocking_rect).collect()
     }
 

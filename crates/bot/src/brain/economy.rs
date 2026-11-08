@@ -296,7 +296,10 @@ impl Brain {
         let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
         let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };
         let started = std::time::Instant::now();
-        match layout::choose(world, &req) {
+        let mut trace = Vec::new();
+        let chosen = layout::choose_traced(world, &req, Some(&mut trace));
+        self.note_walled(&trace, self.name(def), &self.actor_name(builder.id), centre);
+        match chosen {
             Ok(site) => Plan::Slot(def, site.at, site.facing),
             Err(why) => {
                 let ms = started.elapsed().as_secs_f32() * 1000.0;
