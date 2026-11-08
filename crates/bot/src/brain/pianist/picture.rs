@@ -1820,7 +1820,13 @@ impl Brain {
             });
             if builder {
                 entry["health"] = json!(format!("{} ({:.0}%)", health_words(unit.health / unit.max_health), unit.health / unit.max_health * 100.0));
-                entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame, own));
+                let doing = self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame, own);
+                // Its list ran out and nothing replaced it: the seconds since say how long the fallback has stood
+                // (econ-flagship-13: 26 to 31 builders helping frames for the last two and a half minutes, unsaid).
+                entry["doing"] = json!(match pianist.list_ended.get(&name) {
+                    Some(ended) if pianist.scripts.get(&name).is_none_or(|s| s.is_empty()) => format!("its list ended {} s ago; since then {doing}", (frame - ended) / FRAMES_PER_SECOND),
+                    _ => doing,
+                });
                 if let Some(w) = stunned_words(&[unit.stunned].into_iter().filter(|s| *s > 0.0).collect::<Vec<_>>(), 1) {
                     entry["stunned"] = json!(format!("{w}: it neither moves nor builds until it wakes, and keeps its orders for then"));
                 }

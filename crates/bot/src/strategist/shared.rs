@@ -48,6 +48,8 @@ pub struct Briefing {
     /// The block's line (`brain/block.rs` `block_line`): where the construction turrets and frames stand, its pitch,
     /// what stands on its ground; or why none could be laid.
     pub block: Option<String>,
+    /// The lists line: how many builders' lists have ended and how long ago, and how many run (None when none ended).
+    pub lists: Option<String>,
     /// The other seats of our side (an ally AI, a person, a seat of ours under another player): what each has built
     /// and where its army stands, from the allied units the engine shows every seat (H-REPORT-ALLIES-LINE;
     /// human-8v8-1: three Apex allies placed advanced labs at 5:20, 8:00 and 8:30 and no report showed them).
@@ -476,11 +478,15 @@ pub struct Wake {
     pub chat: bool,
     /// A silo of ours has a missile come ready (the player fires; nuke-2-hard: two sat five minutes).
     pub missile_ready: bool,
+    /// Woken when this many builders' lists have ended since the last report with no new list given (0 never):
+    /// econ-flagship-13, 16:42 to 20:00, one list in nine turns while 26 to 31 of 40 builders sat on the hands'
+    /// fallback and frames begun a minute halved (H-WAKE-LISTS-ENDED).
+    pub lists_ended: u32,
 }
 
 impl Default for Wake {
     fn default() -> Self {
-        Wake { max_seconds: 30, enemy_near_extractor: true, squad_engaged: true, extractor_lost: true, pool_reaches: BTreeMap::new(), chat: true, missile_ready: true }
+        Wake { max_seconds: 30, enemy_near_extractor: true, squad_engaged: true, extractor_lost: true, pool_reaches: BTreeMap::new(), chat: true, missile_ready: true, lists_ended: 3 }
     }
 }
 

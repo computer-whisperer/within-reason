@@ -324,6 +324,10 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     if let Some(line) = &briefing.block {
         lines.push(line.clone());
     }
+    // The lists line: builders whose lists ran out with nothing in their place (H-WAKE-LISTS-ENDED).
+    if let Some(line) = &briefing.lists {
+        lines.push(line.clone());
+    }
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();
         lines.push(format!("wrecks: {} | resurrection bots {}", if fields.is_empty() { "none known".to_string() } else { fields.join(", ") }, field.resurrection_bots));

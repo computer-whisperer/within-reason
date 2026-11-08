@@ -625,6 +625,35 @@ impl Brain {
         frames
     }
 
+    /// The lists line: how many builders' lists have run out with nothing in their place, how long ago (median and
+    /// longest), and how many lists run; None while none has ended (H-WAKE-LISTS-ENDED).
+    pub(super) fn lists_line(&self, own: &[OwnUnit], frame: i32) -> Option<String> {
+        let pianist = self.pianist.as_ref()?;
+        let mut ended: Vec<i32> = Vec::new();
+        let mut running = 0usize;
+        for u in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
+            let name = self.actor_name(u.id);
+            if pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+                running += 1;
+            } else if let Some(f) = pianist.list_ended.get(&name) {
+                ended.push((frame - f) / FRAMES_PER_SECOND);
+            }
+        }
+        if ended.is_empty() {
+            return None;
+        }
+        ended.sort_unstable();
+        let median = ended[ended.len() / 2];
+        let longest = *ended.last().unwrap_or(&0);
+        Some(format!(
+            "lists: {} {} ended with nothing in {} place (median {median} s ago, the longest {longest} s), on the hands' fallback meanwhile; {running} list{} running",
+            ended.len(),
+            if ended.len() == 1 { "builder's list has" } else { "builders' lists have" },
+            if ended.len() == 1 { "its" } else { "their" },
+            if running == 1 { "" } else { "s" }
+        ))
+    }
+
     /// What the construction turrets in reach of a frame that are not on it are told onto, by kind and count, most
     /// first: another frame's type ("armnanotc frames"), a plant's name (guarding it), or "nothing" (the standing
     /// fight-in-place, nothing ranked in their reach).
@@ -858,6 +887,7 @@ impl Brain {
             seats: Vec::new(),
             build_power: self.build_power(&snapshot.own_units),
             spending: self.spending(&snapshot.own_units),
+            lists: self.lists_line(&snapshot.own_units, tick.frame),
             game_time: clock(tick.frame),
             frame: tick.frame,
             metal: snapshot.metal,

@@ -51,6 +51,8 @@ pub struct WakeState {
     landed: Option<i32>,
     /// The safe wreck metal the player was last woken for (H-WAKE-WRECKS).
     wreck_wake_level: f32,
+    /// The turn (its frame) after which the lists-ended wake last fired: once a turn (H-WAKE-LISTS-ENDED).
+    lists_ended_woken: i32,
     /// A silo's rounds that came ready since the last turn (`pianist/fire.rs`, `note_rounds`), for `Wake::missile_ready`.
     pub(super) rounds_ready: Vec<String>,
 }
@@ -161,6 +163,30 @@ impl Brain {
         let rounds = std::mem::take(&mut self.wake.rounds_ready);
         if wake.missile_ready {
             reasons.extend(rounds);
+        }
+        // H-WAKE-LISTS-ENDED: builders whose lists ran out since the last report and got no new one are the player's
+        // attention gap (econ-flagship-13: one list in the last nine turns, 26 to 31 of 40 builders on the fallback).
+        if wake.lists_ended > 0
+            && self.wake.lists_ended_woken != last_turn_frame
+            && let Some(pianist) = self.pianist.as_ref()
+        {
+            let mut ended: Vec<String> = tick
+                .snapshot
+                .own_units
+                .iter()
+                .filter(|u| !u.being_built && self.world.is_mobile_builder(u.def))
+                .map(|u| self.actor_name(u.id))
+                .filter(|name| pianist.list_ended.get(name).is_some_and(|f| *f > last_turn_frame) && pianist.scripts.get(name).is_none_or(|s| s.is_empty()))
+                .collect();
+            if ended.len() >= wake.lists_ended as usize {
+                self.wake.lists_ended_woken = last_turn_frame;
+                ended.sort();
+                reasons.push(format!(
+                    "{} builders' lists have ended since your last report and they have no new one ({}): until you list them they are on the hands' fallback, helping a frame or the menu's pick",
+                    ended.len(),
+                    ended.join(", ")
+                ));
+            }
         }
         let pool_met = !wake.pool_reaches.is_empty()
             && wake.pool_reaches.iter().all(|(name, n)| field.unassigned.iter().any(|(have, count)| have == name && count >= n));

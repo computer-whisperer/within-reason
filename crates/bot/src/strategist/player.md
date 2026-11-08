@@ -449,7 +449,9 @@ packet changes, a `predict` every few minutes, a `note` when the reasoning is wo
 turn. Write nothing after it. Look things up (`situation`, `overview`, `map`) only when the report does not tell you what
 you need, and as a separate call before `orders`. Nothing takes effect until your turn ends. `wait` sets a maximum quiet
 time and the events that wake you early (enemies near an extractor, an extractor lost, a group engaging, soldiers of a
-type reaching a count, a missile coming ready in a silo of ours); you are also woken when the extractor count has not grown for four minutes with free spots left,
+type reaching a count, a missile coming ready in a silo of ours, three builders' lists ended since your last report with
+no new one given: a builder whose list ends falls to the hands' fallback and begins nothing, a `start` list is about a
+minute's work, and the report's `lists` line and each builder's "its list ended N s ago" say how long that has stood); you are also woken when the extractor count has not grown for four minutes with free spots left,
 when a group of yours has lost two soldiers or a quarter of its metal since your last orders, when a group meets a
 party it does not outweigh, and the moment your orders land if anything of ours died while they were on their way.
 While a fight is on (a group engaged, or a loss in the last 30 s) the quiet time is capped at 10 s whatever you set.

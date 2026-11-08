@@ -156,7 +156,8 @@ fn tool_list() -> Value {
             "extractor_lost": { "type": "boolean" },
             "pool_reaches": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1 }, "description": pool },
             "chat": { "type": "boolean", "description": "A person in the game says something (default on)." },
-            "missile_ready": { "type": "boolean", "description": "A silo of ours has a missile come ready (default on); the report's `missiles` line says what each silo holds." } } } });
+            "missile_ready": { "type": "boolean", "description": "A silo of ours has a missile come ready (default on); the report's `missiles` line says what each silo holds." },
+            "lists_ended": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Woken when this many builders' lists have ended since your last report and they have been given no new one (default 3; 0 never): a builder whose list ends falls to the hands' fallback, helping a frame or the menu's pick, and begins nothing; the report's `lists` line counts them and each builder's line says how long ago its list ended. A list ending in a bare `assist` does not end." } } } });
     let orders = |tools: &[&str], what: &str| json!({ "name": "orders",
         "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game resumes. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry, LAST, to change when you are next woken; without one the wake settings in force stand. Never call the other tools on their own beside this one: anything sent after the turn ends is refused. Call nothing and write nothing after it."),
         "inputSchema": { "type": "object", "additionalProperties": false, "required": ["calls"], "properties": {
@@ -627,6 +628,9 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             flag("extractor_lost", &mut wake.extractor_lost);
             flag("chat", &mut wake.chat);
             flag("missile_ready", &mut wake.missile_ready);
+            if let Some(n) = arguments["lists_ended"].as_u64() {
+                wake.lists_ended = n.min(60) as u32;
+            }
             if let Some(pool) = arguments["pool_reaches"].as_object() {
                 wake.pool_reaches = pool.iter().map(|(name, n)| (name.clone(), n.as_u64().unwrap_or(1) as usize)).collect();
             }
@@ -1532,6 +1536,10 @@ mod tests {
         assert!(call_tool("queue", &json!({ "commander": ["turret"] }), &shared).unwrap_err().contains("stands at a place"));
         assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "turret spot_4", "extractor", "extractor nearest", "armsolar low", "assist"] }), &shared).is_ok());
         assert!(call_tool("queue", &json!({ "constructor_9": ["armnanotc"] }), &shared).is_ok());
+        // The lists-ended wake (H-WAKE-LISTS-ENDED): set by the wait tool, 3 by default, 0 never.
+        assert_eq!(shared.wake.lock().unwrap().lists_ended, 3);
+        assert!(call_tool("wait", &json!({ "lists_ended": 1 }), &shared).unwrap().contains("\"lists_ended\":1"));
+        assert!(call_tool("wait", &json!({ "lists_ended": 0 }), &shared).unwrap().contains("\"lists_ended\":0"));
         // A constructor of another faction (given by an ally) takes its own faction's names: what it makes is a step
         // whatever the seat's roster says (Center Command 2v4: `cormoho` refused to the Armada seat's borrowed Cortex constructor).
         let borrowed = std::collections::BTreeMap::from([("constructor_14291".to_string(), std::collections::BTreeMap::from([("cormoho".to_string(), true), ("advanced_extractor".to_string(), true), ("corfus".to_string(), false)]))]);

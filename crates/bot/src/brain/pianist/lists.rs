@@ -236,6 +236,15 @@ impl Brain {
         let builders: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)).collect();
         for unit in builders {
             let name = self.actor_name(unit.id);
+            // A list that has run out (an empty deque: the player's lists are only ever inserted whole) is noted once,
+            // with its frame, unless its last step was a bare `assist`, which stands to the horizon (H-WAKE-LISTS-ENDED).
+            if pianist.scripts.get(&name).is_some_and(|s| s.is_empty()) && !pianist.list_ended.contains_key(&name) {
+                let standing_assist = matches!(pianist.tasks.get(&unit.id), Some(Task::Assist { .. }))
+                    && pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step.split_whitespace().next() == Some("assist") && timed_assist(step).is_none());
+                if !standing_assist {
+                    pianist.list_ended.insert(name.clone(), frame);
+                }
+            }
             if pianist.scripts.get(&name).is_none_or(|s| s.is_empty()) || pianist.helping.contains_key(&unit.id) {
                 continue;
             }
@@ -982,6 +991,38 @@ mod finish_tests {
         // The same finish again is the build going on, not a new order.
         let again = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, None, &mut commands);
         assert!(again.is_none(), "{again:?}");
+    }
+
+    /// The lists line counts the builders whose lists ran out with nothing in their place, with the median and the
+    /// longest, and the lists still running; a builder whose list ended and got a new one is running again
+    /// (H-WAKE-LISTS-ENDED: econ-flagship-13's last three minutes, 26 to 31 of 40 builders on the fallback unsaid).
+    #[test]
+    fn the_lists_line_counts_the_ended_lists_and_how_long_ago() {
+        let mut brain = brain_of(&["armcv", "armsolar"]);
+        // The fixture's units carry no build speed: the constructor is made a mobile builder (90, builds the solar).
+        if let Some(d) = brain.world.hello.unit_defs.iter_mut().find(|d| d.id == UnitDefId(1)) {
+            d.build_speed = 90.0;
+            d.build_options.push(UnitDefId(2));
+        }
+        let ours = vec![own(1, 1, at(1000.0, 950.0)), own(2, 1, at(1100.0, 950.0)), own(3, 1, at(1200.0, 950.0))];
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        brain.pianist = Some(pianist);
+        assert!(brain.lists_line(&ours, 3000).is_none(), "nothing ended, no line");
+        pianist = brain.pianist.take().unwrap();
+        pianist.scripts.insert("constructor_1".into(), VecDeque::new());
+        pianist.list_ended.insert("constructor_1".into(), 3000 - 71 * 30);
+        pianist.scripts.insert("constructor_2".into(), VecDeque::new());
+        pianist.list_ended.insert("constructor_2".into(), 3000 - 150 * 30);
+        pianist.scripts.insert("constructor_3".into(), VecDeque::from(["armsolar start".to_string()]));
+        brain.pianist = Some(pianist);
+        let line = brain.lists_line(&ours, 3000).expect("a line");
+        assert_eq!(line, "lists: 2 builders' lists have ended with nothing in their place (median 150 s ago, the longest 150 s), on the hands' fallback meanwhile; 1 list running");
+        // A new list on constructor_2 (the queue tool clears its record): one ended, two running.
+        let mut pianist = brain.pianist.take().unwrap();
+        pianist.list_ended.remove("constructor_2");
+        pianist.scripts.insert("constructor_2".into(), VecDeque::from(["armsolar".to_string()]));
+        brain.pianist = Some(pianist);
+        assert!(brain.lists_line(&ours, 3000).unwrap().starts_with("lists: 1 builder's list has ended with nothing in its place (median 71 s ago, the longest 71 s), on the hands' fallback meanwhile; 2 lists running"));
     }
 
     /// A builder leaving a frame on a `start` step takes the next step of the same type as the next building, not

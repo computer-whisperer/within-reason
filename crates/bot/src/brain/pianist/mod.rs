@@ -195,6 +195,9 @@ pub struct Pianist {
     pub(super) queued: HashMap<UnitId, VecDeque<Queued>>,
     /// The player's lists of steps per builder (by actor name), done by the bot without asking (H-HANDS-SCRIPT).
     pub(super) scripts: HashMap<String, VecDeque<String>>,
+    /// The frame each builder's list ran out by play (by actor name; cleared by a new list or a cancel; a list
+    /// ending in a bare `assist` does not end): the report's lists line and the `lists_ended` wake read it.
+    pub(super) list_ended: HashMap<String, i32>,
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
@@ -811,6 +814,7 @@ impl Pianist {
             party_memory: std::cell::RefCell::new(Vec::new()),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
+            list_ended: HashMap::new(),
             list_steps: HashMap::new(),
             list_held: HashSet::new(),
             stale_queue: HashSet::new(),
@@ -1158,6 +1162,7 @@ impl Brain {
             }
             pianist.script_frame.insert(name.clone(), tick.frame);
             pianist.list_caught_up.remove(&name);
+            pianist.list_ended.remove(&name);
             match steps {
                 Some(steps) => {
                     pianist.scripts.insert(name, steps.into());
