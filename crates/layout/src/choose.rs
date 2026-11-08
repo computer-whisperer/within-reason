@@ -474,9 +474,13 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         if world.spots_near(&apron).any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
             return None;
         }
-        // The apron is the products' own ground (water-1: every shipyard site was refused by the land's apron check).
+        // The apron is the products' own ground (water-1: every shipyard site was refused by the land's apron check),
+        // and so is the footprint itself: a lab may stand on 17 of height difference, a tank climbs less, and a
+        // plant over a knoll holds its products inside (econ-flagship-20: the advanced plant at (920, 2952) on a
+        // knoll with slope bytes to 60 against the tank's 28, two advanced constructors penned from birth, the plant
+        // the only thing whose removal freed them).
         let passable = |p: Vec3| own.stands(&world.ground, &*world.open, p);
-        if !apron_open(&apron, &passable) {
+        if !cells_open(&apron, &passable) || !cells_open(&rect, &passable) {
             return None;
         }
     }
@@ -738,11 +742,12 @@ fn lattice(fp: Footprint, centre: Vec3, radius: f32) -> Vec<Vec3> {
     out
 }
 
-fn apron_open(apron: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
-    let mut z = apron.z0 + GRID / 2.0;
-    while z < apron.z1 {
-        let mut x = apron.x0 + GRID / 2.0;
-        while x < apron.x1 {
+/// Whether every cell of `area` is passable by `open`: a plant's apron and its own footprint for its products.
+fn cells_open(area: &Rect, open: &dyn Fn(Vec3) -> bool) -> bool {
+    let mut z = area.z0 + GRID / 2.0;
+    while z < area.z1 {
+        let mut x = area.x0 + GRID / 2.0;
+        while x < area.x1 {
             if !open(Vec3 { x, y: 0.0, z }) {
                 return false;
             }
@@ -811,6 +816,28 @@ mod tests {
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
     /// converter's bank stops at its cap and the next founds a bank a street away.
+    /// A plant's footprint is its products' ground too: with the ground under the asked centre impassable to them
+    /// (a knoll a lab may stand on and a tank cannot climb), the site moves off the knoll, apron and footprint both
+    /// clear of it (econ-flagship-20: two advanced constructors penned inside their plant from birth).
+    #[test]
+    fn a_plant_never_stands_on_ground_its_products_cannot_leave() {
+        let t = flat();
+        // Cell-aligned (GRID 16), so the cells' centres and the rect agree on where the knoll ends.
+        let knoll = Rect { x0: 1984.0, z0: 1952.0, x1: 2096.0, z1: 2048.0 };
+        let open = move |p: Vec3| !(p.x >= knoll.x0 && p.x < knoll.x1 && p.z >= knoll.z0 && p.z < knoll.z1);
+        let w = world(&t, &open);
+        let plant = Facts { factory: true, product_half: 20.0, ..facts(9, 18, 2600.0, 4750.0, None) };
+        let req = Request { facts: plant.clone(), purpose: Purpose::Plant, centre: at(2040.0, 2000.0), radius: 300.0, builder_at: at(2040.0, 2000.0), builder: builder() };
+        let site = choose(&w, &req).expect("a site off the knoll");
+        let rect = plant.footprint.faced(site.facing).rect(site.at);
+        assert!(!rect.overlaps(&knoll), "the plant stands over the knoll: {site:?}");
+        // Without the knoll the plant stands at the asked place.
+        let flat_open = |_: Vec3| true;
+        let w2 = world(&t, &flat_open);
+        let site2 = choose(&w2, &req).expect("a site");
+        assert!(site2.at.dist2d(at(2040.0, 2000.0)) < 48.0, "{site2:?}");
+    }
+
     #[test]
     fn generators_bank_touching_their_kind_and_converters_stop_at_the_cap() {
         let t = flat();
