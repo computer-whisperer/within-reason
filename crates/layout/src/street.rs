@@ -100,7 +100,7 @@ impl Builder {
         window(self.at).overlaps(rect)
     }
 
-    fn stands(&self, ground: &Ground, open: &dyn Fn(Vec3) -> bool, p: Vec3) -> bool {
+    pub fn stands(&self, ground: &Ground, open: &dyn Fn(Vec3) -> bool, p: Vec3) -> bool {
         match &self.passable {
             Some(walk) => ground.walks(walk, p.x, p.z),
             None => open(p),
@@ -202,19 +202,81 @@ pub fn street_state(ground: &Ground, plant: &Plant, blocks: &[Rect], ours: &[usi
 /// window has such cells (a small map's edge beside the door is no way out).
 const OPEN_FROM_DOOR: f32 = 300.0;
 
+/// Blocked cells over a region of the map in cells of GRID, with prefix sums: the ground a body cannot stand on and
+/// every rect given. Made once over a window for one flood (`Flood::around`), or once over the whole map for a
+/// class of body and shared by every flood of that class in the second (`Blocked::over_map`, the bot's way-out
+/// watch: rasterising the window was 1.2 of a flood's 1.35 ms over a late base's 140 footprints, the search 0.1).
+pub struct Blocked {
+    pub x0: f32,
+    pub z0: f32,
+    pub nx: i32,
+    pub nz: i32,
+    /// Prefix sums of blocked cells, (nx + 1) by (nz + 1).
+    sums: Vec<i32>,
+}
+
+impl Blocked {
+    /// The cells of [x0, x1) x [z0, z1): a cell is blocked where the body does not stand on its centre or a rect
+    /// contains it.
+    pub fn over(x0: f32, z0: f32, x1: f32, z1: f32, stands: &dyn Fn(Vec3) -> bool, blocks: &[Rect]) -> Blocked {
+        let nx = ((x1 - x0) / GRID).floor().max(1.0) as i32;
+        let nz = ((z1 - z0) / GRID).floor().max(1.0) as i32;
+        let mut cells = vec![false; (nx * nz) as usize];
+        for j in 0..nz {
+            for i in 0..nx {
+                let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
+                cells[(j * nx + i) as usize] = !stands(p);
+            }
+        }
+        // Each rect fills the cells whose centres it contains.
+        let window = Rect { x0, z0, x1, z1 };
+        for r in blocks.iter().filter(|r| window.overlaps(r)) {
+            let i0 = (((r.x0 - x0) / GRID - 0.5).ceil() as i32).max(0);
+            let i1 = (((r.x1 - x0) / GRID - 0.5).ceil() as i32).min(nx);
+            let j0 = (((r.z0 - z0) / GRID - 0.5).ceil() as i32).max(0);
+            let j1 = (((r.z1 - z0) / GRID - 0.5).ceil() as i32).min(nz);
+            for j in j0..j1 {
+                for i in i0..i1 {
+                    cells[(j * nx + i) as usize] = true;
+                }
+            }
+        }
+        let mut sums = vec![0i32; ((nx + 1) * (nz + 1)) as usize];
+        let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
+        for j in 0..nz {
+            for i in 0..nx {
+                sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(cells[(j * nx + i) as usize]);
+            }
+        }
+        Blocked { x0, z0, nx, nz, sums }
+    }
+
+    /// The whole map's cells for a body that stands where `stands` says, round every rect.
+    pub fn over_map(ground: &Ground, stands: &dyn Fn(Vec3) -> bool, blocks: &[Rect]) -> Blocked {
+        let (w, h) = ground.extent();
+        Blocked::over(0.0, 0.0, w, h, stands, blocks)
+    }
+
+    /// Blocked cells in [i0, i1) x [j0, j1), grid cells.
+    fn count(&self, i0: i32, j0: i32, i1: i32, j1: i32) -> i32 {
+        let at = |i: i32, j: i32| ((j * (self.nx + 1)) + i) as usize;
+        self.sums[at(i1, j1)] - self.sums[at(i0, j1)] - self.sums[at(i1, j0)] + self.sums[at(i0, j0)]
+    }
+}
+
 /// The flood's window: the ground within `STREET_REACH` of the plant or builder, clamped to the map, in cells of
-/// GRID; blocked cells summed for the product's block test. Made once over the ground and what stands, and run for
-/// every try with the try's own rects on top (`reaches_the_open_round`): a world keeps one per plant and per builder
+/// GRID, over a `Blocked` grid (its own, or a shared one of the whole map). Made once and run for every try with
+/// the try's own rects on top (`reaches_the_open_round`): a world keeps one per plant and per builder
 /// (`World::plant_street`, `World::builder_way`). Until 2026-11-07 every try rasterised the window again, 22,500
 /// cells against every rect near it, three quarters of a builder menu's pass (1794076407-human, `site_bench`).
 pub struct Flood {
+    grid: std::rc::Rc<Blocked>,
+    /// The window's first cell in the grid, and its size in cells.
+    i0: i32,
+    j0: i32,
     nx: i32,
     nz: i32,
     k: i32,
-    x0: f32,
-    z0: f32,
-    /// Prefix sums of blocked cells, (nx + 1) by (nz + 1).
-    sums: Vec<i32>,
     start: Option<(i32, i32)>,
     door: Vec3,
     /// Whether the window has an edge far enough from the door to count as the open at all (a small map may not).
@@ -233,36 +295,74 @@ impl Flood {
 
     /// A builder's way-out flood over `blocks`: from where it stands, its own body the product.
     pub fn of_builder(ground: &Ground, builder: &Builder, blocks: &[Rect], open: &dyn Fn(Vec3) -> bool) -> Flood {
-        let k = ((builder.half * 2.0) / GRID).ceil().max(1.0) as i32;
-        Flood::around(ground, builder.at, builder.at, k, &|p| builder.stands(ground, open, p), blocks)
+        Flood::around(ground, builder.at, builder.at, Flood::cells_of(builder.half), &|p| builder.stands(ground, open, p), blocks)
+    }
+
+    /// A builder's way-out flood over a shared grid of its class (the bot's watch): the window round it within the
+    /// grid.
+    pub fn of_builder_in(grid: &std::rc::Rc<Blocked>, builder: &Builder) -> Flood {
+        Flood::in_grid(grid.clone(), builder.at, builder.at, Flood::cells_of(builder.half))
+    }
+
+    /// The cells a body of this half-width takes, at least one.
+    pub fn cells_of(half: f32) -> i32 {
+        ((half * 2.0) / GRID).ceil().max(1.0) as i32
     }
 
     /// The flood over the window round `centre`, starting with a block of `k` cells a side at `door`, over the
-    /// cells `stands` and round every rect of `blocks` in the window.
+    /// cells `stands` and round every rect of `blocks` in the window: its own grid of the window.
     fn around(ground: &Ground, centre: Vec3, door: Vec3, k: i32, stands: &dyn Fn(Vec3) -> bool, blocks: &[Rect]) -> Flood {
         let (map_w, map_h) = ground.extent();
         let x0 = (centre.x - STREET_REACH).max(0.0);
         let z0 = (centre.z - STREET_REACH).max(0.0);
         let x1 = (centre.x + STREET_REACH).min(map_w);
         let z1 = (centre.z + STREET_REACH).min(map_h);
-        let nx = ((x1 - x0) / GRID).floor().max(1.0) as i32;
-        let nz = ((z1 - z0) / GRID).floor().max(1.0) as i32;
-        let win = window(centre);
-        let near: Vec<&Rect> = blocks.iter().filter(|r| win.overlaps(r)).collect();
-        let mut sums = vec![0i32; ((nx + 1) * (nz + 1)) as usize];
-        let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
-        for j in 0..nz {
-            for i in 0..nx {
-                let p = Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID };
-                let blocked = !stands(p) || near.iter().any(|r| r.contains(p));
-                sums[at(i + 1, j + 1)] = sums[at(i, j + 1)] + sums[at(i + 1, j)] - sums[at(i, j)] + i32::from(blocked);
-            }
+        let grid = std::rc::Rc::new(Blocked::over(x0, z0, x1, z1, stands, blocks));
+        Flood::in_grid(grid, centre, door, k)
+    }
+
+    /// The flood over the window round `centre` within `grid`, starting at `door`. A door whose block of cells is
+    /// not free (a unit stands touching a footprint, its body's block overlapping it: econ-flagship-18, 429 pens
+    /// read for builders beside what they built, 31 with anything new beside them) starts from the nearest free
+    /// block within its own width; none within it, the body is inside and has no way.
+    fn in_grid(grid: std::rc::Rc<Blocked>, centre: Vec3, door: Vec3, k: i32) -> Flood {
+        let gx1 = grid.x0 + grid.nx as f32 * GRID;
+        let gz1 = grid.z0 + grid.nz as f32 * GRID;
+        let x0 = (centre.x - STREET_REACH).max(grid.x0);
+        let z0 = (centre.z - STREET_REACH).max(grid.z0);
+        let x1 = (centre.x + STREET_REACH).min(gx1);
+        let z1 = (centre.z + STREET_REACH).min(gz1);
+        let i0 = ((x0 - grid.x0) / GRID).floor() as i32;
+        let j0 = ((z0 - grid.z0) / GRID).floor() as i32;
+        let nx = (((x1 - grid.x0) / GRID).floor() as i32 - i0).max(1).min(grid.nx - i0);
+        let nz = (((z1 - grid.z0) / GRID).floor() as i32 - j0).max(1).min(grid.nz - j0);
+        let mut flood = Flood { grid, i0, j0, nx, nz, k, start: None, door, far_edge: false };
+        let (di, dj) = (((door.x - flood.x0()) / GRID).floor() as i32 - k / 2, ((door.z - flood.z0()) / GRID).floor() as i32 - k / 2);
+        let inside = |i: i32, j: i32| i >= 0 && j >= 0 && i + k <= nx && j + k <= nz;
+        if inside(di, dj) && flood.free(di, dj) {
+            flood.start = Some((di, dj));
+        } else {
+            flood.start = (1..=k)
+                .flat_map(|ring| {
+                    let mut cells = Vec::new();
+                    for d in -ring..=ring {
+                        cells.extend([(di + d, dj - ring), (di + d, dj + ring), (di - ring, dj + d), (di + ring, dj + d)]);
+                    }
+                    cells
+                })
+                .find(|(i, j)| inside(*i, *j) && flood.free(*i, *j))
+                .or(if inside(di, dj) { Some((di, dj)) } else { None });
         }
-        let (di, dj) = (((door.x - x0) / GRID).floor() as i32 - k / 2, ((door.z - z0) / GRID).floor() as i32 - k / 2);
-        let start = (di >= 0 && dj >= 0 && di + k <= nx && dj + k <= nz).then_some((di, dj));
-        let mut flood = Flood { nx, nz, k, x0, z0, sums, start, door, far_edge: false };
         flood.far_edge = flood.has_far_edge();
         flood
+    }
+
+    fn x0(&self) -> f32 {
+        self.grid.x0 + self.i0 as f32 * GRID
+    }
+
+    fn z0(&self) -> f32 {
+        self.grid.z0 + self.j0 as f32 * GRID
     }
 
     /// Whether the product's block with its corner at (i, j) stands on unblocked cells.
@@ -271,9 +371,7 @@ impl Flood {
         if i < 0 || j < 0 || i + k > nx || j + k > nz {
             return false;
         }
-        let at = |i: i32, j: i32| ((j * (nx + 1)) + i) as usize;
-        let blocked = self.sums[at(i + k, j + k)] - self.sums[at(i, j + k)] - self.sums[at(i + k, j)] + self.sums[at(i, j)];
-        blocked == 0
+        self.grid.count(self.i0 + i, self.j0 + j, self.i0 + i + k, self.j0 + j + k) == 0
     }
 
     /// `free`, and clear of the extra rects' cells too.
@@ -294,8 +392,8 @@ impl Flood {
             let b = (est_lo..=est_hi).rev().find(|&i| inside(i))?;
             Some((a, b))
         };
-        let (i0, i1) = axis(r.x0, r.x1, self.x0, self.nx)?;
-        let (j0, j1) = axis(r.z0, r.z1, self.z0, self.nz)?;
+        let (i0, i1) = axis(r.x0, r.x1, self.x0(), self.nx)?;
+        let (j0, j1) = axis(r.z0, r.z1, self.z0(), self.nz)?;
         Some((i0, j0, i1, j1))
     }
 
@@ -304,7 +402,7 @@ impl Flood {
     }
 
     fn centre_of(&self, i: i32, j: i32) -> Vec3 {
-        Vec3 { x: self.x0 + (i as f32 + self.k as f32 / 2.0) * GRID, y: 0.0, z: self.z0 + (j as f32 + self.k as f32 / 2.0) * GRID }
+        Vec3 { x: self.x0() + (i as f32 + self.k as f32 / 2.0) * GRID, y: 0.0, z: self.z0() + (j as f32 + self.k as f32 / 2.0) * GRID }
     }
 
     /// Does the window have an edge far enough from the door at all (a small map may not)?
@@ -461,7 +559,7 @@ mod tests {
         assert_eq!(p.apron(), Rect { x0: 2096.0, z0: 2048.0 - 48.0 - 32.0, x1: 2192.0, z1: 2048.0 + 48.0 + 32.0 });
         let t = flat();
         let f = Flood::of_plant(&Ground::new(&t, 4096.0, 4096.0), &p, &[], &|_| true);
-        assert_eq!((f.x0, f.z0), (2048.0 - STREET_REACH, 2048.0 - STREET_REACH));
+        assert_eq!((f.x0(), f.z0()), (2048.0 - STREET_REACH, 2048.0 - STREET_REACH));
         assert!(f.start.is_some());
     }
 }

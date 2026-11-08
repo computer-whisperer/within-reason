@@ -36,7 +36,7 @@ pub struct ClassKey {
 }
 
 impl ClassKey {
-    fn of(class: MoveClass) -> ClassKey {
+    pub(super) fn of(class: MoveClass) -> ClassKey {
         ClassKey { kind: class.kind, max_slope: (class.max_slope * 255.0).round() as i32, depth: (class.depth * 10.0).round() as i32 }
     }
 }

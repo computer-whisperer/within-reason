@@ -22,7 +22,7 @@ pub use block::{Block, DENSE_PITCH, Lattice, MAX_TIERS, SPARSE_PITCH, Wants as B
 pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced, distance_to};
 pub use coverage::Coverage;
 pub use dump::Dump;
-pub use street::{APRON, Builder, Plant, STREET_REACH, StreetState, WayOut, street_open, street_state, way_out, way_out_state};
+pub use street::{APRON, Blocked, Builder, Flood, Plant, STREET_REACH, StreetState, WayOut, street_open, street_state, way_out, way_out_state};
 
 /// A build square (`SQUARE_SIZE`): footprints count them.
 pub const SQUARE: f32 = 8.0;

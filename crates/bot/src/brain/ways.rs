@@ -13,7 +13,8 @@
 use std::collections::{HashMap, HashSet};
 
 use bot_protocol::{OwnUnit, Tick, UnitId};
-use layout::{Builder, WayOut};
+use layout::{Blocked, Builder, Flood, WayOut};
+use super::routes::ClassKey;
 use serde_json::{Value, json};
 
 use super::{Brain, FRAMES_PER_SECOND};
@@ -25,6 +26,8 @@ const FREEING_FRAMES: i32 = 10 * FRAMES_PER_SECOND;
 /// A footprint that closed a builder's way is one of ours that came up within this of the builder since the last
 /// look.
 const CLOSER_NEAR: f32 = 300.0;
+/// How many freeing searches a second at most (econ-flagship-18: 446 searches, 35 ms each over a late base).
+const FREEINGS_A_SECOND: usize = 2;
 
 /// A builder the watch saw lose its way to the open: since when, and what came up beside it that second.
 pub(super) struct Pen {
@@ -77,9 +80,13 @@ impl Brain {
             let mut ways: HashMap<UnitId, bool> = HashMap::new();
             let mut pens_new: Vec<(UnitId, OwnUnit, Vec<String>)> = Vec::new();
             let mut freed: Vec<UnitId> = Vec::new();
+            // One blocked grid of the whole map a movement class, shared by every builder of the class this second.
+            let mut grids: HashMap<Option<ClassKey>, std::rc::Rc<Blocked>> = HashMap::new();
             for u in own.iter().filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed > 0.0 && d.build_speed > 0.0)) {
                 let Some(body) = self.body_of(u) else { continue };
-                let has_way = layout::way_out(&world.ground, &body, &blocks, open);
+                let key = self.world.def(u.def).and_then(|d| d.move_class.map(ClassKey::of));
+                let grid = grids.entry(key).or_insert_with(|| std::rc::Rc::new(Blocked::over_map(&world.ground, &|p| body.stands(&world.ground, open, p), &blocks))).clone();
+                let has_way = Flood::of_builder_in(&grid, &body).reaches_the_open();
                 ways.insert(u.id, has_way);
                 match (self.ways.get(&u.id).copied(), has_way) {
                     (Some(true), false) => {
@@ -102,6 +109,10 @@ impl Brain {
                 .collect::<HashSet<UnitId>>()
                 .into_iter()
                 .collect();
+            // The stalest first, and at most a few a second: a search is up to seventy floods of the window.
+            let mut wants = wants;
+            wants.sort_by_key(|id| self.freeings.get(id).map_or(i32::MIN, |f| f.frame));
+            wants.truncate(FREEINGS_A_SECOND);
             let mut freeings_new: Vec<(UnitId, FreeingWay)> = Vec::new();
             for id in wants {
                 let Some(u) = own.iter().find(|u| u.id == id) else { continue };
