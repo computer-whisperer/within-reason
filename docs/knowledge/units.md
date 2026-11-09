@@ -288,6 +288,61 @@ traded no better than against a moving one.
 **Used by.** (candidate: prefer tracking or hitscan weapons against raiders; do not count artillery damage against
 anything that is moving)
 
+### K-units-t3-most-gantry-units-lose-to-their-metal-in-tier-2-tanks
+**Claim.** In a straight fight at equal metal (the engine, about 30,000 a side, both attack-moving from 1,100 apart on
+flat open ground, energy unlimited) Bulls beat twelve of the seventeen gantry units and so do Tigers. The ones that
+beat tier-2 tanks are the Behemoth (+86 against Bulls), the Shiva (+55), the Thor (+42), the Keres (+42) and, barely,
+the Sol Invictus. Among gantry units: Behemoth over all (mean +81); Thor over all on the ground but the Behemoth
+(+46); Shiva (+38) and Keres (+34) over all but those two; Karganeth (+26). The Razorback (-24; -66 against Bulls,
+-65 against the Thor), Demon (-25), Praetorian (-36) and Titan (-20; two lose to Bulls -65, Shivas -76, Pulsars -75)
+lose to all of those. Reason from the unit files: health per metal (Razorback 3.5, Demon 3.0, Vanguard 2.6, Catapult
+1.2 against a Bull's 4.9) and guns of different reach summed into one damage figure (a Titan standing off fires 931
+a second of its 1,452).
+**Status.** supported (2026-11-08): `run/matches/*-duel-t3-matrix4` (748 duels, two repetitions each way),
+`run/tier3.py matrix` and `weapons`.
+**Evidence.** docs/studies/2026-11-08-tier-3.md §2 and §4.
+**Would be wrong if.** The same pairs fought in a lane narrower than the tier-2 side's rank (the open ground lets
+every Bull fire), or with the gantry side kiting at its reach, reversed the sign.
+**Used by.** the brief's D-tier3-gantry; the glossary texts of the Razorback, Shiva, Titan, Thor, Behemoth and Demon.
+
+### K-units-t3-gunships-beat-every-gantry-body-that-does-not-fire-up
+**Claim.** The Thor, Shiva, Keres, Vanguard and Catapult fire at nothing in the air and lose everything to their
+metal in Hornets (-99 to -100); the Razorback (-66), Demon (-72), Juggernaut (-62), Sol Invictus (-58), Daedalus and
+Praetorian (-49) lose; two Titans narrowly (-27, with 1,050 a second against aircraft); the Javelin (+70), the
+Karganeth (+55) and the Behemoth (+76) win. Pulsars beat their metal in Titans, Sol Invictus and Juggernaut and
+lose to the cheap and numerous and to the Thor; a Bastion line beats all but the Thor and the Behemoth. In the
+public team games a commander's D-gun is the named killer of 24 % of the Behemoths that died, 17 % of the
+Juggernauts and 20 % of the Javelins.
+**Status.** supported (2026-11-08): the same batch; `run/tier3.py pool` for the D-gun shares (169 team games).
+**Would be wrong if.** A Thor or Shiva body with its usual escort of mobile anti-air at the same total metal still
+lost to gunships (unmeasured: the bench has no mixed escort).
+**Used by.** D-tier3-gantry items 3 and 4.
+
+### K-units-t3-a-front-that-cannot-be-stunned-with-the-long-gun-behind-beats-the-ground
+**Claim.** One Thor in front of eight Starlights (18,600 metal; u6bkep's body in `1793932128-human`) won every one
+of four fights against its metal in each ground answer: 5 Razorbacks (the body kept 72 %), 20 Bulls (54 %), 9 Bulls
+with 3 Vanguards (79 %), a Titan with 5 Bulls (84 %), 11 Shivas (51 %), 27 Tigers (42 %), 2 Thors (59 %), 5 Pulsars
+(31 %), 12 Bulls with 6 Starlights (28 %); Starlights alone lose to nearly all of those. 15 Hornets killed it and
+kept 88 %; 10 Bulls with 7 Hornets won four of four.
+**Status.** supported (2026-11-08): `run/matches/*-duel-t3-ball2` (72 duels).
+**Evidence.** docs/studies/2026-11-08-tier-3.md §4; the game itself: our 11 Razorbacks and 3 Vanguards, 51,700 of
+metal sent one at a time, killed 4,120 and lived 0.9 to 2.7 minutes each (`run/tier3.py game`).
+**Would be wrong if.** The answer kept its distance and shot the Starlights first (the bench attack-moves at the
+body's centre).
+**Used by.** D-tier3-gantry.
+
+### K-units-t3-people-build-razorbacks-most-and-the-guns-behind-earn-most
+**Claim.** In the public team games of thirty minutes half the people's seats have a gantry (first at 23:41 / 28:53
+/ 34:13). Built: Shiva 1,977 (ten a seat), Razorback 1,896 (218 seats, the widest), Marauder 1,108, Vanguard 1,047,
+Karganeth 808, Titan 652, Catapult 637, Demon 491, Juggernaut 299, Thor 147, Behemoth 53. Metal killed per metal
+built, by last hit: Daedalus 1.48, Astraeus 1.44, Vanguard 1.31, Karganeth 1.12, Shiva 1.08, Catapult 1.00; Razorback
+0.76, Marauder 0.79, Demon 0.72, Thor 0.65, Titan 0.64, Juggernaut 0.55, Sol Invictus 0.38. A quarter to a half of
+every type kills nothing; a brawler that dies has lived 2.1 to 2.6 minutes.
+**Status.** observed (2026-11-08): `run/tier3.py pool`; last hit under-credits the unit that tanks or stuns.
+**Would be wrong if.** A damage-dealt measure (not in the replay records) ranked the Thor and the giants above the
+artillery.
+**Used by.** D-tier3-gantry.
+
 ### K-units-duel-caveats
 **Claim.** The duel tables rank units for one situation — two single-type blobs of ~1200 metal charging each other on
 flat ground — and are wrong to the extent a real fight differs:

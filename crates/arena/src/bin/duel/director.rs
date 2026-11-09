@@ -84,6 +84,12 @@ const LEFT_AT: [i32; 2] = [30, 60];
 /// for 40 metal), so turrets fire at their rate and not at the rate a lone commander's 30 energy a second allows
 /// (K-units-towers-fire-at-the-rate-energy-arrives). A recorded engagement had an economy behind it.
 const FEEDER: &str = "freefusion";
+/// Frames after which a feeder give with nothing standing is sent again.
+const FEEDER_REGIVE: i32 = 60;
+/// `--economy fed*N` (N over one) also gives each team this store beside the fusions: a free fusion holds 150, and a
+/// Pulsar's shot takes 1,500 at once, a Starlight's 1,000, a Titan's 1,300 (the first tier-3 matrix, 2026-11-08: ten
+/// Pulsars and twenty Starlights never fired on twelve fusions' income).
+const STORE: &str = "armuwadves";
 
 /// Who gives side 1 of a scenario its orders (`--theirs`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,6 +141,8 @@ pub struct Batch {
     pub theirs: Control,
     /// `--economy fed`: each team gets a `FEEDER`.
     pub fed: bool,
+    /// How many of them (`--economy fed*N`).
+    pub feeders: u32,
     /// `duel --drill`: every job is a drill of this kind (`drill.rs`), `x` the army and `y` nobody.
     pub drill: Option<drill::Options>,
     /// Where a scenario's per-second logs go (`<batch>/seconds/`).
@@ -457,8 +465,11 @@ pub struct Director {
     hello: Option<Hello>,
     /// The engine seed of this match (`--seeds`): it takes only jobs of that seed.
     seed: Option<u32>,
-    /// Teams already given their `FEEDER`.
-    fed: HashSet<i32>,
+    /// Teams given their `FEEDER`: the frame of the give while none of them has been seen standing, `None` once one
+    /// has. A give sent before the cheat flag has come back from the server is refused (`ai-host` `CHEAT_LAG`; the
+    /// tier-3 matrix of 2026-11-08: every feeder of both teams refused at frames 15 and 18, and no Pulsar fired), so
+    /// an unseen give is sent again after `REGIVE_AFTER`, as an army's is.
+    fed: HashMap<i32, Option<i32>>,
     /// First sighting of each team's own units: the commander.
     commanders: HashMap<i32, Vec3>,
     fields: Option<Vec<Field>>,
@@ -482,7 +493,7 @@ impl Director {
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             hello: None,
             seed,
-            fed: HashSet::new(),
+            fed: HashMap::new(),
             commanders: HashMap::new(),
             fields: None,
             begun: 0,
@@ -533,21 +544,44 @@ impl Director {
             commands.push(Command::Say { text: self.batch.banner.clone(), to: SayTo::Everyone });
         }
         if self.batch.fed
-            && !self.fed.contains(&team)
             && let (Some(def), Some(&at), Some(hello)) = (self.defs.get(FEEDER), self.commanders.get(&team), self.hello.as_ref())
+            && match self.fed.get(&team) {
+                None => true,
+                Some(None) => false,
+                Some(Some(given)) => {
+                    if tick.snapshot.own_units.iter().any(|u| u.def == def.id) {
+                        self.fed.insert(team, None);
+                        false
+                    } else {
+                        tick.frame - given >= FEEDER_REGIVE
+                    }
+                }
+            }
         {
             // Beside the commander, toward the middle of the map: out of the fight's way.
-            self.fed.insert(team);
+            self.fed.insert(team, Some(tick.frame));
             let (w, h) = (hello.map.width, hello.map.height);
             let (dx, dz) = (w / 2.0 - at.x, h / 2.0 - at.z);
             let len = dx.hypot(dz).max(1.0);
-            let (x, z) = (at.x + dx / len * 200.0, at.z + dz / len * 200.0);
-            commands.push(Command::GiveUnit { def: def.id, at: Vec3 { x, y: ground(&hello.terrain, x, z), z } });
+            // The first 200 from the commander, the rest in a row across that line, 64 apart.
+            for i in 0..self.batch.feeders {
+                let across = (i as f32 - (self.batch.feeders - 1) as f32 / 2.0) * 64.0;
+                let (x, z) = (at.x + dx / len * 200.0 - dz / len * across, at.z + dz / len * 200.0 + dx / len * across);
+                commands.push(Command::GiveUnit { def: def.id, at: Vec3 { x, y: ground(&hello.terrain, x, z), z } });
+            }
+            if self.batch.feeders > 1
+                && let Some(store) = self.defs.get(STORE)
+            {
+                let (x, z) = (at.x + dx / len * 330.0, at.z + dz / len * 330.0);
+                commands.push(Command::GiveUnit { def: store.id, at: Vec3 { x, y: ground(&hello.terrain, x, z), z } });
+            }
         }
         let mut fields = self.fields.take().unwrap_or_default();
         let hurter = self.defs.get(HURTER).map(|d| d.id);
+        // A fed batch's duels wait for both teams' feeders to stand: the first duel is fought on the same energy as the last.
+        let energy_ready = !self.batch.fed || self.fed.values().filter(|given| given.is_none()).count() >= 2;
         for (index, field) in fields.iter_mut().enumerate() {
-            if field.duel.is_none() && !field.abandoned && self.duel_budget > 0 {
+            if field.duel.is_none() && !field.abandoned && self.duel_budget > 0 && energy_ready {
                 field.duel = self.next_duel(field);
                 if let Some(duel) = &field.duel {
                     self.begun += 1;
@@ -805,7 +839,8 @@ impl Director {
         drop(queue);
         let footprint = Footprint::holding(armies);
         let commanders: Vec<Vec3> = self.commanders.values().copied().collect();
-        let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, footprint);
+        let gap = if self.batch.fed { sites::FED_GAP } else { sites::COMMANDER_GAP };
+        let sites = sites::choose_clear(&hello.terrain, max_slope, &commanders, self.wanted_sites, footprint, gap);
         if sites.is_empty() {
             self.fatal = Some(format!("no flat site of {:.0} x {:.0} found on {}", footprint.length, footprint.width, hello.map.name));
         }

@@ -171,6 +171,16 @@ impl Site {
 
 /// Up to `wanted` sites of `footprint`. `max_slope` is the engine slope value (0-1) the least agile listed unit manages.
 pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize, footprint: Footprint) -> Vec<Site> {
+    choose_clear(terrain, max_slope, commanders, wanted, footprint, COMMANDER_GAP)
+}
+
+/// A fed batch's sites stand this far from the commanders: the feeders stand within 330 of each, and an army on a
+/// site shoots what it reaches (the tier-3 bench, 2026-11-08: a Pulsar or a Vanguard on the nearest site killed one
+/// team's fusions, 1,600 away, and that team's Starlights and Thors never fired again).
+pub const FED_GAP: f32 = 2600.0;
+
+/// `choose` with the commanders' clearance given.
+pub fn choose_clear(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize, footprint: Footprint, gap: f32) -> Vec<Site> {
     let Footprint { length, width: across, relief } = footprint;
     let (width, height) = (terrain.width as usize, terrain.height as usize);
     if width == 0 || terrain.heights.len() != width * height {
@@ -200,7 +210,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 y: (low + high) as f32 / 2.0,
                 z: (z0 as f32 + width_cells as f32 / 2.0) * terrain.cell,
             };
-            if commanders.iter().all(|c| rect_distance(centre, *c, footprint) >= COMMANDER_GAP) {
+            if commanders.iter().all(|c| rect_distance(centre, *c, footprint) >= gap) {
                 candidates.push((high - low, centre));
             }
         }

@@ -20,8 +20,10 @@ pub fn farthest_corners(x: f32, z: f32) -> [StartBox; 2] {
     [corners[0], corners[1]]
 }
 
-pub fn render(game: &str, map: &str, host_port: u16, autohost_port: u16, seed: u32, boxes: [StartBox; 2]) -> String {
+/// `legion` writes the game's `experimentallegionfaction` mod option, without which it defines no Legion unit.
+pub fn render(game: &str, map: &str, host_port: u16, autohost_port: u16, seed: u32, boxes: [StartBox; 2], legion: bool) -> String {
     let [a, b] = boxes;
+    let options = if legion { "\n\t[MODOPTIONS] { experimentallegionfaction=1; }" } else { "" };
     format!(
         "[GAME]
 {{
@@ -45,7 +47,7 @@ pub fn render(game: &str, map: &str, host_port: u16, autohost_port: u16, seed: u
 	[TEAM0] {{ TeamLeader=0; AllyTeam=0; Side=Armada; }}
 	[TEAM1] {{ TeamLeader=0; AllyTeam=1; Side=Cortex; }}
 	[ALLYTEAM0] {{ NumAllies=0; StartRectLeft={}; StartRectTop={}; StartRectRight={}; StartRectBottom={}; }}
-	[ALLYTEAM1] {{ NumAllies=0; StartRectLeft={}; StartRectTop={}; StartRectRight={}; StartRectBottom={}; }}
+	[ALLYTEAM1] {{ NumAllies=0; StartRectLeft={}; StartRectTop={}; StartRectRight={}; StartRectBottom={}; }}{options}
 }}
 ",
         a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]

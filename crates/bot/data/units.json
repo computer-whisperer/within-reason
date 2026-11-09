@@ -818,8 +818,8 @@
     "anti_air",
     "gantry"
    ],
-   "gloss": "13500-metal walking fortress; blasters, tachyon beam at 800; loses to air, EMP and being D-gunned",
-   "prose": "The Titan is Armada's heaviest land unit: 13500 metal, 69000 health, speed 46, close-range blasters and rockets plus a 6000-damage tachyon beam at range 800 that costs 1300 energy a shot. It walks through tier-1 and tier-2 armies and crosses water on the sea floor. It has almost no anti-air, so bombers and gunships kill it, EMP stuns it, and a cloaked commander's D-gun kills it in one shot; it also needs the energy to fire. It comes from the Experimental Gantry (armshltx) and is a decision to spend a whole tier-2 economy on one unit."
+   "gloss": "13500-metal walking fortress; tachyon beam at 800, blasters at 465, missiles; the gantry's anti-air (1050 a second); can be stunned and D-gunned; loses a straight fight at equal metal to Bulls, Shivas, a Thor",
+   "prose": "The Titan is Armada's heaviest land unit: 13500 metal, 69000 health, speed 46, a 6000-damage tachyon beam at range 800 that costs 1300 energy a shot (800 damage a second), close-range blasters at 465 and missiles at 860; only the beam and the missiles fire at what stands off. Every weapon hits aircraft, 1050 a second together, the most of any gantry unit, and still two Titans lose narrowly to their metal in Hornets. At equal metal two Titans lose a head-on fight to Bulls, Tigers, Fatboys, Shivas, Pulsars, Bastions and a Thor (the duel bench of 2026-11-08): the price buys health in one body that fights at full strength until it dies, reach, anti-air and the sea floor, not damage per metal. It can be stunned, and a commander's D-gun kills it in one shot. A gantry alone takes 200 seconds to make one."
   },
   "armbats": {
    "name": "Dreadnought",
@@ -3617,8 +3617,8 @@
     "needs_energy_to_fire",
     "gantry"
    ],
-   "gloss": "3800-metal fast battle mech; rapid lasers at 475 shred swarms and heavies alike; 450 energy a volley",
-   "prose": "The Razorback is a fast tier-3 mech: 3800 metal, 13300 health, speed 69, twin rapid laser cannons doing about 1050 damage a second at range 475 for 450 energy a volley. It kills swarms and heavy units up close and can hit gunships; it loses to anything with more range (Sharpshooter, Starlight, Pulsar) and has modest health for its class. It is the gantry's answer when the enemy has an army rather than a fortress."
+   "gloss": "3800-metal fast battle mech (speed 69), rapid lasers at 475, 13300 health; kills artillery, rocket bots and Starlights it reaches; loses a straight fight at equal metal to Bulls, Tigers, Fatboys, Shivas and a Thor",
+   "prose": "The Razorback is a fast tier-3 mech: 3800 metal, 13300 health, speed 69, twin rapid laser cannons doing about 1050 damage a second at range 475 for 125 energy a second; it can be stunned. Its health is low for its price (3.5 a metal against a Bull's 4.9), so at equal metal it loses a head-on fight to Bulls, Tigers, Tzars, Fatboys, Mammoths, Shivas, Karganeths and a Thor (the duel bench of 2026-11-08), and it wins against what cannot hold it off: artillery, rocket bots, Starlights and Sharpshooters it reaches, Vanguards and Catapults. It is a flanker for the guns behind his line, sent as a group, never the front."
   },
   "armrecl": {
    "name": "Grim Reaper",
@@ -4449,8 +4449,8 @@
     "needs_energy_to_fire",
     "gantry"
    ],
-   "gloss": "9000-metal EMP mech: lightning at 540, EMP lasers and a manual EMP missile; stuns armies, slow, hates bombers",
-   "prose": "The Thor is a 9000-metal tier-3 mech (56000 health, speed 54) built around paralysis: a heavy lightning cannon at range 540, twin EMP lasers at 350, and an EMP missile fired by hand (the D key, stockpile of two) at range 1050. It stuns whole armies so the rest of yours kills them, and it is the front-line unit for a close fight. It has no paralyse resistance of its own, is slow, and bombers kill it; its weapons need energy."
+   "gloss": "9000-metal EMP mech: lightning at 540, EMP lasers at 350 that stun what closes, 56000 health, cannot be stunned; beats every ground unit at equal metal but the Behemoth; no anti-air at all: dies to gunships and bombers",
+   "prose": "The Thor is a 9000-metal tier-3 tank (56000 health, speed 54) built around paralysis: a heavy lightning cannon at range 540, twin EMP lasers at 350, and an EMP missile fired by hand at range 1050. It cannot be stunned itself. What closes on it is stunned and then killed, by it or by the guns behind it: at equal metal it beat every ground unit on the duel bench of 2026-11-08 but the Behemoth, and one Thor in front of eight Starlights beat its metal in Razorbacks, Bulls, Shivas, Pulsars and Titans. It fires at nothing in the air: fifteen Hornets kill that body and lose two. Its weapons need energy, and a commander's D-gun kills it in one shot."
   },
   "armthund": {
    "name": "Stormbringer",
@@ -6187,8 +6187,8 @@
    "flags": [
     "gantry"
    ],
-   "gloss": "6000-metal fast flamethrower mech, 500 range; lays waste to massed units; no EMP resistance",
-   "prose": "The Demon is a fast tier-3 assault mech: 6000 metal, 18000 health, speed 63, a flamethrower at range 500 doing over 1600 damage a second across a cone, plus an anti-air missile launcher. It spearheads an assault and burns massed units; it has no paralyse resistance, so spy bots (armspy), the Stiletto EMP bomber (armstil) and Webbers (armspid) stop it cold. Its speed for its size is what makes it dangerous: it reaches a line before the line can reposition, and it needs an anti-EMP escort rather than more armour."
+   "gloss": "6000-metal fast flamethrower mech (speed 63), 500 range, 18000 health, anti-air missiles; burns light units and what cannot hold it off; loses to tier-2 tanks at equal metal; can be stunned",
+   "prose": "The Demon is a fast tier-3 assault mech: 6000 metal, 18000 health, speed 63, a flamethrower at range 500 doing over 1400 damage a second across a cone, plus an anti-air missile launcher. Its health is low for its price (3 a metal), so at equal metal it loses a head-on fight to Bulls, Tigers, Tzars, Fatboys, Mammoths and the cheaper gantry units (the duel bench of 2026-11-08), and it wins against Starlights, artillery and rocket bots it reaches. It has no paralyse resistance: spy bots (armspy), the Stiletto EMP bomber (armstil), Webbers (armspid) and a Thor stop it cold. Its speed for its size is what makes it dangerous: it reaches a line of guns before the line can reposition."
   },
   "cordl": {
    "name": "Jellyfish",
@@ -7414,8 +7414,8 @@
     "anti_air",
     "gantry"
    ],
-   "gloss": "20000-metal walking turret: disintegrator at 590, beam lasers; 335000 health, speed 16; no anti-air",
-   "prose": "The Behemoth is a walking fortress with 335000 health at speed 16.5: 20000 metal, a disintegrator gun at range 590 that kills a heavy tank in one shot, and three beam lasers. It spearheads an endgame assault on fortifications and kills tier-3 units that come near it. Anything that outranges it shoots it for free, it has no anti-air, and EMP stops it; it needs an escort for its flanks and the energy for its lasers."
+   "gloss": "20000-metal walking turret: gauss at 590 and beam lasers that also hit aircraft; 335000 health, speed 16; cannot be stunned; wins any straight fight at equal metal, arrives late, dies to a D-gun",
+   "prose": "The Behemoth is a walking fortress with 335000 health at speed 16.5: 20000 metal, a gauss gun at range 590 that kills a heavy tank in one shot, and three beam lasers, two of which hit aircraft (620 a second against them). It cannot be stunned. At equal metal it beat everything on the duel bench of 2026-11-08, gantry units, tier-2 tanks, Pulsars, Bastions and gunships alike, because nothing kills 335000 health before its guns have paid; what it cannot do is arrive: 16 a second is five minutes for 5000 elmos, and a gantry alone takes seven minutes to make one. Anything that out-reaches 590 and can walk away shoots it for free, and a commander's D-gun kills it in one shot."
   },
   "corjuno": {
    "name": "Juno",
@@ -8866,8 +8866,8 @@
     "amphibious",
     "gantry"
    ],
-   "gloss": "1600-metal amphibious siege mech; plasma at 650 and a heavy rocket at 800; loses to Bulls and Pulsars",
-   "prose": "The Shiva is the cheapest Cortex gantry unit: 1600 metal, 9400 health, speed 48, a 600-damage plasma cannon at range 650 and a 750-damage vertical rocket at 800. It breaks defensive lines and lightly packed armies and walks the sea floor to arrive from the water. Heavy tanks like the Bull (armbull) and heavy turrets like the Pulsar (armanni) beat it, and its slow rocket lands where allies may have walked."
+   "gloss": "1600-metal amphibious siege mech; plasma at 650 and a heavy rocket at 800, 9400 health; beats tier-2 tanks and most gantry units at equal metal; no anti-air: loses to gunships, a Bastion line, a Thor",
+   "prose": "The Shiva is the cheapest Cortex gantry unit: 1600 metal, 9400 health, speed 48, a 600-damage plasma cannon at range 650 with a wide blast and a 750-damage vertical rocket at 800; a gantry alone makes one in 22 seconds. It out-reaches every tier-2 line tank, and at equal metal it beats Bulls, Tigers, Tzars, Fatboys, Mammoths, Pulsars and every gantry unit but the Thor and the Behemoth (the duel bench of 2026-11-08). It fires at nothing in the air: gunships kill a Shiva body without loss, and a Bastion line out-reaches it. It walks the sea floor to arrive from the water."
   },
   "corshroud": {
    "name": "Shroud",

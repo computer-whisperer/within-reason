@@ -10,7 +10,7 @@ duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed 50] [--map NAME]
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
-     [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
+     [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed|fed*N] [--seeds a,b,c]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
@@ -27,7 +27,8 @@ run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight
 run/scenario_table.py <batch dir> ... [--by-seed]   one markdown row per scenario batch (margins, value left at 30/60 s)
 ```
 `--seeds a,b,c` works for every kind of batch: each duel is fought `--reps` times under each engine seed.
-`--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
+A Legion unit named on the command line turns the faction on in the start script (2026-11-08; a scenario file's
+units are not read for this). `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
 `--pairs` exactly those. Unit names are the game's internal ones (`armpw`). A side may also be a **mixed force**,
 `armflash*8+armstump*6` (2026-09-25): spawned as written, in list order, so the first type stands in the front
 rank; a plain name against a mixed force takes the count that matches its metal, two plain names take the batch's
@@ -211,7 +212,14 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   it dies in the engine, and stands when the rows run out. Checked on E3 (val-e3-record-track): the Centurions stood
   within 15-90 of their recorded places at 5, 10, 20, 30, 45 and 59 s. `ai` (BARb on side 1) is not built.
 - **`--economy fed`**: each team is given a `freefusion` (850 energy a second) beside its commander at the start, so
-  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). On E3 (two light turrets, a 25 s
+  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). **Until 2026-11-08 the give was
+  sent before the cheat flag had come back from the server, refused, and never repeated: no `fed` batch before that
+  date was fed** (the tier-3 matrix: ten Pulsars and twenty Starlights never fired; `engine.log` says `/Give
+  (unsynced) cannot be executed (cheats required)`). The director now gives again every two seconds until a feeder
+  stands and starts no duel before both teams' do. `--economy fed*N` gives N fusions in a row and one hardened
+  energy store (40,000): a Pulsar's shot takes 1,500 at once, a Starlight's 1,000, and eight Razorbacks draw 1,000
+  a second. A fed batch's sites stand 2,600 from the commanders (`sites::FED_GAP`), since an army on a nearer site
+  shoots the fusions. On E3 (two light turrets, a 25 s
   fight) it changed nothing measurable (val-e3-director +0.297 ± 0.076 fed, +0.330 ± 0.056 bare).
 - **`--seeds a,b,c`**: every duel `--reps` times under each engine seed (`FixedRNGSeed`); a match takes the seed of
   the first job waiting and fights only that seed's jobs. Without it the seed is the match's index plus one, as before.

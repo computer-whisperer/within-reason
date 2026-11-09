@@ -6,7 +6,7 @@
 //!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane X[/Y]] [--speed N] [--map NAME]
 //!             [--label TEXT] [--base-port N]
 //!        duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
-//!             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed]
+//!             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed|fed*N]
 //!             (a recorded engagement, `scenario.rs`, fought `--reps` times on its own map and place; side 0 under a
 //!             timed script, side 1 on its recorded track)
 //!        --seeds a,b,c: every duel `--reps` times under each engine seed (`FixedRNGSeed`), not only the match's own.
@@ -86,8 +86,17 @@ struct Options {
     seeds: Vec<u32>,
     /// `--economy fed`: a free fusion for each team (`director.rs` `FEEDER`).
     fed: bool,
+    /// `--economy fed*N`: how many free fusions a team gets (one by default; a gantry's units fire on thousands of
+    /// energy a second).
+    feeders: u32,
     /// `--drill`: every job a drill (`drill.rs`), `--ours` the army and nobody on the other side.
     drill: Option<drill::Options>,
+}
+
+/// Whether the command line names a Legion unit (`legkeres`, `armbull:legjav`, `legjav*4+legkeres*2`): the start
+/// script then turns the faction on. A scenario file's units are not read for this.
+fn names_legion() -> bool {
+    std::env::args().skip(1).any(|arg| arg.split([',', ':', '*', '+']).any(|name| name.starts_with("leg") && name.len() > 5))
 }
 
 fn main() -> io::Result<()> {
@@ -120,7 +129,7 @@ fn main() -> io::Result<()> {
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
             "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
-            "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
+            "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if !options.fed { "bare".to_string() } else if options.feeders == 1 { "fed".to_string() } else { format!("fed*{}", options.feeders) },
             "drill": options.drill.as_ref().map(|d| serde_json::json!({ "kind": d.kind.label(), "distance": d.distance, "order": if d.fight { "fight" } else { "move" }, "reissue_s": d.reissue.map(|f| f as f32 / drill::FPS as f32), "lead": d.lead, "pace": d.pace, "turn_at_s": d.turn_at / drill::FPS, "lab": d.lab, "target": d.target, "from": d.from, "to": d.to, "around": d.around, "feed": d.feed.iter().map(|(n, c)| format!("{n}*{c}")).collect::<Vec<_>>().join("+"), "laps": d.laps, "circuit": d.circuit, "post": d.post.iter().map(|(n, c)| format!("{n}*{c}")).collect::<Vec<_>>().join("+") })),
             "argv": std::env::args().collect::<Vec<_>>(),
             "disabled": std::env::var("WITHIN_REASON_DISABLE").ok(), "form_spacing": std::env::var("WITHIN_REASON_FORM_SPACING").ok(),
@@ -152,6 +161,7 @@ fn main() -> io::Result<()> {
         script_delay: options.script_delay,
         theirs: options.theirs,
         fed: options.fed,
+        feeders: options.feeders,
         drill: options.drill.clone(),
         log_dir,
         banner: banner(&options),
@@ -273,7 +283,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch
     }
     let script_path = dir.join("script.txt");
     let engine_seed = seed.unwrap_or(index as u32 + 1);
-    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, engine_seed, options.boxes))?;
+    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, engine_seed, options.boxes, names_legion()))?;
 
     let mut autohost = Autohost::bind(host_port + 1)?;
     // Unix socket paths are limited to ~108 bytes, so the socket cannot live in the match directory.
@@ -416,6 +426,7 @@ fn parse_args() -> io::Result<Options> {
         theirs: Control::Director,
         seeds: Vec::new(),
         fed: false,
+        feeders: 1,
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
@@ -467,7 +478,11 @@ fn parse_args() -> io::Result<Options> {
                 match value().as_str() {
                     "fed" => options.fed = true,
                     "bare" => options.fed = false,
-                    _ => usage("--economy is bare or fed"),
+                    many if many.starts_with("fed*") => {
+                        options.fed = true;
+                        options.feeders = many[4..].parse().ok().filter(|n| (1..=64).contains(n)).unwrap_or_else(|| usage("--economy fed*N takes 1 to 64"));
+                    }
+                    _ => usage("--economy is bare, fed or fed*N"),
                 }
             }
             "--pairs" => {
@@ -717,7 +732,7 @@ fn parse_args() -> io::Result<Options> {
 
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
-            [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
+            [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed|fed*N] [--seeds a,b,c]
        duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--post FORCE] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
