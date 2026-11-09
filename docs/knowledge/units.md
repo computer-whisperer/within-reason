@@ -354,7 +354,7 @@ centre a unit takes 7,200-7,700 and 10,750-11,100.
 **Evidence.** docs/studies/2026-11-08-tier-3.md §5. Observed beside it and unexplained: on Comet Catcher an
 Apocalypse aimed 25 north of a Behemoth was followed two seconds later by a second blow of 319,590 (four runs of
 four; never from the other three sides, never on flat Full Metal Plate, 1,235 from an Armageddon in the same place):
-it follows the ground the blast shoves the unit onto.
+it follows the ground the blast shoves the unit onto. A reading of the source, not measured (the user asked whether it is the directional-damage rule): it is not, since that rule multiplies a hit by 1 to 2 (`modrules.lua` `flankingBonus`, mode 1, min 1, max 2) and the warhead's own blow was 15,075 from all four sides; the engine's ground-impact damage fits, a unit thrown into the air taking its impact speed times its mass with no cap when it lands (`GroundMoveType.cpp` 1533-1549), and the Behemoth's mass is 20,000.
 **Would be wrong if.** A lobby multiplier changed the warhead or the unit's health.
 **Used by.** D-tier3-gantry; F-fight-big-weapons (the Cortex and Legion warhead's numbers).
 
