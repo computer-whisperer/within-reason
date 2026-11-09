@@ -370,7 +370,15 @@ fn batchable() -> &'static [&'static str] {
     &["instruct", "queue", "lane", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
 }
 
-/// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
+/// The word a refused call's line carries, in `orders` and in a `queue` that took some factions' lists and not others.
+const REFUSED: &str = "REFUSED";
+/// Tools whose refusal does not keep the turn open in `orders`: they carry no order.
+const NO_ORDERS: [&str; 3] = ["say", "note", "predict"];
+
+/// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the
+/// turn; after a refused order it is not taken, so the turn is still the player's to correct the order in
+/// (1794184846-apex_2v1: the opening `queue` was refused for one step, the `wait` beside it ended the turn, and the
+/// commander had no list until the next turn's landed at 1:00).
 fn orders(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
     let calls = arguments["calls"].as_array().ok_or("calls must be a list")?;
     let (mut waits, others): (Vec<&Value>, Vec<&Value>) = calls.iter().partition(|c| c["tool"] == "wait");
@@ -382,6 +390,7 @@ fn orders(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
     }
     let empty = json!({});
     let mut lines = Vec::new();
+    let mut refused: Vec<&str> = Vec::new();
     for call in others.into_iter().chain(waits) {
         // As the model writes them: sometimes with the server's prefix on the name, and often with a small tool's
         // arguments beside `tool` instead of under `arguments` (40 of 46 notes in commander game 11, all recorded empty,
@@ -398,9 +407,28 @@ fn orders(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
             fields.remove("arguments");
         }
         let arguments = call.get("arguments").filter(|a| a.is_object()).unwrap_or(if beside.as_object().is_some_and(|f| !f.is_empty()) { &beside } else { &empty });
+        if tool == "wait" && !refused.is_empty() {
+            refused.dedup();
+            lines.push(format!(
+                "wait: NOT TAKEN, the turn is still yours: {} above was {REFUSED} and what it carried is not in force. Send that again corrected, with `wait`; the calls above that were not refused stand and need no repeat",
+                refused.join(", ")
+            ));
+            continue;
+        }
+        let orders = !NO_ORDERS.contains(&tool);
         match call_tool(tool, arguments, shared) {
-            Ok(text) => lines.push(format!("{tool}: {text}")),
-            Err(problem) => lines.push(format!("{tool}: REFUSED: {problem}")),
+            Ok(text) => {
+                if orders && text.contains(REFUSED) {
+                    refused.push(tool);
+                }
+                lines.push(format!("{tool}: {text}"));
+            }
+            Err(problem) => {
+                if orders {
+                    refused.push(tool);
+                }
+                lines.push(format!("{tool}: {REFUSED}: {problem}"));
+            }
         }
     }
     Ok(lines.join("\n"))
@@ -712,6 +740,10 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let field = shared.field();
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("queue takes an object: builder name (commander or constructor_N) to a list of steps, or null to cancel")?;
             let mut parsed: Vec<(String, Listed)> = Vec::new();
+            // A list per faction that did not pass, by builder: its faction and why. The other factions' lists of
+            // that builder are taken (1794184846-apex_2v1: a Cortex `corllt` without a place refused the Armada and
+            // Legion lists with it).
+            let mut refused: Vec<(String, String, String)> = Vec::new();
             for (name, value) in lists {
                 let name = &shared.actor_name(name);
                 // Refused now, not accepted and dropped by the hands seconds into the game.
@@ -748,7 +780,16 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             if items.is_empty() {
                                 return Err(format!("{name}: {faction}: a list of steps (leave the faction out for no list under it)"));
                             }
-                            by_faction.insert(faction.clone(), check_steps(name, items, Some(faction), &field)?);
+                            match check_steps(name, items, Some(faction), &field) {
+                                Ok(steps) => {
+                                    by_faction.insert(faction.clone(), steps);
+                                }
+                                Err(why) => refused.push((name.clone(), faction.clone(), why)),
+                            }
+                        }
+                        // Every faction's list refused is the call refused.
+                        if by_faction.is_empty() {
+                            return Err(refused.iter().filter(|(n, ..)| n == name).map(|(_, faction, why)| format!("{faction}: {why}")).collect::<Vec<_>>().join("; "));
                         }
                         Listed::ByFaction(by_faction)
                     }
@@ -777,11 +818,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     Listed::Steps(Some(steps)) => format!("{name}: {} steps, done in order from its next look", steps.len()),
                     Listed::Steps(None) => format!("{name}: list cancelled; a build in progress finishes (begin the list with \"stop\" to drop it)"),
                     Listed::ByFaction(map) => {
-                        let missing: Vec<&str> = FACTIONS.iter().copied().filter(|f| !map.contains_key(*f)).collect();
+                        let not_taken: Vec<&(String, String, String)> = refused.iter().filter(|(n, ..)| *n == name).collect();
+                        let missing: Vec<&str> = FACTIONS.iter().copied().filter(|f| !map.contains_key(*f) && !not_taken.iter().any(|(_, faction, _)| faction == f)).collect();
                         format!(
-                            "{name}: one list per faction ({}); the hands take the list of the faction the game gives the seat, at their first look, and their first line says which{}",
+                            "{name}: one list per faction ({}); the hands take the list of the faction the game gives the seat, at their first look, and their first line says which{}{}",
                             map.iter().map(|(f, steps)| format!("{f} {} steps", steps.len())).collect::<Vec<_>>().join(", "),
-                            if missing.is_empty() { String::new() } else { format!("; no list for {}: as that faction it plays from the menu", missing.join(" or ")) }
+                            if missing.is_empty() { String::new() } else { format!("; no list for {}: as that faction it plays from the menu", missing.join(" or ")) },
+                            not_taken.iter().map(|(_, faction, why)| format!("; its {faction} list is {REFUSED} and not in force ({why}): send that faction's list again, the others stand")).collect::<String>()
                         )
                     }
                 });
@@ -1700,6 +1743,39 @@ mod tests {
         let allowance = shared.allowed.lock().unwrap()["all"].clone();
         assert!(allowance.units.is_empty() && allowance.by_faction["cortex"] == ["corcv:1", "corgator"]);
         assert!(call_tool("produce", &json!({ "all": { "armada": ["armcv"], "tanks": ["armbull"] } }), &shared).is_err());
+    }
+
+    /// One faction's list refused leaves the other factions' in force and says which is not, and in `orders` a
+    /// refused order keeps the turn: the `wait` beside it is not taken (1794184846-apex_2v1: `corllt #t1` with no
+    /// place refused the commander's three lists, the same batch's `wait` ended the turn, and the commander played
+    /// from the menu until 1:00).
+    #[test]
+    fn a_refused_faction_list_leaves_the_others_and_a_refused_order_keeps_the_turn() {
+        let shared = Arc::new(Shared::default());
+        let makes = |words: &[(&str, bool)]| words.iter().map(|(w, placed)| (w.to_string(), *placed)).collect::<std::collections::BTreeMap<String, bool>>();
+        let builders = std::collections::BTreeMap::from([("commander".to_string(), makes(&[("extractor", false), ("armsolar", false), ("armvp", false), ("corsolar", false), ("corvp", false), ("corllt", true)]))]);
+        shared.publish_field(0, super::super::shared::Field { builders, ..Default::default() });
+        let lists = json!({ "commander": { "armada": ["extractor #m1", "armsolar #s1", "armvp #vp1"], "cortex": ["extractor #m1", "corsolar #s1", "corllt #t1", "corvp #vp1"] } });
+        let said = call_tool("queue", &lists, &shared).unwrap();
+        assert!(said.contains("one list per faction (armada 3 steps)") && said.contains("its cortex list is REFUSED and not in force") && said.contains("a corllt stands at a place"), "{said}");
+        assert!(said.contains("no list for legion") && !said.contains("no list for cortex"), "{said}");
+        match shared.queues.lock().unwrap().get("commander") {
+            Some(Listed::ByFaction(map)) => assert!(map.contains_key("armada") && !map.contains_key("cortex")),
+            other => panic!("{other:?}"),
+        }
+        // Every faction's list refused is the call refused.
+        assert!(call_tool("queue", &json!({ "commander": { "cortex": ["corllt #t1"] } }), &shared).unwrap_err().contains("cortex: commander: 'corllt #t1'"));
+        // In a batch the partly refused queue, and a refused one, hold the wait: the turn is not over.
+        for queue in [lists, json!({ "commander": ["corllt #t1"] })] {
+            shared.turn_over.store(false, std::sync::atomic::Ordering::Relaxed);
+            let said = orders(&json!({ "calls": [{ "tool": "note", "arguments": { "text": "the plan" } }, { "tool": "queue", "arguments": queue }, { "tool": "wait", "arguments": { "max_seconds": 10 } }] }), &shared).unwrap();
+            assert!(said.contains("wait: NOT TAKEN, the turn is still yours: queue above was REFUSED"), "{said}");
+            assert!(!shared.turn_over.load(std::sync::atomic::Ordering::Relaxed), "the turn ended on a refused order");
+        }
+        // A refused line of chat keeps nothing: the turn ends as asked.
+        let said = orders(&json!({ "calls": [{ "tool": "say", "arguments": {} }, { "tool": "queue", "arguments": { "commander": ["extractor", "corllt home #t1"] } }, { "tool": "wait", "arguments": { "max_seconds": 10 } }] }), &shared).unwrap();
+        assert!(said.contains("say: REFUSED") && said.contains("wait: Turn over"), "{said}");
+        assert!(shared.turn_over.load(std::sync::atomic::Ordering::Relaxed));
     }
 
     #[test]
