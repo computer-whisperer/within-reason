@@ -1647,6 +1647,39 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 **Evidence.** Offline (the user, 2026-10-01: "for each offered world arm, let's add a separate nonce that asks 'did the instructions forbid this' offline"), `run/jev_forbid_ab.py` on player-32-hard: every gate of 12:00-22:00 and every fifth elsewhere, 805 calls, 90,638 arms, 14.2M tokens, $0.60; the played arms and the labelled window in `docs/studies/data/forbid-every-arm-2026-10-01.jsonl`. The hunts' replayed noul fell on the game's side of 0.7 in 90% (median difference 0.02). Under the 18:53 packet (group_X4 "never turns back west or south", "never splits detachments", "does not wait for soldiers still on the road"; group_P4 "never joins group_X4", "advancing as one"), by a hand reading of the packet: forbidden in its words, group_P4 joining group_X4 0.97, group_X4's splits 0.94, its scout 0.93, group_P4's splits 0.91, group_X4's fall back home 0.89, its walks west 0.84-0.88, its hunts 0.85, its gatherings 0.82-0.85; ordered, the one-soldier groups joining group_P4 0.17-0.27, group_P4's advances onto its named spots 0.34-0.58, group_X4's advance to spot_18 (its next stop) 0.55 and to spot_8 0.42; not spoken of, shelling from a standoff 0.40-0.45, closing on the shooter 0.79, the sweep 0.84, pulling out 0.80-0.89; and against the packet's order, group_X4's raid on spot_18 ("kills the armllt, armclaw, armbeamer and armhlt there") 0.82. Over all arms the median is 0.73 and 60% are at 0.7 or over (32% at 0.8, 18% at 0.85, 8% at 0.9); over the 647 played arms the median is 0.43 and 10.2% are at 0.7 or over (2.6%, 1.2%, 0.2%). Of the 66 played arms at 0.7 or over, read against the actor's paragraph: about eleven break a sentence one can point to (a hunt of one armpw by a ball that "never chases a lone armpw", walks back to a place the packet had just abandoned, a fall back home under "never falls back home"), about five are what the packet ordered or allowed, and the rest are moves it does not speak of (most of the 24 joins, eleven of them by groups the packet does not name, and eight closings on a shooter). One play that broke a sentence sat under the bar: group_X4's fall back home at 19:04 under "never turns back west or south", 0.69.
 **Status.** measured offline on one game; nothing built. The reading of the 66 is one reader's, against paragraphs cut at 420 characters.
 
+### K-jev-a-place-the-packet-forbids-reads-so-when-asked-of-the-place
+**Claim.** The decode's place question reads yes for a place a group "must keep away from" as for one it is sent to,
+so a place the player names only to forbid it stays on the group's walks, asked each second with no mark (the
+impedance study §3.2, "a negated place is a destination"). Asked of the place once a packet, over the instructions
+alone ("Do they forbid {group} to go to {place}, or tell it to keep away from it?"), Jev separates the two: places a
+packet forbids a group by name read 0.75 to 0.98 and places it sends the group to under 0.3. Three kinds read
+between or wrongly. A place named only as an edge ("never goes east of spot_64") reads 0.78 to 0.86 though the
+packet allows it. `home` under "never comes home for raiders" reads 0.72 to 0.92. The stops of a route whose
+condition is unmet ("with six or more Incisors it fights to spot_71, then spot_78") read 0.4 to 0.73. Two wordings
+that tell Jev an edge is not a prohibition lower the edge place to 0.43 to 0.58 and lose the separation everywhere
+else (under 0.2: 78 and 121 of 198 answers against 142). The gate's own per-second question on a walk ("do they
+forbid this move for the group that would make it") does not separate: it read 0.51 and 0.66 on two walks this
+question read at 0.10. A group born after the packet reads a prohibition written for another group by name low:
+"group_A never advances to the middle: not spot_38 ..." read 0.20 to 0.26 for group_B, a detachment of group_A,
+on those places and 0.10 to 0.19 on the others.
+**Evidence.** `run/jev_avoid_ab.py` on 1794187275-apex_2v1 (the user's client game of 2026-11-08 against two Apex):
+every (group, place) the game's own decode had read at 0.3 or over, 198 readings over 20 packets, three wordings,
+`docs/studies/data/avoid-place-2026-11-08.jsonl`; 67,000 input tokens. The packets' own sentences: 6:39 "leaves his
+commander and the Guard at F6 (guns_1, spot_79) alone, and never stands within reach of guns_1"; 10:22 "every group
+steers clear of E6 and F6 (guns_1)"; 11:01 "They do not go back out to D5 or E4"; 11:14 "It does not walk out to C5 or
+D5"; 13:35 "NEVER walks to C5, spot_63 or spot_61". In the game those places read as the group's own at 0.53 to 0.97
+on the place question. walk-forbidden-smoke and -smoke-2 (`run/packets/comet-west-rebuild-1.md`, seven minutes
+each): the seven places the packet forbids group_A read 0.87 to 0.96, its posts 0.03 to 0.07; the audit's two
+per-second readings in the first.
+**Status.** measured offline on one game and in two smokes (2026-11-08); built as H-HANDS-AVOID the same night. In
+this game no walk broke a prohibition in force: the three walks that cost the army (E6 at 6:31, D4 and spot_49 at
+10:23 and 10:40, home at 11:01) were each the packet's own order, and my first reading of the 10:23 walk as the hands
+against the packet was wrong (the packet of 10:22 ordered it; I had missed that call). The mark is unjudged in a
+player's game.
+**Would be wrong if.** In a player's game a marked walk is played as often as an unmarked one of the same rating, or
+the marks sit on walks the packet orders more often than on ones it forbids.
+**Used by.** H-HANDS-AVOID.
+
 ### K-hands-the-ball-at-the-nest-was-strung-out-and-changing-course-not-split
 **Claim.** In player-32-hard the ball lost its fights at his F3 nest without the pick splitting it: it reached the nest as a column, and the pick changed its course every few seconds among moves the packet did not order. The player read this as "they split detachments and feed them in".
 **Evidence.** player-32-hard's Jev log, every played group arm of 12:00-22:00: 114 joins, 38 hunts, 32 whole-group attacks, one split; of the hunts twelve are of one soldier and eight of four or more. From 18:20 to 20:20 group_X4 (the ball) was never the source of a hunt or a split. Its eighteen plays: four advances to `shelling`, four shellings from a standoff, three whole-group attacks, a fall back home (19:04), an advance to spot_37, a walk to spot_32, three more advances to `shelling`, and the join into group_P4 (20:19); never the advance to spot_18 the packets of 18:16 to 19:13 ordered. The gate's own words at the lost fights: "for the 11 of its 35 soldiers in the fight", the tail 958 to 1,416 behind the front. The one detachment near there, 16 of group_P4 at 20:22 (the player's note of 20:28 names it), was a hunt under a packet saying group_P4 "goes in NOW with the soldiers it has", "does not wait for its tail", when group_P4 was 62 soldiers with its tail 4,956 behind its front, every new unit of the plants having joined it from home; the game rated that hunt 0.34 forbidden.
@@ -2228,7 +2261,8 @@ gets no mark. Over 12 arena games the reading sat under the bar in 0% to 92% of 
 (1,122 readings), and the fuse audit cannot see it: the gate's own fresh rating of a fused move under the same
 prose agrees (0 faults in 42 audited moves to spots the paragraph listed, prio-player-1). The report shows the
 decode's readings for groups and not for builders. A place the packet forbids reads yes by design (it is then the
-pick's question each second), so a negated place is the pick's reading, not the decode's.
+pick's question each second), so a negated place is the pick's reading, not the decode's. From 2026-11-08 the decode reads it too
+(H-HANDS-AVOID, K-jev-a-place-the-packet-forbids-reads-so-when-asked-of-the-place).
 **Status.** supported and narrowed (2026-10-16, the impedance study §3.2, §3.2a and §3.2b: the decode scan of 12
 arena games, five probe rounds, and thirty labelled paragraphs replayed under six question forms on both Jev
 versions, `data/impedance-2026-10-16/decode-paragraphs/`). The fault is the extractor question: of 25 paragraphs

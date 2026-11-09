@@ -150,6 +150,7 @@ raw data or the source.
 - **A negated place is a destination.** "never walks to spot_8" read as spot_8 at 0.59 to 0.97; "staying out of
   reach of the corexp at spot_0" as spot_0 at 0.92; "never goes toward the turret nest at spot_93, spot_92, spot_91"
   opened those places. 5 items, 5 games; verified in human-31.
+  (2026-11-08: a group's walk to such a place is marked, H-HANDS-AVOID.)
 - **"Join each other" with no target, a group named by description, a renamed group.** "the home guard ... join each
   other at spot_61" decoded to no join; "the armflash group from plant_19529" matched no actor until the packet said
   group_M (human-30 Comet, eight Blitzes never raided); a join or a pick's merge renamed the packet's group between

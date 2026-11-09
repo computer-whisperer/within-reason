@@ -128,6 +128,7 @@ pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super:
             out.push((id.clone(), Question::noul(json!(text))));
             // The forbidden mark (a detachment; the whole-group attack or shelling of an air party): asked each
             // second unless the decode has it clearly on or off (the `fuse` layer), and then for its audit alone.
+            // A walk's mark is the decode's alone and is never asked here (`decode::AVOID`).
             if m.forbiddable && (m.marked.is_none() || m.audit) {
                 out.push((format!("{id}.forbidden"), Question::noul(json!(format!("Read the player's `instructions` alone: do they forbid this move for the group that would make it? The move: {}.", m.words)))));
             }
@@ -606,7 +607,12 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
         for (menu, i) in menus.iter().zip(world) {
             let m = &menu.moves[*i];
             if *i != 0 && lines.forbidden.contains(&menu.id(m)) {
-                parts.push(format!("The player's instructions forbid this detachment for {}", menu.name));
+                let what = match &m.order {
+                    Order::Go(_) | Order::FightTo(_) | Order::Raid(_) => "walk",
+                    Order::Attack(_) | Order::Shell(_) => "attack",
+                    _ => "detachment",
+                };
+                parts.push(format!("The player's instructions forbid this {what} for {}", menu.name));
             }
         }
     }
@@ -1080,6 +1086,13 @@ mod tests {
         assert!(sent.ends_with("The player's instructions forbid this detachment for group_A."), "{sent}");
         assert!(sent.contains("Sent at: party_1") && !whole.contains("forbid"), "{sent} / {whole}");
         assert!(!line_of(0.6).0.contains("forbid"), "under the bar");
+        // A walk the decode marked says so in its own word, with no question of the second's.
+        let mut menus = vec![group("A", false, vec![mv("go_spot_61", Order::Go("spot_61".into()), None)])];
+        menus[0].moves[1].marked = Some(true);
+        assert!(!gate_questions(&menus, &[], &[], false, false, false).iter().any(|(id, _)| id.ends_with(".forbidden")), "a walk's mark is the decode's: never the second's question");
+        let followed = follow_up(&menus, &[], &[], &nouls(&[("group_A.change", 0.8), ("group_A.go_spot_61", 0.7)]), "", CAP, &json!({}));
+        let (_, lines, _) = followed.worlds.expect("the group opened");
+        assert!(lines[1].ends_with("The player's instructions forbid this walk for group_A."), "{}", lines[1]);
     }
 
     /// The pick is one Choice over every world, world 1 among them, and the world is drawn by the mass the answer

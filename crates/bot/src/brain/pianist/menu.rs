@@ -172,7 +172,8 @@ pub(crate) struct Move {
     pub party: Option<String>,
     /// The gate also asks whether the player's instructions forbid this move (the forbidden mark): a detachment, a
     /// rover of one, and the whole-group attack or shelling of a party of aircraft (the impedance tally, 2026-10-16:
-    /// "aircraft are never chased by any group" in four games, and the mark sat on detachments alone).
+    /// "aircraft are never chased by any group" in four games, and the mark sat on detachments alone). A group's
+    /// walk to a place is marked too, by the decode alone and never asked here (`Read::Avoid`).
     pub forbiddable: bool,
     /// What of the player's instructions bears on the move, for the `fuse` layer's decode (`decode.rs`).
     pub reads: Vec<Read>,
@@ -189,8 +190,9 @@ pub(crate) struct Move {
     pub far: bool,
     /// Fused off, held or blanked, and asked anyway for the layer's audit: the answer is logged and not played.
     pub audit: bool,
-    /// The forbidden mark as the decode has it for a detachment: on or off without asking each second; `None`
-    /// when the decode is unsure or the layer is off, and the gate asks.
+    /// The forbidden mark as the decode has it: on or off without asking each second; `None` when the decode is
+    /// unsure or the layer is off, and the gate asks a `forbiddable` move. A walk to a place the decode reads as
+    /// forbidden the group is `Some(true)`, and `None` otherwise.
     pub marked: Option<bool>,
 }
 
@@ -212,6 +214,22 @@ pub(crate) enum Read {
     /// They forbid the group aircraft: a party every member of which flies is attacked, shelled or hunted only
     /// under this reading's mark.
     Air,
+    /// They forbid the group this place, or tell it to keep away from it: a walk, an advance or an attack on his
+    /// buildings there is made only under this reading's mark (the user, 2026-11-08: "fix the issue with walks
+    /// having no forbidden mechanic"). The `Place` reading says yes to a place the group "must keep away from" as
+    /// to one it is sent to, so a place named only to forbid it stayed on the group's walks with no mark (the
+    /// impedance study §3.2, "a negated place is a destination"; 1794187275-apex_2v1, the packet of 13:35: "NEVER
+    /// walks to C5, spot_63 or spot_61" read those three as its places at 0.95 to 0.97). The mark is the
+    /// decode's reading alone (`decode::AVOID`): the gate asks nothing of a walk each second (`forbiddable` is
+    /// a detachment's).
+    Avoid(String),
+}
+
+impl Read {
+    /// A reading of what the instructions forbid the actor (the mark), not of what they give it (the fuse).
+    pub(crate) fn forbids(&self) -> bool {
+        matches!(self, Read::Detach(_) | Read::Air | Read::Avoid(_))
+    }
 }
 
 impl Move {
@@ -1313,6 +1331,13 @@ impl Brain {
         let idle_words = format!("{name} holds at {at}{stop}");
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
+            // A walk to a place carries the reading of whether the instructions forbid the group that place (not
+            // the advance on a shooter's estimated place, which is the picture's).
+            if let Order::Go(place) | Order::FightTo(place) | Order::Raid(place) = &m.order
+                && !place.starts_with("shelling")
+            {
+                m.reads.push(Read::Avoid(place.clone()));
+            }
         }
         Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
     }
@@ -2217,6 +2242,11 @@ pub(super) mod tests {
         let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").unwrap();
         assert!(send.forbiddable && matches!(&send.order, Order::Send(hunters, party) if hunters.len() == 2 && party == "party_12"));
         assert!(!attack.forbiddable && attack.reads.is_empty(), "a party of the ground: no forbidden question on the whole-group attack");
+        // A walk, an advance and an attack on his buildings at a place carry the place's forbidden reading.
+        let reads = |key: &str| menu.moves.iter().find(|m| m.key == key).map(|m| (m.forbiddable, m.reads.clone())).unwrap();
+        assert_eq!(reads("go_spot_30"), (false, vec![Read::Place("spot_30".into()), Read::Avoid("spot_30".into())]));
+        assert_eq!(reads("fight_to_spot_30"), (false, vec![Read::Place("spot_30".into()), Read::Avoid("spot_30".into())]));
+        assert_eq!(reads("fight_to_spot_47"), (false, vec![Read::Avoid("spot_47".into())]), "his buildings: never fused, and marked");
         assert!(send.words.starts_with("2 armflash of group_A (its fastest, the nearest first) leave it as a group of their own and hunt party_12"), "{}", send.words);
         // Where the group stands against the party, measured: the Centurions are 600 off and a Blitz reaches 180.
         let core: Vec<&OwnUnit> = tick.snapshot.own_units.iter().take(14).collect();
