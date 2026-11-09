@@ -343,6 +343,21 @@ every type kills nothing; a brawler that dies has lived 2.1 to 2.6 minutes.
 artillery.
 **Used by.** D-tier3-gantry.
 
+### K-units-t3-a-nuclear-missile-takes-a-twentieth-of-a-behemoth
+**Claim.** One missile on a unit standing on the aim, in the engine: an Armageddon takes 12,500 and an Apocalypse
+15,000 from any gantry unit (all are in the ordinary armour class), about 2,200 and 2,800 from a commander. Left
+after one: Behemoth 96.3 / 95.5 % (27 / 23 missiles to kill it), Juggernaut 91.6 / 89.9, Sol Invictus 88.6 / 86.4,
+Titan 81.9 / 78.3, Thor 77.7 / 73.2, Praetorian 43.2 / 31.8, Keres 40.5 / 28.6, Demon 31.3 / 17.3, Astraeus 26.5 /
+11.8, Daedalus 24.2 / 9.1, Razorback 6.0 / dead; the Karganeth and everything below it die to either. 300 from the
+centre a unit takes 7,200-7,700 and 10,750-11,100.
+**Status.** supported (2026-11-08): `run/nuke_direct.py` and the `nuke-t3`, `nuke2-t3`, `nuke3-` batches.
+**Evidence.** docs/studies/2026-11-08-tier-3.md §5. Observed beside it and unexplained: on Comet Catcher an
+Apocalypse aimed 25 north of a Behemoth was followed two seconds later by a second blow of 319,590 (four runs of
+four; never from the other three sides, never on flat Full Metal Plate, 1,235 from an Armageddon in the same place):
+it follows the ground the blast shoves the unit onto.
+**Would be wrong if.** A lobby multiplier changed the warhead or the unit's health.
+**Used by.** D-tier3-gantry; F-fight-big-weapons (the Cortex and Legion warhead's numbers).
+
 ### K-units-duel-caveats
 **Claim.** The duel tables rank units for one situation — two single-type blobs of ~1200 metal charging each other on
 flat ground — and are wrong to the extent a real fight differs:

@@ -182,7 +182,9 @@ buildings moves a Blitz's length or more while the shot is coming.
 
 A silo costs 8,100 metal and 90,000 energy and takes 178,500 of build time (five minutes at 600 power). Each missile
 costs 1,000 metal and 125,000 energy and takes 120 seconds to stockpile; the silo fills itself to ten without being
-told and fires only by hand, anywhere on the map, for 12,500 at the centre falling to nothing at 640. An anti-nuke
+told and fires only by hand, anywhere on the map, for 12,500 at the centre falling to nothing at 640. Cortex's and
+Legion's missile costs 1,500 metal and 187,500 energy, takes 180 seconds and does 15,000 at the centre falling to
+nothing at 960. A commander takes a fifth of either. An anti-nuke
 costs 1,500 metal, 38,000 energy and 60,000 of build time; each interceptor costs 150 metal and 7,500 energy and takes
 90 seconds, to a stock of twenty, and covers everything within 2,000 of the anti-nuke. A missile aimed inside that
 circle is shot down while an interceptor stands ready.

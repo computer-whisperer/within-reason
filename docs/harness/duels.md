@@ -27,8 +27,8 @@ run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight
 run/scenario_table.py <batch dir> ... [--by-seed]   one markdown row per scenario batch (margins, value left at 30/60 s)
 ```
 `--seeds a,b,c` works for every kind of batch: each duel is fought `--reps` times under each engine seed.
-A Legion unit named on the command line turns the faction on in the start script (2026-11-08; a scenario file's
-units are not read for this). `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
+A Legion unit named on the command line, or in a scenario file given on it, turns the faction on in the start
+script (2026-11-08). `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
 `--pairs` exactly those. Unit names are the game's internal ones (`armpw`). A side may also be a **mixed force**,
 `armflash*8+armstump*6` (2026-09-25): spawned as written, in list order, so the first type stands in the front
 rank; a plain name against a mixed force takes the count that matches its metal, two plain names take the batch's
@@ -212,10 +212,12 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   it dies in the engine, and stands when the rows run out. Checked on E3 (val-e3-record-track): the Centurions stood
   within 15-90 of their recorded places at 5, 10, 20, 30, 45 and 59 s. `ai` (BARb on side 1) is not built.
 - **`--economy fed`**: each team is given a `freefusion` (850 energy a second) beside its commander at the start, so
-  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). **Until 2026-11-08 the give was
-  sent before the cheat flag had come back from the server, refused, and never repeated: no `fed` batch before that
-  date was fed** (the tier-3 matrix: ten Pulsars and twenty Starlights never fired; `engine.log` says `/Give
-  (unsynced) cannot be executed (cheats required)`). The director now gives again every two seconds until a feeder
+  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). **On 2026-11-08 the give was found
+  sent before the cheat flag had come back from the server, refused, and never repeated, in every match** (the
+  tier-3 matrix: ten Pulsars and twenty Starlights never fired; `engine.log` says `/Give (unsynced) cannot be
+  executed (cheats required)`). The nuke check of 2026-10-09 was fed (the spawn was then the AI interface's cheat,
+  with no flag to wait for), so the break dates from the console `/give` of 2026-10-24 or later, and `fed` batches
+  between then and this fix are suspect. The director now gives again every two seconds until a feeder
   stands and starts no duel before both teams' do. `--economy fed*N` gives N fusions in a row and one hardened
   energy store (40,000): a Pulsar's shot takes 1,500 at once, a Starlight's 1,000, and eight Razorbacks draw 1,000
   a second. A fed batch's sites stand 2,600 from the commanders (`sites::FED_GAP`), since an army on a nearer site

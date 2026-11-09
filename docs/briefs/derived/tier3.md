@@ -46,6 +46,12 @@ side has left minus the other's (+100 a flawless win).
   Sol Invictus and Juggernaut and lose to anything cheap and numerous and to the Thor. A Bastion line beats
   everything but the Thor and the Behemoth. A commander's D-gun kills any of them in one shot: a quarter of the
   Behemoths that died in people's team games and a sixth of the Juggernauts died to one.
+- *A nuclear missile on one of them* (measured, the unit standing on the aim): 12,500 from Armada's, 15,000 from
+  Cortex's and Legion's. It kills everything of the gantry up to the Karganeth, the Shiva and the Vanguard among
+  them, and leaves a Razorback 6 percent from Armada's. A Thor keeps three quarters, a Titan four fifths, a
+  Juggernaut nine tenths, a Behemoth 96 percent: 23 Cortex missiles on one spot to kill one, 34,500 metal and 69
+  minutes of a silo, where the D-gun takes one shot. A nuke is for what cannot walk and for the cheap body packed
+  together, not for a giant.
 - *The front and the gun.* u6bkep's body, one Thor in front of eight Starlights (18,600 metal), fought against its
   metal in each answer: it kept 72 percent of itself against five Razorbacks, 54 against twenty Bulls, 79 against
   Bulls with Vanguards, 84 against a Titan with Bulls, 51 against eleven Shivas, 59 against two Thors, 31 against
@@ -82,7 +88,7 @@ side has left minus the other's (+100 a flawless win).
    on the ground stay outside 540 and kill what stands behind it. No anti-air in sight: gunships and bombers
    before the army. Titans: Pulsars at the hold, or numbers of the cheap reach. Anything of his at our door: the
    commander's D-gun, 250 of reach and 500 energy. A Behemoth: walk away from it at three times its speed and
-   shoot it from beyond 590.
+   shoot it from beyond 590; never a nuke, which takes a twentieth of it.
 5. *Turrets on the first gantry before a second gantry.* Why: with 12,000 banked we built three gantries bare and
    each made a Razorback in 67 seconds; forty turrets on one make a Titan in under a minute, and the bank was the
    sign that build power, not metal, was short (late-economy.md).
@@ -110,6 +116,6 @@ walked onto a commander.*
 
 **The tests.** docs/studies/2026-11-08-tier-3.md: the one game against u6bkep read from our seat's record (his side
 as we saw it); the unit files for every gun's reach; 169 public team games, 166 on one map, for what people build
-and what kills it, by last hit; and 748 engine duels at 30,000 metal a side plus 72 of his body against its
-answers, on a harness whose energy feed was found broken and fixed that night. No game of ours has been played on
+and what kills it, by last hit; 748 engine duels at 30,000 metal a side plus 72 of his body against its
+answers, and one nuclear missile on each unit in the engine, on a harness whose energy feed was found broken and fixed that night. No game of ours has been played on
 this article.

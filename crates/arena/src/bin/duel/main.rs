@@ -93,10 +93,13 @@ struct Options {
     drill: Option<drill::Options>,
 }
 
-/// Whether the command line names a Legion unit (`legkeres`, `armbull:legjav`, `legjav*4+legkeres*2`): the start
-/// script then turns the faction on. A scenario file's units are not read for this.
+/// Whether the command line names a Legion unit (`legkeres`, `armbull:legjav`, `legjav*4+legkeres*2`) or a scenario
+/// file that holds one: the start script then turns the faction on.
 fn names_legion() -> bool {
-    std::env::args().skip(1).any(|arg| arg.split([',', ':', '*', '+']).any(|name| name.starts_with("leg") && name.len() > 5))
+    std::env::args().skip(1).any(|arg| {
+        arg.split([',', ':', '*', '+']).any(|name| name.starts_with("leg") && name.len() > 5)
+            || (arg.ends_with(".json") && fs::read_to_string(&arg).is_ok_and(|file| file.contains("\"leg")))
+    })
 }
 
 fn main() -> io::Result<()> {
