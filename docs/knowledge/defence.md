@@ -122,12 +122,77 @@ nothing else: rockets (Rocketeer, Thanatos, Arbiter), lasers and heat rays, bomb
 option `experimentalshields = absorbeverything` or `bounceeverything` every weapon is set to 1 and everything is
 stopped (and bounced at 0.53 of the power); the 5v5 of 2026-10-18 ran `unchanged`, the public 8v8 pilot of
 2026-11-06 ran `bounceeverything`. A shield that has taken 6,175 in a few seconds is down until it regenerates.
+**Amended 2026-11-08** (docs/studies/2026-11-08-shields-and-standing-units.md §1). "Cannon" is wider than the
+list above: by the unit files' weapon types the Pawn, Blitz, Mace, Brute, Pounder, Bull, Tzar, Hound, Sheldon,
+Quaker, Shellshocker, Wolverine, Tremor, the Banshee gunship and the Pit Bull are cannon and stopped; the Scorpion
+pop-up is a missile and passes; the Pulsar, Bulwark and Bastion are beams and pass, so our own long towers fire
+through his bubble and his through ours. The rest of the mechanics, from `unit_shield_behaviour.lua` and
+`PlasmaRepulser.cpp`: the regeneration runs only below full and only while the store pays (the bubble still holds
+what it has on an empty store; nothing is paid per shot, `energyupkeep` 0); at zero the gadget suspends it for 1 to
+20 s and regenerates the overkill first; it is off while being built and while stunned; a covered unit takes no
+damage from a stopped weapon fired from outside that shield, area of effect included, and death explosions pass;
+the long-range cannon carry a halved damage row against shields (Basilica 812 of 1,625, Basilisk 1,000 of 2,000,
+Olympus and Astraeus 300 of 600), so one is 62 a second against a regeneration of 130; a shell is taken by the
+first living bubble it meets, so overlapping generators add their strength in turn.
 **Status.** supported (2026-11-06): `corgate.lua`, `legdeflector.lua`, `gamedata/alldefs_post.lua` 1099-1125,
-`RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp` 460-538; agrees with F-fight-big-weapons.
+`RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp` 460-538; agrees with F-fight-big-weapons. The amendment is read from
+source and unobserved in a record: nothing we write counts the shots a shield absorbed.
 **Evidence.** As cited; the report names shields seen (`scout.rs` `shield_lines`).
 **Would be wrong if.** A rocket's or a laser's shots were seen stopped by a shield in a replay with stock options.
-**Used by.** (candidate: the brief; the user, human-8v8-1 46:50: "within reason really doesn't know what to do with
-the shields".)
+**Used by.** F-fight-big-weapons; the defence article's shield paragraph and item 10 (D-defence-hold); H-REPORT-SHIELDS
+(the user, human-8v8-1 46:50: "within reason really doesn't know what to do with the shields").
+
+### K-def-people-shield-the-tower-line-and-the-fusions-of-a-long-team-game
+**Claim.** No high-OS duellist builds a shield (0 of 1,054 sides). In the public 15- and 16-seat games 18 % of the
+people's seats build one, 38 % in games of thirty minutes and 53 % in games of forty, at every skill (31 % under
+OS 10, 44 % above 30); the first at 24:51 / 29:14 / 34:58 (quartiles), with four fusions, a tier-2 tower and (53 %)
+an anti-nuke already standing; one, two and five a seat (quartiles). What holds the most metal under one: energy
+37 %, tier-2 towers 32 % (Pulsars before all others), construction turrets 7 %, factories 7 %, long-range cannon
+5 %; 17,000 / 33,000 / 69,000 of structures under each; 62 % within 550 of another shield; 610 / 1,570 / 2,600 from
+the seat's start, 23 % of the way to the nearest enemy start at the median. 43 % die, after a median 4.4 minutes, to
+what passes or overwhelms (unnamed strikes, Titans, Ambassadors, fusion blasts, nukes). Winners and losers build
+them alike (32 % and 36 % of seats among people, 46 % and 44 % against AI).
+**Status.** supported (2026-11-08): `run/replays/statics_team.py` over 169 public team games (166 on All That
+Glitters; 25 demos read all ran `experimentalshields = unchanged`) and the 527 duels.
+**Evidence.** docs/studies/2026-11-08-shields-and-standing-units.md §2-3.
+**Would be wrong if.** The pool were one map's habit: the same read on a second map's team games showing shields
+rare past thirty minutes.
+**Used by.** the defence article's item 10 (D-defence-hold).
+
+### K-def-towers-under-a-shield-die-half-as-often-and-only-part-of-it-is-the-shells
+**Claim.** On sides that had shields, tier-2 towers under a living shield died in 28 % of 1,285 against 65 % of
+1,346 not under one; among towers finished after the side's first shield, 27 % of 894 against 59 % of 659. The
+share of deaths by cannon-only killers moves from 9-12 % outside to 7-8 % under. The survival gap is mostly
+placement (the shield stands over the part of the line the seat keeps) and partly shells stopped; the pool cannot
+separate them. Fusion reactors show no gap (28 % and 27 %): they die to explosions and strikes, which pass.
+**Status.** observed (2026-11-08), confounded as said; `run/replays/statics_team.py`.
+**Would be wrong if.** A record of shield strength over time (the dump widget writing `GetUnitShieldState`) showed
+shields over tower lines absorbing next to nothing.
+**Used by.** the defence article's item 10, as the reason it is a bet on his cannon and not a rule.
+
+### K-def-a-shield-would-have-stopped-a-twentieth-of-our-structure-losses
+**Claim.** Of 1,149,000 of structure metal our own seats lost in 30 team games (the Glitters 8v8 series, the
+defence 8v8s, the lobby games), the killers were cannon-only units that reach over 550 for 5 % (Tzars, Sheldons,
+Wolverines), mixed-gun units that reach over 550 for 10 % (Sol Invictus, Shiva, Sharpshooter), a Ragnarok for 3 %,
+cannon-only units that walk inside a bubble for 23 % (Stouts, Thugs, Brutes, Pounders, Blitzes), and weapons a
+shield does not stop or no named killer for the rest. A shield over the hold stops the 5 % and part of the 10 %.
+**Status.** observed (2026-11-08): `run/replays/statics_team.py --ours`.
+**Would be wrong if.** The unnamed 14 % were mostly cannon artillery from out of sight (the weapon name is read
+where the killer is not named, so this is what is left after that).
+**Used by.** the defence article's item 10 and its "Bought against the wrong guns" failure.
+
+### K-def-half-the-people-stand-a-jammer-at-nine-minutes-and-a-third-wall
+**Claim.** In the public team games of thirty minutes (861 people's seats, by the seat's own faction): a tier-1
+jammer in 49 % of Cortex seats (Castro, 100 metal, radius 360, two of them, first at 9:09), 44 % of Armada (Sneaky
+Pete, 240, radius 500, one, 9:31) and 44 % of Legion (Nyx, 140, radius 390, two, 10:10); the tier-2 jammer in 25 to
+37 % at 23:30 to 25:00; Dragon's Teeth in 31 to 33 % at fifteen blocks from 5:18 to 7:28; an anti-nuke in 40 to
+50 % at 22:00 to 25:00; a Pinpointer in 12 % of Armada seats, three of them, at 24:22. The brief's derived layer
+named no jammer before 2026-11-08, and the hands' usual menu holds the tier-2 jammers only and no wall.
+**Status.** observed (2026-11-08): `run/replays/statics_team.py` (the census). Where the jammers and walls stand
+relative to the line is unread.
+**Would be wrong if.** The jammers stood at home over the economy and not over the line (then they answer scouting
+and bombing runs, not radar-fire at the hold).
+**Used by.** the defence article's jammer paragraph and item 11.
 
 ### K-def-anti-nukes-are-one-interceptor-per-90-s-and-silos-outnumber-them
 **Claim.** An anti-nuke (Citadel, Prevailer, Aegis: 1,500 metal) stockpiles one interceptor per 90 s for 7,500 energy

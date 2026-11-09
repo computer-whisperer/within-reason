@@ -169,7 +169,7 @@ often carry no attacker for a unit a blast or a missile kills.
 <!--meta
 id: F-fight-big-weapons
 layer: fact
-sources: {code: [upstream/Beyond-All-Reason/units/armcom.lua (disintegrator), upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armsilo.lua, armamd.lua, upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armgate.lua, upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp:547, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:1098-1103], game: 54199a0d, claims: [K-mech-dgun, K-mech-shields-stop-shots-by-type]}
+sources: {code: [upstream/Beyond-All-Reason/units/armcom.lua (disintegrator), upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armsilo.lua, armamd.lua, upstream/Beyond-All-Reason/units/ArmBuildings/LandDefenceOffence/armgate.lua, upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp:547, upstream/RecoilEngine/rts/Sim/Weapons/PlasmaRepulser.cpp:122-260, upstream/Beyond-All-Reason/gamedata/alldefs_post.lua:1098-1177, upstream/Beyond-All-Reason/luarules/gadgets/unit_shield_behaviour.lua], game: 54199a0d, claims: [K-mech-dgun, K-mech-shields-stop-shots-by-type, K-def-shields-stop-cannon-shells-and-nothing-else]}
 status: live
 -->
 ### The D-gun, the nuke, the anti-nuke, the shield
@@ -187,9 +187,20 @@ costs 1,500 metal, 38,000 energy and 60,000 of build time; each interceptor cost
 90 seconds, to a stock of twenty, and covers everything within 2,000 of the anti-nuke. A missile aimed inside that
 circle is shot down while an interceptor stands ready.
 
-A shield (the Keeper, 3,000 metal and 54,000 energy) holds a bubble of radius 550 with 6,175 strength, starting at
-2,090 and regenerating 130 a second at 562 energy a second; it stops cannon shells and nothing else: lasers, missiles,
-rockets and bombs pass. It stops only shots from outside, so units inside it fire out freely.
+A shield generator (the Keeper, 3,000 metal and 54,000 energy; the Overseer and Soteria, 3,200 and 55,000; 3,550
+health, built by any tier-2 constructor) holds a bubble of radius 550 with 6,175 strength. It stops cannon shells and
+nothing else: every beam and laser, rocket, missile, flame, lightning, bomb, the nuke and the D-gun pass. Cannon is
+more than artillery: the Pawn, Blitz, Stout, Brute, Pounder, Thug, Bull, Fatboy, the artillery tanks and bots, the
+plasma towers, the Pit Bull and the long-range cannon fire shells; the Sentry, Beamer, Pulsar, Bulwark and Bastion
+fire beams. It takes only the other side's shots and only those that come from outside the bubble: units inside fire
+out freely, and an enemy that stands inside hits everything in it. A unit under it takes nothing from the blast of a
+stopped shell bursting outside; the explosion of a dying unit or building passes. It starts at 2,090 when it is built
+and regenerates 130 a second for 562 energy a second, only while below full and only while the store can pay; it
+costs nothing standing full and nothing per shot. At zero it is off for one to twenty seconds, until what was shot
+past zero is regenerated. It is off while being built and while stunned. A long-range cannon does half its damage to
+a shield (a Basilica 812 a shell, 62 a second). A shell is taken by the first living bubble it meets, so generators
+within each other's radius add their strength one after another. A lobby may set shields to stop every weapon (the
+start script's `experimentalshields`).
 
 <!--meta
 id: F-fight-consequences

@@ -1,9 +1,9 @@
 <!--meta
 id: D-defence-hold
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-raid-answer, D-energy-second, D-tier2-sprint, F-fight-range, F-fight-sight, F-fight-health, F-fight-big-weapons, F-fight-consequences, F-eco-energy, F-unit-armllt, F-unit-corllt, F-unit-leglht, F-unit-armbeamer, F-unit-corhllt, F-unit-corexp, F-unit-armhlt, F-unit-corhlt, F-unit-armclaw, F-unit-cormaw, F-unit-armpb, F-unit-corvipe, F-unit-legapopupdef, F-unit-armanni, F-unit-cordoom, F-unit-legbastion, F-unit-armguard, F-unit-corpun, F-unit-armamb, F-unit-cortoast, F-unit-armrl, F-unit-corrl, F-unit-armflak, F-unit-leglraa, F-unit-armamd, F-unit-corfmd, F-unit-legabm, F-unit-armsilo, F-unit-corgate, F-unit-armdrag, F-unit-armrock, F-unit-corstorm, F-unit-armflash, F-unit-corgator, F-unit-armstump, M-pool-pressure, M-pool-fights, M-format-8v8, M-barb-bonus, M-barb-team, M-lobby-5v5, M-gecko-team]
+premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-raid-answer, D-energy-second, D-tier2-sprint, F-fight-range, F-fight-sight, F-fight-health, F-fight-big-weapons, F-fight-consequences, F-eco-energy, F-unit-armllt, F-unit-corllt, F-unit-leglht, F-unit-armbeamer, F-unit-corhllt, F-unit-corexp, F-unit-armhlt, F-unit-corhlt, F-unit-armclaw, F-unit-cormaw, F-unit-armpb, F-unit-corvipe, F-unit-legapopupdef, F-unit-armanni, F-unit-cordoom, F-unit-legbastion, F-unit-armguard, F-unit-corpun, F-unit-armamb, F-unit-cortoast, F-unit-armrl, F-unit-corrl, F-unit-armflak, F-unit-leglraa, F-unit-armamd, F-unit-corfmd, F-unit-legabm, F-unit-armsilo, F-unit-corgate, F-unit-armgate, F-unit-legdeflector, F-unit-armjamt, F-unit-corjamt, F-unit-legjam, F-unit-armveil, F-unit-armdrag, F-unit-armrock, F-unit-corstorm, F-unit-armflash, F-unit-corgator, F-unit-armstump, M-pool-pressure, M-pool-fights, M-format-8v8, M-barb-bonus, M-barb-team, M-lobby-5v5, M-gecko-team]
 lessons: [L-other-infern8-defences, L-other-u6bkep-nests-and-air, L-gecko-nuke-surprise, L-sheet-fighting]
-sources: {people: [Infern8, apexearth, thebluegecko, u6bkep, the user], dates: [2026-09-27, 2026-10-18, 2026-10-23, 2026-11-06, 2026-11-07], relay: Infern8 watching our raiders die on a Beamer (L-other-infern8-defences); apexearth in the 5v5 ("mass bastions does hold off enemies pretty well", 49:59); the user's observation that opened the survey (2026-11-06: we use stationary attacking structures far less than our opponents; people hold off far more BARb seats than they have by damage efficiency while they out-scale), his framing of the three cases (the duel's perimeter, the 8v8's cross-section with no way round, the one seat against two); the survey docs/studies/2026-11-06-static-defence-survey.md and its claims in docs/knowledge/defence.md}
+sources: {people: [Infern8, apexearth, thebluegecko, u6bkep, the user], dates: [2026-09-27, 2026-10-18, 2026-10-23, 2026-11-06, 2026-11-07, 2026-11-08], relay: Infern8 watching our raiders die on a Beamer (L-other-infern8-defences); apexearth in the 5v5 ("mass bastions does hold off enemies pretty well", 49:59); the user's observation that opened the survey (2026-11-06: we use stationary attacking structures far less than our opponents; people hold off far more BARb seats than they have by damage efficiency while they out-scale), his framing of the three cases (the duel's perimeter, the 8v8's cross-section with no way round, the one seat against two); the survey docs/studies/2026-11-06-static-defence-survey.md and its claims in docs/knowledge/defence.md; the user, 2026-11-08, on shields: "they have been used against us on occasion, and now we should learn to use them", and the survey docs/studies/2026-11-08-shields-and-standing-units.md}
 status: in the manifest since 2026-11-06 (the user, on the draft: "Good. Let's enable this article, then run a BARb 1v1, then an 8v8"); revised 2026-11-07 after its first two tests (defence-barb-1, defence-barb-8v8-1) and the 5v5 read two-sidedly, on the user's word ("let's apply those edits"); the numbers are the survey's (run/replays/defence_duels.py, run/defence_pool.py, run/defence_census.py, run/defence_towers.py on 2026-11-06) and the unit files on game source 54199a0d
 -->
 ### The hold: what a tower is for, and where it earns
@@ -99,7 +99,30 @@ The multiple is in the reach and the standing still, cashed only by what comes t
   2,000 (F-fight-big-weapons); two silos fired together into one circle pass one anti-nuke with one interceptor
   stocked, and a silo stocks one missile per 120 to 180 s. A shield stops cannon shells and nothing else: Thugs,
   Stouts, Fatboys, Mausers and artillery die on it, rockets, lasers, heat rays, bombs and the nuke pass, and the
-  generator (3,550 health, 273 of sight) is the target, not the bubble.
+  generator (3,550 health, 273 of sight) is the target, not the bubble. Our own Pulsars, Bulwarks and Bastions are
+  beams and fire through his bubble as his do through ours.
+- *The shield, ours.* A Keeper, Overseer or Soteria (3,000 to 3,200 metal, 55,000 energy, a Pulsar's build time,
+  any tier-2 constructor) is cover for what cannot move and is out-reached by cannon. Under its 550 nothing of ours
+  takes a cannon shell fired from outside, the shell's blast included: the artillery tanks and bots (Wolverines,
+  Shellshockers, Sheldons, Mausers, Quakers, Tremors, Fatboys), the plasma towers, the long-range cannon, and the
+  line tanks' guns until they walk in. It holds 6,175 and gives back 130 a second for 562 energy a second while
+  below full, nothing standing full: that regeneration is one Fatboy's fire, three Wolverines', a third of a
+  Tremor's, or two Basilicas' for ever (a long-range cannon does half to a shield). Emptied, it is off for one to
+  twenty seconds: ten Mausers do it in nine seconds, three Tremors in six; a second generator inside the first's
+  radius doubles what must be shot off. It stops no rocket, missile, beam, flame, bomb or nuke, nothing fired from
+  inside it, and no explosion: a fusion dying beside it kills it. A stun switches it off, and it does not
+  regenerate on an empty store. What people do: none in any duel; in team games of thirty minutes four seats in
+  ten, of forty minutes half, at every skill, the first at 25:00 to 35:00 with four fusions and an anti-nuke
+  standing, two a seat; a third stand over the tier-2 tower line (Pulsars before all), a third over the fusion
+  block, 33,000 of structures under each, two in three inside another's radius, 1,600 from the start. Their tier-2
+  towers under a living shield died in 27 percent against 59 percent beside them in the same minutes, part of that
+  the shells stopped and part where a seat chooses to keep its line. Of the structures our own seats lost in thirty
+  team games, cannon from beyond 550 killed a twentieth: BARb's and Apex's trickle is not artillery.
+- *The jammer.* Everything of a side within a jammer's radius is off his radar, not out of his sight: Castro 100
+  metal and 360, Nyx 140 and 390, Sneaky Pete 240 and 500, at 25 to 40 energy a second; the tier-2 Veil, Shroud and
+  Erebus 125 to 130 metal and 700 to 760. A tower that fires on radar and artillery that shells radar dots need
+  sight of what stands under one. Half the people's team seats stand one or two at nine to ten minutes and a
+  quarter to a third the tier-2 one at 24:00.
 - *The people's escalation clock.* In the lobby 5v5 (M-lobby-5v5, five people OS 8 to 36 against two of our seats
   and three Apex) the people's defence came up in this order: Cacophonies at 6:00, Beamers from 8:30 (twenty of
   them, median 12:25), Overwatches at 12:30, Twin Guards at 15:00, a Pit Bull at 19:00, Scorpions from 22:30,
@@ -152,7 +175,8 @@ The multiple is in the reach and the standing still, cashed only by what comes t
    "The energy") against the income before the third tower, and never a line on a store that stalls (energy.md).
 7. *Walls where the lane is narrow.* Dragon's Teeth at 8 metal for 2,800 health funnel tier-1 units and stop low
    shots; a funnel that puts the trickle inside the towers' reach for longer is the cheapest reach in the game.
-   Unmeasured in our record (the knowledge file says so); the people's walls are for the replay batch to read.
+   A third of the people's team seats stand fifteen of them from the fifth to the seventh minute; where they
+   stand is unread, and ours are unmeasured.
 8. *Against a turtle, silos in numbers and the rockets that pass shields, not the army, and from the minute the
    Bastion line is seen.* Why: an anti-nuke holds one interceptor per 90 s; the 5v5 ended by 23 silos against eight
    anti-nukes and by nothing else in thirty minutes, and the kill took twenty-three minutes from the first silo
@@ -162,6 +186,18 @@ The multiple is in the reach and the standing still, cashed only by what comes t
 9. *Count a tower at its reach, not at three times its metal.* Why: the three is reach.md's fight-on-the-spot
    number for a Sentry against a stream of raiders and nothing else; a tower that out-reaches the body is a toll
    until something that out-reaches it arrives, and a tower the body out-reaches is a wall of 620 health.
+10. *A shield over the tier-2 line or the fusion block once his cannon out-reaches it, and not before.* When his
+   artillery or plasma towers have shown (Wolverines or Shellshockers in numbers, Sheldons, Mausers, Tremors, a
+   Rattlesnake, a Basilica) and what stands within 550 cannot move and is worth ten shields: `armgate`, `corgate`
+   or `legdeflector` by name at the place, in the middle of what it covers; a second inside the first's radius
+   where that line is the game; the energy first (562 a second each while it recharges, which is while the towers
+   beside it are firing: item 6) and the anti-nuke before it. Why: it is what the people's long games own and where
+   they put it, and it turns off the cannon half of "what out-reaches a tower fires on it for free". Not against
+   Stouts, Thugs and Blitzes (they walk in), not against rockets, beams, bombers or nukes, not in a duel, and not
+   as the overflow: 3,000 metal is a Pulsar, or fifteen Beamers.
+11. *A jammer at the hold when its towers go up, and the tier-2 one over the long line.* Why: 100 to 240 metal makes
+   his radar-fired towers and his artillery need sight of the hold, the reverse of item 4's radar tower, and half
+   the people's seats have one by ten minutes. It hides nothing from a scout, a camera or an aircraft overhead.
 
 **Where it bends.** (1) The duel: the perimeter is wide and he chooses the place, so the towers earn at the outer
 pairs only and item 4 does not apply before the game is decided; the duellists' towers get 0.6 back and still every
@@ -184,7 +220,8 @@ without the energy* (a Beamer line on a stalling store). *The line without the r
 M-barb-team). *Bought as the overflow* (73 towers at 7:42 because the plants could not spend the income). *Bought
 after the raider* (two Beamers and a Nettle at each home's spots at 15:30 after Grunts walked past the armies:
 2,180 of raiders caught while 20,000 of structures died around them). *Bought after the lead* (14,700 of towers
-from 15:00 at 1.3 to 5 to 1, a sixth returned). *Walked into* (reach.md's toll: 94 tanks on 15 Bulls, 6,800 of
+from 15:00 at 1.3 to 5 to 1, a sixth returned). *The shield against the wrong guns* (a bubble over a line that dies to
+Thanatos, Catapults, bombers, or Stouts that walk in). *The shield on a store that cannot recharge it.* *Walked into* (reach.md's toll: 94 tanks on 15 Bulls, 6,800 of
 Blitzes in a Beamer camp; the 5v5: 180,000 of our side's metal on one seat's 78,640 of towers at home).
 
 **The tests.** The survey's pools (docs/studies/2026-11-06-static-defence-survey.md; the claims K-def-* in
@@ -195,7 +232,10 @@ the lobby 5v5 read two-sidedly. The yield is by last hit, a floor; the people's 
 played in, so the people's towers there faced us and Apex, not BARb; the forward-Pulsar hold is one game's reading
 until the replay batch (twenty public 8v8s against bonused BARb) confirms it; walls are unmeasured. The mechanics
 (radar-fire, the towers' own radar, the shield's interception bit, the anti-nuke's stock) are read from the engine
-and the unit files and cited there. The article's own tests so far: a duel against BARb hard_aggressive (WON 15:44,
+and the unit files and cited there. The shield and jammer paragraphs and items 10 and 11 (2026-11-08) rest on
+docs/studies/2026-11-08-shields-and-standing-units.md: the mechanics from the game's and the engine's source, the
+habits from 169 public team games, 166 of them on one map, the survival under shields confounded with placement;
+no game of ours has built either yet. The article's own tests so far: a duel against BARb hard_aggressive (WON 15:44,
 tower play unchanged, as the duel paragraph allows) and one 8v8 against eight BARb hard_aggressive on Glitters, seed
 3, called a win at 30:26 at 6.8 to 1, the first of that series won on the clock the four before were lost on, read
 tower by tower (run/defence_towers.py): towers bought 3:00 to 12:00 at the holds 0.9 to 2.4 returned, from 15:00 at
