@@ -210,7 +210,7 @@ carries `reads`, the hands are reading each packet once for whose places are who
 off per game): `reads` lists the places Jev read as that group's, and says "NO place to step back to" when no
 sentence gave it one. After "kept away from" it lists the places Jev read as forbidden the group: a walk, an advance
 or an attack on his buildings at one of them stays on its menu and reaches the pick with the sentence "The player's
-instructions forbid this walk" on it, which the pick rarely takes. A place you name only as an edge ("never east of
+instructions forbid this walk" on it (on a detachment that sentence was picked 2 times of 134). A place you name only as an edge ("never east of
 spot_64") is often read as forbidden itself; a prohibition written for one group by name is not read for another.
 While it is on, a walk or an advance to a place not read as the group's, a building type or a
 spot not read as a builder's, and a `join` or a `follow` the packet does not tell the unit to make are not offered

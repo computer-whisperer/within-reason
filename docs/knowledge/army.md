@@ -860,6 +860,68 @@ packet reading "It never attacks turrets", with an extractor and two solars of h
 (the simulator has no terrain and brings the group in together), or the pool's raids are seen to walk round such posts.
 **Used by.** the brief's first-handful case ("A light post is overrun, not walked round"); [[H-PLAYER-LIGHT-POSTS]].
 
+### K-army-a-commander-dies-to-what-out-reaches-its-laser
+**Claim.** In people's games a commander that is killed by a unit is killed from beyond its laser's 300 far more
+often than from inside its D-gun. Duels: of 42 commanders killed by a named unit the last hit came from a reach
+over 300 in 25 and from 262 or under in 16 (aircraft 4, towers 4). 8v8s: 959 of 1,110 from over 300, 91 from inside
+262, 88 by aircraft, 100 by towers; the Thug struck the last blow most often (90), then the Razorback (48), the
+Sheldon (41), the Mace (37), the Tzar (35), the Sharpshooter (28). It dies away from home: 34 of the 42 duel
+commanders more than 800 from their start (median 2,300), 865 of 1,110 in the 8v8s. From nine tenths of its health
+to dead takes 14 and 15 seconds at the median. The rest of the 88 duel deaths are 39 blown up whole (the side
+resigning or ending) and 7 worn down with no attacker named.
+**Evidence.** `run/replays/commander_dives.py` (cache `run/data/commander-dives.jsonl`) over every `*-replay-*`
+directory with 2 or 16 records under run/matches and the archive, 357 directories; a public replay replayed twice
+under two run numbers is counted once (the duel directories hold most games twice: 187 directories, about a hundred
+games). The last hit is the record's `by_d`; "what stood round it" is the other side's finished armed units within
+700 at the sample a second before.
+**Status.** measured 2026-11-08 on the pool; by last hit, so a commander worn down by one kind and finished by
+another is the finisher's. The replay records carry no weapon name, so a D-gun kill is not told from a laser kill.
+**Would be wrong if.** By damage dealt (not last hit) the raiders' share of a killed commander's health were the
+larger one.
+**Used by.** the brief's D-commander-dive.
+
+### K-army-raiders-kill-a-commander-at-twenty-five-and-rarely-at-ten
+**Claim.** Raiders alone (every reach inside the D-gun's 262, by seven tenths of the metal there) at a commander
+that fights back, counting the parties whose raider struck the last blow against the parties that lost three or more
+units to it and did not kill it. Duels: nine or fewer 0 of 15, ten to fourteen 3 of 11, fifteen to twenty-four 3 of
+8, twenty-five and over 6 of 6; the smallest party that did it was twelve, and the parties that did it brought 23
+units and 2,250 metal at the median and lost 1,230 to the commander in its last thirty seconds. 8v8s: nine or fewer
+4 of 268, ten to fourteen 1 of 55, fifteen to twenty-four 11 of 43, twenty-five and over 23 of 43. In the dives it
+lived through it killed four units at the median (most 16 in a duel, 66 in an 8v8) in five to six seconds, with
+towers of its own within 700 in seven of ten and nothing of its own there in 17 percent of the duel dives and 4
+percent of the 8v8 ones. The sum agrees with the floor: N raiders arriving in one second against one kill every 0.9
+seconds deal 0.9 seconds of N minus 1, N minus 2 and so on, so N times N minus 1 must pass 8,200 over one raider's
+damage a second: ten Incisors, eleven Pawns or Blitzes, before a laser, a tower or a pierced file.
+**Evidence.** `run/replays/commander_dives.py`, as above; the unit files for the sum (`armcom.lua`, `corcom.lua`:
+health 3,700, D-gun reload 0.9, 500 energy; `crates/bot/data/units.json` for the raiders' damage).
+**Status.** measured 2026-11-08; the failures are a floor (a party that turned away after losing one or two is not
+seen). The sum is arithmetic, not an engine measurement: the duel harness has no commander that fires its D-gun.
+Earlier records of ours agree: fifteen Blitzes lost nine and killed nothing (2026-10-23), BARb's commander took
+three to seven Pawns a shot (K-barb-commander-dgun-beats-a-pawn-party).
+**Would be wrong if.** A duel-harness scene with a D-gunning commander died to ten raiders arriving together, or
+the pool's parties of ten to fourteen killed it more often than not once small losses were counted.
+**Used by.** the brief's D-commander-dive.
+
+### K-player-ten-incisors-were-sent-onto-his-commander
+**Claim.** In the user's 1v2 against two Apex v0.4.05 on Comet (1794187275-apex_2v1, Cortex at B6, 2026-11-08) the
+player ordered its whole raider body onto a Cortex commander that had walked to E6 to build extractors under a
+Guard at F6: "group_A attacks that commander as one whole body, all ten together from several sides ... With two
+opponents, removing one of them would change the game" (6:19). Three Incisors were there from 6:12 and the other
+seven came at 6:35. From 6:12 to 6:41 the nearest stood 250 to 400 from it, inside its laser's 300 and outside
+their own 230, and its health did not move. From 6:41 to 6:48 they closed to 130 to 250 and eight died in seven
+seconds; it lost 870 of 3,700. Ten Incisors (1,200 metal) were lost, nine to the commander and one to the Guard,
+for two extractors and a Guard (190). The player's turn-away of 6:39 landed after. Two things in the order were
+wrong before any unit moved: under the default death mode a seat whose commander dies plays on while its ally's
+stands (K-rules-commander-death-ends-game), so the kill would not have removed an opponent; and ten raiders are
+the size that fails (K-army-raiders-kill-a-commander-at-twenty-five-and-rarely-at-ten). The user: "The formation
+hold position is not a problem -- trying to dive on the commander is."
+**Evidence.** `run/matches/1794187275-apex_2v1/00/record-1.jsonl` (the samples of 6:12 to 6:54: each Incisor's
+distance to the commander and its health; the `destroyed` rows, `by_d` corcom), `strategist-1.jsonl` (the turns of
+5:53, 6:19, 6:39 and 7:00), `bot.log` ("lost corgator to corcom in our half x9").
+**Status.** observed 2026-11-08, one game; the brief's D-commander-dive is written from it. Why the body stood
+between 250 and 400 for thirty seconds is not looked into (the user: not the problem).
+**Used by.** the brief's D-commander-dive.
+
 ### K-commander-gather-conditions-held-a-leading-army
 **Claim.** Under the commander seat a leading army stood in our half because the direction gave it a place to gather
 and a count or clock to wait for, and each seat below passed that on faithfully. human-23 first game (a person who
