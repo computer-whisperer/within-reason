@@ -147,7 +147,8 @@ def main():
                         placed.append((f, u, r.get("what"), r.get("x"), r.get("z")))
             elif t == "cmd":
                 for c in r.get("c", []):
-                    if not c or c[0] in ("say", "priority", "movestate", "firestate", "send_resources", "send_units", "stockpile"):
+                    # Not a unit's work order, or no unit in second place (`docs/harness/record-format.md`, `cmd`).
+                    if not c or c[0] in ("say", "priority", "movestate", "firestate", "send_resources", "send_units", "stockpile", "probe", "give", "give_resource", "hold_game"):
                         continue
                     unit = c[1]
                     cmds.setdefault(unit, []).append((f, c))

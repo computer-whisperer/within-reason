@@ -166,9 +166,16 @@ pub(crate) struct BrainResult {
     pub decide_ms: f32,
 }
 
-/// The fast thread's loop: from the first tick to the end of the connection.
-pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<ToBot>, brain: Brain, mut recorder: Option<Recorder>) -> io::Result<()> {
+/// A game is held for the opening turn only in its first second: a bot started into a game long under way asks for
+/// its first turn at Hello too, and that game is not stopped for it.
+const HOLD_BY_FRAME: i32 = 30;
+
+/// The fast thread's loop: from the first tick to the end of the connection. `player` is the seat's player, when it
+/// has one: a realtime game that begins to run while the player's opening turn is still being taken is held until
+/// the turn is over (`Command::HoldGame`; `docs/design/2026-09-30-opening-turn.md`, "The hold").
+pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<ToBot>, brain: Brain, mut recorder: Option<Recorder>, player: Option<Arc<crate::strategist::shared::Shared>>) -> io::Result<()> {
     let lockstep = crate::strategist::lockstep();
+    let mut held = false;
     let (to_brain, brain_in) = mpsc::channel::<(Arc<Tick>, LaneReport)>();
     let (from_brain, brain_out) = mpsc::channel::<BrainResult>();
     std::thread::Builder::new().name("brain".into()).spawn(move || brain_thread(brain, brain_in, from_brain))?;
@@ -255,6 +262,12 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
             commands.extend(output.commands);
             report = LaneReport { hunts: output.hunts, rove: output.rove, fired: output.fired, groups, roving: lane.rovers_roving() };
         }
+        // The game runs and the opening turn is not over (nobody had a start to place, or the people were ready
+        // first): the host is asked to hold it. Lockstep holds the first tick itself (`Shared::hold_for_opening`).
+        let hold = player.as_ref().filter(|p| !lockstep && !held && tick.frame <= HOLD_BY_FRAME && p.opening_in_hand());
+        if hold.is_some() {
+            commands.push(Command::HoldGame { seconds: crate::strategist::opening_hold_seconds() });
+        }
         let ms = started.elapsed().as_secs_f32() * 1000.0;
         if let Some(r) = &mut recorder
             && let Err(e) = r.tick(&tick, journal, &commands, ms, brain_ms)
@@ -264,6 +277,15 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
             recorder = None;
         }
         write_frame(&mut stream, &Commands(commands))?;
+        // Held: no tick comes until the release, which is this thread's next frame, sent when the turn is over.
+        if let Some(player) = hold {
+            held = true;
+            let began = Instant::now();
+            eprintln!("f={} the game began with the opening turn still in hand: the host is asked to hold it", tick.frame);
+            player.wait_for_opening();
+            eprintln!("f={} the opening turn is over {:.1} s on: the hold is released", tick.frame, began.elapsed().as_secs_f32());
+            write_frame(&mut stream, &Commands::default())?;
+        }
     }
 }
 

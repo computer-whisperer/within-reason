@@ -45,6 +45,32 @@ pub struct Spawner {
     callback: *const sys::SSkirmishAICallback,
 }
 
+/// The game's pause as this AI's host player (`COMMAND_PAUSE`: `CAICallback::HandleCommand` sends the engine's pause
+/// message under the client's net lock; the server takes it from a local host always, from another player when the
+/// game may be paused, and never from a spectator who is not the host). The one engine call made off the engine
+/// thread: a paused game sends an AI no update, so the pause is lifted by the thread that waits for the bot
+/// (`lib.rs`, the hold).
+#[derive(Clone, Copy)]
+pub struct Pauser {
+    ai_id: c_int,
+    callback: *const sys::SSkirmishAICallback,
+}
+
+// SAFETY: the callback table is valid until the engine releases the AI, and the hold's thread calls it only under the
+// lock `Host::release` cancels the hold under (`lib.rs` `holds`); the call it makes reads the client's player number
+// and sends one packet under the engine's own lock (`CNetProtocol::Send`).
+unsafe impl Send for Pauser {}
+
+impl Pauser {
+    pub fn pause(self, on: bool) -> Result<(), i32> {
+        let mut command = sys::SPauseCommand { enable: on, reason: c"the opening turn".as_ptr() };
+        let code = unsafe {
+            ((*self.callback).Engine_handleCommand.expect("Engine_handleCommand"))(self.ai_id, sys::COMMAND_TO_ID_ENGINE, -1, sys::COMMAND_PAUSE as c_int, std::ptr::from_mut(&mut command).cast::<c_void>())
+        };
+        if code == 0 { Ok(()) } else { Err(code) }
+    }
+}
+
 /// Calls a callback-table entry, which always takes the AI id first.
 macro_rules! call {
     ($engine:expr, $name:ident ( $($arg:expr),* )) => {
@@ -109,6 +135,10 @@ fn console(ai_id: c_int, callback: *const sys::SSkirmishAICallback, line: &str) 
 impl Engine {
     pub fn spawner(&self) -> Spawner {
         Spawner { ai_id: self.ai_id, callback: self.callback }
+    }
+
+    pub fn pauser(&self) -> Pauser {
+        Pauser { ai_id: self.ai_id, callback: self.callback }
     }
 
     /// A console command as this AI's text (see [`console`]); `/cheat 1` is what the spawner needs.
@@ -1279,7 +1309,7 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
                 })
             }
             // The shim answers these itself (`lib.rs` `apply`): nothing reaches the engine.
-            Command::GiveUnit { .. } | Command::Probe { .. } => Err(-1),
+            Command::GiveUnit { .. } | Command::Probe { .. } | Command::HoldGame { .. } => Err(-1),
             Command::SelfDestruct { unit } => {
                 self.handle(sys::COMMAND_UNIT_SELF_DESTROY, &mut sys::SSelfDestroyUnitCommand {
                     unitId: unit.0,

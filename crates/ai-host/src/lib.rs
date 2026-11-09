@@ -12,8 +12,9 @@ mod script;
 use std::collections::BTreeMap;
 use std::ffi::{c_int, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::Mutex;
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use bot_protocol::{Bot, ChatTo, Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
 pub use recoil_ai_sys as sys;
@@ -22,7 +23,7 @@ use engine::Engine;
 
 /// How the host reaches the bot. The exchange is the protocol's (`bot_protocol`): a `Hello`, then one `Commands`
 /// per message sent, each answer the credit for the next tick.
-pub trait Transport: Send + Sized {
+pub trait Transport: Send + Sized + 'static {
     /// Tried at `init` and then about once a second until it succeeds; an error is the idle state, not a fault.
     fn connect() -> std::io::Result<Self>;
     fn send(&mut self, message: ToBot) -> std::io::Result<()>;
@@ -30,6 +31,29 @@ pub trait Transport: Send + Sized {
     fn poll(&mut self) -> std::io::Result<Option<Commands>>;
     /// Blocks until the bot's reply has arrived. Lockstep mode: the game stands still while the bot thinks.
     fn wait(&mut self) -> std::io::Result<Commands>;
+    /// The bot's next message if it comes within `limit`, else `None`. Called off the engine thread, by the hold
+    /// ([`Command::HoldGame`]).
+    fn wait_for(&mut self, limit: Duration) -> std::io::Result<Option<Commands>>;
+}
+
+/// The seats of ours that hold the game now ([`Command::HoldGame`]): the pause goes out with the first and is lifted
+/// when the last is released. Every use of the engine by a hold's thread is under this lock, and `Host::release`
+/// cancels a hold under it, so no thread calls into an AI the engine has let go.
+static HOLDS: Mutex<usize> = Mutex::new(0);
+
+fn holds() -> std::sync::MutexGuard<'static, usize> {
+    HOLDS.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// How often a hold's thread looks up from the socket to see whether it was cancelled or has run out.
+const HOLD_POLL: Duration = Duration::from_millis(200);
+
+/// A seat's hold: its connection is with the thread that waits for the bot's release, and comes back with what the
+/// bot sent (`None`: the hold ran out or was cancelled first).
+struct Held<L> {
+    back: Arc<Mutex<Option<(L, std::io::Result<Option<Commands>>)>>>,
+    cancel: Arc<AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
 }
 
 /// The git commit this library was built from (`build.rs`; a `+` when the tree was dirty), for the line a bot says
@@ -45,7 +69,7 @@ pub struct InProcess<B: Bot> {
     reply: Option<Commands>,
 }
 
-impl<B: Bot> Transport for InProcess<B> {
+impl<B: Bot + 'static> Transport for InProcess<B> {
     fn connect() -> std::io::Result<Self> {
         Ok(InProcess { bot: None, reply: None })
     }
@@ -63,6 +87,10 @@ impl<B: Bot> Transport for InProcess<B> {
     }
 
     fn poll(&mut self) -> std::io::Result<Option<Commands>> {
+        Ok(self.reply.take())
+    }
+
+    fn wait_for(&mut self, _limit: std::time::Duration) -> std::io::Result<Option<Commands>> {
         Ok(self.reply.take())
     }
 
@@ -131,6 +159,11 @@ struct Instance<L: Transport> {
     frame: i32,
     /// The engine thread's time on this instance since the last `timing` line.
     spent: Spent,
+    /// The bot asked for the game to be held, for at most this many seconds ([`Command::HoldGame`]): begun once
+    /// the answer that carried it is applied.
+    hold_asked: Option<u32>,
+    /// The game is held for this seat: no tick is sent and no connection tried until the release.
+    held: Option<Held<L>>,
 }
 
 /// Wall seconds the engine thread spent on one instance (`docs/design/2026-10-27-engine-thread.md`): an in-library
@@ -232,6 +265,11 @@ impl<L: Transport> Instance<L> {
             let census = self.engine.own_census();
             self.log(format_args!("census f={frame} own {census}"));
         }
+        // Held for the bot's opening turn: the frames that still come (the pause takes a few to arrive, and a server
+        // may refuse it) send nothing, and the connection is with the hold's thread, not lost.
+        if !self.hold_over() {
+            return;
+        }
         if self.link.is_none() && frame % RECONNECT_INTERVAL == 0 {
             self.connect(frame);
         }
@@ -246,6 +284,9 @@ impl<L: Transport> Instance<L> {
                 let began = Instant::now();
                 self.apply(commands);
                 self.spent(began, "apply", |s| &mut s.apply);
+                if self.hold() {
+                    return;
+                }
             }
             Ok(None) => {}
             Err(e) => return self.disconnect(e),
@@ -274,10 +315,124 @@ impl<L: Transport> Instance<L> {
                     Ok(commands) => {
                         self.has_credit = true;
                         self.apply(commands);
+                        self.hold();
                     }
                     Err(e) => self.disconnect(e),
                 }
             }
+        }
+    }
+
+    /// Begins the hold the bot's last answer asked for ([`Command::HoldGame`]): the game is paused, by the first
+    /// seat to hold, and this seat's connection goes to a thread that waits for the bot's release, since a paused
+    /// game calls no export of ours to wait in. True when a hold began.
+    fn hold(&mut self) -> bool {
+        let Some(seconds) = self.hold_asked.take() else { return false };
+        let Some(mut link) = self.link.take() else { return false };
+        let pauser = self.engine.pauser();
+        let first = {
+            let mut seats = holds();
+            *seats += 1;
+            *seats == 1
+        };
+        if first {
+            // Said where the people at the game read it: the engine names only the host player as who paused.
+            let _ = self.engine.issue(&Command::Say {
+                text: "{name} holds the game until its opening turn is over (an AI's pause: it lifts by itself)".into(),
+                to: bot_protocol::SayTo::Everyone,
+            });
+            if let Err(code) = pauser.pause(true) {
+                self.log(format_args!("f={} hold: the pause was refused: {code}", self.frame));
+            }
+        }
+        self.log(format_args!("f={} hold: the game is held for the bot's opening turn, {seconds} s at most{}", self.frame, if first { "; pause sent" } else { "" }));
+        let (back, cancel) = (Arc::new(Mutex::new(None)), Arc::new(AtomicBool::new(false)));
+        let ai_id = self.ai_id;
+        let thread = std::thread::Builder::new().name("wreason-hold".into()).spawn({
+            let (back, cancel) = (back.clone(), cancel.clone());
+            move || {
+                let began = Instant::now();
+                let limit = Duration::from_secs(u64::from(seconds));
+                let outcome = loop {
+                    if cancel.load(Ordering::Relaxed) {
+                        break Ok(None);
+                    }
+                    match link.wait_for(HOLD_POLL) {
+                        Ok(Some(commands)) => break Ok(Some(commands)),
+                        Ok(None) if began.elapsed() >= limit => break Ok(None),
+                        Ok(None) => {}
+                        Err(e) => break Err(e),
+                    }
+                };
+                let why = match &outcome {
+                    Ok(Some(_)) => "the bot released it".to_string(),
+                    Ok(None) if cancel.load(Ordering::Relaxed) => "the engine let the AI go".to_string(),
+                    Ok(None) => format!("no release in {seconds} s"),
+                    Err(e) => format!("the bot's connection was lost: {e}"),
+                };
+                let lifted = {
+                    let mut seats = holds();
+                    *seats = seats.saturating_sub(1);
+                    let last = *seats == 0 && !cancel.load(Ordering::Relaxed);
+                    last.then(|| pauser.pause(false))
+                };
+                eprintln!(
+                    "[wreason ai={ai_id}] hold over after {:.1} s ({why}){}",
+                    began.elapsed().as_secs_f32(),
+                    match lifted {
+                        Some(Ok(())) => "; the pause is lifted".to_string(),
+                        Some(Err(code)) => format!("; lifting the pause was refused: {code}"),
+                        None => String::new(),
+                    }
+                );
+                *back.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = Some((link, outcome));
+            }
+        });
+        match thread {
+            Ok(thread) => self.held = Some(Held { back, cancel, thread: Some(thread) }),
+            // No thread, no hold: the connection went with the closure, and the next connect is a new session.
+            Err(e) => {
+                self.log(format_args!("hold: no thread to wait on ({e}): the game goes on"));
+                let mut seats = holds();
+                *seats = seats.saturating_sub(1);
+                if *seats == 0 {
+                    let _ = pauser.pause(false);
+                }
+            }
+        }
+        self.held.is_some()
+    }
+
+    /// Whether this seat is free of a hold: never held, or the hold's thread has handed the connection back, with
+    /// the bot's release (applied here, on the engine thread) or without one.
+    fn hold_over(&mut self) -> bool {
+        let Some(held) = &mut self.held else { return true };
+        let Some((link, outcome)) = held.back.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).take() else { return false };
+        if let Some(thread) = held.thread.take() {
+            let _ = thread.join();
+        }
+        self.held = None;
+        self.link = Some(link);
+        // The answer that asked for the hold was the last tick's credit, and stands.
+        self.has_credit = true;
+        match outcome {
+            Ok(Some(commands)) => self.apply(commands),
+            Ok(None) => {}
+            Err(e) => self.disconnect(e),
+        }
+        true
+    }
+
+    /// The engine is letting this AI go: a hold's thread is told, under the lock it uses the engine under, and waited
+    /// for (it looks up every `HOLD_POLL`), so nothing of ours runs in the library after the release.
+    fn end_hold(&mut self) {
+        let Some(mut held) = self.held.take() else { return };
+        {
+            let _seats = holds();
+            held.cancel.store(true, Ordering::Relaxed);
+        }
+        if let Some(thread) = held.thread.take() {
+            let _ = thread.join();
         }
     }
 
@@ -358,6 +513,10 @@ impl<L: Transport> Instance<L> {
                         continue;
                     }
                 }
+            }
+            if let Command::HoldGame { seconds } = command {
+                self.hold_asked = Some(seconds);
+                continue;
             }
             if let Command::Probe { points } = &command {
                 let points = points.iter().map(|p| Vec3 { y: self.engine.elevation(p.x, p.z), ..*p }).collect();
@@ -585,6 +744,8 @@ impl<L: Transport> Host<L> {
                 mismatch_at: None,
                 frame: -1,
                 spent: Spent::default(),
+                hold_asked: None,
+                held: None,
             };
             instance.log("init");
             // Hello at init, before the people place their starts and long before the first update: the player takes
@@ -598,7 +759,9 @@ impl<L: Transport> Host<L> {
 
     pub fn release(&self, skirmish_ai_id: c_int) -> c_int {
         guarded(skirmish_ai_id, || {
-            if let Some(instance) = self.instances().remove(&skirmish_ai_id) {
+            let instance = self.instances().remove(&skirmish_ai_id);
+            if let Some(mut instance) = instance {
+                instance.end_hold();
                 instance.log("release");
             }
             0

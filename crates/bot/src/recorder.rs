@@ -377,6 +377,7 @@ impl Recorder {
                 Command::Stockpile { unit, change } => json!(["stockpile", unit.0, change]),
                 Command::Priority { unit, low } => json!(["priority", unit.0, i32::from(!low)]),
                 Command::Probe { ref points } => json!(["probe", points.len()]),
+                Command::HoldGame { seconds } => json!(["hold_game", seconds]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));

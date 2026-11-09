@@ -969,6 +969,19 @@ impl Shared {
         self.gated.load(Relaxed) && !self.opening_over.load(Relaxed) && !self.gate.lock().unwrap().closed
     }
 
+    /// Whether the opening turn asked for at Hello is still being taken, the hands waiting on it: what a game that
+    /// has begun to run is held for (`session.rs`, `Command::HoldGame`). Not the fallback first turn, asked at a
+    /// tick: a held game sends none.
+    pub fn opening_in_hand(&self) -> bool {
+        self.opening_pending() && self.opening.lock().unwrap().asked
+    }
+
+    /// Blocks until the opening turn is over or its session has gone (`hold_for_opening`'s wait, whatever the mode).
+    pub fn wait_for_opening(&self) {
+        let gate = self.gate.lock().unwrap();
+        let _held = self.gate_changed.wait_while(gate, |g| !g.closed && !self.opening_over.load(std::sync::atomic::Ordering::Relaxed)).unwrap();
+    }
+
     /// Brain side: ask for a turn and hold the game until it is over. Returns at once when no session can answer.
     /// `opening`: the game's first turn, asked at a tick because no opening turn was asked at Hello; its orders
     /// are in force when it ends, as the opening turn's are.
@@ -1266,6 +1279,15 @@ mod tests {
         gone.close_gate();
         gone.hold_for_opening();
         assert!(!gone.opening_pending());
+        // A running game is held for the turn asked at Hello and no other, and the wait ends with the turn.
+        let asked = Shared::default();
+        asked.gated.store(true, std::sync::atomic::Ordering::Relaxed);
+        assert!(!asked.opening_in_hand(), "no turn asked at Hello: nothing to hold a game for");
+        asked.seat_said_hello(0, 1, "commander (team 0)".into(), serde_json::json!({}), Vec::new());
+        assert!(asked.opening_in_hand());
+        asked.end_turn();
+        assert!(!asked.opening_in_hand());
+        asked.wait_for_opening();
     }
 
     /// The fallback first turn asked at a tick lands at once under the penalty, as the opening turn does.

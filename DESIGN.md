@@ -138,6 +138,13 @@ weapons fire at the target whenever they reach it while it carries out its order
 its way in and out of reach (`docs/design/2026-11-04-rove-2.md` §2); the target must be in sight or on radar when the
 order goes out, else the gadget sets nothing (K-mech-set-target-fires-on-the-move).
 
+`Command::HoldGame { seconds }` (2026-11-08) is the one command that breaks the credit rule: the bot's answer to a
+tick of the game's first second while its player's opening turn is still being taken. The host pauses the game as the
+AI's host player (`COMMAND_PAUSE`) and hands the seat's connection to a thread, since a paused game sends an AI no
+update; the bot's next `Commands`, sent unasked when the turn is over, is the release, on which the thread lifts the
+pause and the ticks go on (`docs/design/2026-09-30-opening-turn.md`, "The hold"). Realtime only: lockstep holds the
+first tick in the shim's wait.
+
 `Command::Probe { points }` (2026-10-27) asks the ground's height at a few points; the shim answers it itself in the
 next tick as `Event::Ground { points }`, each point with `y` the synced ground's height (`Map_getElevationAt`), and sends
 nothing to the engine. Nothing else tells a bot whether its missile was intercepted (no projectile access, no event:

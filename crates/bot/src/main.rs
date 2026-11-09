@@ -161,5 +161,5 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
     write_frame(&mut stream, &Commands::default())?;
     let _commander = commander;
     // From here two threads: the lane and the socket on this one, the brain on its own (`session.rs`).
-    session::run(stream, next, brain, recorder)
+    session::run(stream, next, brain, recorder, strategist.as_ref().map(|s| s.shared.clone()))
 }

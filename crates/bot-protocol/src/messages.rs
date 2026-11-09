@@ -870,6 +870,15 @@ pub enum Command {
     /// that lands digs one (players are shown a glowing crater where it landed), one intercepted in the air does not
     /// (K-rules-a-bot-sees-no-interception).
     Probe { points: Vec<Vec3> },
+    /// Stand the game still until this seat's next frame: the bot's answer to a tick of a running game while its
+    /// player's opening turn is not over (`docs/design/2026-09-30-opening-turn.md`, "The hold"). The host pauses the
+    /// game as the AI's host player and gives this seat's connection to a thread, since a paused game sends an AI
+    /// no update to answer: the thread lifts the pause when the bot's next [`Commands`] comes (unasked, the release),
+    /// or after `seconds`, or when the connection is lost, and the seat's ticks begin again with the game. With
+    /// several seats holding, the pause is lifted when the last is released. A server that refuses the pause (a
+    /// spectator's on a dedicated host, a game set not to pause) leaves the game running, and the seat is silent
+    /// until its release all the same.
+    HoldGame { seconds: u32 },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

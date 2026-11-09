@@ -47,6 +47,14 @@ impl Transport for Link {
         result
     }
 
+    /// The bot's next message if it comes within `limit`. Off the engine thread: the hold's wait for its release.
+    fn wait_for(&mut self, limit: Duration) -> io::Result<Option<Commands>> {
+        self.stream.set_read_timeout(Some(limit))?;
+        let result = self.reader.read(&mut self.stream);
+        self.stream.set_read_timeout(None)?;
+        result
+    }
+
     /// Blocks until the bot's reply has arrived. Lockstep mode: the game stands still while the bot thinks.
     fn wait(&mut self) -> io::Result<Commands> {
         loop {

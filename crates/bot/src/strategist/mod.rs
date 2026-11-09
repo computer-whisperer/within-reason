@@ -767,6 +767,12 @@ fn over_turn_limit(walls: &[f32], limit: f32) -> bool {
 /// default and the arena raises it to 600; turns run 1 to 11 s), in real time 120 s (the game runs on meanwhile). A
 /// session's first turn gets 90 s in lockstep: a cold session's first answer runs 21 to 38 s to its first token and
 /// its turn past 45 (the four games above `PREWARM_TURNS`), and abandoning it only spawns another cold one.
+/// The longest a running game is held for the opening turn (`Command::HoldGame`): the turn's own cap and half a
+/// minute, after which the host lifts the pause whatever the bot says.
+pub fn opening_hold_seconds() -> u32 {
+    turn_cap(true).as_secs() as u32 + 30
+}
+
 fn turn_cap(first_turn: bool) -> Duration {
     // A Codex turn is one process with a 3 s floor and 20-60 s of writing (docs/studies/policy-models.md): the
     // lockstep cap that catches a hung Claude session would discard most of them.

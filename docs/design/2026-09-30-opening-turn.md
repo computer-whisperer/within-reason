@@ -38,7 +38,8 @@ acts until it is over.**
    stands at frame 0 as a human game's stands in its countdown. The turn's orders are in force when it ends: the
    think penalty is for turns taken while a live game would have run on.
 5. **The hands ask nothing until the opening turn is over** (`Shared::opening_pending`; the pass and the lists wait).
-   In a realtime game whose people ready up before the turn ends the game runs and the hands wait for it. A session
+   In a realtime game whose people ready up before the turn ends the game runs and the hands wait for it (from
+   2026-11-08 the game is paused for it: "The hold", below). A session
    that failed to start, or a turn abandoned at its cap, ends the wait: the hands play on the default instructions
    as before.
 6. **The first report of the running game** is a full one and carries the map again, now with our start, the
@@ -69,8 +70,48 @@ The fallback when a seat never says Hello: the first turn is asked at a tick as 
 - opening-smoke-3-two-seats (lockstep): one opening turn naming `commander_t0` and `commander_t1`, each seat
   M M M S S S, the plants at 1:10 and 1:08.
 
-Not yet seen: that `init` precedes the placing phase in a lobby-hosted game as the engine source says (a rehearsal
-with a person in the lobby shows it). The shim changed: `run/install_to_bar.sh` before a game with people.
+Seen since in the lobby games (read 2026-11-08 from their records): `init` precedes the placing phase as the engine
+source says, and in the 32 seats of the client games from 1793582746-human to 1794106612-human the opening turn (11 to
+41 s of wall) was over before frame 0 and the first order went out at 0:02 to 0:06. A game nobody places a start in
+has no such phase: "The hold", below.
+
+## The hold: a game that runs before the opening turn is over (2026-11-08)
+
+Step 5 let a realtime game run while the hands waited for the turn. In 1794184846-apex_2v1 (the user's client game,
+a spectator hosting three AI seats) nobody had a start to place: frame 0 came about 3 s after Hello, the turn took 38 s
+to its `wait`, and the commander stood on 1,000 metal until 0:38 (every earlier client game, 32 seats, ordered at
+0:02 to 0:06: its people's placing covered turns of 11 to 41 s). The user, 2026-11-08: "The missing player countdown
+pause is almost certainly the cause ... implemented generically if our bot has not finished its preparation turn in
+any live game. If that doesn't work, the answer is probably to have canned build orders on basic heuristics."
+
+So the game is paused for the turn, in any realtime game:
+
+- **The bot asks.** The session's fast thread (`session.rs`), answering a tick of the game's first second
+  (`HOLD_BY_FRAME`) while the opening turn asked at Hello is still in hand (`Shared::opening_in_hand`), adds
+  `Command::HoldGame { seconds }` to its answer, waits for the turn to end (`Shared::wait_for_opening`: its `wait`,
+  its response's end, its cap, or its session gone) and then writes one more frame, unasked: the release. Not in
+  lockstep, which holds the first tick itself; not for a bot started into a game under way.
+- **The host pauses** (`ai-host` `Instance::hold`): `COMMAND_PAUSE` as the AI's host player, a line in the chat
+  saying whose pause it is, and the seat's connection handed to a thread, because a paused game sends an AI no update
+  and so calls no export of ours to wait in. The thread reads the socket for the release, lifts the pause and hands
+  the connection back; the engine thread takes it up at the next update and the ticks go on. The pause goes out with
+  the first seat to hold and is lifted when the last is released (`HOLDS`), so eight seats with eight players wait
+  for the slowest. It is lifted without a release after `seconds` (the turn's cap and thirty), or when the bot's
+  connection is lost; when the engine releases the AI the thread is cancelled and joined and the pause left alone.
+- **What the engine does with it** (read in `upstream/`): the pause travels as the host player's
+  (`CAICallback::HandleCommand`, `clientNet->Send` under the net lock, which is what makes the thread's call safe);
+  the server takes it from a local host always, from a remote player when the game may be paused, and never from a
+  remote spectator (`GameServer.cpp` `NETMSG_PAUSE`). Where it is refused the game runs on, the seat is silent
+  until its release, and the hands begin when the turn ends, as before the hold.
+- **No game decision is made by this.** The hold changes when frame 1 follows frame 0, not what anyone orders.
+
+Not done: lifting the pause when a person lifts it first and pauses again for their own reason (ours would lift
+theirs); a second hold later in a game (there is one opening turn).
+
+Measured, hold-smoke-1 (arena, `--realtime --start-delay 0`, the 1794184846 situation): the pause went out at frame 1
+("arena paused the game"), the game stood at frame 1 for 23.2 s of wall, the release lifted it, and the commander's
+opening went out as one queue at 0:02. Unmeasured: a client game hosted from the lobby (the same local-host path), a
+dedicated host with people in it, several seats.
 
 ## One list per faction (2026-11-04)
 
