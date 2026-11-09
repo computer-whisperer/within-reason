@@ -991,6 +991,11 @@ mod finish_tests {
         // The same finish again is the build going on, not a new order.
         let again = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, None, &mut commands);
         assert!(again.is_none(), "{again:?}");
+        // Queued behind itself it would be the engine's cancel of the build going on: no order, nothing queued.
+        let orders = commands.len();
+        let queued = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), true, Some("finish armsolar_20"), &mut commands);
+        assert!(queued.is_none() && commands.len() == orders, "{queued:?} {commands:?}");
+        assert!(brain.pianist.as_ref().unwrap().queue_of(UnitId(1)).next().is_none());
     }
 
     /// The lists line counts the builders whose lists ran out with nothing in their place, with the median and the

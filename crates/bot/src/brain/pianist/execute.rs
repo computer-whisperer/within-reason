@@ -135,8 +135,12 @@ impl Brain {
             Order::Build(_, Site::Spot(i)) if ordered_def.is_some_and(|d| self.world.is_extractor_def(d)) && same_site(Some(*i), None) => return None,
             Order::Build(def, Site::Tile(at)) if ordered_def == Some(*def) && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { near, .. }) if near.dist2d(*at) < SAME_SITE) => return None,
             Order::Help(target) if helping == Some(*target) => return None,
-            // The frame this builder is finishing already is the same build going on.
-            Order::Finish(target) if !queue && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { frame: Some(f), .. }) if f == target) => return None,
+            // The frame this builder is finishing already, or has queued to finish, is the same build going on:
+            // queued or not. The engine takes an order queued behind its own duplicate as that order's cancel and
+            // stops the builder (K-mech-a-queued-duplicate-cancels-the-order; 1794184846-apex_2v1, 1:00: the list's
+            // `finish corlab_2525` queued behind the pick's finish of the same lab, the commander stopped at 79%,
+            // the lab decayed to 43% and stood at 1:48).
+            Order::Finish(target) if self.pianist.as_ref().is_some_and(|p| p.tasks.get(&id).into_iter().chain(p.queue_of(id)).any(|t| matches!(t, Task::Build { frame: Some(f), .. } if f == target))) => return None,
             _ => {}
         }
         let mut task: Option<Task> = None;

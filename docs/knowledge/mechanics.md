@@ -1157,3 +1157,23 @@ spot_68 to fight his Fatboy at spot_62 in reach". `execute.rs` before the change
 moves for it", or guns with the shot in hand walking to a standoff, or the attack / shell flip at the same rate with
 the words corrected (then the pick's framing of near-equal courses is the cause, not the geometry).
 **Used by.** H-HANDS-SHELL.
+
+### K-mech-a-queued-duplicate-cancels-the-order
+**Claim.** An order queued behind its own duplicate is not a second order: the engine takes it as the first one's
+cancel. `CCommandAI::GiveAllowedCommand` runs `CancelCommands` on every queued order before appending it, a match in
+the unit's queue is removed, and when the match was the order being carried out a `Stop` goes to the front, so the
+unit stands idle with an empty queue (a person's shift-click on a queued order takes it off; the same code). For a
+builder this is a `repair` of the frame it is already raising, or a build of the same type on the same site: sent with
+the queue flag, either stops the build it was meant to follow.
+**Status.** supported (2026-11-08) from the engine source we run and one game's trace; not yet reproduced in a drill.
+**Evidence.** `upstream/RecoilEngine/rts/Sim/Units/CommandAI/CommandAI.cpp` `GiveAllowedCommand` ("cancel duplicated
+commands": `CancelCommands(c, commandQue, first)`, `push_front(Command(CMD_STOP))` when `first`). 1794184846-apex_2v1
+(the user's client game, record-1.jsonl): the commander was finishing corlab_2525 on the pick's order of 0:50 (a
+`repair`, 6 % a second); at frame 1800 the player's list step `finish corlab_2525` went out as the same `repair` with
+the queue flag ("next, queued: finish our Bot Lab ... (78% built)"); the lab read 78 % at frame 1800 and 79 % at 1830,
+where 6 % a second gives 84, and the commander's next order (the list's solar) went out only at frame 1833. The
+hands' book still read "queued to start the moment this is done: building a Bot Lab" at 1:05; the frame decayed to
+43 % by 1:36 and stood at 1:48 for about 1:04.
+**Would be wrong if.** A drill with a builder on a `repair` of a frame, given the same `repair` queued, kept raising
+the frame.
+**Used by.** H-HANDS-QUEUE (a `finish` of the frame the builder is on, or has queued, is no order).
