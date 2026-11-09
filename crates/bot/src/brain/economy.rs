@@ -328,7 +328,7 @@ impl Brain {
                 if self.layout_refusal_said.borrow_mut().insert(def, said.clone()) != Some(said.clone()) {
                     eprintln!("[ai {}] {said}", self.ai());
                 }
-                self.dump_layout_failure(world, &req, builder, &why, ms);
+                self.dump_layout_failure(world, &req, builder, &why, ms, trace);
                 Plan::Near(def, centre)
             }
         }
@@ -336,8 +336,8 @@ impl Brain {
 
     /// A failing search saved whole for replay (`layout::Dump`, `site_replay`): the first `LAYOUT_DUMPS` of a game,
     /// at most `LAYOUT_DUMPS_PER_KIND` a kind, into `layout-fail-<ai>-<n>.bin` beside the record, when the record
-    /// is on. The search is run once more, traced, for the file.
-    fn dump_layout_failure(&self, world: &World, req: &Request, builder: &OwnUnit, why: &str, ms: f32) {
+    /// is on, with the search's own trace.
+    fn dump_layout_failure(&self, world: &World, req: &Request, builder: &OwnUnit, why: &str, ms: f32, trace: Vec<String>) {
         if !crate::recorder::enabled() {
             return;
         }
@@ -352,8 +352,6 @@ impl Brain {
             *total += 1;
             *total
         };
-        let mut trace = Vec::new();
-        let _ = layout::choose_traced(world, req, Some(&mut trace));
         // The last tick's frame: `stun_frame` is set by every tick's enemy reading (`briefing.rs`).
         let seconds = self.stun_frame / super::FRAMES_PER_SECOND;
         let label = format!("{} for {} at {}:{:02}", self.name(req.facts.def), self.actor_name(builder.id), seconds / 60, seconds % 60);

@@ -324,7 +324,9 @@ most five a game, said in `bot.log` (`slow menu pass N dumped`). `site_bench` as
 instead of the eight kinds and says the time by purpose too; the pass off the game is the pass in it (1794201690-econ-flagship-22:
 538 / 823 / 1,710 / 2,727 ms off the game against 518 / 785 / 1,550 / 2,632 ms in it, so the builder menus' time is its
 site questions and nothing else of weight). 2026-11-09 on those four dumps: about 5,600 → 1,040 ms (three runs each: 5,262-5,839 against 991-1,097), every one of 309 answers
-the same with its words (`--list` of the old search against the new; with the five failure dumps 645 of 645).
+the same with its words (`--list` of the old search against the new; with the five failure dumps 645 of 645). In a
+game (econ-flagship-23 against -22, the ledger): `builder_menus` median 77 ms, p90 188, worst 321, against 387 /
+1,706 / 3,360.
 
 ## Opponent ground truth
 
