@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use bot_protocol::{BuildSite, Command, FeatureId, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, FeatureId, Lane, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use layout::{Facts, Ground, Rect};
 
 use crate::{Distilled, Kit, MINUTE, SECOND};
@@ -37,12 +37,15 @@ const ASSIST_REVIEW: i32 = 10 * SECOND;
 /// A spot whose extractor could not be placed is left alone this long; a plant with no room for a turret, this long.
 const REFUSED: i32 = 60 * SECOND;
 const TURRET_REFUSED: i32 = 2 * MINUTE;
+/// A layout slot that came to nothing is passed over by the layer this long (the flagship's `REFUSED_FRAMES`).
+const SITE_REFUSED: i32 = 90 * SECOND;
 /// The commander builds extractors and the front's radar this far from home and no farther (D-COMMANDER). 700 until
 /// 2026-11-03 night: Comet has four spots within 700 of a start and the next at 1,081-1,427, so from 4:00 the
 /// commander assisted a metal-starved plant in fifteen of sixteen games (dist95) while the flagship's commander
 /// built the extractors 1,000 and 1,353 out at 3:39 and 4:00 (apex-v0504-comet-sym0-opus-1, its constructors on
-/// the farther ones). Its solar field stays within `COMMANDER_FIELD` of home: a solar where it stands a thousand
-/// out would be a generator on the frontier (the flagship's K-eco-generators-built-on-the-frontier).
+/// the farther ones). Its solars go where it stands (the layer's band, D-LAYOUT), out there too: the rule that
+/// kept its solar field within 700 of home (the flagship's K-eco-generators-built-on-the-frontier) lived in the
+/// engine-search siting and has not played since the layer took the solars on 2026-11-03.
 const COMMANDER_WALK: f32 = 1400.0;
 /// Before the plant stands the commander walks this far from home for an extractor and no farther (2026-11-06). The
 /// opening took two extractors first whatever the walk: on Hooked the second spot is 1,000 from the first, the
@@ -50,7 +53,6 @@ const COMMANDER_WALK: f32 = 1400.0;
 /// maps; all sixteen games were lost, eleven by 9:30 (dist155, dist167). The far spot is the commander's after the
 /// plant (`COMMANDER_WALK`) or a constructor's.
 const OPENING_WALK: f32 = 500.0;
-const COMMANDER_FIELD: f32 = 700.0;
 /// An extractor farther from home than this gets a sentry beside it, from the builder that built it (D-SENTRY).
 const SENTRY_FROM: f32 = 900.0;
 /// ... and only at extractors this far along the way to his start, with no sentry of ours within `SENTRY_SHARED`.
@@ -94,8 +96,6 @@ const RECLAIM_COVER: f32 = 1200.0;
 /// the engine's reclaim time counted (a Blitz wreck 500 away pays a construction vehicle 6 a second, a Stout's 1,000
 /// away the same; an extractor's 50 is 20 s of its time for 2.3 a second after).
 const RECLAIM_RATE: f32 = 4.0;
-/// A frame counts as within a turret's reach this far beyond its build distance (the footprint's half).
-pub(crate) const TURRET_REACH_SLACK: f32 = 100.0;
 /// Builders on energy at one time: three, and one more for every three constructors (2026-10-20: the flagship's
 /// twelve Comet wins hold a solar per extractor through 10:00, 18 for 20, where the bot held 13 for 26 and stalled on
 /// energy at 9:00 and 12:00).
@@ -272,6 +272,10 @@ pub(crate) struct Economy {
     pub(crate) orders: BTreeMap<UnitId, Order>,
     /// Per kind, the minute the layer's refusal was last said (D-LAYOUT).
     layout_said: std::cell::RefCell<BTreeMap<UnitDefId, i32>>,
+    /// The layer's slots the engine refused or a builder could not carry out, by kind, each with the frame until
+    /// which the layer passes it over (D-LAYOUT, `World.refused`): without them the refused slot is the best again
+    /// at the next ask.
+    pub(crate) sites_refused: Vec<(UnitDefId, Vec3, i32)>,
     /// Per builder, orders refused or dropped in a row, and the frame until which it is sidelined (D-ORDERS).
     attempts: BTreeMap<UnitId, u32>,
     sidelined: BTreeMap<UnitId, i32>,
@@ -294,11 +298,8 @@ pub(crate) struct Economy {
     pub moho_refused: BTreeMap<UnitId, i32>,
     /// Plants (and project frames) beside which a construction turret found no site, with the frame until which each
     /// is left alone (distilled-t2-smoke-4: the ladder asked the same crowded plant for a turret every half second
-    /// for twenty minutes and never reached "another plant"), and how many times each has refused one: the next
-    /// turret goes to another side of the plant (apex-v029-distilled-comet-5-cold game 02: one site behind a plant,
-    /// which no builder could reach, asked for 26 times by nine builders over four minutes).
+    /// for twenty minutes and never reached "another plant").
     turret_refused: BTreeMap<UnitId, i32>,
-    turret_attempts: BTreeMap<UnitId, u32>,
     /// The frame until which no plant is asked for, after a plant found no site (distilled-t2b-30-hard: two plants
     /// and a 9,000 bank at 25:00, the yard asked for a plant every half second).
     plant_refused: i32,
@@ -315,7 +316,7 @@ pub(crate) struct Economy {
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), layout_said: Default::default(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new(), reclaims: 0, reclaim_metal: 0.0, stand_issued: false }
+        Economy { orders: BTreeMap::new(), layout_said: Default::default(), sites_refused: Vec::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), plant_refused: 0, silo_refused: 0, tiles_refused: BTreeMap::new(), reclaims: 0, reclaim_metal: 0.0, stand_issued: false }
     }
 
     /// An extractor site that came to nothing is left alone until `until`.
@@ -391,6 +392,12 @@ impl Distilled {
             return;
         }
         let Some(order) = self.economy.orders.remove(&unit) else { return };
+        // The layer's slot came to nothing: it is passed over for a while, so the next ask finds another.
+        if let (Some((at, _)), Some(def)) = (order.site, order.job.def(&self.kit)) {
+            let frame = self.frame;
+            self.economy.sites_refused.retain(|(_, _, until)| frame < *until);
+            self.economy.sites_refused.push((def, at, frame + SITE_REFUSED));
+        }
         let attempts = self.economy.attempts.entry(unit).or_default();
         *attempts += 1;
         if *attempts >= ATTEMPTS {
@@ -404,7 +411,6 @@ impl Distilled {
             }
             Job::Turret(beside) => {
                 self.economy.turret_refused.insert(beside, self.frame + TURRET_REFUSED);
-                *self.economy.turret_attempts.entry(beside).or_default() += 1;
             }
             Job::Plant | Job::AdvancedPlant => self.economy.plant_refused = self.frame + TURRET_REFUSED,
             Job::AirPlant => self.air.plant_refused = self.frame + TURRET_REFUSED,
@@ -522,9 +528,14 @@ impl Distilled {
             return if unit.idle && age > GRACE { Review::Done } else { Review::Busy };
         }
         if unit.idle {
+            // A building that stands at the order's slot was built, however soon: under a farm's turrets a converter
+            // is raised inside `DROPPED` (D-TURRETS; dist295: 51 converter orders in eight games read as dropped,
+            // each a step toward sidelining its builder).
+            let def = order.job.def(&self.kit);
+            let built = order.site.is_some_and(|(at, _)| self.own.values().any(|u| Some(u.def) == def && u.pos.dist2d(at) < 1.0));
             return if age <= GRACE {
                 Review::Busy
-            } else if age <= DROPPED {
+            } else if age <= DROPPED && !built {
                 Review::Dropped
             } else {
                 Review::Done
@@ -957,16 +968,53 @@ impl Distilled {
         }
     }
 
-    /// D-BUILD-POWER, D-PROJECT: a construction turret with the project's frame in its reach helps raise it; otherwise
-    /// an idle turret helps the nearest plant in its reach, told again every ten seconds.
+    /// The ground a building of ours covers where it stands.
+    pub(crate) fn rect_of(&self, unit: &OwnUnit) -> Option<layout::Rect> {
+        let (x, z) = self.def(unit.def)?.footprint;
+        Some(layout::Footprint { x, z }.faced(unit.facing).rect(unit.pos))
+    }
+
+    /// Whether a construction turret reaches a frame: its build distance to the frame's footprint, the layout
+    /// layer's own test (`layout::Worker`), so the power the layer counted at a site is the power that works there.
+    /// Until 2026-11-09 the test was the centres' distance with a hundred of slack, a reactor's half footprint and
+    /// more than a small frame's; asked of the projects alone then, of every frame now.
+    pub(crate) fn turret_reaches(&self, turret: &OwnUnit, frame: &OwnUnit) -> bool {
+        let reach = self.def(turret.def).map_or(TURRET_REACH, |d| d.build_distance);
+        self.rect_of(frame).is_some_and(|rect| layout::distance_to(&rect, turret.pos) <= reach)
+    }
+
+    /// D-TURRETS: a construction turret works the frame in its reach that ranks first, a construction turret's
+    /// frame before any other (build power compounds) and then the dearest, told again when the answer changes;
+    /// with no frame in reach an idle turret helps the nearest plant in its reach, told again every ten seconds.
+    /// Until 2026-11-09 a turret helped the one dearest project's frame when it was in reach and otherwise a plant:
+    /// a turret among the reactors with another reactor, an advanced converter or a turret going up in its reach
+    /// and no plant stood idle (the audit of 2026-11-06: the construction turrets idle 37 % of their seconds with
+    /// the bank full), and a farm (`block.rs`) is worth what its turrets work.
     pub(crate) fn run_turrets(&mut self, commands: &mut Vec<Command>) {
-        let project = self.project_frame().map(|f| (f.id, f.pos));
-        let turrets: Vec<(UnitId, Vec3, f32, bool)> = self.finished(self.kit.turret).map(|t| (t.id, t.pos, self.def(t.def).map_or(TURRET_REACH, |d| d.build_distance), t.idle)).collect();
-        for (turret, at, reach, idle) in turrets {
+        let frames: Vec<(&OwnUnit, layout::Rect, bool, f32)> = self
+            .own
+            .values()
+            .filter(|u| u.being_built)
+            .filter_map(|u| {
+                let d = self.def(u.def).filter(|d| d.speed == 0.0)?;
+                Some((u, self.rect_of(u)?, Some(u.def) == self.kit.turret, d.metal_cost))
+            })
+            .collect();
+        let work: Vec<(UnitId, Vec3, bool, Option<UnitId>)> = self
+            .finished(self.kit.turret)
+            .map(|t| {
+                let reach = self.def(t.def).map_or(TURRET_REACH, |d| d.build_distance);
+                let best = frames
+                    .iter()
+                    .filter(|(_, rect, _, _)| layout::distance_to(rect, t.pos) <= reach)
+                    .max_by(|a, b| a.2.cmp(&b.2).then(a.3.total_cmp(&b.3)).then(b.0.id.0.cmp(&a.0.id.0)))
+                    .map(|(frame, ..)| frame.id);
+                (t.id, t.pos, t.idle, best)
+            })
+            .collect();
+        for (turret, at, idle, best) in work {
             let told = self.economy.turret_told.get(&turret).copied();
-            if let Some((frame, pos)) = project
-                && pos.dist2d(at) <= reach + TURRET_REACH_SLACK
-            {
+            if let Some(frame) = best {
                 if told.is_none_or(|(_, on)| on != Some(frame)) {
                     self.economy.turret_told.insert(turret, (self.frame, Some(frame)));
                     commands.push(Command::Repair { unit: turret, target: frame, queue: false });
@@ -1036,34 +1084,41 @@ impl Distilled {
         (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b))).map(Site::Spot)
     }
 
-    /// The job's order to the engine. Returns the slot the layout layer chose, when it placed the building
-    /// (D-LAYOUT, `siting.rs`: the kinds with a band, under `layout=on`); every other site is the engine's search
-    /// round a point of the rule's, as before the layer.
+    /// The job's order to the engine. A building is sited by the layout layer within its kind's band (D-LAYOUT,
+    /// `siting.rs`) and the slot is returned: ground taken until the frame begins. When the layer has no ground the
+    /// engine searches round the band's centre off the plants' lanes (`fallback_site`). An extractor goes to its
+    /// spot or tile, a tier-2 one over ours.
     fn order(&self, unit: &OwnUnit, job: Job, tick: &Tick, commands: &mut Vec<Command>) -> Option<(Vec3, i32)> {
         let build = |def: Option<UnitDefId>, site: BuildSite, queue: bool| def.map(|def| Command::Build { unit: unit.id, def, site: Some(site), queue });
         if let Job::Radar(at) = job {
             eprintln!("[distilled ai={}] f={} radar: unit {} at ({:.0},{:.0}), {:.0} from home", self.hello.ai_id, self.frame, unit.id.0, at.x, at.z, at.dist2d(self.home));
         }
-        if self.options.layout && self.band_for(job, unit).is_some() {
-            let world = self.layout_world(tick);
-            match self.layout_site(&world, job, unit) {
-                Ok((at, facing)) => {
-                    commands.extend(build(job.def(&self.kit), Self::slot_site(at, facing), false));
-                    return Some((at, facing));
+        if let Some((def, centre, _)) = self.band_for(job, unit) {
+            let began = std::time::Instant::now();
+            let world = self.layout_world(tick, Some(unit));
+            let chosen = self.layout_site(&world, job, unit);
+            let ms = began.elapsed().as_secs_f32() * 1000.0;
+            match chosen {
+                Ok(site) => {
+                    // The layer's words for what the farm and the yard are made of: a frame's build power in reach,
+                    // a turret's ground, a plant's turrets and facing.
+                    if !matches!(self.purpose_of(def), layout::Purpose::Generator { .. } | layout::Purpose::Place) {
+                        eprintln!("[distilled ai={}] f={} site: {} for unit {} at ({:.0},{:.0}), {:.0} from the band's centre: {}; {ms:.0} ms", self.hello.ai_id, self.frame, self.name_of(def), unit.id.0, site.at.x, site.at.z, site.at.dist2d(centre), site.words);
+                    }
+                    commands.extend(build(Some(def), Self::slot_site(site.at, site.facing), false));
+                    return Some((site.at, site.facing));
                 }
                 // Said once a minute per kind: the layer is asked again at every order of the kind (dist77: 382 lines
                 // for one turret site in a game).
                 Err(why) => {
-                    if let Some(def) = job.def(&self.kit)
-                        && self.economy.layout_said.borrow_mut().insert(def, self.frame / MINUTE) != Some(self.frame / MINUTE)
-                    {
-                        eprintln!("[distilled ai={}] f={} no layout site for {job:?} for unit {}: {why}; the engine's search", self.hello.ai_id, self.frame, unit.id.0);
+                    if self.economy.layout_said.borrow_mut().insert(def, self.frame / MINUTE) != Some(self.frame / MINUTE) {
+                        eprintln!("[distilled ai={}] f={} no layout site for {job:?} for unit {}: {why}; the engine's search; {ms:.0} ms", self.hello.ai_id, self.frame, unit.id.0);
                     }
+                    commands.extend(build(Some(def), self.fallback_site(def, centre, tick), false));
+                    return None;
                 }
             }
         }
-        // Nothing is built in a plant's exit lane, and a plant faces the enemy: its units leave through its front.
-        let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.exit_lanes() }];
         match job {
             Job::Extractor(site) => {
                 let at = site.at(&self.hello);
@@ -1078,46 +1133,6 @@ impl Distilled {
                 if self.options.army && self.options.sentry && at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
                     commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new(), exact: false }, true));
                 }
-            }
-            Job::Solar | Job::AdvancedSolar => {
-                let def = if job == Job::Solar { self.kit.solar } else { self.kit.advanced_solar };
-                // The commander builds its solar field where it stands, as the flagship's does (three solars in 32 s
-                // at 2:00 in barb-hard-1): sent to the back field 450 behind home it walked 12-20 s each way between
-                // the plant it assists and the site and stood one solar a minute (dist13-com-apex-v032-comet-cold-1
-                // game 00). A constructor's goes to the back field, well behind the yard: generators crowding the
-                // yard left no site for a plant or a turret (distilled-t2b-30-hard). After a refused or dropped
-                // order, a different quarter of the field: the host's search is the same for the same point, and
-                // the engine dropped the same advanced-solar site 38 times for one builder (D-ORDERS).
-                let attempt = self.economy.attempts.get(&unit.id).copied().unwrap_or(0);
-                let commander = Some(unit.def) == self.kit.commander && unit.pos.dist2d(self.home) < COMMANDER_FIELD;
-                let (near, radius) = if commander && attempt == 0 { (unit.pos, 600.0) } else { (self.back_field(attempt), 1500.0) };
-                commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements(), exact: false }, false));
-            }
-            Job::Turret(target) => {
-                let Some(target) = self.own.get(&target) else { return None };
-                let plant = Some(target.def) == self.kit.plant || Some(target.def) == self.kit.advanced_plant || Some(target.def) == self.kit.air_plant;
-                // Behind a plant, away from its front; after a refusal to its left, its right, then its front (the
-                // exit lane is kept out of); round a project's frame, inside the turret's reach of it.
-                let site = if plant {
-                    let (dx, dz) = (self.enemy_home.x - target.pos.x, self.enemy_home.z - target.pos.z);
-                    let length = dx.hypot(dz).max(1.0);
-                    let (ux, uz) = (dx / length, dz / length);
-                    let (rx, rz) = match self.economy.turret_attempts.get(&target.id).copied().unwrap_or(0) % 4 {
-                        0 => (-ux, -uz),
-                        1 => (-uz, ux),
-                        2 => (uz, -ux),
-                        _ => (ux, uz),
-                    };
-                    let near = Vec3 { x: target.pos.x + rx * 150.0, y: target.pos.y, z: target.pos.z + rz * 150.0 };
-                    BuildSite { near, search_radius: 350.0, min_dist: 1, placements: placements(), exact: false }
-                } else {
-                    BuildSite { near: target.pos, search_radius: 300.0, min_dist: 2, placements: placements(), exact: false }
-                };
-                commands.extend(build(self.kit.turret, site, false));
-            }
-            Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
-            Job::Radar(at) => {
-                commands.extend(build(self.kit.radar, BuildSite { near: at, search_radius: 250.0, min_dist: 1, placements: placements(), exact: false }, false));
             }
             // D-STAND: every slot of the stand as one queue, the first plain, the rest behind it; the buildings at
             // their slots exactly, the extractors at the stand's site on their spot (the shim asks the engine for an
@@ -1142,19 +1157,6 @@ impl Distilled {
                 }
                 commands.push(Command::ReclaimFeature { unit: unit.id, feature, queue: false });
             }
-            Job::AdvancedPlant => commands.extend(build(self.kit.advanced_plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
-            Job::Silo => commands.extend(build(self.kit.silo, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements(), exact: false }, false)),
-            Job::Fusion | Job::AdvancedFusion => {
-                // The back field, with the generators.
-                let def = if job == Job::Fusion { self.kit.fusion } else { self.kit.advanced_fusion };
-                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -350.0), search_radius: 1500.0, min_dist: 4, placements: placements(), exact: false }, false));
-            }
-            Job::Converter | Job::AdvancedConverter => {
-                let def = if job == Job::Converter { self.kit.converter } else { self.kit.advanced_converter };
-                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 2, placements: placements(), exact: false }, false));
-            }
-            Job::AntiAir => commands.extend(build(self.kit.aa_turret, BuildSite { near: self.anti_air_site(), search_radius: 400.0, min_dist: 2, placements: placements(), exact: false }, false)),
-            Job::AirPlant => commands.extend(build(self.kit.air_plant, BuildSite { near: self.air_plant_site(), search_radius: 900.0, min_dist: 8, placements: placements(), exact: false }, false)),
             Job::AirAssist => {
                 let nearest = self.finished(self.kit.air_plant).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                 commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
@@ -1169,36 +1171,14 @@ impl Distilled {
                 let nearest = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                 commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
             }
+            // A building the layer sites: ordered above, or a kind the kit lacks, which is no order.
+            Job::Solar | Job::AdvancedSolar | Job::Plant | Job::Turret(_) | Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Converter | Job::AdvancedConverter | Job::AntiAir | Job::AirPlant | Job::Silo | Job::Radar(_) => {}
         }
         None
     }
 
-    /// The back field: 450 behind home, away from the enemy; on the next attempts the same distance to the left of
-    /// home, to the right, then home itself.
-    pub(crate) fn back_field(&self, attempt: u32) -> Vec3 {
-        let (dx, dz) = (self.home.x - self.enemy_home.x, self.home.z - self.enemy_home.z);
-        let length = dx.hypot(dz).max(1.0);
-        let (ux, uz) = (dx / length, dz / length);
-        let (rx, rz) = match attempt % 4 {
-            0 => (ux, uz),
-            1 => (-uz, ux),
-            2 => (uz, -ux),
-            _ => (0.0, 0.0),
-        };
-        Vec3 { x: self.home.x + rx * 450.0, y: self.home.y, z: self.home.z + rz * 450.0 }
-    }
-
-    /// The engine's facing (0 south +z, 1 east +x, 2 north -z, 3 west -x) that looks most toward the enemy's start.
-    fn facing_enemy(&self) -> i32 {
-        let (dx, dz) = (self.enemy_home.x - self.home.x, self.enemy_home.z - self.home.z);
-        match (dx.abs() > dz.abs(), dx > 0.0, dz > 0.0) {
-            (true, true, _) => 1,
-            (true, false, _) => 3,
-            (false, _, true) => 0,
-            (false, _, false) => 2,
-        }
-    }
-
+    /// The exit lanes of our vehicle plants: 400 out from each, 120 a side (the metal map's tiles keep off them,
+    /// `free_site`).
     fn exit_lanes(&self) -> Vec<Lane> {
         self.own
             .values()

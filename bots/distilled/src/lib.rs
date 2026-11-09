@@ -10,6 +10,7 @@
 
 mod air;
 mod army;
+mod block;
 mod economy;
 mod ground;
 mod lane;
@@ -103,6 +104,13 @@ pub(crate) struct Distilled {
     pub(crate) stand: Option<layout::Stand>,
     /// Per factory kind, the ground its products stand on (`siting.rs` `product_walk`), found once when first asked.
     pub(crate) product_walks: std::cell::RefCell<BTreeMap<UnitDefId, Option<layout::Passable>>>,
+    /// Per movement class, the ground it stands on (`siting.rs` `class_walk`), found once when first asked.
+    pub(crate) class_walks: std::cell::RefCell<Vec<(siting::ClassKey, layout::Passable)>>,
+    /// D-BLOCK: the block, once laid beside the first advanced plant, and when laying it was last tried (`block.rs`).
+    pub(crate) block: Option<layout::Block>,
+    pub(crate) block_tried: i32,
+    /// Why no ground held the block at the last try, for saying it once.
+    pub(crate) block_refused: Option<String>,
     /// The walking fields from home (D-GROUND, `ground.rs`).
     pub(crate) ground: ground::Ground,
     pub army: army::Army,
@@ -451,7 +459,7 @@ impl Bot for Distilled {
         let spots = hello.metal_spots.len();
         let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, product_walks: Default::default(), ground: Default::default(), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, product_walks: Default::default(), class_walks: Default::default(), block: None, block_tried: -(30 * SECOND), block_refused: None, ground: Default::default(), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
@@ -523,6 +531,7 @@ impl Bot for Distilled {
         }
         // Twice a second for the economy, once for the army: nothing here needs the tick's 10 Hz.
         if tick.due() % (SECOND / 2) == 0 {
+            self.tend_block(&tick);
             self.run_builders(&tick, &mut commands);
             self.run_turrets(&mut commands);
             self.run_factories(&tick, &mut commands);
@@ -545,12 +554,12 @@ impl Bot for Distilled {
             eprintln!("[distilled ai={}] f={} jobs: commander {} | constructors {}", self.hello.ai_id, tick.frame, self.commander_job(), self.constructor_jobs());
             let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} radars={} reclaims={}/{:.0} wrecks_seen={} aa={} air_shown={:.0} fighters={} bombers={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} received {:.1}/{:.0}",
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} radars={} reclaims={}/{:.0} wrecks_seen={} aa={} air_shown={:.0} fighters={} bombers={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} received {:.1}/{:.0} farm={}",
                 self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.count(self.kit.radar), self.economy.reclaims, self.economy.reclaim_metal, self.wrecks.len(), self.count(self.kit.aa_turret), self.air_shown().0, self.count(self.kit.fighter), self.count(self.kit.bomber), self.can_spend(),
                 self.army.home_guard.len(), self.army.strike.len(), self.army.raiders.len(), self.home_guard_weight(), self.launch_weight(), u8::from(self.field_won()), self.army.his_buildings.len(), self.economy.made(),
                 self.count(self.kit.advanced_plant), self.count(self.kit.advanced_constructor), self.count(self.kit.moho), self.count(self.kit.fusion), self.count(self.kit.advanced_fusion), self.count(self.kit.converter) + self.count(self.kit.advanced_converter), self.count(self.kit.assist), self.economy.t2_made, u8::from(self.plants_paused()), project, self.own.values().filter(|u| u.priority_low).count(),
                 tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage,
-                self.received_rate().0, self.received_rate().1
+                self.received_rate().0, self.received_rate().1, self.farm_word(&tick)
             );
             // The army by tier (2026-10-25, the 2v2 tier-2 bench): the metal of our finished armed mobile units
             // that build nothing, of tier 1 and of tier 2 or more.

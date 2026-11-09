@@ -9,7 +9,7 @@
 
 use bot_protocol::{OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId};
 
-use crate::economy::{Job, SPOT_DANGER, TURRET_REACH_SLACK};
+use crate::economy::{Job, SPOT_DANGER};
 use crate::{Distilled, MINUTE};
 
 /// No advanced plant before this, whatever the income.
@@ -58,7 +58,7 @@ const FLOAT_REACTORS_AT_ONCE: usize = 2;
 const FLOAT_REACTORS_AT_MOST: usize = 6;
 /// The seconds of income counted with the bank as the funds for reactors.
 const FUNDS_SECONDS: f32 = 60.0;
-/// An advanced constructor within this of the back field is the yard's builder.
+/// An advanced constructor within this of the yard (`block.rs` `yard`) is the yard's builder.
 const YARD_WALK: f32 = 1200.0;
 /// No reactor while this share of the energy income is thrown away (the store full and the usage under the income):
 /// the converters come first. The store's level alone said nothing (2026-11-04): with converters that run only above
@@ -156,9 +156,9 @@ pub(crate) struct Options {
     /// `ECON_CONSTRUCTORS`, the advanced plants advanced constructors alone; no scouts, no aircraft plant, no silo, and
     /// the army rules idle (2026-11-03, the user: the 20-minute econ-only games as the benchmark of building production).
     pub army: bool,
-    /// `layout=off`: the buildings sited by the rules' own points and the engine's search instead of the base layout
-    /// engine (D-LAYOUT, `siting.rs`, 2026-11-03).
-    pub layout: bool,
+    /// `block=off`: no block is laid (D-BLOCK, `block.rs`, 2026-11-09): the reactors and advanced converters in the
+    /// back field, a ring's turret round its frame, no sub-lattice for the turrets.
+    pub block: bool,
     /// `reach=on`: D-REACH (2026-11-03: a turret's weight from the combat tables plus the approach's toll, and the
     /// economy behind a post as the target). Off by default: with it the body launched earlier into BARb's turrets
     /// and the row went 2-4-9 against the baseline's 6-1-9 on the same seeds (dist93 against dist86); the old
@@ -182,7 +182,7 @@ pub(crate) struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, layout: true, reach: false, radar: true, reclaim: true, sentry: true, king: true, ground: true, king_local: false }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, block: true, reach: false, radar: true, reclaim: true, sentry: true, king: true, ground: true, king_local: false }
     }
 }
 
@@ -217,7 +217,7 @@ impl Options {
                 ("air", v) => options.air = v != "off",
                 ("nuke", v) => options.nuke = v != "off",
                 ("army", v) => options.army = v != "off",
-                ("layout", v) => options.layout = v != "off",
+                ("block", v) => options.block = v != "off",
                 ("reach", v) => options.reach = v == "on",
                 ("radar", v) => options.radar = v != "off",
                 ("reclaim", v) => options.reclaim = v != "off",
@@ -239,7 +239,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, layout={}, reach={}, radar={}, reclaim={}, sentry={}, king={}, ground={}, kingat={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, block={}, reach={}, radar={}, reclaim={}, sentry={}, king={}, ground={}, kingat={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -258,7 +258,7 @@ impl Options {
             if self.nuke { "on" } else { "off" },
 
             if self.army { "on" } else { "off" },
-            if self.layout { "on" } else { "off" },
+            if self.block { "on" } else { "off" },
             if self.reach { "on" } else { "off" },
             if self.radar { "on" } else { "off" },
             if self.reclaim { "on" } else { "off" },
@@ -297,7 +297,7 @@ impl Distilled {
     pub(crate) fn power_on(&self, frame: &OwnUnit) -> f32 {
         let on_it = |job: Job| matches!(job, Job::Help(target) if target == frame.id) || matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo);
         let builders: f32 = self.economy.orders.iter().filter(|(_, order)| on_it(order.job)).filter_map(|(id, _)| self.own.get(id)).filter_map(|u| self.def(u.def)).map(|d| d.build_speed).sum();
-        let turrets: f32 = self.finished(self.kit.turret).filter_map(|t| self.def(t.def).filter(|d| t.pos.dist2d(frame.pos) <= d.build_distance + TURRET_REACH_SLACK)).map(|d| d.build_speed).sum();
+        let turrets: f32 = self.finished(self.kit.turret).filter(|t| self.turret_reaches(t, frame)).filter_map(|t| self.def(t.def)).map(|d| d.build_speed).sum();
         builders + turrets
     }
 
@@ -458,10 +458,11 @@ impl Distilled {
         if !self.options.converters || metal.current < FLOAT {
             return None;
         }
-        // The yard's work (the advanced converters and the reactors, sited by the back field among the ring's
-        // turrets) goes to a builder near it; one far out at the tier-2 extractors keeps to them (2026-11-04: the
-        // reactors' orders walked 44-101 s each from 12:00 on, dist124), unless nothing of the yard's is under way.
-        let near_yard = unit.pos.dist2d(self.back_field(0)) <= YARD_WALK;
+        // The yard's work (the advanced converters and the reactors, sited on the farm among its turrets, the back
+        // field before the block is laid) goes to a builder near it; one far out at the tier-2 extractors keeps to
+        // them (2026-11-04: the reactors' orders walked 44-101 s each from 12:00 on, dist124), unless nothing of the
+        // yard's is under way.
+        let near_yard = unit.pos.dist2d(self.yard()) <= YARD_WALK;
         let can = |def: Option<UnitDefId>| def.is_some_and(|d| builder.build_options.contains(&d));
         let bill = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).map_or(f32::MAX, |d| d.metal_cost);
         let converters = self.count(kit.converter) + self.count(kit.advanced_converter);
@@ -567,8 +568,7 @@ impl Distilled {
             return None;
         }
         let (frame, turret) = (self.project_frame()?, self.kit.turret?);
-        let reach = self.def(turret)?.build_distance;
-        let around = self.own.values().filter(|u| u.def == turret && u.pos.dist2d(frame.pos) <= reach + TURRET_REACH_SLACK).count();
+        let around = self.own.values().filter(|u| u.def == turret && self.turret_reaches(u, frame)).count();
         // Only while the frame can use more power (distilled-t2-smoke-3: seven turrets and 980 power on a fusion whose
         // metal allowed 450).
         let wanted = self.power_on(frame) < self.power_wanted(frame, tick);
