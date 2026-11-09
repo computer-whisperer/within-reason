@@ -146,6 +146,10 @@ pub struct World<'a> {
     pub blasts_near: std::cell::RefCell<Option<(usize, Buckets)>>,
     /// The farm round the block, made once when first asked (`farm`).
     pub farm: std::cell::RefCell<Option<std::rc::Rc<Farm>>>,
+    /// The candidates' fixed parts, made as the questions come to them (`fixed_at`).
+    pub fixed: std::cell::RefCell<FixedMemo>,
+    /// The sums of the plants' walk sets asked so far (`walk_sums`), each beside its set.
+    pub walk_sums: std::cell::RefCell<Vec<(crate::Passable, std::rc::Rc<Vec<u32>>)>>,
 }
 
 /// The edge of a bucket of ground.
@@ -180,6 +184,13 @@ impl Buckets {
         let j0 = ((r.z0 / BUCKET).floor().max(0.0) as usize).min(nz);
         let j1 = (((r.z1 / BUCKET).floor().max(0.0) as usize) + 1).min(nz);
         (i0, i1, j0, j1)
+    }
+
+    /// Whether `hit` holds for any rect in the buckets `r` touches: no list is made, and a rect in two of the
+    /// buckets may be asked twice.
+    fn any(&self, r: &Rect, mut hit: impl FnMut(usize) -> bool) -> bool {
+        let (i0, i1, j0, j1) = Buckets::span(self.nx, self.nz, r);
+        (j0..j1).any(|j| (i0..i1).any(|x| self.cells[j * self.nx + x].iter().any(|i| hit(*i as usize))))
     }
 
     /// The indices of the rects in the buckets `r` touches, each once.
@@ -218,6 +229,125 @@ impl World<'_> {
         Some(self.farm.borrow_mut().get_or_insert_with(|| std::rc::Rc::new(Farm::over(self, lattice.centre, reach, facts))).clone())
     }
 
+    /// This question's kind among the kinds asked of this world so far, for `fixed_at`.
+    fn fixed_kind(&self, f: &Facts, purpose: Purpose) -> u32 {
+        let lens = [self.standing.len(), self.plants.len(), self.builders.len(), self.workers.len(), self.frames.len(), self.reservations.len(), self.refused.len(), usize::from(self.lattice.is_some())];
+        let mut memo = self.fixed.borrow_mut();
+        if memo.lens != lens {
+            *memo = FixedMemo { lens, ..Default::default() };
+        }
+        match memo.kinds.iter().position(|(known, p)| *p == purpose && same_kind(known, f)) {
+            Some(i) => i as u32,
+            None => {
+                memo.kinds.push((f.clone(), purpose));
+                memo.kinds.len() as u32 - 1
+            }
+        }
+    }
+
+    /// The fixed part of a candidate of `kind` at `at` with `facing`, made by `make` when no question has come to the
+    /// point before.
+    fn fixed_at(&self, kind: u32, facing: i32, at: Vec3, make: impl FnOnce() -> Option<Fixed>) -> Option<u32> {
+        let key = (kind, facing, at.x.to_bits(), at.z.to_bits());
+        if let Some(known) = self.fixed.borrow().sites.get(&key) {
+            return (*known != NO_SITE).then_some(*known);
+        }
+        let made = make();
+        let mut memo = self.fixed.borrow_mut();
+        let index = match made {
+            Some(fixed) => {
+                memo.made.push(fixed);
+                memo.made.len() as u32 - 1
+            }
+            None => NO_SITE,
+        };
+        memo.sites.insert(key, index);
+        (index != NO_SITE).then_some(index)
+    }
+
+    /// Whether a kind's footprint, as faced, stands at `at` (`footprint_stands`), asked by `make` once a point.
+    fn footprint_at(&self, kind: u32, fp: Footprint, at: Vec3, make: impl FnOnce() -> bool) -> bool {
+        let key = (kind, fp.x * 1_000 + fp.z, at.x.to_bits(), at.z.to_bits());
+        if let Some(known) = self.fixed.borrow().footprints.get(&key) {
+            return *known;
+        }
+        let stands = make();
+        self.fixed.borrow_mut().footprints.insert(key, stands);
+        stands
+    }
+
+    /// Whether a plant's products stand on every cell of `area` (`cells_open` over `Plant::stands`): by its own walk
+    /// set counted from the set's sums, made once a set, where the area's cells are a block of the set's (they are,
+    /// the terrain's cell being the grid's); cell by cell otherwise, and by `open` for a plant with no set.
+    fn products_stand(&self, walk: Option<&crate::Passable>, area: &Rect) -> bool {
+        let (cell, width, height) = self.ground.cells();
+        let cell_by_cell = || {
+            cells_open(area, &|p: Vec3| match walk {
+                Some(walk) => self.ground.walks(walk, p.x, p.z),
+                None => (self.open)(p),
+            })
+        };
+        let Some(walk) = walk.filter(|_| cell > 0.0) else { return cell_by_cell() };
+        // The cells `cells_open` would ask along a side, as it steps them: the first and how many, when they follow
+        // one another.
+        enum Side {
+            Empty,
+            OffTheMap,
+            Ragged,
+            Block(usize, usize),
+        }
+        let along = |from: f32, to: f32, count: usize| {
+            let (mut first, mut n) = (0usize, 0usize);
+            let mut v = from + GRID / 2.0;
+            while v < to {
+                // Off the map on the low side or the high: `Ground::walks` has no ground there.
+                if v < 0.0 || (v / cell) as usize >= count {
+                    return Side::OffTheMap;
+                }
+                let k = (v / cell) as usize;
+                if n == 0 {
+                    first = k;
+                } else if k != first + n {
+                    return Side::Ragged;
+                }
+                n += 1;
+                v += GRID;
+            }
+            if n == 0 { Side::Empty } else { Side::Block(first, n) }
+        };
+        match (along(area.x0, area.x1, width), along(area.z0, area.z1, height)) {
+            // No cell on a side is no cell at all; a cell off the map is one the products do not stand on.
+            (Side::Empty, _) => true,
+            (Side::OffTheMap | Side::Ragged | Side::Block(..), Side::Empty) => true,
+            (Side::OffTheMap, _) | (_, Side::OffTheMap) => false,
+            (Side::Ragged, _) | (_, Side::Ragged) => cell_by_cell(),
+            (Side::Block(i0, nx), Side::Block(j0, nz)) => {
+                let sums = self.walk_sums(walk);
+                let at = |i: usize, j: usize| sums[j * (width + 1) + i];
+                (at(i0 + nx, j0 + nz) + at(i0, j0)).wrapping_sub(at(i0 + nx, j0) + at(i0, j0 + nz)) as usize == nx * nz
+            }
+        }
+    }
+
+    /// A walk set's sums: at (i, j) the count of its cells before column i and row j, a row of `width + 1`.
+    fn walk_sums(&self, walk: &crate::Passable) -> std::rc::Rc<Vec<u32>> {
+        if let Some((_, sums)) = self.walk_sums.borrow().iter().find(|(known, _)| std::sync::Arc::ptr_eq(known, walk)) {
+            return sums.clone();
+        }
+        let (_, width, height) = self.ground.cells();
+        let mut sums = vec![0u32; (width + 1) * (height + 1)];
+        for j in 0..height {
+            let mut row = 0u32;
+            for i in 0..width {
+                row += u32::from(walk.get(j * width + i).copied().unwrap_or(false));
+                sums[(j + 1) * (width + 1) + i + 1] = sums[j * (width + 1) + i + 1] + row;
+            }
+        }
+        let sums = std::rc::Rc::new(sums);
+        self.walk_sums.borrow_mut().push((walk.clone(), sums.clone()));
+        sums
+    }
+
     /// Plant `i`'s street flood over what stands, made once.
     pub fn plant_street(&self, i: usize) -> std::rc::Rc<Flood> {
         self.streets.borrow_mut().entry((true, i)).or_insert_with(|| std::rc::Rc::new(Flood::of_plant(&self.ground, &self.plants[i], &self.blocking_rects(), &*self.open))).clone()
@@ -254,16 +384,32 @@ impl World<'_> {
         World::near(&self.blasts_near, self.standing.len(), || Buckets::new(self.ground.extent(), self.standing.iter().map(reach)), r).into_iter().map(|i| (i, &self.standing[i]))
     }
 
+    /// `any` over a bucketed list, the buckets made as `near` makes them.
+    fn any_near(cache: &std::cell::RefCell<Option<(usize, Buckets)>>, len: usize, make: impl FnOnce() -> Buckets, r: &Rect, hit: impl FnMut(usize) -> bool) -> bool {
+        let mut cache = cache.borrow_mut();
+        if cache.as_ref().is_none_or(|(n, _)| *n != len) {
+            *cache = Some((len, make()));
+        }
+        cache.as_ref().is_some_and(|(_, b)| b.any(r, hit))
+    }
+
+    /// Whether `hit` holds for anything standing in the buckets `r` touches (`standing_near(r).any(hit)`, with no
+    /// list made: a candidate's first tests, asked at every lattice point).
+    pub(crate) fn standing_any(&self, r: &Rect, mut hit: impl FnMut(&Standing) -> bool) -> bool {
+        World::any_near(&self.standing_near, self.standing.len(), || Buckets::new(self.ground.extent(), self.standing.iter().map(World::blocking_rect)), r, |i| hit(&self.standing[i]))
+    }
+
+    /// Whether `hit` holds for any spot whose keep-out touches the buckets `r` touches.
+    pub(crate) fn spots_any(&self, r: &Rect, mut hit: impl FnMut(&Vec3) -> bool) -> bool {
+        let half = self.spot_keep_out.max(SPOT_BOX_HALF);
+        World::any_near(&self.spots_near, self.spots.len(), || Buckets::new(self.ground.extent(), self.spots.iter().map(|p| Rect { x0: p.x - half, z0: p.z - half, x1: p.x + half, z1: p.z + half })), r, |i| hit(&self.spots[i]))
+    }
+
     /// What stands in the buckets `r` touches, with each one's index in `standing`.
     pub(crate) fn standing_near(&self, r: &Rect) -> impl Iterator<Item = (usize, &Standing)> {
         World::near(&self.standing_near, self.standing.len(), || Buckets::new(self.ground.extent(), self.standing.iter().map(World::blocking_rect)), r).into_iter().map(|i| (i, &self.standing[i]))
     }
 
-    /// The spots whose keep-out (the greater of the shim's and the box's) touches the buckets `r` touches.
-    pub(crate) fn spots_near(&self, r: &Rect) -> impl Iterator<Item = &Vec3> {
-        let half = self.spot_keep_out.max(SPOT_BOX_HALF);
-        World::near(&self.spots_near, self.spots.len(), || Buckets::new(self.ground.extent(), self.spots.iter().map(|p| Rect { x0: p.x - half, z0: p.z - half, x1: p.x + half, z1: p.z + half })), r).into_iter().map(|i| &self.spots[i])
-    }
 }
 
 /// What a building is for: the score of level 1.
@@ -304,9 +450,133 @@ struct Candidate {
     at: Vec3,
     facing: i32,
     rect: Rect,
-    /// Level 1 (two parts), level 2, level 3, level 4; lower is better.
+    /// Level 1 (two parts), level 2, level 3, level 4; lower is better. Level 3, the builder's walk, is not a number
+    /// until the bands come to it (`by_bands_from`): most candidates fall behind at the levels before it and are
+    /// ordered there, and the walk is a look over every cell within the builder's reach of the site.
     scores: [f32; 5],
-    words: String,
+    /// Its fixed part, in the world's memo.
+    fixed: u32,
+}
+
+/// A candidate's part that is the same whoever asks: a pass of the builder menus asks for one kind from every open
+/// builder, a frame's and a turret's over one band (the farm's) and the rest over bands that overlap wherever two
+/// builders stand near each other, and the ground, what stands, the aprons, the build power in reach and the
+/// blasts at a point are the world's, not the asker's (1794201690-econ-flagship-22 at 9:22: a pass of 51 questions
+/// tested 15 frames' and 15 plants' lattices from three builders, 0.8 s). Kept by the world (`World::fixed_at`).
+pub struct Fixed {
+    rect: Rect,
+    level1: Level1,
+    l2: f32,
+    l4: f32,
+    /// What its blast holds, to follow the level-1 words; empty when it holds nothing of ours.
+    blast_words: String,
+}
+
+/// Level 1 as far as the world settles it.
+enum Level1 {
+    Generator { touching: usize },
+    /// What it assists, and the words for that; with nothing to assist the asked place decides.
+    Turret { assisted: usize, said: String },
+    Plant { turrets: usize },
+    /// The turrets in reach of the frame and their build power; the asker adds its own.
+    Frame { turrets: usize, power: f32, build_time: f32 },
+    Place,
+}
+
+impl Fixed {
+    /// Level 1's two parts for this asker.
+    fn level1(&self, req: &Request, at: Vec3, facing_rank: usize) -> [f32; 2] {
+        match &self.level1 {
+            Level1::Generator { touching } => [if *touching == 0 { FOUNDING } else { -(*touching as f32).min(TOUCHING_CAP) }, 0.0],
+            // Nothing to assist yet: the turret prepares the ground for what comes (a nano before the fusions, the
+            // people's order of a farm) and stands nearest the asked place. Until 2026-11-07 this was a refusal,
+            // and a turret asked for at a place with nothing in reach went to the engine's search.
+            Level1::Turret { assisted: 0, .. } => [at.dist2d(req.centre) / GRID, 0.0],
+            Level1::Turret { assisted, .. } => [-(*assisted as f32), 0.0],
+            Level1::Plant { turrets } => [-(*turrets as f32), facing_rank as f32],
+            // The score is the seconds to stand at that power; the words say the power alone, what is measured,
+            // not the clock (the user, 2026-11-08: the scripted reports do not predict the game's state).
+            Level1::Frame { power, build_time, .. } => {
+                let power = power + req.builder.build_speed;
+                [if power > 0.0 { build_time / power } else { f32::INFINITY }, 0.0]
+            }
+            Level1::Place => [at.dist2d(req.centre), 0.0],
+        }
+    }
+
+    /// The site's reasons for the hands' line.
+    fn words(&self, req: &Request, at: Vec3, facing: i32) -> String {
+        let plural = |n: usize| if n == 1 { "" } else { "s" };
+        let words = match &self.level1 {
+            Level1::Generator { touching: 0 } => "founding a bank".to_string(),
+            Level1::Generator { touching } => format!("touching {touching} of its kind"),
+            Level1::Turret { assisted: 0, .. } => format!("nothing in reach yet, {:.0} from the asked place", at.dist2d(req.centre)),
+            Level1::Turret { said, .. } => said.clone(),
+            Level1::Plant { turrets } => format!("{turrets} turret{} in reach, facing {}", plural(*turrets), ["south", "east", "north", "west"][facing.rem_euclid(4) as usize]),
+            Level1::Frame { turrets, power, .. } => format!("{turrets} turret{} with {:.0} build power in reach", plural(*turrets), power + req.builder.build_speed),
+            Level1::Place => String::new(),
+        };
+        format!("{words}{}", self.blast_words)
+    }
+}
+
+/// The fixed parts made over a world: the kinds asked so far, each with every fact the tests read, and each tested
+/// point by kind, facing and place. Emptied when the world's lists change length (a test that pushes to one between
+/// asks, as the buckets have it).
+#[derive(Default)]
+pub struct FixedMemo {
+    lens: [usize; 8],
+    kinds: Vec<(Facts, Purpose)>,
+    /// The fixed parts made, and each tested point's index among them (`NO_SITE` where a constraint failed).
+    made: Vec<Fixed>,
+    sites: HashMap<(u32, i32, u32, u32), u32, std::hash::BuildHasherDefault<PointHasher>>,
+    /// Whether a plant's footprint stands at a point, by kind and the footprint as faced (`footprint_at`).
+    footprints: HashMap<(u32, i32, u32, u32), bool, std::hash::BuildHasherDefault<PointHasher>>,
+}
+
+/// A tested point where a constraint failed.
+const NO_SITE: u32 = u32::MAX;
+
+/// The memo's hash: a point's key is four words, asked for every lattice point of every question, and the
+/// standard hash was a fifth of a pass (`site_bench`). A multiply a word and a mix at the end.
+#[derive(Default)]
+pub struct PointHasher(u64);
+
+impl std::hash::Hasher for PointHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for b in bytes {
+            self.write_u32(u32::from(*b));
+        }
+    }
+
+    fn write_u32(&mut self, n: u32) {
+        self.0 = (self.0.rotate_left(5) ^ u64::from(n)).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+
+    fn write_i32(&mut self, n: i32) {
+        self.write_u32(n as u32);
+    }
+
+    fn finish(&self) -> u64 {
+        let h = (self.0 ^ (self.0 >> 33)).wrapping_mul(0xff51_afd7_ed55_8ccd);
+        h ^ (h >> 33)
+    }
+}
+
+/// Whether two questions' kinds are one to every test of `fixed`: every fact to the bit, the products' ground the
+/// same set (the memo holds the first asker's facts, so the set outlives the comparison).
+fn same_kind(a: &Facts, b: &Facts) -> bool {
+    let bits = |f: &Facts| [f.build_distance, f.build_speed, f.build_time, f.metal, f.health, f.height_dif, f.min_depth, f.max_depth, f.product_half].map(f32::to_bits);
+    a.def == b.def
+        && a.footprint == b.footprint
+        && bits(a) == bits(b)
+        && a.blast.map(|(r, d)| (r.to_bits(), d.to_bits())) == b.blast.map(|(r, d)| (r.to_bits(), d.to_bits()))
+        && (a.floater, a.extractor, a.factory, a.building) == (b.floater, b.extractor, b.factory, b.building)
+        && match (&a.product_passable, &b.product_passable) {
+            (None, None) => true,
+            (Some(x), Some(y)) => std::sync::Arc::ptr_eq(x, y),
+            _ => false,
+        }
 }
 
 /// The site for `req` in `world`, or why there is none.
@@ -338,7 +608,9 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
         };
         return Err(format!("no ground on this map takes it: it wants {wants} and the map's heights run {lo:.0} to {hi:.0}"));
     }
-    let banks = bank_sizes(world, f.def);
+    // The banks are a generator's alone.
+    let banks = if matches!(req.purpose, Purpose::Generator { .. }) { bank_sizes(world, f.def) } else { HashMap::new() };
+    let kind = world.fixed_kind(f, req.purpose);
     let mut why = String::new();
     // The candidates refused in any widening, by position and facing: the world is the same, so a street closed or
     // a builder walled in at the first widening is so at the next, and the next widening's tries are new sites.
@@ -356,15 +628,24 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
         let started = std::time::Instant::now();
         let radius = req.radius * 2f32.powi(widening as i32);
         // The flood for this widening alone: most searches end at the first, and a flood over four times the band
-        // is sixteen times the cells.
-        let walk = Walk::cached(world, req.builder_at, req.centre, radius);
+        // is sixteen times the cells. Made when the bands first ask a walk of it.
+        let walk: std::cell::OnceCell<std::rc::Rc<Walk>> = std::cell::OnceCell::new();
+        let reach = f.reach_from(&req.builder);
+        // The cells within the builder's reach of a site lie the same way round every point of one lattice: found
+        // at the first candidate asked, read by the rest.
+        let disc: std::cell::OnceCell<Option<Disc>> = std::cell::OnceCell::new();
+        let walked = |c: &Candidate| {
+            let walk = walk.get_or_init(|| Walk::cached(world, req.builder_at, req.centre, radius));
+            let disc = disc.get_or_init(|| walk.disc(c.at, reach));
+            disc.as_ref().and_then(|d| walk.to_within_disc(d, c.at)).unwrap_or_else(|| walk.to_within(c.at, reach))
+        };
         let mut candidates: Vec<Candidate> = Vec::new();
         let mut points = 0usize;
         for (rank, facing) in facings.iter().enumerate() {
             let fp = f.footprint.faced(*facing);
             for at in lattice(fp, req.centre, radius) {
                 points += 1;
-                if let Some(c) = candidate(world, req, &banks, &walk, fp, at, *facing, rank) {
+                if let Some(c) = candidate(world, req, kind, &banks, fp, at, *facing, rank) {
                     candidates.push(c);
                 }
             }
@@ -376,12 +657,17 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
             why = format!("no ground within {radius:.0} of ({:.0}, {:.0}) takes a {} there", req.centre.x, req.centre.z, f.footprint.x * 8);
             continue;
         }
-        let ordered = by_bands(candidates, &bands);
+        let ordered = by_bands(candidates, &bands, &walked);
         let tries: Vec<&Candidate> = ordered.iter().filter(|c| !refused.iter().any(|(p, facing)| *facing == c.facing && p.dist2d(c.at) < 1.0)).take(STREET_TRIES).collect();
         for (n, c) in tries.into_iter().enumerate() {
             let mut verdict = |what: String| {
                 if let Some(t) = trace.as_deref_mut() {
-                    t.push(format!("  try {n}: ({:.0}, {:.0}) facing {} scores {:?}: {what}", c.at.x, c.at.z, c.facing, c.scores));
+                    // A try from behind the bands was never asked its walk.
+                    let mut scores = c.scores;
+                    if scores[3].is_nan() {
+                        scores[3] = walked(c);
+                    }
+                    t.push(format!("  try {n}: ({:.0}, {:.0}) facing {} scores {scores:?}: {what}", c.at.x, c.at.z, c.facing));
                 }
             };
             let closed = world.plants.iter().enumerate().filter(|(_, p)| p.concerns(&c.rect)).find(|(i, _)| {
@@ -423,8 +709,9 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
                     continue;
                 }
             }
-            verdict(format!("chosen: {}", c.words));
-            return Ok(Site { at: c.at, facing: c.facing, words: c.words.clone() });
+            let words = world.fixed.borrow().made[c.fixed as usize].words(req, c.at, c.facing);
+            verdict(format!("chosen: {words}"));
+            return Ok(Site { at: c.at, facing: c.facing, words });
         }
     }
     if let Some(t) = trace {
@@ -433,60 +720,83 @@ pub fn choose_traced(world: &World, req: &Request, mut trace: Option<&mut Vec<St
     Err(why)
 }
 
-/// One lattice point as a candidate, or None when a constraint fails.
-fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: &Walk, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
-    let f = &req.facts;
+/// One lattice point as a candidate, or None when a constraint fails: its fixed part from the world's memo (made
+/// here when this is the first question to come to the point), and the asker's own on top.
+fn candidate(world: &World, req: &Request, kind: u32, banks: &HashMap<usize, usize>, fp: Footprint, at: Vec3, facing: i32, facing_rank: usize) -> Option<Candidate> {
+    let index = world.fixed_at(kind, facing, at, || fixed(world, &req.facts, req.purpose, kind, banks, fp, at, facing))?;
+    let memo = world.fixed.borrow();
+    let fixed = &memo.made[index as usize];
+    let l1 = fixed.level1(req, at, facing_rank);
+    Some(Candidate { at, facing, rect: fixed.rect, scores: [l1[0], l1[1], fixed.l2, f32::NAN, fixed.l4], fixed: index })
+}
+
+/// Whether a kind's footprint stands at a lattice point, whichever way it faces: nothing of ours or theirs under it,
+/// off the spots, the aprons, the reservations and the refused sites, on ground that takes it, and for a plant on
+/// ground its products stand on. The tests in the order of their cost: each is a refusal of its own, and the ground
+/// under a plant's footprint is sixty-four cells to read.
+fn footprint_stands(world: &World, f: &Facts, purpose: Purpose, fp: Footprint, at: Vec3) -> bool {
     let rect = fp.rect(at);
-    if !world.ground.stands(fp, at, f) {
-        return None;
-    }
-    if world.standing_near(&rect).any(|(_, s)| World::blocking_rect(s).overlaps(&rect)) {
-        return None;
-    }
     // No site over a mobile builder of ours: the sites under the asking builder are the best by every band (its
     // walk to them is nothing) and were the twelve tries of every widening, each refused as walling it in, so no
     // search anchored at a builder reached a site beside it (site-dump-1, 2026-11-05; 6,814 of an 8v8's 6,910
     // refusals).
     if world.builders.iter().any(|b| b.body().overlaps(&rect)) {
-        return None;
+        return false;
     }
     if world.reservations.iter().any(|r| r.rect.overlaps(&rect) && !r.admits(f)) {
-        return None;
+        return false;
     }
-    if req.purpose == Purpose::Turret && world.lattice.is_some_and(|l| !l.holds(at)) {
-        return None;
-    }
-    if world.spots_near(&rect).any(|p| p.dist2d(at) < world.spot_keep_out || Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&rect)) {
-        return None;
+    if purpose == Purpose::Turret && world.lattice.is_some_and(|l| !l.holds(at)) {
+        return false;
     }
     if world.refused.iter().any(|(d, p)| *d == f.def && p.dist2d(at) < REFUSED_RADIUS) {
-        return None;
+        return false;
     }
     if world.plants.iter().any(|p| p.apron().overlaps(&rect)) {
+        return false;
+    }
+    if world.standing_any(&rect, |s| World::blocking_rect(s).overlaps(&rect)) {
+        return false;
+    }
+    if world.spots_any(&rect, |p| p.dist2d(at) < world.spot_keep_out || Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&rect)) {
+        return false;
+    }
+    if !world.ground.stands(fp, at, f) {
+        return false;
+    }
+    // A plant's footprint is its products' own ground: a lab may stand on 17 of height difference, a tank climbs
+    // less, and a plant over a knoll holds its products inside (econ-flagship-20: the advanced plant at (920, 2952)
+    // on a knoll with slope bytes to 60 against the tank's 28, two advanced constructors penned from birth, the
+    // plant the only thing whose removal freed them).
+    !f.factory || world.products_stand(f.product_passable.as_ref(), &rect)
+}
+
+/// What a lattice point is for a kind whoever asks, from wherever, for whatever band: every constraint, level 1 as
+/// far as the world settles it, levels 2 and 4. None when a constraint fails.
+fn fixed(world: &World, f: &Facts, purpose: Purpose, kind: u32, banks: &HashMap<usize, usize>, fp: Footprint, at: Vec3, facing: i32) -> Option<Fixed> {
+    let rect = fp.rect(at);
+    // A plant is asked at every point once a facing, and what its footprint needs is the same for each: asked of
+    // the memo, by the footprint as faced.
+    let footprint_stands = if f.factory { world.footprint_at(kind, fp, at, || footprint_stands(world, f, purpose, fp, at)) } else { footprint_stands(world, f, purpose, fp, at) };
+    if !footprint_stands {
         return None;
     }
     if f.factory {
         let own = Plant { centre: at, footprint: f.footprint, facing, product_half: f.product_half, ours: true, name: String::new(), widest: String::new(), passable: f.product_passable.clone() };
         let apron = own.apron();
-        if !world.ground.in_map(&apron) || world.standing_near(&apron).any(|(_, s)| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f)) {
+        if !world.ground.in_map(&apron) || world.standing_any(&apron, |s| s.rect.overlaps(&apron)) || world.reservations.iter().any(|r| r.rect.overlaps(&apron) && !r.admits(f)) {
             return None;
         }
-        if world.spots_near(&apron).any(|p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
+        if world.spots_any(&apron, |p| Rect { x0: p.x - SPOT_BOX_HALF, z0: p.z - SPOT_BOX_HALF, x1: p.x + SPOT_BOX_HALF, z1: p.z + SPOT_BOX_HALF }.overlaps(&apron)) {
             return None;
         }
-        // The apron is the products' own ground (water-1: every shipyard site was refused by the land's apron check),
-        // and so is the footprint itself: a lab may stand on 17 of height difference, a tank climbs less, and a
-        // plant over a knoll holds its products inside (econ-flagship-20: the advanced plant at (920, 2952) on a
-        // knoll with slope bytes to 60 against the tank's 28, two advanced constructors penned from birth, the plant
-        // the only thing whose removal freed them).
-        let passable = |p: Vec3| own.stands(&world.ground, &*world.open, p);
-        if !cells_open(&apron, &passable) || !cells_open(&rect, &passable) {
+        // The apron is the products' own ground (water-1: every shipyard site was refused by the land's apron check).
+        if !world.products_stand(f.product_passable.as_ref(), &apron) {
             return None;
         }
     }
-    // Level 1.
-    let mut words = String::new();
-    let l1 = match req.purpose {
+    // Level 1, as far as the world settles it (`Fixed::level1` and `Fixed::words` finish it for an asker).
+    let level1 = match purpose {
         Purpose::Generator { cap } => {
             // Its kind within a street's width: the touching and gap tests reach no farther.
             let same: Vec<(usize, &Standing)> = world.standing_near(&rect.grown(BANK_STREET)).filter(|(_, s)| s.ours && s.def == Some(f.def)).collect();
@@ -503,12 +813,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
                     return None;
                 }
             }
-            let n = touching.len();
-            words = match n {
-                0 => "founding a bank".to_string(),
-                _ => format!("touching {n} of its kind"),
-            };
-            [if n == 0 { FOUNDING } else { -(n as f32).min(TOUCHING_CAP) }, 0.0]
+            Level1::Generator { touching: touching.len() }
         }
         Purpose::Turret => {
             let reach = f.build_distance;
@@ -529,32 +834,16 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
                 let pads = world.plants.iter().filter(|p| distance_to(&p.rect(), at) <= reach).count();
                 (pads + frames, format!("{pads} pad{} and {frames} frame{} in reach", plural(pads), plural(frames)))
             };
-            if assisted == 0 {
-                // Nothing to assist yet: the turret prepares the ground for what comes (a nano before the fusions, the
-                // people's order of a farm) and stands nearest the asked place. Until 2026-11-07 this was a refusal,
-                // and a turret asked for at a place with nothing in reach went to the engine's search.
-                words = format!("nothing in reach yet, {:.0} from the asked place", at.dist2d(req.centre));
-                [at.dist2d(req.centre) / GRID, 0.0]
-            } else {
-                words = said;
-                [-(assisted as f32), 0.0]
-            }
+            Level1::Turret { assisted, said }
         }
         Purpose::Plant => {
-            let turrets = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).count();
-            words = format!("{turrets} turret{} in reach, facing {}", if turrets == 1 { "" } else { "s" }, ["south", "east", "north", "west"][facing.rem_euclid(4) as usize]);
-            [-(turrets as f32), facing_rank as f32]
+            Level1::Plant { turrets: world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).count() }
         }
         Purpose::Frame => {
             let in_reach: Vec<&Worker> = world.workers.iter().filter(|w| distance_to(&rect, w.at) <= w.reach).collect();
-            let power: f32 = in_reach.iter().map(|w| w.power).sum::<f32>() + req.builder.build_speed;
-            // The score is the seconds to stand at that power; the words say the power alone, what is measured,
-            // not the clock (the user, 2026-11-08: the scripted reports do not predict the game's state).
-            let seconds = if power > 0.0 { f.build_time / power } else { f32::INFINITY };
-            words = format!("{} turret{} with {:.0} build power in reach", in_reach.len(), if in_reach.len() == 1 { "" } else { "s" }, power);
-            [seconds, 0.0]
+            Level1::Frame { turrets: in_reach.len(), power: in_reach.iter().map(|w| w.power).sum::<f32>(), build_time: f.build_time }
         }
-        Purpose::Place => [at.dist2d(req.centre), 0.0],
+        Purpose::Place => Level1::Place,
     };
     // Level 2: the chain sum.
     let own_blast = f.blast;
@@ -565,6 +854,7 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
     };
     let kills: f32 = killed.iter().map(|s| s.metal).sum();
     let l2 = kills + if f.health > 0.0 && taken >= f.health { f.metal } else { 0.0 };
+    let mut blast_words = String::new();
     if kills > 0.0 {
         // The bill, reported not bounded (§1.3): what its death would take, by kind.
         let mut by_kind: Vec<(String, usize)> = Vec::new();
@@ -576,12 +866,11 @@ fn candidate(world: &World, req: &Request, banks: &HashMap<usize, usize>, walk: 
         }
         by_kind.sort_by(|a, b| b.1.cmp(&a.1));
         let kinds: Vec<String> = by_kind.iter().map(|(k, n)| format!("{n} {k}")).collect();
-        words = format!("{words}; its blast holds {}, {kills:.0} metal of ours", kinds.join(" and "));
+        blast_words = format!("; its blast holds {}, {kills:.0} metal of ours", kinds.join(" and "));
     }
-    // Level 3: the builder's walk to within reach of the site, round what stands.
-    let l3 = walk.to_within(at, f.reach_from(&req.builder));
+    // Level 3, the builder's walk to within reach of the site, round what stands, is asked by the bands.
     let l4 = world.home.dist2d(at);
-    Some(Candidate { at, facing, rect, scores: [l1[0], l1[1], l2, l3, l4], words })
+    Some(Fixed { rect, level1, l2, l4, blast_words })
 }
 
 /// The builder's walk: a flood over the cells from where it stands, round what stands (ours, allies' with their
@@ -625,45 +914,111 @@ impl Walk {
                 }
             }
         }
-        let mut dist = vec![f32::INFINITY; nx * nz];
         let start = (((from.x - x0) / GRID) as usize, ((from.z - z0) / GRID) as usize);
         if nx == 0 || nz == 0 || start.0 >= nx || start.1 >= nz {
-            return Walk { x0, z0, nx, nz, dist };
+            return Walk { x0, z0, nx, nz, dist: vec![f32::INFINITY; nx * nz] };
         }
-        let mut heap: std::collections::BinaryHeap<(std::cmp::Reverse<u32>, usize)> = std::collections::BinaryHeap::new();
+        // The least walk to every cell, a straight step 16 and a diagonal 23. The steps are whole and at most 23, so
+        // the cells still to settle lie within 24 of the nearest of them and a ring of 24 buckets holds them in
+        // order with no heap; a cell's ground is asked once, when a walk first comes to it (until 2026-11-09 a heap,
+        // and the ground asked of every neighbour of every settled cell: half of a builder menu's pass, `site_bench`).
+        const RING: usize = 24;
+        const UNSEEN: u8 = 0;
+        const OPEN: u8 = 1;
+        const SHUT: u8 = 2;
+        let mut ground: Vec<u8> = blocked.iter().map(|b| if *b { SHUT } else { UNSEEN }).collect();
+        let mut best = vec![u32::MAX; nx * nz];
+        let mut ring: [Vec<u32>; RING] = Default::default();
         let s = start.1 * nx + start.0;
-        dist[s] = 0.0;
-        heap.push((std::cmp::Reverse(0), s));
-        let open = |i: usize, j: usize| (world.open)(Vec3 { x: x0 + (i as f32 + 0.5) * GRID, y: 0.0, z: z0 + (j as f32 + 0.5) * GRID });
-        while let Some((std::cmp::Reverse(d), k)) = heap.pop() {
-            if d as f32 > dist[k] {
-                continue;
-            }
-            let (i, j) = (k % nx, k / nx);
-            for (di, dj) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)] {
-                let (ni, nj) = (i as i32 + di, j as i32 + dj);
-                if ni < 0 || nj < 0 || ni >= nx as i32 || nj >= nz as i32 {
+        best[s] = 0;
+        ring[0].push(s as u32);
+        let (mut waiting, mut d) = (1usize, 0u32);
+        let mut settled: Vec<u32> = Vec::new();
+        while waiting > 0 {
+            std::mem::swap(&mut settled, &mut ring[d as usize % RING]);
+            waiting -= settled.len();
+            for &k in &settled {
+                let k = k as usize;
+                // Reached sooner since it was put here.
+                if best[k] != d {
                     continue;
                 }
-                let (ni, nj) = (ni as usize, nj as usize);
-                let n = nj * nx + ni;
-                if blocked[n] || !open(ni, nj) {
-                    continue;
-                }
-                let step = if di != 0 && dj != 0 { 23 } else { 16 };
-                let nd = d + step;
-                if (nd as f32) < dist[n] {
-                    dist[n] = nd as f32;
-                    heap.push((std::cmp::Reverse(nd), n));
+                let (i, j) = (k % nx, k / nx);
+                for (di, dj) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)] {
+                    let (ni, nj) = (i as i32 + di, j as i32 + dj);
+                    if ni < 0 || nj < 0 || ni >= nx as i32 || nj >= nz as i32 {
+                        continue;
+                    }
+                    let (ni, nj) = (ni as usize, nj as usize);
+                    let n = nj * nx + ni;
+                    if ground[n] == UNSEEN {
+                        ground[n] = if (world.open)(Vec3 { x: x0 + (ni as f32 + 0.5) * GRID, y: 0.0, z: z0 + (nj as f32 + 0.5) * GRID }) { OPEN } else { SHUT };
+                    }
+                    if ground[n] == SHUT {
+                        continue;
+                    }
+                    let nd = d + if di != 0 && dj != 0 { 23 } else { 16 };
+                    if nd < best[n] {
+                        best[n] = nd;
+                        ring[nd as usize % RING].push(n as u32);
+                        waiting += 1;
+                    }
                 }
             }
+            settled.clear();
+            d += 1;
         }
-        Walk { x0, z0, nx, nz, dist }
+        Walk { x0, z0, nx, nz, dist: best.into_iter().map(|d| if d == u32::MAX { f32::INFINITY } else { d as f32 }).collect() }
     }
 
-    /// The walk to `p`: infinite when the flood never reached it.
+    /// The cells `to_within` looks over round `p`, as rows: for each row of cells the first and last column whose
+    /// centre lies within `reach`. The test is `to_within`'s own, on the same numbers: with the point and the
+    /// window's corner on half elmos (a lattice point is on the build grid, the window on the walk's) every
+    /// difference is exact, so the rows are the same round any point that lies the same way in its cell. None for a
+    /// point off the half elmos.
+    fn disc(&self, p: Vec3, reach: f32) -> Option<Disc> {
+        if ![p.x, p.z, self.x0, self.z0].into_iter().all(on_half_elmos) {
+            return None;
+        }
+        let cells = (reach / GRID).ceil() as i32;
+        let (ci, cj) = (((p.x - self.x0) / GRID).floor() as i32, ((p.z - self.z0) / GRID).floor() as i32);
+        let (fx, fz) = (p.x - (self.x0 + ci as f32 * GRID), p.z - (self.z0 + cj as f32 * GRID));
+        let mut rows = Vec::new();
+        for dj in -cells..=cells {
+            let dz = (dj as f32 + 0.5) * GRID - fz;
+            let within: Vec<i32> = (-cells..=cells).filter(|di| { let dx = (*di as f32 + 0.5) * GRID - fx; dx * dx + dz * dz <= reach * reach }).collect();
+            if let (Some(first), Some(last)) = (within.first(), within.last()) {
+                rows.push((dj, *first, *last));
+            }
+        }
+        Some(Disc { fx, fz, rows })
+    }
+
+    /// `to_within` by a disc's rows; None when `p` does not lie in its cell as the disc's point did.
+    fn to_within_disc(&self, disc: &Disc, p: Vec3) -> Option<f32> {
+        if !on_half_elmos(p.x) || !on_half_elmos(p.z) {
+            return None;
+        }
+        let (ci, cj) = (((p.x - self.x0) / GRID).floor() as i32, ((p.z - self.z0) / GRID).floor() as i32);
+        if p.x - (self.x0 + ci as f32 * GRID) != disc.fx || p.z - (self.z0 + cj as f32 * GRID) != disc.fz {
+            return None;
+        }
+        let mut best = f32::INFINITY;
+        for (dj, first, last) in &disc.rows {
+            let j = cj + dj;
+            let (i0, i1) = ((ci + first).max(0), (ci + last).min(self.nx as i32 - 1));
+            if j < 0 || j >= self.nz as i32 || i0 > i1 {
+                continue;
+            }
+            let row = j as usize * self.nx;
+            best = self.dist[row + i0 as usize..=row + i1 as usize].iter().fold(best, |least, d| least.min(*d));
+        }
+        Some(best)
+    }
+
     /// The walk to within `reach` of `p`: the least distance to a cell whose centre lies within `reach` of it, so a
     /// site the builder cannot stand on (one on the water, for a builder on land) is reached from the shore.
+    /// Infinite when the flood reached no such cell.
     fn to_within(&self, p: Vec3, reach: f32) -> f32 {
         let cells = (reach / GRID).ceil() as i32;
         let (ci, cj) = (((p.x - self.x0) / GRID).floor() as i32, ((p.z - self.z0) / GRID).floor() as i32);
@@ -680,20 +1035,39 @@ impl Walk {
     }
 }
 
-/// The candidates in the order of the bands: at each level those within the band of the best go on to the next
-/// level's order; the rest follow them in this level's order, so the street check has them to fall back to.
-fn by_bands(candidates: Vec<Candidate>, bands: &[f32; 5]) -> Vec<Candidate> {
-    by_bands_from(candidates, bands, 0)
+/// The rows of cells within a reach of a point (`Walk::disc`), and where the point lay in its cell.
+struct Disc {
+    fx: f32,
+    fz: f32,
+    /// (row from the point's, first column, last column from the point's).
+    rows: Vec<(i32, i32, i32)>,
 }
 
-fn by_bands_from(candidates: Vec<Candidate>, bands: &[f32; 5], level: usize) -> Vec<Candidate> {
+/// A whole number of half elmos, small enough that sums and differences of such numbers are exact.
+fn on_half_elmos(v: f32) -> bool {
+    v.abs() < 1_048_576.0 && (v * 2.0).fract() == 0.0
+}
+
+/// The candidates in the order of the bands: at each level those within the band of the best go on to the next
+/// level's order; the rest follow them in this level's order, so the street check has them to fall back to.
+/// `walked` is a candidate's level 3, asked of those the earlier levels' bands let through.
+fn by_bands(candidates: Vec<Candidate>, bands: &[f32; 5], walked: &dyn Fn(&Candidate) -> f32) -> Vec<Candidate> {
+    by_bands_from(candidates, bands, 0, walked)
+}
+
+fn by_bands_from(mut candidates: Vec<Candidate>, bands: &[f32; 5], level: usize, walked: &dyn Fn(&Candidate) -> f32) -> Vec<Candidate> {
     if level >= 5 || candidates.len() <= 1 {
         return candidates;
+    }
+    if level == 3 {
+        for c in candidates.iter_mut() {
+            c.scores[3] = walked(c);
+        }
     }
     let best = candidates.iter().map(|c| c.scores[level]).fold(f32::INFINITY, f32::min);
     let (within, mut rest): (Vec<Candidate>, Vec<Candidate>) = candidates.into_iter().partition(|c| c.scores[level] <= best + bands[level]);
     rest.sort_by(|a, b| a.scores[level].total_cmp(&b.scores[level]));
-    let mut out = by_bands_from(within, bands, level + 1);
+    let mut out = by_bands_from(within, bands, level + 1, walked);
     out.extend(rest);
     out
 }
@@ -793,6 +1167,201 @@ mod tests {
         Vec3 { x, y: 0.0, z }
     }
 
+    /// The walk's flood against the plain search it replaced (a heap, the ground asked at every step): the same
+    /// walk to every cell, round buildings, over closed ground, from a start in the open and from one shut in.
+    #[test]
+    fn the_walks_flood_is_the_least_walk_to_every_cell() {
+        let t = flat();
+        // Closed ground in stripes with gaps, so the walks bend.
+        let open = |p: Vec3| !((p.x / 16.0) as i32 % 7 == 3 && (p.z / 16.0) as i32 % 5 != 0) && !(p.z > 2300.0 && p.z < 2330.0 && p.x < 2200.0);
+        let mut w = world(&t, &open);
+        let mut seed = 12345u32;
+        let mut next = move || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 8) as f32 / (1u32 << 24) as f32
+        };
+        for _ in 0..120 {
+            let fp = [2, 4, 6, 10][(next() * 4.0) as usize % 4];
+            w.standing.push(standing(3, fp, Footprint { x: fp, z: fp }.snap(at(1500.0 + next() * 1100.0, 1500.0 + next() * 1100.0)), 100.0, 100.0, None));
+        }
+        w.standing[7].ours = false;
+        let plain = |from: Vec3, centre: Vec3, radius: f32| -> Vec<f32> {
+            let made = Walk::new(&w, from, centre, radius);
+            let (nx, nz, x0, z0) = (made.nx, made.nz, made.x0, made.z0);
+            let mut blocked = vec![false; nx * nz];
+            for s in &w.standing {
+                let r = if s.ours { s.rect } else { s.rect.grown(ALLY_MARGIN) };
+                for j in 0..nz {
+                    for i in 0..nx {
+                        let (cx0, cz0) = (x0 + i as f32 * GRID, z0 + j as f32 * GRID);
+                        if cx0 < r.x1 && cx0 + GRID > r.x0 && cz0 < r.z1 && cz0 + GRID > r.z0 {
+                            blocked[j * nx + i] = true;
+                        }
+                    }
+                }
+            }
+            let mut dist = vec![f32::INFINITY; nx * nz];
+            let start = (((from.x - x0) / GRID) as usize, ((from.z - z0) / GRID) as usize);
+            let mut heap: std::collections::BinaryHeap<(std::cmp::Reverse<u32>, usize)> = std::collections::BinaryHeap::new();
+            dist[start.1 * nx + start.0] = 0.0;
+            heap.push((std::cmp::Reverse(0), start.1 * nx + start.0));
+            while let Some((std::cmp::Reverse(d), k)) = heap.pop() {
+                if d as f32 > dist[k] {
+                    continue;
+                }
+                let (i, j) = (k % nx, k / nx);
+                for (di, dj) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)] {
+                    let (ni, nj) = (i as i32 + di, j as i32 + dj);
+                    if ni < 0 || nj < 0 || ni >= nx as i32 || nj >= nz as i32 {
+                        continue;
+                    }
+                    let n = nj as usize * nx + ni as usize;
+                    if blocked[n] || !open(Vec3 { x: x0 + (ni as f32 + 0.5) * GRID, y: 0.0, z: z0 + (nj as f32 + 0.5) * GRID }) {
+                        continue;
+                    }
+                    let nd = d + if di != 0 && dj != 0 { 23 } else { 16 };
+                    if (nd as f32) < dist[n] {
+                        dist[n] = nd as f32;
+                        heap.push((std::cmp::Reverse(nd), n));
+                    }
+                }
+            }
+            dist
+        };
+        let mut reached = 0;
+        for (from, centre, radius) in [(at(2000.0, 2000.0), at(2000.0, 2000.0), 300.0), (at(1400.0, 1400.0), at(2100.0, 2050.0), 600.0), (at(2650.0, 2700.0), at(1800.0, 1900.0), 400.0), (w.standing[0].rect.centre(), at(2000.0, 2000.0), 500.0), (at(40.0, 40.0), at(300.0, 200.0), 1200.0)] {
+            let made = Walk::new(&w, from, centre, radius);
+            let want = plain(from, centre, radius);
+            assert_eq!(made.dist.len(), want.len());
+            assert!(made.dist.iter().zip(&want).all(|(a, b)| a == b), "the flood from {from:?} for {radius} round {centre:?} differs");
+            reached += want.iter().filter(|d| d.is_finite() && **d > 0.0).count();
+        }
+        assert!(reached > 10_000, "the floods reached {reached} cells");
+    }
+
+    /// One world asked by many builders for many kinds answers each as a world asked that question alone: the memo of
+    /// fixed parts, the footprints' and the walk sets' sums change no answer and no word.
+    #[test]
+    fn one_world_answers_every_asker_as_a_fresh_world_does() {
+        let t = flat();
+        let open = |p: Vec3| !(p.x > 2500.0 && p.x < 2540.0 && p.z < 2300.0);
+        // The products' ground: all of it but a strip, so some plant sites fail on their footprint or apron.
+        let walk: crate::Passable = (0..256 * 256).map(|k| { let (i, j) = (k % 256, k / 256); !(i > 118 && i < 122 && j > 100) }).collect::<Vec<bool>>().into();
+        let make = || {
+            let mut w = world(&t, &open);
+            let mut seed = 99u32;
+            let mut next = move || {
+                seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+                (seed >> 8) as f32 / (1u32 << 24) as f32
+            };
+            for k in 0..60 {
+                let (def, fp) = [(3, 10), (4, 6), (5, 4)][k % 3];
+                w.standing.push(standing(def, fp, Footprint { x: fp, z: fp }.snap(at(1700.0 + next() * 700.0, 1700.0 + next() * 700.0)), 150.0, 300.0, (k % 4 == 0).then_some((120.0, 400.0))));
+            }
+            for k in 0..8 {
+                w.workers.push(Worker { at: at(2050.0 + 40.0 * k as f32, 2420.0), reach: 400.0, power: 200.0 });
+            }
+            w.frames.push(Frame { rect: Footprint { x: 12, z: 12 }.rect(at(2200.0, 2500.0)), metal: 4000.0 });
+            w.builders = [(1800.0, 1650.0), (2300.0, 2450.0), (1650.0, 2300.0), (2420.0, 1700.0)].iter().map(|(x, z)| Builder { at: at(*x, *z), half: 8.0, passable: None }).collect();
+            w.refused.push((UnitDefId(21), at(2296.0, 2440.0)));
+            w
+        };
+        let plant = |def: i32| Facts { factory: true, product_half: 24.0, product_passable: Some(walk.clone()), footprint: Footprint { x: 12, z: 12 }, ..facts(def, 12, 700.0, 3000.0, None) };
+        let kinds: Vec<(Facts, Purpose, Option<Vec3>, f32)> = vec![
+            (facts(3, 10, 155.0, 340.0, Some((50.0, 89.0))), Purpose::Generator { cap: None }, None, 300.0),
+            (facts(5, 4, 40.0, 200.0, None), Purpose::Generator { cap: Some(4) }, None, 300.0),
+            (Facts { build_distance: 400.0, ..facts(20, 6, 230.0, 560.0, None) }, Purpose::Turret, Some(at(2100.0, 2400.0)), 500.0),
+            (facts(21, 10, 4000.0, 5000.0, Some((300.0, 3000.0))), Purpose::Frame, Some(at(2100.0, 2400.0)), 600.0),
+            (plant(30), Purpose::Plant, None, 600.0),
+            (plant(31), Purpose::Plant, None, 600.0),
+            (facts(22, 4, 90.0, 600.0, None), Purpose::Place, None, 200.0),
+        ];
+        let shared = make();
+        let questions: Vec<Request> = shared
+            .builders
+            .iter()
+            .flat_map(|b| kinds.iter().map(|(facts, purpose, centre, radius)| Request { facts: facts.clone(), purpose: *purpose, centre: centre.unwrap_or(b.at), radius: *radius, builder_at: b.at, builder: Facts { build_distance: 145.0, build_speed: 300.0, ..builder() } }))
+            .collect();
+        let (mut found, mut refused) = (0, 0);
+        // Twice over the shared world: the second time every point is the memo's.
+        for req in questions.iter().chain(questions.iter()) {
+            let (mut shared_trace, mut alone_trace) = (Vec::new(), Vec::new());
+            let together = choose_traced(&shared, req, Some(&mut shared_trace));
+            let alone = choose_traced(&make(), req, Some(&mut alone_trace));
+            match (&together, &alone) {
+                (Ok(a), Ok(b)) => {
+                    assert!(a.at.x == b.at.x && a.at.z == b.at.z && a.facing == b.facing && a.words == b.words, "{:?} for a builder at {:?}: {a:?} against {b:?}", req.purpose, req.builder_at);
+                    found += 1;
+                }
+                (Err(a), Err(b)) => {
+                    assert_eq!(a, b);
+                    refused += 1;
+                }
+                _ => panic!("{:?} for a builder at {:?}: {together:?} against {alone:?}", req.purpose, req.builder_at),
+            }
+            // The traces but for their times.
+            let timeless = |t: &[String]| t.iter().map(|l| l.rsplit_once(", ").filter(|(_, ms)| ms.ends_with(" ms")).map_or(l.clone(), |(head, _)| head.to_string())).collect::<Vec<_>>();
+            assert_eq!(timeless(&shared_trace), timeless(&alone_trace));
+        }
+        assert!(found >= 40, "{found} found, {refused} refused");
+    }
+
+    /// The products' ground under an area by the walk set's sums is `cells_open` over the set: on the map and
+    /// hanging off each edge, on the grid and half a cell off it, empty areas, areas over the closed strip.
+    #[test]
+    fn the_products_ground_by_sums_is_the_ground_cell_by_cell() {
+        let t = flat();
+        let open = |_: Vec3| true;
+        let w = world(&t, &open);
+        let walk: crate::Passable = (0..256 * 256).map(|k| { let (i, j) = (k % 256, k / 256); !(i % 23 == 7 && j % 5 != 0) && !(j == 190 && i > 40) }).collect::<Vec<bool>>().into();
+        let mut seed = 7u32;
+        let mut next = move || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 8) as f32 / (1u32 << 24) as f32
+        };
+        let (mut stood, mut failed) = (0, 0);
+        for k in 0..20_000 {
+            let step = [16.0, 8.0, 4.0, 0.5][k % 4];
+            let snap = |v: f32| (v / step).round() * step;
+            let (x0, z0) = (snap(next() * 4300.0 - 100.0), snap(next() * 4300.0 - 100.0));
+            let area = Rect { x0, z0, x1: x0 + snap(next() * 200.0), z1: z0 + snap(next() * 200.0) };
+            let cell_by_cell = cells_open(&area, &|p: Vec3| w.ground.walks(&walk, p.x, p.z));
+            assert_eq!(w.products_stand(Some(&walk), &area), cell_by_cell, "{area:?}");
+            if cell_by_cell { stood += 1 } else { failed += 1 }
+        }
+        assert!(stood > 2_000 && failed > 2_000, "{stood} stood, {failed} did not");
+    }
+
+    /// The walk to within a reach of a point read by the disc's rows is the look over every cell: on lattices of
+    /// either parity, at the window's edges and beyond them, for several reaches.
+    #[test]
+    fn the_walk_within_reach_by_rows_is_the_look_over_every_cell() {
+        let t = flat();
+        let open = |p: Vec3| (p.x / 16.0) as i32 % 9 != 4 || (p.z / 16.0) as i32 % 6 == 0;
+        let mut w = world(&t, &open);
+        for k in 0..40 {
+            w.standing.push(standing(3, 10, Footprint { x: 10, z: 10 }.snap(at(1700.0 + (k % 8) as f32 * 90.0, 1700.0 + (k / 8) as f32 * 130.0)), 100.0, 100.0, None));
+        }
+        let walk = Walk::new(&w, at(1650.0, 1650.0), at(2000.0, 2000.0), 500.0);
+        let mut asked = 0;
+        for reach in [40.0f32, 145.0, 168.0, 209.0, 400.0] {
+            for fp in [Footprint { x: 4, z: 4 }, Footprint { x: 3, z: 3 }, Footprint { x: 6, z: 3 }] {
+                let points = lattice(fp, at(2000.0, 2000.0), 700.0);
+                let disc = walk.disc(points[0], reach).expect("a lattice point is on the half elmos");
+                for p in &points {
+                    assert_eq!(walk.to_within_disc(&disc, *p), Some(walk.to_within(*p, reach)), "{p:?} within {reach}");
+                    asked += 1;
+                }
+            }
+        }
+        assert!(asked > 50_000);
+        // A point that lies otherwise in its cell is not the disc's to answer, nor one off the half elmos.
+        let disc = walk.disc(at(2000.0, 2000.0), 145.0).unwrap();
+        assert_eq!(walk.to_within_disc(&disc, at(2008.0, 2000.0)), None);
+        assert_eq!(walk.to_within_disc(&disc, at(2000.3, 2000.0)), None);
+        assert!(walk.disc(at(2000.3, 2000.0), 145.0).is_none());
+    }
+
     fn flat() -> Terrain {
         let (w, h) = (256u32, 256u32);
         Terrain { cell: 16.0, width: w, height: h, heights: vec![50; (w * h) as usize], slopes: vec![0; (w * h) as usize], metal: Vec::new() }
@@ -811,7 +1380,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default(), fixed: Default::default(), walk_sums: Default::default() }
     }
 
     /// A solar goes touching the solars that stand (a bank grows), never in a gap under a street's width; a
@@ -1138,7 +1707,7 @@ mod sea_tests {
         // Land everywhere at 50: a shipyard wanting 30 of water stands nowhere, and the answer says so at once.
         let t = Terrain { cell: 16.0, width: 256, height: 256, heights: vec![50; 256 * 256], slopes: vec![0; 256 * 256], metal: Vec::new() };
         let open = |_: Vec3| true;
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default(), fixed: Default::default(), walk_sums: Default::default() };
         let mut shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let builder = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         assert!(!w.ground.depths_on_map(&shipyard));
@@ -1185,7 +1754,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(3500.0, 3500.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default(), fixed: Default::default(), walk_sums: Default::default() };
         let tidal = Facts { def: UnitDefId(7), footprint: Footprint { x: 3, z: 3 }, build_distance: 0.0, build_speed: 0.0, build_time: 1000.0, metal: 100.0, health: 300.0, blast: None, height_dif: 10.7, min_depth: 20.0, max_depth: 1e7, floater: true, extractor: false, factory: false, building: true, product_half: 0.0, product_passable: None };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);
@@ -1202,7 +1771,7 @@ mod sea_tests {
         let t = shore();
         let ground = Ground::new(&t, 4096.0, 4096.0);
         let open = |p: Vec3| ground.height_at(p.x, p.z).is_some_and(|h| h >= 0.0);
-        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default() };
+        let w = World { ground: Ground::new(&t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), lattice: None, refused: Vec::new(), home: at(1800.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm_frame: None, farm: Default::default(), fixed: Default::default(), walk_sums: Default::default() };
         let shipyard = Facts { def: UnitDefId(9), footprint: Footprint { x: 12, z: 12 }, build_distance: 0.0, build_speed: 0.0, build_time: 5000.0, metal: 450.0, health: 2000.0, blast: None, height_dif: 10.7, min_depth: 30.0, max_depth: 1e7, floater: true, extractor: false, factory: true, building: true, product_half: 24.0, product_passable: Some(crate::sea_walk(&t, 15.0)) };
         let commander = Facts { def: UnitDefId(1), footprint: Footprint { x: 4, z: 4 }, build_distance: 145.0, build_speed: 300.0, build_time: 1.0, metal: 0.0, health: 0.0, blast: None, height_dif: 10.7, min_depth: crate::NO_DEPTH_FLOOR, max_depth: 0.0, floater: false, extractor: false, factory: false, building: false, product_half: 0.0, product_passable: None };
         let builder_at = at(1900.0, 2048.0);

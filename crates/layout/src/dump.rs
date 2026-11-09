@@ -115,8 +115,48 @@ impl Dump {
             standing_near: Default::default(),
             spots_near: Default::default(),
             streets: Default::default(), blasts_near: Default::default(),
-            farm: Default::default(),
+            farm: Default::default(), fixed: Default::default(), walk_sums: Default::default(),
         }
+    }
+}
+
+/// A slow pass of the builder menus saved whole: the world of the pass and every site question it asked of the
+/// layer, in the order asked (`crates/bot` `menu.rs`, `fill_builder_menus`; `layout-pass-<ai>-<n>.bin`). `site_bench`
+/// asks them again over the same world, so a change to the search is judged on the game's own questions. The dump's
+/// own `request` is the pass's first and its `ms` the pass's time.
+#[derive(Serialize, Deserialize)]
+pub struct PassDump {
+    pub dump: Dump,
+    pub requests: Vec<Request>,
+}
+
+impl PassDump {
+    pub fn write(&self, path: &Path) -> io::Result<()> {
+        let bytes = postcard::to_allocvec(self).map_err(io::Error::other)?;
+        std::fs::write(path, bytes)
+    }
+
+    /// The pass as it was in the game: there every question for one kind of plant holds the same walk set (the route
+    /// survey's, shared), and the world's memo of fixed parts knows a kind by it; read back, each question has its
+    /// own copy, so equal sets are made one again.
+    pub fn read(path: &Path) -> io::Result<PassDump> {
+        let bytes = std::fs::read(path)?;
+        let mut pass: PassDump = postcard::from_bytes(&bytes).map_err(io::Error::other)?;
+        let mut sets: Vec<Passable> = Vec::new();
+        let mut shared = |set: &mut Option<Passable>| {
+            if let Some(own) = set {
+                match sets.iter().find(|known| known[..] == own[..]) {
+                    Some(known) => *own = known.clone(),
+                    None => sets.push(own.clone()),
+                }
+            }
+        };
+        shared(&mut pass.dump.request.facts.product_passable);
+        for request in pass.requests.iter_mut() {
+            shared(&mut request.facts.product_passable);
+            shared(&mut request.builder.product_passable);
+        }
+        Ok(pass)
     }
 }
 
@@ -200,7 +240,7 @@ mod tests {
             standing_near: Default::default(),
             spots_near: Default::default(),
             streets: Default::default(), blasts_near: Default::default(),
-            farm: Default::default(),
+            farm: Default::default(), fixed: Default::default(), walk_sums: Default::default(),
         };
         let req = Request { facts: facts(1, 10), purpose: Purpose::Generator { cap: Some(8) }, centre: at(480.0, 400.0), radius: 300.0, builder_at: at(480.0, 400.0), builder: facts(2, 2) };
         let answer = crate::choose(&world, &req);

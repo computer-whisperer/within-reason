@@ -35,6 +35,9 @@ pub(super) const BAND_PLACE: f32 = 200.0;
 /// How many failing site searches a game dumps for replay, and how many of one kind (`dump_layout_failure`).
 const LAYOUT_DUMPS: usize = 6;
 const LAYOUT_DUMPS_PER_KIND: usize = 2;
+/// The slow passes of the builder menus dumped a game, and the time from which a pass is slow (`dump_layout_pass`).
+const LAYOUT_PASS_DUMPS: usize = 5;
+const LAYOUT_PASS_MS: f32 = 400.0;
 /// On a metal map, how far from the builder its "nearest" extractor tile may lie (`tile_site`).
 pub(super) const TILE_REACH: f32 = 1_200.0;
 /// A tile the engine refused within this distance is left alone while the refusal stands.
@@ -269,7 +272,7 @@ impl Brain {
             home: self.home,
             toward: self.enemy_base(self.home),
             open: Box::new(open),
-            walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default(),
+            walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default(), fixed: Default::default(), walk_sums: Default::default(),
         }
     }
 
@@ -309,6 +312,9 @@ impl Brain {
     fn place_in_world(&self, world: &World, def: UnitDefId, builder: &OwnUnit, centre: Vec3, radius: f32) -> Plan {
         let (Some(facts), Some(builder_facts)) = (self.facts_of(def), self.facts_of(builder.def)) else { return Plan::Near(def, centre) };
         let req = Request { facts, purpose: self.purpose_of(def), centre, radius, builder_at: builder.pos, builder: builder_facts };
+        if let Some(asks) = self.layout_asks.borrow_mut().as_mut() {
+            asks.push(req.clone());
+        }
         let started = std::time::Instant::now();
         let mut trace = Vec::new();
         let chosen = layout::choose_traced(world, &req, Some(&mut trace));
@@ -356,6 +362,38 @@ impl Brain {
         match dump.write(&path) {
             Ok(()) => eprintln!("[ai {}] layout failure {n} dumped to {} ({ms:.0} ms)", self.ai(), path.display()),
             Err(e) => eprintln!("[ai {}] layout failure {n} not dumped: {e}", self.ai()),
+        }
+    }
+
+    /// Whether the builder menus' pass about to run is watched for a dump: the record on and dumps left. A watched
+    /// pass keeps its site questions (`layout_asks`).
+    pub(super) fn watch_layout_pass(&self) -> bool {
+        let watched = crate::recorder::enabled() && self.layout_passes_dumped.get().0 < LAYOUT_PASS_DUMPS;
+        *self.layout_asks.borrow_mut() = watched.then(Vec::new);
+        watched
+    }
+
+    /// A slow pass of the builder menus saved whole for replay (`layout::PassDump`, `site_bench`): the pass's world
+    /// and every site question it asked, into `layout-pass-<ai>-<n>.bin` beside the record. The first pass over
+    /// `LAYOUT_PASS_MS` and then each pass half again as slow as the last one dumped, `LAYOUT_PASS_DUMPS` a game:
+    /// the game's own heaviest passes, where a dumped failure holds one search (econ-flagship-21: 572 questions in a
+    /// pass of 5.7 s with no search refused).
+    pub(super) fn dump_layout_pass(&self, world: Option<&World>, ms: f32, frame: i32) {
+        let Some(asks) = self.layout_asks.borrow_mut().take() else { return };
+        let (dumped, last) = self.layout_passes_dumped.get();
+        let (Some(world), Some(first)) = (world, asks.first()) else { return };
+        if ms < LAYOUT_PASS_MS.max(last * 1.5) {
+            return;
+        }
+        let n = dumped + 1;
+        self.layout_passes_dumped.set((n, ms));
+        let seconds = frame / super::FRAMES_PER_SECOND;
+        let label = format!("the builder menus' pass at {}:{:02}, {} questions", seconds / 60, seconds % 60, asks.len());
+        let dump = layout::Dump::of(world, first, &self.world.hello.terrain, self.routes_passable(), label, String::new(), ms, Vec::new());
+        let path = crate::log_dir().join(format!("layout-pass-{}-{}.bin", self.ai(), n));
+        match (layout::PassDump { dump, requests: asks }).write(&path) {
+            Ok(()) => eprintln!("[ai {}] f={frame} slow menu pass {n} dumped to {} ({ms:.0} ms)", self.ai(), path.display()),
+            Err(e) => eprintln!("[ai {}] f={frame} slow menu pass {n} not dumped: {e}", self.ai()),
         }
     }
 

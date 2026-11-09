@@ -130,6 +130,13 @@ pub struct Brain {
     /// The failing site searches dumped for replay (`economy.rs` `dump_layout_failure`): how many, and how many a
     /// kind.
     layout_dumped: std::cell::RefCell<(usize, HashMap<UnitDefId, usize>)>,
+    /// The site questions of the builder menus' pass under way, kept while the pass is watched for a dump
+    /// (`menu.rs` `fill_builder_menus`, `economy.rs` `dump_layout_pass`); None outside a watched pass.
+    layout_asks: std::cell::RefCell<Option<Vec<layout::Request>>>,
+    /// Each factory type's products' ground, as found for the route survey in force (`passable_for_factory`).
+    factory_walks: std::cell::RefCell<HashMap<UnitDefId, Option<layout::Passable>>>,
+    /// The slow passes dumped this game and the time of the last of them.
+    layout_passes_dumped: std::cell::Cell<(usize, f32)>,
     /// Every site search the layout layer refused this game, by kind: the engine placed those. Said once a minute
     /// while it grows, so a game's pile is sized from the log without its dumps.
     layout_refused: std::cell::RefCell<HashMap<UnitDefId, usize>>,
@@ -399,6 +406,9 @@ impl Brain {
             block_failed: None,
             layout_refusal_said: std::cell::RefCell::new(HashMap::new()),
             layout_dumped: Default::default(),
+            layout_asks: Default::default(),
+            factory_walks: Default::default(),
+            layout_passes_dumped: Default::default(),
             layout_refused: Default::default(),
             reclaim: Default::default(),
             plan_game: None,

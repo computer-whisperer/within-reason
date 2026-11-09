@@ -811,6 +811,7 @@ impl Brain {
     pub(super) fn fill_builder_menus(&self, tick: &Tick, kit: &Kit, picture: &Picture, menus: &mut [Menu]) {
         let Some(pianist) = self.pianist.as_ref() else { return };
         let scene = self.scene(tick, kit, picture, pianist);
+        let watched = self.watch_layout_pass().then(std::time::Instant::now);
         for menu in menus.iter_mut() {
             let Kind::Builder(id) = menu.kind else { continue };
             if menu.quiet && !menu.audit {
@@ -823,6 +824,9 @@ impl Brain {
                 full.reopened = menu.reopened;
                 *menu = full;
             }
+        }
+        if let Some(started) = watched {
+            self.dump_layout_pass(scene.layout.get(), started.elapsed().as_secs_f32() * 1000.0, tick.frame);
         }
     }
 

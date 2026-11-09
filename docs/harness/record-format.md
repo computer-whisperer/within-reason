@@ -317,6 +317,15 @@ with the game's answer, its time and its trace. `target/release/site_replay <fil
 game and prints the trace (each widening's points, candidates and time; each tried candidate's verdict);
 `--without-asker` first takes the asking builder out of the world's builders. `target/release/site_bench [--repeat N] [--list] <file>...` is the builder menu's pass over a dump's world off the game: every builder asks for eight kinds, as `menu.rs` asks each pass; it prints the pass's time, the per-search median and worst, and a digest of the answers (`--list` each one), so a change to the search is judged on identical answers and its time (2026-11-07: 2,583 → 490 ms a pass over five dumps, every one of 336 answers the same).
 
+A slow pass of the builder menus is saved whole beside the record as `layout-pass-<ai_id>-<n>.bin` (`layout::PassDump`;
+`crates/bot` `economy.rs` `dump_layout_pass`): the pass's world as above and every site question the pass asked of the
+layer, in the order asked. The first pass over 400 ms and then each pass half again as slow as the last one dumped, at
+most five a game, said in `bot.log` (`slow menu pass N dumped`). `site_bench` asks a pass dump its own questions
+instead of the eight kinds and says the time by purpose too; the pass off the game is the pass in it (1794201690-econ-flagship-22:
+538 / 823 / 1,710 / 2,727 ms off the game against 518 / 785 / 1,550 / 2,632 ms in it, so the builder menus' time is its
+site questions and nothing else of weight). 2026-11-09 on those four dumps: about 5,600 → 1,040 ms (three runs each: 5,262-5,839 against 991-1,097), every one of 309 answers
+the same with its words (`--list` of the old search against the new; with the five failure dumps 645 of 645).
+
 ## Opponent ground truth
 
 `truth-<ai_id>.jsonl`, written by the shim (not the bot) when the match runs with `WITHIN_REASON_OBSERVE=1`: one line

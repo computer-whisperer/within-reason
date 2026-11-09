@@ -186,6 +186,7 @@ impl Brain {
                 }
             });
         }
+        self.factory_walks.borrow_mut().clear();
         self.routes = Some(Routes {
             soldiers: Walker::Class(ClassKey::of(class)),
             passages: from_enemy.as_ref().map(|enemy| terrain::passages(&from_home, enemy)).unwrap_or_default(),
@@ -347,14 +348,26 @@ impl Brain {
         self.reachable_on_foot(pos) || self.routes.as_ref().is_some_and(|r| r.classes.values().any(|(_, field)| field.distance(pos).is_some()))
     }
 
-    /// Where the units a factory of this type makes can stand: the passable grid of the strictest movement class
-    /// among its build options (a vehicle plant's tanks climb less than a lab's bots), else the soldiers'.
     /// Where our soldiers' class stands: the layout layer's ground for every plant's street. None without terrain.
     pub(super) fn routes_passable(&self) -> Option<&[bool]> {
         self.routes.as_ref().map(|r| r.passable.as_slice())
     }
 
+    /// Where the units a factory of this type makes can stand: the passable grid of the strictest movement class
+    /// among its build options (a vehicle plant's tanks climb less than a lab's bots), else the soldiers'. Found
+    /// once a type for a survey (`factory_walks`): the strictest is a count over the map for each product, and the
+    /// builder menus ask it for every plant on every open builder's menu each pass; the one set a type then holds
+    /// is also what lets the layout layer know two builders' questions for it as one kind (`layout::choose`).
     pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<layout::Passable> {
+        if let Some(known) = self.factory_walks.borrow().get(&def_id) {
+            return known.clone();
+        }
+        let found = self.strictest_products_ground(def_id);
+        self.factory_walks.borrow_mut().insert(def_id, found.clone());
+        found
+    }
+
+    fn strictest_products_ground(&self, def_id: UnitDefId) -> Option<layout::Passable> {
         let routes = self.routes.as_ref()?;
         let strictest = self
             .world

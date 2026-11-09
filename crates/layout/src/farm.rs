@@ -62,10 +62,10 @@ impl Farm {
                 if !world.ground.stands(CELL, p, facts) {
                     continue;
                 }
-                if world.standing_near(&cell).any(|(_, s)| s.rect.overlaps(&cell)) {
+                if world.standing_any(&cell, |s| s.rect.overlaps(&cell)) {
                     continue;
                 }
-                if world.spots_near(&cell).any(|s| s.dist2d(p) < world.spot_keep_out || Rect { x0: s.x - SPOT_BOX_HALF, z0: s.z - SPOT_BOX_HALF, x1: s.x + SPOT_BOX_HALF, z1: s.z + SPOT_BOX_HALF }.overlaps(&cell)) {
+                if world.spots_any(&cell, |s| s.dist2d(p) < world.spot_keep_out || Rect { x0: s.x - SPOT_BOX_HALF, z0: s.z - SPOT_BOX_HALF, x1: s.x + SPOT_BOX_HALF, z1: s.z + SPOT_BOX_HALF }.overlaps(&cell)) {
                     continue;
                 }
                 if world.plants.iter().any(|pl| pl.apron().overlaps(&cell)) || world.reservations.iter().any(|r| r.rect.overlaps(&cell)) {
@@ -173,7 +173,7 @@ mod tests {
     }
 
     fn world<'a>(t: &'a Terrain, open: &'a dyn Fn(Vec3) -> bool) -> World<'a> {
-        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, farm_frame: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default() }
+        World { ground: Ground::new(t, 4096.0, 4096.0), spots: &[], spot_keep_out: 100.0, standing: Vec::new(), plants: Vec::new(), builders: Vec::new(), workers: Vec::new(), frames: Vec::new(), reservations: Vec::new(), refused: Vec::new(), home: at(2048.0, 2048.0), toward: at(4000.0, 2048.0), open: Box::new(open), lattice: None, farm_frame: None, walks: Default::default(), standing_near: Default::default(), spots_near: Default::default(), streets: Default::default(), blasts_near: Default::default(), farm: Default::default(), fixed: Default::default(), walk_sums: Default::default() }
     }
 
     /// With no turret the farm has no ground; with one, the free cells within its reach, less what stands on

@@ -23,7 +23,7 @@ pub use block::{Block, DENSE_PITCH, Lattice, SPARSE_PITCH, Wants as BlockWants, 
 pub use farm::{FARM_EXTENT, Farm, ROOM_HIGH, ROOM_LOW, cells_of as farm_cells_of, footprints as farm_footprints};
 pub use choose::{Frame, Purpose, Request, Reservation, Reserved, Site, Standing, Worker, World, choose, choose_traced, distance_to};
 pub use coverage::Coverage;
-pub use dump::Dump;
+pub use dump::{Dump, PassDump};
 pub use street::{APRON, Blocked, Builder, Flood, Plant, STREET_REACH, StreetState, WayOut, street_open, street_state, way_out, way_out_state};
 
 /// A build square (`SQUARE_SIZE`): footprints count them.
@@ -273,6 +273,11 @@ impl<'a> Ground<'a> {
         }
         let (i, j) = ((x / t.cell) as usize, (z / t.cell) as usize);
         i < t.width as usize && j < t.height as usize && walk.get(j * t.width as usize + i).copied().unwrap_or(false)
+    }
+
+    /// The terrain's cell and its count of cells each way: what a walk set is indexed by (`walks`).
+    pub fn cells(&self) -> (f32, usize, usize) {
+        (self.terrain.cell, self.terrain.width as usize, self.terrain.height as usize)
     }
 
     /// The map's extent in elmos.
