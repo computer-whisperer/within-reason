@@ -751,6 +751,34 @@ arrives 31 / 33 / 36, 194 deep.
 the Stout's swings turned out to be the rule for the slower tanks rather than one type's.
 **Used by.** The anchor (design §2): the lane's group follows slots that move at the group's pace.
 
+### K-engine-a-blocked-move-ends-short
+**Claim.** The engine ends a ground unit's move order short of its goal when the unit is blocked, and the unit then
+stands with an empty queue. A unit that has a path and is not getting nearer its waypoint is "idling"; each slow update
+(16 frames) it idles widens the radius inside which it counts as at its goal by one more goal radius
+(`(goalRadius + extraRadius) x (numIdlingSlowUpdates + 1)`, up to seventeen times), the goal radius being one square
+(8) for a plain move and the unit's own footprint radius when the goal's square was occupied as the order was given;
+inside it the move is done and the command finished. Sixteen idle slow updates without that fail the move, and the
+command is finished the same way. It is the engine's rule for units crowding one goal, so that they come to rest and
+do not push for ever. For us it means a unit sent to a point it cannot reach because its neighbours stand in its way
+(a formation's slots nearer than its hull) stops where it is, tens to hundreds of elmos short, and nothing in the
+engine sets it walking again.
+**Status.** read from the source (2026-11-09: `GroundMoveType.cpp` `FollowPath` `minGoalDistSq`,
+`OwnerMoved` `idling`, `SlowUpdate` `numIdlingSlowUpdates` and `Fail`, `StartMoving` `extraRadius`; `MobileCAI.cpp`
+`ExecuteMove`, which finishes the command on `IsAtGoal` or `Failed`; engine 2026.07.04) and measured on the drill
+bench the same day. A Marauder in a body of twelve at the 64 spacing: ordered at frame 342 to a point 334 ahead, it
+stood from about frame 430, 144 short of it, and got no further order for 23 s (rev3-mar12-debug). Twelve Thors on a
+2,000 walk of flat ground at the 64 spacing arrived at 61-66 / 85-133 / 90-143 s for a 37 s walk with 237 unit-seconds
+a duel read stuck (t3base-thor12); with one change, an order sent again to a member whose queue is empty a second
+after its last (`Pacing::idle_after`), 34-35 / 37-38 / 40-41 and no member read stuck (t3arm-idle-thor12):
+the re-send fires on an empty queue alone, so the stopped members were standing without an order.
+**Evidence.** `upstream/RecoilEngine-2026.07.04/rts/Sim/MoveTypes/GroundMoveType.cpp`, `.../CommandAI/MobileCAI.cpp`;
+`run/matches/1794270196-duel-rev3-mar12-debug`, `*-duel-t3base-thor12`, `*-duel-t3arm-idle-thor12`
+(`run/drill_table.py`).
+**Would be wrong if.** A blocked unit's queue still held its move while it stood (the re-send would then never have
+fired and the idle arm would have matched the baseline).
+**Used by.** H-MICRO-FORM-HULLS (the slots no nearer than the hulls, so the block does not arise), H-MICRO-GROUP's
+re-send to a member standing without an order and its release of a member that stands.
+
 ### K-hands-a-turret-being-built-read-as-a-threat
 **Claim.** Until 2026-09-28 nothing on our side knew whether an enemy building was finished: the shim read
 `Unit_isBeingBuilt` for our own units and the truth file only, the enemy message had no such field, and the micro lane

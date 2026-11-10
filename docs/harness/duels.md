@@ -93,8 +93,10 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   and compare with `run/duel_ab.py <without> <with>` (the lane is not part of its pairing key). This replaced
   `--spread` (a copy of the retired H-MICRO-SPREAD's block, deleted 2026-09-25: the lane itself now runs here).
   `WITHIN_REASON_MICRO_DEBUG=1` prints the lane's claims to the terminal. `WITHIN_REASON_DISABLE=<rule IDs>` switches
-  lane rules off (H-MICRO-FORM-SPACING, H-MICRO-FLEE, ...), and `WITHIN_REASON_FORM_SPACING=factor,max` sets the
-  spacing against area weapons (`micro::FormTuning`: twice the blast radius, at most 160, by default); `batch.json`
+  lane rules off (H-MICRO-FORM-SPACING, H-MICRO-FLEE, ...), and `WITHIN_REASON_FORM_SPACING=factor,max[,hull_across[,hull_deep]]` sets the
+  spacing against area weapons (`micro::FormTuning`: twice the blast radius, at most 160, by default) and, from
+  2026-11-09, the pitch's share of the formation's hull across and deep (H-MICRO-FORM-HULLS: 1.5 and 1.5; an empty
+  field keeps the lane's own, so `,,0,0` is the old 64 by 96 for every body); `batch.json`
   records both (`disabled`, `form_spacing`; from 2026-09-28). At every start the duel prints the blast radius the
   definitions carry for the Fatboy, Bull, Stout and Blitz (`duel: blast radius from the definitions: armfboy 150, ...`).
 - **Scoring.** Decided when one army has nobody left (`wiped`), after `--time-limit` game seconds (`timeout`), or after
@@ -352,7 +354,7 @@ way when it stands off it by more than the spacing, and the slots are dealt by l
 per-second line's `group` carried `files` (the ranks' files this second) and `room` (the room about the anchor's cell)
 until 2026-10-28, when the files stopped narrowing to the room (`docs/design/2026-10-28-contact-cleanup.md` §4), and
 from 2026-10-25 `way` (the elmos left along the planned way to the route's
-end, null when a route point has no way on foot over the group's ground: the hands' "no way on foot" word). Since D20 (2026-10-25) every member's march order is its slot carried its type's lead ahead at the pace's share (the pace type 300, a faster type its learned following distance) (`WITHIN_REASON_PACING=fraction,cadence,lead,drag,close` sets the pacing for a bench arm; `close` the share of a member's reach inside which a fighting group halts and its close on an enemy past its route's end stops, 0.5 by default, `docs/design/2026-10-28-contact-cleanup.md` §5; until 2026-10-28 night the fifth field was the share of members standing that halted the group). Lane off, each unit (a fed one too) is given the corners alone as queued
+end, null when a route point has no way on foot over the group's ground: the hands' "no way on foot" word). Since D20 (2026-10-25) every member's march order is its slot carried its type's lead ahead at the pace's share (the pace type 300, a faster type its learned following distance) (`WITHIN_REASON_PACING=fraction,cadence,lead,drag,close,stuck_s,idle_s` sets the pacing for a bench arm; `close` the share of a member's reach inside which a fighting group halts and its close on an enemy past its route's end stops, 0.5 by default, `docs/design/2026-10-28-contact-cleanup.md` §5; until 2026-10-28 night the fifth field was the share of members standing that halted the group; `stuck_s` and `idle_s`, from 2026-11-09, the seconds after which a member standing in one place stops holding the anchor (10) and a member standing without an order is sent again (1), 0 for off; an empty field keeps the lane's own). Lane off, each unit (a fed one too) is given the corners alone as queued
 fight or move orders, the hands' way today. The director is the host, and keeps the host's one rule the group's law needs
 (`drill::STRAGGLER_PATIENCE`): an away or stuck member that has come no nearer its slot for 20 s is taken out of the
 group for good, said on stderr and in the per-second line's `orders` (`left_behind`), and counted (`left_behind`). Measured, both arms alike: each deployed unit's passes of the lab's corner (within 400 after

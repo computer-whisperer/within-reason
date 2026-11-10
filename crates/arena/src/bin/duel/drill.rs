@@ -56,7 +56,9 @@ pub const AT_THE_LAB: f32 = 400.0;
 /// hysteresis counts for nothing.
 pub const CIRCUIT_SPAWN: f32 = 240.0;
 /// The director as host (D12): an away or stuck member that has come no nearer its slot for this long is taken out of
-/// the group, since the anchor waits for every member of its body (what Jev would decide from the state's words).
+/// the group (what Jev would decide from the state's words). The anchor itself stops waiting for a member that stands
+/// after `micro::Pacing::stuck_after`, half this; until 2026-11-09 it waited for every member of its body and this
+/// rule was what set a drill's body walking again.
 pub const STRAGGLER_PATIENCE: i32 = 20 * FPS;
 /// A circuit's fed unit within this of the deployed body's centroid has joined it (the group's own `formed_within`
 /// is 128 of a slot; this is the arm-neutral measure).

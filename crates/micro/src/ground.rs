@@ -191,21 +191,21 @@ impl Ground {
         nearest(self.cell, self.width, self.height, &self.passable, pos).map(|index| centre(self.cell, self.width, index, pos.y))
     }
 
-    /// How many of a body's slots stand on the ground: `count` ranks' slots at `spacing` facing `h` with the front
+    /// How many of a body's slots stand on the ground: `count` ranks' slots at `pitch` facing `h` with the front
     /// rank centred on `pos` (`form::slots`).
-    pub fn standing(&self, pos: Vec3, h: (f32, f32), count: usize, spacing: f32) -> usize {
-        form::slots(pos, h, count.max(1), spacing, form::FILES).iter().filter(|s| self.passable_at(**s)).count()
+    pub fn standing(&self, pos: Vec3, h: (f32, f32), count: usize, pitch: form::Pitch) -> usize {
+        form::slots(pos, h, count.max(1), pitch, form::FILES).iter().filter(|s| self.passable_at(**s)).count()
     }
 
     /// Where a body stands for a point (H-MICRO-STAND): the cell nearest `pos`, within `STAND_REACH_CELLS`, whose
-    /// anchor puts every slot of the ranks (`count` at `spacing` facing `h`) on the ground; when no cell that near
+    /// anchor puts every slot of the ranks (`count` at `pitch` facing `h`) on the ground; when no cell that near
     /// does, the nearest of those with the most slots standing (the rest snap beside or cut off, D17); `snap` when
     /// no cell about is passable. Design D18 asked for a clear disk of the ranks' room (`wanted`) about the anchor
     /// instead, when the files still narrowed to the room; with the files fixed (the contact cleanup §4) the disk was
     /// a proxy with no body behind it, and a point among our own buildings (an extractor with two turrets, where the
     /// disk is empty by definition) sent the body to the nearest open field: barb-ladder3-20-1, group_W1 told to
     /// stand at spot_63 stopped 480 off it, arrived, and was sent again 23 times (2026-10-31).
-    pub fn stand(&self, pos: Vec3, h: (f32, f32), count: usize, spacing: f32) -> Option<Vec3> {
+    pub fn stand(&self, pos: Vec3, h: (f32, f32), count: usize, pitch: form::Pitch) -> Option<Vec3> {
         let count = count.max(1);
         let (cx, cz) = ((pos.x / self.cell) as i32, (pos.z / self.cell) as i32);
         let mut cells: Vec<(i32, usize)> = Vec::new();
@@ -225,7 +225,7 @@ impl Ground {
         let mut best: Option<(usize, usize)> = None;
         for (_, index) in cells {
             let at = centre(self.cell, self.width, index, pos.y);
-            let n = self.standing(at, h, count, spacing);
+            let n = self.standing(at, h, count, pitch);
             if n == count {
                 return Some(at);
             }
@@ -517,7 +517,7 @@ mod tests {
         let mut classes = Classes::default();
         let grid = classes.passable(&terrain, tank());
         let ground = Ground::new(&terrain, &[grid], 100.0).expect("ground");
-        let block = |standing: bool| Formation { name: "b".into(), anchor: at(512.0, 512.0), heading: (1.0, 0.0), count: 12, spacing: 64.0, standing };
+        let block = |standing: bool| Formation { name: "b".into(), anchor: at(512.0, 512.0), heading: (1.0, 0.0), count: 12, pitch: form::HULL_PITCH, standing };
         let (from, to) = (at(100.0, 512.0), at(900.0, 512.0));
         let plain = ground.way_found(from, to).expect("a way");
         assert!(plain.len() <= 2, "the flat way is straight: {plain:?}");
@@ -565,9 +565,9 @@ mod tests {
         assert!(round.iter().any(|p| (p.z - 520.0).abs() > 64.0), "the way bends round the factory: {round:?}");
         assert!(round.iter().all(|p| built.passable_at(*p)));
         let east = (1.0, 0.0);
-        let stand = built.stand(at(512.0, 512.0), east, 6, 64.0).expect("a stand near the factory");
-        assert!(built.standing(stand, east, 6, 64.0) == 6 && stand.dist2d(at(512.0, 512.0)) < 200.0, "the body stands off the factory, every slot on the ground: {stand:?} ({} of 6)", built.standing(stand, east, 6, 64.0));
-        assert!((bare.stand(at(512.0, 512.0), east, 6, 64.0).unwrap().dist2d(at(512.0, 512.0))) < 12.0, "on bare ground the stand is the point's cell");
+        let stand = built.stand(at(512.0, 512.0), east, 6, form::HULL_PITCH).expect("a stand near the factory");
+        assert!(built.standing(stand, east, 6, form::HULL_PITCH) == 6 && stand.dist2d(at(512.0, 512.0)) < 200.0, "the body stands off the factory, every slot on the ground: {stand:?} ({} of 6)", built.standing(stand, east, 6, form::HULL_PITCH));
+        assert!((bare.stand(at(512.0, 512.0), east, 6, form::HULL_PITCH).unwrap().dist2d(at(512.0, 512.0))) < 12.0, "on bare ground the stand is the point's cell");
         let beside = built.snap(at(512.0, 512.0)).expect("ground beside the factory");
         assert!(!marked.contains(&((beside.z / 16.0) as usize * 64 + (beside.x / 16.0) as usize)), "{beside:?}");
         assert!(beside.dist2d(at(512.0, 512.0)) < 80.0);

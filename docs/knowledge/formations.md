@@ -403,3 +403,74 @@ and by an 8v8's audit orders per team.
 **Status.** measured (2026-11-07): the morning audit's cmd rows by unit, type and minute joined to the record's groups
 (scratch `orders_by_team.py`, `order_anatomy.py`, `member_share.py`), tcpdump on the game socket, the twelve drill
 batches above.
+**Measured 2026-11-09 (the formation fixes' bench).** The game's mixed company of 24 on a 2,000 walk of Full Metal
+Plate: 158 orders a unit-minute at the lane's cadence against 13-28 for a body of one type; by type the Marauders 217,
+the Mausers 164, the Stouts 154, the Thor 144 and the Starlights, the pace type, 12 (a scratch build printing every
+slot order, t3ord-mix24). Nearly all go to a member standing within 20 of its last point, a third of the Marauders'
+after the engine had already ended the order: a unit faster than the pace walks to its point and stops, three or four
+times a second (a Marauder brakes from full speed in about 6 elmos, `maxdec` 0.82 a frame squared at 3.15 a frame, so
+a goal re-placed less often than that is reached and stood on). No speed command reaches a unit from an AI: the player's group move caps
+`maxWantedSpeed` in `SelectedUnitsAI.cpp` and the guard's speed match in `MobileCAI::StartSlowGuard`, both from
+inside the engine (K-engine-slow-guard-paces-a-guarder-to-its-guardee). The cadence as an arm on the same walk
+(`WITHIN_REASON_PACING=1.0,N`, t3cad-*): 15 frames 93 a unit-minute, 30 frames 51, 60 frames 28, with the arrival
+(43 / 45 / 47) and the formed share (0.87-0.90) the same in all. Not built: at a second the faster types walk in hops
+of the pace's length, a look the user has not ruled on; and the bench's knob slows every re-send, where the flood is
+only the member that has closed on its point.
+
+### K-group-slots-nearer-than-the-hulls-stall-the-body
+**Claim.** A formation's slots must stand further apart than its members' pathing hulls, or the body stalls on open
+ground with nobody in sight. The slots were 64 across by 96 deep whatever the members, the first tier's two hulls
+(K-form-pros-stand-two-hulls-apart); the engine paths and collides a Bull or a Starlight by a square of 56, a Marauder
+by 72, a Thor by 104. A member that cannot reach a slot its neighbours stand over is blocked, the engine ends its move
+short (K-engine-a-blocked-move-ends-short), and the anchor waited for it.
+**Status.** measured (2026-11-09, the drill bench with no model in the loop, ledger rev-*, t3base-*, t3arm-*,
+t3fix4-*). At the old pitch, 2,000 walks: twelve Marauders stalled in 3 of 8 duels on Quicksilver (last arrival 55-61 s
+against 21) and 0 of 6 on Full Metal Plate; twelve Starlights in 1 of 6 (64 / 66 / 74 against 45 / 49 / 53); twelve
+Thors in 6 of 6 (61-66 / 85-133 / 90-143 for a 37 s walk, 237 unit-seconds a duel read stuck); the lobby game's
+company of 24 in 6 of 6 (five unfinished at 240 s). With the pitch one and a half hulls and nothing else changed
+(t3arm-hull-*): Marauders 6 of 6 at 19 / 20 / 21, Starlights 46 / 48 / 50, the mix 43 / 45 / 47, and Thors 47 / 50-51
+/ 56 with two a duel still left behind, which the re-send to a stopped member clears. The factors on the same rows
+(t3hull-*): see the ledger.
+**Evidence.** `run/matches/*-duel-t3base-*`, `*-duel-t3arm-hull-*`, `*-duel-t3fix4-*`, `*-duel-rev*`
+(`run/drill_table.py`); the lobby game `run/matches/1794198885-test`, where the slot points of group_X6's northern
+company stood a median 68 apart.
+**Would be wrong if.** A body of large hulls at the old pitch walked a strip at its pace over many duels (the
+Marauders' 6 of 6 on Full Metal Plate is that for one type on one map; Quicksilver's 3 of 8 is not).
+**Used by.** H-MICRO-FORM-HULLS.
+
+### K-group-one-standing-member-held-the-body
+**Claim.** Under the drag as built (2026-10-24, amended D22) one member standing still behind its slot held the whole
+formation for as long as it stood: the anchor's pace falls to nothing when any member of the body is 300 behind its
+slot, whether that member is walking or not. The wait is right for a member on its way, which it brings back into
+its slot; for one that stands it bought nothing, and only the host's taking the member out of the group ended it.
+The duel director does that after 20 s without progress; the flagship's hands never did.
+**Status.** measured (2026-11-09). The lobby 1v1 `1794198885-test`: group_X6's northern company of 24 at a crawl
+29:33-29:45 and 30:15-30:20 with two Marauders read stuck. The bench: a Marauder walk's whole body standing 14 s on
+one stopped member (rev-mar12-on rep 1); with the release alone at the old pitch (`Pacing::stuck_after`,
+t3arm-stuck-thor12) twelve Thors arrive at 51-62 / 69-80 / 77-101 against 61-66 / 85-133 / 90-143, the body walking
+on and the stopped members trailing, since nothing yet set them walking. A test on the lag (no smaller by 16 for ten
+seconds) is the wrong one: the pace type walking at the drag's edge keeps up and gains nothing, and three Starlights of
+twelve were released on every walk (t3fix1-manni12); the test is whether the member has moved from where it stands.
+**Evidence.** `crates/micro/src/group.rs` `tick` (the drag); `run/matches/*-duel-t3arm-stuck-*`,
+`*-duel-t3fix1-manni12`, `*-duel-t3fix2-manni12`.
+**Would be wrong if.** A body with one member held still (stunned, or walled in) under the release stood longer than
+ten seconds and the ramp, or a member walking slowly through a narrow were released.
+**Used by.** H-MICRO-GROUP (amended 2026-11-09: `Pacing::stuck_after`).
+
+### K-group-a-wide-ranks-turn-outruns-a-fixed-away-distance
+**Claim.** The distance beyond which a member is away (300) was sized for a rank of six at 64, 320 wide: when the
+ranks turn at a corner the deal by least travel sends a member up to about the rank's width to its new slot, under
+300, and the anchor waits while it walks. A rank of six Thors at their pitch is 780 wide and the same turn moves
+slots 370-600: those members were away at once, held nothing, and at the pace type's speed never came back.
+**Status.** measured (2026-11-09, the Thor circuit of Quicksilver with the group's debug lines, t3dbg-thor8: twelve
+turns of 66-174 degrees with the furthest slot moved 136-601, over 300 at five of them). With the pitch, the re-send and the release but the fixed 300,
+eight Thors lost five or six members a lap, twenty of twenty-one as away (t3cfix2-thor8); with the distance grown
+with the pitch (`Group::away_at`) one in eight laps and a formed share of 0.72-0.76 against 0.54-0.60
+(t3cfix4-thor8, t3final-c-thor8). The lap is then 390-468 s against 280 on foot, the anchor under half its pace for 182 s of a 489 s
+lap: re-forming a rank 780 wide costs a Thor (four seconds from a stand to its speed, `maxacc` 0.015) ten seconds
+and more a corner. Open: fewer files for large hulls, or a turn that
+wheels a wide rank.
+**Evidence.** `run/matches/*-duel-t3cfix2-thor8`, `*-duel-t3cfix4-thor8`, `*-duel-t3dbg-thor8`.
+**Would be wrong if.** The members a turn left behind were stopped units and not walking ones (the release would then
+be what cleared them: it is the same in both arms).
+**Used by.** H-MICRO-FORM-HULLS (`Group::away_at`).

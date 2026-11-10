@@ -1344,3 +1344,106 @@ Still open:
   the body is mostly away (a body share below which the anchor waits, or the away members ordered to close). Which
   of these the engine owns and which are the hands' (the straggler wait; joining at the lab against joining at the
   front) is the next ruling.
+
+## 7. The formation fixes of 2026-11-09: tier 2 and tier 3 on the bench
+
+**Status: built 2026-11-09, judged on the drill bench; not yet judged in a game.** The user, after the lobby 1v1
+against WRDistilled (`run/matches/1794198885-test`): "we had many issues with T3 formations moving excruciatingly
+slowly and thrashing"; after the review of how the movement stack fits together: "Let's start with the formation
+fixes from the bench". The larger questions that review raised (a group that is one cluster in one place, joins by
+presence, who owns reinforcement) are not in this section and not built.
+
+**What was true.** Every number of §2's loop was set on the first tier: the slots 64 across by 96 deep, the away
+distance 300, the drills all Pawns, Stouts, Blitzes and Januses. Four faults followed for anything larger, each
+reproduced with no model in the loop (ledger rev-*, t3base-*, t3cbase-*):
+
+1. *The slots are nearer than the hulls.* The engine paths and collides a Bull or a Starlight by a square of 56, a
+   Marauder by 72, a Thor by 104. A body sent to slots 64 apart cannot stand in them; its members block one another
+   (K-group-slots-nearer-than-the-hulls-stall-the-body).
+2. *The engine ends a blocked unit's move.* A unit that is not getting nearer its waypoint counts as arrived inside
+   a radius that grows by a goal radius every half second it is blocked, and its command is finished; after eight
+   seconds the move fails and is finished the same (K-engine-a-blocked-move-ends-short). The lane's rule of
+   2026-11-07, which spares an order while the old point still serves, read a unit standing with an empty queue as a
+   unit on its way.
+3. *One standing member holds the body.* The drag stops the anchor for any member of the body 300 behind its slot,
+   walking or not (K-group-one-standing-member-held-the-body). §2 gave the remedy to the host ("what the group will
+   not wait for, the host takes out of the group"); the duel director does it after 20 s, the flagship's hands never
+   did.
+4. *A wide rank's turn outruns the away distance.* Found once 1 to 3 were fixed: the deal at a corner moves a member
+   up to about the rank's width, 320 for six at 64 and 780 for six Thors, and a member over 300 from its slot is
+   away, holds nothing, and at the pace type's speed never comes back
+   (K-group-a-wide-ranks-turn-outruns-a-fixed-away-distance).
+
+**What was built.**
+
+- **H-MICRO-FORM-HULLS: the pitch from the hulls.** `form::Pitch { across, deep }` replaces the scalar spacing through
+  the lane, the group, the army and the ground. Across is the widest of 64, the area spacing (H-MICRO-FORM-SPACING)
+  and one and a half of the formation's hull; deep the wider of 96 and one and a half of it. The formation's hull is
+  the mean of its two largest members' pathing hulls (the widest pair that can stand side by side). Each company's
+  pitch is its own. Chose 1.5 by the bench's sweep (t3hull-*): at 1.25 Thors and Marauders walk as at 1.5 and twelve
+  Starlights arrive 250-300 deep where 1.5 gives 150-165; at 2.0 twelve Thors, 1,100 wide, take 50-52 s for the 37 s
+  walk. Rejected: the largest hull alone (one Thor among 23 gave everyone 156 and a company 865 wide; the pair gives
+  132 and 740). Left open: a slot as wide as its own occupant, which would leave a mixed company near its
+  smaller members' pitch.
+- **The away distance grows with the pitch** (`Group::away_at`): `Pacing::exception_at` times the pitch across over
+  64, so it is 300 for the first tier as before. The drag's stop stays at 300 behind.
+- **A member the engine stopped is sent again** (`Pacing::idle_after`, a second): `take_slot` treats an order as
+  spent when the unit's queue is empty and the order is a second old. The second is the order's way to the engine in
+  a lobby game; without it a unit just ordered, still reading idle, would be sent again every tick.
+- **The anchor waits for a member that is walking, not for one that stands** (`Pacing::stuck_after`, ten seconds;
+  `WAIT_MOVED` 32). This reopens §2's "the anchor never outruns its body", on the evidence of fault 3. Chose: a
+  member that holds the anchor back and has stood within 32 of one place for ten seconds is released as one away is,
+  while the body stays half the members or more; a body that stands as a whole is still waited for. Rejected: a wait
+  on most of the members (what I proposed to the user first, and §2 had already turned down as "another arbitrary
+  number": with the standing member released the drag on the worst walking member needed no change on any row);
+  a test on the lag (no smaller by 16 for ten seconds: it released the pace type walking at the drag's edge, where
+  a member keeps up and gains nothing, three Starlights of twelve on every walk); the engine's idle flag as the
+  test (the re-send clears it within a second, so it says nothing about a member that stops again).
+
+**The bench** (no model; first / median / last arrival in seconds; `run/drill_table.py`).
+
+| 2,000 walk, Full Metal Plate, 6 duels | on foot | before (t3base-*) | after (t3fix4-*) |
+|---|---|---|---|
+| 12 Pawns | 23 | 21 / 22 / 23 | 21 / 22 / 23 |
+| 12 Stouts | 27 | 25 / 26-27 / 27-28 | 25 / 26-27 / 27-28 |
+| 12 Bulls | 32 | 30 / 31-32 / 33 | 30 / 31-32 / 32-33 |
+| 12 Starlights | 48 | 45-46 / 48-50 / 52-54, one duel 64 / 66 / 74 | 45-46 / 47-48 / 49-50 |
+| 12 Marauders | 21 | 19-20 / 20-21 / 21 | 20 / 20-21 / 21 |
+| 12 Marauders, Quicksilver | 21 | 3 of 8 duels stalled, last at 55-61 (rev-*) | 19 / 20-21 / 21, 6 of 6 |
+| 12 Thors | 37 | 61-66 / 85-133 / 90-143 | 35 / 37-38 / 38-39 |
+| the game's company of 24 | 48 | 57-61 / 60-67 / 69-117, five unfinished at 240 s | 42-46 / 43-49 / 45-52 |
+
+| a lap of Quicksilver with a feed, 4 duels | on foot | before (t3cbase-*) | after (t3fix4c-*, t3cfix4-thor8, t3final-c-*) |
+|---|---|---|---|
+| 20 Pawns + 10 | 174 | median 183-203, formed 0.83-0.97, 0-2 left behind | 180-194, 0.96-0.97, 0-1 |
+| 12 Stouts + 6 | 202 | 225-230, 0.75-0.78, 0-1 | 219-225, 0.79-0.81, 0 |
+| 12 Bulls + 6 | 244 | 273-288, 0.79-0.83, 0-2 | 277-280, 0.79-0.83, 0 |
+| 12 Marauders + 6 | 160 | lap 260-299, 0.75-0.82, 9-11 | lap 172-175, 0.79-0.82, 0-1 |
+| 8 Thors + 4 | 280 | 374 to unfinished, 0.39-0.76, 7-9 | median 390-468, 0.72-0.76, one in eight laps |
+| 8 Marauders, 4 Starlights, 4 Stouts + 4 | 360 | 439-697, 0.86-0.92, 10-16 | 411-460, 0.90-0.93, 0-1 |
+| 8 Marauders, 4 Starlights, a Thor + 4 | 360 | last 531-598, 0.57-0.85, 12-17 | median 395-479 and one of 775, 0.87-0.90, 0-1 |
+
+"Left behind" is the director's straggler rule (a member away or stuck and no nearer its slot for 20 s is taken out
+of the group): before, the laps of large units finished because the director shed most of the body. By arm on the
+walks (t3arm-*): the pitch alone clears Starlights, Marauders and the mix and leaves Thors at 47 / 50-51 / 56 with
+two a duel left behind; the re-send alone clears Thors to 34-35 / 37-38 / 40-41, in a block 260 deep by 400 wide
+where the pitch gives 160 by 860; the release alone leaves Thors at 51-62 / 69-80 / 77-101. Fights at equal metal
+(12,000, ours under the lane and theirs not, 6 duels a pair, t3fight-*), value left before and after: Bulls
+against Reapers +42 / +46, Marauders against Reapers -28 / -4 and against Sumos +82 / +86, Thors against Shivas -89
+/ -89, Starlights against Reapers -98 / -98.
+
+**Open.**
+
+- *Corners in a wide rank.* Eight Thors lap Quicksilver in 390-468 s against 280 on foot, the anchor under half its
+  pace for 182 s of a 489 s lap: a rank 780 wide is re-dealt at each corner and a Thor takes four seconds from a
+  stand to its speed. Fewer files for large hulls, or a turn that wheels a wide rank, is a decision on the
+  formation's shape and the user's.
+- *The faster types' orders.* The mixed company sends 158 orders a unit-minute against 13-28 for a body of one type,
+  the Marauders 217: a unit faster than the pace walks to its point and stands, three or four times a second, and no
+  speed command reaches a unit from an AI. A cadence of a second cuts it to 51 with the arrival and the formed share
+  the same (t3cad-*); it makes the faster types walk in hops of the pace's length. Left for the user
+  (K-group-the-march-re-sent-every-member-every-tick).
+- *A stunned member* is a member that stands: the body leaves it after ten seconds, where it waited out the stun.
+- *The trail at the drag's edge* (§5 item 19) is as it was: the pace type 128-140 behind its slot gains nothing.
+- *Not run:* a flagship game; the Distilled and Territory bots' benches, whose formations are the same crate's
+  (their bodies are first-tier and Bulls: the pitch is unchanged or 84 for 64, the two rules apply as they do here).

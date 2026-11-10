@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use bot_protocol::{UnitId, Vec3};
 
+use crate::form;
 use crate::ground::Ground;
 use crate::group::{Cause, Group, GroupKind, GroupOrder, GroupState, Walker};
 
@@ -102,7 +103,7 @@ impl Army {
     /// at a cap of 24: the sixty spawned by the lab mustered there, and the last twelve waited the muster's patience). A company is founded with every pending newcomer near it, so its anchor is set on all of
     /// them (`Group::new`'s dense cluster), not on the first. Returns how many companies were founded.
     #[allow(clippy::too_many_arguments)]
-    pub fn partition(&mut self, name: &str, members: &[UnitId], walkers: &HashMap<UnitId, Walker>, order: &GroupOrder, frame: i32, spacing: f32, ground: &Option<Arc<Ground>>) -> usize {
+    pub fn partition(&mut self, name: &str, members: &[UnitId], walkers: &HashMap<UnitId, Walker>, order: &GroupOrder, frame: i32, pitch: form::Pitch, ground: &Option<Arc<Ground>>) -> usize {
         let cap = order.cap;
         if self.cap != Some(cap) {
             self.companies.clear();
@@ -137,7 +138,7 @@ impl Army {
                     None => {
                         let mut all = vec![id];
                         all.append(&mut pending);
-                        self.found(name, all, walkers, order, None, spacing, ground);
+                        self.found(name, all, walkers, order, None, pitch, ground);
                         founded += 1;
                     }
                 }
@@ -163,7 +164,7 @@ impl Army {
                     None => {
                         let mut all = vec![id];
                         all.extend(take_near(&mut pending, m, cap - 1));
-                        self.found(name, all, walkers, order, Some((m, frame)), spacing, ground);
+                        self.found(name, all, walkers, order, Some((m, frame)), pitch, ground);
                         founded += 1;
                     }
                 }
@@ -172,17 +173,17 @@ impl Army {
             // (3) A marching company of its own where it stands, with the pending newcomers near it.
             let mut all = vec![id];
             all.extend(take_near(&mut pending, pos, cap - 1));
-            self.found(name, all, walkers, order, None, spacing, ground);
+            self.found(name, all, walkers, order, None, pitch, ground);
             founded += 1;
         }
         founded
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn found(&mut self, name: &str, members: Vec<UnitId>, walkers: &HashMap<UnitId, Walker>, army: &GroupOrder, muster: Option<(Vec3, i32)>, spacing: f32, ground: &Option<Arc<Ground>>) {
+    fn found(&mut self, name: &str, members: Vec<UnitId>, walkers: &HashMap<UnitId, Walker>, army: &GroupOrder, muster: Option<(Vec3, i32)>, pitch: form::Pitch, ground: &Option<Arc<Ground>>) {
         self.next += 1;
         let positions: Vec<Vec3> = members.iter().map(|id| walkers[id].pos).collect();
-        let mut formation = Group::new(&format!("{name}.{}", self.next), members.clone(), own_order(muster, army), &positions, spacing);
+        let mut formation = Group::new(&format!("{name}.{}", self.next), members.clone(), own_order(muster, army), &positions, pitch);
         if ground.is_some() {
             formation.set_ground(ground.clone());
         }
@@ -288,23 +289,23 @@ mod tests {
         let members = ids(&walkers);
         let go = GroupOrder::new(GroupKind::Go, vec![at(5000.0, 0.0)]);
         let mut whole = Army::default();
-        whole.partition("a", &members, &walkers, &go, 0, 64.0, &None);
+        whole.partition("a", &members, &walkers, &go, 0, form::HULL_PITCH, &None);
         assert_eq!(sizes(&whole), vec![(Role::Marching, 48)]);
         let mut capped = Army::default();
         let order = go.clone().with_cap(24);
-        assert_eq!(capped.partition("a", &members, &walkers, &order, 0, 64.0, &None), 2);
+        assert_eq!(capped.partition("a", &members, &walkers, &order, 0, form::HULL_PITCH, &None), 2);
         assert_eq!(sizes(&capped), vec![(Role::Marching, 24), (Role::Marching, 24)]);
         let mut fewer = members.clone();
         fewer.retain(|id| id.0 != 3);
-        capped.partition("a", &fewer, &walkers, &order, 3, 64.0, &None);
+        capped.partition("a", &fewer, &walkers, &order, 3, form::HULL_PITCH, &None);
         assert_eq!(capped.companies[0].members.len(), 23);
         let mut more = walkers.clone();
         more.insert(UnitId(99), Walker { id: UnitId(99), pos: at(100.0, 100.0), speed: 80.0, moving: 0.0 });
         let mut all = ids(&more);
         all.retain(|id| id.0 != 3);
-        capped.partition("a", &all, &more, &order, 6, 64.0, &None);
+        capped.partition("a", &all, &more, &order, 6, form::HULL_PITCH, &None);
         assert_eq!(capped.company_of(UnitId(99)), Some(0), "the company with room: {:?}", sizes(&capped));
-        capped.partition("a", &all, &more, &go, 9, 64.0, &None);
+        capped.partition("a", &all, &more, &go, 9, form::HULL_PITCH, &None);
         assert_eq!(sizes(&capped), vec![(Role::Marching, 48)], "the cap lifted: one company");
     }
 
@@ -318,12 +319,12 @@ mod tests {
         order.musters = vec![muster];
         order.release = Some(6);
         let mut army = Army::default();
-        army.partition("a", &ids(&walkers), &walkers, &order, 0, 64.0, &None);
+        army.partition("a", &ids(&walkers), &walkers, &order, 0, form::HULL_PITCH, &None);
         assert_eq!(army.companies.len(), 1);
         for (i, id) in [101, 102, 103].iter().enumerate() {
             walkers.insert(UnitId(*id), Walker { id: UnitId(*id), pos: at(6000.0 + 40.0 * i as f32, 100.0), speed: 80.0, moving: 0.0 });
         }
-        army.partition("a", &ids(&walkers), &walkers, &order, 30, 64.0, &None);
+        army.partition("a", &ids(&walkers), &walkers, &order, 30, form::HULL_PITCH, &None);
         assert_eq!(sizes(&army), vec![(Role::Marching, 12), (Role::Mustering, 3)]);
         let m = &army.companies[1];
         assert_eq!(m.order(&order).kind, GroupKind::Hold);
@@ -335,7 +336,7 @@ mod tests {
         // The declaration's members beside the muster march: the muster is for newcomers.
         let mut fresh = Army::default();
         let by_plant = block(301, 30, 6000.0, 0.0);
-        fresh.partition("b", &ids(&by_plant), &by_plant, &order, 0, 64.0, &None);
+        fresh.partition("b", &ids(&by_plant), &by_plant, &order, 0, form::HULL_PITCH, &None);
         assert_eq!(sizes(&fresh), vec![(Role::Marching, 12), (Role::Marching, 12), (Role::Marching, 6)]);
     }
 
@@ -348,7 +349,7 @@ mod tests {
         walkers.extend(block(101, 6, 0.0, 2000.0));
         walkers.extend(block(201, 20, 6000.0, 6000.0));
         let mut army = Army::default();
-        army.partition("a", &ids(&walkers), &walkers, &order, 0, 64.0, &None);
+        army.partition("a", &ids(&walkers), &walkers, &order, 0, form::HULL_PITCH, &None);
         assert_eq!(army.companies.len(), 3, "{:?}", sizes(&army));
         assert_eq!(army.merge(24), None, "all far apart");
         // The six walk up beside the ten.

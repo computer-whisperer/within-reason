@@ -1123,9 +1123,10 @@ impl Director {
     }
 }
 
-/// H-MICRO-GROUP's numbers for the lane: `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,close_to]]]]`
-/// (the bench's arms), else
-/// the lane's own.
+/// H-MICRO-GROUP's numbers for the lane:
+/// `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,close_to[,stuck_after_s[,idle_after_s]]]]]]` (the
+/// bench's arms; an empty field keeps the lane's own, and 0 seconds in either of the last two switches that rule
+/// off), else the lane's own.
 fn pacing_tuning() -> micro::Pacing {
     let default = micro::Pacing::default();
     let Ok(value) = std::env::var("WITHIN_REASON_PACING") else { return default };
@@ -1138,19 +1139,26 @@ fn pacing_tuning() -> micro::Pacing {
     // The fifth (the contact cleanup's bench, §5): the share of a member's reach inside which the block halts and the
     // close stops.
     let close_to = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.close_to);
-    micro::Pacing { fraction, cadence, lead, drag_from, close_to, ..default }
+    // The sixth and seventh (the formation fixes' bench, 2026-11-09): the seconds a member the wait does not bring
+    // nearer holds the anchor, and the seconds after its last order a member standing without one is sent again.
+    let mut frames = |own: i32| match parts.next().and_then(|p| p.parse::<f32>().ok()) {
+        Some(s) if s <= 0.0 => i32::MAX,
+        Some(s) => (s * drill::FPS as f32).round() as i32,
+        None => own,
+    };
+    let (stuck_after, idle_after) = (frames(default.stuck_after), frames(default.idle_after));
+    micro::Pacing { fraction, cadence, lead, drag_from, close_to, stuck_after, idle_after, ..default }
 }
 
-/// H-MICRO-FORM-SPACING's numbers for the lane: `WITHIN_REASON_FORM_SPACING=factor,max` (the harness's search), else
-/// the lane's own.
+/// H-MICRO-FORM-SPACING's and H-MICRO-FORM-HULLS' numbers for the lane:
+/// `WITHIN_REASON_FORM_SPACING=factor,max[,hull_across[,hull_deep]]` (the harness's search; an empty field keeps the
+/// lane's own, so `,,0,0` is the pitch of before the hulls counted), else the lane's own.
 fn form_tuning() -> micro::FormTuning {
     let default = micro::FormTuning::default();
     let Ok(value) = std::env::var("WITHIN_REASON_FORM_SPACING") else { return default };
-    let mut parts = value.split(',').map(|p| p.trim().parse::<f32>());
-    match (parts.next(), parts.next()) {
-        (Some(Ok(factor)), Some(Ok(max))) => micro::FormTuning { factor, max },
-        _ => default,
-    }
+    let mut parts = value.split(',').map(|p| p.trim().parse::<f32>().ok());
+    let mut field = |own: f32| parts.next().flatten().unwrap_or(own);
+    micro::FormTuning { factor: field(default.factor), max: field(default.max), hull_across: field(default.hull_across), hull_deep: field(default.hull_deep) }
 }
 
 /// Ground height at a point, from the terrain grid (0 off the map or without one).
@@ -1767,9 +1775,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     None => None,
                 };
                 if let Some(order) = group {
-                    // The host's straggler rule (design D12): the anchor waits for every member of its body, so an
-                    // away or stuck member that has come no nearer its slot for `STRAGGLER_PATIENCE` is taken out of
-                    // the group for good, and said (what Jev would decide from the state's words).
+                    // The host's straggler rule (design D12): an away or stuck member that has come no nearer its
+                    // slot for `STRAGGLER_PATIENCE` is taken out of the group for good, and said (what Jev would
+                    // decide from the state's words).
                     if let Some(state) = lane.group_state("army") {
                         let mut still: HashSet<UnitId> = HashSet::new();
                         for &(u, cause, seconds) in &state.exceptions {

@@ -5,7 +5,8 @@
 //! none does. It never re-prices a fight: it spends a unit's order on staying alive, shooting well and standing in
 //! its slot. A group the host declares (`Lane::set_group`, `group.rs`; `docs/design/2026-10-24-formation-drills.md`
 //! §2) is the lane's whole: an anchor walks the host's route at the group's pace, every member is sent to its slot
-//! every tick, the exceptions are reported with a cause, and the host's per-unit orders to members are dropped. At
+//! whenever its last order no longer serves, the exceptions are reported with a cause, and the host's per-unit
+//! orders to members are dropped. At
 //! contact the group keeps its ranks: every member walks to its slot as a Move, firing at will on the way, at the
 //! engine's hold position so nobody chases; the anchor of a group that fights halts when every member of its body has
 //! an armed enemy in reach (or one inside half its reach), and at its route's end it closes on what it sees
@@ -407,22 +408,28 @@ struct FormCtx<'a> {
     frame: i32,
     enemies: &'a [EnemyUnit],
     by_id: &'a HashMap<UnitId, &'a OwnUnit>,
-    spacing: f32,
+    /// This formation's pitch: the group's spacing against area weapons, and its own largest hull's room.
+    pitch: form::Pitch,
     /// Every formation's footprint as of the last tick (§5.3): what a formation's end is kept off.
     footprints: &'a [group::Footprint],
 }
 
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
-/// between the hull spacing and `max` (`form::spacing_for`). A host may set them (the duel harness's search).
+/// between the hull spacing and `max` (`form::spacing_for`). H-MICRO-FORM-HULLS': neighbours stand at least
+/// `hull_across` of the formation's largest pathing hull apart and its ranks `hull_deep` (`form::pitch_for`; 0 for
+/// either is the pitch of before 2026-11-09, 64 by 96 whatever the hulls). A host may set them (the duel harness's
+/// search).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FormTuning {
     pub factor: f32,
     pub max: f32,
+    pub hull_across: f32,
+    pub hull_deep: f32,
 }
 
 impl Default for FormTuning {
     fn default() -> FormTuning {
-        FormTuning { factor: form::AREA_SPACING, max: form::SPACING_MAX }
+        FormTuning { factor: form::AREA_SPACING, max: form::SPACING_MAX, hull_across: form::HULL_ACROSS, hull_deep: form::HULL_DEEP }
     }
 }
 
@@ -545,7 +552,8 @@ impl Lane {
 /// Whether a marching member at `at`, last sent to `sent`, is still served by that order against the new point `to`
 /// (`REISSUE_NEAR`): it is farther than `REISSUE_NEAR` from `sent`, and `to` lies within `band` of the line from it
 /// through `sent`, no more than `band` short of `sent` along it. A straight march keeps the order; a turn, a halt (the
-/// point falls back to the slot) or a close sends a new one at once.
+/// point falls back to the slot) or a close sends a new one at once. For a member that still has the order: one the
+/// engine has taken it from is `take_slot`'s (`Pacing::idle_after`).
 fn point_still_serves(at: Vec3, sent: Vec3, to: Vec3, band: f32) -> bool {
     let (ax, az) = (sent.x - at.x, sent.z - at.z);
     let len = ax.hypot(az);
@@ -1192,9 +1200,11 @@ impl Lane {
 
     /// H-MICRO-FORM's orders for every member of a declared group this tick (`group.rs` for the anchor and the
     /// slots, `form.rs` for the geometry; `docs/design/2026-10-24-formation-drills.md` §2). The spacing is the
-    /// hull's, or wider against an area weapon of theirs in sight or remembered within 1,500 (H-MICRO-FORM-SPACING).
+    /// small hulls' 64, wider for a formation's own largest hull (H-MICRO-FORM-HULLS) and against an area weapon of
+    /// theirs in sight or remembered within 1,500 (H-MICRO-FORM-SPACING).
     /// Every member is sent to its slot, an offset from the anchor that walks the route at the group's pace, as a
-    /// Move; the anchor is held back by the members of its body behind their slots (`Group::tick`). At contact the
+    /// Move when its last order no longer serves (`take_slot`); the anchor is held back by the members of its body
+    /// behind their slots (`Group::tick`). At contact the
     /// ranks hold (`docs/design/2026-10-28-contact-cleanup.md` §5): the anchor of a group that fights halts when every
     /// member of its body has an armed enemy in sight in reach, so the slots stand where the block stopped, and walks
     /// on when that fails. Each member's point this tick.
@@ -1239,6 +1249,15 @@ impl Lane {
                 0.0
             };
             let spacing = form::spacing_for(area, self.tuning.factor, self.tuning.max);
+            // H-MICRO-FORM-HULLS: each formation's pitch is for its own largest hull; the ground's room and a newly
+            // founded company's first pitch are for the group's.
+            let tuning = self.tuning;
+            let pitch_of = |ids: &mut dyn Iterator<Item = UnitId>| {
+                let mut hulls: Vec<f32> = ids.filter_map(|id| by_id.get(&id)).filter_map(|u| view.def(u.def)).map(|d| d.path_width()).collect();
+                hulls.sort_by(|a, b| b.total_cmp(a));
+                form::pitch_for(spacing, form::widest_pair(&hulls), tuning.hull_across, tuning.hull_deep)
+            };
+            let pitch = pitch_of(&mut walkers.iter().map(|w| w.id));
             // The group's ground (design D17): the cells every member's class stands on, priced for the ranks' room;
             // built when the classes or the room change, once for the declaration and shared by its companies.
             let mut ground_changed = false;
@@ -1246,7 +1265,7 @@ impl Lane {
                 let mut classes: Vec<(ClassKey, MoveClass)> = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.def(u.def)?.move_class).map(|c| (ClassKey::of(c), c)).collect();
                 classes.sort_by_key(|(k, _)| *k);
                 classes.dedup_by_key(|(k, _)| *k);
-                let wanted = group::wanted_room(spacing);
+                let wanted = group::wanted_room(pitch.across);
                 let key = (classes.iter().map(|(k, _)| *k).collect::<Vec<_>>(), (wanted / 32.0).round() as i32);
                 let (blocked, hash) = structures.as_ref().map_or((None, 0), |((grid, hash), ..)| (Some(grid.clone()), *hash));
                 let classes_changed = declared.ground_key.as_ref() != Some(&key);
@@ -1282,7 +1301,7 @@ impl Lane {
             // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, two near companies
             // that fit merged, then every company ticked as a group of its own.
             let by_walker: HashMap<UnitId, group::Walker> = walkers.iter().map(|w| (w.id, *w)).collect();
-            let founded = army.partition(&name, &members, &by_walker, &order, frame, spacing, &ground);
+            let founded = army.partition(&name, &members, &by_walker, &order, frame, pitch, &ground);
             if ground_changed {
                 for c in &mut army.companies {
                     c.formation.set_ground(ground.clone());
@@ -1299,9 +1318,9 @@ impl Lane {
                     army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role().word(), c.members.len())).collect::<Vec<_>>().join(", ")
                 );
             }
-            let ctx = FormCtx { frame, enemies, by_id: &by_id, spacing, footprints: &footprints };
             for c in &mut army.companies {
                 let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
+                let ctx = FormCtx { frame, enemies, by_id: &by_id, pitch: pitch_of(&mut w.iter().map(|w| w.id)), footprints: &footprints };
                 // The other formations' footprints for the plan's price (the facing design §3), this one's left out.
                 c.formation.set_others(footprints.iter().filter(|f| f.name != c.formation.name).cloned().collect());
                 c.formation.update(c.members.clone(), c.order(&order));
@@ -1327,7 +1346,7 @@ impl Lane {
     /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
     /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
     fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, Vec3>) -> GroupState {
-        let FormCtx { frame, enemies, by_id, spacing, footprints } = *ctx;
+        let FormCtx { frame, enemies, by_id, pitch, footprints } = *ctx;
         // An Attack's goal follows its target's sightings.
         if let GroupKind::Attack(id) = group.order.kind
             && let Some(at) = enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id))
@@ -1412,7 +1431,7 @@ impl Lane {
         group.close_on(nearest.filter(|_| closes), stop);
         // The march, halted or not: every member's point is its slot carried ahead by the type's lead (D20), the slot
         // itself while the anchor stands.
-        group.tick(frame, walkers, spacing, &self.pacing);
+        group.tick(frame, walkers, pitch, &self.pacing);
         for w in walkers {
             if by_id.contains_key(&w.id)
                 && let Some(to) = group.order_point(w.id)
@@ -1425,14 +1444,20 @@ impl Lane {
 
     /// A free unit with a form order takes it: a Move to its point, out when the claim is fresh (the group just formed,
     /// or the unit came back from a reflex) and on the march every `Pacing::cadence` frames once the point has moved
-    /// `REISSUE_MIN` since the last order and that order no longer serves (`point_still_serves`, `REISSUE_NEAR`): the
-    /// loop that holds the pace at a few orders a member-minute (a halted anchor's slots go out once, and a member in
-    /// reach fires at will on the way and where it stands; an order costs no shot under a Move).
+    /// `REISSUE_MIN` since the last order and that order no longer serves: the unit has closed on its point or the
+    /// new one is off its line (`point_still_serves`, `REISSUE_NEAR`), or the engine has ended the order and the unit
+    /// stands with none (`Pacing::idle_after`: a blocked unit's move ends short of its point,
+    /// K-engine-a-blocked-move-ends-short). The loop that holds the pace at a few orders a member-minute (a halted
+    /// anchor's slots go out once, and a member in reach fires at will on the way and where it stands; an order costs
+    /// no shot under a Move).
     #[allow(clippy::too_many_arguments)]
     fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, to: Vec3, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
-        let due = claim.is_some_and(|c| c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN && !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within));
+        let due = claim.is_some_and(|c| {
+            let ended = unit.idle && frame - c.frame >= self.pacing.idle_after;
+            c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN && (ended || !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within))
+        });
         if !(fresh || due) {
             return;
         }
