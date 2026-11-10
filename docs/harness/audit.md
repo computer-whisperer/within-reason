@@ -37,6 +37,15 @@ the engine adds 0.1 x the game's `experienceMult` x the share of the victim's he
 attacker's. The reader scales the result so that the sum of what everybody dealt is the sum of what everybody took
 (the raw sum was 0.58 of it on the first game): a unit's `dealt` is its share of the enemy's losses in metal-worth.
 
+## A team game: `run/audit_side.py <dir>/audit.jsonl [our teams]`
+
+`run/audit.py` reads one seat against one opponent. For a game of many seats `run/audit_side.py` prints the side-level
+truth from the same dump (written 2026-11-10 for the lobby 10v8 on Erebos Lakes): every ally team's armed mobile metal
+by minute and by thirds of the map with each seat's beside it, our seats' metal ledger with the engine's `excess`,
+`sent` and `received` (a full store's overflow goes to the side: t16's 260,600 `sent` there was its overflow, 14,300
+`excess` what was lost), orders by side, the people's losses by killer team, what the silos killed, units given between
+teams, the last minutes' unit counts, the engine's team statistics and the winners. The thirds are of x.
+
 ## The tables (`run/audit.py <dir> [--sections a,b] [--top N] [--team N]`)
 
 | Section | What it answers |

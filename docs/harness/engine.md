@@ -18,7 +18,7 @@ A 31MB Linux archive ships `spring`, `spring-headless`, `spring-dedicated`, `pr-
 ## Game data
 `pr-downloader --filesystem-writepath run/data --download-game byar:test` (and `--download-map "<name>"`) with env
 `PRD_RAPID_USE_STREAMER=false PRD_RAPID_REPO_MASTER=https://repos-cdn.beyondallreason.dev/repos.gz
-PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find`. Currently: test-31836 (2026-11-06, the lobby's version, on the user's word; test-31691 before it; the older ones stay in the pool for replays); maps Quicksilver Remake 1.24, Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8,
+PRD_HTTP_SEARCH_URL=https://files-cdn.beyondallreason.dev/find`. Currently: test-31836 (2026-11-06, the lobby's version, on the user's word; test-31691 before it; the older ones stay in the pool for replays; test-31908, the lobby's version of 2026-11-10, is in the pool for the Erebos Lakes replay with `versions.gz` put back, so `byar:test` still names test-31836, and Erebos Lakes v1.0 is among the maps); maps Quicksilver Remake 1.24, Isidis crack 1.1, Feast of Hades 1.0.1, Comet Catcher Remake 1.8,
 Mithril Mountain v2.0.1, the distilled bot's map bench (fetched 2026-11-06: Onyx Cauldron 2.2.2, Ravaged Remake v1.2, Avalanche 3.4,
 Zed Remake 3.3.1, Red Comet Remake 1.8, The Halite Maze v1.4, Hooked 1.1.1, Flooded_Valley_V5, Argent Strata 1.1, Sertaleina_v9.2,
 TitanDuel_V3; `run/distilled_maps.sh`), Great Divide V1 (the team-game test ground, fetched 2026-09-20: four starts, two north and two
