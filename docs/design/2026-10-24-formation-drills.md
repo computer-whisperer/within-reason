@@ -1437,7 +1437,13 @@ against Reapers +42 / +46, Marauders against Reapers -28 / -4 and against Sumos 
 - *Corners in a wide rank.* Eight Thors lap Quicksilver in 390-468 s against 280 on foot, the anchor under half its
   pace for 182 s of a 489 s lap: a rank 780 wide is re-dealt at each corner and a Thor takes four seconds from a
   stand to its speed. Fewer files for large hulls, or a turn that wheels a wide rank, is a decision on the
-  formation's shape and the user's.
+  formation's shape and the user's. **Corrected 2026-11-10:** every gantry lap in the table above (the four rows fed
+  from `armshltx`) was walked on a route that began again when the first fed unit appeared
+  (K-group-a-second-re-plan-began-the-route-again, a fault of `Group::plan` on routes of several points, fixed that
+  day), so those laps are not one loop of the map. On the fixed build, in ranks: Thors 440-466 s, Marauders
+  174-182, the mix of sixteen 431-455, the mix with a Thor 458-486 (ledger rgYc-ranks-*); with the relaxed posture
+  of 2026-11-10 Thors 406-443 (`docs/design/2026-11-10-restricted-ground.md` §5). The Thors' gap to 280 on foot
+  stands; how much of it is the corners was read on the restarted laps and is to be read again.
 - *The faster types' orders.* The mixed company sends 158 orders a unit-minute against 13-28 for a body of one type,
   the Marauders 217: a unit faster than the pace walks to its point and stands, three or four times a second, and no
   speed command reaches a unit from an AI. A cadence of a second cuts it to 51 with the arrival and the formed share

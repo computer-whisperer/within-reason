@@ -412,6 +412,10 @@ struct FormCtx<'a> {
     pitch: form::Pitch,
     /// Every formation's footprint as of the last tick (§5.3): what a formation's end is kept off.
     footprints: &'a [group::Footprint],
+    /// What is hostile this tick (`docs/design/2026-11-10-restricted-ground.md` §1.2): the armed enemies in sight
+    /// and every building of theirs, seen or remembered. A formation that fights relaxes its ranks only with none
+    /// of them near the stretch.
+    hostile: &'a [Vec3],
 }
 
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
@@ -487,6 +491,9 @@ pub struct Lane {
     /// The soldiers the lane has put at the engine's hold position as members of a formation group
     /// (H-MICRO-FORM-HOLDPOS), so each goes back to manoeuvre once, when it leaves.
     held: HashSet<UnitId>,
+    /// The members of formations passing a stretch in the relaxed posture this tick (the restricted-ground design
+    /// §1.3): one the engine has stopped short of its place beyond the stretch is sent there again (`take_slot`).
+    passing: HashSet<UnitId>,
 }
 
 /// A group's ground is rebuilt for a change of structures no sooner than this after the last build (frames); a
@@ -1221,6 +1228,21 @@ impl Lane {
             (ground::structures(terrain, &footprints), footprints.len() - self.wrecks.len(), self.wrecks.len(), largest)
         });
         let spacing_on = view.enabled("H-MICRO-FORM-SPACING");
+        // What is hostile (the restricted-ground design §1.2): armed enemies in sight, as the halt counts them, and
+        // every building of theirs in sight or remembered.
+        let mut hostile: Vec<Vec3> = Vec::new();
+        let mut seen_buildings: HashSet<UnitId> = HashSet::new();
+        for e in enemies {
+            let Some(def) = e.def else { continue };
+            if view.def(def).is_some_and(|d| d.speed <= 0.0) {
+                seen_buildings.insert(e.id);
+                hostile.push(e.pos);
+            } else if view.stats(def).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0 {
+                hostile.push(e.pos);
+            }
+        }
+        hostile.extend(view.remembered_buildings().into_iter().filter(|(id, _, _)| !seen_buildings.contains(id)).map(|(_, _, at)| at));
+        self.passing.clear();
         let by_id: HashMap<UnitId, &OwnUnit> = soldiers.iter().map(|u| (u.id, *u)).collect();
         let names: Vec<String> = self.groups.keys().cloned().collect();
         // Every formation's footprint as of the last tick (§5.3): each formation keeps its end off the others'.
@@ -1320,11 +1342,14 @@ impl Lane {
             }
             for c in &mut army.companies {
                 let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
-                let ctx = FormCtx { frame, enemies, by_id: &by_id, pitch: pitch_of(&mut w.iter().map(|w| w.id)), footprints: &footprints };
+                let ctx = FormCtx { frame, enemies, by_id: &by_id, pitch: pitch_of(&mut w.iter().map(|w| w.id)), footprints: &footprints, hostile: &hostile };
                 // The other formations' footprints for the plan's price (the facing design §3), this one's left out.
                 c.formation.set_others(footprints.iter().filter(|f| f.name != c.formation.name).cloned().collect());
                 c.formation.update(c.members.clone(), c.order(&order));
                 let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
+                if c.formation.passing() {
+                    self.passing.extend(w.iter().map(|w| w.id));
+                }
                 if let Some((at, since)) = c.muster
                     && army::muster_due(c.members.len(), since, frame, &order)
                 {
@@ -1346,7 +1371,7 @@ impl Lane {
     /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
     /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
     fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, Vec3>) -> GroupState {
-        let FormCtx { frame, enemies, by_id, pitch, footprints } = *ctx;
+        let FormCtx { frame, enemies, by_id, pitch, footprints, hostile } = *ctx;
         // An Attack's goal follows its target's sightings.
         if let GroupKind::Attack(id) = group.order.kind
             && let Some(at) = enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id))
@@ -1357,6 +1382,9 @@ impl Lane {
         // built and not stunned. Nothing on radar only, remembered or seen a while ago stops a block: the contact ring
         // formed on such ghosts (the design's §0). A walk halts for nothing.
         let fights = group.order.kind != GroupKind::Go;
+        // A walk relaxes its ranks on any stretch they do not stand on; a group that fights only with nothing
+        // hostile near it (the restricted-ground design §1.2).
+        group.set_hostile(if fights { hostile.to_vec() } else { Vec::new() });
         let armed: Vec<&EnemyUnit> = if fights {
             enemies.iter().filter(|e| e.def.and_then(|d| view.stats(d)).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0).collect()
         } else {
@@ -1447,7 +1475,8 @@ impl Lane {
     /// `REISSUE_MIN` since the last order and that order no longer serves: the unit has closed on its point or the
     /// new one is off its line (`point_still_serves`, `REISSUE_NEAR`), or the engine has ended the order and the unit
     /// stands with none (`Pacing::idle_after`: a blocked unit's move ends short of its point,
-    /// K-engine-a-blocked-move-ends-short). The loop that holds the pace at a few orders a member-minute (a halted
+    /// K-engine-a-blocked-move-ends-short); in a pass, where the point stands, on that last ground alone. The loop
+    /// that holds the pace at a few orders a member-minute (a halted
     /// anchor's slots go out once, and a member in reach fires at will on the way and where it stands; an order costs
     /// no shot under a Move).
     #[allow(clippy::too_many_arguments)]
@@ -1456,7 +1485,12 @@ impl Lane {
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
         let due = claim.is_some_and(|c| {
             let ended = unit.idle && frame - c.frame >= self.pacing.idle_after;
-            c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && c.sent_to.dist2d(to) > REISSUE_MIN && (ended || !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within))
+            // In a pass the point stands (the member's place beyond the stretch), so the order goes out once; a
+            // member the engine stopped short of it in a lane is sent again, where a halted block's slots are not.
+            let stopped_in_a_pass = ended && self.passing.contains(&unit.id) && unit.pos.dist2d(to) > self.pacing.formed_within;
+            c.rule == Rule::Form
+                && frame - c.frame >= self.pacing.cadence
+                && (stopped_in_a_pass || (c.sent_to.dist2d(to) > REISSUE_MIN && (ended || !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within))))
         });
         if !(fresh || due) {
             return;

@@ -1256,7 +1256,7 @@ mod tests {
         use micro::{CompanyState, GroupState, Role};
         let to = at(4352.0, 1904.0);
         let company = |role: Role, anchor: Vec3, members: usize, arrived: bool| CompanyState { role, anchor, members, formed: members, exceptions: Vec::new(), arrived, at: None };
-        let state = |companies: Vec<CompanyState>, arrived: bool| GroupState { anchor: at(4664.0, 2024.0), heading: (1.0, 0.0), pace: 0.0, full_pace: 75.0, formed: Vec::new(), exceptions: Vec::new(), arrived, legs_left: 0, engaged: None, way: Some(0.0), companies };
+        let state = |companies: Vec<CompanyState>, arrived: bool| GroupState { anchor: at(4664.0, 2024.0), heading: (1.0, 0.0), pace: 0.0, full_pace: 75.0, formed: Vec::new(), exceptions: Vec::new(), arrived, legs_left: 0, engaged: None, way: Some(0.0), companies, passing: None };
         // The game's 10:40: the lead company of 18 arrived 334 past the spot, a company of 4 marching far behind,
         // musters at home; the composed flag false.
         let front = company(Role::Marching, at(4664.0, 2024.0), 18, true);

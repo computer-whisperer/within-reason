@@ -634,6 +634,8 @@ fn group_json(s: &GroupState) -> Value {
         "exceptions": s.exceptions.iter().map(|(u, cause, seconds)| json!([u.0, format!("{cause:?}").to_lowercase(), tenth(*seconds)])).collect::<Vec<_>>(),
         "arrived": s.arrived, "legs_left": s.legs_left, "engaged": s.engaged.map(|u| u.0),
         "way": s.way.map(f32::round),
+        // The relaxed posture (docs/design/2026-11-10-restricted-ground.md): the members through, null in ranks.
+        "passing": s.passing,
         // The companies (docs/design/2026-10-25-companies.md): none for a group with no cap.
         "companies": s.companies.iter().map(|c| json!({"role": c.role.word(), "anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived})).collect::<Vec<_>>(),
     })
@@ -659,6 +661,7 @@ mod group_tests {
             engaged: None,
             way: None,
             companies: Vec::new(),
+            passing: None,
         };
         let line = super::group_json(&state);
         assert_eq!(line["anchor"], serde_json::json!([1200.0, 801.0]));

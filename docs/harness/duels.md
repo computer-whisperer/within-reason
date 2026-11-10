@@ -15,11 +15,12 @@ duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase 
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12]
-     [--lab armvp] [--target armshltx] [--post FORCE] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] ...
+     [--lab armvp] [--target armshltx] [--post FORCE] [--yard NAME@PITCH,REACH] [--wall NAME@ALONG,GAP,HALF] [--fence NAME@A1,C1,A2,C2 ...] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] ...
                                        the drill bench (below): one army walks a strip, no enemy, measured
 duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
                                        a deployed army round a loop across the map while a lab feeds it (below)
 run/drill_table.py <batch dir> ... [--by x,form_x,lane_x] [--types] [--seconds]   one row per arm of a drill batch
+run/drill_cross.py ALONG <batch dir> ...   a walk drill's first / median / last unit ALONG past the start, per duel
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
@@ -296,7 +297,19 @@ destination. The per-second log carries the group's `anchor`, `heading`, `pace`,
 indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'
 own arrival number). `--post FORCE` ("armmex*1+armllt*2") stands our own structures at the goal, the first on it and the rest 96 off
 round it, never of the army: the walk to a defended extractor of ours (H-MICRO-STAND; barb-ladder3-20-1's group_W1), judged by
-the group's anchor at its arrival against the goal in the per-second log. **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
+the group's anchor at its arrival against the goal in the per-second log. `--yard NAME@PITCH,REACH`
+("armsolar@160,640") stands our structures of `NAME` on a lattice of `PITCH` covering `REACH` elmos round the army's
+standing ground, which is left clear with 96 to spare: the walk out of a base through lanes of the pitch less the
+structure's side, one structure dead ahead of the centre file. `--wall NAME@ALONG,GAP,HALF` ("armdrag@900,160,1400")
+stands them shoulder to shoulder across the axis `ALONG` from the start, `HALF` to either side, with a gap of `GAP`
+in the middle: the pass, with `--cap 24` and a hundred units the army through the rocks
+(`docs/design/2026-11-10-restricted-ground.md` §3; the strip is sized for both). Read them against `--lane off` (a
+plain engine order, the floor). `run/drill_cross.py ALONG <batch dir>...` reads the per-second logs for the second
+the first, the median and the last unit stood `ALONG` past the start: the pass without the rest of the walk. `--fence NAME@A1,C1,A2,C2`, any number of them, stands a
+straight line of them from `A1` along the axis and `C1` across it to `A2`, `C2` ("armdrag@250,160,1450,160" and its
+mirror: a corridor 288 wide, which the planner walks round; behind `--wall armdrag@250,288,3200` it is a canyon that
+is the way, and behind a wall of 1,400 one with a way round). `WITHIN_REASON_RELAX=0` keeps the ranks on any ground (the lane of before 2026-11-10
+but for the cut-off member's order). **reverse** gives the same order back to the start `--turn-at` seconds after the first (default
 12, before the fast units arrive) and ends when everyone is back. **gather** gives an `--lab` (default `armvp`) at
 the start that builds the force under the resource cheat (`Command::GiveResource`, metal topped up while it
 builds) and a free fusion for its energy (`--economy fed` unless `--economy bare` is given: the engine's cheat gives

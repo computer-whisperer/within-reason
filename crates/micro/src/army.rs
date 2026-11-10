@@ -221,7 +221,7 @@ impl Army {
 
     /// The army's reading: the largest marching company's numbers at the top (the main body), every company's formed
     /// and exceptions together, engaged when any company is, arrived when every marching company is (a muster is not
-    /// of the march yet). None while nobody marches.
+    /// of the march yet), passing when any marching company is. None while nobody marches.
     pub fn compose(&self) -> Option<GroupState> {
         let main = (self.companies.iter()).filter(|c| c.role() == Role::Marching && c.state.is_some()).max_by_key(|c| c.members.len())?;
         let top = main.state.clone()?;
@@ -240,7 +240,9 @@ impl Army {
             }
             companies.push(CompanyState { role: c.role(), anchor: s.anchor, members: c.members.len(), formed: s.formed.len(), exceptions: s.exceptions.clone(), arrived: s.arrived, at: c.muster.map(|(at, _)| at) });
         }
-        Some(GroupState { formed, exceptions, arrived, engaged, companies, ..top })
+        // Passing (the restricted-ground design §1.4): the members through of every marching company in a pass.
+        let passing = (self.companies.iter()).filter(|c| c.role() == Role::Marching).filter_map(|c| c.state.as_ref()?.passing).fold(None, |sum: Option<usize>, through| Some(sum.unwrap_or(0) + through));
+        Some(GroupState { formed, exceptions, arrived, engaged, companies, passing, ..top })
     }
 }
 

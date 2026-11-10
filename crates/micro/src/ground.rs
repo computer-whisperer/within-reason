@@ -197,6 +197,75 @@ impl Ground {
         form::slots(pos, h, count.max(1), pitch, form::FILES).iter().filter(|s| self.passable_at(**s)).count()
     }
 
+    /// How many of a body's slots stand joined to it (`docs/design/2026-11-10-restricted-ground.md` §1.1): `count`
+    /// ranks' slots at `pitch` facing `h` with the front rank centred on `pos`, each counted when its cell is ground
+    /// and the line from it to its own rank's centre crosses no cell that is not, so a slot behind a wall or on a
+    /// cliff's other level is not standing though its cell is ground (`standing` counts the cells alone).
+    pub fn joined_standing(&self, pos: Vec3, h: (f32, f32), count: usize, pitch: form::Pitch) -> usize {
+        let slots = form::slots(pos, h, count.max(1), pitch, form::FILES);
+        (slots.iter().enumerate())
+            .filter(|(i, s)| {
+                let back = (i / form::FILES) as f32 * pitch.deep;
+                let centre = Vec3 { x: pos.x - h.0 * back, y: pos.y, z: pos.z - h.1 * back };
+                self.clear_line(**s, centre, 0.0)
+            })
+            .count()
+    }
+
+    /// Whether one rank of `count` (the files at most) at `pitch` stands across `h` centred on `pos` with a hull
+    /// between neighbours on the centre's side of every wall (the restricted-ground design §1.1): the rank as
+    /// `fit_rank` closes it up has no two slots nearer than the hull. Six Stouts abreast want about 280 of ground.
+    pub fn rank_fits(&self, pos: Vec3, h: (f32, f32), count: usize, pitch: form::Pitch) -> bool {
+        let sides = form::rank_sides(count.clamp(1, form::FILES), pitch.across, form::FILES).swap_remove(0);
+        let gap = pitch.across / form::HULL_ACROSS;
+        self.fit_rank(pos, (-h.1, h.0), &sides, gap).is_some_and(|points| points.windows(2).all(|pair| pair[0].dist2d(pair[1]) >= gap - 0.5))
+    }
+
+    /// One rank closed up to the ground about its centre (the restricted-ground design §1.1; `rank_fits` judges by
+    /// it, and it places no slot: placed by it, a body among a base's buildings walks one lane where the nearest
+    /// cell gives it the lanes beside, K-group-a-rank-closed-up-to-its-centre-makes-a-yard-one-lane). `sides` are the
+    /// slots' places across the rank, as distances from `centre` along `left` (negative to the right). From the
+    /// centre outward each way the rank's line is walked to the first cell that is not ground; a slot beyond it
+    /// stands half a `gap` before it, and the slots inside it move in only as far as keeps `gap` between
+    /// neighbours, never across the centre. `None` when the centre itself is off the ground: the rank has no line.
+    pub fn fit_rank(&self, centre: Vec3, left: (f32, f32), sides: &[f32], gap: f32) -> Option<Vec<Vec3>> {
+        if !self.passable_at(centre) {
+            return None;
+        }
+        let at = |d: f32| Vec3 { x: centre.x + left.0 * d, y: centre.y, z: centre.z + left.1 * d };
+        // How far the ground runs from the centre one way, as far as the outermost slot that way needs.
+        let run = |sign: f32, needed: f32| -> f32 {
+            let step = self.cell / 2.0;
+            let mut d = 0.0f32;
+            while d < needed {
+                let next = (d + step).min(needed);
+                if !self.passable_at(at(sign * next)) {
+                    return (d - gap / 2.0).max(0.0);
+                }
+                d = next;
+            }
+            needed
+        };
+        let mut out: Vec<Vec3> = sides.iter().map(|s| at(*s)).collect();
+        for sign in [1.0f32, -1.0] {
+            // This side's slots, the outermost first.
+            let mut order: Vec<usize> = (0..sides.len()).filter(|i| sides[*i] * sign > 0.0).collect();
+            order.sort_by(|a, b| sides[*b].abs().total_cmp(&sides[*a].abs()));
+            let Some(&outer) = order.first() else { continue };
+            let limit = run(sign, sides[outer].abs());
+            if limit >= sides[outer].abs() {
+                continue;
+            }
+            let mut bound = limit;
+            for i in order {
+                let d = sides[i].abs().min(bound).max(0.0);
+                out[i] = at(sign * d);
+                bound = d - gap;
+            }
+        }
+        Some(out)
+    }
+
     /// Where a body stands for a point (H-MICRO-STAND): the cell nearest `pos`, within `STAND_REACH_CELLS`, whose
     /// anchor puts every slot of the ranks (`count` at `pitch` facing `h`) on the ground; when no cell that near
     /// does, the nearest of those with the most slots standing (the rest snap beside or cut off, D17); `snap` when
@@ -385,7 +454,7 @@ impl Ground {
     }
 
     /// Whether the body walks from `a` to `b` in a straight line with `needed` of room all the way (a sample a cell).
-    fn clear_line(&self, a: Vec3, b: Vec3, needed: f32) -> bool {
+    pub fn clear_line(&self, a: Vec3, b: Vec3, needed: f32) -> bool {
         let steps = (a.dist2d(b) / self.cell).ceil().max(1.0) as usize;
         (0..=steps).all(|k| {
             let t = k as f32 / steps as f32;
@@ -517,7 +586,7 @@ mod tests {
         let mut classes = Classes::default();
         let grid = classes.passable(&terrain, tank());
         let ground = Ground::new(&terrain, &[grid], 100.0).expect("ground");
-        let block = |standing: bool| Formation { name: "b".into(), anchor: at(512.0, 512.0), heading: (1.0, 0.0), count: 12, pitch: form::HULL_PITCH, standing };
+        let block = |standing: bool| Formation { name: "b".into(), anchor: at(512.0, 512.0), heading: (1.0, 0.0), count: 12, pitch: form::HULL_PITCH, standing, forming: false };
         let (from, to) = (at(100.0, 512.0), at(900.0, 512.0));
         let plain = ground.way_found(from, to).expect("a way");
         assert!(plain.len() <= 2, "the flat way is straight: {plain:?}");
@@ -646,6 +715,39 @@ mod tests {
         let grid = classes.passable(&terrain, tank());
         let g = Ground::new(&terrain, &[grid], 96.0).unwrap();
         assert!(g.snap(at(20.5 * 16.0, 40.5 * 16.0)).is_none());
+    }
+
+    /// The restricted-ground design §1.1: a slot behind the wall is ground and not joined; a rank closed up to the
+    /// ground stands on its centre's side of the wall, a hull between neighbours, and a rank with room keeps its
+    /// places exactly; a rank fits where it can be closed up so and not where it cannot.
+    #[test]
+    fn a_slot_behind_the_wall_is_not_joined_and_a_rank_fits_where_it_closes_up_before_it() {
+        let g = ground(96.0);
+        // A rank of six at 64 across x, its centre 80 west of the wall (x 480-544): the slots at 240 ... 560.
+        let south = (0.0, 1.0);
+        let centre = at(400.0, 300.0);
+        assert_eq!(g.standing(centre, south, 6, form::HULL_PITCH), 5, "one slot on the wall, one beyond it on ground");
+        assert_eq!(g.joined_standing(centre, south, 6, form::HULL_PITCH), 4, "the one beyond the wall is not of the body's ground");
+        let sides = [-160.0, -96.0, -32.0, 32.0, 96.0, 160.0];
+        let gap = form::HULL_SPACING / form::HULL_ACROSS;
+        let fitted = g.fit_rank(centre, (1.0, 0.0), &sides, gap).expect("the centre is ground");
+        for (side, slot) in sides.iter().zip(&fitted).take(3) {
+            assert!((slot.x - (400.0 + side)).abs() < 0.01 && (slot.z - 300.0).abs() < 0.01, "the open side keeps its places: {fitted:?}");
+        }
+        assert!(fitted[3..].iter().all(|s| s.x >= 400.0 && s.x < 480.0 - gap / 2.0 + 8.0 && g.passable_at(*s)), "the wall's side stands before the wall: {fitted:?}");
+        assert!(fitted[5].x > fitted[4].x && fitted[4].x >= fitted[3].x, "in their order: {fitted:?}");
+        // With the wall 130 from the centre the three stand a hull apart inside it.
+        let centre = at(350.0, 300.0);
+        let fitted = g.fit_rank(centre, (1.0, 0.0), &sides, gap).unwrap();
+        assert!(fitted[5].x < 480.0 - gap / 2.0 + 8.0 && (fitted[5].x - fitted[4].x - gap).abs() < 0.01 && (fitted[4].x - fitted[3].x - gap).abs() < 0.01, "{fitted:?}");
+        assert!(fitted[3].x - fitted[2].x >= gap, "the innermost keeps a hull from the other side's: {fitted:?}");
+        // A centre on the wall has no line.
+        assert!(g.fit_rank(at(500.0, 300.0), (1.0, 0.0), &sides, gap).is_none());
+        // The rank fits where its half stands a hull apart before the wall, and not where it does not.
+        assert!(g.rank_fits(at(300.0, 300.0), south, 6, form::HULL_PITCH), "180 from the wall: untouched");
+        assert!(g.rank_fits(at(350.0, 300.0), south, 6, form::HULL_PITCH), "130 from the wall: the half closes up to a hull apart");
+        assert!(!g.rank_fits(at(400.0, 300.0), south, 6, form::HULL_PITCH), "80 from the wall: three hulls do not stand in it");
+        assert!(g.rank_fits(at(400.0, 300.0), south, 2, form::HULL_PITCH), "two abreast do");
     }
 
     #[test]

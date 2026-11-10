@@ -90,26 +90,34 @@ pub fn pitch_for(spacing: f32, hull: f32, across: f32, deep: f32) -> Pitch {
     Pitch { across: spacing.max(hull * across), deep: RANK_GAP.max(hull * deep) }
 }
 
-/// `count` slots in ranks of `files` across `h`, `pitch.across` apart, the front rank centred on `anchor` and each
-/// further rank `pitch.deep` behind it and offset half a spacing (a checkerboard, so a rear unit looks between two
-/// front ones); within a rank left to right (across ascending), front rank first. The march's shape. The ranks fill
-/// from the front and the remainder stands in the last rank, centred (design D14: a joiner adds a slot behind and the
-/// body's slots stand; ranks as even as possible moved every slot when one unit joined, 12 as 6 / 6 to 13 as 5 / 5 / 3).
-pub fn slots(anchor: Vec3, h: (f32, f32), count: usize, pitch: Pitch, files: usize) -> Vec<Vec3> {
-    let spacing = pitch.across;
-    let left = (-h.1, h.0);
+/// The ranks' places across the facing: for each rank, front first, each slot's distance from the rank's centre
+/// along the left of the facing, ascending (`slots` lays them; `Ground::fit_rank` fits a rank to the ground by them).
+/// The ranks fill from the front and the remainder stands in the last rank, centred (design D14: a joiner adds a slot
+/// behind and the body's slots stand; ranks as even as possible moved every slot when one unit joined, 12 as 6 / 6
+/// to 13 as 5 / 5 / 3); a rank with the front's parity is shifted half a spacing (a checkerboard, so a rear unit
+/// looks between two front ones), one with the other parity already falls on the front's gaps when centred.
+pub fn rank_sides(count: usize, across: f32, files: usize) -> Vec<Vec<f32>> {
     let per_rank = files.max(1);
     let ranks = count.div_ceil(per_rank).max(1);
     let front = per_rank.min(count);
+    (0..ranks)
+        .map(|rank| {
+            let in_rank = (count - rank * per_rank).min(per_rank);
+            let offset = if rank % 2 == 1 && in_rank % 2 == front % 2 { across / 2.0 } else { 0.0 };
+            (0..in_rank).map(|file| (file as f32 - (in_rank as f32 - 1.0) / 2.0) * across + offset).collect()
+        })
+        .collect()
+}
+
+/// `count` slots in ranks of `files` across `h`, `pitch.across` apart, the front rank centred on `anchor` and each
+/// further rank `pitch.deep` behind it (`rank_sides`); within a rank left to right (across ascending), front rank
+/// first. The march's shape.
+pub fn slots(anchor: Vec3, h: (f32, f32), count: usize, pitch: Pitch, files: usize) -> Vec<Vec3> {
+    let left = (-h.1, h.0);
     let mut out = Vec::with_capacity(count);
-    for rank in 0..ranks {
-        let in_rank = (count - rank * per_rank).min(per_rank);
-        // Between the front rank's units: a rank with the front's parity is shifted half a spacing, one with the
-        // other parity already falls on the front's gaps when centred.
-        let offset = if rank % 2 == 1 && in_rank % 2 == front % 2 { spacing / 2.0 } else { 0.0 };
+    for (rank, sides) in rank_sides(count, pitch.across, files).iter().enumerate() {
         let back = rank as f32 * pitch.deep;
-        for file in 0..in_rank {
-            let side = (file as f32 - (in_rank as f32 - 1.0) / 2.0) * spacing + offset;
+        for side in sides {
             out.push(Vec3 { x: anchor.x + left.0 * side - h.0 * back, y: anchor.y, z: anchor.z + left.1 * side - h.1 * back });
         }
     }

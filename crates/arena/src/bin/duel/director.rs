@@ -683,7 +683,7 @@ impl Director {
         // D21's arms: the rear party's types, the churned structure, the crosser.
         .into_iter()
         .chain(self.batch.drill.as_ref().into_iter().flat_map(|d| {
-            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).chain(d.post.iter().map(|(n, _)| n.clone())).collect::<Vec<_>>()
+            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).chain(d.post.iter().map(|(n, _)| n.clone())).chain(d.yard.as_ref().map(|(n, ..)| n.clone())).chain(d.wall.as_ref().map(|(n, ..)| n.clone())).chain(d.fence.iter().map(|(n, _)| n.clone())).collect::<Vec<_>>()
         }))
         .collect::<Vec<_>>()).unwrap_or_default();
         for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
@@ -701,9 +701,9 @@ impl Director {
             for job in queue.iter() {
                 if let Some([x, _]) = self.sized(job) {
                     let count = x.iter().map(|(_, n)| n).sum();
-                    let strip = Footprint::strip(options.distance + options.behind_distance, self.batch.shapes[job.shape][0], count);
+                    let strip = Footprint::strip(options.distance + options.behind_span(), self.batch.shapes[job.shape][0], count);
                     footprint.length = footprint.length.max(strip.length);
-                    footprint.width = footprint.width.max(strip.width);
+                    footprint.width = footprint.width.max(strip.width).max(options.across_span(self.batch.shapes[job.shape][0].extent(count).0));
                     square = square.max(Footprint::drill_square(self.batch.shapes[job.shape][0], count));
                     across = across.max(self.batch.shapes[job.shape][0].extent(count).0);
                 }
@@ -1022,6 +1022,22 @@ impl Director {
                         };
                         Self::spawn(def, at, None)
                     }));
+                }
+                // `--yard`, `--wall`, `--fence` (the restricted-ground design §3): our structures round the start,
+                // across the axis and obliquely beside it.
+                let side_of = |def: &UnitDefInfo| def.footprint.0.max(def.footprint.1).max(1) as f32 * 8.0;
+                if let Some((name, pitch, reach)) = &options.yard {
+                    let def = &self.defs[name];
+                    let (across, depth) = form_x.extent(force_x.iter().map(|(_, n)| n).sum());
+                    spawns.extend(drill::yard_sites(start, axis, across, depth, side_of(def), *pitch, *reach).into_iter().map(|at| Self::spawn(def, place(at), None)));
+                }
+                if let Some((name, along, gap, half)) = &options.wall {
+                    let def = &self.defs[name];
+                    spawns.extend(drill::wall_sites(start, axis, side_of(def), *along, *gap, *half).into_iter().map(|at| Self::spawn(def, place(at), None)));
+                }
+                for (name, line) in &options.fence {
+                    let def = &self.defs[name];
+                    spawns.extend(drill::fence_sites(start, axis, side_of(def), *line).into_iter().map(|at| Self::spawn(def, place(at), None)));
                 }
                 spawns
             };

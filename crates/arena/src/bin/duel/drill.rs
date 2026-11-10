@@ -212,10 +212,94 @@ pub struct Options {
     /// the rest round it `POST_OFF` off, side `x`'s and never of the army. H-MICRO-STAND's drill: a body told to
     /// stand at a defended extractor (barb-ladder3-20-1 group_W1).
     pub post: Vec<(String, u32)>,
+    /// The restricted-ground arms (`docs/design/2026-11-10-restricted-ground.md` §3), side `x`'s structures and never
+    /// of the army. `--yard NAME@PITCH,REACH`: structures of `NAME` on a lattice of `PITCH` covering `REACH` elmos
+    /// round the army's standing ground, which is left clear (`yard_sites`): the walk out of a base, through lanes
+    /// of the pitch less the structure's side. `--wall NAME@ALONG,GAP,HALF`: a wall of them across the axis `ALONG`
+    /// from the start, `HALF` to either side, with a gap of `GAP` in the middle (`wall_sites`): the pass.
+    pub yard: Option<(String, f32, f32)>,
+    pub wall: Option<(String, f32, f32, f32)>,
+    /// `--fence NAME@A1,C1,A2,C2`, any number of them: a straight line of them from `A1` along the axis and `C1`
+    /// across it to `A2`, `C2` (`fence_sites`). Two beside the way are a corridor, which the planner walks round;
+    /// behind a wall whose door they begin at they are a canyon.
+    pub fence: Vec<(String, [f32; 4])>,
+}
+
+impl Options {
+    /// The ground the strip needs behind the start beyond the formation's own: a rear party's distance, a yard's
+    /// reach.
+    pub fn behind_span(&self) -> f32 {
+        self.behind_distance + self.yard.as_ref().map_or(0.0, |(_, _, reach)| *reach)
+    }
+
+    /// The ground the strip needs across the axis beyond the formation's own width: a yard's reach either side, a
+    /// wall's half.
+    pub fn across_span(&self, across: f32) -> f32 {
+        let yard = self.yard.as_ref().map_or(0.0, |(_, _, reach)| across + 2.0 * reach);
+        let wall = self.wall.as_ref().map_or(0.0, |(_, _, _, half)| 2.0 * half);
+        let fence = self.fence.iter().map(|(_, [_, c1, _, c2])| 2.0 * c1.abs().max(c2.abs()) + across).fold(0.0, f32::max);
+        yard.max(wall).max(fence)
+    }
+}
+
+/// A fence's sites (`--fence`): structures of `side` shoulder to shoulder on the straight line from (`a1` along
+/// `axis` from `start`, `c1` across it) to (`a2`, `c2`).
+pub fn fence_sites(start: Vec3, axis: (f32, f32), side: f32, [a1, c1, a2, c2]: [f32; 4]) -> Vec<Vec3> {
+    let perp = (-axis.1, axis.0);
+    let length = (a2 - a1).hypot(c2 - c1);
+    let count = (length / side).floor() as usize;
+    (0..=count)
+        .map(|i| {
+            let t = if count == 0 { 0.0 } else { i as f32 / count as f32 };
+            let (a, c) = (a1 + (a2 - a1) * t, c1 + (c2 - c1) * t);
+            Vec3 { x: start.x + axis.0 * a + perp.0 * c, y: 0.0, z: start.z + axis.1 * a + perp.1 * c }
+        })
+        .collect()
 }
 
 /// How far from the goal the posted structures after the first stand.
 pub const POST_OFF: f32 = 96.0;
+/// A yard's structures keep this clear of the army's standing ground on every side.
+pub const YARD_CLEAR: f32 = 96.0;
+
+/// A yard's sites (`--yard`): the lattice of `pitch` along `axis` and across it through `start`, from the ranks'
+/// `depth` plus `reach` behind the start to `reach` ahead of it and `reach` past the ranks' half `across` either
+/// side, less every site whose structure (a square of `side`) would touch the army's standing ground grown by
+/// `YARD_CLEAR`.
+pub fn yard_sites(start: Vec3, axis: (f32, f32), across: f32, depth: f32, side: f32, pitch: f32, reach: f32) -> Vec<Vec3> {
+    let perp = (-axis.1, axis.0);
+    let pitch = pitch.max(side + 8.0);
+    let (back, ahead, wide) = (depth + reach, reach, across / 2.0 + reach);
+    let clear = YARD_CLEAR + side / 2.0;
+    let mut sites = Vec::new();
+    let (lo, hi) = ((-back / pitch).ceil() as i32, (ahead / pitch).floor() as i32);
+    let span = (wide / pitch).floor() as i32;
+    for i in lo..=hi {
+        for j in -span..=span {
+            let (a, p) = (i as f32 * pitch, j as f32 * pitch);
+            if a > -(depth + clear) && a < clear && p.abs() < across / 2.0 + clear {
+                continue;
+            }
+            sites.push(Vec3 { x: start.x + axis.0 * a + perp.0 * p, y: 0.0, z: start.z + axis.1 * a + perp.1 * p });
+        }
+    }
+    sites
+}
+
+/// A wall's sites (`--wall`): structures of `side` shoulder to shoulder across `axis` at `along` from `start`, to
+/// `half` either side, none within half the `gap` of the axis.
+pub fn wall_sites(start: Vec3, axis: (f32, f32), side: f32, along: f32, gap: f32, half: f32) -> Vec<Vec3> {
+    let perp = (-axis.1, axis.0);
+    let mut sites = Vec::new();
+    let mut p = gap / 2.0 + side / 2.0;
+    while p <= half {
+        for sign in [1.0f32, -1.0] {
+            sites.push(Vec3 { x: start.x + axis.0 * along + perp.0 * p * sign, y: 0.0, z: start.z + axis.1 * along + perp.1 * p * sign });
+        }
+        p += side;
+    }
+    sites
+}
 
 /// D21's churned structure: its def, its two sites, the one standing, the next site, the frame of the last churn
 /// and of a pending give, and the cadence.
@@ -458,8 +542,9 @@ pub struct Drill {
 impl Drill {
     /// The strip's ends from the site's centre: the start `distance / 2` west of it, the goal as far east.
     pub fn new(options: &Options, centre: Vec3, wanted: Vec<(UnitDefId, u32)>) -> Drill {
-        // The strip holds the walk and a rear party's `behind_distance` (D21): the goal at the east end of that span.
-        let span = options.distance + options.behind_distance;
+        // The strip holds the walk and what stands behind the start (a rear party, D21; a yard): the goal at the east
+        // end of that span.
+        let span = options.distance + options.behind_span();
         let goal = Vec3 { x: centre.x + span / 2.0, ..centre };
         let start = Vec3 { x: goal.x - options.distance, ..centre };
         Drill {
@@ -980,13 +1065,36 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk, post: Vec::new() }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back
     /// (the share is back over forward); the anchor's step against its heading sums in `anchor_back` (a march never
     /// adds, a snap onto the body does); a second with the pace at 0 while marching is a stopped second; the orders
     /// each tick count with the ticks that had none.
+    #[test]
+    fn a_yard_leaves_the_armys_ground_clear_and_a_wall_leaves_its_gap() {
+        // Twenty-four in ranks of six at 112: 560 across, 336 deep. Solars (80) on a lattice of 160, 480 round.
+        let sites = yard_sites(at(2000.0, 2000.0), (1.0, 0.0), 560.0, 336.0, 80.0, 160.0, 480.0);
+        assert!(sites.len() > 40, "{}", sites.len());
+        for s in &sites {
+            let (a, p) = (s.x - 2000.0, s.z - 2000.0);
+            assert!(a >= -(336.0 + 480.0) && a <= 480.0 && p.abs() <= 280.0 + 480.0, "inside the reach: {s:?}");
+            let touches = a + 40.0 > -(336.0 + YARD_CLEAR) && a - 40.0 < YARD_CLEAR && p.abs() - 40.0 < 280.0 + YARD_CLEAR;
+            assert!(!touches, "off the army's ground: {s:?}");
+        }
+        assert!(sites.iter().any(|s| s.x > 2000.0 + YARD_CLEAR && (s.z - 2000.0).abs() < 1.0), "a structure stands dead ahead: the way out bends");
+        // Dragon's teeth (32) across the axis 600 on, 400 either side, a gap of 160.
+        let wall = wall_sites(at(2000.0, 2000.0), (1.0, 0.0), 32.0, 600.0, 160.0, 400.0);
+        assert!(wall.iter().all(|s| (s.x - 2600.0).abs() < 0.01 && (s.z - 2000.0).abs() >= 96.0 - 0.01 && (s.z - 2000.0).abs() <= 400.0));
+        assert_eq!(wall.len(), 2 * 10);
+        // A fence from 400 on and 64 across to 1,200 on and 400 across: about 868 long, 28 teeth, both ends on it.
+        let fence = fence_sites(at(2000.0, 2000.0), (1.0, 0.0), 32.0, [400.0, 64.0, 1200.0, 400.0]);
+        assert_eq!(fence.len(), 28);
+        assert!(fence[0].dist2d(at(2400.0, 2064.0)) < 0.01 && fence[27].dist2d(at(3200.0, 2400.0)) < 0.01, "{:?} {:?}", fence[0], fence[27]);
+        assert!(fence.windows(2).all(|p| p[0].dist2d(p[1]) <= 32.5 && p[0].dist2d(p[1]) > 30.0));
+    }
+
     #[test]
     fn a_walk_counts_backtracking_the_anchors_snaps_and_stopped_seconds() {
         let mut drill = Drill::new(&options(Kind::Walk), at(2500.0, 1000.0), Vec::new());

@@ -41,11 +41,21 @@
 //! member of the body that holds the anchor back and has stood in one place for ten seconds is released as one
 //! away is, while the body stays half the members or more.
 //!
+//! **The ranks are one of two postures** (`docs/design/2026-11-10-restricted-ground.md`, the user: "When dealing with
+//! restricted area, usually the best thing the units can do is push through it as fast as they can"): across a
+//! stretch of the planned way where a rank does not fit (a base's lanes, a wall's door: `find_tight`, found with the
+//! plan, never from the ground under the anchor tick by tick) the group passes relaxed. The anchor is set on the
+//! forming-up ground beyond the stretch at pace 0, every member is sent once to its place there, dealt by arrival, and
+//! the engine paths it; nobody is away, behind, cut off or waited for against a slot on the way; the march goes on in
+//! ranks when every member is through or given up. A walk always; a group that fights only with nothing hostile near
+//! the stretch (`stretch_to_pass`): on his ground the ranks hold. Nothing on restricted ground sends a unit to align.
+//!
 //! **The ground is the group's** (design D17, 2026-10-25, the user: "Since we are replacing a direct a->b order that
 //! the engine would normally handle pathing for, we have to be responsible for running the pathing"): the lane hands
 //! the group a `Ground` (the cells every member's class stands on, the room about each, the way priced by room:
 //! `ground.rs`) and the group plans its way between the host's points over it (`plan`), snaps every slot to it, and
-//! names a member whose slot it cannot walk to an exception (`Cause::CutOff`, which holds the anchor by nothing); a
+//! names a member whose slot it cannot walk to an exception (`Cause::CutOff`, which holds the anchor by nothing and
+//! is sent along the way behind the body, not to the slot the ground cut it off from); a
 //! set-down at a turn puts the anchor on the way, never at a centroid (a body split by a cliff has
 //! its centroid on the cliff: the assault's detour arm stood forty seconds at a cliff's lip with its slots on the far
 //! side, then set its Stouts' slots at the cliff's foot). Without a ground (the host sent no terrain; the unit tests) the way is the host's points and nothing is
@@ -188,6 +198,10 @@ pub struct GroupState {
     pub way: Option<f32>,
     /// The army's companies (`docs/design/2026-10-25-companies.md` §2): empty for a formation read alone.
     pub companies: Vec<crate::army::CompanyState>,
+    /// The relaxed posture (`docs/design/2026-11-10-restricted-ground.md`): the members through to the forming-up
+    /// ground while the formation passes a stretch its ranks do not stand on (the anchor stands there at pace 0 and
+    /// every member walks to it by the engine's own path); `None` in ranks.
+    pub passing: Option<usize>,
 }
 
 /// The loop's numbers, each with a drill on the bench that sets it (design §2).
@@ -263,6 +277,11 @@ pub struct Footprint {
     pub count: usize,
     pub pitch: form::Pitch,
     pub standing: bool,
+    /// Standing on its forming-up ground in a pass (`docs/design/2026-11-10-restricted-ground.md` §1.3): it leaves
+    /// when its body is through, so a way is priced past it as past a marching one (priced as standing, a block
+    /// forming up behind a wall's door sent the companies behind it round the wall's end, 1,400 off: rg3), and its
+    /// ground is kept from the other forming-up grounds as a standing one's is.
+    pub forming: bool,
 }
 
 impl Footprint {
@@ -383,6 +402,38 @@ pub const STUCK_AFTER: i32 = 300;
 const WAIT_MOVED: f32 = 32.0;
 /// `Pacing::idle_after`: a second.
 pub const IDLE_AFTER: i32 = 30;
+/// The relaxed posture (`docs/design/2026-11-10-restricted-ground.md` §1): the planned way is sampled every
+/// `RELAX_STEP`; a sample is tight when a rank laid across the way there does not stand a hull apart on its centre's
+/// side of every wall (`Ground::rank_fits`); a fighting group relaxes only with nothing hostile within `RELAX_CLEAR`
+/// of the stretch.
+pub const RELAX_STEP: f32 = 32.0;
+pub const RELAX_CLEAR: f32 = 1000.0;
+/// Whether the relaxed posture is on (the bench's arm: `WITHIN_REASON_RELAX=0` keeps the ranks on any ground, the
+/// law of before 2026-11-10).
+pub fn relax_on() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("WITHIN_REASON_RELAX").map_or(true, |v| v != "0"))
+}
+
+/// A pass in progress (the relaxed posture): the frame it began, and how far along the planned way the forming-up
+/// ground is (the stretch's, or further on when another formation holds that).
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Pass {
+    since: i32,
+    form_at: f32,
+}
+
+/// How far past a stretch's own forming-up ground a free one is looked for along the way (`Group::place_forming`).
+const FORM_AHEAD: f32 = 3000.0;
+
+/// A stretch of the planned way where the ranks do not stand, in elmos along the way from where it was planned: a
+/// rank laid across the way does not fit from `from` to `to`, and `form_at` is the forming-up ground beyond.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Stretch {
+    pub from: f32,
+    pub to: f32,
+    pub form_at: f32,
+}
 
 impl Default for Pacing {
     fn default() -> Pacing {
@@ -447,6 +498,9 @@ pub struct Group {
     way: Vec<Vec3>,
     way_host: Vec<bool>,
     way_from: Vec3,
+    /// How many of the order's route points lie behind the way as planned: the way's host points are the route's
+    /// from this one on (0 with a new order).
+    way_skips: usize,
     /// The route's end the way was planned to (an Attack's end moving `REPLAN_MOVED` plans again).
     planned_end: Option<Vec3>,
     /// A leg of the last plan had no way on the ground (`Ground::way_found`), so its point is walked at straight.
@@ -522,6 +576,28 @@ pub struct Group {
     others: Vec<Footprint>,
     way_blocked: Vec<String>,
     others_checked: i32,
+    /// The stretches of the planned way where the ranks do not stand (the restricted-ground design §1.1), and the
+    /// member count and pitch they were found for: found again with every plan and when either changes, never from
+    /// the ground under the anchor tick by tick.
+    tight: Vec<Stretch>,
+    tight_for: Option<(usize, form::Pitch)>,
+    /// The relaxed posture (§1.3): the pass in progress, `None` in ranks; the members through this tick; and the
+    /// body the pass is waited for, the members of the body when it began. A joiner still on its way to the group
+    /// then, or added since, is sent to its place beyond the stretch like everyone and holds nothing, as in ranks
+    /// (D22: a joiner a map away froze the body for minutes; the first build waited at the forming-up ground for
+    /// every member, and a lap of Quicksilver with a feed from the lab cost a company of Bulls 4-8 s and its joiners
+    /// eleven, rg6fc-bull12).
+    passing: Option<Pass>,
+    through: usize,
+    pass_body: HashSet<UnitId>,
+    /// A new order ended a pass: the next plan re-aims the anchor onto the body wherever it stands.
+    pass_broken: bool,
+    /// How far along the planned way the stretches are done with: a stretch is passed once (the forming-up ground of
+    /// the last pass; 0 with every plan).
+    passed: f32,
+    /// What is hostile this tick (the lane's: armed enemies in sight, buildings of theirs seen or remembered); a
+    /// fighting group relaxes only with none within `RELAX_CLEAR` of the stretch (§1.2).
+    hostile: Vec<Vec3>,
 }
 
 impl Group {
@@ -550,6 +626,7 @@ impl Group {
             way_host: vec![true; way.len()],
             way,
             way_from: centroid,
+            way_skips: 0,
             planned_end: order.route.last().copied(),
             no_way: false,
             dirty: true,
@@ -588,6 +665,14 @@ impl Group {
             others: Vec::new(),
             way_blocked: Vec::new(),
             others_checked: -1,
+            tight: Vec::new(),
+            tight_for: None,
+            passing: None,
+            through: 0,
+            pass_body: HashSet::new(),
+            pass_broken: false,
+            passed: 0.0,
+            hostile: Vec::new(),
         };
         group.anchor = hold_at.unwrap_or_else(|| group.anchor_for(centroid, facing, group.members.len()));
         group.way_from = group.anchor;
@@ -605,6 +690,21 @@ impl Group {
     /// plan prices them. Nothing is planned here; `tick` watches the standing ones on the remaining way.
     pub fn set_others(&mut self, others: Vec<Footprint>) {
         self.others = others;
+    }
+
+    /// What is hostile this tick, for a group that fights (the restricted-ground design §1.2); a walk is given none.
+    pub fn set_hostile(&mut self, hostile: Vec<Vec3>) {
+        self.hostile = hostile;
+    }
+
+    /// Whether the formation is passing a stretch in the relaxed posture.
+    pub fn passing(&self) -> bool {
+        self.passing.is_some()
+    }
+
+    /// The stretches of the planned way where the ranks do not stand (the tests' instrument).
+    pub fn tight(&self) -> &[Stretch] {
+        &self.tight
     }
 
     /// The standing formations whose footprint (grown by the margin) lies on a point of the way still ahead, the end
@@ -641,8 +741,15 @@ impl Group {
         let walk = |k: &GroupKind| matches!(k, GroupKind::Go | GroupKind::FightTo);
         let kind_changed = order.kind != self.order.kind && !(walk(&order.kind) && walk(&self.order.kind));
         if kind_changed || order.march != self.order.march || moved {
+            // A new order ends a pass (the restricted-ground design §1.3): the anchor stands on the forming-up
+            // ground, which may be far from where the members are.
+            if self.passing.take().is_some() {
+                self.pass_broken = true;
+                self.pass_body.clear();
+            }
             self.order = order;
             self.leg = 0;
+            self.way_skips = 0;
             self.arrived = false;
             self.slot_of.clear();
             self.dirty = true;
@@ -671,8 +778,12 @@ impl Group {
         let started = std::time::Instant::now();
         // The host points already passed (D22): a re-plan mid-route walks on from the point the anchor was walking
         // to (until then a ground rebuilt on a structure change planned from the route's first point, so a
-        // circuit's anchor would have turned back for a passed corner).
-        let passed = self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count().min(self.order.route.len().saturating_sub(1));
+        // circuit's anchor would have turned back for a passed corner). Counted over the whole route: the way in
+        // force begins `way_skips` points into it. (Until 2026-11-10 the count was of the way in force alone, so a
+        // second re-plan with no point passed since the first planned from the route's first point again: the
+        // ground's structures change twice in five seconds when the gantry's first Thor appears, two rebuilds 150
+        // frames apart, and the lap's route began again at its second corner, t3dbg-thor8 and rgZc-dbg-thor8.)
+        let passed = (self.way_skips + self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count()).min(self.order.route.len().saturating_sub(1));
         // An anchor at the way's end stays there through a re-plan (a ground rebuilt on a structure change: a wreck,
         // a dead turret): planned afresh it walked the new last leg, and a block that had closed past its end turned
         // round and marched back to it at every enemy death (the advance bench's replays, 2026-10-28 night, the user:
@@ -713,8 +824,16 @@ impl Group {
             }
         }
         self.planned_end = self.order.route.last().copied();
+        self.way_skips = passed;
         self.leg = if at_end { self.way.len() } else { 0 };
         self.dirty = false;
+        // The stretches are this way's: found again at the next tick, none of them passed; a pass in progress forms
+        // up where the anchor stands, which is where this way begins.
+        self.tight_for = None;
+        self.passed = 0.0;
+        if let Some(pass) = &mut self.passing {
+            pass.form_at = 0.0;
+        }
         self.way_blocked = self.standing_on_the_way();
         if debug_on() {
             eprintln!(
@@ -755,6 +874,207 @@ impl Group {
         length
     }
 
+    /// The planned way's point `s` elmos along it from where it was planned, the way's direction there, and the way
+    /// point an anchor standing there walks to next (`way.len()` at the end).
+    fn way_point(&self, s: f32) -> (Vec3, (f32, f32), usize) {
+        let mut from = self.way_from;
+        let mut walked = 0.0f32;
+        let mut direction = self.heading;
+        for (k, &to) in self.way.iter().enumerate() {
+            let length = from.dist2d(to);
+            if length >= 1.0 {
+                direction = form::heading(from, to);
+                if s < walked + length - 0.5 {
+                    let t = ((s - walked) / length).max(0.0);
+                    return (Vec3 { x: from.x + (to.x - from.x) * t, y: to.y, z: from.z + (to.z - from.z) * t }, direction, k);
+                }
+            }
+            walked += length;
+            from = to;
+        }
+        (from, direction, self.way.len())
+    }
+
+    /// How far along the planned way the anchor stands: its place on the leg it is walking.
+    fn anchor_s(&self) -> f32 {
+        let mut from = self.way_from;
+        let mut walked = 0.0f32;
+        for (k, &to) in self.way.iter().enumerate() {
+            if k == self.leg {
+                return walked + from.dist2d(project(self.anchor, from, to));
+            }
+            walked += from.dist2d(to);
+            from = to;
+        }
+        walked
+    }
+
+    /// The stretches of the planned way where the ranks of `count` at `pitch` do not stand (the restricted-ground
+    /// design §1.1): the way sampled every `RELAX_STEP`, a sample tight when one rank laid across the way there does
+    /// not fit (`Ground::rank_fits`: every rank has to come through the place the front rank does not fit). A wall's
+    /// door is one sample and a stretch; an obstacle beside the way that leaves the half rank room to close up is
+    /// none. Tight samples nearer than the ranks' depth plus 96 (192 at the least) are one stretch. Each stretch's
+    /// forming-up ground is where the rear rank stands a rank and a footprint's margin past it, or the first sample
+    /// within 192 on from there where every slot of the block stands; the way's end for a stretch that reaches it.
+    fn find_tight(&mut self, count: usize, pitch: form::Pitch) {
+        self.tight.clear();
+        self.tight_for = Some((count, pitch));
+        let Some(ground) = self.ground.clone() else { return };
+        if !relax_on() || !self.order.march || self.no_way || self.way.is_empty() || count == 0 {
+            return;
+        }
+        let mut total = 0.0f32;
+        let mut from = self.way_from;
+        for &to in &self.way {
+            total += from.dist2d(to);
+            from = to;
+        }
+        let last = (total / RELAX_STEP).ceil() as usize;
+        let at = |i: usize| (i as f32 * RELAX_STEP).min(total);
+        let rank = count.min(form::FILES);
+        let tight: Vec<bool> = (0..=last)
+            .map(|i| {
+                let (point, direction, _) = self.way_point(at(i));
+                !ground.rank_fits(point, direction, rank, pitch)
+            })
+            .collect();
+        let depth = (count.div_ceil(form::FILES) - 1) as f32 * pitch.deep;
+        let joined = ((depth + 96.0).max(192.0) / RELAX_STEP).ceil() as usize;
+        let mut runs: Vec<(usize, usize)> = Vec::new();
+        for i in (0..=last).filter(|i| tight[*i]) {
+            match runs.last_mut() {
+                Some((_, end)) if i - *end <= joined => *end = i,
+                _ => runs.push((i, i)),
+            }
+        }
+        for (a, b) in runs {
+            let form_at = if b >= last {
+                total
+            } else {
+                // The rear rank past the stretch by a rank and the margin a footprint keeps (the mouth stays open
+                // behind a block forming up), then the first place within 192 where the whole block stands.
+                let clear = b + ((depth + form::RANK_GAP + KEEP_OFF_MARGIN) / RELAX_STEP).ceil() as usize;
+                let stands = |i: &usize| {
+                    let (point, direction, _) = self.way_point(at(*i));
+                    ground.joined_standing(point, direction, count, pitch) == count
+                };
+                (clear..=(clear + (192.0 / RELAX_STEP) as usize).min(last)).find(stands).map_or(at(clear), at)
+            };
+            self.tight.push(Stretch { from: at(a), to: at(b), form_at });
+        }
+        if debug_on() && !self.tight.is_empty() {
+            eprintln!(
+                "[group {}] TIGHT for {count} at {:.0} x {:.0}, a way of {total:.0}: {}",
+                self.name,
+                pitch.across,
+                pitch.deep,
+                self.tight.iter().map(|t| format!("{:.0}-{:.0} forming at {:.0}", t.from, t.to, t.form_at)).collect::<Vec<_>>().join(", ")
+            );
+        }
+    }
+
+    /// The stretch the anchor has come to (within a step of it, or planned inside it) that the group may pass in
+    /// the relaxed posture (§1.2): a walk always; a group that fights only with nothing hostile within `RELAX_CLEAR`
+    /// of the way from the anchor to the forming-up ground.
+    fn stretch_to_pass(&self) -> Option<Stretch> {
+        let s = self.anchor_s();
+        let stretch = self.tight.iter().copied().find(|t| t.from >= self.passed && s >= t.from - RELAX_STEP && s < t.form_at - RELAX_STEP)?;
+        if self.order.kind != GroupKind::Go && !self.hostile.is_empty() {
+            let mut d = s;
+            while d <= stretch.form_at {
+                let (point, _, _) = self.way_point(d);
+                if self.hostile.iter().any(|h| h.dist2d(point) < RELAX_CLEAR) {
+                    return None;
+                }
+                d += 2.0 * RELAX_STEP;
+            }
+            let (end, _, _) = self.way_point(stretch.form_at);
+            if self.hostile.iter().any(|h| h.dist2d(end) < RELAX_CLEAR) {
+                return None;
+            }
+        }
+        Some(stretch)
+    }
+
+    /// The posture relaxes (§1.3): the anchor is set on the stretch's forming-up ground facing along the way there,
+    /// and the books of the ranks (who is away, who is waited for, who is cut off, the deal) are put away. The pass
+    /// is waited for by the body as the ranks counted it (everyone within `near` of the anchor when there are no
+    /// books yet: a group planned inside a stretch); the others are sent through like everyone and hold nothing.
+    fn enter_pass(&mut self, frame: i32, stretch: Stretch, walkers: &[Walker], near: f32) {
+        self.pass_body = walkers.iter().filter(|w| self.in_body(w.id)).map(|w| w.id).collect();
+        if self.pass_body.is_empty() {
+            self.pass_body = walkers.iter().filter(|w| w.pos.dist2d(self.anchor) <= near).map(|w| w.id).collect();
+        }
+        let (at, direction, leg) = self.way_point(stretch.form_at);
+        if debug_on() {
+            eprintln!(
+                "[group {} f={frame}] PASS of {} of {}: the stretch {:.0}-{:.0} from ({:.0},{:.0}); forming at ({:.0},{:.0}), {:.0} along the way, leg {leg} of {}",
+                self.name,
+                self.pass_body.len(),
+                walkers.len(),
+                stretch.from,
+                stretch.to,
+                self.anchor.x,
+                self.anchor.z,
+                at.x,
+                at.z,
+                stretch.form_at,
+                self.way.len()
+            );
+        }
+        self.anchor = at;
+        self.heading = direction;
+        self.facing = direction;
+        self.leg = leg;
+        self.passing = Some(Pass { since: frame, form_at: stretch.form_at });
+        self.slot_of.clear();
+        self.slots.clear();
+        self.away.clear();
+        self.waited.clear();
+        self.cut_off.clear();
+        self.cut_checked.clear();
+    }
+
+    /// The forming-up ground kept off the other formations (the restricted-ground design §1.3): when the ranks as
+    /// they will stand reach into the footprint of a formation that stands, or of one forming up that outranks this
+    /// one (the larger, else the name: the companies of one army come to one door within a second of each other),
+    /// the anchor goes on along the way to the first place where the block stands whole and off every such
+    /// footprint, so an army's companies form up one ahead of the other on the way they are all going. Never
+    /// beside (tried first: three steps of a block's width along a wall put a company 1,300 from the door it came
+    /// through, rg4) and never behind, which is the mouth. Kept while free; none found within `FORM_AHEAD`, the
+    /// grounds overlap (never forbidden).
+    fn place_forming(&mut self, frame: i32, count: usize, pitch: form::Pitch) {
+        let (Some(pass), Some(ground)) = (self.passing, self.ground.clone()) else { return };
+        let blockers: Vec<&Footprint> = (self.others.iter()).filter(|o| o.standing || (o.forming && (o.count > count || (o.count == count && o.name < self.name)))).collect();
+        let touched = |at: Vec3, facing: (f32, f32)| {
+            let block = form::slots(at, facing, count.max(1), pitch, form::FILES);
+            blockers.iter().copied().find(|o| block.iter().any(|p| o.contains(*p, KEEP_OFF_MARGIN)))
+        };
+        let Some(occupant) = touched(self.anchor, self.facing) else { return };
+        let mut total = 0.0f32;
+        let mut from = self.way_from;
+        for &to in &self.way {
+            total += from.dist2d(to);
+            from = to;
+        }
+        let mut s = pass.form_at + RELAX_STEP;
+        while s <= (pass.form_at + FORM_AHEAD).min(total) {
+            let (at, direction, leg) = self.way_point(s);
+            if touched(at, direction).is_none() && ground.joined_standing(at, direction, count, pitch) == count {
+                if debug_on() {
+                    eprintln!("[group {} f={frame}] FORMING on past {}: from ({:.0},{:.0}) to ({:.0},{:.0}), {s:.0} along the way", self.name, occupant.name, self.anchor.x, self.anchor.z, at.x, at.z);
+                }
+                self.anchor = at;
+                self.heading = direction;
+                self.facing = direction;
+                self.leg = leg;
+                self.passing = Some(Pass { form_at: s, ..pass });
+                return;
+            }
+            s += RELAX_STEP;
+        }
+    }
+
     /// Where the group is, for placing the anchor (D23): the members once formed and not cut off, where they stand
     /// now, away included (the re-aim exists to bring the anchor back to a body it lost); everyone not cut off when
     /// nobody has formed yet. Never the joiners' say: they are exceptions walking to their slots (migration-3-1: the
@@ -774,9 +1094,9 @@ impl Group {
         walkers.iter().any(|w| self.been_formed.contains(&w.id) && !self.cut_off.contains_key(&w.id) && w.pos.dist2d(self.anchor) <= REJOIN_WAY)
     }
 
-    /// This formation's footprint this tick (§5.3).
+    /// This formation's footprint this tick (§5.3); one passing a stretch stands on its forming-up ground.
     pub fn footprint(&self) -> Footprint {
-        Footprint { name: self.name.clone(), anchor: self.anchor, heading: self.facing, count: self.members.len(), pitch: self.pitch, standing: self.at_end() || self.stopped || self.pinned }
+        Footprint { name: self.name.clone(), anchor: self.anchor, heading: self.facing, count: self.members.len(), pitch: self.pitch, standing: self.at_end() || self.stopped || self.pinned, forming: self.passing.is_some() }
     }
 
     /// The way's end kept off other formations (§5.3; the user, on advance-2: "multiple sub-groups mingling with
@@ -1058,7 +1378,8 @@ impl Group {
 
     /// One tick: the way planned if it must be, the pace from the walkers' types, the anchor held back by its formed
     /// members and advanced along the way (unless stopped, or the order's `march` is off, when it stands at the
-    /// route's end), the slots dealt and snapped to the ground, formed and exceptions
+    /// route's end; set on the forming-up ground in a pass), the slots dealt and snapped to the ground, formed and
+    /// exceptions
     /// told apart. Returns each walker's slot. `pitch` is the lane's for this formation this tick.
     pub fn tick(&mut self, frame: i32, walkers: &[Walker], pitch: form::Pitch, pacing: &Pacing) -> &HashMap<UnitId, Vec3> {
         // A standing formation that came onto the remaining way, or left it, since the plan (the facing design §3):
@@ -1081,8 +1402,12 @@ impl Group {
             // D23: only when no body member is within reach of the anchor (the anchor has lost its body), and then
             // onto the body, not the joiners (migration-3-1 5:55: a Hold on five strung-out members went to the lab).
             let reaim = std::mem::take(&mut self.reaim);
+            // A pass a new order ended left the anchor on the forming-up ground, where the first members through
+            // may stand while the rest are a stretch behind: the anchor goes back to the densest cluster whoever
+            // stands by it.
+            let pass_broken = std::mem::take(&mut self.pass_broken);
             if reaim
-                && !self.body_in_reach(walkers)
+                && (pass_broken || !self.body_in_reach(walkers))
                 && let Some(centroid) = dense_centroid(&self.placement(walkers), self.order.route.first().copied())
                 && self.anchor.dist2d(centroid) > REJOIN_WAY
             {
@@ -1107,6 +1432,26 @@ impl Group {
         let carry = self.body_depth(walkers);
         let slowest = walkers.iter().map(|w| w.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
         self.full_pace = if slowest.is_finite() { slowest * pacing.fraction } else { 0.0 };
+        // The posture (`docs/design/2026-11-10-restricted-ground.md`): the stretches where the ranks do not stand are
+        // found again when the plan, the count or the pitch changed, and the ranks give way to a pass when the
+        // anchor comes to one on the march.
+        if self.tight_for != Some((walkers.len(), pitch)) {
+            self.find_tight(walkers.len(), pitch);
+        }
+        if self.passing.is_none()
+            && march
+            && !self.stopped
+            && !self.pinned
+            && !self.at_end()
+            && let Some(stretch) = self.stretch_to_pass()
+        {
+            let near = self.away_at(pacing) + self.layout_depth();
+            self.enter_pass(frame, stretch, walkers, near);
+        }
+        let passing = self.passing.is_some();
+        if passing {
+            self.place_forming(frame, walkers.len(), pitch);
+        }
         if !march && !self.at_end() {
             // No pacing: the slots stand at the destination and every unit walks there at its own speed.
             if let Some(end) = self.way.last().copied() {
@@ -1117,10 +1462,10 @@ impl Group {
                 self.anchor = Vec3 { y: end.y, ..end };
             }
             self.leg = self.way.len();
-        } else if self.leg < self.way.len() && !self.stopped && !self.pinned {
+        } else if self.leg < self.way.len() && !self.stopped && !self.pinned && !passing {
             // Facing the next point; not while the lane halts or pins the block: a re-plan while it fought turned
             // the ranks about the anchor onto the wrecks (the same replays), and a party's end hopping round a
-            // pinned block spun it (pb1).
+            // pinned block spun it (pb1). Nor in a pass: the ranks form up facing along the way where they will stand.
             let next = self.target(self.leg, carry);
             // (`form::heading` says east for two points under 1.0 apart: a Hold at the body's own place spun the
             // formation east at the route's end before every guard was 1.0.)
@@ -1148,8 +1493,33 @@ impl Group {
         // stands as a whole, at a narrow or behind a wreck, is waited for: the anchor never outruns its body).
         let wants_to_walk = march && !self.stopped && !self.pinned && !(self.at_end() && self.close.is_none());
         let mut body = walkers.iter().filter(|w| self.in_body(w.id)).count();
-        self.waited.retain(|id, _| wants_to_walk && walkers.iter().any(|w| w.id == *id));
-        for w in walkers {
+        self.waited.retain(|id, _| (wants_to_walk || passing) && walkers.iter().any(|w| w.id == *id));
+        // A pass (the restricted-ground design §1.3): nobody is away from, behind or stuck against a slot it was
+        // never to hold on the way. A member is through or not (`through`); one not through that has not moved
+        // `WAIT_MOVED` for `stuck_after` is given up (away: it holds nothing from here on, and the host decides).
+        for w in walkers.iter().filter(|_| passing) {
+            let Some(slot) = self.slots.get(&w.id) else { continue };
+            let off = w.pos.dist2d(*slot);
+            if off <= pacing.formed_within {
+                self.been_formed.insert(w.id);
+            }
+            if self.through(w, away_at) {
+                self.away.remove(&w.id);
+                self.waited.remove(&w.id);
+            } else if self.pass_body.contains(&w.id) && !self.away.contains_key(&w.id) {
+                let (stood, since) = self.waited.entry(w.id).or_insert((w.pos, frame));
+                if w.pos.dist2d(*stood) >= WAIT_MOVED {
+                    (*stood, *since) = (w.pos, frame);
+                } else if frame - *since >= pacing.stuck_after {
+                    if debug_on() {
+                        eprintln!("[group {} f={frame}] GIVEN UP unit {}: {off:.0} from its slot beyond the stretch, in one place for {} s", self.name, w.id.0, (frame - *since) / 30);
+                    }
+                    self.waited.remove(&w.id);
+                    self.away.insert(w.id, frame);
+                }
+            }
+        }
+        for w in walkers.iter().filter(|_| !passing) {
             let Some(slot) = self.slots.get(&w.id) else { continue };
             let off = w.pos.dist2d(*slot);
             let away = self.away.contains_key(&w.id);
@@ -1187,7 +1557,7 @@ impl Group {
             }
         }
         let held = if max_lag <= pacing.drag_from { 1.0 } else { ((pacing.exception_at - max_lag) / (pacing.exception_at - pacing.drag_from)).clamp(0.0, 1.0) };
-        self.pace = if self.stopped || self.pinned || !march || (self.at_end() && self.close.is_none()) { 0.0 } else { self.full_pace * held };
+        self.pace = if passing || self.stopped || self.pinned || !march || (self.at_end() && self.close.is_none()) { 0.0 } else { self.full_pace * held };
         // The room to the guard's stop: the step never crosses it (§5.2).
         let room = self.guard.map_or(f32::INFINITY, |(t, stop)| (self.anchor.dist2d(t) - stop).max(0.0));
         if self.pace > 0.0 && self.at_end() {
@@ -1254,7 +1624,10 @@ impl Group {
         let n = ids.len();
         let slots = form::slots(self.anchor, self.facing, n.max(1), pitch, form::FILES);
         let stale = n > 0 && (self.slot_of.len() != n || ids.iter().any(|id| !self.slot_of.contains_key(id)));
-        if stale {
+        if stale && passing {
+            self.deal_by_arrival(walkers, &slots[..n], away_at);
+            self.dealt_at = frame;
+        } else if stale {
             let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
             let deal = form::assign(&positions, &slots[..n]);
             self.slot_of = ids.iter().copied().zip(deal).collect();
@@ -1264,13 +1637,19 @@ impl Group {
         self.slots = ids.iter().map(|id| (*id, slots[self.slot_of.get(id).copied().unwrap_or(0).min(n.saturating_sub(1))])).collect();
         // Snapped to the ground, and cut off where the ground does not join a member to its slot (D17): no standable
         // cell near the slot, or a walk to it (searched twice a second, within `CUT_OFF_CHECK`) longer than
-        // `CUT_OFF_FACTOR` times the straight line; formed again within `CUT_OFF_REJOIN` times.
+        // `CUT_OFF_FACTOR` times the straight line; formed again within `CUT_OFF_REJOIN` times. Nobody is cut off in
+        // a pass: the walk through the stretch is the long one. (The nearest standable cell stays the rule. Two
+        // others were measured against it on 2026-11-10 with the ranks walked through a yard's lanes: every rank
+        // closed up to its centre's side of the walls, and a slot off the ground slid in along its rank; both put
+        // the outer files in the centre's lane where the nearest cell leaves them the lanes beside it, 12-20 s and
+        // 6 s slower: K-group-a-rank-closed-up-to-its-centre-makes-a-yard-one-lane.)
         if let Some(ground) = &self.ground {
             for w in walkers {
                 let raw = self.slots[&w.id];
                 let was = self.cut_off.contains_key(&w.id);
                 let (slot, cut) = match ground.snap(raw) {
-                    None => (raw, true),
+                    None => (raw, !passing),
+                    Some(s) if passing => (s, false),
                     Some(s) => {
                         let d = w.pos.dist2d(s);
                         let due = self.cut_checked.get(&w.id).is_none_or(|f| frame - *f >= CUT_OFF_CADENCE);
@@ -1305,10 +1684,18 @@ impl Group {
         // end (the D21 rear-party arms: 300 of overshoot at the goal and three seconds walking back); a close past
         // the end is way left too.
         let left = self.way_ahead() + if self.at_end() { self.close.map_or(0.0, |(to, stop)| (self.anchor.dist2d(to) - stop).max(0.0)) } else { 0.0 };
+        let along = self.anchor_s();
         self.ordered = walkers
             .iter()
             .map(|w| {
                 let slot = self.slots[&w.id];
+                // A cut-off member follows the body along the way, its rank's depth behind the anchor (the
+                // restricted-ground design §2): sent to its slot, it set off on the detour the ground makes of it.
+                if self.cut_off.contains_key(&w.id) {
+                    let back = (self.slot_of.get(&w.id).copied().unwrap_or(0) / form::FILES) as f32 * pitch.deep;
+                    let (point, _, _) = self.way_point((along - back).max(0.0));
+                    return (w.id, self.ground.as_ref().and_then(|g| g.snap(point)).unwrap_or(point));
+                }
                 let base = if Self::pace_type(w, slowest) { pacing.lead } else { self.lead_of.get(&w.speed.to_bits()).copied().unwrap_or(0.0) };
                 let lead = if base > 0.0 { base * share * (left / base).clamp(0.0, 1.0) } else { 0.0 };
                 let carried = |lead: f32| Vec3 { x: slot.x + self.heading.0 * lead, y: slot.y, z: slot.z + self.heading.1 * lead };
@@ -1365,7 +1752,25 @@ impl Group {
                 self.been_formed.insert(w.id);
             }
             let cut_off = self.cut_off.contains_key(&w.id);
-            let cause = if formed && !self.away.contains_key(&w.id) && !cut_off {
+            let cause = if passing {
+                // In a pass a member is formed on the forming-up ground, given up (said as stuck or away), or on
+                // its way through, which holds the arrival whether it moves this tick or waits its turn in a lane;
+                // one that was no member of the body when the pass began is joining, as in ranks.
+                match (formed, self.away.contains_key(&w.id), self.pass_body.contains(&w.id)) {
+                    (true, _, _) => None,
+                    (false, true, _) => Some(if w.moving < 5.0 { Cause::Stuck } else { Cause::Away }),
+                    (false, false, true) => {
+                        none_walking_in = false;
+                        Some(Cause::Behind)
+                    }
+                    (false, false, false) => {
+                        if w.moving >= 5.0 {
+                            none_walking_in = false;
+                        }
+                        Some(Cause::Joining)
+                    }
+                }
+            } else if formed && !self.away.contains_key(&w.id) && !cut_off {
                 None
             } else if !self.been_formed.contains(&w.id) {
                 Some(Cause::Joining)
@@ -1398,7 +1803,72 @@ impl Group {
         // at the way's end and a hundred in `away`; D24).
         let in_body = walkers.len() - self.exceptions.len();
         self.arrived = self.at_end() && !self.closing() && none_walking_in && in_body * 2 >= walkers.len();
+        // The pass ends (the restricted-ground design §1.3) when every member is through or given up and somebody is
+        // through: the slots are dealt again by least travel where the members stand (each takes the slot nearest
+        // it) and the march goes on in ranks from the forming-up ground.
+        if passing {
+            self.through = walkers.iter().filter(|w| self.through(w, away_at)).count();
+            let coming = walkers.iter().any(|w| self.pass_body.contains(&w.id) && !self.through(w, away_at) && !self.away.contains_key(&w.id));
+            if !coming && self.through > 0 {
+                if debug_on() {
+                    eprintln!("[group {} f={frame}] PASSED: {} of {} through after {} s, {} given up", self.name, self.through, walkers.len(), (frame - self.passing.map_or(frame, |p| p.since)) / 30, self.away.len());
+                }
+                self.passed = self.passing.map_or(self.passed, |p| p.form_at);
+                self.passing = None;
+                self.pass_body.clear();
+                self.slot_of.clear();
+            }
+        }
         &self.slots
+    }
+
+    /// Whether a member is through a pass (the restricted-ground design §1.3): of the body as the ranks count it,
+    /// within the away distance of its slot on the forming-up ground, with no wall between them (a short stretch, a
+    /// wall's door, leaves every member that near its slot before it has moved); within the formed band whatever
+    /// lies between (a unit standing against a structure stands on a cell the ground counts as the structure's).
+    fn through(&self, w: &Walker, away_at: f32) -> bool {
+        let Some(slot) = self.slots.get(&w.id) else { return false };
+        let off = w.pos.dist2d(*slot);
+        off <= 2.0 * form::HULL_SPACING || (off <= away_at && self.ground.as_ref().is_none_or(|g| g.clear_line(w.pos, *slot, 0.0)))
+    }
+
+    /// The deal of a pass (the restricted-ground design §1.3), by arrival: a member already through (within
+    /// `through_within` of the slot it holds) keeps it; the others take the free slots front rank first in the order
+    /// of their time to go to the anchor, so the first out drives furthest and the next forms behind it, and within
+    /// a rank left to right as they stand. A deal by least travel across the stretch gives the nearest unit the rear
+    /// rank and the last one the front.
+    fn deal_by_arrival(&mut self, walkers: &[Walker], slots: &[Vec3], through_within: f32) {
+        let n = walkers.len();
+        let mut taken = vec![false; n];
+        let mut deal: HashMap<UnitId, usize> = HashMap::new();
+        for w in walkers {
+            if let Some(&index) = self.slot_of.get(&w.id)
+                && index < n
+                && !taken[index]
+                && w.pos.dist2d(slots[index]) <= through_within
+            {
+                taken[index] = true;
+                deal.insert(w.id, index);
+            }
+        }
+        let time_to_go = |w: &Walker| if w.speed > 0.0 { w.pos.dist2d(self.anchor) / w.speed } else { f32::INFINITY };
+        let mut rest: Vec<&Walker> = walkers.iter().filter(|w| !deal.contains_key(&w.id)).collect();
+        rest.sort_by(|a, b| time_to_go(a).total_cmp(&time_to_go(b)));
+        let free: Vec<usize> = (0..n).filter(|i| !taken[*i]).collect();
+        let left = (-self.facing.1, self.facing.0);
+        let across = |w: &Walker| (w.pos.x - self.anchor.x) * left.0 + (w.pos.z - self.anchor.z) * left.1;
+        // The free slots rank by rank: the next arrivals, as many as the rank has free, in their order across.
+        let mut at = 0;
+        while at < free.len() {
+            let rank = free[at] / form::FILES;
+            let end = (at..free.len()).find(|k| free[*k] / form::FILES != rank).unwrap_or(free.len());
+            rest[at..end].sort_by(|a, b| across(a).total_cmp(&across(b)));
+            for k in at..end {
+                deal.insert(rest[k].id, free[k]);
+            }
+            at = end;
+        }
+        self.slot_of = deal;
     }
 
     /// The report.
@@ -1416,6 +1886,7 @@ impl Group {
             engaged: self.engaged,
             way: if self.no_way { None } else { Some(self.way_ahead()) },
             companies: Vec::new(),
+            passing: self.passing.map(|_| self.through),
         }
     }
 
@@ -1685,7 +2156,9 @@ mod tests {
     }
 
     /// D22: a re-plan mid-route (a ground set again) walks on from the route point the anchor was walking to; the
-    /// points passed are not walked again.
+    /// points passed are not walked again, by the first re-plan or by one after it with no point passed between
+    /// (the second counted the points passed on the first's way alone until 2026-11-10, and planned from the route's
+    /// first point: the Thor lap's route restarted when the gantry's Thor stood in the ground for five seconds).
     #[test]
     fn a_replan_mid_route_does_not_walk_back_to_a_passed_point() {
         let pacing = Pacing::default();
@@ -1700,6 +2173,13 @@ mod tests {
         group.tick(303, &w, form::HULL_PITCH, &pacing);
         assert_eq!(group.way(), &[at(400.0, 3000.0)], "the way is the second point alone: {:?}", group.way());
         assert!(group.anchor.dist2d(before) < 20.0);
+        group.set_ground(None);
+        group.tick(306, &w, form::HULL_PITCH, &pacing);
+        assert_eq!(group.way(), &[at(400.0, 3000.0)], "and after a second re-plan: {:?}", group.way());
+        // A new order counts from its own first point.
+        group.update(vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Go, vec![at(900.0, 0.0), at(900.0, 3000.0)]));
+        group.tick(309, &w, form::HULL_PITCH, &pacing);
+        assert_eq!(group.way(), &[at(900.0, 0.0), at(900.0, 3000.0)], "{:?}", group.way());
     }
 
     /// At contact the lane stops the anchor (`docs/design/2026-10-28-contact-cleanup.md`): the anchor and the slots
@@ -2549,6 +3029,10 @@ mod tests {
         assert_eq!(state.exceptions.len(), 1, "{state:?}");
         assert_eq!((state.exceptions[0].0, state.exceptions[0].1), (UnitId(1), Cause::CutOff));
         assert!((group.pace - group.full_pace).abs() < 0.01, "a cut-off member holds the anchor by nothing: {} of {}", group.pace, group.full_pace);
+        // It is sent along the way behind the body, not to its slot across the wall (the restricted-ground design §2).
+        let (sent, slot) = (group.order_point(UnitId(1)).unwrap(), slots[&UnitId(1)]);
+        let ground = ground_of(&terrain);
+        assert!(sent.dist2d(slot) > 64.0 && ground.walk_within(w[0].pos, sent, w[0].pos.dist2d(sent) * 1.5 + 64.0), "sent {sent:?} from {:?}, its slot {slot:?}", w[0].pos);
         // A slot on the wall itself snaps to the ground beside it.
         group.anchor = at(992.0, 300.0);
         group.slot_of.clear();
@@ -2582,37 +3066,201 @@ mod tests {
         assert!((target.dist2d(corner) - 200.0).abs() < 0.5, "in the open the whole carry: {target:?}");
     }
 
-    /// The ranks keep their six files on any ground (the contact cleanup §4: the files no longer narrow to the room):
-    /// through a corridor 192 wide every slot is snapped onto the corridor's floor, no slot is dealt afresh, and the
-    /// group arrives.
-    #[test]
-    fn the_ranks_keep_their_files_through_a_corridor() {
-        let pacing = Pacing::default();
+    /// Twelve in two ranks standing west of the corridor's wall, and their group told to the far side of it.
+    fn before_the_corridor(kind: GroupKind, to: Vec3) -> (Group, Vec<Walker>) {
         let terrain = corridor();
         let mut w = two_ranks_of_six();
         for u in w.iter_mut() {
             u.pos = at(u.pos.x + 500.0, u.pos.z + 512.0);
         }
         let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
-        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(1700.0, 512.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), form::HULL_PITCH);
+        let mut group = Group::new("a", members, GroupOrder::new(kind, vec![to]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), form::HULL_PITCH);
         group.set_ground(Some(ground_of(&terrain)));
+        (group, w)
+    }
+
+    /// Every walker walks straight at the point it is sent to at its own speed for one tick of `step` frames (a pass
+    /// is walked by the engine's own path; the model has no walls).
+    fn walk_to_orders(group: &Group, w: &mut [Walker], step: i32) {
+        for u in w.iter_mut() {
+            let to = group.order_point(u.id).unwrap();
+            let d = u.pos.dist2d(to);
+            let walk = (u.speed * step as f32 / 30.0).min(d);
+            if d > 0.0 {
+                u.pos = at(u.pos.x + (to.x - u.pos.x) / d * walk, u.pos.z + (to.z - u.pos.z) / d * walk);
+            }
+        }
+    }
+
+    /// The restricted-ground design §1: a corridor 192 wide does not hold six abreast, so a walk's ranks give way
+    /// to a pass when the anchor comes to it. The anchor stands on the forming-up ground beyond, clear of the mouth
+    /// by the ranks' depth; every member is sent once to its place there, the nearest to go to the front rank;
+    /// nobody is away, cut off or waited for; the pass ends when all are through, and the group walks on in ranks
+    /// and arrives.
+    #[test]
+    fn a_walk_passes_a_corridor_its_ranks_do_not_fit_and_forms_up_beyond() {
+        let pacing = Pacing::default();
+        let (mut group, mut w) = before_the_corridor(GroupKind::Go, at(1700.0, 512.0));
+        let ground = ground_of(&corridor());
         group.tick(0, &w, form::HULL_PITCH, &pacing);
-        let deal = group.slot_of.clone();
+        assert_eq!(group.tight().len(), 1, "one stretch, the wall's door: {:?}", group.tight());
+        let stretch = group.tight()[0];
+        assert!(stretch.form_at >= stretch.to + form::RANK_GAP - 1.0, "the forming-up ground clear of the mouth by the ranks' depth: {stretch:?}");
         let mut frame = 0;
-        while frame < 1200 {
+        let mut passed = None;
+        let mut sent: HashMap<UnitId, Vec3> = HashMap::new();
+        while frame < 1500 && !group.arrived {
+            frame += 3;
+            group.tick(frame, &w, form::HULL_PITCH, &pacing);
+            if group.passing() {
+                let state = group.state(&w);
+                assert_eq!(group.pace, 0.0, "the anchor stands on the forming-up ground");
+                assert!(group.anchor.x > 1024.0 + form::RANK_GAP - 1.0, "beyond the wall by the ranks' depth: {:?}", group.anchor);
+                assert!(state.passing.is_some() && state.exceptions.iter().all(|(_, cause, _)| *cause == Cause::Behind), "{state:?}");
+                // A ground rebuilt in the pass (a structure finished in the base) plans the way again from the
+                // forming-up ground and moves nothing.
+                if sent.is_empty() {
+                    group.set_ground(Some(ground.clone()));
+                }
+                for u in &w {
+                    let to = group.order_point(u.id).unwrap();
+                    assert!(to.x >= 1024.0 && ground.passable_at(to), "every member's place is beyond the wall: {to:?}");
+                    let first = *sent.entry(u.id).or_insert(to);
+                    assert!(first.dist2d(to) < 1.0, "sent once: its place stands while it walks (frame {frame})");
+                }
+            } else if !sent.is_empty() && passed.is_none() {
+                passed = Some(frame);
+                assert!(w.iter().all(|u| u.pos.x > 1024.0), "the pass ended with everyone through");
+            }
+            walk_to_orders(&group, &mut w, 3);
+        }
+        assert_eq!(sent.len(), 12, "the pass was entered");
+        // The deal by arrival: the front rank at the mouth takes the front rank beyond it.
+        let front_slots = sent.iter().filter(|(id, _)| id.0 <= 6).map(|(_, to)| to.x).fold(f32::INFINITY, f32::min);
+        let rear_slots = sent.iter().filter(|(id, _)| id.0 > 6).map(|(_, to)| to.x).fold(0.0, f32::max);
+        assert!(front_slots > rear_slots, "the first through form furthest on: {front_slots} against {rear_slots}");
+        assert!(passed.is_some() && group.arrived, "walked on in ranks and arrived: anchor {:?}, passing {}", group.anchor, group.passing());
+        assert!(group.state(&w).exceptions.is_empty(), "{:?}", group.state(&w));
+    }
+
+    /// §1.3: the pass is waited for by the body it began with. A thirteenth member still a map away when the group
+    /// comes to the door (the lab's newest, joining) is sent to its place beyond like everyone, is said to be
+    /// joining, and holds nothing: the twelve are through and walk on in ranks without it.
+    #[test]
+    fn a_pass_does_not_wait_for_a_joiner_a_map_away() {
+        let pacing = Pacing::default();
+        let terrain = corridor();
+        let mut w = two_ranks_of_six();
+        for u in w.iter_mut() {
+            u.pos = at(u.pos.x + 700.0, u.pos.z + 512.0);
+        }
+        w.push(Walker { id: UnitId(13), pos: at(40.0, 300.0), speed: 100.0, moving: 0.0 });
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members, GroupOrder::new(GroupKind::Go, vec![at(1900.0, 512.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), form::HULL_PITCH);
+        group.set_ground(Some(ground_of(&terrain)));
+        let mut frame = 0;
+        let (mut entered, mut left) = (None, None);
+        while frame < 900 && left.is_none() {
+            frame += 3;
+            group.tick(frame, &w, form::HULL_PITCH, &pacing);
+            if group.passing() {
+                entered.get_or_insert(frame);
+                let state = group.state(&w);
+                assert!(state.exceptions.iter().any(|(id, cause, _)| *id == UnitId(13) && *cause == Cause::Joining), "{state:?}");
+                assert!(group.order_point(UnitId(13)).unwrap().x > 1024.0, "sent to its place beyond the wall like everyone");
+            } else if entered.is_some() {
+                left = Some(frame);
+            }
+            // The twelve walk; the thirteenth stands where it is.
+            walk_to_orders(&group, &mut w[..12], 3);
+        }
+        let (entered, left) = (entered.expect("the pass began"), left.expect("and ended without the joiner"));
+        assert!(left - entered < 300, "in the time the twelve took: {} frames", left - entered);
+        assert!(w[..12].iter().all(|u| u.pos.x > 1024.0) && w[12].pos.x < 100.0);
+    }
+
+    /// §1.2: a group that fights keeps its ranks on the same ground while something hostile stands within
+    /// `RELAX_CLEAR` of the stretch (the slots snapped onto the corridor's floor carry it through the door), and
+    /// passes it relaxed when nothing does.
+    #[test]
+    fn a_group_that_fights_keeps_its_ranks_on_tight_ground_with_the_enemy_near() {
+        let pacing = Pacing::default();
+        let (mut group, mut w) = before_the_corridor(GroupKind::FightTo, at(1700.0, 512.0));
+        group.set_hostile(vec![at(1500.0, 300.0)]);
+        let mut frame = 0;
+        while frame < 1500 && !group.at_end() {
             frame += 3;
             let slots = group.tick(frame, &w, form::HULL_PITCH, &pacing).clone();
+            assert!(!group.passing(), "the ranks hold with the enemy near (frame {frame})");
+            assert!(slots.values().filter(|s| s.x >= 960.0 && s.x < 1024.0).all(|s| (s.z - 512.0).abs() < 96.0 + 1.0), "between the walls every slot is within the corridor: {slots:?}");
             for u in w.iter_mut() {
                 let s = slots[&u.id];
                 u.pos = at(s.x - group.heading.0 * 20.0, s.z - group.heading.1 * 20.0);
             }
-            assert!(slots.values().filter(|s| s.x >= 960.0 && s.x < 1024.0).all(|s| (s.z - 512.0).abs() < 96.0 + 1.0), "between the walls every slot is within the corridor: {slots:?}");
-            assert_eq!(group.slot_of, deal, "no re-deal on the way (frame {frame})");
-            if group.at_end() {
-                break;
+        }
+        assert!(group.at_end(), "arrived in ranks: anchor {:?}", group.anchor);
+        let (mut group, mut w) = before_the_corridor(GroupKind::FightTo, at(1700.0, 512.0));
+        group.set_hostile(vec![at(1500.0, 300.0 - RELAX_CLEAR)]);
+        for frame in (0..600).step_by(3) {
+            let slots = group.tick(frame, &w, form::HULL_PITCH, &pacing).clone();
+            if group.passing() {
+                return;
+            }
+            for u in w.iter_mut() {
+                let s = slots[&u.id];
+                u.pos = at(s.x - group.heading.0 * 20.0, s.z - group.heading.1 * 20.0);
             }
         }
-        assert!(group.at_end(), "arrived: anchor {:?}", group.anchor);
+        panic!("with nothing hostile near, the group that fights passes too: anchor {:?}", group.anchor);
+    }
+
+    /// §1.3: a new order ends a pass like any march. Thirty in five ranks pass the door, the forming-up ground the
+    /// ranks' depth beyond it; with two members through and the rest still west of the wall the group is told back
+    /// west: the anchor leaves the forming-up ground for the body, and the group arrives where it was told with
+    /// everyone.
+    #[test]
+    fn a_new_order_in_a_pass_puts_the_anchor_back_on_the_body() {
+        let pacing = Pacing::default();
+        let terrain = corridor();
+        let places: Vec<(i32, f32, f32)> = (0..30).map(|i| (i + 1, 560.0 - 96.0 * (i / 6) as f32, 512.0 + ((i % 6) as f32 - 2.5) * 64.0)).collect();
+        let mut w = walkers(&places, 100.0);
+        let members: Vec<UnitId> = w.iter().map(|w| w.id).collect();
+        let mut group = Group::new("a", members.clone(), GroupOrder::new(GroupKind::Go, vec![at(1800.0, 512.0)]), &w.iter().map(|w| w.pos).collect::<Vec<_>>(), form::HULL_PITCH);
+        group.set_ground(Some(ground_of(&terrain)));
+        let mut frame = 0;
+        while !group.passing() && frame < 600 {
+            frame += 3;
+            let slots = group.tick(frame, &w, form::HULL_PITCH, &pacing).clone();
+            if !group.passing() {
+                for u in w.iter_mut() {
+                    let s = slots[&u.id];
+                    u.pos = at(s.x - group.heading.0 * 20.0, s.z - group.heading.1 * 20.0);
+                }
+            }
+        }
+        assert!(group.passing() && group.anchor.x > 1024.0 + 4.0 * form::RANK_GAP - 1.0, "forming up five ranks' depth beyond the wall: {:?}", group.anchor);
+        for u in w.iter_mut().take(2) {
+            u.pos = group.order_point(u.id).unwrap();
+        }
+        group.tick(frame + 3, &w, form::HULL_PITCH, &pacing);
+        assert_eq!(group.state(&w).passing, Some(2));
+        group.update(members, GroupOrder::new(GroupKind::Go, vec![at(300.0, 512.0)]));
+        group.tick(frame + 6, &w, form::HULL_PITCH, &pacing);
+        let body = form::centroid(w.iter().skip(2).map(|u| u.pos)).unwrap();
+        assert!(group.anchor.x < 960.0 && group.anchor.dist2d(body) < REJOIN_WAY, "the anchor is back with the body west of the wall: {:?} against {body:?}", group.anchor);
+        let mut frame = frame + 6;
+        while frame < 3000 && !group.arrived {
+            frame += 3;
+            group.tick(frame, &w, form::HULL_PITCH, &pacing);
+            walk_to_orders(&group, &mut w, 3);
+        }
+        // The two that were through come back by the door behind the body and take their slots.
+        for _ in 0..300 {
+            frame += 3;
+            group.tick(frame, &w, form::HULL_PITCH, &pacing);
+            walk_to_orders(&group, &mut w, 3);
+        }
+        assert!(group.arrived && group.state(&w).exceptions.is_empty(), "arrived with everyone: {:?}", group.state(&w));
     }
 
     // The lane-level tests of the group: the lane ticked whole over the shared test host (moved from rove.rs, 2026-11-04).
@@ -3202,6 +3850,106 @@ mod tests {
         old.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
         let out = old.tick(&host, &tick(63, short(11), Vec::new()), &mut Vec::new(), false);
         assert!(out.commands.is_empty(), "{:?}", out.commands);
+    }
+
+    /// H-MICRO-RELAX through the lane: twelve Pawns walking to the far side of a wall with a door of 160 pass it
+    /// relaxed; every member is sent once to its place beyond the wall; one the engine stops in the door is sent
+    /// there again a second later, one that stands by its place is not; the state says who is through. The same
+    /// group told to fight its way there keeps its ranks while a building of theirs is remembered by the door.
+    #[test]
+    fn the_lane_passes_a_door_relaxed_and_sends_a_member_stopped_in_it_again() {
+        let mut terrain = flat_terrain();
+        for z in (0..256).filter(|z| !(60..70).contains(z)) {
+            for x in 100..104 {
+                terrain.slopes[z * 256 + x] = 255;
+            }
+        }
+        let ids: Vec<i32> = (10..22).collect();
+        let start = || -> Vec<OwnUnit> { ids.iter().enumerate().map(|(i, id)| OwnUnit { def: PAWN, ..rover(*id, 1300.0 - 96.0 * (i / 6) as f32, 1040.0 + ((i % 6) as f32 - 2.5) * 64.0) }).collect() };
+        // Everyone walks straight at the point it was last sent to, at a Pawn's speed, for the frames of a tick.
+        let walk = |body: &mut Vec<OwnUnit>, sent: &HashMap<i32, Vec3>, frozen: &[i32]| {
+            for u in body.iter_mut() {
+                let Some(to) = sent.get(&u.id.0) else { continue };
+                let d = u.pos.dist2d(*to);
+                if frozen.contains(&u.id.0) || d < 1.0 {
+                    (u.vel, u.idle) = (at(0.0, 0.0), true);
+                    continue;
+                }
+                let step = (87.0 * 0.1f32).min(d);
+                u.vel = at((to.x - u.pos.x) / d * 2.9, (to.z - u.pos.z) / d * 2.9);
+                u.pos = at(u.pos.x + (to.x - u.pos.x) / d * step, u.pos.z + (to.z - u.pos.z) / d * step);
+                u.idle = false;
+            }
+        };
+        let moves = |commands: &[Command]| -> HashMap<i32, Vec3> { commands.iter().filter_map(|c| match c { Command::Move { unit, to, .. } => Some((unit.0, *to)), _ => None }).collect() };
+        let mut host = Host::new(Vec::new());
+        host.terrain = Some(terrain);
+        let mut lane = Lane::default();
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![at(2800.0, 1040.0)]));
+        let mut body = start();
+        let mut sent: HashMap<i32, Vec3> = HashMap::new();
+        let mut frame = 30;
+        while lane.group_state("a").is_none_or(|s| s.passing.is_none()) {
+            assert!(frame < 900, "the group came to the door and did not pass: {:?}", lane.group_state("a"));
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            sent.extend(moves(&out.commands));
+            walk(&mut body, &sent, &[]);
+            frame += 3;
+        }
+        assert_eq!(lane.group_state("a").unwrap().pace, 0.0);
+        // Unit 10 is stopped where it stands by the engine; the others walk on. Each of them is sent its place
+        // beyond the wall once at the most (when the order it had runs out); unit 10 is sent its own again and
+        // again, a second apart, while it stands.
+        let mut count: HashMap<i32, usize> = HashMap::new();
+        let mut tens: Vec<Vec3> = Vec::new();
+        for _ in 0..30 {
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            for (id, to) in moves(&out.commands) {
+                *count.entry(id).or_default() += 1;
+                sent.insert(id, to);
+                if id == 10 {
+                    tens.push(to);
+                }
+            }
+            walk(&mut body, &sent, &[10]);
+            frame += 3;
+        }
+        assert!(ids.iter().all(|id| sent[id].x > 1664.0), "every member's place is beyond the wall: {sent:?}");
+        assert!(ids.iter().filter(|id| **id != 10).all(|id| count.get(id).copied().unwrap_or(0) <= 1), "sent once: {count:?}");
+        assert!(tens.len() >= 2 && tens.windows(2).all(|p| p[0].dist2d(p[1]) < 1.0), "the stopped one is sent its place again: {tens:?}");
+        let through = lane.group_state("a").unwrap().passing;
+        assert!(through.is_some_and(|n| n >= 6), "the state says who is through: {through:?}");
+        // Unit 10 comes to stand by its place within the formed band, with no order: it is not sent again, and the
+        // pass ends with everyone.
+        let places = sent.clone();
+        for u in body.iter_mut() {
+            u.pos = if u.id.0 == 10 { at(places[&10].x - 100.0, places[&10].z) } else { places[&u.id.0] };
+            (u.vel, u.idle) = (at(0.0, 0.0), true);
+        }
+        let mut late: HashMap<i32, Vec3> = HashMap::new();
+        for _ in 0..14 {
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            late.extend(moves(&out.commands));
+            if lane.group_state("a").unwrap().passing.is_none() {
+                break;
+            }
+            frame += 3;
+        }
+        assert!(lane.group_state("a").unwrap().passing.is_none(), "the pass is over: {:?}", lane.group_state("a"));
+        assert!(!late.contains_key(&10), "a member standing by its place is left there: {late:?}");
+        // Told to fight its way there, with a turret of theirs remembered 300 beyond the door: the ranks hold.
+        host.buildings = vec![(UnitId(900), TOWER, at(1960.0, 1040.0))];
+        let mut lane = Lane::default();
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::FightTo, vec![at(2800.0, 1040.0)]));
+        let mut body = start();
+        let mut sent: HashMap<i32, Vec3> = HashMap::new();
+        for frame in (30..600).step_by(3) {
+            let out = lane.tick(&host, &tick(frame, body.clone(), Vec::new()), &mut Vec::new(), false);
+            sent.extend(moves(&out.commands));
+            walk(&mut body, &sent, &[]);
+            assert!(lane.group_state("a").unwrap().passing.is_none(), "in ranks on his ground (frame {frame})");
+        }
+        assert!(body.iter().any(|u| u.pos.x > 1664.0), "and it went through the door in them: {:?}", body.iter().map(|u| u.pos.x as i32).collect::<Vec<_>>());
     }
 
     /// H-MICRO-FORM-HULLS: a formation's slots stand one and a half of its largest pathing hull apart, across and

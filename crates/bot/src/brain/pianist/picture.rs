@@ -2405,7 +2405,14 @@ pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Opt
     {
         out.push(format!("no way on foot from here to {to} for this group"));
     }
-    if let Some(target) = engaged
+    if let Some(through) = state.passing {
+        // The relaxed posture (docs/design/2026-11-10-restricted-ground.md): the ranks do not stand on the ground
+        // ahead, every member is driving through it on its own, and the group forms up again at `at` beyond it. Said
+        // before "halted" and "held": the anchor stands there at pace 0 while the members come.
+        let going = to.map_or(String::new(), |to| format!(" on the way to {to}"));
+        let fighting = engaged.map_or(String::new(), |target| format!(", {target} in reach"));
+        out.push(format!("passing tight ground{going} out of ranks, {through} of {members} through, forming up again at {at}{fighting}"));
+    } else if let Some(target) = engaged
         && state.pace <= 0.0
     {
         out.push(format!("halted at {at} to fight {target} in reach, {formed} of {members} formed{outliers}"));
@@ -2460,6 +2467,7 @@ mod tests {
             engaged: None,
             way: Some(2345.0),
             companies: Vec::new(),
+            passing: None,
         };
         let words = super::formation_words(&state, 8, Some("spot_3 (D4)"), "(C4)", None);
         assert_eq!(words, "advancing to spot_3 (D4), 3 of 8 formed, 2 behind (the farthest 10 s), 1 joining, 1 cut off by the ground; walking at 80% of its pace, 3 points to go, 2345 on its way");
@@ -2469,6 +2477,8 @@ mod tests {
         assert_eq!(super::formation_words(&arrived, 3, Some("spot_3 (D4)"), "(C4)", None), "arrived at spot_3 (D4), 3 of 3 in rank");
         let engaged = GroupState { pace: 0.0, engaged: Some(UnitId(99)), ..state.clone() };
         assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) to fight his Pawn at (C5) in reach, 3 of 8 formed, 2 behind"));
+        let passing = GroupState { pace: 0.0, passing: Some(5), ..state.clone() };
+        assert_eq!(super::formation_words(&passing, 8, Some("spot_3 (D4)"), "(C4)", None), "passing tight ground on the way to spot_3 (D4) out of ranks, 5 of 8 through, forming up again at (C4)");
         let no_way = GroupState { way: None, ..state.clone() };
         assert!(super::formation_words(&no_way, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("no way on foot from here to spot_3 (D4) for this group; advancing to spot_3 (D4)"));
     }

@@ -433,7 +433,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: drill::PairMode::Walk, post: Vec::new() };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: drill::PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -544,6 +544,30 @@ fn parse_args() -> io::Result<Options> {
                     usage("--post takes name*count[+name*count], such as armmex*1+armllt*2");
                 }
                 drill_opts.post = force.parts;
+            }
+            "--yard" => {
+                let text = value();
+                let parsed = text.split_once('@').and_then(|(name, rest)| {
+                    let (pitch, reach) = rest.split_once(',')?;
+                    Some((name.to_string(), pitch.parse::<f32>().ok()?, reach.parse::<f32>().ok()?))
+                });
+                drill_opts.yard = Some(parsed.filter(|(n, p, r)| !n.is_empty() && *p > 0.0 && *r > 0.0).unwrap_or_else(|| usage("--yard takes NAME@PITCH,REACH, such as armsolar@160,640")));
+            }
+            "--wall" => {
+                let text = value();
+                let parsed = text.split_once('@').and_then(|(name, rest)| {
+                    let mut numbers = rest.split(',').map(|v| v.parse::<f32>().ok());
+                    Some((name.to_string(), numbers.next()??, numbers.next()??, numbers.next()??))
+                });
+                drill_opts.wall = Some(parsed.filter(|(n, a, g, h)| !n.is_empty() && *a > 0.0 && *g > 0.0 && *h > *g).unwrap_or_else(|| usage("--wall takes NAME@ALONG,GAP,HALF, such as armdrag@700,160,1200")));
+            }
+            "--fence" => {
+                let text = value();
+                let parsed = text.split_once('@').and_then(|(name, rest)| {
+                    let numbers: Vec<f32> = rest.split(',').map(|v| v.parse::<f32>().ok()).collect::<Option<_>>()?;
+                    Some((name.to_string(), <[f32; 4]>::try_from(numbers).ok()?))
+                });
+                drill_opts.fence.push(parsed.filter(|(n, _)| !n.is_empty()).unwrap_or_else(|| usage("--fence takes NAME@A1,C1,A2,C2, such as armdrag@250,160,1450,160")));
             }
             "--laps" => drill_opts.laps = number(value()).max(1),
             "--circuit" => drill_opts.circuit = Some(value().split(';').map(point).collect()),
@@ -736,7 +760,7 @@ fn parse_args() -> io::Result<Options> {
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on|ranks[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed|fed*N] [--seeds a,b,c]
-       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--post FORCE] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
+       duel --drill walk|reverse|gather|into --ours FORCE[,FORCE] [--distance 2000] [--order fight|move] [--reissue S] [--lead ELMOS] [--pace ELMOS/S] [--turn-at 12] [--lab armvp] [--target armshltx] [--post FORCE] [--yard NAME@PITCH,REACH] [--wall NAME@ALONG,GAP,HALF] [--fence NAME@A1,C1,A2,C2 ...] [--from X,Z --to X,Z | --around RATIO] [--count N] [--formation X] [--lane off|old|on|ranks] [--cap N] [--reps N] [--seeds a,b] [--time-limit S] [--map NAME] [--label TEXT]
             (one army walks the strip, no enemy: docs/design/2026-10-24-formation-drills.md)
        duel --drill circuit --ours FORCE [--feed name*count] [--laps 1] [--circuit X,Z;X,Z;...] [--lab armlab] [--order fight|move] [--lane off|on] ...
             (a deployed army round the map while a lab feeds it: design D12)

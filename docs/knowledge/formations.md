@@ -469,8 +469,124 @@ with the pitch (`Group::away_at`) one in eight laps and a formed share of 0.72-0
 (t3cfix4-thor8, t3final-c-thor8). The lap is then 390-468 s against 280 on foot, the anchor under half its pace for 182 s of a 489 s
 lap: re-forming a rank 780 wide costs a Thor (four seconds from a stand to its speed, `maxacc` 0.015) ten seconds
 and more a corner. Open: fewer files for large hulls, or a turn that
-wheels a wide rank.
+wheels a wide rank. (Corrected 2026-11-10: these laps were walked on a route that began again when the first fed Thor
+appeared, K-group-a-second-re-plan-began-the-route-again; on the fixed build the ranks lap 440-466 s, rgYc-ranks-thor8.
+The members lost a lap and the formed share are the claim's evidence and do not depend on the lap's length.)
 **Evidence.** `run/matches/*-duel-t3cfix2-thor8`, `*-duel-t3cfix4-thor8`, `*-duel-t3dbg-thor8`.
 **Would be wrong if.** The members a turn left behind were stopped units and not walking ones (the release would then
 be what cleared them: it is the same in both arms).
 **Used by.** H-MICRO-FORM-HULLS (`Group::away_at`).
+
+### K-group-ranks-on-ground-they-do-not-fit-crawl
+**Claim.** A formation marched in ranks over ground its ranks do not fit (a base's lanes, a wall's door) walks at a
+fraction of its pace, and the engine's own pathing takes the same units through the same ground at their speed. The
+block is rigid and six files wide on any ground: a slot that falls on a structure or a cliff was moved to the nearest
+standable cell by straight distance, with no test that the cell joins the body's ground; the members sent there block
+one another or set off round the obstacle; the anchor waits for them.
+**Status.** measured (2026-11-10). In the game records (`run/group_ground.py`: the six-file ranks laid at the
+recorded anchor on the recorded heading against the lane's ground, the largest marching company of eight or more): within
+1,500 of a plant of ours the pace was 0.81 of full with every slot on the ground, 0.64 with up to a quarter off it
+and 0.38 with more (apex-v0507-comet-sym0-opus-1, 57 / 39 / 32 s), 0.93 / 0.84 / 0.60 in the v0.5.04 game (51 / 20 /
+37 s); further out 0.93 with none off. On the bench (`duel --drill walk --yard / --wall` on Full Metal Plate, four
+duels a row; `run/drill_cross.py`, the second the first / median / last unit was out of the yard or through the
+door): twenty-four Stouts out of a yard of solars with lanes of 80, 14 / 17 / 19-20 on a plain engine order and
+17-24 / 20-27 / 23-38 in ranks; a tier-2 company of twenty-four (Stouts, Blitzes, Januses, Bulls) 12 / 15-16 / 26-27
+and 24-28 / 30-32 / 34-38; twelve Bulls 16 / 18-20 / 19-29 and 20-26 / 23-29 / 24-31; a hundred Stouts in five
+companies through a door of 160 in a wall, 16 / 21 / 28 and 24-26 / 33-35 / 41-43.
+**Evidence.** `run/matches/*-duel-rg0-*` (the lane off and the ranks of before); the two Apex games' records;
+`crates/micro/src/group.rs` `tick` (the slots' snap before 2026-11-10: `git show 90cd29fc:crates/micro/src/group.rs`).
+**Would be wrong if.** A body walked in ranks through a yard at its pace with every slot on a structure moved beside
+it (the slots are then not what holds it), or the engine's own order through the yard were no faster.
+**Used by.** H-MICRO-RELAX.
+
+### K-group-five-companies-told-to-one-goal-do-not-settle
+**Claim.** An army of a hundred in five companies told to one goal on open ground does not arrive as the lane counts
+it: the companies' ends are placed beside each other (`keep_off`), their members cross each other's ranks on the last
+stretch, and a member the engine stops short of a slot that stands (K-engine-a-blocked-move-ends-short) is not sent
+again, because an arrived formation's slots go out once. It stands a few seconds from its slot until the host takes
+it out.
+**Status.** measured (2026-11-10), open: nothing is built on it. A hundred Stouts, `--cap 24`, a walk of 2,000 on
+Full Metal Plate with no obstacle, the lane of before the relaxed posture (rg0-open-stump100-on4, four duels): every
+duel at the time limit of 300 s, the arrivals 28-37 / 41-49 / 71-95 s, 29 members left behind; with the posture
+(rgF-open-stump100-on4) the same, 30-37 / 42-46 / 72-250 and 25. A plain engine order, with a wall's door on the
+way, has every one of the hundred within 300 of the goal at 25 / 30 / 37 s (rg0-wall-stump100-off). At 100 s the
+five companies stand beside one another 300 to 1,000 from the goal (`keep_off`), and the members left behind stand
+2-7 s from their slots. The march is slow before any goal too: the companies form their own ranks of six out of one
+block of twelve files, and with a wall 2,000 on the last unit is 200 short of it at 46-50 s against 34-35 on the
+engine's order. The rows with a wall carry the same end (12 to 29 left behind in four duels, before and after),
+which is why the pass is read at the door and not at the goal.
+**Evidence.** `run/matches/*-duel-rg0-open-stump100-on4`, `*-duel-rgF-open-stump100-on4`,
+`*-duel-rg0-wall-stump100-on`, `*-duel-rgZ-wall-stump100-on`, `*-duel-rg0-wall-stump100-far`,
+`*-duel-rgZ-wall-stump100-far`.
+**Would be wrong if.** The members left behind stood further than a few seconds from their slots (they would then be
+the march's stragglers, not the end's), or a single company of a hundred's size arrived no better.
+**Used by.** (open; the candidates are the stopped-short re-send at an end that is not at contact, and an end for an
+army that is the companies' column, not five blocks round one point.)
+
+### K-group-a-rank-closed-up-to-its-centre-makes-a-yard-one-lane
+**Claim.** Moving every slot of a rank onto its centre's side of the nearest wall (the rank "fitted": each half closed
+up toward the centre until it stands before the first cell that is not ground) is slower than the rule it was to
+repair wherever the ground has more than one lane. Among a base's buildings the outer files' own places are ground,
+in the lanes beside the one the centre walks, and the body walks several lanes abreast; fitted, every file is put in
+the centre's lane, the slots stand nearer than the hulls, and the body crawls. Only at a single door does the fit
+help, by a second or two.
+**Status.** measured (2026-11-10; the posture off, `WITHIN_REASON_RELAX=0`, so the ranks walk the tight ground; the
+scratch binary's arm `WITHIN_REASON_FIT`). Out of a yard of solars with lanes of 80, first / median / last arrival
+of a 2,000 walk: the tier-2 company 42-51 / 44-53 / 46-55 s with every slot at the nearest standable cell and
+62-71 / 66-73 / 68-75 fitted; twenty-four Stouts 29-36 / 32-37 / 33-38 and 43-54 / 45-56 / 47-58; twelve Bulls
+32-46 / 34-47 / 35-49 and 51-54 / 52-56 / 55-58. Through a wall's door of 160, twenty-four Stouts 26-30 / 28-32 /
+30-33 and 25-27 / 27-29 / 29-31. A lap of Quicksilver with a feed, the posture on: twelve Bulls 277-280 s and
+278-287, Stouts and Marauders level. The narrower form (`WITHIN_REASON_FIT=2`: only a slot whose own cell is not
+ground is moved, in along its rank to the first ground toward the centre) is level with the nearest cell for the
+tier-2 company and the Bulls (39-47 / 42-50 / 44-52; 34-39 / 36-42 / 39-46) and slower for the Stouts, 35-41 / 38-42
+/ 40-44 with one duel of four unfinished on a member left behind.
+**Evidence.** `run/matches/*-duel-rgH-ranks-fit0-*`, `*-duel-rgH-ranks-fit1-*`, `*-duel-rgHc-fit0-*`,
+`*-duel-rgHc-fit1-*`, `*-duel-rgF-norelax-*`, `*-duel-rgJ-ranks-fit2-*`, `*-duel-rgJc-fit2-*`. The arms were a
+scratch binary's and are not in the tree; `Ground::fit_rank` is (it judges whether a rank passes).
+**Would be wrong if.** The fitted ranks were slower in the yard for another reason than the lanes (the same yard
+with one lane open and the rest walled would then show the same gap).
+**Used by.** H-MICRO-RELAX (what was not built: the rank's fit judges whether a rank passes, `Ground::rank_fits`, and
+places no slot).
+
+### K-group-a-second-re-plan-began-the-route-again
+**Claim.** A group walking a route of several points that planned its way twice with no route point passed between
+(two ground rebuilds, 150 frames apart) began the route again from its first point: `Group::plan` counted the points
+passed on the way in force, which after a first re-plan holds only the points still ahead, and skipped that many of
+the whole route. One-point routes cannot show it, and those are all the flagship's hands and the Distilled bot
+declare; the circuit drill's route has five points.
+**Status.** measured (2026-11-10), fixed the same day (`Group::way_skips`: the count is of the whole route). When
+the gantry's first fed Thor appears the lane's ground gains a third structure for about five seconds (`GROUND ... 241
+cells under 3 unit footprints`, then 205 under 2: 36 cells, a Thor's footprint; why a Thor counts as one for that
+long is not looked into), so a lap of Quicksilver with Thors fed from the gantry planned twice 150 frames apart, the second time `5 host points, 20 way points` from
+the second corner: back to the route's first point by the lab and round again. It is in the debug lines of
+2026-11-09's Thor lap (t3dbg-thor8, frames 5820 and 5970) as in 2026-11-10's (rgFc-dbg-thor8, rgZc-dbg-thor8), so
+the Thor laps of 2026-11-09 (390-468 s, "laps 2" in half the duels) and every gantry lap since were walked on a
+route that restarted, and the lap's time depended on where the company was when the first fed unit appeared: with
+the relaxed posture the same build gave 371-379 s in two duels and 718-755 in the two where the restart came before
+the lab's corner (rgZc-thor8). Bulls, Stouts and Pawns from their plants planned once a lap and are untouched.
+**Evidence.** `scratchpad` logs of the named batches (the `PLAN` and `GROUND` debug lines);
+`run/matches/*-duel-rgZc-thor8/seconds/` (`legs_left` going from 1 to 4 at 360 s);
+`git show 90cd29fc:crates/micro/src/group.rs` `plan`.
+**Would be wrong if.** The gantry laps on the fixed build still showed the route's points left growing in the
+per-second log.
+**Used by.** H-MICRO-GROUP (the route's count); the gantry laps are measured again on the fixed build
+(rgYc-ranks-*, rgYc-*).
+
+### K-group-the-ways-price-walks-round-a-pass
+**Claim.** The way's price was set for ranks: a cell with less room than the ranks want costs more, up to six times
+a flat cell at a wall (`terrain::clearance_costs`, `WALL_COST` 60 against 10), so the march keeps its room from the
+walls and prefers wide ground. Under it a long narrow passage costs more than a detour three times its length, and
+the planner walks round it. With the relaxed posture (H-MICRO-RELAX) such a passage is passed at the units' own
+speed, so the detour is the slow way.
+**Status.** measured (2026-11-10), open: the price is unchanged. A tube 288 wide and 1,200 long behind a wall's
+door, the wall 1,400 to either side (a way round of about 3,700 for a walk of 2,000): the tier-2 company arrives at
+80-83 / 84-87 / 86-89 s in the ranks of before and 75-90 / 81-95 / 83-97 with the posture, walking round both
+times, against 21 / 27 / 41-42 on the engine's order through the tube; twenty-four Stouts 55-56 / 58-59 / 59-60 and
+55-57 / 58-60 / 59-62 against 25 / 28 / 31. With the wall 3,200 to either side the tube is the way, and the company
+passes it relaxed at 23-24 / 28-32 / 39-40 where the ranks took 37-48 / 40-52 / 43-54.
+**Evidence.** `run/matches/*-duel-rgZ-canyon-*`, `*-duel-rgJ-canyon-*-ranks-before`, `*-duel-rgZ-tube-*`,
+`*-duel-rgJ-tube-*-ranks-before`.
+**Would be wrong if.** The walk round were chosen for another reason than the price (the tube's door closed in the
+ground: the way would then be the same with the price flat).
+**Used by.** (open: what a tight cell should cost now that it is passed and not crawled is a decision on where
+armies walk, the user's.)
