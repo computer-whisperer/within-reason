@@ -46,6 +46,13 @@ by minute and by thirds of the map with each seat's beside it, our seats' metal 
 `excess` what was lost), orders by side, the people's losses by killer team, what the silos killed, units given between
 teams, the last minutes' unit counts, the engine's team statistics and the winners. The thirds are of x.
 
+When the people call lag, read the demo itself before the audit: `run/demo_net.py <demo.sdfz>` (no replay needed).
+It prints the seats with their countries and the AIs each client hosts. It prints the stream every client receives,
+KB/s by minute, with each AI host's orders apart. And it prints each client's distance behind the server (the
+server's ping) beside its own sim load. A client falling behind on an idle sim is starved by its link
+(K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link): the 10v8's far clients fell behind from about
+30 KB/s.
+
 ## The tables (`run/audit.py <dir> [--sections a,b] [--top N] [--team N]`)
 
 | Section | What it answers |

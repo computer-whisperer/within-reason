@@ -432,6 +432,37 @@ started 18 frames later. Every other human game: the banner back in 6 to 9 frame
 the orders); the plant's start 62 frames after the echo agrees with the shared path.
 **Used by.** H-HANDS-ORDER-LAG (`brain/echo.rs`): the hands' grace on an order's outcome.
 
+### K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link
+**Claim.** The lag the people call in our lobby games is the server's stream outgrowing the far clients' links, not
+their machines. Every client receives the whole stream and every AI order in it is its own message (an AICOMMAND of
+about 33 bytes for a move). The far clients fall steadily behind once the stream passes about 30 KB/s of message
+bytes, and the near ones never do. The far ones are AU and HK from a US host, and some of Europe. Their own sim load
+stays where the near clients' does. Each order to a new point also costs every client a path search
+(`MobileCAI::SetGoal` → `GroundMoveType::StartMoving` → `ReRequestPath(true)` unless the goal is the same float for
+float). That is a load on every machine, and these games show it was not what lagged them.
+**Status.** measured (2026-11-10) on two lobby demos read with `run/demo_net.py`. The mechanism inside the link is
+reading only: `UDPConnection` caps a connection's bytes sent, resends included (`LinkOutgoingBandwidth`), and
+alternates new chunks with resends. With a loss factor above 0, every chunk is resent until acked, so a longer round
+trip leaves less of the budget for new data. BAR's client defaults are NetworkLossFactor 2 and 256 KB/s
+(`BYAR-Chobby` springsettings); the hosts' server settings are not in any repository here.
+**Evidence.** The 10v8 on Erebos Lakes (`1794293029-human`, Host[US1]). The stream was 21 KB/s at 19:00, 31 at 21:00
+and 38-42 from 23:00. From 21:00 the six clients in HK, AU (two players and a spectator), GR and RO fell behind
+together, 13.7 s at 22:00 and 104 s at 28:00, within 3 % of each other. That is about 28-30 KB/s received. Their
+sim load was 29-52 %. The five US clients stayed under 1 s behind on 37-60 % load: three people, the Apex host
+running six seats (2-7 s at 16:00-27:00, then back to 1.5), and our host. "laggy" (22:40) and "why this lag_" (24:32)
+came from two of the six. The server never slowed the game (no INTERNAL_SPEED message). AI orders were 70 % of the
+stream's bytes: ours went from 5 KB/s at 19:00 to 21 at 27:00 and Apex's from 13 to 19. The 8v7 on All That
+Glitters (`1794062778-replay-human-8v7-glitters`, Host[US1], all seven people in Europe, HK or AU; the whole AI
+stream ours): HK, AU and one DE client fell 12 s behind at 19:00 on 32 KB/s. At 20:00 the stream fell to 25 KB/s
+and they held. They lost 15-21 s a minute at 41-50 KB/s, which is again about 30 KB/s received. The DK, PL and
+other DE clients followed from 41-44 KB/s on. Sim load was 8-22 % throughout.
+**Would be wrong if.** A far client kept up on a stream above 35 KB/s, or a near one fell behind on the same
+stream with an idle sim. Or the stream cut to under 25 KB/s in a game of the same size still left the far clients
+falling behind. The sim figure is the client's "Sim" timer alone (`CGame::SendClientProcUsage`). Executing the
+orders it receives runs in `ClientReadNet`, outside it. The case against the machines is that six different
+machines lost ground at one rate and that the split follows the link.
+**Used by.** (none yet; the order rate in K-group-the-march-re-sent-every-member-every-tick is the lever)
+
 ### K-mech-lobby-box-beside-us
 **Claim.** A lobby's start script can give an enemy ally team a start box whose centre is next to our own start,
 so the box guess of the enemy base is worthless there; the mirror is the better guess.

@@ -416,6 +416,14 @@ inside the engine (K-engine-slow-guard-paces-a-guarder-to-its-guardee). The cade
 (43 / 45 / 47) and the formed share (0.87-0.90) the same in all. Not built: at a second the faster types walk in hops
 of the pace's length, a look the user has not ruled on; and the bench's knob slows every re-send, where the flood is
 only the member that has closed on its point.
+**Measured 2026-11-10 (the lobby 10v8 on Erebos Lakes, the build of c43a15d7 less one fix).** The flood is still
+there. Our two seats executed 207,787 and 191,668 orders, the most of the eighteen seats; the six Apex seats executed
+65,569-167,915 each. At 27:00 t16 ran 23,400 a minute against an Apex seat's 6,800 mean. 96 % and 89 % were moves.
+From 20:00, 56 % of our moves put the point under 16 elmos from that unit's last one, and 60 % came under half a
+second after it. For Apex the figures were 2 % and 37 %, with 47 % over 256 elmos. From 26:00 to 29:00, 82-92 % of
+t14's units and 55-63 % of t16's were moving in any second, against 27-52 % of an Apex seat's. Each of those orders is a message to every client and
+a path search on every client. The messages are what lagged the far clients:
+K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link.
 
 ### K-group-slots-nearer-than-the-hulls-stall-the-body
 **Claim.** A formation's slots must stand further apart than its members' pathing hulls, or the body stalls on open
