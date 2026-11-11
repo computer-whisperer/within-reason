@@ -49,6 +49,19 @@ pub struct Pitch {
 /// The pitch of small hulls with no area weapon about.
 pub const HULL_PITCH: Pitch = Pitch { across: HULL_SPACING, deep: RANK_GAP };
 
+/// H-MICRO-NEAR (`docs/design/2026-11-10-order-budget.md`, rule 1): the least move of a marching member's point that
+/// sends its slot order again.
+pub const NEAR_MIN: f32 = 16.0;
+
+/// How far a member's point must have moved since its last order before the order goes out again: `share` of the
+/// pitch across, at least `NEAR_MIN`; at the lane's quarter (`Pacing::near`) 16 for the first tier, 27 for
+/// Marauders, 39 for Thors. Every order is a message to every client of a lobby game and a path search on each (the
+/// people lagged on the stream, K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link), and a slot
+/// error under a quarter of the gap between slots does not show. A share of 0 is no tolerance (the bench's arm).
+pub fn near_tolerance(pitch: Pitch, share: f32) -> f32 {
+    if share <= 0.0 { 0.0 } else { (pitch.across * share).max(NEAR_MIN) }
+}
+
 /// A unit vector from `from` toward `to`; east when they coincide.
 pub fn heading(from: Vec3, to: Vec3) -> (f32, f32) {
     let (dx, dz) = (to.x - from.x, to.z - from.z);

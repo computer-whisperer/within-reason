@@ -157,6 +157,13 @@ tick-smoke and tick-cost rows of `docs/experiments.md`). `WITHIN_REASON_TICK_FRA
 answer makes the next tick late rather than dropping it; the record's `late` field and the per-minute `ticks late`
 line say how often.
 
+**The order budget (since 2026-11-10, H-HOST-ORDER-BUDGET).** Every seat's unit orders are held to 100 a second, the Apex
+average, in the shim (`crates/ai-host/src/budget.rs`). Only a move ever waits, the newest per unit replacing an older.
+The engine log carries a line a game minute per seat, `orders f=… minute: sent N (moves M), held, replaced, dropped,
+waiting, longest wait`. `WITHIN_REASON_ORDER_CAP` in the environment sets the rate in orders a second, and 0 turns the
+budget off; the engine inherits it, as do the duels' shims. A drill's per-second `sent` counts what the lane asked for,
+before the budget. What reached the engine is in that line, or in the demo (`run/demo_net.py`, a column per AI seat).
+
 ## Placing our commander (`--place`)
 With `--place` the arena chooses where our commander spawns inside its box (a 1v1 only): the opening search's best
 start (`crates/buildorder/src/start.rs`, ranked first by the user's rule of thumb, within reach of two extractor spots

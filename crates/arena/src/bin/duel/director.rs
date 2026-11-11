@@ -1140,9 +1140,9 @@ impl Director {
 }
 
 /// H-MICRO-GROUP's numbers for the lane:
-/// `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,close_to[,stuck_after_s[,idle_after_s]]]]]]` (the
-/// bench's arms; an empty field keeps the lane's own, and 0 seconds in either of the last two switches that rule
-/// off), else the lane's own.
+/// `WITHIN_REASON_PACING=fraction[,cadence_frames[,lead[,drag_from[,close_to[,stuck_after_s[,idle_after_s[,near]]]]]]]`
+/// (the bench's arms; an empty field keeps the lane's own, 0 seconds in the sixth or seventh switches that rule off,
+/// and a near share of 0 is no tolerance), else the lane's own.
 fn pacing_tuning() -> micro::Pacing {
     let default = micro::Pacing::default();
     let Ok(value) = std::env::var("WITHIN_REASON_PACING") else { return default };
@@ -1163,7 +1163,10 @@ fn pacing_tuning() -> micro::Pacing {
         None => own,
     };
     let (stuck_after, idle_after) = (frames(default.stuck_after), frames(default.idle_after));
-    micro::Pacing { fraction, cadence, lead, drag_from, close_to, stuck_after, idle_after, ..default }
+    // The eighth (the order budget's bench, 2026-11-10): the share of the pitch across a point moves before a slot
+    // order goes out again (H-MICRO-NEAR).
+    let near = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.near);
+    micro::Pacing { fraction, cadence, lead, drag_from, close_to, stuck_after, idle_after, near, ..default }
 }
 
 /// H-MICRO-FORM-SPACING's and H-MICRO-FORM-HULLS' numbers for the lane:

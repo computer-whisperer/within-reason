@@ -574,6 +574,29 @@ fn point_still_serves(at: Vec3, sent: Vec3, to: Vec3, band: f32) -> bool {
     along >= len - band && lateral <= band
 }
 
+/// Whether a marching member's slot order goes out again, the cadence and a pass apart. Three conditions:
+/// - The point has moved `REISSUE_MIN` since the order.
+/// - It has moved more than `near` (H-MICRO-NEAR, `form::near_tolerance`), or the engine has stopped the member short
+///   of it. `ended` means the unit stands with no order a second after its last; short means further than `near`
+///   from the point (K-engine-a-blocked-move-ends-short).
+/// - The old order no longer serves (`point_still_serves`), or has ended.
+///
+/// A member standing at its point is sent again each time the point has walked `near` on. Before 2026-11-10 it was
+/// sent at every few elmos: 56 % of a lobby seat's late moves put the point under 16 from the last one.
+fn resend_due(at: Vec3, ended: bool, sent: Vec3, to: Vec3, near: f32, band: f32) -> bool {
+    let moved = sent.dist2d(to);
+    let short = ended && at.dist2d(to) > near;
+    moved > REISSUE_MIN && (moved > near || short) && (ended || !point_still_serves(at, sent, to, band))
+}
+
+/// A formation member's point this tick, with how far it must have moved since the member's last order before it is
+/// sent again (`form::near_tolerance` of its company's pitch).
+#[derive(Clone, Copy, Debug)]
+struct SlotOrder {
+    to: Vec3,
+    near: f32,
+}
+
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
 fn same_order(a: &Command, b: &Command) -> bool {
     match (a, b) {
@@ -885,8 +908,8 @@ impl Lane {
             if near(unit) && rules_of(unit.id).kite && self.kite(view, unit, snapshot.enemies.as_slice(), frame, commands, fired, debug) {
                 continue;
             }
-            if let Some(to) = form_orders.get(&unit.id) {
-                self.take_slot(view, unit, *to, frame, commands, fired, debug);
+            if let Some(slot) = form_orders.get(&unit.id) {
+                self.take_slot(view, unit, *slot, frame, commands, fired, debug);
             } else if self.claims.get(&unit.id).is_some_and(|c| c.rule != Rule::Form && frame - c.frame < CLAIM_FRAMES) {
                 // A claim stands at least this long.
             } else {
@@ -1215,7 +1238,7 @@ impl Lane {
     /// ranks hold (`docs/design/2026-10-28-contact-cleanup.md` §5): the anchor of a group that fights halts when every
     /// member of its body has an armed enemy in sight in reach, so the slots stand where the block stopped, and walks
     /// on when that fails. Each member's point this tick.
-    fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, Vec3> {
+    fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, SlotOrder> {
         let mut orders = HashMap::new();
         let enemies: &[EnemyUnit] = snapshot.enemies.as_slice();
         // What stands on the ground this tick (design D18), marked once for every group's ground.
@@ -1370,7 +1393,7 @@ impl Lane {
 
     /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
     /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
-    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, Vec3>) -> GroupState {
+    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, SlotOrder>) -> GroupState {
         let FormCtx { frame, enemies, by_id, pitch, footprints, hostile } = *ctx;
         // An Attack's goal follows its target's sightings.
         if let GroupKind::Attack(id) = group.order.kind
@@ -1460,27 +1483,30 @@ impl Lane {
         // The march, halted or not: every member's point is its slot carried ahead by the type's lead (D20), the slot
         // itself while the anchor stands.
         group.tick(frame, walkers, pitch, &self.pacing);
+        let near = form::near_tolerance(pitch, self.pacing.near);
         for w in walkers {
             if by_id.contains_key(&w.id)
                 && let Some(to) = group.order_point(w.id)
             {
-                orders.insert(w.id, to);
+                orders.insert(w.id, SlotOrder { to, near });
             }
         }
         group.state(walkers)
     }
 
     /// A free unit with a form order takes it: a Move to its point, out when the claim is fresh (the group just formed,
-    /// or the unit came back from a reflex) and on the march every `Pacing::cadence` frames once the point has moved
-    /// `REISSUE_MIN` since the last order and that order no longer serves: the unit has closed on its point or the
-    /// new one is off its line (`point_still_serves`, `REISSUE_NEAR`), or the engine has ended the order and the unit
-    /// stands with none (`Pacing::idle_after`: a blocked unit's move ends short of its point,
-    /// K-engine-a-blocked-move-ends-short); in a pass, where the point stands, on that last ground alone. The loop
-    /// that holds the pace at a few orders a member-minute (a halted
-    /// anchor's slots go out once, and a member in reach fires at will on the way and where it stands; an order costs
-    /// no shot under a Move).
+    /// or the unit came back from a reflex). On the march it goes out again, at most every `Pacing::cadence` frames,
+    /// once the point has moved more than its near tolerance since the last order and that order no longer serves
+    /// (`resend_due`). It no longer serves when the unit has closed on its point, or the new point is off its line
+    /// (`point_still_serves`, `REISSUE_NEAR`). It has also gone when the engine ended the order and the unit stands
+    /// with none (`Pacing::idle_after`: a blocked unit's move ends short of its point,
+    /// K-engine-a-blocked-move-ends-short); such a unit is sent again even for a nearer move, when it stands further
+    /// than the tolerance from its point. In a pass, where the point stands, it is sent on that last ground alone.
+    /// This loop holds the pace at a few orders a member-minute: a halted anchor's slots go out once, and a member in
+    /// reach fires at will on the way and where it stands (a Move costs no shot).
     #[allow(clippy::too_many_arguments)]
-    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, to: Vec3, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
+    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, slot: SlotOrder, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
+        let to = slot.to;
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
         let due = claim.is_some_and(|c| {
@@ -1490,7 +1516,7 @@ impl Lane {
             let stopped_in_a_pass = ended && self.passing.contains(&unit.id) && unit.pos.dist2d(to) > self.pacing.formed_within;
             c.rule == Rule::Form
                 && frame - c.frame >= self.pacing.cadence
-                && (stopped_in_a_pass || (c.sent_to.dist2d(to) > REISSUE_MIN && (ended || !point_still_serves(unit.pos, c.sent_to, to, self.pacing.formed_within))))
+                && (stopped_in_a_pass || resend_due(unit.pos, ended, c.sent_to, to, slot.near, self.pacing.formed_within))
         });
         if !(fresh || due) {
             return;

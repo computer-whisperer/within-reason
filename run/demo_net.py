@@ -38,13 +38,14 @@ def label(p):
     tag = 'spec' if kv.get('spectator', '0') == '1' else 't%s' % kv.get('team', '?')
     return '%s %s %s' % (who, kv.get('countrycode', '?'), tag)
 for p in sorted(players):
-    print('  p%-2d %s%s' % (p, label(p), ('  hosts ' + ', '.join(hosted[p])) if hosted[p] else ''))
+    print('  p%-2d %s%s' % (p, label(p), ('  hosts ' + ', '.join(hosted[p])) if hosted.get(p) else ''))
 
 pos = header_size + script_size; end = pos + stream_size
 frame = 0; speeds = []
 behind = collections.defaultdict(lambda: collections.defaultdict(list))
 sim = collections.defaultdict(lambda: collections.defaultdict(list))
 stream = collections.defaultdict(collections.Counter)
+by_seat = collections.defaultdict(collections.Counter)   # minute -> AI team -> AICOMMAND messages
 while pos < end:
     _, length = struct.unpack_from('<fI', raw, pos); pos += 8
     msg = raw[pos:pos + length]; pos += length
@@ -56,8 +57,12 @@ while pos < end:
         p, cpu, ping = struct.unpack_from('<BfI', msg, 1)
         behind[minute][p].append(ping); sim[minute][p].append(cpu)
     elif kind == 20: speeds.append((frame, struct.unpack_from('<f', msg, 1)[0]))
-    # a person's widgets send unit orders as AI command messages too: those count with the people's
-    if kind in (14, 15, 76) and msg[3] in hosted: stream[minute]['ai@p%d' % msg[3]] += length
+    # A person's widgets send unit orders as AI command messages too, with AI team 255 (on a client hosting AIs as
+    # well): those count with the people's.
+    ai_order = kind in (14, 15, 76) and bool(hosted.get(msg[3])) and not (kind in (14, 76) and msg[5] == 255)
+    if ai_order:
+        stream[minute]['ai@p%d' % msg[3]] += length
+        if kind in (14, 76): by_seat[minute][msg[5]] += 1
     elif kind in (11, 14, 15, 76): stream[minute]['people'] += length
     elif kind == 50: stream[minute]['lua'] += length
     else: stream[minute]['other'] += length
@@ -70,6 +75,13 @@ print('min  total  ' + '  '.join('%7s' % s for s in senders) + '  people    lua 
 for minute in sorted(stream):
     s = stream[minute]; kb = lambda n: n / 60 / 1024
     print('%3d %6.1f  ' % (minute, kb(sum(s.values()))) + '  '.join('%7.1f' % kb(s[k]) for k in senders) + '  %6.2f %6.2f %6.2f' % (kb(s['people']), kb(s['lua']), kb(s['other'])))
+seats = sorted({t for m in by_seat.values() for t in m})
+if seats:
+    print()
+    print('each AI seat: unit orders a minute (AICOMMAND messages; a batched AICOMMANDS counts with its host above only)')
+    print('min ' + ' '.join('%7s' % ('t%d' % t) for t in seats))
+    for minute in sorted(by_seat):
+        print('%3d ' % minute + ' '.join('%7d' % by_seat[minute][t] for t in seats))
 clients = sorted(players)
 print()
 print('each client: largest `behind` in the minute (s) / mean `sim` (%)')

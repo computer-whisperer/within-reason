@@ -252,6 +252,10 @@ pub struct Pacing {
     /// (ledger rev3-mar12-debug: stopped 144 short, no order for 23 s, the body halted on it). The frames are the
     /// order's way to the engine in a lobby game: a unit just ordered still reads idle. `i32::MAX`: never.
     pub idle_after: i32,
+    /// H-MICRO-NEAR: a marching member's slot order goes out again only once its point has moved this share of the
+    /// pitch across since the last (`form::near_tolerance`, at least `form::NEAR_MIN`). 0: no tolerance (the law of
+    /// before 2026-11-10, every few elmos).
+    pub near: f32,
 }
 
 /// A fighting group at its route's end walks at an armed enemy in sight (`Group::close_on`) at most this far past
@@ -287,7 +291,7 @@ pub struct Footprint {
 impl Footprint {
     /// Half the width across the heading and the depth behind the anchor.
     pub fn half_width(&self) -> f32 {
-        self.count.min(form::FILES).max(1) as f32 * self.pitch.across / 2.0
+        self.count.clamp(1, form::FILES) as f32 * self.pitch.across / 2.0
     }
 
     pub fn depth(&self) -> f32 {
@@ -402,6 +406,8 @@ pub const STUCK_AFTER: i32 = 300;
 const WAIT_MOVED: f32 = 32.0;
 /// `Pacing::idle_after`: a second.
 pub const IDLE_AFTER: i32 = 30;
+/// `Pacing::near`: a quarter of the pitch across (`docs/design/2026-11-10-order-budget.md`, rule 1).
+pub const NEAR_SHARE: f32 = 0.25;
 /// The relaxed posture (`docs/design/2026-11-10-restricted-ground.md` §1): the planned way is sampled every
 /// `RELAX_STEP`; a sample is tight when a rank laid across the way there does not stand a hull apart on its centre's
 /// side of every wall (`Ground::rank_fits`); a fighting group relaxes only with nothing hostile within `RELAX_CLEAR`
@@ -448,6 +454,7 @@ impl Default for Pacing {
             close_to: 0.5,
             stuck_after: STUCK_AFTER,
             idle_after: IDLE_AFTER,
+            near: NEAR_SHARE,
         }
     }
 }
@@ -3850,6 +3857,49 @@ mod tests {
         old.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
         let out = old.tick(&host, &tick(63, short(11), Vec::new()), &mut Vec::new(), false);
         assert!(out.commands.is_empty(), "{:?}", out.commands);
+    }
+
+    /// H-MICRO-NEAR (`crate::resend_due`): a member standing at its point is not sent again for a point that moved
+    /// less than the tolerance, and is once it moved more. One the engine stopped short of the point, further than
+    /// the tolerance from it, is sent again for the nearer move too; one the engine stopped at the point is not. One on
+    /// its way with an order that still serves is not sent either way.
+    #[test]
+    fn a_point_that_moved_less_than_the_tolerance_is_not_sent_again() {
+        let (near, band) = (16.0, 2.0 * form::HULL_SPACING);
+        let sent = at(2000.0, 1000.0);
+        let by = |dx: f32| at(2000.0 + dx, 1000.0);
+        // Standing at the point (closed on it, so the old order no longer serves), the point 10 and then 20 on.
+        assert!(!crate::resend_due(sent, false, sent, by(10.0), near, band));
+        assert!(crate::resend_due(sent, false, sent, by(20.0), near, band));
+        // Stopped by the engine 150 short, the point 10 on: sent again. Stopped 5 short of the point: not.
+        assert!(crate::resend_due(by(-150.0), true, sent, by(10.0), near, band));
+        assert!(!crate::resend_due(by(-5.0), true, sent, by(10.0), near, band));
+        // On its way 300 out, the point 20 on along its line: the order serves.
+        assert!(!crate::resend_due(by(-300.0), false, sent, by(20.0), near, band));
+        // The tolerance follows the pitch: a quarter of it across, at least 16.
+        assert_eq!(form::near_tolerance(form::HULL_PITCH, NEAR_SHARE), 16.0);
+        assert_eq!(form::near_tolerance(form::Pitch { across: 156.0, deep: 156.0 }, NEAR_SHARE), 39.0);
+        assert_eq!(form::near_tolerance(form::HULL_PITCH, 0.0), 0.0);
+    }
+
+    /// The same through the lane: a body that has closed on its points three frames after its first orders, the
+    /// points 8.7 on, is not sent again (until 2026-11-10 every member was); six frames later, the points 26 on, it is.
+    #[test]
+    fn the_lane_holds_a_slot_order_until_its_point_moved_the_tolerance() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12, 13, 14, 15];
+        let body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| OwnUnit { def: PAWN, ..rover(*id, 1000.0 + 64.0 * (i % 3) as f32, 1000.0 + 96.0 * (i / 3) as f32) }).collect();
+        lane.set_group("a", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Go, vec![at(4000.0, 1000.0)]));
+        let first = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut Vec::new(), false);
+        let sent: HashMap<i32, Vec3> = first.commands.iter().filter_map(|c| match c { Command::Move { unit, to, .. } => Some((unit.0, *to)), _ => None }).collect();
+        assert_eq!(sent.len(), 6, "{:?}", first.commands);
+        let closed: Vec<OwnUnit> = body.iter().map(|u| OwnUnit { pos: sent[&u.id.0], ..u.clone() }).collect();
+        let moves = |out: &crate::Output| out.commands.iter().filter(|c| matches!(c, Command::Move { .. })).count();
+        let out = lane.tick(&host, &tick(33, closed.clone(), Vec::new()), &mut Vec::new(), false);
+        assert_eq!(moves(&out), 0, "{:?}", out.commands);
+        let out = lane.tick(&host, &tick(39, closed, Vec::new()), &mut Vec::new(), false);
+        assert_eq!(moves(&out), 6, "{:?}", out.commands);
     }
 
     /// H-MICRO-RELAX through the lane: twelve Pawns walking to the far side of a wall with a door of 160 pass it

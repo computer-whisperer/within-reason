@@ -461,7 +461,7 @@ stream with an idle sim. Or the stream cut to under 25 KB/s in a game of the sam
 falling behind. The sim figure is the client's "Sim" timer alone (`CGame::SendClientProcUsage`). Executing the
 orders it receives runs in `ClientReadNet`, outside it. The case against the machines is that six different
 machines lost ground at one rate and that the split follows the link.
-**Used by.** (none yet; the order rate in K-group-the-march-re-sent-every-member-every-tick is the lever)
+**Used by.** H-MICRO-NEAR, H-HOST-ORDER-BUDGET (`docs/design/2026-11-10-order-budget.md`)
 
 ### K-mech-lobby-box-beside-us
 **Claim.** A lobby's start script can give an enemy ally team a start box whose centre is next to our own start,

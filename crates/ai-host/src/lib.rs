@@ -5,6 +5,7 @@
 //! its own process behind a socket (`crates/ai-shim`, the flagship's), or inside the library ([`InProcess`], a
 //! [`Bot`] called on the engine thread: a bot shipped as one file). See `DESIGN.md`.
 
+mod budget;
 mod engine;
 mod metal;
 mod script;
@@ -164,6 +165,9 @@ struct Instance<L: Transport> {
     hold_asked: Option<u32>,
     /// The game is held for this seat: no tick is sent and no connection tried until the release.
     held: Option<Held<L>>,
+    /// H-HOST-ORDER-BUDGET: the seat's unit orders held to the Apex average, moves only
+    /// (`docs/design/2026-11-10-order-budget.md`).
+    budget: budget::Budget,
 }
 
 /// Wall seconds the engine thread spent on one instance (`docs/design/2026-10-27-engine-thread.md`): an in-library
@@ -276,6 +280,18 @@ impl<L: Transport> Instance<L> {
         if frame % TIMING_INTERVAL == 0 && frame > 0 {
             let Spent { reads, bot, apply } = std::mem::take(&mut self.spent);
             self.log(format_args!("timing f={frame} minute: reads {reads:.3} s, bot {bot:.3} s, apply {apply:.3} s"));
+            if self.budget.on() {
+                let (m, waiting) = self.budget.take_minute();
+                self.log(format_args!(
+                    "orders f={frame} minute: sent {} (moves {}), held {}, replaced {}, dropped {}, waiting {waiting}, longest wait {:.1} s",
+                    m.sent,
+                    m.moves,
+                    m.held,
+                    m.replaced,
+                    m.dropped,
+                    m.longest as f32 / 30.0
+                ));
+            }
         }
         let Some(link) = &mut self.link else { return };
         match link.poll() {
@@ -290,6 +306,12 @@ impl<L: Transport> Instance<L> {
             }
             Ok(None) => {}
             Err(e) => return self.disconnect(e),
+        }
+        // The moves the budget held, as far as the bucket has refilled (this frame's answer's among them).
+        let mut released = Vec::new();
+        self.budget.release(frame, &mut released);
+        for command in released {
+            self.issue(command);
         }
         if frame % self.tick_frames == 0 && self.tick_due.is_none() {
             self.tick_due = Some(frame);
@@ -534,30 +556,40 @@ impl<L: Transport> Instance<L> {
                 self.spawns.push((def, at));
                 continue;
             }
-            if let Err(code) = self.engine.issue(&command) {
-                let (Command::Build { unit, .. }
-                | Command::Move { unit, .. }
-                | Command::Fight { unit, .. }
-                | Command::FightReclaimingEnemies { unit, .. }
-                | Command::Tend { unit, .. }
-                | Command::Attack { unit, .. }
-                | Command::Stop { unit }
-                | Command::SetRepeat { unit, .. }
-                | Command::MoveState { unit, .. }
-                | Command::FireState { unit, .. }
-                | Command::Guard { unit, .. }
-                | Command::ReclaimFeature { unit, .. }
-                | Command::ReclaimUnit { unit, .. }
-                | Command::Resurrect { unit, .. }
-                | Command::Repair { unit, .. }
-                | Command::SelfDestruct { unit }) = command
-                else {
-                    // No unit to report it against: say so here (a refused resource cheat was silent until 2026-10-24).
-                    self.log(format!("{command:?} refused: {code}"));
-                    continue;
-                };
-                self.events.push(Event::CommandRejected { unit, code });
+            // H-HOST-ORDER-BUDGET: a move may wait (`budget::Budget::offer`); everything else goes out now.
+            let mut now = Vec::new();
+            self.budget.offer(self.frame, command, &mut now);
+            for command in now {
+                self.issue(command);
             }
+        }
+    }
+
+    /// One order to the engine; a refusal goes to the bot against its unit.
+    fn issue(&mut self, command: Command) {
+        if let Err(code) = self.engine.issue(&command) {
+            let (Command::Build { unit, .. }
+            | Command::Move { unit, .. }
+            | Command::Fight { unit, .. }
+            | Command::FightReclaimingEnemies { unit, .. }
+            | Command::Tend { unit, .. }
+            | Command::Attack { unit, .. }
+            | Command::Stop { unit }
+            | Command::SetRepeat { unit, .. }
+            | Command::MoveState { unit, .. }
+            | Command::FireState { unit, .. }
+            | Command::Guard { unit, .. }
+            | Command::ReclaimFeature { unit, .. }
+            | Command::ReclaimUnit { unit, .. }
+            | Command::Resurrect { unit, .. }
+            | Command::Repair { unit, .. }
+            | Command::SelfDestruct { unit }) = command
+            else {
+                // No unit to report it against: say so here (a refused resource cheat was silent until 2026-10-24).
+                self.log(format!("{command:?} refused: {code}"));
+                return;
+            };
+            self.events.push(Event::CommandRejected { unit, code });
         }
     }
 
@@ -655,6 +687,10 @@ impl<L: Transport> Instance<L> {
             }
             _ => return,
         };
+        // A unit that died or went to another team has no move to wait for.
+        if let Event::UnitDestroyed { unit, .. } | Event::UnitTaken { unit, .. } = &event {
+            self.budget.forget(*unit);
+        }
         self.events.push(event);
     }
 }
@@ -746,6 +782,7 @@ impl<L: Transport> Host<L> {
                 spent: Spent::default(),
                 hold_asked: None,
                 held: None,
+                budget: budget::Budget::from_env(),
             };
             instance.log("init");
             // Hello at init, before the people place their starts and long before the first update: the player takes

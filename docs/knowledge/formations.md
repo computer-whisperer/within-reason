@@ -424,6 +424,10 @@ second after it. For Apex the figures were 2 % and 37 %, with 47 % over 256 elmo
 t14's units and 55-63 % of t16's were moving in any second, against 27-52 % of an Apex seat's. Each of those orders is a message to every client and
 a path search on every client. The messages are what lagged the far clients:
 K-engine-a-far-client-falls-behind-when-the-stream-outgrows-its-link.
+**Built 2026-11-10 (`docs/design/2026-11-10-order-budget.md`).** H-MICRO-NEAR: a slot order goes out again only once its
+point has moved a quarter of the pitch across, at least 16; the mixed company of 24 at 49 orders a unit-minute against
+153, arrival and formed share the same (ledger near-*). H-HOST-ORDER-BUDGET: each seat's orders held to the Apex
+average, 100 a second, moves only (ledger cap-*, budget-*).
 
 ### K-group-slots-nearer-than-the-hulls-stall-the-body
 **Claim.** A formation's slots must stand further apart than its members' pathing hulls, or the body stalls on open
@@ -526,6 +530,10 @@ which is why the pass is read at the door and not at the goal.
 **Evidence.** `run/matches/*-duel-rg0-open-stump100-on4`, `*-duel-rgF-open-stump100-on4`,
 `*-duel-rg0-wall-stump100-on`, `*-duel-rgZ-wall-stump100-on`, `*-duel-rg0-wall-stump100-far`,
 `*-duel-rgZ-wall-stump100-far`.
+**Measured 2026-11-10 (the order budget's bench, ledger cap-*).** The end also floods the stream. Two of four walks of 120
+Pawns and Stouts in five companies kept asking 150-209 moves a second at the goal for minutes, with every member formed
+and `arrived` flapping. That was with H-MICRO-NEAR on, so the slots there move more than 16 at a time, and it happened
+with the budget off as with it on. Under H-HOST-ORDER-BUDGET the seat sends 100 a second and no more.
 **Would be wrong if.** The members left behind stood further than a few seconds from their slots (they would then be
 the march's stragglers, not the end's), or a single company of a hundred's size arrived no better.
 **Used by.** (open; the candidates are the stopped-short re-send at an end that is not at contact, and an end for an
