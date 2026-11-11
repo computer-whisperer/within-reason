@@ -119,6 +119,12 @@ Rule IDs in "ours" are from `docs/heuristics.md`.
    What the AI interface exposes was not checked.
 4. **Squad speed matching needs a command we lack.** `Command` has no `WantedSpeed`; the engine supports it (BARb sets it on every
    travel order). Check the interface before designing around it.
+   **Checked 2026-10-24 and again 2026-11-11: there is none, and BARb sets nothing.** `CCircuitUnit::CmdWantedSpeed` is an
+   empty body (its three lines commented out, in `upstream/CircuitAI` and in the engine's own BARb alike), so the "sets
+   `CmdWantedSpeed`" and "travels at `lowestSpeed`" of the table above do nothing to a unit's speed. The engine's
+   `COMMAND_UNIT_SET_WANTED_MAX_SPEED` (56) is marked unused and has no handler; the game's `unit_wanted_speed.lua`
+   returns at once unless the hidden `emprework` option is on, and its command id is commented out. The one native
+   pacing is slow guard (K-engine-slow-guard-paces-a-guarder-to-its-guardee).
 5. **Does `isPorc` ever fire on Quicksilver?** It needs cluster income stddev > 0.3 × average and a cluster >1000 from base, or two
    threatened unfinished neighbours. If it never fires, BARb's outer extractors only ever get `prevent: 1` defence.
 6. **`amountFactor` on Quicksilver** — interpolated from map area between `[48, 32]` for 10×10 → 20×20. It sets the real metal
