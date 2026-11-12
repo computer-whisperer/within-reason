@@ -2,7 +2,8 @@
 
 **Status (2026-11-11).** Written on the user's word ("Go ahead with the target design") as the arc's ground truth,
 before any code. Nothing is built. §9 lists what still needs his word: D1 is ruled (nothing holds a unit back from a
-fight), D2 agreed, D3 withdrawn with the one body a group (the march and the companies stay as they are), D4 open. The same day, on his reading: §5 as first
+fight), D2 agreed, D3 withdrawn with the one body a group (the march and the companies stay as they are), D4 agreed. He then said
+"Let's proceed": the build runs by §10's stages, the flagship game of stage 6 still on his word. The same day, on his reading: §5 as first
 written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
 so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
 2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
@@ -246,7 +247,7 @@ Kept as they are: the lane's `company` setting, `GroupOrder::cap`, H-HANDS-ARRIV
 The deal, the slots and the answer are entered in `docs/code-decisions.md` with their constants in the commit that
 builds each.
 
-## 9. Open, the user's to rule
+## 9. The four points put to the user, and his rulings
 
 - **D1. Reinforcing a group in contact: ruled 2026-11-11, nothing is held back** (§0). Proposed and rejected:
   soldiers coming to a group in contact gathering on the last clear ground and going in as a company. Rejected
@@ -267,7 +268,8 @@ builds each.
   strings a mixed body out at 47 elmos a second (K-engine-one-goal-point-funnels-a-line-into-a-file), which is how
   an enemy nobody saw would meet it. And four blocks about one anchor is the slaving of companies-1, which the cap was made
   to end. What I had cited for it was the five companies' end and the order rate; neither is this design's (§11).
-- **D4. Strengths are the player's.** Assumed, not objected to: Jev owns tasks, timing and answers, and moves no slots.
+- **D4. Strengths are the player's: agreed 2026-11-11** ("D4: agreed"; a bare assent). Jev owns tasks, timing and
+  answers, and moves no slots.
 
 ## 10. How it is judged
 
@@ -299,7 +301,30 @@ Each stage has rows that could show it did nothing or did harm. Every batch gets
    costs and how often the two agree, which decides whether it earns a layer.
 6. **A flagship game** on his word, then a lobby game read with `run/demo_net.py`.
 
-## 11. Not in this design
+## 11. What the stages said
+
+**Stage 0 (2026-11-11): nothing refuted, the constants stand at 15 / 30 / 5.** `crates/micro/src/deal.rs` replayed
+by `cargo run --release -p micro --example deal_replay -- <record>` over the 10v8's two seats from 3:00 (248,000 and
+173,000 soldier-seconds) and the Apex v0.5.07 1v1 (37,000), a stand-in for the player declaring a group of 96 where
+24 soldiers no group has room for stand inside one gate, each group's place following the soldiers with it.
+
+| seat | gate / leave / margin | re-deals a unit-minute | with to coming, same group | with / coming / surplus |
+|---|---|---|---|---|
+| t14 | 10 / 20 / 0, 5 | 0.43, 0.22 | 0.04, 0.05 | 48 / 42 / 10 % |
+| t14 | 15 / 30 / 0, 5 | 0.18, 0.13 | 0.02 | 69 / 24 / 7 % |
+| t14 | 20 / 40 / 0, 5 | 0.14, 0.09 | 0.01 | 77 / 18 / 5 % |
+| t14 | 15 / 15 / 5 (no leaving gate) | 0.25 | 0.21 | 58 / 35 / 7 % |
+| t16 | 15 / 30 / 0, 5 | 0.11, 0.07 | 0.03, 0.04 | 81 / 12 / 6 % |
+| 1v1 | 15 / 30 / 0, 5 | 0.00 | 0.03 | 41 / 41 / 18 % |
+
+The bar was one re-deal a unit-minute under the margin; the worst row is 0.22. The leaving gate is what keeps a
+body's edge (a tenth of the falls from with to coming), and the margin cuts the re-deals by a third at 15 s and by
+half at 10. Four groups carry each seat of the 10v8 to the end, where the hands declared 197 and 155. The 1v1's
+surplus is the stand-in's (it founds nothing under 24; the design's default group stands from the first second).
+Read with the recording's limit: nobody in it came when the deal said coming. Not done here, moved to stage 5: the
+recorded sends against the soonest pooled set.
+
+## 12. Not in this design
 
 The march, in or out of the enemy's reach, and its order rate; the end of several companies told to one goal
 (K-group-five-companies-told-to-one-goal-do-not-settle), which a group of four companies still has; static defence; the way's price for narrow ground

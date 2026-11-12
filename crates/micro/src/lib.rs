@@ -21,6 +21,7 @@
 //! reflexes' steps, and for a group the common ground its anchor's way is planned over and its slots snapped to.
 //! H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
 
+pub mod deal;
 pub mod form;
 pub mod ground;
 pub mod group;
