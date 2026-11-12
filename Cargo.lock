@@ -830,6 +830,7 @@ version = "0.1.0"
 dependencies = [
  "bot-protocol",
  "serde",
+ "serde_json",
  "terrain",
 ]
 
