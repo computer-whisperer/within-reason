@@ -44,4 +44,4 @@ for t in times:
     for k in sorted(cells):
         v = cells[k]; mv = [m for m, _, _ in v if m is not None]
         types = collections.Counter(t for _, _, t in v)
-        print(f"   not with any group, at {k}: {len(v):3}  moved in the last 30 s: median {sorted(mv)[len(mv)//2] if mv else 0:5.0f}, under 100: {sum(m < 100 for m in mv):2}   to A's place: {min(x[1] for x in v):5.0f}-{max(x[1] for x in v):5.0f}  {dict(types)}")
+        print(f"   not with any group, at {k}: {len(v):3}  moved in the last 30 s: median {(format(sorted(mv)[len(mv)//2], '5.0f') if mv else '  new')}, under 100: {sum(m < 100 for m in mv):2}   to A's place: {min(x[1] for x in v):5.0f}-{max(x[1] for x in v):5.0f}  {dict(types)}")
