@@ -1,7 +1,8 @@
 # A group is slots at a place; units are dealt to it (2026-11-11)
 
 **Status (2026-11-11).** Written on the user's word ("Go ahead with the target design") as the arc's ground truth,
-before any code. Nothing is built. §9 lists what still needs his word. The same day, on his reading: §5 as first
+before any code. Nothing is built. §9 lists what still needs his word; D1 is ruled (nothing holds a unit back from a
+fight). The same day, on his reading: §5 as first
 written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
 so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
 2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
@@ -44,6 +45,10 @@ so that an answer is moves in the world pick. Rejected because a pick a threat i
   incursion_X' is a pattern we had before that I explicitly rejected for the sake of this new system. I could see us
   bringing something like that back as part of the gate if that is determined to be the efficient way to rule in or
   out worlds, but the authoritative thing still needs to be the world pick."
+- Reinforcing a fight, on D1 as first proposed (comers gather short of the enemy and go in as a company): "we should
+  not be holding units back from an active engagement. If jev decides to push the fight, we should push it with
+  everything available. If we are simply feeding units to the enemy, then it is jev's decision to retreat rather
+  than the micro engine's behavior."
 
 Earlier rulings this design keeps: one menu an actor, always from our units out to the enemy ("Why do we go from our
 units out to the enemy in one case, and from the enemy back to our units in the other case?", 2026-10-01); a roving
@@ -155,6 +160,9 @@ placed. No unit is ever named.
 
 - A group: its place and task, then "31 of 48 in place, 12 coming (half in 0:20, the last in 1:50), 5 lent to the
   answer to party_12".
+- A group in contact, in the player's report and in Jev's `actors` entry alike, as facts and no verdict: how many
+  are in the fight now, what arrives when, what it lost in the last 30 s and what it killed. Whether a fight fed one
+  soldier at a time is kept up or left is the pick's (§0, the ruling on D1).
 - An answer: its strength, its sources and how far out it is.
 - Surplus by place: "14 unassigned at B5".
 - Where the last minute's production went, by group.
@@ -209,7 +217,9 @@ off a scout" from the world pick to the player's slots (§9 D2).
   blocks about one anchor, every slot dealt in one least-travel deal each time the body forms. A company is a block
   of the layout, not a set of units. The army of companies (partition, merge, muster, `compose`) is deleted; so are
   `GroupOrder`'s `cap`, `musters` and `release`.
-- **Coming units walk on one plain order** to the group's place, sent again when the place has moved.
+- **Coming units walk on one plain order** to the group's place, sent again when the place has moved. Nothing holds
+  one back: no muster at the plant, no gathering short of a fight. A soldier that comes within the gate of a body in
+  contact takes a slot of it at once, and the body does not form again for it.
 - **A stretch with nothing hostile near it is a pass** (proposed, §9 D3). H-MICRO-RELAX passes tight ground relaxed:
   the anchor is set on the forming-up ground beyond, every member is sent there once on the engine's own path, and
   the ranks form on arrival. This design applies the same pass to any stretch with nothing hostile within
@@ -235,10 +245,11 @@ builds each.
 
 ## 9. Open, the user's to rule
 
-- **D1. Reinforcing a group in contact.** A group that refills itself feeds a fight one unit at a time. Proposed:
-  soldiers coming to a group whose place is not clear gather on the last clear forming-up ground on their way and go
-  in when a company stands there. This is code holding units back, so it needs his word. Without it the report
-  shows the trickle and the pick is Jev's.
+- **D1. Reinforcing a group in contact: ruled 2026-11-11, nothing is held back** (§0). Proposed and rejected:
+  soldiers coming to a group in contact gathering on the last clear ground and going in as a company. Rejected
+  because pushing a fight or leaving it is Jev's, and code that withholds units decides it instead. What the design
+  owes for it is §4's lines on a group in contact. It also settles the muster at the plant (`join_in`,
+  `MUSTER_PATIENCE`), which goes with the army of companies: a new soldier walks when it is made.
 - **D2. What leaves the world pick for the player.** A `groups` tool for slots replaces `produce`'s group clause and
   `lane`'s `company`. Because only the player makes or ends a group, three moves leave the groups' menus: `join` and
   `take_in` (the world merging two groups) and `rove_1` (the world splitting off a scout). Each is a decision the
@@ -263,15 +274,17 @@ Each stage has rows that could show it did nothing or did harm. Every batch gets
    - the yard, the wall's door and the lap of Quicksilver level with H-MICRO-RELAX's rows;
    - one WRDistilled game clean. The bots' benches are run only if he asks.
 2. **The deal and the slots, drilled.** A lab feeding a group that holds 2,000 off, then attacks a post (`--drill
-   gather` and `into`, `--feed`, `--lab`, `--post`): with and coming over time, and how many units came within the
-   post's reach with under a company of ours with them. A lab feeding a station and an army: who fills when.
+   gather` and `into`, `--feed`, `--lab`, `--post`): with and coming over time, and that the fight's lines of §4 say
+   what the drill's truth says (in the fight, arriving, lost, killed). A lab feeding a station and an army: who
+   fills when.
 3. **Answers.** The raid scenario with the picket alone (today's row), then with a stream walking past the strip and
    a body 1,500 off: extractors lost, seconds to the first kill, seconds until the lenders' slots are full again,
    re-deals an answer.
 4. **Rove.** The rove-2 drills with a rover dealt in and out mid-run: the kill no later than its row allows.
 5. **The hands, offline.** Recorded raid gates replayed (`run/jev_ab.py`'s way) with the lends' words and the
    answer priced whole on the world's line: does the pick take a rung where it took a send, and does a world of two
-   lenders win where each alone lost. Beside it, the pooled gate question of §5 against the nouls a rung: what it
+   lenders win where each alone lost. The same for recorded fights fed one soldier at a time, with §4's lines on
+   the group's entry: does the pick leave where it kept on. Beside it, the pooled gate question of §5 against the nouls a rung: what it
    costs and how often the two agree, which decides whether it earns a layer.
 6. **A flagship game** on his word, then a lobby game read with `run/demo_net.py`.
 
