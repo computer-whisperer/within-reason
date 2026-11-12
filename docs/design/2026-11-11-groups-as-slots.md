@@ -1,8 +1,8 @@
 # A group is slots at a place; units are dealt to it (2026-11-11)
 
 **Status (2026-11-11).** Written on the user's word ("Go ahead with the target design") as the arc's ground truth,
-before any code. Nothing is built. §9 lists what still needs his word; D1 is ruled (nothing holds a unit back from a
-fight). The same day, on his reading: §5 as first
+before any code. Nothing is built. §9 lists what still needs his word: D1 is ruled (nothing holds a unit back from a
+fight), D2 agreed, D3 withdrawn with the one body a group (the march and the companies stay as they are), D4 open. The same day, on his reading: §5 as first
 written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
 so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
 2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
@@ -49,6 +49,10 @@ so that an answer is moves in the world pick. Rejected because a pick a threat i
   not be holding units back from an active engagement. If jev decides to push the fight, we should push it with
   everything available. If we are simply feeding units to the enemy, then it is jev's decision to retreat rather
   than the micro engine's behavior."
+- The march, on D3 as first proposed (every clear stretch walked relaxed): "why are we extending the relaxed pass?
+  The formation movement still has value in controlling the layout of our units if we encounter the enemy, and so
+  far does a good job of allowing units to maneuver without bumping into each other. What part of that do you think
+  needs to change for this proposal?" The answer is §7: none of it.
 
 Earlier rulings this design keeps: one menu an actor, always from our units out to the enemy ("Why do we go from our
 units out to the enemy in one case, and from the enemy back to our units in the other case?", 2026-10-01); a roving
@@ -82,13 +86,6 @@ eventually), and several answers to one party are several actors, each weighed a
 small Blitz groups each withdrew from 13 Pawns as outweighed while the base burned. The player wrote "it sends no detachments" in 9 of 11 games of the detachments study.
 Production goes to the group its plant's order names, and nothing restores any other group's strength.
 
-**The march is a position loop through on/off actuators.** No speed command reaches a unit from an AI (the engine's
-command 56 is unused, the game's gadget is off, BARb's own call is an empty body; `docs/studies/barb-comparison.md`
-item 4). A faster unit is paced by walking and stopping: the mixed company of 24 costs 49 orders a unit-minute since
-H-MICRO-NEAR (153 before it) against 13 to 28 for a body of one type. A hundred Stouts in five companies had their
-last unit in at 71 to 95 s with 29 left behind, where a plain order with a wall's door in the way had all hundred
-there by 37 s, and the end asks 150 to 209 moves a second (K-group-five-companies-told-to-one-goal-do-not-settle).
-
 ## 2. Where groups are today
 
 | layer | what it holds | what this design does with it |
@@ -97,7 +94,7 @@ there by 37 s, and the end asks 150 to 209 moves a second (K-group-five-companie
 | the hands' group (`pianist/groups.rs`) | a member list, `parent`, `joining`, one task, the body as a sort along the goal axis, the newcomer's group by its factory (`group_for_newcomer`), `admit` | the list, `parent`, `joining` and the newcomer rules go; members are read from the deal each second |
 | the hands' orders (`execute.rs`, `menu.rs`) | `join` / `take_in` append one group's members to another; the send ladder and `rove_1` each make a group of their own; `start_hunt` moves the name when half go | the send rungs stay on the group's menu as lends that make no group (§5); `join`, `take_in` and `rove_1` go (§9 D2) |
 | the gate and the pick (`compose.rs`) | a party's `answer` noul and an actor's `change` open moves; each move is rated; the best go to the worlds; a world gives every actor one move and its line says the combination; one Choice a component, the world drawn | unchanged; a world's line prices an answer whole (§5) |
-| the lane's army (`crates/micro/src/army.rs`) | companies by history: a newcomer joins a marching company within 800, musters at a plant, or founds one where it stands; merge under the cap; `compose` takes the largest marching company's place | deleted; a group is one body laid afresh each time it forms (§7) |
+| the lane's army (`crates/micro/src/army.rs`) | companies by history: a newcomer joins a marching company within 800, musters at a plant, or founds one where it stands; merge under the cap; `compose` takes the largest marching company's place | kept, and handed only the soldiers with the group; the muster and `compose`'s place go (§7) |
 | the report (`pianist/picture.rs`) | a group's place is the lane's anchor of the composed company; "each marching on its own way" | the place is the slots' place, with how many are in it (§4) |
 | rove (`crates/micro/src/rove.rs`) | a flat list of rovers each tick, a memory a rover made and dropped by that list, the pack by a 400 radius | unchanged |
 
@@ -110,8 +107,8 @@ A group is a **name**, its **slots**, a **task** and a **place**.
 - **Slots** are its wanted strength: how many soldiers, of which types (any type when unsaid). At most four companies
   (96 at the lane's company of 24).
 - **Task** is what it has today: hold, move, fight to, attack a party, follow, rove.
-- **Place** is where its slots are. A holding group's place is the point it holds. A moving group's place is where
-  its body stands formed, or is forming up next (§7). A roving group has a region, or none, and no place.
+- **Place** is where its slots are. A holding group's place is the point it holds. A moving group's place is the
+  centre of the soldiers with it, so it follows its body; with nobody with it, it stays where it was. A roving group has a region, or none, and no place.
 - **Only the player makes, resizes or ends a group.** Nothing merges, splits or renames one. An empty group keeps its
   name, place and slots. A seat that has declared none has one, `group_A`, of the cap and any type, holding beside
   its first plant.
@@ -124,7 +121,8 @@ fills them.
 A soldier dealt to a group is **with** it when it can reach the group's place within the gate, `GATE_SECONDS` (15)
 at its own speed: a Lance (46.5) within 700, a Bull (62) within 930, a Blitz (101) within 1,500. Otherwise it is
 **coming**. Travel time is the hands' price for the walker's class where a field is held, and the straight line
-over the unit's speed where none is. Only the units with a group are its body: they are what the lane forms, what
+over the unit's speed where none is. A soldier with a group stays with it out to `GATE_LEAVE` (30 s), so that a body four companies across does not shed
+its edges; both gates are set in stage 0. Only the units with a group are its body: they are what the lane forms, what
 the odds are priced on and what an order moves at once.
 
 ### 3.3 The deal
@@ -213,32 +211,37 @@ off a scout" from the world pick to the player's slots (§9 D2).
 
 ## 7. Movement (`crates/micro`)
 
-- **One body a group.** The lane is handed the units with the group and lays them as one body of up to four company
-  blocks about one anchor, every slot dealt in one least-travel deal each time the body forms. A company is a block
-  of the layout, not a set of units. The army of companies (partition, merge, muster, `compose`) is deleted; so are
-  `GroupOrder`'s `cap`, `musters` and `release`.
+**The march is not changed** (§0, the ruling on D3). Ranks, the anchor's pace, the learned leads, the relaxed pass on
+restricted ground, contact and the fight stay as they are. So do the companies: a group's body is up to four
+companies of the cap, each a formation on its own way, which is what keeps one group from being one movement domain
+(the ruling of 2026-10-25).
+
+What changes is what the lane is handed:
+
+- **Only the soldiers with the group.** No company is founded far from the body, because a far soldier is not in the
+  body. Today the partition founds a marching company where a far newcomer stands; that rule made the string. Within
+  the body the partition and the merge are today's: a soldier joins the nearest company under the cap, else founds
+  one beside it. Its company and its slot stay the lane's working state, as they are now.
 - **Coming units walk on one plain order** to the group's place, sent again when the place has moved. Nothing holds
   one back: no muster at the plant, no gathering short of a fight. A soldier that comes within the gate of a body in
-  contact takes a slot of it at once, and the body does not form again for it.
-- **A stretch with nothing hostile near it is a pass** (proposed, §9 D3). H-MICRO-RELAX passes tight ground relaxed:
-  the anchor is set on the forming-up ground beyond, every member is sent there once on the engine's own path, and
-  the ranks form on arrival. This design applies the same pass to any stretch with nothing hostile within
-  `RELAX_CLEAR` (1,000) of it. The body forms before the first stretch that is not clear, and from there the ranks
-  march as they do today.
-- **Not changed:** the march inside the enemy's reach (the anchor's pace, the learned leads), contact, the fight.
+  contact joins a company of it at once.
+- **The muster goes** (D1): the mustering role, the muster points and the release count.
+- **The group's place is §3.1's.** `compose` no longer takes it from the largest marching company.
 
 ## 8. What goes
 
 | where | what |
 |---|---|
-| `crates/micro/src/army.rs` | the file: `Army`, `Company`, `Role`, `partition`, `merge`, `compose`, `muster_due` |
-| `crates/micro/src/group.rs`, `lib.rs` | `GroupOrder::cap`, `musters`, `release`; the per-company tick; `CompanyState` in `GroupState` |
+| `crates/micro/src/army.rs` | `Role::Mustering`, the muster rule of `partition`, `muster_due`, `MUSTER_PATIENCE`, `MUSTER_MIN`; `compose`'s place |
+| `crates/micro/src/group.rs`, `lib.rs` | `GroupOrder::musters`, `release`; the muster's release in the tick |
 | `pianist/groups.rs` | `Group::members` as a stored list, `parent`, `joining`, `admit`, `group_for_newcomer`, `Body`'s front and tail, `start_hunt`'s naming |
 | `pianist/execute.rs`, `menu.rs` | `Order::Join`, `TakeIn`, `RoveOne`, `RoveOneWithin` (D2). `Order::Send` stays and changes: a count in place of unit ids, the words of §5, no group made |
-| `brain/micro.rs`, `pianist` | `company_of`, `pianist.musters` |
-| `strategist/mcp.rs` | `produce`'s `group` and `join_in`; `lane`'s `company` |
-| `bots/distilled/src/lane.rs` | `.with_cap(COMPANY)` on its strike body and column, changed in the same commit as the lane |
-| `docs/heuristics.md` | retired or rewritten: H-HANDS-GROUPS, H-HANDS-JOINERS, H-HANDS-JOIN-SYMMETRIC, H-HANDS-GROUP-BODY, H-HANDS-ARRIVAL, H-HANDS-DETACH, H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES; H-MICRO-GROUP and H-MICRO-RELAX changed |
+| `brain/micro.rs`, `pianist` | `pianist.musters` |
+| `strategist/mcp.rs` | `produce`'s `group` and `join_in` |
+| `docs/heuristics.md` | retired or rewritten: H-HANDS-GROUPS, H-HANDS-JOINERS, H-HANDS-JOIN-SYMMETRIC, H-HANDS-GROUP-BODY, H-HANDS-DETACH, H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES; the muster's words in H-HANDS-LANE |
+
+Kept as they are: the lane's `company` setting, `GroupOrder::cap`, H-HANDS-ARRIVAL, and the bots' calls into the lane
+(neither bot gives the lane a muster point).
 
 The deal, the slots and the answer are entered in `docs/code-decisions.md` with their constants in the commit that
 builds each.
@@ -249,14 +252,21 @@ builds each.
   soldiers coming to a group in contact gathering on the last clear ground and going in as a company. Rejected
   because pushing a fight or leaving it is Jev's, and code that withholds units decides it instead. What the design
   owes for it is §4's lines on a group in contact. It also settles the muster at the plant (`join_in`,
-  `MUSTER_PATIENCE`), which goes with the army of companies: a new soldier walks when it is made.
-- **D2. What leaves the world pick for the player.** A `groups` tool for slots replaces `produce`'s group clause and
-  `lane`'s `company`. Because only the player makes or ends a group, three moves leave the groups' menus: `join` and
-  `take_in` (the world merging two groups) and `rove_1` (the world splitting off a scout). Each is a decision the
-  world pick has today and the player's slots would have instead. The send rungs stay (§5). The brief changes
-  between games only.
-- **D3. Clear ground as a pass.** He ruled the relaxed pass for restricted ground. Extending it to every clear
-  stretch is this design's proposal, judged in stage 1 before anything of the march is removed.
+  `MUSTER_PATIENCE`), which goes: a new soldier walks when it is made. That extension is this design's reading of
+  the ruling, told to him, not his words.
+- **D2. What leaves the world pick for the player: agreed 2026-11-11** ("that sounds fine, agreed"; a bare assent,
+  so cheap to reopen). A `groups` tool for slots replaces `produce`'s group clause. Because only the player makes
+  or ends a group, three moves leave the groups' menus: `join` and `take_in` (the world merging two groups) and
+  `rove_1` (the world splitting off a scout). The send rungs stay (§5). Changed since he agreed: `lane`'s `company`
+  stays, because the companies do (D3). The brief changes between games only.
+- **D3. Clear ground as a pass: withdrawn 2026-11-11** on his question (§0). Proposed and rejected: every stretch
+  with nothing hostile near walked relaxed, and with it a group laid as one body of four company blocks about one
+  anchor with the army of companies deleted. Rejected because the frame needs neither. On open ground the ranks cost
+  a company of one type about two seconds (Stouts 25 / 27 / 27-28 s in ranks on 2026-11-10; twelve on a plain order
+  24 / 25 / 25 in October's table, not the same body), while a plain order funnels a line into a file two wide and
+  strings a mixed body out at 47 elmos a second (K-engine-one-goal-point-funnels-a-line-into-a-file), which is how
+  an enemy nobody saw would meet it. And four blocks about one anchor is the slaving of companies-1, which the cap was made
+  to end. What I had cited for it was the five companies' end and the order rate; neither is this design's (§11).
 - **D4. Strengths are the player's.** Assumed, not objected to: Jev owns tasks, timing and answers, and moves no slots.
 
 ## 10. How it is judged
@@ -267,11 +277,12 @@ Each stage has rows that could show it did nothing or did harm. Every batch gets
    time, re-deals a unit-minute with the damping on and off, the gate at 10, 15 and 20 s; for each recorded send,
    the soonest pooled set against what was sent. A recording is not steered by the deal, so this sets constants and
    can only refute: over one re-deal a unit-minute under damping sends the rule back.
-1. **The lane, on the drill bench.** One body a group, the army deleted, the pass on clear ground. Rows to beat:
-   - a hundred in one group against the five companies' 28-37 / 41-49 / 71-95 s with 29 left behind, and the plain
-     order's 25 / 30 / 37; the end's 150-209 moves a second gone;
-   - the mixed company of 24 on the 2,000 walk: arrival 43-47 s, formed share 0.87-0.90, 49 orders a unit-minute;
-   - the yard, the wall's door and the lap of Quicksilver level with H-MICRO-RELAX's rows;
+1. **The lane, on the drill bench.** The lane handed the body alone, comers on plain orders, the muster gone. It
+   must move nothing of the march:
+   - the mixed company of 24 on the 2,000 walk (arrival 43-47 s, formed share 0.87-0.90), the yard, the wall's door
+     and the lap of Quicksilver level with their rows;
+   - new: a lab feeding a group on a walk (`--drill circuit`, `--feed`, `--lab`): the body's companies, the share of
+     the group's soldiers inside the gate (a third in the game's string), and when each comer joins;
    - one WRDistilled game clean. The bots' benches are run only if he asks.
 2. **The deal and the slots, drilled.** A lab feeding a group that holds 2,000 off, then attacks a post (`--drill
    gather` and `into`, `--feed`, `--lab`, `--post`): with and coming over time, and that the fight's lines of §4 say
@@ -290,5 +301,6 @@ Each stage has rows that could show it did nothing or did harm. Every batch gets
 
 ## 11. Not in this design
 
-The march inside the enemy's reach; static defence; the way's price for narrow ground
+The march, in or out of the enemy's reach, and its order rate; the end of several companies told to one goal
+(K-group-five-companies-told-to-one-goal-do-not-settle), which a group of four companies still has; static defence; the way's price for narrow ground
 (K-group-the-ways-price-walks-round-a-pass); Thor corners; the bots taking up the deal; the response-time lines of §4.
