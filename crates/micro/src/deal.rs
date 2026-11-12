@@ -10,7 +10,10 @@
 //! 2. **In place.** A soldier inside a group's gate takes a slot of it while one of its type is open: `gate` seconds
 //!    of its own travel to the group's place to enter, `leave` to stay, so that a body some companies across does not
 //!    shed its edges. A group with more soldiers in its gate than slots keeps those with it a second ago, then the
-//!    nearest; the ones let go are those best placed for another group.
+//!    nearest; the ones let go are those best placed for another group. A soldier with no group that is inside
+//!    several gates goes to one whose slots name its type before one that takes any type, and is left for a roving
+//!    group's open slot of its type before a gate's slot of any type (three groups declared at home in the first
+//!    game: the army's slots of any type took the scouts' Rover).
 //! 3. **Rove slots.** A roving group short of strength keeps its rovers and takes the soldiers of its types nearest
 //!    them (or nearest its region) that nothing above placed. A rover has no place to come to: it roves from where it
 //!    stands.
@@ -213,15 +216,36 @@ impl Deal {
                 out.insert(s.id, Standing::Lent(a.clone()));
             }
         }
+        // The rove slots that name a type and have no rover: a soldier of that type that is with no group is left for
+        // them (step 3) before a gate takes it into a slot of any type.
+        let mut rove_named: HashMap<UnitDefId, usize> = HashMap::new();
+        for d in demands.iter().filter(|d| matches!(d.place, Place::Roving { .. })) {
+            for (def, n) in &d.slots.typed {
+                let rovers = soldiers.iter().filter(|s| s.def == *def && !out.contains_key(&s.id) && matches!(held(s.id), Some(Standing::With(g)) if *g == d.name)).count();
+                *rove_named.entry(*def).or_default() += n.saturating_sub(rovers);
+            }
+        }
         // 2. In place: per group, those inside its gate, the ones with it a second ago first, then the nearest.
         let mut inside: Vec<Vec<(bool, f32, usize)>> = vec![Vec::new(); demands.len()];
         for (si, s) in soldiers.iter().enumerate() {
-            if out.contains_key(&s.id) {
+            if out.contains_key(&s.id) || matches!(held(s.id), Some(Standing::With(g)) if demands.iter().any(|d| d.name == *g && matches!(d.place, Place::Roving { .. }))) {
                 continue;
             }
-            // Its own group while it is inside the leaving gate, else the nearest gate it is inside.
+            // Its own group while it is inside the leaving gate; else, of the gates it is inside, a group whose slots
+            // name its type before one that takes any type, then the nearest (slots-apex-v0507-comet-opus-1, 1:08:
+            // three groups declared at home, the first Rover went to the army's 60 slots of any type and not to the
+            // scouts' two Rover slots, the tie in seconds broken by the order of the list; the player gave the army
+            // slots by type to get it back).
             let own = demands.iter().position(|d| matches!(held(s.id), Some(Standing::With(g)) if *g == d.name)).filter(|di| seconds[si][*di] <= gates.leave);
-            let near = (0..demands.len()).filter(|di| seconds[si][*di] <= gates.gate).min_by(|a, b| seconds[si][*a].total_cmp(&seconds[si][*b]));
+            let names = |di: &usize| demands[*di].slots.typed.iter().any(|(def, n)| *def == s.def && *n > 0);
+            let near = (0..demands.len()).filter(|di| seconds[si][*di] <= gates.gate).min_by(|a, b| names(b).cmp(&names(a)).then(seconds[si][*a].total_cmp(&seconds[si][*b])));
+            if own.is_none()
+                && !near.as_ref().is_some_and(names)
+                && let Some(n) = rove_named.get_mut(&s.def).filter(|n| **n > 0)
+            {
+                *n -= 1;
+                continue;
+            }
             if let Some(di) = own.or(near) {
                 inside[di].push((own == Some(di), seconds[si][di], si));
             }
@@ -495,6 +519,43 @@ mod tests {
         assert_eq!(dealt[&UnitId(4)], Standing::Surplus);
     }
 
+    /// Three groups declared at one place (the first flagship game on the slots, 1:08): a soldier inside several
+    /// gates goes to the group whose slots name its type, not to the first that takes any type; a soldier already
+    /// with a group stays with it, and one more than the named slots takes a slot of any type.
+    #[test]
+    fn of_the_gates_a_soldier_is_inside_a_group_naming_its_type_takes_it_first() {
+        let army = group("A", 60, 0.0, 0.0);
+        let scouts = Demand { name: "scout".into(), slots: Slots { any: 0, typed: vec![(BULL, 1)] }, place: Place::At(at(200.0, 0.0)) };
+        let demands = [army, scouts];
+        let mut deal = Deal::default();
+        let dealt = deal.deal(&[pawn(1, 0.0, 0.0), bull(2, 0.0, 0.0)], &demands, &[], &straight, Gates::default());
+        assert_eq!(dealt[&UnitId(1)], with("A"));
+        assert_eq!(dealt[&UnitId(2)], with("scout"), "nearer the army, and the scouts name it");
+        let dealt = deal.deal(&[pawn(1, 0.0, 0.0), bull(2, 0.0, 0.0), bull(3, 200.0, 0.0)], &demands, &[], &straight, Gates::default());
+        assert_eq!(dealt[&UnitId(2)], with("scout"), "the one with the scouts keeps the slot");
+        assert_eq!(dealt[&UnitId(3)], with("A"), "the second Bull has no named slot left: a slot of any type");
+    }
+
+    /// The scouts rove and name their type; the army stands at home with slots of any type. A new soldier of the
+    /// scouts' type at the plant is theirs while they are short, and the army's after.
+    #[test]
+    fn a_roving_groups_named_slot_takes_a_new_soldier_before_a_gates_slot_of_any_type() {
+        let scouts = Demand { name: "scout".into(), slots: Slots { any: 0, typed: vec![(PAWN, 2)] }, place: Place::Roving { about: None } };
+        let demands = [group("A", 60, 0.0, 0.0), scouts];
+        let mut deal = Deal::default();
+        let dealt = deal.deal(&[pawn(1, 0.0, 0.0), bull(2, 0.0, 0.0)], &demands, &[], &straight, Gates::default());
+        assert_eq!(dealt[&UnitId(1)], with("scout"));
+        assert_eq!(dealt[&UnitId(2)], with("A"));
+        // The rover is far off; two more Pawns at the plant: one roves, the army has the other.
+        let dealt = deal.deal(&[pawn(1, 6000.0, 0.0), bull(2, 0.0, 0.0), pawn(3, 0.0, 0.0), pawn(4, 0.0, 10.0)], &demands, &[], &straight, Gates::default());
+        assert_eq!(fills(&dealt)["scout"].with.len(), 2);
+        assert_eq!(fills(&dealt)["A"].with.len(), 2);
+        // A soldier with the army stays with it when a rove slot opens.
+        let dealt = deal.deal(&[bull(2, 0.0, 0.0), pawn(3, 0.0, 0.0), pawn(4, 0.0, 10.0)], &demands, &[], &straight, Gates::default());
+        assert_eq!(fills(&dealt)["scout"].with.len(), 1);
+        assert_eq!(fills(&dealt)["A"].with.len(), 2);
+    }
+
     #[test]
     fn a_lend_takes_the_lenders_soonest_and_the_end_deals_them_like_any_other() {
         let demands = [group("A", 4, 0.0, 0.0), group("station", 2, 2000.0, 0.0)];
@@ -547,15 +608,23 @@ mod tests {
     fn a_roving_group_keeps_its_rovers_and_fills_from_the_unplaced() {
         let rovers = Demand { name: "R".into(), slots: Slots { any: 0, typed: vec![(PAWN, 2)] }, place: Place::Roving { about: Some(at(5000.0, 0.0)) } };
         let demands = [group("A", 2, 0.0, 0.0), rovers];
-        // Two Pawns with A, two more beside them and a Bull: the two Pawns A has no slot for rove; the Bull is surplus.
+        // Four Pawns and a Bull beside A: two Pawns rove (the slots that name them), two are A's; the Bull is surplus.
         let soldiers = [pawn(1, 0.0, 0.0), pawn(2, 10.0, 0.0), pawn(3, 20.0, 0.0), pawn(4, 30.0, 0.0), bull(5, 40.0, 0.0)];
         let mut deal = Deal::default();
         let dealt = deal.deal(&soldiers, &demands, &[], &straight, Gates::default());
-        assert_eq!(fills(&dealt)["R"].with, [UnitId(3), UnitId(4)], "the ones best placed for elsewhere are let go of A");
+        let rovers = fills(&dealt)["R"].with.clone();
+        assert_eq!(rovers.len(), 2);
+        assert_eq!(fills(&dealt)["A"].with.len(), 2);
         assert_eq!(dealt[&UnitId(5)], Standing::Surplus);
         // A rover far across the map is still its group's: it has no place to come to.
-        let far = [pawn(1, 0.0, 0.0), pawn(2, 10.0, 0.0), pawn(3, 9000.0, 0.0), pawn(4, 9000.0, 50.0), bull(5, 40.0, 0.0)];
+        let far: Vec<Soldier> = soldiers.iter().map(|s| if rovers.contains(&s.id) { Soldier { pos: at(9000.0, s.pos.x), ..*s } } else { *s }).collect();
         let dealt = deal.deal(&far, &demands, &[], &straight, Gates::default());
-        assert_eq!(fills(&dealt)["R"].with, [UnitId(3), UnitId(4)]);
+        assert_eq!(fills(&dealt)["R"].with, rovers);
+        // And a rover that roves through another group's gate is not taken by its open slots (the first game on the
+        // slots, 10:56: the army was given 96 slots of any type and the two scouts beside it became the army's).
+        let roomy = [group("A", 96, 0.0, 0.0), demands[1].clone()];
+        let dealt = deal.deal(&soldiers, &roomy, &[], &straight, Gates::default());
+        assert_eq!(fills(&dealt)["R"].with, rovers);
+        assert_eq!(fills(&dealt)["A"].with.len(), 3, "the Bull has a slot now");
     }
 }

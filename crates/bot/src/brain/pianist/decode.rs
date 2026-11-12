@@ -214,7 +214,6 @@ mod tests {
     use super::super::menu::tests::{menu, mv};
     use super::super::menu::Order;
     use super::*;
-    use bot_protocol::UnitId;
 
     fn group() -> Menu {
         let mut m = menu(

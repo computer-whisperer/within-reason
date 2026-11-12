@@ -128,8 +128,7 @@ pub(crate) enum GroupTask {
     /// engine's on its fight orders, never this task's.
     Follow { ward: Ward, name: String, at: Vec3, since: i32 },
     /// Roving (H-MICRO-ROVE): every soldier is the lane's, looking at what we know least, killing what it finds
-    /// unguarded and keeping out of every reach. A pick like every task (the `rove` move, or `rove_1` for the
-    /// detachment it makes); the way back is any other pick (docs/design/2026-10-07-rove-approval.md, the rework).
+    /// unguarded and keeping out of every reach. A pick like every task (the `rove` move); the way back is any other pick (docs/design/2026-10-07-rove-approval.md, the rework).
     /// `within`: a region the player marked, outside which the rovers look at nothing and attack nothing (the
     /// `rove_<region>` move; docs/design/2026-10-17-rove-destinations.md).
     Rove { within: Option<String> },

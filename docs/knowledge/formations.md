@@ -636,3 +636,27 @@ are of the body where they used to found a company of their own.
 soldiers walking back and forth between two groups' places.
 **Used by.** H-MICRO-DEAL.
 
+
+### K-deal-a-slot-of-any-type-took-what-a-named-slot-asked-for
+**Claim.** Dealt by time alone, a group with slots of any type takes the soldiers another group names by type
+whenever it stands as near: the scouts' group gets no Rover while the army beside it has room, and a roving group's
+rover is taken by any group whose gate it passes through. A slot that names a type has to take a soldier of that
+type before a slot of any type does, and a rover has to stay its group's wherever it is.
+**Status.** observed once, in the first flagship game on the slots (slots-apex-v0507-comet-opus-1, 2026-11-11);
+the rule built the same day. Three groups declared at home in the opening turn (`group_A` 60 of any type,
+`group_guard` 3 Blitzes, `group_scout` 2 Rovers): the first Rover, made at 1:07, was `group_A`'s, the tie in
+seconds broken by the order of the list. The player at 1:35: "The Rover had joined the main army instead of the
+scout group, because the main army took any unit type. The main army now takes only Blitzes and Stouts." At 10:56
+it gave `group_A` 96 slots of any type for a Stout standing unassigned (its 20 Stout slots full), and at 11:06:
+"the two scout Rovers took slots in it, and the scout group vanished for want of members" (the rovers were inside
+the army's gate, and a rover had no gate of its own to stay in; the report read "actors gone (dead, merged or
+split): group_scout"). Typed again, it left Bulls with no slot from 15:13 to 16:01. Two Rover groups, one roving
+and one holding, traded Rovers 22 times the same way.
+**Evidence.** `run/matches/1794449149-slots-apex-v0507-comet-opus-1/00/strategist-0.jsonl` (the turns at 1:35,
+10:56, 11:06, 16:01), `jev-0.jsonl.zst` (the groups of each call); the tests
+`of_the_gates_a_soldier_is_inside_a_group_naming_its_type_takes_it_first`,
+`a_roving_groups_named_slot_takes_a_new_soldier_before_a_gates_slot_of_any_type` and
+`a_roving_group_keeps_its_rovers_and_fills_from_the_unplaced` in `crates/micro/src/deal.rs`.
+**Would be wrong if.** A game on the rule showed a player still giving its army slots by type to keep another
+group's soldiers out of it, or a roving group losing a rover to a group it passed.
+**Used by.** H-MICRO-DEAL.

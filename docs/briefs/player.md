@@ -566,7 +566,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   **against single-target fire (turrets, Centurions, Sharpshooters, Blitzes), tight and many** at once, every unit in
   reach of the one target. Nothing in the hands holds spacing yet (the spread rule was retired 2026-09-20): a wide
   formation is a `lane` and standing matter for now, and a body against splash is best made small at the source, by
-  `produce` groups of a dozen.
+  groups of a dozen slots (`groups`).
 - Tier-1 vehicles (metal / health / speed / range), Armada with the Cortex twin in brackets: Rascal `armfav`
   31/105/168/180 scout car (Tumbleweed `corfav` 26/90/153/180); Blitz `armflash` 110/730/101/180 raider tank
   (Instigator `corgator` 120/820/85/230); Stout `armstump` 225/1800/75/350 tank, the line unit (Bulldog `corraid`

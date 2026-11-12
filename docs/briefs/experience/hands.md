@@ -28,9 +28,9 @@ against your packet. They cannot count, plan or remember beyond what the picture
 - A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
   otherwise keeps to its route; being seen is its job".
 
-**`rove`.** Your hands' `rove` move, a pick, hands a group of fast units (Rovers, Ticks; name a plant's output into
-it with `produce`) to code that runs each of them ten times a second; `rove_1` sends one soldier, the group's
-fastest, as a group of its own. It drives to look at what we know least (his start box and base first, then spots
+**`rove`.** Your hands' `rove` move, a pick, hands a group of fast units (Rovers, Ticks; give the group slots of
+their type with `groups`) to code that runs each of them ten times a second; a scout is a group of one slot that you
+declare, and its `rove` is the same pick. It drives to look at what we know least (his start box and base first, then spots
 nobody has seen, then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with
 nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Say in the packet which
 group roves and when. A roving group answers no party. The group's entry says what each rover is doing and what it

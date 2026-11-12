@@ -20,7 +20,7 @@ Your one lever: `instruct { text }`, the whole packet of standing instructions, 
 would brief a hard-working assistant who follows orders literally and never counts:
 - One paragraph per kind of actor, in the words the hands see. Builders: `commander`, `constructor_N`. Labs: `lab_N`.
   Soldier groups: the ones you declare with the `groups` tool, by the names you give them (`group_A` alone until you
-  declare any; a group is its slots at a place, and every soldier takes the open slot it reaches soonest). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
+  declare any; a group is its slots at a place, and every soldier takes the open slot it reaches soonest, one that names its type before one of any type). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
   `passage_N` (the narrow ways between the two sides, numbered as the map lists them), any cell of the map's grid
   (`E3`) and, on a metal map, a field (`field_0`).
 - The build order as a sequence per builder: <!--brief:standard-->the first packet copies the opening the brief below gives for this map,
@@ -235,7 +235,9 @@ constructor first, then raiders" got three constructors (human-7). Which group a
 to is not `produce`'s: it takes the open slot it reaches soonest among your groups (the `groups` tool: `{"group_A":
 {"slots": 48}, "group_guard": {"slots": {"armfav": 2}, "at": "C5"}}`), walks there on its own as it is made, and is of
 the group when it arrives; nothing holds it at the plant. To keep types apart, give a group slots by type (a Rover
-group of `{"armfav": 6}` beside the Blitzes' group: the Rovers can rove while the Blitzes fight). To make two groups
+group of `{"armfav": 6}` beside the Blitzes' group: the Rovers can rove while the Blitzes fight): a slot that names
+a type takes a soldier of that type before a slot of any type does, so the army can keep slots of any type and
+needs no list of its own types. A type no group has a slot for stands unassigned at the plant until you open one. To make two groups
 one body, give one of them the slots and end the other. To move strength, lower one group and raise another: the
 soldiers best placed go. A group's entry says how many of its slots are filled where it stands, how many soldiers
 are coming and when the last arrives, and what it has lent; a group with nobody in place keeps its name and place.

@@ -5,8 +5,9 @@ before any code. Nothing is built. §9 lists what still needs his word: D1 is ru
 fight), D2 agreed, D3 withdrawn with the one body a group (the march and the companies stay as they are), D4 agreed. He then said
 "Let's proceed": the build runs by §10's stages, the flagship game of stage 6 still on his word. **Built the same day:
 stages 0 and 1, and the hands' steps 1 to 5 of §12 (the deal, the lane without the muster, the hands on the deal,
-the `groups` tool, the texts, the registers). Not built, not run: §12 says which. No game of any kind has been
-played on the rebuilt hands.** The same day, on his reading: §5 as first
+the `groups` tool, the texts, the registers). Not built, not run: §12 says which. Played that night on his word
+("The pianist-only smoke then flagship"): four smokes and one flagship game against Apex v0.5.07, won at 17:01
+(18:30 on the old hands); four faults and an order flood found in it and mended (§11, stage 6).** The same day, on his reading: §5 as first
 written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
 so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
 2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
@@ -346,6 +347,61 @@ The lap at the time limit had every soldier formed from 420 s and one of the fir
 of the lab: three companies' ends beside each other, the end this design leaves alone (§12). In the game this is a
 one-point route. Mended on the way: a company founded half way round a route of several points began it again.
 
+**Stage 6, the first games (2026-11-11 night; the user: "Let's proceed with testing this. The pianist-only smoke
+then flagship"): the rebuilt hands play, the game was won, and it showed four faults and a flood of orders, all
+mended the same night.** Two smokes of the pianist alone on a fixed packet (ledger `slots-smoke-1`, `-2`): no
+runtime fault; against BARb medium 40 lends into 16 answers, every soldier with its group, lent or on its way back
+at each look. Then one flagship game on the line and seed of apex-v0507-comet-sym0-opus-1 (the old hands, WON
+18:30), on the `claude` account at his word: **slots-apex-v0507-comet-opus-1, WON 17:01**, called by the referee.
+
+| | the old hands, 2026-11-09 | the slots, 2026-11-11 |
+|---|---|---|
+| result | won 18:30 | won 17:01 |
+| extractors at 5 / 10 / 15 | 10 / 36 / 45 | 9 / 31 / 52 |
+| army metal at 5 / 10 / 15 | 942 / 5,281 / 12,270 | 1,162 / 5,510 / 14,521 |
+| extractors lost to raids | 26 | 10 |
+| groups | dozens, named by the hands to `group_P1` | five, all the player's, in thirteen `groups` calls |
+| lends (sends) and the parties they went at | 22 at 12 | 91 at 31 |
+| a lend within 10 s of one at the same party | 7 | 55 |
+| `join` moves; withdrawals | 38; none | none; 16, five of them lent at again within 10 s |
+| Jev | $0.92, 21.85M tokens in, the actors' section 6.04M | $0.52, 12.46M, the actors' section 2.76M |
+| orders to soldiers a unit-minute | 52.1 | 75.7 (59 % of them the hunt's attack, sent again at every tick) |
+
+What the game showed of the design:
+
+- **The player used it.** `group_A` (the army), `group_guard` (three to six at home), `group_scout` (Rovers
+  roving), `group_hunt` (three Rovers at a spot in the middle) and `group_mid` (eight Stouts at D3), resized as the
+  game went, and no detachment was forbidden in its packet. Lends came from every group, and several groups lent to
+  one answer (sixteen soldiers of three groups on party_51).
+- **The report said what the design meant it to.** The player at 16:01: "group_A is down to 20 soldiers worth about
+  4,000 metal ... The 27 Stouts behind it arrive over the next minute and a half, the first half in about 30
+  seconds."
+- **Coming is a fifth of the soldier-seconds** (20.7 %; 9.5 % lent): with the army in his base at 16:00, 28 of 64
+  soldiers were on the road to it. Four of the 85 soldiers lost died coming (64 with `group_A`, 14 in answers).
+- **Churn:** a soldier's named group changed 0.21 times a unit-minute; 0.97 with lends and returns counted, against
+  the bar of one.
+- **Faults, each mended** (K-deal-a-slot-of-any-type-took-what-a-named-slot-asked-for,
+  K-micro-a-hunters-attack-went-out-at-every-tick):
+  1. A slot of any type took what a named slot asked for: the army took the scouts' first Rover (three groups
+     declared at home, the tie in seconds broken by the list's order), and when the army was given 96 slots of any
+     type it took both roving scouts, which were inside its gate. The player gave the army slots by type both
+     times, which left a Stout and later two Bulls with no slot. Now a slot naming a type takes a soldier of that
+     type first, among the gates it is inside and for a roving group's open slot, and a rover stays its group's
+     wherever it roves.
+  2. A roving group with no rover had no entry, so the report listed it as an actor "gone (dead, merged or split)".
+  3. The `groups` tool refused a new group's place by its name (`spot_44`, `spot_33`) and a value sent as a string
+     of JSON.
+  4. A hunter's attack order went out at every tick (ten a second; since the hunt was built, and through a guard of
+     2026-11-07 that never took effect): 22,095 of the game's 37,582 orders to soldiers, the worst minute 118 a
+     second against the seat's budget of 100.
+- **For his word, not built:**
+  - Jev tops an answer up a few soldiers at a time and takes one back to lend at the same party again (the two
+    rows above). The lender's rung and the answer's `stay` and `withdraw` are judged apart; a world prices neither
+    against the other (§12, the joint world's line).
+  - The deal fills the nearest group with room first, so a group far from the plants fills only once every nearer
+    one is full or names other types. It did not bite in this game (the small groups named their types and stood
+    nearer), and a station of slots of any type beyond an army gathering at home would stand empty.
+
 ## 12. The build's state (for whoever picks it up)
 
 **Done and committed (2026-11-11).**
@@ -377,7 +433,8 @@ one-point route. Mended on the way: a company founded half way round a route of 
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
-Jev over recorded gates. No smoke, no arena game, no flagship game.
+Jev over recorded gates. Run since (stage 6, §11): four smokes of the pianist alone and one flagship game, won; no
+lobby game, no team game, nothing with aircraft.
 
 ## 13. Not in this design
 

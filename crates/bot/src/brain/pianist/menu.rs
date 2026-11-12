@@ -22,7 +22,7 @@ use super::{GroupTask, Pianist, Task};
 use crate::strategist::shared::Allowance;
 use crate::world::Domain;
 
-/// The rover's job, as the `rove` and `rove_1` moves say it (H-MICRO-ROVE; docs/studies/2026-10-07-rove-words.md).
+/// The rover's job, as the `rove` move says it (H-MICRO-ROVE; docs/studies/2026-10-07-rove-words.md).
 const ROVE_WORDS: &str = "looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach";
 
 /// A builder is threatened by a party this close, or by a hit in the last seconds: a listed builder then has its
@@ -2007,7 +2007,7 @@ pub(super) mod tests {
         assert!(!menu.moves.iter().any(|m| m.key == "stun_party_1"), "the course's own move is left out: {:?}", menu.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
     }
 
-    /// A region the player marked is on a group's menu to rove within (`rove_<region>`, `rove_1_<region>`) when
+    /// A region the player marked is on a group's menu to rove within (`rove_<region>`) when
     /// the decode reads the packet as naming it for the group at 0.5 or over, and not otherwise; a group roving
     /// within it has that move as its course and the plain `rove` as the way out of the region.
     #[test]

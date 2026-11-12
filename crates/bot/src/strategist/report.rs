@@ -838,7 +838,8 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands:
         lines.extend(changed.iter().map(|a| format!("  {a}")));
     }
     let name = |line: &String| line.split(':').next().unwrap_or_default().to_string();
-    let gone: Vec<String> = seen.hands.iter().map(name).filter(|n| !actors.iter().any(|a| name(a) == *n)).collect();
+    // `unassigned` is the soldiers with no slot, not an actor that dies: its entry coming and going is no news.
+    let gone: Vec<String> = seen.hands.iter().map(name).filter(|n| n != "unassigned" && !actors.iter().any(|a| name(a) == *n)).collect();
     if !gone.is_empty() {
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }

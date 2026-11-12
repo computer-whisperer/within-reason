@@ -1569,7 +1569,7 @@ impl Brain {
                 None if place.cells.is_some() => {
                     let (a, b) = self.world.cells.rect(place.cells.unwrap());
                     let inside = spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
-                    format!("a region the player marked ({inside} metal spots inside): a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it; as a place to go to, its centre", place.name, place.name)
+                    format!("a region the player marked ({inside} metal spots inside): a group told to rove within it (`rove_{}`) looks only at places inside it; as a place to go to, its centre", place.name)
                 }
                 None if marks.contains_key(&place.name) => {
                     if self.reachable_on_foot(place.at) { "a place the player marked".into() } else { "a place the player marked; our ground units cannot get there from home (water or a cliff: aircraft can, hovercraft over water can); a ground group sent here stops at the nearest ground it can reach".into() }
@@ -2010,7 +2010,15 @@ impl Brain {
             let Some(body) = group.body(own, toward) else {
                 // Nobody with it (the slots design §3.1): the group stands as its slots at its place, and says who
                 // is coming. It has no menu until a soldier is inside its gate.
-                if group.answer.is_none() && !group.roving() {
+                if group.answer.is_none() && group.roving() {
+                    // A roving group whose rovers are dead is still the player's (the first game on the slots,
+                    // 10:56: the report read "actors gone (dead, merged or split): group_scout" of a group that
+                    // stood with its three slots open).
+                    actors.insert(
+                        format!("group_{}", group.name),
+                        json!({"units": format!("a group of {} slots with no soldier: it roves, and the next soldier its slots take roves from where it stands", group.slots.total()), "doing": "roving: nobody is with it"}),
+                    );
+                } else if group.answer.is_none() {
                     let coming = match (group.coming.first(), group.coming.last()) {
                         (Some((_, first)), Some((_, last))) => format!("{} coming, the first in {first:.0} s and the last in {last:.0} s", group.coming.len()),
                         _ => "nobody coming".to_string(),
