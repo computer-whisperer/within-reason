@@ -393,6 +393,10 @@ The lap at the time limit had every soldier formed from 420 s and one of the fir
 of the lab: three companies' ends beside each other, the end this design leaves alone (§12). In the game this is a
 one-point route. Mended on the way: a company founded half way round a route of several points began it again.
 
+The stage's bot game was not run with it. It ran the same night after the first flagship game, on the user's word
+(ledger `slots-distilled-smoke`): WRDistilled against BARb easy on the line of the smoke of 2026-11-10, won 11:37
+for 15:43, no fault, the strike body's formed share 0.90. One game; the bot uses no hunt and no deal.
+
 **Stage 6, the first games (2026-11-11 night; the user: "Let's proceed with testing this. The pianist-only smoke
 then flagship"): the rebuilt hands play, the game was won, and it showed four faults and a flood of orders, all
 mended the same night.** Two smokes of the pianist alone on a fixed packet (ledger `slots-smoke-1`, `-2`): no
