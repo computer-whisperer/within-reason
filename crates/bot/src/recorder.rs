@@ -637,7 +637,7 @@ fn group_json(s: &GroupState) -> Value {
         // The relaxed posture (docs/design/2026-11-10-restricted-ground.md): the members through, null in ranks.
         "passing": s.passing,
         // The companies (docs/design/2026-10-25-companies.md): none for a group with no cap.
-        "companies": s.companies.iter().map(|c| json!({"role": c.role.word(), "anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived})).collect::<Vec<_>>(),
+        "companies": s.companies.iter().map(|c| json!({"anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived})).collect::<Vec<_>>(),
     })
 }
 

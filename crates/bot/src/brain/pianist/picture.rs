@@ -2090,9 +2090,9 @@ impl Brain {
                 let to = goal.map(|p| self.place_words(&places, p));
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
                 entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
-                // The companies (the companies design §4), when the army is more than one or a muster stands.
-                if state.companies.len() > 1 || state.companies.iter().any(|c| c.role == micro::Role::Mustering) {
-                    entry["companies"] = json!(company_words(state, self.company_of(&group.name), pianist.musters.get(&group.name).and_then(|(_, r)| *r), &|p| self.place_words(&places, p)));
+                // The companies (the companies design §4), when the army is more than one.
+                if state.companies.len() > 1 {
+                    entry["companies"] = json!(company_words(state, self.company_of(&group.name), &|p| self.place_words(&places, p)));
                 }
             }
             // A shelling group's screen, the lane's second formation of it (chunk 5).
@@ -2353,28 +2353,16 @@ impl Brain {
     }
 }
 
-/// The army's companies (the companies design §4): how many of up to the cap, each marching one by its size, its
-/// formed count, where it stands and how far from the main body (the largest, whose numbers the formation words
-/// give), and a muster by its plant's place and what releases it.
-pub(crate) fn company_words(state: &micro::GroupState, cap: usize, release: Option<usize>, place: &dyn Fn(Vec3) -> String) -> String {
-    use micro::Role;
-    let mut parts: Vec<String> = Vec::new();
-    for c in &state.companies {
-        parts.push(match c.role {
-            Role::Marching => {
-                let off = c.anchor.dist2d(state.anchor);
-                let from = if off < 1.0 { " (the main body)".to_string() } else { format!(", {off:.0} from the main body") };
-                format!("{} ({} formed) at {}{from}", c.members, c.formed, place(c.anchor))
-            }
-            Role::Mustering => format!(
-                "{} mustering at {} (they leave at {} or after {} s)",
-                c.members,
-                c.at.map_or("their plant".to_string(), place),
-                release.unwrap_or(cap).max(1),
-                micro::army::MUSTER_PATIENCE / 30
-            ),
-        });
-    }
+/// The army's companies (the companies design §4): how many of up to the cap, each by its size, its formed count,
+/// where it stands and how far from the main body (the largest, whose numbers the formation words give).
+pub(crate) fn company_words(state: &micro::GroupState, cap: usize, place: &dyn Fn(Vec3) -> String) -> String {
+    let parts: Vec<String> = (state.companies.iter())
+        .map(|c| {
+            let off = c.anchor.dist2d(state.anchor);
+            let from = if off < 1.0 { " (the main body)".to_string() } else { format!(", {off:.0} from the main body") };
+            format!("{} ({} formed) at {}{from}", c.members, c.formed, place(c.anchor))
+        })
+        .collect();
     format!("{} compan{} of up to {cap}, each marching on its own way: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
 }
 

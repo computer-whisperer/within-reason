@@ -433,7 +433,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: drill::PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, slots: 0, pair: drill::PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -594,6 +594,7 @@ fn parse_args() -> io::Result<Options> {
             }
             "--churn-def" => drill_opts.churn_def = value(),
             "--cap" => drill_opts.cap = number(value()) as usize,
+            "--slots" => drill_opts.slots = number(value()) as usize,
             "--late" => {
                 let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--late takes seconds, such as 4"));
                 drill_opts.late = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f >= 0);

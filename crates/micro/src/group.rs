@@ -119,11 +119,6 @@ pub struct GroupOrder {
     pub march: bool,
     /// Members a company holds at most (`docs/design/2026-10-25-companies.md` §2); 0: no cap, one company.
     pub cap: usize,
-    /// Where newcomers far from the army gather (the plants' beside-lane points, a drill's lab) until `release` of
-    /// them stand, then walk to the army as a company.
-    pub musters: Vec<Vec3>,
-    /// How many mustered newcomers walk together; none: the cap.
-    pub release: Option<usize>,
     /// The enemy units an attack on a party is on (`docs/design/2026-10-28-contact-cleanup.md` §5.2): each company's
     /// route ends at the nearest of them in its sight, the host's route (the party's centre) only while none is seen;
     /// a route the host moves does not re-aim such a group. Empty: the route is the route.
@@ -141,7 +136,7 @@ pub struct GroupOrder {
 impl GroupOrder {
     /// A marching order of this kind along this route.
     pub fn new(kind: GroupKind, route: Vec<Vec3>) -> GroupOrder {
-        GroupOrder { kind, route, march: true, cap: 0, musters: Vec::new(), release: None, party: Vec::new(), ward: None, heal: true }
+        GroupOrder { kind, route, march: true, cap: 0, party: Vec::new(), ward: None, heal: true }
     }
 
     /// The same order with the rovers' healing on or off.
@@ -778,6 +773,18 @@ impl Group {
         }
     }
 
+    /// The host's route points this formation has passed (D22): those before the way in force, and those of it behind
+    /// the leg the anchor walks.
+    pub(crate) fn route_passed(&self) -> usize {
+        (self.way_skips + self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count()).min(self.order.route.len().saturating_sub(1))
+    }
+
+    /// A formation founded beside one already on the route begins where that one is, `passed` points in: its first
+    /// way is planned from there (`army::Army::found`).
+    pub(crate) fn begin_at(&mut self, passed: usize) {
+        self.way_skips = passed.min(self.order.route.len().saturating_sub(1));
+    }
+
     /// The way from where the anchor stands through the host's points (design D17): each leg the ground's way (the
     /// priced field from the leg's point, descended, thinned and straightened), the host's point ending it; the
     /// host's points themselves without a ground, or with the march off (the slots stand at the end regardless).
@@ -790,7 +797,7 @@ impl Group {
         // second re-plan with no point passed since the first planned from the route's first point again: the
         // ground's structures change twice in five seconds when the gantry's first Thor appears, two rebuilds 150
         // frames apart, and the lap's route began again at its second corner, t3dbg-thor8 and rgZc-dbg-thor8.)
-        let passed = (self.way_skips + self.way_host.iter().take(self.leg.min(self.way_host.len())).filter(|host| **host).count()).min(self.order.route.len().saturating_sub(1));
+        let passed = self.route_passed();
         // An anchor at the way's end stays there through a re-plan (a ground rebuilt on a structure change: a wreck,
         // a dead turret): planned afresh it walked the new last leg, and a block that had closed past its end turned
         // round and marched back to it at every enemy death (the advance bench's replays, 2026-10-28 night, the user:
@@ -3315,14 +3322,14 @@ mod tests {
                     s.pace,
                     s.formed.len(),
                     s.arrived,
-                    s.companies.iter().map(|c| format!("{} {} at ({:.0},{:.0}) formed {}/{}", c.role.word(), c.members, c.anchor.x, c.anchor.z, c.formed, c.members)).collect::<Vec<_>>().join("; ")
+                    s.companies.iter().map(|c| format!("{} at ({:.0},{:.0}) formed {}/{}", c.members, c.anchor.x, c.anchor.z, c.formed, c.members)).collect::<Vec<_>>().join("; ")
                 ));
             }
         }
         let text = log.join("\n");
         let s = lane.group_state("a").expect("a state");
         assert_eq!(s.companies.len(), 2, "{text}");
-        assert!(s.companies.iter().all(|c| c.role == crate::Role::Marching && c.members == 24), "{text}");
+        assert!(s.companies.iter().all(|c| c.members == 24), "{text}");
         assert!(s.companies.iter().all(|c| c.formed >= 20), "each company formed on its own: {text}");
         lane.set_group("a", ids.clone(), GroupOrder::new(GroupKind::Go, vec![goal]));
         lane.tick(&host, &tick(30 + 3 * 200, body.clone(), Vec::new()), &mut Vec::new(), false);

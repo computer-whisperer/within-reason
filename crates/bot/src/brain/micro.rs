@@ -67,11 +67,9 @@ impl Brain {
                         _ => micro::GroupKind::Hold,
                     };
                     let members: Vec<UnitId> = group.members.clone();
-                    // The companies (the companies design §4): the player's cap for the group, the muster points
-                    // of the plants feeding it and their `join_in` as the count that walks together.
+                    // The companies (the companies design §4): the player's cap for the group.
                     let cap = self.company_of(&group.name);
-                    let (musters, release) = pianist.musters.get(&group.name).cloned().unwrap_or_default();
-                    let company = |order: micro::GroupOrder| micro::GroupOrder { cap, musters: musters.clone(), release, ..order };
+                    let company = |order: micro::GroupOrder| micro::GroupOrder { cap, ..order };
                     // A shelling group is two formations (chunk 5): its artillery at the standoff, the rest at the
                     // screen; the hold its walk arrives in keeps both where their anchors stand.
                     let screen = group.screen.filter(|_| group.shelling);

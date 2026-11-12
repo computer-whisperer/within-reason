@@ -274,6 +274,16 @@ struct Army {
     /// fewest seconds to its slot seen and the frame it was seen; and the members taken out of the group.
     straggler_best: HashMap<UnitId, (f32, i32)>,
     left_behind: HashSet<UnitId>,
+    /// The deal over the army's one group (`docs/design/2026-11-11-groups-as-slots.md` §3, §7): once a second every
+    /// living soldier is with the group (the body the lane is handed), coming to it on a plain order, or surplus.
+    /// `place` is the centre of the soldiers with it.
+    deal: micro::deal::Deal,
+    comers: micro::deal::Comers,
+    place: Option<Vec3>,
+    dealt_at: Option<i32>,
+    with: Vec<UnitId>,
+    /// (with, coming, surplus) at the last deal, for the per-second line.
+    dealt: (usize, usize, usize),
     /// Hurters this army's team gives, for the other army's units, and whether they have been given.
     hurters: Vec<Hurter>,
     hurters_given: bool,
@@ -338,6 +348,12 @@ impl Army {
             held: HashSet::new(),
             straggler_best: HashMap::new(),
             left_behind: HashSet::new(),
+            deal: micro::deal::Deal::default(),
+            comers: micro::deal::Comers::default(),
+            place: None,
+            dealt_at: None,
+            with: Vec::new(),
+            dealt: (0, 0, 0),
             hurters: Vec::new(),
             hurters_given: false,
             ordered_at: None,
@@ -1740,7 +1756,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         }
                         if let Some(state) = lane.group_state("army") {
                             // The group's word for the drill's books: a circuit ends on it, and takes its formed share.
-                            drill.note_group(state.formed.len(), state.formed.len() + state.exceptions.len(), state.arrived && state.exceptions.is_empty());
+                            // Nobody still coming to the group either: a soldier on its way to the body is not the
+                            // lane's yet, and the drill is not over while one walks.
+                            drill.note_group(state.formed.len(), state.formed.len() + state.exceptions.len(), state.arrived && state.exceptions.is_empty() && army.dealt.1 == 0);
                             drill.note_companies(&state.companies);
                             drill.note_anchor(state.anchor, state.heading, state.pace, state.arrived, state.engaged.is_some());
                             // D21 `--stall`: from `T` after the first order the rearmost formed member is held out of
@@ -1822,14 +1840,44 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     let living: Vec<UnitId> = (army.alive.keys().copied())
                         .filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile && !waiting.contains(&i)) && !army.left_behind.contains(u) && Some(*u) != stalled)
                         .collect();
+                    // The deal (the slots design §3, §7), once a second: the lane is handed the soldiers with the
+                    // group; one still coming (a fed unit at the lab, the rear party once it joins, a scattered
+                    // start) walks to the group's place on a plain order and is the lane's when it is inside the
+                    // gate. Nothing musters and nothing waits for it.
+                    if army.dealt_at.is_none_or(|at| frame - at >= FPS) {
+                        army.dealt_at = Some(frame);
+                        let soldiers: Vec<micro::deal::Soldier> = (tick.snapshot.own_units.iter())
+                            .filter(|u| living.contains(&u.id))
+                            .filter_map(|u| Some(micro::deal::Soldier { id: u.id, def: u.def, pos: u.pos, speed: rules.defs.get(&u.def)?.speed }))
+                            .collect();
+                        let slots = duel.drill.as_ref().map_or(0, |d| d.slots);
+                        if let Some(place) = army.place.or_else(|| micro::deal::centre(soldiers.iter().map(|s| s.pos))) {
+                            let demand = micro::deal::Demand { name: "army".into(), slots: micro::deal::Slots::any(if slots == 0 { usize::MAX } else { slots }), place: micro::deal::Place::At(place) };
+                            let dealt = army.deal.deal(&soldiers, &[demand], &[], &micro::deal::straight, micro::deal::Gates::default());
+                            let fill = micro::deal::fills(&dealt);
+                            let mine_fill = fill.get("army").cloned().unwrap_or_default();
+                            let at_of: HashMap<UnitId, Vec3> = soldiers.iter().map(|s| (s.id, s.pos)).collect();
+                            let place = micro::deal::centre(mine_fill.with.iter().map(|id| at_of[id])).unwrap_or(place);
+                            army.place = Some(place);
+                            let fight = order.kind != GroupKind::Go;
+                            let idle: HashSet<UnitId> = tick.snapshot.own_units.iter().filter(|u| u.idle).map(|u| u.id).collect();
+                            let coming: Vec<micro::deal::Comer> = mine_fill.coming.iter().map(|(id, _)| micro::deal::Comer { id: *id, place, fight, idle: idle.contains(id) }).collect();
+                            let mut sent = Vec::new();
+                            army.comers.orders(&coming, &mut sent);
+                            lane.note_standing_orders(&sent, frame, |u| members.contains(&u));
+                            mine.extend(sent);
+                            army.dealt = (mine_fill.with.len(), mine_fill.coming.len(), fill.get("").map_or(0, |f| f.with.len()));
+                            army.with = mine_fill.with;
+                        }
+                    }
+                    let body: Vec<UnitId> = army.with.iter().copied().filter(|u| living.contains(u)).collect();
                     // `--lane ranks`: the group with its march off, the slots standing at the destination.
-                    // The companies design (`--cap`): the army in companies of at most the cap, the lab's rally the
-                    // muster of a fed force.
-                    let (cap, musters) = duel.drill.as_ref().map_or((0, Vec::new()), |d| (d.cap, if d.cap > 0 && matches!(d.kind, drill::Kind::Gather | drill::Kind::Circuit) { vec![d.rally()] } else { Vec::new() }));
+                    // The companies design (`--cap`): the army in companies of at most the cap.
+                    let cap = duel.drill.as_ref().map_or(0, |d| d.cap);
                     let pair_attack = duel.drill.as_ref().is_some_and(|d| d.kind == drill::Kind::Pair && d.pair_mode == drill::PairMode::Attack);
                     let party: Vec<UnitId> = if pair_attack { enemy.alive.keys().copied().collect() } else { order.party.clone() };
-                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, musters, party: party.clone(), ..order };
-                    lane.set_group("army", living, order);
+                    let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, party: party.clone(), ..order };
+                    lane.set_group("army", body, order);
                     // The pair drill's second group: the second force as a lane group of its own, to the same end, to
                     // the army's anchor (a follower), or at the party with the army; its anchor noted for the books.
                     if let Some(drill) = duel.drill.as_mut()
@@ -2297,6 +2345,8 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     if let Some(d) = duel.drill.as_ref() {
         line["back"] = json!(d.back_second.round());
         line["sent"] = json!([d.orders_last_second.0, d.orders_last_second.1]);
+        // The deal (the slots design): the army's soldiers with its group, coming to it and surplus.
+        line["deal"] = json!([x.dealt.0, x.dealt.1, x.dealt.2]);
         if let Some(c) = &d.churn {
             line["churn"] = json!(c.standing.is_some());
         }

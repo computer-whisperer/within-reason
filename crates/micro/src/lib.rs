@@ -31,7 +31,7 @@ mod rove;
 mod test_host;
 
 pub use ground::{ClassKey, Classes, Footprint, Ground};
-pub use army::{Army, Company, CompanyState, Role};
+pub use army::{Army, Company, CompanyState};
 pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
 pub mod threat;
 
@@ -1347,7 +1347,7 @@ impl Lane {
             // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, two near companies
             // that fit merged, then every company ticked as a group of its own.
             let by_walker: HashMap<UnitId, group::Walker> = walkers.iter().map(|w| (w.id, *w)).collect();
-            let founded = army.partition(&name, &members, &by_walker, &order, frame, pitch, &ground);
+            let founded = army.partition(&name, &members, &by_walker, &order, pitch, &ground);
             if ground_changed {
                 for c in &mut army.companies {
                     c.formation.set_ground(ground.clone());
@@ -1361,7 +1361,7 @@ impl Lane {
             if founded > 0 && group::debug_on() {
                 eprintln!(
                     "[group {name} f={frame}] FOUNDED {founded}: now {}",
-                    army.companies.iter().map(|c| format!("{} {} of {}", c.formation.name, c.role().word(), c.members.len())).collect::<Vec<_>>().join(", ")
+                    army.companies.iter().map(|c| format!("{} of {}", c.formation.name, c.members.len())).collect::<Vec<_>>().join(", ")
                 );
             }
             for c in &mut army.companies {
@@ -1369,18 +1369,10 @@ impl Lane {
                 let ctx = FormCtx { frame, enemies, by_id: &by_id, pitch: pitch_of(&mut w.iter().map(|w| w.id)), footprints: &footprints, hostile: &hostile };
                 // The other formations' footprints for the plan's price (the facing design §3), this one's left out.
                 c.formation.set_others(footprints.iter().filter(|f| f.name != c.formation.name).cloned().collect());
-                c.formation.update(c.members.clone(), c.order(&order));
+                c.formation.update(c.members.clone(), order.clone());
                 let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
                 if c.formation.passing() {
                     self.passing.extend(w.iter().map(|w| w.id));
-                }
-                if let Some((at, since)) = c.muster
-                    && army::muster_due(c.members.len(), since, frame, &order)
-                {
-                    if group::debug_on() {
-                        eprintln!("[group {name} f={frame}] RELEASE {}: {} members from the muster at ({:.0},{:.0}) after {} s", c.formation.name, c.members.len(), at.x, at.z, (frame - since) / FRAMES_PER_SECOND);
-                    }
-                    c.muster = None;
                 }
                 c.state = Some(state);
             }

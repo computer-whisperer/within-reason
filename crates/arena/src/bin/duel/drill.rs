@@ -206,6 +206,9 @@ pub struct Options {
     pub late: Option<i32>,
     /// The companies design (`--cap N`): members a company of the army holds at most; 0 for one formation.
     pub cap: usize,
+    /// The slots design (`--slots N`): the army's group has this many slots, and soldiers past them are surplus; 0
+    /// for a slot each.
+    pub slots: usize,
     /// `pair`: what the second group does (`--pair walk|follow|attack`).
     pub pair: PairMode,
     /// Our own structures at the goal (`--post name*count[+...]`, "armmex*1+armllt*2"): the first stands on the goal,
@@ -514,6 +517,7 @@ pub struct Drill {
     /// D23 `--late`: frames after the first order until the rear party joins, and the rear party's spawn indices.
     pub late: Option<i32>,
     pub cap: usize,
+    pub slots: usize,
     pub rear: Vec<usize>,
     /// `pair`: the second group's mode, where its way ends now (a follower's re-aimed at the army's anchor once it
     /// has moved `PAIR_FOLLOW_STEP`), its anchor and standing as last noted, the anchors' distance each second both
@@ -607,6 +611,7 @@ impl Drill {
             nudge: options.nudge,
             late: options.late,
             cap: options.cap,
+            slots: options.slots,
             rear: Vec::new(),
             pair_mode: options.pair,
             pair_goal: None,
@@ -655,9 +660,9 @@ impl Drill {
     /// The army's companies this tick (the companies design): how many, and their own formed shares.
     pub fn note_companies(&mut self, companies: &[micro::CompanyState]) {
         self.companies_max = self.companies_max.max(companies.len());
-        let marching: Vec<f32> = companies.iter().filter(|c| c.role != micro::Role::Mustering && c.members > 0).map(|c| c.formed as f32 / c.members as f32).collect();
-        if !marching.is_empty() {
-            self.company_shares.push(marching.iter().sum::<f32>() / marching.len() as f32);
+        let shares: Vec<f32> = companies.iter().filter(|c| c.members > 0).map(|c| c.formed as f32 / c.members as f32).collect();
+        if !shares.is_empty() {
+            self.company_shares.push(shares.iter().sum::<f32>() / shares.len() as f32);
         }
     }
 
@@ -975,8 +980,8 @@ impl Drill {
 
     /// Whether the drill is over: every unit it waits for has arrived at the goal in force (after the turn, for a
     /// reverse; the whole list produced and arrived, for a gather), or for `into` every living mobile unit
-    /// (`walking`, by spawn index) has fired; for a circuit every core unit has walked its laps and, under a group, the
-    /// group stands at the route's end with no exceptions. An assault is never done by the drill: the duel's judge
+    /// (`walking`, by spawn index) has fired; for a circuit every core unit has walked its laps, the whole feed is made
+    /// and, under a group, the group stands at the route's end with no exceptions and nobody still coming to it. An assault is never done by the drill: the duel's judge
     /// ends it (the defence or the army wiped, the time limit).
     pub fn done(&self, walking: &[usize]) -> bool {
         let expected = self.expected(walking.len());
@@ -995,7 +1000,11 @@ impl Drill {
             Kind::Pair => self.pair_mode != PairMode::Attack && self.group.is_some_and(|(_, _, done)| done) && self.pair_arrived.is_some(),
             Kind::Circuit => {
                 let core: Vec<&usize> = self.core.iter().filter(|i| !self.left_behind.contains(i)).collect();
-                !core.is_empty() && core.iter().all(|i| self.arrived.contains_key(i)) && self.group.is_none_or(|(_, _, done)| done)
+                // The whole feed made, too: a fed unit walks to the body on its own order (the slots design §7), so the
+                // group can stand formed at the route's end between two of them (slots2-circ-pawn24-feed36-cap24: three
+                // laps of four ended with 17 of 36 made; a muster used to keep the group from arriving until then).
+                let fed: usize = self.wanted.iter().map(|(_, n)| *n as usize).sum();
+                !core.is_empty() && core.iter().all(|i| self.arrived.contains_key(i)) && self.appeared.len() >= fed && self.group.is_none_or(|(_, _, done)| done)
             }
         }
     }
@@ -1065,7 +1074,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, pair: PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, slots: 0, pair: PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back

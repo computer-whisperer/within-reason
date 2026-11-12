@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use bot_protocol::{Command, Lane, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
+use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
@@ -19,13 +19,12 @@ const ADOPT_RADIUS: f32 = 400.0;
 /// A moving group has arrived when its centre is this close to its destination; a declared group's front that stops
 /// further than this from the place it walked to has "stopped short" in the news and the idle words.
 pub(super) const ARRIVED: f32 = 300.0;
-/// H-HANDS-ARRIVAL: a declared group's walk has arrived when a marching company of this many or more stands arrived
-/// at the way's end (the lane's own flag, per company). The lane's composed `arrived` waits for every marching
-/// company, and an army fed by its plants' musters (released in fours at the smallest, `micro::army::MUSTER_MIN`)
+/// H-HANDS-ARRIVAL: a declared group's walk has arrived when a company of this many or more stands arrived at the
+/// way's end (the lane's own flag, per company). The lane's composed `arrived` waits for every company, and an army
 /// nearly always has one on the road: apex-v0409-comet-sym0-opus-1, the lead company of 18 stood arrived at spot_23
 /// from 10:40 to 11:57 and two companies of 35 at spot_46 from 13:58 to 14:14 while the group read "walking to" and
 /// Jev was asked to change a course that was over for the front. A company under this size is a straggler.
-const FRONT_MIN: usize = micro::army::MUSTER_MIN;
+const FRONT_MIN: usize = 4;
 /// Enemies this close to a group's body are what it met since its last stop (the route's `met` fact).
 const MET_REACH: f32 = 1200.0;
 /// Places reached kept per group, the oldest dropped: the words stay short.
@@ -39,7 +38,7 @@ fn front_arrived(state: &micro::GroupState, to: Vec3) -> Option<Vec3> {
         return state.arrived.then_some(state.anchor);
     }
     (state.companies.iter())
-        .filter(|c| c.role == micro::Role::Marching && c.arrived && c.members >= FRONT_MIN)
+        .filter(|c| c.arrived && c.members >= FRONT_MIN)
         .min_by(|a, b| a.anchor.dist2d(to).total_cmp(&b.anchor.dist2d(to)))
         .map(|c| c.anchor)
 }
@@ -89,20 +88,6 @@ pub(crate) const HUNT_LEASH: f32 = 900.0;
 pub(crate) const COMPANY_CAP: usize = 24;
 /// A follower is sent after its ward again when the ward has moved this far from where the follower was last sent.
 const FOLLOW_STEP: f32 = 150.0;
-/// A muster point (the plant's newcomers gathering for their company) stands this far past its plant's lane edge.
-const WAIT_BESIDE: f32 = 80.0;
-
-/// Where a newcomer waits for its fellows: beside its plant's exit lane, out of it, on the side toward where it will
-/// walk (`toward`: its group's body).
-pub(super) fn beside_lane(lane: &Lane, toward: Vec3) -> Vec3 {
-    let (dx, dz) = (lane.to.x - lane.from.x, lane.to.z - lane.from.z);
-    let len = dx.hypot(dz).max(1.0);
-    let (px, pz) = (-dz / len, dx / len);
-    let side = if (toward.x - lane.from.x) * px + (toward.z - lane.from.z) * pz >= 0.0 { 1.0 } else { -1.0 };
-    let off = (lane.half_width + WAIT_BESIDE) * side;
-    Vec3 { x: lane.from.x + px * off, y: lane.from.y, z: lane.from.z + pz * off }
-}
-
 /// Where a follower is sent this second (H-HANDS-FOLLOW), or nowhere while its last order still fits: after its
 /// ward when the ward has moved `FOLLOW_STEP` from where the follower was last sent (`at`).
 pub(super) fn follow_step(ward_at: Vec3, at: Vec3) -> Option<Vec3> {
@@ -532,32 +517,6 @@ impl Brain {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.note(frame, text);
         }
-        // The muster points for the lane's companies (the companies design §4): the beside-lane point of every plant
-        // whose output joins the group, toward the group's body, and the smallest `join_in` among those plants as the
-        // count that walks together (none: the company cap).
-        let mut musters: HashMap<String, (Vec<Vec3>, Option<usize>)> = HashMap::new();
-        for plant in own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)) {
-            let Some(lane) = self.lane_of(plant) else { continue };
-            let allowance = self.allowed_units(&self.actor_name(plant.id));
-            let named = allowance.as_ref().and_then(|a| a.group.clone());
-            let call = allowance.as_ref().map_or(0, |a| a.call);
-            let targets: Vec<String> = if named.as_deref() == Some("by_type") {
-                pianist.rally.iter().filter(|((f, def), _)| *f == plant.id && def.is_some()).map(|(_, (_, g))| g.clone()).collect()
-            } else {
-                let rally = pianist.rally.get(&(plant.id, None)).map(|(c, g)| (*c, g.as_str()));
-                group_for_newcomer(named.as_deref(), call, rally).into_iter().collect()
-            };
-            for target in targets {
-                let Some(group) = pianist.groups.iter().find(|g| g.name == target) else { continue };
-                let toward = group.body(own, None).map_or(plant.pos, |b| b.at);
-                let entry = musters.entry(target).or_insert((Vec::new(), None));
-                entry.0.push(beside_lane(&lane, toward));
-                if let Some(n) = allowance.as_ref().and_then(|a| a.join_in) {
-                    entry.1 = Some(entry.1.map_or(n, |m: usize| m.min(n)));
-                }
-            }
-        }
-        pianist.musters = musters;
         // Standing orders, under each group's footwork rules (H-HANDS-LANE); a declared group's are the lane's.
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
@@ -1246,28 +1205,27 @@ mod tests {
         assert!(brain.journal.notes.iter().all(|n| n.source != "lane"));
     }
 
-    /// H-HANDS-ARRIVAL: a walk has arrived when a marching company of `FRONT_MIN` or more stands arrived at the way's
-    /// end, whatever the companies behind it do; the hold is at the arrived company nearest the end. A group without
-    /// companies is read by its own flag. A straggler company arrived alone is nothing; a muster arrived at its
-    /// point is nothing.
+    /// H-HANDS-ARRIVAL: a walk has arrived when a company of `FRONT_MIN` or more stands arrived at the way's end,
+    /// whatever the companies behind it do; the hold is at the arrived company nearest the end. A group without
+    /// companies is read by its own flag. A straggler company arrived alone is nothing.
     #[test]
     fn a_walk_arrives_with_its_front_company_and_not_with_a_straggler() {
         use super::super::fixtures::at;
-        use micro::{CompanyState, GroupState, Role};
+        use micro::{CompanyState, GroupState};
         let to = at(4352.0, 1904.0);
-        let company = |role: Role, anchor: Vec3, members: usize, arrived: bool| CompanyState { role, anchor, members, formed: members, exceptions: Vec::new(), arrived, at: None };
+        let company = |anchor: Vec3, members: usize, arrived: bool| CompanyState { anchor, members, formed: members, exceptions: Vec::new(), arrived };
         let state = |companies: Vec<CompanyState>, arrived: bool| GroupState { anchor: at(4664.0, 2024.0), heading: (1.0, 0.0), pace: 0.0, full_pace: 75.0, formed: Vec::new(), exceptions: Vec::new(), arrived, legs_left: 0, engaged: None, way: Some(0.0), companies, passing: None };
-        // The game's 10:40: the lead company of 18 arrived 334 past the spot, a company of 4 marching far behind,
-        // musters at home; the composed flag false.
-        let front = company(Role::Marching, at(4664.0, 2024.0), 18, true);
-        let s = state(vec![company(Role::Marching, at(1500.0, 3000.0), 4, false), front.clone(), company(Role::Mustering, at(1200.0, 5900.0), 7, true)], false);
+        // The game's 10:40: the lead company of 18 arrived 334 past the spot, a company of 4 marching far behind;
+        // the composed flag false.
+        let front = company(at(4664.0, 2024.0), 18, true);
+        let s = state(vec![company(at(1500.0, 3000.0), 4, false), front.clone()], false);
         assert_eq!(front_arrived(&s, to), Some(front.anchor));
         // Two arrived companies: the hold is at the one nearer the end.
-        let nearer = company(Role::Marching, at(4400.0, 1950.0), 14, true);
-        let s = state(vec![front.clone(), nearer.clone(), company(Role::Marching, at(2500.0, 5000.0), 22, false)], false);
+        let nearer = company(at(4400.0, 1950.0), 14, true);
+        let s = state(vec![front.clone(), nearer.clone(), company(at(2500.0, 5000.0), 22, false)], false);
         assert_eq!(front_arrived(&s, to), Some(nearer.anchor));
-        // A straggler of three arrived alone, or a muster at its point: no arrival.
-        let s = state(vec![company(Role::Marching, at(4400.0, 1950.0), 3, true), company(Role::Marching, at(2500.0, 5000.0), 22, false), company(Role::Mustering, at(1200.0, 5900.0), 9, true)], false);
+        // A straggler of three arrived alone: no arrival.
+        let s = state(vec![company(at(4400.0, 1950.0), 3, true), company(at(2500.0, 5000.0), 22, false)], false);
         assert_eq!(front_arrived(&s, to), None);
         // No companies (a group with no cap): the formation's own flag.
         assert_eq!(front_arrived(&state(Vec::new(), true), to), Some(at(4664.0, 2024.0)));

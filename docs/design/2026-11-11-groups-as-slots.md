@@ -227,6 +227,8 @@ What changes is what the lane is handed:
   one back: no muster at the plant, no gathering short of a fight. A soldier that comes within the gate of a body in
   contact joins a company of it at once.
 - **The muster goes** (D1): the mustering role, the muster points and the release count.
+- **A company founded on a route of several points begins where its nearest neighbour is** (found by stage 1: a
+  soldier that came up with the body half way round a circuit founded a company that began the lap again).
 - **The group's place is §3.1's.** `compose` no longer takes it from the largest marching company.
 
 ## 8. What goes
@@ -323,6 +325,23 @@ half at 10. Four groups carry each seat of the 10v8 to the end, where the hands 
 surplus is the stand-in's (it founds nothing under 24; the design's default group stands from the first second).
 Read with the recording's limit: nobody in it came when the deal said coming. Not done here, moved to stage 5: the
 recorded sends against the soonest pooled set.
+
+**Stage 1 (2026-11-11): the march did not move, and comers join at least as well** (ledger `slots1-*`,
+`slots2-late-*`, `slots3-circ-*`, with `slots0-*` on the binary of the day before). The lane without the muster,
+handed the body alone by the duel director's deal; first / median / last arrival, before and now:
+
+| row | before | now |
+|---|---|---|
+| the mixed company of 24, 2,000 | 43 / 46 / 50, formed 0.91 | 44 / 47 / 49, formed 0.91 |
+| 24 Stouts out of a yard | 26 / 27 / 29 | 26 / 28 / 29 |
+| a hundred Stouts through a wall's door | 35 / 46 / 92, 13 left behind | 35 / 44 / 84, 12 left behind |
+| twelve Marauders' lap with a feed of six | median 177, formed 0.80 | median 181, formed 0.85 |
+| new: 24 Stouts, twelve more 1,500 behind | done 55-57 s, one at the time limit, formed 0.64-0.69 | done 53-54 s, formed 0.77-0.79 |
+| new: 24 Pawns' lap, a feed of 36, cap 24 | 409-437 s, formed 0.92-0.94, 0-1 left behind | three at 415-418 s, formed 0.93-0.94, none left behind; one at the time limit |
+
+The lap at the time limit had every soldier formed from 420 s and one of the first 24 never inside the lap's radius
+of the lab: three companies' ends beside each other, the end this design leaves alone (§12). In the game this is a
+one-point route. Mended on the way: a company founded half way round a route of several points began it again.
 
 ## 12. Not in this design
 

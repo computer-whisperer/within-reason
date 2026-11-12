@@ -25,7 +25,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use bot_protocol::{UnitDefId, UnitId, Vec3};
+use bot_protocol::{Command, UnitDefId, UnitId, Vec3};
 
 /// Seconds of a soldier's own travel to a group's place within which it is with the group.
 pub const GATE_SECONDS: f32 = 15.0;
@@ -33,6 +33,9 @@ pub const GATE_SECONDS: f32 = 15.0;
 pub const GATE_LEAVE_SECONDS: f32 = 30.0;
 /// A soldier coming to a slot is dealt to another only when that saves this many seconds.
 pub const DEAL_MARGIN_SECONDS: f32 = 5.0;
+
+/// A soldier coming to its group is sent again when the group's place has moved this far from where it was sent.
+pub const COMER_RESEND: f32 = 200.0;
 
 /// The deal's constants.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -326,6 +329,49 @@ pub fn fills(dealt: &HashMap<UnitId, Standing>) -> BTreeMap<String, Fill> {
     out
 }
 
+/// One soldier coming to its group: the group's place, whether it fights on its way (its group fights) or only
+/// walks, and whether it stands with no order.
+#[derive(Clone, Copy, Debug)]
+pub struct Comer {
+    pub id: UnitId,
+    pub place: Vec3,
+    pub fight: bool,
+    pub idle: bool,
+}
+
+/// The orders of the soldiers coming to their groups (§7): one plain order each to the group's place, on the engine's
+/// own path; again when the place has moved `COMER_RESEND` from where the soldier was sent, when its group began or
+/// stopped fighting, or when the soldier stands with no order (K-engine-a-blocked-move-ends-short). Nothing holds one
+/// back (the user, 2026-11-11: "we should not be holding units back from an active engagement").
+#[derive(Default)]
+pub struct Comers {
+    sent: HashMap<UnitId, (Vec3, bool)>,
+}
+
+impl Comers {
+    pub fn orders(&mut self, coming: &[Comer], commands: &mut Vec<Command>) {
+        self.sent.retain(|id, _| coming.iter().any(|c| c.id == *id));
+        for c in coming {
+            let again = self.sent.get(&c.id).is_none_or(|(at, fight)| c.idle || *fight != c.fight || at.dist2d(c.place) > COMER_RESEND);
+            if again {
+                commands.push(if c.fight { Command::Fight { unit: c.id, to: c.place, queue: false } } else { Command::Move { unit: c.id, to: c.place, queue: false } });
+                self.sent.insert(c.id, (c.place, c.fight));
+            }
+        }
+    }
+}
+
+/// The centre of these points: where a moving group's place is, over the soldiers with it.
+pub fn centre(points: impl Iterator<Item = Vec3>) -> Option<Vec3> {
+    let (mut x, mut z, mut n) = (0.0, 0.0, 0.0);
+    for p in points {
+        x += p.x;
+        z += p.z;
+        n += 1.0;
+    }
+    (n > 0.0).then(|| Vec3 { x: x / n, y: 0.0, z: z / n })
+}
+
 /// The straight line over the soldier's speed: the travel time where the host holds no field.
 pub fn straight(s: &Soldier, to: Vec3) -> f32 {
     s.pos.dist2d(to) / s.speed.max(1.0)
@@ -474,6 +520,27 @@ mod tests {
         deal.lend("party_13", "A", 1, at(900.0, 0.0), &moved, &straight);
         let dealt = deal.deal(&moved, &demands, &[], &straight, Gates::default());
         assert!(dealt.values().all(|s| !matches!(s, Standing::Lent(_))));
+    }
+
+    #[test]
+    fn a_comer_is_sent_once_and_again_when_the_place_moves_or_it_stands() {
+        let mut comers = Comers::default();
+        let mut commands = Vec::new();
+        let comer = |place: Vec3, fight: bool, idle: bool| Comer { id: UnitId(1), place, fight, idle };
+        comers.orders(&[comer(at(1000.0, 0.0), false, false)], &mut commands);
+        assert!(matches!(commands[..], [Command::Move { unit: UnitId(1), queue: false, .. }]));
+        comers.orders(&[comer(at(1100.0, 0.0), false, false)], &mut commands);
+        assert_eq!(commands.len(), 1, "the place moved 100: the order stands");
+        comers.orders(&[comer(at(1300.0, 0.0), false, false)], &mut commands);
+        assert_eq!(commands.len(), 2, "moved 300 from where it was sent");
+        comers.orders(&[comer(at(1300.0, 0.0), false, true)], &mut commands);
+        assert_eq!(commands.len(), 3, "standing with no order");
+        comers.orders(&[comer(at(1300.0, 0.0), true, false)], &mut commands);
+        assert!(matches!(commands[3], Command::Fight { .. }), "its group fights now");
+        // Once it is with its group nothing of it is kept: coming again, it is sent again.
+        comers.orders(&[], &mut commands);
+        comers.orders(&[comer(at(1300.0, 0.0), true, false)], &mut commands);
+        assert_eq!(commands.len(), 5);
     }
 
     #[test]
