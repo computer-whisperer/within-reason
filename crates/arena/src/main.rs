@@ -227,6 +227,9 @@ fn main() -> io::Result<()> {
         options.ally_ai = Some(installed_ai(&repo, ally)?);
     }
 
+    // No more engines run at once than there are matches: a single game is one engine, whatever `--parallel` says
+    // (slots-apex-v0507-comet-opus-1's first launch, `--matches 1`, stopped here for eight engines' memory).
+    options.parallel = options.parallel.min(options.matches.max(1));
     let available_gb = available_memory_gb()?;
     let needed_gb = options.parallel as u64 * ENGINE_MEMORY_GB;
     if available_gb < needed_gb {
