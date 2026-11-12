@@ -2531,3 +2531,22 @@ commander's and players' `transfer` results; `git log -S LIVE_FRAMES` (791c6013,
 thread), or the refusals' clocks fell outside the stalls.
 **Used by.** H-HANDS-FUSE-CUT (the decode on its own thread in realtime, 2026-11-05) and the record's `phase_ms`
 (`Brain::timed`, the same day), which attributes the stalls the Jev log does not explain.
+
+### K-jev-a-lend-is-topped-up-while-world-1-reads-not-met
+**Claim.** Jev lends again at a party that already has an answer on its way when world 1 says the party is "not
+met" with no odds and the lend's line prices the pooled answer and says "Sent at". Said once and whole on every
+world's line, world 1 among them, with the lend's verdict and arrival set beside world 1's, the lend loses a third
+of the pick's mass, and most where it changes nothing; it is not ended. A first lend keeps its mass only when the
+party is said in the rung's own words (its heading, the extractor it is making for).
+**Status.** measured offline (2026-11-11 night, `docs/studies/2026-11-11-answer-pricing.md`): 269 recorded picks of
+slots-apex-v0507-comet-opus-1 and slots-smoke-2 asked again as recorded and in the new lines. A lend at an answered
+party: 0.46 of the mass as recorded, 0.31 in the new lines, the top world in 41 % and 12 % of 135 components; 0.39
+to 0.22 over the 63 where no lend on offer changes the verdict or is there sooner; 0.37 to 0.32 on the lends that
+change the verdict of an answer that is even or outweighed. A withdrawal 0.55 to 0.47 (36). A first lend 0.46 to
+0.49 (120), and 0.44 with the party cut to its name. Asked again twice the means move 0.01. In the game: 55 of 91
+lends within ten seconds of a lend at the same party (7 of 22 sends on the old hands, another packet).
+**Evidence.** `run/jev_answer_ab.py`, `docs/studies/data/answer-pricing-2026-11-11.jsonl` and `-b.jsonl`.
+**Would be wrong if.** A game with a player on the new lines still had half its lends within ten seconds of a lend
+at the same party, or its first answers to raiders came later or weaker than in slots-apex-v0507-comet-opus-1 (10
+extractors lost to raids).
+**Used by.** H-HANDS-ANSWER.

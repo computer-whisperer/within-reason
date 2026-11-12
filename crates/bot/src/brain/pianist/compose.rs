@@ -10,8 +10,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use jev::{Answer, Question};
 use serde_json::{Value, json};
 
-use super::menu::{Kind, Menu, Order, Site, under};
-use super::picture::{Party, place_of};
+use super::super::combat::{Force, Table};
+use super::menu::{Kind, Lend, Menu, Order, Site, Soldiers, under};
+use super::picture::{Party, place_of, weigh};
 
 /// Worlds in one question at most, by default (`WITHIN_REASON_WORLDS` sets it): the API's cap on a Choice's options.
 /// Battery J (`../jev_experiments/results/j.md` §2) holds 0.95-1.00 to 255 worlds when each carries its computed
@@ -260,8 +261,14 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
     out
 }
 
-/// Two moves that cannot both be made in one world: two builders taking the same metal spot.
+/// Two moves that cannot both be made in one world: two builders taking the same metal spot, or an answer withdrawn
+/// and lent to (slots-apex-v0507-comet-opus-1, 7:07: one world lent four of group_A to the answer to party_23 and
+/// withdrew it).
 fn clash(menus: &[Menu], world: &World) -> bool {
+    let withdrawn: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| matches!(menu.moves[**i].order, Order::Withdraw)).filter_map(|(menu, _)| menu.answering.as_ref().map(|a| a.party.as_str())).collect();
+    if menus.iter().zip(world).any(|(menu, i)| menu.moves[*i].lend.as_ref().is_some_and(|l| withdrawn.contains(&l.party.as_str()))) {
+        return true;
+    }
     let mut spots: Vec<usize> = Vec::new();
     for (menu, i) in menus.iter().zip(world) {
         match &menu.moves[*i].order {
@@ -504,6 +511,128 @@ pub(super) struct Lines<'a> {
     pub forbidden: &'a BTreeSet<String>,
     /// A split pick's component: the lines speak of its actors and parties alone. None: of everything.
     pub scope: Option<&'a Scope>,
+    /// What prices an answer to each party that has one or is lent at (the slots design §5.1).
+    pub pricing: &'a BTreeMap<String, Pricing>,
+}
+
+/// What prices an answer to one party where the worlds are composed, off the brain's thread: the party's force,
+/// the odds' lookups for its types and our soldiers', and what is true of it whatever comes at it
+/// (`Brain::pricing`).
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Pricing {
+    pub table: Table,
+    /// The party's force as a fight meets it: the ones awake, for the weight; and all of it, for who can hit whom.
+    pub theirs: Force,
+    pub theirs_all: Force,
+    pub unarmed: bool,
+    /// Every fighter of it is under the water.
+    pub submerged: bool,
+}
+
+impl Pricing {
+    /// These soldiers together against the party, as `Brain::odds_words` begins: who cannot hit whom, then the
+    /// weight.
+    pub(crate) fn verdict(&self, soldiers: &[&Soldiers]) -> &'static str {
+        let mut ours = Force::default();
+        for s in soldiers {
+            for (def, n) in &s.force.units {
+                *ours.units.entry(*def).or_default() += n;
+            }
+        }
+        if self.submerged && !soldiers.iter().any(|s| s.hits_submerged) || !self.table.force_can_hit(&ours, self.table.all_air(&self.theirs_all)) {
+            "we cannot hit it"
+        } else if self.unarmed {
+            "it is unarmed and cannot fight back"
+        } else if !self.table.force_can_hit(&self.theirs_all, self.table.all_air(&ours)) {
+            "it cannot hit us"
+        } else {
+            weigh(self.table.odds(&ours, &self.theirs))
+        }
+    }
+}
+
+/// A lend's first soldier is there sooner than the answer on its way when it is this many seconds ahead of it.
+const SOONER: f32 = 2.0;
+
+/// A party's answer in one world, said once and whole (the slots design §5.1): the soldiers already on it and the
+/// ones this world lends, by lender; where they are and when the lent ones arrive; the odds of all of it.
+struct Answered {
+    party: String,
+    /// "group_answer_party_5, the answer to party_5 (1 armpw, at spot_50): 6 soldiers (2 from group_guard, 4 more
+    /// from group_A), none has the party in reach yet (...); the ones lent now there in 15 to 31 s".
+    said: String,
+    soldiers: usize,
+    verdict: Option<&'static str>,
+    /// "; they can catch it".
+    catching: String,
+}
+
+impl Answered {
+    /// The clause, with what sets its verdict beside world 1's.
+    fn clause(&self, beside: &str) -> String {
+        match self.verdict {
+            Some(verdict) => format!("{}: {verdict}{beside}{}", self.said, self.catching),
+            None => self.said.clone(),
+        }
+    }
+}
+
+/// The answer to `party` in a world: the answer's menu when the world keeps it, the lends the world makes at the
+/// party, and the answer's menu when the world withdraws it.
+fn answered(party: &Party, line: &str, standing: Option<&Menu>, lends: &[(&Menu, &Lend)], withdrawn: bool, pricing: Option<&Pricing>) -> Option<Answered> {
+    let on_it = standing.and_then(|m| m.answering.as_ref());
+    if on_it.is_none() && lends.is_empty() {
+        return withdrawn.then(|| Answered { party: party.name.clone(), said: format!("No answer to {} then", party.name), soldiers: 0, verdict: None, catching: String::new() });
+    }
+    let all: Vec<&Soldiers> = on_it.iter().map(|a| &a.soldiers).chain(lends.iter().map(|(_, l)| &l.soldiers)).collect();
+    let soldiers: usize = all.iter().map(|s| s.count).sum();
+    let from: Vec<String> = (on_it.iter().map(|a| a.from.clone())).chain(lends.iter().map(|(menu, l)| format!("{} {}from {}", l.soldiers.count, if on_it.is_some() { "more " } else { "" }, menu.name))).collect();
+    let (first, last) = (lends.iter().map(|(_, l)| l.first).fold(f32::INFINITY, f32::min), lends.iter().map(|(_, l)| l.last).fold(0.0, f32::max));
+    // The lent ones' arrival beside that of the ones already on their way: a lend that is there no sooner and
+    // changes no verdict reads so.
+    let beside_theirs = match standing.and_then(|m| m.against.as_ref()).filter(|s| !s.met()).and_then(|s| s.seconds) {
+        Some(theirs) if first < theirs - SOONER => ", sooner than those on their way",
+        Some(_) => ", no sooner than those on their way",
+        None => "",
+    };
+    let arriving = if lends.is_empty() {
+        String::new()
+    } else if (last - first).abs() < 0.5 {
+        format!("there in {first:.0} s{beside_theirs}")
+    } else if on_it.is_some() {
+        format!("there in {first:.0} to {last:.0} s{beside_theirs}")
+    } else {
+        format!("the first there in {first:.0} s and the last in {last:.0} s")
+    };
+    let standing_where = standing.and_then(|m| m.against.as_ref()).map(|s| s.where_words());
+    let place = match (standing_where, arriving.is_empty()) {
+        (Some(here), true) => here,
+        (Some(here), false) => format!("{here}; the ones lent now {arriving}"),
+        (None, _) => arriving,
+    };
+    // Whether it catches the party: the lent ones by their slowest against the party's speed, an answer on its
+    // way by what its standing says.
+    let catching = match (lends.first(), standing.and_then(|m| m.against.as_ref())) {
+        (Some((_, lend)), _) => {
+            let pace = all.iter().map(|s| s.pace).fold(f32::INFINITY, f32::min);
+            match lend.quarry {
+                None => "; its speed is unknown (radar contacts only)",
+                Some(quarry) if pace > quarry => "; they can catch it",
+                Some(_) => "; it outruns them: it leaves when they arrive, or stands and dies",
+            }
+            .to_string()
+        }
+        (None, Some(against)) if !against.met() => against.catch_words().to_string(),
+        _ => String::new(),
+    };
+    // A world that lends has the party in the lend's own words: its clause names the party and no more.
+    let line = if lends.is_empty() { line } else { party.name.as_str() };
+    let head = match standing {
+        Some(menu) => format!("{}, the answer to {line}", menu.name),
+        None => format!("The answer to {line}"),
+    };
+    let said = format!("{head}: {soldiers} soldier{} ({}){}{place}", if soldiers == 1 { "" } else { "s" }, from.join(", "), if place.is_empty() { "" } else { ", " });
+    Some(Answered { party: party.name.clone(), said, soldiers, verdict: pricing.map(|p| p.verdict(&all)), catching })
 }
 
 impl Clone for Lines<'_> {
@@ -526,19 +655,27 @@ struct Parts {
     not_met: Vec<String>,
     /// The idle actors, in their own words ("group_A holds at spot_49, a stop it has reached").
     idle: Vec<String>,
+    /// The answers: per party with soldiers lent to it, in this world or before it.
+    answers: Vec<Answered>,
 }
 
 /// A world's moves and what follows from them. A party is met only by an actor with something in reach of it
 /// (H-HANDS-STANDING): a course aimed at it from afar is said as that, with the distance, the idleness and whether
 /// it can be caught, and a move made at it this second is said as a sending.
 fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
-    let mut parts = Parts { moves: menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.moves[*i].words.clone()).collect(), ..Parts::default() };
+    // A lend is said in its short words: the answer's clause says the rest once, for every lender together.
+    let mut parts = Parts { moves: menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.moves[*i].lend.as_ref().map_or_else(|| menu.moves[*i].words.clone(), |l| l.short.clone())).collect(), ..Parts::default() };
     for party in lines.parties.iter().filter(|p| lines.scope.is_none_or(|s| s.parties.contains(&p.name))) {
-        let aimed = |menu: &&Menu| menu.aimed_at.as_deref() == Some(party.name.as_str());
+        // An answer and the lends to it are the answer's clause; `Met`, `Sent at` and `Not met` are of the rest.
+        let aimed = |menu: &&Menu| menu.aimed_at.as_deref() == Some(party.name.as_str()) && menu.answering.is_none();
         let staying: Vec<&Menu> = menus.iter().zip(world).filter(|(_, i)| **i == 0).map(|(menu, _)| menu).filter(aimed).collect();
-        let sent: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| **i != 0 && menu.moves[**i].party.as_deref() == Some(party.name.as_str())).map(|(menu, _)| menu.name.as_str()).collect();
+        let sent: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| **i != 0 && menu.moves[**i].lend.is_none() && menu.moves[**i].party.as_deref() == Some(party.name.as_str())).map(|(menu, _)| menu.name.as_str()).collect();
         let (there, away): (Vec<&Menu>, Vec<&Menu>) = staying.into_iter().partition(|m| m.against.as_ref().is_none_or(|s| s.met()));
         let line = party_line(party, lines.places);
+        let answer = menus.iter().zip(world).find(|(menu, _)| menu.answering.as_ref().is_some_and(|a| a.party == party.name));
+        let lends: Vec<(&Menu, &Lend)> = menus.iter().zip(world).filter_map(|(menu, i)| menu.moves[*i].lend.as_ref().filter(|l| l.party == party.name).map(|l| (menu, l))).collect();
+        let withdrawn = answer.is_some_and(|(menu, i)| matches!(menu.moves[*i].order, Order::Withdraw));
+        parts.answers.extend(answered(party, &line, answer.filter(|_| !withdrawn).map(|(menu, _)| menu), &lends, withdrawn, lines.pricing.get(&party.name)));
         if !there.is_empty() {
             parts.met.push(format!("{line} met by {}", there.iter().map(|m| m.name.as_str()).collect::<Vec<_>>().join(" and ")));
         }
@@ -570,12 +707,26 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
         added(&mut of.not_met, &theirs.not_met);
         added(&mut of.idle, &theirs.idle);
     }
-    let Parts { moves, met, sent, not_met, idle } = of;
+    let theirs = base.map(|b| parts_of(b, menus, lines).answers).unwrap_or_default();
+    let Parts { moves, met, sent, not_met, idle, answers } = of;
     let mut parts: Vec<String> = Vec::new();
     parts.push(match base {
         None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
         Some(_) => format!("As w1, and: {}", moves.join("; ")),
     });
+    // The answers this world changes, each verdict set beside world 1's: a lend that changes nothing reads so.
+    for answer in &answers {
+        let before = theirs.iter().find(|b| b.party == answer.party);
+        if before.is_some_and(|b| b.clause("") == answer.clause("")) {
+            continue;
+        }
+        let beside = match (before, answer.verdict) {
+            (Some(b), Some(now)) if b.verdict == Some(now) => ", as in w1".to_string(),
+            (Some(b), Some(_)) => b.verdict.map_or(String::new(), |then| format!(" (in w1, with its {}: {then})", b.soldiers)),
+            _ => String::new(),
+        };
+        parts.push(answer.clause(&beside));
+    }
     if !met.is_empty() {
         parts.push(format!("Met: {}", met.join("; ")));
     }
@@ -712,7 +863,7 @@ pub(super) struct Followed {
 
 /// After the gate: the worlds over what it flagged, their lines, and the pick's state, cut to what the worlds name
 /// (`pick_state`). Pure, so the realtime worker runs it the instant the gate answers.
-pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Place], answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> Followed {
+pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Place], pricing: &BTreeMap<String, Pricing>, answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> Followed {
     let mut flags: BTreeMap<String, f64> = BTreeMap::new();
     let rated = rated(menus, answers);
     let per_menu = candidates(menus, answers, &mut flags);
@@ -725,7 +876,7 @@ pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Plac
     let decoded = |id: &str| menus.iter().find_map(|menu| menu.moves.iter().find(|m| menu.id(m) == id).and_then(|m| m.marked));
     let mut forbidden: BTreeSet<String> = flags.iter().filter(|(_, p)| **p >= FORBIDDEN).filter_map(|(id, _)| id.strip_suffix(".forbidden").map(str::to_string)).filter(|id| decoded(id).is_none()).collect();
     forbidden.extend(menus.iter().flat_map(|menu| menu.moves.iter().filter(|m| m.marked == Some(true)).map(|m| menu.id(m))));
-    let said = Lines { parties, places, store, forbidden: &forbidden, scope: None };
+    let said = Lines { parties, places, store, forbidden: &forbidden, scope: None, pricing };
     let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, menus, &said, (i > 0).then_some(&worlds[0]))).collect();
     let keep = fit(&lines, LINE_CHARS);
     worlds.truncate(keep);
@@ -822,8 +973,94 @@ mod tests {
         menu(&format!("group_{name}"), Kind::Group(name.to_string()), idle, moves)
     }
 
+    static NO_PRICING: BTreeMap<String, Pricing> = BTreeMap::new();
+
+    /// A Blitz-like type for the answers' tests: `count` of them as a lend's or an answer's soldiers.
+    const BLITZ: UnitDefId = UnitDefId(1);
+    const PAWN: UnitDefId = UnitDefId(2);
+
+    fn soldiers(count: usize) -> Soldiers {
+        let mut force = Force::default();
+        for _ in 0..count {
+            force.add(BLITZ);
+        }
+        Soldiers { count, force, pace: 100.0, hits_submerged: false }
+    }
+
+    /// A lend of `count` from `lender` at `party`, there in `first` to `last` seconds, as its move.
+    fn lend(lender: &str, count: usize, party: &str, first: f32, last: f32, joins: bool) -> super::super::menu::Move {
+        let mut m = mv(&format!("send_{count}_{party}"), Order::Send(count, party.to_string()), Some(party));
+        m.lend = Some(Lend { party: party.to_string(), soldiers: soldiers(count), first, last, quarry: Some(87.0), short: format!("{count} armflash of {lender} (its soonest to it) {} {party} (2 Ticks, in sight, heading south); {lender} keeps its course with its other 5", if joins { "join the answer to" } else { "answer" }) });
+        m
+    }
+
+    /// The answer to `party` with `count` soldiers from `from`, as its menu: `stay` and `withdraw`.
+    fn answer(party: &str, count: usize, from: &str, against: Standing) -> Menu {
+        let mut withdraw = mv("withdraw", Order::Withdraw, None);
+        withdraw.words = format!("group_answer_{party} withdraws from {party}: the answer ends");
+        let mut m = group(&format!("answer_{party}"), false, vec![withdraw]);
+        m.aimed_at = Some(party.to_string());
+        m.against = Some(against);
+        m.answering = Some(super::super::menu::Answering { party: party.to_string(), soldiers: soldiers(count), from: format!("{count} from {from}") });
+        m
+    }
+
+    /// One Pawn of 100 metal against Blitzes of 100: one is an even fight, two outweigh it, three and more heavily.
+    fn pricing(party: &str) -> BTreeMap<String, Pricing> {
+        let mut theirs = Force::default();
+        theirs.add(PAWN);
+        BTreeMap::from([(party.to_string(), Pricing { table: Table::flat(&[(BLITZ, 100.0), (PAWN, 100.0)]), theirs: theirs.clone(), theirs_all: theirs, unarmed: false, submerged: false })])
+    }
+
+    /// The first game on the slots (5:03): an answer of two was ten seconds from a Pawn, world 1 read "Not met"
+    /// with no odds and a world lending four more read "with the 2 already answering it, we outweigh it heavily
+    /// ... Sent at". Every world says the answer once and whole, world 1 among them, and a lend that changes
+    /// nothing of the verdict reads "as in w1".
+    #[test]
+    fn a_partys_answer_is_said_once_and_whole_on_every_worlds_line() {
+        let parties = [party("party_5")];
+        let away = Standing { in_reach: 0, of: 2, way: "some way off, about 10 s of walking".into(), idle: 0, catches: Some(true), seconds: Some(11.0) };
+        let menus = [
+            group("A", false, vec![lend("group_A", 4, "party_5", 15.0, 31.0, true)]),
+            group("mid", false, vec![lend("group_mid", 1, "party_5", 6.0, 6.0, true)]),
+            answer("party_5", 2, "group_guard", away),
+        ];
+        let prices = pricing("party_5");
+        let forbidden = BTreeSet::new();
+        let lines = Lines { pricing: &prices, ..said(&parties, &forbidden) };
+        let base = vec![0, 0, 0];
+        assert_eq!(
+            consequence(&base, &menus, &lines, None),
+            "Nothing changes: every actor keeps the course its entry under `actors` describes. group_answer_party_5, the answer to party_5 (2 Ticks, in sight): 2 soldiers (2 from group_guard), none has the party in reach yet (the nearest is some way off, about 10 s of walking away, on its way): we outweigh it; it is faster than the party."
+        );
+        // One lender tops it up: the lend in its short words, the answer whole, its verdict beside world 1's.
+        assert_eq!(
+            consequence(&vec![1, 0, 0], &menus, &lines, Some(&base)),
+            "As w1, and: 4 armflash of group_A (its soonest to it) join the answer to party_5 (2 Ticks, in sight, heading south); group_A keeps its course with its other 5. group_answer_party_5, the answer to party_5: 6 soldiers (2 from group_guard, 4 more from group_A), none has the party in reach yet (the nearest is some way off, about 10 s of walking away, on its way); the ones lent now there in 15 to 31 s, no sooner than those on their way: we outweigh it heavily (in w1, with its 2: we outweigh it); they can catch it."
+        );
+        // Two lenders at once are one answer, priced together.
+        let joint = consequence(&vec![1, 1, 0], &menus, &lines, Some(&base));
+        assert!(joint.contains("7 soldiers (2 from group_guard, 4 more from group_A, 1 more from group_mid)") && joint.contains("the ones lent now there in 6 to 31 s, sooner than those on their way: we outweigh it heavily"), "{joint}");
+        assert!(!joint.contains("Sent at") && !joint.contains("Not met"), "{joint}");
+        // Withdrawn: nobody is on the party; and no world both withdraws the answer and lends to it.
+        assert_eq!(consequence(&vec![0, 0, 1], &menus, &lines, Some(&base)), "As w1, and: group_answer_party_5 withdraws from party_5: the answer ends. No answer to party_5 then.");
+        assert!(clash(&menus, &vec![1, 0, 1]) && !clash(&menus, &vec![1, 1, 0]));
+        // In reach, with as many as before: the verdict stands as in world 1.
+        let there = Standing { in_reach: 3, of: 3, way: String::new(), idle: 0, catches: Some(true), seconds: Some(1.0) };
+        let menus = [group("A", false, vec![lend("group_A", 1, "party_5", 4.0, 4.0, true)]), answer("party_5", 3, "group_guard", there)];
+        let base = vec![0, 0];
+        assert!(consequence(&base, &menus, &lines, None).ends_with("3 soldiers (3 from group_guard), 3 of them have the party in reach: we outweigh it heavily."));
+        assert!(consequence(&vec![1, 0], &menus, &lines, Some(&base)).ends_with("4 soldiers (3 from group_guard, 1 more from group_A), 3 of them have the party in reach; the ones lent now there in 4 s: we outweigh it heavily, as in w1; they can catch it."));
+        // A first lend, with no answer standing: the answer is new, and nothing is set beside world 1.
+        let menus = [group("A", false, vec![lend("group_A", 2, "party_5", 8.0, 9.0, false)])];
+        assert_eq!(
+            consequence(&vec![1], &menus, &lines, Some(&vec![0])),
+            "As w1, and: 2 armflash of group_A (its soonest to it) answer party_5 (2 Ticks, in sight, heading south); group_A keeps its course with its other 5. The answer to party_5: 2 soldiers (2 from group_A), the first there in 8 s and the last in 9 s: we outweigh it; they can catch it."
+        );
+    }
+
     fn said<'a>(parties: &'a [Party], forbidden: &'a BTreeSet<String>) -> Lines<'a> {
-        Lines { parties, places: &[], store: "340 of 500 stored", forbidden, scope: None }
+        Lines { parties, places: &[], store: "340 of 500 stored", forbidden, scope: None, pricing: &NO_PRICING }
     }
 
     /// One menu per actor, one move per actor a world: a group's own way out stands beside its answers to a party
@@ -913,7 +1150,7 @@ mod tests {
         ];
         let parties = vec![party("party_7"), party("party_8")];
         let answers = nouls(&[("party_7.answer", 0.9), ("party_8.answer", 0.9), ("group_A.attack_party_7", 0.8), ("group_A.go_spot_30", 0.6), ("group_B.send_1_party_7", 0.7), ("constructor_3.build_armmex_spot_4", 0.7), ("commander.build_armmex_spot_4", 0.6), ("plant_5.make_armflash", 0.9), ("group_C.change", 0.1), ("group_C.go_spot_31", 0.9)]);
-        let followed = follow_up(&menus, &parties, &[], &answers, "340 of 500 stored", CAP, &json!({}));
+        let followed = follow_up(&menus, &parties, &[], &BTreeMap::new(), &answers, "340 of 500 stored", CAP, &json!({}));
         let (components, _) = followed.components.expect("something opened");
         // The two groups answer one party, the two builders want one spot, the plant stands alone; group_C is closed.
         assert_eq!(components.iter().map(|c| c.menus.clone()).collect::<Vec<_>>(), vec![vec![0, 1], vec![2, 3], vec![4]]);
@@ -955,7 +1192,7 @@ mod tests {
         a.moves[1].said = "the advance to spot_46".into();
         let mut b = group("B", false, vec![mv("follow_group_A", Order::Follow(Ward::Group("A".into())), None)]);
         b.aimed_at = Some("party_8".into());
-        b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false) });
+        b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false), seconds: None });
         let menus = vec![a, b, menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)])];
         let parties = vec![party("party_7"), party("party_8"), party("party_9")];
         let forbidden = BTreeSet::new();
@@ -977,7 +1214,7 @@ mod tests {
     fn a_party_is_met_only_by_what_has_it_in_reach() {
         let mut w = group("W", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None)]);
         w.aimed_at = Some("party_7".into());
-        w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false) });
+        w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false), seconds: None });
         let menus = vec![w, group("A", false, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))])];
         let parties = vec![party("party_7")];
         let forbidden = BTreeSet::new();
@@ -1057,7 +1294,7 @@ mod tests {
         assert!(instructions.as_str().unwrap().starts_with("Is this the move to make against party_1 now, rather than what stands (nobody moves for it)?"), "a move aimed at a party is asked as an answer to it");
         let line_of = |forbidden: f64| {
             let answers = nouls(&[("party_1.answer", 0.8), ("group_A.change", 0.2), ("group_A.send_2_party_1", 0.6), ("group_A.attack_party_1", 0.55), ("group_A.send_2_party_1.forbidden", forbidden)]);
-            let followed = follow_up(&menus, &parties, &[], &answers, "", CAP, &json!({}));
+            let followed = follow_up(&menus, &parties, &[], &BTreeMap::new(), &answers, "", CAP, &json!({}));
             assert_eq!(followed.flags["group_A.send_2_party_1.forbidden"], forbidden);
             let (worlds, lines, _) = followed.worlds.expect("the party opened");
             (lines[worlds.iter().position(|w| w[0] == 1).expect("the detachment's world")].clone(), lines[worlds.iter().position(|w| w[0] == 2).expect("the whole group's world")].clone())
@@ -1070,7 +1307,7 @@ mod tests {
         let mut menus = vec![group("A", false, vec![mv("go_spot_61", Order::Go("spot_61".into()), None)])];
         menus[0].moves[1].marked = Some(true);
         assert!(!gate_questions(&menus, &[], &[], false, false, false).iter().any(|(id, _)| id.ends_with(".forbidden")), "a walk's mark is the decode's: never the second's question");
-        let followed = follow_up(&menus, &[], &[], &nouls(&[("group_A.change", 0.8), ("group_A.go_spot_61", 0.7)]), "", CAP, &json!({}));
+        let followed = follow_up(&menus, &[], &[], &BTreeMap::new(), &nouls(&[("group_A.change", 0.8), ("group_A.go_spot_61", 0.7)]), "", CAP, &json!({}));
         let (_, lines, _) = followed.worlds.expect("the group opened");
         assert!(lines[1].ends_with("The player's instructions forbid this walk for group_A."), "{}", lines[1]);
     }

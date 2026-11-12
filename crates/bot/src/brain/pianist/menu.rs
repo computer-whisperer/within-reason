@@ -14,6 +14,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 use bot_protocol::{EnemyUnit, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
+use super::super::combat::Force;
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::groups::{Group, Ward};
@@ -189,6 +190,46 @@ pub(crate) struct Move {
     /// unsure or the layer is off, and the gate asks a `forbiddable` move. A walk to a place the decode reads as
     /// forbidden the group is `Some(true)`, and `None` otherwise.
     pub marked: Option<bool>,
+    /// A lend's soldiers as data: a world prices the whole answer to its party from them (the slots design §5.1).
+    pub lend: Option<Lend>,
+}
+
+/// The soldiers of an answer or of a lend to one, as a world's line needs them: how many, of what, and the force
+/// that fights (the awake ones).
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Soldiers {
+    pub count: usize,
+    pub force: Force,
+    /// The slowest's speed.
+    pub pace: f32,
+    /// One of them has a weapon for a unit under the water.
+    pub hits_submerged: bool,
+}
+
+/// A lend, on its move: who goes, when they are there, and what the lender keeps.
+#[derive(Clone, Debug)]
+pub(crate) struct Lend {
+    pub party: String,
+    pub soldiers: Soldiers,
+    /// Seconds of their own travel to the party, the first's and the last's.
+    pub first: f32,
+    pub last: f32,
+    /// The party's speed, none while unknown (radar contacts only): whether the lent ones catch it.
+    pub quarry: Option<f32>,
+    /// The move on a world's line, where the answer's clause says the rest: "4 armflash of group_A (its soonest to
+    /// it) join the answer to party_5 (1 armpw, at spot_50, heading south); group_A keeps its course with its
+    /// other 5". The party in the rung's own words: without its heading a first lend lost a tenth of its picks
+    /// (`docs/studies/2026-11-11-answer-pricing.md`).
+    pub short: String,
+}
+
+/// An answer's soldiers, on its menu: what a world that keeps the answer prices.
+#[derive(Clone, Debug)]
+pub(crate) struct Answering {
+    pub party: String,
+    pub soldiers: Soldiers,
+    /// "2 from group_guard, 4 from group_A".
+    pub from: String,
 }
 
 /// A fact about the player's instructions alone that bears on a move: the decode asks it once a packet.
@@ -225,7 +266,7 @@ impl Read {
 
 impl Move {
     pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, forbiddable: bool) -> Move {
-        Move { key, order, words, said, party, forbiddable, reads: Vec::new(), fused: false, far: false, held: false, blanked: false, audit: false, marked: None }
+        Move { key, order, words, said, party, forbiddable, reads: Vec::new(), fused: false, far: false, held: false, blanked: false, audit: false, marked: None, lend: None }
     }
 
     /// Whether the move's question goes out when its menu's own moves are asked.
@@ -300,6 +341,8 @@ pub(crate) struct Menu {
     /// Asked this gate only because something of its opened at the last one (a place over blanked moves, an
     /// opener over held ones): set by the `news` layer, read by the `again` layer.
     pub reopened: bool,
+    /// The actor is an answer (the slots design §5): its party and its soldiers, for the worlds' lines.
+    pub answering: Option<Answering>,
 }
 
 impl Menu {
@@ -338,6 +381,8 @@ pub(crate) struct Standing {
     pub idle: usize,
     /// Whether the actor's fastest outpaces the party's slowest; none while the party's speed is unknown.
     pub catches: Option<bool>,
+    /// Seconds of the nearest soldier's own travel to the party; none for one that does not move.
+    pub seconds: Option<f32>,
 }
 
 impl Standing {
@@ -366,6 +411,31 @@ impl Standing {
         };
         let who = if self.of == 1 { "it is".to_string() } else { format!("the nearest of its {} soldiers is", self.of) };
         format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way)
+    }
+
+    /// Where an answer's soldiers stand against its party, for the answer's clause on a world's line: "5 of them
+    /// have the party in reach", or "none has the party in reach yet (the nearest is some way off, about 10 s of
+    /// walking away, on its way)".
+    pub(super) fn where_words(&self) -> String {
+        if self.met() {
+            return if self.of == 1 { "it has the party in reach".to_string() } else { format!("{} of them have the party in reach", self.in_reach) };
+        }
+        let idle = match (self.idle, self.of) {
+            (0, _) => ", on its way",
+            (_, 1) => ", standing with no order",
+            (i, n) if i == n => ", every one of them standing with no order",
+            _ => ", some of them standing with no order",
+        };
+        if self.of == 1 { format!("it has not the party in reach yet (it is {} away{idle})", self.way) } else { format!("none has the party in reach yet (the nearest is {} away{idle})", self.way) }
+    }
+
+    /// Whether it catches the party, as `words` ends: empty while the party's speed is unknown.
+    pub(super) fn catch_words(&self) -> &'static str {
+        match self.catches {
+            Some(false) => "; the party outruns it: it reaches the party only where the party stands still",
+            Some(true) => "; it is faster than the party",
+            None => "",
+        }
     }
 }
 
@@ -648,6 +718,17 @@ impl Brain {
 
     /// Where `units` stand against a party (`Standing`): how many have a member of it inside their weapon's reach,
     /// the nearest one's way to it, how many have no order, and whether their fastest outpaces its slowest.
+    /// These soldiers as a world's line needs them (`Soldiers`): the force is of the ones awake, as the odds'.
+    pub(super) fn soldiers_of(&self, units: &[&OwnUnit]) -> Soldiers {
+        let awake: Vec<&OwnUnit> = units.iter().copied().filter(|u| u.stunned <= 0.0).collect();
+        Soldiers {
+            count: units.len(),
+            force: Brain::force_of(&awake),
+            pace: units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min),
+            hits_submerged: units.iter().any(|u| self.can_hit_submerged(u.def)),
+        }
+    }
+
     pub(super) fn standing(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> Standing {
         let members: Vec<&EnemyUnit> = enemies.iter().filter(|e| party.ids.contains(&e.id)).collect();
         let to_party = |u: &OwnUnit| if members.is_empty() { u.pos.dist2d(party.at) } else { members.iter().map(|e| e.pos.dist2d(u.pos)).fold(f32::INFINITY, f32::min) };
@@ -655,10 +736,11 @@ impl Brain {
         let in_reach = units.iter().filter(|u| def(u).is_some_and(|d| d.reach > 0.0 && to_party(u) <= d.reach)).count();
         let nearest = units.iter().copied().min_by(|a, b| to_party(a).total_cmp(&to_party(b)));
         let way = nearest.map_or(String::new(), |u| way_words(to_party(u), def(u).map_or(0.0, |d| d.speed)));
+        let seconds = nearest.and_then(|u| def(u).filter(|d| d.speed > 0.0).map(|d| to_party(u) / d.speed));
         let their_slowest = members.iter().filter_map(|e| e.def).filter_map(|d| self.world.def(d)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
         let our_fastest = units.iter().filter_map(|u| def(u)).map(|d| d.speed).fold(0.0, f32::max);
         let catches = their_slowest.is_finite().then_some(our_fastest > their_slowest);
-        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches }
+        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches, seconds }
     }
 
     /// A group's course without its clocks: its kind, its key as a move would have it, its words, and the party
@@ -964,6 +1046,8 @@ impl Brain {
         // as turns and held a turn-back to a burning base at 0.30 against a plain order to make it (human-26 3:54-
         // 4:05; docs/studies/2026-10-07-raid-packets.md). The user: the problem those words were for is Jev split
         // between two reasonable operations, not units changing course; it gets its own fix when it is seen again.
+        // The lends' soldiers as data, set on their moves once the menu is whole.
+        let mut lends: Vec<(String, Lend)> = Vec::new();
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, forbiddable: bool| {
             if key != course_key {
                 moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), forbiddable));
@@ -1156,6 +1240,15 @@ impl Brain {
                 let who = kinds.iter().map(|(n, c)| format!("{c} {n}")).collect::<Vec<_>>().join(", ");
                 let still_coming = hunters.iter().filter(|u| coming.iter().any(|c| c.id == u.id)).count();
                 let from = if still_coming == 0 { String::new() } else { format!(", {still_coming} of them still on the way to {name}") };
+                let keeps = units.len() + coming.len() - n;
+                let lend = Lend {
+                    party: party.name.clone(),
+                    soldiers: self.soldiers_of(hunters),
+                    first,
+                    last,
+                    quarry: *quarry_speed,
+                    short: format!("{who} of {name} (its soonest to it{from}) {} {party_words}; {name} keeps its course with its other {keeps}{failed}", if on_it.is_empty() { "answer" } else { "join the answer to" }),
+                };
                 let against = if on_it.is_empty() {
                     format!("against them alone, {}", verdict(&self.odds_words(hunters, party, enemies)))
                 } else {
@@ -1170,6 +1263,7 @@ impl Brain {
                     Some(party),
                     true,
                 );
+                lends.push((format!("send_{n}_{}", party.name), lend));
             }
         }
         if !air && !long_reach.is_empty() && !group.roving() {
@@ -1287,8 +1381,10 @@ impl Brain {
         };
         let idle_words = format!("{name} holds at {at}{stop}");
         // An answer (the slots design §5): besides hunting on it can withdraw, and nothing else.
+        let mut answering = None;
         if let Some(party) = &group.answer {
             let from = group.lent.iter().map(|(g, n)| format!("{n} from group_{g}")).collect::<Vec<_>>().join(", ");
+            answering = Some(Answering { party: party.clone(), soldiers: self.soldiers_of(&units), from: from.clone() });
             moves.truncate(1);
             moves.push(Move::new(
                 "withdraw".into(),
@@ -1298,6 +1394,11 @@ impl Brain {
                 None,
                 false,
             ));
+        }
+        for (key, lend) in lends {
+            if let Some(m) = moves.iter_mut().find(|m| m.key == key) {
+                m.lend = Some(lend);
+            }
         }
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
@@ -1309,7 +1410,7 @@ impl Brain {
                 m.reads.push(Read::Avoid(place.clone()));
             }
         }
-        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false, answering })
     }
 
     /// What of ours the D-gun may destroy if fired now at `targets` (the party's members inside its reach), and the
@@ -1693,7 +1794,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
-        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false, answering: None })
     }
 
     /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
@@ -1778,7 +1879,7 @@ impl Brain {
             ));
         }
         let idle_words = format!("{name} idle, doing nothing");
-        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
+        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false, answering: None })
     }
 }
 
@@ -1808,7 +1909,31 @@ pub(super) mod tests {
     pub(crate) fn menu(name: &str, kind: Kind, idle: bool, moves: Vec<Move>) -> Menu {
         let mut all = vec![mv("stay", Order::Stay, None)];
         all.extend(moves);
-        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
+        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false, answering: None }
+    }
+
+    /// The worlds price an answer off the brain's thread (`compose::Pricing`, `combat::Table`): the same odds as
+    /// the brain's for any soldiers, lenders pooled, and the verdict the odds words begin with.
+    #[test]
+    fn an_answers_pricing_off_the_brain_reads_as_the_brains_odds() {
+        use super::super::fixtures::e3;
+        let (brain, ours, enemies, parties) = e3();
+        let party = &parties[0];
+        let all: Vec<&OwnUnit> = ours.iter().collect();
+        let pricing = brain.pricing(party, &enemies, &[UnitDefId(1)]);
+        for n in [1, 2, 4, 8, 14] {
+            let units = &all[..n];
+            let by_brain = verdict(&brain.odds_words(units, party, &enemies));
+            assert_eq!(pricing.verdict(&[&brain.soldiers_of(units)]), by_brain, "{n} Blitzes");
+            // Two lenders' soldiers pooled are priced as the one body they are.
+            let (a, b) = units.split_at(n / 2);
+            assert_eq!(pricing.verdict(&[&brain.soldiers_of(a), &brain.soldiers_of(b)]), by_brain, "{n} Blitzes of two lenders");
+            let ratio = brain.odds(&Brain::force_of(units), &pricing.theirs);
+            assert!((pricing.table.odds(&Brain::force_of(units), &pricing.theirs) - ratio).abs() < 1e-4, "{n} Blitzes: the table's odds");
+        }
+        // The verdicts of the scene span the scale, so the test reads more than one branch.
+        let seen: BTreeSet<&str> = [1, 2, 4, 8, 14].iter().map(|n| pricing.verdict(&[&brain.soldiers_of(&all[..*n])])).collect();
+        assert!(seen.len() >= 3, "{seen:?}");
     }
 
     /// The D-gun's warning covers the cone the target can swing the line through before the shot lands, not the line

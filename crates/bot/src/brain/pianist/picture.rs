@@ -66,6 +66,21 @@ pub(super) struct ChaseMet {
 }
 /// Odds at this ratio or over, and under 1.3, are a narrow win and said so; under it down to 0.8, an even fight.
 const NARROW: f32 = 1.1;
+
+/// Our power over a party's in words, the verdict every odds line begins with (`Brain::odds`).
+pub(super) fn weigh(ratio: f32) -> &'static str {
+    if ratio >= 2.5 {
+        "we outweigh it heavily"
+    } else if ratio >= 1.3 {
+        "we outweigh it"
+    } else if ratio >= NARROW {
+        "we outweigh it narrowly"
+    } else if ratio >= 0.8 {
+        "an even fight"
+    } else {
+        "it outweighs us"
+    }
+}
 /// A party whose reach beats the group's longest by this much kills it on the approach (a Bull's 460 or a beamer's 490 against a Stout's 350).
 const OUTRANGE_MARGIN: f32 = 60.0;
 /// A party this near a place or an actor is "near" it: the party in an actor's entry.
@@ -873,7 +888,7 @@ impl Brain {
             String::new()
         } else {
             let whole = self.odds(&ours, &theirs_all);
-            let weigh = if whole >= 2.5 { "we outweigh it heavily" } else if whole >= 1.3 { "we outweigh it" } else if whole >= NARROW { "we outweigh it narrowly" } else if whole >= 0.8 { "an even fight" } else { "it outweighs us" };
+            let weigh = weigh(whole);
             let low = stunned.iter().fold(f32::INFINITY, |a, b| a.min(*b)).ceil();
             let high = stunned.iter().fold(0.0f32, |a, b| a.max(*b)).ceil();
             let span = if low == high { format!("{high:.0} s more") } else { format!("{low:.0}-{high:.0} s more") };
@@ -993,20 +1008,30 @@ impl Brain {
             format!("it is unarmed and cannot fight back{more}")
         } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
             format!("it cannot hit us: nothing there shoots at what this group is{more}")
-        } else if ratio >= 2.5 {
-            format!("we outweigh it heavily{reach_words}{more}")
-        } else if ratio >= 1.3 {
-            format!("we outweigh it{reach_words}{more}")
-        } else if ratio >= NARROW {
-            // A win, said as one: by the square law 1.1 to 1.3 leaves the winner 40 to 65% of its force, and the
-            // simulator agrees (7 Blitzes on a Blitz under two Sentries, 1.24: 16 of 16 won, 53% left). Under
-            // "an even fight" a raid of eight took its fall-back from 280 metal (player-50 6:17).
-            format!("we outweigh it narrowly: a win that costs about half the group{reach_words}{more}")
-        } else if ratio >= 0.8 {
-            format!("an even fight{reach_words}{more}")
         } else {
-            format!("it outweighs us{reach_words}{more}")
+            // A narrow win is said as one: by the square law 1.1 to 1.3 leaves the winner 40 to 65% of its force,
+            // and the simulator agrees (7 Blitzes on a Blitz under two Sentries, 1.24: 16 of 16 won, 53% left).
+            // Under "an even fight" a raid of eight took its fall-back from 280 metal (player-50 6:17).
+            let narrow = if (NARROW..1.3).contains(&ratio) { ": a win that costs about half the group" } else { "" };
+            format!("{}{narrow}{reach_words}{more}", weigh(ratio))
         }
+    }
+
+    /// What prices an answer to this party where the worlds are composed (`compose::Pricing`, the slots design
+    /// §5.1): its force as `odds_words` takes it, and the odds' lookups for its types and these of ours.
+    pub(super) fn pricing(&self, party: &Party, enemies: &[EnemyUnit], ours: &[UnitDefId]) -> super::compose::Pricing {
+        let mut theirs_all = super::super::combat::Force::default();
+        for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
+            match enemy.def {
+                Some(def) => theirs_all.add(def),
+                None => theirs_all.unidentified += 1,
+            }
+        }
+        theirs_all.turret_metal += party.turret_metal;
+        theirs_all.turret_metal_air += party.turret_metal_air;
+        let submerged = enemies.iter().filter(|e| party.in_fight(e.id) && e.pos.y < SUBMERGED_Y).count();
+        let table = self.table(ours.iter().copied().chain(theirs_all.units.keys().copied()));
+        super::compose::Pricing { table, theirs: self.awake_force(party, enemies), theirs_all, unarmed: party.unarmed, submerged: submerged > 0 && submerged == party.fighters() }
     }
 
     /// The unseen shooter counted against a group under fire from out of sight (H-HANDS-ODDS-WHAT-SHOOTS): its
@@ -1021,7 +1046,7 @@ impl Brain {
                 let mut theirs = super::super::combat::Force::default();
                 theirs.add(def);
                 let ratio = self.odds(&Brain::force_of(units), &theirs);
-                let verdict = if ratio >= 2.5 { "we outweigh it heavily" } else if ratio >= 1.3 { "we outweigh it" } else if ratio >= NARROW { "we outweigh it narrowly" } else if ratio >= 0.8 { "an even fight" } else { "it outweighs us" };
+                let verdict = weigh(ratio);
                 format!("counted as one {} ({:.0} metal): {verdict}{outranges}", self.short_words(def), self.world.def(def).map_or(0.0, |d| d.metal_cost))
             }
             None => format!("of a type not seen, a {} with range {:.0}{outranges}", self.weapon_words(&shelling.weapon), shelling.range),

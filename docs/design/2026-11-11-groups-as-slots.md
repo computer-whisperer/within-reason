@@ -202,6 +202,52 @@ What changes is what a send is and what a world says of it.
 A station is a holding group of a few slots. It refills from whatever is nearest, often soldiers walking past from
 the plants, and it keeps its name when every unit of it is out on an answer.
 
+### 5.1 The answer priced whole, as built (2026-11-11 night; the user: "Build the joint pricing and replay tonight's moments offline")
+
+What the first game showed (§11, stage 6). World 1 said of a party with an answer on its way "Not met: party_5
+(...): group_answer_party_5 is told to attack it, but nothing of it has the party in reach (the nearest of its 2
+soldiers is some way off, about 10 s of walking away, on its way)", with no odds; a world lending four more said
+"with the 2 already answering it, we outweigh it heavily ... Sent at: party_5 by group_A". Read side by side, a
+party not met against a party sent at and outweighed: 55 of 91 lends went at a party lent at within the ten seconds
+before. An answer in reach read "Met: party_23 met by group_answer_party_23", again with no odds, beside a
+withdrawal whose words carried them; and one world both lent four to an answer and withdrew it.
+
+The rule: **every world says a party's answer once and whole, world 1 among them.**
+
+- **The clause.** World 1: "group_answer_party_5, the answer to party_5 (1 armpw, at spot_50, killing our Sentry
+  (armllt)): 2 soldiers (2 from group_guard), none has the party in reach yet (the nearest is some way off, about
+  10 s of walking away, on its way): we outweigh it heavily; it is faster than the party." A world that lends:
+  "group_answer_party_5, the answer to party_5: 6 soldiers (2 from group_guard, 4 more from group_A), none has the
+  party in reach yet (...); the ones lent now there in 20 to 33 s, no sooner than those on their way: we outweigh
+  it heavily, as in w1; they can catch it." Its soldiers by lender; where the standing ones are and when the ones
+  lent in this world arrive, beside the arrival of those already on their way; the odds of all of it against the
+  party; whether it catches the party. The verdict is set beside world 1's: "as in w1", or "(in w1, with its 2: an
+  even fight)". A new answer: "The answer to party_5: 2 soldiers (2 from group_guard), the first there in 8 s and
+  the last in 9 s: we outweigh it; they can catch it." A world that withdraws it says "No answer to party_5 then".
+- **A lend's own words on a world's line shrink** to who lends what at which party and what the lender keeps ("4
+  armflash of group_A (its soonest to it) join the answer to party_5 (1 armpw, at spot_50, killing our Sentry
+  (armllt), heading south-west: our next extractor on its way is at spot_73); group_A keeps its course with its
+  other 5"). The party is in the rung's own words, heading and all: with its name alone a first lend lost a tenth
+  of its picks. The gate's question about the rung keeps the rung's full words: the gate is not changed.
+- **The answer's actor is out of `Met`, `Sent at` and `Not met`:** those clauses stay for a whole group's attack.
+- **No world both withdraws an answer and lends to it** (a clash, like two builders on one spot).
+- **Pure.** The worlds are composed off the brain's thread (`compose::follow_up`), so the pooled odds are computed
+  there from a table made with the menus: `combat::Table`, the lookups the power formula reads for the types of the
+  hunters and the party, under the one formula the brain's own odds use (`combat::Lookup`). Each lend carries its
+  awake hunters as a force, the answer's menu its soldiers, and each party with either its force and what is true
+  of it whatever comes at it (unarmed; cannot hit the ground).
+
+Not changed: the gate, the nouls, the draw, the ladder's sizes, the answer's two moves. A pick of the whole
+combination is still one Choice a component.
+
+**Asked again offline before it was built in this wording** (`docs/studies/2026-11-11-answer-pricing.md`): 269
+recorded picks of the first game and a smoke, each as recorded and in the new lines. A lend at a party already
+answered loses a third of the pick's mass (0.46 to 0.31) and is the top world in 12 % of those picks for 41 %; where
+no lend on offer changes the verdict or arrives sooner, 0.39 to 0.22; a lend at an answer that is even or
+outweighed keeps its mass (0.37 to 0.32 on the lends that change the verdict); a withdrawal 0.55 to 0.47; a first
+lend 0.46 to 0.49. Not ended: a fifth of the mass still goes on a lend that changes nothing, at every second the
+answer walks, and the pick is a draw. No game with a player has been played on it.
+
 ## 6. Rove
 
 Rove is a task on a group; the engine is unchanged. Whether a group roves is a move on its menu in the world, as
@@ -397,7 +443,9 @@ What the game showed of the design:
 - **For his word, not built:**
   - Jev tops an answer up a few soldiers at a time and takes one back to lend at the same party again (the two
     rows above). The lender's rung and the answer's `stay` and `withdraw` are judged apart; a world prices neither
-    against the other (§12, the joint world's line).
+    against the other (§12, the joint world's line). **Built the same night on his word, §5.1:** every world says
+    the answer once and whole. Asked again offline, a lend at an answered party loses a third of the pick's mass
+    and is not ended; unjudged in a game with a player.
   - The deal fills the nearest group with room first, so a group far from the plants fills only once every nearer
     one is full or names other types. It did not bite in this game (the small groups named their types and stood
     nearer), and a station of slots of any type beyond an army gathering at home would stand empty.
@@ -420,8 +468,7 @@ What the game showed of the design:
 
 **Not built.**
 
-- A joint world's line does not price the answer of two lenders together (§5): it names both, and each rung's own
-  words price its hunters with those already answering.
+- (Built 2026-11-11 night, §5.1: the answer priced whole on every world's line.)
 - §4's line on where the last minute's production went, and "what it killed" among a fighting group's facts (its
   losses, its comers with their seconds and the enemies near it are there).
 - A group with nobody in place has no menu (§3.1 as written). So when an army dies where it held, its comers walk
@@ -434,7 +481,8 @@ What the game showed of the design:
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
 Jev over recorded gates. Run since (stage 6, §11): four smokes of the pianist alone and one flagship game, won; no
-lobby game, no team game, nothing with aircraft.
+lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over that game's
+picks (§5.1); the build with them has two smokes behind it and no game with a player.
 
 ## 13. Not in this design
 

@@ -406,6 +406,8 @@ struct Follow {
     menus: Vec<menu::Menu>,
     parties: Vec<Party>,
     places: Vec<Place>,
+    /// What prices an answer to each party that has one or is lent at (`compose::Pricing`).
+    pricing: BTreeMap<String, compose::Pricing>,
     store: String,
     cap: usize,
     /// The answers the `same` layer lets stand for the questions it did not send, and those it sent anyway for
@@ -442,7 +444,7 @@ fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, fo
     if let Some(kept) = &follow.pick_keeps {
         diet::pick_cut(&mut state, kept);
     }
-    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &all, &follow.store, follow.cap, &state);
+    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &follow.pricing, &all, &follow.store, follow.cap, &state);
     match (next.worlds, next.components) {
         // The `split` layer: every component's Choice in one request; the joint pick is asked as well on a
         // share of picks that have something to compare (two actors or more with a change), for the audit.
@@ -1383,7 +1385,8 @@ impl Brain {
             self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
         }
         let request = jev::Request { state, questions: questions.into_iter().collect() };
-        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited, split: self.pianist.as_ref().expect("pianist mode").layers.split, pick_keeps };
+        let pricing = self.answer_pricing(&menus, &picture.parties, &tick.snapshot.enemies);
+        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), pricing, store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited, split: self.pianist.as_ref().expect("pianist mode").layers.split, pick_keeps };
         self.call(tick, kit, picture.clone(), request, follow, commands);
     }
 
@@ -1487,6 +1490,21 @@ impl Brain {
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
+    /// What prices the answers of this pass's worlds: one `compose::Pricing` a party that an answer stands at or a
+    /// lend on some menu is aimed at, over the types of those soldiers and the party's.
+    fn answer_pricing(&self, menus: &[menu::Menu], parties: &[Party], enemies: &[bot_protocol::EnemyUnit]) -> BTreeMap<String, compose::Pricing> {
+        let mut ours: BTreeMap<&str, Vec<UnitDefId>> = BTreeMap::new();
+        for menu in menus {
+            if let Some(answering) = &menu.answering {
+                ours.entry(answering.party.as_str()).or_default().extend(answering.soldiers.force.units.keys().copied());
+            }
+            for lend in menu.moves.iter().filter_map(|m| m.lend.as_ref()) {
+                ours.entry(lend.party.as_str()).or_default().extend(lend.soldiers.force.units.keys().copied());
+            }
+        }
+        ours.into_iter().filter_map(|(name, defs)| parties.iter().find(|p| p.name == name).map(|party| (name.to_string(), self.pricing(party, enemies, &defs)))).collect()
+    }
+
     fn store_words(picture: &picture::Picture) -> String {
         picture.state["economy"]["metal"].as_str().and_then(|m| m.split(';').next()).unwrap_or_default().to_string()
     }

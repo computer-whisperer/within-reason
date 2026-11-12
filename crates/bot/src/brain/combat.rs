@@ -66,7 +66,7 @@ impl Force {
 impl Brain {
     /// Whether every mobile unit of a force flies: what its opponent must be able to hit.
     pub(super) fn all_air(&self, force: &Force) -> bool {
-        !force.units.is_empty() && force.units.keys().all(|def| self.world.domain_of(*def) == crate::world::Domain::Air)
+        all_air(self, force)
     }
 
     /// Whether a unit of this type has a weapon for aircraft, or for the ground: from the simulator's table; a type
@@ -135,11 +135,6 @@ impl Brain {
         }
     }
 
-    /// A unit's weight in a force: its metal for a soldier, its fighting worth for a builder.
-    fn weight(&self, def: UnitDefId) -> f32 {
-        if self.world.def(def).is_some_and(|d| d.build_speed > 0.0) { self.fighting_worth(def) } else { self.world.def(def).map_or(0.0, |d| d.metal_cost) }
-    }
-
     /// The reach of a type's D-gun (its `command_fire` weapon); 0 for anything but a commander.
     pub(super) fn dgun_reach(&self, def: UnitDefId) -> f32 {
         self.sim
@@ -149,36 +144,145 @@ impl Brain {
             .map_or(0.0, |u| u.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max))
     }
 
-    /// Fighting power of `force` against `other`, in metal-equivalents: only what can hit the other's domain counts.
-    /// A soldier weighs its metal; a builder its fighting worth (`fighting_worth`).
-    fn power(&self, force: &Force, other: &Force) -> f32 {
-        let metal = |def: UnitDefId| self.weight(def);
-        let other_air = self.all_air(other);
-        let other_total: f32 = other.units.iter().map(|(def, n)| metal(*def) * *n as f32).sum();
-        let soldiers: f32 = force
-            .units
-            .iter()
-            .filter(|(def, _)| self.can_hit(**def, other_air))
-            .map(|(def, n)| {
-                let effectiveness = if other_total > 0.0 {
-                    other.units.iter().map(|(against, k)| metal(*against) * *k as f32 / other_total * self.matchups.effectiveness(self.name(*def), self.name(*against))).sum()
-                } else {
-                    1.0
-                };
-                metal(*def) * *n as f32 * effectiveness.sqrt()
-            })
-            .sum();
-        // A radar contact is counted as an average tier-1 soldier at face value: ignoring it made a column of
-        // twenty blips weigh nothing.
-        let turrets = if other_air { force.turret_metal_air } else { force.turret_metal };
-        soldiers + TURRET_WORTH * turrets + UNIDENTIFIED_METAL * force.unidentified as f32
-    }
-
     /// Our power over theirs if `ours` fights `theirs`: above 1 we should win, and by the square law a ratio r leaves
     /// the winner about sqrt(1 - 1/r^2) of its force.
     pub(super) fn odds(&self, ours: &Force, theirs: &Force) -> f32 {
-        self.power(ours, theirs) / self.power(theirs, ours).max(1.0)
+        odds(self, ours, theirs)
     }
+
+    /// The lookups of `odds` for these types, to price forces of them off the brain's thread (the worlds' lines:
+    /// an answer of several lenders is priced where the worlds are composed).
+    pub(super) fn table(&self, defs: impl IntoIterator<Item = UnitDefId>) -> Table {
+        let defs: Vec<UnitDefId> = {
+            let mut all: Vec<UnitDefId> = defs.into_iter().collect();
+            all.sort_by_key(|d| d.0);
+            all.dedup();
+            all
+        };
+        let mut table = Table::default();
+        for def in &defs {
+            table.weight.insert(*def, Lookup::weight(self, *def));
+            table.hits.insert(*def, (Lookup::can_hit(self, *def, false), Lookup::can_hit(self, *def, true)));
+            if Lookup::flies(self, *def) {
+                table.air.insert(*def);
+            }
+            for against in &defs {
+                table.effectiveness.insert((*def, *against), Lookup::effectiveness(self, *def, *against));
+            }
+        }
+        table
+    }
+}
+
+/// What the power formula reads of a unit type: the brain answers from the game's tables, a `Table` from what it
+/// was given of them.
+pub trait Lookup {
+    /// A unit's weight in a force: its metal for a soldier, its fighting worth for a builder.
+    fn weight(&self, def: UnitDefId) -> f32;
+    /// Whether the type has a weapon for aircraft (`air`), or for the ground.
+    fn can_hit(&self, def: UnitDefId, air: bool) -> bool;
+    fn flies(&self, def: UnitDefId) -> bool;
+    /// What one metal of `unit` is worth against one metal of `against` (`Matchups::effectiveness`).
+    fn effectiveness(&self, unit: UnitDefId, against: UnitDefId) -> f32;
+}
+
+impl Lookup for Brain {
+    fn weight(&self, def: UnitDefId) -> f32 {
+        if self.world.def(def).is_some_and(|d| d.build_speed > 0.0) { self.fighting_worth(def) } else { self.world.def(def).map_or(0.0, |d| d.metal_cost) }
+    }
+
+    fn can_hit(&self, def: UnitDefId, air: bool) -> bool {
+        Brain::can_hit(self, def, air)
+    }
+
+    fn flies(&self, def: UnitDefId) -> bool {
+        self.world.domain_of(def) == crate::world::Domain::Air
+    }
+
+    fn effectiveness(&self, unit: UnitDefId, against: UnitDefId) -> f32 {
+        self.matchups.effectiveness(self.name(unit), self.name(against))
+    }
+}
+
+/// The lookups for a handful of types, by value (`Brain::table`): a type it was not given weighs nothing and hits
+/// nothing.
+#[derive(Clone, Debug, Default)]
+pub struct Table {
+    weight: HashMap<UnitDefId, f32>,
+    /// (the ground, aircraft).
+    hits: HashMap<UnitDefId, (bool, bool)>,
+    air: std::collections::HashSet<UnitDefId>,
+    effectiveness: HashMap<(UnitDefId, UnitDefId), f32>,
+}
+
+impl Lookup for Table {
+    fn weight(&self, def: UnitDefId) -> f32 {
+        self.weight.get(&def).copied().unwrap_or(0.0)
+    }
+
+    fn can_hit(&self, def: UnitDefId, air: bool) -> bool {
+        self.hits.get(&def).is_some_and(|(ground, sky)| if air { *sky } else { *ground })
+    }
+
+    fn flies(&self, def: UnitDefId) -> bool {
+        self.air.contains(&def)
+    }
+
+    fn effectiveness(&self, unit: UnitDefId, against: UnitDefId) -> f32 {
+        self.effectiveness.get(&(unit, against)).copied().unwrap_or(1.0)
+    }
+}
+
+impl Table {
+    /// A table of soldiers that hit the ground and each other alike, by weight: for tests of what is priced off it.
+    #[cfg(test)]
+    pub fn flat(weights: &[(UnitDefId, f32)]) -> Table {
+        Table { weight: weights.iter().copied().collect(), hits: weights.iter().map(|(def, _)| (*def, (true, false))).collect(), ..Table::default() }
+    }
+
+    pub fn odds(&self, ours: &Force, theirs: &Force) -> f32 {
+        odds(self, ours, theirs)
+    }
+
+    /// Whether anything in a force can hit `air` (or ground) at all: soldiers or turrets (`Brain::force_can_hit`).
+    pub fn force_can_hit(&self, force: &Force, air: bool) -> bool {
+        force.units.keys().any(|def| Lookup::can_hit(self, *def, air)) || (if air { force.turret_metal_air } else { force.turret_metal }) > 0.0 || force.unidentified > 0
+    }
+
+    pub fn all_air(&self, force: &Force) -> bool {
+        all_air(self, force)
+    }
+}
+
+/// Whether every mobile unit of a force flies: what its opponent must be able to hit.
+fn all_air(lookup: &dyn Lookup, force: &Force) -> bool {
+    !force.units.is_empty() && force.units.keys().all(|def| lookup.flies(*def))
+}
+
+/// Fighting power of `force` against `other`, in metal-equivalents: only what can hit the other's domain counts.
+/// A soldier weighs its metal; a builder its fighting worth (`fighting_worth`).
+fn power(lookup: &dyn Lookup, force: &Force, other: &Force) -> f32 {
+    let metal = |def: UnitDefId| lookup.weight(def);
+    let other_air = all_air(lookup, other);
+    let other_total: f32 = other.units.iter().map(|(def, n)| metal(*def) * *n as f32).sum();
+    let soldiers: f32 = force
+        .units
+        .iter()
+        .filter(|(def, _)| lookup.can_hit(**def, other_air))
+        .map(|(def, n)| {
+            let effectiveness = if other_total > 0.0 { other.units.iter().map(|(against, k)| metal(*against) * *k as f32 / other_total * lookup.effectiveness(*def, *against)).sum() } else { 1.0 };
+            metal(*def) * *n as f32 * effectiveness.sqrt()
+        })
+        .sum();
+    // A radar contact is counted as an average tier-1 soldier at face value: ignoring it made a column of
+    // twenty blips weigh nothing.
+    let turrets = if other_air { force.turret_metal_air } else { force.turret_metal };
+    soldiers + TURRET_WORTH * turrets + UNIDENTIFIED_METAL * force.unidentified as f32
+}
+
+/// Our power over theirs (`Brain::odds`).
+fn odds(lookup: &dyn Lookup, ours: &Force, theirs: &Force) -> f32 {
+    power(lookup, ours, theirs) / power(lookup, theirs, ours).max(1.0)
 }
 
 /// The median square-law strength per metal, `sqrt(damage a second x health) / metal`, over the tier-1 mobile ground
