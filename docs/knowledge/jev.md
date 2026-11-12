@@ -2569,6 +2569,9 @@ mean. Over every pick of that game world 1 has 0.48 of two worlds (317) and 0.35
 `docs/studies/2026-09-29-pick-framing.md` §2 found head to head (0.51 to 0.45 without the sentence).
 **Evidence.** `docs/studies/data/w1-framing-2026-11-11.jsonl`. Not tested: the other worlds written whole and not
 as differences from world 1 (the log holds no course words for a closed actor).
+**Cut 2026-11-11 on the user's word** ("Cut the label and the sentence. The main reason is to avoid artificial
+hysteresis effects covering real information gaps"): the bot's world 1 reads "Every actor keeps the course its
+entry under `actors` describes" and the question has no sentence for it, the `unlabelled` arm exactly.
 **Would be wrong if.** A game with the label and the sentence cut showed world 1's share in two-world picks
 unchanged, or the difference form turned out to carry more than the label.
 **Used by.** H-HANDS-ONE-PASS (the pick's question).

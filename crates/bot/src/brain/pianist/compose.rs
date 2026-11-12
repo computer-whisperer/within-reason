@@ -1,7 +1,7 @@
 //! The pass over the menus (`docs/design/2026-10-01-hands-rebuild.md` §4, H-HANDS-ONE-PASS): a gate of nouls asks
 //! whether each actor should change course, whether each enemy party needs answering, and whether each move is the
 //! move; the best-rated moves are joined into worlds, each with its consequence in words; and the pick is one
-//! Choice over the worlds, world 1 (nothing changes) among them, the world drawn by its probability
+//! Choice over the worlds, world 1 (every actor keeps its course) among them, the world drawn by its probability
 //! (`docs/design/2026-10-24-pick-rework.md`). A world gives every actor exactly one move, so nothing is settled
 //! between menus.
 
@@ -711,7 +711,7 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
     let Parts { moves, met, sent, not_met, idle, answers } = of;
     let mut parts: Vec<String> = Vec::new();
     parts.push(match base {
-        None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
+        None => "Every actor keeps the course its entry under `actors` describes".to_string(),
         Some(_) => format!("As w1, and: {}", moves.join("; ")),
     });
     // The answers this world changes, each verdict set beside world 1's: a lend that changes nothing reads so.
@@ -768,13 +768,18 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
 /// Choice over the deviations alone, then world 1 against the candidate, taken at any confidence. That second stage
 /// was the only hold on the course and held 61% of the group candidates of nine games (2026-10-23/24) while
 /// separating nothing (a 0.5 confidence bar would have held quick and spaced picks alike). Under a draw, world 1's
-/// share of the mass is its chance and no more, so the plurality fault cannot return; the wording names world 1 as
-/// one world among the rest and privileges it in nothing.
+/// share of the mass is its chance and no more, so the plurality fault cannot return. The wording gives world 1 no
+/// mark of its own: until 2026-11-11 its line began "Nothing changes:" and the question had a sentence for it
+/// ("w1: every actor keeps the course ... Every other option changes ..."), both kept by the step of 2026-10-24
+/// that called the wording neutral; cut on the user's word ("Cut the label and the sentence. The main reason is to
+/// avoid artificial hysteresis effects covering real information gaps"; the label was worth five points of a
+/// two-world pick's mass, K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing). World 1 is still
+/// listed first, and every other world is still written as a difference from it.
 const COMMON: &str = "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met, who stays idle. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.";
 
-/// The pick's one question: every world under its number, world 1 first.
+/// The pick's one question: every world under its number, world 1 first, with no sentence of its own.
 pub(super) fn pick_question(lines: &[String]) -> Question {
-    let instructions = json!(format!("{COMMON} w1: every actor keeps the course its entry under `actors` describes, and the idle ones stay as they are. Every other option changes one or more actors' courses, its line saying only what it changes from w1 and what that alters. Pick the best world this second."));
+    let instructions = json!(format!("{COMMON} Pick the best world this second."));
     Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
 
@@ -1031,7 +1036,7 @@ mod tests {
         let base = vec![0, 0, 0];
         assert_eq!(
             consequence(&base, &menus, &lines, None),
-            "Nothing changes: every actor keeps the course its entry under `actors` describes. group_answer_party_5, the answer to party_5 (2 Ticks, in sight): 2 soldiers (2 from group_guard), none has the party in reach yet (the nearest is some way off, about 10 s of walking away, on its way): we outweigh it; it is faster than the party."
+            "Every actor keeps the course its entry under `actors` describes. group_answer_party_5, the answer to party_5 (2 Ticks, in sight): 2 soldiers (2 from group_guard), none has the party in reach yet (the nearest is some way off, about 10 s of walking away, on its way): we outweigh it; it is faster than the party."
         );
         // One lender tops it up: the lend in its short words, the answer whole, its verdict beside world 1's.
         assert_eq!(
@@ -1159,7 +1164,7 @@ mod tests {
         assert!(groups.worlds.iter().all(|w| w[2..].iter().all(|i| *i == 0)));
         // A component's lines speak of its own: its idle actors in their own words, nothing of the gate's ratings;
         // party_8 and the builders are another's.
-        assert_eq!(groups.lines[0], "Nothing changes: every actor keeps the course its entry under `actors` describes. group_A idle, doing nothing; group_B idle, doing nothing.");
+        assert_eq!(groups.lines[0], "Every actor keeps the course its entry under `actors` describes. group_A idle, doing nothing; group_B idle, doing nothing.");
         assert_eq!(components[1].worlds, vec![vec![0, 0, 0, 0, 0, 0], vec![0, 0, 1, 0, 0, 0], vec![0, 0, 0, 1, 0, 0]], "two builders on one spot is no world");
         assert_eq!(components[2].lines.len(), 2);
         assert!(components[2].lines[0].contains("plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored") && !components[2].lines[0].contains("party_") && !components[2].lines[0].contains("next move"), "{}", components[2].lines[0]);
@@ -1199,7 +1204,7 @@ mod tests {
         let line = consequence(&vec![0, 0, 0], &menus, &said(&parties, &forbidden), None);
         assert_eq!(
             line,
-            "Nothing changes: every actor keeps the course its entry under `actors` describes. Met: party_8 (2 Ticks, in sight) met by group_B. group_A holds at spot_49, a stop it has reached; plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored."
+            "Every actor keeps the course its entry under `actors` describes. Met: party_8 (2 Ticks, in sight) met by group_B. group_A holds at spot_49, a stop it has reached; plant_5 idle, doing nothing, while the metal store reads 340 of 500 stored."
         );
         // The change's line says only what it changes: the group no longer idle is said by its move.
         let line = consequence(&vec![1, 0, 0], &menus, &said(&parties, &forbidden), Some(&vec![0, 0, 0]));
@@ -1220,7 +1225,7 @@ mod tests {
         let forbidden = BTreeSet::new();
         let away = "group_W is told to attack it, but nothing of it has the party in reach (the nearest of its 9 soldiers is near, about 10 s of walking away, every one of them standing with no order); the party outruns it: it reaches the party only where the party stands still";
         let line = consequence(&vec![0, 0], &menus, &said(&parties, &forbidden), None);
-        assert_eq!(line, format!("Nothing changes: every actor keeps the course its entry under `actors` describes. Not met: party_7 (2 Ticks, in sight): {away}."));
+        assert_eq!(line, format!("Every actor keeps the course its entry under `actors` describes. Not met: party_7 (2 Ticks, in sight): {away}."));
         let line = consequence(&vec![0, 1], &menus, &said(&parties, &forbidden), Some(&vec![0, 0]));
         assert_eq!(line, "As w1, and: attack_party_7. Sent at: party_7 (2 Ticks, in sight) by group_A.");
         // Taken off the party, and nobody else sent: the line says the move and no more; what the gate's party
@@ -1316,11 +1321,12 @@ mod tests {
     /// gives it; a stray key beyond the worlds is not drawn; the draw carries the Choice's confidence.
     #[test]
     fn the_pick_is_one_draw_over_the_worlds_with_world_one_among_them() {
-        let lines: Vec<String> = ["Nothing changes", "As w1, and: a", "As w1, and: b", "As w1, and: c"].iter().map(|s| s.to_string()).collect();
+        let lines: Vec<String> = ["Every actor keeps its course", "As w1, and: a", "As w1, and: b", "As w1, and: c"].iter().map(|s| s.to_string()).collect();
         let Question::Choice { criteria, instructions } = pick_question(&lines) else { panic!("a choice") };
         assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w1", "w2", "w3", "w4"]);
         let text = instructions.as_str().unwrap();
-        assert!(text.contains("w1: every actor keeps the course") && text.ends_with("Pick the best world this second."), "{text}");
+        // World 1 has no sentence of its own in the question (the user, 2026-11-11).
+        assert!(!text.contains("w1") && text.ends_with("Pick the best world this second."), "{text}");
         let answers = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.4), ("w2".to_string(), 0.3), ("w3".to_string(), 0.2), ("w4".to_string(), 0.1)]), confidence: 0.5 })]);
         assert_eq!(sample(&answers, "worlds.pick", 4, 0.10, 0.0), Some((0, 0.4, 0.0)), "world 1 is drawn by its share like any other");
         assert_eq!(sample(&answers, "worlds.pick", 4, 0.55, 0.0), Some((1, 0.3, 0.0)));
@@ -1388,7 +1394,7 @@ mod tests {
     fn the_picks_state_keeps_what_the_worlds_name_and_briefs_the_rest() {
         let menus = vec![group("A", false, vec![mv("send_1_party_1", Order::Send(1, "party_1".into()), Some("party_1"))]), menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)])];
         let worlds: Vec<World> = vec![vec![0, 0], vec![1, 0]];
-        let lines = vec!["Nothing changes.".to_string(), "As w1, and: 1 Blitz of group_A hunt party_1 at spot_4".to_string()];
+        let lines = vec!["Every actor keeps its course.".to_string(), "As w1, and: 1 Blitz of group_A hunt party_1 at spot_4".to_string()];
         let state = json!({
             "instructions": "group_B stands at south_yard",
             "actors": {

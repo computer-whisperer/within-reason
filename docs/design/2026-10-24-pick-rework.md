@@ -92,6 +92,16 @@ text ("choose a move only when it is clearly better than the course"), a hystere
   text that privileged the course ("choose a move only when it is clearly better than the course"; the short form in
   `rules_gate.md`, "An actor keeps its course unless a move is clearly better") is cut; "An actor's
   course goes on unless a move is picked for it" stays as the mechanic it describes.
+  **Amended 2026-11-11: this step did not do what its heading says.** World 1 kept marks of its own: its line
+  began "Nothing changes:", the question had the sentence above for it, it is listed first, and every other world
+  is written as a difference from it. The user, on reading "nothing changes" in a report: "'nothing changes' is
+  exactly that privilege I had hoped to eliminate"; and, with the measure in hand (`run/jev_w1_ab.py`,
+  K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing: the label and the sentence were worth five
+  points of a two-world pick's mass, 0.44 to 0.39, and nothing in larger picks; its place nothing): "Cut the label
+  and the sentence. The main reason is to avoid artificial hysteresis effects covering real information gaps."
+  Cut: world 1's line reads "Every actor keeps the course its entry under `actors` describes. ..." and the question
+  ends "... Pick the best world this second." with no sentence for it. Still there: world 1 first, and the other
+  worlds as differences from it ("As w1, and: ..."), not measured.
 - **The log.** A `plan` line carries `pick` (the world drawn, 1 = world 1), `sampled_p` and `confidence`; under `split`
   each part's `candidate` is the world drawn (1 = w1, `taken` false). The split audit's joint pick is one call, its
   row gains `joint_p`. `docs/harness/record-format.md` amended; `run/hands_window.py` and the viewer say "drew w1".

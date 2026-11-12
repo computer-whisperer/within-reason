@@ -6,7 +6,8 @@ changes' is exactly that privilege I had hoped to eliminate"). Nothing is played
 
     run/jev_w1_ab.py run/matches/<batch>/<NN> [--picks N] [--workers W] [--out FILE.jsonl] [--summarize FILE.jsonl]
 
-World 1's marks in the pick as the bot asks it: its line begins "Nothing changes:"; the question has a sentence of
+World 1's marks in the pick as the bot asked it until 2026-11-11 (the label and the sentence were cut then, on the
+user's word, so this tool reads the records before it): its line begins "Nothing changes:"; the question has a sentence of
 its own for it ("w1: every actor keeps the course its entry under `actors` describes, and the idle ones stay as
 they are. Every other option changes ..."); it is the first option; every other world is written as a difference
 from it ("As w1, and: ...").
