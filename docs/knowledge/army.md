@@ -937,3 +937,24 @@ commander's and the hands' logs. Whether the hands also rated the advance under 
 measured.
 **Exploited by.** H-COMMANDER-GOING.
 
+
+### K-micro-a-hunters-attack-went-out-at-every-tick
+**Claim.** A hunter was sent the attack on its quarry at every lane tick the quarry was in sight, ten a second, each
+the order it already had. The guard against it (2026-11-07: the attack is not sent again while it stands) sat behind
+a test of the hunter's claim, and the tick drops every hunter's claim before the hunt runs, so every hunter read as
+new to its hunt at every tick.
+**Status.** observed in two games; the guard mended 2026-11-11 (the hunt's own memory says who is new to it; the
+attack goes again to a hunter standing with no order after half a second, and to all every five seconds).
+slots-apex-v0507-comet-opus-1: 22,095 attack orders to units of a hunting group over 2,992 hunter-seconds, 7.4 a
+hunter-second, every one at the target of its last; they are 59 % of the game's 37,582 move, fight and attack
+orders to soldiers, 75.7 a soldier unit-minute, and the worst minute ran at 118 a second, over the seat's order
+budget (H-HOST-ORDER-BUDGET, 100). apex-v0507-comet-sym0-opus-1 (2026-11-09, the old hands): 4,073 over 600
+hunter-seconds, 6.8 a hunter-second, of 31,038 (52.1 a unit-minute). The slots game had five times the
+hunter-seconds (91 lends against 22 detachments), which is what brought it into view.
+**Evidence.** The `cmd` rows of both records against the groups of each call in `jev-0.jsonl.zst` (a scratch
+tally); unit 11196's orders from 5:02 of the slots game, one attack on 22427 every three frames; the test
+`a_hunter_is_sent_at_its_quarry_once_and_not_every_tick` in `crates/micro/src/group.rs`.
+**Would be wrong if.** A game after the mend still showed more than about one attack order a hunter-second, or
+hunters standing beside a quarry in sight without shooting (the engine dropping an order the lane no longer sends
+again at once).
+**Used by.** H-MICRO-HUNT.

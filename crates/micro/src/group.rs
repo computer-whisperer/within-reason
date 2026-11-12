@@ -3756,6 +3756,34 @@ mod tests {
         assert!(state.anchor.dist2d(at(2700.0, 1075.0)) < 300.0, "the anchor about the hunters: {:?}", state.anchor);
     }
 
+    /// A hunter is sent at its quarry once while the quarry is in sight, not at every tick; one that joins the hunt
+    /// later is sent when it joins, and one standing with no order is sent again.
+    #[test]
+    fn a_hunter_is_sent_at_its_quarry_once_and_not_every_tick() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let hunt = HuntOrder { quarry: UnitId(99), leash: 2000.0, lost_frames: crate::HUNT_LOST_FRAMES, since: 30 };
+        lane.set_group("a", vec![UnitId(10)], GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()));
+        let attacks = |out: &crate::Output, id: i32| out.commands.iter().filter(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == id && target.0 == 99)).count();
+        let quarry = || vec![enemy(99, ROVER, 2800.0, 1000.0)];
+        let mut sent = 0;
+        for i in 0..20 {
+            let out = lane.tick(&host, &tick(30 + 3 * i, vec![rover(10, 2500.0, 1000.0)], quarry()), &mut Vec::new(), false);
+            sent += attacks(&out, 10);
+        }
+        assert_eq!(sent, 1, "two seconds of ticks with the quarry in sight");
+        // A second hunter is lent to the hunt: it is sent, the first is not sent again.
+        lane.set_group("a", vec![UnitId(10), UnitId(11)], GroupOrder::new(GroupKind::Hunt(hunt), Vec::new()));
+        let out = lane.tick(&host, &tick(93, vec![rover(10, 2500.0, 1000.0), rover(11, 2400.0, 1000.0)], quarry()), &mut Vec::new(), false);
+        assert_eq!((attacks(&out, 10), attacks(&out, 11)), (0, 1));
+        // The engine dropped the first one's order: it stands idle, and is sent again half a second after its last.
+        let idle = OwnUnit { idle: true, ..rover(10, 2500.0, 1000.0) };
+        let out = lane.tick(&host, &tick(96, vec![idle.clone(), rover(11, 2400.0, 1000.0)], quarry()), &mut Vec::new(), false);
+        assert_eq!((attacks(&out, 10), attacks(&out, 11)), (1, 0));
+        let out = lane.tick(&host, &tick(99, vec![idle, rover(11, 2400.0, 1000.0)], quarry()), &mut Vec::new(), false);
+        assert_eq!(attacks(&out, 10), 0, "not at every tick it stands");
+    }
+
     /// The group is the lane's whole: the host's per-unit orders to its members are dropped, and a unit outside the
     /// group keeps its order (player-22, 22:21: 110 stops for 55 units in one row, when the host's stop was doubled).
     #[test]

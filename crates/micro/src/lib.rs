@@ -179,13 +179,16 @@ struct HuntState {
     /// The frame of the sighting each hunter was last sent to when the quarry was out of sight.
     sent_to_sighting: HashMap<UnitId, i32>,
     /// The hunters whose last order was the attack on the quarry, with its frame: the attack is not sent again while
-    /// it stands (until 2026-11-07 it went out every tick the quarry was in sight, ten a second a hunter), only after
-    /// a move to a sighting or `HUNT_RESEND_FRAMES`.
+    /// it stands, only after a move to a sighting, to a hunter standing with no order, or every `HUNT_RESEND_FRAMES`.
+    /// Until 2026-11-11 it went out every tick the quarry was in sight, ten a second a hunter: the guard of
+    /// 2026-11-07 sat behind a test of the hunter's claim, which the tick clears before the hunt runs.
     attacking: HashMap<UnitId, i32>,
 }
 
 /// A standing attack on the quarry is sent again this often, against anything that cleared it in the engine.
 const HUNT_RESEND_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// And this often to a hunter that stands with no order while its quarry is in sight.
+const HUNT_IDLE_RESEND_FRAMES: i32 = FRAMES_PER_SECOND / 2;
 
 impl Commitment {
     fn covers(&self, source: &Source) -> bool {
@@ -999,8 +1002,15 @@ impl Lane {
             self.hunts.insert(name.to_string(), state);
             return;
         }
+        // The hunt's memory is of its hunters alone: one that left it and comes back is sent as a new one.
+        state.attacking.retain(|id, _| hunters.iter().any(|u| u.id == *id));
+        state.sent_to_sighting.retain(|id, _| hunters.iter().any(|u| u.id == *id));
         for unit in hunters {
-            let fresh = !self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Hunt && c.target == Some(quarry));
+            // New to this hunt by the hunt's own memory. The claims do not say: the tick drops every hunter's claim
+            // before the hunt runs, so read from them every hunter was new at every tick and its attack went out
+            // ten times a second (slots-apex-v0507-comet-opus-1: 22,095 of the game's 37,582 orders to soldiers,
+            // 7.4 a hunter-second, each the attack it already had; 6.8 in the game of 2026-11-09 on the old hands).
+            let fresh = !state.attacking.contains_key(&unit.id) && !state.sent_to_sighting.contains_key(&unit.id);
             if fresh {
                 fired.push(Rule::Hunt.id());
                 self.counts.0 += 1;
@@ -1011,7 +1021,10 @@ impl Lane {
             match (seen, state.last_seen) {
                 (Some(e), _) => {
                     self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame });
-                    if fresh || state.attacking.get(&unit.id).is_none_or(|&at| frame - at >= HUNT_RESEND_FRAMES) {
+                    // Sent once; again when the engine has dropped it (the hunter stands with no order) or every
+                    // `HUNT_RESEND_FRAMES`.
+                    let due = |at: i32| frame - at >= HUNT_RESEND_FRAMES || (unit.idle && frame - at >= HUNT_IDLE_RESEND_FRAMES);
+                    if state.attacking.get(&unit.id).is_none_or(|&at| due(at)) {
                         state.attacking.insert(unit.id, frame);
                         self.counts.1 += 1;
                         commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
