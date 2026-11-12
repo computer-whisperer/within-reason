@@ -7,7 +7,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use bot_protocol::{Command, Tick, UnitDefId, UnitId, Vec3};
+use bot_protocol::{Tick, UnitDefId, UnitId, Vec3};
 use combatsim::sim::Rules;
 pub use micro::{GroupState, RoveReport, Stats};
 
@@ -135,7 +135,7 @@ impl Brain {
     /// The lane's word of the previous tick: its firings for the per-minute line (the record counts them on the
     /// fast thread), the groups' states and the rovers' reports for the picture, the hunts' ends (`groups.rs`
     /// `hunt_event`) and the rovers' events.
-    pub(super) fn take_lane_report(&mut self, report: LaneReport, tick: &Tick, commands: &mut Vec<Command>) {
+    pub(super) fn take_lane_report(&mut self, report: LaneReport, tick: &Tick) {
         for rule in report.fired {
             *self.fired.entry(rule).or_default() += 1;
         }
@@ -144,17 +144,18 @@ impl Brain {
         if !report.hunts.is_empty()
             && let Some(pianist) = self.pianist.as_mut()
         {
-            let own = &tick.snapshot.own_units;
             let (soldiers, buildings, world) = (&self.enemy_soldiers, &self.enemy_buildings, &self.world);
             let cloaks = |quarry: UnitId| soldiers.get(&quarry).or_else(|| buildings.get(&quarry)).and_then(|(d, ..)| world.def(*d)).is_some_and(|d| d.cloak.is_some());
             for event in &report.hunts {
+                // The hunt's end is the answer's (the slots design §5): the group goes, its soldiers are dealt again.
                 let mut ended = Vec::new();
-                for group in pianist.groups.iter_mut() {
-                    if let Some(end) = Brain::hunt_event(group, event, own, tick.frame, cloaks(event.quarry), commands) {
-                        ended.push(end);
+                for group in pianist.groups.iter() {
+                    if let Some(end) = Brain::hunt_event(group, event, tick.frame, cloaks(event.quarry)) {
+                        ended.push((group.name.clone(), end));
                     }
                 }
-                for (text, failed) in ended {
+                for (name, (text, failed)) in ended {
+                    pianist.end_answer(&name);
                     pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
                     pianist.hunt_events.push(text);
                     if let Some((party, why)) = failed {

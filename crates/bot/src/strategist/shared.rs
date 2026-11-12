@@ -526,6 +526,7 @@ pub struct TurnOutputs {
     pub instructions: String,
     pub queues: BTreeMap<String, Listed>,
     pub company: BTreeMap<String, usize>,
+    pub groups: BTreeMap<String, GroupDecl>,
     pub heal: BTreeMap<String, bool>,
     pub marks: BTreeMap<String, Mark>,
     pub block_dense: bool,
@@ -761,6 +762,9 @@ pub struct Shared {
     /// The player's company cap by group name or `all` (`lane` tool, `company`; the companies design §4): members a
     /// company of the group's army holds at most, 0 for no cap; unset, the hands' `COMPANY_CAP`.
     pub company: Mutex<BTreeMap<String, usize>>,
+    /// The groups the player declared (`groups` tool; `docs/design/2026-11-11-groups-as-slots.md` §3.1), by name
+    /// (`group_A`): only the player makes, resizes or ends a group. None declared: the hands keep one, `group_A`.
+    pub groups: Mutex<BTreeMap<String, GroupDecl>>,
     /// The player's word on whether a roving group's hurt rovers go to a builder of ours to be healed (`lane` tool,
     /// `heal`; H-MICRO-HEAL, the rove-2 design §3), by group name or `all`; unset, on.
     pub heal: Mutex<BTreeMap<String, bool>>,
@@ -1022,6 +1026,7 @@ impl Shared {
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
             company: self.company.lock().unwrap().clone(),
+            groups: self.groups.lock().unwrap().clone(),
             heal: self.heal.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             block_dense: self.block_dense.load(std::sync::atomic::Ordering::Relaxed),
@@ -1039,6 +1044,7 @@ impl Shared {
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
         *self.company.lock().unwrap() = o.company;
+        *self.groups.lock().unwrap() = o.groups;
         *self.heal.lock().unwrap() = o.heal;
         *self.marks.lock().unwrap() = o.marks;
         self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
@@ -1073,6 +1079,7 @@ impl Shared {
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.company.lock().unwrap() = o.company;
+                *self.groups.lock().unwrap() = o.groups;
                 *self.heal.lock().unwrap() = o.heal;
                 *self.marks.lock().unwrap() = o.marks;
                 self.block_dense.store(o.block_dense, std::sync::atomic::Ordering::Relaxed);
@@ -1178,6 +1185,20 @@ pub struct Allowance {
     /// For a factory: its new soldiers wait beside it and walk to their group this many together, never alone
     /// (the impedance tally: "in fours, never alone", "six or more together, never one at a time").
     pub join_in: Option<usize>,
+}
+
+/// A group as the player declared it (`groups` tool; the slots design §3.1): its slots, where they are made, and
+/// whether its soldiers fly. Where the group goes from there is the hands' to pick, never this tool's.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GroupDecl {
+    /// Slots any type fills.
+    pub any: usize,
+    /// Slots of a named type (the roster's names: armflash).
+    pub typed: Vec<(String, usize)>,
+    /// Where its slots are made, as map coordinates; none: the seat's home.
+    pub at: Option<[f32; 2]>,
+    /// An air group: its slots take aircraft, and no ground soldier.
+    pub air: bool,
 }
 
 /// A place the player marked (`mark`): a point, or a region of grid cells (`cells`: the first and last column and

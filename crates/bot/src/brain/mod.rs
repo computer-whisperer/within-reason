@@ -641,7 +641,7 @@ impl Brain {
         let mut commands = Vec::new();
         self.timed("lane_reports", |b| {
             for report in reports {
-                b.take_lane_report(report, tick, &mut commands);
+                b.take_lane_report(report, tick);
             }
         });
         let (declared, scene) = if tick.due() % BRAIN_FRAMES != 0 {

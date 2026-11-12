@@ -56,8 +56,6 @@ fn key(actor: &str, read: &Read) -> String {
     match read {
         Read::Place(place) => format!("{actor}|place|{place}"),
         Read::Build(name, _) => format!("{actor}|build|{name}"),
-        Read::Join(other) => format!("{actor}|join|{other}"),
-        Read::TakeIn(other) => format!("{actor}|take_in|{other}"),
         Read::Follow(ward) => format!("{actor}|follow|{ward}"),
         Read::Detach(n) => format!("{actor}|detach|{n}"),
         Read::Air => format!("{actor}|air"),
@@ -72,10 +70,6 @@ fn question(actor: &str, what: &str, read: &Read) -> Question {
     let text = match read {
         Read::Place(place) => format!("Read the player's `instructions` alone. Do they name {place} in anything they say to or about {actor} ({what}): a place it goes to, stands at, fights at, builds at, falls back to, or must keep away from?"),
         Read::Build(_, words) => format!("Read the player's `instructions` alone. Do they have {actor} ({what}) build a {words}, now or under some condition, or say anything else to it about that kind of building?"),
-        // One way only (player-35, 23:25: under "group_S6 joins group_V4" the question's "or become one body with
-        // it" read yes for both, and the army of 43 joined its own detachment of 8).
-        Read::Join(other) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to join {other}, now or under some condition: {actor} to merge into {other} and take {other}'s name and course? No when it is {other} they tell to join {actor}."),
-        Read::TakeIn(other) => format!("Read the player's `instructions` alone. Do they tell {other} to join {actor} ({what}), or {actor} to take {other} in, now or under some condition: {other} to merge into {actor} and take {actor}'s name and course? No when it is {actor} they tell to join {other}."),
         Read::Follow(ward) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to follow, escort or stay beside {ward}, now or under some condition?"),
         Read::Detach(n) => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to send a detachment of {n} of its soldiers after an enemy party?"),
         Read::Air => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to attack, chase or hunt his aircraft (planes, bombers, gunships, air scouts), or tell it to ignore them or leave them alone?"),
@@ -227,7 +221,7 @@ mod tests {
             "group_A",
             Kind::Group("A".into()),
             false,
-            vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("go_spot_62", Order::Go("spot_62".into()), None), mv("send_1_party_7", Order::Send(vec![UnitId(9)], "party_7".into()), Some("party_7")), mv("send_2_party_7", Order::Send(vec![UnitId(9), UnitId(8)], "party_7".into()), Some("party_7")), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))],
+            vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("go_spot_62", Order::Go("spot_62".into()), None), mv("send_1_party_7", Order::Send(1, "party_7".into()), Some("party_7")), mv("send_2_party_7", Order::Send(1, "party_7".into()), Some("party_7")), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))],
         );
         m.moves[1].reads = vec![Read::Place("spot_30".into())];
         m.moves[2].reads = vec![Read::Place("spot_62".into())];

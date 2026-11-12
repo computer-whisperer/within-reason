@@ -1,7 +1,7 @@
 //! Transfers between seats of ours (`docs/design/2026-09-27-posing-changes.md` §12b): the `transfer` tool's
 //! orders, taken by the seat that owns what is sent, and the units given to this seat taken into a group.
 
-use bot_protocol::{Command, Event, OwnUnit, Tick, UnitId};
+use bot_protocol::{Command, Tick, UnitId};
 
 use super::super::Brain;
 use crate::strategist::shared::{Sent, Shared, Transfer};
@@ -118,16 +118,5 @@ impl Brain {
                 pianist.note(tick.frame, text);
             }
         }
-    }
-
-    /// The units given to this seat this tick, for `keep_groups` to take into one group of their own.
-    pub(in crate::brain) fn given_this_tick(tick: &Tick) -> Vec<UnitId> {
-        tick.events.iter().filter_map(|e| if let Event::UnitGiven { unit, .. } = e { Some(*unit) } else { None }).collect()
-    }
-
-    /// Whether a soldier was given to us this tick (a newcomer of no factory, to be grouped with the others given).
-    pub(in crate::brain) fn given_soldiers<'a>(tick: &'a Tick, soldiers: &[&'a OwnUnit]) -> Vec<&'a OwnUnit> {
-        let given = Self::given_this_tick(tick);
-        soldiers.iter().copied().filter(|u| given.contains(&u.id)).collect()
     }
 }

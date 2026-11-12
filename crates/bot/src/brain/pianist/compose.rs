@@ -260,11 +260,9 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
     out
 }
 
-/// Two moves that cannot both be made in one world: two builders taking the same metal spot, two groups joining
-/// each other.
+/// Two moves that cannot both be made in one world: two builders taking the same metal spot.
 fn clash(menus: &[Menu], world: &World) -> bool {
     let mut spots: Vec<usize> = Vec::new();
-    let mut joins: Vec<(&str, &str)> = Vec::new();
     for (menu, i) in menus.iter().zip(world) {
         match &menu.moves[*i].order {
             Order::Build(_, Site::Spot(spot)) => {
@@ -272,16 +270,6 @@ fn clash(menus: &[Menu], world: &World) -> bool {
                     return true;
                 }
                 spots.push(*spot);
-            }
-            // Two merges of one pair of groups are no world: A into B while B into A, and the same merge twice (A
-            // joins B while B takes A in: the second finds no A).
-            Order::Join(other) | Order::TakeIn(other) => {
-                if let Kind::Group(me) = &menu.kind {
-                    if joins.iter().any(|(a, b)| (*a == other.as_str() && *b == me.as_str()) || (*a == me.as_str() && *b == other.as_str())) {
-                        return true;
-                    }
-                    joins.push((me.as_str(), other.as_str()));
-                }
             }
             _ => {}
         }
@@ -404,7 +392,7 @@ pub(super) struct Scope {
 }
 
 /// The actors with a change on offer, grouped into components: two are of one component when a change of one
-/// names the other (a join, a follow, a help), when a change or the course of each is aimed at the same party, or
+/// names the other (a follow, a help), when a change or the course of each is aimed at the same party, or
 /// when both would build on the same spot. Components share no actor, group, builder, party or spot, so each can
 /// be picked on its own; what they can still share is the metal in the store.
 fn components(menus: &[Menu], per_menu: &[Vec<(f64, usize)>]) -> Vec<Vec<usize>> {
@@ -419,7 +407,7 @@ fn components(menus: &[Menu], per_menu: &[Vec<(f64, usize)>]) -> Vec<Vec<usize>>
                 let m = &menu.moves[*ti];
                 set.extend(m.party.clone());
                 match &m.order {
-                    Order::Join(other) | Order::TakeIn(other) | Order::Follow(super::groups::Ward::Group(other)) => {
+                    Order::Follow(super::groups::Ward::Group(other)) => {
                         set.insert(format!("group_{other}"));
                     }
                     Order::Follow(super::groups::Ward::Builder(id)) | Order::Help(id) => set.extend(name_of(*id)),
@@ -860,7 +848,7 @@ mod tests {
     #[test]
     fn a_move_goes_to_the_pick_by_its_rating_and_its_opener() {
         let menus = vec![
-            group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("send_2_party_7", Order::Send(vec![UnitId(9)], "party_7".into()), Some("party_7"))]),
+            group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("send_2_party_7", Order::Send(1, "party_7".into()), Some("party_7"))]),
             group("B", false, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))]),
             menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None), mv("build_armsolar", Order::Build(UnitDefId(2), Site::Planned), None)]),
         ];
@@ -884,33 +872,25 @@ mod tests {
     }
 
     /// The joint worlds: every combination of the open actors' best changes under the cap, a world of two builders
-    /// on one spot or of two groups joining each other dropped; each line says every change.
+    /// on one spot dropped; each line says every change.
     #[test]
     fn the_worlds_join_the_actors_changes_under_the_cap() {
         let menus = vec![
-            group("A", true, vec![mv("join_group_B", Order::Join("B".into()), None), mv("go_spot_30", Order::Go("spot_30".into()), None)]),
-            group("B", true, vec![mv("join_group_A", Order::Join("A".into()), None)]),
+            group("A", true, vec![mv("hold", Order::Hold, None), mv("go_spot_30", Order::Go("spot_30".into()), None)]),
+            group("B", true, vec![mv("go_spot_31", Order::Go("spot_31".into()), None)]),
             menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
             menu("commander", Kind::Builder(UnitId(4)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
         ];
-        let answers = nouls(&[("group_A.join_group_B", 0.9), ("group_A.go_spot_30", 0.6), ("group_B.join_group_A", 0.8), ("constructor_3.build_armmex_spot_4", 0.7), ("commander.build_armmex_spot_4", 0.7)]);
+        let answers = nouls(&[("group_A.hold", 0.9), ("group_A.go_spot_30", 0.6), ("group_B.go_spot_31", 0.8), ("constructor_3.build_armmex_spot_4", 0.7), ("commander.build_armmex_spot_4", 0.7)]);
         let worlds = compose(&menus, &answers, &mut BTreeMap::new(), CAP).unwrap();
         assert_eq!(worlds[0], vec![0, 0, 0, 0]);
         assert!(worlds.contains(&vec![2, 1, 1, 0]), "{worlds:?}");
-        assert!(!worlds.iter().any(|w| w[0] == 1 && w[1] == 1), "A into B while B into A is no world: {worlds:?}");
-        // The same merge twice is no world either: A joins B while B takes A in.
-        let twice = vec![
-            group("A", true, vec![mv("join_group_B", Order::Join("B".into()), None)]),
-            group("B", true, vec![mv("take_in_group_A", Order::TakeIn("A".into()), None)]),
-        ];
-        let twice_worlds = compose(&twice, &nouls(&[("group_A.join_group_B", 0.9), ("group_B.take_in_group_A", 0.8)]), &mut BTreeMap::new(), CAP).unwrap();
-        assert!(!twice_worlds.iter().any(|w| w[0] == 1 && w[1] == 1), "A joins B while B takes A in is one merge, no world: {twice_worlds:?}");
         assert!(!worlds.iter().any(|w| w[2] == 1 && w[3] == 1), "two builders on one spot is no world: {worlds:?}");
-        // 3 * 2 * 2 * 2 = 24 combinations, less the 4 with the mutual join and the 6 with both on the spot, 1 in both.
-        assert_eq!(worlds.len(), 24 - 4 - 6 + 1, "{worlds:?}");
+        // 3 * 2 * 2 * 2 = 24 combinations, less the 6 with both on the spot.
+        assert_eq!(worlds.len(), 24 - 6, "{worlds:?}");
         let forbidden = BTreeSet::new();
         let line = consequence(&vec![2, 1, 1, 0], &menus, &said(&[], &forbidden), Some(&worlds[0]));
-        assert_eq!(line, "As w1, and: go_spot_30; join_group_A; build_armmex_spot_4.");
+        assert_eq!(line, "As w1, and: go_spot_30; go_spot_31; build_armmex_spot_4.");
         // A cap of 6 holds world 1 and the five single changes; nothing joint fits.
         let small = compose(&menus, &answers, &mut BTreeMap::new(), 6).unwrap();
         assert_eq!(small.len(), 6);
@@ -925,7 +905,7 @@ mod tests {
     fn the_pick_is_split_into_components_that_touch_nothing_of_each_other() {
         let menus = vec![
             group("A", true, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("go_spot_30", Order::Go("spot_30".into()), None)]),
-            group("B", true, vec![mv("send_1_party_7", Order::Send(vec![UnitId(9)], "party_7".into()), Some("party_7"))]),
+            group("B", true, vec![mv("send_1_party_7", Order::Send(1, "party_7".into()), Some("party_7"))]),
             menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
             menu("commander", Kind::Builder(UnitId(4)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
             menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)]),
@@ -1067,7 +1047,7 @@ mod tests {
     /// nothing is said.
     #[test]
     fn a_detachment_the_gate_reads_as_forbidden_says_so_on_its_line() {
-        let menus = vec![group("A", false, vec![mv("send_2_party_1", Order::Send(vec![UnitId(9)], "party_1".into()), Some("party_1")), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))])];
+        let menus = vec![group("A", false, vec![mv("send_2_party_1", Order::Send(1, "party_1".into()), Some("party_1")), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))])];
         let parties = vec![party("party_1")];
         let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[], false, false, false).into_iter().collect();
         let Question::Noul { instructions, .. } = &qs["group_A.send_2_party_1.forbidden"] else { panic!("a noul") };
@@ -1152,7 +1132,7 @@ mod tests {
     /// the group was closed and no answer of its was a question.)
     #[test]
     fn a_closed_actors_answers_to_a_party_are_still_asked() {
-        let mut closed = group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("send_1_party_7", Order::Send(vec![UnitId(9)], "party_7".into()), Some("party_7"))]);
+        let mut closed = group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("send_1_party_7", Order::Send(1, "party_7".into()), Some("party_7"))]);
         closed.quiet = true;
         let mut audited = group("B", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None)]);
         (audited.quiet, audited.audit) = (true, true);
@@ -1169,7 +1149,7 @@ mod tests {
 
     #[test]
     fn the_picks_state_keeps_what_the_worlds_name_and_briefs_the_rest() {
-        let menus = vec![group("A", false, vec![mv("send_1_party_1", Order::Send(vec![UnitId(9)], "party_1".into()), Some("party_1"))]), menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)])];
+        let menus = vec![group("A", false, vec![mv("send_1_party_1", Order::Send(1, "party_1".into()), Some("party_1"))]), menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)])];
         let worlds: Vec<World> = vec![vec![0, 0], vec![1, 0]];
         let lines = vec!["Nothing changes.".to_string(), "As w1, and: 1 Blitz of group_A hunt party_1 at spot_4".to_string()];
         let state = json!({

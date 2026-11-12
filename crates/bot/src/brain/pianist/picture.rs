@@ -1972,21 +1972,8 @@ impl Brain {
                         entry["anti_air"] = json!(format!("his aircraft have been seen; what this plant makes against them: {}", aa.join(", ")));
                     }
                 }
-                let allowance = self.allowed_units(&name);
-                let named = allowance.as_ref().and_then(|a| a.group.clone());
-                let call = allowance.as_ref().map_or(0, |a| a.call);
-                let rally = pianist.rally.get(&(unit.id, None)).map(|(c, g)| (*c, format!("group_{g}")));
-                // Under `by_type`: the groups per unit type this factory has founded.
-                let by_type: Vec<String> = pianist.rally.iter().filter(|((f, def), _)| *f == unit.id && def.is_some()).map(|((_, def), (_, g))| format!("{} group_{g}", self.name(def.unwrap()))).collect();
-                let join_in = allowance.as_ref().and_then(|a| a.join_in).map_or(String::new(), |n| format!("; its new soldiers muster beside it and walk to their group {n} together (`join_in`)"));
-                entry["output_joins"] = json!(match (named.as_deref(), rally) {
-                    (Some("new"), Some((founded, g))) if founded == call => format!("{g}, the fresh group your `produce` asked for, founded by its first soldier{join_in}"),
-                    (Some("new"), _) => format!("a fresh group of this factory's own from the next soldier (`produce` ... group){join_in}"),
-                    (Some("by_type"), _) => format!("one group per unit type, by your `produce` order ({}){join_in}", if by_type.is_empty() { "none founded yet".to_string() } else { by_type.join(", ") }),
-                    (Some(g), _) => format!("{g}, by your `produce` order{join_in}"),
-                    (None, Some((_, g))) => format!("{g}, this factory's own group (name another in `produce`, or `new`, or `by_type`){join_in}"),
-                    (None, None) => format!("a group of this factory's own, made on its first soldier (name one in `produce`){join_in}"),
-                });
+                // Where its soldiers go is the deal's (the slots design §3.3), from where each stands.
+                entry["output_joins"] = json!("each new soldier takes the open slot it reaches soonest among your groups (`groups` sets their slots); with no slot open it stands unassigned");
                 entry["health"] = json!(health_words(unit.health / unit.max_health));
             }
             if let Some(d) = draws.iter().find(|d| d.who == name) {
@@ -2020,7 +2007,21 @@ impl Brain {
             };
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
             let toward = goal.or_else(|| parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
-            let Some(body) = group.body(own, toward) else { continue };
+            let Some(body) = group.body(own, toward) else {
+                // Nobody with it (the slots design §3.1): the group stands as its slots at its place, and says who
+                // is coming. It has no menu until a soldier is inside its gate.
+                if group.answer.is_none() && !group.roving() {
+                    let coming = match (group.coming.first(), group.coming.last()) {
+                        (Some((_, first)), Some((_, last))) => format!("{} coming, the first in {first:.0} s and the last in {last:.0} s", group.coming.len()),
+                        _ => "nobody coming".to_string(),
+                    };
+                    actors.insert(
+                        format!("group_{}", group.name),
+                        json!({"is": format!("a group of {} slots with no soldier in place: {coming}", group.slots.total()), "at": self.place_words(&places, group.place), "doing": "nothing: nobody is with it"}),
+                    );
+                }
+                continue;
+            };
             // A declared group (the lane's formation, the migration design chunk 2) is read from the lane's state:
             // its place is the anchor, and the `formation` line below carries what the body words said.
             let lane_state = if group.declared() { self.lane_group(&group.lane_name()) } else { None };
@@ -2113,17 +2114,22 @@ impl Brain {
             if let Some((f, words)) = &group.met {
                 entry["met"] = json!(format!("since its last stop: {words} ({})", clock(*f)));
             }
-            if !body.joining.is_empty() {
-                let farthest = body.joining.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
-                let from: BTreeMap<String, usize> = body.joining.iter().fold(BTreeMap::new(), |mut m, u| {
-                    let plant = pianist.produced_by.get(&u.id).map_or("elsewhere".to_string(), |f| self.actor_name(*f));
-                    *m.entry(plant).or_default() += 1;
-                    m
-                });
+            // Its slots (the slots design §3, §4): who is in place, who is coming and when, what it has lent.
+            if let Some(party) = &group.answer {
+                let from = group.lent.iter().map(|(g, n)| format!("{n} from group_{g}")).collect::<Vec<_>>().join(", ");
+                entry["answer_to"] = json!(format!("{party}: an answer made of lent soldiers ({from}); it is no group of the player's, and when it ends they go back to the groups with room for them"));
+            } else {
+                let out: Vec<String> = pianist.groups.iter().filter(|g| g.answer.is_some() && !g.members.is_empty() && g.lent.iter().any(|(l, _)| *l == group.name)).map(|g| format!("{} ({} soldiers on it now)", g.answer.as_deref().unwrap_or_default(), g.members.len())).collect();
+                let lent = if out.is_empty() { String::new() } else { format!("; it has lent soldiers to the answers to {}", out.join(", ")) };
+                entry["slots"] = json!(format!("{} of its {} slots are filled here{lent}", units.len(), group.slots.total()));
+            }
+            if let (Some((_, last)), false) = (group.coming.last(), group.coming.is_empty()) {
+                let half = group.coming[group.coming.len() / 2].1;
+                let coming: Vec<&OwnUnit> = group.coming.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).collect();
                 entry["reinforcements"] = json!(format!(
-                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet",
-                    body.joining.len(),
-                    from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
+                    "{} more soldiers are coming to it ({}), half of them here in {half:.0} s and the last in {last:.0} s; they are not in its fights yet",
+                    coming.len(),
+                    self.composition_words(&coming)
                 ));
             }
             if !body.stragglers.is_empty() && lane_state.is_none() {
@@ -2150,20 +2156,6 @@ impl Brain {
                 let w = self.loss_words(&lost_lately, metal, near, &parties);
                 let last = lost_lately.iter().map(|(f, ..)| *f).max().unwrap_or(frame);
                 entry["losses"] = json!(format!("lost {} of its {} soldiers ({:.0} metal, {}{}) in the last 30 s, the last {} s ago: {}", w.count, units.len() + lost_lately.len(), w.metal, w.share, w.verdict, (frame - last) / FRAMES_PER_SECOND, w.to_whom));
-            }
-            // The army in pieces, said on both sides (escalate-6: 19 detachments and 15 splits in ten minutes, five to
-            // nine groups alive, dying one by one; nothing in the picture counted them).
-            let children: Vec<&super::Group> = pianist.groups.iter().filter(|g| g.parent.as_deref() == Some(group.name.as_str()) && !g.members.is_empty()).collect();
-            if !children.is_empty() {
-                let soldiers: usize = children.iter().map(|g| g.members.len()).sum();
-                entry["detachments_out"] = json!(format!(
-                    "{} group{} of {soldiers} soldiers split from it, still out: {}",
-                    children.len(), if children.len() == 1 { "" } else { "s" },
-                    children.iter().map(|g| format!("group_{} ({})", g.name, g.members.len())).collect::<Vec<_>>().join(", ")
-                ));
-            }
-            if let Some(parent) = &group.parent {
-                entry["split_from"] = json!(format!("group_{parent}"));
             }
             if let Some(chase) = self.chase_met(group, own, &parties, &places) {
                 entry["chase"] = json!(chase.words);
@@ -2481,16 +2473,16 @@ mod tests {
         let (brain, ours, _, parties) = e3();
         let quarry = at(4950.0, 1700.0);
         let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), from: quarry, since: 0, last_seen: 0, at: quarry };
-        let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
+        let group = Group::of("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
         let met = brain.chase_met(&group, &ours, &parties, &[]).expect("the chase meets the turrets and the Centurions");
         assert!(met.words.starts_with("hunting party_99 (") && !met.words.contains(" s, ") && met.words.contains("it is let go at; ahead on the quarry's line: his "), "{}", met.words);
         assert!(met.words.contains("its reach begins") && met.words.contains("ahead of the front") && met.words.contains("beside the chase: party_12 (3 armwar, 810 metal)") && met.words.ends_with("any other pick ends the chase"), "{}", met.words);
         assert!(met.keys.iter().any(|k| k == "turret 10") && met.keys.iter().any(|k| k == "party_12"), "{:?}", met.keys);
-        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(bot_protocol::Vec3::default()), 0);
+        let holding = Group::of("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(bot_protocol::Vec3::default()), 0);
         assert!(brain.chase_met(&holding, &ours, &parties, &[]).is_none());
         // Chasing away from the turrets, with the Centurions out of reach: nothing met.
         let away = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(3400.0, 2600.0), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
-        let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
+        let group = Group::of("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
         let mut far = parties.clone();
         far[0].at = at(6000.0, 6000.0);
         assert!(brain.chase_met(&group, &ours, &far, &[]).is_none());

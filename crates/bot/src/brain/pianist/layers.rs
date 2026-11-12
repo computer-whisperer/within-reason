@@ -656,7 +656,7 @@ mod tests {
     /// audit is asked and marked.
     #[test]
     fn an_actor_with_a_course_is_asked_again_only_on_its_own_news() {
-        let builder = || menu("constructor_3", Kind::Builder(UnitId(3)), false, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("send_1_party_1", Order::Send(Vec::new(), "party_1".into()), Some("party_1"))]);
+        let builder = || menu("constructor_3", Kind::Builder(UnitId(3)), false, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("send_1_party_1", Order::Send(1, "party_1".into()), Some("party_1"))]);
         let group = || menu("group_A", Kind::Group("A".into()), false, vec![mv("go_spot_4", Order::Go("spot_4".into()), None)]);
         let none = BTreeSet::new();
         let calm = |frame: i32| News { frame, events: &none, orders: false, store: false, afford: false };

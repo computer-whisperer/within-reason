@@ -223,18 +223,14 @@ pub struct Pianist {
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
-    next_group: usize,
-    /// The seat's name tag (`Brain::seat_tag`), on every group name this seat makes.
+    /// The deal's memory, a domain apart (`micro::deal`, the slots design §3.3): what each soldier held a second ago.
+    pub(super) deals: HashMap<crate::world::Domain, micro::deal::Deal>,
+    /// The orders of the soldiers coming to their groups.
+    pub(super) comers: micro::deal::Comers,
+    /// The soldiers no group has a slot for, at the last deal: shown by place, on nobody's menu.
+    pub(super) surplus: Vec<UnitId>,
+    /// The seat's name tag (`Brain::seat_tag`), on every group name of this seat.
     pub(super) seat_tag: String,
-    /// Which factory made each soldier (the engine's creation events), while it lives: a newcomer joins its
-    /// factory's group (H-HANDS-GROUPS: groups are the player's, nothing merges by proximity).
-    pub(super) produced_by: HashMap<UnitId, UnitId>,
-    /// Each factory's own group, by factory: the group its soldiers gather in unless `produce` names another; made
-    /// on the first soldier and remade when it has died out. With it, the `produce` call in force when it was
-    /// founded: `new` founds one group per call and the call's later soldiers join it (player-45: the hands
-    /// rewrote the player's allowance to say so, the think penalty's landing put `new` back, and each flip reset
-    /// the plant's produced counts, so one list made seven advanced constructors against `armacv:2`).
-    pub(super) rally: HashMap<(UnitId, Option<UnitDefId>), (u64, String)>,
     /// The pass (`compose.rs`): the worlds of the last pick, the picture's signature and frame at the last gate,
     /// and the events since (`schedule.rs`).
     pub(super) worlds: Vec<compose::World>,
@@ -768,10 +764,10 @@ impl Pianist {
             queued: HashMap::new(),
             lab_queue: HashMap::new(),
             groups: Vec::new(),
-            next_group: 0,
+            deals: HashMap::new(),
+            comers: micro::deal::Comers::default(),
+            surplus: Vec::new(),
             seat_tag: String::new(),
-            produced_by: HashMap::new(),
-            rally: HashMap::new(),
             worlds: Vec::new(),
             sig: None,
             asked: BTreeMap::new(),
@@ -896,13 +892,13 @@ impl Pianist {
         (frame - since >= needed && self.fired.get(&unit).is_none_or(|at| *at < since)).then_some((frame - since) / FRAMES_PER_SECOND)
     }
 
-    /// A new group's name: A, B, C, ...
-    pub(super) fn new_group_name(&mut self) -> String {
-        let n = self.next_group;
-        self.next_group += 1;
-        let letter = (b'A' + (n % 26) as u8) as char;
-        let base = if n < 26 { letter.to_string() } else { format!("{letter}{}", n / 26) };
-        format!("{base}{}", self.seat_tag)
+    /// An answer ends (the slots design §5): the group is gone and its soldiers hold nothing, so the next deal
+    /// places them like any others.
+    pub(super) fn end_answer(&mut self, name: &str) {
+        self.groups.retain(|g| !(g.answer.is_some() && g.name == name));
+        for deal in self.deals.values_mut() {
+            deal.release(name);
+        }
     }
 
     fn write_log(&mut self, line: serde_json::Value) {
@@ -1404,13 +1400,13 @@ impl Brain {
         if pianist.decode.packet != instructions {
             pianist.decode = decode::Decode { packet: instructions.to_string(), reads: BTreeMap::new() };
         }
-        // What the actor is, for the decode's questions: its units, and for a detachment the group it left (who an
-        // actor is, not what the picture shows of it: "soldiers that left group_A join it again" is about such a group).
+        // What the actor is, for the decode's questions: its units, and for an answer the party it answers (who an
+        // actor is, not what the picture shows of it).
         let what = |actor: &str| {
             let entry = &picture.state["actors"][actor];
             let units: String = entry["units"].as_str().or(entry["is"].as_str()).unwrap_or_default().chars().take(120).collect();
-            match entry["split_from"].as_str().and_then(|s| s.split(',').next()) {
-                Some(parent) => format!("{units}; a detachment that left {parent}"),
+            match entry["answer_to"].as_str().and_then(|s| s.split(':').next()) {
+                Some(party) => format!("{units}; the answer to {party}, soldiers lent by other groups"),
                 None => units,
             }
         };
@@ -1894,7 +1890,6 @@ impl Brain {
             }
         }
         pianist.tasks.retain(|id, _| own.iter().any(|u| u.id == *id));
-        pianist.produced_by.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.stale_queue.retain(|id| pianist.queued.contains_key(id));
         pianist.helping.retain(|id, _| own.iter().any(|u| u.id == *id));
@@ -1920,9 +1915,6 @@ impl Brain {
                     }
                 }
                 Event::UnitCreated { unit, builder: Some(builder) } => {
-                    if own.iter().any(|u| u.id == builder && self.world.is_factory_def(u.def)) {
-                        pianist.produced_by.insert(unit, builder);
-                    }
                     // The frame of a building the player's lists name by an id, begun by the builder that claimed it.
                     if let Some(def) = own.iter().find(|u| u.id == unit).map(|u| u.def) {
                         if let Some(tagged) = pianist.tagged.values_mut().filter(|t| t.claim == Some(builder) && t.building.is_none() && t.def == def).min_by_key(|t| t.claimed) {

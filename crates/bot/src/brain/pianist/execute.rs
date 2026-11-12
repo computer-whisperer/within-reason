@@ -5,7 +5,7 @@
 //! enter the words). Code carries a picked move to its end and says the
 //! end; it never starts, changes or stops one by itself.
 
-use bot_protocol::{Command, OwnUnit, Tick, UnitId, Vec3};
+use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use serde_json::json;
 
 use super::super::Brain;
@@ -15,7 +15,7 @@ use super::compose::World;
 use super::groups::Ward;
 use super::menu::{His, Kind, Menu, Order, Site};
 use super::picture::{Party, Picture, clock};
-use super::{Group, GroupTask, Task};
+use super::{GroupTask, Task};
 
 /// A defence ordered at a place stands this far toward the enemy from it, covering the approach.
 const DEFENCE_FORWARD: f32 = 120.0;
@@ -412,9 +412,18 @@ impl Brain {
                     did = Some(format!("stun {} ({})", party.name, party.composition));
                 }
             }
-            Order::Send(hunters, party_name) => {
+            Order::Send(count, party_name) => {
                 if let Some(party) = party(party_name) {
-                    did = Brain::start_hunt(&mut pianist, index, hunters, party, own, enemies, frame, commands);
+                    let speed = |def: UnitDefId| self.world.def(def).map_or(1.0, |d| d.speed);
+                    did = Brain::lend(&mut pianist, index, *count, party, own, enemies, &speed, frame, commands);
+                }
+            }
+            Order::Withdraw => {
+                // An answer ends by its own pick (the slots design §5): the next deal places its soldiers.
+                if let Some(party) = pianist.groups[index].answer.clone() {
+                    let name = pianist.groups[index].name.clone();
+                    did = Some(format!("withdraw from {party}: the answer ends, its {} soldiers go back to the groups with room for them", units.len()));
+                    pianist.end_answer(&name);
                 }
             }
             Order::Shell(target) => {
@@ -454,32 +463,6 @@ impl Brain {
                     did = Some(format!("shell {what} from their reach with {} long-reach soldiers, {} between", long.len(), units.len() - long.len()));
                 }
             }
-            Order::Join(other) | Order::TakeIn(other) => {
-                if let Some(target) = pianist.groups.iter().position(|g| g.name == *other && g.domain == pianist.groups[index].domain) {
-                    // The two become one body, and the direction is the pick's: a `join` walks this group's soldiers
-                    // to the other's body, which keeps its name, its order and its place; a `take in` walks the
-                    // other's to this one's. (From 2026-10-03 to 2026-10-31 the smaller walked to the larger
-                    // whichever picked it, after human-22, where a body of 33 joined its own detachment of 8 and
-                    // took its name; in barb-ladder4-20-1 that rule left two Bulls named as the army's leader
-                    // unable to be joined by anyone without losing their name, and the player built the army of
-                    // follows instead; now both directions are moves with their own words, read against the
-                    // packet.) The walkers take the body's order when they reach it (H-HANDS-JOINERS): until then
-                    // they are on their way, not of its front or its odds.
-                    let take_in = matches!(order, Order::TakeIn(_));
-                    let (keep, gone) = if take_in { (index, target) } else { (target, index) };
-                    let to = pianist.groups[keep].body(own, None).map(|b| b.at).or(centre).unwrap_or(home);
-                    let absorbed = pianist.groups.remove(gone);
-                    let keep = if gone < keep { keep - 1 } else { keep };
-                    let body = &mut pianist.groups[keep];
-                    // Into a declared body they are members with slots; into any other, joiners sent to its place.
-                    if !body.declared() {
-                        commands.extend(absorbed.members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
-                        body.joining.extend(absorbed.members.iter().map(|id| (*id, to)));
-                    }
-                    body.members.extend(absorbed.members);
-                    did = Some(if take_in { format!("take in group_{other}: its soldiers walk to this body, which keeps its name and its course") } else { format!("join group_{other}: one body under group_{other}'s name and course") });
-                }
-            }
             Order::Follow(ward) => {
                 let found = match ward {
                     Ward::Builder(id) => own.iter().find(|u| u.id == *id).map(|u| (u.pos, self.actor_name(*id))),
@@ -498,27 +481,6 @@ impl Brain {
                     did = Some(format!("follow {ward_name}"));
                 }
             }
-            Order::RoveOne | Order::RoveOneWithin(_) => {
-                // The group's fastest soldier leaves as a group of its own that roves (H-MICRO-ROVE): a detachment
-                // like the hunt's, the lane running it from the next tick; within a region the player marked when
-                // the move names one.
-                let within = match order {
-                    Order::RoveOneWithin(region) => Some(region.clone()),
-                    _ => None,
-                };
-                let speed = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.speed);
-                if let Some(scout) = units.iter().copied().filter(|u| self.can_rove(u.def)).max_by(|a, b| speed(a).total_cmp(&speed(b)))
-                    && units.len() >= 2
-                {
-                    let domain = pianist.groups[index].domain;
-                    pianist.groups[index].members.retain(|id| *id != scout.id);
-                    let name = pianist.new_group_name();
-                    did = Some(format!("a {} leaves as group_{name} and roves{}", self.name(scout.def), within.as_ref().map_or(String::new(), |w| format!(" within {w}"))));
-                    let parent_name = pianist.groups[index].name.clone();
-                    let group = Group::new(name, domain, vec![scout.id], GroupTask::Rove { within }, frame).split_from(&parent_name);
-                    pianist.groups.push(group);
-                }
-            }
             Order::Rove | Order::RoveWithin(_) => {
                 // The whole group roves (H-MICRO-ROVE): a task like any other, the lane taking every soldier from
                 // the next tick; any later pick is the way back (docs/design/2026-10-07-rove-approval.md, the
@@ -530,7 +492,6 @@ impl Brain {
                     _ => None,
                 };
                 let group = &mut pianist.groups[index];
-                group.joining.clear();
                 did = Some(match &within {
                     Some(region) => format!("roves within {region}: its soldiers look only at places inside it, kill what they find unguarded there and keep out of every reach"),
                     None => "roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach".to_string(),
