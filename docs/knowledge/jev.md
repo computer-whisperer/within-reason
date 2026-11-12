@@ -2550,3 +2550,25 @@ lends within ten seconds of a lend at the same party (7 of 22 sends on the old h
 at the same party, or its first answers to raiders came later or weaker than in slots-apex-v0507-comet-opus-1 (10
 extractors lost to raids).
 **Used by.** H-HANDS-ANSWER.
+
+### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
+**Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
+a sentence for it, it is listed first, and every other world is written as a difference from it ("As w1, and:").
+Taking the label and the sentence off costs it about five points of the mass in a pick of two worlds and nothing in
+larger ones; listing it last moves nothing. It is not ahead on the whole: in a pick of two worlds it has a little
+under half.
+**Status.** measured offline (2026-11-11 late, on the user's flag: "'nothing changes' is exactly that privilege I
+had hoped to eliminate"; his word of 2026-10-24: "We should make sure the wordings don't privilege that option",
+after which `docs/design/2026-10-24-pick-rework.md` §3 cut the second stage and the rules' sentence and called the
+wording neutral with the label kept). `run/jev_w1_ab.py` over 240 picks of slots-apex-v0507-comet-opus-1, world 1's
+mean share: two worlds (213 components) 0.44 asked again, 0.39 without the label and the sentence, 0.47 listed
+last, 0.45 with both, the top world in 36, 27, 38 and 33 %; three worlds (94) 0.36, 0.36, 0.38, 0.42; four or more
+(63) 0.50, 0.52, 0.51, 0.53, the top world in three of four, the plurality of
+K-hands-a-plurality-over-near-duplicates-picks-nothing. As recorded and asked again differ by 0.03 on the two-world
+mean. Over every pick of that game world 1 has 0.48 of two worlds (317) and 0.35 of three (135). The same size as
+`docs/studies/2026-09-29-pick-framing.md` §2 found head to head (0.51 to 0.45 without the sentence).
+**Evidence.** `docs/studies/data/w1-framing-2026-11-11.jsonl`. Not tested: the other worlds written whole and not
+as differences from world 1 (the log holds no course words for a closed actor).
+**Would be wrong if.** A game with the label and the sentence cut showed world 1's share in two-world picks
+unchanged, or the difference form turned out to carry more than the label.
+**Used by.** H-HANDS-ONE-PASS (the pick's question).
