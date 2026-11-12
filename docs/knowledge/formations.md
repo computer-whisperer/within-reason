@@ -659,4 +659,35 @@ and one holding, traded Rovers 22 times the same way.
 `a_roving_group_keeps_its_rovers_and_fills_from_the_unplaced` in `crates/micro/src/deal.rs`.
 **Would be wrong if.** A game on the rule showed a player still giving its army slots by type to keep another
 group's soldiers out of it, or a roving group losing a rover to a group it passed.
+**Since.** The second game on the slots (slots-apex-v0507-comet-opus-2, on the rule): no rover taken and no group
+reported gone. The player did make its army Stouts only, at 8:04, to move the army's four Blitzes to three posts it
+had just declared ("Its four Blitzes leave it"), which is strength moved by slots and not this fault; whether a new
+Blitz would have gone to a far post that names it before the army's slots of any type is not shown by the game
+(the rule puts a named slot first only among the gates a soldier is inside).
 **Used by.** H-MICRO-DEAL.
+
+### K-deal-a-comer-alone-is-held-at-the-edge-of-a-threat-its-body-passed
+**Claim.** A soldier coming to its group walks alone on one order to the group's place, and it is in no body, so
+every threat on its way is one its group was not priced against: H-MICRO-FLEE steps it back and stands it at the
+threat's edge for as long as its goal lies beyond. An army that has passed his turrets as a body, on the pick's
+word, therefore gets no reinforcement while it stands beyond them: the comers gather before the turrets, nobody
+having chosen that, and the report's arrival times (the straight line over the soldier's speed) go on reading
+under a minute.
+**Status.** observed once, in the second flagship game on the slots (slots-apex-v0507-comet-opus-2, 2026-11-11);
+nothing built, the user not yet asked. From 17:50 to 19:40 `group_A` held at H1 with 21 to 25 soldiers and every
+report read 57 to 71 more coming, "half in about 50 seconds". At 19:00, 68 soldiers were with no group, 46 of
+them between D2 and F4 and 26 at E2 and E3, his turrets standing at E2, F2 (with his commander) and F3. Three
+Stouts traced (16223, 29053, 28932) stood between E2 and F3 from 18:00 to 19:50, their orders the comers' fight
+order to the army's place and short moves back; a fourth (15065) went through F2 and G2 from 18:50 and was with
+the army at 19:30. H-MICRO-FLEE fired 330, 106 and 419 times in the minutes ending 18:00, 19:00 and 20:00, under
+12 a minute to 16:00 (45 and 79 in the first game's last two minutes, 28 of 64 soldiers on the road at 16:00).
+Three soldiers with no group died from 17:00, at E2 and F3; the 24 lost with the army died in his base. The
+player at 19:06: "Its 62 reinforcing Stouts have been 'about 50 seconds away' for the last few reports, so they
+may be held up on the walk"; at 19:34 it declared a second army at D4, "part of why" being that. The link from
+the flee fires to the comers is the count's timing and the three traces, not a line of the log naming a unit.
+**Evidence.** `run/matches/1794454839-slots-apex-v0507-comet-opus-2/00`: `record-0.jsonl` (the samples and the
+`cmd` rows of the four units), `jev-0.jsonl.zst` (each call's groups), `bot.log` (the `rules:` lines),
+`strategist-0.jsonl` (the turns at 18:47, 19:06, 19:34). H-MICRO-FLEE's words in `docs/heuristics.md`.
+**Would be wrong if.** A unit-by-unit log of the flee rule showed the held comers were not its claims; or a game
+with the army beyond his turrets showed its comers arriving at the straight line's times.
+**Used by.** Nothing yet (`docs/design/2026-11-11-groups-as-slots.md` §11 and §12).

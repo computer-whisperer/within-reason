@@ -246,7 +246,8 @@ answered loses a third of the pick's mass (0.46 to 0.31) and is the top world in
 no lend on offer changes the verdict or arrives sooner, 0.39 to 0.22; a lend at an answer that is even or
 outweighed keeps its mass (0.37 to 0.32 on the lends that change the verdict); a withdrawal 0.55 to 0.47; a first
 lend 0.46 to 0.49. Not ended: a fifth of the mass still goes on a lend that changes nothing, at every second the
-answer walks, and the pick is a draw. No game with a player has been played on it.
+answer walks, and the pick is a draw. In the one game with a player on it since (§11, the second game) a lend within
+ten seconds of one at the same party was 48 % of the lends for 60 %.
 
 ## 6. Rove
 
@@ -449,10 +450,59 @@ What the game showed of the design:
     rows above). The lender's rung and the answer's `stay` and `withdraw` are judged apart; a world prices neither
     against the other (§12, the joint world's line). **Built the same night on his word, §5.1:** every world says
     the answer once and whole. Asked again offline, a lend at an answered party loses a third of the pick's mass
-    and is not ended; unjudged in a game with a player.
+    and is not ended; in the second game, below, 48 % of the lends for 60 %.
   - The deal fills the nearest group with room first, so a group far from the plants fills only once every nearer
     one is full or names other types. It did not bite in this game (the small groups named their types and stood
     nearer), and a station of slots of any type beyond an army gathering at home would stand empty.
+
+**Stage 6, the second game (2026-11-11 night; the user: "We should also start a new game to test all changes before
+continuing past this"): won, the mends held, and reinforcements did not reach an army standing beyond his turrets.**
+slots-apex-v0507-comet-opus-2 on fbd2157d, the same line and seed: **WON 20:02**, called by the referee. The three
+games by one script (the counts are its, so a row here can differ from the table above by a few):
+
+| | the old hands | the slots, first game | the slots, second game |
+|---|---|---|---|
+| result | won 18:30 | won 17:01 | won 20:02 |
+| groups | 60 names | 5 | 7 |
+| lends, and the parties they went at | 22 at 12 | 91 at 31 | 88 at 33 |
+| a lend within 10 s of one at the same party | 7 (32 %) | 55 (60 %) | 42 (48 %) |
+| withdrawals; lent at again within 10 s | none | 16; 5 | 16; 5 |
+| world 1's share of the pick: two worlds, three, four or more | 0.54, 0.38, 0.56 | 0.48, 0.35, 0.51 | 0.48, 0.38, 0.46 |
+| the gate: a party with its answer on its way needs answering | | 67 % of 163 | 51 % of 175 |
+| orders to soldiers a unit-minute; the worst minute a second | 52.1; 67 | 75.7; 118 | 30.5; 99 |
+| the hunt's attack orders a hunter-second | 6.79 | 7.38 | 0.13 |
+| soldier-seconds with a group / lent / coming or no slot | | 69 / 10 / 21 % | 63 / 3 / 33 % |
+| soldiers lost with a group / in an answer / coming or no slot | 72 | 67 / 14 / 4 | 83 / 3 / 5 |
+| extractors lost to raids | 26 | 10 | 14 |
+| Jev, by `run/batch_read.py` | $0.74 | $0.43 | $0.68 |
+
+- **The mends held.** No group reported gone, no rover taken by another group, `groups` took a spot's name, `home`
+  and values sent as strings of JSON; the hunt's attack goes out once (0.13 a hunter-second) and the orders to
+  soldiers are under the old hands'.
+- **Reinforcements do not reach an army standing beyond his turrets**
+  (K-deal-a-comer-alone-is-held-at-the-edge-of-a-threat-its-body-passed). From 17:50 to 19:40 `group_A` held at H1
+  with 21 to 25 soldiers while every report read 57 to 71 more coming, "half in about 50 seconds". At 19:00, 68
+  soldiers were with no group, 46 of them between D2 and F4 and 26 at E2 and E3, before his turrets at E2, F2 and
+  F3. A comer walks alone on a fight order to the group's place; it is in no body, so every threat on its way is
+  one "its group was not priced against", and H-MICRO-FLEE steps it back and stands it at the edge "while its
+  order's goal is inside such a threat" (330, 106 and 419 fires in the game's last three minutes, under 12 a minute
+  to 16:00). The body had passed as a body, on the pick's word. Three comers died there; a third of the game's
+  soldier-seconds were coming or with no slot. The player at 19:06: "Its 62 reinforcing Stouts have been 'about 50
+  seconds away' for the last few reports, so they may be held up on the walk", and at 19:34 it declared a second
+  army at D4 for it. **This is code holding units back, which the ruling on D1 forbids, and nobody chose it.** The
+  first game had it smaller (45 and 79 fires in its last two minutes, 28 of 64 on the road at 16:00). For his word.
+- **The arrival times in the report are the straight line's** (§12): "half in about 50 seconds" stood for two
+  minutes.
+- **Soldiers of a type no open slot names stand until the player sees them.** At 8:04 the player made the army
+  Stouts only, to move its four Blitzes to three posts; five of its fourteen `groups` calls after that homed
+  soldiers standing unassigned (a Blitz three times, a Shellshocker, four Whistlers), each within a turn or two.
+- **The answer priced whole, in a game:** a lend within ten seconds of one at the same party fell from 60 % of the
+  lends to 48 %, and the withdrawals did not move. The gate's wording and the draw each second are unchanged
+  (§5.1's "not ended").
+- **World 1 without its label and its sentence:** no difference that one game against another can show (the
+  offline arms said three to five points on two-world picks).
+- The game was three minutes slower than the first by its middle, not by the slots: ten Stouts into his F2 turrets
+  at 9:10 (eight lost), the energy store empty and up to 2,900 of metal banked from 9:00 to 13:00.
 
 ## 12. The build's state (for whoever picks it up)
 
@@ -479,14 +529,18 @@ What the game showed of the design:
   to that place until the first of them is inside the gate and the group is asked again, or the player moves it.
   Before, reinforcements stopped at the plant because the group was gone. The user has not been asked.
 - The travel time is the straight line over the soldier's speed, not the hands' fields: a place across a cliff
-  reads nearer than it is.
+  reads nearer than it is. In the second game it read "half in about 50 seconds" for two minutes of comers held
+  before his turrets (§11).
+- **A comer alone is held at the edge of any threat between it and its body** (H-MICRO-FLEE, §11, the second game).
+  Not chosen by anybody, against the ruling on D1, and the user has not been asked: what a comer does at a threat
+  its body passed (walks on as the body did; takes the body's way; or is said in the report as held, with where).
 - The Distilled and Territory bots do not use the deal.
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
-Jev over recorded gates. Run since (stage 6, §11): four smokes of the pianist alone and one flagship game, won; no
-lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over that game's
-picks (§5.1); the build with them has two smokes behind it and no game with a player.
+Jev over recorded gates. Run since (stage 6, §11): six smokes of the pianist alone, one WRDistilled game and two
+flagship games, both won; no lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
+game's picks (§5.1); the build with them has two smokes and the second flagship game behind it.
 
 ## 13. Not in this design
 
