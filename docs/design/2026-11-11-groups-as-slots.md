@@ -343,7 +343,34 @@ The lap at the time limit had every soldier formed from 420 s and one of the fir
 of the lab: three companies' ends beside each other, the end this design leaves alone (§12). In the game this is a
 one-point route. Mended on the way: a company founded half way round a route of several points began it again.
 
-## 12. Not in this design
+## 12. The build, step by step (state for whoever picks it up)
+
+Done and committed: the deal with its replay (8bce1fbc, stage 0); the lane without the muster and the duel director
+on the deal (a214aee4, stage 1). From a214aee4 the flagship is **not** in a state to play: the hands still hand the
+lane every member and `join_in` does nothing.
+
+The hands (`crates/bot/src/brain/pianist`), in this order, each step building and its tests passing:
+
+1. **Membership from the deal.** `Group` gains its slots and its place; `members` becomes the soldiers with it,
+   read from `micro::deal::Deal` once a second in `keep_groups`, with `coming` beside it; `joining`, `parent`,
+   `admit`, `group_for_newcomer`, the rally map and the rejoin orders go; comers get `micro::deal::Comers`' orders;
+   a seat with no group declared has `group_A` (96 slots, any type, holding beside its first plant); a group lives
+   on empty. `declare_groups` hands the lane `members` as it does now.
+2. **Answers.** `Order::Send` carries a count; the hunters are `Deal::lend`'s; one answer a party, an internal
+   group with a hunt's task that the player never names; it ends by the hunt's ends or its own withdraw, then
+   `Deal::release`. `join`, `take_in`, `rove_1` and their orders go, with `compose::clash`'s join rule.
+3. **Words.** The send rung's words (its soonest, those coming included, no group made); a world's line prices the
+   answer whole; the group's entry says in place, coming and lent, and the fight's facts when in contact.
+4. **The player's side.** The `groups` tool; `produce` without `group` and `join_in`; the report's lines (§4); the
+   player prompt and the brief's words on groups, between games.
+5. **Registers.** `docs/heuristics.md` (H-MICRO-DEAL, H-HANDS-SLOTS, H-HANDS-ANSWER; the retired ones),
+   `docs/code-decisions.md` (the deal and its constants, the default group), the claims in `docs/knowledge/`,
+   `docs/harness/record-format.md` for what the record's `groups` says.
+
+Then stages 2 to 5 of §10 (the drills of the deal, the raid scenario, rove, the hands offline), and stage 6 on the
+user's word.
+
+## 13. Not in this design
 
 The march, in or out of the enemy's reach, and its order rate; the end of several companies told to one goal
 (K-group-five-companies-told-to-one-goal-do-not-settle), which a group of four companies still has; static defence; the way's price for narrow ground
