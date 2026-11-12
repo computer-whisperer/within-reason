@@ -606,3 +606,33 @@ passes it relaxed at 23-24 / 28-32 / 39-40 where the ranks took 37-48 / 40-52 / 
 ground: the way would then be the same with the price flat).
 **Used by.** (open: what a tight cell should cost now that it is passed and not crawled is a decision on where
 armies walk, the user's.)
+
+### K-hands-a-group-of-listed-members-is-a-string
+**Claim.** A group whose members are a list kept wherever each stands, fed by joins from the plants and marched by
+companies that each plan their own way, is not a body: it is a string from the plants to the front, and what is said
+of it (its place, its strength, its odds) is said of a point that most of it is not at.
+**Status.** measured (2026-11-10, the lobby 10v8 on Erebos Lakes, `run/matches/1794293029-human/00`). `group_A_t14`
+never had over 62 % of its members within 1,200 of their centroid from 12:00 and usually a third; the lane held it as
+10 to 23 companies; the report placed it at its newest full company; its task changed 63 times in 18 minutes (a walk
+order every 37 s) while the last soldiers walking to a head were 70 to 200 s from it; the seat declared 197 groups
+and joined a unit to the body every three to five seconds from 16:00. 76 of 377 Lances and 64 of 260 Bulls ever
+dealt damage.
+**Evidence.** `run/group_where.py`, `run/group_companies.py` on that record; `review.md` beside it.
+**Would be wrong if.** The same seat under H-HANDS-SLOTS still had under half of a group's soldiers inside its gate
+for minutes while the group was told to move (the string would then be the march's, not the membership's).
+**Used by.** H-HANDS-SLOTS, H-MICRO-DEAL, H-HANDS-ANSWER.
+
+### K-deal-the-slots-are-refilled-without-churn
+**Claim.** Dealing every soldier each second to the open slot it reaches soonest, with a gate of 15 s to enter a
+body, 30 s to stay and 5 s of margin for a soldier already coming, does not thrash: a soldier's group changes well
+under once a unit-minute, and a body four companies across keeps its edges.
+**Status.** conjectured, supported offline and on the drill bench (2026-11-11). `cargo run --release -p micro
+--example deal_replay` over the 10v8's two seats and the Apex v0.5.07 1v1: the worst row 0.22 re-deals a unit-minute
+(gate 10 s), 0.13 at 15 s, 0.09 at 20 s; without the leaving gate the falls from with to coming of the same group
+are ten times as many (0.21 against 0.02). A recording is not steered by the deal: nobody in it came when the deal
+said coming. On the bench (ledger slots1-*, slots2-late-*, slots3-circ-*) the march is level on four rows and comers
+are of the body where they used to found a company of their own.
+**Would be wrong if.** A game under H-MICRO-DEAL showed a soldier's group changing more than once a unit-minute, or
+soldiers walking back and forth between two groups' places.
+**Used by.** H-MICRO-DEAL.
+

@@ -20,7 +20,7 @@ for line in f:
     g = (r.get('groups') or {}).get(name)
     if not g: continue
     comps = g.get('companies') or []
-    cs = ' '.join('%s:%d%s%d' % (cell(*c['anchor']), c['members'], 'm' if c['role'] == 'marching' else 'u', c['formed']) + ('A' if c['arrived'] else '') for c in comps)
+    cs = ' '.join('%s:%d%s%d' % (cell(*c['anchor']), c['members'], 'u' if c.get('role') == 'mustering' else 'm', c['formed']) + ('A' if c['arrived'] else '') for c in comps)
     n = len(g['formed']) + len(g['exceptions'])
     ex = {}
     for e in g['exceptions']: ex[e[1]] = ex.get(e[1], 0) + 1

@@ -45,13 +45,11 @@ Example, 9:14, one army going to his commander while his raiders are in our half
 
 > Plan: one army, together, to his commander. A single enemy armfav (Rover) is NEVER answered by Blitzes or Stouts: no send, no detachment, no hunt, no attack on it; the turrets and our Rover groups deal with armfav. The enemy base is east: his plant at spot_51 (H5); Sentries at spot_29, spot_41, spot_46, spot_53, spot_55, spot_57, spot_60, spot_72; his commander was last at spot_40 (F5); he has a Janus (armjanus) and Shellshockers (armart). group_A and group_L (Rovers) roam in code.
 >
-> Every other Blitz or Stout group: it joins group_T, at once, wherever it is.
+> group_T has the slots for every Blitz and Stout we have and make (`groups`: 96 of any type): they come to it as they are made, wherever they are.
 >
 > group_T is the army. While an enemy armflash, armstump, armjanus or armart party is within 800 of group_T (party_15, 5 armflash, now): group_T attacks that party with the whole group, every soldier, and keeps attacking it until it is dead or out of sight; we outweigh it three to one, so this fight is always taken and never left for a walk. With no such party near: its way is spot_47, then spot_46, then spot_40, advancing as one body (fight to). His commander (armcom) in sight: group_T attacks it with the whole group at once until it dies. It kills the Sentries at spot_46 on its way. It never goes back to a place it has reached. From a party that outweighs it it walks to spot_47.
 >
-> group_G1, group_I1, group_K1, group_L1 and every Rover group from the plants (not group_A, not group_L): they join each other and hunt enemy armfav on our half (spot_19, spot_28, spot_30, spot_43, spot_52, spot_38, spot_36, spot_22, spot_26, spot_61) and attack them; they keep away from enemy armflash; their step-back place is spot_43. A Blitz in group_I1 joins group_T.
->
-> New Blitzes and Stouts from the plants: they join group_T.
+> group_R (the other Rovers; `groups`: 12 armfav, at spot_43): it hunts enemy armfav on our half (spot_19, spot_28, spot_30, spot_43, spot_52, spot_38, spot_36, spot_22, spot_26, spot_61) and attacks them; it keeps away from enemy armflash; its step-back place is spot_43.
 >
 > Commander: works at home and on the spots near home (spot_45, spot_50, spot_43, spot_36, spot_38, spot_52, spot_54, spot_28); never walks east of spot_39. An enemy armflash party at spot_52, spot_43, spot_36 or home: it attacks it with the D-gun.
 >

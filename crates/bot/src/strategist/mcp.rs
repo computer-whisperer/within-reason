@@ -185,8 +185,11 @@ fn tool_list() -> Value {
               "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows (a build whose frame began after the report you read is finished first even so, since your stop was written before it stood; the hands' line says which). Steps: \"finish <handle>\" (resume an unfinished structure of ours by the handle the report's `unfinished structures` line gives, whoever began it: it is this builder's own build from then on, finished first before any later list), \"extractor spot_N\" (or \"extractor\" for the nearest free spot; an advanced constructor's extractor is its advanced one), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known when the opening is the same for every faction; when it is not, give the builder one list per faction instead, {\"commander\": {\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}: the hands take the list of the faction the game gives the seat at their first look and their first line says which, the other lists are dropped, and a faction left out plays from the menu), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\", \"armmmkr block\" for the construction turrets' block once it is laid, which puts a frame there whatever the block's `holds` list says) and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home, out of every factory's exit lane either way (the builder walks: the pros' solars are at base; a generator at a place you mark is walked to and back from, so a mark far from the plant costs the commander that walk twice at every solar: migration-3-1 marked one 970 from home and the commander left the plant it was helping for 70 s per pair), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). A step may carry the word \"low\" (\"assist 90 low\", \"armsolar low\"): on that step the builder draws only the team's surplus and stands still in a metal stall, so the other builders' work comes first; the pros set their commander low while it guards the plant or builds a solar in the opening while the constructors claim spots, and high again for a build of its own. Plants and construction turrets are low always, as every human's are; a step without the word is high. Each step is ordered when the one before is 60% built, so nothing idles; a count on a step's first word repeats it (\"extractor:20\", \"corwin:6 low\", \"corllt:2 spot_3\"; one building per repeat, so no id on a counted step; 1 to 60): a constructor's standing work is written so, twenty extractors being eight minutes of one constructor, and the report reads a run back as the count; a step that builds something may carry an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"; the id, \"low\" and \"start\" go in any order after the building's name, \"armafus #af1 start\" and \"armafus start #af1\" being the same step; the word \"start\" (\"armsolar start\", \"armafus block_site #af1 start\") has the builder place the frame and take its next step the moment the frame stands up, leaving it to the construction turrets in reach and to any builder told to `finish` it, so a constructor lays frames for the block instead of standing on each (a counted start step lays one frame per repeat: \"armsolar:8 start\"); no id on \"assist\"): steps with the same id, on any builders' lists and in a list sent again, are one building (one type; a helper's step may leave the place out, \"armavp #avp1\", and takes the place another list in the same call gives it): the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step naming a building this builder cannot make, or a turret, radar or jammer with no place, is refused here; a step that cannot be done when its turn comes (the spot taken, a place unknown) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
-              "description": "How your hands' code marches a group between your orders is fixed: the group keeps its ranks, every soldier walks to its slot firing at what it can hit, the block halts in its ranks when every soldier has an armed enemy in reach (or its front is inside half its reach) and walks on when that is no longer so, and an advance at its end closes on what it sees; its soldiers never step out of the ranks one by one (no fleeing, no sidestep, no stepping back), and a retreat is a walk your hands pick. This tool sets the two things left to you, per group name or for \"all\": `company`, the most soldiers a company of the group holds (24 unless you set it: six files by four ranks; 0 lifts the cap, one formation), and `heal`, whether a roving group's hurt rovers (under half their health, nothing in hand) go to the nearest builder of ours to be healed before roving on (true unless you set it: a construction turret heals a Rover in 3 s, the commander in 2, a constructor in 7, and the rover stands in the builder's reach so the builder never walks). Each company is a formation of its own on the group's order, a plant's new soldiers muster beside the plant and walk to the army as a company of their own, and two companies that fit in one merge when they meet. Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting stands until you change it.",
+              "description": "How your hands' code marches a group between your orders is fixed: the group keeps its ranks, every soldier walks to its slot firing at what it can hit, the block halts in its ranks when every soldier has an armed enemy in reach (or its front is inside half its reach) and walks on when that is no longer so, and an advance at its end closes on what it sees; its soldiers never step out of the ranks one by one (no fleeing, no sidestep, no stepping back), and a retreat is a walk your hands pick. This tool sets the two things left to you, per group name or for \"all\": `company`, the most soldiers a company of the group holds (24 unless you set it: six files by four ranks; 0 lifts the cap, one formation), and `heal`, whether a roving group's hurt rovers (under half their health, nothing in hand) go to the nearest builder of ours to be healed before roving on (true unless you set it: a construction turret heals a Rover in 3 s, the commander in 2, a constructor in 7, and the rover stands in the builder's reach so the builder never walks). Each company is a formation of its own on the group's order, and two companies that fit in one merge when they meet. Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it, on a pick, so say in the packet which group roves and when (a scout is a group of one slot you declare with `groups`); the group's entry says what each rover is doing and what it has found (`rove`). A setting stands until you change it.",
               "inputSchema": { "type": "object", "additionalProperties": { "type": "object", "properties": { "company": { "type": "integer", "minimum": 0, "maximum": 64 }, "heal": { "type": "boolean" } } }, "description": "Group name (group_A) or \"all\" to {\"company\": N} and/or {\"heal\": false}." } },
+            { "name": "groups",
+              "description": "Your groups of soldiers. A group is a name, its slots and a place: you make it, resize it and end it here, and nothing else does (no group is made, merged or split by your hands). Once a second every soldier of yours takes the open slot it reaches soonest, whatever it was doing before: one already standing with a group stays with it, a new one from a plant walks to the nearest group with room, and a soldier with no slot open anywhere stands unassigned where it is (the report says how many and where). So you move strength by changing slots: raise one group and lower another, and the soldiers best placed go. A group with nobody in it keeps its name and its place and fills as soldiers come. An object of group name (group_ and lower-case words: group_A, group_guard_c5) to {\"slots\": N} for N soldiers of any type, or {\"slots\": {\"armflash\": 6, \"any\": 4}} for types (the roster's names); at most 96 slots a group (four companies). For a NEW group, \"at\": [x, z] or a grid cell (\"C5\") is where its slots are made and where it holds until your hands move it (home when left out); an existing group's place is your hands' to move, so say where it goes in your instructions, never here. \"air\": true makes it a group of aircraft (aircraft and ground soldiers never share a group). null ends a group: its soldiers take other groups' open slots. Until you declare a group you have one, group_A, of 96 slots of any type at home; your first declaration replaces it, so declare every group you want, group_A among them if you keep it. What each group does (hold, walk, fight, follow, rove) is your hands' pick from your instructions. A station is a small group that holds; a scout is a group of one slot that roves; an enemy party near anything of yours can be answered by a few soldiers lent from the groups nearest it, who go back when it is over.",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "object", "properties": { "slots": { "oneOf": [ { "type": "integer", "minimum": 1, "maximum": 96 }, { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 96 } } ] }, "at": {}, "air": { "type": "boolean" } }, "required": ["slots"] }, { "type": "null" } ] }, "description": "Group name (group_A) to {\"slots\": N or {type: n, \"any\": n}, \"at\": [x, z] or a cell for a new group, \"air\": true} or null." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates, a grid cell (\"E7\": its centre), or a range of cells (\"E1-H8\": the rectangle from E1 to H8, a region whose point is its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. A region is also where a group can be told to rove: a packet that names it for a group puts `rove_<region>` and `rove_1_<region>` on that group's menu (its soldiers look only at places inside the region), so \"the Rovers rove in his half\" is a mark of his half and a packet naming it. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
@@ -197,7 +200,7 @@ fn tool_list() -> Value {
               "description": "The order your construction turrets take their work in. A turret helps one thing in its reach at a time until it stands, then the next; left to the game it takes the nearest thing under construction, and a plant with a product under way is always that, so turrets in reach of a plant feed the plant and a fusion frame beside them waits (econ-flagship-9: 2,800 build power on the old vehicle plant, the fusion at 74 % gaining under 1 % a second). Your hands order each turret onto the highest-ranked thing in its reach instead, the nearest among equals: {\"order\": [\"turret\", \"advanced_fusion\", \"fusion\", \"advanced_converter\", \"converter\", \"extractor\", \"generator\", \"storage\", \"building\", \"advanced_plant\", \"plant\"]} is the default and the words it takes (a frame by its kind; `building` any other frame; `advanced_plant` and `plant` a factory's own products); a handle (`plant_17116`, `armafus_54`) or an id of your lists (`#af2`) stands anywhere in the order as itself; what follows the word `never` gets no turret's order, and a turret with nothing ranked in its reach and a `never` thing there stands idle rather than feed it. A kind not named comes after the named ones, before `never`. The order stands until you send another; [] restores the default; the report's block line reads it back. Whatever the order, one turret in reach stays on any frame nobody of ours is building once its share has stood still two seconds, until the frame stands (the keep-alive: a frame nobody touches for nine seconds decays, a turret frame left at 3 % is gone in twelve, and one builder on it is what stops that; econ-flagship-16 lost 33 frames in reach of 5 to 29 turrets that were all on what the order ranked higher), so the order decides where the rest of the power goes, not which frames live; {\"keep_alive\": false} turns it off and the order alone rules, {\"keep_alive\": true} restores it; the block line says how many turrets are keeping frames alive.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "order": { "type": "array", "items": { "type": "string", "maxLength": 40 }, "maxItems": 40 }, "keep_alive": { "type": "boolean" } } } },
             { "name": "produce",
-              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers muster beside the plant, out of its lane, and walk to their group four together as a company of their own; unset, they walk when a company's worth stands, or after a wait: see the `lane` tool's `company`): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words; before the faction is known, one list per faction instead, {\"all\": {\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}, and the hands take the faction's list at their first look and say which), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "description": "What each factory or builder may build (which group a new soldier goes to is not set here: it takes the open slot it reaches soonest among your groups, see `groups`): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words; before the faction is known, one list per faction instead, {\"all\": {\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}, and the hands take the faction's list at their first look and say which), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "transfer",
               "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become; a constructor or factory of another faction builds its own faction's things there (write them by their own names or by role words). A standing transfer, {\"from\": \"t2\", \"to\": \"t5\", \"keep_metal\": 100, \"keep_energy\": 2000}, has t2's hands send t5 everything above those amounts in t2's store every second until {\"from\": \"t2\", \"standing\": false} lifts it; one keep or both. This is how a seat feeds a sprint: a one-shot send moves a surplus, and a seat spending as it earns never has one (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat and passed on), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
@@ -212,7 +215,7 @@ fn tool_list() -> Value {
               "description": "Say something in the game's chat: `to` \"everyone\" (the default: everyone in the game, his side too) or \"allies\" (our side alone; refused when the person hosting you watches as a spectator, whose team chat goes to the spectators: the map's `people` says). Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you, as a player on our side would be shown it; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 }, "to": { "type": "string", "enum": ["everyone", "allies"] } } } },
             signal_tool(),
-            orders(&["instruct", "queue", "lane", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, the block's pitch, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
+            orders(&["instruct", "queue", "lane", "groups", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, the block's pitch, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
             predict_tool(),
@@ -367,7 +370,7 @@ pub(super) fn predict(arguments: &Value, shared: &Arc<Shared>) -> Result<String,
 }
 
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "lane", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
+    &["instruct", "queue", "lane", "groups", "mark", "block", "tend", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
 }
 
 /// The word a refused call's line carries, in `orders` and in a `queue` that took some factions' lists and not others.
@@ -846,7 +849,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     return Err(format!("{name}: settings are by group name (group_A) or \"all\""));
                 }
                 let fields = match value {
-                    Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move (or `rove_1` for one soldier), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
+                    Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move for a whole group (a scout is a group of one slot, `groups`), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
                     Value::Object(fields) => fields,
                     _ => return Err(format!("{name}: the setting is {{\"company\": N}} and/or {{\"heal\": false}}; {gone}")),
                 };
@@ -883,6 +886,82 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
             }
             Ok(format!("lane set; {}", said.join("; ")))
+        }
+        "groups" => {
+            use super::shared::GroupDecl;
+            // The groups are the player's (docs/design/2026-11-11-groups-as-slots.md §3.1; H-HANDS-SLOTS): slots at a
+            // place, made, resized and ended here and nowhere else. Where a group goes is a pick of the hands'.
+            const MOST: usize = 96;
+            let entries = arguments.as_object().filter(|o| !o.is_empty()).ok_or("groups takes an object: group name (group_A) to {\"slots\": N} or {\"slots\": {type: n, \"any\": n}}, with \"at\" for a new group, or null to end it")?;
+            let map = shared.map.lock().unwrap().clone();
+            let (width, height) = (map["width"].as_f64().unwrap_or(0.0) as f32, map["height"].as_f64().unwrap_or(0.0) as f32);
+            let mut groups = shared.groups.lock().unwrap();
+            let mut next = groups.clone();
+            let mut said: Vec<String> = Vec::new();
+            for (name, value) in entries {
+                let word = name.strip_prefix("group_").is_some_and(|w| !w.is_empty() && w.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'));
+                if !word {
+                    return Err(format!("{name}: a group's name is group_ and a word (group_A, group_guard_c5)"));
+                }
+                let fields = match value {
+                    Value::Null => {
+                        said.push(if next.remove(name).is_some() { format!("{name} ended: its soldiers take other groups' open slots") } else { format!("{name}: no such group declared") });
+                        continue;
+                    }
+                    Value::Object(fields) => fields,
+                    _ => return Err(format!("{name}: {{\"slots\": N}} or {{\"slots\": {{type: n, \"any\": n}}}}, or null to end it")),
+                };
+                let count = |v: &Value, what: &str| v.as_u64().filter(|n| (1..=MOST as u64).contains(n)).map(|n| n as usize).ok_or_else(|| format!("{name}: {what} is a whole number of soldiers, 1 to {MOST}"));
+                let (any, typed) = match fields.get("slots") {
+                    Some(Value::Object(by_type)) if !by_type.is_empty() => {
+                        let mut any = 0;
+                        let mut typed = Vec::new();
+                        for (unit, n) in by_type {
+                            let n = count(n, unit)?;
+                            if unit == "any" {
+                                any = n;
+                            } else if crate::brain::pianist::glossary::entry(unit).is_some() {
+                                typed.push((unit.clone(), n));
+                            } else {
+                                return Err(format!("{name}: {unit} is no unit of the roster (its names are the internal ones: armflash)"));
+                            }
+                        }
+                        (any, typed)
+                    }
+                    Some(v) if v.is_u64() => (count(v, "slots")?, Vec::new()),
+                    _ => return Err(format!("{name}: slots is a number of soldiers of any type, or an object of type to number with \"any\" for the rest")),
+                };
+                let total = any + typed.iter().map(|(_, n)| n).sum::<usize>();
+                if total > MOST {
+                    return Err(format!("{name}: {total} slots; a group holds {MOST} at most (four companies): declare a second group"));
+                }
+                let air = fields.get("air").and_then(Value::as_bool).unwrap_or(false);
+                let before = next.get(name).cloned();
+                let at = match (fields.get("at"), &before) {
+                    (Some(_), Some(_)) => return Err(format!("{name} stands already: where it goes is your hands' pick, so say it in your instructions; this tool sets its slots")),
+                    (Some(v), None) => Some(point_of(v, width, height, name).map(|(x, z)| [x, z])?),
+                    (None, Some(b)) => b.at,
+                    (None, None) => None,
+                };
+                if before.as_ref().is_some_and(|b| b.air != air) {
+                    return Err(format!("{name} is a group of {}: end it and declare another to change that", if air { "ground soldiers" } else { "aircraft" }));
+                }
+                let slots = if typed.is_empty() { format!("{any} slots of any type") } else { format!("{} slots ({}{})", total, typed.iter().map(|(u, n)| format!("{n} {u}")).collect::<Vec<_>>().join(", "), if any > 0 { format!(", {any} of any type") } else { String::new() }) };
+                said.push(match (&before, at) {
+                    (Some(_), _) => format!("{name}: {slots} from now"),
+                    (None, Some([x, z])) => format!("{name} declared at ({x:.0}, {z:.0}): {slots}{}", if air { ", aircraft" } else { "" }),
+                    (None, None) => format!("{name} declared at home: {slots}{}", if air { ", aircraft" } else { "" }),
+                });
+                next.insert(name.clone(), GroupDecl { any, typed, at, air });
+            }
+            let first = groups.is_empty() && !next.is_empty();
+            *groups = next;
+            Ok(format!(
+                "{}{}; your hands deal the soldiers from their next look. Your groups now: {}",
+                said.join("; "),
+                if first { "; this is your first declaration, so the hands' own group_A is gone unless you declared it" } else { "" },
+                if groups.is_empty() { "none declared (the hands keep group_A, 96 slots of any type at home)".to_string() } else { groups.iter().map(|(n, g)| format!("{n} ({})", g.any + g.typed.iter().map(|(_, k)| k).sum::<usize>())).collect::<Vec<_>>().join(", ") }
+            ))
         }
         "mark" => {
             let marks = arguments.as_object().filter(|o| !o.is_empty()).ok_or("mark takes an object: place name to [x, z], a grid cell such as \"E7\", or null to forget it")?;
@@ -1004,7 +1083,6 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let field = shared.field();
             let mut known: Vec<String> = field.roster.iter().map(|(name, _)| name.clone()).collect();
             known.extend(field.buildable.iter().map(|(name, _)| name.clone()));
-            let groups: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
             let check_units = |name: &str, items: &[Value], faction: Option<&str>| -> Result<Vec<String>, String> {
                 let units: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: unit names are strings"))).collect::<Result<_, _>>()?;
                 // "corck:1": at most one of it from now, then the rest of the list (human-7: told "one
@@ -1024,7 +1102,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None
             // leaves; how many walk to it together, likewise; the lists per faction when given so)
-            let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>, Option<Option<usize>>, BTreeMap<String, Vec<String>>)> = Vec::new();
+            let mut parsed: Vec<(String, Option<Vec<String>>, BTreeMap<String, Vec<String>>)> = Vec::new();
             let mut factories: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
             // ... and a factory still going up, which the picture does not list yet (bluegecko-3v1-comet-catcher-8,
             // 1:05: the plants' limits refused whole, "not a factory in the picture", the plants standing by 1:17).
@@ -1061,8 +1139,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     other => other,
                 };
                 match value {
-                    Value::Null => parsed.push((name.clone(), Some(None), None, None, BTreeMap::new())),
-                    Value::Array(items) => parsed.push((name.clone(), Some(Some(check_units(name, items, None)?)), None, None, BTreeMap::new())),
+                    Value::Null => parsed.push((name.clone(), None, BTreeMap::new())),
+                    Value::Array(items) => parsed.push((name.clone(), Some(check_units(name, items, None)?), BTreeMap::new())),
                     // One list per faction, written before the seat's faction is known (the opening turn on a lobby
                     // seat set to Random): the hands take the faction's list at their first look.
                     Value::Object(fields) if !fields.is_empty() && fields.keys().all(|k| FACTIONS.contains(&k.as_str())) => {
@@ -1074,99 +1152,35 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             }
                             by_faction.insert(faction.clone(), check_units(name, items, Some(faction))?);
                         }
-                        parsed.push((name.clone(), Some(Some(Vec::new())), None, None, by_faction));
+                        parsed.push((name.clone(), Some(Vec::new()), by_faction));
                     }
-                    Value::Object(fields) => {
-                        if !factory {
-                            return Err(format!("{name}: the object form (units and group) is for a factory"));
-                        }
-                        let units = match fields.get("units") {
-                            None => None,
-                            Some(Value::Array(items)) => Some(Some(check_units(name, items, None)?)),
-                            Some(Value::Null) => Some(None),
-                            Some(_) => return Err(format!("{name}: units is a list of unit names")),
-                        };
-                        let group = match fields.get("group") {
-                            None => None,
-                            Some(Value::Null) => Some(None),
-                            Some(Value::String(g)) if g == "new" || g == "by_type" => Some(Some(g.clone())),
-                            Some(Value::String(g)) if groups.contains(g) => Some(Some(g.clone())),
-                            Some(Value::String(g)) => return Err(format!("{name}: {g} is not a group in the picture ({}); \"new\" makes one, \"by_type\" one per unit type", if groups.is_empty() { "none yet".to_string() } else { groups.join(", ") })),
-                            Some(_) => return Err(format!("{name}: group is a group name, \"new\" or \"by_type\"")),
-                        };
-                        let join_in = match fields.get("join_in") {
-                            None => None,
-                            Some(Value::Null) => Some(None),
-                            Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
-                                Some(n) if (1..=64).contains(&n) => Some(Some(n as usize)),
-                                _ => return Err(format!("{name}: join_in is a whole number of 1 to 64 (how many new soldiers muster beside the plant and walk to their group together), or null for the group's company cap")),
-                            },
-                        };
-                        if units.is_none() && group.is_none() && join_in.is_none() {
-                            return Err(format!("{name}: the object form takes units, group and/or join_in"));
-                        }
-                        parsed.push((name.clone(), units, group, join_in, BTreeMap::new()));
+                    Value::Object(_) => {
+                        return Err(format!("{name}: a list of unit names, null, or one list per faction; `group` and `join_in` are gone: a new soldier takes the open slot it reaches soonest among your groups, and the `groups` tool sets their slots"));
                     }
-                    _ => return Err(format!("{name}: a list of unit names, null, one list per faction ({{\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}), or {{\"units\": [...], \"group\": ..., \"join_in\": N}}")),
+                    _ => return Err(format!("{name}: a list of unit names, null, one list per faction ({{\"armada\": [...], \"cortex\": [...], \"legion\": [...]}}), ")),
                 }
             }
             let mut allowed = shared.allowed.lock().unwrap();
             let call = shared.produce_calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             let mut said: Vec<String> = Vec::new();
-            for (name, units, group, join_in, by_faction) in parsed {
-                let before = allowed.get(&name).cloned();
-                let units_now = match units {
-                    Some(Some(units)) if !by_faction.is_empty() => {
+            for (name, units, by_faction) in parsed {
+                match units {
+                    Some(units) if !by_faction.is_empty() => {
                         let missing: Vec<&str> = FACTIONS.iter().copied().filter(|f| !by_faction.contains_key(*f)).collect();
                         said.push(format!(
                             "{name}: one list per faction ({}); the hands take the list of the faction the game gives the seat, at their first look, and their first line says which{}",
                             by_faction.iter().map(|(f, units)| format!("{f}: {}", units.join(", "))).collect::<Vec<_>>().join("; "),
                             if missing.is_empty() { String::new() } else { format!("; no list for {}: as that faction it may build anything", missing.join(" or ")) }
                         ));
-                        Some(units)
+                        allowed.insert(name, Allowance { call, units, by_faction });
                     }
-                    Some(Some(units)) => {
+                    Some(units) => {
                         said.push(format!("{name} may build only {}", if units.is_empty() { "nothing".to_string() } else { units.join(", ") }));
-                        Some(units)
+                        allowed.insert(name, Allowance { call, units, by_faction });
                     }
-                    Some(None) => {
+                    None => {
                         said.push(format!("{name} may build anything"));
-                        None
-                    }
-                    None => before.as_ref().map(|a| a.units.clone()),
-                };
-                let group_now = match group {
-                    Some(Some(g)) => {
-                        said.push(match g.as_str() {
-                            "new" => format!("{name}'s new soldiers form a group of their own from now"),
-                            "by_type" => format!("{name}'s new soldiers form one group per unit type from now (the report names each as it forms)"),
-                            _ => format!("{name}'s new soldiers join {g}"),
-                        });
-                        Some(g)
-                    }
-                    Some(None) => {
-                        said.push(format!("{name}'s new soldiers gather in its own group again"));
-                        None
-                    }
-                    None => before.as_ref().and_then(|a| a.group.clone()),
-                };
-                let join_in_now = match join_in {
-                    Some(Some(n)) => {
-                        said.push(format!("{name}'s new soldiers wait beside it and walk to their group {n} together"));
-                        Some(n)
-                    }
-                    Some(None) => {
-                        said.push(format!("{name}'s new soldiers walk to their group as each is made"));
-                        None
-                    }
-                    None => before.as_ref().and_then(|a| a.join_in),
-                };
-                match (units_now, group_now, join_in_now) {
-                    (None, None, None) => {
                         allowed.remove(&name);
-                    }
-                    (units, group, join_in) => {
-                        allowed.insert(name, Allowance { call: if units.is_some() { call } else { before.map_or(call, |a| a.call) }, units: units.unwrap_or_default(), by_faction, group, join_in });
                     }
                 }
             }
@@ -1475,20 +1489,27 @@ mod tests {
     /// takes a `reclaim` step by handle, grid cell or place, and an id step on a builder that cannot make the type
     /// (it helps whoever builds it); `remove` takes "<type> at <place or cell>" for a reclaim, not for a destruct.
     #[test]
-    fn produce_by_type_and_join_in_queue_reclaim_and_help_steps_and_remove_at_a_place() {
+    fn groups_are_declared_and_queue_reclaim_and_help_steps_and_remove_at_a_place() {
         use super::super::shared::{Field, Removal, UnitCard};
         use std::collections::BTreeMap;
         let shared = Arc::new(Shared::default());
         *shared.map.lock().unwrap() = json!({ "width": 8192.0, "height": 6144.0 });
         shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "plant_7": {} }, "places": { "spot_64": { "grid": "E4" } } });
-        let said = call_tool("produce", &json!({ "plant_7": { "units": ["armfav", "armflash"], "group": "by_type", "join_in": 4 } }), &shared).unwrap();
-        assert!(said.contains("one group per unit type") && said.contains("walk to their group 4 together"), "{said}");
-        let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
-        assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), Some(4), 2));
-        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": 0 } }), &shared).unwrap_err().contains("1 to 64"));
-        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": null } }), &shared).unwrap().contains("as each is made"));
-        let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
-        assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), None, 2), "the rest of the allowance stands");
+        // The groups are the player's: declared with their slots, a new one where it says, resized, ended; a place
+        // given for a group that stands is refused (where it goes is the hands' pick), as is a 97th slot.
+        let said = call_tool("groups", &json!({ "group_army": { "slots": 48 }, "group_guard": { "slots": { "armflash": 3, "any": 1 }, "at": "C5" } }), &shared).unwrap();
+        assert!(said.contains("group_army declared at home: 48 slots of any type") && said.contains("group_guard declared at (") && said.contains("4 slots (3 armflash, 1 of any type)") && said.contains("first declaration"), "{said}");
+        let guard = shared.groups.lock().unwrap().get("group_guard").cloned().unwrap();
+        assert_eq!((guard.any, guard.typed.clone(), guard.at.is_some(), guard.air), (1, vec![("armflash".to_string(), 3)], true, false));
+        assert!(call_tool("groups", &json!({ "group_guard": { "slots": 6, "at": "D5" } }), &shared).unwrap_err().contains("your hands' pick"));
+        assert!(call_tool("groups", &json!({ "group_army": { "slots": 97 } }), &shared).unwrap_err().contains("1 to 96"));
+        assert!(call_tool("groups", &json!({ "army": { "slots": 4 } }), &shared).unwrap_err().contains("group_ and a word"));
+        let said = call_tool("groups", &json!({ "group_guard": { "slots": 6 }, "group_army": null }), &shared).unwrap();
+        assert!(said.contains("group_guard: 6 slots of any type from now") && said.contains("group_army ended") && said.ends_with("Your groups now: group_guard (6)"), "{said}");
+        assert_eq!(shared.groups.lock().unwrap().get("group_guard").unwrap().at, guard.at, "its place stands");
+        // `produce` names units and nothing of groups any more.
+        assert!(call_tool("produce", &json!({ "plant_7": { "units": ["armfav"], "group": "group_guard" } }), &shared).unwrap_err().contains("`group` and `join_in` are gone"));
+        assert!(call_tool("produce", &json!({ "plant_7": ["armfav", "armflash"] }), &shared).unwrap().contains("plant_7 may build only armfav, armflash"));
         // queue: reclaim steps, and an id step on a builder that cannot make the type.
         let builders = BTreeMap::from([("constructor_3".to_string(), BTreeMap::from([("armsolar".to_string(), false), ("extractor".to_string(), false)]))]);
         shared.publish_field(0, Field { roster: vec![("armsolar".into(), 155), ("armsilo".into(), 5000)], builders, ..Default::default() });
@@ -1594,7 +1615,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "block", "tend", "produce", "transfer", "remove", "fire", "say", "signal", "orders", "wait", "note", "predict"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "groups", "mark", "block", "tend", "produce", "transfer", "remove", "fire", "say", "signal", "orders", "wait", "note", "predict"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
@@ -1646,7 +1667,7 @@ mod tests {
         assert!(call_tool("produce", &json!({ "all": ["raiders"] }), &shared).unwrap_err().contains("role word"));
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
-        for tool in ["instruct", "queue", "lane", "mark", "produce", "say", "note", "predict", "wait"] {
+        for tool in ["instruct", "queue", "lane", "groups", "mark", "produce", "say", "note", "predict", "wait"] {
             assert!(batchable().contains(&tool), "{tool}");
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));
@@ -1840,8 +1861,8 @@ mod tests {
     fn produce_takes_its_object_form_written_in_a_string() {
         let shared = Arc::new(Shared::default());
         shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "lab_7": {} } });
-        call_tool("produce", &json!({ "lab_7": "{\"units\": [\"armpw\"], \"group\": \"new\"}" }), &shared).unwrap();
-        assert_eq!(shared.allowed.lock().unwrap()["lab_7"].units, vec!["armpw".to_string()]);
+        call_tool("produce", &json!({ "lab_7": "{\"armada\": [\"armpw\"]}" }), &shared).unwrap();
+        assert_eq!(shared.allowed.lock().unwrap()["lab_7"].by_faction["armada"], vec!["armpw".to_string()]);
     }
 
     #[test]

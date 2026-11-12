@@ -3,7 +3,10 @@
 **Status (2026-11-11).** Written on the user's word ("Go ahead with the target design") as the arc's ground truth,
 before any code. Nothing is built. §9 lists what still needs his word: D1 is ruled (nothing holds a unit back from a
 fight), D2 agreed, D3 withdrawn with the one body a group (the march and the companies stay as they are), D4 agreed. He then said
-"Let's proceed": the build runs by §10's stages, the flagship game of stage 6 still on his word. The same day, on his reading: §5 as first
+"Let's proceed": the build runs by §10's stages, the flagship game of stage 6 still on his word. **Built the same day:
+stages 0 and 1, and the hands' steps 1 to 5 of §12 (the deal, the lane without the muster, the hands on the deal,
+the `groups` tool, the texts, the registers). Not built, not run: §12 says which. No game of any kind has been
+played on the rebuilt hands.** The same day, on his reading: §5 as first
 written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
 so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
 2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
@@ -343,32 +346,38 @@ The lap at the time limit had every soldier formed from 420 s and one of the fir
 of the lab: three companies' ends beside each other, the end this design leaves alone (§12). In the game this is a
 one-point route. Mended on the way: a company founded half way round a route of several points began it again.
 
-## 12. The build, step by step (state for whoever picks it up)
+## 12. The build's state (for whoever picks it up)
 
-Done and committed: the deal with its replay (8bce1fbc, stage 0); the lane without the muster and the duel director
-on the deal (a214aee4, stage 1). From a214aee4 the flagship is **not** in a state to play: the hands still hand the
-lane every member and `join_in` does nothing.
+**Done and committed (2026-11-11).**
 
-The hands (`crates/bot/src/brain/pianist`), in this order, each step building and its tests passing:
+- The deal with its replay (8bce1fbc, stage 0).
+- The lane without the muster and the duel director on the deal (a214aee4, stage 1).
+- The hands on the deal (43f129bb): `Group` carries its slots, its place, the soldiers with it and those coming;
+  `keep_groups` makes the player's declared groups (none: `group_A`), deals every soldier, sends the comers; a
+  `send` is a lend to the one answer to its party, an actor with `stay` and `withdraw`; `join`, `take_in`, `rove_1`
+  and everything of a soldier's origin are gone.
+- The player's side and the registers (the commit after it): the `groups` tool; `produce` without `group` and
+  `join_in`; the report's `slots`, `reinforcements`, `answer_to` and `unassigned` lines; the player's prompt, the
+  example packet, one of the hands' rules and the brief in the new words; H-MICRO-DEAL, H-HANDS-SLOTS,
+  H-HANDS-ANSWER and the retired rows in `docs/heuristics.md`; three rows in `docs/code-decisions.md`; two claims
+  in `docs/knowledge/formations.md`; the duel harness notes.
 
-1. **Membership from the deal.** `Group` gains its slots and its place; `members` becomes the soldiers with it,
-   read from `micro::deal::Deal` once a second in `keep_groups`, with `coming` beside it; `joining`, `parent`,
-   `admit`, `group_for_newcomer`, the rally map and the rejoin orders go; comers get `micro::deal::Comers`' orders;
-   a seat with no group declared has `group_A` (96 slots, any type, holding beside its first plant); a group lives
-   on empty. `declare_groups` hands the lane `members` as it does now.
-2. **Answers.** `Order::Send` carries a count; the hunters are `Deal::lend`'s; one answer a party, an internal
-   group with a hunt's task that the player never names; it ends by the hunt's ends or its own withdraw, then
-   `Deal::release`. `join`, `take_in`, `rove_1` and their orders go, with `compose::clash`'s join rule.
-3. **Words.** The send rung's words (its soonest, those coming included, no group made); a world's line prices the
-   answer whole; the group's entry says in place, coming and lent, and the fight's facts when in contact.
-4. **The player's side.** The `groups` tool; `produce` without `group` and `join_in`; the report's lines (§4); the
-   player prompt and the brief's words on groups, between games.
-5. **Registers.** `docs/heuristics.md` (H-MICRO-DEAL, H-HANDS-SLOTS, H-HANDS-ANSWER; the retired ones),
-   `docs/code-decisions.md` (the deal and its constants, the default group), the claims in `docs/knowledge/`,
-   `docs/harness/record-format.md` for what the record's `groups` says.
+**Not built.**
 
-Then stages 2 to 5 of §10 (the drills of the deal, the raid scenario, rove, the hands offline), and stage 6 on the
-user's word.
+- A joint world's line does not price the answer of two lenders together (§5): it names both, and each rung's own
+  words price its hunters with those already answering.
+- §4's line on where the last minute's production went, and "what it killed" among a fighting group's facts (its
+  losses, its comers with their seconds and the enemies near it are there).
+- A group with nobody in place has no menu (§3.1 as written). So when an army dies where it held, its comers walk
+  to that place until the first of them is inside the gate and the group is asked again, or the player moves it.
+  Before, reinforcements stopped at the plant because the group was gone. The user has not been asked.
+- The travel time is the straight line over the soldier's speed, not the hands' fields: a place across a cliff
+  reads nearer than it is.
+- The Distilled and Territory bots do not use the deal.
+
+**Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
+director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
+Jev over recorded gates. No smoke, no arena game, no flagship game.
 
 ## 13. Not in this design
 

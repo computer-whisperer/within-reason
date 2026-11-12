@@ -511,7 +511,16 @@ K-units-duel-caveats.
 
 **`--cap N`** (the companies design, `docs/design/2026-10-25-companies.md`, 2026-10-25 night) declares the drill's army
 with a company cap: the lane partitions it into companies of at most N, each marching the drill's order on its own
-way (two near companies that fit under N merge), and a gather's or circuit's rally is the muster, where fed units
-gather and march as a company when N stand or after the muster's patience. The report's `companies` is the most the army had at
-once and `company_formed` the mean of the marching companies' own formed shares; `WITHIN_REASON_GROUP_DEBUG=1` prints
-FOUNDED / RELEASE / MERGE lines. 0 (the default) is one formation, the drill as before.
+way (two near companies that fit under N merge). The report's `companies` is the most the army had at
+once and `company_formed` the mean of the companies' own formed shares; `WITHIN_REASON_GROUP_DEBUG=1` prints
+FOUNDED / MERGE lines. 0 (the default) is one formation, the drill as before. There is no muster since 2026-11-11
+(`docs/design/2026-11-11-groups-as-slots.md` §7): a fed unit, a scattered one or a rear party walks to the body on
+one plain order and is the lane's when it is inside the group's gate.
+
+**The deal** (`micro::deal`, the same design §3; 2026-11-11). The director deals its army's one group once a second:
+the lane is handed the soldiers with it (inside 15 s of their own travel to the centre of the body, 30 s to stay),
+the others are coming. `--slots N` caps the group at N soldiers; the ones past it are surplus and get no order. The
+per-second line carries `deal`: [with, coming, surplus]. A lap ends when the core has walked it, the whole feed is
+made, the group stands formed at the route's end and nobody is coming. `--behind FORCE@D --late S` with `--from`
+and `--to` is the row for a party joining a marching body: a strip longer than about 3,500 laid by the director
+alone lands on the map's edge and the duel reads `spawn_failed`.

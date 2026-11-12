@@ -332,8 +332,8 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
 - Raiders are for what cannot shoot back: extractors, constructors, lone turrets under construction. A Pawn or two
   standing on an approach also stops a lone enemy raider; chasing raiders with the army does not. [K-units-dont-chase-raiders]
 - Defence is written in two places: the hands' standing rules (in the player's prompt word for word) meet a raider at
-  one of our extractors with a small detachment of the nearest group's fastest, and the packet says who stands where,
-  where a detachment goes back to and what is forbidden. Told only "engage" and nothing of this, the hands sent the
+  one of our extractors with a few soldiers lent by the groups nearest it (`send`), who go back to the groups with
+  room for them when it is over, and the packet says who stands where and what is forbidden. Told only "engage" and nothing of this, the hands sent the
   whole ball after one scout car and never caught it while another killed a lab at home (realtime-2, won anyway on
   hard). The packet says which group stands where before the ball leaves. The raids are standard and expected (Ticks from 5:00 on Comet Catcher, outermost spots
   first), so the answer stands across the front before they come: pickets of one or two Blitzes at each outer spot
@@ -424,7 +424,7 @@ which seat is which by colour.
 and makes one move at a time; the role text lists the verbs. What matters for writing a packet:
 - A group's moves are aimed at what you name and at what the picture sees: `go` and `fight to` at every place your
   packet, a list or a mark names; `attack`, `shell` and `send` at every enemy party in sight; `attack` and `shell`
-  at his buildings wherever the picture knows them; `join` and `follow` at every other group, `follow` at every
+  at his buildings wherever the picture knows them; `follow` at every other group and at every
   builder. Nothing is cut to "the nearest few" any more, and nothing is offered because code thought it fit.
 - The hands have no destination of their own. There is no fall back to where a group last held, no walk home, no
   pull-out place, no sweep of unseen spots, no stand at the next extractor on a raider's heading: each of those was
@@ -452,12 +452,12 @@ does; `route_seen` is `reached`; `fall_back`, `retreat_home`, `sweep`, `pull_out
 Nothing of this plays without a pick: say in the packet what you want done and the hands weigh it.
 
 **Scouting and raiding with fast units: roving (2026-09-27; a move of your hands since 2026-10-07).** Your hands'
-`rove` move hands a whole group of fast units (Rovers, Ticks, scout cars; name a plant's output into it with
-`produce`, and its newcomers rove too) to code that runs each of them ten times a second: it drives to look at what
+`rove` move hands a whole group of fast units (Rovers, Ticks, scout cars; give the group slots of those types
+with `groups`, and newcomers of those types rove with it from where they stand) to code that runs each of them ten times a second: it drives to look at what
 we know least (his start box and base first, then spots nobody has seen, then the stalest), attacks what it finds
 unguarded (a constructor, an extractor, a radar with nothing armed in reach), and never stands inside the reach of
-anything that can shoot it: a Rover outruns a Pawn and steps off before it is in reach. `rove_1` does the same with
-one soldier, the group's fastest, as a group of its own. Both are picks: say in the packet which group roves and
+anything that can shoot it: a Rover outruns a Pawn and steps off before it is in reach. A scout is a group of
+one slot that you declare (`groups`) and that roves the same way. Roving is a pick: say in the packet which group roves and
 when ("group_A (the Rovers): roves, his start box first"), and your hands weigh it against what the group is doing;
 it was a `lane` setting before, which took a group off a raid it had been sent against on a picture as old as the
 turn (human-26 1:57). It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover
@@ -602,7 +602,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   3 solar rather than 2 is so you have enough e to make a fast con"), then Rovers as scouts and Tick-catchers
   (`armfav`, 31 metal, speed 168: the only tier-1 vehicle that catches a Tick at 132; a Blitz at 101 never does),
   a second constructor near 2:00, never three at once, then Blitzes one every ten to fifteen seconds as VAK did
-  (thirteen by 5:00): `produce {"plant_N": {"group": "group_A", "units": ["armcv:1", "armfav:3", "armcv:1", "armflash:6", "armcv:1", "armflash"]}}`
+  (thirteen by 5:00): `produce {"plant_N": ["armcv:1", "armfav:3", "armcv:1", "armflash:6", "armcv:1", "armflash"]}`
   (the hands build the counted entries in order, each to its count, the open entry last as filler). The pool has
   four soldiers by 2:00 and eighteen factory units by 4:00, the bank 152 at 2:00 and 99 at 3:00, the energy store
   under 20 in 9% of the seconds; winners assist less (32 s) and bank less at 3:00 (72) than losers (93 s, 107): they
@@ -869,8 +869,8 @@ K-maps-comet-barb-opens-bots, the tempo model]
   its outer extractors from 3:00 and a light turret beside each outer pair; the ball is not the raid answer. (2) The
   block: Stouts and Janus from 7:47, one block of ten to twenty Stouts at the nearest seat's home by 13:00, and the
   north commander died at 14:29 while the 50-Blitz ball of the middle seat sat at spot_48 for six minutes and then
-  chased side parties. The three seats' soldiers are one army from the first Blitzes: `join` the middle seat's group
-  as they come, station it between the seats (spot_35 or spot_42 on the east strip), and when a block is seen walking
+  chased side parties. The three seats' soldiers are one army from the first Blitzes: give the middle seat's
+  group the slots, station it between the seats (spot_35 or spot_42 on the east strip), and when a block is seen walking
   to any seat, the whole ball goes to that seat's home before it arrives; the threatened seat's commander stays home
   and helps its plant. (3) Shellshockers walked ahead of the screen and were pulled back; artillery stands behind
   Stouts or not at all. (4) Air from 17:00 (Thunder bombers, then Banshees): a flak or two and a Ferret at each seat's

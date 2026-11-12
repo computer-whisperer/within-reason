@@ -1177,14 +1177,6 @@ pub struct Allowance {
     /// One list per faction, given before the seat's faction is known (as `Listed::ByFaction`); the hands move the
     /// faction's list into `units` at their first look and say which (`Brain::take_allowances`). Empty otherwise.
     pub by_faction: BTreeMap<String, Vec<String>>,
-    /// For a factory: the group its new soldiers join (`group_X`), `new` for a fresh group of this factory's own,
-    /// or `by_type` for one group of this factory's per unit type (H-HANDS-GROUPS: groups are the player's, nothing
-    /// merges by proximity; the impedance tally, 2026-10-16: "the Rovers rove while the Blitzes fight" in eight
-    /// games, with no way to keep the types apart).
-    pub group: Option<String>,
-    /// For a factory: its new soldiers wait beside it and walk to their group this many together, never alone
-    /// (the impedance tally: "in fours, never alone", "six or more together, never one at a time").
-    pub join_in: Option<usize>,
 }
 
 /// A group as the player declared it (`groups` tool; the slots design §3.1): its slots, where they are made, and

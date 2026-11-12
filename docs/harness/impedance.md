@@ -43,7 +43,8 @@ it; this one shuts no move)`) beside the groups' place readings.
 **Built 2026-10-16 night, the first batch of levers for the asks nothing carried** (the study §4; the user: "That
 first batch you outlined sounds good, proceed"): `produce` groups a factory's output per unit type (`"group":
 "by_type"`) and has its newcomers walk to their group so many together (`"join_in": N`, waiting beside the plant
-out of its lane); the whole-group attack returns to the menu when the decode reads every detachment as forbidden;
+out of its lane; both gone 2026-11-11 with H-HANDS-SLOTS: a group's slots by type keep types apart, and nothing
+waits at a plant); the whole-group attack returns to the menu when the decode reads every detachment as forbidden;
 the whole-group attack and the shelling of a party of aircraft carry the forbidden question (the decode's `Air`
 reading); a `reclaim` list step takes a grid cell or a place (the wreck field there) and runs until the wrecks are
 gone; an id step naming a building the builder cannot make is its help on that building, waiting for its starter;

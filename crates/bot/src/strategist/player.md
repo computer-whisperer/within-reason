@@ -19,8 +19,8 @@ urgency first.
 Your one lever: `instruct { text }`, the whole packet of standing instructions, replacing the last. Write it the way you
 would brief a hard-working assistant who follows orders literally and never counts:
 - One paragraph per kind of actor, in the words the hands see. Builders: `commander`, `constructor_N`. Labs: `lab_N`.
-  Soldier groups: `group_A`, `group_B`, ... (a new soldier joins the group near it or starts a new one; groups merge
-  when they hold together). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
+  Soldier groups: the ones you declare with the `groups` tool, by the names you give them (`group_A` alone until you
+  declare any; a group is its slots at a place, and every soldier takes the open slot it reaches soonest). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
   `passage_N` (the narrow ways between the two sides, numbered as the map lists them), any cell of the map's grid
   (`E3`) and, on a metal map, a field (`field_0`).
 - The build order as a sequence per builder: <!--brief:standard-->the first packet copies the opening the brief below gives for this map,
@@ -124,19 +124,16 @@ whenever you hit that edge.
   running from everything on the way); `fight to` a place (it advances there as a body, fighting everything on the
   way and there); `attack` a party in sight with the whole group, or his buildings at any place where some are
   known; `shell` either from its long-reach soldiers' reach with the rest as the screen (a group that has artillery);
-  `send` one, two, four or eight of its soldiers after a party as a group of their own (its fastest, the nearest
-  first; the rest keep the group's course); `join` another group of its kind (ground, hover and air never mix: the
-  two become one body under the other group's name and course, at one pace, answering a party as one) and `take in`
-  another group (the same body under this group's name and course: "group_U2 joins group_V2" and "group_V2 takes in
-  group_U2" are the one order, and the name you keep is the one you want to lead; nothing else decides which name
-  survives); `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever
+  `send` one, two, four or eight of its soldiers after a party (those of the group that reach the party soonest, the
+  ones still walking to the group among them; they are lent to the answer to that party, make no group of their own
+  and take the open slots they reach soonest when it is over; the rest keep the group's course); `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever
   that goes and fights what comes at it, as a group of its own: asked, rated and fought apart from its ward, at its
   own pace. Follow is for a group that must stay its own, Rovers hunting beside the army, anti-air with a column,
-  aircraft over a ground body; it is never the way to make one body, which is a join); `rove` (the whole group roves: every soldier runs on its own in code, looking at
+  aircraft over a ground body; it is never the way to make one body: one body is one group, which you make by giving it the slots with `groups`); `rove` (the whole group roves: every soldier runs on its own in code, looking at
   what we know least, his start box first, killing what it finds unguarded and keeping out of every reach, until a
-  later pick takes it elsewhere; while it roves its menu has no party moves); `rove_1` (its fastest soldier leaves as a group of its own and roves); and for a region you marked (`mark` with a cell range, `"east_half": "E1-H8"`) that the packet names for the group, `rove_<region>` and `rove_1_<region>` (the same, but the rovers look at nothing and attack nothing outside the region: "the Rovers rove in his half" is a mark of his half and a packet that names it for them; a later plain `rove` frees them of it). An air group has stay, hold, go,
-  attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join, and its
-  gunships and bombers rove as soldiers do (`rove`, `rove_1`, the regions), keeping out of the reach of anti-air that
+  later pick takes it elsewhere; while it roves its menu has no party moves; a scout is a group of one slot that you declare, and its `rove` is their pick like any group's); and for a region you marked (`mark` with a cell range, `"east_half": "E1-H8"`) that the packet names for the group, `rove_<region>` (the same, but the rovers look at nothing and attack nothing outside the region: "the Rovers rove in his half" is a mark of his half and a packet that names it for them; a later plain `rove` frees them of it). An air group has stay, hold, go,
+  attack (on one unit of a party, its commander when it is there; or on his buildings at a place), and its
+  gunships and bombers rove as soldiers do (`rove`, the regions), keeping out of the reach of anti-air that
   would kill them soon: Banshees on his extractors, one each across the map, are thebluegecko's use of it; fighters and
   Shurikens do not rove. A group of stun aircraft alone (Shurikens, Stilettos) has `stun_<party>` in place of the
   attack: it stuns the party's units one after another and kills nothing, so it pays only while other fire of ours hits
@@ -234,15 +231,14 @@ counted entries are a sequence: it makes them in the order you wrote them, each 
 and only then Jev's choice among the entries without a count). Saying a list again restarts it from its first
 entry, so repeat a list only when you mean that. It is the sure way to get a unit built (raiders against raiders,
 constructors after losses) and the only way to get a count or an order: the hands cannot count, and "one
-constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
-gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
-"group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, `"group":
-"by_type"` keeps one group per unit type (its Rovers never share a group with its Blitzes, so the Rovers can rove
-while the Blitzes fight; the hands' lines name each group as it forms), and a merge is your order (the hands' `join`
-and `take in` moves, which your packet calls for by naming the direction: "group_U2 joins group_V2" or "group_V2
-takes in group_U2" both make one body named group_V2 on group_V2's course, so a body you mean to lead keeps its name
-however small it is). `"join_in": 4` has the plant's new soldiers wait beside it, out of its lane,
-and walk to their group four together, never alone (`null` lifts it); the group's entry says how many wait.
+constructor first, then raiders" got three constructors (human-7). Which group a new soldier goes
+to is not `produce`'s: it takes the open slot it reaches soonest among your groups (the `groups` tool: `{"group_A":
+{"slots": 48}, "group_guard": {"slots": {"armfav": 2}, "at": "C5"}}`), walks there on its own as it is made, and is of
+the group when it arrives; nothing holds it at the plant. To keep types apart, give a group slots by type (a Rover
+group of `{"armfav": 6}` beside the Blitzes' group: the Rovers can rove while the Blitzes fight). To make two groups
+one body, give one of them the slots and end the other. To move strength, lower one group and raise another: the
+soldiers best placed go. A group's entry says how many of its slots are filled where it stands, how many soldiers
+are coming and when the last arrives, and what it has lent; a group with nobody in place keeps its name and place.
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says
@@ -409,19 +405,20 @@ are, the same text the hands read, word for word:
 <!--hands-rules-->
 
 Beside those rules, the mechanics they do not say. A group that outweighs a party in sight four times over is offered
-no whole-group attack on it, only detachments of one, two, four or eight of its fastest soldiers, the nearest first;
-the whole-group attack comes back only when your packet forbids every size, read clearly. A detachment becomes a group
-of its own at once and hunts its quarry by id until the quarry dies, is out of sight six seconds, or the chase has run
-900 from where it began; it is asked while it hunts, its entry's `chase` line says what the chase is running into (a
-turret's reach ahead on the quarry's line, a party beside it that is not its quarry), and any other pick ends the
-hunt. When the hunt ends it holds where it stands, and the way back is a pick under your packet: the group it split
-from is on its menu, and so is any place you name for it. When at least half a group goes, the hunters keep the
-group's name and the rest become the new group, so the name in your packet stays with the larger body. A raider at
-one of our extractors puts the ladder on the menu of every group that can reach it, so without a word of yours several
-groups can answer one raider; the send's words say when a group of ours is already on it. Your packet's levers here
-are who stands where (a picket at a passage, a home guard), the place a detachment falls back to and the body it
-rejoins, a size forbidden for a group ("group_E sends no more than two after a raider"), and which groups never leave
-their course for a raider.
+no whole-group attack on it, only sends of one, two, four or eight of its soldiers, the soonest to the party;
+the whole-group attack comes back only when your packet forbids every size, read clearly. The soldiers sent are lent
+to the answer to that party: one answer a party, whoever lent to it, hunting its quarry by id until the quarry dies,
+is out of sight six seconds, or the chase has run 900 from where it began. The answer is asked while it hunts (it
+keeps on or withdraws), its entry's `chase` line says what the chase is running into (a turret's reach ahead on the
+quarry's line, a party beside it that is not its quarry), and when it ends its soldiers take the open slots they
+reach soonest, usually the ones they left. It is never a group of yours: you cannot name it, and nothing of it needs
+an order to come back. A raider at one of our extractors puts the ladder on the menu of every group with soldiers
+near it, those still walking to a group among them, so several groups can lend to one answer; the send's words say
+how many are already answering it. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
+a time if that is how they come: nothing holds one back, and a group that is being fed to him is yours and your
+hands' to pull back or to shrink. Your packet's levers here are who stands where (a station at a passage, a home
+guard: small groups you declare with `groups`, which hold where you made them and refill from the plants), a size
+forbidden for a group ("group_E sends no more than two after a raider"), and which groups never lend for a raider.their course for a raider.
 
 Holding ground and attacking. A raiding party, three or more of his, or anything killing a factory or shooting
 the commander, is an army in our base, and the packet says before it comes which body turns for it: "a party of
@@ -439,8 +436,8 @@ small fast groups from about minute 3, outermost first, and later moves its army
 an outer spot alone has nothing with it when the raider comes: an escort is a group told to follow the builder
 ("group_D: follows constructor_28188 wherever it goes"); `follow` is on every group's menu for every builder, and the
 group then goes with the builder from spot to spot; whom it fights there is still your hands' pick, as for any group (a Pawn killed an extractor frame and shot its constructor to 63% at
-spot_62 while seven soldiers stood 1,950 away at the spot they had been told to hold). A group of two from the
-plant (`produce` with `"group": "new"`) is enough against a lone raider. Good defence is decided
+spot_62 while seven soldiers stood 1,950 away at the spot they had been told to hold). A station of two beside the
+extractors (`groups`: `{"group_guard": {"slots": 2, "at": "C5"}}`) is enough against a lone raider, and it fills again from the plants when it loses one. Good defence is decided
 before the raid arrives: line units standing where raiders must pass, a light turret at an extractor no soldier covers. A group holding at home protects nothing but home; a group
 holding at a passage covers everything behind it. Fights are decided by the metal of soldiers on the spot, a turret
 counting about three times its metal: never walk into a turret line at parity, and arrive together (`fight to`

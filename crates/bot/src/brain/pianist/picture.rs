@@ -2017,7 +2017,7 @@ impl Brain {
                     };
                     actors.insert(
                         format!("group_{}", group.name),
-                        json!({"is": format!("a group of {} slots with no soldier in place: {coming}", group.slots.total()), "at": self.place_words(&places, group.place), "doing": "nothing: nobody is with it"}),
+                        json!({"units": format!("a group of {} slots with no soldier in place: {coming}", group.slots.total()), "at": self.place_words(&places, group.place), "doing": "nothing: nobody is with it"}),
                     );
                 }
                 continue;
@@ -2282,6 +2282,19 @@ impl Brain {
             crate::texts::read(&crate::texts::HANDS_RULES),
             if wind >= 8.0 { "wind generators (40 metal) beat solar collectors here" } else { "solar collectors are the reliable energy here" }
         );
+        // The soldiers no group has a slot for (the slots design §3.3, §4): on nobody's menu, said by place.
+        if !pianist.surplus.is_empty() {
+            let units: Vec<&OwnUnit> = pianist.surplus.iter().filter_map(|id| own.iter().find(|u| u.id == *id)).collect();
+            let mut by_cell: BTreeMap<String, Vec<&OwnUnit>> = BTreeMap::new();
+            for u in &units {
+                by_cell.entry(self.world.grid(u.pos)).or_default().push(u);
+            }
+            let where_words = by_cell.iter().map(|(cell, us)| format!("{} at {cell} ({})", us.len(), self.composition_words(us))).collect::<Vec<_>>().join("; ");
+            actors.insert(
+                "unassigned".to_string(),
+                json!({"units": format!("{} soldiers with no slot open in any group: {where_words}", units.len()), "doing": "standing where they are: they take a slot when the player's `groups` opens one, and no move of the hands reaches them"}),
+            );
+        }
         // Jev's answers move with the order of these sections, and the order sent is by key (the JSON map is
         // sorted): a new section's name decides where it sits (K-jev-answers-move-with-the-order-of-the-pictures-sections).
         let mut state = json!({
