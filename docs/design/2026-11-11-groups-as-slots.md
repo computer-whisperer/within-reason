@@ -1,7 +1,10 @@
 # A group is slots at a place; units are dealt to it (2026-11-11)
 
 **Status (2026-11-11).** Written on the user's word ("Go ahead with the target design") as the arc's ground truth,
-before any code. Nothing is built. §9 lists what still needs his word.
+before any code. Nothing is built. §9 lists what still needs his word. The same day, on his reading: §5 as first
+written made an incursion a question of its own to Jev; he ruled that out (§0, the last ruling), and §5 is rewritten
+so that an answer is moves in the world pick. Rejected because a pick a threat is the threat-centred pass of
+2026-09-26 that the one pass replaced, and it settles one party without the rest of the world in view.
 
 ## 0. The rulings (the user, 2026-11-10 and 11, after the lobby 10v8 on Erebos Lakes)
 
@@ -35,8 +38,16 @@ before any code. Nothing is built. §9 lists what still needs his word.
 - Rove: "It was created as a scripted mode because the abstractions we chose for army control had no hope of
   performing the precise micro necessary. If we still keep it in its current implementation, then we will want a
   fluid way to get units in and out of rove."
+- The world pick, on this design's first §5: "I don't think we want to invert how the gate and world picks work.
+  Right now the world selection is authoritative and describes the whole action combination we are selecting, and
+  the gate is an optimization for pruning worlds we can independently rule out. A jev ask for 'who should answer
+  incursion_X' is a pattern we had before that I explicitly rejected for the sake of this new system. I could see us
+  bringing something like that back as part of the gate if that is determined to be the efficient way to rule in or
+  out worlds, but the authoritative thing still needs to be the world pick."
 
-Earlier rulings this design keeps: the cap is there so that small groups move independently and no group inherits
+Earlier rulings this design keeps: one menu an actor, always from our units out to the enemy ("Why do we go from our
+units out to the enemy in one case, and from the enemy back to our units in the other case?", 2026-10-01); a roving
+group's menu carries no moves at a party (2026-10-08); the cap is there so that small groups move independently and no group inherits
 one movement domain (2026-10-25); "keeping the units in formation trivially modellable and the units out of
 formation as the exceptions" (2026-10-24); "nothing on restricted ground sends a unit to align" (2026-11-10); "We
 usually need the freedom for jev to detach units and repel an enemy party" (2026-10-17); a raid is always answered,
@@ -60,10 +71,10 @@ by a pick every three to five seconds. Names made by re-clustering fare no bette
 every 5 s founded 66 groups and ended 62 in nineteen minutes.
 
 **Defence is priced in new actors.** A detachment "leaves as a group of their own" (the send ladder,
-`crates/bot/src/brain/pianist/menu.rs`), on each group's own menu, so each group is judged alone and every answer is
-a new name that needs later picks to come back (barb-ladder3-20-1: 45 of 59 detachments asked again after their hunt,
-33 joined eventually). In chase-player-2 at 7:58 five small Blitz groups each withdrew from 13 Pawns as outweighed
-while the base burned. The player wrote "it sends no detachments" in 9 of 11 games of the detachments study.
+`crates/bot/src/brain/pianist/menu.rs`), with its odds said "against them alone", so every answer is a new name that
+needs later picks to come back (barb-ladder3-20-1: 45 of 59 detachments asked again after their hunt, 33 joined
+eventually), and several answers to one party are several actors, each weighed alone. In chase-player-2 at 7:58 five
+small Blitz groups each withdrew from 13 Pawns as outweighed while the base burned. The player wrote "it sends no detachments" in 9 of 11 games of the detachments study.
 Production goes to the group its plant's order names, and nothing restores any other group's strength.
 
 **The march is a position loop through on/off actuators.** No speed command reaches a unit from an AI (the engine's
@@ -79,7 +90,8 @@ there by 37 s, and the end asks 150 to 209 moves a second (K-group-five-companie
 |---|---|---|
 | the player's tools (`strategist/mcp.rs`) | `produce`: `group` (a name, `new`, `by_type`; by default one group a factory) and `join_in`; `lane`: `company` (the cap, 24) and `heal` | the group and muster clauses go; a group's slots are declared (§3.1) |
 | the hands' group (`pianist/groups.rs`) | a member list, `parent`, `joining`, one task, the body as a sort along the goal axis, the newcomer's group by its factory (`group_for_newcomer`), `admit` | the list, `parent`, `joining` and the newcomer rules go; members are read from the deal each second |
-| the hands' orders (`execute.rs`, `menu.rs`) | `join` / `take_in` append one group's members to another; the send ladder and `rove_1` each make a group of their own; `start_hunt` moves the name when half go | all go; an answer is asked once a threat (§5), a rover is a slot (§6) |
+| the hands' orders (`execute.rs`, `menu.rs`) | `join` / `take_in` append one group's members to another; the send ladder and `rove_1` each make a group of their own; `start_hunt` moves the name when half go | the send rungs stay on the group's menu as lends that make no group (§5); `join`, `take_in` and `rove_1` go (§9 D2) |
+| the gate and the pick (`compose.rs`) | a party's `answer` noul and an actor's `change` open moves; each move is rated; the best go to the worlds; a world gives every actor one move and its line says the combination; one Choice a component, the world drawn | unchanged; a world's line prices an answer whole (§5) |
 | the lane's army (`crates/micro/src/army.rs`) | companies by history: a newcomer joins a marching company within 800, musters at a plant, or founds one where it stands; merge under the cap; `compose` takes the largest marching company's place | deleted; a group is one body laid afresh each time it forms (§7) |
 | the report (`pianist/picture.rs`) | a group's place is the lane's anchor of the composed company; "each marching on its own way" | the place is the slots' place, with how many are in it (§4) |
 | rove (`crates/micro/src/rove.rs`) | a flat list of rovers each tick, a memory a rover made and dropped by that list, the pack by a 400 radius | unchanged |
@@ -114,14 +126,16 @@ the odds are priced on and what an order moves at once.
 
 Once a second every soldier of the seat is dealt, from its position and type alone:
 
-1. **Answers first.** Each live answer (§5) takes the soldiers that reach its party soonest, to the strength picked.
+1. **Answers first.** Each live answer (§5) takes, from each of its lenders, the soldiers of that lender that reach
+   its party soonest, to the count the world gave.
 2. **In place stays.** A soldier inside the gate of a group with an open slot of its type is with that group (the
    nearest, when gates overlap).
 3. **Rove slots.** A roving group short of strength takes the nearest soldiers of its types that no step above
    placed; they rove from where they stand.
 4. **The rest by time.** Every other soldier goes to the open slot it reaches soonest, pairs taken in order of time.
    It is coming, and holds that slot.
-5. **No open slot.** It stands where it is, as surplus: unnamed, shown by place, a source for answers.
+5. **No open slot.** It stands where it is, as surplus: unnamed and shown by place. It is on no actor's menu, so it
+   answers nothing until the player gives it slots.
 
 A group resized down releases the members that reach an open slot elsewhere soonest. A slot whose unit is lent to an
 answer is open: when the answer ends, each of its units is dealt like any other, usually back.
@@ -148,28 +162,46 @@ placed. No unit is ever named.
 Later, and separable: for each cluster of our extractors and plants, the seconds to the nearest soldiers. A faster
 raider is only met by units already ahead of it, so this is what shows where a station is missing.
 
-## 5. An incursion: one question, a loan
+## 5. An incursion: moves in the world, a loan
 
-- **One question a threat.** A hostile party that today puts send rungs on a group's menu gets one menu of its own.
-  The rungs are the ladder's sizes over every soldier of the seat, ranked by time to reach it, whatever group they
-  are with or coming to, and "nothing". Each rung says its types and counts by source, when the first and the last
-  arrive, the odds, whether they catch it, and what a lender in a fight loses (the words the menu has today).
-- **Jev picks whether and how much; the deal picks which units.** The player's packet can still forbid a lender.
-- **The answer** is a hunt of the lane's (H-MICRO-HUNT) under the party's name. It is Jev's object, never the
-  player's. The chase ask (H-HANDS-CHASE) is asked of it. Its strength is the one thing remembered; its units are
-  dealt each second like any others.
-- **It ends** as a hunt ends today (dead, lost, the leash, withdrawn). Its units are then dealt back by §3.3.
-- A whole group's attack on a party stays on that group's menu, as today.
+The gate and the pick are not changed (§0, the last ruling). A party's `answer` noul opens the moves aimed at it,
+each move is rated, the best go to the worlds, a world gives every actor one move and its line says the whole
+combination, and the world is drawn from one Choice a component. Lenders at one party are one component already.
+What changes is what a send is and what a world says of it.
+
+- **A lend is a move on the lender's menu.** These are today's send rungs, on the menu of every group with soldiers
+  near the party, with two changes. The soldiers are the lender's soonest to the party by the deal, those coming to
+  it included ("4 of group_A answer party_12: 3 Blitzes of its body and 1 coming from plant_3, the first there in
+  8 s, the last in 14 s"). And they do not leave as a group of their own. The forbidden mark stays on the rung.
+- **The answer is one actor a party.** Every lend at one party goes to one body: a hunt of the lane's (H-MICRO-HUNT)
+  under the party's name, with a menu of its own as a detachment has today (keep on, withdraw), opened when its
+  chase meets something new (H-HANDS-CHASE). It is made and ended by the worlds, never by the player. It remembers
+  how many each lender gave and nothing of units; its units are dealt each second like any others.
+- **A world's line prices the answer whole.** A world in which two lenders send says the answer once: its strength
+  by lender, when its first and last soldier arrive, the odds of all of it against the party, whether it catches
+  it, and what each lender gives up.
+- **It ends** as a hunt ends today (dead, lost, the leash), or by its own withdraw in a world. Its units are then
+  dealt back by §3.3.
+- A whole group's attack on a party stays on that group's menu, as today. A roving group's menu carries no moves at
+  a party, as today, so rovers lend nothing.
+- **A pooled question may come back as a gate layer,** and only there: "how much does party_12 want: 2, 6, 12?"
+  asked once a party, ruling rungs in or out in place of a noul for every lender's rung. It would be a layer with a
+  switch and an audit like the others, taken up only if stage 5 shows it prunes for less. Not in the first build.
 
 A station is a holding group of a few slots. It refills from whatever is nearest, often soldiers walking past from
 the plants, and it keeps its name when every unit of it is out on an answer.
 
 ## 6. Rove
 
-Rove is a task on a group; the engine is unchanged. A soldier dealt to a roving group is on the lane's list of rovers
-from that tick, and off it when dealt elsewhere. Units go in and out by the group's slots (§3.4) or as lenders to an
-answer, and its losses refill from the plants. `rove_1` goes: a scout is a roving group of one slot. A rover dealt
-elsewhere loses its working memory (way, stand, blocked targets), a few seconds of plan.
+Rove is a task on a group; the engine is unchanged. Whether a group roves is a move on its menu in the world, as
+today (`rove`, `rove_<region>`), and the way back is any other move. A soldier dealt to a roving group is on the
+lane's list of rovers from that tick, and off it when dealt elsewhere. Units go in and out by the group's slots
+(§3.4), and its losses refill from the plants. A rover dealt elsewhere loses its working memory (way, stand, blocked
+targets), a few seconds of plan.
+
+`rove_1` (one soldier leaves as a group of its own and roves) cannot stay as it is, since only the player makes a
+group. Proposed: a scout is a group of one slot the player declares, and its `rove` is the world's. That moves "split
+off a scout" from the world pick to the player's slots (§9 D2).
 
 ## 7. Movement (`crates/micro`)
 
@@ -192,7 +224,7 @@ elsewhere loses its working memory (way, stand, blocked targets), a few seconds 
 | `crates/micro/src/army.rs` | the file: `Army`, `Company`, `Role`, `partition`, `merge`, `compose`, `muster_due` |
 | `crates/micro/src/group.rs`, `lib.rs` | `GroupOrder::cap`, `musters`, `release`; the per-company tick; `CompanyState` in `GroupState` |
 | `pianist/groups.rs` | `Group::members` as a stored list, `parent`, `joining`, `admit`, `group_for_newcomer`, `Body`'s front and tail, `start_hunt`'s naming |
-| `pianist/execute.rs`, `menu.rs` | `Order::Join`, `TakeIn`, `Send`, `RoveOne`, `RoveOneWithin`; the send ladder on a group's menu |
+| `pianist/execute.rs`, `menu.rs` | `Order::Join`, `TakeIn`, `RoveOne`, `RoveOneWithin` (D2). `Order::Send` stays and changes: a count in place of unit ids, the words of §5, no group made |
 | `brain/micro.rs`, `pianist` | `company_of`, `pianist.musters` |
 | `strategist/mcp.rs` | `produce`'s `group` and `join_in`; `lane`'s `company` |
 | `bots/distilled/src/lane.rs` | `.with_cap(COMPANY)` on its strike body and column, changed in the same commit as the lane |
@@ -207,8 +239,11 @@ builds each.
   soldiers coming to a group whose place is not clear gather on the last clear forming-up ground on their way and go
   in when a company stands there. This is code holding units back, so it needs his word. Without it the report
   shows the trickle and the pick is Jev's.
-- **D2. The player's words.** A `groups` tool for slots replaces `produce`'s group clause and `lane`'s `company`;
-  `join`, `take_in`, the send rungs and `rove_1` leave the groups' menus. The brief changes between games only.
+- **D2. What leaves the world pick for the player.** A `groups` tool for slots replaces `produce`'s group clause and
+  `lane`'s `company`. Because only the player makes or ends a group, three moves leave the groups' menus: `join` and
+  `take_in` (the world merging two groups) and `rove_1` (the world splitting off a scout). Each is a decision the
+  world pick has today and the player's slots would have instead. The send rungs stay (§5). The brief changes
+  between games only.
 - **D3. Clear ground as a pass.** He ruled the relaxed pass for restricted ground. Extending it to every clear
   stretch is this design's proposal, judged in stage 1 before anything of the march is removed.
 - **D4. Strengths are the player's.** Assumed, not objected to: Jev owns tasks, timing and answers, and moves no slots.
@@ -234,8 +269,10 @@ Each stage has rows that could show it did nothing or did harm. Every batch gets
    a body 1,500 off: extractors lost, seconds to the first kill, seconds until the lenders' slots are full again,
    re-deals an answer.
 4. **Rove.** The rove-2 drills with a rover dealt in and out mid-run: the kill no later than its row allows.
-5. **The hands, offline.** Recorded raid moments replayed to Jev under the one question a threat (`run/jev_ab.py`'s
-   way): does it pick a rung where it picked a send, and at what cost an ask.
+5. **The hands, offline.** Recorded raid gates replayed (`run/jev_ab.py`'s way) with the lends' words and the
+   answer priced whole on the world's line: does the pick take a rung where it took a send, and does a world of two
+   lenders win where each alone lost. Beside it, the pooled gate question of §5 against the nouls a rung: what it
+   costs and how often the two agree, which decides whether it earns a layer.
 6. **A flagship game** on his word, then a lobby game read with `run/demo_net.py`.
 
 ## 11. Not in this design
