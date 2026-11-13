@@ -422,7 +422,7 @@ at each look. Then one flagship game on the line and seed of apex-v0507-comet-sy
 | result | won 18:30 | won 17:01 |
 | extractors at 5 / 10 / 15 | 10 / 36 / 45 | 9 / 31 / 52 |
 | army metal at 5 / 10 / 15 | 942 / 5,281 / 12,270 | 1,162 / 5,510 / 14,521 |
-| extractors lost to raids | 26 | 10 |
+| extractors lost to raids (by `run/raid_ledger.py`; corrected 2026-11-12: the row read 26 and 10, which counted every extractor of ours destroyed, the 14 and 6 our own units took apart for an upgrade or a reclaim among them) | 13 | 4 |
 | groups | dozens, named by the hands to `group_P1` | five, all the player's, in thirteen `groups` calls |
 | lends (sends) and the parties they went at | 22 at 12 | 91 at 31 |
 | a lend within 10 s of one at the same party | 7 | 55 |
@@ -485,7 +485,7 @@ games by one script (the counts are its, so a row here can differ from the table
 | the hunt's attack orders a hunter-second | 6.79 | 7.38 | 0.13 |
 | soldier-seconds with a group / lent / coming or no slot | | 69 / 10 / 21 % | 63 / 3 / 33 % |
 | soldiers lost with a group / in an answer / coming or no slot | 72 | 67 / 14 / 4 | 83 / 3 / 5 |
-| extractors lost to raids | 26 | 10 | 14 |
+| extractors lost to raids (by `run/raid_ledger.py`; corrected 2026-11-12 from 26, 10 and 14, the first two of which counted the extractors our own units took apart) | 13 | 4 | 15 |
 | Jev, by `run/batch_read.py` | $0.74 | $0.43 | $0.68 |
 
 - **The mends held.** No group reported gone, no rover taken by another group, `groups` took a spot's name, `home`
@@ -516,6 +516,40 @@ games by one script (the counts are its, so a row here can differ from the table
   offline arms said three to five points on two-world picks).
 - The game was three minutes slower than the first by its middle, not by the slots: ten Stouts into his F2 turrets
   at 9:10 (eight lost), the energy store empty and up to 2,900 of metal banked from 9:00 to 13:00.
+
+**Stage 6, the third game (2026-11-12; the user: "let's see the simple approach in practice first"): won, and the
+reinforcements reached an army in his base.** slots-apex-v0507-comet-opus-3 on 7ff9b39d, the same line and seed:
+**WON 17:54**, by elimination.
+
+| | the slots, second game | the slots, third game |
+|---|---|---|
+| result | won 20:02 | won 17:54 |
+| H-MICRO-FLEE's fires | 330, 106, 419 in the last three minutes | 5 in the game, none a comer |
+| the army in his base | 21 to 25 at H1 for two minutes | 32 at G1 (16:00), 40 at H2 (17:00), 56 (17:20) |
+| the soldiers with no group meanwhile | 46 of 68 standing between D2 and F4 | 31 to 38 from B6 to F3, all walking at full speed |
+| a new soldier's seconds to be with a group, median and ninth decile | 106, 164 (made 16:00 to 18:00; 12 never) | 84, 98 (made 14:00 to 16:00; all) |
+| soldiers lost with a group / in an answer / coming or no slot | 83 / 3 / 5 | 87 / 0 / 2 |
+| soldier-seconds with a group / lent / coming or no slot | 63 / 3 / 33 % | 69 / 2 / 29 % |
+| lends and parties; within 10 s of one at the same party; withdrawals | 88 at 33; 48 %; 16 | 33 at 12; 48 %; 1 |
+| orders to soldiers a unit-minute; the worst minute a second | 30.5; 99 | 22.7; 47 |
+| extractors lost to raids | 15 | 7 |
+| Jev | $0.68 | $0.45 |
+
+- **Nothing turned a comer back, and they arrived.** The five flee fires were soldiers of an answer in the second
+  after it ended, before the next deal (the debug log's unit ids against the hands' groups).
+- **The player did the gathering itself, from the line.** At 10:01, its first army dead at G1 and eleven Stouts
+  walking after it: "New Stouts were walking up to it alone and getting picked off on the way. So I changed how
+  reinforcements arrive". It declared a reserve at F3 for the new Stouts, ended the army, raised the reserve to 96
+  slots and walked it in as one body from 14:00; at 14:54 it stood fourteen at D4 because "our reinforcements walk
+  to the front one at a time through D4 and D5". That is the ruling on D1 as he gave it: where reinforcements
+  gather is the player's, and nothing of the code's holds one back.
+- Two soldiers died coming, at F2 to a Centurion, in the minute the first army died.
+- The line names three cells and the rest "elsewhere": 20 of 36 were elsewhere at 15:56, comers strung along the
+  whole road.
+- One game. Its army was never left standing beyond his turrets with the road behind it shut, as the second
+  game's was; what a string of comers does against a turret line it cannot kill one at a time is not shown.
+- A soldier of an answer is loose to the lane for the second between its answer's end and the next deal, and
+  flees in it if a threat is near (17 fires in slots-smoke-7, 5 here). Older than this build; left.
 
 ## 12. The build's state (for whoever picks it up)
 
@@ -552,8 +586,8 @@ games by one script (the counts are its, so a row here can differ from the table
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
-Jev over recorded gates. Run since (stage 6, §11): six smokes of the pianist alone, one WRDistilled game and two
-flagship games, both won; no lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
+Jev over recorded gates. Run since (stage 6, §11): seven smokes of the pianist alone, one WRDistilled game and three
+flagship games, all won; no lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
 game's picks (§5.1); the build with them has two smokes and the second flagship game behind it.
 
 ## 13. Not in this design

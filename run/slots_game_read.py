@@ -2,10 +2,11 @@
 """A flagship game's numbers for groups as slots (docs/design/2026-11-11-groups-as-slots.md §11), side by side for
 several matches: the groups, the lends and the top-ups among them, the withdrawals, world 1's share of the pick by
 the number of worlds, the gate's answer about a party already answered, the orders to soldiers, the hunt's attack
-orders, the soldier-seconds and the losses by standing (with a group, lent, coming or with no slot), the extractors
-lost, and the player's turns and `groups` calls. Armada's ground soldiers only (the `ARMY` set).
+orders, the soldier-seconds and the losses by standing (with a group, lent, coming or with no slot), and the player's turns and `groups` calls. Armada's ground soldiers only (the `ARMY` set).
 
 usage: run/slots_game_read.py run/matches/<batch>/<NN> [...]
+
+Extractors lost to raids are `run/raid_ledger.py`'s to count (this tool's own count missed kills and was taken out).
 """
 import bisect, collections, json, os, re, statistics, subprocess, sys
 
@@ -95,7 +96,6 @@ def read(d):
     members = [{u: (g["name"], g["task"].get("kind")) for g in c.get("groups") or [] for u in g["members"]} for c in calls]
     secs = collections.Counter()
     end = 0
-    mex_lost = 0
     for line in open(d + "/record-0.jsonl"):
         r = json.loads(line)
         if "unit_defs" in r:
@@ -116,8 +116,6 @@ def read(d):
                     before = members[j] if j >= 0 else {}
                     g = before.get(r["u"])
                     lost_standing["answer" if g and g[0].startswith("answer_") else "group" if g else "coming or no slot"] += 1
-                if ud.get(r["u"]) == "armmex" and r.get("by") is not None:
-                    mex_lost += 1
         if r.get("t") == "s":
             for u in r["own"]:
                 if ud.get(u[0]) in ARMY and not (u[5] & 1):
@@ -142,7 +140,6 @@ def read(d):
     all_secs = sum(secs.values()) or 1
     out["soldier-seconds: with a group / lent / coming or no slot"] = " / ".join(f"{secs[k] / all_secs:.0%}" for k in ("with a group", "lent", "coming or no slot"))
     out["soldiers lost: in a group / in an answer / coming or no slot"] = f"{lost_standing['group']} / {lost_standing['answer']} / {lost_standing['coming or no slot']}"
-    out["extractors of ours destroyed by him"] = mex_lost
     # the player
     turns, groups_calls, refused = 0, 0, []
     # A game of the pianist alone has no player.

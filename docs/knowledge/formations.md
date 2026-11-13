@@ -675,8 +675,12 @@ having chosen that, and the report's arrival times (the straight line over the s
 under a minute.
 **Status.** observed once, in the second flagship game on the slots (slots-apex-v0507-comet-opus-2, 2026-11-11);
 exploited 2026-11-12 on the user's word ("Agreed with walking on and reporting it for now. We may decide to do something more complicated later, but let's see the simple approach in practice first"): a soldier coming is under no flee and the
-`reinforcements` line says where the comers are, who is shot at and who died on the way. Not yet verified in a
-game. From 17:50 to 19:40 `group_A` held at H1 with 21 to 25 soldiers and every
+`reinforcements` line says where the comers are, who is shot at and who died on the way. Verified once
+(slots-apex-v0507-comet-opus-3, 2026-11-12, won 17:54): the flee fired five times in the game and never for a
+comer, the army grew from 32 to 56 in his base while 31 to 38 more walked from B6 to F3 at full speed, and a
+soldier made between 14:00 and 16:00 was with a group after 84 s at the median, none over 120 s; two died coming.
+The player read the line and made the new soldiers gather at a reserve of its own. Not shown: a string of comers
+against a turret line with the army standing beyond it, the second game's case. From 17:50 to 19:40 `group_A` held at H1 with 21 to 25 soldiers and every
 report read 57 to 71 more coming, "half in about 50 seconds". At 19:00, 68 soldiers were with no group, 46 of
 them between D2 and F4 and 26 at E2 and E3, his turrets standing at E2, F2 (with his commander) and F3. Three
 Stouts traced (16223, 29053, 28932) stood between E2 and F3 from 18:00 to 19:50, their orders the comers' fight
