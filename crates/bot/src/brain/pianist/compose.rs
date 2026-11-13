@@ -261,12 +261,19 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
     out
 }
 
-/// Two moves that cannot both be made in one world: two builders taking the same metal spot, or an answer withdrawn
+/// Two moves that cannot both be made in one world: two builders taking the same metal spot; an answer withdrawn
 /// and lent to (slots-apex-v0507-comet-opus-1, 7:07: one world lent four of group_A to the answer to party_23 and
-/// withdrew it).
+/// withdrew it); a standing answer turned to the hunt and lent to as a stand; or two lends that make one party's
+/// answer in two stances (one after it and one ahead of it, or ahead of it at two places: one answer a party, the
+/// slots design §5.2, 6).
 fn clash(menus: &[Menu], world: &World) -> bool {
-    let withdrawn: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| matches!(menu.moves[**i].order, Order::Withdraw)).filter_map(|(menu, _)| menu.answering.as_ref().map(|a| a.party.as_str())).collect();
-    if menus.iter().zip(world).any(|(menu, i)| menu.moves[*i].lend.as_ref().is_some_and(|l| withdrawn.contains(&l.party.as_str()))) {
+    let ended: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| matches!(menu.moves[**i].order, Order::Withdraw | Order::Hunt(_))).filter_map(|(menu, _)| menu.answering.as_ref().map(|a| a.party.as_str())).collect();
+    let lends: Vec<&Lend> = menus.iter().zip(world).filter_map(|(menu, i)| menu.moves[*i].lend.as_ref()).collect();
+    if lends.iter().any(|l| ended.contains(&l.party.as_str())) {
+        return true;
+    }
+    let place = |l: &Lend| l.ahead.as_ref().map(|(place, _)| place.clone());
+    if lends.iter().enumerate().any(|(k, a)| lends[..k].iter().any(|b| a.party == b.party && place(a) != place(b))) {
         return true;
     }
     let mut spots: Vec<usize> = Vec::new();
@@ -595,8 +602,18 @@ fn answered(party: &Party, line: &str, standing: Option<&Menu>, lends: &[(&Menu,
         Some(_) => ", no sooner than those on their way",
         None => "",
     };
+    // Lends to an answer that stands ahead of the party (the slots design §5.2, 6) go to its place: when they are
+    // there beside when the party is.
+    let ahead = lends.iter().find_map(|(_, l)| l.ahead.as_ref());
     let arriving = if lends.is_empty() {
         String::new()
+    } else if let Some((place, his)) = ahead {
+        let when = if (last - first).abs() < 0.5 { format!("in {first:.0} s") } else { format!("in {first:.0} to {last:.0} s") };
+        let lent = if on_it.is_some() { "" } else { "ahead of it " };
+        match his {
+            Some(his) => format!("{lent}at {place} {when}, the party about {his:.0} s from it at its pace"),
+            None => format!("{lent}at {place} {when}"),
+        }
     } else if (last - first).abs() < 0.5 {
         format!("there in {first:.0} s{beside_theirs}")
     } else if on_it.is_some() {
@@ -604,7 +621,9 @@ fn answered(party: &Party, line: &str, standing: Option<&Menu>, lends: &[(&Menu,
     } else {
         format!("the first there in {first:.0} s and the last in {last:.0} s")
     };
-    let standing_where = standing.and_then(|m| m.against.as_ref()).map(|s| s.where_words());
+    let stands = on_it.and_then(|a| a.stand.clone());
+    let chases = stands.is_none() && ahead.is_none();
+    let standing_where = stands.or_else(|| standing.and_then(|m| m.against.as_ref()).map(|s| s.where_words()));
     let place = match (standing_where, arriving.is_empty()) {
         (Some(here), true) => here,
         (Some(here), false) => format!("{here}; the ones lent now {arriving}"),
@@ -613,6 +632,8 @@ fn answered(party: &Party, line: &str, standing: Option<&Menu>, lends: &[(&Menu,
     // Whether it catches the party: the lent ones by their slowest against the party's speed, an answer on its
     // way by what its standing says.
     let catching = match (lends.first(), standing.and_then(|m| m.against.as_ref())) {
+        // A stand follows nothing: there is no chase to say the end of.
+        _ if !chases => String::new(),
         (Some((_, lend)), _) => {
             let pace = all.iter().map(|s| s.pace).fold(f32::INFINITY, f32::min);
             match lend.quarry {
@@ -995,7 +1016,7 @@ mod tests {
     /// A lend of `count` from `lender` at `party`, there in `first` to `last` seconds, as its move.
     fn lend(lender: &str, count: usize, party: &str, first: f32, last: f32, joins: bool) -> super::super::menu::Move {
         let mut m = mv(&format!("send_{count}_{party}"), Order::Send(count, party.to_string()), Some(party));
-        m.lend = Some(Lend { party: party.to_string(), soldiers: soldiers(count), first, last, quarry: Some(87.0), short: format!("{count} armflash of {lender} (its soonest to it) {} {party} (2 Ticks, in sight, heading south); {lender} keeps its course with its other 5", if joins { "join the answer to" } else { "answer" }) });
+        m.lend = Some(Lend { party: party.to_string(), soldiers: soldiers(count), first, last, quarry: Some(87.0), ahead: None, short: format!("{count} armflash of {lender} (its soonest to it) {} {party} (2 Ticks, in sight, heading south); {lender} keeps its course with its other 5", if joins { "join the answer to" } else { "answer" }) });
         m
     }
 
@@ -1006,7 +1027,7 @@ mod tests {
         let mut m = group(&format!("answer_{party}"), false, vec![withdraw]);
         m.aimed_at = Some(party.to_string());
         m.against = Some(against);
-        m.answering = Some(super::super::menu::Answering { party: party.to_string(), soldiers: soldiers(count), from: format!("{count} from {from}") });
+        m.answering = Some(super::super::menu::Answering { party: party.to_string(), soldiers: soldiers(count), from: format!("{count} from {from}"), stand: None });
         m
     }
 
@@ -1071,6 +1092,56 @@ mod tests {
     /// One menu per actor, one move per actor a world: a group's own way out stands beside its answers to a party
     /// in the same menu, and nothing closes either. (player-33: 0 of 14 attacking groups had a move of their own in
     /// the pick; the party's menu took the group and its own was closed.)
+    /// A detachment ahead of a party (the slots design §5.2, 6) on a world's line: the answer's clause says the place,
+    /// when the lent are there and when the party is, and nothing of a chase; one party's answer is in one stance.
+    #[test]
+    fn an_answer_ahead_of_a_party_is_said_by_its_place_and_is_in_one_stance() {
+        let parties = [party("party_5")];
+        let prices = pricing("party_5");
+        let forbidden = BTreeSet::new();
+        let lines = Lines { pricing: &prices, ..said(&parties, &forbidden) };
+        let ahead = |lender: &str, count: usize, place: &str, first: f32, last: f32, his: Option<f32>, joins: bool| {
+            let mut m = mv(&format!("ahead_{count}_party_5"), Order::SendAhead(count, "party_5".into(), place.to_string()), Some("party_5"));
+            let short = format!("{count} armflash of {lender} (its soonest to {place}) {} {place}", if joins { "join the answer to party_5 standing at" } else { "go ahead of party_5 to stand at" });
+            m.lend = Some(Lend { party: "party_5".into(), soldiers: soldiers(count), first, last, quarry: Some(87.0), ahead: Some((place.to_string(), his)), short });
+            m
+        };
+        // A first lend ahead: where, when they are there and when the party is; no word of catching it.
+        let menus = [
+            group("A", false, vec![ahead("group_A", 2, "spot_10", 8.0, 12.0, Some(21.0), false), lend("group_A", 2, "party_5", 8.0, 9.0, false)]),
+            group("mid", false, vec![ahead("group_mid", 1, "spot_6", 5.0, 5.0, Some(12.0), false), ahead("group_mid", 2, "spot_10", 9.0, 10.0, Some(21.0), false)]),
+        ];
+        let base = vec![0, 0];
+        assert_eq!(
+            consequence(&vec![1, 0], &menus, &lines, Some(&base)),
+            "As w1, and: 2 armflash of group_A (its soonest to spot_10) go ahead of party_5 to stand at spot_10. The answer to party_5: 2 soldiers (2 from group_A), ahead of it at spot_10 in 8 to 12 s, the party about 21 s from it at its pace: we outweigh it."
+        );
+        // Two lenders ahead of it at one place are one answer; one after it and one ahead of it, or ahead of it at
+        // two places, are no world.
+        let joint = consequence(&vec![1, 2], &menus, &lines, Some(&base));
+        assert!(joint.contains("The answer to party_5: 4 soldiers (2 from group_A, 2 from group_mid), ahead of it at spot_10 in 8 to 12 s, the party about 21 s from it at its pace: ") && !joint.contains("catch"), "{joint}");
+        assert!(!clash(&menus, &vec![1, 2]) && clash(&menus, &vec![1, 1]) && clash(&menus, &vec![2, 1]) && clash(&menus, &vec![2, 2]));
+        // A stand that is out: its clause says where the party is against its place, a lend joins it there, and a
+        // world that turns it to the hunt lends it nobody as a stand.
+        let away = Standing { in_reach: 0, of: 2, way: "some way off, about 10 s of walking".into(), idle: 2, catches: Some(true), seconds: Some(11.0) };
+        let mut stand = answer("party_5", 2, "group_guard", away);
+        stand.answering.as_mut().unwrap().stand = Some("standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there)".into());
+        let mut hunt = mv("hunt", Order::Hunt("party_5".into()), Some("party_5"));
+        hunt.words = "group_answer_party_5 leaves its stand at spot_10 and hunts party_5".into();
+        stand.moves.push(hunt);
+        let menus = [group("A", false, vec![ahead("group_A", 1, "spot_10", 4.0, 4.0, Some(20.0), true)]), stand];
+        let base = vec![0, 0];
+        assert_eq!(
+            consequence(&base, &menus, &lines, None),
+            "Every actor keeps the course its entry under `actors` describes. group_answer_party_5, the answer to party_5 (2 Ticks, in sight): 2 soldiers (2 from group_guard), standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there): we outweigh it."
+        );
+        let joined = consequence(&vec![1, 0], &menus, &lines, Some(&base));
+        assert!(joined.contains("3 soldiers (2 from group_guard, 1 more from group_A), standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there); the ones lent now at spot_10 in 4 s, the party about 20 s from it at its pace: ") && !joined.contains("catch"), "{joined}");
+        assert!(clash(&menus, &vec![1, 2]) && clash(&menus, &vec![1, 1]) && !clash(&menus, &vec![0, 2]));
+        let hunting = consequence(&vec![0, 2], &menus, &lines, Some(&base));
+        assert!(hunting.starts_with("As w1, and: group_answer_party_5 leaves its stand at spot_10 and hunts party_5.") && hunting.contains("Sent at: party_5"), "{hunting}");
+    }
+
     #[test]
     fn a_groups_way_out_and_its_answer_to_a_party_are_one_menu() {
         let menus = vec![group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("go_spot_31", Order::Go("spot_31".into()), None)])];

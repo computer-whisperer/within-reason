@@ -2132,6 +2132,12 @@ impl Brain {
                 }
             };
             let doing = match &group.task {
+                // An answer standing ahead of its party (the slots design §5.2, 6): its advance and its hold are the
+                // stand, never a group with no order.
+                GroupTask::Move { .. } | GroupTask::Hold { .. } if group.ahead.is_some() => {
+                    let (ahead, party) = (group.ahead.as_ref().expect("a stand"), group.answer.as_deref().unwrap_or("its party"));
+                    if matches!(group.task, GroupTask::Move { .. }) { format!("advancing to {} to stand ahead of {party}", ahead.place) } else { format!("standing at {} ahead of {party}", ahead.place) }
+                }
                 // No clocks on a course and no "on your pick" (2026-10-24: the policy of t-1 does not enter the words;
                 // `docs/design/2026-10-24-pick-rework.md` §6).
                 GroupTask::Hold { picked: true, .. } => "holding here".to_string(),
@@ -2212,7 +2218,8 @@ impl Brain {
             // Its slots (the slots design §3, §4): who is in place, who is coming and when, what it has lent.
             if let Some(party) = &group.answer {
                 let from = group.lent.iter().map(|(g, n)| format!("{n} from group_{g}")).collect::<Vec<_>>().join(", ");
-                entry["answer_to"] = json!(format!("{party}: an answer made of lent soldiers ({from}); it is no group of the player's, and when it ends they go back to the groups with room for them"));
+                let stance = group.ahead.as_ref().map_or(String::new(), |a| format!(", sent ahead of it to stand at {}", a.place));
+                entry["answer_to"] = json!(format!("{party}: an answer made of lent soldiers ({from}){stance}; it is no group of the player's, and when it ends they go back to the groups with room for them"));
             } else {
                 let out: Vec<String> = pianist.groups.iter().filter(|g| g.answer.is_some() && !g.members.is_empty() && g.lent.iter().any(|(l, _)| *l == group.name)).map(|g| format!("{} ({} soldiers on it now)", g.answer.as_deref().unwrap_or_default(), g.members.len())).collect();
                 let lent = if out.is_empty() { String::new() } else { format!("; it has lent soldiers to the answers to {}", out.join(", ")) };

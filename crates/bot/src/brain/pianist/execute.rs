@@ -415,7 +415,20 @@ impl Brain {
             Order::Send(count, party_name) => {
                 if let Some(party) = party(party_name) {
                     let speed = |def: UnitDefId| self.world.def(def).map_or(1.0, |d| d.speed);
-                    did = Brain::lend(&mut pianist, index, *count, party, own, enemies, &speed, frame, commands);
+                    did = Brain::lend(&mut pianist, index, *count, party, None, own, enemies, &speed, frame, commands);
+                }
+            }
+            Order::SendAhead(count, party_name, place_name) => {
+                if let (Some(party), Some(p)) = (party(party_name), place(place_name)) {
+                    let speed = |def: UnitDefId| self.world.def(def).map_or(1.0, |d| d.speed);
+                    let to = self.snap_for(walker, p.at);
+                    did = Brain::lend(&mut pianist, index, *count, party, Some((p.name.as_str(), to)), own, enemies, &speed, frame, commands);
+                }
+            }
+            Order::Hunt(party_name) => {
+                // An answer standing ahead of its party goes after it (the slots design §5.2, 6).
+                if let Some(party) = party(party_name) {
+                    did = Brain::stand_hunts(&mut pianist.groups[index], party, own, enemies, frame);
                 }
             }
             Order::Withdraw => {

@@ -83,6 +83,20 @@ pub(crate) struct Hunt {
     pub at: Vec3,
 }
 
+/// An answer sent ahead of its party (the slots design §5.2, 6): the detachment's fight-at. Its soldiers advance to a
+/// place of ours on the party's way that they reach before it, stand there shooting what comes in reach (the
+/// formation's hold position, H-MICRO-FORM-HOLDPOS) and follow nothing. The answer's task is the advance and then
+/// the hold its arrival ends in, the lane's as any group's; this is what makes it an answer still: the place, and
+/// when anything of the party was last in sight, which ends it after `LOST_FRAMES` (the party dead or gone). Its own
+/// `hunt` move turns it into the hunt of that party; its `withdraw` ends it.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Ahead {
+    pub place: String,
+    pub to: Vec3,
+    pub since: i32,
+    pub last_seen: i32,
+}
+
 /// What the lane's word on a hunt does to its answer (`Brain::hunt_event`).
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HuntTurn {
@@ -167,6 +181,8 @@ pub(crate) struct Group {
     /// player. Its members are the soldiers lent to it; `lent` is how many each lender gave.
     pub answer: Option<String>,
     pub lent: Vec<(String, usize)>,
+    /// An answer that stands ahead of its party at a place (§5.2, 6); none for one that hunts it.
+    pub ahead: Option<Ahead>,
     pub task: GroupTask,
     pub last_order: i32,
     /// Soldiers lost in the last minute (frame, type); the turn frame the wake counts from, and whether the player has
@@ -258,7 +274,7 @@ impl Group {
 
     /// A group of these slots at this place, with nobody in it yet: the deal fills it.
     pub(crate) fn new(name: String, domain: Domain, slots: micro::deal::Slots, place: Vec3, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), task, last_order: frame, losses: Vec::new(), lost_coming: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
+        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), ahead: None, task, last_order: frame, losses: Vec::new(), lost_coming: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
     }
 
     /// A group whose body is these soldiers, with a slot for each: what a test stands a group up as.
@@ -772,22 +788,51 @@ impl Brain {
             pianist.hunts_failed.retain(|(_, f, _)| frame - f < 3 * 60 * FRAMES_PER_SECOND);
             pianist.hunts_failed.push((party, frame, why));
         }
-        // An answer with nobody left is over, and said: every hunter is dead. (Until 2026-11-13 the words were pushed
-        // from the hunt's own arm above, which a group with no body never reaches, so such an answer ended with no
-        // line in the log: two of slots-smoke-8's 22.)
-        let over: Vec<(String, Option<(String, i32)>)> = pianist
+        // An answer standing ahead of its party (the slots design §5.2, 6) ends when nothing of the party has been in
+        // sight for `LOST_FRAMES`: the party is dead or gone, and the stand has nobody to wait for. The party is the
+        // one of that name in the last picture, as the hunt's next unit is.
+        let mut stood_down: Vec<(String, String)> = Vec::new();
+        for group in pianist.groups.iter_mut().filter(|g| !g.members.is_empty()) {
+            let (Some(party), Some(ahead)) = (group.answer.as_ref(), group.ahead.as_mut()) else { continue };
+            if pianist.parties.iter().any(|p| p.name == *party && p.ids.iter().any(|id| enemies.iter().any(|e| e.id == *id))) {
+                ahead.last_seen = frame;
+            } else if frame - ahead.last_seen > LOST_FRAMES {
+                let text = format!(
+                    "the answer to {party} ended after {} s: {party} is dead or out of sight, nothing of it seen for {} s; its {} soldiers go back from {} to the groups with room for them",
+                    (frame - ahead.since) / FRAMES_PER_SECOND,
+                    LOST_FRAMES / FRAMES_PER_SECOND,
+                    group.members.len(),
+                    ahead.place
+                );
+                stood_down.push((group.name.clone(), text));
+            }
+        }
+        for (name, text) in stood_down {
+            pianist.end_answer(&name);
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+            pianist.hunt_events.push(text);
+        }
+        // An answer with nobody left is over, and said: every soldier of it is dead. (Until 2026-11-13 the words were
+        // pushed from the hunt's own arm above, which a group with no body never reaches, so such an answer ended
+        // with no line in the log: two of slots-smoke-8's 22.)
+        let over: Vec<(String, String, i32, bool)> = pianist
             .groups
             .iter()
-            .filter(|g| g.answer.is_some() && g.members.is_empty())
-            .map(|g| (g.name.clone(), if let GroupTask::Hunt(h) = &g.task { Some((h.party.clone(), h.since)) } else { None }))
+            .filter(|g| g.members.is_empty())
+            .filter_map(|g| {
+                let party = g.answer.clone()?;
+                match (&g.task, &g.ahead) {
+                    (GroupTask::Hunt(h), _) => Some((g.name.clone(), party, h.since, true)),
+                    (_, Some(ahead)) => Some((g.name.clone(), party, ahead.since, false)),
+                    _ => Some((g.name.clone(), party, g.last_order, false)),
+                }
+            })
             .collect();
-        for (name, hunt) in over {
+        for (name, party, since, hunting) in over {
             pianist.end_answer(&name);
-            if let Some((party, since)) = hunt {
-                let text = format!("the answer to {party} ended after {} s: every hunter dead", (frame - since) / FRAMES_PER_SECOND);
-                pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
-                pianist.hunt_events.push(text);
-            }
+            let text = format!("the answer to {party} ended after {} s: every {} dead", (frame - since) / FRAMES_PER_SECOND, if hunting { "hunter" } else { "soldier of it" });
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+            pianist.hunt_events.push(text);
         }
         for text in route_news {
             pianist.note(frame, text.clone());
@@ -895,18 +940,27 @@ impl Brain {
         Some(HuntTurn::End { text: format!("the answer to {name} ended after {} s: {why}; its {} soldiers go back to the groups with room for them", (frame - since) / FRAMES_PER_SECOND, group.members.len()), failed })
     }
 
-    /// A lend (the slots design §5; H-HANDS-ANSWER): `count` of the lender's soldiers, those that reach the party
-    /// soonest, with it or coming to it (the deal's choice), go to the answer to the party. One answer a party: a
-    /// hunt of the lane's under the party's name, which the worlds make and end and the player never names; a second
-    /// lend at the party joins it. The lender's slots are open from the next deal. Returns what was done. Until
-    /// 2026-11-11 the hunters left as a group of their own under a new name (the user, 2026-09-29), kept the lender's
-    /// name when half of it went, and came back by a later pick.
+    /// A lend (the slots design §5; H-HANDS-ANSWER): `count` of the lender's soldiers, with it or coming to it (the
+    /// deal's choice), go to the answer to the party. One answer a party, which the worlds make and end and the
+    /// player never names; a second lend at the party joins it in the stance it has. A new answer hunts the party
+    /// (the lane's hunt under the party's name), its soldiers the lender's soonest to the party; with `ahead`, a place
+    /// of ours on the party's way and the point there, it stands ahead of the party instead (§5.2, 6: `Ahead`), its
+    /// soldiers the soonest to the place. The lender's slots are open from the next deal. Returns what was done.
+    /// Until 2026-11-11 the hunters left as a group of their own under a new name (the user, 2026-09-29), kept the
+    /// lender's name when half of it went, and came back by a later pick.
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn lend(pianist: &mut super::Pianist, index: usize, count: usize, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], speed: &dyn Fn(UnitDefId) -> f32, frame: i32, commands: &mut Vec<Command>) -> Option<String> {
+    pub(super) fn lend(pianist: &mut super::Pianist, index: usize, count: usize, party: &Party, ahead: Option<(&str, Vec3)>, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], speed: &dyn Fn(UnitDefId) -> f32, frame: i32, commands: &mut Vec<Command>) -> Option<String> {
         let (lender, domain) = (pianist.groups[index].name.clone(), pianist.groups[index].domain);
         let answer = answer_name(&party.name, &pianist.seat_tag);
+        // Where the answer is, for who of the lender is soonest: the place a standing one stands at, else the party.
+        let standing = pianist.groups.iter().find(|g| g.name == answer).map(|g| g.ahead.as_ref().map(|a| (a.place.clone(), a.to)));
+        let joins = standing.is_some();
+        let stand: Option<(String, Vec3)> = match standing {
+            Some(stance) => stance,
+            None => ahead.map(|(place, to)| (place.to_string(), to)),
+        };
         let soldiers: Vec<micro::deal::Soldier> = own.iter().map(|u| micro::deal::Soldier { id: u.id, def: u.def, pos: u.pos, speed: speed(u.def) }).collect();
-        let went = pianist.deals.get_mut(&domain)?.lend(&answer, &lender, count, party.at, &soldiers, &micro::deal::straight);
+        let went = pianist.deals.get_mut(&domain)?.lend(&answer, &lender, count, stand.as_ref().map_or(party.at, |(_, to)| *to), &soldiers, &micro::deal::straight);
         if went.is_empty() {
             return None;
         }
@@ -915,7 +969,11 @@ impl Brain {
         commands.extend(group.release_orders(&hunters));
         group.members.retain(|id| !went.contains(id));
         group.coming.retain(|(id, _)| !went.contains(id));
-        let did = format!("{} of group_{lender} answer {} ({})", went.len(), party.name, party.composition);
+        let did = match (&stand, joins) {
+            (Some((place, _)), false) => format!("{} of group_{lender} go ahead of {} ({}) to stand at {place}", went.len(), party.name, party.composition),
+            (Some((place, _)), true) => format!("{} of group_{lender} join the answer to {} ({}) standing at {place}", went.len(), party.name, party.composition),
+            (None, _) => format!("{} of group_{lender} answer {} ({})", went.len(), party.name, party.composition),
+        };
         match pianist.groups.iter_mut().find(|g| g.name == answer) {
             Some(group) => {
                 group.members.extend(went.iter().copied());
@@ -925,14 +983,28 @@ impl Brain {
                 }
             }
             None => {
-                let mut group = Group::new(answer, domain, micro::deal::Slots::default(), party.at, GroupTask::Hunt(Brain::hunt_of(party, &hunters, enemies, frame)), frame);
+                let (at, task) = match &stand {
+                    Some((place, to)) => (*to, GroupTask::Move { to: *to, place: place.clone(), fight: true }),
+                    None => (party.at, GroupTask::Hunt(Brain::hunt_of(party, &hunters, enemies, frame))),
+                };
+                let mut group = Group::new(answer, domain, micro::deal::Slots::default(), at, task, frame);
                 group.answer = Some(party.name.clone());
+                group.ahead = stand.map(|(place, to)| Ahead { place, to, since: frame, last_seen: frame });
                 group.lent = vec![(lender, went.len())];
                 group.members = went;
                 pianist.groups.push(group);
             }
         }
         Some(did)
+    }
+
+    /// An answer standing ahead of its party turns to hunt it (its own `hunt` move, §5.2, 6): the lane's hunt of the
+    /// party's unit nearest its soldiers, from where that unit stands now, as a new answer's is. Returns what was done.
+    pub(super) fn stand_hunts(group: &mut Group, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32) -> Option<String> {
+        let ahead = group.ahead.take()?;
+        let units = group.units(own);
+        group.set_task(GroupTask::Hunt(Brain::hunt_of(party, &units, enemies, frame)), frame);
+        Some(format!("leave the stand at {} and hunt {} ({})", ahead.place, party.name, party.composition))
     }
 
     /// A hunt of the party's unit nearest these hunters, begun where they stand.
@@ -1045,7 +1117,7 @@ mod tests {
         let mut pianist = brain.pianist.take().unwrap();
         assert_eq!((pianist.groups.len(), pianist.groups[0].members.len(), pianist.groups[0].slots.total()), (1, 14, GROUP_COMPANIES * COMPANY_CAP), "the seat's one group, every soldier with it");
         let speed = |_: UnitDefId| 60.0;
-        let did = Brain::lend(&mut pianist, 0, 3, &parties[0], &ours, &enemies, &speed, 30, &mut commands).expect("a lend");
+        let did = Brain::lend(&mut pianist, 0, 3, &parties[0], None, &ours, &enemies, &speed, 30, &mut commands).expect("a lend");
         assert!(did.starts_with("3 of group_A answer party_12"), "{did}");
         assert_eq!(pianist.groups.len(), 2);
         assert_eq!(pianist.groups[0].members.len(), 11);
@@ -1059,7 +1131,7 @@ mod tests {
         let quarry = hunt.quarry;
         assert!(parties[0].ids.contains(&quarry));
         // A second lend at the party joins the answer.
-        Brain::lend(&mut pianist, 0, 2, &parties[0], &ours, &enemies, &speed, 45, &mut commands).expect("a second lend");
+        Brain::lend(&mut pianist, 0, 2, &parties[0], None, &ours, &enemies, &speed, 45, &mut commands).expect("a second lend");
         assert_eq!((pianist.groups.len(), pianist.groups[1].members.len(), pianist.groups[1].lent.clone()), (2, 5, vec![("A".to_string(), 5)]));
         // The deal keeps the lent with the answer while it lives.
         brain.pianist = Some(pianist);
@@ -1100,7 +1172,7 @@ mod tests {
         assert_eq!((pianist.groups.len(), pianist.groups[0].members.len()), (1, 14));
         // The answer's own leash (§5.2, 1): an answer whose quarry is seen more than the leash from where its first
         // quarry stood is ended by the hands, whichever unit of the party the lane's hunt is on by then.
-        Brain::lend(&mut pianist, 0, 3, &parties[0], &ours, &enemies, &speed, 240, &mut commands).expect("a lend");
+        Brain::lend(&mut pianist, 0, 3, &parties[0], None, &ours, &enemies, &speed, 240, &mut commands).expect("a lend");
         brain.pianist = Some(pianist);
         brain.keep_groups(&tick(270, &ours, &enemies), &kit, &mut commands);
         assert_eq!(brain.pianist.as_ref().unwrap().groups.len(), 2, "inside the leash the answer stands");
@@ -1113,6 +1185,67 @@ mod tests {
     /// A soldier far from its group's place is coming to it, on one plain order to the place that is not sent again
     /// while the place stands; inside the gate it is of the body, and the hands order it nothing: a declared group's
     /// members are the lane's. Nothing of where it came from enters (the slots design §3).
+    /// A lend sent ahead of a party (the slots design §5.2, 6): the lender's soonest to the place advance to it, the
+    /// answer to that party; a second lend joins the stand; it ends when nothing of the party has been in sight for
+    /// six seconds, and its own `hunt` turns it into the hunt of the party.
+    #[test]
+    fn a_lend_sent_ahead_stands_at_its_place_until_the_party_is_gone() {
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let all: Vec<&OwnUnit> = ours.iter().collect();
+        pianist.groups.push(Group::of("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(centre_of(&all).unwrap()), 0));
+        pianist.parties = parties.clone();
+        brain.pianist = Some(pianist);
+        let none = UnitDefId(99);
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32, enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None, sensors: None, conversion: 0.0 } };
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(30, &enemies), &kit, &mut commands);
+        let mut pianist = brain.pianist.take().unwrap();
+        let speed = |_: UnitDefId| 60.0;
+        let place = Vec3 { x: 3000.0, y: 0.0, z: 2600.0 };
+        let did = Brain::lend(&mut pianist, 0, 2, &parties[0], Some(("spot_30", place)), &ours, &enemies, &speed, 30, &mut commands).expect("a lend ahead");
+        assert_eq!(did, "2 of group_A go ahead of party_12 (3 armwar) to stand at spot_30");
+        let answer = &pianist.groups[1];
+        assert_eq!((answer.name.as_str(), answer.answer.as_deref(), answer.members.len(), answer.lent.clone()), ("answer_party_12", Some("party_12"), 2, vec![("A".to_string(), 2)]));
+        assert!(matches!(&answer.task, GroupTask::Move { to, place: name, fight: true } if *to == place && name == "spot_30"), "its task is the advance to the place: {:?}", answer.task);
+        assert_eq!(answer.ahead, Some(Ahead { place: "spot_30".into(), to: place, since: 30, last_seen: 30 }));
+        assert!(answer.declared(), "the lane's formation, as any group advancing");
+        // The soonest to the place, not to the party: nobody left with the lender stands nearer the place.
+        let far = |id: &UnitId| ours.iter().find(|u| u.id == *id).unwrap().pos.dist2d(place);
+        let worst = answer.members.iter().map(far).fold(0.0, f32::max);
+        assert!(pianist.groups[0].members.iter().all(|id| far(id) >= worst - 1.0));
+        // A second lend at the party joins the stand, whatever stance it was sent in.
+        let did = Brain::lend(&mut pianist, 0, 1, &parties[0], None, &ours, &enemies, &speed, 45, &mut commands).expect("a second lend");
+        assert_eq!(did, "1 of group_A join the answer to party_12 (3 armwar) standing at spot_30");
+        assert_eq!((pianist.groups.len(), pianist.groups[1].members.len(), pianist.groups[1].lent.clone()), (2, 3, vec![("A".to_string(), 3)]));
+        // With the party in sight the stand stands, and its last sighting moves on.
+        brain.pianist = Some(pianist);
+        brain.keep_groups(&tick(60, &enemies), &kit, &mut commands);
+        let pianist = brain.pianist.as_ref().unwrap();
+        assert_eq!((pianist.groups.len(), pianist.groups[1].ahead.as_ref().map(|a| a.last_seen)), (2, Some(60)));
+        // Nothing of the party in sight: six seconds on it still stands, and past them it ends, said, its soldiers
+        // the next deal's.
+        brain.keep_groups(&tick(60 + LOST_FRAMES, &[]), &kit, &mut commands);
+        assert_eq!(brain.pianist.as_ref().unwrap().groups.len(), 2);
+        brain.keep_groups(&tick(90 + LOST_FRAMES, &[]), &kit, &mut commands);
+        let pianist = brain.pianist.as_ref().unwrap();
+        assert_eq!(pianist.groups.len(), 1);
+        assert!(pianist.done.last().is_some_and(|d| d.contains("the answer to party_12 ended after 8 s: party_12 is dead or out of sight, nothing of it seen for 6 s; its 3 soldiers go back from spot_30")), "{:?}", pianist.done.last());
+        brain.keep_groups(&tick(120 + LOST_FRAMES, &enemies), &kit, &mut commands);
+        let mut pianist = brain.pianist.take().unwrap();
+        assert_eq!(pianist.groups[0].members.len(), 14);
+        // A stand turns to the hunt by its own move: the lane's hunt of the party's unit nearest its soldiers.
+        Brain::lend(&mut pianist, 0, 2, &parties[0], Some(("spot_30", place)), &ours, &enemies, &speed, 400, &mut commands).expect("a lend ahead");
+        let did = Brain::stand_hunts(&mut pianist.groups[1], &parties[0], &ours, &enemies, 430).expect("the hunt");
+        assert_eq!(did, "leave the stand at spot_30 and hunt party_12 (3 armwar)");
+        let answer = &pianist.groups[1];
+        assert!(answer.ahead.is_none() && matches!(&answer.task, GroupTask::Hunt(h) if h.party == "party_12" && parties[0].ids.contains(&h.quarry) && h.since == 430), "{:?}", answer.task);
+        assert_eq!(answer.answer.as_deref(), Some("party_12"));
+    }
+
     #[test]
     fn a_soldier_far_from_its_group_comes_on_one_order_and_is_of_it_inside_the_gate() {
         use super::super::fixtures::at;
