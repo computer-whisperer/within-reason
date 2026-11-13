@@ -6,7 +6,10 @@ party stood then, and the task of the lender its soldiers were dealt back to. Th
 (K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course). From 2026-11-13 an answer hunts
 the party (the slots design §5.2): `next` is how many times it took the party's next unit, and the tally counts the
 answers that began with more than half of the soldiers with their lender (none, by the menu, from the build after
-slots-apex-v0507-comet-opus-4, which counts the lender's body alone).
+slots-apex-v0507-comet-opus-4, which counts the lender's body alone). From fa705a48 an answer may be sent ahead of
+its party to stand at a place (§5.2, 6; the `ahead_N_party` rung): such a row says `AHEAD <place>`, whether its
+soldiers arrived there, how near the party's centre came to the place while it stood, and whether it turned to the
+hunt by its own move.
 
 usage: run/slots_answers.py run/matches/<batch>/<NN> [...]
 """
@@ -46,7 +49,20 @@ def read(d):
                 if name not in open_:
                     open_[name] = {"name": name, "f0": c["f"], "f1": c["f"], "max": len(g["members"]), "units": set(g["members"]), "before": dict(prev_groups)}
                 o = open_[name]; o["f1"] = c["f"]; o["max"] = max(o["max"], len(g["members"])); o["units"] |= set(g["members"]); o["last"] = g
-                o.setdefault("party0", next((p for p in c.get("parties") or [] if p["name"] == name.replace("answer_", "")), None))
+                pnow = next((p for p in c.get("parties") or [] if p["name"] == name.replace("answer_", "")), None)
+                o.setdefault("party0", pnow)
+                # A stand (an answer sent ahead): its first task is the advance to its place; it has arrived when
+                # that has ended in a hold.
+                task = g.get("task") or {}
+                if o["f0"] == c["f"] and task.get("kind") == "fight_to":
+                    o["stand"] = {"place": task.get("place"), "to": task.get("to"), "arrived": False, "nearest": None}
+                if o.get("stand"):
+                    st = o["stand"]
+                    if task.get("kind") == "hold": st["arrived"] = True
+                    if task.get("kind") == "hunt": st.setdefault("hunted", c["f"])
+                    if pnow and st["to"] and "hunted" not in st:
+                        dnow = math.hypot(pnow["x"] - st["to"][0], pnow["z"] - st["to"][1])
+                        st["nearest"] = dnow if st["nearest"] is None else min(st["nearest"], dnow)
         for name in list(open_):
             if name not in now:
                 o = open_.pop(name); o["after"] = now; o["after_f"] = c["f"]; o["parties"] = c.get("parties"); spans.append(o)
@@ -56,7 +72,7 @@ def read(d):
     sends = collections.defaultdict(list); withdraws = collections.defaultdict(list)
     for p in plans:
         for pl in p.get("played") or []:
-            m = re.match(r"group_(\w+?)\.send_(\d+)_(party_\d+)$", pl["played"])
+            m = re.match(r"group_(\w+?)\.(?:send|ahead)_(\d+)_(party_\d+)$", pl["played"])
             if m: sends[m.group(3)].append((p["f"], m.group(1), int(m.group(2)), pl["did"]))
             if pl["played"].endswith(".withdraw"): withdraws[pl["actor"].replace("group_answer_", "")].append(p["f"])
     print(f"\n=== {d}: {len(spans)} answers")
@@ -95,7 +111,16 @@ def read(d):
         had = len((o["before"].get(lender) or {}).get("members") or [])
         first_lend = s[0][2] if s else 0
         if had and first_lend * 2 > had: tally["began with more than half of its lender"] += 1
-        print(f"  {clock(o['f0']):>5} {secs:5.0f} {o['max']:2}  {party:9}  {lender:6} ({lt.get('kind')}{' ' + str(lt.get('place')) if lt.get('place') else ''}; {first_lend} of {had}){'  DUP' if dup else ''}{f'  next x{took}' if took else ''}  | {how[:60]:60} | {pstr[:60]:60}; {back.get('kind')} {back.get('place') or ''}")
+        st = o.get("stand")
+        ahead = ""
+        if st:
+            tally["sent ahead to stand at a place"] += 1
+            if st["arrived"]: tally["  its soldiers arrived at the place"] += 1
+            if st["nearest"] is not None and st["nearest"] < 400: tally["  the party came within 400 of the place"] += 1
+            if "hunted" in st: tally["  turned to the hunt by its own move"] += 1
+            near = "-" if st["nearest"] is None else f"{st['nearest']:.0f}"
+            ahead = f"  AHEAD {st['place']} ({'arrived' if st['arrived'] else 'not arrived'}; the party as near as {near}{'; turned to the hunt at ' + clock(st['hunted']) if 'hunted' in st else ''})"
+        print(f"  {clock(o['f0']):>5} {secs:5.0f} {o['max']:2}  {party:9}  {lender:6} ({lt.get('kind')}{' ' + str(lt.get('place')) if lt.get('place') else ''}; {first_lend} of {had}){'  DUP' if dup else ''}{f'  next x{took}' if took else ''}{ahead}  | {how[:60]:60} | {pstr[:60]:60}; {back.get('kind')} {back.get('place') or ''}")
     print("  tally:", dict(tally))
 
 for d in sys.argv[1:]:

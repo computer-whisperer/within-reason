@@ -300,7 +300,7 @@ the thing defended and staying between as he moves, is not designed here.
 | | a group | a detachment (the answer to a party) |
 |---|---|---|
 | a party: hunt | `attack_<party>`, as built: the formation's fight order follows the party's centre and ends when it has been out of sight 6 s (H-HANDS-ATTACK-FOLLOWS) | `send_N_<party>`: changed, 1 to 4 below |
-| a place: fight at | `fight_to_<place>`, as built; its line changed, 5 below | designed, not built: 6 below |
+| a place: fight at | `fight_to_<place>`, as built; its line changed, 5 below | `ahead_N_<party>`: built 2026-11-13, 6 below |
 
 What changes:
 
@@ -337,15 +337,48 @@ What changes:
    a chase from behind, 700 behind when the first of nine solars died. The party's next extractor read spot_11 at
    7:31 and spot_6 at 7:36, our base behind them.) It is the extractors' line: a base with no extractor of ours at
    a named place on the way is not said.
-6. **Designed, not built: a detachment ahead of a party.** The detachment's fight-at: N of the lender's soonest
-   to the place the party is heading for advance to it and stand there, as the answer to that party, one answer a
-   party as now, ended when the party is dead or out of sight or by its withdraw. Never a detachment to a place on
-   its own: with no party it has no end, and a standing group is the player's alone (§3.1). It is a new rung on
-   every lender's menu for every party with a heading, a new task for the answer and a new clause in every world's
-   line; left until 1 to 5 have a game behind them.
+6. **A detachment ahead of a party** (built 2026-11-13, fa705a48, on the user's word: "Let's return to the rest of
+   the unfinished work with this new group system"; H-HANDS-AHEAD). The detachment's fight-at: `ahead_N_<party>`
+   sends N of the lender's soldiers, its soonest to the place, to a place of ours the party is heading for, to
+   advance there and stand, as the answer to that party. One answer a party as before. Never a detachment to a
+   place on its own: with no party it has no end, and a standing group is the player's alone (§3.1).
+   - *Which place.* The first place on the party's way (5's list: an extractor of ours along its heading within a
+     minute at its pace) that these N reach before it by 3 s or more (`HEADED_TIE`), walking as a formation at
+     the pace of their slowest. A place they would reach after the party is not offered: from behind it is the
+     hunt, which `send` is. So the rung is on the menu only for a party with a heading and a place still ahead of
+     it, in the sizes the half allows (2), not at the party the lender attacks (3), and its line carries what the
+     lender's fight keeps (4).
+   - *What it is in the hands.* An answer whose task is the advance to the place and then the hold its arrival
+     ends in: a formation of the lane's like any group, every soldier at hold position (H-MICRO-FORM-HOLDPOS), so
+     it shoots what comes in reach and follows nothing. `crates/micro` is not changed.
+   - *Its end.* Nothing of the party in sight for six seconds (dead or gone; the party is the one of that name in
+     the last picture), its withdraw, or every soldier dead. It has no leash: it does not move.
+   - *One stance an answer.* While an answer to a party is out, the lenders' rungs at that party are `send` alone,
+     and a `send` joins the answer in the stance it has: after the party for a hunt, to the place for a stand (its
+     soldiers then the soonest to the place, its line "join the answer to party_N that stands ahead of it at
+     spot_M"). No world sends after a party and ahead of it, or ahead of it to two places (`compose::clash`).
+   - *The stand's own menu, a departure from the design as it was written* (which left the answer its two moves):
+     `stay`, `withdraw`, and `hunt`, which turns the stand into the hunt of its party (the lane's hunt from where
+     the party stands then). Without it a stand whose party had turned away would keep every `send` at that party
+     a walk to the stand's place, and a group that outweighs the party four times, which is offered no whole-group
+     attack (H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES), would have had no move after the party until the stand was
+     withdrawn. The stand is never idle: its course is the stand, and its line says where the party is against
+     its place ("the party is about 20 s from spot_10 at its pace, heading there", "the party is 900 from spot_10
+     and not heading there now", or how many of its soldiers have the party in reach).
+   - *The words.* "2 armflash of group_A (its soonest to spot_10) go ahead of party_15 (6 armflash, ...) to
+     spot_10, which is on its way: the last of them is there in 9 s and the party in 13 s at its pace, so they are
+     there first; they advance to it, stand there, shoot what comes in reach and follow nothing: against them
+     alone, it outweighs us; at its end: our extractor (...); they stay of no group of their own and go back when
+     the party is dead or out of sight; the rest of group_A keeps its course". Both times to the second: with the
+     party's in the heading line's bucket of ten, "there in 11 s and the party about 10 s from it, so they are
+     there first" read as a contradiction.
+   - *What it does not do.* The odds are the detachment's against the party alone: a turret of ours at the place
+     is named in "at its end" and not weighed. The times are straight lines over a speed. A base with no extractor
+     at a named place is on no party's way (5).
+   - *Judged so far* (§12, "Not run"): offline and one smoke; no game with a player.
 
 Not changed: the gate, the pick, the draw (§0: "the redraw is still something to be solved properly later"), the
-ladder's sizes under the half, the answer's two moves, the leash's length, the rule that a party the body outweighs
+ladder's sizes under the half, a hunting answer's two moves (a standing one has a third, 6), the leash's length, the rule that a party the body outweighs
 four times is a detachment's work, the whole-group attack and the advance in the lane.
 
 What it does not settle. A world drawn at 0.2 or 0.3 still moves an army (second game, 9:21: "walk to G1" at 0.31
@@ -724,7 +757,8 @@ read on his word ("take a look for any issues showing up with the new system"). 
 - (Built 2026-11-13, §5.2, 1 to 5, on the user's word: the answer hunts the party; a lend is never more than half
   of its lender, and none at the party the lender attacks; its line says what the lender's own fight keeps; a walk
   or an advance says who of his is heading there. All in the hands and the menu; `crates/micro` is not changed.)
-- §5.2's 6, a detachment sent ahead of a party to the place it is heading for.
+- (Built 2026-11-13, fa705a48, §5.2's 6: a detachment sent ahead of a party to the place it is heading for, the
+  `ahead_N_<party>` rung; a standing answer has a third move, `hunt`.)
 - The defence stance, standing between the enemy and the thing defended (§0, deferred by the user).
 - Still open from the two games against a person (§11): a walk beside an enemy does not fight; a world drawn at
   0.2 to 0.3 moves an army (the draw, §0: "to be solved properly later"); a whole group's attack walks at the
@@ -741,6 +775,13 @@ group has out is counted) and the heading line asked again offline over the seco
 flagship games against Apex v0.5.07, both won (slots-apex-v0507-comet-opus-4 at 14:41, in which the half let
 eight of twelve standing go, the soldiers coming counted as the group's; -5 at 14:40 on the half over the body
 alone, which held), and a third smoke between them. None against a person on it.
+§5.2's 6 (2026-11-13, fa705a48): asked offline (`run/jev_ahead_ab.py`: in the second human game's solar raid the
+rung is on the menu from 7:31 and rated 0.04 to 0.15, every size outweighed and every detachment forbidden by the
+packet; over the fifth flagship game it rates as the send of its size does, 0.37 against 0.35, and a rules sentence
+naming it lifts it to 0.45 in every class alike) and two smokes of the pianist alone (slots-smoke-11 against BARb,
+where no party headed for a place of ours; slots-smoke-12 against Apex v0.5.07, where the rung was asked 65 times
+at 0.18 against the send's 0.27 and never played). The stand in the lane has run in tests alone; no game with a
+player on it.
 
 ## 13. Not in this design
 

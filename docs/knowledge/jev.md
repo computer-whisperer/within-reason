@@ -2615,6 +2615,40 @@ to the base here. The base's extractor stands at spot_10, not at `home`; the lin
 to 0.32. From where the army stood no advance was ahead of the raiders: the line says so, and standing between
 would have had to be chosen before 7:30. Unjudged in a game.
 
+### K-jev-a-detachment-ahead-of-a-party-rates-as-a-detachment-after-it
+**Claim.** Offered beside the `send` of its size, a detachment sent ahead of a party to stand at the place it is
+heading for (H-HANDS-AHEAD) is rated by Jev about as the send is. It is not rated higher where the send's own line
+says the party outruns its hunters, though the rung's line says its soldiers are at the place first; where the
+detachment is outweighed it is rated a little higher than the send and still far under the flag. A sentence in the
+gate's rules naming `ahead` lifts the rung in every class alike, by about 0.09, and lowers the reading of whether
+the player's instructions forbid it.
+**Status.** observed offline, 2026-11-13 (`run/jev_ahead_ab.py`, Jev 1.14.0, the rung's question rebuilt from the
+logs in the build's words and asked beside the recorded questions; nothing played).
+- slots-apex-v0507-comet-opus-5 (the lean gate's rules, detachments allowed by the packet most of the game): the
+  build would have offered the rung at 324 moves in 96 gate calls; a third of the calls asked, 113 rungs in 32
+  calls, twice. The rung 0.365 and 0.366, the send of its size 0.343 and 0.347; at the flag 16 and 22 rungs against
+  25 and 28 sends. Where the send says "it outruns them" (22): 0.47 against 0.48. Where "we outweigh it" (46):
+  0.46 against 0.48. Where "it outweighs us" (44): 0.25 against 0.19, none at the flag. With "A raider heading for
+  a place of ours is met there by a detachment sent ahead of it (`ahead`) when its words say it is there first."
+  after the gate's sentence on `send`: the rung 0.454, at the flag in 53 of 113, the send 0.371; outruns 0.57,
+  catches 0.42, outweighed 0.32 (three at the flag); the rung's forbidden mark, asked on 64, 0.67 to 0.55.
+- The second game against a person (`1794538778-human`, the long rules), the solar raid, 7:31 to 7:46: the rung
+  would have been on group_A's menu at party_15 (six Blitzes) in eleven gate calls, to spot_6 from 7:31 and to
+  spot_10, the base's extractor, at 7:32, 7:37, 7:38 and from 7:42 (ours there in 2 to 15 s, the party in 5 to
+  24). 26 rungs: 0.097, the send of its size 0.092, the whole-group attack 0.65 where it was asked; none at the
+  flag, the highest 0.15. Every one read "against them alone, it outweighs us" (one, two or four of the army's
+  Blitzes against six), and the packet's "no chasing" of 6:35 had the forbidden mark of the two rungs it was asked
+  of at 0.93 and 0.95. With the long rules' sentence on `ahead`: 0.125, the highest 0.20.
+- Live, slots-smoke-12 (the pianist alone against Apex v0.5.07, the build's own questions under the lean gate's
+  rules): the rung asked 65 times, each beside the send of its size: 0.18 against 0.27, none at the flag against
+  seven sends, and never played. Where we outweigh the party (26) 0.19 against 0.37: the first such a Pawn one
+  second from our nearest soldier, with the place nine seconds ahead of it, where the hunt is the better move.
+**What it does not show.** Whether a stand does better than a hunt once played: no stand was. Offline, the rung's odds and
+its lender's clause are copied from the recorded send of the same size, whose soldiers are the soonest to the
+party and not to the place. One game against one bot and one moment against a person. One ask a rung and arm: the
+two asks of the first game differ by 0.02 on the means and by six on the counts at the flag.
+**Used by.** H-HANDS-AHEAD (the rung as built, with no rules sentence).
+
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
 a sentence for it, it is listed first, and every other world is written as a difference from it ("As w1, and:").

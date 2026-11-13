@@ -59,15 +59,18 @@ pub(crate) type World = Vec<usize>;
 pub(super) type Rated = BTreeMap<String, Vec<(String, f64)>>;
 
 /// Who is on a party now, in words: each actor whose course is aimed at it, with where that actor stands against
-/// it (`Standing`: an actor told to attack a party it has not reached is not "on it").
+/// it (`Standing`: an actor told to attack a party it has not reached is not "on it"). An answer that stands ahead
+/// of the party (the slots design §5.2, 6) is said as that, with where the party is against its place: it is not
+/// told to attack, and its soldiers standing with no order are the stand.
 fn on_it(party: &Party, menus: &[Menu]) -> String {
     let who: Vec<String> = menus
         .iter()
         .filter(|m| m.aimed_at.as_deref() == Some(party.name.as_str()))
-        .map(|m| match &m.against {
-            Some(s) if s.met() => format!("{} on it: {}", m.name, s.words()),
-            Some(s) => format!("{} is told to attack it, but {}", m.name, s.words()),
-            None => format!("{} is told to attack it", m.name),
+        .map(|m| match (&m.against, m.answering.as_ref().and_then(|a| a.stand.as_ref())) {
+            (Some(s), _) if s.met() => format!("{} on it: {}", m.name, s.words()),
+            (_, Some(stand)) => format!("{} is {stand}", m.name),
+            (Some(s), None) => format!("{} is told to attack it, but {}", m.name, s.words()),
+            (None, None) => format!("{} is told to attack it", m.name),
         })
         .collect();
     if who.is_empty() { "nobody moves for it".to_string() } else { who.join("; ") }
@@ -1135,6 +1138,10 @@ mod tests {
             consequence(&base, &menus, &lines, None),
             "Every actor keeps the course its entry under `actors` describes. group_answer_party_5, the answer to party_5 (2 Ticks, in sight): 2 soldiers (2 from group_guard), standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there): we outweigh it."
         );
+        // The party's own question says the stand as a stand, not as an attack that has not arrived.
+        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[], false, false, false).into_iter().collect();
+        let Question::Noul { instructions, .. } = &qs["party_5.answer"] else { panic!("a noul") };
+        assert!(instructions.as_str().unwrap().contains("by someone other than what stands (group_answer_party_5 is standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there))?"), "{instructions}");
         let joined = consequence(&vec![1, 0], &menus, &lines, Some(&base));
         assert!(joined.contains("3 soldiers (2 from group_guard, 1 more from group_A), standing at spot_10 ahead of it (the party is about 20 s from spot_10 at its pace, heading there); the ones lent now at spot_10 in 4 s, the party about 20 s from it at its pace: ") && !joined.contains("catch"), "{joined}");
         assert!(clash(&menus, &vec![1, 2]) && clash(&menus, &vec![1, 1]) && !clash(&menus, &vec![0, 2]));

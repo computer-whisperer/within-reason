@@ -126,7 +126,9 @@ whenever you hit that edge.
   known; `shell` either from its long-reach soldiers' reach with the rest as the screen (a group that has artillery);
   `send` one, two, four or eight of its soldiers after a party (those of the group that reach the party soonest, the
   ones still walking to the group among them; they are lent to the answer to that party, make no group of their own
-  and take the open slots they reach soonest when it is over; the rest keep the group's course); `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever
+  and take the open slots they reach soonest when it is over; the rest keep the group's course); `ahead`, the same
+  sizes sent ahead of a party to a place of ours it is heading for, to stand there as the answer to it (offered
+  only where they are at the place before the party); `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever
   that goes and fights what comes at it, as a group of its own: asked, rated and fought apart from its ward, at its
   own pace. Follow is for a group that must stay its own, Rovers hunting beside the army, anti-air with a column,
   aircraft over a ground body; it is never the way to make one body: one body is one group, which you make by giving it the slots with `groups`); `rove` (the whole group roves: every soldier runs on its own in code, looking at
@@ -429,7 +431,17 @@ against party_6 (8 armflash) an even fight (with all 9: we outweigh it)"). A who
 one formation, at the pace of its slowest, toward where the party is now: against a faster party that has passed it,
 that is a chase from behind. A walk or an advance to a place says when our extractor there is on a party's way:
 the party, how many seconds ahead of it the extractor is at its pace, and whether the group gets there first; it is
-said of every such place within a minute of the party, so the one the group can still reach first is among them. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
+said of every such place within a minute of the party, so the one the group can still reach first is among them.
+Beside the sends, a party heading for a place of ours puts `ahead` on a group's menu while no answer to that party is
+out: one, two, four or eight of the group's soldiers, its soonest to the place, go to the first place on the party's
+way that they reach before it (walking as one formation, at the pace of their slowest), advance there and stand,
+shooting what comes in reach and following nothing. They are the answer to that party, under the same rules as a
+send (the half, none at the party the group attacks), and the rung is not there when nobody of the group is ahead of
+the party: from behind it is the hunt, which `send` is. The rung's words give both times, the odds of the detachment
+alone, and what of ours stands at the place; a turret of ours there is named and not weighed. A standing answer ends
+when nothing of its party has been in sight for six seconds; it is asked while it stands (it keeps on, withdraws, or
+leaves its stand and hunts the party), and a send at its party meanwhile joins it at the place. A packet that forbids
+a group its detachments forbids these too. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
 a time if that is how they come: nothing holds one back, and a group that is being fed to him is yours and your
 hands' to pull back or to shrink. Your packet's levers here are who stands where (a station at a passage, a home
 guard: small groups you declare with `groups`, which hold where you made them and refill from the plants), a size
