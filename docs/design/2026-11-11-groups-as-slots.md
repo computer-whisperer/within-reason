@@ -737,8 +737,10 @@ flagship games, all won; two 1v1 games against a person, both lost (§11); no te
 game's picks (§5.1); the build with them has two smokes and the second flagship game behind it.
 §5.2 (2026-11-13): two smokes of the pianist alone (slots-smoke-8, slots-smoke-9: it runs, the half holds once what a
 group has out is counted) and the heading line asked again offline over the second human game's 7:30 to 7:46
-(`run/jev_headed_ab.py`: Jev reads it by who gets there first; it would not have saved the solars there). No game
-with a player and none against a person on it.
+(`run/jev_headed_ab.py`: Jev reads it by who gets there first; it would not have saved the solars there). Two
+flagship games against Apex v0.5.07, both won (slots-apex-v0507-comet-opus-4 at 14:41, in which the half let
+eight of twelve standing go, the soldiers coming counted as the group's; -5 at 14:40 on the half over the body
+alone, which held), and a third smoke between them. None against a person on it.
 
 ## 13. Not in this design
 
