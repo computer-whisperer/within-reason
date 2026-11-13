@@ -171,11 +171,11 @@ placed. No unit is ever named.
 - An answer: its strength, its sources and how far out it is.
 - Surplus by place: "14 unassigned at B5".
 - Where the last minute's production went, by group.
-- **The soldiers coming, as amended 2026-11-12** (§0, §7): "62 more soldiers are coming to it (62 Stouts), each
-  alone, fighting what it meets and turning back for nothing: 26 at E2, 20 at D3, 12 at B5 and 4 elsewhere; by the
-  straight line half of them are 50 s of walking away and the last 110 s; 9 of them under fire now (7 at E2, 2 at
-  F3); 5 lost on the way in the last minute (4 at E2, 1 at F3): 4 to a Sentry, party_7; they are not in its fights
-  yet". Where they are and what is happening to them are observations; the seconds are named as the straight
+- **The soldiers coming, as amended 2026-11-12** (§0, §7): "62 more soldiers are coming to it (62 Stouts), not in
+  its fights yet, each alone, fighting what it meets and turning back for nothing: 26 at E2, 20 at D3, 12 at B5 and
+  4 elsewhere; by the straight line half of them are 50 s of walking away and the last 110 s; 9 of them under fire
+  now (7 at E2, 2 at F3); 5 lost on the way in the last minute (4 at E2, 1 at F3): 4 to a Sentry, party_7". Where
+  they are and what is happening to them are observations; the seconds are named as the straight
   line's. A soldier that dies coming is no loss of the body's: the body's `health` and `losses` lines count the
   soldiers with it, and the wake for losses counts both and says how many died on their way.
 

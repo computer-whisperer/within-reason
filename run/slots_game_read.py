@@ -145,7 +145,8 @@ def read(d):
     out["extractors of ours destroyed by him"] = mex_lost
     # the player
     turns, groups_calls, refused = 0, 0, []
-    for line in open(d + "/strategist-0.jsonl"):
+    # A game of the pianist alone has no player.
+    for line in open(d + "/strategist-0.jsonl") if os.path.exists(d + "/strategist-0.jsonl") else []:
         try:
             r = json.loads(line)
         except Exception:

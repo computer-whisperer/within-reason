@@ -301,16 +301,18 @@ impl Brain {
             let hit: std::collections::HashSet<bot_protocol::UnitId> = pianist.under_fire(frame).collect();
             units.iter().copied().filter(|u| hit.contains(&u.id)).collect()
         };
-        let mut words = format!(
-            "{} {}soldier{} coming to it ({}), each alone, {} and turning back for nothing: {}; by the straight line half of them are {half:.0} s of walking away and the last {last:.0} s",
-            units.len(),
-            if more { "more " } else { "" },
-            if units.len() == 1 { " is" } else { "s are" },
-            self.composition_words(&units),
-            if fight { "fighting what it meets" } else { "walking past what it meets" },
-            by_cell(&self.world, units.iter().map(|u| u.pos)),
-        );
-        if !shot.is_empty() {
+        // Coming to a body, they are none of its strength yet: said first, where the count is.
+        let (more, apart) = if more { ("more ", ", not in its fights yet") } else { ("", "") };
+        let meets = if fight { "fighting what it meets" } else { "walking past what it meets" };
+        let (what, cells) = (self.composition_words(&units), by_cell(&self.world, units.iter().map(|u| u.pos)));
+        let mut words = if let [one] = units.as_slice() {
+            format!("1 {more}soldier is coming to it ({what}){apart}, alone, {meets} and turning back for nothing, at {}; by the straight line it is {last:.0} s of walking away", self.world.grid(one.pos))
+        } else {
+            format!("{} {more}soldiers are coming to it ({what}){apart}, each alone, {meets} and turning back for nothing: {cells}; by the straight line half of them are {half:.0} s of walking away and the last {last:.0} s", units.len())
+        };
+        if units.len() == 1 && !shot.is_empty() {
+            words.push_str("; it is under fire now");
+        } else if !shot.is_empty() {
             words.push_str(&format!("; {} of them under fire now ({})", shot.len(), by_cell(&self.world, shot.iter().map(|u| u.pos))));
         }
         if !lost.is_empty() {
@@ -2217,7 +2219,7 @@ impl Brain {
                 entry["slots"] = json!(format!("{} of its {} slots are filled here{lent}", units.len(), group.slots.total()));
             }
             if let Some(coming) = self.coming_words(group, own, pianist, &parties, true, frame) {
-                entry["reinforcements"] = json!(format!("{coming}; they are not in its fights yet"));
+                entry["reinforcements"] = json!(coming);
             }
             if !body.stragglers.is_empty() && lane_state.is_none() {
                 let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
@@ -2683,7 +2685,7 @@ mod tests {
         let (here, back) = (brain.world.grid(near), brain.world.grid(far));
         assert_ne!(here, back);
         let words = brain.coming_words(&group, &ours, &pianist, &parties, true, 900).expect("some are coming");
-        assert!(words.starts_with("4 more soldiers are coming to it ("), "{words}");
+        assert!(words.starts_with("4 more soldiers are coming to it (") && words.contains("), not in its fights yet, each alone, "), "{words}");
         // Equal counts: by the cell's name.
         let cells = if here < back { format!("2 at {here}, 2 at {back}") } else { format!("2 at {back}, 2 at {here}") };
         assert!(words.contains(&format!("each alone, fighting what it meets and turning back for nothing: {cells}; by the straight line half of them are 40 s of walking away and the last 50 s")), "{words}");
@@ -2696,7 +2698,8 @@ mod tests {
         // A group with nobody in place says them without "more"; one alone is said in the singular.
         group.coming.truncate(1);
         let words = brain.coming_words(&group, &ours, &pianist, &parties, false, 900).expect("one is coming");
-        assert!(words.starts_with("1 soldier is coming to it ("), "{words}");
+        assert!(words.starts_with("1 soldier is coming to it (") && !words.contains("its fights"), "{words}");
+        assert!(words.contains(&format!("), alone, fighting what it meets and turning back for nothing, at {here}; by the straight line it is 20 s of walking away; 1 lost on the way")), "{words}");
         // Nobody coming now: the dead are still said.
         group.coming.clear();
         let words = brain.coming_words(&group, &ours, &pianist, &parties, true, 900).expect("one died coming");
