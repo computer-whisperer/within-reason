@@ -2593,7 +2593,11 @@ here"; `attack_party_15` 0.56 to 0.69, `fight_to_spot_11` and `fight_to_spot_16`
 meeting a party) 0.50 to 0.72. The army's order changed five times from 7:33 to 7:38 and was the attack from then:
 the party passed about 400 north of it at 7:44 to 7:46 and was 700 ahead at 7:55. The packet's "no chasing" of
 6:35 had every lend at the party marked forbidden (0.83 to 0.92). The home guard of three stood on its hold, the
-raiders 500 to 670 from it from 8:07 (not looked into).
+raiders 500 to 670 from it from 8:07. Looked into 2026-11-13: it was asked nearly every second from 7:31 to 8:15
+and nothing came over the flag. Its sends at the party carried the same forbidden mark from the packet's "neither
+the main body nor the home guard sends anyone after his Blitzes" (0.82 to 0.94, the sends themselves 0.07 to 0.30);
+its whole-group attack on the six Blitzes was rated 0.07 to 0.14; `group_home.change` 0.26 to 0.29. The mark fell
+to 0.56 at 8:16, after the player's next packet.
 **Evidence.** `run/hands_window.py run/matches/1794538778-human/00 7:30 8:20 group_A group_home`; the gate's
 questions and answers in `jev-0.jsonl` at 7:31 to 7:38.
 The party's own words named its next extractor: spot_11 at 7:31, spot_6 at 7:36 and 7:38 ("heading east: our next
