@@ -59,6 +59,15 @@ def extra_usage(usage):
     limit = extra.get("monthly_limit")
     return bool(extra.get("is_enabled")), used, (limit / scale if limit else None)
 
+def meters(usage):
+    """An account's meters as percent of their caps, and when the week resets: (week, fable, five_hour, resets_at).
+    `week` is the 7-day window over every model, `fable` the 7-day cap scoped to Fable (None when the reply names
+    none), `five_hour` the 5-hour window (None when the reply carries none), `resets_at` the week's reset (ISO)."""
+    week = usage.get("seven_day") or {}
+    fable = next((l.get("percent") for l in usage.get("limits") or [] if (((l.get("scope") or {}).get("model") or {}).get("display_name")) == "Fable"), None)
+    five = (usage.get("five_hour") or {}).get("utilization")
+    return week.get("utilization") or 0.0, fable, five, week.get("resets_at")
+
 def flag_value(name):
     if name in sys.argv:
         value = sys.argv[sys.argv.index(name) + 1]
@@ -106,4 +115,5 @@ def main():
     if spiked:
         sys.exit(3)
 
-main()
+if __name__ == "__main__":
+    main()

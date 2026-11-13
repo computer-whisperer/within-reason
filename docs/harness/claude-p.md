@@ -52,8 +52,18 @@ HTTP 429, not 401 — running that account's CLI once refreshes it.
 Budget (user, 2026-09-19): two personal Max 20x subscriptions, `claude` (`~/.claude`) and `claude2` (`CLAUDE_CONFIG_DIR=~/.claude2`).
 The user's main projects run Fable, which has its own cap of up to half the weekly allotment; the other half of each week is
 free for Opus, Sonnet and Haiku here. The 5-hour window is rarely a constraint — watch it, but spend where it makes sense.
-Check usage before and after any batch of strategist games and put the delta in the ledger. Prefer the account with more
-7-day headroom (on 2026-09-19: `claude` at 31%, `claude2` at 0%).
+Check usage before and after any batch of strategist games and put the delta in the ledger.
+
+**Which account a game goes on: `run/claude_account.py [--games N] [--per-game POINTS] [--parallel P] [--dir]`**
+(the user, 2026-11-13: "The basic policy should be taking the soonest-resetting account, so long as it has enough
+free opus tokens left. Assume we will be using all fable tokens in a given week, and leave ~10% of the opus-only
+credits left at the end."). Fable use counts in the 7-day window and in Fable's own cap, which is half of the week,
+so the Opus-only credit is the other half. An account's points free for Opus are what is left of its week, less
+half of what is left of its Fable cap (the Fable still to come), less 5 (10 % of the Opus-only half). The account
+whose week resets soonest among those with enough is chosen; one that cannot be read is never chosen. The default
+need is 1.5 points a 1v1 game with an Opus 5.5 player (five such games on one account, 2026-11-11 to 13, came to
+about 5.5). `--dir` prints the directory alone for `--claude-config-dir "$(run/claude_account.py --dir)"`. Until
+2026-11-13 the rule here was the account with more 7-day headroom.
 
 ### Extra usage (paid credits) — we do not spend it
 Aim (user, 2026-09-19): weekly allotments only. Anthropic has been known to move heavy `claude -p` users onto extra-usage
