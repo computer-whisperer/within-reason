@@ -3,7 +3,9 @@
 how many soldiers, the party, the lender and the lender's task at the send (`DUP`: the lender was itself attacking
 that party), what ended it (its withdraw, or the lane's hunt: the quarry dead, out of sight, the leash), where the
 party stood then, and the task of the lender its soldiers were dealt back to. Then the tally
-(K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course).
+(K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course). From 2026-11-13 an answer hunts
+the party (the slots design §5.2): `next` is how many times it took the party's next unit, and the tally counts the
+answers that began with more than half of the soldiers with their lender (none, by the menu, since then; the menu's half counts those coming to the lender too).
 
 usage: run/slots_answers.py run/matches/<batch>/<NN> [...]
 """
@@ -19,7 +21,7 @@ def kind_of(w, how):
     return "withdrawn" if w else "quarry dead" if "quarry is dead" in how else "out of sight" if "out of sight" in how else "leash" if "ran" in how else how
 
 def read(d):
-    calls, plans, ends = [], [], []
+    calls, plans, ends, nexts = [], [], [], []
     for r in rows(first(d, "jev-")):
         t = r.get("t")
         if t == "call" and r.get("groups") is not None:
@@ -30,6 +32,8 @@ def read(d):
             for h in r.get("hunts") or []:
                 m = re.match(r"the answer to (party_\d+) ended after (\d+) s: ([^;]*)", h)
                 if m: ends.append((r["f"], m.group(1), int(m.group(2)), m.group(3)))
+                m = re.match(r"the answer to (party_\d+): its quarry is ", h)
+                if m: nexts.append((r["f"], m.group(1)))
     # answers as spans of presence in the groups lists
     spans = []   # [name, first f, last f, max members, lender-task at start, ...]
     open_ = {}
@@ -85,7 +89,12 @@ def read(d):
         tally[kind] += 1
         if dup: tally["lent at the party the lender itself was attacking"] += 1
         if secs <= 3: tally["lasted 3 s or less"] += 1
-        print(f"  {clock(o['f0']):>5} {secs:5.0f} {o['max']:2}  {party:9}  {lender:6} ({lt.get('kind')}{' ' + str(lt.get('place')) if lt.get('place') else ''}){'  DUP' if dup else ''}  | {how[:60]:60} | {pstr[:60]:60}; {back.get('kind')} {back.get('place') or ''}")
+        took = sum(1 for f, name in nexts if name == party and o["f0"] <= f <= (o["after_f"] or 10**9))
+        if took: tally["took the party's next unit (times)"] += took
+        had = len((o["before"].get(lender) or {}).get("members") or [])
+        first_lend = s[0][2] if s else 0
+        if had and first_lend * 2 > had: tally["began with more than half of its lender"] += 1
+        print(f"  {clock(o['f0']):>5} {secs:5.0f} {o['max']:2}  {party:9}  {lender:6} ({lt.get('kind')}{' ' + str(lt.get('place')) if lt.get('place') else ''}; {first_lend} of {had}){'  DUP' if dup else ''}{f'  next x{took}' if took else ''}  | {how[:60]:60} | {pstr[:60]:60}; {back.get('kind')} {back.get('place') or ''}")
     print("  tally:", dict(tally))
 
 for d in sys.argv[1:]:

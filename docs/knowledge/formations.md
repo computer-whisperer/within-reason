@@ -698,3 +698,20 @@ the flee fires to the comers is the count's timing and the three traces, not a l
 with the army beyond his turrets showed its comers arriving at the straight line's times.
 **Used by.** H-MICRO-FLEE and H-MICRO-DEAL as amended 2026-11-12, H-HANDS-SLOTS's `reinforcements` line
 (`docs/design/2026-11-11-groups-as-slots.md` §4, §7, §11).
+
+### K-group-a-whole-groups-attack-walks-at-the-formations-pace
+**Claim.** A group told to attack a party walks toward the party's centre as one formation, at a pace under its
+slowest member's speed, so its fast soldiers catch nothing that is not coming at them. The soldiers of a lend hunt
+each at their own speed.
+**Status.** observed once, 2026-11-12, in the second 1v1 game against [gecko]u6bkep (`1794538778-human`): from 7:37
+to 7:57 the ten soldiers of group_A under `attack party_15` walked 40 to 51 elmos a second and made good 25 to 44,
+its five Blitzes (top speed 101) 40 to 44, its Stouts (75) 46 to 51 and its Janus (54) 46, behind six to seven
+Blitzes that averaged 72. Not separated: the formation's pace from the route being re-declared as the party's
+centre moved. Nothing built on it. The user, from u6bkep after that game: the Blitz's "whole value proposition is
+their speed and maneuverability. Purchasing a block of blitzes and slowing them down with stouts is something of a
+mistake" (a strategy error apart from the army's control; `docs/knowledge/_inbox/player-notes.md`).
+**Evidence.** Each soldier's path from the record's samples over the window (the members from the hands' log at
+7:38); the party's centre from the hands' log.
+**Would be wrong if.** A drill of a mixed group attacking a party that crosses its front shows the fast members
+closing at their own speed.
+**Used by.** none (the slots design §5.2, "what it does not settle").

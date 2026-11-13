@@ -92,3 +92,14 @@
   written into the brief's rules with the reason first. He would not bake in expectations of BARb hard_aggressive
   ("our target really is human play at a much higher level, and BARb's build is very weak from what they tell me").
 
+## 2026-11-13, the user, relaying [gecko]u6bkep after the two 1v1 games of 2026-11-12 (`1794537762-human`, `1794538778-human`)
+
+- **The Blitz's "whole value proposition is their speed and maneuverability. Purchasing a block of blitzes and
+  slowing them down with stouts is something of a mistake."** The user: "That is a strategy error that is separate
+  from the army control details we are hashing out here, and we will deal with it another time." Not acted on.
+  What the second game's record shows beside it (K-group-a-whole-groups-attack-walks-at-the-formations-pace): the
+  army's five Blitzes walked at 40 to 44 a second in one formation with Stouts and a Janus while his Blitzes, at
+  72, went past it to our solars.
+- **The same day, the user on defending:** "The classic shape a human uses is to place and keep our units between
+  the enemy and the feature we are trying to defend." Deferred as a stance (the slots design §0, §5.2).
+

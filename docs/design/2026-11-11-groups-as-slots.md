@@ -56,6 +56,26 @@ so that an answer is moves in the world pick. Rejected because a pick a threat i
   than the micro engine's behavior."
 - A reinforcement at a threat its army has passed (2026-11-12, after the second game, §11; put to him as: walk on
   as the army did, take the army's way, or stay held and say so): "Agreed with walking on and reporting it for now. We may decide to do something more complicated later, but let's see the simple approach in practice first".
+- The lend (2026-11-13, after the two games against a person, §11): "I think the whole "lend" system may need
+  rethinking. Lend and hunt are two independent things that are treated as a single preset, wheras the whole
+  fighting system would benefit from a more flexible expression of that. I want your opinions on this, but I expect
+  that hunt down, fight at place, and defend place are all valid stances to want an army to follow. Similarly, a
+  small detachment to do something at jev speeds is also a plausible action." §5.2.
+- Defence, the same day, on a defence stance put to him as "stand at a place and meet what comes within a radius":
+  "My mental image of defend is a bit more sophisticated than that. One critical mistake in one of those games was
+  that we failed to stop the enemy blitz detachment from bypassing our units and burning our solars. The classic
+  shape a human uses is to place and keep our units between the enemy and the feature we are trying to defend.
+  Doing this properly may require more complexity than we are prepared to consider at the moment, but the most
+  basic version of just standing at a spot and attacking what comes near sounds like it overlaps exactly with
+  "fight to x". This is why I think we should defer the defence stance and just leave it to hunt/fight_at."
+- The go, and the draw each second: "I think we proceed with the design you laid out -- the redraw is still
+  something to be solved properly later. Redrawing should always be safe, the problem is that we fail to
+  communicate the relative value of actions. Once the available actions reflect what we want the system to
+  actually be capable of, then we can dig into why jev chooses bad actions in a critical moment."
+- Unit mix, the same message, from u6bkep after the second game: the Blitz's "whole value proposition is their
+  speed and maneuverability. Purchasing a block of blitzes and slowing them down with stouts is something of a
+  mistake. That is a strategy error that is separate from the army control details we are hashing out here, and
+  we will deal with it another time." Not in this design (`docs/knowledge/_inbox/player-notes.md`).
 - The march, on D3 as first proposed (every clear stretch walked relaxed): "why are we extending the relaxed pass?
   The formation movement still has value in controlling the layout of our units if we encounter the enemy, and so
   far does a good job of allowing units to maneuver without bumping into each other. What part of that do you think
@@ -257,6 +277,73 @@ outweighed keeps its mass (0.37 to 0.32 on the lends that change the verdict); a
 lend 0.46 to 0.49. Not ended: a fifth of the mass still goes on a lend that changes nothing, at every second the
 answer walks, and the pick is a draw. In the one game with a player on it since (§11, the second game) a lend within
 ten seconds of one at the same party was 48 % of the lends for 60 %.
+
+### 5.2 Hunt and fight at, for a group and for a detachment (2026-11-13; the user: "I think we proceed with the design you laid out")
+
+What the two games against a person showed (§11). The answer welds three things, each chosen for a lone raider at
+a group that stands: who goes (a lend of 1, 2, 4 or 8, up to all of the lender but one), what they do (the lane's
+hunt of one unit), and when it is over (that unit's death, the soldiers dealt back into whatever the few left of
+the lender are doing by then). A person raids with five to twelve Blitzes and comes with his army, and each of the
+three failed on it.
+
+**The frame: a body takes a stance toward a target, and the stance follows from the target.** A body is a group,
+or a detachment of one. A party is hunted: the body goes after it, any unit of it, until the party is dead or out
+of sight or has run past the bound. A place is fought at: the body advances to it, shooting what it meets in reach
+on the way and never following it, and stands there shooting what comes in reach. Walk, hold, follow, rove and
+shell are as they were. Jev picks the stance in a world; the lane holds it until it ends or another is picked.
+
+No defence stance (§0). As a stance of its own "stand at a place and attack what comes near" is the advance: every
+soldier of a group is at the engine's hold position (H-MICRO-FORM-HOLDPOS), an advance halts for what is in reach
+and follows nothing, and its arrival is a hold. What a person means by defending, standing between the enemy and
+the thing defended and staying between as he moves, is not designed here.
+
+| | a group | a detachment (the answer to a party) |
+|---|---|---|
+| a party: hunt | `attack_<party>`, as built: the formation's fight order follows the party's centre and ends when it has been out of sight 6 s (H-HANDS-ATTACK-FOLLOWS) | `send_N_<party>`: changed, 1 to 4 below |
+| a place: fight at | `fight_to_<place>`, as built; its line changed, 5 below | designed, not built: 6 below |
+
+What changes:
+
+1. **The answer hunts the party, not one unit.** The lane's hunt stays a hunt of one unit (H-MICRO-HUNT, which the
+   duel's raid director uses too: `crates/micro` is not changed). The hands keep it on the party: when the lane
+   says the quarry is dead or lost and another unit of the party (the party of that name in the last picture) is in
+   sight or on radar within the leash of where the answer's first quarry stood, the answer is given that unit, the
+   nearest to its soldiers, as a new hunt. It ends when nothing of the party is left in sight to take, when the
+   party has run the leash (`HUNT_LEASH`, 900, from where the first quarry stood: the lane's own leash is from
+   where each quarry stood), by its withdraw, or with every hunter dead.
+2. **A lend is never more than half of its lender** (the soldiers with it and coming to it). Above half it is the
+   group's own stance, the whole-group attack. So the group is always its larger part: what the pick moves is the
+   body, and the lent come back into the body's course. (Second game: eight of nine and eight of ten lent, the two
+   left steered about, the eight dealt back into "walk to home" and "walk to C1".)
+3. **No lend at the party its lender is attacking.** A group whose task is the attack on a party has every soldier
+   on it already. (9 and 4 of the two games' answers.)
+4. **A lend's line says what the lender's own fight loses.** When the lender's course is aimed at a party, or a
+   party is near it, and that party is not the one lent at: the odds of what it keeps against that party, beside
+   the odds of all of it ("group_A keeps its course with its other 5: against party_6 (8 armflash) an even fight
+   (with all 9: we outweigh it)"). §5 asked for "what each lender gives up"; as built the line said how many stay.
+5. **A walk's or an advance's line says who is heading there.** A party's words already say "our next extractor
+   on its way is at spot_N". The walk and the advance to that place now say it from the place's side: the party,
+   how many seconds it is from the extractor at its pace, and whether the group is there before it. (Second game,
+   7:30: six Blitzes on the north road to our base, the army of nine 650 south of the road. "Advance to home" was
+   on the menu at 0.16 to 0.29, its line "a walk back toward our side", nothing in it of the raiders heading
+   there; the attack at 0.56 to 0.69 was a chase from behind, 700 behind when the first of nine solars died.)
+6. **Designed, not built: a detachment ahead of a party.** The detachment's fight-at: N of the lender's soonest
+   to the place the party is heading for advance to it and stand there, as the answer to that party, one answer a
+   party as now, ended when the party is dead or out of sight or by its withdraw. Never a detachment to a place on
+   its own: with no party it has no end, and a standing group is the player's alone (§3.1). It is a new rung on
+   every lender's menu for every party with a heading, a new task for the answer and a new clause in every world's
+   line; left until 1 to 5 have a game behind them.
+
+Not changed: the gate, the pick, the draw (§0: "the redraw is still something to be solved properly later"), the
+ladder's sizes under the half, the answer's two moves, the leash's length, the rule that a party the body outweighs
+four times is a detachment's work, the whole-group attack and the advance in the lane.
+
+What it does not settle. A world drawn at 0.2 or 0.3 still moves an army (second game, 9:21: "walk to G1" at 0.31
+two seconds after "advance to spot_18"). A whole group's hunt goes at the formation's pace: in the second game's
+7:38 to 7:56 the army's five Blitzes (top speed 101 a second) walked at 40 to 44 behind a party that averaged 72,
+so the fast ones catch something only as a detachment (K-group-a-whole-groups-attack-walks-at-the-formations-pace).
+A party is a name: the answer to "party_70" hunted one Blitz of that name while his army stood beside it as
+party_72 (second game, 13:11 to 13:17).
 
 ## 6. Rove
 
@@ -624,10 +711,14 @@ read on his word ("take a look for any issues showing up with the new system"). 
   and who died on the way. The user: "We may decide to do something more complicated later": a comer taking its
   body's way, or gathering, is not built.)
 - The Distilled and Territory bots do not use the deal.
-- **Open after the two games against a person (§11), for the user's word; nothing built.** A lend is offered at
-  the party its lender is attacking and at an army; the answer is a hunt of one unit; a group most of whose
-  soldiers are lent is still asked and moved as the few left, and the lent come back into that course; a lend's
-  line does not price what the lender's own fight loses; a walk beside an enemy does not fight.
+- (Built 2026-11-13, §5.2, 1 to 5, on the user's word: the answer hunts the party; a lend is never more than half
+  of its lender, and none at the party the lender attacks; its line says what the lender's own fight keeps; a walk
+  or an advance says who of his is heading there. All in the hands and the menu; `crates/micro` is not changed.)
+- §5.2's 6, a detachment sent ahead of a party to the place it is heading for.
+- The defence stance, standing between the enemy and the thing defended (§0, deferred by the user).
+- Still open from the two games against a person (§11): a walk beside an enemy does not fight; a world drawn at
+  0.2 to 0.3 moves an army (the draw, §0: "to be solved properly later"); a whole group's attack walks at the
+  formation's pace; a party is a name, and an answer follows the name.
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to

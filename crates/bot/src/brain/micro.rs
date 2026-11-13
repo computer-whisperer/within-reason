@@ -153,20 +153,37 @@ impl Brain {
             let (soldiers, buildings, world) = (&self.enemy_soldiers, &self.enemy_buildings, &self.world);
             let cloaks = |quarry: UnitId| soldiers.get(&quarry).or_else(|| buildings.get(&quarry)).and_then(|(d, ..)| world.def(*d)).is_some_and(|d| d.cloak.is_some());
             for event in &report.hunts {
-                // The hunt's end is the answer's (the slots design §5): the group goes, its soldiers are dealt again.
-                let mut ended = Vec::new();
-                for group in pianist.groups.iter() {
-                    if let Some(end) = Brain::hunt_event(group, event, tick.frame, cloaks(event.quarry)) {
-                        ended.push((group.name.clone(), end));
+                // The lane's word on an answer's hunt (the slots design §5, §5.2): the party's next unit is taken,
+                // or the answer ends, the group goes and its soldiers are dealt again.
+                let mut turns = Vec::new();
+                for (index, group) in pianist.groups.iter().enumerate() {
+                    let party = match &group.task {
+                        super::pianist::GroupTask::Hunt(h) => pianist.parties.iter().find(|p| p.name == h.party),
+                        _ => None,
+                    };
+                    if let Some(turn) = Brain::hunt_event(group, event, tick.frame, cloaks(event.quarry), party, &tick.snapshot.own_units, &tick.snapshot.enemies) {
+                        turns.push((index, group.name.clone(), turn));
                     }
                 }
-                for (name, (text, failed)) in ended {
-                    pianist.end_answer(&name);
-                    pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
-                    pianist.hunt_events.push(text);
-                    if let Some((party, why)) = failed {
-                        pianist.hunts_failed.retain(|(_, f, _)| tick.frame - f < 3 * 60 * super::FRAMES_PER_SECOND);
-                        pianist.hunts_failed.push((party, tick.frame, why));
+                for (index, name, turn) in turns {
+                    match turn {
+                        super::pianist::groups::HuntTurn::Next { quarry, at, text } => {
+                            if let super::pianist::GroupTask::Hunt(hunt) = &mut pianist.groups[index].task {
+                                hunt.quarry = quarry;
+                                hunt.at = at;
+                                hunt.last_seen = tick.frame;
+                            }
+                            pianist.hunt_events.push(text);
+                        }
+                        super::pianist::groups::HuntTurn::End { text, failed } => {
+                            pianist.end_answer(&name);
+                            pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
+                            pianist.hunt_events.push(text);
+                            if let Some((party, why)) = failed {
+                                pianist.hunts_failed.retain(|(_, f, _)| tick.frame - f < 3 * 60 * super::FRAMES_PER_SECOND);
+                                pianist.hunts_failed.push((party, tick.frame, why));
+                            }
+                        }
                     }
                 }
             }

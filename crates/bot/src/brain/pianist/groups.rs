@@ -83,6 +83,15 @@ pub(crate) struct Hunt {
     pub at: Vec3,
 }
 
+/// What the lane's word on a hunt does to its answer (`Brain::hunt_event`).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum HuntTurn {
+    /// Another unit of the party is taken: the new quarry, where it stands, and the words for the log.
+    Next { quarry: UnitId, at: Vec3, text: String },
+    /// The answer ends: the words, and for an end without a kill the party and why.
+    End { text: String, failed: Option<(String, String)> },
+}
+
 /// A hunt whose quarry has run this far from where it stood when the hunt began ends (threats-smoke-1: anchored on
 /// the group's station, a hunt begun 900 from the station ended on its first tick, 12 of 16 hunts one order long).
 /// The engine judges it (H-MICRO-HUNT).
@@ -558,6 +567,8 @@ impl Brain {
         self.deal_groups(&mut pianist, &soldiers, commands);
         // Standing orders, under each group's footwork rules (H-HANDS-LANE); a declared group's are the lane's.
         let mut hunt_ends: Vec<String> = Vec::new();
+        // The answers the hands' own leash ends this pass: the answer's name, its party and why.
+        let mut leashed: Vec<(String, String, String)> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
         let mut follow_ends: Vec<String> = Vec::new();
         // Where each group stands, for the groups that follow another: its formation's anchor when the lane has one,
@@ -711,6 +722,13 @@ impl Brain {
                     }
                     if units.is_empty() {
                         hunt_ends.push(format!("the answer to {} ended after {} s: every hunter dead", hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND));
+                    } else if hunt.at.dist2d(hunt.from) > HUNT_LEASH {
+                        // The answer's own bound (the slots design §5.2, 1): the lane's leash is from where each
+                        // quarry stood, and an answer that takes the party's next unit is still let go where the
+                        // party has run the leash from where the first one stood.
+                        let why = format!("{} ran {HUNT_LEASH:.0} from where it stood when the hunt began, and was let go", hunt.party);
+                        hunt_ends.push(format!("the answer to {} ended after {} s: {why}; its {} soldiers go back to the groups with room for them", hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND, units.len()));
+                        leashed.push((group.name.clone(), hunt.party.clone(), why));
                     }
                 }
                 // Following (H-HANDS-FOLLOW): the group goes after its ward when it has moved on. A ward that is
@@ -749,6 +767,11 @@ impl Brain {
         for text in hunt_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.hunt_events.push(text);
+        }
+        for (name, party, why) in leashed {
+            pianist.end_answer(&name);
+            pianist.hunts_failed.retain(|(_, f, _)| frame - f < 3 * 60 * FRAMES_PER_SECOND);
+            pianist.hunts_failed.push((party, frame, why));
         }
         // An answer with nobody left is over.
         let over: Vec<String> = pianist.groups.iter().filter(|g| g.answer.is_some() && g.members.is_empty()).map(|g| g.name.clone()).collect();
@@ -826,26 +849,39 @@ impl Brain {
         self.pianist = Some(pianist);
     }
 
-    /// The micro engine's word on a hunt (`micro::HuntEvent`): its end (the quarry dead or lost, the leash reached)
-    /// ends the answer, whose soldiers the next deal places like any others (the slots design §5). Returns the end's
-    /// words and, for a hunt that ended without a kill, the failure to remember (the party and why). The caller ends
-    /// the answer (`Pianist::end_answer`).
-    pub(crate) fn hunt_event(group: &Group, event: &micro::HuntEvent, frame: i32, cloaks: bool) -> Option<(String, Option<(String, String)>)> {
+    /// The micro engine's word on a hunt (`micro::HuntEvent`): the quarry dead or lost, or the leash reached. The
+    /// answer hunts the party, not one unit (the slots design §5.2, 1): with the quarry dead or lost and another unit
+    /// of the party in sight or on radar within the leash of where the first quarry stood, the answer takes the one
+    /// nearest its soldiers (`HuntTurn::Next`; the caller gives it to the hunt, a new hunt to the lane). Else the
+    /// answer ends, its soldiers the next deal's like any others (§5): the end's words and, for an end without a
+    /// kill, the failure to remember (the party and why); the caller ends the answer (`Pianist::end_answer`).
+    /// Until 2026-11-13 the quarry's death was the answer's end (the two games against a person: the answer to
+    /// eight Blitzes ended after 4 s on one of them, "the quarry is dead", seven standing 250 away).
+    pub(crate) fn hunt_event(group: &Group, event: &micro::HuntEvent, frame: i32, cloaks: bool, party: Option<&Party>, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]) -> Option<HuntTurn> {
         let GroupTask::Hunt(hunt) = &group.task else { return None };
         // The event names the lane's group, `group_<name>` (D15).
         if hunt.quarry != event.quarry || event.group != format!("group_{}", group.name) {
             return None;
         }
-        let (party, since) = (hunt.party.clone(), hunt.since);
+        let (name, since) = (hunt.party.clone(), hunt.since);
+        // What else of the party is in sight, and what of that is inside the answer's leash.
+        let others: Vec<&bot_protocol::EnemyUnit> = party.map_or(Vec::new(), |p| p.ids.iter().filter(|id| **id != hunt.quarry).filter_map(|id| enemies.iter().find(|e| e.id == *id)).collect());
+        let centre = centre_of(&group.units(own)).unwrap_or(hunt.at);
+        let next = others.iter().filter(|e| e.pos.dist2d(hunt.from) <= HUNT_LEASH).min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)).then(a.id.0.cmp(&b.id.0)));
+        if event.why != "leash" && let Some(next) = next {
+            let what = if event.why == "dead" { "its quarry is dead" } else { "its quarry is out of sight" };
+            return Some(HuntTurn::Next { quarry: next.id, at: next.pos, text: format!("the answer to {name}: {what}, {} more of the party in sight; it hunts the nearest", others.len()) });
+        }
         let why = match event.why {
+            "dead" if !others.is_empty() => format!("the quarry is dead, and the rest of {name} stands more than {HUNT_LEASH:.0} from where the hunt began"),
             "dead" => "the quarry is dead".to_string(),
-            "lost" if cloaks => format!("{party} hidden: it cloaks, and nothing of ours has seen it for {} s, its last place walked to", HUNT_HIDDEN_FRAMES / FRAMES_PER_SECOND),
-            "lost" => format!("{party} out of sight for 6 s"),
+            "lost" if cloaks => format!("{name} hidden: it cloaks, and nothing of ours has seen it for {} s, its last place walked to", HUNT_HIDDEN_FRAMES / FRAMES_PER_SECOND),
+            "lost" => format!("{name} out of sight for 6 s"),
             "leash" => format!("its quarry ran {HUNT_LEASH:.0} from where it stood when the hunt began, and was let go"),
             other => other.to_string(),
         };
-        let failed = (event.why != "dead").then(|| (party.clone(), why.clone()));
-        Some((format!("the answer to {party} ended after {} s: {why}; its {} soldiers go back to the groups with room for them", (frame - since) / FRAMES_PER_SECOND, group.members.len()), failed))
+        let failed = (event.why != "dead").then(|| (name.clone(), why.clone()));
+        Some(HuntTurn::End { text: format!("the answer to {name} ended after {} s: {why}; its {} soldiers go back to the groups with room for them", (frame - since) / FRAMES_PER_SECOND, group.members.len()), failed })
     }
 
     /// A lend (the slots design §5; H-HANDS-ANSWER): `count` of the lender's soldiers, those that reach the party
@@ -982,7 +1018,7 @@ mod tests {
     /// frees its soldiers for the next deal, which finds them the lender's open slots.
     #[test]
     fn a_lend_goes_to_one_answer_a_party_and_its_end_frees_its_soldiers() {
-        use bot_protocol::{Resource, Snapshot};
+        use bot_protocol::{EnemyUnit, Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let all: Vec<&OwnUnit> = ours.iter().collect();
@@ -1019,19 +1055,48 @@ mod tests {
         brain.keep_groups(&tick(60, &ours, &enemies), &kit, &mut commands);
         let mut pianist = brain.pianist.take().unwrap();
         assert_eq!((pianist.groups[0].members.len(), pianist.groups[1].members.len()), (9, 5));
-        // The engine says the quarry is lost: the answer ends, the failure is returned, and the next deal has all
-        // fourteen with the lender again. An event for another group's hunt is not this one's.
+        // An event for another group's hunt is not this one's.
         let other = micro::HuntEvent { group: "group_A".into(), quarry, why: "lost" };
-        assert!(Brain::hunt_event(&pianist.groups[1], &other, 200, false).is_none());
-        let event = micro::HuntEvent { group: "group_answer_party_12".into(), quarry, why: "lost" };
-        let (text, failed) = Brain::hunt_event(&pianist.groups[1], &event, 200, false).expect("the end");
+        assert!(Brain::hunt_event(&pianist.groups[1], &other, 200, false, parties.first(), &ours, &enemies).is_none());
+        // The engine says the quarry is dead, and two more of the party stand in sight: the answer takes the one
+        // nearer its soldiers and does not end (the slots design §5.2, 1). The same with the quarry out of sight.
+        let event = |why: &'static str| micro::HuntEvent { group: "group_answer_party_12".into(), quarry, why };
+        for why in ["dead", "lost"] {
+            let Some(HuntTurn::Next { quarry: next, text, .. }) = Brain::hunt_event(&pianist.groups[1], &event(why), 200, false, parties.first(), &ours, &enemies) else { panic!("the party's next unit") };
+            assert!(next != quarry && parties[0].ids.contains(&next), "{next:?}");
+            let centre = centre_of(&pianist.groups[1].units(&ours)).unwrap();
+            let far = |id: UnitId| enemies.iter().find(|e| e.id == id).unwrap().pos.dist2d(centre);
+            assert!(parties[0].ids.iter().filter(|id| **id != quarry).all(|id| far(next) <= far(*id)), "the nearest to its soldiers");
+            assert!(text.starts_with("the answer to party_12: its quarry is") && text.contains("2 more of the party in sight"), "{text}");
+        }
+        // The party has run the leash: the lane's leash ends the answer whatever else of the party is in sight.
+        let Some(HuntTurn::End { text, failed }) = Brain::hunt_event(&pianist.groups[1], &event("leash"), 200, false, parties.first(), &ours, &enemies) else { panic!("the leash ends it") };
+        assert!(text.contains("ended after") && failed.is_some(), "{text}");
+        // The quarry dead and the rest of the party out of the leash from where the hunt began: the end, with a kill.
+        let away: Vec<EnemyUnit> = enemies.iter().map(|e| EnemyUnit { pos: Vec3 { x: e.pos.x + 2.0 * HUNT_LEASH, ..e.pos }, ..e.clone() }).collect();
+        let Some(HuntTurn::End { text, failed }) = Brain::hunt_event(&pianist.groups[1], &event("dead"), 200, false, parties.first(), &ours, &away) else { panic!("nothing in the leash to take") };
+        assert!(text.contains("the quarry is dead, and the rest of party_12 stands more than 900") && failed.is_none(), "{text}");
+        // The quarry lost and nothing else of the party in sight: the answer ends, the failure is returned, and the
+        // next deal has all fourteen with the lender again.
+        let alone: Vec<EnemyUnit> = enemies.iter().filter(|e| e.id == quarry).cloned().collect();
+        let Some(HuntTurn::End { text, failed }) = Brain::hunt_event(&pianist.groups[1], &event("lost"), 200, false, parties.first(), &ours, &alone) else { panic!("the end") };
         assert!(text.starts_with("the answer to party_12 ended after") && text.contains("go back"), "{text}");
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));
         pianist.end_answer("answer_party_12");
         brain.pianist = Some(pianist);
         brain.keep_groups(&tick(210, &ours, &enemies), &kit, &mut commands);
-        let pianist = brain.pianist.as_ref().unwrap();
+        let mut pianist = brain.pianist.take().unwrap();
         assert_eq!((pianist.groups.len(), pianist.groups[0].members.len()), (1, 14));
+        // The answer's own leash (§5.2, 1): an answer whose quarry is seen more than the leash from where its first
+        // quarry stood is ended by the hands, whichever unit of the party the lane's hunt is on by then.
+        Brain::lend(&mut pianist, 0, 3, &parties[0], &ours, &enemies, &speed, 240, &mut commands).expect("a lend");
+        brain.pianist = Some(pianist);
+        brain.keep_groups(&tick(270, &ours, &enemies), &kit, &mut commands);
+        assert_eq!(brain.pianist.as_ref().unwrap().groups.len(), 2, "inside the leash the answer stands");
+        brain.keep_groups(&tick(300, &ours, &away), &kit, &mut commands);
+        let pianist = brain.pianist.as_ref().unwrap();
+        assert_eq!(pianist.groups.len(), 1, "past it the answer is ended");
+        assert!(pianist.hunts_failed.iter().any(|(party, _, why)| party == "party_12" && why.contains("ran 900")), "{:?}", pianist.hunts_failed);
     }
 
     /// A soldier far from its group's place is coming to it, on one plain order to the place that is not sent again

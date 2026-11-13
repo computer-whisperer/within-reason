@@ -411,19 +411,27 @@ are, the same text the hands read, word for word:
 
 Beside those rules, the mechanics they do not say. A group that outweighs a party in sight four times over is offered
 no whole-group attack on it, only sends of one, two, four or eight of its soldiers, the soonest to the party;
-the whole-group attack comes back only when your packet forbids every size, read clearly. The soldiers sent are lent
-to the answer to that party: one answer a party, whoever lent to it, hunting its quarry by id until the quarry dies,
-is out of sight six seconds, or the chase has run 900 from where it began. The answer is asked while it hunts (it
+the whole-group attack comes back only when your packet forbids every size, read clearly. A send is never more than
+half of its group: above half it is the group's own attack. A group that is attacking a party is offered no send at
+that party (every soldier of it is on the party already), unless it outweighs it four times. The soldiers sent are
+lent to the answer to that party: one answer a party, whoever lent to it. The answer hunts the party, one unit of it
+at a time by id, each soldier at its own speed: when that unit dies or is lost it takes the next nearest in sight,
+and it ends when nothing of the party is left in sight to take, or the party has run 900 from where it stood when the
+answer began. The answer is asked while it hunts (it
 keeps on or withdraws), its entry's `chase` line says what the chase is running into (a turret's reach ahead on the
 quarry's line, a party beside it that is not its quarry), and when it ends its soldiers take the open slots they
 reach soonest, usually the ones they left. It is never a group of yours: you cannot name it, and nothing of it needs
 an order to come back. A raider at one of our extractors puts the ladder on the menu of every group with soldiers
 near it, those still walking to a group among them, so several groups can lend to one answer; the send's words say
-how many are already answering it. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
+how many are already answering it, and what the group's own fight keeps when the group is in one ("keeps its course:
+against party_6 (8 armflash) an even fight (with all 9: we outweigh it)"). A whole group attacking a party walks as
+one formation, at the pace of its slowest, toward where the party is now: against a faster party that has passed it,
+that is a chase from behind. A walk or an advance to a place says when a party is heading for our extractor there:
+the party, how soon it is there at its pace, and whether the group gets there first. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
 a time if that is how they come: nothing holds one back, and a group that is being fed to him is yours and your
 hands' to pull back or to shrink. Your packet's levers here are who stands where (a station at a passage, a home
 guard: small groups you declare with `groups`, which hold where you made them and refill from the plants), a size
-forbidden for a group ("group_E sends no more than two after a raider"), and which groups never lend for a raider.their course for a raider.
+forbidden for a group ("group_E sends no more than two after a raider"), and which groups never lend for a raider.
 
 Holding ground and attacking. A raiding party, three or more of his, or anything killing a factory or shooting
 the commander, is an army in our base, and the packet says before it comes which body turns for it: "a party of

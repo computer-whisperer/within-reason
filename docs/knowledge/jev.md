@@ -2574,7 +2574,32 @@ and `12:44 13:26 group_A`, the picks' lines in `jev-0.jsonl` at f=10872 and f=23
 **Would be wrong if.** A game against a person in which no lend was taken from a group in a fight still had its
 body walking away from, or through, a party in contact; or the two moments read the same on a build where the
 lent soldiers come back to the task the group had when they left.
-**Used by.** none yet (open, §12 of the design).
+**Used by.** H-HANDS-ANSWER as amended 2026-11-13 (the design's §5.2: the answer hunts the party; a lend is never
+more than half of its lender and not at the party the lender attacks; its line says what the lender's fight
+keeps). Unjudged in a game: the two moments have not been played again on that build.
+
+### K-jev-the-advance-that-stood-between-read-as-a-walk-back
+**Claim.** When a raid is on its way past an army to something of ours, the move that puts the army between them
+is on the menu as a walk or an advance to that place, and nothing in its line says the raid is heading there: it
+reads as a walk back toward our side. The move Jev rates highest is the attack on the party, which aims at where
+the party is and, for a whole group, walks at the formation's pace: a chase from behind once the party has passed.
+**Status.** observed once, 2026-11-12, in the second 1v1 game against [gecko]u6bkep (`1794538778-human`, 7:30 to
+8:13; the user: "we failed to stop the enemy blitz detachment from bypassing our units and burning our solars").
+Six Blitzes on the north road to our base at 7:30, the army of nine holding at spot_18 about 650 south of the
+road; the first of nine solars died at 7:55. `group_A.fight_to_home` was asked at 7:32 to 7:38 and rated 0.16 to
+0.29, its line "advances to home (near, about 20 s of walking; it lies 909 further from his base than the group
+stands now: a walk back toward our side), fighting on the way; at its end: our start: the lab and the base stand
+here"; `attack_party_15` 0.56 to 0.69, `fight_to_spot_11` and `fight_to_spot_16` (spots the packet named for
+meeting a party) 0.50 to 0.72. The army's order changed five times from 7:33 to 7:38 and was the attack from then:
+the party passed about 400 north of it at 7:44 to 7:46 and was 700 ahead at 7:55. The packet's "no chasing" of
+6:35 had every lend at the party marked forbidden (0.83 to 0.92). The home guard of three stood on its hold, the
+raiders 500 to 670 from it from 8:07 (not looked into).
+**Evidence.** `run/hands_window.py run/matches/1794538778-human/00 7:30 8:20 group_A group_home`; the gate's
+questions and answers in `jev-0.jsonl` at 7:31 to 7:38.
+**Would be wrong if.** With the line saying the party is heading there and who is there first, the advance is
+rated no higher in the same moment asked again; or the army ordered home at 7:30 would have arrived after the
+raiders anyway (it was about 1,150 from home, 23 to 27 s at the pace it kept, against their 25 s).
+**Used by.** H-HANDS-HEADED-FOR (2026-11-13). Unjudged in a game and not asked again offline.
 
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
