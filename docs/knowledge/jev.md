@@ -2596,10 +2596,14 @@ the party passed about 400 north of it at 7:44 to 7:46 and was 700 ahead at 7:55
 raiders 500 to 670 from it from 8:07 (not looked into).
 **Evidence.** `run/hands_window.py run/matches/1794538778-human/00 7:30 8:20 group_A group_home`; the gate's
 questions and answers in `jev-0.jsonl` at 7:31 to 7:38.
+The party's own words named its next extractor: spot_11 at 7:31, spot_6 at 7:36 and 7:38 ("heading east: our next
+extractor on its way is at spot_6"), each the one it reached first; our base lay behind them on the same road.
 **Would be wrong if.** With the line saying the party is heading there and who is there first, the advance is
 rated no higher in the same moment asked again; or the army ordered home at 7:30 would have arrived after the
 raiders anyway (it was about 1,150 from home, 23 to 27 s at the pace it kept, against their 25 s).
-**Used by.** H-HANDS-HEADED-FOR (2026-11-13). Unjudged in a game and not asked again offline.
+**Used by.** H-HANDS-HEADED-FOR (2026-11-13), which says it of every place with an extractor of ours on the party's
+way within a minute, since the next alone would have named spot_11 and spot_6 here and never the base. Unjudged in
+a game and not asked again offline.
 
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has

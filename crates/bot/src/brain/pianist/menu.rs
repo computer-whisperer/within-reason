@@ -75,13 +75,15 @@ const WHOLE_GROUP_OVER: f32 = 4.0;
 const ROVE_READ: f64 = 0.5;
 /// A place this much further from his base than the group stands is said to lie back toward our side.
 const BACK: f32 = 400.0;
-/// The sizes a detachment comes in, never more than half of its group (the slots design §5.2, 2).
+/// The sizes a detachment comes in; a group never has more than half of its soldiers out on answers (the slots design §5.2, 2).
 const LADDER: [usize; 4] = [1, 2, 4, 8];
 /// A party moving slower than this stands still.
 const STANDING: f32 = 0.3;
 /// A group and a party heading for one place are said to get there about together when their times are within this
 /// many seconds (the times are straight lines over a pace).
 const HEADED_TIE: f32 = 3.0;
+/// A place is said to be on a party's way when the party is no more than this many seconds from our extractor there.
+const HEADED_AHEAD: f32 = 60.0;
 /// His armed buildings this far ahead of a moving party, on its line, are what a chase of it runs into.
 const CHASE_TURRET_AHEAD: f32 = 1500.0;
 
@@ -221,7 +223,8 @@ pub(crate) struct Lend {
     pub quarry: Option<f32>,
     /// The move on a world's line, where the answer's clause says the rest: "4 armflash of group_A (its soonest to
     /// it) join the answer to party_5 (1 armpw, at spot_50, heading south); group_A keeps its course with its
-    /// other 5". The party in the rung's own words: without its heading a first lend lost a tenth of its picks
+    /// other 5", and with the lender in a fight of its own what that fight keeps: ": against party_6 (8 armflash)
+    /// an even fight (with all 9: we outweigh it)" (the slots design §5.2, 4). The party in the rung's own words: without its heading a first lend lost a tenth of its picks
     /// (`docs/studies/2026-11-11-answer-pricing.md`).
     pub short: String,
 }
@@ -546,8 +549,8 @@ struct Scene<'a> {
     his: Vec<(&'a Place, String)>,
     /// Each party as a move's words say it, and its slowest identified member's speed.
     parties: Vec<(&'a Party, String, Option<f32>)>,
-    /// The parties heading for an extractor of ours that stands at a named place: the place, the party, and the
-    /// seconds it is from the extractor at its pace (`party_headed_for`).
+    /// The named places with an extractor of ours on a moving party's way: the place, the party, and the seconds
+    /// the party is from that extractor at its pace (`party_headed_for`).
     headed: Vec<(String, &'a Party, f32)>,
     /// The parties every member of which flies: their moves carry the `Air` reading and the forbidden question.
     air_parties: BTreeSet<String>,
@@ -790,34 +793,43 @@ impl Brain {
         }
     }
 
-    /// The extractor of ours next on a party's way: the nearest along its heading (`(ux, uz)`, a unit vector) inside
-    /// the cone about it, with how far along the heading it stands.
-    fn next_extractor<'a>(party: &Party, (ux, uz): (f32, f32), own: &'a [OwnUnit], kit: &Kit) -> Option<(&'a OwnUnit, f32)> {
-        own.iter()
-            .filter(|u| !u.being_built && kit.is_extractor(u.def))
-            .filter_map(|x| {
-                let (dx, dz) = (x.pos.x - party.at.x, x.pos.z - party.at.z);
-                let along = dx * ux + dz * uz;
-                let across = (dx * uz - dz * ux).abs();
-                (along > 200.0 && across < along * 0.6 + 200.0).then_some((x, along))
-            })
-            .min_by(|a, b| a.1.total_cmp(&b.1))
+    /// The extractors of ours on a party's way: those along its heading (`(ux, uz)`, a unit vector) inside the cone
+    /// about it, each with how far along the heading it stands.
+    fn extractors_ahead<'a>(party: &Party, (ux, uz): (f32, f32), own: &'a [OwnUnit], kit: &'a Kit) -> impl Iterator<Item = (&'a OwnUnit, f32)> {
+        let at = party.at;
+        own.iter().filter(|u| !u.being_built && kit.is_extractor(u.def)).filter_map(move |x| {
+            let (dx, dz) = (x.pos.x - at.x, x.pos.z - at.z);
+            let along = dx * ux + dz * uz;
+            let across = (dx * uz - dz * ux).abs();
+            (along > 200.0 && across < along * 0.6 + 200.0).then_some((x, along))
+        })
     }
 
-    /// The named place a moving party is heading for, when the extractor of ours next on its way stands at one, and
-    /// the seconds it is from that extractor at the pace its members in sight keep now (the slots design §5.2, 5:
-    /// the same extractor its own words name, said on the walk and the advance to that place).
-    fn party_headed_for(&self, party: &Party, picture: &Picture, own: &[OwnUnit], enemies: &[EnemyUnit], kit: &Kit) -> Option<(String, f32)> {
+    /// The named places on a moving party's way: each place where an extractor of ours stands along its heading (the
+    /// cone its own words read "our next extractor on its way" from), with the seconds the party is from that
+    /// extractor at the pace its members in sight keep now, those within `HEADED_AHEAD` (the slots design §5.2, 5).
+    /// Every one of them and not the next alone: the next is the one the party reaches first, and the place a
+    /// slower body can still stand at before it is one or two further on (second game against a person, 7:31 to
+    /// 7:38: the next was spot_11, then spot_6, with our base behind them).
+    fn party_headed_for(&self, party: &Party, picture: &Picture, own: &[OwnUnit], enemies: &[EnemyUnit], kit: &Kit) -> Vec<(String, f32)> {
         let members: Vec<&EnemyUnit> = enemies.iter().filter(|e| party.ids.contains(&e.id)).collect();
         let vel = members.iter().fold(Vec3::default(), |s, e| Vec3 { x: s.x + e.vel.x, y: 0.0, z: s.z + e.vel.z });
         let pace = vel.x.hypot(vel.z);
         if pace < STANDING {
-            return None;
+            return Vec::new();
         }
-        let (x, along) = Self::next_extractor(party, (vel.x / pace, vel.z / pace), own, kit)?;
-        let place = place_of(&picture.places, x.pos)?;
         // The velocities are elmos a frame, summed over the members.
-        Some((place.to_string(), along / (pace / members.len() as f32 * FRAMES_PER_SECOND as f32)))
+        let a_second = pace / members.len() as f32 * FRAMES_PER_SECOND as f32;
+        let mut places: Vec<(String, f32)> = Vec::new();
+        for (x, along) in Self::extractors_ahead(party, (vel.x / pace, vel.z / pace), own, kit) {
+            let seconds = along / a_second;
+            let Some(place) = place_of(&picture.places, x.pos).filter(|_| seconds <= HEADED_AHEAD) else { continue };
+            match places.iter_mut().find(|(name, _)| name == place) {
+                Some((_, soonest)) => *soonest = soonest.min(seconds),
+                None => places.push((place.to_string(), seconds)),
+            }
+        }
+        places
     }
 
     /// A party as a move's words say it: what it is, where, what it is doing to us, where it is heading and which
@@ -832,7 +844,7 @@ impl Brain {
             String::new()
         } else {
             let (ux, uz) = (vel.x / pace, vel.z / pace);
-            let next = Self::next_extractor(party, (ux, uz), own, kit);
+            let next = Self::extractors_ahead(party, (ux, uz), own, kit).min_by(|a, b| a.1.total_cmp(&b.1));
             // His nearest armed building ahead on its line, and where that reach begins: what a chase of it runs
             // into (the user, 2026-10-17: the hands' chase did not withdraw at danger; a detachment following a
             // raider home died under the turret it ran to, sightings-player-1 6:23, predict-player-1 7:09).
@@ -890,7 +902,7 @@ impl Brain {
                 (p, words, speed)
             })
             .collect();
-        let headed: Vec<(String, &Party, f32)> = picture.parties.iter().filter_map(|p| self.party_headed_for(p, picture, own, enemies, kit).map(|(place, seconds)| (place, p, seconds))).collect();
+        let headed: Vec<(String, &Party, f32)> = picture.parties.iter().flat_map(|p| self.party_headed_for(p, picture, own, enemies, kit).into_iter().map(move |(place, seconds)| (place, p, seconds))).collect();
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.under_fire(frame));
         let builders: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)).collect();
@@ -1106,29 +1118,32 @@ impl Brain {
                 way_words(body.at.dist2d(place.at), speed)
             };
             let his = scene.his.iter().any(|(p, _)| p.name == place.name);
-            // Who of his is heading there (the slots design §5.2, 5): the party whose next extractor of ours on its
-            // way stands at this place, how soon it is there, and whether the group is there first. Second game
-            // against a person, 7:30: six Blitzes on the road to our base and the army 650 off the road; "advances to
-            // home ... a walk back toward our side" was rated 0.16 to 0.29 with nothing in it of the raiders heading
+            // Who of his is heading there (the slots design §5.2, 5): the heaviest party with our extractor at this
+            // place on its way (a lone radar contact is on some way nearly every second), how soon it is there, and
+            // whether the group is there first. Second game against a
+            // person, 7:30: six Blitzes on the road to our base and the army 650 off the road; "advances to home
+            // ... a walk back toward our side" was rated 0.16 to 0.29 with nothing in it of the raiders heading
             // there, and the attack picked instead was a chase from behind while nine solars burned.
-            let headed: String = scene
-                .headed
-                .iter()
-                .filter(|(at, ..)| *at == place.name)
-                .map(|(_, p, his_seconds)| {
-                    let ours = body.at.dist2d(place.at) / speed;
-                    let first = if !ours.is_finite() {
-                        String::new()
-                    } else if ours + HEADED_TIE < *his_seconds {
-                        format!(": {name} gets there first")
-                    } else if ours > *his_seconds + HEADED_TIE {
-                        format!(": {name} gets there after it")
-                    } else {
-                        format!(": {name} gets there about when it does")
-                    };
-                    format!("; {} ({}) is heading for our extractor there and is {} from it at its pace{first}", p.name, p.composition, seconds_words(*his_seconds))
-                })
-                .collect();
+            let mut coming: Vec<(&Party, f32)> = scene.headed.iter().filter(|(at, ..)| *at == place.name).map(|(_, p, seconds)| (*p, *seconds)).collect();
+            coming.sort_by(|a, b| b.0.metal.total_cmp(&a.0.metal).then(a.1.total_cmp(&b.1)));
+            let headed = coming.first().map_or(String::new(), |(p, his_seconds)| {
+                let ours = body.at.dist2d(place.at) / speed;
+                let first = if !ours.is_finite() {
+                    String::new()
+                } else if ours + HEADED_TIE < *his_seconds {
+                    format!(": {name} gets there first")
+                } else if ours > *his_seconds + HEADED_TIE {
+                    format!(": {name} gets there after it")
+                } else {
+                    format!(": {name} gets there about when it does")
+                };
+                let more = match coming.len() - 1 {
+                    0 => String::new(),
+                    1 => "; one more party is heading this way".to_string(),
+                    n => format!("; {n} more parties are heading this way"),
+                };
+                format!("; our extractor there is on the way of {} ({}), {} ahead of it at its pace{first}{more}", p.name, p.composition, seconds_words(*his_seconds))
+            });
             push(
                 format!("go_{}", place.name),
                 Order::Go(place.name.clone()),
@@ -1186,13 +1201,16 @@ impl Brain {
         };
         let screen = units.len() - long_reach.len();
         // A lend's soldiers (the slots design §5): the group's armed soldiers, with it or coming to it, that reach
-        // the party soonest; the sizes it comes in, never more than half of the group (§5.2, 2: above half it is the
-        // group's own attack, so the group the pick moves is always its larger part and the lent come back into that
-        // part's course; until 2026-11-13 any size short of the whole, and in the second game against a person eight
-        // of nine and eight of ten went, the two left were walked about and the eight were dealt back into the walk).
+        // the party soonest; the sizes it comes in, never so many that more than half of the group is out on answers
+        // (§5.2, 2: above half it is the group's own attack, so the group the pick moves is always its larger part
+        // and the lent come back into that part's course; until 2026-11-13 any size short of the whole, and in the
+        // second game against a person eight of nine and eight of ten went, the two left were walked about and the
+        // eight were dealt back into the walk). What it has out already counts: slots-smoke-8 lent one of eighteen
+        // at a Tick and topped the answer up to eleven in seconds, each lend under half of what was left.
+        let lent_out: usize = pianist.groups.iter().filter(|g| g.answer.is_some()).map(|g| g.lent.iter().filter(|(lender, _)| *lender == group.name).map(|(_, n)| *n).sum::<usize>().min(g.members.len())).sum();
         let coming: Vec<&OwnUnit> = group.coming.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).collect();
         let armed: Vec<&OwnUnit> = units.iter().chain(&coming).copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
-        let ladder: Vec<usize> = LADDER.into_iter().filter(|n| *n * 2 <= units.len() + coming.len() && *n <= armed.len()).collect();
+        let ladder: Vec<usize> = LADDER.into_iter().filter(|n| (*n + lent_out) * 2 <= units.len() + coming.len() + lent_out && *n <= armed.len()).collect();
         // The instructions forbid every detachment this group could send, by the decode's clear reading
         // (`decode::ON`): the whole-group attack is back on the menu beside them (the impedance tally, 2026-10-16:
         // "one body that never splits", "the whole group attacks it, never a detachment", in three games, against
@@ -2449,6 +2467,7 @@ pub(super) mod tests {
         parties.push(Party { name: "party_13".into(), ids: vec![UnitId(20)], at: at(1400.0, 2600.0), metal: 115.0, composition: "1 armflash".into(), ..parties[0].clone() });
         let mut own = ours.clone();
         own.push(own_unit(902, 3, at(3000.0, 2600.0)));
+        own.push(own_unit(903, 3, at(4400.0, 2600.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
         let id = UnitDefId(1);
@@ -2456,8 +2475,8 @@ pub(super) mod tests {
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
         let picture = Picture {
             rules: String::new(),
-            state: serde_json::json!({ "instructions": "group_A (Blitzes): holds its ground; against a party that outweighs it, it walks to spot_30.", "actors": { "group_A": { "at": "spot_40 (E3)" } }, "places": {} }),
-            places: vec![place("home", 500.0, 5000.0, None), place("spot_30", 3000.0, 2600.0, Some(30))],
+            state: serde_json::json!({ "instructions": "group_A (Blitzes): holds its ground; against a party that outweighs it, it walks to spot_30 or spot_33.", "actors": { "group_A": { "at": "spot_40 (E3)" } }, "places": {} }),
+            places: vec![place("home", 500.0, 5000.0, None), place("spot_30", 3000.0, 2600.0, Some(30)), place("spot_33", 4400.0, 2600.0, Some(33))],
             parties: parties.clone(),
         };
         let attack_on = |party: &Party| GroupTask::Engage { party: party.ids.clone(), at: party.at, sent: party.at, last_seen: 300, target: None, searched: false };
@@ -2484,14 +2503,31 @@ pub(super) mod tests {
         // stay, the way off a whole body's chase of one unit.
         let menu = menu_under(attack_on(&parties[1]));
         assert!(keys(&menu).contains(&"send_1_party_13".to_string()), "{:?}", keys(&menu));
-        // The walk and the advance to spot_30 say the Blitz is heading for our extractor there, 1,600 away at 60 a
-        // second, and that the group, 1,400 away at a Blitz's speed, is there first.
+        // The walk and the advance to spot_30 say our extractor there is on the Blitz's way, 1,600 ahead of it at 60 a
+        // second, and that the group, 1,400 away at a Blitz's speed, is there first. So do those to spot_33, the
+        // extractor behind that one on its way: every one within the minute, not the next alone.
         let menu = menu_under(GroupTask::idle_hold(Vec3::default()));
-        for key in ["go_spot_30", "fight_to_spot_30"] {
-            let words = &menu.moves.iter().find(|m| m.key == key).unwrap_or_else(|| panic!("{key}: {:?}", keys(&menu))).words;
-            assert!(words.contains("; party_13 (1 armflash) is heading for our extractor there and is about 30 s from it at its pace: group_A gets there first"), "{words}");
+        for (place, ahead) in [("spot_30", "about 30 s"), ("spot_33", "about 50 s")] {
+            for key in [format!("go_{place}"), format!("fight_to_{place}")] {
+                let words = &menu.moves.iter().find(|m| m.key == key).unwrap_or_else(|| panic!("{key}: {:?}", keys(&menu))).words;
+                assert!(words.contains(&format!("; our extractor there is on the way of party_13 (1 armflash), {ahead} ahead of it at its pace: group_A gets there first")), "{words}");
+            }
         }
-        assert!(!menu.moves.iter().any(|m| m.key != "go_spot_30" && m.key != "fight_to_spot_30" && m.words.contains("is heading for our extractor there")), "said of that place alone");
+        assert!(!menu.moves.iter().any(|m| !m.key.ends_with("spot_30") && !m.key.ends_with("spot_33") && m.words.contains("our extractor there is on the way of")), "said of those places alone");
+        // What the group has out already counts: with six of the fourteen out on an answer, one more makes half, and
+        // two would make it more.
+        {
+            let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+            pianist.groups.push(Group::of("A".into(), Domain::Ground, ours.iter().take(8).map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+            let hunt = super::super::groups::Hunt { quarry: UnitId(1), party: "party_12".into(), from: parties[0].at, since: 0, last_seen: 300, at: parties[0].at };
+            let mut answer = Group::of("answer_party_12".into(), Domain::Ground, ours.iter().skip(8).map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
+            answer.answer = Some("party_12".into());
+            answer.lent = vec![("A".into(), 6)];
+            pianist.groups.push(answer);
+            brain.pianist = Some(pianist);
+            let menu = brain.menus(&tick, &kit, &picture).into_iter().find(|m| m.name == "group_A").expect("the group's menu");
+            assert!(keys(&menu).contains(&"send_1_party_13".to_string()) && !keys(&menu).iter().any(|k| k.starts_with("send_2_") || k.starts_with("send_4_")), "{:?}", keys(&menu));
+        }
     }
 
     #[test]

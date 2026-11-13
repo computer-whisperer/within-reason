@@ -714,15 +714,14 @@ impl Brain {
                     }
                 }
                 // The hunt's book: the quarry's last sighting for the words; the chase and its ends are the engine's
-                // (H-MICRO-HUNT). Every hunter dead ends it, and the answer with it (below).
+                // (H-MICRO-HUNT). An answer with every hunter dead has no body and never comes here: it is ended
+                // below.
                 GroupTask::Hunt(hunt) => {
                     if let Some(q) = enemies.iter().find(|e| e.id == hunt.quarry) {
                         hunt.last_seen = frame;
                         hunt.at = q.pos;
                     }
-                    if units.is_empty() {
-                        hunt_ends.push(format!("the answer to {} ended after {} s: every hunter dead", hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND));
-                    } else if hunt.at.dist2d(hunt.from) > HUNT_LEASH {
+                    if hunt.at.dist2d(hunt.from) > HUNT_LEASH {
                         // The answer's own bound (the slots design §5.2, 1): the lane's leash is from where each
                         // quarry stood, and an answer that takes the party's next unit is still let go where the
                         // party has run the leash from where the first one stood.
@@ -773,10 +772,22 @@ impl Brain {
             pianist.hunts_failed.retain(|(_, f, _)| frame - f < 3 * 60 * FRAMES_PER_SECOND);
             pianist.hunts_failed.push((party, frame, why));
         }
-        // An answer with nobody left is over.
-        let over: Vec<String> = pianist.groups.iter().filter(|g| g.answer.is_some() && g.members.is_empty()).map(|g| g.name.clone()).collect();
-        for name in over {
+        // An answer with nobody left is over, and said: every hunter is dead. (Until 2026-11-13 the words were pushed
+        // from the hunt's own arm above, which a group with no body never reaches, so such an answer ended with no
+        // line in the log: two of slots-smoke-8's 22.)
+        let over: Vec<(String, Option<(String, i32)>)> = pianist
+            .groups
+            .iter()
+            .filter(|g| g.answer.is_some() && g.members.is_empty())
+            .map(|g| (g.name.clone(), if let GroupTask::Hunt(h) = &g.task { Some((h.party.clone(), h.since)) } else { None }))
+            .collect();
+        for (name, hunt) in over {
             pianist.end_answer(&name);
+            if let Some((party, since)) = hunt {
+                let text = format!("the answer to {party} ended after {} s: every hunter dead", (frame - since) / FRAMES_PER_SECOND);
+                pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+                pianist.hunt_events.push(text);
+            }
         }
         for text in route_news {
             pianist.note(frame, text.clone());

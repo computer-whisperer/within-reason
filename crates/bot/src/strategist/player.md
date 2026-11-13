@@ -411,8 +411,8 @@ are, the same text the hands read, word for word:
 
 Beside those rules, the mechanics they do not say. A group that outweighs a party in sight four times over is offered
 no whole-group attack on it, only sends of one, two, four or eight of its soldiers, the soonest to the party;
-the whole-group attack comes back only when your packet forbids every size, read clearly. A send is never more than
-half of its group: above half it is the group's own attack. A group that is attacking a party is offered no send at
+the whole-group attack comes back only when your packet forbids every size, read clearly. A group never has more
+than half of its soldiers out on answers, what it sent earlier counted: above half it is the group's own attack. A group that is attacking a party is offered no send at
 that party (every soldier of it is on the party already), unless it outweighs it four times. The soldiers sent are
 lent to the answer to that party: one answer a party, whoever lent to it. The answer hunts the party, one unit of it
 at a time by id, each soldier at its own speed: when that unit dies or is lost it takes the next nearest in sight,
@@ -426,8 +426,9 @@ near it, those still walking to a group among them, so several groups can lend t
 how many are already answering it, and what the group's own fight keeps when the group is in one ("keeps its course:
 against party_6 (8 armflash) an even fight (with all 9: we outweigh it)"). A whole group attacking a party walks as
 one formation, at the pace of its slowest, toward where the party is now: against a faster party that has passed it,
-that is a chase from behind. A walk or an advance to a place says when a party is heading for our extractor there:
-the party, how soon it is there at its pace, and whether the group gets there first. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
+that is a chase from behind. A walk or an advance to a place says when our extractor there is on a party's way:
+the party, how many seconds ahead of it the extractor is at its pace, and whether the group gets there first; it is
+said of every such place within a minute of the party, so the one the group can still reach first is among them. A group in a fight gets every soldier dealt to it as that soldier arrives, one at
 a time if that is how they come: nothing holds one back, and a group that is being fed to him is yours and your
 hands' to pull back or to shrink. Your packet's levers here are who stands where (a station at a passage, a home
 guard: small groups you declare with `groups`, which hold where you made them and refill from the plants), a size

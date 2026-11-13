@@ -311,10 +311,12 @@ What changes:
    nearest to its soldiers, as a new hunt. It ends when nothing of the party is left in sight to take, when the
    party has run the leash (`HUNT_LEASH`, 900, from where the first quarry stood: the lane's own leash is from
    where each quarry stood), by its withdraw, or with every hunter dead.
-2. **A lend is never more than half of its lender** (the soldiers with it and coming to it). Above half it is the
-   group's own stance, the whole-group attack. So the group is always its larger part: what the pick moves is the
-   body, and the lent come back into the body's course. (Second game: eight of nine and eight of ten lent, the two
-   left steered about, the eight dealt back into "walk to home" and "walk to C1".)
+2. **A group never has more than half of its soldiers out on answers.** A lend is offered only in sizes that keep
+   it so, counting the soldiers with the group, those coming to it and those it has out already. Above half it is
+   the group's own stance, the whole-group attack. So the group is always its larger part: what the pick moves is
+   the body, and the lent come back into the body's course. (Second game: eight of nine and eight of ten lent, the
+   two left steered about, the eight dealt back into "walk to home" and "walk to C1". The first build of this rule
+   capped each lend alone, and slots-smoke-8 lent one of eighteen at a Tick and topped the answer up to eleven.)
 3. **No lend at the party its lender is attacking.** A group whose task is the attack on a party has every soldier
    on it already. (9 and 4 of the two games' answers.)
 4. **A lend's line says what the lender's own fight loses.** When the lender's course is aimed at a party, or a
@@ -322,11 +324,16 @@ What changes:
    the odds of all of it ("group_A keeps its course with its other 5: against party_6 (8 armflash) an even fight
    (with all 9: we outweigh it)"). §5 asked for "what each lender gives up"; as built the line said how many stay.
 5. **A walk's or an advance's line says who is heading there.** A party's words already say "our next extractor
-   on its way is at spot_N". The walk and the advance to that place now say it from the place's side: the party,
-   how many seconds it is from the extractor at its pace, and whether the group is there before it. (Second game,
-   7:30: six Blitzes on the north road to our base, the army of nine 650 south of the road. "Advance to home" was
-   on the menu at 0.16 to 0.29, its line "a walk back toward our side", nothing in it of the raiders heading
-   there; the attack at 0.56 to 0.69 was a chase from behind, 700 behind when the first of nine solars died.)
+   on its way is at spot_N". The walk and the advance to a place now say it from the place's side: "our extractor
+   there is on the way of party_15 (6 armflash), about 20 s ahead of it at its pace: group_A gets there first" (or
+   after it, or about when it does), of the heaviest party heading that way. Said of every place with an extractor
+   of ours on the party's way within a minute at its pace, not of the next alone: the next is the one the party reaches first, and the place a slower
+   body can still stand at before it is one or two further on. (Second game, 7:30: six Blitzes on the north road
+   to our base, the army of nine 650 south of the road. "Advance to home" was on the menu at 0.16 to 0.29, its
+   line "a walk back toward our side", nothing in it of the raiders heading there; the attack at 0.56 to 0.69 was
+   a chase from behind, 700 behind when the first of nine solars died. The party's next extractor read spot_11 at
+   7:31 and spot_6 at 7:36, our base behind them.) It is the extractors' line: a base with no extractor of ours at
+   a named place on the way is not said.
 6. **Designed, not built: a detachment ahead of a party.** The detachment's fight-at: N of the lender's soonest
    to the place the party is heading for advance to it and stand there, as the answer to that party, one answer a
    party as now, ended when the party is dead or out of sight or by its withdraw. Never a detachment to a place on
