@@ -15,6 +15,12 @@ def clock(frame):
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
+def is_army_def(d):
+    """A soldier as the report counts them, by its def row: a mobile armed unit (the `army` class, hovers, ships and
+    aircraft), not a turret and not the commander."""
+    return isinstance(d, dict) and d.get("class") in ("army", "hover", "ship", "aircraft")
+
+
 def first(match_dir, prefix):
     name = next((f for f in sorted(os.listdir(match_dir)) if f.startswith(prefix) and (f.endswith(".jsonl") or f.endswith(".jsonl.zst"))), None)
     return os.path.join(match_dir, name) if name else None
@@ -123,7 +129,7 @@ class Match:
         turrets into the truth's army for floor.py's known% until 2026-10-17 (predict-player-1: a 58% error read
         against an 8% one)."""
         d = self.def_by_name(name)
-        return d is not None and d.get("class") in ("army", "hover", "ship", "aircraft")
+        return is_army_def(d)
 
     def metal_of(self, name):
         return (self.def_by_name(name) or {}).get("metal", 0)

@@ -551,6 +551,47 @@ reinforcements reached an army in his base.** slots-apex-v0507-comet-opus-3 on 7
 - A soldier of an answer is loose to the lane for the second between its answer's end and the next deal, and
   flees in it if a threat is near (17 fires in slots-smoke-7, 5 here). Older than this build; left.
 
+**Two games against a person (2026-11-12 night; the user: "The games were losses, but the unit movement was better
+than I had seen before. It just wasn't good enough to win").** `1794537762-human` (Cortex, the record ends 14:48)
+and `1794538778-human` (Armada, 16:34), both 1v1 against [gecko]u6bkep on Comet Catcher in real time on dee02caf,
+read on his word ("take a look for any issues showing up with the new system"). Nothing was changed. Readers:
+`run/slots_game_read.py`, `run/slots_arrivals.py`, `run/slots_answers.py` (new), `run/hands_window.py`.
+
+- **The deal held.** Every new soldier was with a group, none after more than 120 s (medians of 0 to 23 s by the
+  two minutes it was made in); 85 % and 91 % of soldier-seconds with a group; none and one died coming or with no
+  slot; no `groups` call refused (6 and 5 calls); H-MICRO-FLEE fired 1 and 19 times. The armies were small (35 and
+  46 soldiers made) and fought in our half, so the road of comers was short.
+- **An answer carved from a body in a fight returns it into the shell's course**
+  (K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course). A person raids with five to
+  twelve Blitzes and comes with his army, and the lend rungs are offered at them like at a lone Tick. Of 21 and 23
+  answers, 14 and 9 were lent by a group that was itself attacking (9 and 4 at the very party it was attacking; of
+  the third Apex game's 17, none: its lenders held); 6 and 15 lasted three seconds or less (1); 8 and 13 were
+  withdrawn (1). The answer is the lane's hunt of one unit: it ended on "the quarry is dead" with the rest of the
+  party within 900 one and three times. While most of a group is lent the group is the two or so left, the pick
+  goes on choosing that shell's course, and the soldiers come back into it. Second game, 6:02: eight of the nine
+  attacking eight Blitzes were lent at those Blitzes; the two left were sent to spot_18 and then home; the hunted
+  Blitz died at 6:07 and the eight came back to "walk to home" with eight Blitzes 250 away (the pick attacked
+  again a second later; the player was woken on it). 12:59, the fight that decided the game: eight of the ten
+  attacking at E2 were lent at his arriving army; at 13:03 one world of six (0.19) walked the shell to C1, on the
+  road the player's packet named for the push, and withdrew the answer; the eight walked west "without stopping
+  to fight" for seven seconds with twelve to fifteen of his within 150 of them, nine soldiers to seven, the gate
+  asking for a change at 0.71 falling to 0.47 and no rung over 0.39 (attack, "it outweighs us"; walk home 0.10
+  under "never walk away while his units are in reach"); then four more lends of one to four at "party_70", by
+  then one Blitz, his army beside them under another name.
+- **A walk beside an enemy.** Eight of nine walks played for a group in the first game and nine of fourteen in
+  the second had a party within 800 of the group (one of four against Apex); a walk does not stop to fight. Second
+  game 9:21: "advance to spot_18", and two seconds later "walk to G1" at 0.31, walked for nineteen seconds with
+  eleven and twelve Blitzes closing, eleven soldiers to eight. First game 12:41 to 12:43: attack, walk to spot_8, lend two, a
+  second apart. A third of a group's plays came within three seconds of its play before (31 %, 39 %; 27 % against
+  Apex): the draw each second of §12's open points, not new.
+- **The lend's line does not say what the lender's own fight loses.** 5:59 of the second game: four of nine taken
+  off an attack on eight Blitzes for one radar contact, three worlds at 0.34, 0.38 and 0.28; the line read
+  "group_A keeps its course with its other 6".
+- **Not the slots.** The player's words reach the hands 14 to 15 s of game after it is woken in real time (8 s at
+  `--think-cap 7`), and his raids take about twenty: the 11:14 order to meet the raid at G3 was read at 11:30,
+  the raiders gone. `instruct` refused a call whose arguments came as a string of JSON (first game, 12:37), and the
+  player waited for its next turn. 27 and 32 extractors lost to raids (`run/raid_ledger.py`; 7 against Apex).
+
 ## 12. The build's state (for whoever picks it up)
 
 **Done and committed (2026-11-11).**
@@ -583,11 +624,15 @@ reinforcements reached an army in his base.** slots-apex-v0507-comet-opus-3 on 7
   and who died on the way. The user: "We may decide to do something more complicated later": a comer taking its
   body's way, or gathering, is not built.)
 - The Distilled and Territory bots do not use the deal.
+- **Open after the two games against a person (§11), for the user's word; nothing built.** A lend is offered at
+  the party its lender is attacking and at an army; the answer is a hunt of one unit; a group most of whose
+  soldiers are lent is still asked and moved as the few left, and the lent come back into that course; a lend's
+  line does not price what the lender's own fight loses; a walk beside an enemy does not fight.
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its
 director still pickets by its own rule), rove with a rover dealt in and out, and the hands' new words replayed to
 Jev over recorded gates. Run since (stage 6, §11): seven smokes of the pianist alone, one WRDistilled game and three
-flagship games, all won; no lobby game, no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
+flagship games, all won; two 1v1 games against a person, both lost (§11); no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
 game's picks (§5.1); the build with them has two smokes and the second flagship game behind it.
 
 ## 13. Not in this design

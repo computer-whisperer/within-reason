@@ -4,30 +4,21 @@ was made; and how its coming ended.
 
 usage: run/slots_arrivals.py run/matches/<batch>/<NN> [...]
 """
-import bisect, collections, json, os, statistics, subprocess, sys
+import collections, json, os, statistics, sys
 
-ARMY = {"armfav", "armflash", "armstump", "armsam", "armjanus", "armart", "armpincer", "armbull", "armlatnk", "armmart", "armcroc", "armmanni", "armyork", "armseer", "armmerl", "armpw", "armrock", "armham", "armwar", "armjeth"}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from match_read import first as first_file, is_army_def, rows as read_rows  # noqa: E402
 
 
 def read(d):
-    path = d + "/jev-0.jsonl"
-    text = open(path).read() if os.path.exists(path) else subprocess.run(["zstd", "-dc", path + ".zst"], capture_output=True).stdout.decode()
     first = {}
-    spells = collections.defaultdict(list)   # unit -> list of [start, end] frames outside every group
-    inside = {}
-    frames = []
-    for line in text.splitlines():
-        try:
-            r = json.loads(line)
-        except Exception:
-            continue
+    for r in read_rows(first_file(d, "jev-")):
         if r.get("t") != "call" or not r.get("groups"):
             continue
-        frames.append(r["f"])
         for g in r["groups"]:
             for u in g["members"]:
                 first.setdefault(u, r["f"])
-    defs, ud, born, died, end = None, {}, {}, {}, 0
+    defs, soldiers, born, died, end = None, set(), {}, {}, 0
     for line in open(d + "/record-0.jsonl"):
         r = json.loads(line)
         if "unit_defs" in r:
@@ -35,14 +26,14 @@ def read(d):
         end = max(end, r.get("f", 0))
         if r.get("t") == "ev":
             if r.get("k") == "finished":
-                dd = defs[r["d"]]
-                ud[r["u"]] = dd if isinstance(dd, str) else dd.get("name")
+                if is_army_def(defs[r["d"]]):
+                    soldiers.add(r["u"])
                 born[r["u"]] = r["f"]
             if r.get("k") == "destroyed":
                 died[r["u"]] = r["f"]
     rows = collections.defaultdict(lambda: {"n": 0, "join": [], "died": 0, "open": 0})
     for u, b in born.items():
-        if ud[u] not in ARMY:
+        if u not in soldiers:
             continue
         m = (b // 1800) // 2 * 2
         row = rows[m]

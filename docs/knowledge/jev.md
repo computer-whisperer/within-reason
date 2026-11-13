@@ -2551,6 +2551,31 @@ at the same party, or its first answers to raiders came later or weaker than in 
 extractors lost to raids).
 **Used by.** H-HANDS-ANSWER.
 
+### K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course
+**Claim.** The lend was built for a raider at a group that holds. Against a person, who raids with five to twelve
+Blitzes and comes with his army, the lend rungs are offered at a party the lender is already attacking and at an
+army in contact, and taking one does four things. The body becomes the lane's hunt of one enemy unit, which ends
+when that unit dies, runs 900 or is out of sight six seconds, the rest of the party standing there or not. The
+group is then the two or so soldiers left, and the pick goes on choosing that shell's course. The lent soldiers
+come back into that course, which may be a walk that does not stop to fight. And the cycle is redrawn every
+second, so answers last seconds.
+**Status.** observed 2026-11-12 in two 1v1 games against [gecko]u6bkep on dee02caf (`1794537762-human`,
+`1794538778-human`; `docs/design/2026-11-11-groups-as-slots.md` §11), nothing built on it. Answers 21 and 23 (the
+third Apex game 17): lent by a group that was itself attacking 14 and 9 (0), at the very party it attacked 9 and 4
+(0); lasted three seconds or less 6 and 15 (1); withdrawn 8 and 13 (1); ended "the quarry is dead" 4 and 6 (3),
+with the party still within 900 of the answer 1 and 3 (0). Second game, 6:02 to 6:08: eight of nine lent at the
+eight Blitzes they were attacking, the two left walked to spot_18 and then home, the eight back into "walk to
+home" with eight Blitzes 250 away. 12:59 to 13:17: eight of ten lent at his arriving army, withdrawn at 13:03 in
+the world that walked the shell to C1; seven seconds of walking west beside twelve to fifteen of his, nine
+soldiers to seven, `group_A.change` 0.71 to 0.47 and no rung over 0.39; then four lends of one to four at a party
+that was by then one Blitz. The player's debrief names both moments ("the hands had it walking on toward C1").
+**Evidence.** `run/slots_answers.py` (the ledger and the tally), `run/hands_window.py <match> 5:56 6:14 group_A`
+and `12:44 13:26 group_A`, the picks' lines in `jev-0.jsonl` at f=10872 and f=23490.
+**Would be wrong if.** A game against a person in which no lend was taken from a group in a fight still had its
+body walking away from, or through, a party in contact; or the two moments read the same on a build where the
+lent soldiers come back to the task the group had when they left.
+**Used by.** none yet (open, §12 of the design).
+
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
 a sentence for it, it is listed first, and every other world is written as a difference from it ("As w1, and:").

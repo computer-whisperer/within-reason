@@ -2,15 +2,16 @@
 """A flagship game's numbers for groups as slots (docs/design/2026-11-11-groups-as-slots.md §11), side by side for
 several matches: the groups, the lends and the top-ups among them, the withdrawals, world 1's share of the pick by
 the number of worlds, the gate's answer about a party already answered, the orders to soldiers, the hunt's attack
-orders, the soldier-seconds and the losses by standing (with a group, lent, coming or with no slot), and the player's turns and `groups` calls. Armada's ground soldiers only (the `ARMY` set).
+orders, the soldier-seconds and the losses by standing (with a group, lent, coming or with no slot), and the player's turns and `groups` calls. Soldiers are the report's (`match_read.is_army_def`), of any faction.
 
 usage: run/slots_game_read.py run/matches/<batch>/<NN> [...]
 
 Extractors lost to raids are `run/raid_ledger.py`'s to count (this tool's own count missed kills and was taken out).
 """
-import bisect, collections, json, os, re, statistics, subprocess, sys
+import bisect, collections, json, os, re, statistics, sys
 
-ARMY = {"armfav", "armflash", "armstump", "armsam", "armjanus", "armart", "armpincer", "armbull", "armlatnk", "armmart", "armcroc", "armmanni", "armyork", "armseer", "armmerl", "armpw", "armrock", "armham", "armwar", "armjeth"}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from match_read import first, is_army_def, rows as read_rows  # noqa: E402
 
 
 def clock(f):
@@ -18,22 +19,16 @@ def clock(f):
     return f"{s // 60}:{s % 60:02d}"
 
 
-def jev_rows(d):
-    path = d + "/jev-0.jsonl"
-    text = open(path).read() if os.path.exists(path) else subprocess.run(["zstd", "-dc", path + ".zst"], capture_output=True).stdout.decode()
-    for line in text.splitlines():
-        try:
-            yield json.loads(line)
-        except Exception:
-            pass
-
-
 def read(d):
     out = collections.OrderedDict()
     batch = os.path.dirname(d.rstrip("/"))
-    result = json.loads(open(batch + "/results.jsonl").readline())
-    out["result"] = f"{result['outcome']} {result['game_minutes']:.1f} min, {result['wall_seconds']:.0f} s wall"
-    rows = list(jev_rows(d))
+    # A game with people has no referee and no results file.
+    if os.path.exists(batch + "/results.jsonl"):
+        result = json.loads(open(batch + "/results.jsonl").readline())
+        out["result"] = f"{result['outcome']} {result['game_minutes']:.1f} min, {result['wall_seconds']:.0f} s wall"
+    else:
+        out["result"] = "no results file (a game with people)"
+    rows = list(read_rows(first(d, "jev-")))
     calls = [r for r in rows if r.get("t") == "call"]
     gates = [c for c in calls if isinstance(c.get("questions"), dict) and not any(k.startswith("worlds.") for k in c["questions"])]
     picks = [c for c in calls if isinstance(c.get("questions"), dict) and any(k.startswith("worlds.c") for k in c["questions"])]
@@ -88,7 +83,7 @@ def read(d):
     out["gate: the same, its answer in reach"] = f"{sum(v >= 0.5 for v in reach) / max(1, len(reach)):.0%} of {len(reach)}"
     # the record
     defs = None
-    ud, born, died = {}, {}, {}
+    soldiers, born, died = set(), {}, {}
     orders, hunt_attacks, hunt_secs = collections.Counter(), 0, 0
     by_sec = collections.Counter()
     lost_standing = collections.Counter()
@@ -106,36 +101,37 @@ def read(d):
         mem = members[i] if i >= 0 else {}
         if r.get("t") == "ev":
             if r.get("k") == "finished":
-                dd = defs[r["d"]]
-                ud[r["u"]] = dd if isinstance(dd, str) else dd.get("name")
+                if is_army_def(defs[r["d"]]):
+                    soldiers.add(r["u"])
                 born[r["u"]] = f
             if r.get("k") == "destroyed":
                 died[r["u"]] = f
-                if ud.get(r["u"]) in ARMY:
+                if r["u"] in soldiers:
                     j = bisect.bisect_right(cf, f - 30) - 1
                     before = members[j] if j >= 0 else {}
                     g = before.get(r["u"])
                     lost_standing["answer" if g and g[0].startswith("answer_") else "group" if g else "coming or no slot"] += 1
         if r.get("t") == "s":
             for u in r["own"]:
-                if ud.get(u[0]) in ARMY and not (u[5] & 1):
+                if u[0] in soldiers and not (u[5] & 1):
                     g = mem.get(u[0])
                     secs["lent" if g and g[0].startswith("answer_") else "with a group" if g else "coming or no slot"] += 1
                     if g and g[1] == "hunt":
                         hunt_secs += 1
         if r.get("t") == "cmd":
             for c in r["c"]:
-                if c[0] in ("move", "fight", "attack") and ud.get(c[1]) in ARMY:
+                if c[0] in ("move", "fight", "attack") and c[1] in soldiers:
                     orders[c[0]] += 1
                     by_sec[f // 30] += 1
                     g = mem.get(c[1])
                     if c[0] == "attack" and g and g[1] == "hunt":
                         hunt_attacks += 1
-    um = sum((died.get(u, end) - born[u]) / 1800 for u in born if ud[u] in ARMY)
+    um = sum((died.get(u, end) - born[u]) / 1800 for u in born if u in soldiers)
     total = sum(orders.values())
     worst = max((sum(v for s, v in by_sec.items() if s // 60 == m) for m in range(end // 1800 + 1)), default=0)
     out["orders to soldiers a unit-minute"] = f"{total / max(1, um):.1f} ({dict(orders)})"
     out["worst minute, orders a second"] = f"{worst / 60:.0f}"
+    out["the record ends at"] = f"{end // 1800}:{end // 30 % 60:02d}"
     out["hunt attack orders a hunter-second"] = f"{hunt_attacks / max(1, hunt_secs):.2f} ({hunt_attacks} over {hunt_secs})"
     all_secs = sum(secs.values()) or 1
     out["soldier-seconds: with a group / lent / coming or no slot"] = " / ".join(f"{secs[k] / all_secs:.0%}" for k in ("with a group", "lent", "coming or no slot"))
