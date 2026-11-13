@@ -37,7 +37,9 @@ use transcript::Transcript;
 const DEFAULT_EFFORT: &str = "high";
 
 /// Sessions run on this subscription unless `WITHIN_REASON_CLAUDE_CONFIG_DIR` says otherwise: it has extra usage
-/// (paid credits) disabled, so it can be blocked but never charged (`docs/harness/claude-p.md`).
+/// (paid credits) disabled, so it can be blocked but never charged (`docs/harness/claude-p.md`). The arena and
+/// `run/human_game.sh` always say: they name the account `run/claude_account.py` chooses. This is what a bot
+/// started by hand falls back to.
 const DEFAULT_CLAUDE_CONFIG_DIR: &str = ".claude2";
 
 /// `WITHIN_REASON_PLAYERS=seat` (the arena's `--players seat`): every seat of ours has its own player session, its

@@ -75,7 +75,7 @@ const WHOLE_GROUP_OVER: f32 = 4.0;
 const ROVE_READ: f64 = 0.5;
 /// A place this much further from his base than the group stands is said to lie back toward our side.
 const BACK: f32 = 400.0;
-/// The sizes a detachment comes in; a group never has more than half of its soldiers out on answers (the slots design §5.2, 2).
+/// The sizes a detachment comes in; the soldiers a group has out on answers never outnumber the body that stays (the slots design §5.2, 2).
 const LADDER: [usize; 4] = [1, 2, 4, 8];
 /// A party moving slower than this stands still.
 const STANDING: f32 = 0.3;
@@ -1201,16 +1201,19 @@ impl Brain {
         };
         let screen = units.len() - long_reach.len();
         // A lend's soldiers (the slots design §5): the group's armed soldiers, with it or coming to it, that reach
-        // the party soonest; the sizes it comes in, never so many that more than half of the group is out on answers
-        // (§5.2, 2: above half it is the group's own attack, so the group the pick moves is always its larger part
-        // and the lent come back into that part's course; until 2026-11-13 any size short of the whole, and in the
-        // second game against a person eight of nine and eight of ten went, the two left were walked about and the
-        // eight were dealt back into the walk). What it has out already counts: slots-smoke-8 lent one of eighteen
-        // at a Tick and topped the answer up to eleven in seconds, each lend under half of what was left.
+        // the party soonest; the sizes it comes in, never so many that the soldiers it has out on answers outnumber
+        // the body that stays (§5.2, 2: above that it is the group's own attack, so the group the pick moves is
+        // always its larger part and the lent come back into that part's course; until 2026-11-13 any size short of
+        // the whole, and in the second game against a person eight of nine and eight of ten went, the two left were
+        // walked about and the eight were dealt back into the walk). What it has out already counts: slots-smoke-8
+        // lent one of eighteen at a Tick and topped the answer up to eleven in seconds, each lend under half of
+        // what was left. And the body is the soldiers with it, a lend counted as taken from them: with those coming
+        // counted in, slots-apex-v0507-comet-opus-4 lent eight of the twelve standing (9:49), and the four left were
+        // sent on an advance at 0.18 and two walks before the eight came back into the second.
         let lent_out: usize = pianist.groups.iter().filter(|g| g.answer.is_some()).map(|g| g.lent.iter().filter(|(lender, _)| *lender == group.name).map(|(_, n)| *n).sum::<usize>().min(g.members.len())).sum();
         let coming: Vec<&OwnUnit> = group.coming.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).collect();
         let armed: Vec<&OwnUnit> = units.iter().chain(&coming).copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
-        let ladder: Vec<usize> = LADDER.into_iter().filter(|n| (*n + lent_out) * 2 <= units.len() + coming.len() + lent_out && *n <= armed.len()).collect();
+        let ladder: Vec<usize> = LADDER.into_iter().filter(|n| *n * 2 + lent_out <= units.len() && *n <= armed.len()).collect();
         // The instructions forbid every detachment this group could send, by the decode's clear reading
         // (`decode::ON`): the whole-group attack is back on the menu beside them (the impedance tally, 2026-10-16:
         // "one body that never splits", "the whole group attacks it, never a detachment", in three games, against
@@ -2527,6 +2530,17 @@ pub(super) mod tests {
             brain.pianist = Some(pianist);
             let menu = brain.menus(&tick, &kit, &picture).into_iter().find(|m| m.name == "group_A").expect("the group's menu");
             assert!(keys(&menu).contains(&"send_1_party_13".to_string()) && !keys(&menu).iter().any(|k| k.starts_with("send_2_") || k.starts_with("send_4_")), "{:?}", keys(&menu));
+        }
+        // The body is the soldiers with the group: with six standing and eight still on their way to it, two is the
+        // most it lends, though fourteen are its own.
+        {
+            let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+            let mut group = Group::of("A".into(), Domain::Ground, ours.iter().take(6).map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0);
+            group.coming = ours.iter().skip(6).map(|u| (u.id, 5.0)).collect();
+            pianist.groups.push(group);
+            brain.pianist = Some(pianist);
+            let menu = brain.menus(&tick, &kit, &picture).into_iter().find(|m| m.name == "group_A").expect("the group's menu");
+            assert!(keys(&menu).contains(&"send_2_party_13".to_string()) && !keys(&menu).iter().any(|k| k.starts_with("send_4_") || k.starts_with("send_8_")), "{:?}", keys(&menu));
         }
     }
 

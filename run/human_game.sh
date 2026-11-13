@@ -3,8 +3,11 @@
 # realtime (nothing pauses; docs/design/2026-09-21-pianist.md "Realtime"). The engine's shim finds the bot on
 # $XDG_RUNTIME_DIR/within-reason.sock and retries about once a second, so the bot may be started before or after the
 # game. The match's record, transcripts and Jev log land in run/matches/<unix time>-<label>/00, which
-# run/view_match.py and run/debrief.py read like an arena match. The sessions run on ~/.claude2 (weekly allotment
-# only) unless WITHIN_REASON_CLAUDE_CONFIG_DIR says otherwise; a usage snapshot is taken first for `--since`.
+# run/view_match.py and run/debrief.py read like an arena match. The sessions run on the account
+# run/claude_account.py chooses (docs/harness/claude-p.md: the soonest to reset with enough free for Opus; no game
+# when no account has room) unless WITHIN_REASON_CLAUDE_CONFIG_DIR names one; a usage snapshot is taken first for
+# `--since`. A session is counted for each player and one for a commander; with a player a seat the seats are not
+# known before the game, and WITHIN_REASON_SEATS (default 4) says how many to count.
 # The bot leaves by itself when the game's last seat is disconnected (the engine closed), after writing an `end`
 # row to each record: no ctrl-c is needed, and one given earlier loses nothing but that row.
 # The game runs from run/matches/<unix time>-<label>/snapshot (the bot binary, every text it reads, the git state:
@@ -33,6 +36,16 @@ if ! cmp -s "$root/target/release/libai_shim.so" "$installed"; then
     echo "the AI library in $installed is not this build's (target/release/libai_shim.so): run run/install_to_bar.sh first" >&2
     exit 1
 fi
+if [ -z "${WITHIN_REASON_CLAUDE_CONFIG_DIR:-}" ]; then
+    sessions=1
+    if [ "$players" = seat ]; then sessions=${WITHIN_REASON_SEATS:-4}; fi
+    if [ "$commander" != none ]; then sessions=$((sessions + 1)); fi
+    if ! WITHIN_REASON_CLAUDE_CONFIG_DIR=$(python3 "$root/run/claude_account.py" --dir --games "$sessions"); then
+        echo "no Claude account has room for this game (run/claude_account.py): WITHIN_REASON_CLAUDE_CONFIG_DIR names one by hand" >&2
+        exit 1
+    fi
+    export WITHIN_REASON_CLAUDE_CONFIG_DIR
+fi
 dir="$root/run/matches/$(date +%s)-$label/00"
 mkdir -p "$dir"
 snapshot="$(dirname "$dir")/snapshot"
@@ -40,7 +53,7 @@ snapshot="$(dirname "$dir")/snapshot"
 store="$root/run/data/live-edge/rework"
 "$root/target/release/bot" --snapshot "$snapshot"
 python3 "$root/run/claude_usage.py" --snapshot "$root/run/usage-before-$label.json" >/dev/null 2>&1 || true
-echo "match dir $dir; usage snapshot run/usage-before-$label.json; socket ${XDG_RUNTIME_DIR:-/tmp}/within-reason.sock"
+echo "match dir $dir; account $WITHIN_REASON_CLAUDE_CONFIG_DIR; usage snapshot run/usage-before-$label.json; socket ${XDG_RUNTIME_DIR:-/tmp}/within-reason.sock"
 cd "$dir"
 env WITHIN_REASON_REALTIME=1 WITHIN_REASON_EXIT_WHEN_OVER=1 WITHIN_REASON_RECORD=1 WITHIN_REASON_JEV_LOG=1 WITHIN_REASON_LOG_DIR="$dir" WITHIN_REASON_EFFORT="$effort" WITHIN_REASON_HANDS_EFFORT="$hands" WITHIN_REASON_MODEL="$model" WITHIN_REASON_PLAYERS="$players" WITHIN_REASON_COMMANDER="$commander" WITHIN_REASON_COMMANDER_EFFORT="$commander_effort" \
     WITHIN_REASON_HANDS_LAYERS="${WITHIN_REASON_HANDS_LAYERS:-news,same,fuse,openers,split,tick,places}" \

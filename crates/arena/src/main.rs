@@ -18,7 +18,8 @@
 //!              [--bot PATH]   (bot binary from another build, for A/B runs)
 //!              [--disable H-ID,H-ID]   (ablation: switch heuristics off by registry ID)
 //!              [--ab-disable H-ID,H-ID]   (interleaved A/B: arm B also switches these off; blocks of four matches)
-//!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
+//!              [--claude-config-dir DIR]   (subscription for the player's sessions; default: the account
+//!                                         `run/claude_account.py` chooses, and no batch when it has none)
 //!              [--players one|seat]   (with --player and several seats of ours: one player for all of them, the default, or one a seat; docs/design/2026-10-03-commander-seat.md)
 //!              [--commander MODEL] [--commander-effort LEVEL]   (with --player: a commander session above the players, which orders no unit and writes them a direction in prose; default none, effort high)
 //!              [--player-effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
@@ -212,6 +213,36 @@ struct MatchResult {
     reason: String,
 }
 
+/// The Claude sessions a batch runs: one a player (one for all our seats, or one a seat) and one for a commander,
+/// in every match.
+fn claude_sessions(options: &Options) -> usize {
+    let players = match (options.player, options.players.as_deref()) {
+        (false, _) => 0,
+        (true, Some("seat")) => options.ours.max(1),
+        (true, _) => 1,
+    };
+    let commander = usize::from(options.commander.as_deref().is_some_and(|model| model != "none"));
+    options.matches.max(1) * (players + commander)
+}
+
+/// The Claude account for the batch's sessions, chosen by `run/claude_account.py` (docs/harness/claude-p.md; the
+/// user, 2026-11-13: "The basic policy should be taking the soonest-resetting account, so long as it has enough
+/// free opus tokens left", and "We should wire the selector into both arena and human game harnesses"): each
+/// session is counted as one game of one player. The tool's table goes to the terminal; with no account that has
+/// room in its week the batch does not start. `--claude-config-dir` names an account by hand and skips this.
+fn choose_account(repo: &Path, options: &Options) -> io::Result<String> {
+    let output = Command::new("python3")
+        .arg(repo.join("run/claude_account.py"))
+        .args(["--dir", "--games", &claude_sessions(options).to_string()])
+        .stderr(Stdio::inherit())
+        .output()?;
+    let dir = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if !output.status.success() || dir.is_empty() {
+        return Err(io::Error::other("no Claude account has room for this batch (run/claude_account.py): no game; --claude-config-dir DIR names one by hand"));
+    }
+    Ok(dir)
+}
+
 fn main() -> io::Result<()> {
     let mut options = parse_args();
     if let Some(dir) = &options.compress_logs {
@@ -239,6 +270,11 @@ fn main() -> io::Result<()> {
         )));
     }
 
+    // The account the batch's Claude sessions run on, when the launch names none (`choose_account`).
+    if options.our_ai == FLAGSHIP_AI && claude_sessions(&options) > 0 && options.claude_config_dir.is_none() {
+        options.claude_config_dir = Some(choose_account(&repo, &options)?);
+    }
+
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let batch_dir = repo.join(format!("run/matches/{stamp}-{}", options.label));
     fs::create_dir_all(&batch_dir)?;
@@ -263,7 +299,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "claude_config_dir": options.claude_config_dir, "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 

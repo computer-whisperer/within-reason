@@ -411,8 +411,9 @@ are, the same text the hands read, word for word:
 
 Beside those rules, the mechanics they do not say. A group that outweighs a party in sight four times over is offered
 no whole-group attack on it, only sends of one, two, four or eight of its soldiers, the soonest to the party;
-the whole-group attack comes back only when your packet forbids every size, read clearly. A group never has more
-than half of its soldiers out on answers, what it sent earlier counted: above half it is the group's own attack. A group that is attacking a party is offered no send at
+the whole-group attack comes back only when your packet forbids every size, read clearly. The soldiers a group has out
+on answers never outnumber the body that stays with it, what it sent earlier counted: above that it is the group's
+own attack. A group that is attacking a party is offered no send at
 that party (every soldier of it is on the party already), unless it outweighs it four times. The soldiers sent are
 lent to the answer to that party: one answer a party, whoever lent to it. The answer hunts the party, one unit of it
 at a time by id, each soldier at its own speed: when that unit dies or is lost it takes the next nearest in sight,

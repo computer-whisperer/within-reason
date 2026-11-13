@@ -311,12 +311,15 @@ What changes:
    nearest to its soldiers, as a new hunt. It ends when nothing of the party is left in sight to take, when the
    party has run the leash (`HUNT_LEASH`, 900, from where the first quarry stood: the lane's own leash is from
    where each quarry stood), by its withdraw, or with every hunter dead.
-2. **A group never has more than half of its soldiers out on answers.** A lend is offered only in sizes that keep
-   it so, counting the soldiers with the group, those coming to it and those it has out already. Above half it is
-   the group's own stance, the whole-group attack. So the group is always its larger part: what the pick moves is
-   the body, and the lent come back into the body's course. (Second game: eight of nine and eight of ten lent, the
-   two left steered about, the eight dealt back into "walk to home" and "walk to C1". The first build of this rule
-   capped each lend alone, and slots-smoke-8 lent one of eighteen at a Tick and topped the answer up to eleven.)
+2. **The soldiers a group has out on answers never outnumber the body that stays.** A lend is offered only in
+   sizes that keep it so: twice the lend, and what the group has out already, within the soldiers with it. Above
+   that it is the group's own stance, the whole-group attack. So the group is always its larger part: what the
+   pick moves is the body, and the lent come back into the body's course. (Second game: eight of nine and eight of
+   ten lent, the two left steered about, the eight dealt back into "walk to home" and "walk to C1". The first
+   build of this rule capped each lend alone, and slots-smoke-8 lent one of eighteen at a Tick and topped the
+   answer up to eleven. The second counted the soldiers coming to the group as its own, and
+   slots-apex-v0507-comet-opus-4 lent eight of the twelve standing at 9:49, at two construction bots 2,500 away:
+   the four left were sent on an advance at 0.18 and two walks, and the eight came back into the second.)
 3. **No lend at the party its lender is attacking.** A group whose task is the attack on a party has every soldier
    on it already. (9 and 4 of the two games' answers.)
 4. **A lend's line says what the lender's own fight loses.** When the lender's course is aimed at a party, or a

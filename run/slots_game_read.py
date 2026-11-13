@@ -149,7 +149,9 @@ def read(d):
         if r.get("kind") == "tool_call":
             a = r.get("arguments")
             s = a if isinstance(a, str) else json.dumps(a)
+            # A tool's result is its text, or a structure for the tools that answer with one.
             res = r.get("result") or ""
+            res = res if isinstance(res, str) else json.dumps(res)
             groups_calls += s.count('"tool": "groups"') + (1 if r.get("tool") == "groups" else 0)
             refused += re.findall(r"(\w+): REFUSED[^\n]{0,120}", res)
     out["player turns, groups calls"] = f"{turns}, {groups_calls}"

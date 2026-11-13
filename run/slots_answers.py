@@ -5,7 +5,8 @@ that party), what ended it (its withdraw, or the lane's hunt: the quarry dead, o
 party stood then, and the task of the lender its soldiers were dealt back to. Then the tally
 (K-hands-an-answer-carved-from-a-body-in-a-fight-returns-it-into-the-shells-course). From 2026-11-13 an answer hunts
 the party (the slots design §5.2): `next` is how many times it took the party's next unit, and the tally counts the
-answers that began with more than half of the soldiers with their lender (none, by the menu, since then; the menu's half counts those coming to the lender too).
+answers that began with more than half of the soldiers with their lender (none, by the menu, from the build after
+slots-apex-v0507-comet-opus-4, which counts the lender's body alone).
 
 usage: run/slots_answers.py run/matches/<batch>/<NN> [...]
 """
