@@ -239,8 +239,11 @@ group of `{"armfav": 6}` beside the Blitzes' group: the Rovers can rove while th
 a type takes a soldier of that type before a slot of any type does, so the army can keep slots of any type and
 needs no list of its own types. A type no group has a slot for stands unassigned at the plant until you open one. To make two groups
 one body, give one of them the slots and end the other. To move strength, lower one group and raise another: the
-soldiers best placed go. A group's entry says how many of its slots are filled where it stands, how many soldiers
-are coming and when the last arrives, and what it has lent; a group with nobody in place keeps its name and place.
+soldiers best placed go. A group's entry says how many of its slots are filled where it stands, what it has lent,
+and its `reinforcements`: how many soldiers are coming, in which cells they stand, how far off they are by the
+straight line, how many are under fire and how many died on the way. A soldier coming walks alone and straight to
+its group, fights what it meets and turns back for nothing: sent after a group that stands beyond his turrets it
+walks into them, one at a time. A group with nobody in place keeps its name and place.
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says

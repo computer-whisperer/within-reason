@@ -134,6 +134,9 @@ pub(crate) enum GroupTask {
     Rove { within: Option<String> },
 }
 
+/// One soldier lost: the frame, its type, and the killer with its type when the attacker was known and identified.
+pub(crate) type Loss = (i32, UnitDefId, Option<(UnitId, UnitDefId)>);
+
 #[derive(Debug)]
 pub(crate) struct Group {
     pub name: String,
@@ -160,7 +163,11 @@ pub(crate) struct Group {
     /// Soldiers lost in the last minute (frame, type); the turn frame the wake counts from, and whether the player has
     /// been woken for them this turn (H-HANDS-LOSS-WAKE). The picture says the last 30 s.
     /// (frame, the type lost, the killer and its type when known): the picture's `losses` line says to whom.
-    pub losses: Vec<(i32, UnitDefId, Option<(UnitId, UnitDefId)>)>,
+    pub losses: Vec<Loss>,
+    /// The soldiers lost in the last minute on their way to it, each with where it died: no loss of the body's, and
+    /// said in the `reinforcements` line (a comer walks alone and nothing turns it back, so his guns on its way
+    /// show here first).
+    pub lost_coming: Vec<(Loss, Vec3)>,
     pub losses_since: i32,
     pub loss_warned: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`); `screen`
@@ -242,7 +249,7 @@ impl Group {
 
     /// A group of these slots at this place, with nobody in it yet: the deal fills it.
     pub(crate) fn new(name: String, domain: Domain, slots: micro::deal::Slots, place: Vec3, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), task, last_order: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
+        Group { name, domain, slots, place, members: Vec::new(), coming: Vec::new(), answer: None, lent: Vec::new(), task, last_order: frame, losses: Vec::new(), lost_coming: Vec::new(), losses_since: frame, loss_warned: false, shelling: false, screen: None, reached: Vec::new(), met: None, rove_log: Vec::new(), arrived_at: None }
     }
 
     /// A group whose body is these soldiers, with a slot for each: what a test stands a group up as.
@@ -322,9 +329,15 @@ impl Group {
         matches!(self.task, GroupTask::Rove { .. })
     }
 
-    /// The soldiers lost since `since`, and their metal.
+    /// The soldiers of the body lost since `since`, and their metal.
     pub(crate) fn lost_since(&self, since: i32, world: &crate::world::World) -> (usize, f32) {
-        let lost: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = self.losses.iter().filter(|(f, ..)| *f >= since).collect();
+        let lost: Vec<&Loss> = self.losses.iter().filter(|(f, ..)| *f >= since).collect();
+        (lost.len(), lost.iter().filter_map(|(_, def, _)| world.def(*def)).map(|d| d.metal_cost).sum())
+    }
+
+    /// The soldiers lost since `since` on their way to it, and their metal.
+    pub(crate) fn lost_coming_since(&self, since: i32, world: &crate::world::World) -> (usize, f32) {
+        let lost: Vec<&Loss> = self.lost_coming.iter().map(|(l, _)| l).filter(|(f, ..)| *f >= since).collect();
         (lost.len(), lost.iter().filter_map(|(_, def, _)| world.def(*def)).map(|d| d.metal_cost).sum())
     }
 
@@ -505,21 +518,28 @@ impl Brain {
                 (group.losses_since, group.loss_warned) = (turn_frame, false);
             }
             group.losses.retain(|(f, ..)| frame - f <= 60 * FRAMES_PER_SECOND);
-            // A soldier of the group at the last deal, with it or coming to it.
-            for (f, id, def, killer) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
-                if group.members.contains(id) || group.coming.iter().any(|(c, _)| c == id) {
+            group.lost_coming.retain(|((f, ..), _)| frame - f <= 60 * FRAMES_PER_SECOND);
+            // A soldier of the group at the last deal: the body's loss when it was with it, its own when it was
+            // coming.
+            for (f, id, def, killer, at) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
+                if group.members.contains(id) {
                     group.losses.push((*f, *def, *killer));
+                } else if group.coming.iter().any(|(c, _)| c == id) {
+                    group.lost_coming.push(((*f, *def, *killer), *at));
                 }
             }
             group.members.retain(|id| soldiers.iter().any(|u| u.id == *id));
             group.coming.retain(|(id, _)| soldiers.iter().any(|u| u.id == *id));
             let standing: f32 = group.units(own).iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-            let (count, lost) = group.lost_since(turn_frame, &self.world);
+            // The wake counts both: soldiers dying on their way to the group are the player's to hear of.
+            let (with, on_the_way) = (group.lost_since(turn_frame, &self.world), group.lost_coming_since(turn_frame, &self.world));
+            let (count, lost) = (with.0 + on_the_way.0, with.1 + on_the_way.1);
             if !group.loss_warned && !group.members.is_empty() && (count >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
                 group.loss_warned = true;
                 let doing = group.course_word();
+                let coming = if on_the_way.0 > 0 { format!(", {} of them on their way to it", on_the_way.0) } else { String::new() };
                 loss_wakes.push(format!(
-                    "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
+                    "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders{coming}, {doing} at {}",
                     group.name,
                     count,
                     group.strength() + count,
@@ -1042,6 +1062,8 @@ mod tests {
         assert_eq!(sent, far, "{commands:?}");
         let group = &brain.pianist.as_ref().unwrap().groups[0];
         assert_eq!((group.members.len(), group.coming.iter().map(|(id, _)| *id).collect::<Vec<_>>()), (12, far.to_vec()));
+        // The lane is told who they are: it holds none of them back (`session.rs`).
+        assert_eq!(brain.coming(), far.to_vec());
         // The place stands: nothing is sent again.
         let mut commands = Vec::new();
         brain.keep_groups(&tick(60, &ours, &enemies), &kit, &mut commands);
@@ -1054,6 +1076,7 @@ mod tests {
         let group = &brain.pianist.as_ref().unwrap().groups[0];
         assert_eq!((group.members.len(), group.coming.len()), (13, 1));
         assert!(group.members.contains(&far[0]));
+        assert_eq!(brain.coming(), vec![far[1]]);
     }
 
     /// The groups are the player's (the slots design §3.1): a seat with none declared has `group_A`; a declared

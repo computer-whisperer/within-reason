@@ -488,7 +488,7 @@ impl Brain {
             }
             self.trade_log.push(Trade { frame: tick.frame, ours: true, metal: cost, kind: self.trade_kind(def) });
             self.publish_death(tick, kit, unit.0 as u32, true, self.name(def), cost, pos);
-            self.unit_losses.push_back((tick.frame, *unit, def, attacker.and_then(|id| self.enemy_defs.get(&id).map(|d| (id, *d)))));
+            self.unit_losses.push_back((tick.frame, *unit, def, attacker.and_then(|id| self.enemy_defs.get(&id).map(|d| (id, *d))), pos));
             if kit.is_extractor(def)
                 && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < self.spot_occupied_radius())
             {

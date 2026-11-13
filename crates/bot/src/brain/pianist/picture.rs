@@ -221,7 +221,7 @@ pub(super) struct LossWords {
 }
 
 impl Brain {
-    pub(super) fn loss_words(&self, lost: &[&(i32, UnitDefId, Option<(bot_protocol::UnitId, UnitDefId)>)], standing_metal: f32, party: Option<&Party>, parties: &[Party]) -> LossWords {
+    pub(super) fn loss_words(&self, lost: &[&super::groups::Loss], standing_metal: f32, party: Option<&Party>, parties: &[Party]) -> LossWords {
         let cost = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.metal_cost);
         let metal: f32 = lost.iter().map(|(_, def, _)| cost(*def)).sum();
         let mut to_fight = 0.0;
@@ -254,6 +254,69 @@ impl Brain {
         }
         let share = metal / (metal + standing_metal).max(1.0);
         LossWords { count: lost.len(), metal, share: share_words(share), to_whom: to_whom.join(", "), verdict: if party.is_some() { fight_verdict(to_fight / (metal + standing_metal).max(1.0)) } else { "" } }
+    }
+}
+
+/// How many stand in which grid cell, the fullest cells first: "26 at E2, 20 at D3, 12 at B5 and 4 elsewhere".
+fn by_cell(world: &crate::world::World, points: impl Iterator<Item = Vec3>) -> String {
+    let mut cells: BTreeMap<String, usize> = BTreeMap::new();
+    for p in points {
+        *cells.entry(world.grid(p)).or_default() += 1;
+    }
+    let mut cells: Vec<(String, usize)> = cells.into_iter().collect();
+    cells.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    let rest: usize = cells.iter().skip(CELLS_SAID).map(|(_, n)| n).sum();
+    let mut words = cells.iter().take(CELLS_SAID).map(|(cell, n)| format!("{n} at {cell}")).collect::<Vec<_>>().join(", ");
+    if rest > 0 {
+        words.push_str(&format!(" and {rest} elsewhere"));
+    }
+    words
+}
+
+/// The cells a line of places names before "elsewhere".
+const CELLS_SAID: usize = 3;
+
+impl Brain {
+    /// A group's soldiers on their way to it (the slots design §4, amended 2026-11-12; the user: "Agreed with walking
+    /// on and reporting it for now"): how many and of what, where they are, how far off by the straight line, how
+    /// many are being shot at, and how many died on the way in the last minute, where and to what. Each walks alone
+    /// on one order and nothing turns it back, so his guns on their way are said here: before, the lane held them
+    /// at his turrets and this line read "half of them here in 50 s" for two minutes (the second game on the slots).
+    /// `more` is whether the group has soldiers in place.
+    pub(super) fn coming_words(&self, group: &super::Group, own: &[OwnUnit], pianist: &Pianist, parties: &[Party], more: bool, frame: i32) -> Option<String> {
+        let coming: Vec<(&OwnUnit, f32)> = group.coming.iter().filter_map(|(id, t)| own.iter().find(|u| u.id == *id).map(|u| (u, *t))).collect();
+        let lost: Vec<&super::groups::Loss> = group.lost_coming.iter().map(|(l, _)| l).collect();
+        let lost_words = || {
+            let w = self.loss_words(&lost, 0.0, None, parties);
+            format!("in the last minute ({}): {}", by_cell(&self.world, group.lost_coming.iter().map(|(_, at)| *at)), w.to_whom)
+        };
+        if coming.is_empty() {
+            // Nobody on the way now, and some died on it lately: still said, or the line would vanish with the last.
+            return (!lost.is_empty()).then(|| format!("nobody is coming to it now; {} soldier{} lost on the way to it {}", lost.len(), if lost.len() == 1 { " was" } else { "s were" }, lost_words()));
+        }
+        let units: Vec<&OwnUnit> = coming.iter().map(|(u, _)| *u).collect();
+        let fight = !matches!(group.task, GroupTask::Move { fight: false, .. });
+        let (half, last) = (coming[coming.len() / 2].1, coming[coming.len() - 1].1);
+        let shot: Vec<&OwnUnit> = {
+            let hit: std::collections::HashSet<bot_protocol::UnitId> = pianist.under_fire(frame).collect();
+            units.iter().copied().filter(|u| hit.contains(&u.id)).collect()
+        };
+        let mut words = format!(
+            "{} {}soldier{} coming to it ({}), each alone, {} and turning back for nothing: {}; by the straight line half of them are {half:.0} s of walking away and the last {last:.0} s",
+            units.len(),
+            if more { "more " } else { "" },
+            if units.len() == 1 { " is" } else { "s are" },
+            self.composition_words(&units),
+            if fight { "fighting what it meets" } else { "walking past what it meets" },
+            by_cell(&self.world, units.iter().map(|u| u.pos)),
+        );
+        if !shot.is_empty() {
+            words.push_str(&format!("; {} of them under fire now ({})", shot.len(), by_cell(&self.world, shot.iter().map(|u| u.pos))));
+        }
+        if !lost.is_empty() {
+            words.push_str(&format!("; {} lost on the way {}", lost.len(), lost_words()));
+        }
+        Some(words)
     }
 }
 
@@ -2044,10 +2107,7 @@ impl Brain {
                         json!({"units": format!("a group of {} slots with no soldier: it roves, and the next soldier its slots take roves from where it stands", group.slots.total()), "doing": "roving: nobody is with it"}),
                     );
                 } else if group.answer.is_none() {
-                    let coming = match (group.coming.first(), group.coming.last()) {
-                        (Some((_, first)), Some((_, last))) => format!("{} coming, the first in {first:.0} s and the last in {last:.0} s", group.coming.len()),
-                        _ => "nobody coming".to_string(),
-                    };
+                    let coming = self.coming_words(group, own, pianist, &parties, false, frame).unwrap_or_else(|| "nobody is coming to it".to_string());
                     actors.insert(
                         format!("group_{}", group.name),
                         json!({"units": format!("a group of {} slots with no soldier in place: {coming}", group.slots.total()), "at": self.place_words(&places, group.place), "doing": "nothing: nobody is with it"}),
@@ -2156,14 +2216,8 @@ impl Brain {
                 let lent = if out.is_empty() { String::new() } else { format!("; it has lent soldiers to the answers to {}", out.join(", ")) };
                 entry["slots"] = json!(format!("{} of its {} slots are filled here{lent}", units.len(), group.slots.total()));
             }
-            if let (Some((_, last)), false) = (group.coming.last(), group.coming.is_empty()) {
-                let half = group.coming[group.coming.len() / 2].1;
-                let coming: Vec<&OwnUnit> = group.coming.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).collect();
-                entry["reinforcements"] = json!(format!(
-                    "{} more soldiers are coming to it ({}), half of them here in {half:.0} s and the last in {last:.0} s; they are not in its fights yet",
-                    coming.len(),
-                    self.composition_words(&coming)
-                ));
+            if let Some(coming) = self.coming_words(group, own, pianist, &parties, true, frame) {
+                entry["reinforcements"] = json!(format!("{coming}; they are not in its fights yet"));
             }
             if !body.stragglers.is_empty() && lane_state.is_none() {
                 let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
@@ -2182,7 +2236,7 @@ impl Brain {
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
             // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the
             // number: Jev is not a calculator (docs.typesafe.ai/model-jaggedness).
-            let lost_lately: Vec<&(i32, UnitDefId, Option<(bot_protocol::UnitId, UnitDefId)>)> = group.losses.iter().filter(|(f, ..)| frame - f <= 30 * FRAMES_PER_SECOND).collect();
+            let lost_lately: Vec<&super::groups::Loss> = group.losses.iter().filter(|(f, ..)| frame - f <= 30 * FRAMES_PER_SECOND).collect();
             if !lost_lately.is_empty() {
                 // To whom, and the verdict against the party in its entry alone (`loss_words`).
                 let near = parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
@@ -2591,22 +2645,62 @@ mod tests {
         let dead_sentry = UnitId(99);
         let flash = UnitDefId(1);
         let lost = vec![(60, flash, Some((dead_sentry, UnitDefId(3)))), (70, flash, Some((dead_sentry, UnitDefId(3)))), (80, flash, None)];
-        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = lost.iter().collect();
+        let refs: Vec<&super::super::groups::Loss> = lost.iter().collect();
         let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
         assert_eq!(w.count, 3);
         assert_eq!(w.to_whom, "2 to a Sentry (armllt) (dead now), something unseen, none to this party");
         assert_eq!(w.verdict, ": it is losing this fight", "turrets count as the fight, dead or standing");
         let to_party = vec![(60, flash, Some((party.ids[0], UnitDefId(2)))), (70, flash, Some((party.ids[1], UnitDefId(2))))];
-        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = to_party.iter().collect();
+        let refs: Vec<&super::super::groups::Loss> = to_party.iter().collect();
         let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
         assert_eq!((w.to_whom.as_str(), w.verdict), ("2 to this party", ": it is losing this fight"));
         let elsewhere = vec![(60, flash, Some((UnitId(77), UnitDefId(2)))), (70, flash, Some((UnitId(78), UnitDefId(2))))];
-        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = elsewhere.iter().collect();
+        let refs: Vec<&super::super::groups::Loss> = elsewhere.iter().collect();
         let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
         assert_eq!((w.to_whom.as_str(), w.verdict), ("2 to a Centurion (armwar) out of sight now, none to this party", ""), "losses to something else carry no verdict");
         let standing = brain.loss_words(&refs, 300.0, Some(party), &parties);
         assert_eq!(standing.share, "a large share");
         let _ = sentry;
+    }
+
+    /// The reinforcements line (the slots design §4, amended 2026-11-12; the user: "Agreed with walking on and
+    /// reporting it for now"): the soldiers coming are said by where they are, with how many are being shot at and
+    /// how many died on the way and to what, and the times are named as the straight line's. A group nobody is
+    /// coming to still says the ones that died coming, and says nothing when there were none.
+    #[test]
+    fn the_soldiers_coming_are_said_by_place_with_the_shot_at_and_the_lost() {
+        use super::super::groups::{Group, GroupTask};
+        let (brain, mut ours, _, parties) = super::super::fixtures::e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::of("A".into(), crate::world::Domain::Ground, ours[..10].iter().map(|u| u.id).collect(), GroupTask::idle_hold(at(6000.0, 1900.0)), 0);
+        assert_eq!(brain.coming_words(&group, &ours, &pianist, &parties, true, 900), None);
+        // Four coming: two where the body stood, two a long way back, one of those shot at a second ago.
+        let (near, far) = (ours[10].pos, at(700.0, 5200.0));
+        ours[12].pos = far;
+        ours[13].pos = far;
+        group.coming = ours[10..].iter().zip([20.0, 30.0, 40.0, 50.0]).map(|(u, t)| (u.id, t)).collect();
+        pianist.hits.insert(ours[13].id, 870);
+        let (here, back) = (brain.world.grid(near), brain.world.grid(far));
+        assert_ne!(here, back);
+        let words = brain.coming_words(&group, &ours, &pianist, &parties, true, 900).expect("some are coming");
+        assert!(words.starts_with("4 more soldiers are coming to it ("), "{words}");
+        // Equal counts: by the cell's name.
+        let cells = if here < back { format!("2 at {here}, 2 at {back}") } else { format!("2 at {back}, 2 at {here}") };
+        assert!(words.contains(&format!("each alone, fighting what it meets and turning back for nothing: {cells}; by the straight line half of them are 40 s of walking away and the last 50 s")), "{words}");
+        assert!(words.ends_with(&format!("; 1 of them under fire now (1 at {back})")), "{words}");
+        // One died on the way to a turret: where, and to what.
+        let died = at(4800.0, 1700.0);
+        group.lost_coming.push(((880, UnitDefId(1), Some((UnitId(10), UnitDefId(3)))), died));
+        let words = brain.coming_words(&group, &ours, &pianist, &parties, true, 900).expect("some are coming");
+        assert!(words.ends_with(&format!("; 1 lost on the way in the last minute (1 at {}): a Sentry (armllt)", brain.world.grid(died))), "{words}");
+        // A group with nobody in place says them without "more"; one alone is said in the singular.
+        group.coming.truncate(1);
+        let words = brain.coming_words(&group, &ours, &pianist, &parties, false, 900).expect("one is coming");
+        assert!(words.starts_with("1 soldier is coming to it ("), "{words}");
+        // Nobody coming now: the dead are still said.
+        group.coming.clear();
+        let words = brain.coming_words(&group, &ours, &pianist, &parties, true, 900).expect("one died coming");
+        assert_eq!(words, format!("nobody is coming to it now; 1 soldier was lost on the way to it in the last minute (1 at {}): a Sentry (armllt)", brain.world.grid(died)));
     }
 
     /// A front of enemies 250 apart is one party by the chain; kept, it is several, none with a member over

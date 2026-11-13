@@ -1001,7 +1001,7 @@ impl Brain {
             // turrets: an even fight", the turrets 1,000 away).
             let here = self.party_where_we_stand(p, &body.core).0;
             let odds = self.group_odds(&body, &here, enemies, &scene.tick.snapshot.allies).1;
-            let lost: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = group.losses.iter().filter(|(f, ..)| scene.frame - f <= 30 * FRAMES_PER_SECOND).collect();
+            let lost: Vec<&super::groups::Loss> = group.losses.iter().filter(|(f, ..)| scene.frame - f <= 30 * FRAMES_PER_SECOND).collect();
             let losses = if lost.is_empty() {
                 String::new()
             } else {

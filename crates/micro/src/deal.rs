@@ -366,7 +366,8 @@ pub struct Comer {
 /// The orders of the soldiers coming to their groups (§7): one plain order each to the group's place, on the engine's
 /// own path; again when the place has moved `COMER_RESEND` from where the soldier was sent, when its group began or
 /// stopped fighting, or when the soldier stands with no order (K-engine-a-blocked-move-ends-short). Nothing holds one
-/// back (the user, 2026-11-11: "we should not be holding units back from an active engagement").
+/// back (the user, 2026-11-11: "we should not be holding units back from an active engagement"); the host takes
+/// them out of the lane's flee for the same reason (the flagship's `session.rs`, 2026-11-12).
 #[derive(Default)]
 pub struct Comers {
     sent: HashMap<UnitId, (Vec3, bool)>,

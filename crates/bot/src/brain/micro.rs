@@ -116,6 +116,12 @@ impl Brain {
         declared
     }
 
+    /// The soldiers coming to their groups as the last deal left them: the lane holds none of them back
+    /// (`session.rs`).
+    pub(super) fn coming(&self) -> Vec<UnitId> {
+        self.pianist.iter().flat_map(|p| &p.groups).flat_map(|g| g.coming.iter().map(|(id, _)| *id)).collect()
+    }
+
     /// The player's company cap for a pianist group (`lane` tool, `company`; the companies design §4): the group's
     /// own, else `all`, else `COMPANY_CAP`; 0 lifts it.
     pub(super) fn company_of(&self, group: &str) -> usize {

@@ -54,6 +54,8 @@ so that an answer is moves in the world pick. Rejected because a pick a threat i
   not be holding units back from an active engagement. If jev decides to push the fight, we should push it with
   everything available. If we are simply feeding units to the enemy, then it is jev's decision to retreat rather
   than the micro engine's behavior."
+- A reinforcement at a threat its army has passed (2026-11-12, after the second game, §11; put to him as: walk on
+  as the army did, take the army's way, or stay held and say so): "Agreed with walking on and reporting it for now. We may decide to do something more complicated later, but let's see the simple approach in practice first".
 - The march, on D3 as first proposed (every clear stretch walked relaxed): "why are we extending the relaxed pass?
   The formation movement still has value in controlling the layout of our units if we encounter the enemy, and so
   far does a good job of allowing units to maneuver without bumping into each other. What part of that do you think
@@ -169,6 +171,13 @@ placed. No unit is ever named.
 - An answer: its strength, its sources and how far out it is.
 - Surplus by place: "14 unassigned at B5".
 - Where the last minute's production went, by group.
+- **The soldiers coming, as amended 2026-11-12** (§0, §7): "62 more soldiers are coming to it (62 Stouts), each
+  alone, fighting what it meets and turning back for nothing: 26 at E2, 20 at D3, 12 at B5 and 4 elsewhere; by the
+  straight line half of them are 50 s of walking away and the last 110 s; 9 of them under fire now (7 at E2, 2 at
+  F3); 5 lost on the way in the last minute (4 at E2, 1 at F3): 4 to a Sentry, party_7; they are not in its fights
+  yet". Where they are and what is happening to them are observations; the seconds are named as the straight
+  line's. A soldier that dies coming is no loss of the body's: the body's `health` and `losses` lines count the
+  soldiers with it, and the wake for losses counts both and says how many died on their way.
 
 Later, and separable: for each cluster of our extractors and plants, the seconds to the nearest soldiers. A faster
 raider is only met by units already ahead of it, so this is what shows where a station is missing.
@@ -276,7 +285,10 @@ What changes is what the lane is handed:
   one beside it. Its company and its slot stay the lane's working state, as they are now.
 - **Coming units walk on one plain order** to the group's place, sent again when the place has moved. Nothing holds
   one back: no muster at the plant, no gathering short of a fight. A soldier that comes within the gate of a body in
-  contact joins a company of it at once.
+  contact joins a company of it at once. **Nor the lane's flee, from 2026-11-12** (§0): as built until then a comer
+  was a loose soldier to the lane, and H-MICRO-FLEE stepped it back from every threat on its way and stood it at
+  the edge while its goal lay beyond (§11, the second game). The hands now tell the lane who is coming, and it
+  turns none of them back; they keep the fan and the kite. Soldiers with no slot keep the flee.
 - **The muster goes** (D1): the mustering role, the muster points and the release count.
 - **A company founded on a route of several points begins where its nearest neighbour is** (found by stage 1: a
   soldier that came up with the body half way round a circuit founded a company that began the lap again).
@@ -490,7 +502,8 @@ games by one script (the counts are its, so a row here can differ from the table
   soldier-seconds were coming or with no slot. The player at 19:06: "Its 62 reinforcing Stouts have been 'about 50
   seconds away' for the last few reports, so they may be held up on the walk", and at 19:34 it declared a second
   army at D4 for it. **This is code holding units back, which the ruling on D1 forbids, and nobody chose it.** The
-  first game had it smaller (45 and 79 fires in its last two minutes, 28 of 64 on the road at 16:00). For his word.
+  first game had it smaller (45 and 79 fires in its last two minutes, 28 of 64 on the road at 16:00). His word,
+  2026-11-12 (§0): they walk on, and the report says it (built the same day, §4 and §7).
 - **The arrival times in the report are the straight line's** (§12): "half in about 50 seconds" stood for two
   minutes.
 - **Soldiers of a type no open slot names stand until the player sees them.** At 8:04 the player made the army
@@ -530,10 +543,11 @@ games by one script (the counts are its, so a row here can differ from the table
   Before, reinforcements stopped at the plant because the group was gone. The user has not been asked.
 - The travel time is the straight line over the soldier's speed, not the hands' fields: a place across a cliff
   reads nearer than it is. In the second game it read "half in about 50 seconds" for two minutes of comers held
-  before his turrets (§11).
-- **A comer alone is held at the edge of any threat between it and its body** (H-MICRO-FLEE, §11, the second game).
-  Not chosen by anybody, against the ruling on D1, and the user has not been asked: what a comer does at a threat
-  its body passed (walks on as the body did; takes the body's way; or is said in the report as held, with where).
+  before his turrets (§11). From 2026-11-12 the report names it as the straight line's and says where the comers
+  stand; the deal still fills slots by it.
+- (Built 2026-11-12, §0, §4, §7: a comer is under no flee and the report says where the comers are, who is shot at
+  and who died on the way. The user: "We may decide to do something more complicated later": a comer taking its
+  body's way, or gathering, is not built.)
 - The Distilled and Territory bots do not use the deal.
 
 **Not run.** Stages 2 to 5 of §10: the drills of a station beside an army, the raid scenario with lends (its

@@ -80,7 +80,7 @@ def soldiers_in(entry):
     """How many soldiers an actor's entry in the state says it has, and how many are coming to it."""
     text = entry if isinstance(entry, str) else json.dumps(entry)
     body = re.search(r"\((\d+) soldiers? worth", text)
-    coming = re.search(r"(\d+) more soldiers are coming to it", text)
+    coming = re.search(r"(\d+) more soldiers? (?:is|are) coming to it", text)
     return (int(body.group(1)) if body else None, int(coming.group(1)) if coming else 0)
 
 

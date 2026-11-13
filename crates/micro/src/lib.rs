@@ -1638,3 +1638,49 @@ impl Lane {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_host::{Host, PAWN, TOWER, at, enemy, moves_of, rover, tick};
+
+    /// A loose soldier whose order leads through a turret nobody priced it against is stepped back and held before
+    /// it (H-MICRO-FLEE); the same soldier under no flee (the flagship's soldier coming to its group: the user,
+    /// 2026-11-12, "Agreed with walking on and reporting it for now") gets no order of the lane's and walks its own
+    /// through the turret's reach, and a soldier the lane held is given its order back the tick it is under none.
+    #[test]
+    fn a_soldier_under_no_flee_walks_its_order_through_a_turrets_reach() {
+        let host = Host::new(Vec::new());
+        // A turret reaching 430 at x 1,500: its reach and tail begin at x 980. The Pawn walks east at 3 a frame.
+        let turret = enemy(9, TOWER, 1500.0, 1000.0);
+        let pawn = |x: f32| OwnUnit { def: PAWN, health: 370.0, max_health: 370.0, vel: at(3.0, 0.0), ..rover(1, x, 1000.0) };
+        let order = Command::Fight { unit: UnitId(1), to: at(2500.0, 1000.0), queue: false };
+        let walking_on = Footwork { flee: false, ..Footwork::default() };
+
+        let mut lane = Lane::default();
+        lane.note_standing_orders(std::slice::from_ref(&order), 0, |_| true);
+        let out = lane.tick(&host, &tick(30, vec![pawn(990.0)], vec![turret.clone()]), &mut Vec::new(), false);
+        assert!(out.fired.contains(&"H-MICRO-FLEE"), "loose, it is turned back: {:?}", out.fired);
+        let step = moves_of(&out.commands, 1);
+        assert!(step.len() == 1 && step[0].x < 990.0, "a step back west: {step:?}");
+        assert_eq!(lane.holding(UnitId(1)).as_deref(), Some("H-MICRO-FLEE"));
+        // Out of the reach and its order's way still through it: held, for as long as the turret stands.
+        let out = lane.tick(&host, &tick(90, vec![OwnUnit { vel: at(0.0, 0.0), ..pawn(880.0) }], vec![turret.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.is_empty() && lane.holding(UnitId(1)).is_some(), "held at the edge: {:?}", out.commands);
+
+        // Under no flee from here: its order comes back, and nothing more is said to it inside the reach.
+        lane.set_commitments(HashMap::new(), HashMap::from([(UnitId(1), walking_on)]));
+        let out = lane.tick(&host, &tick(120, vec![OwnUnit { vel: at(0.0, 0.0), ..pawn(880.0) }], vec![turret.clone()]), &mut Vec::new(), false);
+        assert!(matches!(out.commands.as_slice(), [Command::Fight { unit: UnitId(1), to, .. }] if to.x == 2500.0), "released to its order: {:?}", out.commands);
+        assert_eq!(lane.holding(UnitId(1)), None);
+        let out = lane.tick(&host, &tick(150, vec![pawn(1100.0)], vec![turret.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.is_empty() && !out.fired.contains(&"H-MICRO-FLEE"), "it walks on: {:?}", out.commands);
+
+        // A soldier under no flee from the start is never taken.
+        let mut lane = Lane::default();
+        lane.set_commitments(HashMap::new(), HashMap::from([(UnitId(1), walking_on)]));
+        lane.note_standing_orders(std::slice::from_ref(&order), 0, |_| true);
+        let out = lane.tick(&host, &tick(30, vec![pawn(990.0)], vec![turret]), &mut Vec::new(), false);
+        assert!(out.commands.is_empty() && out.fired.is_empty(), "{:?} {:?}", out.commands, out.fired);
+    }
+}

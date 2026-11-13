@@ -674,7 +674,9 @@ word, therefore gets no reinforcement while it stands beyond them: the comers ga
 having chosen that, and the report's arrival times (the straight line over the soldier's speed) go on reading
 under a minute.
 **Status.** observed once, in the second flagship game on the slots (slots-apex-v0507-comet-opus-2, 2026-11-11);
-nothing built, the user not yet asked. From 17:50 to 19:40 `group_A` held at H1 with 21 to 25 soldiers and every
+exploited 2026-11-12 on the user's word ("Agreed with walking on and reporting it for now. We may decide to do something more complicated later, but let's see the simple approach in practice first"): a soldier coming is under no flee and the
+`reinforcements` line says where the comers are, who is shot at and who died on the way. Not yet verified in a
+game. From 17:50 to 19:40 `group_A` held at H1 with 21 to 25 soldiers and every
 report read 57 to 71 more coming, "half in about 50 seconds". At 19:00, 68 soldiers were with no group, 46 of
 them between D2 and F4 and 26 at E2 and E3, his turrets standing at E2, F2 (with his commander) and F3. Three
 Stouts traced (16223, 29053, 28932) stood between E2 and F3 from 18:00 to 19:50, their orders the comers' fight
@@ -690,4 +692,5 @@ the flee fires to the comers is the count's timing and the three traces, not a l
 `strategist-0.jsonl` (the turns at 18:47, 19:06, 19:34). H-MICRO-FLEE's words in `docs/heuristics.md`.
 **Would be wrong if.** A unit-by-unit log of the flee rule showed the held comers were not its claims; or a game
 with the army beyond his turrets showed its comers arriving at the straight line's times.
-**Used by.** Nothing yet (`docs/design/2026-11-11-groups-as-slots.md` §11 and §12).
+**Used by.** H-MICRO-FLEE and H-MICRO-DEAL as amended 2026-11-12, H-HANDS-SLOTS's `reinforcements` line
+(`docs/design/2026-11-11-groups-as-slots.md` §4, §7, §11).

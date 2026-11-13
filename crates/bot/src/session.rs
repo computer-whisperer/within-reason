@@ -157,6 +157,9 @@ pub(crate) struct BrainResult {
     pub commands: Vec<Command>,
     /// The groups declared to the lane, when the brain re-declared them this tick: those not in the list are cleared.
     pub declared: Option<Vec<Declared>>,
+    /// The soldiers coming to their groups, with every re-declaration: under no flee in the lane (H-MICRO-FLEE as
+    /// amended 2026-11-12).
+    pub coming: Option<Vec<UnitId>>,
     /// The view's fixed part, with the first answer after the faction is adopted.
     pub fixed: Option<Arc<LaneFixed>>,
     /// The view's changing part, with every think's answer.
@@ -237,6 +240,15 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
                 for (name, members, order) in declared {
                     lane.set_group(&name, members, order);
                 }
+            }
+            // A soldier coming to its group walks its one order on through any threat, as the body it is coming to
+            // walked: the lane never turns it back or holds it at a threat's edge (the user, 2026-11-12: "Agreed
+            // with walking on and reporting it for now"; until then a group standing beyond his turrets got none of
+            // its reinforcements: K-deal-a-comer-alone-is-held-at-the-edge-of-a-threat-its-body-passed). It keeps
+            // the fan and the kite, which hold nobody back. The flagship gives the lane no other footwork and no
+            // threat set.
+            if let Some(coming) = answer.coming {
+                lane.set_commitments(HashMap::new(), coming.into_iter().map(|id| (id, micro::Footwork { flee: false, ..micro::Footwork::default() })).collect());
             }
             commands.extend(answer.commands);
             for (rule, n) in answer.journal.rules {

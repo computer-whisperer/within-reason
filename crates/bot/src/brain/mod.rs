@@ -285,8 +285,8 @@ pub struct Brain {
     extractor_losses: VecDeque<i32>,
     /// Every unit of ours destroyed by the enemy in the last three minutes: frame, unit, type. The wakes read it (a
     /// group's losses since the player's last orders, losses while its orders were on their way, the wait floor).
-    /// (frame, the unit, its type, the killer and its type when the attacker was known and identified).
-    pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId, Option<(UnitId, UnitDefId)>)>,
+    /// (frame, the unit, its type, the killer and its type when the attacker was known and identified, where it died).
+    pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId, Option<(UnitId, UnitDefId)>, Vec3)>,
     /// Metal spots (by index) where an extractor offset toward the builder was refused: the exact centre from then on.
     centre_only: HashSet<usize>,
     dropped_orders: u32,
@@ -656,7 +656,7 @@ impl Brain {
             // commands at our own base, the body standing there 22 s; human-22 11:30: a body under "advance to
             // spot_46" walking home; 13 of 118 walks and advances played between thinking ticks in four games
             // with people pointed elsewhere, 1 of 97 played on them).
-            ((!commands.is_empty()).then(|| self.timed("declare", |b| b.declare_groups())), None)
+            ((!commands.is_empty()).then(|| self.timed("declare", |b| (b.declare_groups(), b.coming()))), None)
         } else {
             let thought = if self.carried_events.is_empty() {
                 self.timed("think", |b| b.think(tick))
@@ -667,14 +667,15 @@ impl Brain {
                 self.timed("think", |b| b.think(&whole))
             };
             commands.extend(thought);
-            (Some(self.timed("declare", |b| b.declare_groups())), self.kit.is_some().then(|| self.timed("scene", |b| b.lane_scene(tick.frame))))
+            (Some(self.timed("declare", |b| (b.declare_groups(), b.coming()))), self.kit.is_some().then(|| self.timed("scene", |b| b.lane_scene(tick.frame))))
         };
         self.echo.said(&commands, tick.frame);
         let fixed = (self.kit.is_some() && !self.lane_fixed_sent).then(|| {
             self.lane_fixed_sent = true;
             self.lane_fixed()
         });
-        BrainResult { frame: tick.frame, commands, declared, fixed, scene, journal: self.take_journal(), decide_ms: 0.0 }
+        let (declared, coming) = declared.unzip();
+        BrainResult { frame: tick.frame, commands, declared, coming, fixed, scene, journal: self.take_journal(), decide_ms: 0.0 }
     }
 
     /// One phase of a decide, its wall time journaled (the record's `phase_ms`, the slowest of each phase per sample):
