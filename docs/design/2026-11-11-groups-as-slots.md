@@ -732,6 +732,10 @@ director still pickets by its own rule), rove with a rover dealt in and out, and
 Jev over recorded gates. Run since (stage 6, §11): seven smokes of the pianist alone, one WRDistilled game and three
 flagship games, all won; two 1v1 games against a person, both lost (§11); no team game, nothing with aircraft. Of stage 5, the answer's lines were asked again over the first
 game's picks (§5.1); the build with them has two smokes and the second flagship game behind it.
+§5.2 (2026-11-13): two smokes of the pianist alone (slots-smoke-8, slots-smoke-9: it runs, the half holds once what a
+group has out is counted) and the heading line asked again offline over the second human game's 7:30 to 7:46
+(`run/jev_headed_ab.py`: Jev reads it by who gets there first; it would not have saved the solars there). No game
+with a player and none against a person on it.
 
 ## 13. Not in this design
 

@@ -2602,8 +2602,18 @@ extractor on its way is at spot_6"), each the one it reached first; our base lay
 rated no higher in the same moment asked again; or the army ordered home at 7:30 would have arrived after the
 raiders anyway (it was about 1,150 from home, 23 to 27 s at the pace it kept, against their 25 s).
 **Used by.** H-HANDS-HEADED-FOR (2026-11-13), which says it of every place with an extractor of ours on the party's
-way within a minute, since the next alone would have named spot_11 and spot_6 here and never the base. Unjudged in
-a game and not asked again offline.
+way within a minute, since the next alone would have named spot_11 and spot_6 here and never the base.
+**Asked again offline (2026-11-13, `run/jev_headed_ab.py <match> 7:30 7:46`; ten gate calls, each as recorded and
+with the line rebuilt from the logs; one ask each).** Jev reads the line by who gets there first. The 68 walks and
+advances it would have been on: where it said "gets there first" (20) the rating went 0.26 to 0.33, over 0.5 in
+1 and then 4, up by 0.05 or more in 11 and down in none; "about when it does" (11) 0.20 to 0.21; "gets there after
+it" (37) 0.21 to 0.15, down by 0.05 or more in 12 and up in none. The 150 other moves in the same calls 0.158 to
+0.159. The advance to spot_11, which the raiders reached first, went 0.71 to 0.32 at 7:34; the advance to spot_16,
+which the army could reach first, 0.40 to 0.54 at 7:33. **What it does not show:** it would not have sent the army
+to the base here. The base's extractor stands at spot_10, not at `home`; the line on spot_10 read "after it" or
+"about when it does" at every second, and `fight_to_spot_10` stayed at 0.06 to 0.25 and `fight_to_home` at 0.16
+to 0.32. From where the army stood no advance was ahead of the raiders: the line says so, and standing between
+would have had to be chosen before 7:30. Unjudged in a game.
 
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
