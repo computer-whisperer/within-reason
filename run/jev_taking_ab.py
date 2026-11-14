@@ -12,7 +12,7 @@ from jev_ab import api_key, ask, requests_of
 from match_read import Match
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-M = os.path.join(ROOT, 'run/matches/1790828086-player-31-hard/00')
+M = '/ceph/christian/within-reason/run/matches-archive/1790828086-player-31-hard/00'
 OUT = os.path.join(ROOT, 'docs/studies/data/taking-apart-2026-10-01.jsonl')
 # The extractors' health by game second, from the record's samples: (spot_54) 26351, (spot_62) 22253.
 H54 = {383: 100, 384: 93, 385: 83, 386: 72, 387: 64, 388: 54, 389: 44, 390: 34, 391: 23, 392: 16, 393: 4}

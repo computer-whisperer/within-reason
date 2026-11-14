@@ -36,7 +36,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, git_commit, refresh_cache_template,
+    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, drop_match_caches, git_commit, refresh_cache_template,
     resolve_game, stop,
 };
 use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
@@ -228,6 +228,7 @@ fn main() -> io::Result<()> {
         worker.join().unwrap();
     }
     refresh_cache_template(&repo, &batch_dir);
+    drop_match_caches(&batch_dir);
 
     let left = batch.queue.lock().unwrap().len();
     let ran = batch.results.lock().unwrap().len();

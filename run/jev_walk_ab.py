@@ -9,7 +9,7 @@ import json, random, re, sys, collections, concurrent.futures
 sys.path.insert(0, "run")
 from jev_ab import api_key, ask, requests_of
 from match_read import Match
-D = sys.argv[1] if len(sys.argv) > 1 else "run/matches/1790957410-player-38-split/00"
+D = sys.argv[1] if len(sys.argv) > 1 else "/ceph/christian/within-reason/run/matches-archive/1790957410-player-38-split/00"
 N = int(sys.argv[2]) if len(sys.argv) > 2 else 40
 OUT = sys.argv[3] if len(sys.argv) > 3 else "/dev/null"
 m = Match(D)

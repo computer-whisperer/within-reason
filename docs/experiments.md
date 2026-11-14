@@ -23,12 +23,18 @@ its replay) followed, the root filesystem at 96%; the same day the records and t
 (`*-replay-*` with a `card.json`, 200 GB, most of them the pool's 8v8 and duel demos replayed through `run/replay_match.py` on
 2026-10-22) went to the archive directory of the same name, while their cards, demos and logs stay in `run/matches/`, so that
 `run/data/replays/manifest.jsonl` and the card readers (`run/pro_baseline.py`, `run/timelines.py`, `run/reference_set.py`) read
-as before; a tool that wants a replay's records takes the archive path. Everything else from 2026-10-20 on (`1792473708-barb-hard-1`
-and later) is still in `run/matches/`.
+as before; a tool that wants a replay's records takes the archive path. On 2026-11-14 the 1,219 batches of 2026-10-20 through
+2026-11-06 (`1792473708-barb-hard-1` through `1794024525-1v2-easy-2`, 31 GB: the brief rework and the distilled bot's arcs through
+the static defence arc, the duel drills among them) followed, the root filesystem at 73% (asked for, not forced); the carded replay
+stubs stay as before. Everything from 2026-11-07 on (`1794060468-human` and later) is still in `run/matches/`.
 **The hands' logs are compressed** (`jev-<n>.jsonl.zst`, docs/harness/record-format.md): the arena does it as a match
 closes from 7d1c566 (2026-10-09) on, and on 2026-10-09 the 413 raw logs of the archive (80.0 GB, in 336 match directories)
 and the 7 of `run/matches/` (3.5 GB) were compressed in place with `arena --compress-logs`, to 6.0 GB and 0.2 GB; every
 file passes `zstd -t` and the reader's frame-by-frame check. A reader opens either form through `run/jevlog.py`.
+On 2026-11-14, before the move above, 93 raw logs in 36 match directories of `run/matches/` (arenas killed before the
+match closed, 2026-10-20 to 2026-11-12) were compressed the same way, 22.9 GB to 1.7 GB, and the engine caches the duel
+binary had left in 1,246 batches (2,616 `cache/` directories, 12 GB) were removed: it refreshed `run/cache-template` but
+never dropped the match copies as the arena does, now it does.
 
 | Batch label | Commit | Opponent | n | W-L-T | Testing | Outcome |
 |---|---|---|---|---|---|---|

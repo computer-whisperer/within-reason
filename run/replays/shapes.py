@@ -70,7 +70,7 @@ def load_tables():
     rows = g if isinstance(g, list) else [dict(v, name=k) for k, v in g.items()]
     gl = {r["name"]: r for r in rows}
     table = {}
-    hdr = os.path.join(REPO, "run/matches/1790257668-bank-1/00/record-0.jsonl")
+    hdr = "/ceph/christian/within-reason/run/matches-archive/1790257668-bank-1/00/record-0.jsonl"
     if os.path.exists(hdr):
         for u in json.loads(open(hdr).readline())["unit_defs"]:
             table[u["name"]] = {"class": u["class"], "reach": u.get("reach") or 0.0, "hull": 8 * max(u.get("footprint") or [4, 4]),
@@ -890,7 +890,7 @@ def main():
     ap.add_argument("--map", default="Comet Catcher Remake 1.8")
     ap.add_argument("--floor", type=float, default=40)
     ap.add_argument("--ours", nargs="*", default=[
-        "run/matches/1790257668-bank-1/00", "run/matches/1790261454-2v1b-hard/00", "run/matches/1790263097-2v1b-hard_aggressive/00"])
+        "/ceph/christian/within-reason/run/matches-archive/1790257668-bank-1/00", "/ceph/christian/within-reason/run/matches-archive/1790261454-2v1b-hard/00", "/ceph/christian/within-reason/run/matches-archive/1790263097-2v1b-hard_aggressive/00"])
     ap.add_argument("--fights", action="store_true", help="print every fight side")
     ap.add_argument("--orders", action="store_true", help="the group-order table")
     ap.add_argument("--no-pros", action="store_true")
