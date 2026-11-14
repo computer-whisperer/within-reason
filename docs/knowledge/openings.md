@@ -636,5 +636,6 @@ at 6:56, its first ship at 7:49; it held no extractor by 15:00 and the side lost
 since 2026-10-20).
 **Would be wrong if.** Another seat started under water opened at sea unprompted (its list accepted, extractors and
 tidals where it stood, a shipyard inside two minutes).
-**Used by.** D-sea-start; the two harness changes the user asked for on 2026-11-14 (a sea opening in the pre-game
-lists, a refused opening list retried), unbuilt at this writing.
+**Used by.** D-sea-start; [[H-PLAYER-SEA-LISTS]] (a second list per faction for a start under water, built
+2026-11-14). The refusal that left this seat with no list cannot recur as it did: the tag's place in a step is free
+since 0f57f3bb, and a `wait` beside a refused list is not taken since 98f0aa1a (both 2026-11-07/08, after this game).

@@ -1081,10 +1081,18 @@ impl Brain {
             "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
             "grid": self.world.cells.description(),
             "our_start": "not known before the game begins",
-            "start_boxes": hello.start_boxes.iter().map(|b| json!({
-                "ally_team": b.ally_team, "ours": b.ally_team == hello.ally_team, "cells": self.world.box_cells(b),
-                "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
-            })).collect::<Vec<_>>(),
+            "start_boxes": hello.start_boxes.iter().map(|b| {
+                // The spots a seat may be started at (the game's guesser takes a free spot in the box or within 750
+                // of it, F-map-starts) and how many of them lie in water too deep for a land opening: the one
+                // thing known of the start's ground before the game (H-PLAYER-SEA-LISTS).
+                let near: Vec<&Vec3> = hello.metal_spots.iter().filter(|s| s.x >= b.left - 750.0 && s.x <= b.right + 750.0 && s.z >= b.top - 750.0 && s.z <= b.bottom + 750.0).collect();
+                let deep = near.iter().filter(|s| self.world.water_depth(***s) > super::roster::SEA_START_DEPTH).count();
+                json!({
+                    "ally_team": b.ally_team, "ours": b.ally_team == hello.ally_team, "cells": self.world.box_cells(b),
+                    "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
+                    "metal_spots": near.len(), "metal_spots_under_water": deep,
+                })
+            }).collect::<Vec<_>>(),
             "note": "The walking distances from our start, the terrain sketch, the water and the passages come with the first report of the running game, when our start is known.",
         });
         if hello.map.metal_map {

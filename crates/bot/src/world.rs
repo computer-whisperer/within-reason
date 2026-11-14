@@ -150,6 +150,16 @@ impl World {
         t.heights.get((row * i64::from(t.width) + col) as usize).is_some_and(|h| *h < 0)
     }
 
+    /// How much water stands over the ground at `pos` (0 on dry ground or with no terrain read).
+    pub fn water_depth(&self, pos: Vec3) -> f32 {
+        let t = &self.hello.terrain;
+        if t.cell <= 0.0 || t.heights.is_empty() {
+            return 0.0;
+        }
+        let (col, row) = (((pos.x / t.cell) as i64).clamp(0, i64::from(t.width) - 1), ((pos.z / t.cell) as i64).clamp(0, i64::from(t.height) - 1));
+        t.heights.get((row * i64::from(t.width) + col) as usize).map_or(0.0, |h| (-f32::from(*h)).max(0.0))
+    }
+
     /// Whether ground under water lies within `radius` of `pos`: where a sea building can stand.
     pub fn water_within(&self, pos: Vec3, radius: f32) -> bool {
         self.nearest_water(pos, radius).is_some()

@@ -51,7 +51,7 @@ use bot_protocol::{Command, Event, Tick, UnitDefId, UnitId, Vec3};
 use serde_json::json;
 
 use super::economy::FIRST_ORDER_FRAME;
-use super::roster::Kit;
+use super::roster::{self, Kit};
 use super::{Brain, FRAMES_PER_SECOND};
 use std::time::{Duration, Instant};
 pub(super) use groups::{Group, GroupTask};
@@ -506,6 +506,18 @@ fn spawn_worker(client: jev::Client) -> Worker {
 /// A `produce` list entry: the unit name and, after a colon, how many more of it are allowed ("corck:1").
 
 /// A faction's name as the report writes it (Armada, Cortex, Legion).
+/// What the first line says of the water a builder stands in when its lists were given per faction: that the
+/// `_sea` list is the one taken and why, or, under deep water with no such list, that the land list runs there.
+fn sea_words(depth: f32, sea: bool, keys: &[&str], faction: &str) -> String {
+    if sea {
+        format!(", standing under {depth:.0} of water")
+    } else if depth > roster::SEA_START_DEPTH && !keys.contains(&format!("{faction}{}", roster::SEA_SUFFIX).as_str()) {
+        format!(", standing under {depth:.0} of water with no {faction}{} list given", roster::SEA_SUFFIX)
+    } else {
+        String::new()
+    }
+}
+
 pub fn faction_title(faction: &str) -> String {
     let mut chars = faction.chars();
     chars.next().map(|c| c.to_uppercase().collect::<String>() + chars.as_str()).unwrap_or_default()
@@ -1082,11 +1094,16 @@ impl Brain {
             let steps = match list {
                 Listed::Steps(steps) => steps,
                 Listed::ByFaction(map) => {
-                    let others: Vec<&str> = map.keys().map(String::as_str).filter(|f| *f != roster.faction).collect();
+                    // The faction's list, or its `_sea` list for a builder that stands in deep water at this look
+                    // (H-PLAYER-SEA-LISTS: the lists were written before the start was known).
+                    let depth = self.unit_by_handle(&name, &tick.snapshot.own_units).map_or(0.0, |u| self.world.water_depth(u.pos));
+                    let keys: Vec<&str> = map.keys().map(String::as_str).collect();
+                    let taken = roster::list_for(&keys, roster.faction, depth);
+                    let others: Vec<&str> = keys.iter().copied().filter(|k| taken.as_ref().is_none_or(|(key, _)| k != key)).collect();
                     let dropped = if others.is_empty() { String::new() } else { format!("; its {} list{} dropped", others.join(" and "), if others.len() > 1 { "s" } else { "" }) };
-                    match map.get(roster.faction) {
-                        Some(steps) => {
-                            lines.push(format!("{} {name}: {}: its {} list taken ({} steps){dropped}", picture::clock(tick.frame), faction_title(roster.faction), roster.faction, steps.len()));
+                    match taken.as_ref().and_then(|(key, sea)| map.get(key).map(|steps| (key, *sea, steps))) {
+                        Some((key, sea, steps)) => {
+                            lines.push(format!("{} {name}: {}{}: its {key} list taken ({} steps){dropped}", picture::clock(tick.frame), faction_title(roster.faction), sea_words(depth, sea, &keys, roster.faction), steps.len()));
                             Some(steps.clone())
                         }
                         None => {
@@ -1188,13 +1205,18 @@ impl Brain {
             let names: Vec<String> = allowed.iter().filter(|(_, a)| !a.by_faction.is_empty()).map(|(name, _)| name.clone()).collect();
             for name in names {
                 let faction = self.unit_by_handle(&name, own_units).and_then(|u| self.world.def(u.def)).map_or(kit.roster.faction, |d| World::faction_of(&d.name));
+                // The `_sea` list is taken by where the named actor stands, and for `all` and the like by where the
+                // seat's commander does: the start the lists were written without (H-PLAYER-SEA-LISTS).
+                let depth = self.unit_by_handle(&name, own_units).or_else(|| own_units.iter().find(|u| u.def == kit.commander)).map_or(0.0, |u| self.world.water_depth(u.pos));
                 let Some(allowance) = allowed.get_mut(&name) else { continue };
                 let by_faction = std::mem::take(&mut allowance.by_faction);
-                let others: Vec<&str> = by_faction.keys().map(String::as_str).filter(|f| *f != faction).collect();
+                let keys: Vec<&str> = by_faction.keys().map(String::as_str).collect();
+                let taken = roster::list_for(&keys, faction, depth);
+                let others: Vec<&str> = keys.iter().copied().filter(|k| taken.as_ref().is_none_or(|(key, _)| k != key)).collect();
                 let dropped = if others.is_empty() { String::new() } else { format!("; its {} list{} dropped", others.join(" and "), if others.len() > 1 { "s" } else { "" }) };
-                match by_faction.get(faction) {
-                    Some(units) => {
-                        lines.push(format!("{} produce {name}: {}: its {faction} list taken ({}){dropped}", picture::clock(tick.frame), faction_title(faction), units.join(", ")));
+                match taken.as_ref().and_then(|(key, sea)| by_faction.get(key).map(|units| (key, *sea, units))) {
+                    Some((key, sea, units)) => {
+                        lines.push(format!("{} produce {name}: {}{}: its {key} list taken ({}){dropped}", picture::clock(tick.frame), faction_title(faction), sea_words(depth, sea, &keys, faction), units.join(", ")));
                         allowance.units = units.clone();
                     }
                     None => {
@@ -2400,15 +2422,19 @@ mod stop_tests {
         use std::collections::BTreeMap;
         let id = UnitDefId(9);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[1] };
-        let run = |lists: BTreeMap<String, Vec<String>>, allowance: BTreeMap<String, Vec<String>>| {
+        let run = |lists: BTreeMap<String, Vec<String>>, allowance: BTreeMap<String, Vec<String>>, deep: bool| {
             let mut brain = brain_of(&["corcom", "corsolar"]);
+            if deep {
+                brain.world.hello.terrain = bot_protocol::Terrain { cell: 16.0, width: 128, height: 128, heights: vec![-95; 128 * 128], slopes: vec![0; 128 * 128], metal: Vec::new() };
+            }
             brain.kit = Some(kit);
             let shared = std::sync::Arc::new(Shared::default());
             shared.queues.lock().unwrap().insert("constructor_1".into(), Listed::ByFaction(lists));
             shared.allowed.lock().unwrap().insert("all".into(), crate::strategist::shared::Allowance { call: 1, by_faction: allowance, ..Default::default() });
             brain.strategist = Some(shared.clone());
             brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
-            let ours = vec![own(1, 1, at(1000.0, 950.0))];
+            // The second unit is the kit's commander (by its def id alone): where `produce all` reads the start.
+            let ours = vec![own(1, 1, at(1000.0, 950.0)), own(2, 9, at(1000.0, 950.0))];
             let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
             let tick = Tick { frame: 1, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, ..Default::default() } };
             let mut commands = Vec::new();
@@ -2420,16 +2446,34 @@ mod stop_tests {
         let lists = |pairs: &[(&str, &[&str])]| pairs.iter().map(|(f, s)| (f.to_string(), s.iter().map(|s| s.to_string()).collect())).collect::<BTreeMap<String, Vec<String>>>();
         // The builder is Cortex (a corcom; the fixture's commander has no build speed, so it goes by id): the cortex
         // list, role words filled in; the armada one dropped.
-        let (done, script, allowance) = run(lists(&[("armada", &["extractor", "solar", "armvp"]), ("cortex", &["extractor", "solar", "plant #vp1"])]), lists(&[("armada", &["armcv:1", "armflash"]), ("cortex", &["constructor:1", "corgator"])]));
+        let (done, script, allowance) = run(lists(&[("armada", &["extractor", "solar", "armvp"]), ("cortex", &["extractor", "solar", "plant #vp1"])]), lists(&[("armada", &["armcv:1", "armflash"]), ("cortex", &["constructor:1", "corgator"])]), false);
         assert_eq!(script, Some(vec!["extractor".to_string(), "corsolar".to_string(), "corvp #vp1".to_string()]));
         assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex: its cortex list taken (3 steps); its armada list dropped"), "{done:?}");
         assert!(done.iter().any(|d| d == "0:00 produce all: Cortex: its cortex list taken (constructor:1, corgator); its armada list dropped"), "{done:?}");
         assert_eq!(allowance.map(|a| (a.units, a.by_faction.len())), Some((vec!["constructor:1".to_string(), "corgator".to_string()], 0)));
         // No list under the seat's faction: nothing taken, said; the allowance lifted.
-        let (done, script, allowance) = run(lists(&[("armada", &["extractor"]), ("legion", &["extractor"])]), lists(&[("armada", &["armcv:1"])]));
+        let (done, script, allowance) = run(lists(&[("armada", &["extractor"]), ("legion", &["extractor"])]), lists(&[("armada", &["armcv:1"])]), false);
         assert_eq!(script, None);
         assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex: no list for cortex among those given (armada, legion): it keeps what it had, else the menu"), "{done:?}");
         assert!(done.iter().any(|d| d == "0:00 produce all: Cortex: no list for cortex among those given (armada): it may build anything"), "{done:?}");
         assert!(allowance.is_none());
+        // A start under water (H-PLAYER-SEA-LISTS): the faction's `_sea` list is the one taken, for the builder by
+        // where it stands and for `produce all` by where the seat's commander does, and the line says why.
+        let both = || (lists(&[("cortex", &["extractor", "solar", "plant #vp1"]), ("cortex_sea", &["extractor", "cortide", "corsy #sy1"])]), lists(&[("cortex", &["corcv:1"]), ("cortex_sea", &["corcs:2", "coresupp"])]));
+        let (queue, produce) = both();
+        let (done, script, allowance) = run(queue, produce, true);
+        assert_eq!(script, Some(vec!["extractor".to_string(), "cortide".to_string(), "corsy #sy1".to_string()]));
+        assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex, standing under 95 of water: its cortex_sea list taken (3 steps); its cortex list dropped"), "{done:?}");
+        assert!(done.iter().any(|d| d == "0:00 produce all: Cortex, standing under 95 of water: its cortex_sea list taken (corcs:2, coresupp); its cortex list dropped"), "{done:?}");
+        assert_eq!(allowance.map(|a| a.units), Some(vec!["corcs:2".to_string(), "coresupp".to_string()]));
+        // On dry ground the same lists give the land one, and the sea list is the one dropped.
+        let (queue, produce) = both();
+        let (done, script, _) = run(queue, produce, false);
+        assert_eq!(script, Some(vec!["extractor".to_string(), "corsolar".to_string(), "corvp #vp1".to_string()]));
+        assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex: its cortex list taken (3 steps); its cortex_sea list dropped"), "{done:?}");
+        // Under water with no `_sea` list the land list runs, and the line says the sea list was not given.
+        let (done, script, _) = run(lists(&[("cortex", &["extractor", "solar"])]), lists(&[("cortex", &["corcv:1"])]), true);
+        assert_eq!(script, Some(vec!["extractor".to_string(), "corsolar".to_string()]));
+        assert!(done.iter().any(|d| d == "0:00 constructor_1: Cortex, standing under 95 of water with no cortex_sea list given: its cortex list taken (2 steps)"), "{done:?}");
     }
 }

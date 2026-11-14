@@ -57,7 +57,11 @@ would brief a hard-working assistant who follows orders literally and never coun
   faction the game gives the seat at their first look, and the first report's hands lines say which was taken
   and which dropped (1793584014-human, Comet against u6bkep: one list in role words put the Armada two-solar
   clock, plant at 0:37 and a constructor first, on a Cortex seat, and the energy store sat at zero from 1:19 to
-  4:00; the Cortex pool opens with a turret and a third extractor before the plant at 0:59). A step that is the
+  4:00; the Cortex pool opens with a turret and a third extractor before the plant at 0:59). Where the opening
+  turn says a start under water is possible, give a second list under the faction's key with `_sea` after it
+  (`"cortex_sea"`, in `queue` and in `produce`): the hands take it in the faction's place for a builder that stands
+  under more than 20 of water at their first look, and say so (1794105281-human, Glacial Gap: a Cortex seat
+  started 95 deep with a land opening and no list for the sea; its first extractor stood at 1:52). A step that is the
   same in every faction may be a role word the faction fills in: `solar`, `wind`, `lab`, `plant`, `air_plant`,
   `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`,
   `advanced_extractor` for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,

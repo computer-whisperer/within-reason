@@ -8,6 +8,33 @@ use crate::world::World;
 /// opening turn before the game, when the seat's faction is the game's to choose).
 pub const FACTIONS: [&str; 3] = ["armada", "cortex", "legion"];
 
+/// What a per-faction key ends in when its list is for a start under water (`cortex_sea`; H-PLAYER-SEA-LISTS): the
+/// opening is written before the start is known, and the game may place a seat's commander on the sea floor, where
+/// a land opening has nothing to build (1794105281-human: a Cortex seat 95 deep, its first extractor at 1:52).
+pub const SEA_SUFFIX: &str = "_sea";
+/// A builder standing under more water than this takes its faction's `_sea` list when one was given: the depth a
+/// tidal generator needs and the deepest a land constructor wades (`docs/briefs/facts/maps.md`, F-map-build).
+pub const SEA_START_DEPTH: f32 = 20.0;
+
+/// A per-faction key as the tools take it: the faction, and whether the list is that faction's for a start under
+/// water.
+pub fn list_key(key: &str) -> Option<(&'static str, bool)> {
+    let (faction, sea) = key.strip_suffix(SEA_SUFFIX).map_or((key, false), |f| (f, true));
+    FACTIONS.iter().copied().find(|f| *f == faction).map(|f| (f, sea))
+}
+
+/// Which of the lists given per faction a builder of `faction` standing under `depth` of water takes: the
+/// faction's `_sea` list under more than `SEA_START_DEPTH` when one was given, else the faction's own. The key and
+/// whether it is the sea list.
+pub fn list_for(keys: &[&str], faction: &str, depth: f32) -> Option<(String, bool)> {
+    let sea = format!("{faction}{SEA_SUFFIX}");
+    if depth > SEA_START_DEPTH && keys.contains(&sea.as_str()) {
+        Some((sea, true))
+    } else {
+        keys.contains(&faction).then(|| (faction.to_string(), false))
+    }
+}
+
 /// Unit names for one faction.
 pub struct Roster {
     /// The faction's name as `World::faction_of` gives it (armada, cortex, legion).
@@ -249,6 +276,23 @@ impl Roster {
 
 #[cfg(test)]
 mod tests {
+    /// A per-faction key is a faction or a faction's `_sea`; under more than 20 of water the `_sea` list is the one
+    /// taken when it was given, the faction's own otherwise (H-PLAYER-SEA-LISTS).
+    #[test]
+    fn a_sea_list_is_taken_under_deep_water_when_one_was_given() {
+        use super::{list_for, list_key};
+        assert_eq!(list_key("cortex"), Some(("cortex", false)));
+        assert_eq!(list_key("armada_sea"), Some(("armada", true)));
+        assert_eq!(list_key("cortex_ocean"), None);
+        assert_eq!(list_key("sea"), None);
+        let keys = ["armada", "cortex", "cortex_sea"];
+        assert_eq!(list_for(&keys, "cortex", 95.0), Some(("cortex_sea".to_string(), true)));
+        assert_eq!(list_for(&keys, "cortex", 20.0), Some(("cortex".to_string(), false)));
+        assert_eq!(list_for(&keys, "armada", 95.0), Some(("armada".to_string(), false)));
+        assert_eq!(list_for(&keys, "legion", 95.0), None);
+        assert_eq!(list_for(&["cortex_sea"], "cortex", 0.0), None);
+    }
+
     use super::*;
 
     /// A role word names the faction's unit; a step or an entry keeps what follows the word; an internal name or

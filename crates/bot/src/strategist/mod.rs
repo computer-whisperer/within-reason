@@ -926,6 +926,15 @@ What is known now: the map, who plays each side (the sides line below: a person'
 - `produce` with `all`, likewise one list per faction before the faction is known (`{\"all\": {\"armada\": [\"armcv:1\", ...], \"cortex\": [...], \"legion\": [...]}}`), or by role words when the lists would be the same (`constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor`; with counts as usual, `constructor:1`), and `instruct` with the plan and each kind of actor's standing job, naming no place that depends on the start.\n\
 - then `wait` with a short `max_seconds` (10): your first report of the running game comes then, with the start, the walking distances and every spot named. The lists go on running through it: re-send a list only for what you change, with the ids kept, since a new list replaces the old one whole and lands twenty to thirty seconds after the report you read.\n\n",
     );
+    // A start under water is the game's to give (the guesser takes a cluster of free spots, wet or dry): said when
+    // our box has spots in deep water, with the second list that start takes (H-PLAYER-SEA-LISTS; 1794105281-human:
+    // a Cortex seat 95 deep had no list, walked 900 to dry ground and stood its first extractor at 1:52).
+    let ours = map["start_boxes"].as_array().and_then(|boxes| boxes.iter().find(|b| b["ours"] == true));
+    if let Some((spots, deep)) = ours.map(|b| (b["metal_spots"].as_u64().unwrap_or(0), b["metal_spots_under_water"].as_u64().unwrap_or(0))).filter(|(_, deep)| *deep > 0) {
+        prompt += &format!(
+            "A start under water is possible here: {deep} of the {spots} metal spots in or beside our start box lie under more than 20 of water, and the game places an AI seat's commander beside a cluster of free spots. A commander on the sea floor builds extractors, tidal generators, the shipyard and the floating kinds where it stands; no solar, wind turbine, land plant or land turret stands in water, so a land opening has nothing to build there. For that start give each commander a second list beside its faction's, under the faction's key with `_sea` after it (`{{\"commander\": {{\"cortex\": [...], \"cortex_sea\": [...]}}}}`; with the faction known, its own key and its `_sea` key), and `produce` the same, the shipyard's units under the `_sea` key: the hands take a builder's `_sea` list when it stands under more than 20 of water at their first look and its faction's list otherwise, and their first line says which. With no `_sea` list a commander started under water runs the land list from the sea floor.\n\n"
+        );
+    }
     if realtime() {
         prompt.push_str("Once it begins this game runs in real time: it does not pause while you take a turn, and your orders land when the turn ends, five to ten seconds later. Decide from the report, write states that hold, and keep turns short.\n\n");
     }
@@ -997,7 +1006,13 @@ mod tests {
         // The sides as the lobby set them come before the game, in the running report's words (1793584014-human
         // told the player its opponent's faction and skill at 0:10, after the opening was written).
         assert!(opening.contains("sides (a 1v1): yours: you (WReason), faction chosen by the game at the start") && opening.contains("against you: [gecko]u6bkep (a person, lobby skill 19), Armada in the lobby"), "{opening}");
-        assert!(!opening.contains("Woken because"));
+        assert!(!opening.contains("Woken because") && !opening.contains("A start under water"));
+        // A start box with spots in deep water: the prompt says a commander may start on the sea floor and asks
+        // for the `_sea` list that start takes (H-PLAYER-SEA-LISTS).
+        let wet = opening_prompt(&[], &[], &json!({ "start_boxes": [{ "ours": false, "metal_spots": 20, "metal_spots_under_water": 9 }, { "ours": true, "metal_spots": 22, "metal_spots_under_water": 4 }] }));
+        assert!(wet.contains("A start under water is possible here: 4 of the 22 metal spots") && wet.contains("\"cortex_sea\": [...]"), "{wet}");
+        let dry = opening_prompt(&[], &[], &json!({ "start_boxes": [{ "ours": true, "metal_spots": 22, "metal_spots_under_water": 0 }] }));
+        assert!(!dry.contains("A start under water"), "{dry}");
         *shared.map.lock().unwrap() = json!({ "name": "Comet", "our_start": { "grid": "B8" } });
         let first = player_prompt("0:10", "10 s have passed", &shared, &mut seen, false, 0);
         assert!(first.contains("Map: ") && first.contains("B8") && first.contains("Woken because: 10 s have passed") && !first.contains("on their way"), "{first}");

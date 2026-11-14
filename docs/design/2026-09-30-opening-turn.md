@@ -135,3 +135,22 @@ the lobby, lobby skill 19" at 0:10. The opening prompt now carries the sides lin
 (`report.rs` `sides_line`, one function for both), filled at `seat_said_hello` from `Briefing::sides`; before the
 game a seat of ours on Random reads "faction chosen by the game at the start" there, as its seat line does.
 
+## A start under water (2026-11-14, H-PLAYER-SEA-LISTS)
+
+The opening is written before the start is known, and the game's guesser places an AI seat at a cluster of free spots
+whether they are dry or under water. In the lobby 3v2 on Glacial Gap (1794105281-human) a Cortex seat started 95 deep
+with a land opening: K-open-a-seat-started-under-water-opened-as-a-land-seat. Built on the user's word ("Let's build
+all three"):
+
+- `queue` and `produce` take a faction's key with `_sea` after it beside the faction's own (`cortex_sea`). At the
+  hands' first look a builder that stands under more than 20 of water (what a tidal generator needs; the deepest a
+  land constructor wades) takes the `_sea` list when one was given, the faction's own otherwise; `produce all` goes
+  by where the seat's commander stands. The first line says which was taken and why.
+- The opening turn's prompt says a start under water is possible, and asks for the `_sea` lists, when spots in or
+  within 750 of our start box lie under more than 20 of water. The pre-game map carries the two counts per box.
+- What the `_sea` list holds is the player's to write. The brief's sea documents (D-sea-start) say what people do
+  there; they are not in the manifest until the user has read them.
+
+Not built: a role word for the sea kinds (`tidal`, `shipyard`), so a `_sea` list names units by faction. Not run: no
+game has had a seat under water since; the path is covered by unit tests alone.
+
