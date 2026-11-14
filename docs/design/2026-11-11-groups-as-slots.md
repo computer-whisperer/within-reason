@@ -784,8 +784,11 @@ at 0.18 against the send's 0.27 and never played). The first game with a player 
 BARb hard_aggressive +20): the rung played seven times and no stand reached its place (four ended within 12 s by
 the rule that nothing of the party was seen for 6 s, two withdrawn, one turned to the hunt by its own move and
 lost, nine Blitzes to the party's body). So the arrival and the stand at the place have still run in tests alone,
-and two parts of item 6 are open on that evidence: the stand's end on lost sight before it has arrived, and the
-stand's third move (`hunt`), which the written design did not have.
+and one part of item 6 is open on that evidence: the stand's end on lost sight before it has arrived. The stand's
+third move (`hunt`), which the written design did not have, stays: the user on the nine Blitzes (2026-11-14), "not a
+problem with the code we just reworked. Our units chased into an enemy group we had no knowlege of. The improvement
+would have been if we had radar coverage of that area and could have called off the hunt before it got dangerous.
+Let's leave that for now".
 
 ## 13. Not in this design
 
