@@ -4,7 +4,7 @@ layer: derived
 premises: [F-sea-commander, F-sea-builders, F-sea-reach, F-map-build, F-map-ground, F-map-weather, F-eco-energy, F-eco-build, F-unit-corsy, F-unit-armsy, F-unit-cortide, F-unit-armtide, F-unit-corcs, F-unit-armcs, F-unit-cormuskrat, F-unit-armbeaver, F-unit-coresupp, F-unit-armdecade, F-unit-cortl, F-unit-armtl, F-unit-corroy, F-unit-armroy, F-unit-corvp, F-unit-corgator, M-sea-duels, M-sea-glacial-gap, M-gecko-other-maps]
 lessons: [L-water-tidals, L-mix-hovers]
 sources: {people: [the user, thebluegecko, u6bkep], dates: [2026-11-07, 2026-11-14], relay: the user after the lobby games with a seat of ours in the water (2026-11-14: "The last few games we had a seat start in the water resulted in very poor play. See if you can find one of those replays and figure out why"); the people's play in the Glacial Gap 3v2 of 2026-11-07 (M-sea-glacial-gap) and thebluegecko's on SailAway 2 and Coast To Coast (M-gecko-other-maps); eight public sea duels above OS 40 (M-sea-duels); the rest is arithmetic on the unit files}
-status: written 2026-11-14, not in the manifest (the user has not read it); unplayed: no game of ours has opened at sea on it
+status: in the manifest since 2026-11-14 (the user, on the report of it: "Good. Let's add the article to the brief and run a 1v1 in glacial gap against BARb, but start our commander in the same sea spot from the human game"); unplayed until that game
 -->
 ### A start at the sea: the shipyard is the plant
 

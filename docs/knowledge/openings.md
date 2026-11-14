@@ -619,7 +619,7 @@ unread; every side starts on land beside the sea).
 **Would be wrong if.** A larger count of sea duels (the selection's other 500, or the catalogue's SailAway 2 games)
 showed land plants first, or shipyards past two minutes, as common.
 **Used by.** The brief's sea documents (`docs/briefs/meta/sea.md` M-sea-duels, `docs/briefs/derived/sea.md`
-D-sea-start; written 2026-11-14, not in the manifest until the user has read them).
+D-sea-start; in the rework manifest since 2026-11-14 on the user's word).
 
 ### K-open-a-seat-started-under-water-opened-as-a-land-seat
 **Claim.** A flagship seat whose commander starts under water plays a land opening and is two minutes late and

@@ -149,7 +149,7 @@ all three"):
 - The opening turn's prompt says a start under water is possible, and asks for the `_sea` lists, when spots in or
   within 750 of our start box lie under more than 20 of water. The pre-game map carries the two counts per box.
 - What the `_sea` list holds is the player's to write. The brief's sea documents (D-sea-start) say what people do
-  there; they are not in the manifest until the user has read them.
+  there; they are in the rework manifest since 2026-11-14 on his word.
 
 Not built: a role word for the sea kinds (`tidal`, `shipyard`), so a `_sea` list names units by faction. Not run: no
 game has had a seat under water since; the path is covered by unit tests alone.

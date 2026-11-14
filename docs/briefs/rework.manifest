@@ -8,6 +8,7 @@
 docs/briefs/facts/economy.md
 docs/briefs/facts/fights.md
 docs/briefs/facts/maps.md
+docs/briefs/facts/sea.md
 # The unit tables are generated at assembly from the glossary for the factions in the game, each unit at the level
 # the unit context's rules give it (docs/design/2026-11-04-unit-context.md, crates/bot/src/strategist/unit_context.rs);
 # the documents after the arrow are the same tables whole, for the scripts and the meta ids.
@@ -18,6 +19,7 @@ docs/briefs/meta/barb.md
 docs/briefs/meta/apex.md
 docs/briefs/meta/legion.md
 docs/briefs/meta/formats.md
+docs/briefs/meta/sea.md
 docs/briefs/derived/metal.md
 docs/briefs/derived/energy.md
 docs/briefs/derived/commander.md
@@ -26,6 +28,7 @@ docs/briefs/derived/tier2.md
 docs/briefs/derived/tier3.md
 docs/briefs/derived/late-economy.md
 docs/briefs/derived/metal-maps.md
+docs/briefs/derived/sea.md
 docs/briefs/derived/reach.md
 docs/briefs/derived/commander-dive.md
 docs/briefs/derived/raids.md
