@@ -780,8 +780,12 @@ rung is on the menu from 7:31 and rated 0.04 to 0.15, every size outweighed and 
 packet; over the fifth flagship game it rates as the send of its size does, 0.37 against 0.35, and a rules sentence
 naming it lifts it to 0.45 in every class alike) and two smokes of the pianist alone (slots-smoke-11 against BARb,
 where no party headed for a place of ours; slots-smoke-12 against Apex v0.5.07, where the rung was asked 65 times
-at 0.18 against the send's 0.27 and never played). The stand in the lane has run in tests alone; no game with a
-player on it.
+at 0.18 against the send's 0.27 and never played). The first game with a player on it, slots-barb-20-1 (2026-11-14, won 20:27 against
+BARb hard_aggressive +20): the rung played seven times and no stand reached its place (four ended within 12 s by
+the rule that nothing of the party was seen for 6 s, two withdrawn, one turned to the hunt by its own move and
+lost, nine Blitzes to the party's body). So the arrival and the stand at the place have still run in tests alone,
+and two parts of item 6 are open on that evidence: the stand's end on lost sight before it has arrived, and the
+stand's third move (`hunt`), which the written design did not have.
 
 ## 13. Not in this design
 

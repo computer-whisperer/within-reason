@@ -2652,6 +2652,13 @@ its lender's clause are copied from the recorded send of the same size, whose so
 party and not to the place. One game against one bot and one moment against a person. One ask a rung and arm: the
 two asks of the first game differ by 0.02 on the means and by six on the counts at the flag.
 **Used by.** H-HANDS-AHEAD (the rung as built, with no rules sentence).
+- slots-barb-20-1 (2026-11-14, the first player game on the build, BARb hard_aggressive +20, the lean gate's rules
+  as recorded): asked 709 times in 162 gate calls, 0.38 against 0.34 for the send of its size in the same calls
+  (632 pairs), at the flag 124 against 123; the forbidden reading (328) 0.74. So with a player's packet in force the
+  claim holds live: the rung is rated as the send is. It was played seven times and none reached its place (four
+  ended after 5 to 12 s by the stand's rule that nothing of the party was seen for 6 s); the one joined by eight
+  more was turned to the hunt by its own move at 0.58 on "we outweigh it heavily; they can catch it" and lost all
+  nine Blitzes to the party's body, first seen 18 s later (the ledger row).
 
 ### K-jev-world-1s-label-is-worth-a-few-points-and-its-place-nothing
 **Claim.** World 1 still carries marks of its own in the pick: its line begins "Nothing changes:", the question has
