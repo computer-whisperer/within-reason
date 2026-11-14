@@ -555,10 +555,11 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     }
     // The live edge (docs/design/2026-10-21-brief-rework.md §11): the match's report and the player's words, for the
     // next game against this opponent on this map. Waited for, not spawned off: a series runs one game after another
-    // and the next bot reads the store at its session's start; the debrief inside is a model call of about a minute.
+    // and the next bot reads the store at its session's start; the debrief inside is a model call of about a minute, on the
+    // account the game's sessions ran on.
     if options.our_ai == FLAGSHIP_AI && options.player {
         let log = File::create(dir.join("live-edge.log"))?;
-        match Command::new("python3").arg(repo.join("run/live_edge.py")).arg("close").arg(&dir).arg("--store").arg(live_edge_store(repo, options.brief.as_deref())).stdout(log.try_clone()?).stderr(log).status() {
+        match Command::new("python3").arg(repo.join("run/live_edge.py")).arg("close").arg(&dir).arg("--store").arg(live_edge_store(repo, options.brief.as_deref())).envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir))).stdout(log.try_clone()?).stderr(log).status() {
             Ok(status) if status.success() => println!("match {index}: the live edge has this game"),
             Ok(status) => eprintln!("match {index}: the live edge step failed ({status}); see live-edge.log"),
             Err(e) => eprintln!("match {index}: the live edge step did not run: {e}"),

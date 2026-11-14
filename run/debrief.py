@@ -261,7 +261,7 @@ def main():
         os.remove(rejected)  # an earlier run's; this one answered
     shape = "in the asked shape" if in_shape(answer) else "in a shape of its own (DECIDED / NEXT PLAYER / WISHED was asked)"
     usage = subprocess.run([sys.executable, usage_script, "--since", snapshot, config_dir], capture_output=True, text=True)
-    since = next((l.strip() for l in usage.stdout.splitlines() if "since snapshot" in l), usage.stdout.strip()[-200:])
+    since = next((l.strip() for l in usage.stdout.splitlines() if "since snapshot" in l), "usage since the snapshot not read (the account's usage could not be fetched)")
     seat = "" if about["seats"] == 1 else f", the player of the first of our {about['seats']} seats"
     with open(out_path, "w") as f:
         f.write(f"# {about['label']}: the player's debrief\n\n")
