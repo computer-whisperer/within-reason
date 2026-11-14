@@ -4,7 +4,7 @@ layer: derived
 premises: [F-sea-commander, F-sea-builders, F-sea-reach, F-map-build, F-map-ground, F-map-weather, F-eco-energy, F-eco-build, F-unit-corsy, F-unit-armsy, F-unit-cortide, F-unit-armtide, F-unit-corcs, F-unit-armcs, F-unit-cormuskrat, F-unit-armbeaver, F-unit-coresupp, F-unit-armdecade, F-unit-cortl, F-unit-armtl, F-unit-corroy, F-unit-armroy, F-unit-corvp, F-unit-corgator, M-sea-duels, M-sea-glacial-gap, M-gecko-other-maps]
 lessons: [L-water-tidals, L-mix-hovers]
 sources: {people: [the user, thebluegecko, u6bkep], dates: [2026-11-07, 2026-11-14], relay: the user after the lobby games with a seat of ours in the water (2026-11-14: "The last few games we had a seat start in the water resulted in very poor play. See if you can find one of those replays and figure out why"); the people's play in the Glacial Gap 3v2 of 2026-11-07 (M-sea-glacial-gap) and thebluegecko's on SailAway 2 and Coast To Coast (M-gecko-other-maps); eight public sea duels above OS 40 (M-sea-duels); the rest is arithmetic on the unit files}
-status: in the manifest since 2026-11-14 (the user, on the report of it: "Good. Let's add the article to the brief and run a 1v1 in glacial gap against BARb, but start our commander in the same sea spot from the human game"); unplayed until that game
+status: in the manifest since 2026-11-14 (the user, on the report of it: "Good. Let's add the article to the brief and run a 1v1 in glacial gap against BARb, but start our commander in the same sea spot from the human game"); played once (sea-glacial-barb-2, won 26:50)
 -->
 ### A start at the sea: the shipyard is the plant
 
@@ -87,5 +87,8 @@ seat's commander walked to dry ground for a vehicle plant, its first extractor s
 stood at 0:09, his boats were at its tidals at 4:10, its shipyard stood at 6:30, its first torpedo launcher at 6:56
 and its first ship at 7:49; six of its tidals were dead by 6:00 with 1,338 metal banked and no energy, and it held no
 extractor by 15:00. Our seats against thebluegecko on SailAway 2 and Coast To Coast lost to a yard by 3:30 and
-Riptides from 4:10, and to a navy from the start (M-gecko-other-maps). No game of ours has opened at sea on this
-article.
+Riptides from 4:10, and to a navy from the start (M-gecko-other-maps). One game of ours has opened at sea on this
+article (2026-11-14, a duel against BARb from that same under-water start, won at 26:50): the sea list ran from the
+first second, the first extractor stood at 0:09, the yard at 1:09 and a construction ship at 1:36; the first
+Supporter came at 4:01, two minutes behind the pool, after a vehicle plant on dry ground at 2:15; destroyers from
+9:42 and cruisers from 14:39 did the killing at sea, and 46 extractors fell to raiders nothing of ours saw.

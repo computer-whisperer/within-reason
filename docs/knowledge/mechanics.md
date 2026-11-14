@@ -1250,8 +1250,9 @@ six Supporters told to walk 2,816 of water under it arrived in 26 s, formed (the
 member at every call), `record-0.jsonl` (the six Supporters' positions by half minute), `strategist-0.jsonl` (the
 `groups` calls); `run/matches/1794682284-duel-ships-walk-1`; the user, watching the game: "Our warships are just
 sitting next to their factory while sea mexes burn".
-**Status.** demonstrated (2026-11-14); mended the same day by [[H-HANDS-GROUP-DOMAINS]], unplayed since at this
-writing.
+**Status.** demonstrated (2026-11-14); mended the same day by [[H-HANDS-GROUP-DOMAINS]]; in the game after it
+(sea-glacial-barb-2) the navy group held 3 to 25 ships from 5:00 and no soldier stood unassigned for want of a group
+of its kind.
 **Would be wrong if.** A game on the mended build with a group of ships declared still showed its ships in no group.
 **Used by.** [[H-HANDS-GROUP-DOMAINS]].
 
