@@ -598,3 +598,43 @@ consequence sentences, unmeasured.
 **Would be wrong if.** A seat given the paragraph with the consequence still wrote the +0 opening at +50 %, or a
 seat given the old paragraph re-derived its opening unprompted in another game.
 **Used by.** [[H-PLAYER-BONUS-WORDS]].
+
+### K-open-sea-duels-shipyard-in-the-first-minute
+**Claim.** On a sea map, players above OS 40 open at sea: the shipyard is the first factory for ten of sixteen sides,
+begun at 0:11 to 1:19 (0:54 at the median) after two or three extractors and three or four generators (tidals for
+five sides, wind turbines for eleven); an aircraft plant for five (0:49 to 0:57, their shipyards at 2:55 to 6:11) and
+a hovercraft platform for one. No side opens with a bot lab or a vehicle plant. Out of the yard come construction
+ships first for seven of the ten and a gunboat first for three; the first warship is a gunboat (Supporter, Dolphin)
+on every one of the ten, at 1:16 to 2:50 (2:00 at the median), and they hold 2 to 22 warships at 5:00 (8 to 22 for
+the five above OS 55). Ten of the sixteen build a floating torpedo launcher by 8:00, the first at 2:35 to 7:54. In
+the four games of a shipyard opening against an aircraft one the aircraft side won three (OS 45 to 51).
+**Evidence.** Eight duels of the bar-replays selection 3 (its newest 500; `run/replays/bar_replays.py <id> 8`):
+SailAway 2 `1b0f866a1e6364c81998fd1e08193818`, `9b30a46a51a70017562a45de7d7cf817`,
+`b01f966a1ab4cff3d1d56b9cdba6da7c`, `bc27a46ac58a86b61f809792a655e500`, `da2aa46acb3a61f195116089fb767f35`,
+`e032936a3fac1d01d39fa640f2f46865`, `ed6fa96af2513e2cb9e9469e73ca91fe`; Coast To Coast BAR v1.0
+`3faebd6ae91e68f68fb26dc58b1b2bd6`. Two more of the 500 on maps with water (Scylla and Charybdis 1.1, Shallow Straits
+v1.0.1) opened as land games with no ship by 8:00.
+**Status.** observed (2026-11-14, eight games read by their build clocks; no positions, so where a fleet went is
+unread; every side starts on land beside the sea).
+**Would be wrong if.** A larger count of sea duels (the selection's other 500, or the catalogue's SailAway 2 games)
+showed land plants first, or shipyards past two minutes, as common.
+**Used by.** The brief's sea documents (`docs/briefs/meta/sea.md` M-sea-duels, `docs/briefs/derived/sea.md`
+D-sea-start; written 2026-11-14, not in the manifest until the user has read them).
+
+### K-open-a-seat-started-under-water-opened-as-a-land-seat
+**Claim.** A flagship seat whose commander starts under water plays a land opening and is two minutes late and
+without a navy. In the lobby 3v2 on Glacial Gap v1.1 (2026-11-07) the Cortex seat started 95 deep with four free
+spots 111 to 264 from it and dry ground 899 away. Its pre-game list (a land opening for any start) was refused whole
+for a tag written before `low`; with the commander idle the hands rated the home spot's opener 0.24 and a Bot Lab on
+dry ground 0.42 and played the lab at 0:02; the player's water list landed at 0:32 and its next turn reversed the
+order at 0:46. First structure begun 1:02 (a vehicle plant), first tidal 1:31, first extractor 1:52 (the land seats
+0:09 and under 1:00). His boats were at its tidals at 4:10; its shipyard stood at 6:30, its first torpedo launcher
+at 6:56, its first ship at 7:49; it held no extractor by 15:00 and the side lost at about 19:00.
+**Evidence.** `run/matches/1794105281-human/00` (`record-1.jsonl`, `jev-1.jsonl.zst`, `strategist-1.jsonl`,
+`bot.log`); `docs/experiments.md`, the row "1794105281-human, read 2026-11-14".
+**Status.** measured (2026-11-14, one game, one seat; the one seat under water in 42 games with people on record
+since 2026-10-20).
+**Would be wrong if.** Another seat started under water opened at sea unprompted (its list accepted, extractors and
+tidals where it stood, a shipyard inside two minutes).
+**Used by.** D-sea-start; the two harness changes the user asked for on 2026-11-14 (a sea opening in the pre-game
+lists, a refused opening list retried), unbuilt at this writing.
