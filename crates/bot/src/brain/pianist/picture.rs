@@ -2386,9 +2386,22 @@ impl Brain {
                 by_cell.entry(self.world.grid(u.pos)).or_default().push(u);
             }
             let where_words = by_cell.iter().map(|(cell, us)| format!("{} at {cell} ({})", us.len(), self.composition_words(us))).collect::<Vec<_>>().join("; ");
+            // A soldier of a kind no group is of (a ship with no sea group) has no slot however many stand open:
+            // said by kind, with the word that makes such a group (H-HANDS-GROUP-DOMAINS).
+            use crate::world::Domain;
+            let kinds: Vec<Domain> = pianist.groups.iter().filter(|g| g.answer.is_none()).map(|g| g.domain).collect();
+            let no_group: Vec<String> = [(Domain::Ship, "ships", "sea"), (Domain::Hover, "hovercraft", "hover"), (Domain::Air, "aircraft", "air")]
+                .into_iter()
+                .filter(|(d, ..)| !kinds.contains(d))
+                .filter_map(|(d, what, word)| {
+                    let n = units.iter().filter(|u| self.world.domain_of(u.def) == d).count();
+                    (n > 0).then(|| format!("{n} of them are {what} and no group of yours is of {what}: a group takes them with \"{word}\": true, or with slots that name their type"))
+                })
+                .collect();
+            let why = if no_group.is_empty() { String::new() } else { format!("; {}", no_group.join("; ")) };
             actors.insert(
                 "unassigned".to_string(),
-                json!({"units": format!("{} soldiers with no slot open in any group: {where_words}", units.len()), "doing": "standing where they are: they take a slot when the player's `groups` opens one, and no move of the hands reaches them"}),
+                json!({"units": format!("{} soldiers with no slot open in any group: {where_words}{why}", units.len()), "doing": "standing where they are: they take a slot when the player's `groups` opens one, and no move of the hands reaches them"}),
             );
         }
         // Jev's answers move with the order of these sections, and the order sent is by key (the JSON map is

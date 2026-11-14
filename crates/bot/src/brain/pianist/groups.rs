@@ -290,11 +290,12 @@ impl Group {
         self.members.len() + self.coming.len()
     }
 
-    /// Whether the group is the lane's as a formation (the migration design, chunks 2-5): a ground group holding,
-    /// walking, attacking, following or shelling (two formations then). Its members get their orders from the lane's
-    /// group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
+    /// Whether the group is the lane's as a formation (the migration design, chunks 2-5): a group of ground soldiers,
+    /// ships or hovercraft (the lane's soldiers: every domain but the air, `docs/design/2026-09-22-domains.md` 2)
+    /// holding, walking, attacking, following or shelling (two formations then). Its members get their orders from
+    /// the lane's group, never from the hands: no per-unit order, no joiners' walk, arrival from the lane's state.
     pub(crate) fn declared(&self) -> bool {
-        self.domain == Domain::Ground && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. } | GroupTask::Follow { .. })
+        self.domain != Domain::Air && matches!(self.task, GroupTask::Hold { .. } | GroupTask::Move { .. } | GroupTask::Engage { .. } | GroupTask::Follow { .. })
     }
 
     /// The group's name in the lane.
@@ -446,7 +447,11 @@ impl Brain {
             .map(|(name, d)| {
                 let typed = d.typed.iter().filter_map(|(unit, n)| Some((self.world.def_named(unit)?, *n))).collect();
                 let at = d.at.map_or(self.home, |[x, z]| Vec3 { x, y: 0.0, z });
-                (group_name(name, &tag), micro::deal::Slots { any: d.any, typed }, if d.air { Domain::Air } else { Domain::Ground }, at)
+                // The group's kind: the player's word, else that of the first type its slots name, else ground
+                // (H-HANDS-GROUP-DOMAINS): ships and hovercraft are dealt apart from ground soldiers and from each
+                // other, as aircraft are, and take slots only in a group of their kind.
+                let domain = d.domain.unwrap_or_else(|| d.typed.iter().find_map(|(unit, _)| self.world.def_named(unit)).map_or(Domain::Ground, |def| self.world.domain_of(def)));
+                (group_name(name, &tag), micro::deal::Slots { any: d.any, typed }, domain, at)
             })
             .collect();
         if wanted.is_empty() {
@@ -455,7 +460,11 @@ impl Brain {
         pianist.groups.retain(|g| g.answer.is_some() || wanted.iter().any(|(name, ..)| *name == g.name));
         for (name, slots, domain, at) in wanted {
             match pianist.groups.iter_mut().find(|g| g.name == name) {
-                Some(group) => group.slots = slots,
+                Some(group) => {
+                    group.slots = slots;
+                    // Its kind follows the types its slots name now (the deal lets go what is not of it).
+                    group.domain = domain;
+                }
                 None => pianist.groups.push(Group::new(name, domain, slots, at, GroupTask::idle_hold(at), frame)),
             }
         }
@@ -1286,6 +1295,46 @@ mod tests {
         assert_eq!((group.members.len(), group.coming.len()), (13, 1));
         assert!(group.members.contains(&far[0]));
         assert_eq!(brain.coming(), vec![far[1]]);
+    }
+
+    /// A group is of one kind (H-HANDS-GROUP-DOMAINS): a ship takes a slot only in a group of ships, which a group
+    /// is by the player's word or by the types its slots name, and the lane runs it as it runs a ground group. With
+    /// no such group the ships stand unassigned (sea-glacial-barb-1: six Supporters by their yard all game, the
+    /// player's navy group empty).
+    #[test]
+    fn a_ship_takes_a_slot_only_in_a_group_of_ships() {
+        use crate::strategist::shared::{GroupDecl, Shared};
+        use bot_protocol::{MoveKind, Resource, Snapshot};
+        let mut brain = super::super::fixtures::brain_of(&["armflash", "coresupp"]);
+        brain.world.hello.unit_defs[1].move_class.as_mut().expect("a mobile unit").kind = MoveKind::Ship;
+        let shared = std::sync::Arc::new(Shared::default());
+        brain.strategist = Some(shared.clone());
+        brain.pianist = Some(super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        brain.home = Vec3 { x: 1000.0, y: 0.0, z: 1000.0 };
+        let spot = |x: f32| Vec3 { x, y: 0.0, z: 1000.0 };
+        let ours = vec![own(1, 1, spot(1000.0)), own(2, 1, spot(1020.0)), own(3, 2, spot(1100.0)), own(4, 2, spot(1120.0))];
+        let none = UnitDefId(99);
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, vehicle_constructor: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, ..Default::default() } };
+        let state = |brain: &Brain| {
+            let pianist = brain.pianist.as_ref().unwrap();
+            (pianist.groups.iter().map(|g| (g.name.clone(), g.domain, g.strength())).collect::<Vec<_>>(), pianist.surplus.len())
+        };
+        let mut commands = Vec::new();
+        // An army of any type: the two Blitzes are of it, the two Supporters have no slot anywhere.
+        *shared.groups.lock().unwrap() = [("group_A".to_string(), GroupDecl { any: 10, ..GroupDecl::default() })].into_iter().collect();
+        brain.keep_groups(&tick(30), &kit, &mut commands);
+        assert_eq!(state(&brain), (vec![("A".to_string(), Domain::Ground, 2)], 2));
+        // A group of ships by the player's word takes them, and it is the lane's as a ground group is.
+        shared.groups.lock().unwrap().insert("group_navy".to_string(), GroupDecl { any: 8, domain: Some(Domain::Ship), ..GroupDecl::default() });
+        brain.keep_groups(&tick(60), &kit, &mut commands);
+        assert_eq!(state(&brain), (vec![("A".to_string(), Domain::Ground, 2), ("navy".to_string(), Domain::Ship, 2)], 0));
+        assert!(brain.pianist.as_ref().unwrap().groups[1].declared());
+        // A group whose slots name a ship type is a group of ships without the word.
+        *shared.groups.lock().unwrap() = [("group_A".to_string(), GroupDecl { any: 10, ..GroupDecl::default() }), ("group_boats".to_string(), GroupDecl { typed: vec![("coresupp".to_string(), 4)], ..GroupDecl::default() })].into_iter().collect();
+        brain.keep_groups(&tick(90), &kit, &mut commands);
+        assert_eq!(state(&brain), (vec![("A".to_string(), Domain::Ground, 2), ("boats".to_string(), Domain::Ship, 2)], 0));
     }
 
     /// The groups are the player's (the slots design §3.1): a seat with none declared has `group_A`; a declared

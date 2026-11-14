@@ -188,8 +188,8 @@ fn tool_list() -> Value {
               "description": "How your hands' code marches a group between your orders is fixed: the group keeps its ranks, every soldier walks to its slot firing at what it can hit, the block halts in its ranks when every soldier has an armed enemy in reach (or its front is inside half its reach) and walks on when that is no longer so, and an advance at its end closes on what it sees; its soldiers never step out of the ranks one by one (no fleeing, no sidestep, no stepping back), and a retreat is a walk your hands pick. This tool sets the two things left to you, per group name or for \"all\": `company`, the most soldiers a company of the group holds (24 unless you set it: six files by four ranks; 0 lifts the cap, one formation), and `heal`, whether a roving group's hurt rovers (under half their health, nothing in hand) go to the nearest builder of ours to be healed before roving on (true unless you set it: a construction turret heals a Rover in 3 s, the commander in 2, a constructor in 7, and the rover stands in the builder's reach so the builder never walks). Each company is a formation of its own on the group's order, and two companies that fit in one merge when they meet. Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it, on a pick, so say in the packet which group roves and when (a scout is a group of one slot you declare with `groups`); the group's entry says what each rover is doing and what it has found (`rove`). A setting stands until you change it.",
               "inputSchema": { "type": "object", "additionalProperties": { "type": "object", "properties": { "company": { "type": "integer", "minimum": 0, "maximum": 64 }, "heal": { "type": "boolean" } } }, "description": "Group name (group_A) or \"all\" to {\"company\": N} and/or {\"heal\": false}." } },
             { "name": "groups",
-              "description": "Your groups of soldiers. A group is a name, its slots and a place: you make it, resize it and end it here, and nothing else does (no group is made, merged or split by your hands). Once a second every soldier of yours takes the open slot it reaches soonest, whatever it was doing before: one already standing with a group stays with it, a new one from a plant walks to the nearest group with room, a slot that names its type taking it before a slot of any type does (so a scouts' group of {\"armfav\": 2} gets the Rovers beside an army of slots of any type, and a roving group's Rover is never taken by a group it passes), and a soldier with no slot open anywhere stands unassigned where it is (the report says how many and where). So you move strength by changing slots: raise one group and lower another, and the soldiers best placed go. A group with nobody in it keeps its name and its place and fills as soldiers come. An object of group name (group_ and lower-case words: group_A, group_guard_c5) to {\"slots\": N} for N soldiers of any type, or {\"slots\": {\"armflash\": 6, \"any\": 4}} for types (the roster's names); at most 96 slots a group (four companies). For a NEW group, \"at\": a place by its name (home, spot_N, a place you marked), a grid cell (\"C5\") or [x, z] is where its slots are made and where it holds until your hands move it (home when left out); an existing group's place is your hands' to move, so say where it goes in your instructions, never here. \"air\": true makes it a group of aircraft (aircraft and ground soldiers never share a group). null ends a group: its soldiers take other groups' open slots. Until you declare a group you have one, group_A, of 96 slots of any type at home; your first declaration replaces it, so declare every group you want, group_A among them if you keep it. What each group does (hold, walk, fight, follow, rove) is your hands' pick from your instructions. A station is a small group that holds; a scout is a group of one slot that roves; an enemy party near anything of yours can be answered by a few soldiers lent from the groups nearest it, who go back when it is over.",
-              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "object", "properties": { "slots": { "oneOf": [ { "type": "integer", "minimum": 1, "maximum": 96 }, { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 96 } } ] }, "at": {}, "air": { "type": "boolean" } }, "required": ["slots"] }, { "type": "null" } ] }, "description": "Group name (group_A) to {\"slots\": N or {type: n, \"any\": n}, \"at\": a place name, a cell or [x, z] for a new group, \"air\": true} or null." } },
+              "description": "Your groups of soldiers. A group is a name, its slots and a place: you make it, resize it and end it here, and nothing else does (no group is made, merged or split by your hands). Once a second every soldier of yours takes the open slot it reaches soonest, whatever it was doing before: one already standing with a group stays with it, a new one from a plant walks to the nearest group with room, a slot that names its type taking it before a slot of any type does (so a scouts' group of {\"armfav\": 2} gets the Rovers beside an army of slots of any type, and a roving group's Rover is never taken by a group it passes), and a soldier with no slot open anywhere stands unassigned where it is (the report says how many and where). So you move strength by changing slots: raise one group and lower another, and the soldiers best placed go. A group with nobody in it keeps its name and its place and fills as soldiers come. An object of group name (group_ and lower-case words: group_A, group_guard_c5) to {\"slots\": N} for N soldiers of any type, or {\"slots\": {\"armflash\": 6, \"any\": 4}} for types (the roster's names); at most 96 slots a group (four companies). For a NEW group, \"at\": a place by its name (home, spot_N, a place you marked), a grid cell (\"C5\") or [x, z] is where its slots are made and where it holds until your hands move it (home when left out); an existing group's place is your hands' to move, so say where it goes in your instructions, never here. A group is of one kind, since its soldiers must reach one place: ground soldiers unless you say otherwise; \"air\": true makes it a group of aircraft, \"sea\": true of ships, \"hover\": true of hovercraft, and a group whose slots name types is of those types' kind without the word ({\"coresupp\": 8} is a group of ships). A ship or a hovercraft takes a slot only in a group of its kind, so a seat with a shipyard needs a \"sea\" group or its ships stand unassigned. null ends a group: its soldiers take other groups' open slots. Until you declare a group you have one, group_A, of 96 slots of any type at home; your first declaration replaces it, so declare every group you want, group_A among them if you keep it. What each group does (hold, walk, fight, follow, rove) is your hands' pick from your instructions. A station is a small group that holds; a scout is a group of one slot that roves; an enemy party near anything of yours can be answered by a few soldiers lent from the groups nearest it, who go back when it is over.",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "object", "properties": { "slots": { "oneOf": [ { "type": "integer", "minimum": 1, "maximum": 96 }, { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 96 } } ] }, "at": {}, "air": { "type": "boolean" }, "sea": { "type": "boolean" }, "hover": { "type": "boolean" } }, "required": ["slots"] }, { "type": "null" } ] }, "description": "Group name (group_A) to {\"slots\": N or {type: n, \"any\": n}, \"at\": a place name, a cell or [x, z] for a new group, \"air\", \"sea\" or \"hover\": true for a group of aircraft, ships or hovercraft} or null." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates, a grid cell (\"E7\": its centre), or a range of cells (\"E1-H8\": the rectangle from E1 to H8, a region whose point is its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. A region is also where a group can be told to rove: a packet that names it for a group puts `rove_<region>` on that group's menu (its soldiers look only at places inside the region), so \"the Rovers rove in his half\" is a mark of his half and a packet naming it. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
@@ -942,8 +942,24 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 if total > MOST {
                     return Err(format!("{name}: {total} slots; a group holds {MOST} at most (four companies): declare a second group"));
                 }
-                let air = fields.get("air").and_then(Value::as_bool).unwrap_or(false);
+                // What the group's slots take: aircraft, ships or hovercraft when the player says so, else what the
+                // hands read off the types the slots name, else ground soldiers (H-HANDS-GROUP-DOMAINS: until
+                // 2026-11-14 a group was of aircraft or of ground soldiers, and no group could take a ship or a
+                // hovercraft: sea-glacial-barb-1's six Supporters stood by their yard in no group).
+                use crate::world::Domain;
+                let flags: Vec<Domain> = [("air", Domain::Air), ("sea", Domain::Ship), ("hover", Domain::Hover)].into_iter().filter(|(key, _)| fields.get(*key).and_then(Value::as_bool).unwrap_or(false)).map(|(_, d)| d).collect();
+                if flags.len() > 1 {
+                    return Err(format!("{name}: a group is of one kind: \"air\", \"sea\" or \"hover\", one of them, or none for ground soldiers"));
+                }
                 let before = next.get(name).cloned();
+                // Left out on a group that stands, its kind stays as it was.
+                let domain = flags.first().copied().or(before.as_ref().and_then(|b| b.domain));
+                let kind_words = |d: Option<Domain>| match d {
+                    Some(Domain::Air) => "aircraft",
+                    Some(Domain::Ship) => "ships",
+                    Some(Domain::Hover) => "hovercraft",
+                    _ => "ground soldiers, or the kind its slots' types are",
+                };
                 let at = match (fields.get("at"), &before) {
                     (Some(_), Some(_)) => return Err(format!("{name} stands already: where it goes is your hands' pick, so say it in your instructions; this tool sets its slots")),
                     // A place by its name, as every other tool takes it: home (the default), a metal spot, a place
@@ -960,16 +976,17 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     (None, Some(b)) => b.at,
                     (None, None) => None,
                 };
-                if before.as_ref().is_some_and(|b| b.air != air) {
-                    return Err(format!("{name} is a group of {}: end it and declare another to change that", if air { "ground soldiers" } else { "aircraft" }));
+                if before.as_ref().is_some_and(|b| b.domain != domain) {
+                    return Err(format!("{name} is a group of {}: end it and declare another to change that", kind_words(before.as_ref().and_then(|b| b.domain))));
                 }
+                let kind = domain.map(|d| format!(", {}", kind_words(Some(d)))).unwrap_or_default();
                 let slots = if typed.is_empty() { format!("{any} slots of any type") } else { format!("{} slots ({}{})", total, typed.iter().map(|(u, n)| format!("{n} {u}")).collect::<Vec<_>>().join(", "), if any > 0 { format!(", {any} of any type") } else { String::new() }) };
                 said.push(match (&before, at) {
                     (Some(_), _) => format!("{name}: {slots} from now"),
-                    (None, Some([x, z])) => format!("{name} declared at ({x:.0}, {z:.0}): {slots}{}", if air { ", aircraft" } else { "" }),
-                    (None, None) => format!("{name} declared at home: {slots}{}", if air { ", aircraft" } else { "" }),
+                    (None, Some([x, z])) => format!("{name} declared at ({x:.0}, {z:.0}): {slots}{kind}"),
+                    (None, None) => format!("{name} declared at home: {slots}{kind}"),
                 });
-                next.insert(name.clone(), GroupDecl { any, typed, at, air });
+                next.insert(name.clone(), GroupDecl { any, typed, at, domain });
             }
             let first = groups.is_empty() && !next.is_empty();
             *groups = next;
@@ -1517,13 +1534,22 @@ mod tests {
         let said = call_tool("groups", &json!({ "group_army": { "slots": 48 }, "group_guard": { "slots": { "armflash": 3, "any": 1 }, "at": "C5" } }), &shared).unwrap();
         assert!(said.contains("group_army declared at home: 48 slots of any type") && said.contains("group_guard declared at (") && said.contains("4 slots (3 armflash, 1 of any type)") && said.contains("first declaration"), "{said}");
         let guard = shared.groups.lock().unwrap().get("group_guard").cloned().unwrap();
-        assert_eq!((guard.any, guard.typed.clone(), guard.at.is_some(), guard.air), (1, vec![("armflash".to_string(), 3)], true, false));
+        assert_eq!((guard.any, guard.typed.clone(), guard.at.is_some(), guard.domain), (1, vec![("armflash".to_string(), 3)], true, None));
         assert!(call_tool("groups", &json!({ "group_guard": { "slots": 6, "at": "D5" } }), &shared).unwrap_err().contains("your hands' pick"));
         assert!(call_tool("groups", &json!({ "group_army": { "slots": 97 } }), &shared).unwrap_err().contains("1 to 96"));
         assert!(call_tool("groups", &json!({ "army": { "slots": 4 } }), &shared).unwrap_err().contains("group_ and a word"));
         let said = call_tool("groups", &json!({ "group_guard": { "slots": 6 }, "group_army": null }), &shared).unwrap();
         assert!(said.contains("group_guard: 6 slots of any type from now") && said.contains("group_army ended") && said.ends_with("Your groups now: group_guard (6)"), "{said}");
         assert_eq!(shared.groups.lock().unwrap().get("group_guard").unwrap().at, guard.at, "its place stands");
+        // A group is of one kind (H-HANDS-GROUP-DOMAINS): ships or hovercraft or aircraft by the player's word,
+        // kept when a later declaration leaves the word out, and changed only by ending the group.
+        let said = call_tool("groups", &json!({ "group_navy": { "slots": 8, "sea": true }, "group_skim": { "slots": 4, "hover": true } }), &shared).unwrap();
+        assert!(said.contains("group_navy declared at home: 8 slots of any type, ships") && said.contains("group_skim declared at home: 4 slots of any type, hovercraft"), "{said}");
+        call_tool("groups", &json!({ "group_navy": { "slots": 12 } }), &shared).unwrap();
+        assert_eq!(shared.groups.lock().unwrap().get("group_navy").map(|g| (g.any, g.domain)), Some((12, Some(crate::world::Domain::Ship))));
+        assert!(call_tool("groups", &json!({ "group_navy": { "slots": 12, "air": true } }), &shared).unwrap_err().contains("group_navy is a group of ships"));
+        assert!(call_tool("groups", &json!({ "group_both": { "slots": 4, "sea": true, "hover": true } }), &shared).unwrap_err().contains("one of them"));
+        call_tool("groups", &json!({ "group_navy": null, "group_skim": null }), &shared).unwrap();
         // A new group's place by its name, as the packet writes places: a metal spot, a marked place, home; and a
         // value sent as a string of JSON is the object it spells.
         shared.map.lock().unwrap()["metal_spots"] = json!([{ "n": 44, "grid": "D4", "x": 3984, "z": 3360 }]);

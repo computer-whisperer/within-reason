@@ -143,6 +143,13 @@ A group is a **name**, its **slots**, a **task** and a **place**.
 A player's order names the slots: "group_X moves to pos_y" lands on them wherever they are when it arrives, whoever
 fills them.
 
+**A group's kind (added 2026-11-14, H-HANDS-GROUP-DOMAINS).** A group is of ground soldiers, of ships, of hovercraft
+or of aircraft: its soldiers must reach one place. The player says `"sea"`, `"hover"` or `"air"`, or names types in
+its slots and the group is of their kind; the deal gives a soldier a slot only in a group of its kind. As first
+built a group was of aircraft or of ground soldiers and no group could take a ship or a hovercraft
+(K-hands-no-group-took-a-ship-or-a-hovercraft-under-the-slots): found by the user in sea-glacial-barb-1. Still open
+from that game: a land group made at `home` when home is the sea floor holds where its soldiers cannot go.
+
 ### 3.2 With and coming
 
 A soldier dealt to a group is **with** it when it can reach the group's place within the gate, `GATE_SECONDS` (15)

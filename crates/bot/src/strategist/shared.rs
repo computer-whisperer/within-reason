@@ -1189,8 +1189,10 @@ pub struct GroupDecl {
     pub typed: Vec<(String, usize)>,
     /// Where its slots are made, as map coordinates; none: the seat's home.
     pub at: Option<[f32; 2]>,
-    /// An air group: its slots take aircraft, and no ground soldier.
-    pub air: bool,
+    /// What its slots take when the player said so (`"air"`, `"sea"`, `"hover"`: aircraft, ships, hovercraft): a
+    /// group never mixes domains, since its soldiers must reach one place. None: the hands take the domain of the
+    /// types its slots name, and ground soldiers when they name none (`Brain::sync_groups`).
+    pub domain: Option<crate::world::Domain>,
 }
 
 /// A place the player marked (`mark`): a point, or a region of grid cells (`cells`: the first and last column and

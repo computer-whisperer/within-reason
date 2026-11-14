@@ -1236,3 +1236,22 @@ hands' book still read "queued to start the moment this is done: building a Bot 
 **Would be wrong if.** A drill with a builder on a `repair` of a frame, given the same `repair` queued, kept raising
 the frame.
 **Used by.** H-HANDS-QUEUE (a `finish` of the frame the builder is on, or has queued, is no order).
+
+### K-hands-no-group-took-a-ship-or-a-hovercraft-under-the-slots
+**Claim.** From the hands' rebuild on the deal (43f129bb, 2026-11-11) to 2026-11-14 a declared group was of aircraft
+or of ground soldiers and nothing else (`sync_groups`: `if d.air { Air } else { Ground }`), and the deal matches
+soldiers to groups by domain, so a ship or a hovercraft took no slot in any group in any game: it stood where its
+yard left it, on nobody's menu. In sea-glacial-barb-1 the player declared a navy twice (`group_sea` of sixteen
+Supporter slots at 0:15, `group_navy` of sixteen of any type at 3:41); both held nobody all game while six
+Supporters, made from 3:17 to 5:08, stood by the yard, and two of them died to a submarine at 10:53 and 10:55. The
+picture said "soldiers with no slot open in any group" while sixteen slots stood open. The lane itself moves ships:
+six Supporters told to walk 2,816 of water under it arrived in 26 s, formed (the drill ships-walk-1).
+**Evidence.** `run/matches/1794680971-sea-glacial-barb-1/00/jev-0.jsonl.zst` (the `groups` rows: `navy` with no
+member at every call), `record-0.jsonl` (the six Supporters' positions by half minute), `strategist-0.jsonl` (the
+`groups` calls); `run/matches/1794682284-duel-ships-walk-1`; the user, watching the game: "Our warships are just
+sitting next to their factory while sea mexes burn".
+**Status.** demonstrated (2026-11-14); mended the same day by [[H-HANDS-GROUP-DOMAINS]], unplayed since at this
+writing.
+**Would be wrong if.** A game on the mended build with a group of ships declared still showed its ships in no group.
+**Used by.** [[H-HANDS-GROUP-DOMAINS]].
+
