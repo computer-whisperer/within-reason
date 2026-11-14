@@ -1,5 +1,7 @@
 # sea-glacial-barb-1: the player's debrief
 
+**Not for the brief as it stands (2026-11-14).** This game was stopped at 14:02 for a harness fault the debrief describes as a fact of the game: no group could take a ship or a hovercraft (K-hands-no-group-took-a-ship-or-a-hovercraft-under-the-slots). It is mended (H-HANDS-GROUP-DOMAINS, a957c1b1), so "every floating unit you build is unorderable" and the advice built on it (skip ships and hovercraft, go straight to air) no longer hold. Its live-edge entry is in `run/data/live-edge/rework/invalid/`, kept from the next player. What stands of it: the energy stall of 10:47 to 12:17, the torpedo launchers built late, and the three build-prerequisite traps.
+
 Match `run/matches/1794680971-sea-glacial-barb-1/00`, build 64371e71a469, against BARb stable hard_aggressive on Glacial Gap v1.1: Timeout after 14.0 min (called by the referee); 55 turns. Debriefed by claude-opus-5 (effort low) in 33 s, in a shape of its own (DECIDED / NEXT PLAYER / WISHED was asked); since snapshot: 7-day +0.0 points, extra usage +0.00.
 
 Debrief for the next player: Glacial Gap v1.1, corner W (M4), vs BARb stable hard_aggressive. Result: timeout at 14:00, no decision, nothing of his killed beyond one Supporter and one submarine.
