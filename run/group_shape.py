@@ -81,7 +81,9 @@ def main():
                 if not words and isinstance(entry, str):
                     found = re.search(r"(\d+) of its soldiers are on the way", entry)
                     words = found.group(1) if found else ""
-                joining = min(int(words.split()[0]), len(points) - 1) if words else 0
+                # the words open with a count, or with "nobody is coming to it now" (picture.rs)
+                first = words.split()[0] if words else ""
+                joining = min(int(first), len(points) - 1) if first.isdigit() else 0
                 at = tuple(g["at"])
                 body = sorted(points, key=lambda p: math.dist(p, at))[: len(points) - joining]
                 cl = clumps(body)
