@@ -2,9 +2,9 @@
 id: D-energy-second
 layer: derived
 premises: [D-metal-is-the-game, D-lab-choice, D-tier2-sprint, F-eco-store, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-eco-legion, F-map-weather, F-map-catalogue, F-map-consequences, F-unit-armsolar, F-unit-armwin, F-unit-armadvsol, F-unit-armtide, F-unit-armfus, F-unit-armestor, F-unit-armmakr, F-unit-armnanotc, F-unit-armap, M-pool-energy-and-power, M-pool-openers, M-pool-opening, M-gecko-vs-us-comet, M-barb-sparring, M-leg-duel-opening]
-lessons: [L-gecko-three-resources, L-opening-solars, L-opening-solar-cap, L-energy-converters, L-energy-nanos, L-energy-priority, L-sheet-economy, L-sheet-labs, L-gecko-bots-vs-vehicles]
-sources: {people: [thebluegecko, Koochie (as heard), Irishstud14, the user], dates: [2026-09-27, 2026-10-23, 2026-10-24], relay: thebluegecko reading metal.md's "Where it bends" aloud (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the first recording), his unit sheet rows, the 3v1 chat lines; the prices are arithmetic on the facts; the habits are the pool's and our own games' (run/metal_killtest.py energy)}
-status: draft, checked (run/metal_killtest.py energy, 2026-10-24: the pool's 84 sides and 242 model-played games of ours)
+lessons: [L-gecko-three-resources, L-opening-solars, L-opening-solar-cap, L-energy-converters, L-energy-nanos, L-energy-priority, L-sheet-economy, L-sheet-labs, L-gecko-bots-vs-vehicles, L-gecko-opening-energy]
+sources: {people: [thebluegecko, Koochie (as heard), Irishstud14, the user], dates: [2026-09-27, 2026-10-23, 2026-10-24, 2026-11-14], relay: thebluegecko reading metal.md's "Where it bends" aloud (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the first recording), his unit sheet rows, the 3v1 chat lines; the prices are arithmetic on the facts; the habits are the pool's and our own games' (run/metal_killtest.py energy); his spoken review of the 1v1 lost to u6bkep on 2026-11-14 (the opening's solars, the energy bar at half)}
+status: draft, checked (run/metal_killtest.py energy, 2026-10-24: the pool's 84 sides and 242 model-played games of ours); amended 2026-11-14 from thebluegecko's review of the u6bkep 1v1 ("The opening's solars go with the plant's first unit", the stall bullet's last clause, item 1's last sentences): written for the user's read and not yet read by him
 -->
 ### Energy, the second resource
 
@@ -60,12 +60,24 @@ empty store with metal banked says energy.
   factory. Maybe one con turret into a factory ... you can build that factory off of your comm after walking to take
   more metal. And it costs less e." The pool on Comet, a solar map, does exactly one turret before the second factory
   (5:24 to 6:31, then 7:12 to 8:56; M-pool-energy-and-power).
+- *The opening's solars go with the plant's first unit.* Two openings stand in the record and they are not to be
+  mixed. The pool's Armada line is two solars, the plant at 0:34 and a Rover first (the plant's first unit in 22 of 40
+  sides, a constructor in 7; M-pool-opening): a Rover is 370 energy. His is three solars and the plant at about 1:00,
+  so that a constructor comes first at full speed: "the reason to make 3 solar rather than 2 is so you have enough e
+  to make a fast con, otherwise you can just make 2" (L-opening-solars), "that lets you rush out that con vehicle
+  without stalling E" (L-gecko-opening-energy); a constructor is 1,950. Two solars with a constructor first is
+  neither: in the 1v1 against u6bkep of 2026-11-14 that list took our energy store from 1,017 at 0:40 to 48 at 1:20.
+  Past the fourth solar the count is the metal's: in that game the fifth and sixth went up from 2:04 with the metal
+  store at zero, 104 of the seconds from 2:00 to 4:20 had no metal under a full energy bar, and about 4,800 energy had
+  been thrown away by 4:16, income above use while the store stood full ("I see a fifth and sixth solar being built
+  simultaneously versus a solid metal stall. Only one of these solar should have been built").
 - *The stall is a queue, not a brownout.* A builder's step is all or nothing, the oldest builder is served first (the
   commander, then the first plant, then the constructors by birth), and a low-priority builder yields (F-eco-build).
   So in a stall the youngest and dearest steps stand still while the cheap old ones go on; the cure is either income
   or fewer draws, and which depends on the metal store: banked metal with an empty energy store is a generator short,
   both stores empty is metal short and no generator helps (L-opening-solars: the third solar is for the fast
-  constructor, not for its own sake; L-opening-solar-cap: more than three early is a mistake).
+  constructor, not for its own sake; L-opening-solar-cap: more than three early is a mistake; L-gecko-opening-energy:
+  a full energy bar over an empty metal store is a solar too many).
 - *The late forms.* Advanced solars on a solar map once a store stands (L-sheet-economy); the store itself, 170 metal
   for 6,000, as the buffer the wind and the D-gun both need ("if you have extra e make an e store, you will need the e
   later anyway", L-energy-converters; 23 of 80 pool sides built one, the first at 8:51 to 12:27); the fusion as the
@@ -86,6 +98,11 @@ empty store with metal banked says energy.
    commander on it, 342 for an advanced plant under five builders), and so is its price on this map; a side that
    builds it first never sees the stall that every debrief of ours names, and one that reads the stall first has
    already lost the seconds. The store's reading tells which resource is short only together with the metal store.
+   The one generator that may be read off the store is the opening's solar with the commander at home, his rule
+   (L-gecko-opening-energy): a solar is nine seconds of a builder that is standing there, so "you can always keep your
+   E at about the middle slider area because you always have that chance to immediately have all that build power to
+   build another solar right in the same area". The bar near half asks for the next one, and "whenever you've got E
+   excess, that means you've probably built too many solars".
 2. *The map sets the generator.* Solars where the top wind is under 12 and wherever the metal is banked and the build
    time is not; turbines where it tops 19 or more; either between, the turbine for metal and the solar for time and
    steadiness; the tide where it stands about ten above the wind (L-sheet-economy) and 20 of water allows it. On

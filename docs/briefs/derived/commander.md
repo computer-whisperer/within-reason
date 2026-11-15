@@ -2,10 +2,10 @@
 id: D-commander-cost
 layer: derived
 premises: [D-metal-is-the-game, D-energy-second, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-consequences, M-pool-opening, M-gecko-vs-us-comet]
-lessons: [L-opening-commander, L-opening-solars, L-opening-solar-cap, L-gecko-one-more-con]
+lessons: [L-opening-commander, L-opening-solars, L-opening-solar-cap, L-gecko-one-more-con, L-gecko-opening-energy]
 claims: [K-eco-the-commander-at-the-plant-is-the-openings-build-power, K-eco-pro-curve-against-a-passive-opponent, K-econ-commander-low-while-assisting, K-eco-energy-storage-is-the-cheap-buffer, K-eco-a-commander-at-its-stand-builds-from-where-it-stands]
-sources: {people: [Irishstud14, thebluegecko, the user], dates: [2026-09-27, 2026-10-21, 2026-11-08], relay: the 3v1 chat line and thebluegecko's word through the user (the lessons); his game against an inactive opponent replayed through our engine, read beside two of ours on the same task (econ-flagship-10 and -11, the user's ask for the comparison and for this article); the prices are arithmetic on the facts}
-status: draft, unchecked over a pool (three games on one map and one task: his and two of ours; the pool's habit is M-pool-opening's)
+sources: {people: [Irishstud14, thebluegecko, the user], dates: [2026-09-27, 2026-10-21, 2026-11-08, 2026-11-14], relay: the 3v1 chat line and thebluegecko's word through the user (the lessons); his game against an inactive opponent replayed through our engine, read beside two of ours on the same task (econ-flagship-10 and -11, the user's ask for the comparison and for this article); the prices are arithmetic on the facts; his spoken review of the 1v1 lost to u6bkep on 2026-11-14 (the commander's walk to the nearest spot when the metal runs out)}
+status: draft, unchecked over a pool (three games on one map and one task: his and two of ours; the pool's habit is M-pool-opening's); amended 2026-11-14 from thebluegecko's review of the u6bkep 1v1 (the free hands in "Where it bends", the first line of "When to depart from the line"): written for the user's read and not yet read by him
 -->
 ### The cost of missing the commander
 
@@ -81,17 +81,23 @@ instead of up to a dozen.
 its work and nothing is displaced (on a metal map every tile is a spot and it builds the whole opening from where it
 stands, K-eco-a-commander-at-its-stand-builds-from-where-it-stands). A spot nobody else can reach before a raider
 would: the trip pays once, and once may be the moment. The store empty and falling with the plant running: the
-commander's hands are free, and his free hands build solars in the plant's reach. A plant making soldiers rather than
-constructors: the same accounting, the commander's 300 as a Blitz every 4.4 seconds instead of 13.3, and the metal
-the ceiling likewise. And the opponent: against anyone active the commander is also the opening's gun, and where it
-stands in minutes 3 to 6 is the raid article's question too; the inactive opponent is the one case where the
-build-power answer is the whole answer.
+commander's hands are free. His free hands build solars in the plant's reach while the energy bar is under half
+(D-energy-second, item 1); with the bar full they go to the nearest free spot and come back, which is his line for
+this map: "It is very common on Comet Catcher to walk with your com to the closest mex when you run out of metal or
+when you're going to run out of metal ... walk to the nearest mex and then walk back with the com. If you spawn on a
+spot that lets you walk to a 2 mex, that's better" (L-gecko-opening-energy; a pair of spots, as we read it). The walk
+is priced above, an extractor per 30 to 45 seconds while it lasts, and it takes nothing from a plant that has no metal
+to spend. A plant making soldiers rather than constructors: the same accounting, the commander's 300 as a Blitz every
+4.4 seconds instead of 13.3, and the metal the ceiling likewise. And the opponent: against anyone active the commander
+is also the opening's gun, and where it stands in minutes 3 to 6 is the raid article's question too; the inactive
+opponent is the one case where the build-power answer is the whole answer.
 
-**When to depart from the line.** When the metal store is empty and falling, for a solar or a near spot, and back.
-When a raider is at a spot the commander can reach and nothing else can. When the plant is reclaimed for the advanced
-plant and the commander is the frame's first builder: then with the constructors beside it, after the storage, not
-alone on seven solars. Never because the spots are there and the commander is idle between constructors: idle beside
-the plant with the store empty is the cheapest seat in the game, and the field trip is the dearest.
+**When to depart from the line.** When the metal store is empty and falling: for a solar while the energy bar is under
+half, for the nearest free spot when it is not, and back. When a raider is at a spot the commander can reach and
+nothing else can. When the plant is reclaimed for the advanced plant and the commander is the frame's first builder:
+then with the constructors beside it, after the storage, not alone on seven solars. Never because the spots are there
+and the commander is idle between constructors: idle beside the plant with the store empty is the cheapest seat in the
+game, and the field trip is the dearest.
 
 **The tests.** Three games on one task, above; unchecked over a pool, and the pool's duels say the same thing weaker
 (the commander guards the plant 50 s at the median of the first four minutes, winners assist less than losers because

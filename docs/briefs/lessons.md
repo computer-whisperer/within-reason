@@ -715,6 +715,29 @@ likely to win. So it makes for a violent, harsh, nasty game. And we're seeing so
 here. At 7:30 [730], the Blitzes get into the Solars and start dying."** (To APM stall: to have one's attention
 elsewhere, so that the raid drives where it was sent and is not steered; the reading is ours.)
 
+<!--meta
+id: L-gecko-opening-energy
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-11-14], games: [1794707454-human], relay: the same recording (docs/knowledge/_inbox/gecko-u6bkep-1v1-review-2026-11-14.md); the speaker is the channel; the bracketed corrections of the model's hearing are ours}
+status: live
+-->
+On our opening (0:00 to 3:15). The user had summed up what was said before the recording ran, three solars before the
+vehicle plant, and he: **"Right, in order to get, that lets you rush out that con vehicle without stalling E."** ...
+**"It is very common on Comet Catcher to walk with your com to the closest mex when you run out of metal or when you're
+going to run out of metal. So if you spawn on a 2, build up to 4 solars, and then at that point you're out of metal.
+So walk to the nearest mex and then walk back with the com. If you spawn on a spot that lets you walk to a 2 mex
+[mechs], that's better."** (A 2: a start with two extractor spots in the commander's reach, and a pair of spots to walk
+to; the reading is ours.) At about 3:05 of the game, our commander and first constructor each building a solar:
+**"Right now, I see a fifth and sixth solar being built simultaneously versus a solid metal stall. Only one of these
+solar should have been built."** ... **"If there was more metal, this might be needed. One of the important things to
+do in the beginning is not waste a bunch of E. If we look at the E excess, both players here are high, but our bot is
+at 3K excess E, whereas u6bkep [U6B cap] is only at 2.5, although it's evening up here quickly. Whenever you've got E
+excess, that means you've probably built too many solars. If you're going to leave the comm in base, you can always
+keep your E at about the middle slider area because you always have that chance to [chance has to] immediately have
+all that build power to build another solar right in the same area. At least until you've completely covered the area
+with solars. And so it's okay to not overbuild that E. You don't need to."** ... **"Now here it's happening again.
+Metal [I metal] stalling hard into a full E bar at 4:16 [416]."**
+
 ### Said by less experienced players
 
 Lobby ratings 19 to 25, or unknown: worth hearing, weighed below the lines above.
