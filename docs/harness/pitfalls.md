@@ -266,6 +266,12 @@ cp -r --reflink=always ../within-reason.main/run/data run/data && mkdir -p run/m
 cargo build --release && run/install_ai.sh      # the AI libraries into this tree's run/data/AI
 ```
 
+A fresh worktree's `run/matches` is empty, so `--place` has no earlier match to place from and the game falls back
+to the engine's start (`match 0: not placed: no earlier match on this map with a record, its terrain, a truth file
+and the opponent in its box`): loop-pianist-smoke, 2026-11-15, played a packet written for the placed start from
+2,000 away. Read the arena's first lines before trusting a line copied from the main tree; the first game on a map
+in the worktree supplies the match the next one places from.
+
 (`run/engine` is the symlink the main tree has, inside the ignored directory; never a symlink *at* an ignored path.)
 A worktree's `.git` is a file, not a directory: the build scripts of `crates/bot` and `crates/ai-host` ask git
 where HEAD and the index are (`git rev-parse --git-path`) rather than naming `../../.git/HEAD`, which a worktree

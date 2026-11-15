@@ -768,3 +768,35 @@ the one before it alike, and stood in their slots when the company stopped.
 **Would be wrong if.** A pace under the top speed (`Pacing::fraction` 0.9) leaves them as far behind.
 **Used by.** none.
 
+### K-group-a-faster-type-in-its-slot-is-sent-twice-a-second
+**Claim.** On the rebuilt engine a member faster than its company's slowest type is sent about two move orders a
+second while the company is on its way and the member is in its slot, twice what the engine of before sent it: 2.03 a
+second in loop-pianist-smoke (1,208 member-seconds, Blitzes beside Stouts) against 0.88, 0.95 and 1.17 in
+slots-smoke-7, -9 and -2. The slowest type is level (0.67 against 0.50 to 0.59) and so is a single-type body on the
+bench (0.28 a unit-second on the march against 0.37 to 0.44 before). Every member on the way together: 1.29 a second
+against 0.64 to 0.71.
+**Status.** measured (2026-11-15, one game against three of other days; the split by type holds in each), open. The
+cause is read from the code and not tested: the faster type's point is its slot itself (`Company::tick` carries only
+the pace type's point ahead by the lead), and a member within 100 of the point it was last sent to is sent again
+each time the point has moved 16 (`resend_due`, `form::near_tolerance`). Why the engine of before sent half as many
+is not traced.
+**Evidence.** `run/soldier_orders.py`; `docs/experiments.md`, loop-pianist-smoke.
+**Would be wrong if.** A game of one type alone shows the same rate (then it is not the type), or the old engine's
+smokes had the faster type out of the band most of the time (their row "out of its slot" is 0.61 to 0.68).
+**Used by.** none: the seat's order budget (H-HOST-ORDER-BUDGET, 100 a second) is what a large mixed body would meet.
+
+### K-group-a-stand-among-buildings-is-dealt-again-as-soldiers-arrive
+**Claim.** A group standing at its place inside our base is disturbed by its own newcomers and by our builders: in
+the 172 s loop-pianist-smoke's group stood at spot_45 the engine dealt on gain four times (3 to 5 of 12 to 14
+members took another slot each time) and laid its block again twice, 32 west each, as buildings took its ground.
+The block lay among buildings, so the members stood 135 to 153 from their slots at the root mean square before a
+deal (94 to 127 after), and each newcomer made a deal worth taking. Of the member-seconds of soldiers already five seconds in their slot, 4.0 %
+show a step over 15 elmos, against 1.6 to 2.0 % in three smokes on the engine of before. `arrived` held throughout.
+**Status.** measured (2026-11-15, one game), open. The bench's stands (K-group-an-army-laid-in-blocks-comes-to-rest)
+had no newcomers and no base.
+**Evidence.** `docs/experiments.md`, loop-pianist-smoke; the bot log's `DEAL on gain` and `BLOCK laid again` lines
+from f=12075 to f=17220.
+**Would be wrong if.** The settled members' steps fall outside the seconds after a deal or a block laid again (53 of
+the 100 were not within 3 s of the group's count changing; the deals come up to 5 s after a newcomer).
+**Used by.** none.
+
