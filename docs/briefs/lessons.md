@@ -738,6 +738,53 @@ all that build power to build another solar right in the same area. At least unt
 with solars. And so it's okay to not overbuild that E. You don't need to."** ... **"Now here it's happening again.
 Metal [I metal] stalling hard into a full E bar at 4:16 [416]."**
 
+<!--meta
+id: L-gecko-behind
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-11-14], games: [1794707454-human], relay: the same recording (docs/knowledge/_inbox/gecko-u6bkep-1v1-review-2026-11-14.md); the speaker is the channel; the bracketed corrections of the model's hearing are ours, and words it doubled where two of its segments meet are dropped; the game clocks in the lead-ins are placed from our record of the game}
+status: live
+-->
+From the minute our seat fell behind to the end of the game (6:46 to 19:58; about 8:00 to 21:00 of the game). At 6:46:
+**"Yeah, so u6bkep [U6] got a small economic advantage and then won a fight and got a big bigger economic advantage
+and then that just spiraled. U6 was up just a couple of Blitzes and then winning meant up a few more and then a few
+more and on it goes. So at this point it's time for something desperate. The Blitzes can't be used defensively
+anymore. Pretty much have to send them to the side of the map and try to start picking off mexes [mechs]. You know
+that sitting back while down metal income will eventually result in a loss. Every second that passes now puts blue
+more and more ahead. So red needs to do something desperate. Probably medium tanks are no longer a good choice. I see
+one medium tank, one blitz. This only works if you're going to raid with the blitz. Also probably want to get the
+units that are in the main out. When you get to a point where things are desperate, the units need to all be engaged.
+You can sometimes find the advantage you need by causing your opponent's units to not be used while yours are used. So
+even now, the army value now has a 15% blue lead, which is a pretty big deal here, 21% now. If the blue units are
+chasing red units but not actually firing, the red units might be doing damage for free. So try to get the fight on
+the other side of the map as soon as possible, which would also let you pick up the nearly 2k metal laying on the
+ground."** ... **"Right now the metal produced shows blue ahead 18%, 14k to 11k. The metal on the ground, if
+successfully picked up, would not quite, but almost make that even again."** At 9:50, our second vehicle plant just
+begun and a solar going up: **"Probably time to eat one of the two labs, too. Only 20 metal per second, you can't
+really run two labs. This solar that's currently building is a mistake as well. We're not spending all of our E. The E
+storage was great. That's a way to get some use out of it. I really need to take the mex that is in the main and not
+taken. There's a constructor right there. It's protected."** At 11:48, our commander building converters: **"I think
+the not transitioning to T2 is correct. That is the correct choice. Glad not to see that. The E-converters are
+actually a fairly serious mistake. If you are winning, you might choose to do that for efficiency reasons, just
+temporarily. But if you're losing, what you need most, more than anything else, is tempo. You're already down metal,
+so you're down the main win condition other than killing the commander. So what you need is some way to get on the
+other side of the map, start doing damage, or pick up a big metal pile or something. And what you need there is time.
+So if you've got E that's wasting, eat a solar. Eating a solar wastes build power, but it is fully metal efficient. So
+you can, if you're wasting E, just eat the solar, drop that metal into more tanks, and try to make something happen
+tempo-wise. Kill some mexes [Xs], draw the army off. Small groups of Blitzes would be really effective on the other
+side of the map right now. Almost all the enemy mexes [mechs] are protected by just one LLT. So if you were hoping to
+raid past five LLTs, then assuming you lose one Blitz per LLT, send something like seven or eight Blitz, you can go
+through and raid through all of that and come out pretty strongly positive."** At 14:05, his army at our base:
+**"We're looking at a serious error here, too. Red's army value is half of Blue's, but Red is defensive and may be
+able to bring their entire army value to bear. Well, Blue can only bring half of theirs because of the distance. This
+is a chance for Red, where the army is on Red's side of the map, the metal pile will be controlled by Red, but a bunch
+of red's units are behind the main."** ... **"trying to move the units through the main is causing them to filter out,
+and so now blue is fighting with a concave. I know it's just straight-up line, but 20 blue tanks are firing at 4 to 5
+red tanks at a time, and the exchange of fire is not equal."** ... **"It'll be tempting for Red to think, well, I see
+blue tanks now below my base, that's why I had tanks down there. But it doesn't work. You've got to try to isolate
+these armies and kill one of them so you can harvest it and then kick the metal back into units. Because every second
+puts Red further behind now. That metal advantage used to be 20%, now it's 58%."** At 19:52: **"Red should definitely
+try to kill that lower army. Try and break out. Eat the metal pile."**
+
 ### Said by less experienced players
 
 Lobby ratings 19 to 25, or unknown: worth hearing, weighed below the lines above.
