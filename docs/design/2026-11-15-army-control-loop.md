@@ -546,3 +546,16 @@ that walks an order, the body arrives as on the engine of before and the 21 rows
 then what ties a frame to its body between decisions. Decided the same day (D10) and built: §5.5 and §5.8 are
 amended above, and the bench's arm is gone with the question. §9 gains the rows `walk-mixed` and `alternate-mixed`.
 
+**A fourth reading (2026-11-15, the ledger's rows fix-\* and loop-pianist-smoke-2).** With D10 built the 23 rows
+hold and the hands played a whole game on it with no fault. Two things stand for the user:
+
+- **The faster type's stride.** §5.6 sends a member faster than the pace its slot itself, which costs an order for
+  each cell or two the slot travels on either engine (K-group-a-faster-type-costs-an-order-a-cell). Sent its slot
+  carried a stride ahead and again a stride on (the bench's arm `WITHIN_REASON_STRIDE`), a body of two speeds takes
+  1.10, 0.87, 0.72 and 0.56 orders a member a second at 32, 48, 64 and 96 against 1.56, with arrival, pace, depth and
+  an assault's outcome unchanged. A term of the goal law by §11; not the default until he rules.
+- **A party.** In the game's first clash a third of the group had anything in reach
+  (K-group-a-block-meets-a-party-with-a-third-of-its-guns): the guard of §5.9 stops the frame at its nearest slot
+  and the halt wants every slot. The engine of before shows the same off the positions. It belongs with D3, D6 and
+  D7 above: what the army does about an enemy at or beside its place.
+

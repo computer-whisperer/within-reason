@@ -828,10 +828,30 @@ each time the slot has moved the near tolerance (`form::near_tolerance`, a quart
 about every 200. On a straight walk under one order a Blitz beside Stouts takes about 2.2 orders a second, on the
 engine of before 2026-11-15 and the rebuilt one alike (a mixed body of 24: 1.58 and 1.53 a member a second; Stouts
 alone 0.36 and 0.30), and the mixed body walks at 0.80 of the pace on both.
-**Status.** measured (2026-11-15, one duel an arm). The lever, how far the slot travels between orders, is not
-measured.
+**Status.** measured (2026-11-15, one duel an arm). The lever is measured on the bench (the arm
+`WITHIN_REASON_STRIDE`: the faster member sent its slot carried a stride ahead, and again a stride on): a mixed
+body's orders a member a second fall from 1.56 to 1.10, 0.87, 0.72 and 0.56 at 32, 48, 64 and 96 with arrival, pace
+and depth unchanged, the Blitzes back where the engine of before had them behind the Stouts (90, against 113 with
+no stride), and an assault of three speeds level (4 of 4 on every arm, value left inside one arm's spread). Not
+the default: put to the user. Not measured: a type much faster than the pace, a hundred soldiers, a game.
 **Evidence.** `docs/experiments.md`, the row orders1-\* to alternate-mixed (orders1); the old engine's note on
 "the faster types of a mixed body still per tick" (169d728e).
 **Would be wrong if.** The orders follow the seconds and not the slot's travel (a body at half pace asks as many).
 **Used by.** none. H-HOST-ORDER-BUDGET holds a seat to 100 a second: a hundred soldiers of two speeds ask about 160.
+
+### K-group-a-block-meets-a-party-with-a-third-of-its-guns
+**Claim.** A group ordered to attack a mobile party meets it with about a third of its soldiers in reach, on the
+rebuilt engine and on the one before it. loop-pianist-smoke-2, 10:24 to 11:00: 8 Blitzes and 7 Stouts against 4
+Janus, one or two Stouts and a scout lost seven for one; 3 to 6 of our 12 to 15 had anything in reach at a time and
+the median soldier stood 370 to 450 from his nearest unit. slots-smoke-2 on the engine of before, 13:00 to 14:00: 26
+against 13, the median soldier 390 to 560 from his nearest, eight Stouts lost. On the rebuilt engine the frame's
+guard stops it when its nearest slot is half the shortest reach from an armed enemy, and the halt wants every slot
+in reach: against a party narrower than the block the first comes long before the second (halted 1 s of the game,
+an enemy in some member's reach 144 s).
+**Status.** measured (2026-11-15, one clash a game, off the positions), open. It is the open point of the design's
+§14 (the enemy is not an input of the layout; D3, no close; D7, the halt on the slots) seen in a game.
+**Evidence.** `docs/experiments.md`, loop-pianist-smoke-2.
+**Would be wrong if.** The soldiers out of reach were newcomers on their way and not members in their slots (the
+lane counted 4 to 12 of them in their slots through the clash).
+**Used by.** none: with the layout's question, for the user.
 
