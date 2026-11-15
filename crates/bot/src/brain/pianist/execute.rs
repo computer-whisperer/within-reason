@@ -401,8 +401,10 @@ impl Brain {
         let mut did: Option<String> = None;
         match order {
             Order::Hold => {
-                // The ranks stand about the lane's anchor when the group is the lane's, else the body's place.
-                let anchor = self.lane_group(&pianist.groups[index].lane_name()).map(|s| s.anchor);
+                // The hold is where the group's soldiers are (the lane's report of them) when the group is the
+                // lane's, else the body's place: a group standing in its blocks keeps them (a hold inside the
+                // layout in force names no new place).
+                let anchor = self.lane_group(&pianist.groups[index].lane_name()).map(|s| s.centre);
                 let group = &mut pianist.groups[index];
                 let at = anchor.or_else(|| group.body(own, None).map(|b| b.at)).or(centre).unwrap_or(home);
                 group.set_task(GroupTask::Hold { picked: true, at }, frame);

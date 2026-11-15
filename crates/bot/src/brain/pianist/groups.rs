@@ -20,12 +20,6 @@ use crate::world::Domain;
 /// A moving group has arrived when its centre is this close to its destination; a declared group's front that stops
 /// further than this from the place it walked to has "stopped short" in the news and the idle words.
 pub(super) const ARRIVED: f32 = 300.0;
-/// H-HANDS-ARRIVAL: a declared group's walk has arrived when a company of this many or more stands arrived at the
-/// way's end (the lane's own flag, per company). The lane's composed `arrived` waits for every company, and an army
-/// nearly always has one on the road: apex-v0409-comet-sym0-opus-1, the lead company of 18 stood arrived at spot_23
-/// from 10:40 to 11:57 and two companies of 35 at spot_46 from 13:58 to 14:14 while the group read "walking to" and
-/// Jev was asked to change a course that was over for the front. A company under this size is a straggler.
-const FRONT_MIN: usize = 4;
 /// The companies a group holds at most (the user, 2026-11-10: "groups should never grow beyond a certain size --
 /// perhaps just 4 companies"), and so the slots of the group a seat has when its player has declared none.
 pub(crate) const GROUP_COMPANIES: usize = 4;
@@ -34,17 +28,14 @@ const MET_REACH: f32 = 1200.0;
 /// Places reached kept per group, the oldest dropped: the words stay short.
 const REACHED_KEPT: usize = 6;
 
-/// H-HANDS-ARRIVAL: where a declared group's walk to `to` has arrived, if it has. A group of companies: the anchor of
-/// the arrived marching company of `FRONT_MIN` or more nearest the way's end (a muster at its point is not of the
-/// march; a smaller company is a straggler). A group without companies: its own anchor when its flag says so.
-fn front_arrived(state: &micro::GroupState, to: Vec3) -> Option<Vec3> {
-    if state.companies.is_empty() {
-        return state.arrived.then_some(state.anchor);
-    }
-    (state.companies.iter())
-        .filter(|c| c.arrived && c.members >= FRONT_MIN)
-        .min_by(|a, b| a.anchor.dist2d(to).total_cmp(&b.anchor.dist2d(to)))
-        .map(|c| c.anchor)
+/// H-HANDS-ARRIVAL (`docs/design/2026-11-15-army-control-loop.md` D4): a declared group's walk has arrived when the
+/// lane's report says so, which is when four fifths of its soldiers stand inside its blocks at the place; where its
+/// soldiers are then (the median by coordinate). The report is of the units, so no re-plan or re-deal in the lane
+/// takes the word back. (Until 2026-11-15 the walk ended on a company's own flag, the anchor at its way's end with
+/// nobody walking in; vents-barb-8v8-1's tier-3 army stood at its place for a minute with no company flagged, and
+/// the picture said "advancing".)
+fn front_arrived(state: &micro::GroupState) -> Option<Vec3> {
+    state.arrived.then_some(state.centre)
 }
 /// A party nobody has seen for this long is gone; a ground group holds where it stands, an air group searches its
 /// target's last position once and holds only after `AIR_LOST_FRAMES` (H-HANDS-AIR-TARGET: evidence-1-bombers, where
@@ -600,7 +591,7 @@ impl Brain {
         // else its body. (Until 2026-10-31 the body's place for every group: the member at the 60th percentile from
         // the centroid, which in barb-ladder4-20-1 was a joiner crossing the base or a Bull standing away, and seven
         // followers were sent 400-600 elmo to another member of the ward every second.)
-        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane_group(&g.lane_name()).map(|s| s.anchor).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
+        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| self.lane_group(&g.lane_name()).map(|s| s.centre).or_else(|| g.body(own, None).map(|b| b.at)).map(|at| (g.name.clone(), at))).collect();
         for group in pianist.groups.iter_mut() {
             // A roving group is the lane's (H-MICRO-ROVE): no hunt, no orders kept up, every member its own from the
             // tick it joins.
@@ -612,7 +603,7 @@ impl Brain {
             // Where the body stands: a declared group's anchor, the lane's; else the body's place. A group with nobody
             // with it has nothing to keep up.
             let lane_state = if group.declared() { self.lane_group(&group.lane_name()).cloned() } else { None };
-            let Some(centre) = lane_state.as_ref().map(|s| s.anchor).or_else(|| group.body(own, goal).map(|b| b.at)) else { continue };
+            let Some(centre) = lane_state.as_ref().map(|s| s.centre).or_else(|| group.body(own, goal).map(|b| b.at)) else { continue };
             // The registers' facts: a named place (`menu::named_places`) the body comes within `ARRIVED` of is
             // reached, said in `recent` and asked about at once; the first enemies in sight since the last stop are
             // kept until the next. Code records; Jev picks the next move.
@@ -648,19 +639,21 @@ impl Brain {
             match &mut group.task {
                 GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
                 GroupTask::Move { to, place, .. } if declared => {
-                    // The front's arrival (H-HANDS-ARRIVAL: an arrived marching company of `FRONT_MIN` or more, the
-                    // one nearest the way's end; the formation itself when the group has no companies), read a
-                    // second after the order at the earliest: the state before it is the last task's.
+                    // The arrival (H-HANDS-ARRIVAL: the lane's report, four fifths of the soldiers in the group's
+                    // blocks at the place), read a second after the order at the earliest: the state before it is
+                    // the last task's.
                     if frame - group.last_order >= FRAMES_PER_SECOND
-                        && let Some(at) = lane_state.as_ref().and_then(|s| front_arrived(s, *to))
+                        && let Some(body) = lane_state.as_ref().and_then(front_arrived)
                     {
-                        // An arrival ends the order in a hold nobody picked, the front's anchor where it stands:
-                        // the group is idle and is asked; the companies still on the road walk to the hold. A
-                        // shell's hold keeps shelling: the screen stays between (chunk 5). Within `ARRIVED` of the
-                        // spot the place is reached, in the register and the idle words; further off the news and
-                        // the words say how far short it stopped, and the register is not written.
+                        // An arrival ends the order in a hold nobody picked, at the order's own place, so the lane's
+                        // layout stands as it is: the group is idle and is asked; the soldiers still on the road
+                        // walk to their slots. A shell's hold keeps shelling: the screen stays between (chunk 5).
+                        // With the body within `ARRIVED` of the spot the place is reached, in the register and the
+                        // idle words; further off (the ground put the blocks beside it) the news and the words say
+                        // how far, and the register is not written.
                         let place = place.clone();
-                        let short = at.dist2d(*to);
+                        let short = body.dist2d(*to);
+                        let at = *to;
                         let (shelling, screen) = (group.shelling, group.screen);
                         group.set_task(GroupTask::Hold { picked: false, at }, frame);
                         if short > ARRIVED {
@@ -1489,30 +1482,33 @@ mod tests {
         assert!(brain.journal.notes.iter().all(|n| n.source != "lane"));
     }
 
-    /// H-HANDS-ARRIVAL: a walk has arrived when a company of `FRONT_MIN` or more stands arrived at the way's end,
-    /// whatever the companies behind it do; the hold is at the arrived company nearest the end. A group without
-    /// companies is read by its own flag. A straggler company arrived alone is nothing.
+    /// H-HANDS-ARRIVAL: a walk has arrived when the lane's report says so (four fifths of the soldiers in the group's
+    /// blocks at the place), and the body is then where its soldiers are; a group still on the road has not, whatever
+    /// any one company of it does.
     #[test]
-    fn a_walk_arrives_with_its_front_company_and_not_with_a_straggler() {
+    fn a_walk_arrives_on_the_lanes_report_of_the_soldiers() {
         use super::super::fixtures::at;
-        use micro::{CompanyState, GroupState};
-        let to = at(4352.0, 1904.0);
-        let company = |anchor: Vec3, members: usize, arrived: bool| CompanyState { anchor, members, formed: members, exceptions: Vec::new(), arrived };
-        let state = |companies: Vec<CompanyState>, arrived: bool| GroupState { anchor: at(4664.0, 2024.0), heading: (1.0, 0.0), pace: 0.0, full_pace: 75.0, formed: Vec::new(), exceptions: Vec::new(), arrived, legs_left: 0, engaged: None, way: Some(0.0), companies, passing: None };
-        // The game's 10:40: the lead company of 18 arrived 334 past the spot, a company of 4 marching far behind;
-        // the composed flag false.
-        let front = company(at(4664.0, 2024.0), 18, true);
-        let s = state(vec![company(at(1500.0, 3000.0), 4, false), front.clone()], false);
-        assert_eq!(front_arrived(&s, to), Some(front.anchor));
-        // Two arrived companies: the hold is at the one nearer the end.
-        let nearer = company(at(4400.0, 1950.0), 14, true);
-        let s = state(vec![front.clone(), nearer.clone(), company(at(2500.0, 5000.0), 22, false)], false);
-        assert_eq!(front_arrived(&s, to), Some(nearer.anchor));
-        // A straggler of three arrived alone: no arrival.
-        let s = state(vec![company(at(4400.0, 1950.0), 3, true), company(at(2500.0, 5000.0), 22, false)], false);
-        assert_eq!(front_arrived(&s, to), None);
-        // No companies (a group with no cap): the formation's own flag.
-        assert_eq!(front_arrived(&state(Vec::new(), true), to), Some(at(4664.0, 2024.0)));
-        assert_eq!(front_arrived(&state(Vec::new(), false), to), None);
+        use micro::GroupState;
+        let state = |at_place: usize, arrived: bool| GroupState {
+            place: Some(at(4352.0, 1904.0)),
+            centre: at(4400.0, 1950.0),
+            facing: (1.0, 0.0),
+            members: 40,
+            at_place,
+            arrived,
+            to_go: Some(0.0),
+            speed: 0.0,
+            full_pace: 75.0,
+            formed: Vec::new(),
+            exceptions: Vec::new(),
+            engaged: None,
+            in_reach: 0,
+            halted: 0,
+            legs_left: 0,
+            passing: None,
+            companies: Vec::new(),
+        };
+        assert_eq!(front_arrived(&state(33, true)), Some(at(4400.0, 1950.0)));
+        assert_eq!(front_arrived(&state(18, false)), None);
     }
 }

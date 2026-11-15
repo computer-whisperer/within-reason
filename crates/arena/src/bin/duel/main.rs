@@ -434,7 +434,7 @@ fn parse_args() -> io::Result<Options> {
         drill: None,
     };
     let mut drill_kind: Option<drill::Kind> = None;
-    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, slots: 0, pair: drill::PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() };
+    let mut drill_opts = drill::Options { kind: drill::Kind::Walk, distance: 2000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 12 * drill::FPS, lab: "armvp".into(), target: "armshltx".into(), from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, advance: false, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, props: drill::Props::default(), cap: 0, slots: 0, pair: drill::PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() };
     let mut lab_given = false;
     let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
@@ -600,6 +600,34 @@ fn parse_args() -> io::Result<Options> {
                 let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--late takes seconds, such as 4"));
                 drill_opts.late = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f >= 0);
             }
+            // The property drills' events (`drill::Props`), seconds from the first order.
+            "--nudge-by" => drill_opts.props.nudge_by = Some(value().parse::<f32>().unwrap_or_else(|_| usage("--nudge-by takes elmos, such as 300"))),
+            "--shift" => {
+                let text = value();
+                let bad = "--shift takes ALONG,ACROSS@T, such as 0,100@20";
+                let (by, at) = text.split_once('@').unwrap_or_else(|| usage(bad));
+                let (along, across) = by.split_once(',').unwrap_or_else(|| usage(bad));
+                let num = |t: &str| t.trim().parse::<f32>().unwrap_or_else(|_| usage(bad));
+                drill_opts.props.shift = Some((num(along), num(across), (num(at) * drill::FPS as f32).round() as i32));
+            }
+            "--kill" => {
+                let text = value();
+                let bad = "--kill takes N@T, such as 1@15";
+                let (n, at) = text.split_once('@').unwrap_or_else(|| usage(bad));
+                drill_opts.props.kill = Some((n.trim().parse::<usize>().unwrap_or_else(|_| usage(bad)), (at.trim().parse::<f32>().unwrap_or_else(|_| usage(bad)) * drill::FPS as f32).round() as i32));
+            }
+            "--build" => {
+                let text = value();
+                let bad = "--build takes NAME@ALONG,ACROSS,T, such as armsolar@1000,0,15";
+                let (name, rest) = text.split_once('@').unwrap_or_else(|| usage(bad));
+                let parts: Vec<f32> = rest.split(',').map(|t| t.trim().parse::<f32>().unwrap_or_else(|_| usage(bad))).collect();
+                if parts.len() != 3 {
+                    usage(bad);
+                }
+                drill_opts.props.build.push((name.to_string(), parts[0], parts[1], (parts[2] * drill::FPS as f32).round() as i32));
+            }
+            "--run" => drill_opts.props.run = Some((value().parse::<f32>().unwrap_or_else(|_| usage("--run takes seconds, such as 90")) * drill::FPS as f32).round() as i32),
+            "--restart" => drill_opts.props.restart = Some((value().parse::<f32>().unwrap_or_else(|_| usage("--restart takes seconds, such as 20")) * drill::FPS as f32).round() as i32),
             "--nudge" => {
                 let seconds = value().parse::<f32>().unwrap_or_else(|_| usage("--nudge takes seconds, such as 5"));
                 drill_opts.nudge = Some((seconds * drill::FPS as f32).round() as i32).filter(|f| *f > 0);

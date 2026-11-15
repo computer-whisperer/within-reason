@@ -78,6 +78,27 @@ pub const CROSSER_TRIGGER: f32 = 500.0;
 pub const CROSSER_BEYOND: f32 = 1200.0;
 /// D23 `--nudge`: how far across the axis the goal is moved at each re-declaration (over `ROUTE_MOVED` 48).
 pub const NUDGE: f32 = 60.0;
+/// The property drills' events (`docs/design/2026-11-15-army-control-loop.md` §9), in frames from the first order:
+/// what a closed-loop property is read against. Each is said in the per-second line's `orders`.
+#[derive(Clone, Debug, Default)]
+pub struct Props {
+    /// `--nudge-by D`: how far across the axis `--nudge` moves the goal (default `NUDGE`).
+    pub nudge_by: Option<f32>,
+    /// `--shift ALONG,ACROSS@T`: the goal moved once by this much along and across the axis, at `T`.
+    pub shift: Option<(f32, f32, i32)>,
+    /// `--kill N@T`: the `N` rearmost members of the army self-destructed at `T` (the engine counts a unit down
+    /// before it goes, and its blast is its own).
+    pub kill: Option<(usize, i32)>,
+    /// `--build NAME@ALONG,ACROSS,T`, any number: a structure of ours given at `T`, `ALONG` the axis from the start
+    /// and `ACROSS` it.
+    pub build: Vec<(String, f32, f32, i32)>,
+    /// `--restart T`: the army's lane dropped and made again at `T`, as a bot process started again would.
+    pub restart: Option<i32>,
+    /// `--run S`: a walk is over `S` after the first order and not before, whoever has arrived: what the army does
+    /// at its place is the measure.
+    pub run: Option<i32>,
+}
+
 /// The pair drill: two anchors nearer than this stand in one footprint (a formation of six files at 64 is 384 across).
 pub const PAIR_OVERLAP: f32 = 250.0;
 /// The pair drill's follower re-aims at its ward's anchor once it has moved this far (the hands' follow step).
@@ -204,6 +225,8 @@ pub struct Options {
     /// D23: the rear party (`--behind`) stands out of the group, unordered, until this many frames after the first
     /// order, then joins it (`--late S`): the lab's fresh units declared into a group already marching.
     pub late: Option<i32>,
+    /// The property drills' events (`Props`).
+    pub props: Props,
     /// The companies design (`--cap N`): members a company of the army holds at most; 0 for one formation.
     pub cap: usize,
     /// The slots design (`--slots N`): the army's group has this many slots, and soldiers past them are surplus; 0
@@ -516,6 +539,16 @@ pub struct Drill {
     pub nudge: Option<i32>,
     /// D23 `--late`: frames after the first order until the rear party joins, and the rear party's spawn indices.
     pub late: Option<i32>,
+    /// The property drills' events, the structures to give with each one's type, and which have been done; each
+    /// living unit's last movement order's point by spawn index (the per-second line's `goals`: what a unit was
+    /// last sent to, whoever sent it).
+    pub props: Props,
+    pub build_defs: Vec<bot_protocol::UnitDefId>,
+    pub built: Vec<bool>,
+    pub killed: bool,
+    pub restarted: bool,
+    pub run_over: bool,
+    pub goals: HashMap<usize, Vec3>,
     pub cap: usize,
     pub slots: usize,
     pub rear: Vec<usize>,
@@ -610,6 +643,13 @@ impl Drill {
             crosser: None,
             nudge: options.nudge,
             late: options.late,
+            props: options.props.clone(),
+            build_defs: Vec::new(),
+            built: vec![false; options.props.build.len()],
+            killed: false,
+            restarted: false,
+            run_over: false,
+            goals: HashMap::new(),
             cap: options.cap,
             slots: options.slots,
             rear: Vec::new(),
@@ -787,12 +827,21 @@ impl Drill {
     /// D23 `--nudge`: the goal as declared at `frame`, moved `NUDGE` across the axis to one side or the other every
     /// `nudge` frames since the first order (the goal itself without the arm).
     pub fn nudged_goal(&self, frame: i32) -> Vec3 {
-        let (Some(every), Some(first)) = (self.nudge, self.first_order) else { return self.toward };
-        let step = (frame - first).max(0) / every.max(1);
-        let side = if step % 2 == 0 { 1.0 } else { -1.0 };
         let axis = self.axis();
         let norm = axis.x.hypot(axis.z).max(1.0);
-        Vec3 { x: self.toward.x - axis.z / norm * NUDGE * side, y: self.toward.y, z: self.toward.z + axis.x / norm * NUDGE * side }
+        let (ux, uz) = (axis.x / norm, axis.z / norm);
+        // `--shift`: the goal moved once, along and across the axis, from its time on.
+        let mut at = self.toward;
+        if let (Some((along, across, when)), Some(first)) = (self.props.shift, self.first_order)
+            && frame - first >= when
+        {
+            at = Vec3 { x: at.x + ux * along - uz * across, y: at.y, z: at.z + uz * along + ux * across };
+        }
+        let (Some(every), Some(first)) = (self.nudge, self.first_order) else { return at };
+        let step = (frame - first).max(0) / every.max(1);
+        let side = if step % 2 == 0 { 1.0 } else { -1.0 };
+        let by = self.props.nudge_by.unwrap_or(NUDGE);
+        Vec3 { x: at.x - uz * by * side, y: at.y, z: at.z + ux * by * side }
     }
 
     /// Judged as an assault (D16): the defence wiped is `taken`, the army's mobile units wiped is `wiped`, else the
@@ -993,6 +1042,7 @@ impl Drill {
             Kind::Gather => self.appeared.len() >= expected && self.arrived.len() >= expected,
             // Under a group, the group's word ends it too: a formation of twenty is four ranks deep and its rear rank
             // stands at the arrival radius (d22-a7: one Pawn at 300.08 from the goal, formed and arrived, timed out).
+            Kind::Walk if self.props.run.is_some() => self.run_over,
             Kind::Walk => self.arrived.len() >= expected || self.group.is_some_and(|(_, members, done)| done && members >= expected),
             Kind::Into => walking.iter().all(|i| self.first_shot.contains_key(i)),
             Kind::Assault => false,
@@ -1074,7 +1124,7 @@ mod tests {
     }
 
     fn options(kind: Kind) -> Options {
-        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, cap: 0, slots: 0, pair: PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() }
+        Options { kind, distance: 3000.0, fight: true, reissue: None, lead: None, pace: None, turn_at: 20 * FPS, lab: "armvp".into(), target: "armshltx".into(), advance: false, from: None, to: None, around: None, feed: Vec::new(), laps: 1, circuit: None, behind: Vec::new(), behind_distance: 0.0, scatter: 0.0, churn: None, churn_def: "armsolar".into(), stall: None, crosser: None, nudge: None, late: None, props: Props::default(), cap: 0, slots: 0, pair: PairMode::Walk, post: Vec::new(), yard: None, wall: None, fence: Vec::new() }
     }
 
     /// D21's measures: a member's step along the axis toward the goal counts forward, a step away counts back

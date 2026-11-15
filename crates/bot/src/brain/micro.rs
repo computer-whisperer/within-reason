@@ -80,7 +80,7 @@ impl Brain {
                     {
                         let screen_name = group.screen_lane_name();
                         let screen_point = match kind {
-                            micro::GroupKind::Hold => self.lane_group(&screen_name).map_or(screen_at, |s| s.anchor),
+                            micro::GroupKind::Hold => self.lane_group(&screen_name).map_or(screen_at, |s| s.place.unwrap_or(s.centre)),
                             _ => screen_at,
                         };
                         declared.push((name, artillery, company(micro::GroupOrder::new(kind.clone(), vec![*at]))));

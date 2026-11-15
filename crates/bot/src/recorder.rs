@@ -625,24 +625,30 @@ fn class(d: &bot_protocol::UnitDefInfo) -> &'static str {
 }
 
 
-/// The lane's group this second, as the drill's per-second log has it (`docs/harness/duels.md`) but by unit id: the
-/// anchor, its heading, pace and full pace, who is formed, who is out of slot and why with the seconds to its slot
-/// at its own speed, whether it has arrived, the host's points left, the contact target, the files, the room about
-/// the anchor and the way left (null: no way on foot to the route's point).
+/// The lane's group this second, by unit id (`docs/harness/record-format.md`): the report of
+/// `docs/design/2026-11-15-army-control-loop.md` §5.10, read from the units. The keys of before 2026-11-15 are kept
+/// with their nearest meaning for the readers and the viewer: `anchor` is the group's centre, `heading` its facing,
+/// `pace` its soldiers' median speed, `way` the way left, a company's `anchor` its centre, its `exceptions` its
+/// members not formed and its `arrived` four fifths of it in its block.
 fn group_json(s: &GroupState) -> Value {
     let tenth = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
     let hundredth = |v: f32| (f64::from(v) * 100.0).round() / 100.0;
+    let at = |p: bot_protocol::Vec3| json!([p.x.round(), p.z.round()]);
     json!({
-        "anchor": [s.anchor.x.round(), s.anchor.z.round()], "heading": [hundredth(s.heading.0), hundredth(s.heading.1)],
-        "pace": s.pace.round(), "full_pace": s.full_pace.round(),
+        "place": s.place.map(at), "centre": at(s.centre), "facing": [hundredth(s.facing.0), hundredth(s.facing.1)],
+        "members": s.members, "at_place": s.at_place, "arrived": s.arrived,
+        "to_go": s.to_go.map(f32::round), "speed": s.speed.round(), "full_pace": s.full_pace.round(),
         "formed": s.formed.iter().map(|u| u.0).collect::<Vec<_>>(),
         "exceptions": s.exceptions.iter().map(|(u, cause, seconds)| json!([u.0, format!("{cause:?}").to_lowercase(), tenth(*seconds)])).collect::<Vec<_>>(),
-        "arrived": s.arrived, "legs_left": s.legs_left, "engaged": s.engaged.map(|u| u.0),
-        "way": s.way.map(f32::round),
-        // The relaxed posture (docs/design/2026-11-10-restricted-ground.md): the members through, null in ranks.
+        "legs_left": s.legs_left, "engaged": s.engaged.map(|u| u.0), "in_reach": s.in_reach, "halted": s.halted,
+        // The members through, of the companies waiting beyond a tight stretch; null when none is.
         "passing": s.passing,
-        // The companies (docs/design/2026-10-25-companies.md): none for a group with no cap.
-        "companies": s.companies.iter().map(|c| json!({"anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived})).collect::<Vec<_>>(),
+        "anchor": at(s.centre), "heading": [hundredth(s.facing.0), hundredth(s.facing.1)], "pace": s.speed.round(), "way": s.to_go.map(f32::round),
+        "companies": s.companies.iter().map(|c| json!({
+            "centre": at(c.centre), "block": at(c.block), "members": c.members, "formed": c.formed, "at_place": c.at_place, "to_go": c.to_go.round(),
+            "halted": c.halted, "passing": c.passing,
+            "anchor": at(c.centre), "exceptions": c.members - c.formed.min(c.members), "arrived": c.at_place * 5 >= c.members * 4,
+        })).collect::<Vec<_>>(),
     })
 }
 
@@ -651,34 +657,42 @@ mod group_tests {
     use bot_protocol::{UnitId, Vec3};
     use micro::{Cause, GroupState};
 
-    /// The sample's group object has the drill's keys, by unit id, with the way's length or null.
+    /// The sample's group object has the report's keys by unit id, the way left or null, and the older keys with
+    /// their nearest meaning.
     #[test]
-    fn the_group_line_has_the_drills_keys_by_unit_id() {
+    fn the_group_line_has_the_reports_keys_by_unit_id() {
+        let at = |x: f32, z: f32| Vec3 { x, y: 0.0, z };
         let state = GroupState {
-            anchor: Vec3 { x: 1200.4, y: 0.0, z: 800.6 },
-            heading: (std::f32::consts::FRAC_1_SQRT_2, -std::f32::consts::FRAC_1_SQRT_2),
-            pace: 86.6,
+            place: Some(at(4352.0, 1904.0)),
+            centre: at(1200.4, 800.6),
+            facing: (std::f32::consts::FRAC_1_SQRT_2, -std::f32::consts::FRAC_1_SQRT_2),
+            members: 4,
+            at_place: 1,
+            arrived: false,
+            to_go: None,
+            speed: 86.6,
             full_pace: 87.0,
             formed: vec![UnitId(11), UnitId(12)],
-            exceptions: vec![(UnitId(13), Cause::Behind, 2.34), (UnitId(14), Cause::CutOff, 0.0)],
-            arrived: false,
-            legs_left: 2,
+            exceptions: vec![(UnitId(13), Cause::Coming, 2.34), (UnitId(14), Cause::Standing, 0.0)],
             engaged: None,
-            way: None,
-            companies: Vec::new(),
+            in_reach: 0,
+            halted: 0,
+            legs_left: 2,
             passing: None,
+            companies: Vec::new(),
         };
         let line = super::group_json(&state);
-        assert_eq!(line["anchor"], serde_json::json!([1200.0, 801.0]));
-        assert_eq!(line["heading"], serde_json::json!([0.71, -0.71]));
-        assert_eq!(line["pace"], 87.0);
+        assert_eq!(line["centre"], serde_json::json!([1200.0, 801.0]));
+        assert_eq!(line["anchor"], line["centre"]);
+        assert_eq!(line["facing"], serde_json::json!([0.71, -0.71]));
+        assert_eq!(line["speed"], 87.0);
         assert_eq!(line["formed"], serde_json::json!([11, 12]));
-        assert_eq!(line["exceptions"], serde_json::json!([[13, "behind", 2.3], [14, "cutoff", 0.0]]));
-        assert_eq!(line["legs_left"], 2);
+        assert_eq!(line["exceptions"], serde_json::json!([[13, "coming", 2.3], [14, "standing", 0.0]]));
+        assert_eq!((line["legs_left"].as_i64(), line["at_place"].as_i64()), (Some(2), Some(1)));
         assert!(line["engaged"].is_null());
-        assert!(line["way"].is_null(), "no way on foot is null");
-        let found = GroupState { way: Some(1234.6), ..state };
-        assert_eq!(super::group_json(&found)["way"], 1235.0);
+        assert!(line["to_go"].is_null() && line["way"].is_null(), "no way on foot is null");
+        let found = GroupState { to_go: Some(1234.6), ..state };
+        assert_eq!(super::group_json(&found)["to_go"], 1235.0);
     }
 }
 

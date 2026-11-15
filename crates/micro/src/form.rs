@@ -211,6 +211,91 @@ pub fn assign(units: &[Vec3], slots: &[Vec3]) -> Vec<usize> {
     slot_of
 }
 
+/// `assign` for fewer units than slots: each unit a slot of its own by the least total squared travel, the slots
+/// left over empty (a company with slots free: `docs/design/2026-11-15-army-control-loop.md` §5.7). The same
+/// algorithm with the units as rows and the slots as columns. The result does not change when every slot moves by one
+/// vector: the total changes by a term that is the same for every assignment.
+pub fn assign_some(units: &[Vec3], slots: &[Vec3]) -> Vec<usize> {
+    let (n, m) = (units.len(), slots.len());
+    debug_assert!(n <= m);
+    if n == 0 || n > m {
+        return (0..n).collect();
+    }
+    let cost = |i: usize, j: usize| -> f64 {
+        let d = units[i].dist2d(slots[j]) as f64;
+        d * d
+    };
+    let mut u = vec![0.0f64; n + 1];
+    let mut v = vec![0.0f64; m + 1];
+    let mut p = vec![0usize; m + 1];
+    let mut way = vec![0usize; m + 1];
+    for i in 1..=n {
+        p[0] = i;
+        let mut j0 = 0usize;
+        let mut minv = vec![f64::INFINITY; m + 1];
+        let mut used = vec![false; m + 1];
+        loop {
+            used[j0] = true;
+            let i0 = p[j0];
+            let mut delta = f64::INFINITY;
+            let mut j1 = 0usize;
+            for j in 1..=m {
+                if used[j] {
+                    continue;
+                }
+                let cur = cost(i0 - 1, j - 1) - u[i0] - v[j];
+                if cur < minv[j] {
+                    minv[j] = cur;
+                    way[j] = j0;
+                }
+                if minv[j] < delta {
+                    delta = minv[j];
+                    j1 = j;
+                }
+            }
+            for j in 0..=m {
+                if used[j] {
+                    u[p[j]] += delta;
+                    v[j] -= delta;
+                } else {
+                    minv[j] -= delta;
+                }
+            }
+            j0 = j1;
+            if p[j0] == 0 {
+                break;
+            }
+        }
+        loop {
+            let j1 = way[j0];
+            p[j0] = p[j1];
+            j0 = j1;
+            if j0 == 0 {
+                break;
+            }
+        }
+    }
+    let mut slot_of = vec![0usize; n];
+    for j in 1..=m {
+        if p[j] > 0 {
+            slot_of[p[j] - 1] = j - 1;
+        }
+    }
+    slot_of
+}
+
+/// The median by coordinate of `points`: a place robust to a few far ones, where the mean is not.
+pub fn median(points: impl Iterator<Item = Vec3>) -> Option<Vec3> {
+    let (mut xs, mut zs): (Vec<f32>, Vec<f32>) = points.map(|p| (p.x, p.z)).unzip();
+    if xs.is_empty() {
+        return None;
+    }
+    xs.sort_by(f32::total_cmp);
+    zs.sort_by(f32::total_cmp);
+    let mid = |v: &[f32]| if v.len() % 2 == 1 { v[v.len() / 2] } else { (v[v.len() / 2 - 1] + v[v.len() / 2]) / 2.0 };
+    Some(Vec3 { x: mid(&xs), y: 0.0, z: mid(&zs) })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

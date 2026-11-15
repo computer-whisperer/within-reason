@@ -764,7 +764,7 @@ impl Distilled {
             if let Some(state) = self.control.lane.group_state(crate::lane::STRIKE) {
                 eprintln!(
                     "[distilled ai={}] f={} formation: strike anchor=({:.0},{:.0}) pace={:.0}/{:.0} formed={}/{} exceptions={} arrived={} engaged={} legs={} companies={}",
-                    self.hello.ai_id, self.frame, state.anchor.x, state.anchor.z, state.pace, state.full_pace, state.formed.len(), members.len(), state.exceptions.len(), u8::from(state.arrived), u8::from(state.engaged.is_some()), state.legs_left, state.companies.len()
+                    self.hello.ai_id, self.frame, state.centre.x, state.centre.z, state.speed, state.full_pace, state.formed.len(), members.len(), state.exceptions.len(), u8::from(state.arrived), u8::from(state.engaged.is_some()), state.legs_left, state.companies.len()
                 );
             }
         }

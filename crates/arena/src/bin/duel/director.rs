@@ -700,7 +700,7 @@ impl Director {
         // D21's arms: the rear party's types, the churned structure, the crosser.
         .into_iter()
         .chain(self.batch.drill.as_ref().into_iter().flat_map(|d| {
-            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).chain(d.post.iter().map(|(n, _)| n.clone())).chain(d.yard.as_ref().map(|(n, ..)| n.clone())).chain(d.wall.as_ref().map(|(n, ..)| n.clone())).chain(d.fence.iter().map(|(n, _)| n.clone())).collect::<Vec<_>>()
+            d.behind.iter().map(|(n, _)| n.clone()).chain(d.churn.map(|_| d.churn_def.clone())).chain(d.crosser.as_ref().map(|(n, ..)| n.clone())).chain(d.post.iter().map(|(n, _)| n.clone())).chain(d.yard.as_ref().map(|(n, ..)| n.clone())).chain(d.wall.as_ref().map(|(n, ..)| n.clone())).chain(d.fence.iter().map(|(n, _)| n.clone())).chain(d.props.build.iter().map(|(n, ..)| n.clone())).collect::<Vec<_>>()
         }))
         .collect::<Vec<_>>()).unwrap_or_default();
         for name in queue.iter().flat_map(|job| [&job.x, &job.y]).filter(|spec| spec.as_str() != crate::plan::NOBODY).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs).chain(drill_defs) {
@@ -1058,6 +1058,8 @@ impl Director {
                 }
                 spawns
             };
+            // The property drills' structures: each one's type.
+            drill.build_defs = options.props.build.iter().map(|(name, ..)| self.defs[name].id).collect();
             // D21 `--churn`: the structure's two sites beside the start, off the axis past the formation's half-width.
             if let Some(every) = options.churn {
                 let half = form_x.extent(force_x.iter().map(|(_, n)| n).sum()).0 / 2.0;
@@ -1179,11 +1181,13 @@ fn pacing_tuning() -> micro::Pacing {
         Some(s) => (s * drill::FPS as f32).round() as i32,
         None => own,
     };
-    let (stuck_after, idle_after) = (frames(default.stuck_after), frames(default.idle_after));
+    // The sixth is no number of the lane's since 2026-11-15 (a member that stands holds nothing, with no clock):
+    // read, so the later fields keep their places, and dropped.
+    let (_, idle_after) = (frames(0), frames(default.idle_after));
     // The eighth (the order budget's bench, 2026-11-10): the share of the pitch across a point moves before a slot
     // order goes out again (H-MICRO-NEAR).
     let near = parts.next().and_then(|p| p.parse::<f32>().ok()).unwrap_or(default.near);
-    micro::Pacing { fraction, cadence, lead, drag_from, close_to, stuck_after, idle_after, near, ..default }
+    micro::Pacing { fraction, cadence, lead, drag_from, close_to, idle_after, near, ..default }
 }
 
 /// H-MICRO-FORM-SPACING's and H-MICRO-FORM-HULLS' numbers for the lane:
@@ -1719,6 +1723,20 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             }
             // The lane over this army's orders: what the director sent this tick is the standing order.
             if let Some(mut lane) = army.lane.take() {
+                // The property drills' `--restart`: the lane dropped and made again, as a bot process started again.
+                if side == 0
+                    && let Some(drill) = duel.drill.as_mut()
+                    && let (Some(at), Some(first)) = (drill.props.restart, drill.first_order)
+                    && !drill.restarted
+                    && frame - first >= at
+                {
+                    drill.restarted = true;
+                    lane = Lane::default();
+                    lane.tuning = form_tuning();
+                    lane.pacing = pacing_tuning();
+                    duel.notes.push(json!({"restart": true, "f": frame}));
+                    eprintln!("[duel side {side}] f={frame} drill: the lane made again");
+                }
                 let mut mine: Vec<Command> = commands.split_off(from);
                 let members = army.units.clone();
                 lane.note_standing_orders(&mine, frame, |u| members.contains(&u));
@@ -1763,7 +1781,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                             // lane's yet, and the drill is not over while one walks.
                             drill.note_group(state.formed.len(), state.formed.len() + state.exceptions.len(), state.arrived && state.exceptions.is_empty() && army.dealt.1 == 0);
                             drill.note_companies(&state.companies);
-                            drill.note_anchor(state.anchor, state.heading, state.pace, state.arrived, state.engaged.is_some());
+                            drill.note_anchor(state.centre, state.facing, state.speed, state.arrived, state.engaged.is_some());
                             // D21 `--stall`: from `T` after the first order the rearmost formed member is held out of
                             // the group for `S` frames (`drill_orders` sends its Stops), then is a member again.
                             if let (Some((at, for_frames)), Some(first)) = (drill.stall, drill.first_order)
@@ -1825,7 +1843,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     if let Some(state) = lane.group_state("army") {
                         let mut still: HashSet<UnitId> = HashSet::new();
                         for &(u, cause, seconds) in &state.exceptions {
-                            if !matches!(cause, micro::Cause::Away | micro::Cause::Stuck) {
+                            if cause != micro::Cause::Standing {
                                 continue;
                             }
                             still.insert(u);
@@ -1891,7 +1909,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         && drill.kind == drill::Kind::Pair
                     {
                         if let Some(state) = lane.group_state("pair") {
-                            drill.note_pair(state.anchor, state.arrived && state.exceptions.is_empty());
+                            drill.note_pair(state.centre, state.arrived && state.exceptions.is_empty());
                         }
                         let members: Vec<UnitId> = (army.alive.keys().copied()).filter(|u| army.spawn_of.get(u).is_some_and(|i| drill.rear.contains(i)) && !army.left_behind.contains(u)).collect();
                         let end = drill.pair_end();
@@ -1928,6 +1946,14 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             if side == 0 && let Some(drill) = duel.drill.as_mut() {
                 let sent = commands[from..].iter().filter(|c| !matches!(c, Command::GiveUnit { .. } | Command::GiveResource { .. } | Command::SelfDestruct { .. } | Command::Say { .. })).count();
                 drill.note_orders(sent);
+                // Each unit's last movement order's point, whoever sent it (the per-second line's `goals`).
+                for c in &commands[from..] {
+                    if let Command::Move { unit, to, .. } | Command::Fight { unit, to, .. } = c
+                        && let Some(&i) = duel.armies[0].spawn_of.get(unit)
+                    {
+                        drill.goals.insert(i, *to);
+                    }
+                }
             }
             // Judge once both teams have reported this frame.
             if duel.armies.iter().any(|a| a.reported != frame) {
@@ -2352,6 +2378,9 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     if let Some(d) = duel.drill.as_ref() {
         line["back"] = json!(d.back_second.round());
         line["sent"] = json!([d.orders_last_second.0, d.orders_last_second.1]);
+        let mut goals: Vec<(usize, Vec3)> = d.goals.iter().map(|(i, p)| (*i, *p)).collect();
+        goals.sort_by_key(|g| g.0);
+        line["goals"] = json!(goals.iter().map(|(i, p)| json!([i, p.x.round(), p.z.round()])).collect::<Vec<_>>());
         // The deal (the slots design): the army's soldiers with its group, coming to it and surplus.
         line["deal"] = json!([x.dealt.0, x.dealt.1, x.dealt.2]);
         if let Some(c) = &d.churn {
@@ -2368,15 +2397,17 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         let hundredth = |v: f32| (f64::from(v) * 100.0).round() / 100.0;
         let index = |u: &UnitId| x.spawn_of.get(u).map_or(-1, |i| *i as i64);
         line["group"] = json!({
-            "anchor": [state.anchor.x.round(), state.anchor.z.round()], "heading": [hundredth(state.heading.0), hundredth(state.heading.1)],
-            "pace": state.pace.round(), "full_pace": state.full_pace.round(),
+            "place": state.place.map(|p| [p.x.round(), p.z.round()]), "centre": [state.centre.x.round(), state.centre.z.round()],
+            "facing": [hundredth(state.facing.0), hundredth(state.facing.1)],
+            "members": state.members, "at_place": state.at_place, "arrived": state.arrived,
+            "to_go": state.to_go.map(f32::round), "speed": state.speed.round(), "full_pace": state.full_pace.round(),
             "formed": state.formed.iter().map(index).collect::<Vec<_>>(),
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
-            "arrived": state.arrived, "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0),
-            "way": state.way.map(f32::round),
+            "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0), "in_reach": state.in_reach, "halted": state.halted,
             "passing": state.passing,
             "companies": state.companies.iter().map(|c| json!({
-                "anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived,
+                "centre": [c.centre.x.round(), c.centre.z.round()], "block": [c.block.x.round(), c.block.z.round()], "members": c.members, "formed": c.formed,
+                "at_place": c.at_place, "to_go": c.to_go.round(), "halted": c.halted, "passing": c.passing,
             })).collect::<Vec<_>>(),
         });
     }
@@ -2484,6 +2515,42 @@ fn drill_orders(drill: &mut Drill, army: &mut Army, tick: &Tick, rules: &Rules, 
         commands.push(Command::Stop { unit });
     }
     drill_churn(drill, tick, frame, commands);
+    drill_props(drill, army, frame, commands);
+}
+
+/// The property drills' events (`drill::Props`): the structures given and the members self-destructed at their
+/// times. The goal's shift is `Drill::nudged_goal`'s and the restart the lane block's.
+fn drill_props(drill: &mut Drill, army: &Army, frame: i32, commands: &mut Vec<Command>) {
+    let Some(first) = drill.first_order else { return };
+    if drill.props.run.is_some_and(|run| frame - first >= run) {
+        drill.run_over = true;
+    }
+    let axis = drill.axis();
+    let norm = axis.x.hypot(axis.z).max(1.0);
+    let (ux, uz) = (axis.x / norm, axis.z / norm);
+    for (i, (_, along, across, at)) in drill.props.build.iter().enumerate() {
+        if !drill.built[i] && frame - first >= *at {
+            drill.built[i] = true;
+            let site = Vec3 { x: drill.start.x + ux * along - uz * across, y: 0.0, z: drill.start.z + uz * along + ux * across };
+            commands.push(Command::GiveUnit { def: drill.build_defs[i], at: site });
+            eprintln!("[duel] f={frame} drill: a structure given at ({:.0},{:.0})", site.x, site.z);
+        }
+    }
+    if let Some((count, at)) = drill.props.kill
+        && !drill.killed
+        && frame - first >= at
+    {
+        drill.killed = true;
+        let mut members: Vec<(UnitId, f32)> = (army.alive.keys())
+            .filter(|u| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile))
+            .filter_map(|u| army.seen_at.get(u).map(|p| (*u, p.x * ux + p.z * uz)))
+            .collect();
+        members.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.0.cmp(&b.0.0)));
+        for (unit, _) in members.into_iter().take(count) {
+            commands.push(Command::SelfDestruct { unit });
+            eprintln!("[duel] f={frame} drill: unit {} ({:?}) self-destructed", unit.0, army.spawn_of.get(&unit));
+        }
+    }
 }
 
 /// D21 `--churn`: every `every` frames from the first order side `x` is given a structure at one of two sites beside
@@ -2636,7 +2703,7 @@ fn drill_meta(drill: &Drill, army: &Army, other: &Army) -> Value {
         "theirs": drill.judged_as_assault().then(|| other.spawns.iter().map(|s| json!([s.name, s.at.x.round(), s.at.z.round()])).collect::<Vec<_>>()),
         "advance": drill.advance, "lane_theirs": other.lane_mode.label(),
         "straight": drill.straight.round(), "walk": drill.walk.map(f32::round), "slowest": drill.slowest,
-        "pacing": std::env::var("WITHIN_REASON_PACING").ok(),
+        "pacing": std::env::var("WITHIN_REASON_PACING").ok(), "rear": drill.rear,
         "route": drill.route.iter().map(|p| [p.x.round(), p.z.round()]).collect::<Vec<_>>(), "laps": drill.laps,
         "churn_s": drill.churn.as_ref().map(|c| c.every / FPS), "stall_s": drill.stall.map(|(a, b)| [a / FPS, b / FPS]), "nudge_s": drill.nudge.map(|f| f / FPS), "late_s": drill.late.map(|f| f / FPS),
         "crosser": drill.crosser.as_ref().map(|c| json!([other.spawns.get(c.index).map(|s| s.name.clone()), c.along.round(), c.across.round()])),

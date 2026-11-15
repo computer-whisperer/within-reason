@@ -2124,9 +2124,9 @@ impl Brain {
                 continue;
             };
             // A declared group (the lane's formation, the migration design chunk 2) is read from the lane's state:
-            // its place is the anchor, and the `formation` line below carries what the body words said.
+            // its place is where its soldiers are, and the `formation` line below carries what the body words said.
             let lane_state = if group.declared() { self.lane_group(&group.lane_name()) } else { None };
-            let centre = lane_state.map_or(body.at, |s| s.anchor);
+            let centre = lane_state.map_or(body.at, |s| s.centre);
             let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
             let shape = |to: Vec3| {
                 let n = body.core.len();
@@ -2197,7 +2197,7 @@ impl Brain {
             if let Some(state) = lane_state {
                 let to = goal.map(|p| self.place_words(&places, p));
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
-                entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.anchor), engaged.as_deref()));
+                entry["formation"] = json!(formation_words(state, group.members.len(), to.as_deref(), &self.place_words(&places, state.centre), engaged.as_deref()));
                 // The companies (the companies design §4), when the army is more than one.
                 if state.companies.len() > 1 {
                     entry["companies"] = json!(company_words(state, self.company_of(&group.name), &|p| self.place_words(&places, p)));
@@ -2207,7 +2207,7 @@ impl Brain {
             if group.shelling && let Some(state) = self.lane_group(&group.screen_lane_name()) {
                 let members = state.formed.len() + state.exceptions.len();
                 let engaged = state.engaged.and_then(|t| snapshot.enemies.iter().find(|e| e.id == t)).map(|e| format!("his {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(&places, e.pos)));
-                entry["screen"] = json!(format!("its screen ({members} soldiers between the artillery and the target): {}", formation_words(state, members, Some("its screen point"), &self.place_words(&places, state.anchor), engaged.as_deref())));
+                entry["screen"] = json!(format!("its screen ({members} soldiers between the artillery and the target): {}", formation_words(state, members, Some("its screen point"), &self.place_words(&places, state.centre), engaged.as_deref())));
             }
             // The registers: the named places it has reached and what it has met since the last; Jev reads where it
             // is on the way its instructions describe from these (the last pick is no register since 2026-10-24).
@@ -2475,68 +2475,73 @@ impl Brain {
     }
 }
 
-/// The army's companies (the companies design §4): how many of up to the cap, each by its size, its formed count,
-/// where it stands and how far from the main body (the largest, whose numbers the formation words give).
+/// The army's companies: how many of up to the cap, each by its size, its formed count, where its soldiers are
+/// and the way left to its own block at the place.
 pub(crate) fn company_words(state: &micro::GroupState, cap: usize, place: &dyn Fn(Vec3) -> String) -> String {
     let parts: Vec<String> = (state.companies.iter())
         .map(|c| {
-            let off = c.anchor.dist2d(state.anchor);
-            let from = if off < 1.0 { " (the main body)".to_string() } else { format!(", {off:.0} from the main body") };
-            format!("{} ({} formed) at {}{from}", c.members, c.formed, place(c.anchor))
+            let going = if c.passing {
+                ", through tight ground out of ranks".to_string()
+            } else if c.halted {
+                ", halted with the enemy in reach".to_string()
+            } else if c.at_place * 5 >= c.members * 4 {
+                ", at its place".to_string()
+            } else {
+                format!(", {:.0} to go", c.to_go)
+            };
+            format!("{} ({} formed) at {}{going}", c.members, c.formed, place(c.centre))
         })
         .collect();
-    format!("{} compan{} of up to {cap}, each marching on its own way: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
+    format!("{} compan{} of up to {cap}, each on its own way to its own place beside the others: {}", state.companies.len(), if state.companies.len() == 1 { "y" } else { "ies" }, parts.join("; "))
 }
 
-/// The lane's reading of a declared group (docs/design/2026-10-25-hands-migration.md §4): observations only, one
-/// number set per group where the body words gave a front, a tail and a fifth. `to`: where it is going, in the
-/// picture's place words, when it is going somewhere; `at`: the anchor's place words; `engaged`: the enemy some
-/// member has in reach, when one has (the group halted for it at pace 0, or still walking).
+/// The lane's reading of a declared group (`docs/design/2026-11-15-army-control-loop.md` §5.10): observations only,
+/// every one read from the soldiers and the order. `to`: where it is going, in the picture's place words, when it is
+/// going somewhere; `at`: where its soldiers are; `engaged`: the enemy some member has in reach, when one has.
 pub(crate) fn formation_words(state: &micro::GroupState, members: usize, to: Option<&str>, at: &str, engaged: Option<&str>) -> String {
     use micro::Cause;
     let count = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).count();
-    let farthest = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).map(|(_, _, s)| *s).fold(0.0f32, f32::max);
+    let farthest = |cause: Cause| state.exceptions.iter().filter(|(_, c, _)| *c == cause).map(|(_, _, s)| *s).filter(|s| s.is_finite()).fold(0.0f32, f32::max);
     let formed = state.formed.len();
     let mut outliers = Vec::new();
-    let behind = count(Cause::Behind) + count(Cause::Away) + count(Cause::Stuck);
-    if behind > 0 {
-        outliers.push(format!("{behind} behind (the farthest {:.0} s)", farthest(Cause::Behind).max(farthest(Cause::Away)).max(farthest(Cause::Stuck))));
+    if count(Cause::Coming) > 0 {
+        outliers.push(format!("{} coming up (the farthest {:.0} s)", count(Cause::Coming), farthest(Cause::Coming)));
     }
-    if count(Cause::Joining) > 0 {
-        outliers.push(format!("{} joining", count(Cause::Joining)));
+    if count(Cause::Standing) > 0 {
+        outliers.push(format!("{} not moving out of their places", count(Cause::Standing)));
     }
-    if count(Cause::CutOff) > 0 {
-        outliers.push(format!("{} cut off by the ground", count(Cause::CutOff)));
+    if count(Cause::Reflex) > 0 {
+        outliers.push(format!("{} dodging fire", count(Cause::Reflex)));
     }
     let outliers = if outliers.is_empty() { String::new() } else { format!(", {}", outliers.join(", ")) };
     let mut out = Vec::new();
-    if state.way.is_none()
+    if state.to_go.is_none()
         && let Some(to) = to
     {
         out.push(format!("no way on foot from here to {to} for this group"));
     }
     if let Some(through) = state.passing {
         // The relaxed posture (docs/design/2026-11-10-restricted-ground.md): the ranks do not stand on the ground
-        // ahead, every member is driving through it on its own, and the group forms up again at `at` beyond it. Said
-        // before "halted" and "held": the anchor stands there at pace 0 while the members come.
+        // ahead, every member is driving through it on its own, and the companies form up again beyond it.
         let going = to.map_or(String::new(), |to| format!(" on the way to {to}"));
         let fighting = engaged.map_or(String::new(), |target| format!(", {target} in reach"));
-        out.push(format!("passing tight ground{going} out of ranks, {through} of {members} through, forming up again at {at}{fighting}"));
+        out.push(format!("passing tight ground{going} out of ranks, {through} of {members} through and formed up beyond it{fighting}"));
     } else if let Some(target) = engaged
-        && state.pace <= 0.0
+        && state.halted > 0
     {
-        out.push(format!("halted at {at} to fight {target} in reach, {formed} of {members} formed{outliers}"));
+        out.push(format!("halted at {at} to fight {target}, {} of {members} with an enemy in reach, {formed} formed{outliers}", state.in_reach));
     } else if state.arrived {
-        out.push(format!("arrived at {}, {formed} of {members} in rank{outliers}", to.unwrap_or(at)));
-    } else if state.pace <= 0.0 {
-        out.push(format!("held at {at}, {formed} of {members} formed{outliers}"));
+        out.push(format!("arrived at {}, {} of {members} standing there{outliers}", to.unwrap_or(at), state.at_place));
+    } else if state.speed < 5.0 {
+        out.push(format!("standing at {at}, {formed} of {members} formed{outliers}"));
     } else {
-        let share = if state.full_pace > 0.0 { state.pace / state.full_pace * 100.0 } else { 0.0 };
+        let share = if state.full_pace > 0.0 { (state.speed / state.full_pace * 100.0).min(100.0) } else { 0.0 };
         let going = to.map_or(String::new(), |to| format!(" to {to}"));
-        let points = if state.legs_left > 1 { format!(", {} points to go", state.legs_left) } else { String::new() };
-        let way = state.way.map_or(String::new(), |w| format!(", {w:.0} on its way"));
+        let points = if state.legs_left > 0 { format!(", {} points to go", state.legs_left + 1) } else { String::new() };
+        let way = state.to_go.map_or(String::new(), |w| format!(", {w:.0} on its way"));
+        let there = if state.at_place > 0 { format!(", {} there already", state.at_place) } else { String::new() };
         let fighting = engaged.map_or(String::new(), |target| format!(" with {target} in reach"));
-        out.push(format!("advancing{going}{fighting}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}"));
+        out.push(format!("advancing{going}{fighting}, {formed} of {members} formed{outliers}; walking at {share:.0}% of its pace{points}{way}{there}"));
     }
     out.join("; ")
 }
@@ -2638,36 +2643,41 @@ mod tests {
 
     use super::super::fixtures::{at, brain_of, enemy, own};
 
-    /// The formation words (the migration design §4): the march with its outliers by cause, the hold,
-    /// the arrival, the contact, and "no way on foot" ahead of the rest when the ground gives none.
+    /// The formation words: the march with its outliers by cause, the body standing, the arrival, the contact, the
+    /// pass, and "no way on foot" ahead of the rest when the ground gives none.
     #[test]
     fn the_formation_words_read_the_lanes_state() {
         use micro::{Cause, GroupState};
         let state = GroupState {
-            anchor: at(100.0, 100.0),
-            heading: (1.0, 0.0),
-            pace: 70.0,
+            place: Some(at(4352.0, 1904.0)),
+            centre: at(100.0, 100.0),
+            facing: (1.0, 0.0),
+            members: 8,
+            at_place: 0,
+            arrived: false,
+            to_go: Some(2345.0),
+            speed: 70.0,
             full_pace: 87.0,
             formed: vec![UnitId(1), UnitId(2), UnitId(3)],
-            exceptions: vec![(UnitId(4), Cause::Behind, 2.0), (UnitId(5), Cause::Away, 9.6), (UnitId(6), Cause::Joining, 20.0), (UnitId(7), Cause::CutOff, 0.0)],
-            arrived: false,
-            legs_left: 3,
+            exceptions: vec![(UnitId(4), Cause::Coming, 2.0), (UnitId(5), Cause::Coming, 9.6), (UnitId(6), Cause::Standing, 20.0), (UnitId(7), Cause::Reflex, 0.0)],
             engaged: None,
-            way: Some(2345.0),
-            companies: Vec::new(),
+            in_reach: 0,
+            halted: 0,
+            legs_left: 2,
             passing: None,
+            companies: Vec::new(),
         };
         let words = super::formation_words(&state, 8, Some("spot_3 (D4)"), "(C4)", None);
-        assert_eq!(words, "advancing to spot_3 (D4), 3 of 8 formed, 2 behind (the farthest 10 s), 1 joining, 1 cut off by the ground; walking at 80% of its pace, 3 points to go, 2345 on its way");
-        let held = GroupState { pace: 0.0, ..state.clone() };
-        assert!(super::formation_words(&held, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("held at (C4), 3 of 8 formed, 2 behind"));
-        let arrived = GroupState { arrived: true, pace: 0.0, exceptions: Vec::new(), ..state.clone() };
-        assert_eq!(super::formation_words(&arrived, 3, Some("spot_3 (D4)"), "(C4)", None), "arrived at spot_3 (D4), 3 of 3 in rank");
-        let engaged = GroupState { pace: 0.0, engaged: Some(UnitId(99)), ..state.clone() };
-        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) to fight his Pawn at (C5) in reach, 3 of 8 formed, 2 behind"));
-        let passing = GroupState { pace: 0.0, passing: Some(5), ..state.clone() };
-        assert_eq!(super::formation_words(&passing, 8, Some("spot_3 (D4)"), "(C4)", None), "passing tight ground on the way to spot_3 (D4) out of ranks, 5 of 8 through, forming up again at (C4)");
-        let no_way = GroupState { way: None, ..state.clone() };
+        assert_eq!(words, "advancing to spot_3 (D4), 3 of 8 formed, 2 coming up (the farthest 10 s), 1 not moving out of their places, 1 dodging fire; walking at 80% of its pace, 3 points to go, 2345 on its way");
+        let standing = GroupState { speed: 0.0, ..state.clone() };
+        assert!(super::formation_words(&standing, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("standing at (C4), 3 of 8 formed, 2 coming up"));
+        let arrived = GroupState { arrived: true, at_place: 3, speed: 0.0, exceptions: Vec::new(), ..state.clone() };
+        assert_eq!(super::formation_words(&arrived, 3, Some("spot_3 (D4)"), "(C4)", None), "arrived at spot_3 (D4), 3 of 3 standing there");
+        let engaged = GroupState { speed: 0.0, engaged: Some(UnitId(99)), halted: 1, in_reach: 3, ..state.clone() };
+        assert!(super::formation_words(&engaged, 8, None, "(C4)", Some("his Pawn at (C5)")).starts_with("halted at (C4) to fight his Pawn at (C5), 3 of 8 with an enemy in reach, 3 formed, 2 coming up"));
+        let passing = GroupState { speed: 0.0, passing: Some(5), ..state.clone() };
+        assert_eq!(super::formation_words(&passing, 8, Some("spot_3 (D4)"), "(C4)", None), "passing tight ground on the way to spot_3 (D4) out of ranks, 5 of 8 through and formed up beyond it");
+        let no_way = GroupState { to_go: None, ..state.clone() };
         assert!(super::formation_words(&no_way, 8, Some("spot_3 (D4)"), "(C4)", None).starts_with("no way on foot from here to spot_3 (D4) for this group; advancing to spot_3 (D4)"));
     }
 

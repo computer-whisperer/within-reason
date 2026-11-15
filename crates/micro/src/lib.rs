@@ -26,15 +26,15 @@ pub mod form;
 pub mod ground;
 pub mod group;
 pub mod army;
+pub mod layout;
 mod rove;
-#[cfg(test)]
-mod replay;
 #[cfg(test)]
 mod test_host;
 
 pub use ground::{ClassKey, Classes, Footprint, Ground};
-pub use army::{Army, Company, CompanyState};
-pub use group::{Cause, Group, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
+pub use army::{Army, Company};
+pub use group::{Cause, CompanyState, GroupKind, GroupOrder, GroupState, HuntOrder, Pacing};
+pub use layout::Block;
 pub mod threat;
 
 pub use rove::{AIR_DANGER_SECONDS, HEAL, PUSH, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
@@ -408,22 +408,6 @@ struct Claim {
     frame: i32,
 }
 
-/// What one formation's tick reads of the lane's tick (`formation_tick`).
-#[derive(Clone, Copy)]
-struct FormCtx<'a> {
-    frame: i32,
-    enemies: &'a [EnemyUnit],
-    by_id: &'a HashMap<UnitId, &'a OwnUnit>,
-    /// This formation's pitch: the group's spacing against area weapons, and its own largest hull's room.
-    pitch: form::Pitch,
-    /// Every formation's footprint as of the last tick (§5.3): what a formation's end is kept off.
-    footprints: &'a [group::Footprint],
-    /// What is hostile this tick (`docs/design/2026-11-10-restricted-ground.md` §1.2): the armed enemies in sight
-    /// and every building of theirs, seen or remembered. A formation that fights relaxes its ranks only with none
-    /// of them near the stretch.
-    hostile: &'a [Vec3],
-}
-
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
 /// between the hull spacing and `max` (`form::spacing_for`). H-MICRO-FORM-HULLS': neighbours stand at least
 /// `hull_across` of the formation's largest pathing hull apart and its ranks `hull_deep` (`form::pitch_for`; 0 for
@@ -497,9 +481,9 @@ pub struct Lane {
     /// The soldiers the lane has put at the engine's hold position as members of a formation group
     /// (H-MICRO-FORM-HOLDPOS), so each goes back to manoeuvre once, when it leaves.
     held: HashSet<UnitId>,
-    /// The members of formations passing a stretch in the relaxed posture this tick (the restricted-ground design
-    /// §1.3): one the engine has stopped short of its place beyond the stretch is sent there again (`take_slot`).
-    passing: HashSet<UnitId>,
+    /// A formation member the engine left with no order short of its point (`take_slot`): where it stood when it was
+    /// last sent again for that, and the frames to wait before the next (doubling while it does not move).
+    retries: HashMap<UnitId, (Vec3, i32)>,
 }
 
 /// A group's ground is rebuilt for a change of structures no sooner than this after the last build (frames); a
@@ -519,6 +503,8 @@ struct Declared {
     ground_key: Option<(Vec<ClassKey>, i32)>,
     ground_structures: u64,
     ground_frame: i32,
+    /// Counts the ground's rebuilds: the army reads a change of it as a change of ground.
+    ground_version: u64,
 }
 
 impl Lane {
@@ -534,6 +520,14 @@ impl Lane {
                 && d.speed <= 0.0
             {
                 out.push(ground::Footprint::of(u.pos, d.footprint, u.facing));
+            }
+        }
+        // The allies' too (the design of 2026-11-15, T19: a team game puts their buildings on the place).
+        for a in &snapshot.allies {
+            if let Some(d) = view.def(a.def)
+                && d.speed <= 0.0
+            {
+                out.push(ground::Footprint::of(a.pos, d.footprint, a.facing));
             }
         }
         let mut seen: HashSet<UnitId> = HashSet::new();
@@ -685,7 +679,7 @@ impl Lane {
                 d.order = order;
             }
             None => {
-                self.groups.insert(name.to_string(), Declared { members, order, army: army::Army::default(), ground: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0 });
+                self.groups.insert(name.to_string(), Declared { members, order, army: army::Army::default(), ground: None, state: None, ground_key: None, ground_structures: 0, ground_frame: 0, ground_version: 0 });
             }
         }
     }
@@ -1244,262 +1238,143 @@ impl Lane {
         true
     }
 
-    /// H-MICRO-FORM's orders for every member of a declared group this tick (`group.rs` for the anchor and the
-    /// slots, `form.rs` for the geometry; `docs/design/2026-10-24-formation-drills.md` §2). The spacing is the
-    /// small hulls' 64, wider for a formation's own largest hull (H-MICRO-FORM-HULLS) and against an area weapon of
-    /// theirs in sight or remembered within 1,500 (H-MICRO-FORM-SPACING).
-    /// Every member is sent to its slot, an offset from the anchor that walks the route at the group's pace, as a
-    /// Move when its last order no longer serves (`take_slot`); the anchor is held back by the members of its body
-    /// behind their slots (`Group::tick`). At contact the
-    /// ranks hold (`docs/design/2026-10-28-contact-cleanup.md` §5): the anchor of a group that fights halts when every
-    /// member of its body has an armed enemy in sight in reach, so the slots stand where the block stopped, and walks
-    /// on when that fails. Each member's point this tick.
+    /// H-MICRO-FORM's orders for every member of a declared group this tick. Each group is an army (`army.rs`,
+    /// `docs/design/2026-11-15-army-control-loop.md`) that decides where its companies stand and walk; the lane hands
+    /// it the members as they are, the ground, the enemy and the other groups' blocks, and sends each member to the
+    /// point the army names when its last order no longer serves (`take_slot`). The spacing is the small hulls' 64,
+    /// wider for a company's own largest hull (H-MICRO-FORM-HULLS) and against an area weapon of theirs in sight or
+    /// remembered within 1,500 (H-MICRO-FORM-SPACING).
     fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, SlotOrder> {
         let mut orders = HashMap::new();
         let enemies: &[EnemyUnit] = snapshot.enemies.as_slice();
+        let formation = |d: &Declared| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. });
         // What stands on the ground this tick (design D18), marked once for every group's ground.
-        let structures = view.terrain().filter(|_| self.groups.values().any(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }))).map(|terrain| {
+        let structures = view.terrain().filter(|_| self.groups.values().any(formation)).map(|terrain| {
             let footprints = self.structure_footprints(view, snapshot, terrain.cell);
-            let largest = footprints.iter().map(|f| (f.half_x * 2.0, f.half_z * 2.0, f.at)).max_by(|a, b| (a.0 * a.1).total_cmp(&(b.0 * b.1)));
-            if group::debug_on() && !footprints.is_empty() && footprints.len() <= 8 && frame % 300 == 0 {
-                eprintln!("[lane f={frame}] STRUCTURES {}", footprints.iter().map(|f| format!("{:.0} x {:.0} at ({:.0},{:.0})", f.half_x * 2.0, f.half_z * 2.0, f.at.x, f.at.z)).collect::<Vec<_>>().join("; "));
-            }
-            (ground::structures(terrain, &footprints), footprints.len() - self.wrecks.len(), self.wrecks.len(), largest)
+            ground::structures(terrain, &footprints)
         });
         let spacing_on = view.enabled("H-MICRO-FORM-SPACING");
-        // What is hostile (the restricted-ground design §1.2): armed enemies in sight, as the halt counts them, and
-        // every building of theirs in sight or remembered.
+        // The armed enemies in sight (a known type, not being built, not stunned: nothing on radar only, remembered
+        // or seen a while ago stops a block), and everything hostile: those and every building of theirs in sight
+        // or remembered.
+        let mut armed: Vec<(UnitId, Vec3)> = Vec::new();
         let mut hostile: Vec<Vec3> = Vec::new();
         let mut seen_buildings: HashSet<UnitId> = HashSet::new();
         for e in enemies {
             let Some(def) = e.def else { continue };
+            let is_armed = view.stats(def).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0;
             if view.def(def).is_some_and(|d| d.speed <= 0.0) {
                 seen_buildings.insert(e.id);
                 hostile.push(e.pos);
-            } else if view.stats(def).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0 {
+            } else if is_armed {
                 hostile.push(e.pos);
+            }
+            if is_armed {
+                armed.push((e.id, e.pos));
             }
         }
         hostile.extend(view.remembered_buildings().into_iter().filter(|(id, _, _)| !seen_buildings.contains(id)).map(|(_, _, at)| at));
-        self.passing.clear();
         let by_id: HashMap<UnitId, &OwnUnit> = soldiers.iter().map(|u| (u.id, *u)).collect();
-        let names: Vec<String> = self.groups.keys().cloned().collect();
-        // Every formation's footprint as of the last tick (§5.3): each formation keeps its end off the others'.
-        let footprints: Vec<group::Footprint> = self.groups.values().filter(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. })).flat_map(|d| d.army.companies.iter().map(|c| c.formation.footprint())).collect();
+        self.retries.retain(|id, _| by_id.contains_key(id));
+        let names: Vec<String> = self.groups.iter().filter(|(_, d)| formation(d)).map(|(n, _)| n.clone()).collect();
+        // The blocks every army holds and what a follower needs of its ward, as of the last tick: decisions, which
+        // stand, not where anybody is this instant.
+        let blocks: Vec<(String, Vec<layout::Block>)> = names.iter().map(|n| (n.clone(), self.groups[n].army.blocks())).collect();
+        let wards: HashMap<String, army::Ward> = names.iter().filter_map(|n| Some((n.clone(), self.groups[n].army.as_ward()?))).collect();
         for name in names {
             let Some(declared) = self.groups.get_mut(&name) else { continue };
-            if matches!(declared.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
-                continue;
-            }
             let walkers: Vec<group::Walker> = (declared.members.iter())
                 .filter_map(|id| {
                     let u = by_id.get(id)?;
-                    let speed = view.stats(u.def).map_or(0.0, |s| s.speed);
+                    let stats = view.stats(u.def);
                     let moving = u.vel.x.hypot(u.vel.z) * FRAMES_PER_SECOND as f32;
-                    Some(group::Walker { id: *id, pos: u.pos, speed, moving })
+                    let reflex = self.claims.get(id).is_some_and(|c| c.rule != Rule::Form);
+                    let reach = stats.filter(|s| s.dps > 0.0).map_or(0.0, |s| s.reach);
+                    Some(group::Walker { id: *id, pos: u.pos, speed: stats.map_or(0.0, |s| s.speed), moving, reach, hull: view.def(u.def).map_or(0.0, |d| d.path_width()), reflex })
                 })
                 .collect();
             if walkers.is_empty() {
                 continue;
             }
-            let positions: Vec<Vec3> = walkers.iter().map(|w| w.pos).collect();
-            let centre = form::centroid(positions.iter().copied()).unwrap_or_default();
+            let centre = form::median(walkers.iter().map(|w| w.pos)).unwrap_or_default();
             let area = if spacing_on {
                 sources.iter().filter(|s| s.pos.dist2d(centre) < AREA_HORIZON).filter_map(|s| view.stats(s.def?)).map(|s| s.area).fold(0.0, f32::max)
             } else {
                 0.0
             };
             let spacing = form::spacing_for(area, self.tuning.factor, self.tuning.max);
-            // H-MICRO-FORM-HULLS: each formation's pitch is for its own largest hull; the ground's room and a newly
-            // founded company's first pitch are for the group's.
             let tuning = self.tuning;
-            let pitch_of = |ids: &mut dyn Iterator<Item = UnitId>| {
-                let mut hulls: Vec<f32> = ids.filter_map(|id| by_id.get(&id)).filter_map(|u| view.def(u.def)).map(|d| d.path_width()).collect();
-                hulls.sort_by(|a, b| b.total_cmp(a));
-                form::pitch_for(spacing, form::widest_pair(&hulls), tuning.hull_across, tuning.hull_deep)
-            };
-            let pitch = pitch_of(&mut walkers.iter().map(|w| w.id));
-            // The group's ground (design D17): the cells every member's class stands on, priced for the ranks' room;
-            // built when the classes or the room change, once for the declaration and shared by its companies.
-            let mut ground_changed = false;
+            // The group's pitch, for its ground's room and the near tolerance; each company's own is the army's.
+            let mut hulls: Vec<f32> = walkers.iter().map(|w| w.hull).collect();
+            hulls.sort_by(|a, b| b.total_cmp(a));
+            let pitch = form::pitch_for(spacing, form::widest_pair(&hulls), tuning.hull_across, tuning.hull_deep);
+            // The group's ground (design D17): the cells every member's class stands on, priced for a block's room;
+            // built when the classes or the room change, and for a change of structures no sooner than the cadence.
             if let Some(terrain) = view.terrain() {
                 let mut classes: Vec<(ClassKey, MoveClass)> = walkers.iter().filter_map(|w| by_id.get(&w.id)).filter_map(|u| view.def(u.def)?.move_class).map(|c| (ClassKey::of(c), c)).collect();
                 classes.sort_by_key(|(k, _)| *k);
                 classes.dedup_by_key(|(k, _)| *k);
                 let wanted = group::wanted_room(pitch.across);
                 let key = (classes.iter().map(|(k, _)| *k).collect::<Vec<_>>(), (wanted / 32.0).round() as i32);
-                let (blocked, hash) = structures.as_ref().map_or((None, 0), |((grid, hash), ..)| (Some(grid.clone()), *hash));
+                let (blocked, hash) = structures.as_ref().map_or((None, 0), |(grid, hash)| (Some(grid.clone()), *hash));
                 let classes_changed = declared.ground_key.as_ref() != Some(&key);
                 let structures_changed = hash != declared.ground_structures && frame - declared.ground_frame >= STRUCTURES_CADENCE;
                 if classes_changed || structures_changed {
-                    let started = std::time::Instant::now();
                     let mut grids: Vec<std::sync::Arc<Vec<bool>>> = classes.iter().map(|(_, c)| self.classes.passable(terrain, *c)).collect();
-                    let marked = blocked.as_ref().map_or(0, |g| g.iter().filter(|b| !**b).count());
                     grids.extend(blocked);
                     declared.ground = Ground::new(terrain, &grids, wanted).map(std::sync::Arc::new);
                     declared.ground_key = Some(key);
                     declared.ground_structures = hash;
                     declared.ground_frame = frame;
-                    ground_changed = true;
+                    declared.ground_version += 1;
                     if group::debug_on() {
-                        let (units, wrecks, largest) = structures.as_ref().map_or((0, 0, None), |(_, u, w, l)| (*u, *w, *l));
-                        eprintln!(
-                            "[group {name} f={frame}] GROUND {} x {} cells for {} class(es) wanting {wanted:.0} of room, {marked} cells under {units} unit footprints and {wrecks} wrecks{}, {} in {:.1} ms",
-                            terrain.width,
-                            terrain.height,
-                            classes.len(),
-                            largest.map_or(String::new(), |(x, z, at)| format!(" (the largest {x:.0} x {z:.0} at ({:.0},{:.0}))", at.x, at.z)),
-                            if classes_changed { "the classes or the room changed" } else { "the structures changed" },
-                            started.elapsed().as_secs_f64() * 1000.0
-                        );
+                        eprintln!("[group {name} f={frame}] GROUND rebuilt: {}", if classes_changed { "the classes or the room changed" } else { "the structures changed" });
                     }
                 }
             }
             let order = declared.order.clone();
             let members = declared.members.clone();
             let ground = declared.ground.clone();
+            let version = declared.ground_version;
             let mut army = std::mem::take(&mut declared.army);
-            // The companies (`docs/design/2026-10-25-companies.md` §2): the membership partitioned, two near companies
-            // that fit merged, then every company ticked as a group of its own.
-            let by_walker: HashMap<UnitId, group::Walker> = walkers.iter().map(|w| (w.id, *w)).collect();
-            let founded = army.partition(&name, &members, &by_walker, &order, pitch, &ground);
-            if ground_changed {
-                for c in &mut army.companies {
-                    c.formation.set_ground(ground.clone());
+            // What this group fights: a walk halts for nothing and relaxes its ranks on any tight stretch.
+            let fights = order.kind != GroupKind::Go;
+            let target = match order.kind {
+                GroupKind::Attack(id) => enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id)),
+                _ => None,
+            };
+            let party: Vec<(UnitId, Vec3)> = enemies.iter().filter(|e| order.party.contains(&e.id)).map(|e| (e.id, e.pos)).collect();
+            let held: Vec<layout::Block> = blocks.iter().filter(|(n, _)| *n != name).flat_map(|(_, b)| b.iter().copied()).collect();
+            let ctx = army::Ctx {
+                frame,
+                walkers: &walkers,
+                spacing,
+                hull_across: tuning.hull_across,
+                hull_deep: tuning.hull_deep,
+                ground: ground.as_ref(),
+                ground_version: version,
+                armed: if fights { &armed } else { &[] },
+                hostile: if fights { &hostile } else { &[] },
+                target,
+                party: &party,
+                held: &held,
+                ward: order.ward.as_ref().and_then(|w| wards.get(w)),
+                pacing: &self.pacing,
+                stand_inside: STAND_INSIDE,
+                stand_keep: STAND_KEEP,
+            };
+            let goals = army.step(&name, &members, &order, &ctx);
+            let near = form::near_tolerance(pitch, self.pacing.near);
+            for (id, to) in goals {
+                if by_id.contains_key(&id) {
+                    orders.insert(id, SlotOrder { to, near });
                 }
             }
-            if let Some((into, from)) = army.merge(order.cap)
-                && group::debug_on()
-            {
-                eprintln!("[group {name} f={frame}] MERGE: a company of {from} into one of {into}; {} companies", army.companies.len());
-            }
-            if founded > 0 && group::debug_on() {
-                eprintln!(
-                    "[group {name} f={frame}] FOUNDED {founded}: now {}",
-                    army.companies.iter().map(|c| format!("{} of {}", c.formation.name, c.members.len())).collect::<Vec<_>>().join(", ")
-                );
-            }
-            for c in &mut army.companies {
-                let w: Vec<group::Walker> = c.members.iter().filter_map(|id| by_walker.get(id).copied()).collect();
-                let ctx = FormCtx { frame, enemies, by_id: &by_id, pitch: pitch_of(&mut w.iter().map(|w| w.id)), footprints: &footprints, hostile: &hostile };
-                // The other formations' footprints for the plan's price (the facing design §3), this one's left out.
-                c.formation.set_others(footprints.iter().filter(|f| f.name != c.formation.name).cloned().collect());
-                c.formation.update(c.members.clone(), order.clone());
-                let state = self.formation_tick(view, &ctx, &mut c.formation, &w, &mut orders);
-                if c.formation.passing() {
-                    self.passing.extend(w.iter().map(|w| w.id));
-                }
-                c.state = Some(state);
-            }
-            let state = army.compose();
             let declared = self.groups.get_mut(&name).expect("declared");
+            declared.state = army.state.clone();
             declared.army = army;
-            declared.state = state;
         }
         orders
-    }
-
-    /// One formation's tick (a company's, or the whole group's with no cap; `docs/design/2026-10-28-contact-cleanup.md`
-    /// §5): the halt, the close, the march's slots, and each member's point into `orders`; its state.
-    fn formation_tick(&self, view: &dyn View, ctx: &FormCtx, group: &mut Group, walkers: &[group::Walker], orders: &mut HashMap<UnitId, SlotOrder>) -> GroupState {
-        let FormCtx { frame, enemies, by_id, pitch, footprints, hostile } = *ctx;
-        // An Attack's goal follows its target's sightings.
-        if let GroupKind::Attack(id) = group.order.kind
-            && let Some(at) = enemies.iter().find(|e| e.id == id).map(|e| e.pos).or_else(|| view.building_at(id))
-        {
-            group.retarget(at);
-        }
-        // What a fighting group halts for: an armed enemy in sight (a known type: a radar contact has none), not being
-        // built and not stunned. Nothing on radar only, remembered or seen a while ago stops a block: the contact ring
-        // formed on such ghosts (the design's §0). A walk halts for nothing.
-        let fights = group.order.kind != GroupKind::Go;
-        // A walk relaxes its ranks on any stretch they do not stand on; a group that fights only with nothing
-        // hostile near it (the restricted-ground design §1.2).
-        group.set_hostile(if fights { hostile.to_vec() } else { Vec::new() });
-        let armed: Vec<&EnemyUnit> = if fights {
-            enemies.iter().filter(|e| e.def.and_then(|d| view.stats(d)).is_some_and(|s| s.reach > 0.0 && s.dps > 0.0) && !e.being_built && e.stunned <= 0.0).collect()
-        } else {
-            Vec::new()
-        };
-        // An attack on a party (§5.2): this formation's route ends at the nearest member of the party in sight; the
-        // host's centre stands only while none is seen.
-        if !group.order.party.is_empty() && matches!(group.order.kind, GroupKind::FightTo | GroupKind::Attack(_)) {
-            let seen: Vec<&EnemyUnit> = enemies.iter().filter(|e| group.order.party.contains(&e.id)).collect();
-            let nearest = seen.iter().copied().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor)));
-            let current = group.party_target.and_then(|id| seen.iter().copied().find(|e| e.id == id));
-            // Sticky: the member the way is on, unless another is nearer by `PARTY_SWITCH` or it is out of sight.
-            let target = match (current, nearest) {
-                (Some(c), Some(n)) if n.pos.dist2d(group.anchor) + group::PARTY_SWITCH < c.pos.dist2d(group.anchor) => Some(n),
-                (Some(c), _) => Some(c),
-                (None, n) => n,
-            };
-            group.party_target = target.map(|e| e.id);
-            if let Some(end) = target.map(|e| e.pos).or_else(|| group.order.route.last().copied()) {
-                group.retarget(end);
-            }
-        }
-        // A follower (§5.3): its route's end is its ward's anchor every tick, as an attack's is its party's; the
-        // host's point stands while the ward has no formation this tick (a ward that is gone ends the follow on the
-        // host's side).
-        if let Some(ward) = group.order.ward.as_deref()
-            && let Some(w) = group::Footprint::of_ward(footprints, ward)
-        {
-            group.retarget(w.anchor);
-        }
-        // The end kept off the other formations' footprints (§5.3), after whatever set it this tick.
-        group.keep_off(footprints);
-        // The halt: every member of the body has an armed enemy within its own reach. Inside by `STAND_INSIDE` to
-        // halt, within the reach plus `STAND_KEEP` to stay halted. The body is last tick's books; everyone until
-        // there are any. (Until 2026-10-29 one member with an enemy inside `close_to` of its reach halted the block
-        // too, for the point target a deep block cannot all reach; that is the front's guard now, `Group::guard_at`:
-        // the user, on advance-2 18:23-18:37, where it held a company halted with 5 of 11 in reach while a Maverick
-        // 20 beyond the rear's reach killed six.)
-        let keep = if group.stopped { STAND_KEEP } else { -STAND_INSIDE };
-        let body_known = walkers.iter().any(|w| group.in_body(w.id));
-        let (mut counted, mut in_reach) = (0usize, 0usize);
-        let mut shortest = f32::INFINITY;
-        let mut contacts: Vec<&EnemyUnit> = Vec::new();
-        for w in walkers {
-            let Some(unit) = by_id.get(&w.id) else { continue };
-            let reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-            if reach <= 0.0 {
-                continue;
-            }
-            let Some(nearest) = armed.iter().copied().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) else { continue };
-            let distance = nearest.pos.dist2d(unit.pos);
-            let inside = distance < reach + keep;
-            if inside {
-                contacts.push(nearest);
-            }
-            if !body_known || group.in_body(w.id) {
-                counted += 1;
-                in_reach += usize::from(inside);
-                shortest = shortest.min(reach);
-            }
-        }
-        group.stopped = counted > 0 && in_reach == counted;
-        group.engaged = contacts.iter().min_by(|a, b| a.pos.dist2d(group.anchor).total_cmp(&b.pos.dist2d(group.anchor))).map(|e| e.id);
-        // The front's guard and the close (§5, §5.2): the nearest armed enemy in sight within the horizon of the
-        // anchor, and the stop, `close_to` of the body's shortest reach. Every fighting kind's anchor comes no nearer
-        // than the stop to it, on the way or closing; an advance or an attack at its route's end walks at it
-        // (`Group::close_on` bounds that to the leash too); a hold stands at its end.
-        let stop = if shortest.is_finite() { shortest * self.pacing.close_to } else { 0.0 };
-        let nearest = armed.iter().map(|e| e.pos).filter(|p| p.dist2d(group.anchor) < HORIZON).min_by(|a, b| a.dist2d(group.anchor).total_cmp(&b.dist2d(group.anchor)));
-        group.guard_at(nearest.filter(|_| shortest.is_finite()), stop);
-        let closes = matches!(group.order.kind, GroupKind::FightTo | GroupKind::Attack(_)) && shortest.is_finite();
-        group.close_on(nearest.filter(|_| closes), stop);
-        // The march, halted or not: every member's point is its slot carried ahead by the type's lead (D20), the slot
-        // itself while the anchor stands.
-        group.tick(frame, walkers, pitch, &self.pacing);
-        let near = form::near_tolerance(pitch, self.pacing.near);
-        for w in walkers {
-            if by_id.contains_key(&w.id)
-                && let Some(to) = group.order_point(w.id)
-            {
-                orders.insert(w.id, SlotOrder { to, near });
-            }
-        }
-        group.state(walkers)
     }
 
     /// A free unit with a form order takes it: a Move to its point, out when the claim is fresh (the group just formed,
@@ -1517,17 +1392,22 @@ impl Lane {
         let to = slot.to;
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
-        let due = claim.is_some_and(|c| {
-            let ended = unit.idle && frame - c.frame >= self.pacing.idle_after;
-            // In a pass the point stands (the member's place beyond the stretch), so the order goes out once; a
-            // member the engine stopped short of it in a lane is sent again, where a halted block's slots are not.
-            let stopped_in_a_pass = ended && self.passing.contains(&unit.id) && unit.pos.dist2d(to) > self.pacing.formed_within;
-            c.rule == Rule::Form
-                && frame - c.frame >= self.pacing.cadence
-                && (stopped_in_a_pass || resend_due(unit.pos, ended, c.sent_to, to, slot.near, self.pacing.formed_within))
-        });
-        if !(fresh || due) {
+        let ended = claim.is_some_and(|c| unit.idle && frame - c.frame >= self.pacing.idle_after);
+        let due = claim.is_some_and(|c| c.rule == Rule::Form && frame - c.frame >= self.pacing.cadence && resend_due(unit.pos, ended, c.sent_to, to, slot.near, self.pacing.formed_within));
+        // A member the engine left with no order, further than the band from its point, is sent again whether the
+        // point has moved or not (the design of 2026-11-15, §5.6: on the march, beyond a tight stretch and at rest
+        // alike), at a wait that doubles while it does not move.
+        let wait = self.retries.get(&unit.id).map_or(self.pacing.idle_after, |r| r.1);
+        let stranded = claim.is_some_and(|c| c.rule == Rule::Form && ended && unit.pos.dist2d(to) > self.pacing.formed_within && frame - c.frame >= wait);
+        if !(fresh || due || stranded) {
             return;
+        }
+        if stranded && !due && !fresh {
+            let stood = self.retries.get(&unit.id).map_or(unit.pos, |r| r.0);
+            let next = if unit.pos.dist2d(stood) < 16.0 { wait.saturating_mul(2).min(group::IDLE_LONGEST.max(self.pacing.idle_after)) } else { self.pacing.idle_after };
+            self.retries.insert(unit.id, (unit.pos, next));
+        } else {
+            self.retries.remove(&unit.id);
         }
         if fresh {
             fired.push(Rule::Form.id());
