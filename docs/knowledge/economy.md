@@ -755,5 +755,5 @@ the energy of fifteen solars (2,325 metal); the advanced one 1,600 and 27,000 fo
 ally team; the events' by team; the SMF feature section at the header's offset 72 and `geovent` in the Lua files).
 **Would be wrong if.** A larger duel pool on maps with vents showed under half the sides of ten-minute games taking
 one, or the team pool's count fell with the players' rating.
-**Used by.** [[H-HANDS-VENTS]], D-GEO, T-GEO; the draft article D-vents (docs/briefs/derived/vents.md, not in the
-manifest).
+**Used by.** [[H-HANDS-VENTS]], D-GEO, T-GEO; the brief's article D-vents-take-them (docs/briefs/derived/vents.md, in
+the manifest since 2026-11-15 on the user's word).

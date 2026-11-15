@@ -5,7 +5,7 @@ premises: [D-energy-second, D-tier2-sprint, D-metal-is-the-game, D-raid-answer, 
 lessons: []
 claims: [K-eco-people-take-the-vent, K-mech-a-geothermal-plant-stands-within-36-of-its-vent, K-mech-a-plant-over-a-plant-refunds-the-one-beneath]
 sources: {people: [the user], dates: [2026-11-15], relay: the user's observation ("geothermal power spots. We never build them ... Most maps have them ... and some maps that puts us significantly behind"), written on his word after the research report ("Go ahead"); the practice is counted from the carded public team games and the cached public duels above OS 40 (K-eco-people-take-the-vent); the prices are arithmetic on the unit files; the rules of the vent are read from the engine and the game and measured in the bots' games}
-status: draft, written 2026-11-15 for the user's read and not yet read by him; in no manifest; no player game has been played on it
+status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled (the first is the 8v8 against BARb on All That Glitters he asked for with the same message)
 -->
 ### A vent is the cheapest energy on the map
 
