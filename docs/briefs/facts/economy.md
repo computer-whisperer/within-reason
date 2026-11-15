@@ -61,7 +61,7 @@ reaches, oldest first.
 <!--meta
 id: F-eco-energy
 layer: fact
-sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1076-1098 (SlowUpdate), upstream/RecoilEngine/rts/Sim/Misc/Wind.cpp:93-143, upstream/RecoilEngine/rts/Sim/Misc/Wind.h:43, upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armsolar.lua, armadvsol.lua, armwin.lua, upstream/Beyond-All-Reason/units/ArmBuildings/SeaEconomy/armtide.lua, upstream/Beyond-All-Reason/scripts/Units/armsolar.bos (Close, Open, HitByWeapon), upstream/Beyond-All-Reason/units/armcom.lua, upstream/Beyond-All-Reason/units/CorBuildings/LandEconomy/corfus.lua], game: 54199a0d, note: the wind average is a simulation of Wind.cpp's walk (0.76 of the top for 0-25, 0.83 for 0-30), not the engine}
+sources: {code: [upstream/RecoilEngine/rts/Sim/Units/Unit.cpp:1076-1098 (SlowUpdate), upstream/RecoilEngine/rts/Sim/Misc/Wind.cpp:93-143, upstream/RecoilEngine/rts/Sim/Misc/Wind.h:43, upstream/Beyond-All-Reason/units/ArmBuildings/LandEconomy/armsolar.lua, armadvsol.lua, armwin.lua, upstream/Beyond-All-Reason/units/ArmBuildings/SeaEconomy/armtide.lua, upstream/Beyond-All-Reason/scripts/Units/armsolar.bos (Close, Open, HitByWeapon), upstream/Beyond-All-Reason/units/armcom.lua, upstream/Beyond-All-Reason/units/CorBuildings/LandEconomy/corfus.lua, upstream/Beyond-All-Reason/luarules/gadgets/unit_geo_upgrade_reclaimer.lua (the plant over a plant: the transfer at the frame, the removal and refund at the finish)], game: 54199a0d, note: the wind average is a simulation of Wind.cpp's walk (0.76 of the top for 0-25, 0.83 for 0-30), not the engine}
 status: live
 -->
 ### Energy: generators
@@ -73,8 +73,13 @@ advanced solar makes 80, costs 350 metal and 5,000 energy to build, and does not
 current wind strength, capped at 25: the wind wanders between the map's minimum and maximum, picking a new target
 every fifteen seconds and blending toward it, and the walk favours the top of the range, so a turbine averages about
 three quarters of the range's top (19 on a map whose wind runs 0 to 25, 3 on Comet Catcher's 1 to 4) and is almost
-never still. A tidal generator makes the map's tidal strength, steady. A geothermal plant makes 300 on a vent, a
-fusion 750 (Cortex's 850), an advanced fusion 3,000.
+never still. A tidal generator makes the map's tidal strength, steady. A geothermal plant makes 300 on a vent, the
+advanced plant on the same vent 1,250, a fusion 750 (Cortex's 850), an advanced fusion 3,000.
+
+A vent's plant is upgraded as an extractor is. An advanced geothermal plant built on top of a tier-1 one takes its
+place: when it finishes, the game removes the tier-1 plant and refunds its metal (560; Cortex's 540). If the tier-1
+plant belonged to an ally, the new one is the ally's from the moment its frame is placed, and the refund is theirs
+too.
 
 The commander makes 30 energy and 2 metal a second by itself. A construction vehicle makes 10 energy, a construction
 bot 7, an advanced constructor 14 to 20. These run whether the unit works or not. Numbers here are Armada's; a Cortex

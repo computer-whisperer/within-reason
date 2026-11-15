@@ -36,6 +36,10 @@ that every seat's player is shown in the same words, and a paragraph for your se
   the direction lifts it. The report's standing-transfers line shows what went; the commander's shows every seat's.
   An advanced constructor the sprint seat hands you builds its own faction's mohos on your spots: list them by its
   names or by `advanced_extractor`, with `start` on each so your tier-1 constructors finish the frames behind it,
-  and pass it on to the next seat when the direction says so.
+  and pass it on to the next seat when the direction says so. Where a vent carries your tier-1 geothermal plant the
+  same constructor upgrades it before it leaves you: `advanced_geothermal vent_N start` on its list puts the
+  advanced geothermal plant over it (1,600 metal for 1,250 energy a second, and the metal of the one beneath comes
+  back when it stands). No other seat can do it for you: the hands build over their own seat's geothermal plant
+  only.
 - With no direction yet, or one that says nothing of the matter at hand, play by your own judgement.
 

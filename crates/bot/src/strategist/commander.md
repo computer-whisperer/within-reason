@@ -33,7 +33,15 @@ What a person at the head of a team decides, and nothing below it:
   people do it with few constructors shared: one advanced constructor starts moho frames on a seat's spots (`start`
   on each step) while that seat's tier-1 constructors finish them, and is passed to the next seat as they build,
   whatever the factions (a borrowed constructor builds its own faction's mohos; u6bkep's Cortex one built his
-  Armada seat's from 9:47). A seat still on tier-1 extractors after the sprint seat's first moho is the side's
+  Armada seat's from 9:47). A geothermal vent goes the same way and with the same constructor: the advanced
+  geothermal plant (1,600 metal for 1,250 energy a second, a fusion and two thirds for under half a fusion's
+  metal) is built over the tier-1 geothermal plant of the seat that holds it, the metal of the one beneath comes
+  back, and the hands build over their own seat's geothermal plant only. So the constructor you pass to a seat with
+  a vent is for its vent as well as its spots, and your direction says so. The energy is the side's wherever the
+  vent lies: a standing `transfer` (`keep_energy`) carries it to the seat that draws it, and it is cheaper than any
+  seat's fusion (the Tangerine 3v3, 2026-11-15: tier-1 geothermal plants on all four of our vents by 7:45, advanced
+  constructors in every seat by 10:00, the upgrade in no direction and on no list, and the sprint seat's six
+  fusions and advanced fusion, 29,800 metal where four advanced geothermal plants are 6,400, all dead by 22:00). A seat still on tier-1 extractors after the sprint seat's first moho is the side's
   largest unspent asset and your direction says what it gets (the constructor next, metal for its own plant), and
   past the mohos the gantry is a sprint of the same kind. The +60 Altored 3v3 (2026-10-19): the sprint moved to t2
   at 3:51 and no direction ever came back to tier 2 for t0 or t1; no advanced constructor left t2, two seats held

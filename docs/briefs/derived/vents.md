@@ -5,7 +5,7 @@ premises: [D-energy-second, D-tier2-sprint, D-metal-is-the-game, D-raid-answer, 
 lessons: []
 claims: [K-eco-people-take-the-vent, K-mech-a-geothermal-plant-stands-within-36-of-its-vent, K-mech-a-plant-over-a-plant-refunds-the-one-beneath]
 sources: {people: [the user], dates: [2026-11-15], relay: the user's observation ("geothermal power spots. We never build them ... Most maps have them ... and some maps that puts us significantly behind"), written on his word after the research report ("Go ahead"); the practice is counted from the carded public team games and the cached public duels above OS 40 (K-eco-people-take-the-vent); the prices are arithmetic on the unit files; the rules of the vent are read from the engine and the game and measured in the bots' games}
-status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled; the first, the 8v8 against BARb on All That Glitters he asked for with the same message (vents-barb-8v8-1, won 40:51), is in the tests paragraph since his word of the same day ("go ahead and fix or remove the articles last sentence")
+status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled; the first, the 8v8 against BARb on All That Glitters he asked for with the same message (vents-barb-8v8-1, won 40:51), is in the tests paragraph since his word of the same day ("go ahead and fix or remove the articles last sentence"); the second game (the lobby 3v3 on Tangerine), the sentence on who orders the upgrade in a team and the one on how it is ordered are a draft of 2026-11-15 on his word ("The geothermals work much the same as mexes ..."; "Go ahead and draft the brief updates"), with the matching lines in D-tier2-sprint, F-eco-energy and the commander's and the players' prompts; the wording is not his and he has not read it
 -->
 ### A vent is the cheapest energy on the map
 
@@ -40,7 +40,9 @@ energy a second, and a walk to wherever the vent is.
   advanced one's a fusion's (10,600). A vent is where the map put it: beside a start on some maps, in a corner
   both sides reach on others (Onyx Cauldron's two lie as far from one start as from the other).
 - *One a side in a team.* All That Glitters has two vents for sixteen seats: one seat of a side holds the side's.
-  A plant built over an ally's plant becomes the ally's.
+  A plant built over an ally's plant becomes the ally's, and the hands build over our own plant only, as they do
+  over our own extractor. So the upgrade is ordered by the seat that holds the tier-1 plant, with an advanced
+  constructor handed to it if it has none: the vent goes the way the mohos go (D-tier2-sprint).
 
 **Consider, and why it may work.**
 
@@ -49,7 +51,9 @@ energy a second, and a walk to wherever the vent is.
    next fifteen solars and the commander's time on them.
 2. *The advanced plant over it as soon as an advanced constructor stands and the metal is there.* It is less than
    half a fusion's metal for two thirds more energy, and it brings the tier-1 plant's metal back. In duels the first
-   tier-2 vent building is begun at 12:15 / 14:24 / 18:01.
+   tier-2 vent building is begun at 12:15 / 14:24 / 18:01. It is ordered as a moho is: `advanced_geothermal vent_N`
+   on the advanced constructor's list beside its `advanced_extractor` steps, with `start` where other constructors
+   or turrets are to finish the frame.
 3. *A turret and a radar's warning at a vent that is not inside the base,* as for an outer pair of extractors
    (D-raid-answer): 560 metal and two and a half minutes of a constructor stand there.
 4. *A second vent of ours the same way,* before more solars or a fusion, while one is free on our side.
@@ -71,9 +75,15 @@ longer. The rules of the vent are measured (the plant stands 5 to 9 elmos from t
 tier-1 one takes it away within a minute or two of standing). Our code-played bots with the rule on and off
 (2026-11-15): WRDistilled against BARb on seven maps with vents 26-11-19 against 21-17-18 over 56 games a side, the
 plant begun at four to five and a half minutes; its economy alone on Onyx Cauldron 347 metal a second at 20:00
-against 312; WRTerritory's on All That Glitters 1,067 against 1,003. Small samples, all leaning one way. One
-flagship game has been played with vents on the menu, an 8v8 against BARb on All That Glitters (2026-11-15, won
-40:51): the commander gave the side's vent to one seat before the game, its tier-1 plant was begun at 6:44 and
-stood from 7:39 to the end, and a second seat's order for the same vent was refused in words. The advanced plant
-over it was never ordered in the 32 minutes that seat held an advanced constructor; the one advanced plant of the
-game went onto his vent at 30:25, once his plant there was dead.
+against 312; WRTerritory's on All That Glitters 1,067 against 1,003. Small samples, all leaning one way. Two
+flagship games have been played with vents on the menu, and in neither was the advanced plant put over a plant of
+ours. An 8v8 against BARb on All That Glitters (2026-11-15, won 40:51): the commander gave the side's vent to one
+seat before the game, its tier-1 plant was begun at 6:44 and stood from 7:39 to the end, and a second seat's order
+for the same vent was refused in words. The advanced plant over it was never ordered in the 32 minutes that seat
+held an advanced constructor; the one advanced plant of the game went onto his vent at 30:25, once his plant there
+was dead. A 3v3 against three people on Tangerine, our side on +50 % income (the same day, lost at about 35:00):
+tier-1 plants stood on all four vents of our half by 7:45 and advanced constructors from 7:10, the seats that held
+the vents had one and two of them, on mohos, and no player and no direction named the advanced plant, while the
+people's was seen on their vent at C3 at 15:09. The sprint seat, which held no vent, bought its energy as six
+fusions and an advanced fusion, 29,800 metal where the four advanced plants are 6,400, and none of the seven stood
+at 22:00 (bombers, then one chain of blasts at 21:11).

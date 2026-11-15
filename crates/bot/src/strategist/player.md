@@ -65,7 +65,8 @@ would brief a hard-working assistant who follows orders literally and never coun
   same in every faction may be a role word the faction fills in: `solar`, `wind`, `lab`, `plant`, `air_plant`,
   `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`,
   `advanced_extractor`, `geothermal`, `advanced_geothermal` (each on a geothermal vent, `geothermal vent_2`, on a
-  map that has any) for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,
+  map that has any; `advanced_geothermal vent_2` also goes over your own tier-1 geothermal plant there, as
+  `advanced_extractor spot_9` goes over your own extractor) for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,
   `advanced_constructor` for units (a role word is
   filled in by the builder's or factory's own faction: a constructor another seat of a different faction gave you
   builds its own faction's things, by their names, `cormoho` on a Cortex constructor at an Armada seat, or by role

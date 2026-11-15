@@ -1,7 +1,7 @@
 <!--meta
 id: D-tier2-sprint
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-eco-legion, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armbull, F-unit-armfboy, F-unit-armguard, F-unit-legmohocon, F-unit-legmoho, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
+premises: [D-metal-is-the-game, D-lead-convert-it, F-eco-store, F-eco-extractors, F-eco-energy, F-eco-build, F-eco-decay, F-eco-reclaim, F-eco-consequences, F-eco-legion, F-fight-range, F-fight-consequences, F-unit-armavp, F-unit-armalab, F-unit-coravp, F-unit-coralab, F-unit-armacv, F-unit-armack, F-unit-coracv, F-unit-corack, F-unit-armmoho, F-unit-cormoho, F-unit-armadvsol, F-unit-armageo, F-unit-corageo, F-unit-armbull, F-unit-armfboy, F-unit-armguard, F-unit-legmohocon, F-unit-legmoho, M-pool-tier2-and-wrecks, M-pool-closing, M-barb-hard-aggressive-comet, M-barb-bonus, M-gecko-team, M-format-team-small, M-format-8v8]
 lessons: [L-tier2-go, L-tier2-tier1-under-tier2, L-tier2-stop-other-units, L-reclaim-field, L-reclaim-spread]
 sources: {people: [the user, thebluegecko, Irishstud14], dates: [2026-09-28, 2026-10-18, 2026-10-23], relay: the lessons' chat lines; the user's framing of tier 2 as a sprint whose gap is covered or not (2026-10-18) and his ruling that in a close duel the opponent's tech is the moment to kill his base (2026-09-28); his steer of 2026-10-23 that the derivations stay lean, ideas with worked arithmetic rather than rules, and his three reclaim patterns of the same evening (the field after a won fight, the tier-1 lab into the plant, the plant itself eaten for mohos) with a person's line relayed}
 status: live, checked (the kill-test run 2026-10-23 with run/metal_killtest.py tier2 over 1,641 recorded 1v1s of fourteen minutes or more; the tests are correlations across our own games and say so)
@@ -36,7 +36,11 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
   the one-constructor case, or a sprint the income cannot pay.
 - *Energy is the second bill.* Plant, constructor and six mohos take 67,000 energy; tier-2 units draw 13.7 to 14.5
   energy a metal against the Stout's 9.3, a plant alone on Bulls 339 a second; six mohos' upkeep is 120. One advanced
-  solar (350 metal) per 80 a second of new draw, or the fusion.
+  solar (350 metal) per 80 a second of new draw, or the fusion. Where a vent is ours the advanced geothermal plant
+  comes before either: 1,600 metal and 27,000 energy for 1,250 a second, what sixteen advanced solars or a fusion and
+  two thirds make for about 5,600. It is the vent's moho: the same advanced constructor builds it over our tier-1
+  geothermal plant, four minutes alone and less with the frame helped, and the 560 of the one beneath comes back
+  when it stands (D-vents-take-them).
 - *Where the bill can come from.* A unit worn down leaves a wreck worth six tenths of its metal (a Blitz 66, a Stout
   135, a Bull 570, a Fatboy 840), one deleted by a burst a heap worth a quarter or nothing; a fight that cost him 4,300
   leaves the plant on the ground, and both sides' dead lie where the fight was, for whoever holds that ground. A
@@ -83,7 +87,9 @@ the sprint is income. Not "his tech is seen": that is a fact about him, and agai
 5. *In a team, one seat sprints and is fed.* A seat spending as it earns has a store near zero, so feeding is the
    feeders' plants paused for the minute the frame needs: two seats at 30 a second stand the plant in 43 seconds. The
    first products are advanced constructors, one for each seat (the people's way, M-gecko-team; the won 8v8 sides hand
-   eight a side, M-format-8v8).
+   eight a side, M-format-8v8). Each takes its seat's spots and, where the seat holds one, its vent: the advanced
+   geothermal plant goes over the tier-1 one of the seat that built it, so it is that seat's to order, not the
+   sprint seat's (D-vents-take-them).
 6. *The field after a won fight is the bill.* A person who has just won a big early fight, looking at the wrecks: "oh,
    well, I guess they gave me my T2" (the user's relay). Why: 4,300 of his dead is 2,600 on the ground, our own dead
    beside it, and three constructors lift a plant's worth in twenty seconds while the ground is ours. Our record is
