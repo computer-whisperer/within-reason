@@ -213,6 +213,10 @@ impl Recorder {
             let grid = |g: &bot_protocol::Grid| json!([g.cols, g.rows, g.square, base64(&g.bits)]);
             self.line(&json!({ "t": "sense", "f": tick.frame, "los": grid(&sensors.los), "radar": grid(&sensors.radar), "air": grid(&sensors.air) }));
         }
+        // The map's geothermal vents, when the shim sends its list (the first look, and again if it changed).
+        if let Some(vents) = &tick.snapshot.vents {
+            self.line(&json!({ "t": "vents", "f": tick.frame, "at": vents.iter().map(|v| json!([v.x as i32, v.z as i32, v.y as i32])).collect::<Vec<_>>() }));
+        }
         self.out.write(std::mem::take(&mut self.buffer));
         Ok(())
     }
@@ -556,6 +560,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
             row["min_water_depth"] = json!(d.min_water_depth);
             row["max_water_depth"] = json!(d.max_water_depth);
             row["floater"] = json!(d.floater);
+            row["needs_vent"] = json!(d.needs_vent);
             row["stun"] = json!(d.stun.map(|s| [s.per_shot, s.reach, s.reload, s.seconds]));
             row
         })

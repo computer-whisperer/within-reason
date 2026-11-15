@@ -25,6 +25,7 @@ pub(crate) mod roster;
 mod routes;
 mod nanos;
 pub use nanos::{HOLDS_KINDS, TEND_CATEGORIES};
+mod vents;
 mod yards;
 mod ways;
 
@@ -608,6 +609,10 @@ impl Brain {
     pub fn decide(&mut self, tick: &Tick, reports: Vec<LaneReport>) -> BrainResult {
         if let Some(sensors) = &tick.snapshot.sensors {
             self.sensors = Some((sensors.clone(), tick.frame));
+        }
+        if let Some(vents) = &tick.snapshot.vents {
+            self.world.vents = vents.clone();
+            self.publish_vents();
         }
         // Lockstep: the game stands at its first tick until the opening turn asked for at Hello is over.
         if let Some(shared) = &self.strategist

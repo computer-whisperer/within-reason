@@ -332,6 +332,11 @@ pub struct UnitDefInfo {
     /// and it stands at the surface.
     #[serde(default)]
     pub floater: bool,
+    /// Whether it stands only over a geothermal vent (`UnitDef_isNeedGeo`: the engine wants a vent within about 36
+    /// elmos of its centre on each axis, `GameHelper.cpp` `TestUnitBuildSquare`). False in records and shims from
+    /// before 2026-11-15.
+    #[serde(default)]
+    pub needs_vent: bool,
     /// What its death does to what stands around it; None for a unit that dies quietly.
     pub death_blast: Option<Blast>,
     /// What its self-destruct does (the commander's is the game's largest); None when it has none.
@@ -436,7 +441,7 @@ mod path_width_tests {
             energy_storage: 0.0, sonar_range: 0.0, hits_submerged: false, water_only: false, radar_range: 0.0,
             converter: None, weapon_count: 1, build_options: Vec::new(),
             move_class: Some(MoveClass { kind: MoveKind::Bot, max_slope: 0.412, depth: 25.0, slope_mod: 4.0, footprint: 0 }),
-            footprint: (6, 6), max_height_dif: 0.0, min_water_depth: 0.0, max_water_depth: 0.0, floater: false,
+            footprint: (6, 6), max_height_dif: 0.0, min_water_depth: 0.0, max_water_depth: 0.0, floater: false, needs_vent: false,
             death_blast: None, self_destruct_blast: None, self_destruct_seconds: 0.0, reach: 700.0, reload: 7.0,
             blast_radius: 150.0, stockpile_seconds: 0.0, stockpile_energy: 0.0, coverage: 0.0, sight: 0.0, jam_range: 0.0, stealth: false, cloak: None, shield: None, intercepted_by: 0, health: 0.0, reclaim_speed: 0.0, reclaimable: false, stun_taken: 1.0, stun: None,
         };
@@ -542,6 +547,12 @@ pub struct Snapshot {
     /// efficient converters first, and never looks at the metal store). 0 in records and shims from before 2026-11-08.
     #[serde(default)]
     pub conversion: f32,
+    /// The map's geothermal vents (x, z; y the ground's height there), west to east: where a geothermal plant may
+    /// stand. Sent when the list read differs from the one sent last (the first look, and again when a map's Lua
+    /// places its vents after the game starts); `None` on every other tick, and always from a shim before
+    /// 2026-11-15. The game shows every feature to every side (`featureVisibility = 3`), so the list is whole.
+    #[serde(default)]
+    pub vents: Option<Vec<Vec3>>,
 }
 
 /// Where our ally team sees, hears radar and sees aircraft right now: the engine's own coverage grids, cut by terrain

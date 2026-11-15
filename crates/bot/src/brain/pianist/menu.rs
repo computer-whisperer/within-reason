@@ -16,6 +16,7 @@ use bot_protocol::{EnemyUnit, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::super::combat::Force;
 use super::super::roster::Kit;
+use super::super::vents::Take;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::groups::{Group, Ward};
 use super::picture::{NEAR, Party, Picture, Place, distance_words, place_of};
@@ -1857,6 +1858,32 @@ impl Brain {
                     }
                     continue;
                 }
+                // A vent building is offered on a vent it may be begun on and nowhere else (H-HANDS-VENTS): the
+                // one this builder reaches soonest and every vent the instructions name. The layout is not asked:
+                // it knows no vents, and the engine refuses any other ground.
+                if d.needs_vent {
+                    let takes: Vec<(usize, Vec3, Take)> = self.vents_for(def, unit.pos, own).into_iter().filter(|(_, at, _)| self.reachable_for(walker, *at)).collect();
+                    for (k, (i, at, take)) in takes.iter().enumerate() {
+                        let vent = Brain::vent_name(*i);
+                        if k != 0 && !named.iter().any(|p| p.name == vent) {
+                            continue;
+                        }
+                        let how = match take {
+                            Take::Free => "the vent is free".to_string(),
+                            Take::Over(standing) => format!("over our {} there: the game takes that one away when this is finished and gives its metal back", self.short_words(*standing)),
+                            Take::UnderWay(_) => "one is framed there already: this helps finish it".to_string(),
+                        };
+                        let near = picture.places.iter().find(|p| p.name == vent).map(&near_words).unwrap_or_default();
+                        push(
+                            format!("build_{key}_{vent}"),
+                            Order::Build(def, Site::Place(vent.clone())),
+                            format!("{then}{name} builds a {} on {vent} ({}, {}; {how}{near}): {costs}{leaves}", self.unit_words(def), way_words(unit.pos.dist2d(*at), speed), self.world.grid(*at)),
+                            format!("a {} on {vent}", self.short_words(def)),
+                            None,
+                        );
+                    }
+                    continue;
+                }
                 // A sea kind is offered only with water in the builder's reach; the layer is not asked for it otherwise.
                 if on_water && !self.world.water_within(unit.pos, reach) {
                     continue;
@@ -2226,7 +2253,7 @@ pub(super) mod tests {
         pianist.groups.push(answer);
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A holds.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
@@ -2258,7 +2285,7 @@ pub(super) mod tests {
         pianist.groups.push(Group::of("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::idle_hold(Vec3::default()), 0));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
@@ -2307,7 +2334,7 @@ pub(super) mod tests {
         }
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture {
@@ -2348,7 +2375,7 @@ pub(super) mod tests {
         let party = Party { name: "party_1".into(), ids: enemies.iter().map(|e| e.id).collect(), at: at(2100.0, 1500.0), metal: 3200.0, composition: "3 armpw, 2 armflash, 1 armcom".into(), has_commander: true, air: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), beside: Vec::new(), beside_words: String::new() };
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let own_units: Vec<OwnUnit> = drones.iter().chain(&fighters).cloned().collect();
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties: vec![party.clone()] };
@@ -2381,7 +2408,7 @@ pub(super) mod tests {
         pianist.layers.fuse = true;
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture {
@@ -2431,7 +2458,7 @@ pub(super) mod tests {
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let grid = brain.world.cells;
@@ -2468,7 +2495,7 @@ pub(super) mod tests {
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
@@ -2491,6 +2518,43 @@ pub(super) mod tests {
     /// The E3 scene (fourteen Blitzes, three Centurions 600 from them, two of his turrets beyond): one menu for the
     /// group with every verb, aimed at everything named. The step back to the place its packet names stands beside
     /// its answers to the party, with the fight's facts on both; a place nobody named is no walk; his buildings are
+    /// H-HANDS-VENTS: a constructor on a map with a vent is offered the geothermal plant on that vent, by the vent's
+    /// name, and nowhere else; with a plant of ours on the vent it is offered none (its kind stands over nothing).
+    #[test]
+    fn a_constructor_is_offered_the_geothermal_plant_on_a_free_vent_and_nowhere_else() {
+        use super::super::fixtures::{at, brain_of, own};
+        use bot_protocol::{Resource, Snapshot};
+        let mut brain = brain_of(&["armck", "armgeo"]);
+        let defs = &mut brain.world.hello.unit_defs;
+        defs[0].build_speed = 80.0;
+        defs[0].build_options = vec![UnitDefId(2)];
+        defs[1].needs_vent = true;
+        defs[1].min_water_depth = -1e7;
+        defs[1].build_time = 13100.0;
+        brain.world.vents = vec![at(1400.0, 1000.0)];
+        brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        let id = UnitDefId(9);
+        let kit = Kit { commander: UnitDefId(99), extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "places": {} }), places: vec![Place { name: "vent_1".into(), at: at(1400.0, 1000.0), spot: None, cells: None }], parties: Vec::new() };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let menu_with = |brain: &mut Brain, plant: Option<OwnUnit>| {
+            let builder = OwnUnit { idle: true, ..own(10, 1, at(1000.0, 1000.0)) };
+            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: std::iter::once(builder).chain(plant).collect(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0, vents: None } };
+            // The moves are the second pass's (`fill_builder_menus`): the first composes a builder's head alone.
+            let mut menus = brain.menus(&tick, &kit, &picture);
+            brain.fill_builder_menus(&tick, &kit, &picture, &mut menus);
+            menus.into_iter().find(|m| matches!(m.kind, Kind::Builder(UnitId(10)))).expect("the constructor's menu")
+        };
+        let menu = menu_with(&mut brain, None);
+        let keys: Vec<&String> = menu.moves.iter().map(|m| &m.key).collect();
+        let vent = menu.moves.iter().find(|m| m.key == "build_armgeo_vent_1").unwrap_or_else(|| panic!("the vent move: {keys:?}"));
+        assert!(matches!(&vent.order, Order::Build(UnitDefId(2), Site::Place(p)) if p == "vent_1"), "{:?}", vent.order);
+        assert!(vent.words.contains("on vent_1") && vent.words.contains("the vent is free"), "{}", vent.words);
+        assert!(!keys.iter().any(|k| *k == "build_armgeo"), "{keys:?}");
+        let menu = menu_with(&mut brain, Some(own(20, 2, at(1400.0, 1000.0))));
+        assert!(!menu.moves.iter().any(|m| m.key.starts_with("build_armgeo")), "{:?}", menu.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
+    }
+
     /// H-HANDS-TAKE-APART-HIS: a constructor beside a quarter-health Pawn has the move, with its seconds, its metal and
     /// the Pawn's fire in the words; beside a whole one (21 s at a construction bot's 80) it has none.
     #[test]
@@ -2511,7 +2575,7 @@ pub(super) mod tests {
         let menu_with = |brain: &mut Brain, health: f32| {
             let builder = OwnUnit { health: 760.0, max_health: 760.0, idle: true, ..own(10, 1, at(1000.0, 1000.0)) };
             let pawn = EnemyUnit { health, ..enemy(21, 2, at(1300.0, 1000.0)) };
-            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: vec![builder], allies: Vec::new(), enemies: vec![pawn], wrecks: None, sensors: None, conversion: 0.0 } };
+            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: vec![builder], allies: Vec::new(), enemies: vec![pawn], wrecks: None, sensors: None, conversion: 0.0, vents: None } };
             brain.menus(&tick, &kit, &picture).into_iter().find(|m| matches!(m.kind, Kind::Builder(UnitId(10)))).expect("the constructor's menu")
         };
         let menu = menu_with(&mut brain, 92.5);
@@ -2536,7 +2600,7 @@ pub(super) mod tests {
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
@@ -2622,7 +2686,7 @@ pub(super) mod tests {
             own.push(own_unit(902, 3, at(3000.0, 2600.0)));
             own.push(own_unit(903, 3, at(4400.0, 2600.0)));
             let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+            let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
             let picture = Picture {
                 rules: String::new(),
                 state: serde_json::json!({ "instructions": "group_A (Blitzes): holds its ground; against a party that outweighs it, it walks to spot_30 or spot_33.", "actors": { "group_A": { "at": "spot_40 (E3)" } }, "places": {} }),
@@ -2713,7 +2777,7 @@ pub(super) mod tests {
         own.push(own_unit(902, 3, at(3000.0, 2600.0)));
         own.push(own_unit(903, 3, at(4400.0, 2600.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0 } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None, conversion: 0.0, vents: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: UnitDefId(3), converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };

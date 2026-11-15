@@ -70,6 +70,9 @@ pub struct Roster {
     nano: &'static str,
     metal_storage: &'static str,
     energy_storage: &'static str,
+    /// The plants that stand on a geothermal vent: the tier-1 one and the advanced one.
+    geothermal: &'static str,
+    advanced_geothermal: &'static str,
 }
 
 /// The role words a list step or a `produce` entry may use in place of a unit's internal name, resolved against
@@ -79,8 +82,11 @@ pub struct Roster {
 /// `extractor` is not among them: it is a list step of its own (`lists.rs`: a spot, or the nearest free one), and
 /// player-43 lost in its first minute when it was turned into `armmex spot_67`, which the list reader takes for a
 /// tier-2 upgrade over a standing extractor.
-pub const ROLE_WORDS: [&str; 19] = [
+pub const ROLE_WORDS: [&str; 21] = [
     "solar", "wind", "lab", "plant", "air_plant", "turret", "radar", "nano", "constructor", "vehicle_constructor", "raider", "line", "rez", "converter", "advanced_lab", "advanced_constructor", "advanced_extractor", "metal_storage", "energy_storage",
+    // The vent buildings (H-HANDS-VENTS): the tier-1 plant a constructor builds and the advanced one an advanced
+    // constructor builds, each on a geothermal vent and nowhere else.
+    "geothermal", "advanced_geothermal",
 ];
 /// The role words that name a factory (the `queue` tool's note on a factory step without an id).
 pub const FACTORY_ROLES: [&str; 4] = ["lab", "plant", "air_plant", "advanced_lab"];
@@ -108,6 +114,8 @@ impl Roster {
             "advanced_extractor" => self.advanced_extractor,
             "metal_storage" => self.metal_storage,
             "energy_storage" => self.energy_storage,
+            "geothermal" => self.geothermal,
+            "advanced_geothermal" => self.advanced_geothermal,
             _ => return None,
         })
     }
@@ -145,6 +153,7 @@ pub static ROSTERS: [Roster; 3] = [
         advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
         raider: "armpw", line: "armham", vehicle_raider: "armflash", vehicle_line: "armstump", resurrector: "armrectr",
         solar: "armsolar", wind: "armwin", air_plant: "armap", radar: "armrad", nano: "armnanotc", metal_storage: "armmstor", energy_storage: "armestor",
+        geothermal: "armgeo", advanced_geothermal: "armageo",
     },
     Roster {
         faction: "cortex",
@@ -154,6 +163,7 @@ pub static ROSTERS: [Roster; 3] = [
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
         raider: "corak", line: "corthud", vehicle_raider: "corgator", vehicle_line: "corraid", resurrector: "cornecro",
         solar: "corsolar", wind: "corwin", air_plant: "corap", radar: "corrad", nano: "cornanotc", metal_storage: "cormstor", energy_storage: "corestor",
+        geothermal: "corgeo", advanced_geothermal: "corageo",
     },
     // Legion (K-leg-role-words, 2026-10-14, a first guess by cost and range and the one OS-27 player's games):
     // the Goblin as the raider (30 metal, the unit he massed; Phobos `legcen` is the fast one), the Satyr as the
@@ -167,25 +177,28 @@ pub static ROSTERS: [Roster; 3] = [
         advanced_lab: "legalab", advanced_constructor: "legack", advanced_extractor: "legmoho",
         raider: "leggob", line: "leglob", vehicle_raider: "leghades", vehicle_line: "leggat", resurrector: "legrezbot",
         solar: "legsolar", wind: "legwin", air_plant: "legap", radar: "legrad", nano: "legnanotc", metal_storage: "legmstor", energy_storage: "legestor",
+        geothermal: "leggeo", advanced_geothermal: "legageo",
     },
 ];
 
 /// What a builder is offered when the player has whitelisted nothing for it (docs/design/2026-09-22-full-roster.md,
 /// decision 5): the Kit's buildings and the usual mid-game ones, cut to what the builder can build. The rest of its
-/// build list is reached through `produce`, and always by the policy. Extractors are the `extractor` option.
+/// build list is reached through `produce`, and always by the policy. Extractors are the `extractor` option. The
+/// geothermal plants (tier 1 and advanced) are offered on a vent they may be begun on and nowhere else
+/// (H-HANDS-VENTS; until 2026-11-15 the advanced one was offered on ordinary ground, which the engine refuses).
 // No energy converters (armmakr, cormakr, armmmkr, cormmkr): the hands built them unasked whenever energy banked
 // (bluegecko-3v1-comet-catcher-8, 5:52), and the OS-48 players say a metal-heavy map has no use for them; the
 // player names one in a `queue` or `produce` list when it wants them.
 const USUAL_ARMADA: &[&str] = &[
     "armsolar", "armwin", "armtide", "armfrad", "armtl", "armadvsol", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
-    "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armguard", "armflak", "armdl",
+    "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armguard", "armflak", "armdl", "armgeo",
     // Tier 2 (the advanced constructors' lists): advanced fusion and geothermal, the advanced storages, the jammer,
     // the tier-2 defences, the anti-nuke, the targeting facility.
     "armafus", "armageo", "armuwadvms", "armuwadves", "armveil", "armpb", "armanni", "armamb", "armamd", "armtarg",
 ];
 const USUAL_CORTEX: &[&str] = &[
     "corsolar", "corwin", "cortide", "corfrad", "cortl", "coradvsol", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
-    "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "corpun", "corflak", "cordl",
+    "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "corpun", "corflak", "cordl", "corgeo",
     "corafus", "corageo", "coruwadvms", "coruwadves", "corshroud", "corvipe", "cordoom", "cortoast", "corfmd", "cortarg",
 ];
 // Legion has no heavy laser tower: the Cacophony gatling (575, land and air) and the Dragon's Jaw pop-up riot cannon
@@ -194,7 +207,7 @@ const USUAL_CORTEX: &[&str] = &[
 // Annihilator, the Eviscerator for the Ambusher, the Aegis anti-nuke, the hardened storages (docs/knowledge/legion.md).
 const USUAL_LEGION: &[&str] = &[
     "legsolar", "legwin", "legtide", "legfrad", "legtl", "legctl", "legadvsol", "leglab", "legvp", "legap", "leghp", "legsy", "leglht", "legmg", "legdtr", "legrl", "legrad", "legarad", "legnanotc",
-    "legmstor", "legestor", "legalab", "legavp", "legaap", "legmoho", "legfus", "legcluster", "legflak", "leghive",
+    "legmstor", "legestor", "legalab", "legavp", "legaap", "legmoho", "legfus", "legcluster", "legflak", "leghive", "leggeo",
     "legafus", "legageo", "legamstor", "legadvestore", "legajam", "legapopupdef", "legbastion", "legacluster", "legabm", "legtarg",
 ];
 

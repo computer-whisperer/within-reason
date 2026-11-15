@@ -157,6 +157,8 @@ struct Instance<L: Transport> {
     cheats_sent_at: Option<i32>,
     /// The frame a bot last answered the handshake with another protocol.
     mismatch_at: Option<i32>,
+    /// The geothermal vents this connection's bot was last sent (`Snapshot::vents`); none yet after a connection.
+    vents_sent: Option<Vec<Vec3>>,
     frame: i32,
     /// The engine thread's time on this instance since the last `timing` line.
     spent: Spent,
@@ -320,7 +322,15 @@ impl<L: Transport> Instance<L> {
             let began = Instant::now();
             let mut snapshot = self.engine.snapshot();
             if due % WRECKS_INTERVAL == 0 {
-                snapshot.wrecks = Some(self.engine.wrecks());
+                let (wrecks, vents) = self.engine.features();
+                snapshot.wrecks = Some(wrecks);
+                // The vents go out when the list read is not the one this bot has: the first look, and again when
+                // a map's Lua has placed them after the game began.
+                if self.vents_sent.as_ref() != Some(&vents) {
+                    self.log(format_args!("f={frame} the map's geothermal vents: {}", vents.len()));
+                    snapshot.vents = Some(vents.clone());
+                    self.vents_sent = Some(vents);
+                }
             }
             if due % SENSORS_INTERVAL == 0 {
                 snapshot.sensors = self.engine.sensors();
@@ -482,6 +492,7 @@ impl<L: Transport> Instance<L> {
         };
         self.mismatch_at = None;
         self.link = Some(link);
+        self.vents_sent = None;
         self.log(format_args!("connected to bot at frame {frame}"));
         let began = Instant::now();
         let hello = self.engine.hello(frame, self.tick_frames);
@@ -778,6 +789,7 @@ impl<L: Transport> Host<L> {
                 spawns: Vec::new(),
                 cheats_sent_at: None,
                 mismatch_at: None,
+                vents_sent: None,
                 frame: -1,
                 spent: Spent::default(),
                 hold_asked: None,

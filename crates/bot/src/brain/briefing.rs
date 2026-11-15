@@ -1187,6 +1187,7 @@ impl Brain {
     fn map_description(&self) -> serde_json::Value {
         let map = &self.world.hello.map;
         let mut description = self.map_description_common();
+        self.describe_vents(&mut description);
         if map.metal_map {
             description["metal"] = self.metal_description();
             return description;
@@ -1638,6 +1639,7 @@ impl Brain {
             extractors: own.iter().filter(|u| kit.is_extractor(u.def) && !u.being_built).count(),
             extractor_peak: self.wake.extractor_peak,
             seconds_since_growth: (tick.frame - self.wake.growth_frame) / FRAMES_PER_SECOND,
+            vents: self.vents_report(own, tick.frame),
             free_spots: free.len(),
             free_on_foot_ours,
             free_other_ours,
@@ -1808,7 +1810,7 @@ mod frame_loss_tests {
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0 } }
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0, vents: None } }
     }
 
     /// An unfinished frame destroyed by nobody named is a decay when the kill event says so, and a shot from out of

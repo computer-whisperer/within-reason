@@ -51,6 +51,9 @@ const BANK_CAP: usize = 6;
 const BANK_CAP_GENERATOR: usize = 8;
 /// A sea building's site: the engine's search this far round the nearest water.
 const WATER_SEARCH: f32 = 600.0;
+/// Half the side of the ground the layout keeps free round a vent: a vent building's half footprint (40) and the
+/// two squares its centre may lie off the vent.
+const VENT_KEPT: f32 = 72.0;
 /// The layer's fallback keeps the engine's search off every plant's lane this far out from its front: the apron and
 /// the street's first stretch, where the search put a solar, a storage, a turret and an advanced plant in front of
 /// one door (1793769060-human, plant_28133 8:01-10:48).
@@ -68,12 +71,15 @@ pub(super) enum Plan {
     Near(UnitDefId, Vec3),
     /// A building at a slot the layout layer chose, with its facing: the site exactly, or nothing.
     Slot(UnitDefId, Vec3, i32),
+    /// A vent building on this geothermal vent (H-HANDS-VENTS): the shim asks the engine for the vent's own ground
+    /// and nothing else.
+    Vent(UnitDefId, Vec3),
 }
 
 impl Plan {
     pub(super) fn anchor(&self) -> Vec3 {
         match *self {
-            Plan::Extractor(at) | Plan::Near(_, at) | Plan::Slot(_, at, _) => at,
+            Plan::Extractor(at) | Plan::Near(_, at) | Plan::Slot(_, at, _) | Plan::Vent(_, at) => at,
         }
     }
 }
@@ -246,6 +252,10 @@ impl Brain {
             }
             _ => Vec::new(),
         };
+        // Every vent's ground is kept for the plant that alone can stand there: the layer lays nothing on it (a
+        // plant's footprint is 80 square and its centre may lie a few squares off the vent).
+        let mut reservations = reservations;
+        reservations.extend(self.world.vents.iter().map(|v| Reservation { rect: layout::Rect { x0: v.x - VENT_KEPT, z0: v.z - VENT_KEPT, x1: v.x + VENT_KEPT, z1: v.z + VENT_KEPT }, for_: Reserved::Nothing }));
         let refused: Vec<(UnitDefId, Vec3)> = self.pianist.as_ref().map(|p| p.refused_sites.iter().map(|(d, at, _)| (*d, *at)).collect()).unwrap_or_default();
         let terrain = &hello.terrain;
         let passable = self.routes_passable();
@@ -426,7 +436,7 @@ impl Brain {
         let planned_def = match plan {
             Plan::Extractor(_) if !can(kit.extractor) && can(kit.advanced_extractor) => kit.advanced_extractor,
             Plan::Extractor(_) => kit.extractor,
-            Plan::Near(def_id, _) | Plan::Slot(def_id, ..) => *def_id,
+            Plan::Near(def_id, _) | Plan::Slot(def_id, ..) | Plan::Vent(def_id, _) => *def_id,
         };
         if !can(planned_def) {
             return None;
@@ -450,6 +460,8 @@ impl Brain {
             // The engine's search with a gap of two squares, off every plant's lane, a plant facing the enemy: the
             // water, or the layer's fallback.
             Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: WATER_SEARCH, min_dist: 2, placements: self.fallback_placements(def_id, anchor, own), exact: false }),
+            // The vent itself: the shim sites a vent building on the vent it is given (`find_build_site`).
+            Plan::Vent(def_id, vent) => (def_id, BuildSite { near: vent, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }),
             // The layout's slot, exactly: the layer kept it off every apron, street and spot itself, and the engine's
             // answer is that site or none (then the refusal is remembered and the slot is passed over).
             Plan::Slot(def_id, at, facing) => (def_id, BuildSite { near: at, search_radius: SLOT_SEARCH, min_dist: 0, placements: vec![Placement { facing, keep_out: Vec::new() }], exact: true }),

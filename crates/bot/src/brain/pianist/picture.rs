@@ -1445,6 +1445,11 @@ impl Brain {
                 places.push(Place { name: format!("spot_{i}"), at: spot, spot: Some(i), cells: None });
             }
         }
+        // Every geothermal vent is a place (H-HANDS-VENTS): a map has few (two to nine where it has any), and a
+        // vent building stands nowhere else.
+        for (i, vent) in self.world.vents.iter().enumerate() {
+            places.push(Place { name: Brain::vent_name(i), at: *vent, spot: None, cells: None });
+        }
         let passages = self.passages();
         for (n, passage) in passages.iter().take(PASSAGES).enumerate() {
             places.push(Place { name: format!("passage_{}{}", n + 1, self.seat_tag()), at: passage.at, spot: None, cells: None });
@@ -1612,6 +1617,7 @@ impl Brain {
                     }
                 }
                 None if place.name == "home" => "our start: the lab and the base stand here".into(),
+                None if self.vent_named(&place.name).is_some() => format!("a geothermal vent, the only ground a geothermal plant stands on: {}", self.vent_words(place.at, own, frame)),
                 None if place.name.starts_with("shelling") => {
                     let (s, whom) = match place.name.strip_prefix("shelling_") {
                         Some(g) => (&group_shelling.get(g).expect("a group's shelling place has its shelling").0, format!("group_{g}")),
@@ -2855,6 +2861,7 @@ mod tests {
                 wrecks: None,
                 sensors: None,
                 conversion: 0.0,
+                vents: None,
             },
         };
         brain.track_takings(&tick(30, 100.0, Vec::new()));

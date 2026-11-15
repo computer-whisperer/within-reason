@@ -64,7 +64,8 @@ would brief a hard-working assistant who follows orders literally and never coun
   started 95 deep with a land opening and no list for the sea; its first extractor stood at 1:52). A step that is the
   same in every faction may be a role word the faction fills in: `solar`, `wind`, `lab`, `plant`, `air_plant`,
   `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`,
-  `advanced_extractor` for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,
+  `advanced_extractor`, `geothermal`, `advanced_geothermal` (each on a geothermal vent, `geothermal vent_2`, on a
+  map that has any) for buildings; `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`,
   `advanced_constructor` for units (a role word is
   filled in by the builder's or factory's own faction: a constructor another seat of a different faction gave you
   builds its own faction's things, by their names, `cormoho` on a Cortex constructor at an Armada seat, or by role

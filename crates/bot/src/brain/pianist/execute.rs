@@ -10,6 +10,7 @@ use serde_json::json;
 
 use super::super::Brain;
 use super::super::economy::Plan;
+use super::super::vents::Take;
 use super::super::roster::Kit;
 use super::compose::World;
 use super::groups::Ward;
@@ -167,6 +168,32 @@ impl Brain {
             }
             Order::Build(_, Site::Tile(at)) => {
                 did = build(Plan::Extractor(*at), None);
+            }
+            // A vent building goes on a vent or nowhere (H-HANDS-VENTS): the vent the step names, else the one
+            // nearest the place named (the builder, with no place) that the building may be begun on. The same
+            // building framed there already is helped to finish.
+            Order::Build(def, site @ (Site::Planned | Site::Place(_))) if self.world.needs_vent(*def) => {
+                let named = match site {
+                    Site::Place(place_name) => Some(place_name.as_str()),
+                    _ => None,
+                };
+                let take = match named.and_then(|n| self.vent_named(n)) {
+                    Some((_, at)) => self.vent_take(*def, at, own).map(|take| (at, take)),
+                    None => self.vents_for(*def, named.and_then(&place).map_or(unit.pos, |p| p.at), own).into_iter().map(|(_, at, take)| (at, take)).find(|(at, _)| self.reachable_for(self.walker_of(unit.def), *at)),
+                };
+                did = match take {
+                    Some((at, Take::UnderWay(target))) => {
+                        commands.push(Command::Repair { unit: id, target, queue });
+                        task = Some(Task::Repair { target, since: frame });
+                        Some(format!("help finish the {} already under way at {}", self.name(*def), self.place_words(&picture.places, at)))
+                    }
+                    Some((at, _)) => build(Plan::Vent(*def, at), None),
+                    None if self.world.vents.is_empty() => Some(format!("nothing to do: a {} stands only on a geothermal vent, and this map has none", self.name(*def))),
+                    None => Some(match named.and_then(|n| self.vent_named(n).map(|(_, at)| (n, at))) {
+                        Some((n, at)) => format!("nothing to do: a {} cannot be begun on {n} ({})", self.name(*def), self.vent_words(at, own, frame)),
+                        None => format!("nothing to do: no geothermal vent a {} could be begun on is free and in this builder's reach", self.name(*def)),
+                    }),
+                };
             }
             Order::Build(def, Site::Planned) => {
                 let plan = self.place_planned(*def, unit, own);
@@ -581,5 +608,62 @@ mod tests {
         assert!(!at_the_orders_site(None, at(2032.0, 3360.0), None, Some(None)), "a place the picture does not know");
         // An order naming no place (`armsolar`) is any build of its type.
         assert!(at_the_orders_site(None, at(100.0, 100.0), None, None));
+    }
+}
+
+#[cfg(test)]
+mod vent_tests {
+    use bot_protocol::{Command, Resource, Snapshot, Tick, UnitDefId, UnitId};
+
+    use super::super::super::roster::Kit;
+    use super::super::Pianist;
+    use super::super::fixtures::{at, brain_of, own};
+    use super::super::menu::{Order, Site};
+    use super::super::picture::{Picture, Place};
+
+    /// H-HANDS-VENTS: a geothermal plant ordered with a vent's name, with another place or with none goes onto the
+    /// vent, exactly; with every vent taken the order is nothing to do, said with what stands there.
+    #[test]
+    fn a_geothermal_plant_is_ordered_onto_the_vent_exactly() {
+        let mut brain = brain_of(&["armck", "armgeo"]);
+        let defs = &mut brain.world.hello.unit_defs;
+        defs[0].build_speed = 80.0;
+        defs[0].build_options = vec![UnitDefId(2)];
+        defs[1].needs_vent = true;
+        defs[1].min_water_depth = -1e7;
+        brain.world.vents = vec![at(1400.0, 1000.0), at(6000.0, 1000.0)];
+        brain.pianist = Some(Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist"));
+        brain.home = at(1000.0, 1000.0);
+        let id = UnitDefId(9);
+        let kit = Kit { commander: UnitDefId(99), extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        brain.kit = Some(kit.clone());
+        let place = |name: &str, x: f32| Place { name: name.into(), at: at(x, 1000.0), spot: None, cells: None };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "places": {} }), places: vec![place("home", 1000.0), place("vent_1", 1400.0), place("vent_2", 6000.0)], parties: Vec::new() };
+        let resource = || Resource { current: 1000.0, income: 10.0, usage: 0.0, storage: 2000.0 };
+        let tick_of = |own_units| Tick { frame: 100, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0, vents: None } };
+        let site_of = |commands: &[Command]| match commands.last() {
+            Some(Command::Build { def: UnitDefId(2), site: Some(site), .. }) => Some((site.near.x, site.exact)),
+            _ => None,
+        };
+        let geo = UnitDefId(2);
+        for (order, vent_x) in [(Order::Build(geo, Site::Place("vent_2".into())), 6000.0), (Order::Build(geo, Site::Planned), 1400.0), (Order::Build(geo, Site::Place("home".into())), 1400.0)] {
+            brain.pianist.as_mut().unwrap().tasks.clear();
+            let mut commands = Vec::new();
+            let did = brain.execute_builder(&tick_of(vec![own(1, 1, at(1000.0, 1000.0))]), &kit, &picture, UnitId(1), &order, false, None, &mut commands);
+            assert!(did.as_deref().is_some_and(|d| d.starts_with("build a armgeo")), "{order:?}: {did:?}");
+            assert_eq!(site_of(&commands), Some((vent_x, true)), "{order:?}: {commands:?}");
+        }
+        // Both vents hold a plant of ours: nothing to do, and no order goes out.
+        brain.pianist.as_mut().unwrap().tasks.clear();
+        let mut commands = Vec::new();
+        let taken = vec![own(1, 1, at(1000.0, 1000.0)), own(20, 2, at(1400.0, 1000.0)), own(21, 2, at(6000.0, 1000.0))];
+        let did = brain.execute_builder(&tick_of(taken.clone()), &kit, &picture, UnitId(1), &Order::Build(geo, Site::Place("vent_1".into())), false, None, &mut commands);
+        assert!(did.as_deref().is_some_and(|d| d.contains("nothing to do") && d.contains("vent_1") && d.contains("our ")), "{did:?}");
+        let did = brain.execute_builder(&tick_of(taken), &kit, &picture, UnitId(1), &Order::Build(geo, Site::Planned), false, None, &mut commands);
+        assert!(did.as_deref().is_some_and(|d| d.contains("nothing to do")) && commands.is_empty(), "{did:?} {commands:?}");
+        // A map without a vent says so.
+        brain.world.vents.clear();
+        let did = brain.execute_builder(&tick_of(vec![own(1, 1, at(1000.0, 1000.0))]), &kit, &picture, UnitId(1), &Order::Build(geo, Site::Planned), false, None, &mut commands);
+        assert!(did.as_deref().is_some_and(|d| d.contains("this map has none")), "{did:?}");
     }
 }

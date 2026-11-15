@@ -412,6 +412,9 @@ pub struct Score {
     /// the person took the sea. (Before that, a count of those "within 2500" read 0 from minute 6 of commander game 9
     /// while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
     pub free_spots: usize,
+    /// The map's geothermal vents, nearest our start first: each vent's name and cell, and what stands on it as
+    /// this seat knows (free with the walk, ours, an ally's, his as last seen). Empty on a map without one.
+    pub vents: Vec<(String, String)>,
     pub free_on_foot_ours: usize,
     pub free_other_ours: usize,
     pub free_in_his_half: usize,

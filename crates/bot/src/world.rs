@@ -28,6 +28,9 @@ pub struct World {
     pub hello: Hello,
     /// The map's named cells (`terrain::Grid`): the vocabulary for places.
     pub cells: terrain::Grid,
+    /// The map's geothermal vents, west to east (`Snapshot::vents`): empty until the shim's first look at the map's
+    /// features, and on a map with none.
+    pub vents: Vec<Vec3>,
     defs: HashMap<UnitDefId, usize>,
     names: HashMap<String, UnitDefId>,
 }
@@ -37,7 +40,7 @@ impl World {
         let defs = hello.unit_defs.iter().enumerate().map(|(i, d)| (d.id, i)).collect();
         let names = hello.unit_defs.iter().map(|d| (d.name.clone(), d.id)).collect();
         let cells = terrain::Grid::of(hello.map.width, hello.map.height);
-        World { hello, cells, defs, names }
+        World { hello, cells, vents: Vec::new(), defs, names }
     }
 
     pub fn def(&self, id: UnitDefId) -> Option<&UnitDefInfo> {
@@ -106,6 +109,11 @@ impl World {
     /// glossary's flag.
     pub fn is_sea_def(&self, id: UnitDefId) -> bool {
         self.def(id).is_some_and(|d| d.speed == 0.0 && d.min_water_depth > 0.0)
+    }
+
+    /// A building that stands only over a geothermal vent (the engine's own flag).
+    pub fn needs_vent(&self, id: UnitDefId) -> bool {
+        self.def(id).is_some_and(|d| d.needs_vent)
     }
 
     /// An extractor of any tier.

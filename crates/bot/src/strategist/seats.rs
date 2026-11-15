@@ -198,6 +198,14 @@ impl Shared {
             s.extractor_peak += o.extractor_peak;
             s.seconds_since_growth = s.seconds_since_growth.min(o.seconds_since_growth);
             s.free_spots = s.free_spots.min(o.free_spots);
+            // A vent one seat of ours holds is ours, whatever the other seats call it.
+            for (name, words) in &o.vents {
+                match s.vents.iter_mut().find(|have| have.0 == *name) {
+                    Some(have) if words.starts_with("our ") && !have.1.starts_with("our ") => have.1 = words.clone(),
+                    Some(_) => {}
+                    None => s.vents.push((name.clone(), words.clone())),
+                }
+            }
             s.free_on_foot_ours = s.free_on_foot_ours.min(o.free_on_foot_ours);
             s.free_other_ours = s.free_other_ours.min(o.free_other_ours);
             s.free_in_his_half = s.free_in_his_half.min(o.free_in_his_half);

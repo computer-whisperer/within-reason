@@ -57,6 +57,7 @@ pub(crate) fn def(id: UnitDefId, name: &str, speed: f32, weapons: i32, build_spe
         min_water_depth: 0.0,
         max_water_depth: 0.0,
         floater: false,
+        needs_vent: false,
         death_blast: None,
         self_destruct_blast: None,
         self_destruct_seconds: 0.0,

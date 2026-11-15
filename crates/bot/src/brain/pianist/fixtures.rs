@@ -65,6 +65,7 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 min_water_depth: 0.0,
                 max_water_depth: 0.0,
                 floater: false,
+                needs_vent: false,
                 death_blast: None,
                 self_destruct_blast: None,
                 self_destruct_seconds: 5.0,

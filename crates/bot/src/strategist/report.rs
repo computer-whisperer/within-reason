@@ -277,6 +277,9 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
         if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|f| format!("#{} {} {}{}", f.n, f.place.grid, f.distance, f.how.as_ref().map_or(String::new(), |h| format!(" [{h}]")))).collect::<Vec<_>>().join(", ") },
         if s.enemy_spots.is_empty() { "none seen standing".to_string() } else { s.enemy_spots.iter().map(|(n, p, ago)| format!("#{n} {} ({} ago)", p.grid, clock(*ago))).collect::<Vec<_>>().join(", ") },
     ));
+    // The vents and what stands on each, on a map that has any (H-HANDS-VENTS): a free one is ground for a
+    // geothermal plant and nothing else.
+    let spots = if s.vents.is_empty() { spots } else { format!("{spots}; geothermal vents, nearest our start first: {}", s.vents.iter().map(|(name, words)| format!("{name}: {words}")).collect::<Vec<_>>().join(", ")) };
     lines.push(format!(
         "score: extractors {} (most held {}, no new high for {}; {spots}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; {}",
         s.extractors,
@@ -1171,6 +1174,17 @@ mod sightings_tests {
         for gone in ["we can walk to", "nearest on foot"] {
             assert!(!line.contains(gone), "{gone}: {line}");
         }
+    }
+
+    /// H-HANDS-VENTS: on a map with vents the score line names each and what stands on it; on a map without, nothing.
+    #[test]
+    fn the_score_line_names_the_vents_and_what_stands_on_each() {
+        let vents = vec![("vent_1 B3".to_string(), "free, 1355 on foot".to_string()), ("vent_2 F7".to_string(), "his Geothermal Powerplant, seen 2:10 ago".to_string())];
+        let field = Field { score: Score { frame: 6 * 1800, vents, ..Score::default() }, ..Field::default() };
+        let line = &front(&Briefing::default(), &field, &[], false)[0];
+        assert!(line.contains("; geothermal vents, nearest our start first: vent_1 B3: free, 1355 on foot, vent_2 F7: his Geothermal Powerplant, seen 2:10 ago)"), "{line}");
+        let line = &front(&Briefing::default(), &Field::default(), &[], false)[0];
+        assert!(!line.contains("vent"), "{line}");
     }
 
     #[test]

@@ -18,6 +18,9 @@ const MAX_UNITS: usize = 32_000;
 /// Features with less metal than this are not worth telling the bot about (trees, pebbles).
 const WRECK_MIN_METAL: f32 = 25.0;
 const MAX_WRECKS: usize = 150;
+/// How far from a vent the engine still lets a geothermal plant's centre stand, with a square to spare (its rule is
+/// 36 on each axis for the plants' 5 by 5 footprint), and how near two vent features are one vent.
+const VENT_REACH: f32 = 48.0;
 /// Base buildings stay this far from any metal spot, leaving room for the extractor and a path to it.
 const SPOT_KEEPOUT: f32 = 100.0;
 
@@ -31,7 +34,8 @@ pub struct Engine {
     /// building stands on metal and the layout's streets keep the yard open instead.
     metal_spots: Vec<Vec3>,
     /// Per feature type: the metal a whole one holds, or `None` when it cannot be reclaimed.
-    feature_metal: std::collections::HashMap<c_int, Option<f32>>,
+    /// Per feature type: the metal a whole one holds when it can be reclaimed, and whether it is a geothermal vent.
+    feature_kinds: std::collections::HashMap<c_int, (Option<f32>, bool)>,
     /// Per unit type: whether it stockpiles rounds (a silo, an anti-nuke), so the snapshot asks the engine for a
     /// stockpile count only where there is one.
     stockpilers: std::collections::HashMap<c_int, bool>,
@@ -150,7 +154,7 @@ impl Engine {
     /// `callback` must be the table the engine passed to `init` for `ai_id`, and stay valid
     /// until `release`.
     pub unsafe fn new(ai_id: c_int, callback: *const sys::SSkirmishAICallback) -> Self {
-        let mut engine = Engine { ai_id, callback, metal: -1, energy: -1, id_buf: vec![0; MAX_UNITS], metal_spots: Vec::new(), feature_metal: Default::default(), stockpilers: Default::default() };
+        let mut engine = Engine { ai_id, callback, metal: -1, energy: -1, id_buf: vec![0; MAX_UNITS], metal_spots: Vec::new(), feature_kinds: Default::default(), stockpilers: Default::default() };
         engine.metal = call!(engine, getResourceByName(c"Metal".as_ptr()));
         engine.energy = call!(engine, getResourceByName(c"Energy".as_ptr()));
         engine
@@ -419,6 +423,7 @@ impl Engine {
             min_water_depth: call!(self, UnitDef_getMinWaterDepth(id)),
             max_water_depth: call!(self, UnitDef_getMaxWaterDepth(id)),
             floater: call!(self, UnitDef_isFloater(id)),
+            needs_vent: call!(self, UnitDef_isNeedGeo(id)),
             death_blast: self.blast(call!(self, UnitDef_getDeathExplosion(id))),
             self_destruct_blast: self.blast(call!(self, UnitDef_getSelfDExplosion(id))),
             self_destruct_seconds: call!(self, UnitDef_getSelfDCountdown(id)) as f32,
@@ -705,37 +710,50 @@ impl Engine {
             })
             .collect();
 
-        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None, sensors: None, conversion: self.conversion() }
+        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None, sensors: None, conversion: self.conversion(), vents: None }
     }
 
-    /// The reclaimable features in sight that hold metal worth a walk, the richest first.
-    pub fn wrecks(&mut self) -> Vec<Wreck> {
+    /// One look at the map's features: the reclaimable ones in sight that hold metal worth a walk, the richest first,
+    /// and the geothermal vents, west to east. BAR shows every feature to every side (`featureVisibility = 3`), so
+    /// the vents are the map's whole list once they exist: a map's own file has them from the start, a map that
+    /// places them from Lua only when the game runs.
+    pub fn features(&mut self) -> (Vec<Wreck>, Vec<Vec3>) {
         let max = self.id_buf.len() as c_int;
         let count = call!(self, getFeatures(self.id_buf.as_mut_ptr(), max)).max(0) as usize;
         let ids: Vec<c_int> = self.id_buf[..count].to_vec();
-        let mut wrecks = Vec::new();
+        let (mut wrecks, mut vents) = (Vec::new(), Vec::new());
+        let place = |engine: &Self, id: c_int| {
+            let mut pos = [0f32; 3];
+            call!(engine, Feature_getPosition(id, pos.as_mut_ptr()));
+            Vec3 { x: pos[0], y: pos[1], z: pos[2] }
+        };
         for id in ids {
             let def = call!(self, Feature_getDef(id));
             if def < 0 {
                 continue;
             }
-            let whole = match self.feature_metal.get(&def) {
+            let (whole, vent) = match self.feature_kinds.get(&def) {
                 Some(known) => *known,
                 None => {
                     let metal = call!(self, FeatureDef_isReclaimable(def)).then(|| call!(self, FeatureDef_getContainedResource(def, self.metal)));
-                    self.feature_metal.insert(def, metal);
-                    metal
+                    let kind = (metal, call!(self, FeatureDef_isGeoThermal(def)));
+                    self.feature_kinds.insert(def, kind);
+                    kind
                 }
             };
+            if vent {
+                vents.push(place(self, id));
+            }
             let Some(metal) = whole.map(|whole| whole * call!(self, Feature_getReclaimLeft(id))).filter(|metal| *metal >= WRECK_MIN_METAL) else { continue };
-            let mut pos = [0f32; 3];
-            call!(self, Feature_getPosition(id, pos.as_mut_ptr()));
             let raises = call!(self, Feature_getResurrectDef(id));
-            wrecks.push(Wreck { id: FeatureId(id), pos: Vec3 { x: pos[0], y: pos[1], z: pos[2] }, metal, resurrects_into: (raises >= 0).then_some(UnitDefId(raises)) });
+            wrecks.push(Wreck { id: FeatureId(id), pos: place(self, id), metal, resurrects_into: (raises >= 0).then_some(UnitDefId(raises)) });
         }
         wrecks.sort_by(|a, b| b.metal.total_cmp(&a.metal));
         wrecks.truncate(MAX_WRECKS);
-        wrecks
+        vents.sort_by(|a, b| a.x.total_cmp(&b.x).then(a.z.total_cmp(&b.z)));
+        // Two vent features on one place (a map that lists a vent in two files: Altored Divide) are one vent.
+        vents.dedup_by(|a, b| a.dist2d(*b) < VENT_REACH);
+        (wrecks, vents)
     }
 
     /// Energy a second the team's converters took this second: the conversion gadget's `mmUse` team rules param,
@@ -791,6 +809,18 @@ impl Engine {
             return call!(self, Map_isPossibleToBuildAt(def.0, at.as_mut_ptr(), sys::UNIT_COMMAND_BUILD_NO_FACING))
                 .then_some((near, None));
         }
+        // A geothermal plant goes on the vent the bot named or nowhere: the engine wants a vent within about 36
+        // elmos of the plant's centre on each axis (`TestUnitBuildSquare`), so the vent's own square is asked first
+        // and then the engine's search a few squares round it. The metal spots' keep-out is not asked: a vent
+        // beside a spot is still the only ground this building has.
+        if call!(self, UnitDef_isNeedGeo(def.0)) {
+            let near = self.snap_to_build_grid(def, site.near);
+            let mut at = [near.x, near.y, near.z];
+            if call!(self, Map_isPossibleToBuildAt(def.0, at.as_mut_ptr(), sys::UNIT_COMMAND_BUILD_NO_FACING)) {
+                return Some((near, None));
+            }
+            return self.closest_build_site(def, site.near, VENT_REACH, 0, sys::UNIT_COMMAND_BUILD_NO_FACING).map(|pos| (pos, None));
+        }
         if site.placements.is_empty() {
             return self.site_facing(def, site, sys::UNIT_COMMAND_BUILD_NO_FACING, &[]).map(|pos| (pos, None));
         }
@@ -843,7 +873,7 @@ impl Engine {
             for step in 0..directions {
                 let angle = step as f32 * std::f32::consts::TAU / directions as f32;
                 let centre = Vec3 { x: site.near.x + radius * angle.cos(), z: site.near.z + radius * angle.sin(), ..site.near };
-                if let Some(found) = self.closest_build_site(def, centre, site, facing) && !on_a_spot(found) {
+                if let Some(found) = self.closest_build_site(def, centre, site.search_radius, site.min_dist, facing) && !on_a_spot(found) {
                     return Some(found);
                 }
             }
@@ -851,10 +881,10 @@ impl Engine {
         None
     }
 
-    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, site: &BuildSite, facing: c_int) -> Option<Vec3> {
+    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, search_radius: f32, min_dist: i32, facing: c_int) -> Option<Vec3> {
         let mut near = [centre.x, centre.y, centre.z];
         let mut found = [0f32; 3];
-        call!(self, Map_findClosestBuildSite(def.0, near.as_mut_ptr(), site.search_radius, site.min_dist, facing, found.as_mut_ptr()));
+        call!(self, Map_findClosestBuildSite(def.0, near.as_mut_ptr(), search_radius, min_dist, facing, found.as_mut_ptr()));
         // The engine reports failure as x == -1.
         (found[0] >= 0.0).then_some(Vec3 { x: found[0], y: found[1], z: found[2] })
     }
