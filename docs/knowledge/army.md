@@ -980,4 +980,4 @@ stood in his half from 3:00 on, and none from 15:00.
 **Would be wrong if.** Banded by army ratio and by opponent, the sides that stayed home won as often as those that
 went; or a set of games played on D-behind-tempo lost more of the behind positions than the 13 percent the model wins
 from them now.
-**Used by.** The brief: D-behind-tempo (docs/briefs/derived/behind.md, a draft written for the user's read).
+**Used by.** The brief: D-behind-tempo (docs/briefs/derived/behind.md, in the manifest since 2026-11-15 on the user's word).

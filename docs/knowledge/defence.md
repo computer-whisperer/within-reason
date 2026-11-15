@@ -237,4 +237,4 @@ own blitzes"; in that game we built 32 Sentries and 7 Beamers and 26 of the 34 e
 **Would be wrong if.** The truth files' failed raids (parties that came within 900 of an extractor and killed
 nothing) showed turrets turning Blitz pairs away as often as bot parties; or games against a person on vehicles with
 ten turrets by 8:00 and the rest of the metal in Blitzes lost more extractors than those with fifteen.
-**Used by.** The brief: D-raid-answer ("What a turret forces", items 1 and 3; the wording a draft for the user's read).
+**Used by.** The brief: D-raid-answer ("What a turret forces", items 1 and 3; in the brief since 2026-11-15 on the user's word).

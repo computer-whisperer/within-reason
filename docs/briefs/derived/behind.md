@@ -5,7 +5,7 @@ premises: [D-metal-is-the-game, D-lead-convert-it, D-raid-answer, D-reach-nests,
 lessons: [L-gecko-behind, L-lead-use-it, L-raid-naked-mexes, L-raid-keep-moving, L-energy-converters, L-gecko-one-more-con]
 claims: [K-army-a-side-behind-in-income-wins-a-tenth-at-home]
 sources: {people: [thebluegecko, the user], dates: [2026-11-14], relay: thebluegecko's spoken review of the 1v1 our seat lost to u6bkep that evening (L-gecko-behind), written on the user's word after the report of it ("Go ahead and write points 1 through 3 for review"); the prices are arithmetic on the facts; the win rates are run/metal_killtest.py behind}
-status: draft, written 2026-11-14 for the user's read and not yet read by him; checked (run/metal_killtest.py behind, 2026-11-14: 1,176 sides of our 1v1s and 47 of the pool's duels that were behind in income with an army left)
+status: in the manifest since 2026-11-15, written 2026-11-14 and read by the user 2026-11-15 and merged on his word ("These look good. Let's leave it at this"; a bare assent); checked (run/metal_killtest.py behind, 2026-11-14: 1,176 sides of our 1v1s and 47 of the pool's duels that were behind in income with an army left)
 -->
 ### Behind in metal: the clock is his
 
