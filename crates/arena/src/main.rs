@@ -75,6 +75,9 @@ const REALTIME_START_DELAY: u32 = 15;
 /// How long a match's bot is given to leave by itself after the engine has stopped: its players' sessions get ten
 /// seconds for their last result and the process two more (`strategist::drivers_done`).
 const BOT_FAREWELL: Duration = Duration::from_secs(14);
+/// How long the referee waits for the server's game-over after the bot has left by itself. The game's own end gadget
+/// takes about six seconds from a team's death to the game's end.
+const GAME_OVER_GRACE: Duration = Duration::from_secs(12);
 
 struct Options {
     matches: usize,
@@ -654,9 +657,17 @@ fn referee(
     let mut jev = JevMeter::default();
     loop {
         if engine.try_wait()?.is_some() {
-            return Ok((Outcome::Aborted, false));
+            // The engine quits by itself at a game's end (the match template's quit widget), after the server's word.
+            return Ok((autohost.game_over_within(Duration::ZERO)?.map_or(Outcome::Aborted, |winners| decided(&winners, setup)), false));
         }
         if let Some(status) = bot.as_mut().map(|bot| bot.try_wait()).transpose()?.flatten() {
+            // The bot leaves by itself when its last session ends (`WITHIN_REASON_EXIT_WHEN_OVER`), and a game lost
+            // releases our AI before the server says the game is over: in apex-v0511-ladder-60-1 the bot was gone
+            // 0.19 s before the game-over, the match was called aborted and the engine killed, and a loss by the
+            // player's concession went into the batch as no game. So the server's word is waited for first.
+            if status.success() && let Some(winners) = autohost.game_over_within(GAME_OVER_GRACE)? {
+                return Ok((decided(&winners, setup), false));
+            }
             // Without its bot our team stands idle; the result would be meaningless.
             return Err(io::Error::other(format!("bot process exited ({status}); see bot.log")));
         }
@@ -700,13 +711,15 @@ fn referee(
                 playing = true;
                 deadline = Instant::now() + stall_allowance;
             }
-            Some(Event::GameOver { winning_ally_teams }) => {
-                let won = winning_ally_teams.contains(&setup.our_ally_team());
-                return Ok((if won { Outcome::Win } else { Outcome::Loss }, false));
-            }
+            Some(Event::GameOver { winning_ally_teams }) => return Ok((decided(&winning_ally_teams, setup), false)),
             Some(Event::Other) | None => {}
         }
     }
+}
+
+/// The result the server's game-over packet names.
+fn decided(winning_ally_teams: &[u8], setup: &MatchSetup) -> Outcome {
+    if winning_ally_teams.contains(&setup.our_ally_team()) { Outcome::Win } else { Outcome::Loss }
 }
 
 /// Calls a game whose outcome is no longer in doubt, from the shim's `balance` lines (both sides' soldiers' metal

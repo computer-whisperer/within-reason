@@ -1,10 +1,10 @@
 <!--meta
 id: D-surprise-weapons
 layer: derived
-premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-energy-second, F-fight-big-weapons, F-fight-sight, F-eco-build, F-eco-energy, F-unit-armsilo, F-unit-corsilo, F-unit-armamd, F-unit-corfmd, F-unit-armkam, F-unit-armfig, F-unit-armrl, F-unit-armap, F-unit-armcom, F-unit-armamex, F-unit-armhp, M-barb-hard-aggressive-comet, M-barb-bonus, M-barb-sparring, M-format-team-small, M-format-8v8, M-gecko-vs-us-comet]
+premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, D-energy-second, F-fight-big-weapons, F-fight-sight, F-eco-build, F-eco-energy, F-unit-armsilo, F-unit-corsilo, F-unit-armamd, F-unit-corfmd, F-unit-armkam, F-unit-armfig, F-unit-armrl, F-unit-armap, F-unit-armcom, F-unit-armamex, F-unit-armhp, M-barb-hard-aggressive-comet, M-barb-bonus, M-barb-sparring, M-format-team-small, M-format-8v8, M-gecko-vs-us-comet, M-apex-silo]
 lessons: [L-gecko-nuke-surprise, L-sheet-surprises, L-sheet-labs, L-energy-converters, L-gecko-bots-vs-vehicles]
 sources: {people: [thebluegecko, the user], dates: [2026-10-09, 2026-10-23, 2026-10-24], relay: thebluegecko's recording on nukes (docs/knowledge/_inbox/gecko-brief-review-2026-10-23.md, the second recording) and his sheet rows on the Banshee, the Twilight and the hovercraft platform; our two silo games and the +20 ladder game from the ledger (docs/experiments.md: nuke-1-medium, nuke-2-hard, rework-ladder-20-1); the Twilight's blast from the game's Unit_Explosions.lua (empblast: radius 400, paralyzer, 15 seconds, 4,450)}
-status: in the manifest since 2026-10-24 (the user read it and admitted it); checked against the ledger and the facts; no kill-test tool of its own (the games are three)
+status: in the manifest since 2026-10-24 (the user read it and admitted it); checked against the ledger and the facts; no kill-test tool of its own (the games are three); "His clocks" and the first item under Consider rewritten 2026-11-14 on the user's observation of apex-v0511-ladder-60-1 ("we need to teach the bot that apex and barb will absolutely build nukes when they have the resources"), the new wording not yet read by him
 -->
 ### Weapons of surprise
 
@@ -46,9 +46,15 @@ difference of two clocks, and the answer in every case costs a small fraction of
   Two missiles at 20:38, before it, would have taken a plant, a fusion, a gantry, a Shiva and three advanced
   extractors. A missile takes 22 seconds to arrive and a commander walks: both of ours aimed at his lived.
 - *His clocks.* BARb hard_aggressive begins an anti-nuke in 27 of 33 games past twenty minutes, at 21 to 25, standing
-  near 24:40, so a nuke to land on it is stockpiled before about 21:00; its own silo is rare at +0 (14 of 848 long
-  games, at 25 to 38) and at +20 one landed unseen on 14,075 metal of our home at 39:33, the first tier-3 unit having
-  been seen at 28:50 (M-barb-hard-aggressive-comet, M-barb-bonus). The people we play have never built a silo in the
+  near 24:40, so a nuke to land on it is stockpiled before about 21:00. An AI's own silo follows its economy
+  (M-apex-silo, M-barb-hard-aggressive-comet; the user: "apex and barb will absolutely build nukes when they have the
+  resources"). Apex with an income bonus begins one in 21 of 25 games past 25:00 and in every game past 30:00, at
+  14:18 to 26:52 (median 19:18); at +0 in 42 of 68 long games where it held more than 45 extractors at 20:00, an
+  advanced one counted as four, and in none of 97 where it held under 20. BARb is slower and rarer: 5 of 14 bonus
+  games past 25:00 (median 24:38), 30 of 570 at +0 past 30:00 (median 31:27). Neither silo that fired on us was seen
+  first: at +60 Apex's first missile fell on our home at 27:10, four minutes after its first silo was begun, with
+  three silos begun inside four minutes and its base last seen at 4:48; at +20 BARb's fell on 14,075 metal of our
+  home at 39:33 (M-barb-bonus). The people we play have never built a silo in the
   two-to-four-a-side games, so an anti-nuke before 25:00 against them buys nothing (M-format-team-small); the AI teams
   of the 8v8 lobbies begin one at 8:30 to 9:21 in seven of forty games, standing 10:03 to 12:08, and the people answer
   with an anti-nuke at 13:47 at the median, which the chat calls "the 12 min nuke" (M-format-8v8).
@@ -71,11 +77,17 @@ difference of two clocks, and the answer in every case costs a small fraction of
 
 **Consider, and why it may work.**
 
-1. *The anti-nuke on his clock, not on fear.* Against BARb at +0 his silo is 14 of 848, and a 1,500 insurance in a
-   game that ends at 15:00 is a plant not built; with a bonus, the first tier-3 unit in sight is the sign (28:50
-   before a 39:33 blow in the one game), and 1,650 against 14,075 is the trade; in the 8v8 lobbies against the AIs
-   the tech seat's silo stands at 10:03 to 12:08, so the anti-nuke is a 12:00 build on the lane it will cover; against
-   the people never before 25:00 unless one is seen.
+1. *The anti-nuke on his economy's clock, since his silo is not seen first.* An AI that keeps its economy builds
+   silos, and both that fired on us were out of our sight. Against Apex with an income bonus the anti-nuke is begun
+   at the plants by 18:00 whatever is in sight: his silo is begun at 19:18 at the median, his first missile can fall
+   four minutes after, and ours is ready 3.2 to 4.8 minutes after it is begun; 1,650 against the 78 buildings and
+   units of our home his first one took in the game that had none. Against Apex at +0 or BARb with a bonus it is
+   begun by 22:00 in a game that is not about to be won, and at once when his advanced extractors or fusions are in
+   the picture. Against BARb at +0 his silo is 30 of 570 and none begun before 24:30, so a 1,500 insurance in a game
+   that ends at 15:00 is a plant not built: it waits for 25:00. A second and third silo follow the first within
+   minutes, and one anti-nuke answers them only while its stock lasts, so the lead is converted before they stand
+   (D-lead-convert-it). In the 8v8 lobbies against the AIs the tech seat's silo stands at 10:03 to 12:08, so the
+   anti-nuke is a 12:00 build on the lane it will cover; against the people never before 25:00 unless one is seen.
 2. *Our nuke only before his answer, at what stands still.* Against BARb hard_aggressive that is a silo begun by about
    14:00 at 600 power so the first missile is ready before his anti-nuke stands at 21 to 25; aimed at his lab, his
    fusion, his gantry, which do not walk, and never at his commander; and at his forward army when his anti-nuke
@@ -108,7 +120,12 @@ tier-2 article names. When the game is lost on the ground and his air is not up:
 missile 20:00, fired 21:07 at his lab, everything within 640 gone but his commander; eight missiles by 37:37, two on
 empty ground, two on a walking commander) and nuke-2-hard (begun 13:19, standing 16:32, the first missile 18:38, the
 first firing asked for at 23:39 and three at his base intercepted after his anti-nuke of 21:40, four at his forward
-army landed) carry the two clocks as measured; rework-ladder-20-1 the unseen silo at 39:33. The kill-test as named:
+army landed) carry the two clocks as measured; rework-ladder-20-1 the unseen silo at 39:33. apex-v0511-ladder-60-1
+(2026-11-14, Apex at +60, lost at 32:44 by the player's concession) is the game this article's first line was
+rewritten after: it then read "the anti-nuke on his clock, not on fear" with a tier-3 unit in sight as the sign under
+a bonus; his gantry was in sight at 21:04 and no anti-nuke was begun, his three silos were never seen, and four
+missiles from 27:10 killed 162 buildings and units, 78 of them in the first blast on the home. No game has been
+played on the new line. The kill-test as named:
 had the nuke been a weapon of attrition, missiles after his anti-nuke stood would land at a rate worth their 1,000;
 of ours, three of three at his base after it were intercepted and four of four outside its circle landed. What the
 tests cannot do: three games, all against BARb, no Banshee snipe of ours ever flown and no Twilight ever fired; the

@@ -117,3 +117,27 @@ situational timings."
 **Would be wrong if.** A person's silo stood before 25:00 in a lobby game of ours, or BARb's clock moved.
 **Used by.** The brief's anti-nuke passage (late-game.md), commander.md; replaces the 2026-10-19 "due diligence"
 wording.
+
+### K-opp-ai-silo-follows-its-economy
+**Claim.** BARb and Apex build nuclear silos when their economy can pay for them, Apex far more readily than BARb,
+and the silo is not seen by us before it fires. Apex with an income bonus: a silo begun in 47 of 65 recorded 1v1s
+past 20:00, 21 of 25 past 25:00, 5 of 5 past 30:00, at 14:18 to 26:52 (median 19:18); at +0, 58 of 323 past 25:00
+and 51 of 206 past 30:00 (median 26:32). By his extractors at 20:00 with an advanced one counted as four, games at
++0 past 28:00: 0 of 97 under 20, 2 of 34 at 20 to 30, 11 of 49 at 30 to 45, 42 of 68 above 45. BARb of any profile
+at +0: 30 of 570 past 30:00 (median 31:27), 4 of 468 under 30 extractors at 20:00 and 26 of 210 above; against the
+flagship with a bonus 5 of 14 past 25:00 (median 24:38).
+**Status.** measured (2026-11-14) from the truth files; the user's observation of the same day, watching
+apex-v0511-ladder-60-1: "looks like we need to teach the bot that apex and barb will absolutely build nukes when
+they have the resources". For BARb "absolutely" is his word and the count is four in ten with a bonus.
+**Evidence.** `run/antinuke_scan.py` (3,767 games with a truth file and a `batch.json`, `run/matches` and the
+archive; `--games` lists the 149 with a silo). apex-v0511-ladder-60-1: Apex v0.5.11 at +60, silos begun 23:04, 25:00
+and 26:56 with 37 extractors' worth at 20:00, the first standing 24:46, four missiles from 27:10 (78, 6, 21 and 57
+dead by `armsilo_nuclear_missile` in the record), no `enemy_seen` of a silo in the record, our anti-nuke begun 27:28
+and never finished. rework-ladder-20-1: BARb at +20, two silos from 32:10, a missile on our home at 39:33.
+**Would be wrong if.** A version of either stopped building them (Apex's nets change by release: 572 of the 779 +0
+games are v0.5.04, and 71 of the 84 bonus games v0.2.2 and v0.2.4 at +50 to both sides against the heuristic bot);
+or the count were read as the flagship's own: against the flagship the bonus games are 12 for Apex, one of them past
+25:00.
+**Used by.** The brief: M-apex-silo, M-barb-hard-aggressive-comet's nuke line, D-surprise-weapons ("His clocks" and
+the first item under Consider). Not yet in the commander's prompt, whose anti-nuke passage still gives Apex "one at
+24:28 in one game and none in the next".

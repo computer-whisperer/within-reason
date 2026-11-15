@@ -1,56 +1,114 @@
 #!/usr/bin/env python3
-"""When the opponent builds an anti-nuke or a nuke silo, from the truth files (K-barb-anti-nuke-by-minute).
+"""When the opponent builds an anti-nuke or a nuke silo, from the truth files
+(K-barb-anti-nuke-by-minute, K-opp-ai-silo-follows-its-economy).
 
-    run/antinuke_scan.py [ROOT...]        (default: run/matches and the archive named in docs/experiments.md's head)
+    run/antinuke_scan.py [--games] [ROOT...]     (default: run/matches and the archive)
 
-Walks every match directory under the roots for a `truth-0.jsonl` over 1 MB, takes the first frame at which each of
-armamd, corfmd, armsilo, corsilo appears in the opponent's unit list (`grep -m1`, so a few seconds a file) and the
-last frame, and prints one line a match plus a summary over the games that passed 20 minutes. Labels `player-N` are
-the Comet hard_aggressive player games; the September batches are mostly BARb medium on Quicksilver.
+Walks every match directory under the roots that holds a `truth-0.jsonl` and whose batch has a `batch.json` (the
+opponent, the bonus to him, the format, our AI), and takes from the truth file the first frame his anti-nuke and
+his silo appear in his unit list (a frame counts: begun, not standing), the frame the first silo stands, how many
+silos he had, his extractors at 20:00 with an advanced one counted as four, and the game's last frame. Prints, for
+BARb and Apex by format and by whether he had an income bonus: how many games passed 20, 25 and 30 minutes and how
+many of those held an anti-nuke or a silo of his, when the silos were begun, and the share of silos by his economy
+at 20:00. `--games` lists every game with a silo. About two minutes over the archive.
 """
-import os, re, statistics as st, subprocess, sys
+import collections, glob, json, os, re, statistics as st, sys
 
-ROOTS = sys.argv[1:] or ["run/matches", "/ceph/christian/within-reason/run/matches-archive"]
-NAMES = ["armamd", "corfmd", "armsilo", "corsilo"]
-FPS = 30
-
-
-def frame_of(line):
-    m = re.search(r'"f": *(\d+)', line)
-    return int(m.group(1)) if m else None
-
-
-def first_frame(path, name):
-    r = subprocess.run(["grep", "-m1", "-F", f'"{name}"', path], capture_output=True, text=True)
-    return frame_of(r.stdout) if r.returncode == 0 else None
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+ROOTS = ARGS or ["run/matches", "/ceph/christian/within-reason/run/matches-archive"]
+SILO = {"armsilo", "corsilo", "legsilo"}
+ANTI = {"armamd", "corfmd", "legabm"}
+BASIC = {"armmex", "cormex", "legmex"}
+ADVANCED = {"armmoho", "cormoho", "legmoho"}
+AT_20 = 20 * 60 * 30
 
 
-def last_frame(path):
-    r = subprocess.run(["tail", "-n", "1", path], capture_output=True, text=True)
-    return frame_of(r.stdout) or 0
+def clock(frame):
+    return "-" if frame is None else f"{frame // 1800}:{frame % 1800 // 30:02d}"
 
 
-rows = []
+def family(opponent):
+    o = opponent.lower()
+    return "Apex" if "apex" in o else "Barb3" if "barb3" in o else "BARb" if "barb" in o else "other"
+
+
+def read(truth):
+    """One game's row from its truth file; lines without a silo or an anti-nuke are only parsed at 20:00."""
+    row = dict(last=0, silo=None, stands=None, silos=set(), anti=None, economy=None)
+    with open(truth, errors="replace") as lines:
+        for line in lines:
+            m = re.match(r'\{"f": *(\d+)', line)
+            if not m:
+                continue
+            frame = row["last"] = int(m.group(1))
+            if frame != AT_20 and "silo" not in line and 'amd"' not in line and 'fmd"' not in line and 'abm"' not in line:
+                continue
+            try:
+                units = json.loads(line).get("enemy", [])
+            except ValueError:
+                continue
+            if frame == AT_20:
+                row["economy"] = sum(1 for u in units if u[1] in BASIC) + 4 * sum(1 for u in units if u[1] in ADVANCED)
+            for u in units:
+                if u[1] in SILO:
+                    row["silos"].add(u[0])
+                    row["silo"] = row["silo"] if row["silo"] is not None else frame
+                    if row["stands"] is None and len(u) > 4 and u[4] >= 100:
+                        row["stands"] = frame
+                elif u[1] in ANTI and row["anti"] is None:
+                    row["anti"] = frame
+    row["silos"] = len(row["silos"])
+    return row
+
+
+rows, unlabelled = [], 0
 for root in ROOTS:
-    for dirpath, _, files in os.walk(root):
-        if "truth-0.jsonl" not in files:
+    for truth in sorted(glob.glob(os.path.join(root, "*", "[0-9][0-9]", "truth-0.jsonl"))):
+        batch_dir = os.path.dirname(os.path.dirname(truth))
+        try:
+            batch = json.load(open(os.path.join(batch_dir, "batch.json")))
+        except (OSError, ValueError):
+            unlabelled += 1
             continue
-        path = os.path.join(dirpath, "truth-0.jsonl")
-        if os.path.getsize(path) < 1 << 20:
-            continue
-        label = os.path.relpath(dirpath, root)
-        end = last_frame(path) / FPS / 60
-        hits = {n: first_frame(path, n) for n in NAMES}
-        hits = {n: f / FPS / 60 for n, f in hits.items() if f is not None}
-        rows.append((label, end, hits))
-        print(f"{label} end={end:.0f}" + "".join(f" {n}@{m:.0f}" for n, m in hits.items()))
+        row = read(truth)
+        row.update(label=os.path.basename(batch_dir) + "/" + os.path.basename(os.path.dirname(truth)), opponent=str(batch.get("opponent") or ""),
+                   bonus=batch.get("enemy_bonus") or 0, duel=(batch.get("ours") or 1) == 1 and (batch.get("enemies") or 1) == 1,
+                   flagship=bool(batch.get("pianist")))
+        rows.append(row)
 
-long = [r for r in rows if r[1] >= 20]
-anti = [min(m for n, m in h.items() if n in ("armamd", "corfmd")) for _, _, h in long if any(n in h for n in ("armamd", "corfmd"))]
-silo = [(l, m) for l, _, h in long for n, m in h.items() if n in ("armsilo", "corsilo")]
-print(f"\n{len(rows)} games with a truth file over 1 MB; {len(long)} passed 20 minutes; an anti-nuke of his in {len(anti)} of them"
-      + (f" (minutes: min {min(anti):.0f}, median {st.median(anti):.0f}, max {max(anti):.0f})" if anti else "") + f"; silos in {len(silo)}")
-player = [(l, h) for l, e, h in long if re.match(r"\d+-player-\d+", l)]
-pa = [min(m for n, m in h.items() if n in ("armamd", "corfmd")) for _, h in player if any(n in h for n in ("armamd", "corfmd"))]
-if player:
-    print(f"the player-N games (Comet hard_aggressive): {len(pa)} of {len(player)}" + (f", median minute {st.median(pa):.0f}" if pa else ""))
+print(f"{len(rows)} games with a truth file and a batch.json ({unlabelled} more without a batch.json left out)\n")
+
+
+def table(games, title):
+    if not games:
+        return
+    print(f"{title}: {len(games)} games")
+    for minutes in (20, 25, 30):
+        long = [g for g in games if g["last"] >= minutes * 1800]
+        print(f"  past {minutes}:00: {len(long)}; an anti-nuke of his in {sum(g['anti'] is not None for g in long)}, a silo in {sum(g['silo'] is not None for g in long)}")
+    begun = sorted(g["silo"] for g in games if g["silo"] is not None)
+    if begun:
+        print(f"  silos begun {clock(begun[0])} to {clock(begun[-1])}, median {clock(int(st.median(begun)))}")
+    long = [g for g in games if g["last"] >= 28 * 1800 and g["economy"] is not None]
+    for low, high in ((0, 20), (20, 30), (30, 45), (45, 10_000)):
+        band = [g for g in long if low <= g["economy"] < high]
+        if band:
+            print(f"  past 28:00 with {low} to {high if high < 10_000 else 'more'} extractors at 20:00 (an advanced one counted as four): {len(band)}, a silo in {sum(g['silo'] is not None for g in band)}")
+
+
+for name in ("BARb", "Apex", "Barb3"):
+    for duel in (True, False):
+        for bonus in (False, True):
+            games = [g for g in rows if family(g["opponent"]) == name and g["duel"] == duel and (g["bonus"] > 0) == bonus]
+            table(games, f"{name}, {'1v1' if duel else 'teams'}, {'an income bonus to him' if bonus else '+0'}")
+            if games and bonus:
+                print("  by bonus, past 25:00: " + ", ".join(
+                    f"+{b} {sum(g['silo'] is not None for g in at)} of {len(at)}"
+                    for b in sorted({g['bonus'] for g in games}) for at in [[g for g in games if g['bonus'] == b and g['last'] >= 25 * 1800]] if at))
+            table([g for g in games if g["flagship"]], f"  of which the flagship's")
+
+if "--games" in sys.argv:
+    print()
+    for g in sorted((g for g in rows if g["silo"] is not None), key=lambda g: (family(g["opponent"]), g["bonus"], g["silo"])):
+        print(f"{g['opponent']} +{g['bonus']} {'1v1' if g['duel'] else 'teams'} {g['label']}: silo begun {clock(g['silo'])}, standing {clock(g['stands'])}, "
+              f"{g['silos']} in all, his anti-nuke {clock(g['anti'])}, {g['economy']} extractors at 20:00, the game ends {clock(g['last'])}")

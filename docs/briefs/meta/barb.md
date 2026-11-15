@@ -135,9 +135,16 @@ description of what it does against the play we gave it, not a pace to match.
   standing at 7:04, a Gunslinger 11:34, a Sharpshooter 14:12, a Fatboy 16:18, a Marauder 22:12, a Pulsar 22:34, a
   Razorback 24:12, each seen by us a few minutes later; the set's composition confirms the order.
 - **The nuke.** An anti-nuke begun in 27 of the 33 games that passed twenty minutes in the scan of 2026-10-09 (61 of
-  80 in the 150-game set), at minute 21 to 25 (median 22) and standing near 24:40; its own silo in 14 of 848 long games
-  against BARb of any profile, at 25 to 38 minutes, and one begun at 29:48 in nuke-2-hard, a hard_aggressive game of
-  2026-10-09. A nuke that is to land on it must be stockpiled before about 21:00.
+  80 in the 150-game set), at minute 21 to 25 (median 22) and standing near 24:40. A nuke that is to land on it must
+  be stockpiled before about 21:00. Its own silo follows its economy and the game's length (the user, 2026-11-14: "apex
+  and barb will absolutely build nukes when they have the resources"; the scan of that day, every recorded 1v1
+  against BARb of any profile): at +0 in 30 of the 570 games past 30:00, begun 24:30 to 38:54 (median 31:27); of the
+  games past 28:00, in 4 of 468 where it held under 30 extractors at 20:00 (an advanced one counted as four) and in
+  26 of 210 where it held more. Against the flagship at +0, 6 of the 49 games past 30:00. With an income bonus (the
+  flagship's ladders), in 5 of the 14 games past 25:00 and 4 of the 10 past 30:00, begun 19:46 to 37:00 (median
+  24:38): three of five at +20, one of one at +30, one of two at +35, none of four at +10 or of two at +50. One fired
+  on us: at +20 two silos begun at 32:10, the first standing 37:04, and a missile on 14,075 metal of our home at
+  39:33, the silo never seen.
 
 <!--meta
 id: M-barb-medium

@@ -92,3 +92,31 @@ commanders, and a silo begun at 24:28 and standing at 29:42 in one game, none in
 flagship beat v0.2.9 (16:34; its advanced air plant at 16:00 on five extractors, nine extractors against our 24 at
 10:00) and v0.3.3 (17:01; its air plant at 12:50 and no tier 2). The distilled bot stood 1-7 against v0.3.2 on Comet before its rebuild and 4-4
 after (2026-10-20).
+
+<!--meta
+id: M-apex-silo
+layer: meta
+premises: [F-eco-multipliers, M-apex-economy]
+population: every recorded 1v1 against Apex with a truth file, v0.2.2 to v0.5.11: 779 games at +0 (720 of them the heuristic bot's batteries, 572 against v0.5.04) and 84 with an income bonus to it (80 at +50, most of them the heuristic bot's batteries with +50 to both sides against v0.2.2 and v0.2.4); the flagship's ladder against v0.5.11 at +0 to +80 (2026-11-14), its +60 game read in detail
+map: Comet Catcher Remake 1.8, with Carrot Mountains, All That Glitters and Quicksilver in the batteries
+dates: 2026-10-13 to 2026-11-14 (scanned 2026-11-14)
+ground: truth (the truth file: everything he had, seen by us or not)
+sources: {people: [the user], code: [run/antinuke_scan.py, docs/experiments.md, run/matches/1794710974-apex-v0511-ladder-60-1], claims: [K-opp-ai-silo-follows-its-economy]}
+status: live
+-->
+### Its silo
+
+Apex builds nuclear silos when its economy can pay for them (the user, watching the +60 game of 2026-11-14: "apex and
+barb will absolutely build nukes when they have the resources"). With an income bonus a silo of its own was begun in
+47 of the 65 recorded games that passed 20:00, in 21 of the 25 that passed 25:00 and in all five that passed 30:00,
+at 14:18 to 26:52 (median 19:18). At +0 in 58 of 323 past 25:00 and 51 of 206 past 30:00, at 20:04 to 34:08 (median
+26:32). What decides it is its economy at 20:00, an advanced extractor counted as four: at +0, of the games that ran
+past 28:00, no silo in 97 with under 20 extractors, 2 of 34 at 20 to 30, 11 of 49 at 30 to 45 and 42 of 68 above 45;
+with a bonus, 9 of 9 above 45. Its own anti-nuke comes first: in 62 of the 65 bonus games past 20:00.
+
+The flagship's game at +60 (v0.5.11, Comet, lost 32:44): its advanced lab begun 8:42, a first advanced extractor
+11:50, fusions from 13:26 (six by 25:00), a gantry 19:12, its anti-nuke 22:16, then silos begun at 23:04, 25:00 and
+26:56, the first standing at 24:46, and the first missile on our home at 27:10, four minutes after the first silo was
+begun: 78 dead in one blast, solars, converters, construction turrets and two plants. Four missiles by 32:30, two on
+our home (78 and 57), one on the army in the field (21 soldiers), 162 dead in all. No silo was ever in our sight: its
+base at G1 was last seen at 4:48. Our anti-nuke was begun 18 seconds after the first blast and never stood.

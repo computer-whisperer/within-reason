@@ -648,6 +648,10 @@ silo stood in 14 of 848 long games, at 25 to 38 minutes (sonnet-medium-2 at 25, 
 1 MB, 848 past 20 minutes).
 **Evidence.** `run/antinuke_scan.py` over `run/matches` and the archive; the per-game list in the session's scratchpad
 (player-21 21, player-52 22, player-38 23, player-29 22, ... player-54 25).
+**Rescanned 2026-11-14.** The tool was rewritten to split the count by opponent, bonus, format and his economy
+(K-opp-ai-silo-follows-its-economy), so its summary line is no longer the one above: over 2,603 1v1s against BARb of
+any profile at +0 it prints an anti-nuke of his in 366 of the 1,362 games past 20:00 and 256 of the 570 past 30:00,
+and a silo in 30; against the flagship, 73 of 138 and 42 of 49, and a silo in 6.
 **Would be wrong if.** A later BARb version or another profile moved the clock, or the anti-nuke were counted while
 still a frame (the scan takes the first appearance in his unit list, finished or not: a frame counts, so the standing
 anti-nuke is a little later than the minute given).
