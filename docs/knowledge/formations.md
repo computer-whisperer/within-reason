@@ -895,7 +895,7 @@ company's reach, where the company stood for four minutes, said `arrived`, and t
 With a block that gives way only when under four fifths of its slots stand (the design's D12) twelve duels of twelve
 are taken in 47 to 49 s and the block is laid again in one. A dragon's tooth put on a standing block moves the
 company on the first rule (at rest again 38 s later) and one member on the second.
-**Status.** measured (2026-11-15); D12 built on the branch `army-loop`, put to the user.
+**Status.** measured (2026-11-15); D12 on main since the same day, on the user's word.
 **Evidence.** `docs/experiments.md`, s64-\* and d12-\*.
 **Would be wrong if.** The steps back came from his turrets' wrecks or the planner and not from our own dead (in
 the stalled duel the block's first step falls a second after the first death, and it takes five steps for seven

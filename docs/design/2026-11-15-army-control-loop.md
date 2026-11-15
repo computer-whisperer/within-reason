@@ -514,7 +514,8 @@ Each changes something he ruled or judged, or is a choice the bench cannot make.
   ground it cannot stand on; the slot's snap already sends such a member beside it. What it changes of P2: a
   building begun on a block no longer moves the company unless it takes more than a fifth of the slots (the row
   `build-place`: a solar collector on the front rank now moves nobody). Built on the branch and put to the
-  user; his word on it is entered here when given.
+  user, who played one lobby game on the engine as merged meanwhile: "Lobby game is done, go ahead and merge the new fix."
+  Merged to main the same day (91026361).
 
 ## 14. As built (2026-11-15, branch `army-loop`; merged to main the same day)
 
