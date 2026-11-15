@@ -2706,7 +2706,14 @@ frames the next turn was asked at (three seconds after a landing, `wake.rs` `LAN
 shorter from report to report, or the model writes its closing words before the call instead.
 **Check (2026-11-14).** The mechanism only: under Claude Code 2.1.325 a held call answers within the tool timeout
 (60 s by default, `MCP_TOOL_TIMEOUT` raises it), and the driver's own end-to-end test delivered two reports as held
-answers with no response ended between them. No game has been played on it.
+answers with no response ended between them.
+**Check (2026-11-14, held-wait-rt-1; a realtime 1v1 against BARb hard_aggressive, 25 minutes, the same model and
+effort).** The turns are shorter from report to report: 11.0 s at the median against 15.2 to 18.0 in the lobby games
+(turn wall 7.0 s against 13.6 to 15.2; a turn of one `orders` call 6.9 s against 14.4 to 14.7), the player inside a
+turn for 62 % of the game against 80 to 92 %. The model wrote no closing words (14 text blocks in 104 turns, 2,646
+characters at the two session ends). Not like for like (one seat against BARb, larger reports), and one game. What
+sets the pace now: the landing's three seconds of grace, and in a fight the ten-second timer (38 of 104 turns woken
+by the timer alone); 26 turns took several calls where one would do, 11.5 s against 6.2, as in the lobby games.
 **Used by.** H-PLAYER-HELD-WAIT.
 
 ### K-hands-a-realtime-player-read-as-watching

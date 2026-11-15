@@ -72,6 +72,9 @@ const STALL_ALLOWANCE: Duration = Duration::from_secs(120);
 /// The realtime start slot: a Sonnet seat's opening turn took 7.9 to 9.9 s in the 8v8s, an Opus medium player's 14.6 s
 /// (opening-smoke-2-realtime); people's lobbies gave 18 and 77 s (human-30, human-29).
 const REALTIME_START_DELAY: u32 = 15;
+/// How long a match's bot is given to leave by itself after the engine has stopped: its players' sessions get ten
+/// seconds for their last result and the process two more (`strategist::drivers_done`).
+const BOT_FAREWELL: Duration = Duration::from_secs(14);
 
 struct Options {
     matches: usize,
@@ -460,6 +463,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
             // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).
             .envs(options.pianist.then_some(("WITHIN_REASON_JEV_LOG", "1")))
             .env("WITHIN_REASON_SOCKET", &socket)
+            // One game a process: the bot leaves when its last session ends (see `BOT_FAREWELL`).
+            .env("WITHIN_REASON_EXIT_WHEN_OVER", "1")
             .env("WITHIN_REASON_LOG_DIR", &dir)
             .env("WITHIN_REASON_DISABLE", &disable)
             .envs(options.packet.as_ref().map(|path| ("WITHIN_REASON_PACKET", path)))
@@ -523,6 +528,14 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     let result = referee(&mut autohost, &mut engine, bot.as_mut(), options, &setup, &dir.join("engine.log"));
     stop(&mut engine, &mut autohost);
     if let Some(bot) = &mut bot {
+        // The bot leaves by itself once its last session has ended (`WITHIN_REASON_EXIT_WHEN_OVER`), its players'
+        // sessions writing their last result first: a player held in its `wait` has reported no usage since its
+        // session began (H-PLAYER-HELD-WAIT; held-wait-rt-1 was killed here and its last 24 turns have no result
+        // row). One that has not left by then is killed, as every bot was before.
+        let until = Instant::now() + BOT_FAREWELL;
+        while Instant::now() < until && matches!(bot.try_wait(), Ok(None)) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
         let _ = bot.kill();
         let _ = bot.wait();
     }

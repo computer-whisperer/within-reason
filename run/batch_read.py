@@ -67,13 +67,12 @@ def read(directory):
             m = json.loads(m) if isinstance(m, str) else m
             if isinstance(m, dict):
                 # `usage` is the response's; `modelUsage` is the session's running total. A response is one turn, or
-                # (a player whose `wait` is held for its next report, H-PLAYER-HELD-WAIT) every turn since the last
-                # result: its tokens are spread over those turns.
+                # (a player whose `wait` is held for its next report, H-PLAYER-HELD-WAIT) a session's every turn; a
+                # replacement session's warm-up is a response with no turn in it.
                 out = (m.get("usage") or {}).get("output_tokens")
-                if out:
-                    over = max(1, turns - answered)
-                    outputs.extend([out / over] * over)
-                answered = turns
+                if out and (m.get("num_turns") or 2) > 1:
+                    outputs.append(out)
+                    answered = turns
                 if m.get("spent_usd") is not None:
                     spent = max(spent, float(m["spent_usd"]))
     tokens = 0
@@ -87,7 +86,10 @@ def read(directory):
     return {"label": os.path.basename(batch), "result": result.get("outcome"), "reason": result.get("reason") or "", "min": round(result.get("game_minutes", 0), 1),
             "mex8": extractors.get(8), "mex12": extractors.get(12), "mex16": extractors.get(16), "army12": soldiers.get(12),
             "turns": turns, "wall_med": round(statistics.median(walls), 1) if walls else None, "wall_max": round(max(walls)) if walls else None,
-            "abandoned": ended.count("abandoned"), "out_med": round(statistics.median(outputs)) if outputs else None,
+            "abandoned": ended.count("abandoned"),
+            # Output tokens a turn: the median over the turns' own results, or, where a result covers many turns,
+            # the mean over the turns the results cover.
+            "out_med": (round(statistics.median(outputs)) if len(outputs) >= 0.8 * turns else round(sum(outputs) / max(1, answered))) if outputs else None,
             "tools_per_turn": round(tools / turns, 2) if turns else None, "refused": refused,
             "jev_usd": round(tokens * JEV_PRICE_PER_MILLION / 1e6, 2), "player_usd": round(spent, 2) or None, "capped": capped}
 
