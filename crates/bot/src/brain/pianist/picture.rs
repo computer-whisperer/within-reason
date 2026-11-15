@@ -2425,16 +2425,18 @@ impl Brain {
                 state["signals"] = json!(signals);
             }
         }
-        // H-HANDS-FALL-BACK: whether the player can answer now. Under the think penalty its orders land as long after
-        // the turn as it took to decide, and nothing new comes from it meanwhile.
+        // H-HANDS-FALL-BACK: whether the player can answer now, and how old what it knows is.
         if let Some(shared) = &self.strategist {
-            let turn = shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed);
-            let landing = shared.delayed.lock().unwrap().as_ref().map(|(at, _)| *at);
-            state["player"] = json!(match landing {
-                Some(at) => format!("deciding: its orders from {} s ago reach you in {} s; it has not seen what has happened since, so what the picture shows now outranks an instruction it contradicts", (frame - turn) / FRAMES_PER_SECOND, (at - frame).max(0) / FRAMES_PER_SECOND),
-                None if turn > 0 => format!("watching: its last orders reached you {} s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wakes it within a few seconds", (frame - turn) / FRAMES_PER_SECOND),
-                None => "has not spoken yet".to_string(),
-            });
+            use std::sync::atomic::Ordering::Relaxed;
+            state["player"] = json!(player_line(&PlayerClock {
+                now: frame,
+                turn: shared.last_turn_frame.load(Relaxed),
+                delayed: shared.delayed.lock().unwrap().as_ref().map(|(at, _)| *at),
+                in_hand: !shared.lockstep.load(Relaxed) && shared.turn_in_hand(),
+                report: shared.report_frame.load(Relaxed),
+                landed: shared.last_landing.load(Relaxed),
+                orders_from: shared.orders_from.load(Relaxed),
+            }));
         }
         Picture { state, rules, places, parties }
     }
@@ -2546,8 +2548,86 @@ pub(super) fn stunned_words(seconds: &[f32], of: usize) -> Option<String> {
     Some(format!("{who} stunned, {span}"))
 }
 
+/// The frames the hands' line on the player is written from (`player_line`).
+pub(super) struct PlayerClock {
+    pub now: i32,
+    /// When the brain last asked for a turn (0: never).
+    pub turn: i32,
+    /// Lockstep under the think penalty: the frame the turn's orders, still on their way, come into force.
+    pub delayed: Option<i32>,
+    /// Real time: a turn is asked for or being taken, the game running on meanwhile.
+    pub in_hand: bool,
+    /// The frame of the report the turn in hand reads (before `turn` while that report is not written yet).
+    pub report: i32,
+    /// The frame the last orders came into force, and the frame of the report they answered.
+    pub landed: i32,
+    pub orders_from: i32,
+}
+
+/// H-HANDS-FALL-BACK: what the hands are told of the player each second: whether it can answer now, and how old
+/// the picture is that the instructions they hold were written or left standing on. While it is deciding, what the
+/// picture shows outranks an instruction it contradicts: under the think penalty its orders land as long after the
+/// turn as it took to decide, and in real time the game runs on through the whole turn. Until 2026-11-14 a realtime
+/// game said "watching" all game, with the seconds since the next turn was asked for as the time since the orders
+/// "reached you" (1794676519-human, the lobby 3v2 of that day: the north seat's player was inside a turn for 92 % of
+/// the game, and at 6:05-6:23 its Blitzes held on a packet whose player had last looked at 5:52, while his pack
+/// killed along row 2 from 5:54).
+pub(super) fn player_line(c: &PlayerClock) -> String {
+    let ago = |f: i32| (c.now - f).max(0) / FRAMES_PER_SECOND;
+    const OUTRANKS: &str = "it has not seen what has happened since, so what the picture shows now outranks an instruction it contradicts";
+    // What the instructions in force stand on: said when it is not the landing itself (in lockstep with no
+    // penalty the orders land on the frame of their report).
+    let stand = |lead: &str| if c.orders_from > 0 && c.landed - c.orders_from >= FRAMES_PER_SECOND { format!("{lead} what it saw {} s ago", ago(c.orders_from)) } else { String::new() };
+    match c.delayed {
+        Some(at) => format!("deciding: its orders from {} s ago reach you in {} s; {OUTRANKS}", ago(c.turn), (at - c.now).max(0) / FRAMES_PER_SECOND),
+        None if c.in_hand => {
+            let reading = if c.report >= c.turn { format!("it is answering what it saw {} s ago", ago(c.report)) } else { "it is being woken now".to_string() };
+            let held = if c.orders_from > 0 { format!("; the instructions you hold stand as of what it saw {} s ago", ago(c.orders_from)) } else { String::new() };
+            format!("deciding: {reading} and its orders have not reached you yet{held}; {OUTRANKS}")
+        }
+        None if c.turn > 0 => format!(
+            "watching: its last orders reached you {} s ago{}; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wakes it within a few seconds",
+            ago(if c.landed > 0 { c.landed } else { c.turn }),
+            stand(", written from")
+        ),
+        None => "has not spoken yet".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    /// H-HANDS-FALL-BACK: the hands' line on the player says whether it is deciding, and counts from the frames
+    /// things happened at. The numbers are the north seat's at 6:18 of 1794676519-human: its turn in hand read a
+    /// report of 6:06, its last orders landed at 6:00 and answered a report of 5:52.
+    #[test]
+    fn the_hands_are_told_when_the_player_is_deciding_and_how_old_its_picture_is() {
+        use super::{PlayerClock, player_line};
+        let at = |m: i32, s: i32| (m * 60 + s) * 30;
+        let clock = PlayerClock { now: at(6, 18), turn: at(6, 3), delayed: None, in_hand: true, report: at(6, 6), landed: at(6, 0), orders_from: at(5, 52) };
+        assert_eq!(
+            player_line(&clock),
+            "deciding: it is answering what it saw 12 s ago and its orders have not reached you yet; the instructions you hold stand as of what it saw 26 s ago; it has not seen what has happened since, so what the picture shows now outranks an instruction it contradicts"
+        );
+        // Asked for, its report not written yet (the session is still closing its last response).
+        assert!(player_line(&PlayerClock { turn: at(6, 16), ..clock }).starts_with("deciding: it is being woken now and its orders have not reached you yet; the instructions you hold stand as of what it saw 26 s ago;"));
+        // Between turns in real time: the landing, and the report it answered.
+        assert_eq!(
+            player_line(&PlayerClock { now: at(6, 2), in_hand: false, ..clock }),
+            "watching: its last orders reached you 2 s ago, written from what it saw 10 s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wakes it within a few seconds"
+        );
+        // Lockstep with no penalty: the orders land on their report's frame, and the line is as it was.
+        assert_eq!(
+            player_line(&PlayerClock { now: at(6, 20), turn: at(6, 6), delayed: None, in_hand: false, report: at(6, 6), landed: at(6, 6), orders_from: at(6, 6) }),
+            "watching: its last orders reached you 14 s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wakes it within a few seconds"
+        );
+        // Lockstep under the think penalty: as it was.
+        assert_eq!(
+            player_line(&PlayerClock { now: at(6, 20), turn: at(6, 6), delayed: Some(at(6, 29)), in_hand: false, report: at(6, 6), landed: at(5, 50), orders_from: at(5, 40) }),
+            "deciding: its orders from 14 s ago reach you in 9 s; it has not seen what has happened since, so what the picture shows now outranks an instruction it contradicts"
+        );
+        assert_eq!(player_line(&PlayerClock { now: 90, turn: 0, delayed: None, in_hand: false, report: 0, landed: 0, orders_from: 0 }), "has not spoken yet");
+    }
+
     use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId};
 
     use super::super::fixtures::{at, brain_of, enemy, own};

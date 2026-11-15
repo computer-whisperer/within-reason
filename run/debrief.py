@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The player's own debrief of a match, for the next player (docs/design/2026-09-21-pianist.md, "The player's
-learnings"; the live edge, docs/design/2026-10-21-brief-rework.md §11): one `claude -p` over the match's notes, closing
-sentences, last packet and result, no game held, asked for what decided the game, at most five lines for the next
+learnings"; the live edge, docs/design/2026-10-21-brief-rework.md §11): one `claude -p` over the match's notes, the
+plans its packets opened with, any closing sentences, the last packet and the result, no game held, asked for what decided the game, at most five lines for the next
 player on this map and opponent, and what it wished it could order. The lines land in docs/briefs/inbox/<batch>.md
 (match 00; a later match of a batch in <batch>__<NN>.md, so a series keeps every game's) for the review pass that
 integrates them into the brief's layers, and run/live_edge.py puts them in the match's live-edge entry.
@@ -34,6 +34,7 @@ import live_edge  # noqa: E402  (opponent_key, end_row, handicaps: the same read
 INBOX = os.path.join(REPO, "docs", "briefs", "inbox")
 MAX_NOTES = 40
 MAX_CLOSING = 30
+MAX_PLANS = 12
 MAX_CHARS = 14000
 CALL_TIMEOUT = 240  # seconds for one `claude -p`; two calls at most
 
@@ -149,9 +150,9 @@ def build_prompt(about, turns):
     seat = "" if about["seats"] == 1 else f" You were the player of the first of our {about['seats']} seats ({about['transcript']}); the others had players of their own."
     lines = [
         "You are debriefing a game of Beyond All Reason that you played as the player over a pair of fast hands (Jev), "
-        "a game now over. Below are your notes and closing sentences from each turn, the last packet of standing "
-        "instructions you wrote, and the result. Write for the next player who will sit where you sat, on this map "
-        "against this opponent, and who has never seen this game.",
+        "a game now over. Below are what you wrote as you played (your notes, the plan each packet opened with, any "
+        "closing sentences), the last packet of standing instructions you wrote, and the result. Write for the next "
+        "player who will sit where you sat, on this map against this opponent, and who has never seen this game.",
         "",
         f"Game: {about['label']}, map {about['map']}, against {about['opponent']}, our side {about['side']}"
         + (f", corner {about['corner']}" if about["corner"] else "") + "." + seat,
@@ -164,10 +165,24 @@ def build_prompt(about, turns):
     if len(notes) > MAX_NOTES:
         notes = notes[: MAX_NOTES // 2] + notes[-MAX_NOTES // 2 :]
     lines += [f"  {clock(f)} {n}" for f, n in notes]
+    # The plan each packet opened with, where it changed: since the player's `wait` is answered with its next report
+    # (H-PLAYER-HELD-WAIT, 2026-11-14) a turn has no closing sentence, and the packets are what says how the player
+    # read the game as it went. Closing sentences are shown where a transcript has them (the games before, and a
+    # session's last turn).
+    plans = []
+    for t in turns:
+        plan = " ".join((t["instruct"] or "").split("\n\n")[0].split())
+        if plan and (not plans or plans[-1][1] != plan):
+            plans.append((t["frame"], plan))
+    if len(plans) > MAX_PLANS:
+        plans = plans[: MAX_PLANS // 2] + plans[-MAX_PLANS // 2 :]
+    if plans:
+        lines += ["", "The plan each packet of yours opened with, by game time, where it changed:"] + [f"  {clock(f)} {p[:400]}" for f, p in plans]
     closings = [(t["frame"], t["closing"]) for t in turns if t["closing"]]
     if len(closings) > MAX_CLOSING:
         closings = closings[: MAX_CLOSING // 2] + closings[-MAX_CLOSING // 2 :]
-    lines += ["", "Your closing sentences, by game time:"] + [f"  {clock(f)} {c[:300]}" for f, c in closings]
+    if closings:
+        lines += ["", "Your closing sentences, by game time:"] + [f"  {clock(f)} {c[:300]}" for f, c in closings]
     last_packet = next((t["instruct"] for t in reversed(turns) if t["instruct"]), None)
     if last_packet:
         lines += ["", "The last packet of standing instructions you wrote:", last_packet[:3000]]

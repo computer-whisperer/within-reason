@@ -120,6 +120,11 @@ impl Brain {
             (false, Some(turn)) => {
                 self.wake.in_flight = None;
                 self.wake.landed = Some(tick.frame);
+                // In real time this is where the orders land (lockstep says so itself, at the hold's end or the
+                // penalty's): until 2026-11-14 a realtime game had no landing frame at all, the player's report
+                // never said when its last orders came into force, and the hands were told they had "reached
+                // you" at the frame the next turn was asked for.
+                shared.landed(tick.frame);
                 let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
                 let mut metal = 0.0;
                 for (_, _, def, ..) in self.unit_losses.iter().filter(|(f, ..)| *f >= turn) {

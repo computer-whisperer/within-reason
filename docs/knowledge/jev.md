@@ -2684,3 +2684,44 @@ entry under `actors` describes" and the question has no sentence for it, the `un
 **Would be wrong if.** A game with the label and the sentence cut showed world 1's share in two-world picks
 unchanged, or the difference form turned out to carry more than the label.
 **Used by.** H-HANDS-ONE-PASS (the pick's question).
+
+### K-player-a-realtime-turn-ended-with-its-closing-words
+**Claim.** In a real-time game a Claude Code player's turns run back to back, so its reaction time is a turn's
+length; and each turn ended not at its `wait` but when the model had written closing words after the call's answer,
+one more request to the model in which no report could be sent.
+**Status.** measured (2026-11-14, 1794676519-human, the lobby 3v2 on Comet Catcher; Opus 5.5 at effort medium, one
+player a seat). The north seat's 68 turns: 14.8 s of wall at the median, the player inside a turn for 92 % of the
+game, 90 % of turns begun under a second after the last ended. Report to orders landed 9.2 s at the median (17 to
+19 s for a turn that rewrote the packet, about 1,800 to 2,000 output tokens), of which about 6 s passed before the
+first token (the session's own `ttft_ms`, median 6.1 s) on a context of 306k tokens at turn 1 and 546k at the end.
+Orders landed to response finished 5.5 s at the median, 324 s of the 1,225 played (the other seats 5.1 s and 284 s,
+5.1 s and 199 s): the model wrote a median 1,005 characters after an answer that said "Stop now, call nothing more
+and write nothing more", 72,229 characters over the game. The case it was found on: his Blitz pack's first kill at
+5:54.0 came 1.5 s after a report was cut (5:52.5, a timer wake with six radar contacts in it); that turn ended at
+6:05.8, the next report (13 Blitzes killing the air plant) was cut at 6:06.0 and its packet landed at 6:23.
+**Evidence.** `strategist-<n>.jsonl` (`turn` frames, `turn_end` walls, `result` rows), the hands' logs for the
+frames the next turn was asked at (three seconds after a landing, `wake.rs` `LANDING_GRACE`), agreeing with the
+`packet` event at 6:23. The landing times are derived that way, not recorded.
+**Would be wrong if.** With the `wait` held for the next report (H-PLAYER-HELD-WAIT) a realtime game's turns are no
+shorter from report to report, or the model writes its closing words before the call instead.
+**Check (2026-11-14).** The mechanism only: under Claude Code 2.1.325 a held call answers within the tool timeout
+(60 s by default, `MCP_TOOL_TIMEOUT` raises it), and the driver's own end-to-end test delivered two reports as held
+answers with no response ended between them. No game has been played on it.
+**Used by.** H-PLAYER-HELD-WAIT.
+
+### K-hands-a-realtime-player-read-as-watching
+**Claim.** In a real-time game the hands were told all game that the player was "watching", its last orders having
+"reached you N s ago" and a raid waking it "within a few seconds"; the line that says the player is deciding, has not
+seen what has happened since, and that the picture outranks an instruction it contradicts was never shown.
+**Status.** measured (2026-11-14, 1794676519-human; the code as it stood to that day). The deciding line was keyed
+on the think penalty's delayed orders (`shared.delayed`), which exist only in lockstep; N counted from the frame the
+next turn was asked for (`last_turn_frame`), not from a landing, a realtime game having no landing frame at all
+(`last_landing` was stored by `hold_for_turn` and `apply_delayed` alone, so the realtime player's report never said
+when its orders came into force either). At 6:05 to 6:23 the north seat's Blitzes held at spot_8 on a packet that
+said to; the line read "watching: its last orders reached you 2 s ago" to "20 s ago" while its player was inside
+turns begun at 5:52.5 and 6:06.0, and the instructions stood as of what it saw at 5:52.5.
+**Evidence.** `jev-0.jsonl`, the `player` entry of every call's state; `picture.rs` at 514447c9.
+**Would be wrong if.** With the line written from the real frames (H-HANDS-FALL-BACK, amended 2026-11-14) the hands
+hold as before through a raid the player has not seen: then the sentence does not carry it and the allowance has to
+be the player's, in the packet.
+**Used by.** H-HANDS-FALL-BACK (the `player` line).

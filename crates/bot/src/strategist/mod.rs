@@ -191,6 +191,13 @@ pub(crate) fn lockstep() -> bool {
 
 /// Turns after which the session is replaced by a fresh one that is handed the notes, to bound its context.
 const TURNS_PER_SESSION: usize = 40;
+/// `MCP_TOOL_TIMEOUT` for a Claude Code session, in milliseconds: how long it lets a tool call go unanswered. Its
+/// own 60 s would cut a held `wait` short (`mcp::WAIT_HOLD`, where the measurement is); this is the setting the
+/// 100 and 200 s holds were tested under.
+const TOOL_TIMEOUT_MS: u32 = 600_000;
+/// How long the driver waits, at the game's end, for a session let go of its held `wait` to write its closing
+/// words: the response's result carries the session's usage, which the transcript's readers total.
+const FAREWELL: Duration = Duration::from_secs(10);
 /// How many turns before the cap the replacement is spawned and warmed (econ-flagship-15 to -18: every abandoned
 /// turn was turn 41 or its cascade; a fresh Claude process's first answer took 21 to 38 s to its first token,
 /// the process and the MCP connection to start and a 265k-token prompt with 34k new to the cache, against 6 to 15 s
@@ -441,6 +448,7 @@ impl Launch {
         let mut child = Command::new("claude")
             .current_dir(&self.cwd)
             .env("CLAUDE_CONFIG_DIR", &self.config_dir)
+            .env("MCP_TOOL_TIMEOUT", TOOL_TIMEOUT_MS.to_string())
             .args(["-p", "--model", &model(), "--tools", "", "--strict-mcp-config", "--mcp-config"])
             .arg(&self.mcp_config)
             .args(["--allowedTools", "mcp__wreason__*", "--permission-mode", "dontAsk", "--setting-sources", ""])
@@ -587,25 +595,12 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
     let mut walls: Vec<f32> = Vec::new();
     // The frame of the report the last turn answered (0: none, or the opening turn before the game).
     let mut previous_turn = 0;
+    // A Claude Code session's `wait` is held for the next report (H-PLAYER-HELD-WAIT, `shared::Held`);
+    // `WITHIN_REASON_HELD_WAIT=0` answers every `wait` at once, as before.
+    let holds = Backend::for_model(&launch.model) == Backend::Claude && std::env::var("WITHIN_REASON_HELD_WAIT").map_or(true, |v| v != "0");
+    let _driving = Driving::begin();
     while !stop.load(Ordering::Relaxed) {
         let Some(headline) = shared.next_turn_request(stop) else { break };
-        // The last turn ended at its `wait`; the session may still be writing its closing words, and takes no new
-        // prompt until it has reported that response finished. Before the restart below, not after: the new session
-        // owes nothing, and waiting on it held the game until the arena gave up (commander game 10b, turn 40).
-        if owed_result {
-            owed_result = false;
-            let arrived = loop {
-                match session.turn_done.recv_timeout(Duration::from_millis(250)) {
-                    Ok(()) => break true,
-                    Err(RecvTimeoutError::Timeout) if !stop.load(Ordering::Relaxed) => {}
-                    Err(_) => break false,
-                }
-            };
-            if !arrived {
-                shared.end_turn();
-                break;
-            }
-        }
         // A fresh session at the cap, and as soon as the prompt on disk has been edited (the user, 2026-09-22: text
         // updates without a rebuild); either way the new session is handed the notes.
         // The replacement's spawn took a new unit-context snapshot, and the prompt built now reads as that session's:
@@ -623,7 +618,25 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         if edited {
             eprintln!("[ai {ai_id}] the prompt on disk has changed: a fresh session reads it");
         }
-        if turns_this_session >= TURNS_PER_SESSION || edited {
+        let replaced = turns_this_session >= TURNS_PER_SESSION || edited;
+        if replaced {
+            // The session being replaced takes no more reports: a `wait` it still holds is answered with its
+            // closing words.
+            shared.let_wait_go();
+        }
+        // The last turn ended at its `wait`. Held there, the session takes this turn's report as that call's answer;
+        // answered already (its hold's limit passed, the session holds none, or it is being replaced), it is writing
+        // its closing words and takes no new prompt until it has reported that response finished. Before the
+        // restart below, not after: the new session owes nothing, and waiting on it held the game until the arena
+        // gave up (commander game 10b, turn 40).
+        if owed_result && !shared.wait_held() {
+            owed_result = false;
+            if !response_ended(&session, stop) {
+                shared.end_turn();
+                break;
+            }
+        }
+        if replaced {
             session.end();
             session = match readied(&launch, &mut next, edited) {
                 Some(warm) => warm,
@@ -648,15 +661,25 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         turns_this_session += 1;
         let started = Instant::now();
         launch.transcript.record(json!({ "kind": "turn", "frame": frame, "prompt": prompt }));
+        shared.report_frame.store(frame, Ordering::Relaxed);
         shared.turn_over.store(false, Ordering::Relaxed);
-        let sent = session.send(&prompt);
+        // A session's last turn before the cap is not held: its closing words are written while the game runs on,
+        // and the replacement takes the next report without waiting for them.
+        shared.holds_waits.store(holds && turns_this_session < TURNS_PER_SESSION, Ordering::Relaxed);
+        // The report: the held `wait`'s answer, or a prompt. A hold whose limit passed between the look above and
+        // here has been answered with its closing words, which are awaited as above.
+        let sent = (owed_result && shared.hand_report(&prompt)) || ((!owed_result || response_ended(&session, stop)) && session.send(&prompt));
+        owed_result = false;
         let mut abandoned = false;
         let finished = sent
             && loop {
                 match session.turn_done.recv_timeout(Duration::from_millis(50)) {
                     Ok(()) => break true,
-                    // The commander called `wait`: the game is running again, the response's tail is owed.
-                    Err(RecvTimeoutError::Timeout) if lockstep() && !shared.turn_in_progress() => {
+                    // The player called `wait`: the turn is over and the game runs on its orders, in real time as
+                    // in lockstep (until 2026-11-14 a realtime turn ended with its response, a median 5.5 s after
+                    // its orders had landed, and the next report waited for that). The response is held at that
+                    // call or writing its closing words: either way the session owes its end before a new prompt.
+                    Err(RecvTimeoutError::Timeout) if !shared.turn_in_progress() => {
                         owed_result = true;
                         break true;
                     }
@@ -690,6 +713,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             eprintln!("[ai {ai_id}] turn abandoned after {} s with no answer: the session is replaced", started.elapsed().as_secs());
             launch.transcript.record(json!({ "kind": "turn_end", "wall_seconds": started.elapsed().as_secs_f32(), "ended_by": "abandoned" }));
             shared.end_turn();
+            shared.let_wait_go();
             session.end();
             session = match readied(&launch, &mut next, false) {
                 Some(warm) => warm,
@@ -730,10 +754,53 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
     }
     shared.close_gate();
+    // A session past its `wait` when the game ends (held there, it is answered with its closing words now) is given
+    // `FAREWELL` to write them: its result is the only record of what the session used since its last one.
+    if owed_result {
+        shared.let_wait_go();
+        let _ = session.turn_done.recv_timeout(FAREWELL);
+    }
     session.end();
     if let Some(warm) = next {
         warm.end();
     }
+}
+
+/// Waits for the session to report its response finished. False when the session is gone or the game is over.
+fn response_ended(session: &Session, stop: &AtomicBool) -> bool {
+    loop {
+        match session.turn_done.recv_timeout(Duration::from_millis(250)) {
+            Ok(()) => break true,
+            Err(RecvTimeoutError::Timeout) if !stop.load(Ordering::Relaxed) => {}
+            Err(_) => break false,
+        }
+    }
+}
+
+/// The player drivers still running, so the process can let them say farewell before it leaves (`drivers_done`).
+static DRIVING: (std::sync::Mutex<usize>, std::sync::Condvar) = (std::sync::Mutex::new(0), std::sync::Condvar::new());
+
+struct Driving;
+
+impl Driving {
+    fn begin() -> Driving {
+        *DRIVING.0.lock().unwrap() += 1;
+        Driving
+    }
+}
+
+impl Drop for Driving {
+    fn drop(&mut self) {
+        *DRIVING.0.lock().unwrap() -= 1;
+        DRIVING.1.notify_all();
+    }
+}
+
+/// Blocks until every player driver has returned, or `FAREWELL` and a little have passed: the process's last word
+/// before it exits, after its sessions have ended and their strategists have been dropped.
+pub fn drivers_done() {
+    let running = DRIVING.0.lock().unwrap();
+    let _ = DRIVING.1.wait_timeout_while(running, FAREWELL + Duration::from_secs(2), |n| *n > 0).unwrap();
 }
 
 /// `--turn-limit`: the match is called when the median of this many latest turns' wall seconds exceeds the limit;
@@ -989,6 +1056,59 @@ mod tests {
     }
 
     use super::*;
+
+    /// H-PLAYER-HELD-WAIT, end to end against Claude Code itself: the driver, the tool server and a real session
+    /// in real time, three turns and the game's end. It spends a few thousand tokens of the cheapest model, so it
+    /// runs only when asked:
+    /// `WITHIN_REASON_CLAUDE_CONFIG_DIR=<account> cargo test --release -p bot a_held_wait_against_claude_code -- --ignored --nocapture`.
+    /// What it shows: the second and third reports reach the session as the answers of its `wait` (no response ends
+    /// between them, so no closing words are written and no prompt is sent), and the session let go at the end
+    /// reports one result.
+    #[test]
+    #[ignore]
+    fn a_held_wait_against_claude_code() {
+        fn prompt() -> std::io::Result<String> {
+            Ok("You are the player in a test of a game's turn loop. Each report says \"Woken because: report N\". Answer every report with exactly one call of the `orders` tool whose calls are a `note` with the text \"report N seen\" and then a `wait` with max_seconds 5.".into())
+        }
+        let dir = std::env::temp_dir().join(format!("wr-held-wait-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let shared = Arc::new(Shared::default());
+        shared.gated.store(true, Ordering::Relaxed);
+        *shared.map.lock().unwrap() = json!({ "name": "Comet", "our_start": { "grid": "B8" } });
+        let (launch, _server) = Launch::prepare(&dir, "strategist-test", shared.clone(), "claude-haiku-5-5".into(), "low".into(), prompt).unwrap();
+        let session = launch.spawn().unwrap();
+        let stop = Arc::new(AtomicBool::new(false));
+        let driver = {
+            let (shared, stop) = (shared.clone(), stop.clone());
+            std::thread::spawn(move || drive(launch, session, &shared, &stop, 0))
+        };
+        for n in 1..=3 {
+            let asked = Instant::now();
+            shared.request_turn(format!("report {n}"));
+            while shared.turn_in_hand() {
+                assert!(asked.elapsed() < Duration::from_secs(120), "turn {n} did not end at a `wait`");
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            eprintln!("turn {n}: its orders landed {:.1} s after it was asked for; held: {}", asked.elapsed().as_secs_f32(), shared.wait_held());
+            assert!(shared.wait_held(), "turn {n} ended and its `wait` is not held");
+            // The landing's grace before the next turn (`brain/wake.rs`).
+            std::thread::sleep(Duration::from_secs(3));
+        }
+        let ending = Instant::now();
+        stop.store(true, Ordering::Relaxed);
+        driver.join().unwrap();
+        eprintln!("the driver's farewell took {:.1} s", ending.elapsed().as_secs_f32());
+        let rows: Vec<Value> = std::fs::read_to_string(dir.join("strategist-test.jsonl")).unwrap().lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
+        // A turn's calls as one (the model may send its note and its wait as two).
+        let mut kinds: Vec<&str> = rows.iter().filter_map(|r| r["kind"].as_str()).filter(|k| matches!(*k, "turn" | "tool_call" | "turn_end" | "result")).collect();
+        kinds.dedup();
+        eprintln!("{kinds:?}");
+        assert_eq!(kinds, ["turn", "tool_call", "turn_end", "turn", "tool_call", "turn_end", "turn", "tool_call", "turn_end", "result"]);
+        let calls: String = rows.iter().filter(|r| r["kind"] == "tool_call").map(|r| r["arguments"].to_string()).collect();
+        assert!((1..=3).all(|n| calls.contains(&format!("report {n} seen"))), "{calls}");
+        assert!(rows.iter().filter(|r| r["kind"] == "turn_end").all(|r| r["ended_by"] == "wait"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// The opening turn's prompt comes once, with the seats and the map and no report; the report after it is a
     /// full one with the map again, and says nothing of orders on their way.

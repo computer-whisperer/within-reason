@@ -711,6 +711,22 @@ pub struct Sent {
     pub energy: f32,
 }
 
+/// A session's `wait` held open (H-PLAYER-HELD-WAIT): the tool call that ended the turn is answered with the next
+/// turn's report, so the model writes no closing words after its orders and is sent no new prompt. Answered at
+/// once, every turn ended with one more request to the model: a median 5.5 s in which no report could be sent,
+/// 324 s of the 1,225 the north seat played in 1794676519-human (the lobby 3v2 of 2026-11-14), with the turns back
+/// to back.
+#[derive(Default, Debug, PartialEq)]
+pub enum Held {
+    /// No `wait` is held: the session is between responses, or writing one.
+    #[default]
+    No,
+    /// The turn ended at a `wait` that is still unanswered.
+    Waiting,
+    /// The driver has handed it the next turn's report.
+    Report(String),
+}
+
 /// State shared between the brain's thread, the MCP server and the strategist driver.
 #[derive(Default)]
 pub struct Shared {
@@ -818,6 +834,17 @@ pub struct Shared {
     pub gated: std::sync::atomic::AtomicBool,
     pub gate: Mutex<Gate>,
     pub gate_changed: Condvar,
+    /// The session's `wait` is answered with the next report and not at once (`Held`): set for a Claude Code player,
+    /// whose every answered tool call is one more request to the model.
+    pub holds_waits: std::sync::atomic::AtomicBool,
+    pub held: Mutex<Held>,
+    pub held_changed: Condvar,
+    /// The frame of the report the turn in hand reads, set by the driver as it writes the prompt (`last_turn_frame`
+    /// is when the brain asked, which in real time is up to a closing response earlier).
+    pub report_frame: std::sync::atomic::AtomicI32,
+    /// The frame of the report the orders now in force answered: how old the picture is that the instructions the
+    /// hands hold were last written or left standing on (`landed`).
+    pub orders_from: std::sync::atomic::AtomicI32,
     /// WITHIN_REASON_THINK_PENALTY: the commander's orders take effect this many game seconds late per wall second
     /// it thought (1 = as if the game had kept running while it thought; 0 = at once). Set once at start.
     pub think_penalty: Mutex<f32>,
@@ -1015,7 +1042,7 @@ impl Shared {
             self.restore(before.clone());
             *self.delayed.lock().unwrap() = Some((frame + delay, after.delta_from(&before)));
         } else {
-            self.last_landing.store(frame, std::sync::atomic::Ordering::Relaxed);
+            self.landed(frame);
         }
     }
 
@@ -1075,7 +1102,7 @@ impl Shared {
             Some((at, o)) if frame >= at => {
                 // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, removals,
                 // standing changes) are added to what has come since.
-                self.last_landing.store(frame, std::sync::atomic::Ordering::Relaxed);
+                self.landed(frame);
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.company.lock().unwrap() = o.company;
@@ -1126,10 +1153,57 @@ impl Shared {
         gate.in_progress || gate.requested.is_some()
     }
 
-    /// MCP side, at the commander's `wait`: the game runs on and the rest of this response is refused.
+    /// MCP side, at the commander's `wait`: the game runs on and the rest of this response is refused. A session
+    /// that holds its waits is marked held before the turn ends, so the driver that sees the turn over finds it so.
     pub fn end_turn_at_wait(&self) {
-        self.turn_over.store(true, std::sync::atomic::Ordering::Relaxed);
+        use std::sync::atomic::Ordering::Relaxed;
+        self.turn_over.store(true, Relaxed);
+        if self.holds_waits.load(Relaxed) {
+            *self.held.lock().unwrap() = Held::Waiting;
+        }
         self.end_turn();
+    }
+
+    /// MCP side: whether a `wait` is held unanswered (`Held`).
+    pub fn wait_held(&self) -> bool {
+        *self.held.lock().unwrap() != Held::No
+    }
+
+    /// MCP side, for the held `wait`: blocks until the driver hands over the next turn's report, which is then its
+    /// answer. None when `limit` passes first or the driver lets the wait go: it is answered with its closing words,
+    /// the response ends, and the next report goes as a prompt.
+    pub fn report_for_held_wait(&self, limit: std::time::Duration) -> Option<String> {
+        let held = self.held.lock().unwrap();
+        let (mut held, _) = self.held_changed.wait_timeout_while(held, limit, |h| *h == Held::Waiting).unwrap();
+        match std::mem::take(&mut *held) {
+            Held::Report(report) => Some(report),
+            Held::Waiting | Held::No => None,
+        }
+    }
+
+    /// Driver side: the next turn's report, to the session held in its `wait`. False when none is held, and the
+    /// report goes as a prompt.
+    pub fn hand_report(&self, report: &str) -> bool {
+        let mut held = self.held.lock().unwrap();
+        if *held != Held::Waiting {
+            return false;
+        }
+        *held = Held::Report(report.to_string());
+        self.held_changed.notify_all();
+        true
+    }
+
+    /// Driver side: a held `wait` is answered with its closing words now (its session is ending or being replaced).
+    pub fn let_wait_go(&self) {
+        *self.held.lock().unwrap() = Held::No;
+        self.held_changed.notify_all();
+    }
+
+    /// The turn's orders came into force at `frame`: for the report's landing line and the hands' line on the player.
+    pub fn landed(&self, frame: i32) {
+        use std::sync::atomic::Ordering::Relaxed;
+        self.last_landing.store(frame, Relaxed);
+        self.orders_from.store(self.report_frame.load(Relaxed), Relaxed);
     }
 
     pub fn end_turn(&self) {
@@ -1244,6 +1318,58 @@ mod tests {
 
     use super::*;
     use std::sync::atomic::Ordering::Relaxed;
+
+    /// H-PLAYER-HELD-WAIT: a session that holds its waits is held from the `wait` that ends its turn, and that call's
+    /// answer is the next report the driver hands over; one that holds none is never held.
+    #[test]
+    fn a_held_wait_is_answered_with_the_next_report() {
+        let shared = std::sync::Arc::new(Shared::default());
+        shared.request_turn("a raid".into());
+        shared.gate.lock().unwrap().in_progress = true;
+        shared.end_turn_at_wait();
+        assert!(!shared.wait_held() && !shared.hand_report("report 2"), "a session that holds no wait was held");
+        shared.holds_waits.store(true, Relaxed);
+        shared.end_turn_at_wait();
+        assert!(shared.wait_held() && shared.turn_over.load(Relaxed) && !shared.turn_in_progress());
+        let waiting = {
+            let shared = shared.clone();
+            std::thread::spawn(move || shared.report_for_held_wait(std::time::Duration::from_secs(20)))
+        };
+        assert!(shared.hand_report("report 2"));
+        assert_eq!(waiting.join().unwrap().as_deref(), Some("report 2"));
+        assert!(!shared.wait_held() && !shared.hand_report("report 3"), "an answered wait is no longer held");
+    }
+
+    /// A held wait whose limit passes, or that the driver lets go, is answered with its closing words (None), and the
+    /// report that follows goes as a prompt (`hand_report` false).
+    #[test]
+    fn a_held_wait_ends_at_its_limit_or_when_it_is_let_go() {
+        let shared = std::sync::Arc::new(Shared::default());
+        shared.holds_waits.store(true, Relaxed);
+        shared.end_turn_at_wait();
+        assert_eq!(shared.report_for_held_wait(std::time::Duration::from_millis(20)), None);
+        assert!(!shared.wait_held() && !shared.hand_report("too late"));
+        shared.end_turn_at_wait();
+        let waiting = {
+            let shared = shared.clone();
+            std::thread::spawn(move || shared.report_for_held_wait(std::time::Duration::from_secs(20)))
+        };
+        shared.let_wait_go();
+        assert_eq!(waiting.join().unwrap(), None);
+        // A report handed over before the tool server begins to wait is its answer all the same.
+        shared.end_turn_at_wait();
+        assert!(shared.hand_report("report 4"));
+        assert_eq!(shared.report_for_held_wait(std::time::Duration::from_millis(20)).as_deref(), Some("report 4"));
+    }
+
+    /// The orders' landing records the report they answered: what the hands' line on the player counts from.
+    #[test]
+    fn a_landing_records_the_report_its_orders_answered() {
+        let shared = Shared::default();
+        shared.report_frame.store(9_705, Relaxed);
+        shared.landed(10_270);
+        assert_eq!((shared.last_landing.load(Relaxed), shared.orders_from.load(Relaxed)), (10_270, 9_705));
+    }
 
     /// Realtime: a turn is in hand from the brain's request to its end, and a request made meanwhile is dropped
     /// (the next report carries the state); the wake logic keeps its reasons for after the turn (`brain/wake.rs`).

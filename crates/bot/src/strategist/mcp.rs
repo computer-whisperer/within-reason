@@ -18,6 +18,26 @@ use super::transcript::Transcript;
 /// The player's packet at most: Jev reads it every second beside a picture of about 4k tokens, within 64k.
 const INSTRUCTIONS_LIMIT: usize = 8000;
 
+/// What a `wait` says when it is answered at once: the turn is over and the response ends there.
+const TURN_OVER: &str = "Turn over: the game is running and you will be woken with a new report. Stop now, call nothing more and write nothing more.";
+/// What it says in `TURN_OVER`'s place when it was held until the next report (`Shared::held`), which follows it.
+const WOKEN: &str = "Turn over, and the game ran on from here. You are woken now: your next report follows, and with it a new turn.";
+/// The longest a `wait` is held for the next report before it is answered with `TURN_OVER` after all: past the
+/// longest quiet time a `wait` may set (180 s), and under the tool timeout a session is started with (`mod.rs`,
+/// `TOOL_TIMEOUT_MS`). Claude Code gives up on a tool call after 60 s unless `MCP_TOOL_TIMEOUT` says otherwise
+/// (2.1.325, a toy server, 2026-11-14: a call held 45 s answered, one held 100 s came back "The operation timed
+/// out" at 60 s and the model called it again; with the variable at 600 s calls held 100 and 200 s answered).
+pub(super) const WAIT_HOLD: std::time::Duration = std::time::Duration::from_secs(200);
+
+/// The answer to a held `wait`, once its report has come: what the turn's other calls said, and the report in the
+/// place of the closing words.
+fn woken(reply: &mut Value, report: &str) {
+    let text = &mut reply["result"]["content"][0]["text"];
+    let said = text.as_str().unwrap_or_default();
+    let head = said.rfind(TURN_OVER).map_or(said, |at| &said[..at]);
+    *text = Value::String(format!("{head}{WOKEN}\n\n{report}"));
+}
+
 pub struct McpServer {
     pub port: u16,
     stop: Arc<AtomicBool>,
@@ -40,6 +60,7 @@ impl McpServer {
                 }
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
+                let held_before = shared.wait_held();
                 // A panic in a tool is the tool's error, not the server's end (player-43: the `plan` tool panicked
                 // at 1:00 and no call of the player's reached the bot for the rest of the game).
                 let reply = serde_json::from_str::<Value>(&body).ok().and_then(|call| {
@@ -53,11 +74,21 @@ impl McpServer {
                         }
                     }
                 });
+                let answer = |reply: Value| Response::from_string(reply.to_string()).with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
                 let _ = match reply {
-                    Some(reply) => request.respond(
-                        Response::from_string(reply.to_string())
-                            .with_header(Header::from_bytes("Content-Type", "application/json").unwrap()),
-                    ),
+                    // The call ended the turn at a held `wait`: its answer is the next report, sent from a thread of
+                    // its own so the server goes on serving (the replacement session's start comes here too).
+                    Some(mut reply) if !held_before && shared.wait_held() => {
+                        let shared = shared.clone();
+                        std::thread::spawn(move || {
+                            if let Some(report) = shared.report_for_held_wait(WAIT_HOLD) {
+                                woken(&mut reply, &report);
+                            }
+                            let _ = request.respond(answer(reply));
+                        });
+                        continue;
+                    }
+                    Some(reply) => request.respond(answer(reply)),
                     // Notifications carry no id and get no body.
                     None => request.respond(Response::empty(202)),
                 };
@@ -148,7 +179,7 @@ fn tool_list() -> Value {
         "description": "Record your reasoning in a sentence or two. Kept with the game time for post-game analysis; it changes nothing in the game.",
         "inputSchema": { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"], "additionalProperties": false } });
     let wait = |engaged: &str, pool: &str| json!({ "name": "wait",
-        "description": "Ends your turn: the game resumes the moment this is called, so call it last and write nothing after it. Sets when you are next woken; the settings hold until you change them. The game is paused during your turn and runs fast between turns, so a long quiet wait costs nothing and a raid still wakes you at once. You are always woken for a base attack, the commander under fire, a wiped-out wave, a group losing soldiers or meeting a party it does not outweigh, and losses while your orders were on their way; while a fight is on the quiet time is capped at 10 s.",
+        "description": "Ends your turn: the game runs on the moment this is called, so call it last and write nothing after it. Its answer comes when you are next woken and is your next report, which begins a new turn; when it answers \"Turn over\" instead, stop there, and the report comes as a new message. Sets when you are next woken; the settings hold until you change them. Between turns the game runs and a raid still wakes you at once, so a long quiet wait costs nothing. You are always woken for a base attack, the commander under fire, a wiped-out wave, a group losing soldiers or meeting a party it does not outweigh, and losses while your orders were on their way; while a fight is on the quiet time is capped at 10 s.",
         "inputSchema": { "type": "object", "additionalProperties": false, "properties": {
             "max_seconds": { "type": "integer", "minimum": 5, "maximum": 180, "description": "Game seconds after which you are woken whatever happens (default 30)." },
             "enemy_near_extractor": { "type": "boolean", "description": "Enemies appear within 600 of an extractor that had none near." },
@@ -159,7 +190,7 @@ fn tool_list() -> Value {
             "missile_ready": { "type": "boolean", "description": "A silo of ours has a missile come ready (default on); the report's `missiles` line says what each silo holds." },
             "lists_ended": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Woken when this many builders' lists have ended since your last report and they have been given no new one (default 3; 0 never): a builder whose list ends falls to the hands' fallback, helping a frame or the menu's pick, and begins nothing; the report's `lists` line counts them and each builder's line says how long ago its list ended. A list ending in a bare `assist` does not end." } } } });
     let orders = |tools: &[&str], what: &str| json!({ "name": "orders",
-        "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game resumes. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry, LAST, to change when you are next woken; without one the wake settings in force stand. Never call the other tools on their own beside this one: anything sent after the turn ends is refused. Call nothing and write nothing after it."),
+        "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game runs on. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry, LAST, to change when you are next woken; without one the wake settings in force stand. Never call the other tools on their own beside this one: anything sent after the turn ends is refused. Write nothing after it: its answer says what each entry did and then, when you are next woken, gives your next report, which begins a new turn (when it ends in \"Turn over\" instead, stop there, and the report comes as a new message)."),
         "inputSchema": { "type": "object", "additionalProperties": false, "required": ["calls"], "properties": {
             "calls": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["tool"], "properties": {
                 "tool": { "type": "string", "enum": tools },
@@ -665,10 +696,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             if let Some(pool) = arguments["pool_reaches"].as_object() {
                 wake.pool_reaches = pool.iter().map(|(name, n)| (name.clone(), n.as_u64().unwrap_or(1) as usize)).collect();
             }
-            let reply = format!("Turn over: the game is running and you will be woken with a new report. Stop now, call nothing more and write nothing more. Wake conditions in force until you change them: {}", serde_json::to_string(&*wake).map_err(|e| e.to_string())?);
+            let reply = format!("{TURN_OVER} Wake conditions in force until you change them: {}", serde_json::to_string(&*wake).map_err(|e| e.to_string())?);
             drop(wake);
             // The turn is over here, not when the model has finished its closing sentence: that sentence is one more
             // request to the model, a second or two with the game held (a third of a median turn, commander game 9).
+            // A session that holds its waits writes none: this answer is kept back until the next report is its
+            // end (`Shared::held`, the server's loop).
             shared.end_turn_at_wait();
             Ok(reply)
         }
@@ -1855,6 +1888,21 @@ mod tests {
         let said = orders(&json!({ "calls": [{ "tool": "say", "arguments": {} }, { "tool": "queue", "arguments": { "commander": ["extractor", "corllt home #t1"] } }, { "tool": "wait", "arguments": { "max_seconds": 10 } }] }), &shared).unwrap();
         assert!(said.contains("say: REFUSED") && said.contains("wait: Turn over"), "{said}");
         assert!(shared.turn_over.load(std::sync::atomic::Ordering::Relaxed));
+    }
+
+    /// H-PLAYER-HELD-WAIT: a held `wait`'s answer keeps what the turn's other calls said and gives the next report
+    /// in the place of the closing words; one answered at once says the turn is over.
+    #[test]
+    fn a_held_waits_answer_is_the_next_report() {
+        let shared = Arc::new(Shared::default());
+        shared.holds_waits.store(true, std::sync::atomic::Ordering::Relaxed);
+        let said = orders(&json!({ "calls": [{ "tool": "note", "arguments": { "text": "the plan" } }, { "tool": "wait", "arguments": { "max_seconds": 10 } }] }), &shared).unwrap();
+        assert!(said.starts_with("note: noted\nwait: Turn over: the game is running") && shared.wait_held(), "{said}");
+        let mut reply = json!({ "jsonrpc": "2.0", "id": 7, "result": { "content": [{ "type": "text", "text": said }] } });
+        woken(&mut reply, "[6:06] Woken because: enemies within 600 of our extractors at E2");
+        let text = reply["result"]["content"][0]["text"].as_str().unwrap();
+        assert_eq!(text, format!("note: noted\nwait: {WOKEN}\n\n[6:06] Woken because: enemies within 600 of our extractors at E2"));
+        assert!(!text.contains("Stop now") && !text.contains("Wake conditions in force until"), "{text}");
     }
 
     #[test]

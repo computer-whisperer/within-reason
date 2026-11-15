@@ -100,6 +100,8 @@ fn main() -> io::Result<()> {
             }
             if LIVE.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) == 1 && leave_when_over {
                 eprintln!("every session has ended: the game is over; leaving");
+                // The players' sessions write their last words first (`strategist::drivers_done`).
+                strategist::drivers_done();
                 let _ = std::fs::remove_file(socket_path());
                 crate::logs::flush();
                 std::process::exit(0);

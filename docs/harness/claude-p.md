@@ -26,12 +26,22 @@ files and the checkout and answers as a coding agent, tool calls written as text
 ## Warm sessions
 One process, stdin kept open. Each turn is one line: `{"type":"user","message":{"role":"user","content":"..."}}`.
 Output is JSON lines: `system/init` (session id, tools, MCP status), `assistant` (text and `tool_use` blocks), `user`
-(tool results), `rate_limit_event`, and `result` closing each turn (`duration_ms`, `duration_api_ms`, `usage` with
+(tool results), `rate_limit_event`, and `result` closing each response (a turn, unless a tool call is held: below) (`duration_ms`, `duration_api_ms`, `usage` with
 `cache_read_input_tokens` / `cache_creation_input_tokens`, cumulative `total_cost_usd`, `session_id`).
 Measured over four turns in one session: 8.3 s, 5.6 s, 7.2 s (after a 20 s idle), 3.5 s (no tool call); cache reads of
 ~2.7-3.2k tokens every turn; ~$0.01 per decision at list price; context overhead with a one-line system prompt ~3.4k tokens.
 Closing stdin ends the process with exit 0. Not tested: behaviour near the context limit, behaviour when a usage limit is hit
 (the stream carries `rate_limit_event` messages with a status and reset time — log them).
+
+## A tool call that is held
+A tool call may go unanswered for a while: the session waits, sends nothing to the model, and goes on when the answer
+comes. Claude Code gives up on it after 60 s unless `MCP_TOOL_TIMEOUT` (milliseconds, in the session's environment)
+says otherwise. Measured 2026-11-14 on 2.1.325 with a toy HTTP server whose one tool sleeps: a call held 45 s
+answered; one held 100 s came back to the model as "The operation timed out" at 60 s, and the model called it again
+(the server still held the first); with `MCP_TOOL_TIMEOUT=600000` calls held 100 and 200 s answered. The player's
+`wait` uses this (H-PLAYER-HELD-WAIT): its answer is the next report, so a game is one response of tool rounds per
+session, with no `result` between turns. A response's `result` then carries the usage of every turn it covered; a
+session's last comes when it is let go (its replacement, the game's end).
 
 ## What the MCP server must implement (streamable HTTP, plain JSON responses are accepted)
 Requests seen, in order: `server/discover` (newer-protocol probe; an empty result was tolerated — answer with a JSON-RPC

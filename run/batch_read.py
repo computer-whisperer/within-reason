@@ -48,6 +48,7 @@ def read(directory):
             soldiers[minute] = sum(1 for u in r["own"] if cls(u[1]) == "army")
     walls, ended, outputs, tools, refused, turns, spent = [], [], [], 0, 0, 0, 0.0
     capped = False
+    answered = 0  # the turns counted when the last `result` came
     for r in rows(next(iter(sorted(glob.glob(os.path.join(d, "strategist-*.jsonl")))), "/dev/null")):
         kind = r.get("kind")
         if kind == "turn":
@@ -65,9 +66,14 @@ def read(directory):
             m = r.get("message")
             m = json.loads(m) if isinstance(m, str) else m
             if isinstance(m, dict):
-                out = (m.get("usage") or {}).get("output_tokens")  # this turn's; `modelUsage` is the session's running total
+                # `usage` is the response's; `modelUsage` is the session's running total. A response is one turn, or
+                # (a player whose `wait` is held for its next report, H-PLAYER-HELD-WAIT) every turn since the last
+                # result: its tokens are spread over those turns.
+                out = (m.get("usage") or {}).get("output_tokens")
                 if out:
-                    outputs.append(out)
+                    over = max(1, turns - answered)
+                    outputs.extend([out / over] * over)
+                answered = turns
                 if m.get("spent_usd") is not None:
                     spent = max(spent, float(m["spent_usd"]))
     tokens = 0
