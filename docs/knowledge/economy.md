@@ -725,3 +725,35 @@ extractor count at 8:00 (102 to 105) with 56 constructors to his 50, and had a t
 constructors delivering well over half their build power.
 **Used by.** D-metal-maps (the brief's article: the plant is the build power, the turbines by the draw), H-HANDS-SCRIPT
 (2026-11-07: lists with counts for a constructor's standing work).
+
+### K-eco-people-take-the-vent
+**Claim.** Where a map has geothermal vents, people build on them: nearly every side in the team games and most sides
+in duels that last, the tier-1 plant first and the advanced one over it later.
+**Status.** measured (2026-11-15), two pools.
+- *Team games.* All That Glitters v2.2.3 (two vents, one a side), the 168 carded public 8v8s: 311 of 332 sides of
+  people built a tier-1 plant, one seat of the side; the first begun at 3:26 / 4:55 / 6:24 (quartiles over the 243
+  whose first falls inside the cards' first eight minutes, so the clock of all 311 is later than that); 176 sides
+  built an advanced plant, 34 a Prude, a Cerberus or a Rampart. The 18 sides with none played games of 10:55 at the
+  median. In the single carded games on six other maps with vents every side but one built on one.
+- *Duels.* The 507 public 1v1s with both players above OS 40 held in `run/data/bar-replays` (the friend's
+  processing): 72 were played on maps known to have vents (by the map's archive, or by a plant built in any game on
+  it), 144 sides. 87 built a tier-1 plant (60 %), the first begun at 6:03 / 7:37 / 9:45; of the 114 sides whose
+  game ran ten minutes or more, 85 built on a vent; 42 built a tier-2 vent building, the first at 12:15 / 14:24 /
+  18:01. On Gasbag Grabens 20 of 20 sides (median 5:43), on Cape Violet 11 of 12 (5:08). The most played duel maps
+  have no vent (Isidis Crack, Feast of Hades, Mithril Mountain, Comet Catcher, Red Comet: 295 of the 507).
+- *Maps.* Of the 36 map archives in `run/data/maps`, 24 have vents, two to nine each (read from the SMF feature
+  list and the maps' Lua placement files; a map that places its vents another way would read as none).
+- *Ours before 2026-11-15.* No vent building in the 28 seat records of eight flagship games on four maps with vents
+  (All That Glitters, Glacial Gap, Gecko Isle, Erebos Lakes), nor in any game of WRDistilled or WRTerritory; Apex
+  and BARb built tier-1 plants against WRDistilled in the map bench (from 7:38 on Zed).
+The price (the unit files, F-unit tables): the tier-1 plant 560 metal and 13,000 energy for 300 energy a second,
+the energy of fifteen solars (2,325 metal); the advanced one 1,600 and 27,000 for 1,250, 1.7 fusions' worth (about
+5,600 metal). With two advanced converters behind it the advanced plant comes to about 110 metal per metal a second
+(ours, derived), against 90 for an advanced extractor and about 290 for the fusion-fed converter.
+**Evidence.** `run/matches/*-replay-*/card.json` (the `built` counts and build orders), `run/data/bar-replays/events`
+(`unitsCreated`), the map archives; the scans were scratch scripts of 2026-11-15 (the cards' vent buildings by
+ally team; the events' by team; the SMF feature section at the header's offset 72 and `geovent` in the Lua files).
+**Would be wrong if.** A larger duel pool on maps with vents showed under half the sides of ten-minute games taking
+one, or the team pool's count fell with the players' rating.
+**Used by.** [[H-HANDS-VENTS]], D-GEO, T-GEO; the draft article D-vents (docs/briefs/derived/vents.md, not in the
+manifest).

@@ -53,6 +53,8 @@ pub(crate) struct Territory {
     /// which the dead ground is drawn round (T-ALLIES).
     pub enemy_home: Vec3,
     pub enemy_starts: Vec<Vec3>,
+    /// The map's geothermal vents as the shim last sent them (`Snapshot::vents`; T-GEO).
+    pub(crate) vents: Vec<Vec3>,
     /// Our allies' units this tick, and each allied seat's start (T-ALLIES).
     pub allies: Vec<AllyUnit>,
     pub ally_starts: Vec<(i32, Vec3)>,
@@ -509,6 +511,7 @@ impl Bot for Territory {
             planner: None,
             home: Vec3::default(),
             enemy_home: Vec3::default(),
+            vents: Vec::new(),
             enemy_starts: Vec::new(),
             allies: Vec::new(),
             ally_starts: Vec::new(),
@@ -548,6 +551,10 @@ impl Bot for Territory {
         self.energy = tick.snapshot.energy;
         if let Some(sensors) = &tick.snapshot.sensors {
             self.race.sensors = Some(sensors.clone());
+        }
+        if let Some(vents) = &tick.snapshot.vents {
+            self.log(format_args!("vents: {}", vents.iter().map(|v| format!("({:.0},{:.0})", v.x, v.z)).collect::<Vec<_>>().join(" ")));
+            self.vents = vents.clone();
         }
         if !self.started {
             self.start(&tick);

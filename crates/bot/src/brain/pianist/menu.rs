@@ -1859,13 +1859,15 @@ impl Brain {
                     continue;
                 }
                 // A vent building is offered on a vent it may be begun on and nowhere else (H-HANDS-VENTS): the
-                // one this builder reaches soonest and every vent the instructions name. The layout is not asked:
-                // it knows no vents, and the engine refuses any other ground.
+                // nearest to this builder of those nearer our start than his, and every vent the instructions
+                // name, his side's among them. The layout is not asked: it knows no vents, and the engine refuses
+                // any other ground.
                 if d.needs_vent {
                     let takes: Vec<(usize, Vec3, Take)> = self.vents_for(def, unit.pos, own).into_iter().filter(|(_, at, _)| self.reachable_for(walker, *at)).collect();
-                    for (k, (i, at, take)) in takes.iter().enumerate() {
+                    let nearest_of_ours = takes.iter().find(|(_, at, _)| !self.his_half(*at)).map(|(i, ..)| *i);
+                    for (i, at, take) in takes.iter() {
                         let vent = Brain::vent_name(*i);
-                        if k != 0 && !named.iter().any(|p| p.name == vent) {
+                        if nearest_of_ours != Some(*i) && !named.iter().any(|p| p.name == vent) {
                             continue;
                         }
                         let how = match take {

@@ -169,6 +169,10 @@ fn site_key(p: Vec3) -> (i32, i32) {
 }
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
+/// T-GEO: how near a vent a plant on it stands (the engine lets its centre lie within 36 of the vent on each axis).
+const VENT_HELD: f32 = 60.0;
+/// T-GEO: the energy income, in multiples of the draw of raising a vent building, from which a builder takes a vent.
+const VENT_INCOME_PER_DRAW: f64 = 2.0;
 /// A unit type the host found no site for this many times within the window is left alone for the window by every
 /// builder (terr18-lp-nullai-comet-1: the geothermal plant, with no vent on the map, asked for by every constructor
 /// every half second, 5,500 drops a game and nothing else built for ten minutes). Not on one failure: a converter
@@ -871,6 +875,10 @@ impl Territory {
         if !spots_credit && self.in_stall() && self.energy_class(id, unit, role, ahead, "stall", commands) {
             return;
         }
+        // T-GEO: a free vent on our side, ahead of the flows.
+        if self.vent_class(id, unit, role, commands) {
+            return;
+        }
         for (u, class, kind, _, cost, _) in flows {
             match kind {
                 Kind::Direct => {
@@ -1290,19 +1298,59 @@ impl Territory {
             let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
                 + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
             let short = if pending < ENERGY_PENDING && (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
+            let per_metal = |a: &usize, b: &usize| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0)));
             // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
             targets
                 .types
                 .iter()
                 .copied()
                 .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u) && self.energy_fits(*u, unit))
-                .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
+                .max_by(per_metal)
                 .filter(|u| short >= rate(*u))
                 .map(|u| (u, units.list[u].build_time))
         };
         match energy {
             Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, None, why, commands),
             _ => false,
+        }
+    }
+
+    /// T-GEO: a vent of ours takes its plant. The program knows no vents (its roster leaves vent buildings out) and
+    /// plans its energy without them, so the hands take one beside the program: the vent building of this
+    /// builder's with the most energy for its metal (a constructor's tier-1 plant, 300 a second for 560; an
+    /// advanced constructor's advanced plant, bare or over our tier-1 one), on the vent `vent_site` gives, one at
+    /// a time, out of a stall, when its metal is in reach, its energy fits the budget, and the energy income is
+    /// twice what this builder would draw raising it (about 180 a second for a construction vehicle and the tier-1
+    /// plant: the frame does not starve the plants). Its energy counts toward the program's target like any
+    /// other's, so fewer of the planned generators come due. Tied to the energy class (an energy building due)
+    /// it fired in one game of eight: that class fires on a low stock, where 13,000 energy fits no budget
+    /// (terr367, terr369).
+    fn vent_class(&mut self, id: UnitId, unit: usize, role: Role, commands: &mut Vec<Command>) -> bool {
+        if !self.options.geo || self.vents.is_empty() || role == Role::Factory || self.in_stall() {
+            return false;
+        }
+        let needs_vent = |def: UnitDefId| self.def(def).is_some_and(|d| d.needs_vent);
+        let under_way = self.own.values().any(|u| u.being_built && needs_vent(u.def)) || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.hello.unit_defs[*unit].needs_vent));
+        if under_way {
+            return false;
+        }
+        let Some(builder) = self.own.get(&id).map(|b| b.pos) else { return false };
+        let chosen = {
+            let units = &self.game().units;
+            let worker = &units.list[unit];
+            let draw = |u: usize| units.list[u].energy_cost / (units.list[u].build_time / worker.worker_time.max(1.0)).max(1.0);
+            worker
+                .builds
+                .iter()
+                .copied()
+                .filter(|u| self.hello.unit_defs[*u].needs_vent && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u) && self.energy_fits(*u, unit))
+                .filter(|u| self.energy.income as f64 >= VENT_INCOME_PER_DRAW * draw(*u) && self.vent_site(*u, builder).is_some())
+                .max_by(|a, b| (units.list[*a].energy_make / units.list[*a].metal_cost.max(1.0)).total_cmp(&(units.list[*b].energy_make / units.list[*b].metal_cost.max(1.0))))
+                .map(|u| (u, units.list[u].build_time))
+        };
+        match chosen {
+            Some((u, cost)) => self.order_one(id, unit, role, u, cost, None, "vent", commands),
+            None => false,
         }
     }
 
@@ -1607,6 +1655,11 @@ impl Territory {
                     // ours only at its exact position, and every Cortex order was dropped in terr1-nullai-comet-1.
                     self.log(format_args!("upgrade: {} over unit {} at ({:.2},{:.2}) by unit {}", target.name, standing.id.0, standing.pos.x, standing.pos.z, id.0));
                     BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: false }
+                } else if self.hello.unit_defs[unit].needs_vent {
+                    // T-GEO: on the vent itself; the shim asks the engine for that ground and no other.
+                    let at = self.vent_site(unit, builder.pos)?;
+                    self.log(format_args!("geothermal: {} on the vent at ({:.0},{:.0}) by unit {}", target.name, at.x, at.z, id.0));
+                    BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }
                 } else if target.extracts_metal > 0.0 {
                     let leash = (role == Role::Commander).then_some((self.home, self.options.com_leash));
                     let at = self.free_site(unit, builder.pos, step.site, leash, ring)?;
@@ -1867,6 +1920,8 @@ impl Territory {
             What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some((*near, footprint(self.hello.unit_defs[*unit].footprint))),
             _ => None,
         }));
+        // T-GEO: a vent's ground is the plant's that alone can stand there (its footprint's half, 40).
+        taken.extend(self.vents.iter().map(|v| (*v, 40.0)));
         let mobile: Vec<Vec3> = self.own.values().filter(|u| self.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.pos).collect();
         (taken, self.keep_out(false), mobile)
     }
@@ -2133,6 +2188,33 @@ impl Territory {
         // share of a turn back from the line out of home through the builder) moved neither the chains' step nor
         // their interval in terr59 (673-1,008 elmos and 42-59 s against terr57's 791-1,071 and 46-56).
         self.spots.iter().copied().filter(|i| !self.spot_taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from))).map(|i| spots[i])
+    }
+
+    /// T-GEO: the vent nearest `from` that a vent building of type `unit` may be begun on. Its ground fits the
+    /// building's water band; nothing that needs a vent stands on it, ours or an ally's, except a finished plant of
+    /// ours of at most half this building's metal (the advanced plant over the tier-1 one: the game takes the one
+    /// beneath away when the new one is finished and gives its metal back); no order of ours is on its way to it;
+    /// it is nearer our start than his, not dead ground and not an ally's claim.
+    pub(crate) fn vent_site(&self, unit: usize, from: Vec3) -> Option<Vec3> {
+        let building = &self.hello.unit_defs[unit];
+        let on_it = |def: UnitDefId, pos: Vec3, vent: Vec3| pos.dist2d(vent) < VENT_HELD && self.def(def).is_some_and(|d| d.needs_vent);
+        let free = |vent: &&Vec3| {
+            let vent = **vent;
+            let depth = -vent.y;
+            let ground = depth <= building.max_water_depth && (building.min_water_depth <= 0.0 || depth >= building.min_water_depth);
+            let ours = self.own.values().filter(|u| on_it(u.def, u.pos, vent)).max_by(|a, b| self.def(a.def).map_or(0.0, |d| d.metal_cost).total_cmp(&self.def(b.def).map_or(0.0, |d| d.metal_cost)));
+            let holder = match ours {
+                None => !self.allies.iter().any(|a| on_it(a.def, a.pos, vent)) && !self.enemies.iter().any(|e| e.def.is_some_and(|d| on_it(d, e.pos, vent))),
+                Some(plant) => !plant.being_built && self.def(plant.def).is_some_and(|standing| building.metal_cost >= 2.0 * standing.metal_cost),
+            };
+            ground
+                && holder
+                && vent.dist2d(self.home) < vent.dist2d(self.enemy_home)
+                && !self.dead_ground(vent)
+                && !self.ally_claims(vent)
+                && !self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.hello.unit_defs[*unit].needs_vent && near.dist2d(vent) < VENT_HELD))
+        };
+        self.vents.iter().filter(free).min_by(|a, b| a.dist2d(from).total_cmp(&b.dist2d(from))).copied()
     }
 
     /// Factories standing or ordered, so a plan cannot start more than it has queues for (the simulator's rule).

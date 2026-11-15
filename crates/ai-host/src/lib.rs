@@ -325,8 +325,11 @@ impl<L: Transport> Instance<L> {
                 let (wrecks, vents) = self.engine.features();
                 snapshot.wrecks = Some(wrecks);
                 // The vents go out when the list read is not the one this bot has: the first look, and again when
-                // a map's Lua has placed them after the game began.
-                if self.vents_sent.as_ref() != Some(&vents) {
+                // a map's Lua has placed them after the game began. By place alone: a plant's frame levels the
+                // ground under its vent, and the vent's height with it (geo-smoke-zed-barb: the list sent again
+                // a minute and a half after each plant was begun).
+                let same = self.vents_sent.as_ref().is_some_and(|sent| sent.len() == vents.len() && sent.iter().zip(&vents).all(|(a, b)| a.dist2d(*b) < 1.0));
+                if !same {
                     self.log(format_args!("f={frame} the map's geothermal vents: {}", vents.len()));
                     snapshot.vents = Some(vents.clone());
                     self.vents_sent = Some(vents);

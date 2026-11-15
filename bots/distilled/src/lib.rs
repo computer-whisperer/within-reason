@@ -59,6 +59,10 @@ pub(crate) struct Kit {
     pub moho: Option<UnitDefId>,
     pub fusion: Option<UnitDefId>,
     pub advanced_fusion: Option<UnitDefId>,
+    /// The plants that stand only on a geothermal vent (D-GEO): the tier-1 one a constructor builds, the advanced
+    /// one an advanced constructor builds, on a bare vent or over our tier-1 plant.
+    pub geothermal: Option<UnitDefId>,
+    pub advanced_geothermal: Option<UnitDefId>,
     pub converter: Option<UnitDefId>,
     pub advanced_converter: Option<UnitDefId>,
     /// The tier-2 fast assist unit the advanced vehicle plant makes (Armada's Consul; Cortex vehicles have none).
@@ -96,6 +100,8 @@ pub(crate) struct Distilled {
     pub(crate) sensors: Option<bot_protocol::Sensors>,
     /// The wrecks in sight worth a walk, as the shim last looked (every few seconds): D-RECLAIM's list.
     pub(crate) wrecks: Vec<bot_protocol::Wreck>,
+    /// The map's geothermal vents as the shim last sent them (`Snapshot::vents`; D-GEO).
+    pub(crate) vents: Vec<Vec3>,
     pub economy: economy::Economy,
     /// On a metal map, the metal under the ground and the extractors' claims over it, rebuilt every tick from what
     /// stands (`layout::Coverage`); `None` on a spot map.
@@ -221,6 +227,8 @@ impl Distilled {
             moho: named("moho"),
             fusion: named("fus"),
             advanced_fusion: named("afus"),
+            geothermal: named("geo"),
+            advanced_geothermal: named("ageo"),
             converter: named(converter),
             advanced_converter: named(advanced_converter),
             assist: assist.and_then(named),
@@ -459,7 +467,7 @@ impl Bot for Distilled {
         let spots = hello.metal_spots.len();
         let coverage = hello.map.metal_map.then(|| layout::Coverage::new(&hello.terrain, hello.map.metal_scale, hello.map.extractor_radius)).flatten();
         let allied = hello.teams.iter().any(|t| t.team != hello.team && t.ally_team == hello.ally_team && t.controller != Controller::Gaia);
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, product_walks: Default::default(), class_walks: Default::default(), block: None, block_tried: -(30 * SECOND), block_refused: None, ground: Default::default(), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), prev_own: BTreeMap::new(), last_hit: BTreeMap::new(), tiers: BTreeMap::new(), metal_income: 0.0, received: VecDeque::new(), income_multiplier: 1.0, sensors: None, wrecks: Vec::new(), vents: Vec::new(), economy: economy::Economy::new(spots), coverage, stand: None, product_walks: Default::default(), class_walks: Default::default(), block: None, block_tried: -(30 * SECOND), block_refused: None, ground: Default::default(), army: army::Army::default(), air: air::Air::default(), nuke: nukes::Nukes::default(), control: lane::Control::default(), options: tier2::Options::for_seat(allied), started: false, announced: false }
     }
 
     fn tick(&mut self, mut tick: Tick) -> Commands {
@@ -471,6 +479,10 @@ impl Bot for Distilled {
         }
         if let Some(wrecks) = &tick.snapshot.wrecks {
             self.wrecks = wrecks.clone();
+        }
+        if let Some(vents) = &tick.snapshot.vents {
+            eprintln!("[distilled ai={}] f={} vents: {}", self.hello.ai_id, self.frame, vents.iter().map(|v| format!("({:.0},{:.0})", v.x, v.z)).collect::<Vec<_>>().join(" "));
+            self.vents = vents.clone();
         }
         // D-RECEIVED: what allies' overflow puts into the stock is income to every rule here (the engine's income
         // leaves it out), at its mean over RECEIVED_WINDOW: a neighbour whose store sits full is an income.

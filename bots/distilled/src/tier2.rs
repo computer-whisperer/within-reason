@@ -34,6 +34,9 @@ const ADVANCED_HELPERS: usize = 12;
 /// A fusion from this metal income when energy is short, an advanced fusion from this with a fusion standing; under
 /// `energy=fusion` the first fusion comes before any tier-2 extractor, from this income.
 const FUSION_FROM: f32 = 35.0;
+/// D-GEO: the metal income from which an advanced constructor raises the advanced geothermal plant when energy is
+/// wanted: half the fusion's, as its metal is under half a fusion's.
+const ADVANCED_GEO_FROM: f32 = 17.0;
 const ADVANCED_FUSION_FROM: f32 = 120.0;
 const FUSION_FIRST_FROM: f32 = 20.0;
 /// A tier-2 extractor (20 energy a second of upkeep) is started while the store holds this share, or the income has
@@ -172,6 +175,8 @@ pub(crate) struct Options {
     pub sentry: bool,
     /// `king=off`: his commander is not a target (D-KING, 2026-11-06).
     pub king: bool,
+    /// `geo=off`: no geothermal plant (D-GEO, 2026-11-15).
+    pub geo: bool,
     /// `ground=off`: no place is asked whether it can be walked to and every walk is the straight line (D-GROUND,
     /// D-STUCK and the opening's walk, 2026-11-06).
     pub ground: bool,
@@ -182,7 +187,7 @@ pub(crate) struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, block: true, reach: false, radar: true, reclaim: true, sentry: true, king: true, ground: true, king_local: false }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, gate: Gate::Field, lane: true, raiders: 4, received: true, air: true, nuke: true, army: true, block: true, reach: false, radar: true, reclaim: true, sentry: true, king: true, geo: true, ground: true, king_local: false }
     }
 }
 
@@ -223,6 +228,7 @@ impl Options {
                 ("reclaim", v) => options.reclaim = v != "off",
                 ("sentry", v) => options.sentry = v != "off",
                 ("king", v) => options.king = v != "off",
+                ("geo", v) => options.geo = v != "off",
                 ("ground", v) => options.ground = v != "off",
                 ("kingat", v) => options.king_local = v == "on",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
@@ -239,7 +245,7 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, block={}, reach={}, radar={}, reclaim={}, sentry={}, king={}, ground={}, kingat={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}, received={}, air={}, nuke={}, army={}, block={}, reach={}, radar={}, reclaim={}, sentry={}, king={}, ground={}, kingat={}, geo={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             match self.gate {
                 Gate::Bank => "bank",
@@ -265,14 +271,15 @@ impl Options {
             if self.sentry { "on" } else { "off" },
             if self.king { "on" } else { "off" },
             if self.ground { "on" } else { "off" },
-            if self.king_local { "on" } else { "off" }
+            if self.king_local { "on" } else { "off" },
+            if self.geo { "on" } else { "off" }
         )
     }
 }
 
 impl Distilled {
-    fn project_defs(&self) -> [Option<UnitDefId>; 4] {
-        [self.kit.advanced_plant, self.kit.fusion, self.kit.advanced_fusion, self.kit.silo]
+    fn project_defs(&self) -> [Option<UnitDefId>; 5] {
+        [self.kit.advanced_plant, self.kit.fusion, self.kit.advanced_fusion, self.kit.silo, self.kit.advanced_geothermal]
     }
 
     /// The current project: the dearest unfinished advanced plant, fusion, advanced fusion or silo of ours.
@@ -289,13 +296,13 @@ impl Distilled {
 
     /// A project is under way: its frame stands, or a builder has been told to place one.
     pub(crate) fn project_under_way(&self) -> bool {
-        self.project_frame().is_some() || self.economy.working_on(|job| matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo)) > 0
+        self.project_frame().is_some() || self.economy.working_on(|job| matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo | Job::AdvancedGeothermal(_))) > 0
     }
 
     /// Build power on a frame: the build speeds of the builders raising or helping it and of the construction turrets
     /// within reach of it.
     pub(crate) fn power_on(&self, frame: &OwnUnit) -> f32 {
-        let on_it = |job: Job| matches!(job, Job::Help(target) if target == frame.id) || matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo);
+        let on_it = |job: Job| matches!(job, Job::Help(target) if target == frame.id) || matches!(job, Job::AdvancedPlant | Job::Fusion | Job::AdvancedFusion | Job::Silo | Job::AdvancedGeothermal(_));
         let builders: f32 = self.economy.orders.iter().filter(|(_, order)| on_it(order.job)).filter_map(|(id, _)| self.own.get(id)).filter_map(|u| self.def(u.def)).map(|d| d.build_speed).sum();
         let turrets: f32 = self.finished(self.kit.turret).filter(|t| self.turret_reaches(t, frame)).filter_map(|t| self.def(t.def)).map(|d| d.build_speed).sum();
         builders + turrets
@@ -393,7 +400,7 @@ impl Distilled {
         let kit = &self.kit;
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let fusions = self.count(kit.fusion) + self.count(kit.advanced_fusion);
-        let fusion_under_way = self.economy.working_on(|job| matches!(job, Job::Fusion | Job::AdvancedFusion)) > 0 || self.own.values().any(|u| u.being_built && (Some(u.def) == kit.fusion || Some(u.def) == kit.advanced_fusion));
+        let fusion_under_way = self.economy.working_on(|job| matches!(job, Job::Fusion | Job::AdvancedFusion | Job::AdvancedGeothermal(_))) > 0 || self.own.values().any(|u| u.being_built && (Some(u.def) == kit.fusion || Some(u.def) == kit.advanced_fusion || Some(u.def) == kit.advanced_geothermal));
         // Only what this builder can build: neither advanced constructor has the advanced solar among its options
         // (apex-v029-distilled-comet-1 game 01: told the same advanced solar 38 times in a minute, the engine
         // dropping each), so below the fusion's income it builds no energy at all.
@@ -401,6 +408,15 @@ impl Distilled {
         let energy_job = || {
             if fusion_under_way {
                 return None;
+            }
+            // D-GEO: the advanced plant on a vent of ours, bare or over our tier-1 plant, before any reactor: 1,250
+            // energy a second for 1,600 metal against a fusion's 750 for 3,350, and the tier-1 plant's metal back.
+            if self.options.geo
+                && metal.income >= ADVANCED_GEO_FROM
+                && let Some(def) = kit.advanced_geothermal.filter(|d| builder.build_options.contains(d))
+                && let Some(vent) = self.vent_site(unit, def, tick)
+            {
+                return Some(Job::AdvancedGeothermal(vent));
             }
             if can(kit.advanced_fusion) && metal.income >= ADVANCED_FUSION_FROM && fusions >= 1 {
                 return Some(Job::AdvancedFusion);

@@ -70,6 +70,10 @@ const FLEE_WALK: f32 = 700.0;
 const FLEE_FOR: i32 = 8 * SECOND;
 /// A spot with an armed enemy this near is not walked to.
 pub(crate) const SPOT_DANGER: f32 = 600.0;
+/// D-GEO: how near a vent a plant on it stands (the engine lets its centre lie within 36 of the vent on each axis),
+/// and the energy income, in multiples of the draw of raising the tier-1 plant, from which a constructor takes a vent.
+pub(crate) const VENT_HELD: f32 = 60.0;
+const GEO_INCOME_PER_DRAW: f32 = 2.0;
 /// D-RADAR (2026-11-03, the brief's raid and reach articles: a radar at the front by 3:00, "the second most critical
 /// building after a mex", 60 metal for twenty seconds' warning; our games with one by 4:00 lost three fewer
 /// extractors by 16:00): from `RADAR_FROM`, a radar `RADAR_BACK` behind our finished extractor nearest his start when
@@ -213,6 +217,10 @@ pub(crate) enum Job {
     Silo,
     /// A radar tower at this point (D-RADAR, `radar_site`).
     Radar(Vec3),
+    /// The tier-1 geothermal plant on this vent, and the advanced one on it (bare or over our tier-1 plant), a
+    /// project (D-GEO, `vent_site`).
+    Geothermal(Vec3),
+    AdvancedGeothermal(Vec3),
     /// Take this wreck apart (D-RECLAIM).
     Reclaim(FeatureId),
     /// The commander's opening as one queue at the stand's slots (D-STAND, `siting.rs` `solve_stand`).
@@ -238,6 +246,8 @@ impl Job {
             Job::AirPlant => kit.air_plant,
             Job::Silo => kit.silo,
             Job::Radar(_) => kit.radar,
+            Job::Geothermal(_) => kit.geothermal,
+            Job::AdvancedGeothermal(_) => kit.advanced_geothermal,
             Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand => None,
         }
     }
@@ -376,6 +386,7 @@ impl Economy {
             Some(Job::AirAssist) => "assist-air".into(),
             Some(Job::Silo) => "silo".into(),
             Some(Job::Radar(_)) => "radar".into(),
+            Some(Job::Geothermal(_)) | Some(Job::AdvancedGeothermal(_)) => "geothermal".into(),
             Some(Job::Reclaim(_)) => "reclaim".into(),
             Some(Job::Stand) => "stand".into(),
         }
@@ -664,6 +675,10 @@ impl Distilled {
         }
         if self.air_plant_wanted(def) {
             return Some(Job::AirPlant);
+        }
+        // D-GEO: the plant on a free vent of ours, one at a time, once the energy income carries its bill.
+        if let Some(vent) = self.geothermal_wanted(unit, def, tick) {
+            return Some(Job::Geothermal(vent));
         }
         // D-RECLAIM: a wreck that pays the builder's time well comes before the next extractor (a Stout's 135 is
         // nearly three extractors' price, and its ground is ours now).
@@ -1084,6 +1099,57 @@ impl Distilled {
         (0..self.hello.metal_spots.len()).filter(free).min_by(|a, b| cost(a).total_cmp(&cost(b))).map(Site::Spot)
     }
 
+    /// D-GEO: the vents a vent building of `def` could be begun on by a builder whose kind walks there from home: in
+    /// our half (nearer our start than his by the straight line), not refused lately, no building of his within 200
+    /// and no armed enemy within `SPOT_DANGER`, nobody of ours ordered onto it, and either bare or, for a building
+    /// of at least twice its metal, holding a finished plant of ours (the advanced plant over the tier-1 one: the
+    /// game takes the one beneath away when the new one is finished and gives its metal back). The nearest to the
+    /// builder on foot first.
+    pub(crate) fn vent_site(&self, unit: &OwnUnit, def: UnitDefId, tick: &Tick) -> Option<Vec3> {
+        let building = self.def(def)?;
+        let armed = |d: Option<UnitDefId>| d.and_then(|d| self.def(d)).is_none_or(|d| d.weapon_count > 0);
+        let plant_on = |vent: Vec3| self.own.values().filter(|u| u.pos.dist2d(vent) < VENT_HELD && self.def(u.def).is_some_and(|d| d.needs_vent)).max_by(|a, b| self.def(a.def).map_or(0.0, |d| d.metal_cost).total_cmp(&self.def(b.def).map_or(0.0, |d| d.metal_cost)));
+        let from = self.field_from(unit.def, unit.pos);
+        let walk = |at: Vec3| from.as_ref().map_or(unit.pos.dist2d(at), |field| field.distance(at).unwrap_or(2.0 * unit.pos.dist2d(at)));
+        let free = |vent: &&Vec3| {
+            let vent = **vent;
+            let depth = -vent.y;
+            let ground = depth <= building.max_water_depth && (building.min_water_depth <= 0.0 || depth >= building.min_water_depth);
+            let holder = match plant_on(vent) {
+                None => !tick.snapshot.allies.iter().any(|a| a.pos.dist2d(vent) < VENT_HELD && self.def(a.def).is_some_and(|d| d.needs_vent)),
+                Some(plant) => !plant.being_built && self.def(plant.def).is_some_and(|standing| building.metal_cost >= 2.0 * standing.metal_cost),
+            };
+            ground
+                && holder
+                && vent.dist2d(self.home) < vent.dist2d(self.enemy_home)
+                && self.walk_from_home(Some(unit.def), vent).is_some()
+                && !self.economy.sites_refused.iter().any(|(_, at, until)| at.dist2d(vent) < VENT_HELD && self.frame < *until)
+                && !self.economy.orders.values().any(|o| matches!(o.job, Job::Geothermal(at) | Job::AdvancedGeothermal(at) if at.dist2d(vent) < VENT_HELD))
+                && !self.army.his_buildings.values().any(|b| b.pos.dist2d(vent) < 200.0)
+                && !tick.snapshot.enemies.iter().any(|e| armed(e.def) && e.pos.dist2d(vent) < SPOT_DANGER)
+        };
+        self.vents.iter().filter(free).min_by(|a, b| walk(**a).total_cmp(&walk(**b))).copied()
+    }
+
+    /// D-GEO for a tier-1 constructor: the vent to take now, if the plant is wanted. One geothermal job at a time;
+    /// not in an energy stall (the plant costs 13,000 energy and stands in two minutes and a half: a solar answers
+    /// a stall); and only once the energy income is twice what this builder would draw raising it (its energy
+    /// cost over its build seconds: about 90 a second for a construction vehicle, so from an income of 180, nine
+    /// solars' worth), so that the frame does not starve the plant beside it.
+    fn geothermal_wanted(&self, unit: &OwnUnit, builder: &UnitDefInfo, tick: &Tick) -> Option<Vec3> {
+        let def = self.kit.geothermal.filter(|d| self.options.geo && builder.build_options.contains(d))?;
+        if self.vents.is_empty() || self.economy.working_on(|job| matches!(job, Job::Geothermal(_) | Job::AdvancedGeothermal(_))) > 0 {
+            return None;
+        }
+        let plant = self.def(def)?;
+        let energy = tick.snapshot.energy;
+        let draw = plant.energy_cost / (plant.build_time / builder.build_speed.max(1.0));
+        if energy.current < ENERGY_STALL * energy.storage || energy.income < GEO_INCOME_PER_DRAW * draw {
+            return None;
+        }
+        self.vent_site(unit, def, tick)
+    }
+
     /// The job's order to the engine. A building is sited by the layout layer within its kind's band (D-LAYOUT,
     /// `siting.rs`) and the slot is returned: ground taken until the frame begins. When the layer has no ground the
     /// engine searches round the band's centre off the plants' lanes (`fallback_site`). An extractor goes to its
@@ -1162,6 +1228,13 @@ impl Distilled {
                 commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
             }
             Job::Help(target) => commands.push(Command::Repair { unit: unit.id, target, queue: false }),
+            // D-GEO: on the vent itself; the shim asks the engine for that ground and no other.
+            Job::Geothermal(vent) | Job::AdvancedGeothermal(vent) => {
+                let def = job.def(&self.kit);
+                eprintln!("[distilled ai={}] f={} geothermal: unit {} a {} on the vent at ({:.0},{:.0}), {:.0} from home", self.hello.ai_id, self.frame, unit.id.0, def.map_or("?".to_string(), |d| self.name_of(d)), vent.x, vent.z, vent.dist2d(self.home));
+                commands.extend(build(def, BuildSite { near: vent, search_radius: 0.0, min_dist: 0, placements: Vec::new(), exact: true }, false));
+                return Some((vent, 0));
+            }
             Job::Moho(target) => {
                 // Over the extractor, where the engine lets the tier-2 one replace it (K-mech-tier-2-extractor-stands-on-ours).
                 let Some(extractor) = self.own.get(&target) else { return None };

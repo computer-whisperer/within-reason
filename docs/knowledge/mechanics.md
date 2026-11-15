@@ -1256,3 +1256,49 @@ of its kind.
 **Would be wrong if.** A game on the mended build with a group of ships declared still showed its ships in no group.
 **Used by.** [[H-HANDS-GROUP-DOMAINS]].
 
+
+### K-mech-a-geothermal-plant-stands-within-36-of-its-vent
+**Claim.** A building that needs a geothermal vent (the engine's `needGeo`, set by a `g` or `j` square in its yardmap:
+the three factions' tier-1 plants, advanced plants, the Prude, the Cerberus, the Rampart and the offshore plants) is
+allowed only where a vent feature lies within its footprint's half less four elmos of the building's centre on each
+axis: 36 for the plants' 5 by 5 footprint (`GameHelper.cpp` `TestUnitBuildSquare`). The engine's own site search
+(`Map_findClosestBuildSite`) runs the same test, so it finds the vent when the vent is inside its radius and nothing
+otherwise. A vent is a map feature, indestructible and not blocking; BAR shows every feature to every side
+(`modrules.lua` `featureVisibility = 3`), so an AI's `getFeatures` holds every vent from its first tick, on a map
+whose own file lists the vents and on one that places them from Lua alike. The feature's height follows the ground:
+a plant's frame levels the ground under the vent and the vent's height changes with it. The game blocks vent
+buildings on a map with no vent (`api_build_blocking.lua`, `terrain_geothermal`).
+**Status.** measured (2026-11-15). Zed Remake 3.3.1 places its vents from Lua: the shim's first look, at frame 0, read
+both, (1133, 5347) and (5040, 791), in four games of four (geo-smoke-zed-barb), and Onyx Cauldron's two likewise
+(dist344). A plant ordered at the vent's own position stood 5 to 9 elmos from it (the build grid): `armgeo` at
+(5048, 790) on the vent at (5040, 791), `corgeo` at (1128, 5352) on (1133, 5347). Before 2026-11-15 the flagship's
+hands ordered the advanced plant at a site the base layout chose: five orders in three games, each "no site for
+armageo" (1794060468-human, econ-flagship-18, 1794270562-test), and no seat of ours had built a vent building in any
+recorded game.
+**Evidence.** `upstream/RecoilEngine/rts/Game/GameHelper.cpp:1302-1325`, `rts/Sim/Units/UnitDef.cpp:847-848`;
+`upstream/Beyond-All-Reason/gamedata/modrules.lua:88-89`; `run/matches/1794722142-geo-smoke-zed-barb/0*/engine.log`
+(`the map's geothermal vents: 2`, the `geothermal:` orders, the census lines' `armgeo`/`corgeo`);
+`run/matches/1794060468-human/00/bot.log` (`no site for armageo`).
+**Would be wrong if.** A plant ordered at a vent's own position were refused on ground the plant can stand on, or a
+map's vents were missing from the shim's first look.
+**Used by.** [[H-HANDS-VENTS]], D-GEO, T-GEO.
+
+### K-mech-a-plant-over-a-plant-refunds-the-one-beneath
+**Claim.** A vent building may be built over a standing tier-1 geothermal plant when its yardmap is laid out for it:
+every tier-2 vent building of the three factions (`armageo`, `armgmm`, `corageo`, `corbhmth`, `legageo`, `legrampart`
+and the offshore advanced plants) has stackable squares (`s`) where the tier-1 plants have their blocked ones (`g`),
+and the tier-1 plants have none, so nothing stands over a tier-2 building or over its own kind by the layouts. When
+the building over a plant is finished the game destroys the plant beneath and gives its whole metal cost back to the
+builder's team; a building begun over an ally's plant is handed to that ally at once
+(`unit_geo_upgrade_reclaimer.lua`, any unit with `customParams.geothermal`).
+**Status.** measured for the advanced plant over our own tier-1 one (2026-11-15, dist344-geo-econ-onyx): `armageo`
+ordered at 14:50 on the vent holding our `armgeo`; both stood in the census at 17:00 and 18:00, the `armgeo` gone at
+19:00 with the `armageo` standing; `corageo` over `corgeo` likewise in game 02 (ordered 10:08, the `corgeo` gone by
+14:00). The refund's amount, the hand-over to an ally and the other tier-2 buildings over a plant are read from the
+game's files and not measured.
+**Evidence.** `upstream/Beyond-All-Reason/luarules/gadgets/unit_geo_upgrade_reclaimer.lua`; the yardmaps in
+`upstream/Beyond-All-Reason/units/*/…/{armgeo,armageo,armgmm,corgeo,corageo,corbhmth,leggeo,legageo,legrampart}.lua`;
+`run/matches/1794722339-dist344-geo-econ-onyx/0{0,2}/engine.log`.
+**Would be wrong if.** An advanced plant ordered on a vent holding our finished tier-1 plant were refused, or the
+tier-1 plant still stood a minute after the advanced one was finished.
+**Used by.** [[H-HANDS-VENTS]] (a building of twice the standing plant's metal is offered over it), D-GEO, T-GEO.

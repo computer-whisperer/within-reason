@@ -20,13 +20,16 @@
 //! no refused slots, no ground for the builders and no block.
 
 use bot_protocol::{BuildSite, MoveClass, MoveKind, OwnUnit, Placement, Tick, UnitDefId, Vec3};
-use layout::{Facts, Frame, Ground, Plant, Purpose, Request, Reservation, Reserved, Scene, Slot, Standing, Want, Worker, World};
+use layout::{Facts, Frame, Ground, Plant, Purpose, Rect, Request, Reservation, Reserved, Scene, Slot, Standing, Want, Worker, World};
 
 use crate::Distilled;
 use crate::economy::Job;
 
 /// The shim refuses a site this close to a metal spot's centre (`ai-host` `SPOT_KEEPOUT`): no slot goes there.
 const SPOT_KEEPOUT: f32 = 100.0;
+/// Half the side of the ground kept free round a vent (D-GEO): a vent building's half footprint and the two squares
+/// its centre may lie off the vent.
+const VENT_KEPT: f32 = 72.0;
 /// The bands of distance (the flagship's, `crates/bot/src/brain/economy.rs`): how far from its anchor a kind's site is
 /// looked for before the band widens (twice, doubling).
 const BAND_GENERATOR: f32 = 300.0;
@@ -259,6 +262,9 @@ impl Distilled {
                 _ => None,
             }).map(|rect| Reservation { rect, for_: Reserved::Nothing }));
         }
+        // D-GEO: every vent's ground is kept for the plant that alone can stand there (its footprint is 80 square
+        // and its centre may lie two squares off the vent).
+        reservations.extend(self.vents.iter().map(|v| Reservation { rect: Rect { x0: v.x - VENT_KEPT, z0: v.z - VENT_KEPT, x1: v.x + VENT_KEPT, z1: v.z + VENT_KEPT }, for_: Reserved::Nothing }));
         let (mut lattice, mut farm_frame) = (None, None);
         if let Some(block) = &self.block {
             reservations.extend(block.reservations());
@@ -334,7 +340,8 @@ impl Distilled {
             Job::Silo => (def, self.back_field(), BAND_FRAME),
             Job::AntiAir => (def, self.anti_air_site(), BAND_PLACE),
             Job::Radar(at) => (def, at, BAND_PLACE),
-            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand => {
+            // A vent building is not the layer's: its ground is the vent (`order`).
+            Job::Extractor(_) | Job::Moho(_) | Job::Assist | Job::AirAssist | Job::Help(_) | Job::Reclaim(_) | Job::Stand | Job::Geothermal(_) | Job::AdvancedGeothermal(_) => {
                 return None;
             }
         })
