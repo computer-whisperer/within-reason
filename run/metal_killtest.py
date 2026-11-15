@@ -20,6 +20,13 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       and which of these calls the result.
   run/metal_killtest.py pool-windows [--min-os N] [--ratio 1.5] [--margin 500] [--fall 3]
       The lead test on the pool's duels from the cards (the cards' army_metal_in_his_half is the "went").
+  run/metal_killtest.py behind <cache.jsonl> [<cache.jsonl> ...] [--gap 0.85] [--army 0.5] [--min-os 40]
+      The behind test (docs/briefs/derived/behind.md): a side at the first minute between 6:00 and 12:00 at which its
+      metal income is at most --gap times the other side's while its army is at least --army times the other's and
+      500 metal. Whether 30% of that army stood in the other's half at some minute of the next three ("went"),
+      whether the other's extractor count fell by three or more within five minutes ("landed"), and who won, by the
+      army ratio at that minute. Our 1v1s by who played us (our side as the one behind, extractor income on both
+      sides) and the pool's duels from the cards (either side, the engine's income).
   run/metal_killtest.py tier2 <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--side-cache run/data/tier2_killtest.jsonl] [--workers 8]
       The tier-2 test (docs/briefs/derived/tier2.md): for every game of the cache that lasted --min-minutes, when
       each side placed its advanced factory (ours from the record's created, finished and destroyed events; his from
@@ -48,6 +55,10 @@ docs/briefs/derived/lead.md, D-lead-convert-it).
       parties' sizes, the answers and their pay rate, the rebuilds, and the turrets and radar of a game against its
       losses.
 
+  run/metal_killtest.py raid-parties [--side-cache run/data/raid_killtest.jsonl]
+      The raid ledger's lost extractors by what the party was made of (scout cars, bots, fast tanks, medium tanks)
+      and how many: how many had a turret of ours within 700, and how often a raider died within two minutes with
+      one near and with none (docs/briefs/derived/raids.md, "What a turret forces"). Reads the side cache only.
   run/metal_killtest.py openers <cache.jsonl> [<cache.jsonl> ...] [--min-minutes 14] [--min-os 40] [--side-cache run/data/opener_killtest.jsonl] [--workers 8]
       The lab choice (docs/briefs/derived/labs.md): the pool's duels re-cut by each side's first factory (bots, vehicles,
       air, from the card's factory unit), the clocks M-pool-pressure reads (the first soldier in his half, the first kill,
@@ -87,7 +98,7 @@ import re
 import statistics as st
 import subprocess
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from multiprocessing import Pool
 
 MINUTES = list(range(1, 25))
@@ -591,6 +602,100 @@ def pool_windows(min_os, ratio, margin, fall):
             print(f"    {name} | lost @{mn:.0f} | window {f['start']}-{f['end']} size {f['size']:.1f} surplus {f['surplus']:,} | his extractors {f['his_ext_start']} fell {f['drop']} | "
                   f"{f['went_share']:.0%} of theirs in his half | {kind}")
 
+
+
+# ---- the raid ledger by party (docs/briefs/derived/raids.md)
+RAID_PARTIES = (("scout cars (Tick, Rover, Rascal)", {"armflea", "armfav", "corfav"}),
+                ("bots (Pawn, Grunt, Rocketeer, Aggravator, Mace, Thug, Centurion)", {"armpw", "corak", "armrock", "corstorm", "armham", "corthud", "armwar"}),
+                ("fast tanks (Blitz, Incisor)", {"armflash", "corgator"}),
+                ("medium tanks (Stout, Brute, Janus, Pounder)", {"armstump", "corraid", "armjanus", "corlevlr"}))
+
+
+def raid_parties(side_cache):
+    cells = defaultdict(lambda: [0, 0, 0, 0])  # lost, with a turret, paid with one, paid with none
+    for line in open(side_cache):
+        for x in json.loads(line).get("rows") or []:
+            names = set(x.get("party") or {})
+            kind = next((label for label, group in RAID_PARTIES if names and names <= group), None)
+            if kind is None:
+                continue  # a mixed party, or one we never saw
+            n = sum(x["party"].values())
+            c = cells[(kind, "1" if n == 1 else "2-3" if n <= 3 else "4+")]
+            paid = (x.get("raiders_paid") or 0) > 0
+            c[0] += 1
+            if x["turrets_near"] > 0:
+                c[1] += 1
+                c[2] += paid
+            else:
+                c[3] += paid
+    print("extractors lost, by the party seen within 900 ten seconds before (parties of one kind only)")
+    print(f"{'party':<66} {'size':<4} {'lost':>5}  {'a turret within 700':>20}  {'paid, a turret near':>20}  {'paid, none near':>16}")
+    for label, _ in RAID_PARTIES:
+        for size in ("1", "2-3", "4+"):
+            c = cells.get((label, size))
+            if c:
+                print(f"{label:<66} {size:<4} {c[0]:>5}  {c[1]:>12} ({100 * c[1] / c[0]:>3.0f}%)  {c[2]:>12} ({100 * c[2] / max(c[1], 1):>3.0f}%)  {c[3]:>8} ({100 * c[3] / max(c[0] - c[1], 1):>3.0f}%)")
+
+
+# ---- the behind test (docs/briefs/derived/behind.md)
+def behind_moment(series, gap, army):
+    """series: {minute: (its income, the other's, its army, the other's, its army in the other's half, the other's
+    extractors)} -> the first minute in 6..12 at which the side is behind in income with an army left, or None."""
+    for mn in range(6, 13):
+        s = series.get(mn)
+        if s and s[1] > 0 and s[0] <= gap * s[1] and s[2] >= max(500, army * s[3]):
+            return mn
+    return None
+
+
+def behind_facts(series, mn):
+    """(went, landed, the army ratio at the minute)."""
+    went = max((series[k][4] / series[k][2]) if k in series and series[k][2] else 0.0 for k in range(mn, mn + 4))
+    after = [series[k][5] for k in range(mn + 1, mn + 6) if k in series]
+    return went >= 0.30, bool(after) and series[mn][5] - min(after) >= 3, series[mn][2] / max(1, series[mn][3])
+
+
+def report_behind(label, items):
+    """items: [((went, landed, army ratio), won)]."""
+    def rate(xs):
+        return f"{sum(w for _, w in xs)} of {len(xs)} ({100 * sum(w for _, w in xs) / max(1, len(xs)):.0f}%)"
+    home = [i for i in items if not i[0][0]]
+    went = [i for i in items if i[0][0]]
+    print(f"{label}: {len(items)} sides behind with an army; won {rate(items)}")
+    mid = lambda xs: f"{st.median(i[0][2] for i in xs):.2f}" if xs else "-"
+    print(f"  kept home: won {rate(home)} (median army {mid(home)} of his); went: won {rate(went)} (median army {mid(went)} of his)")
+    print(f"  went and his extractors fell by three or more: won {rate([i for i in went if i[0][1]])}; went and they did not: won {rate([i for i in went if not i[0][1]])}")
+    for lo, hi in ((0.5, 0.8), (0.8, 1.25), (1.25, 1e9)):
+        band = lambda xs: [i for i in xs if lo <= i[0][2] < hi]
+        print(f"  army {lo:g} to {'more' if hi > 100 else f'{hi:g}'} of his: home {rate(band(home))}, went {rate(band(went))}")
+
+
+def behind(caches, gap, army, min_os):
+    by_pop = defaultdict(list)
+    for r in load(caches):
+        pop = population(r)
+        if pop == "team":
+            continue
+        series = {}
+        for mn, at in r["at"].items():
+            o, t = at["ours"], at["theirs"]
+            series[int(mn)] = (o["ext_income"], t["ext_income"], o["army"], t["army"], o.get("army_forward", 0), t["extractors"])
+        mn = behind_moment(series, gap, army)
+        if mn is not None and r["minutes"] >= mn + 1:
+            by_pop[pop].append((behind_facts(series, mn), r["outcome"] == "Win"))
+    for pop in sorted(by_pop):
+        report_behind(f"{pop}, our side behind (income at most {gap:g} of his, army at least {army:g} of his and 500)", by_pop[pop])
+    items = []
+    for card, teams, m, os_by, duration in pool_duels(min_os):
+        for i, t in enumerate(teams):
+            by = {r["minute"]: r for r in t["curves"]}
+            by_o = {r["minute"]: r for r in teams[1 - i]["curves"]}
+            series = {mn: (by[mn]["metal_income"], by_o[mn]["metal_income"], by[mn]["army_metal"], by_o[mn]["army_metal"],
+                           by[mn].get("army_metal_in_his_half", 0), by_o[mn]["extractors"]) for mn in by if mn in by_o and mn * 60 <= duration}
+            mn = behind_moment(series, gap, army)
+            if mn is not None and duration >= (mn + 1) * 60:
+                items.append((behind_facts(series, mn), bool(t.get("won"))))
+    report_behind("the pool's duels, either side behind", items)
 
 
 # ---- the tier-2 test (docs/briefs/derived/tier2.md)
@@ -1586,7 +1691,7 @@ def opt(name, default, cast=float):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "tier2", "reclaim", "reach", "raids", "openers", "energy"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("extract", "score", "pool", "windows", "pool-windows", "behind", "tier2", "reclaim", "reach", "raids", "raid-parties", "openers", "energy"):
         print(__doc__)
         sys.exit(2)
     cmd = sys.argv[1]
@@ -1599,6 +1704,8 @@ def main():
         pool(opt("--min-os", 0.0))
     elif cmd == "windows":
         windows(positional, opt("--ratio", 1.5), opt("--margin", 500.0), opt("--fall", 3, int))
+    elif cmd == "behind":
+        behind(positional, opt("--gap", 0.85), opt("--army", 0.5), opt("--min-os", 40.0))
     elif cmd == "tier2":
         tier2(positional, opt("--side-cache", "run/data/tier2_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 8, int))
     elif cmd == "reclaim":
@@ -1607,6 +1714,8 @@ def main():
         reach(positional, opt("--side-cache", "run/data/reach_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 4, int))
     elif cmd == "raids":
         raids(positional, opt("--side-cache", "run/data/raid_killtest.jsonl", str), opt("--min-minutes", 14, int), opt("--workers", 6, int))
+    elif cmd == "raid-parties":
+        raid_parties(opt("--side-cache", "run/data/raid_killtest.jsonl", str))
     elif cmd == "energy":
         energy(opt("--opener-cache", "run/data/opener_killtest.jsonl", str), opt("--side-cache", "run/data/energy_killtest.jsonl", str), opt("--workers", 8, int), opt("--min-os", 40.0))
     elif cmd == "openers":
