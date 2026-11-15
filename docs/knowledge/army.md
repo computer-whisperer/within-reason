@@ -958,3 +958,26 @@ tally); unit 11196's orders from 5:02 of the slots game, one attack on 22427 eve
 hunters standing beside a quarry in sight without shooting (the engine dropping an order the lane no longer sends
 again at once).
 **Used by.** H-MICRO-HUNT.
+
+### K-army-a-side-behind-in-income-wins-a-tenth-at-home
+**Claim.** A side that is behind in metal income between 6:00 and 12:00 with an army still standing wins about one
+game in ten when that army stays in its own half and two to four in ten when it goes, and the wins are with the raids
+that land. Behind: income at most 0.85 of the other side's at the first such minute, army at least half of the other's
+and 500 metal. Went: three tenths of the army in the other's half within three minutes. Kept home, won: 10 of 76 (our
+1v1s, a model playing), 94 of 925 (the old code playing), 1 of 8 (the pool's duels at OS 40+, either side). Went: 13 of
+33, 25 of 142, 13 of 39. Went with the other's extractors falling by three or more within five minutes: 4 of 4, 6 of
+6, 7 of 11. The people go in 39 cases of 47, the model in 33 of 109, the old code in 142 of 1,067.
+**Status.** supported (2026-11-14), as a correlation: in our games the sides that went had the larger armies (a median
+of 1.8 times his against 1.05 for the model, 1.2 against 1.0 for the old code; in the pool 1.0 against 0.9). By army,
+going beat staying at 1.25 times his or more in all three populations, at even armies in the model's games and the
+pool (2 of 6 against 1 of 29, 5 of 9 against 1 of 3), and not in the old code's (2 of 50 against 43 of 414, walks into
+BARb's turrets). Under 0.8 of his, going won 1 of 24 in ours and 2 of 14 in the pool.
+**Evidence.** `run/metal_killtest.py behind run/data/metal_killtest.jsonl` (the cache of 2026-10-23: 1,838 games with
+curves; the pool's 42 duels from the cards). The heuristic it was run for is thebluegecko's, reviewing
+`run/matches/1794707454-human` on 2026-11-14 (docs/knowledge/_inbox/gecko-u6bkep-1v1-review-2026-11-14.md): "sitting
+back while down metal income will eventually result in a loss"; in that game no more than a tenth of our army metal
+stood in his half from 3:00 on, and none from 15:00.
+**Would be wrong if.** Banded by army ratio and by opponent, the sides that stayed home won as often as those that
+went; or a set of games played on D-behind-tempo lost more of the behind positions than the 13 percent the model wins
+from them now.
+**Used by.** The brief: D-behind-tempo (docs/briefs/derived/behind.md, a draft written for the user's read).

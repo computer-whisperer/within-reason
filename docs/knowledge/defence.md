@@ -218,3 +218,23 @@ to read.
 **Status.** conjectured (2026-11-06) from the files; unmeasured in play.
 **Would be wrong if.** The replay batch showed people's walls never standing where the trickle comes.
 **Used by.** nothing yet; the hands' menu has no wall.
+
+### K-def-a-turret-near-keeps-off-scout-cars-more-than-fast-tanks
+**Claim.** Of the extractors we lost, a light turret of ours stood within 700 of 19 percent of those a lone scout
+car killed (Tick, Rover, Rascal: 144 of 759), 33 percent of those a lone bot killed (299 of 898) and 36 percent of
+those a lone Blitz or Incisor killed (101 of 279). With a turret near, a raider died within two minutes for 47 percent
+of the lone fast tanks against 59 of the lone bots, 72 against 72 in pairs and threes, 78 against 91 in parties of four
+or more. A turret near did not change whether a lone raider paid (53 against 55 percent for scout cars, 59 against 60
+for bots, 47 against 44 for fast tanks).
+**Status.** supported (2026-11-14), on losses only and on BARb's raiding (nearly every game of the ledger): it says
+nothing of the raids a turret turned away, "within 700" is not "within reach", and no person's Blitzes are in it.
+**Evidence.** `run/metal_killtest.py raid-parties` over `run/data/raid_killtest.jsonl` (the raid ledger of 236
+model-played 1v1s, 2026-10-23; parties of one kind only, 3,868 of the 7,078 losses). It agrees in direction with
+thebluegecko's measure of a turret, reviewing `run/matches/1794707454-human` on 2026-11-14: a Sentry beside an
+extractor forces "two Blitz" or "five bots", and against a good vehicle player "the only possible defense becomes your
+own blitzes"; in that game we built 32 Sentries and 7 Beamers and 26 of the 34 extractors we lost had a turret within
+700.
+**Would be wrong if.** The truth files' failed raids (parties that came within 900 of an extractor and killed
+nothing) showed turrets turning Blitz pairs away as often as bot parties; or games against a person on vehicles with
+ten turrets by 8:00 and the rest of the metal in Blitzes lost more extractors than those with fifteen.
+**Used by.** The brief: D-raid-answer ("What a turret forces", items 1 and 3; the wording a draft for the user's read).
