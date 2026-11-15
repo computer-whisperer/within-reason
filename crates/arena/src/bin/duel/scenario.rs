@@ -17,7 +17,8 @@
 //!         "order": { "kind": "fight", "x": 3900, "z": 3300 } }  // or "move", or {"kind":"attack","target":i}
 //!     ] },                                      //   (i: a unit of the other side, by its place in the list)
 //!     { "name": "theirs", "units": [ ... ],
-//!       "track": [ { "t": 2.0, "unit": 1, "x": 4466, "z": 1496 } ] } ] }   // optional: where each unit was, by time
+//!       "track": [ { "t": 2.0, "unit": 1, "x": 4466, "z": 1496 } ] } ],    // optional: where each unit was, by time
+//!   "advance": { "to": [2600, 4568], "cap": 24 } }   // optional: side 0's lane order is an advance to a place
 //! ```
 //!
 //! `track` (`run/engagement.py --track`, 2026-09-28): the recorded places of a side's units after the cut, `t` seconds
@@ -83,6 +84,19 @@ pub struct Scenario {
     pub map_size: [f32; 2],
     pub centre: [f32; 2],
     pub sides: [Side; 2],
+    /// Under `--lane on`, side 0's order when the cut is of a group marching and not of a fight (2026-11-15, the
+    /// army that milled at its place, vents-barb-8v8-1 21:50): an advance to this point with no party, as the hands
+    /// give one, in companies of `cap`. Absent, the plain fight: the other side as its party.
+    #[serde(default)]
+    pub advance: Option<Advance>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Advance {
+    pub to: [f32; 2],
+    /// The most members a company of the group holds (`GroupOrder::cap`); 0 for one formation.
+    #[serde(default)]
+    pub cap: usize,
 }
 
 #[derive(Clone, Debug, Deserialize)]

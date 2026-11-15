@@ -625,6 +625,7 @@ impl Director {
                 script_delay: self.batch.script_delay,
                 theirs: self.batch.theirs,
                 track: self.batch.scenario.as_ref().map_or(&[], |s| s.sides[1].track.as_slice()),
+                advance: self.batch.scenario.as_ref().and_then(|s| s.advance),
                 sim: self.sim.get_or_init(|| combatsim::sim::Rules::new(self.batch.units.clone(), combatsim::sim::Tuning::default())),
             };
             if let Some(result) = advance(duel, team, tick, &rules, &mut commands) {
@@ -1277,6 +1278,8 @@ struct Rules<'a> {
     theirs: Control,
     /// Side 1's recorded track (`Side::track`; empty outside a scenario).
     track: &'a [TrackRow],
+    /// A scenario's `advance`: side 0's lane order is an advance to a place, in companies.
+    advance: Option<scenario::Advance>,
     /// The simulator's rules, for the push's odds.
     sim: &'a combatsim::sim::Rules,
 }
@@ -1808,7 +1811,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     Some(_) => None,
                     // A plain fight is an attack on the other side as a party (§5.2): each company at the nearest of
                     // them in sight, the centroid while none is.
-                    None if plain_fight => Some(GroupOrder { party: enemy.alive.keys().copied().collect(), ..GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid]) }),
+                    None if plain_fight => Some(match rules.advance.filter(|_| side == 0) {
+                        // A scenario cut from a march: the hands' advance to a place, no party.
+                        Some(a) => GroupOrder::new(GroupKind::FightTo, vec![Vec3 { x: a.to[0], y: 0.0, z: a.to[1] }]),
+                        None => GroupOrder { party: enemy.alive.keys().copied().collect(), ..GroupOrder::new(GroupKind::FightTo, vec![enemy_centroid]) },
+                    }),
                     None => None,
                 };
                 if let Some(order) = group {
@@ -1873,7 +1880,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     let body: Vec<UnitId> = army.with.iter().copied().filter(|u| living.contains(u)).collect();
                     // `--lane ranks`: the group with its march off, the slots standing at the destination.
                     // The companies design (`--cap`): the army in companies of at most the cap.
-                    let cap = duel.drill.as_ref().map_or(0, |d| d.cap);
+                    let cap = duel.drill.as_ref().map_or(rules.advance.filter(|_| side == 0).map_or(0, |a| a.cap), |d| d.cap);
                     let pair_attack = duel.drill.as_ref().is_some_and(|d| d.kind == drill::Kind::Pair && d.pair_mode == drill::PairMode::Attack);
                     let party: Vec<UnitId> = if pair_attack { enemy.alive.keys().copied().collect() } else { order.party.clone() };
                     let order = GroupOrder { march: army.lane_mode != LaneMode::Ranks, cap, party: party.clone(), ..order };
@@ -2367,6 +2374,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
             "arrived": state.arrived, "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0),
             "way": state.way.map(f32::round),
+            "passing": state.passing,
+            "companies": state.companies.iter().map(|c| json!({
+                "anchor": [c.anchor.x.round(), c.anchor.z.round()], "members": c.members, "formed": c.formed, "exceptions": c.exceptions.len(), "arrived": c.arrived,
+            })).collect::<Vec<_>>(),
         });
     }
     duel.log.push(line.to_string());

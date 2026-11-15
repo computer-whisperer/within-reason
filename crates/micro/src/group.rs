@@ -509,6 +509,9 @@ pub struct Group {
     no_way: bool,
     /// The way is to be planned again before the next step.
     dirty: bool,
+    /// Why the way is to be planned again, for the debug line: a new order, the ground rebuilt, the end moved, a
+    /// standing formation come onto the way or gone from it.
+    dirty_why: &'static str,
     /// The way point the anchor walks to next; `way.len()` at the end.
     pub leg: usize,
     /// The ground the lane gave this group, if the host has terrain.
@@ -632,6 +635,7 @@ impl Group {
             planned_end: order.route.last().copied(),
             no_way: false,
             dirty: true,
+            dirty_why: "founded",
             order,
             anchor: centroid,
             heading,
@@ -686,6 +690,7 @@ impl Group {
     pub fn set_ground(&mut self, ground: Option<Arc<Ground>>) {
         self.ground = ground;
         self.dirty = true;
+        self.dirty_why = "the ground was rebuilt";
     }
 
     /// The other formations' footprints this tick, this formation's own left out (the facing design §3): the next
@@ -755,6 +760,7 @@ impl Group {
             self.arrived = false;
             self.slot_of.clear();
             self.dirty = true;
+            self.dirty_why = "a new order";
             self.reaim = true;
         } else {
             // With a party the host's route is kept as the fall-back end (the lane re-aims the way itself); with a
@@ -851,10 +857,16 @@ impl Group {
         self.way_blocked = self.standing_on_the_way();
         if debug_on() {
             eprintln!(
-                "[group {}] PLAN from ({:.0},{:.0}): {} host points, {} way points{}{} in {:.1} ms",
+                "[group {} f={}] PLAN ({}) from ({:.0},{:.0}) leaving at {:.0} degrees for ({:.0},{:.0}), {:.0} of way: {} host points, {} way points{}{} in {:.1} ms",
                 self.name,
+                self.last_frame.unwrap_or(-1),
+                self.dirty_why,
                 self.anchor.x,
                 self.anchor.z,
+                self.way.first().map_or(0.0, |p| (p.z - self.anchor.z).atan2(p.x - self.anchor.x).to_degrees()),
+                self.way.last().map_or(self.anchor.x, |p| p.x),
+                self.way.last().map_or(self.anchor.z, |p| p.z),
+                self.way_ahead(),
                 self.order.route.len(),
                 self.way.len(),
                 if self.ground.is_some() { "" } else { " (no ground)" },
@@ -1327,11 +1339,32 @@ impl Group {
         }
         if self.planned_end.is_some_and(|p| p.dist2d(at) > REPLAN_MOVED) {
             self.dirty = true;
+            self.dirty_why = "the end moved";
         }
         if far && self.leg >= self.way.len() {
             self.leg = self.way.len().saturating_sub(1);
             self.arrived = false;
         }
+    }
+
+    /// What the replay instrument prints of a formation beside its state (`replay.rs`): the way's end and the points
+    /// left to it, the end `keep_off` placed and the raw end it was placed for, whether it is halted or pinned, what
+    /// it closes on, and its facing.
+    #[cfg(test)]
+    pub(crate) fn probe(&self) -> String {
+        let at = |p: Vec3| format!("({:.0},{:.0})", p.x, p.z);
+        format!(
+            "leg {}/{} end {} placed {} halted {} pinned {} close {} facing ({:.2},{:.2})",
+            self.leg,
+            self.way.len(),
+            self.way.last().map_or("-".to_string(), |p| at(*p)),
+            self.placed.map_or("-".to_string(), |(_, to, _)| at(to)),
+            self.stopped,
+            self.pinned,
+            self.close.map_or("-".to_string(), |(t, _)| at(t)),
+            self.facing.0,
+            self.facing.1
+        )
     }
 
     /// Whether the anchor is at the way's end.
@@ -1404,6 +1437,7 @@ impl Group {
             if blocked != self.way_blocked {
                 self.way_blocked = blocked;
                 self.dirty = true;
+                self.dirty_why = "the standing formations on the way changed";
             }
         }
         if self.dirty {

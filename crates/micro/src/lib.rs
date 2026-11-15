@@ -28,6 +28,8 @@ pub mod group;
 pub mod army;
 mod rove;
 #[cfg(test)]
+mod replay;
+#[cfg(test)]
 mod test_host;
 
 pub use ground::{ClassKey, Classes, Footprint, Ground};

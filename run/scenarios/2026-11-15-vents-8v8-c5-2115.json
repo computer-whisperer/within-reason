@@ -1,0 +1,973 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "All That Glitters v2.2.3",
+ "map_size": [
+  6144.0,
+  10240.0
+ ],
+ "centre": [
+  2600.0,
+  4568.0
+ ],
+ "source": {
+  "match": "run/matches/1794724277-vents-barb-8v8-1/00",
+  "seat": "3",
+  "group": "group_A_t3",
+  "clock": "21:15",
+  "cut": "run/group_scene.py: the group's members, his buildings from the truth file"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armflash",
+     "x": 2584,
+     "z": 3272,
+     "health": 1.0,
+     "heading": [
+      -0.63,
+      0.78
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 2580,
+     "z": 3420,
+     "health": 1.0,
+     "heading": [
+      -0.97,
+      -0.24
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 3038,
+     "z": 3774,
+     "health": 0.51,
+     "heading": [
+      0.43,
+      -0.9
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2477,
+     "z": 3673,
+     "health": 0.76
+    },
+    {
+     "type": "armstump",
+     "x": 2505,
+     "z": 3637,
+     "health": 0.98,
+     "heading": [
+      0.2,
+      -0.98
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2425,
+     "z": 3630,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 3575,
+     "z": 3358,
+     "health": 1.0,
+     "heading": [
+      1.0,
+      0.0
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 3182,
+     "z": 3753,
+     "health": 1.0,
+     "heading": [
+      0.19,
+      -0.98
+     ]
+    },
+    {
+     "type": "armjanus",
+     "x": 3319,
+     "z": 3521,
+     "health": 1.0,
+     "heading": [
+      0.57,
+      -0.82
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2404,
+     "z": 3668,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3242,
+     "z": 4295,
+     "health": 0.85,
+     "heading": [
+      -0.73,
+      -0.69
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2775,
+     "z": 3419,
+     "health": 1.0
+    },
+    {
+     "type": "armstump",
+     "x": 2465,
+     "z": 3632,
+     "health": 1.0,
+     "heading": [
+      0.35,
+      -0.94
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3279,
+     "z": 3757,
+     "health": 1.0,
+     "heading": [
+      0.61,
+      -0.79
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3607,
+     "z": 3470,
+     "health": 0.51,
+     "heading": [
+      0.93,
+      -0.38
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3639,
+     "z": 3224,
+     "health": 1.0,
+     "heading": [
+      0.75,
+      -0.66
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2441,
+     "z": 3668,
+     "health": 0.91
+    },
+    {
+     "type": "armflash",
+     "x": 3411,
+     "z": 4469,
+     "health": 0.51,
+     "heading": [
+      -0.71,
+      -0.71
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2587,
+     "z": 3742,
+     "health": 0.93
+    },
+    {
+     "type": "armbull",
+     "x": 3420,
+     "z": 3528,
+     "health": 0.78,
+     "heading": [
+      0.74,
+      -0.68
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2677,
+     "z": 3335,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3182,
+     "z": 3890,
+     "health": 0.96,
+     "heading": [
+      0.67,
+      -0.74
+     ]
+    },
+    {
+     "type": "armmanni",
+     "x": 3479,
+     "z": 3506,
+     "health": 0.74,
+     "heading": [
+      0.27,
+      -0.96
+     ]
+    },
+    {
+     "type": "armmanni",
+     "x": 3105,
+     "z": 3650,
+     "health": 1.0,
+     "heading": [
+      -0.58,
+      -0.81
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2694,
+     "z": 3182,
+     "health": 1.0,
+     "heading": [
+      -0.74,
+      0.67
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3469,
+     "z": 3090,
+     "health": 0.81,
+     "heading": [
+      0.91,
+      0.41
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2680,
+     "z": 3495,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 2581,
+     "z": 3893,
+     "health": 0.43
+    },
+    {
+     "type": "armmanni",
+     "x": 2829,
+     "z": 3793,
+     "health": 0.79,
+     "heading": [
+      -0.46,
+      -0.89
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2587,
+     "z": 3582,
+     "health": 1.0
+    },
+    {
+     "type": "armbull",
+     "x": 3362,
+     "z": 3276,
+     "health": 0.8,
+     "heading": [
+      0.63,
+      -0.78
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2518,
+     "z": 3675,
+     "health": 0.8,
+     "heading": [
+      0.47,
+      -0.88
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3621,
+     "z": 3082,
+     "health": 1.0,
+     "heading": [
+      0.71,
+      -0.71
+     ]
+    },
+    {
+     "type": "armjanus",
+     "x": 2883,
+     "z": 3516,
+     "health": 0.94,
+     "heading": [
+      -0.49,
+      -0.87
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 2769,
+     "z": 3571,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 2871,
+     "z": 3172,
+     "health": 1.0
+    },
+    {
+     "type": "armjanus",
+     "x": 3088,
+     "z": 3709,
+     "health": 0.47,
+     "heading": [
+      0.36,
+      -0.93
+     ]
+    },
+    {
+     "type": "armmanni",
+     "x": 3627,
+     "z": 3396,
+     "health": 1.0,
+     "heading": [
+      0.65,
+      -0.76
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2650,
+     "z": 3820,
+     "health": 0.88,
+     "heading": [
+      -0.81,
+      0.58
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3228,
+     "z": 4463,
+     "health": 0.59,
+     "heading": [
+      -0.84,
+      -0.55
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3315,
+     "z": 3369,
+     "health": 0.94,
+     "heading": [
+      0.24,
+      -0.97
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3230,
+     "z": 4376,
+     "health": 0.46,
+     "heading": [
+      -0.78,
+      -0.62
+     ]
+    },
+    {
+     "type": "armjanus",
+     "x": 3729,
+     "z": 3250,
+     "health": 0.2,
+     "heading": [
+      0.69,
+      -0.72
+     ]
+    },
+    {
+     "type": "armmanni",
+     "x": 3362,
+     "z": 3767,
+     "health": 1.0,
+     "heading": [
+      -0.49,
+      -0.87
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3360,
+     "z": 4105,
+     "health": 0.93,
+     "heading": [
+      -0.18,
+      -0.98
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3040,
+     "z": 3611,
+     "health": 1.0,
+     "heading": [
+      0.85,
+      0.52
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 2741,
+     "z": 3622,
+     "health": 0.05,
+     "heading": [
+      -0.98,
+      0.21
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 2443,
+     "z": 3602,
+     "health": 1.0,
+     "heading": [
+      -0.1,
+      -1.0
+     ]
+    },
+    {
+     "type": "armmanni",
+     "x": 3565,
+     "z": 3310,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3493,
+     "z": 3613,
+     "health": 1.0,
+     "heading": [
+      0.92,
+      -0.39
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3653,
+     "z": 3623,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3426,
+     "z": 3787,
+     "health": 1.0,
+     "heading": [
+      0.96,
+      -0.29
+     ]
+    },
+    {
+     "type": "armbull",
+     "x": 3379,
+     "z": 3349,
+     "health": 1.0,
+     "heading": [
+      -0.34,
+      0.94
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3242,
+     "z": 3517,
+     "health": 1.0
+    },
+    {
+     "type": "armmanni",
+     "x": 3476,
+     "z": 3368,
+     "health": 1.0,
+     "heading": [
+      0.99,
+      0.12
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3360,
+     "z": 4262,
+     "health": 0.65,
+     "heading": [
+      -0.7,
+      -0.71
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3431,
+     "z": 3482,
+     "health": 0.48,
+     "heading": [
+      -0.45,
+      -0.89
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3333,
+     "z": 3583,
+     "health": 1.0
+    },
+    {
+     "type": "armstump",
+     "x": 3820,
+     "z": 3641,
+     "health": 1.0
+    },
+    {
+     "type": "armjanus",
+     "x": 3129,
+     "z": 3921,
+     "health": 0.19,
+     "heading": [
+      1.0,
+      0.0
+     ]
+    },
+    {
+     "type": "armflash",
+     "x": 3167,
+     "z": 4328,
+     "health": 0.83,
+     "heading": [
+      -0.78,
+      -0.62
+     ]
+    },
+    {
+     "type": "armbull",
+     "x": 3207,
+     "z": 3571,
+     "health": 1.0,
+     "heading": [
+      -0.71,
+      0.71
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 2872,
+     "z": 3340,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3312,
+     "z": 4216,
+     "health": 1.0,
+     "heading": [
+      -0.71,
+      -0.71
+     ]
+    },
+    {
+     "type": "armstump",
+     "x": 3172,
+     "z": 3426,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 2936,
+     "z": 3522,
+     "health": 1.0,
+     "heading": [
+      0.09,
+      1.0
+     ]
+    },
+    {
+     "type": "armbull",
+     "x": 3096,
+     "z": 3510,
+     "health": 0.98
+    },
+    {
+     "type": "armsam",
+     "x": 3535,
+     "z": 3436,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 3032,
+     "z": 3414,
+     "health": 1.0,
+     "heading": [
+      0.98,
+      0.19
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 2776,
+     "z": 3255,
+     "health": 0.79
+    },
+    {
+     "type": "armsam",
+     "x": 3388,
+     "z": 3489,
+     "health": 1.0,
+     "heading": [
+      -0.99,
+      -0.11
+     ]
+    },
+    {
+     "type": "armbull",
+     "x": 3107,
+     "z": 3316,
+     "health": 1.0
+    },
+    {
+     "type": "armstump",
+     "x": 3306,
+     "z": 3255,
+     "health": 1.0,
+     "heading": [
+      -0.86,
+      -0.5
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 3486,
+     "z": 3322,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 3730,
+     "z": 3546,
+     "health": 1.0
+    },
+    {
+     "type": "armflash",
+     "x": 2946,
+     "z": 3315,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 3811,
+     "z": 3449,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 3656,
+     "z": 3436,
+     "health": 1.0
+    },
+    {
+     "type": "armsam",
+     "x": 3518,
+     "z": 3226,
+     "health": 1.0,
+     "heading": [
+      0.55,
+      -0.83
+     ]
+    },
+    {
+     "type": "armsam",
+     "x": 3808,
+     "z": 3263,
+     "health": 1.0,
+     "heading": [
+      -0.37,
+      0.93
+     ]
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "corllt",
+     "x": 3344,
+     "z": 5504,
+     "health": 1.0
+    },
+    {
+     "type": "corrad",
+     "x": 2912,
+     "z": 6224,
+     "health": 1.0
+    },
+    {
+     "type": "corllt",
+     "x": 3024,
+     "z": 6112,
+     "health": 1.0
+    },
+    {
+     "type": "corhllt",
+     "x": 3136,
+     "z": 5501,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 2352,
+     "z": 5920,
+     "health": 1.0
+    },
+    {
+     "type": "corllt",
+     "x": 2864,
+     "z": 5904,
+     "health": 1.0
+    },
+    {
+     "type": "corhllt",
+     "x": 2784,
+     "z": 5981,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 1760,
+     "z": 6016,
+     "health": 1.0
+    },
+    {
+     "type": "corwin",
+     "x": 3704,
+     "z": 5848,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 1392,
+     "z": 5440,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 1920,
+     "z": 5488,
+     "health": 1.0
+    },
+    {
+     "type": "corrad",
+     "x": 1536,
+     "z": 5584,
+     "health": 1.0
+    },
+    {
+     "type": "corllt",
+     "x": 1696,
+     "z": 5392,
+     "health": 1.0
+    },
+    {
+     "type": "corllt",
+     "x": 1648,
+     "z": 5600,
+     "health": 1.0
+    },
+    {
+     "type": "corrad",
+     "x": 2384,
+     "z": 5776,
+     "health": 1.0
+    },
+    {
+     "type": "corhllt",
+     "x": 1603,
+     "z": 5312,
+     "health": 1.0
+    },
+    {
+     "type": "corllt",
+     "x": 2576,
+     "z": 5792,
+     "health": 1.0
+    },
+    {
+     "type": "corwin",
+     "x": 1160,
+     "z": 5352,
+     "health": 1.0
+    },
+    {
+     "type": "cormadsam",
+     "x": 3336,
+     "z": 5576,
+     "health": 1.0
+    },
+    {
+     "type": "cormadsam",
+     "x": 1656,
+     "z": 5464,
+     "health": 1.0
+    },
+    {
+     "type": "corhlt",
+     "x": 3152,
+     "z": 5664,
+     "health": 1.0
+    },
+    {
+     "type": "corpun",
+     "x": 1776,
+     "z": 5616,
+     "health": 1.0
+    },
+    {
+     "type": "coralab",
+     "x": 3176,
+     "z": 6008,
+     "health": 1.0
+    },
+    {
+     "type": "corhlt",
+     "x": 2752,
+     "z": 6096,
+     "health": 1.0
+    },
+    {
+     "type": "corhlt",
+     "x": 1552,
+     "z": 5440,
+     "health": 1.0
+    },
+    {
+     "type": "corhllt",
+     "x": 2291,
+     "z": 5584,
+     "health": 1.0
+    },
+    {
+     "type": "cormadsam",
+     "x": 2392,
+     "z": 5688,
+     "health": 1.0
+    },
+    {
+     "type": "corhlt",
+     "x": 2272,
+     "z": 5712,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 1520,
+     "z": 4704,
+     "health": 1.0
+    },
+    {
+     "type": "corvipe",
+     "x": 3288,
+     "z": 5656,
+     "health": 1.0
+    },
+    {
+     "type": "cormadsam",
+     "x": 2824,
+     "z": 6040,
+     "health": 1.0
+    },
+    {
+     "type": "cormoho",
+     "x": 2896,
+     "z": 6048,
+     "health": 1.0
+    },
+    {
+     "type": "cormoho",
+     "x": 3488,
+     "z": 5840,
+     "health": 0.5
+    },
+    {
+     "type": "corjamt",
+     "x": 2352,
+     "z": 5808,
+     "health": 0.76
+    },
+    {
+     "type": "corlab",
+     "x": 1470,
+     "z": 5811,
+     "health": 0.25
+    },
+    {
+     "type": "cormex",
+     "x": 1776,
+     "z": 4992,
+     "health": 1.0
+    },
+    {
+     "type": "corsolar",
+     "x": 2232,
+     "z": 5432,
+     "health": 1.0
+    },
+    {
+     "type": "cormex",
+     "x": 2432,
+     "z": 5440,
+     "health": 1.0
+    },
+    {
+     "type": "corvipe",
+     "x": 3000,
+     "z": 5896,
+     "health": 0.11
+    },
+    {
+     "type": "corrad",
+     "x": 1712,
+     "z": 4976,
+     "health": 0.65
+    },
+    {
+     "type": "cormex",
+     "x": 3184,
+     "z": 5328,
+     "health": 0.16
+    }
+   ]
+  }
+ ],
+ "advance": {
+  "to": [
+   2600.0,
+   4568.0
+  ],
+  "cap": 24
+ }
+}
