@@ -413,9 +413,10 @@ the march and at rest for a disturbance (P2); `shift49/100/300`, `shift100-rest`
 `restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind); `walk-mixed` and
 `alternate-mixed` (8 Stouts with 16 Blitzes, a body of two speeds, under one order and under a place moved each
 second: added after loop-pianist-smoke, every row before being of one type). The bench's arms, read from the
-environment by the lane in the duel binary: `WITHIN_REASON_ROW=2` (blocks two abreast) and `WITHIN_REASON_STRIDE=64`
-(a member faster than its company's pace is sent its slot carried that far ahead and sent again a stride on; the
-default sends it its slot, again each cell or two the slot moves).
+environment by the lane in the duel binary: `WITHIN_REASON_ROW=2` (blocks two abreast) and `WITHIN_REASON_STRIDE=N`
+(how far ahead of its slot a member faster than its company's pace is sent, and how far that point moves before it
+is sent again: 64 by default since 2026-11-15, the design's D11; 0 sends it its slot itself, again each cell or two
+the slot moves, as the engine was first built).
 The reader's columns:
 `first` (the second the first member stood within 300 of the place), `at80` (four fifths within 900), `rest` (the
 second from which nobody moved 5 elmos in a second again), `last_ord` and `ord_rest` (the last order, and orders after

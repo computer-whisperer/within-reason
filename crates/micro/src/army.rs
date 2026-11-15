@@ -95,7 +95,7 @@ pub struct Company {
     /// This tick's slots, on the ground, and the points the members are sent to.
     slots: HashMap<UnitId, Vec3>,
     goals: HashMap<UnitId, Vec3>,
-    /// The members sent a stride ahead of their slot this tick (`group::stride`, the bench's arm).
+    /// The members sent a stride ahead of their slot this tick (`Pacing::stride`).
     strides: HashSet<UnitId>,
 }
 
@@ -438,22 +438,22 @@ impl Company {
             self.frame.centre = if self.at_end() { self.stand.centre } else { self.point(self.f).0 };
         }
         // The slots on the ground, and where each member is sent: the slowest type its slot carried ahead along the
-        // travel by the lead times the pace's share (nothing while the frame stands), the others their slot.
+        // travel by the lead times the pace's share, a faster type its slot carried a stride ahead (nothing while the
+        // frame stands, and never past the way's end).
         let share = if self.pace_full > 0.0 && dt > 0.0 { (step / dt / self.pace_full).clamp(0.0, 1.0) } else { 0.0 };
         let left = total - self.f;
         let (_, travel) = self.point(self.f);
         self.slots.clear();
         self.goals.clear();
         self.strides.clear();
-        let stride = crate::group::stride();
         for (w, i) in &members {
             let nominal = self.frame.slot(*i);
             let slot = ground.and_then(|g| g.snap(nominal)).unwrap_or(nominal);
             let lead = if share > 0.0 && pace_type(w, slowest) && pacing.lead > 0.0 {
                 pacing.lead * share * (left / pacing.lead).clamp(0.0, 1.0)
-            } else if share > 0.0 && stride > 0.0 && !pace_type(w, slowest) {
+            } else if share > 0.0 && pacing.stride > 0.0 && !pace_type(w, slowest) {
                 self.strides.insert(w.id);
-                stride.min(left)
+                pacing.stride.min(left)
             } else {
                 0.0
             };
@@ -497,10 +497,10 @@ pub struct Army {
 }
 
 impl Army {
-    /// How far a member's point must have moved before it is sent again: `near`, or the stride for a member sent a
+    /// How far a member's point must have moved before it is sent again: `near`, or `stride` for a member sent a
     /// stride ahead this tick.
-    pub fn near_of(&self, id: UnitId, near: f32) -> f32 {
-        if self.companies.iter().any(|c| c.strides.contains(&id)) { near.max(crate::group::stride()) } else { near }
+    pub fn near_of(&self, id: UnitId, near: f32, stride: f32) -> f32 {
+        if self.companies.iter().any(|c| c.strides.contains(&id)) { near.max(stride) } else { near }
     }
 
     /// The blocks this army holds at its place.

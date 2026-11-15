@@ -517,7 +517,7 @@ it: the companies' ends are placed beside each other (`keep_off`), their members
 stretch, and a member the engine stops short of a slot that stands (K-engine-a-blocked-move-ends-short) is not sent
 again, because an arrived formation's slots go out once. It stands a few seconds from its slot until the host takes
 it out.
-**Status.** measured (2026-11-10) on the engine of before 2026-11-15. On the rebuilt engine (branch `army-loop`, K-group-an-army-laid-in-blocks-comes-to-rest) a hundred over open ground end in 34 to 38 s and through a door in 51 s; a few members boxed out of their slots are what is left of it (K-group-a-member-boxed-out-of-its-slot-stands-short). As measured then: nothing was built on it. A hundred Stouts, `--cap 24`, a walk of 2,000 on
+**Status.** measured (2026-11-10) on the engine of before 2026-11-15. On the rebuilt engine (K-group-an-army-laid-in-blocks-comes-to-rest) a hundred over open ground end in 34 to 38 s and through a door in 51 s; a few members boxed out of their slots are what is left of it (K-group-a-member-boxed-out-of-its-slot-stands-short). As measured then: nothing was built on it. A hundred Stouts, `--cap 24`, a walk of 2,000 on
 Full Metal Plate with no obstacle, the lane of before the relaxed posture (rg0-open-stump100-on4, four duels): every
 duel at the time limit of 300 s, the arrivals 28-37 / 41-49 / 71-95 s, 29 members left behind; with the posture
 (rgF-open-stump100-on4) the same, 30-37 / 42-46 / 72-250 and 25. A plain engine order, with a wall's door on the
@@ -836,8 +836,9 @@ alone 0.36 and 0.30), and the mixed body walks at 0.80 of the pace on both.
 `WITHIN_REASON_STRIDE`: the faster member sent its slot carried a stride ahead, and again a stride on): a mixed
 body's orders a member a second fall from 1.56 to 1.10, 0.87, 0.72 and 0.56 at 32, 48, 64 and 96 with arrival, pace
 and depth unchanged, the Blitzes back where the engine of before had them behind the Stouts (90, against 113 with
-no stride), and an assault of three speeds level (4 of 4 on every arm, value left inside one arm's spread). Not
-the default: put to the user. Not measured: a type much faster than the pace, a hundred soldiers, a game.
+no stride), and an assault of three speeds level (4 of 4 on every arm, value left inside one arm's spread). The
+default at 64 since 2026-11-15 (the design's D11, on the user's word; on it the army of C5, 92 of six types, takes
+0.57 orders a member a second for 1.17 and arrives the same). Not measured: a type much faster than the pace, a game.
 **Evidence.** `docs/experiments.md`, the row orders1-\* to alternate-mixed (orders1); the old engine's note on
 "the faster types of a mixed body still per tick" (169d728e).
 **Would be wrong if.** The orders follow the seconds and not the slot's travel (a body at half pace asks as many).

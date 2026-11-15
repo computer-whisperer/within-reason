@@ -234,8 +234,10 @@ today (`Ground`: the members' common ground, priced by room).
   become their places at the next forming-up ground or the end: the company degrades to the engine's own move
   order and re-forms where it arrives. That is the worst case, and it is what a plain order would have done.
 - **The goal a member is sent to** is its slot, carried ahead along the travel for the slowest type by the
-  present lead (300) times the hold, shrinking to nothing over the last lead of the way. Other types are sent to
-  the slot itself and trail it by their own following distance, inside the band.
+  present lead (300) times the hold, shrinking to nothing over the last lead of the way. A faster type is sent
+  its slot carried a stride (64) ahead along the travel while the frame walks, never past the way's end, and
+  again once that point has moved a stride (D11). As first built it was sent the slot itself, which cost an
+  order for each cell or two the slot travelled.
 - **A member with no order** (the engine ended its move) that stands further than the band from its goal is sent
   there again, on the march and at rest alike, at a cadence that doubles while it does not move (one second to
   eight). Today a slot that stands goes out once (T23).
@@ -485,7 +487,18 @@ Each changes something he ruled or judged, or is a choice the bench cannot make.
   on "Make the re-seat apply only when the army has no order" and on measuring the faster type's re-send
   distance: "Yes to both -- apply it and try another test game" (a bare assent).
 
-## 14. As built (2026-11-15, branch `army-loop`)
+- **D11 (2026-11-15) A type faster than the pace is sent its slot carried 64 ahead, and again each 64.**
+  Chose-because: sent its slot itself a faster member cost an order for each cell or two the slot travelled, on
+  this engine and the one before (K-group-a-faster-type-costs-an-order-a-cell): a body of 8 Stouts and 16 Blitzes
+  took 1.56 orders a member a second on one order and takes 0.72 at 64, the army of C5 (92 of six types) 1.17 and
+  0.57, with arrival, pace, the body's depth, an assault and the cut clash of loop-pianist-smoke-2 unchanged (the
+  ledger's rows stride\* and s64-\*). Rejected-because, of the slot itself: its purpose was a faster member
+  standing exactly in its slot on the march, and it trails the slot more that way (the Blitzes' middle 113 behind
+  the Stouts' against 86 to 92 with a stride). Of 96: it buys little more (0.56) for a longer run ahead. Not
+  measured: a type much faster than the pace (a scout beside tanks), a game. The user: "Let's set the re-send distance to 64 and prepare for a human game to test this."
+  `WITHIN_REASON_STRIDE` stays as the bench's arm (another length, or 0).
+
+## 14. As built (2026-11-15, branch `army-loop`; merged to main the same day)
 
 The user on the design: "Agreed, let's proceed with this. Do it in a worktree so the main bot is available for lobby
 games." A bare assent on D1 to D9: a checkpoint, open again at any time.
@@ -572,4 +585,12 @@ seen in the clash and are not priced: the facing 44 to 82 degrees off the bearin
 sixty degrees), the re-deal of the turn falling in contact, and a pursuit at four fifths of the slowest type's speed
 behind a party walking at about the same. Open, for the user: nothing here asks for a change of D3, D6 or D7; the
 ground of our own base is the place to look next.
+
+**Merged to main (2026-11-15).** The user: "Merge the changes into the main tree unless there are major outstanding components." Nothing of the design is
+unbuilt beyond the departures listed above. What had not been exercised when it was merged, said to him with the
+merge: no game with a player on it (two pianist-only games and one of WRDistilled's), so the player's `groups` and
+`lane` tools, more than one company in a game, a follower and a march across the map met the rebuilt engine first in
+his lobby game; WRDistilled's twelve-map bench not run on it; a formation among our own buildings deals a seventh
+less on either engine. The player's prompt and its `lane` tool still described the close of D3 and companies that
+merge when they meet; both were corrected with the merge (`crates/bot/src/strategist/player.md`, `mcp.rs`).
 

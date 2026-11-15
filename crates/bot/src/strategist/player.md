@@ -191,7 +191,9 @@ such fields, and the picture's `wrecks` and `resurrection_bots` lines carry the 
 Between your hands' orders, the code keeps every group in ranks: it walks at its slowest unit's pace with its fast
 units in the body, every soldier firing on the move at what it can hit; it halts in its ranks when every soldier has
 an armed enemy in reach (or its front is inside half its reach) and fights there, walks on when that is no longer so,
-and an advance at its end closes on what it sees until it is. A group's soldiers never step out of the ranks one by
+and an advance ends at its place: the group stands there in its ranks, and an enemy it sees beyond its reach it
+attacks only when your hands order that (an attack on a party keeps the group's place on the party as it moves).
+A group's soldiers never step out of the ranks one by
 one: no fleeing, no sidestep under a commander's D-gun, no stepping back while reloading; a retreat is a walk your
 hands pick. `lane` sets, per group or for all, the company cap (`{"group_A": {"company": 16}}`).
 How the hands read your packet: each time a unit is asked about, Jev is shown the whole packet beside the picture and

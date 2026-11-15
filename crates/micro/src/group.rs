@@ -169,6 +169,9 @@ pub struct Pacing {
     pub share: f32,
     /// The slowest type's goal is its slot carried this far ahead along the travel, times the pace's share.
     pub lead: f32,
+    /// A faster type's goal is its slot carried this far ahead along the travel while the frame walks, sent again once
+    /// that point has moved this far (the design's §5.6, D11). 0: its slot itself, again each cell or two it moves.
+    pub stride: f32,
     /// The front's stop: no slot comes nearer an armed enemy in sight than this share of the company's shortest reach.
     pub close_to: f32,
     /// A member with no order further than the band from its goal is sent again once its last order is this many
@@ -183,6 +186,10 @@ pub struct Pacing {
 pub const SHARE: f32 = 0.8;
 /// The slowest type's lead.
 pub const LEAD: f32 = 300.0;
+/// A faster type's stride. Sent its slot itself a member faster than the pace cost an order for each cell or two
+/// the slot travelled (a body of 8 Stouts and 16 Blitzes 1.56 orders a member a second, 0.72 at this stride, with
+/// arrival, pace, depth and an assault's outcome unchanged: K-group-a-faster-type-costs-an-order-a-cell).
+pub const STRIDE: f32 = 64.0;
 /// `Pacing::idle_after`: a second; and the longest a member that does not move waits to be sent again.
 pub const IDLE_AFTER: i32 = 30;
 pub const IDLE_LONGEST: i32 = 240;
@@ -226,13 +233,11 @@ pub fn relax_on() -> bool {
     *ON.get_or_init(|| std::env::var("WITHIN_REASON_RELAX").map_or(true, |v| v != "0"))
 }
 
-/// The bench's arm for a faster type's stride (`WITHIN_REASON_STRIDE=64`): a member faster than its company's pace
-/// is sent its slot carried this far ahead along the travel, and sent again once that point has moved this far. 0,
-/// the default, sends it its slot itself, again each `form::near_tolerance` the slot has moved
-/// (K-group-a-faster-type-costs-an-order-a-cell).
-pub fn stride() -> f32 {
+/// `Pacing::stride` by default: `STRIDE`, or the bench's arm `WITHIN_REASON_STRIDE` (another length; 0 sends a
+/// faster member its slot itself, as the engine was first built).
+fn stride() -> f32 {
     static ARM: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
-    *ARM.get_or_init(|| std::env::var("WITHIN_REASON_STRIDE").ok().and_then(|v| v.parse().ok()).filter(|v: &f32| *v > 0.0).unwrap_or(0.0))
+    *ARM.get_or_init(|| std::env::var("WITHIN_REASON_STRIDE").ok().and_then(|v| v.parse().ok()).filter(|v: &f32| *v >= 0.0).unwrap_or(STRIDE))
 }
 
 impl Default for Pacing {
@@ -245,6 +250,7 @@ impl Default for Pacing {
             exception_at: 300.0,
             share: SHARE,
             lead: LEAD,
+            stride: stride(),
             close_to: 0.5,
             idle_after: IDLE_AFTER,
             near: NEAR_SHARE,
