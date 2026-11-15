@@ -710,6 +710,10 @@ Blitzes that averaged 72. Not separated: the formation's pace from the route bei
 centre moved. Nothing built on it. The user, from u6bkep after that game: the Blitz's "whole value proposition is
 their speed and maneuverability. Purchasing a block of blitzes and slowing them down with stouts is something of a
 mistake" (a strategy error apart from the army's control; `docs/knowledge/_inbox/player-notes.md`).
+Seen again 2026-11-15 on the rebuilt engine (loop-pianist-smoke-2, 10:42 to 10:56: the body made 56 a second
+behind a party walking 52, its Blitzes in their slots) and in that clash cut and fought again; priced there: in
+formation his party has 0.07 of its value left at 60 s and under the engine's own fight order 0.02, for 0.68
+of our soldiers left against 0.53 (`docs/experiments.md`, party-\*).
 **Evidence.** Each soldier's path from the record's samples over the window (the members from the hands' log at
 7:38); the party's centre from the hands' log.
 **Would be wrong if.** A drill of a mixed group attacking a party that crosses its front shows the fast members
@@ -848,10 +852,35 @@ against 13, the median soldier 390 to 560 from his nearest, eight Stouts lost. O
 guard stops it when its nearest slot is half the shortest reach from an armed enemy, and the halt wants every slot
 in reach: against a party narrower than the block the first comes long before the second (halted 1 s of the game,
 an enemy in some member's reach 144 s).
-**Status.** measured (2026-11-15, one clash a game, off the positions), open. It is the open point of the design's
-§14 (the enemy is not an input of the layout; D3, no close; D7, the halt on the slots) seen in a game.
-**Evidence.** `docs/experiments.md`, loop-pianist-smoke-2.
+**Status.** the numbers stand; **the reading was wrong** (2026-11-15, the same day). A third in reach is not a
+fault of the formation: the clash cut and fought again has 15 % of our soldier-seconds with one of his in reach in
+formation and 22 % under the engine's own fight order, 9 and 14 % dealing damage (live 27 and 10 %), and either
+engine wins it (our soldiers 0.72 left, his 0.08 to 0.14, at 30 s; the fight order 0.66 and 0.17). The guard and
+the halt are as described and are not what the live clash turned on: see
+K-group-a-formation-among-our-buildings-deals-a-seventh-less.
+**Evidence.** `docs/experiments.md`, loop-pianist-smoke-2 and party-\*.
 **Would be wrong if.** The soldiers out of reach were newcomers on their way and not members in their slots (the
 lane counted 4 to 12 of them in their slots through the clash).
-**Used by.** none: with the layout's question, for the user.
+**Used by.** none.
+
+### K-group-a-formation-among-our-buildings-deals-a-seventh-less
+**Claim.** A formation that fights among our own buildings leaves a party about twice the value it leaves it on
+open ground, on the rebuilt engine and on the one before; soldiers under the engine's own fight order lose nothing
+there. loop-pianist-smoke-2's clash at 10:23 cut and fought again (10 Blitzes and 7 Stouts against 4 Janus and 2
+Stouts walking their true track, eight duels an arm, our soldiers' value left and his at 30 s): on open ground the
+rebuilt engine 0.72 and 0.14, the engine of before 0.72 and 0.08, the fight order 0.66 and 0.17; with our eight
+buildings within 1,300 of the place where they stood, 0.70 and 0.27, 0.69 and 0.21, the fight order 0.72 and 0.19.
+With three Blitzes fewer as well (the hands sent four away after scout cars) the rebuilt engine reads 0.65 and 0.32,
+which is the live clash (0.63 and 0.35). Against the party walking through, a formation's margin over the fight
+order on open ground (0.68 of our soldiers left against 0.53 at 60 s) is gone among our buildings (0.62 against
+0.58). Head-on on open ground, with his party fighting at us, a formation keeps 0.76 to 0.79 where the fight
+order keeps 0.52; head-on among buildings is not measured.
+**Status.** measured (2026-11-15, one clash, eight duels an arm). The mechanism is not found: with and without the
+buildings the army's log shows the block laid again beside the place and the way planned again (wrecks are
+structures); K-form-a-body-stationed-among-buildings-jams and K-group-a-stand-among-buildings-is-dealt-again-as-
+soldiers-arrive are the standing observations of the same ground.
+**Evidence.** `docs/experiments.md`, party-\*; `run/scenario_soldiers.py`.
+**Would be wrong if.** A second clash in a base cut the same way showed no cost, or the cost went with the buildings
+his party stops to shoot and not with where the formation's slots can stand.
+**Used by.** none. A group whose packet pins it to our base (the rebuild packets do) fights every fight there.
 

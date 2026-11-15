@@ -26,6 +26,8 @@ run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight
                   [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
                                        cut a scenario file from a live record (with the enemy's track, our orders)
 run/scenario_table.py <batch dir> ... [--by-seed]   one markdown row per scenario batch (margins, value left at 30/60 s)
+run/scenario_soldiers.py <scenario file> <batch dir> ...   a scenario batch by our soldiers alone (buildings in the cut left out), who fired
+run/clash_fire.py <match dir> <from> <to> [--group group_A]   one clash of a live group by who fired, second by second
 ```
 `--seeds a,b,c` works for every kind of batch: each duel is fought `--reps` times under each engine seed.
 A Legion unit named on the command line, or in a scenario file given on it, turns the faction on in the start
@@ -162,6 +164,15 @@ full health), or the opponent's ground truth (`truth`: `truth-<ai>.jsonl`, writt
 live (`source.live`: each side's value left 30 and 60 s later, ours from the record, theirs from the truth file), to set
 beside the replay. The file format is the doc comment of `crates/arena/src/bin/duel/scenario.rs`; the files cut so far
 are in `docs/data/scenarios-2026-09-24/`.
+
+**A clash read against its own cut (2026-11-15, `run/scenarios/2026-11-15-loop-smoke-2-party-1023*.json`).** Before a
+lost fight in a game is laid at the group engine's door, cut it (`--enemies truth --track`, our recorded orders
+removed so every arm starts from the harness's own order) and fight it again with ours as the lane's group, under
+the engine's own fight order (`--lane off`) and on the engine of before (`target/duel-base`), his side on its track
+and as the `director`. The cut takes armed units only: our buildings are added to side 0 by hand, and they matter
+(a formation among them left his party twice the value). `run/scenario_soldiers.py` reads such a batch by our
+mobile units alone; `run/clash_fire.py` reads the live clash the same way. The first use overturned the reading
+of the game it was cut from (`docs/experiments.md`, party-\*).
 
 Under `--lane on` side 0 of a scenario is one lane group fighting to the other side's centroid with the other side as its party (`GroupOrder::party`, 2026-10-29: each formation's way ends at the nearest of them in sight). A scenario file with `"advance": {"to": [x, z], "cap": N}` (2026-11-15) gives side 0 the hands' advance instead: a `FightTo` that point with no party, in companies of `N`; `run/group_scene.py <match dir> <seat> <group> <M:SS> <X,Z> --out FILE` cuts one from a record, a group's members where they stood and his buildings near the place from the truth file (`run/scenarios/2026-11-15-vents-8v8-c5-2115.json` and `-2150.json`: the army that milled at its place in vents-barb-8v8-1). The per-second line's `group` carries `passing` and `companies` ([{`anchor`, `members`, `formed`, `exceptions` (a count), `arrived`}], as the match record's) for drills and scenarios alike. The pass-by drills of 2026-10-29 (`run/scenarios/2026-10-29-advance-2-passby-1822.json`, `2026-10-29-passby-synthetic.json`, `--theirs track`) are scenario files: a cut of advance-2 18:22 with his true track, and a scripted party crossing our halted front.
 

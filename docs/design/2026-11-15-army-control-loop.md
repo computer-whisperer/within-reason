@@ -559,3 +559,17 @@ hold and the hands played a whole game on it with no fault. Two things stand for
   and the halt wants every slot. The engine of before shows the same off the positions. It belongs with D3, D6 and
   D7 above: what the army does about an enemy at or beside its place.
 
+**A fifth reading (2026-11-15, the ledger's row party-\*): the fourth reading's second point was wrong.** The user,
+on it: "This needs a deeper diagnosis -- if your original theory didn't hold up, then what is actually happening?"
+The clash was cut from the record and fought again. Either engine wins it (our soldiers 0.72 left and his party
+0.08 to 0.14 at 30 s, the engine's own fight order 0.66 and 0.17; head-on 0.76 to 0.79 against 0.52), and a third
+of the group in reach is what this matchup gives under any orders, so neither the guard nor the halt of §5.9 is
+shown to cost anything there. What the live clash had beside the cut: our own buildings on the ground, which cost a
+formation about a seventh of what it deals and the fight order nothing
+(K-group-a-formation-among-our-buildings-deals-a-seventh-less), and three Blitzes the hands had sent away. The game
+itself was behind from its opening, at a start the packet was not written for. Three things of this design were
+seen in the clash and are not priced: the facing 44 to 82 degrees off the bearing for the first ten seconds (§5.8's
+sixty degrees), the re-deal of the turn falling in contact, and a pursuit at four fifths of the slowest type's speed
+behind a party walking at about the same. Open, for the user: nothing here asks for a change of D3, D6 or D7; the
+ground of our own base is the place to look next.
+

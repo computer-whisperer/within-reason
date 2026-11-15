@@ -270,7 +270,12 @@ A fresh worktree's `run/matches` is empty, so `--place` has no earlier match to 
 to the engine's start (`match 0: not placed: no earlier match on this map with a record, its terrain, a truth file
 and the opponent in its box`): loop-pianist-smoke, 2026-11-15, played a packet written for the placed start from
 2,000 away. Read the arena's first lines before trusting a line copied from the main tree; the first game on a map
-in the worktree supplies the match the next one places from.
+in the worktree supplies the match the next one places from. **And the start it then picks is not the main
+tree's**: the search is an anneal on a wall budget from the latest record of that tree (`crates/arena/src/place.rs`),
+so loop-pianist-smoke-2 stood at (944, 2529) where slots-smoke-2 had stood at (1216, 3569), 900 from the spots its
+packet names as home, and its opening stalled on energy for two minutes. A packet that names spots is played from
+the start it was written for: `--starts 1216,3569:6898,682` (ours, his; slots-smoke-2's), not `--place`. Two games
+are compared only after their first samples' commander positions have been read side by side.
 
 (`run/engine` is the symlink the main tree has, inside the ignored directory; never a symlink *at* an ignored path.)
 A worktree's `.git` is a file, not a directory: the build scripts of `crates/bot` and `crates/ai-host` ask git
