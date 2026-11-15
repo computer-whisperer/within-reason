@@ -775,11 +775,11 @@ second in loop-pianist-smoke (1,208 member-seconds, Blitzes beside Stouts) again
 slots-smoke-7, -9 and -2. The slowest type is level (0.67 against 0.50 to 0.59) and so is a single-type body on the
 bench (0.28 a unit-second on the march against 0.37 to 0.44 before). Every member on the way together: 1.29 a second
 against 0.64 to 0.71.
-**Status.** measured (2026-11-15, one game against three of other days; the split by type holds in each), open. The
-cause is read from the code and not tested: the faster type's point is its slot itself (`Company::tick` carries only
-the pace type's point ahead by the lead), and a member within 100 of the point it was last sent to is sent again
-each time the point has moved 16 (`resend_due`, `form::near_tolerance`). Why the engine of before sent half as many
-is not traced.
+**Status.** measured (2026-11-15, one game against three of other days; the split by type holds in each). **The
+cause first written here was wrong.** The faster type's point being its slot itself is the cost both engines share
+(K-group-a-faster-type-costs-an-order-a-cell: equal on the bench, 2.2 a second for a Blitz on each); the doubling in
+the game is the frame seated on its body at every order (K-group-a-frame-seated-at-every-order-stalls-its-faster-type),
+found on the bench by taking the seat away.
 **Evidence.** `run/soldier_orders.py`; `docs/experiments.md`, loop-pianist-smoke.
 **Would be wrong if.** A game of one type alone shows the same rate (then it is not the type), or the old engine's
 smokes had the faster type out of the band most of the time (their row "out of its slot" is 0.61 to 0.68).
@@ -799,4 +799,38 @@ from f=12075 to f=17220.
 **Would be wrong if.** The settled members' steps fall outside the seconds after a deal or a block laid again (53 of
 the 100 were not within 3 s of the group's count changing; the deals come up to 5 s after a newcomer).
 **Used by.** none.
+
+### K-group-a-frame-seated-at-every-order-stalls-its-faster-type
+**Claim.** The rebuilt engine seats every frame on its body when an order is decided (the design of 2026-11-15, §5.8).
+The seat puts the frame where the median member is in its slot, so half the members are ahead of their slots after
+it. A member of the slowest type is sent its slot carried 300 ahead and walks on; a faster member is sent its slot
+itself, back or aside of where it is. Under an order that changes every second a body of 8 Stouts and 16 Blitzes
+does not arrive: nobody within 300 of the place in 60 s, 1,536 from it at the end, the Blitzes behind the Stouts
+(464 against 940 along the walk at 30 s), 2.91 orders a member a second. The engine of before arrives in 30 s at
+1.77; the rebuilt one with the seat off (the bench's arm `WITHIN_REASON_SEAT=0`: a frame that walks an order keeps
+its place across the next) in 29 s at 1.65. A body of one type arrives in 35 s on all three. In a game the order
+that changes every second is an attack on a party that moves (an order each 48 the party moves).
+**Status.** measured (2026-11-15: the bench by intervention, one duel an arm; loop-pianist-smoke's Blitzes at 38 a
+second against its Stouts' 77 within 2 s of an order), open: the default is the design's seat until the user rules.
+With the seat off the 21 property rows read as with it.
+**Evidence.** `docs/experiments.md`, the row orders1-\* to alternate-mixed; `run/props_bench.sh` rows `walk-mixed`
+and `alternate-mixed`, `run/drill_props.py` (`at80`, `ord_s`).
+**Would be wrong if.** A body of one type faster than nothing stalls the same way with the seat on (it does not: 35
+s), or the seat off lets a frame walk away from a body that cannot follow (the hold of §5.6 is what ties them; no
+property row shows it).
+**Used by.** none yet: a decision for the user.
+
+### K-group-a-faster-type-costs-an-order-a-cell
+**Claim.** A member faster than its company's pace is paced by orders: its point is its slot, and it is sent again
+each time the slot has moved the near tolerance (`form::near_tolerance`, a quarter of the pitch across: one cell of
+16 with a narrow pair of hulls, two with Stouts), where a member of the slowest type is sent 300 ahead and again
+about every 200. On a straight walk under one order a Blitz beside Stouts takes about 2.2 orders a second, on the
+engine of before 2026-11-15 and the rebuilt one alike (a mixed body of 24: 1.58 and 1.53 a member a second; Stouts
+alone 0.36 and 0.30), and the mixed body walks at 0.80 of the pace on both.
+**Status.** measured (2026-11-15, one duel an arm). The lever, how far the slot travels between orders, is not
+measured.
+**Evidence.** `docs/experiments.md`, the row orders1-\* to alternate-mixed (orders1); the old engine's note on
+"the faster types of a mixed body still per tick" (169d728e).
+**Would be wrong if.** The orders follow the seconds and not the slot's travel (a body at half pace asks as many).
+**Used by.** none. H-HOST-ORDER-BUDGET holds a seat to 100 a second: a hundred soldiers of two speeds ask about 160.
 

@@ -11,6 +11,7 @@ formation's own books but the two columns marked `lane`. One row a duel.
   at80      second four fifths of the living members stood within R of the place (`--place`, default 900)
   rest      second from which no living member moved 5 elmos in a second again (blank: never within the run)
   last_ord  last second an order went to the army; ord_rest: orders sent after `rest`
+  ord_s     orders a living member a second while the army walks: up to `at80`, or over the run when it never came
   lane      second the lane's group first said `arrived`, and `!` when it took the word back later
   off       at the end, the median and the largest distance of a member from the point it was last sent to
   from_p    at the end, the median and the largest distance of a member from the place
@@ -121,6 +122,9 @@ def row(path, argv, place_r, band):
     sent = {r["t"]: (r.get("sent") or [0, 0])[0] for r in rows}
     last_ord = max((t for t, n in sent.items() if n > 0), default=None)
     ord_rest = sum(n for t, n in sent.items() if rest is not None and t > rest)
+    walking = [t for t in ts if t <= (at80 if at80 is not None else last)]
+    unit_secs = sum(len(pos[t]) for t in walking)
+    ord_s = sum(sent.get(t, 0) for t in walking) / unit_secs if unit_secs else None
     arrived = [r["t"] for r in rows if r.get("group", {}).get("arrived")]
     lane = arrived[0] if arrived else None
     took_back = bool(arrived) and any(not by_t[t].get("group", {}).get("arrived", False) for t in ts if t > arrived[0] and "group" in by_t[t])
@@ -174,6 +178,7 @@ def row(path, argv, place_r, band):
         "duel": os.path.basename(path).replace(".jsonl", ""),
         "n": f"{len(alive_end)}/{len(first_pos)}",
         "first": f(first), "at80": f(at80), "rest": f(rest), "last_ord": f(last_ord), "ord_rest": str(ord_rest) if rest is not None else "-",
+        "ord_s": "-" if ord_s is None else f"{ord_s:.2f}",
         "lane": f(lane) + ("!" if took_back else ""),
         "off": f"{med(off):.0f}/{max(off):.0f}" if off else "-",
         "from_p": f"{med(from_p):.0f}/{max(from_p):.0f}" if from_p else "-",
@@ -198,7 +203,7 @@ def main():
             dirs.append(a)
     if not dirs:
         sys.exit(__doc__)
-    cols = ["duel", "n", "first", "at80", "rest", "last_ord", "ord_rest", "lane", "off", "from_p", "walk", "end"]
+    cols = ["duel", "n", "first", "at80", "rest", "last_ord", "ord_rest", "ord_s", "lane", "off", "from_p", "walk", "end"]
     for batch in dirs:
         try:
             meta = json.load(open(os.path.join(batch, "batch.json")))

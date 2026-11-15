@@ -399,10 +399,15 @@ would). The per-second line carries `goals`, each unit's last movement order's p
 it, and the meta line `rear` (the rear party's indices). The rows: `stand24/48/96`, `stand-c5` (the army of
 vents-barb-8v8-1's C5 engagement on its ground) and `stand-door` for convergence (P1); `join-`, `kill-`, `build-` on
 the march and at rest for a disturbance (P2); `shift49/100/300`, `shift100-rest` and `alternate` for the order (P3);
-`restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind). The reader's columns:
+`restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind); `walk-mixed` and
+`alternate-mixed` (8 Stouts with 16 Blitzes, a body of two speeds, under one order and under a place moved each
+second: added after loop-pianist-smoke, every row before being of one type). The bench's arms, read from the
+environment by the lane in the duel binary: `WITHIN_REASON_ROW=2` (blocks two abreast) and `WITHIN_REASON_SEAT=0`
+(a frame that walks an order keeps its place across the next; the default seats it on its body at every order).
+The reader's columns:
 `first` (the second the first member stood within 300 of the place), `at80` (four fifths within 900), `rest` (the
 second from which nobody moved 5 elmos in a second again), `last_ord` and `ord_rest` (the last order, and orders after
-rest), `lane` (the second the lane's group first said `arrived`, `!` when it took the word back), `off` (median and
+rest), `ord_s` (orders a living member a second while the army walks, up to `at80`), `lane` (the second the lane's group first said `arrived`, `!` when it took the word back), `off` (median and
 largest distance of a member from the point it was last sent to, at the end), `from_p` (from the place), `walk`
 (metres walked over the straight line from start to end: 1.00 is no milling), and for each timed event the members
 that moved more than 128 relative to the body four and ten seconds after it (a member's displacement less the median

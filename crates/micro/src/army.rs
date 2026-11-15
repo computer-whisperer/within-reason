@@ -756,8 +756,10 @@ impl Army {
         let started = std::time::Instant::now();
         let centre = form::median(self.companies.iter().flat_map(|c| c.slot_of.keys()).filter_map(|id| by_id.get(id)).map(|w| w.pos)).unwrap_or_default();
         let place = place.or(self.place).unwrap_or(centre);
-        for c in &mut self.companies {
-            c.seat(by_id);
+        if crate::group::seat_on() || self.order.is_none() {
+            for c in &mut self.companies {
+                c.seat(by_id);
+            }
         }
         // The facing.
         self.turn_due = None;

@@ -526,3 +526,12 @@ not among its inputs (§10 said so of threat). By §11 the answer is a change of
 §7, not a rule in the tick. It is the user's to rule; the default stays rows of four, and `WITHIN_REASON_ROW=2` is
 the bench's arm.
 
+**A third reading (2026-11-15, the ledger's row orders1-\* to alternate-mixed).** §5.8 seats every frame on its body
+when an order is decided. The property drills were all of one type and passed; a body of two speeds under an order
+that changes every second does not arrive (K-group-a-frame-seated-at-every-order-stalls-its-faster-type): after a
+seat half the members are ahead of their slots, and a faster member, whose point is its slot itself, is sent back.
+With the seat kept for an army that has no order (its founding, a re-form, a lane made again) and dropped for one
+that walks an order, the body arrives as on the engine of before and the 21 rows read the same; the hold of §5.6 is
+then what ties a frame to its body between decisions. Not decided: the default is the seat, `WITHIN_REASON_SEAT=0`
+the bench's arm. §9 gains the rows `walk-mixed` and `alternate-mixed`.
+

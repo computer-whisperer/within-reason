@@ -226,6 +226,13 @@ pub fn relax_on() -> bool {
     *ON.get_or_init(|| std::env::var("WITHIN_REASON_RELAX").map_or(true, |v| v != "0"))
 }
 
+/// Whether an order's decisions seat every frame on its body (the design of 2026-11-15, §5.8). The bench's arm
+/// `WITHIN_REASON_SEAT=0` leaves a frame that already walks an order where it is and plans the new way from there.
+pub fn seat_on() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("WITHIN_REASON_SEAT").map_or(true, |v| v != "0"))
+}
+
 impl Default for Pacing {
     fn default() -> Pacing {
         Pacing {

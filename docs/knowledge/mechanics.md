@@ -1302,3 +1302,16 @@ game's files and not measured.
 **Would be wrong if.** An advanced plant ordered on a vent holding our finished tier-1 plant were refused, or the
 tier-1 plant still stood a minute after the advanced one was finished.
 **Used by.** [[H-HANDS-VENTS]] (a building of twice the standing plant's metal is offered over it), D-GEO, T-GEO.
+
+### K-engine-an-ai-has-no-speed-limit-order
+**Claim.** A skirmish AI cannot tell a unit to walk slower than its speed in an ordinary game. The engine's order for
+it is gone (`COMMAND_UNIT_SET_WANTED_MAX_SPEED = 56, // unused` in `AISCommands.h`; the changelog: "remove
+CMD_SET_WANTED_MAX_SPEED"), BAR's replacement (`luarules/gadgets/unit_wanted_speed.lua`) loads only under the
+`emprework` mod option, and BARb's own `CmdWantedSpeed` is commented out. What paces a unit below its speed is the
+orders it is sent, or a guard order (K-engine-slow-guard-paces-a-guarder-to-its-guardee).
+**Status.** read from source (2026-11-15: `upstream/RecoilEngine-2026.07.04`, `upstream/Beyond-All-Reason`), not
+tried in a game.
+**Evidence.** The three files named.
+**Would be wrong if.** A game with default options answers the gadget's command.
+**Used by.** K-group-a-faster-type-costs-an-order-a-cell.
+

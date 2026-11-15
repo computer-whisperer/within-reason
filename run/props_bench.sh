@@ -42,6 +42,11 @@ row alternate --map "$flat" $w48 --nudge 1 --nudge-by 300 --run 60 --time-limit 
 # P5 restart.
 row restart-march --map "$flat" $w48 --restart 10 --run 90 --time-limit 130
 row restart-rest --map "$flat" $w48 --restart 60 --run 100 --time-limit 140
+# Two speeds in one body (Stouts with Blitzes: the Blitz is faster than the frame's pace and its point is its slot):
+# a walk, and the place moved 300 and back each second. Read `at80` and `ord_s`.
+mixed="armstump*8+armflash*16"
+row walk-mixed --map "$flat" --ours "$mixed" --distance 2600 --order move --run 80 --time-limit 120
+row alternate-mixed --map "$flat" --ours "$mixed" --distance 2600 --order move --nudge 1 --nudge-by 300 --run 60 --time-limit 100
 # T11 straggler: pace-type members set behind on a long walk.
 row straggler1 --map "$flat" --ours armpw --count 24 --behind "armpw*1@300" --distance 2600 --order move --run 80 --time-limit 120
 row straggler3 --map "$flat" --ours armpw --count 24 --behind "armpw*3@300" --distance 2600 --order move --run 80 --time-limit 120
