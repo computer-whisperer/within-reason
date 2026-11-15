@@ -23,7 +23,7 @@ use crate::group::{
     BLOCK_MARGIN, Cause, CompanyState, DEAL_DWELL, DEAL_GAIN, DEAL_GAIN_EACH, DWELL, FOLLOW_KEEP, FORM_AHEAD, GroupKind, GroupOrder, GroupState, MOVING, PARTY_SWITCH, Pacing, REFACE_DEG, RELAX_CLEAR,
     RELAX_STEP, REPLAN_MOVED, ROUTE_MOVED, WAY_GAIN, WAY_GAIN_ELMOS, Walker, debug_on, relax_on,
 };
-use crate::layout::{self, Block, ROW, Want};
+use crate::layout::{self, Block, Want};
 
 /// The approach a facing is read from: the last stretch of a way planned from the army's centre to the place.
 const APPROACH: f32 = 400.0;
@@ -753,6 +753,7 @@ impl Army {
     /// across it and its dwell has passed), each company's pitch, the layout at the place, the pairing of companies
     /// with blocks by the least total travel, each company's way, the tight stretches and their forming-up grounds.
     fn decide(&mut self, name: &str, order: &GroupOrder, place: Option<Vec3>, by_id: &HashMap<UnitId, &Walker>, ctx: &Ctx) {
+        let started = std::time::Instant::now();
         let centre = form::median(self.companies.iter().flat_map(|c| c.slot_of.keys()).filter_map(|id| by_id.get(id)).map(|w| w.pos)).unwrap_or_default();
         let place = place.or(self.place).unwrap_or(centre);
         for c in &mut self.companies {
@@ -792,7 +793,7 @@ impl Army {
             }
         }
         // The layout, a follower's in the rows behind its ward's.
-        self.first_row = ctx.ward.map_or(0, |w| w.blocks.len().div_ceil(ROW));
+        self.first_row = ctx.ward.map_or(0, |w| w.blocks.len().div_ceil(layout::row()));
         let wants: Vec<Want> = self.companies.iter().map(|c| Want { ranks: c.frame.ranks, pitch: c.frame.pitch, open: c.open }).collect();
         let blocks = layout::lay(place, facing, &wants, self.first_row, ctx.ground.map(|g| g.as_ref()), ctx.held);
         // The pairing: the least total travel from where the frames are (at most a handful of companies; past six,
@@ -834,13 +835,14 @@ impl Army {
         self.find_all_gaps(ctx);
         if debug_on() {
             eprintln!(
-                "[group {name} f={}] ORDER to ({:.0},{:.0}) facing ({:.2},{:.2}){}: {}",
+                "[group {name} f={}] ORDER to ({:.0},{:.0}) facing ({:.2},{:.2}){} decided in {:.1} ms: {}",
                 ctx.frame,
                 place.x,
                 place.z,
                 facing.0,
                 facing.1,
                 if turned { " (turned)" } else { "" },
+                started.elapsed().as_secs_f64() * 1000.0,
                 (self.companies.iter().enumerate()).map(|(i, c)| format!("{i}: {} to ({:.0},{:.0}), {:.0} of way, {} tight", c.slot_of.len(), c.stand.centre.x, c.stand.centre.z, c.length(), c.gaps.len())).collect::<Vec<_>>().join("; ")
             );
         }
@@ -986,7 +988,9 @@ impl Army {
             facing: self.facing.unwrap_or((1.0, 0.0)),
             members,
             at_place,
-            arrived: self.place.is_some() && at_place >= needed,
+            // On a route of several points the place may be passed before it is the end (a circuit begins where it
+            // ends): no arrival while a point of the route is still ahead.
+            arrived: self.place.is_some() && at_place >= needed && legs_left == 0,
             to_go: if self.companies.iter().any(|c| c.no_way) { None } else { to_go.get(to_go.len() / 2).copied() },
             speed: speeds.get(speeds.len() / 2).copied().unwrap_or(0.0),
             full_pace: Some(self.companies.iter().map(|c| c.pace_full).filter(|p| *p > 0.0).fold(f32::INFINITY, f32::min)).filter(|p| p.is_finite()).unwrap_or(0.0),

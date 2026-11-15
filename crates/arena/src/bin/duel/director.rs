@@ -2405,9 +2405,13 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
             "exceptions": state.exceptions.iter().map(|(u, cause, s)| json!([index(u), format!("{cause:?}").to_lowercase(), tenth(*s)])).collect::<Vec<_>>(),
             "legs_left": state.legs_left, "engaged": state.engaged.map(|u| u.0), "in_reach": state.in_reach, "halted": state.halted,
             "passing": state.passing,
+            // The keys of before 2026-11-15, with their nearest meaning, for the readers of older batches' logs.
+            "anchor": [state.centre.x.round(), state.centre.z.round()], "heading": [hundredth(state.facing.0), hundredth(state.facing.1)],
+            "pace": state.speed.round(), "way": state.to_go.map(f32::round),
             "companies": state.companies.iter().map(|c| json!({
                 "centre": [c.centre.x.round(), c.centre.z.round()], "block": [c.block.x.round(), c.block.z.round()], "members": c.members, "formed": c.formed,
                 "at_place": c.at_place, "to_go": c.to_go.round(), "halted": c.halted, "passing": c.passing,
+                "anchor": [c.centre.x.round(), c.centre.z.round()], "exceptions": c.members - c.formed.min(c.members), "arrived": c.at_place * 5 >= c.members * 4,
             })).collect::<Vec<_>>(),
         });
     }

@@ -473,3 +473,56 @@ Each changes something he ruled or judged, or is a choice the bench cannot make.
 - **D7 The halt is read on the slots, not the members.**
 - **D8 An army goes through a shared door together, its forming-up grounds laid at the plan.**
 - **D9 The learned lead and every other tuning listed in §8 go with the base**, to come back on evidence.
+
+## 14. As built (2026-11-15, branch `army-loop`)
+
+The user on the design: "Agreed, let's proceed with this. Do it in a worktree so the main bot is available for lobby
+games." A bare assent on D1 to D9: a checkpoint, open again at any time.
+
+The engine is `crates/micro/src/army.rs` (the decisions, the frame, the report), `layout.rs` (the block, the layout)
+and `group.rs` (the host's types alone). Where the build departs from the sections above, with the reason:
+
+- **§5.4, the band about sibling ways is not built.** On open ground the planner straightens a way to a line whatever
+  the band, and where the ground has two corridors a band sends an army's companies down different ones, so the army
+  arrives from two sides. Companies set out from separate parts of the body to separate blocks; where the ground has
+  one corridor they share it.
+- **§5.4, a block that stands is priced at 20 a cell (`ground::BLOCK_COST`), not the old 600.** At 600 a company walked
+  a thousand elmos round a block of its own army that nobody stood in yet (the first bench run: 3,320 of way for a
+  straight 2,140). At 20 a block of four ranks costs about what 800 of flat ground do: walked round when the way
+  round is about its own width longer, through otherwise.
+- **§5.7, a re-form makes companies of compact parts of the body where it stands**, the body halved across its longer
+  side until the parts are companies (`army.rs` `split`), each frame seated on its own members. The design laid the
+  blocks on the lattice at the body: a column of ninety-six would have walked up to 700 sideways to line up before it
+  set out, and near the map's edge a block of that lattice lay off the map. Where the companies stand apart is the
+  layout's at the place.
+- **§5.8, an army with no facing in force reads one**: the approach to the order's place, or with the place too near
+  for one, the facing in which its members are nearest slots of their own (sixteen directions tried, then refined).
+  Without it an army made again where it stood took the direction from its centre to the place, a few elmos apart,
+  and re-laid everyone (the first restart drill: 48 of 48 moved).
+- **§5.11, the pitch changes at a seating only** (an order's decisions, a re-form). The row's second trigger, a pitch
+  wanted for ten seconds, is not built.
+- **§9, the events' measure is read on the positions**: a member moved when its displacement differs from the
+  median displacement by more than the band, four and ten seconds after the event. Read on the points the members
+  were last sent to it counted five to fifteen with nothing happening, because the points go out at different
+  moments on a march.
+- **§8, the readers.** The flagship's record and the duel's per-second log carry the report's keys and, for the
+  scripts and the viewer that read the old ones, `anchor` (the group's centre), `heading` (its facing), `pace` (its
+  soldiers' median speed) and `way` (the way left) with their nearest meaning.
+- **§4 P7, measured.** Members boxed out of free slots by the ranks before them stand short and move for no order
+  (four of a hundred in one of two runs; K-group-a-member-boxed-out-of-its-slot-stands-short). They hold nothing, so
+  the property stands; they are the residue of §3's A3.
+
+**The first readings (the ledger's row base-\* to loop3-\*).** P1, P2 at rest, P3 and P5 hold where the engine of
+before did not; the numbers are in `docs/heuristics.md` under H-MICRO-GROUP. Two of the decisions show their cost on
+the bench, each in a fight the other choice wins (K-group-the-stands-shape-decides-what-his-turrets-do):
+
+- **D6.** The row of four puts a company inside his turrets' reach at C5 (55 to 72 % of the army left, 95 to 98 %
+  in rows of two) and takes a wide turret line in a minute where rows of two do not take it in five.
+- **D3.** With no close, companies that have killed what their slots reach walk on to their blocks and stand while
+  turrets beside them live.
+
+Both are one gap: the layout is a function of the place, the facing, the companies and the ground, and the enemy is
+not among its inputs (§10 said so of threat). By §11 the answer is a change of that function's inputs and a row of
+§7, not a rule in the tick. It is the user's to rule; the default stays rows of four, and `WITHIN_REASON_ROW=2` is
+the bench's arm.
+

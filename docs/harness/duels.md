@@ -293,8 +293,11 @@ army is the lane's one declared group (H-MICRO-GROUP: `Lane::set_group("army", .
 a move and a FightTo for a fight, the route one point): the anchor walks at the slowest type's speed (`Pacing::fraction` 1.0 since D20) and every
 unit is sent to its slot carried its lead ahead every tick, the director's own per-unit orders to the units dropped (so `--reissue`, `--lead`
 and `--pace` are lane-off arms); `--lane ranks` is the same group with its order's `march` off, the slots standing at the
-destination. The per-second log carries the group's `anchor`, `heading`, `pace`, `full_pace`, `formed` (spawn
-indices), `exceptions` (index, cause, seconds to slot), `arrived` and `engaged`. **walk** ends when every living unit is within 300 of the goal (the hands'
+destination. The per-second log carries the group's report (from 2026-11-15 the army's, read from the units:
+`place`, `centre`, `facing`, `members`, `at_place`, `arrived`, `to_go`, `speed`, `full_pace`, `formed` (spawn
+indices), `exceptions` (index, cause `coming` / `standing` / `reflex`, seconds to slot), `engaged`, `in_reach`,
+`halted`, `passing` and `companies`; the older `anchor`, `heading`, `pace` and `way` stay as the centre, the facing,
+the median speed and the way left). **walk** ends when every living unit is within 300 of the goal (the hands'
 own arrival number). `--post FORCE` ("armmex*1+armllt*2") stands our own structures at the goal, the first on it and the rest 96 off
 round it, never of the army: the walk to a defended extractor of ours (H-MICRO-STAND; barb-ladder3-20-1's group_W1), judged by
 the group's anchor at its arrival against the goal in the per-second log. `--yard NAME@PITCH,REACH`
@@ -363,7 +366,7 @@ straightened, 19 points round Quicksilver from 58. The thinning dropped the corn
 the method over, and is gone.) At a turn of 20 degrees or more the group re-deals its slots where the members stand
 (D14: the anchor carries on past the point by the body's depth, is set down on the body facing the next, put onto the
 way when it stands off it by more than the spacing, and the slots are dealt by least travel), and
-`WITHIN_REASON_GROUP_DEBUG=1` has the group say each plan, turn, re-deal and slot jump on stderr. A plan's line says why the way was planned again (founded, a new order, the ground was rebuilt, the end moved, the standing formations on the way changed), where from, the direction it leaves in and the way's length (2026-11-15). Open loop, with no engine: `WR_RECORD=<record-N.jsonl, full path> WR_GROUP=group_A_t3 WR_TO=x,z WR_FROM=M:SS WR_UNTIL=M:SS cargo test -p micro --release a_recorded_group_again -- --ignored --nocapture` (`crates/micro/src/replay.rs`) walks a recorded group's units through a fresh lane and prints every company's way's end, the end `keep_off` placed, and whether it stands, forms up or closes, beside the record's anchors; the units go where the game sent them, so its `formed` and `arrived` say nothing. The
+`WITHIN_REASON_GROUP_DEBUG=1` has the army say its decisions on stderr (from 2026-11-15: RE-FORM, ORDER with each company's block, way and tight stretches and the milliseconds the decisions took, PASS, DEAL on gain, WAY planned again and why, BLOCK laid again, FOUNDED, GROUND rebuilt; before, the old formation's plan, turn, re-deal and slot-jump lines). (The open-loop replay of a recorded group, `crates/micro/src/replay.rs`, was the old engine's instrument and went with it on 2026-11-15.) The
 per-second line's `group` carried `files` (the ranks' files this second) and `room` (the room about the anchor's cell)
 until 2026-10-28, when the files stopped narrowing to the room (`docs/design/2026-10-28-contact-cleanup.md` §4), and
 from 2026-10-25 `way` (the elmos left along the planned way to the route's
@@ -380,6 +383,31 @@ deployed unit not left behind has walked its laps and, under the group, the grou
 exceptions (`arrived`), or at the time limit (600 s). The per-second `group` carries `legs_left` (route points still ahead of the anchor) too, and the meta
 line the `route` and `laps`. Quicksilver's default loop is 15,450 on foot ((1800,5512), (5384,5384), (5624,2296),
 (1704,2024)), 178 s for a Pawn at full speed; the first leg walks 4,429 for 3,586 as the crow flies.
+
+**The property drills (2026-11-15, `docs/design/2026-11-15-army-control-loop.md` §9).** What the group loop must hold
+is drilled before any lap: `run/props_bench.sh PREFIX [DUEL_BINARY] [ONLY]` runs one batch a row (labels
+`PREFIX-<row>`; with `WITHIN_REASON_KEEP_INSTALLED=1` a start neither builds nor installs, so a binary kept from
+another commit can be the engine under test: the lane is linked into the duel binary), and
+`run/drill_props.py <batch dir>...` reads each from the units' positions and the orders sent alone. The walk drill's
+options for it, each in seconds from the first order: `--run S` (the walk is over `S` after the first order and not
+before, whoever has arrived: what the army does at its place is the measure), `--kill N@T` (the `N` rearmost members
+self-destructed; the engine counts a unit down first and its blast is its own), `--build NAME@ALONG,ACROSS,T` (any
+number: a structure of ours given `ALONG` the axis from the start and `ACROSS` it), `--shift ALONG,ACROSS@T` (the goal
+moved once), `--nudge-by D` (how far across the axis `--nudge` moves the goal: 300 with `--nudge 1` is two places 600
+apart alternated every second), `--restart T` (the army's lane dropped and made again, as a bot process started again
+would). The per-second line carries `goals`, each unit's last movement order's point by spawn index, whoever sent
+it, and the meta line `rear` (the rear party's indices). The rows: `stand24/48/96`, `stand-c5` (the army of
+vents-barb-8v8-1's C5 engagement on its ground) and `stand-door` for convergence (P1); `join-`, `kill-`, `build-` on
+the march and at rest for a disturbance (P2); `shift49/100/300`, `shift100-rest` and `alternate` for the order (P3);
+`restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind). The reader's columns:
+`first` (the second the first member stood within 300 of the place), `at80` (four fifths within 900), `rest` (the
+second from which nobody moved 5 elmos in a second again), `last_ord` and `ord_rest` (the last order, and orders after
+rest), `lane` (the second the lane's group first said `arrived`, `!` when it took the word back), `off` (median and
+largest distance of a member from the point it was last sent to, at the end), `from_p` (from the place), `walk`
+(metres walked over the straight line from start to end: 1.00 is no milling), and for each timed event the members
+that moved more than 128 relative to the body four and ten seconds after it (a member's displacement less the median
+one; on the points last sent the same count is five to fifteen with nothing happening, since the points go out at
+different moments on a march).
 
 **assault** (design D16, 2026-10-24 night): the walk into a defence that shoots back, judged as a duel.
 `duel --drill pair --ours FORCE --behind FORCE@D [--pair walk|follow|attack] [--theirs PARTY] [--distance 2000] [--lane on] ...`

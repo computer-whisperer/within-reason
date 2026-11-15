@@ -11,6 +11,11 @@ use crate::group::BLOCK_MARGIN;
 
 /// Blocks abreast in a row of a layout; further blocks stand in rows behind.
 pub const ROW: usize = 4;
+/// `ROW`, or the bench's arm (`WITHIN_REASON_ROW=2`: rows of two, an army of four in a square).
+pub fn row() -> usize {
+    static ROW_ARM: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *ROW_ARM.get_or_init(|| std::env::var("WITHIN_REASON_ROW").ok().and_then(|v| v.parse().ok()).filter(|n| *n > 0).unwrap_or(ROW))
+}
 /// How far from its lattice cell a block's place is looked for when it does not stand there, and the step.
 const SETTLE_REACH: f32 = 512.0;
 const SETTLE_STEP: f32 = 32.0;
@@ -107,8 +112,8 @@ pub struct Want {
 /// The lattice cell of block `index` of `count` about `place` facing `facing`, in cells of `cell` (across, along):
 /// rows of `ROW` abreast, each row centred on the place, the first row `first_row` rows behind it.
 fn ideal(place: Vec3, facing: (f32, f32), cell: (f32, f32), index: usize, count: usize, first_row: usize) -> Vec3 {
-    let (row, column) = (index / ROW, index % ROW);
-    let in_row = (count - row * ROW).min(ROW);
+    let (row, column) = (index / row(), index % row());
+    let in_row = (count - row * self::row()).min(self::row());
     let lateral = (column as f32 - (in_row as f32 - 1.0) / 2.0) * cell.0;
     let back = (first_row + row) as f32 * cell.1;
     let left = (-facing.1, facing.0);

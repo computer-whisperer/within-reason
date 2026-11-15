@@ -517,7 +517,7 @@ it: the companies' ends are placed beside each other (`keep_off`), their members
 stretch, and a member the engine stops short of a slot that stands (K-engine-a-blocked-move-ends-short) is not sent
 again, because an arrived formation's slots go out once. It stands a few seconds from its slot until the host takes
 it out.
-**Status.** measured (2026-11-10), open: nothing is built on it. A hundred Stouts, `--cap 24`, a walk of 2,000 on
+**Status.** measured (2026-11-10) on the engine of before 2026-11-15. On the rebuilt engine (branch `army-loop`, K-group-an-army-laid-in-blocks-comes-to-rest) a hundred over open ground end in 34 to 38 s and through a door in 51 s; a few members boxed out of their slots are what is left of it (K-group-a-member-boxed-out-of-its-slot-stands-short). As measured then: nothing was built on it. A hundred Stouts, `--cap 24`, a walk of 2,000 on
 Full Metal Plate with no obstacle, the lane of before the relaxed posture (rg0-open-stump100-on4, four duels): every
 duel at the time limit of 300 s, the arrivals 28-37 / 41-49 / 71-95 s, 29 members left behind; with the posture
 (rgF-open-stump100-on4) the same, 30-37 / 42-46 / 72-250 and 25. A plain engine order, with a wall's door on the
@@ -715,3 +715,56 @@ mistake" (a strategy error apart from the army's control; `docs/knowledge/_inbox
 **Would be wrong if.** A drill of a mixed group attacking a party that crosses its front shows the fast members
 closing at their own speed.
 **Used by.** none (the slots design §5.2, "what it does not settle").
+
+### K-group-an-army-laid-in-blocks-comes-to-rest
+**Claim.** An army whose companies are each given a block of their own at the place when the order is decided, and
+walk their own ways to them, comes to rest in about its travel time, and stays at rest: ninety-six Pawns told to one
+point 2,000 away stand still 12 s after the first of them arrives and no order goes out after; a member walks its
+straight line. The same army under the engine of before, whose companies were all sent to the point and moved each
+other's ends as they met, shuffled 41 s, walked 1.36 times the line and was never said to have arrived.
+**Status.** measured (2026-11-15, the property drills, one duel a row; Full Metal Plate and the C5 ground, no enemy).
+A drill plant with no enemy and no game behind it: no flagship or bot game has been played on the rebuilt engine.
+**Evidence.** `docs/experiments.md`, the row base-\* to loop3-\*; `run/props_bench.sh`, `run/drill_props.py`;
+`docs/design/2026-11-15-army-control-loop.md` §4 (P1), §5.2, §5.3.
+**Would be wrong if.** A game's record shows a group standing at its place with its soldiers still moving a minute
+after `arrived`, or `arrived` taken back with nobody dead and no new order.
+**Used by.** H-MICRO-GROUP, H-HANDS-ARRIVAL.
+
+### K-group-the-stands-shape-decides-what-his-turrets-do
+**Claim.** Where the blocks of an army are laid about its place decides fights the loop itself is blind to. A row of
+four blocks abreast is 1,750 long for a tier-2 and tier-3 army: at vents-barb-8v8-1's C5, with his line 1,060 south
+of the place, the row's end block lay 483 from his light laser tower, and the army was 55 to 72 % of itself after
+180 s (six runs); in rows of two the army stood within 500 of the place and kept 95 to 98 % (four runs). Against a
+line of twelve turrets 1,400 wide the same two shapes do the opposite: rows of four cover the line and take it in
+61 s, rows of two stop when their own slots have targets, kill what they reach, walk on to their blocks and leave two
+or three turrets alive after 300 s.
+**Status.** measured (2026-11-15, the bench's arm `WITHIN_REASON_ROW`); open: the layout is laid from the place, the
+facing and the ground and reads nothing of the enemy, and an advance walks at nothing beyond its place (the design's
+D3, D6 and §10). The default is the design's rows of four.
+**Evidence.** `docs/experiments.md`, the same row (loop2-\*, loop3-\*).
+**Would be wrong if.** The scene's losses come from the way to the blocks and not from standing in them (the per-second
+logs: the company dies at its block), or a wide line is taken by rows of two once Jev orders the attack on what is left.
+**Used by.** none yet: a decision for the user.
+
+### K-group-a-member-boxed-out-of-its-slot-stands-short
+**Claim.** At a stand a few members can be left standing 150 to 230 from slots that are free, not moving and not
+taking the orders sent again: the ranks before them stand a hull and a half apart and they do not pass between. Four
+of a hundred Stouts in one of two runs on open ground with rows of four, one or two in the C5 scenes; none in rows
+of two. The deal on gain does not help them: their own slots are the free ones.
+**Status.** measured (2026-11-15), open. The engine of before left 25 to 29 of a hundred behind on the same walk
+(K-group-five-companies-told-to-one-goal-do-not-settle).
+**Evidence.** `run/matches/*-duel-loop1-open100` (in the worktree), the second duel, units 29, 33, 36 and 37 from 36 s.
+**Would be wrong if.** The members stood for another reason than the ranks before them (an order the engine dropped: a
+re-send moves them).
+**Used by.** none.
+
+### K-group-a-pace-type-straggler-does-not-close-on-the-march
+**Claim.** A member of the slowest type that is behind its slot does not come up while the company marches: the
+frame walks at that type's top speed, so the member has no speed to spare. One and three Pawns set 300 behind a
+company of 24 stayed about 250 behind the body's median for the whole of a 2,600 walk, on the rebuilt engine and on
+the one before it alike, and stood in their slots when the company stopped.
+**Status.** measured (2026-11-15); the design's stated limit (§5.6), the pace's share the knob.
+**Evidence.** `run/matches/*-duel-base-straggler1`, `-straggler3`, `*-duel-loop1-straggler1`, `-straggler3`.
+**Would be wrong if.** A pace under the top speed (`Pacing::fraction` 0.9) leaves them as far behind.
+**Used by.** none.
+
