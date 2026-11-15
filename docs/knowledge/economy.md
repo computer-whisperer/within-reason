@@ -757,3 +757,39 @@ ally team; the events' by team; the SMF feature section at the header's offset 7
 one, or the team pool's count fell with the players' rating.
 **Used by.** [[H-HANDS-VENTS]], D-GEO, T-GEO; the brief's article D-vents-take-them (docs/briefs/derived/vents.md, in
 the manifest since 2026-11-15 on the user's word).
+
+### K-eco-our-seats-leave-the-vent-at-tier-1
+**Claim.** Our players take a vent and stop there: with an advanced constructor standing and the advanced plant on
+the hands' menu, no seat and no commander has ordered it over a tier-1 plant of ours, and the reason is where the
+texts put it, not what the harness allows.
+**Status.** observed (2026-11-15), two games; the cause is our reading, the remedy is in force and untested.
+- *The games.* vents-barb-8v8-1 (won 40:51): the seat with the side's vent held an advanced constructor for 32
+  minutes and the option was composed three times. The lobby 3v3 on Tangerine (1794780805-human, +50 %, lost at
+  about 35:00): tier-1 plants on all four vents of our half by 7:45 (one seat three, one seat one), advanced
+  constructors from 7:10 and in every seat by 10:00; the seats that held the vents had one and two, listed on
+  mohos (ten and five), and their menus carried `build_armageo_vent_N` all game, read at 0.02 to 0.13 from packets
+  that never named it (the advanced lab 0.62). The sprint seat, which held no vent, built six fusions and an
+  advanced fusion (29,800 metal; four advanced plants are 6,400) and had none of them at 22:00. The people's
+  advanced plant at C3 stood in every seat's report from 15:09; one player (from 15:14) and the commander (18:50)
+  wrote of it, as a target.
+- *The harness.* Checked against the extractor's upgrade, action by action: list step by name or role word at the
+  place, `start`, the site exactly on the old building, the menu option (the vent's is offered un-named at the
+  nearest vent of ours; a moho only at spots the instructions name), fused alike when the packet is silent (only
+  the tier-1 `extractor` move is exempt), refused alike over an ally's building. The game's two rules are one
+  file twice (`unit_mex_upgrade_reclaimer.lua`, `unit_geo_upgrade_reclaimer.lua`).
+- *The texts.* In the prompts those seats read, the advanced extractor is named about a hundred times, across the
+  tier-2 article, the commander's and the commanded seat's prompts and the fact sheets; the advanced geothermal
+  plant in the vents article (about 1,200 words of 132,000), the unit rows and one word of the list-word line. The
+  commander's own prompt and the commanded seat's named no vent; the tier-2 article's energy line said an advanced
+  solar or the fusion; the report's line said "our Geothermal Powerplant (armgeo)" and no more.
+**Evidence.** `run/matches/1794780805-human/00` (`record-N.jsonl`: the `created` and `finished` rows of the vent
+buildings and the advanced constructors; `strategist-N.jsonl` and `commander.jsonl`: no call names `armageo` or
+`advanced_geothermal`; `jev-N.jsonl`: the menus); `strategist-0-cwd/system-prompt.md` for the counts. The readers
+were scratch scripts.
+**Would be wrong if.** With the texts as merged on 2026-11-15 (aab0a334) and the report's line, a game on a map
+with a vent of ours and an advanced constructor in the vent's seat again ends with the tier-1 plant standing and
+no order for the advanced one: then the texts were not the reason.
+**Used by.** [[H-HANDS-VENTS]] (the report's line); the brief's D-vents-take-them, D-tier2-sprint and F-eco-energy
+and the three prompts, on the user's word ("The geothermals work much the same as mexes ..."; "Looks good, merge
+it. The report line can be built as such.").
+

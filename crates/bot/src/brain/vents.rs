@@ -78,13 +78,31 @@ impl Brain {
         if !self.vent_ground_fits(def, vent) {
             return None;
         }
-        let cost = |d: UnitDefId| self.world.def(d).map_or(0.0, |x| x.metal_cost);
         match self.vent_holder(vent, own) {
             Holder::Free => Some(Take::Free),
             Holder::Ours { id, def: standing, being_built: true } if standing == def => Some(Take::UnderWay(id)),
-            Holder::Ours { def: standing, being_built: false, .. } if cost(def) >= 2.0 * cost(standing) => Some(Take::Over(standing)),
+            Holder::Ours { def: standing, being_built: false, .. } if self.stands_over(def, standing) => Some(Take::Over(standing)),
             _ => None,
         }
+    }
+
+    /// Whether `def` is a vent building laid out to stand over the finished plant `standing`: one of at least twice
+    /// its metal (`vent_take`).
+    fn stands_over(&self, def: UnitDefId, standing: UnitDefId) -> bool {
+        let cost = |d: UnitDefId| self.world.def(d).map_or(0.0, |x| x.metal_cost);
+        cost(def) >= 2.0 * cost(standing)
+    }
+
+    /// Whether the finished plant `standing` on this vent is a tier-1 one: some faction's advanced geothermal plant
+    /// fits the vent's ground and stands over it. What the report's vent line says of such a plant, ours or an
+    /// ally's (the user, 2026-11-15, after two games in which no seat put the advanced plant over a tier-1 one: "The
+    /// report line can be built as such").
+    fn vent_plant_is_tier_1(&self, vent: Vec3, standing: UnitDefId) -> bool {
+        super::roster::ROSTERS
+            .iter()
+            .filter_map(|r| r.role("advanced_geothermal"))
+            .filter_map(|name| self.world.def_named(name))
+            .any(|advanced| self.vent_ground_fits(advanced, vent) && self.stands_over(advanced, standing))
     }
 
     /// The vents `def` may be begun on, the one nearest `near` first, each with its index.
@@ -125,7 +143,8 @@ impl Brain {
     }
 
     /// The vents for the report's score line, nearest our start first: each vent's name, cell and what stands on
-    /// it, a free one with the walk from our start.
+    /// it, a free one with the walk from our start, a finished tier-1 plant with whose it is to upgrade (ours: the
+    /// advanced plant may go over it; an ally's: the hands build over our own plant only).
     pub(super) fn vents_report(&self, own: &[OwnUnit], frame: i32) -> Vec<(String, String)> {
         let mut vents: Vec<(f32, String, String)> = self
             .world
@@ -134,8 +153,11 @@ impl Brain {
             .enumerate()
             .map(|(i, v)| {
                 let mut words = self.vent_words(*v, own, frame);
-                if self.vent_holder(*v, own) == Holder::Free {
-                    words += &if self.reachable_on_foot(*v) { format!(", {:.0} on foot", self.walk_from_home(*v)) } else { ", off the ground our bots walk".to_string() };
+                match self.vent_holder(*v, own) {
+                    Holder::Free => words += &if self.reachable_on_foot(*v) { format!(", {:.0} on foot", self.walk_from_home(*v)) } else { ", off the ground our bots walk".to_string() },
+                    Holder::Ours { def, being_built: false, .. } if self.vent_plant_is_tier_1(*v, def) => words += ", tier 1: the advanced plant may go over it",
+                    Holder::Ally { def, being_built: false } if self.vent_plant_is_tier_1(*v, def) => words += ", tier 1: theirs to upgrade",
+                    _ => {}
                 }
                 (v.dist2d(self.home), format!("{} {}", Self::vent_name(i), self.world.grid(*v)), words)
             })
@@ -235,6 +257,29 @@ mod tests {
         // An under-water vent takes no land plant.
         brain.world.vents[0].y = -40.0;
         assert_eq!(brain.vent_take(geo, brain.world.vents[0], &[]), None);
+    }
+
+    /// The report's line: a finished tier-1 plant of ours says the advanced plant may go over it, an ally's that it
+    /// is theirs to upgrade; a frame, an advanced plant and a Prude say neither.
+    #[test]
+    fn the_report_says_whose_a_tier_1_plant_is_to_upgrade() {
+        let mut brain = brain();
+        let (ours, allys) = (brain.world.vents[0], brain.world.vents[1]);
+        brain.allies.push(bot_protocol::AllyUnit { id: UnitId(50), def: UnitDefId(GEO), pos: allys, team: 7, being_built: false, facing: 0 });
+        let words = |brain: &Brain, standing: OwnUnit| brain.vents_report(&[standing], 900).into_iter().map(|(_, words)| words).collect::<Vec<_>>();
+        let said = words(&brain, own(10, GEO, ours));
+        assert!(said[0].starts_with("our ") && said[0].ends_with(", tier 1: the advanced plant may go over it"), "{said:?}");
+        assert!(said[1].starts_with("an ally's ") && said[1].ends_with(", tier 1: theirs to upgrade"), "{said:?}");
+        // A frame is not yet a plant to build over; nothing goes over an advanced plant or a Prude.
+        for standing in [OwnUnit { being_built: true, ..own(10, GEO, ours) }, own(11, AGEO, ours), own(12, GMM, ours)] {
+            let said = words(&brain, standing);
+            assert!(said[0].starts_with("our ") && !said[0].contains("tier 1"), "{said:?}");
+        }
+        brain.allies[0].def = UnitDefId(AGEO);
+        let said = words(&brain, own(10, GEO, ours));
+        assert!(said[1].starts_with("an ally's ") && !said[1].contains("tier 1"), "{said:?}");
+        brain.allies[0] = bot_protocol::AllyUnit { def: UnitDefId(GEO), being_built: true, ..brain.allies[0].clone() };
+        assert!(!words(&brain, own(10, GEO, ours))[1].contains("tier 1"));
     }
 
     /// The names: `vent_N` from 1, west to east as the shim sends them; anything else is no vent.

@@ -3,9 +3,9 @@ id: D-vents-take-them
 layer: derived
 premises: [D-energy-second, D-tier2-sprint, D-metal-is-the-game, D-raid-answer, F-eco-energy, F-eco-build, F-eco-conversion, F-eco-consequences, F-map-build, F-map-features, F-unit-armgeo, F-unit-armageo, F-unit-armgmm, F-unit-corgeo, F-unit-corageo, F-unit-leggeo, F-unit-legageo, F-unit-armsolar, F-unit-armadvsol, F-unit-armfus, F-unit-armmmkr, M-pool-energy-and-power]
 lessons: []
-claims: [K-eco-people-take-the-vent, K-mech-a-geothermal-plant-stands-within-36-of-its-vent, K-mech-a-plant-over-a-plant-refunds-the-one-beneath]
+claims: [K-eco-people-take-the-vent, K-eco-our-seats-leave-the-vent-at-tier-1, K-mech-a-geothermal-plant-stands-within-36-of-its-vent, K-mech-a-plant-over-a-plant-refunds-the-one-beneath]
 sources: {people: [the user], dates: [2026-11-15], relay: the user's observation ("geothermal power spots. We never build them ... Most maps have them ... and some maps that puts us significantly behind"), written on his word after the research report ("Go ahead"); the practice is counted from the carded public team games and the cached public duels above OS 40 (K-eco-people-take-the-vent); the prices are arithmetic on the unit files; the rules of the vent are read from the engine and the game and measured in the bots' games}
-status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled; the first, the 8v8 against BARb on All That Glitters he asked for with the same message (vents-barb-8v8-1, won 40:51), is in the tests paragraph since his word of the same day ("go ahead and fix or remove the articles last sentence"); the second game (the lobby 3v3 on Tangerine), the sentence on who orders the upgrade in a team and the one on how it is ordered are a draft of 2026-11-15 on his word ("The geothermals work much the same as mexes ..."; "Go ahead and draft the brief updates"), with the matching lines in D-tier2-sprint, F-eco-energy and the commander's and the players' prompts; the wording is not his and he has not read it
+status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled; the first, the 8v8 against BARb on All That Glitters he asked for with the same message (vents-barb-8v8-1, won 40:51), is in the tests paragraph since his word of the same day ("go ahead and fix or remove the articles last sentence"); the second game (the lobby 3v3 on Tangerine), the sentence on who orders the upgrade in a team and the one on how it is ordered were drafted 2026-11-15 on his word ("The geothermals work much the same as mexes ..."; "Go ahead and draft the brief updates"), with the matching lines in D-tier2-sprint, F-eco-energy and the commander's and the players' prompts, and merged the same day once he had read them ("Looks good, merge it."); no game has been played on them (K-eco-our-seats-leave-the-vent-at-tier-1 says what would show them wrong)
 -->
 ### A vent is the cheapest energy on the map
 
@@ -27,7 +27,7 @@ energy a second, and a walk to wherever the vent is.
 
 - *Only on a vent, and by a constructor.* A geothermal plant stands on a vent and nowhere else (F-map-build); the
   commander builds none. The `map` tool lists this map's vents as `vent_N` and the score line of every report says
-  what stands on each.
+  what stands on each, and of a tier-1 plant whose it is to upgrade.
 - *The bill is energy.* 13,000 energy is a minute of an income of 220. Begun in a stall it starves the plant beside
   it for as long as it takes; begun with the store above half it is paid from the store (D-energy-second).
 - *The upgrade is in place.* The advanced plant may be built on a bare vent or over our own tier-1 plant; when it is
