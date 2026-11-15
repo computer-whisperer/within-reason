@@ -2,9 +2,9 @@
 id: D-raid-answer
 layer: derived
 premises: [D-metal-is-the-game, D-lead-convert-it, D-reach-nests, F-eco-extractors, F-eco-build, F-eco-consequences, F-fight-range, F-fight-sight, F-fight-consequences, F-unit-armllt, F-unit-armbeamer, F-unit-armrad, F-unit-armfav, F-unit-armflea, F-unit-armpw, F-unit-armflash, F-unit-armstump, F-unit-corak, F-unit-corfav, F-barb-how-it-decides, M-barb-hard-aggressive-comet, M-pool-pressure, M-pool-energy-and-power, M-gecko-alone-vs-barb, M-u6bkep, F-unit-armmine1, F-unit-armmine2, F-unit-armmine3]
-lessons: [L-raid-naked-mexes, L-raid-keep-moving, L-raid-first-handful, L-raid-rovers, L-mex-half-the-map, L-sheet-raids, L-sheet-economy]
-sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-09-28, 2026-10-03, 2026-10-23], relay: the lessons' chat lines; the user's review of 2026-09-27 (a Rover cannot repel a Pawn, the fault was the army's stationing) and of player-57 (a body turning for a lone Rover kills nothing); thebluegecko's unit sheet of 2026-10-23 (the Blitz, the Rover, the radar, the mines)}
-status: live, checked (run/metal_killtest.py raids, 2026-10-23: the raid ledger of 236 model-played 1v1s, 7,078 extractors lost; correlations across our own games, and the ledger holds only the extractors that died, said so in the tests)
+lessons: [L-raid-naked-mexes, L-raid-keep-moving, L-raid-first-handful, L-raid-rovers, L-mex-half-the-map, L-sheet-raids, L-sheet-economy, L-gecko-turrets-force]
+sources: {people: [thebluegecko, Irishstud14, the user], dates: [2026-09-27, 2026-09-28, 2026-10-03, 2026-10-23, 2026-11-14], relay: the lessons' chat lines; the user's review of 2026-09-27 (a Rover cannot repel a Pawn, the fault was the army's stationing) and of player-57 (a body turning for a lone Rover kills nothing); thebluegecko's unit sheet of 2026-10-23 (the Blitz, the Rover, the radar, the mines); his spoken review of the 1v1 lost to u6bkep on 2026-11-14 (what a turret forces, and our own Blitzes as the defence against a person on vehicles)}
+status: live, checked (run/metal_killtest.py raids, 2026-10-23: the raid ledger of 236 model-played 1v1s, 7,078 extractors lost; correlations across our own games, and the ledger holds only the extractors that died, said so in the tests); the turret advice made to depend on his raiders 2026-11-14 from thebluegecko's review of the u6bkep 1v1 (the heuristic's second paragraph, "What a turret forces", items 1 and 3, the Blitz bend, the tests' last paragraph; run/metal_killtest.py raid-parties): written for the user's read and not yet read by him
 -->
 ### The raid answer
 
@@ -17,6 +17,12 @@ turret within its 430, a picket within three seconds' drive, a radar that saw it
 avenges, and the rebuild within the minute is the other half of the answer. The raid is a tax both sides pay, the
 pros too; what is ours to set is the rate, the downtime, and what the tax buys on his side.
 
+His measure of the turret, reviewing a game in which we built thirty-two Sentries and lost thirty-four extractors
+(L-gecko-turrets-force): "how much they force your opponent to build in order to fight you". Beside an extractor a
+Sentry forces two Blitzes or five bots, so our count was "probably reasonable against bots"; against a vehicle player
+who is "just really good at the game ... the only possible defense becomes your own blitzes", and "between two really
+good players, the LLTs are not built as much".
+
 **The quantity.** Extractors lost a game-minute (the pool's winners lose one, its losers two and a half), the downtime
 of each (50 metal plus 2.3 a second until the spot stands again), and what stood in reach when it died.
 
@@ -28,6 +34,15 @@ of each (50 metal plus 2.3 a second until the spot stands again), and what stood
   extractor; two Blitzes with flanking beat it (his sheet, and the reach article's arithmetic), four lose none. Outside
   the circle nothing arrives in time unless it already stands within about 300: a Blitz 900 away reaches a dead
   extractor.
+- *What a turret forces.* His arithmetic (L-gecko-turrets-force): with a Sentry beside the extractor "it takes two
+  Blitz to raid that mex", 220 metal, or "five bots", 215 to 270; with none "a single rover can come kill all your
+  mexes", 31. So an 85-metal turret is worth the party it makes him send and what that party is worth to him
+  afterwards. Five bots walk: slow to gather and slow to be anywhere else. Two Blitzes are what his plant makes in 27
+  seconds, they are at the next pair within ten, and four of them lose none to the turret. Against Blitzes the turret
+  taxes the raid and does not stop it, and each one is three quarters of a Blitz that cannot move. Our ledger agrees
+  in direction, on an AI's raids (the tests): a turret stood within 700 of 19 percent of the extractors lost to a lone
+  scout car, 33 to a lone bot and 36 to a lone Blitz or Incisor, and the fast tanks paid for the extractor less often
+  than the bots alone and in fours, as often in pairs and threes.
 - *Who catches whom.* A Rover (168) catches everything that raids; a Blitz (101) catches Pawns (87), Grunts (81) and
   anything slower, never a Tick (132) or a Rover; a Stout (75) catches a Mace. A Rover kills a Tick in 1.7 seconds and
   dies to a Pawn in 1.2, so the Rover is the Tick's answer and the Blitz the Pawn's. The chaser's job is mostly not the
@@ -59,17 +74,29 @@ of each (50 metal plus 2.3 a second until the spot stands again), and what stood
 
 **Consider, and why it may work.**
 
-1. *A light turret as the next step after each outer pair, standing within 430 of both, never waiting on the bank.*
-   Why: 85 metal against a loss that costs 285 at our median rebuild and the spot's whole output in the 42 percent
-   never rebuilt; BARb's squads skip what is defended; the pool's winners stand eleven by 8:00 and we stand seven; and
-   our games with ten lost three fewer in the mid-game than those with four. Half our losses had a turret "near": a
-   turret 600 from the spot covers nothing of it, and the raider works the far side of its circle.
+1. *A light turret beside each outer pair, as many as his raiders make pay.* Against scout cars and bots, and against
+   BARb whatever it builds, the turret is the next step after the pair, standing within 430 of both, never waiting on
+   the bank. Why: 85 metal against a loss that costs 285 at our median rebuild and the spot's whole output in the 42
+   percent never rebuilt; BARb's squads skip what is defended; the pool's winners stand eleven by 8:00 and we stand
+   seven; and our games with ten lost three fewer in the mid-game than those with four. Half our losses had a turret
+   "near": a turret 600 from the spot covers nothing of it, and the raider works the far side of its circle. Against a
+   person on vehicles the pool's count is the ceiling and not the floor: its Armada sides, on vehicles in 40 of 41,
+   stand ten by 8:00 at the median and thirteen at the upper quartile. That is enough to keep a lone Rover off every
+   cluster, with two together where his party's road runs into them; past it the metal is Blitzes (item 3). Why: his
+   pair beats the turret and drives on, so the thirtieth Sentry buys less than the tenth did (L-gecko-turrets-force).
+   In the game he reviewed we stood fifteen by 8:00 and thirty-two with seven Beamers by the end, 4,050 metal and
+   thirty-seven Blitzes' worth, and twenty-six of the thirty-four extractors we lost had one within 700.
 2. *A radar at the front by 3:00.* 60 metal for twenty seconds' warning, which is the picket's arrival time and the
    reach article's eyes. The pool's first radar is at 3:00, his is at each outer spot, and ours stood by 4:00 in one
    game in five; those games lost three fewer extractors by 16:00.
 3. *The picket stands at the cluster and is a catcher.* A Rover or a Blitz within three seconds' drive of the spots it
    keeps, a Rover where Ticks come; a soldier 900 away saved nothing in our record (the raiders paid 60 percent with one
    near, 50 with none). Four or more raiders are not a picket's: that is an attack, and the body's fight.
+   Against a person's Blitzes the defence is our own Blitzes, standing where his parties come in and moving to block
+   them, with the turret as their helper: "just using the units for defense tends to be stronger because they can move
+   around. And you can kind of block that way" (L-gecko-turrets-force). The price is his word too: it "does make the
+   game more volatile because the first player to get a bunch of Blitzes into the undefended Solars is very likely to
+   win", and that holds for either side.
 4. *The body does not turn for a lone raider.* Why: the hands already answer in seven seconds and the raider pays three
    times in five; the body's turn buys the same pay at the price of lead.md's clocks (player-57's Rover; the +20 game's
    dozen detachments). The exception is the raider already inside the body's own reach, which is free.
@@ -90,11 +117,13 @@ of each (50 metal plus 2.3 a second until the spot stands again), and what stood
    hands have. Unmeasured: no game of ours has laid one.
 
 **Where it bends.** Against a person the raider leaves when outmatched and comes back, and the picket's standing is
-the whole of the answer; against BARb its gate does the picket's work once a turret stands. Blitz pairs beat a
-Sentry with flanking, so against Blitz raids the post is a Beamer or a Sentry with a picket beside it. On a map with
-one pass the picket at the pass covers everything behind it. From the mid-game the raider is a Marauder or a Fatboy
-(156 of our extractors died to Marauders) and the turret is nothing to it: that answer is the body's position and our
-own tier 2. Air raids are the anti-air's and not this article's.
+the whole of the answer; against BARb its gate does the picket's work once a turret stands. Blitz pairs beat a Sentry
+with flanking: against BARb's the post is a Beamer or a Sentry with a picket beside it; against a person's it is the
+picket, with a second turret only where his party has to drive past it. Leaving most spots bare and doubling a few
+pays only while his attention is elsewhere ("that does require your opponent to APM stall", L-gecko-turrets-force). On
+a map with one pass the picket at the pass covers everything behind it. From the mid-game the raider is a Marauder or
+a Fatboy (156 of our extractors died to Marauders) and the turret is nothing to it: that answer is the body's position
+and our own tier 2. Air raids are the anti-air's and not this article's.
 
 **When to depart from the line.** When four or more come: the fight, not the picket. When the raider is already inside
 the body's reach: kill it, it is free. When the spot is on his side of the middle and uncovered: let it fall and
@@ -109,3 +138,14 @@ the loss and say nothing of the raids a turret or picket turned away; "within 70
 death within two minutes by anyone; and the turret and radar correlations run across games in which everything else
 varied too. What a saved extractor looks like needs the raids that failed, which the truth file holds and nothing yet
 reads.
+
+One game against a person on vehicles, read by thebluegecko (2026-11-14, `run/matches/1794707454-human`, lost to
+u6bkep). The player's plan was "a light turret beside every outer extractor, one army body that stands on his road
+beside our turrets"; his Blitzes came mostly in fours and fives from 4:45 and in nines to thirteens from 9:44, and of
+the thirty-four extractors we lost twenty died to Blitzes and twenty-six with a turret within 700, up to four of them.
+`run/metal_killtest.py raid-parties` (2026-11-14) cuts the ledger above by what the party was made of, parties of one
+kind only: a turret within 700 of 19 percent of the extractors lost to a lone scout car, 33 to a lone bot, 36 to a
+lone Blitz or Incisor; a raider dead within two minutes, with a turret near, for 47 percent of the lone fast tanks
+against 59 of the lone bots, 72 against 72 in pairs and threes, 78 against 91 in fours and more. That is BARb's
+raiding and losses only: it does not test a person's Blitzes against our own, and no game has been played on the new
+wording.

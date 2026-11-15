@@ -686,6 +686,35 @@ note: both rows (the Banshee, the Twilight) are quoted whole in the weapons-of-s
 status: live
 -->
 
+### Reviewing a lost 1v1 against u6bkep (thebluegecko, spoken, 2026-11-14)
+
+thebluegecko watching the replay of the Comet Catcher 1v1 our seat lost to u6bkep that evening
+(`run/matches/1794707454-human`: both Armada vehicles, ours from G1, conceded at 21:36), with the user and u6bkep in
+the channel. In his words blue is u6bkep and red is our seat. Clocks in brackets are the recording's; a game clock is
+said to be one.
+
+<!--meta
+id: L-gecko-turrets-force
+layer: lesson
+sources: {people: [thebluegecko, the user], dates: [2026-11-14], games: [1794707454-human], relay: a voice conversation the user recorded and we transcribed locally, one channel a speaker, so the speaker is the channel and not a reading (docs/knowledge/_inbox/gecko-u6bkep-1v1-review-2026-11-14.md, faster-whisper large-v3, a second pass agreeing on the numbers); the bracketed corrections of the model's hearing are ours, and words it doubled where two of its segments meet are dropped}
+status: live
+-->
+On the Sentries our seat had put beside its extractors, fifteen by 8:00 of the game (4:28 to 6:33): **"This number of
+Sentries, the LLTs, is probably reasonable against bots because the LLTs are reasonably good against bots. One way to
+think about LLTs is how much they force your opponent to build in order to fight you. You tend to want an LLT because
+otherwise a single rover can come kill all your mexes [mechs]. So if you put an LLT next to the mex, then it takes two
+Blitz to raid that mex. When you're playing against bots, it means you need five bots in order to raid that mex, so
+the cost value is just higher. When playing against a vehicle, that means you can get a little bit more value against
+players who aren't building rovers by skipping defenses on more mexes and putting two LLTs on some, because the
+raiding group is likely to run into them and get killed that way. But that does require your opponent to APM stall. If
+your opponent is not APM stalling and is just really good at the game, then that stops working, and the only possible
+defense becomes your own blitzes. And so, between two really good players, the LLTs are not built as much. Just using
+the units for defense tends to be stronger because they can move around. And you can kind of block that way. This does
+make the game more volatile because the first player to get a bunch of Blitzes into the undefended Solars is very
+likely to win. So it makes for a violent, harsh, nasty game. And we're seeing some of that happen actually in this game
+here. At 7:30 [730], the Blitzes get into the Solars and start dying."** (To APM stall: to have one's attention
+elsewhere, so that the raid drives where it was sent and is not steered; the reading is ours.)
+
 ### Said by less experienced players
 
 Lobby ratings 19 to 25, or unknown: worth hearing, weighed below the lines above.
