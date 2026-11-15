@@ -67,7 +67,7 @@ Each is a property of the structure, visible without running it. The last column
 | T5 | A change anywhere on the map re-plans every company | No relevance test between a disturbance and what it can affect | §5.4 |
 | T6 | The outer decisions run as fast as, or faster than, the inner loop settles (end placed 10 Hz, re-plan 0.2 to 0.5 Hz, orders 1 Hz; a re-lay takes about 9 s) | Cascades need the outer loop slower than the inner one's settling; otherwise the inner loop is always in transient | §4 (P6): dwell |
 | T7 | Nine or more writers of one company's reference, ordered by call order | No single owner of the setpoint; interactions between writers are untested by construction | §5.1: one writer, at decisions |
-| T8 | The anchor is dead-reckoned and re-synchronised with the body by events (re-aim, set-down, placement by the dense cluster) | The loop's main state is open-loop; each event is a jump | §5.5: the frame is seated from the units at every decision and cannot leave them between |
+| T8 | The anchor is dead-reckoned and re-synchronised with the body by events (re-aim, set-down, placement by the dense cluster) | The loop's main state is open-loop; each event is a jump | §5.5: the frame is seated from the units when it is founded, and the hold of §5.6 keeps it by them since (D10: seated at every order as first written, a body of two speeds stalled) |
 | T9 | The pace is fed back from the worst member | The most outlier-sensitive statistic there is; influence of one unit unbounded | §5.6 |
 | T10 | Each kind of outlier is excused by a latch (away, once formed, waited, stuck clock, cut off, joiner reach, pass body, given up) | State the game does not have; two identical armies differ; no analysis of the latches together | §5.6: an order statistic and a velocity test, both memoryless |
 | T11 | The pace type marches at its own top speed | The reference sits at the actuator's saturation: a pace-type member behind its slot cannot close | §5.6 (stated limit, with the knob) |
@@ -212,11 +212,12 @@ today (`Ground`: the members' common ground, priced by room).
   until its body is through; there are no books of the pass. A group that fights passes relaxed only when nothing
   hostile is within 1,000 of the stretch when the frame reaches it (the rule of 2026-11-10, kept); otherwise the
   frame walks the stretch in ranks at whatever pace §5.6 gives.
-- **Seating.** At every decision that plans a way (an order, a re-form), the frame is put where its body is: the
+- **Seating.** When a frame is founded (a re-form, a newcomer's company), it is put where its body is: the
   median, by coordinate, of where each member's position says the centre would be. A company whose block does not
-  stand where its body is (it was founded in a yard, or the order came in mid-pass) starts in a gap: its members
-  are sent to the first ground on the new way where the block stands. Between seatings `F` only advances, and by
-  §5.6 it cannot leave the body.
+  stand where its body is (it was founded in a yard) starts in a gap: its members are sent to the first ground on
+  the way where the block stands. After its founding `F` only advances, a new order's way starts where the frame
+  is, and by §5.6 the frame cannot leave the body. (As first written and built the frame was seated again at
+  every order; D10 took that out.)
 
 ### 5.6 The pace, and whom the frame waits for
 
@@ -265,8 +266,9 @@ today (`Ground`: the members' common ground, priced by room).
 
 1. The same order (kind as today's classes, the place within 48, the same party or ward) changes nothing. A hold
    whose point lies inside the layout in force names no new place: the layout stands.
-2. Otherwise each frame is seated on its body (§5.5), the layout laid at the new place, the companies paired, the
-   ways planned. The deals stand. A member's goal moves by about what the place moved.
+2. Otherwise the layout is laid at the new place, the companies paired, and the ways planned from where the
+   frames are. The deals stand and no frame jumps: a member's goal moves by what its frame's travel turns, and
+   by nothing at the moment of the order (D10).
 3. **The facing** changes only when the approach to the new place (the last 400 elmos of a way planned from the
    body's centre) is more than 60 degrees off the facing's axis in either direction, the place is further than
    the layout is wide, and the last change is ten seconds old. A reversal keeps the facing (the army backs away
@@ -357,7 +359,7 @@ it (§11).
 |---|---|
 | C5: ninety in four companies ordered to a point among buildings, allies building on it, soldiers joining and dying, a building changing every five seconds | four blocks laid once in a row about the point; each company walks its own way to its own; joiners take free slots; a building change that blocks nothing changes nothing; four fifths in the blocks is `arrived` |
 | a block of the layout falls inside a turret's reach beside the place | it stands there and the report says the fire; the layout does not read threat (a limit, §10) |
-| the order alternates between two places every second | the frames are re-seated and the ways re-planned each second; no deal changes; the units dither between two goals, which is the order's doing |
+| the order alternates between two places every second | the ways are re-planned each second from where the frames are; no deal changes and no frame jumps; the units dither between two goals, which is the order's doing; a body of two speeds gets there as one of a single type does (the rows `alternate` and `alternate-mixed`) |
 | a hundred through a wall's door | each frame is set beyond the door on its own ground, laid at the plan; everyone goes through on one order; each frame walks on when four fifths of its live members are up |
 | a quarter of a company penned in a yard | the frame waits for none of them once they stand; the report names them standing |
 | two groups ordered to one place | the later one's blocks are laid beside and behind the earlier one's |
@@ -473,6 +475,15 @@ Each changes something he ruled or judged, or is a choice the bench cannot make.
 - **D7 The halt is read on the slots, not the members.**
 - **D8 An army goes through a shared door together, its forming-up grounds laid at the plan.**
 - **D9 The learned lead and every other tuning listed in §8 go with the base**, to come back on evidence.
+- **D10 (2026-11-15, after the first game on the hands) A frame is seated on its body when it is founded and not
+  at an order.** Chose-because: seated at every order, a body of two speeds under an order that changes every
+  second did not arrive (after a seat half the members are ahead of their slots; a faster member's point is its
+  slot, so it was sent back; the engine of before arrived in 30 s), and with the seat at founding alone the 21
+  property rows read the same. Rejected-because, of the seat at every order: its purpose was that the frame never
+  be a dead-reckoned thing apart from its units (T8); the hold of §5.6 already keeps it by them, and the seat's
+  jump is itself a discontinuity in the order (P3) for every member whose point is not carried ahead. The user,
+  on "Make the re-seat apply only when the army has no order" and on measuring the faster type's re-send
+  distance: "Yes to both -- apply it and try another test game" (a bare assent).
 
 ## 14. As built (2026-11-15, branch `army-loop`)
 
@@ -530,8 +541,8 @@ the bench's arm.
 when an order is decided. The property drills were all of one type and passed; a body of two speeds under an order
 that changes every second does not arrive (K-group-a-frame-seated-at-every-order-stalls-its-faster-type): after a
 seat half the members are ahead of their slots, and a faster member, whose point is its slot itself, is sent back.
-With the seat kept for an army that has no order (its founding, a re-form, a lane made again) and dropped for one
+With the seat kept for a frame's founding (a re-form, a newcomer's company, a lane made again) and dropped for one
 that walks an order, the body arrives as on the engine of before and the 21 rows read the same; the hold of §5.6 is
-then what ties a frame to its body between decisions. Not decided: the default is the seat, `WITHIN_REASON_SEAT=0`
-the bench's arm. §9 gains the rows `walk-mixed` and `alternate-mixed`.
+then what ties a frame to its body between decisions. Decided the same day (D10) and built: §5.5 and §5.8 are
+amended above, and the bench's arm is gone with the question. §9 gains the rows `walk-mixed` and `alternate-mixed`.
 

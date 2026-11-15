@@ -226,11 +226,13 @@ pub fn relax_on() -> bool {
     *ON.get_or_init(|| std::env::var("WITHIN_REASON_RELAX").map_or(true, |v| v != "0"))
 }
 
-/// Whether an order's decisions seat every frame on its body (the design of 2026-11-15, §5.8). The bench's arm
-/// `WITHIN_REASON_SEAT=0` leaves a frame that already walks an order where it is and plans the new way from there.
-pub fn seat_on() -> bool {
-    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var("WITHIN_REASON_SEAT").map_or(true, |v| v != "0"))
+/// The bench's arm for a faster type's stride (`WITHIN_REASON_STRIDE=64`): a member faster than its company's pace
+/// is sent its slot carried this far ahead along the travel, and sent again once that point has moved this far. 0,
+/// the default, sends it its slot itself, again each `form::near_tolerance` the slot has moved
+/// (K-group-a-faster-type-costs-an-order-a-cell).
+pub fn stride() -> f32 {
+    static ARM: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+    *ARM.get_or_init(|| std::env::var("WITHIN_REASON_STRIDE").ok().and_then(|v| v.parse().ok()).filter(|v: &f32| *v > 0.0).unwrap_or(0.0))
 }
 
 impl Default for Pacing {

@@ -1367,7 +1367,7 @@ impl Lane {
             let near = form::near_tolerance(pitch, self.pacing.near);
             for (id, to) in goals {
                 if by_id.contains_key(&id) {
-                    orders.insert(id, SlotOrder { to, near });
+                    orders.insert(id, SlotOrder { to, near: army.near_of(id, near) });
                 }
             }
             let declared = self.groups.get_mut(&name).expect("declared");

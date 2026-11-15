@@ -811,14 +811,15 @@ does not arrive: nobody within 300 of the place in 60 s, 1,536 from it at the en
 its place across the next) in 29 s at 1.65. A body of one type arrives in 35 s on all three. In a game the order
 that changes every second is an attack on a party that moves (an order each 48 the party moves).
 **Status.** measured (2026-11-15: the bench by intervention, one duel an arm; loop-pianist-smoke's Blitzes at 38 a
-second against its Stouts' 77 within 2 s of an order), open: the default is the design's seat until the user rules.
-With the seat off the 21 property rows read as with it.
+second against its Stouts' 77 within 2 s of an order). Fixed the same day on the user's word (the design's D10): a
+frame is seated when it is founded and not at an order; the arm `WITHIN_REASON_SEAT` is gone, the engine behaves as
+the arm's 0 did. With the seat at founding alone the 21 property rows read as before.
 **Evidence.** `docs/experiments.md`, the row orders1-\* to alternate-mixed; `run/props_bench.sh` rows `walk-mixed`
 and `alternate-mixed`, `run/drill_props.py` (`at80`, `ord_s`).
 **Would be wrong if.** A body of one type faster than nothing stalls the same way with the seat on (it does not: 35
 s), or the seat off lets a frame walk away from a body that cannot follow (the hold of §5.6 is what ties them; no
 property row shows it).
-**Used by.** none yet: a decision for the user.
+**Used by.** H-MICRO-GROUP (the design's §5.5, §5.8, D10).
 
 ### K-group-a-faster-type-costs-an-order-a-cell
 **Claim.** A member faster than its company's pace is paced by orders: its point is its slot, and it is sent again

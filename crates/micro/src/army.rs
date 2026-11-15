@@ -95,6 +95,8 @@ pub struct Company {
     /// This tick's slots, on the ground, and the points the members are sent to.
     slots: HashMap<UnitId, Vec3>,
     goals: HashMap<UnitId, Vec3>,
+    /// The members sent a stride ahead of their slot this tick (`group::stride`, the bench's arm).
+    strides: HashSet<UnitId>,
 }
 
 fn dot(a: (f32, f32), b: (f32, f32)) -> f32 {
@@ -166,6 +168,7 @@ impl Company {
             pace_full: 0.0,
             slots: HashMap::new(),
             goals: HashMap::new(),
+            strides: HashSet::new(),
         }
     }
 
@@ -441,10 +444,19 @@ impl Company {
         let (_, travel) = self.point(self.f);
         self.slots.clear();
         self.goals.clear();
+        self.strides.clear();
+        let stride = crate::group::stride();
         for (w, i) in &members {
             let nominal = self.frame.slot(*i);
             let slot = ground.and_then(|g| g.snap(nominal)).unwrap_or(nominal);
-            let lead = if share > 0.0 && pace_type(w, slowest) && pacing.lead > 0.0 { pacing.lead * share * (left / pacing.lead).clamp(0.0, 1.0) } else { 0.0 };
+            let lead = if share > 0.0 && pace_type(w, slowest) && pacing.lead > 0.0 {
+                pacing.lead * share * (left / pacing.lead).clamp(0.0, 1.0)
+            } else if share > 0.0 && stride > 0.0 && !pace_type(w, slowest) {
+                self.strides.insert(w.id);
+                stride.min(left)
+            } else {
+                0.0
+            };
             let goal = if lead > 0.0 {
                 let carried = Vec3 { x: slot.x + travel.0 * lead, y: slot.y, z: slot.z + travel.1 * lead };
                 match ground {
@@ -485,6 +497,12 @@ pub struct Army {
 }
 
 impl Army {
+    /// How far a member's point must have moved before it is sent again: `near`, or the stride for a member sent a
+    /// stride ahead this tick.
+    pub fn near_of(&self, id: UnitId, near: f32) -> f32 {
+        if self.companies.iter().any(|c| c.strides.contains(&id)) { near.max(crate::group::stride()) } else { near }
+    }
+
     /// The blocks this army holds at its place.
     pub fn blocks(&self) -> Vec<Block> {
         self.companies.iter().map(|c| c.stand).collect()
@@ -749,18 +767,17 @@ impl Army {
         Some(form::heading(centre, end))
     }
 
-    /// The decisions an order takes (§5.8): every frame seated on its body, the facing (kept unless the approach is
+    /// The decisions an order takes (§5.8). A frame stays where it is and its new way starts there: it was seated on
+    /// its body when it was founded (a re-form, a newcomer's company) and the hold keeps it by its body since. Seated
+    /// again at every order, a body of two speeds did not arrive under an order that changed every second: half the
+    /// members are ahead of their slots after a seat, and a faster member, whose point is its slot, was sent back
+    /// (K-group-a-frame-seated-at-every-order-stalls-its-faster-type). Decided: the facing (kept unless the approach is
     /// across it and its dwell has passed), each company's pitch, the layout at the place, the pairing of companies
     /// with blocks by the least total travel, each company's way, the tight stretches and their forming-up grounds.
     fn decide(&mut self, name: &str, order: &GroupOrder, place: Option<Vec3>, by_id: &HashMap<UnitId, &Walker>, ctx: &Ctx) {
         let started = std::time::Instant::now();
         let centre = form::median(self.companies.iter().flat_map(|c| c.slot_of.keys()).filter_map(|id| by_id.get(id)).map(|w| w.pos)).unwrap_or_default();
         let place = place.or(self.place).unwrap_or(centre);
-        if crate::group::seat_on() || self.order.is_none() {
-            for c in &mut self.companies {
-                c.seat(by_id);
-            }
-        }
         // The facing.
         self.turn_due = None;
         let old = self.facing.unwrap_or((1.0, 0.0));
