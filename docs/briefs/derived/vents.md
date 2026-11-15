@@ -5,7 +5,7 @@ premises: [D-energy-second, D-tier2-sprint, D-metal-is-the-game, D-raid-answer, 
 lessons: []
 claims: [K-eco-people-take-the-vent, K-mech-a-geothermal-plant-stands-within-36-of-its-vent, K-mech-a-plant-over-a-plant-refunds-the-one-beneath]
 sources: {people: [the user], dates: [2026-11-15], relay: the user's observation ("geothermal power spots. We never build them ... Most maps have them ... and some maps that puts us significantly behind"), written on his word after the research report ("Go ahead"); the practice is counted from the carded public team games and the cached public duels above OS 40 (K-eco-people-take-the-vent); the prices are arithmetic on the unit files; the rules of the vent are read from the engine and the game and measured in the bots' games}
-status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled (the first is the 8v8 against BARb on All That Glitters he asked for with the same message)
+status: in the manifest since 2026-11-15, read by the user and enabled on his word ("The brief looks good -- enable it"); no player game had been played on it when it was enabled; the first, the 8v8 against BARb on All That Glitters he asked for with the same message (vents-barb-8v8-1, won 40:51), is in the tests paragraph since his word of the same day ("go ahead and fix or remove the articles last sentence")
 -->
 ### A vent is the cheapest energy on the map
 
@@ -71,5 +71,9 @@ longer. The rules of the vent are measured (the plant stands 5 to 9 elmos from t
 tier-1 one takes it away within a minute or two of standing). Our code-played bots with the rule on and off
 (2026-11-15): WRDistilled against BARb on seven maps with vents 26-11-19 against 21-17-18 over 56 games a side, the
 plant begun at four to five and a half minutes; its economy alone on Onyx Cauldron 347 metal a second at 20:00
-against 312; WRTerritory's on All That Glitters 1,067 against 1,003. Small samples, all leaning one way. No
-flagship game has been played with vents on the menu.
+against 312; WRTerritory's on All That Glitters 1,067 against 1,003. Small samples, all leaning one way. One
+flagship game has been played with vents on the menu, an 8v8 against BARb on All That Glitters (2026-11-15, won
+40:51): the commander gave the side's vent to one seat before the game, its tier-1 plant was begun at 6:44 and
+stood from 7:39 to the end, and a second seat's order for the same vent was refused in words. The advanced plant
+over it was never ordered in the 32 minutes that seat held an advanced constructor; the one advanced plant of the
+game went onto his vent at 30:25, once his plant there was dead.
