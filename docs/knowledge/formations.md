@@ -885,3 +885,34 @@ soldiers-arrive are the standing observations of the same ground.
 his party stops to shoot and not with where the formation's slots can stand.
 **Used by.** none. A group whose packet pins it to our base (the rebuild packets do) fights every fight there.
 
+### K-group-a-block-laid-again-at-each-death-walks-out-of-reach
+**Claim.** A block that is laid again whenever one of its slots no longer stands is moved by its own company's
+losses: a soldier that dies leaves a wreck in the block, the block is laid at the next free cell, and under fire that
+is a step away from the place at each death. loop1's assault (12 Blitzes, 8 Stouts and 4 Janus into three light and
+one heavy turret) on the engine as merged: in 19 of 24 duels the block was laid again one to three times during the
+fight and ended 192 to 373 from the place where it was laid at 160; in one, after seven deaths, at 552, out of the
+company's reach, where the company stood for four minutes, said `arrived`, and two turrets lived at full health.
+With a block that gives way only when under four fifths of its slots stand (the design's D12) twelve duels of twelve
+are taken in 47 to 49 s and the block is laid again in one. A dragon's tooth put on a standing block moves the
+company on the first rule (at rest again 38 s later) and one member on the second.
+**Status.** measured (2026-11-15); D12 built on the branch `army-loop`, put to the user.
+**Evidence.** `docs/experiments.md`, s64-\* and d12-\*.
+**Would be wrong if.** The steps back came from his turrets' wrecks or the planner and not from our own dead (in
+the stalled duel the block's first step falls a second after the first death, and it takes five steps for seven
+deaths).
+**Used by.** H-MICRO-GROUP (D12).
+
+### K-group-an-army-made-again-at-rest-moves-everyone-in-most-runs
+**Claim.** A lane made again on an army at rest (the bench's `restart-rest`: 48 Pawns in two companies, the lane
+dropped and declared anew at 60 s) moves all 48 in five runs of ten and nobody in five: the members end a median 321
+from the place for 227, walk a fifth more, and the lane takes back `arrived`. The two outcomes do not follow the
+engine's version (loop1, s64, d12 and two repeats moved; new, seat0, seat1, fix and one repeat did not), so the choice
+is made by something the runs do not share to the elmo, the reading of the facing among sixteen directions being the
+first suspect.
+**Status.** observed (2026-11-15), cause not found. The design's P5 bounds how far a goal moves at a restart and
+that holds; "an army made again at rest moves nobody far" was read as passing from the runs that held.
+**Evidence.** `docs/experiments.md`, s64-\* and d12-\*; `run/drill_props.py`.
+**Would be wrong if.** The runs that moved differ in where the army stood at 59 s by more than a slot.
+**Used by.** none. In a game the lane is made again when the bot restarts and when a group comes back from a hunt
+or a rove.
+

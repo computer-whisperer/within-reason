@@ -33,6 +33,9 @@ row kill-rest --map "$flat" $w48 --kill 2@60 --run 100 --time-limit 140
 row build-off --map "$flat" $w48 --build armsolar@1000,900,10 --run 90 --time-limit 130
 row build-way --map "$flat" $w48 --build armsolar@1300,0,10 --run 90 --time-limit 130
 row build-place --map "$flat" $w48 --build armsolar@2000,0,60 --run 100 --time-limit 140
+# D12: a structure on a slot or two of a standing block (a wreck's size: a dragon's tooth) moves those slots' members
+# and not the company; the block is laid again only when under four fifths of its slots stand.
+row build-slot --map "$flat" $w48 --build armdrag@1936,200,60 --run 100 --time-limit 140
 # P3 thrash: the place moved once, and alternated every second.
 row shift49 --map "$flat" $w48 --shift 0,49@10 --run 90 --time-limit 130
 row shift100 --map "$flat" $w48 --shift 0,100@10 --run 90 --time-limit 130

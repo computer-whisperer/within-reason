@@ -898,7 +898,12 @@ impl Army {
             let others: Vec<Block> = (self.companies.iter().enumerate()).filter(|(k, _)| *k != i).map(|(_, c)| c.stand).chain(ctx.held.iter().copied()).collect();
             let c = &mut self.companies[i];
             let mut again = false;
-            if c.stand_whole && c.stand.standing(g, c.open) < c.open {
+            // A block in force gives way only when it no longer stands for its company (P6: a decision stands unless
+            // it has become impossible): fewer than the share of its open slots on ground joined to its centre. A
+            // wreck or a building on a slot or two moves those slots' members beside it (the snap of `tick`), not the
+            // company. A soldier that dies leaves its wreck in its own block: laid again at each death, a block
+            // under fire walked out of its own reach and stood there arrived (the design's D12).
+            if c.stand_whole && (c.stand.standing(g, c.open) as f32) < ctx.pacing.share * c.open as f32 {
                 let moved = layout::settle(c.stand, c.open, Some(g.as_ref()), &others);
                 c.stand_whole = moved.standing(g, c.open) == c.open;
                 if moved.centre.dist2d(c.stand.centre) > 1.0 {

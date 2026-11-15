@@ -112,7 +112,8 @@ These are the contract. A mechanism is in the design only if it serves one, and 
   army comes to rest in one arrangement that is defined at the order, in about its travel time; after that no
   order goes out.
 - **P2 A disturbance moves only what it touches.** A soldier joining moves itself. A soldier dying moves nobody.
-  A building that blocks nothing moves nobody; one that blocks a company's way or place moves that company.
+  A building that blocks nothing moves nobody; one that blocks a company's way moves that company; one on its
+  place moves the members whose slots it takes, and the company when it takes more than a fifth of them (D12).
 - **P3 The response is continuous in the order.** The same order again changes nothing. A place moved by `d` moves
   each member's goal by about `d`. Alternating between two orders costs the travel between them and no more.
 - **P4 The report is of the units.** Progress and arrival are functions of where the soldiers are and what was
@@ -190,8 +191,10 @@ today (`Ground`: the members' common ground, priced by room).
   again); a ground change after which a fresh plan is shorter than the remaining way by a fifth and by 200 elmos
   (then the fresh plan is taken). A ground change that does neither changes no way. The ground itself is rebuilt
   as today.
-- A block that no longer stands whole after a ground change is laid again (the next free cell), and its company's
-  way with it. No other block moves.
+- A block in force is laid again (the next free cell, and its company's way with it) when a ground change leaves
+  fewer than four fifths of its slots standing. With fewer taken than that the block stays and those slots'
+  members stand beside what took them (D12; as first built, one slot that no longer stood moved the block). No
+  other block moves.
 - A route of several points (the bench's circuits) is one order: each company's way passes each point by its
   block's offset in the layout, and the facing is the order's throughout. An order with the march off (the
   bench's `ranks` arm) is a way that is one gap: every frame is set on its block at once.
@@ -324,7 +327,7 @@ Computed from the units, the order and the layout; valid whatever the frames are
 |---|---|---|---|
 | facing | the order's place, the body's centre, the ground | founded; an order approached more than 60 degrees off its axis | 10 s, then the next such order |
 | re-form (companies, who is in which) | members' positions, the cap, pitch | founded; cap changed; a company's worth of slots free | 10 s |
-| layout (blocks at the place) | place, facing, companies, ground, other groups' blocks | each new order; for one block, when it no longer stands | the order |
+| layout (blocks at the place) | place, facing, companies, ground, other groups' blocks | each new order; for one block, when under four fifths of its slots stand | the order |
 | pairing (company to block) | frames, blocks | with the layout | the order |
 | way, tight stretches, forming-up grounds | frame, block, ground, held blocks, sibling ways | with the layout; blocked; beaten by a fifth and 200 | blocked or beaten |
 | deal | members' positions, slots | re-form; facing; a joiner (its own slot); gain of a quarter | 5 s between gains |
@@ -365,7 +368,8 @@ it (§11).
 | a hundred through a wall's door | each frame is set beyond the door on its own ground, laid at the plan; everyone goes through on one order; each frame walks on when four fifths of its live members are up |
 | a quarter of a company penned in a yard | the frame waits for none of them once they stand; the report names them standing |
 | two groups ordered to one place | the later one's blocks are laid beside and behind the earlier one's |
-| a building is begun on a standing block | that block is laid again at the next free cell; one company moves |
+| a building is begun on a standing block | the members whose slots it takes stand beside it; when it takes more than a fifth of the block's slots the block is laid again at the next free cell and that company moves (D12) |
+| soldiers die in a block under fire, each leaving a wreck in it | the block stays where it was laid and the wrecks' slots are stood beside them; as first built the block was laid again at each death, a cell further from the place, and a company walked out of its own reach and stood there (the row s64-\*) |
 | the army is told to hold where it is on the march | a layout at the body's centre; frames paired to the nearest blocks |
 | the engine is restarted mid-march | re-form on the units; goals move by under a block |
 | an enemy stands 400 beyond the place, out of reach | the army stands at its place and the report says what is in sight; closing on it is an order (D3) |
@@ -498,6 +502,20 @@ Each changes something he ruled or judged, or is a choice the bench cannot make.
   measured: a type much faster than the pace (a scout beside tanks), a game. The user: "Let's set the re-send distance to 64 and prepare for a human game to test this."
   `WITHIN_REASON_STRIDE` stays as the bench's arm (another length, or 0).
 
+- **D12 (2026-11-15, after the bench on D11) A block in force gives way only when under four fifths of its slots
+  stand.** Chose-because: laid again whenever one slot no longer stood, a block under fire was laid a cell
+  further from its place at each death (a soldier that dies leaves its wreck in its own block): in 19 of 24
+  assaults the block stepped back one to three times, and in one it went from 160 to 552 from the place, out of
+  the company's reach, where the company stood and said `arrived` for four minutes with two turrets alive. With
+  the share, twelve assaults of twelve are taken and the block is laid again in one; a dragon's tooth on a
+  standing block moves one member where it moved the company (the row `build-slot`), and the other rows read
+  the same. It is the share of D5 used a fourth time, and P6's own words: a decision stands unless it has become
+  impossible. Rejected-because, of the block that must stand whole: its purpose was that no member be sent to
+  ground it cannot stand on; the slot's snap already sends such a member beside it. What it changes of P2: a
+  building begun on a block no longer moves the company unless it takes more than a fifth of the slots (the row
+  `build-place`: a solar collector on the front rank now moves nobody). Built on the branch and put to the
+  user; his word on it is entered here when given.
+
 ## 14. As built (2026-11-15, branch `army-loop`; merged to main the same day)
 
 The user on the design: "Agreed, let's proceed with this. Do it in a worktree so the main bot is available for lobby
@@ -593,4 +611,15 @@ merge: no game with a player on it (two pianist-only games and one of WRDistille
 his lobby game; WRDistilled's twelve-map bench not run on it; a formation among our own buildings deals a seventh
 less on either engine. The player's prompt and its `lane` tool still described the close of D3 and companies that
 merge when they meet; both were corrected with the merge (`crates/bot/src/strategist/player.md`, `mcp.rs`).
+
+**A sixth reading (2026-11-15, the ledger's rows s64-\* and d12-\*): P2 did not hold for a death.** The drill of "a
+soldier dying moves nobody" kills by self-destruct, which leaves no wreck; a soldier killed leaves one in its block,
+and §5.4 laid a block again whenever it no longer stood whole. The loop then had a path the design never listed: a
+company's reference (its block) written by its own losses, away from the fight. Found by the assault that follows the
+property rows, one duel in 28; answered by D12 as a change of the layout decision's "stands until" (§11), with the
+row `build-slot`. Two things the same bench showed and nothing here answers: an army made again at rest moves all
+of its 48 in five runs of ten (the row `restart-rest`: P5's bound holds, "moves nobody" does not; it was read as
+passing from the runs that happened to hold), and the block laid at an order still takes only a cell where it stands
+whole, which is where a formation among our own buildings loses its seventh (D12 changes nothing there: 0.71 and
+0.21 for 0.70 and 0.25).
 

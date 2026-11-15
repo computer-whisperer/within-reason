@@ -410,7 +410,7 @@ would). The per-second line carries `goals`, each unit's last movement order's p
 it, and the meta line `rear` (the rear party's indices). The rows: `stand24/48/96`, `stand-c5` (the army of
 vents-barb-8v8-1's C5 engagement on its ground) and `stand-door` for convergence (P1); `join-`, `kill-`, `build-` on
 the march and at rest for a disturbance (P2); `shift49/100/300`, `shift100-rest` and `alternate` for the order (P3);
-`restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind); `walk-mixed` and
+`build-slot` (a dragon's tooth on a standing block: one member moves, not the company, the design's D12); `restart-march` and `restart-rest` (P5); `straggler1/3` (a pace-type member set 300 behind); `walk-mixed` and
 `alternate-mixed` (8 Stouts with 16 Blitzes, a body of two speeds, under one order and under a place moved each
 second: added after loop-pianist-smoke, every row before being of one type). The bench's arms, read from the
 environment by the lane in the duel binary: `WITHIN_REASON_ROW=2` (blocks two abreast) and `WITHIN_REASON_STRIDE=N`
