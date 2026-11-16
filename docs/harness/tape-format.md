@@ -108,7 +108,10 @@ table it is decoded alone. Its sections, each a run of columns (a u32 length, th
 
 An attitude's three angles are made of the unit's front and up directions by `attitude` in `tape_dump.lua` and turned
 back by `read::attitude` (a test holds the two together): the heading about the vertical (0 facing south, +z), the
-pitch (the front's rise), the roll (the up's turn about the front from where it would be with no roll).
+pitch (the front's rise), the roll (the up's turn about the front from where it would be with no roll). Against the
+engine's own vectors (the duel captured both ways, 379,447 samples at the same frame and unit): the front turned back
+is off by a median 0.011 degrees and at worst 0.063, the up by 0.018 and 0.079; a step is 0.088. A model's own x axis
+is the up crossed with the front (the engine's `CMatrix44f(pos, -rightdir, updir, frontdir)`, `SolidObject.h`).
 
 ## Reading one
 
