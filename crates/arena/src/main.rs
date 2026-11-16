@@ -7,8 +7,9 @@
 //!              [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
 //!              [--no-tape]   (no game.tape: by default the tape widget rides in the engine's spectating host and the
 //!                             raw stream is packed after the game, docs/harness/tape-format.md)
-//!              [--no-pieces] (the tape without the units' moving pieces: turrets, legs, arms; they cost game time,
-//!                             docs/design/2026-11-15-game-tape.md sections 9 and 10)
+//!              [--pieces]    (the tape with the units' moving pieces: turrets, legs, arms; off by default, for a big game
+//!                             played at real time falls behind with them, docs/design/2026-11-15-game-tape.md section 10;
+//!                             `run/tape.py <match dir>` adds them from the game's demo afterwards)
 //!              [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se]   (default: alternate, the opponent the other of
 //!                                                               Armada and Cortex; `nw` is the first start box of the layout, W on Comet; a Legion seat on either side
 //!                                                               writes the game's experimentallegionfaction option; BARb and Apex both play Legion)
@@ -113,7 +114,7 @@ struct Options {
     call_settled: bool,
     /// The game's tape, captured during the game by the tape widget in the spectating host; `--no-tape` turns it off.
     tape: bool,
-    /// The tape with the units' moving pieces; `--no-pieces` leaves them out.
+    /// `--pieces`: the tape with the units' moving pieces (off by default: the user, 2026-11-16).
     pieces: bool,
     /// `--jev-budget N`: a match whose Jev bill passes N dollars is called (undecided), with the bill as the reason;
     /// 0 for no limit. The user, 2026-10-04: "over $10 in jev costs should terminate the game early".
@@ -857,7 +858,7 @@ fn parse_args() -> Options {
         swap_corners: false,
         call_settled: true,
         tape: true,
-        pieces: true,
+        pieces: false,
         jev_budget: 10.0,
         pianist: false,
         player: false,
@@ -917,8 +918,8 @@ fn parse_args() -> Options {
                 options.tape = false;
                 continue;
             }
-            "--no-pieces" => {
-                options.pieces = false;
+            "--pieces" => {
+                options.pieces = true;
                 continue;
             }
             "--ffa" => {
@@ -1062,7 +1063,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--no-tape] [--no-pieces] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME[:VERSION]] [--ally-ai NAME[:VERSION]] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--no-tape] [--pieces] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME[:VERSION]] [--ally-ai NAME[:VERSION]] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 

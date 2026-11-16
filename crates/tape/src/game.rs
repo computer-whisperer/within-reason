@@ -99,7 +99,7 @@ pub struct Unit {
     pub work: Vec<(u32, [u16; 2])>,
     pub rank: Vec<(u32, [f32; 2])>,
     pub hurt: Vec<(u32, f32)>,
-    /// Its pieces' keyframes, by piece and then frame (none captured `--no-pieces`).
+    /// Its pieces' keyframes, by piece and then frame (none in a stream captured without them).
     pub keys: Vec<PieceKey>,
 }
 
@@ -671,7 +671,7 @@ impl Unit {
 }
 
 impl Game {
-    /// Whether the stream has the units' moving pieces (not captured `--no-pieces`).
+    /// Whether the stream has the units' moving pieces (not captured without them).
     pub fn has_pieces(&self) -> bool {
         num(&self.head, "pieces") > 0.0
     }

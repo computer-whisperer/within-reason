@@ -41,7 +41,8 @@ through each and read again from its new footer by one reader that keeps its sli
 duel in format 5 with its pieces, 25 cuts, every slice the same as the stream so far, the grown file 6.4 MB where the
 compact tape is 3.5).
 
-**In an arena game** (2026-11-15 night; `--no-tape` turns it off, `--no-pieces` leaves the moving pieces out) the tape
+**In an arena game** (2026-11-15 night; `--no-tape` turns it off; the moving pieces only with `--pieces`, since a big
+game played at real time falls behind with them, design section 10) the tape
 is made while the game is played, with no
 second engine run: the arena's host is a spectator with full view, and `crates/arena/src/capture.rs` puts the same
 widget (its only copy is the replay template's) and its marker into the match directory. While the game runs, a
@@ -95,7 +96,8 @@ and `H` also at a unit's death: its last second's), `fmetal` rows (a wreck's met
 on the map are `ev` rows of kind `mark` (a point with its words, a line, an erase with its radius; the player, the
 team, the ally team, whether a spectator made it).
 
-**The moving pieces** (with the marker `tape.pieces`, which `run/tape.py` and the arena make unless `--no-pieces`; the
+**The moving pieces** (with the marker `tape.pieces`, which `run/tape.py` makes unless `--no-pieces` and the arena only
+with `--pieces`; the
 design and what it costs: `docs/design/2026-11-15-game-tape.md` sections 9 and 10). A unit type's pieces once, in a `pieces` row (names in the
 engine's order, each one's parent, its offset from the parent at rest), kept in `DEFS` with the type. Every 6 frames the
 widget reads every piece's model-space matrix (`GetUnitPieceMatrix`), and for each piece whose matrix or whose parent's

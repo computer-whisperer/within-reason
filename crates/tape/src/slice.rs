@@ -48,7 +48,7 @@ pub struct Slice {
     pub key_rank: Vec<[f32; 2]>,
     pub rank: Vec<(u32, u32, [f32; 2])>,
     pub hurt: Vec<(u32, u32, f32)>,
-    /// Whether the slice has the units' moving pieces (not captured `--no-pieces`): a track for each piece not at rest
+    /// Whether the slice has the units' moving pieces (not captured without them): a track for each piece not at rest
     /// somewhere in the slice, by row and piece.
     pub has_pieces: bool,
     pub pieces: Vec<PieceTrack>,

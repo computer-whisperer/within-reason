@@ -90,7 +90,7 @@ async function measure() {
   page = await require("./driver").open({ firefox: process.env.SCENE_BROWSER === "firefox", out: require("os").tmpdir(), fail });
   await page.navigate(url);
   for (let i = 0; i < 300 && !(await page.evaluate("!!(window.viewer && window.viewer.scene && window.viewer.scene.tape)")); i++) await new Promise((r) => setTimeout(r, 100));
-  if (!(await page.evaluate("!!window.viewer.scene.tape.head.pieces"))) fail("the tape was captured without the moving pieces (--no-pieces)");
+  if (!(await page.evaluate("!!window.viewer.scene.tape.head.pieces"))) fail("the tape was captured without the moving pieces (run/tape.py --no-pieces, or an arena game without --pieces)");
   const result = await page.evaluate(`(${measure.toString()})()`);
   if (page.problems.length) fail(page.problems.join("\n"));
   if (!result) fail("the measure gave nothing");
