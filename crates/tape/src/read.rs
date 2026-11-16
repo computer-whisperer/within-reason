@@ -56,6 +56,11 @@ pub const HISTORY_STRIDE: usize = 8;
 /// The engine's command ids whose single number names a unit or a feature: attack, guard, repair, reclaim, manual fire,
 /// resurrect, capture, load, load onto, and BAR's set-target.
 const POINTS_AT_ONE: [i32; 10] = [20, 25, 40, 90, 105, 125, 130, 75, 76, 34923];
+/// The engine's command ids whose three or more numbers are a place: move, patrol, fight, attack, area attack, repair,
+/// load, unload (both), reclaim, manual fire, restore, resurrect, capture. A build (negative) and a game's own command
+/// (10000 and over, BAR's set-target among them) are taken as a place too; any other engine command's numbers are not
+/// (stop, wait, the state switches, CMD_REMOVE's tags).
+const PLACE_COMMANDS: [i32; 14] = [10, 15, 16, 20, 21, 40, 75, 80, 81, 90, 105, 110, 125, 130];
 /// The engine's insert command: its numbers are a queue position, the command inserted, its options, its numbers.
 const CMD_INSERT: i32 = 1;
 
@@ -81,9 +86,14 @@ pub struct Frame {
     pub bursts: Vec<f32>,
     pub doing: Vec<f32>,
     pub commands: Vec<f32>,
+    /// Beside `units`, a unit each: the ally teams that have it in sight (bit `a` for ally team a) and, sixteen bits
+    /// up, those that have it on radar. Every bit set on a tape that does not say (`Tape::has_sight`).
+    pub seen: Vec<u32>,
     /// Row -> its place in `units` this frame, or `u32::MAX`.
     slot: Vec<u32>,
     scratch: Vec<f32>,
+    /// `seen` in the order of `scratch`.
+    seen_scratch: Vec<u32>,
     /// Each unit's head order, in the order of `scratch`.
     acts: Vec<Activity>,
 }
@@ -96,6 +106,7 @@ pub struct Exact {
     pub vital: Vital,
     pub activity: Activity,
     pub aim: Vec<(u8, [i16; 2])>,
+    pub sight: [u16; 2],
 }
 
 #[derive(Default)]
@@ -121,6 +132,11 @@ pub struct Tape {
     pub max_units: u32,
     /// The map's width and height in elmos (zeros when the header does not say).
     pub map_size: [f32; 2],
+    /// The version of the raw stream the tape was packed from (`raw_version` in the header; 1 when absent).
+    pub raw_version: u32,
+    /// Whether the tape says what each ally team saw (its header lists `ally_teams`), and each team's ally team.
+    pub has_sight: bool,
+    ally_of: Vec<u8>,
     /// The rows that held an engine id, in the order they were created; the same for the features.
     by_engine: HashMap<u32, Vec<u32>>,
     feature_by_id: HashMap<u32, Vec<u32>>,
@@ -166,6 +182,15 @@ impl Tape {
                 self.max_units = num("max_units", 32000.0) as u32;
                 let map = |key: &str| head.get("map").and_then(|m| m.get(key)).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
                 self.map_size = [map("width"), map("height")];
+                self.raw_version = num("raw_version", 1.0) as u32;
+                self.has_sight = head.get("ally_teams").is_some();
+                for t in head.get("teams").and_then(|v| v.as_array()).into_iter().flatten() {
+                    let field = |key: &str| t.get(key).and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                    if self.ally_of.len() <= field("team") {
+                        self.ally_of.resize(field("team") + 1, 0);
+                    }
+                    self.ally_of[field("team")] = field("ally") as u8;
+                }
                 if num("angle_scale", 0.0) as i32 != ANGLE_TURN {
                     return err(format!("this tape's angles are {}ths of a turn; this reader's are {ANGLE_TURN}ths", num("angle_scale", 0.0)));
                 }
@@ -261,17 +286,23 @@ impl Tape {
     /// BuilderCAI.cpp). Otherwise three or more are a place (a build's too). A place off the map is no aim: numbers
     /// of some command that are not a place.
     ///
-    /// A head order captured before 2026-11-15 night (tape_dump.lua, `O`) kept the first three numbers of five, so for
+    /// A head order of a raw stream of version 1 (tape_dump.lua, `O`) kept the first three numbers of five, so for
     /// those four commands three numbers are an area's centre, or a target's id and the first two of its area: a
-    /// centre is a click on the ground (on the map, at the ground's height or the sea's), else the id.
+    /// centre is a click on the ground (on the map, at the ground's height or the sea's), else the id. From version 2
+    /// the widget writes such an order as its target.
     pub fn aim_of(&self, cmd: i32, params: &[i32], frame: u32) -> Aim {
-        if cmd == CMD_INSERT && params.len() > 3 {
-            return self.aim_of(params[1], &params[3..], frame);
+        if cmd == CMD_INSERT {
+            // [where in the queue, the command, its options, its numbers...]
+            return if params.len() >= 3 { self.aim_of(params[1], &params[3..], frame) } else { Aim::Nowhere };
         }
         let in_area = matches!(cmd, 40 | 90 | 125 | 130);
+        let takes_place = cmd < 0 || cmd >= 10000 || PLACE_COMMANDS.contains(&cmd);
         if params.len() >= 3 && !(in_area && params.len() >= 5) {
+            if !takes_place {
+                return Aim::Nowhere;
+            }
             let place = [params[0] as f32, params[1] as f32, params[2] as f32];
-            let cut = in_area && params.len() == 3;
+            let cut = in_area && params.len() == 3 && self.raw_version < 2;
             if self.on_map(place) && (!cut || self.on_ground(place)) {
                 return Aim::Place(place);
             }
@@ -291,6 +322,25 @@ impl Tape {
             f.created <= frame && frame < f.gone
         };
         self.feature_by_id.get(&(id - self.max_units)).and_then(|list| list.iter().find(standing)).map_or(Aim::Nowhere, |at| Aim::Feature(*at))
+    }
+
+    /// What each ally team sees of a keyframe's unit (its number `i` in the keyframe); everything on a tape that does
+    /// not say.
+    fn key_sight(&self, slice: &Slice, i: usize, row: u32) -> [u16; 2] {
+        if !self.has_sight {
+            return [u16::MAX; 2];
+        }
+        slice.key_sight.get(i).copied().unwrap_or_else(|| self.first_sight(row))
+    }
+
+    /// What each ally team sees of a unit before its first look: its own side alone (`game::Unit::sight`).
+    fn first_sight(&self, row: u32) -> [u16; 2] {
+        if !self.has_sight {
+            return [u16::MAX; 2];
+        }
+        let own = self.ally_of.get(self.units[row as usize].team as usize).copied().unwrap_or(0);
+        let mine = 1u16.checked_shl(own as u32).unwrap_or(0);
+        [mine, mine]
     }
 
     /// Whether a place is on the map, give or take a footprint (any place when the map's size is not known).
@@ -361,16 +411,25 @@ impl Tape {
         let slice = self.slices.get(&index)?;
         let mut out: Vec<Exact> = Vec::new();
         let mut slot: HashMap<u32, usize> = HashMap::new();
-        for k in &slice.key {
+        for (i, k) in slice.key.iter().enumerate() {
             if self.units[k.row as usize].destroyed > frame {
                 slot.insert(k.row, out.len());
-                out.push(Exact { row: k.row, pose: k.pose.unwrap_or(self.units[k.row as usize].birth), vital: k.vital, activity: k.activity, aim: k.aim.clone() });
+                let sight = self.key_sight(slice, i, k.row);
+                out.push(Exact { row: k.row, pose: k.pose.unwrap_or(self.units[k.row as usize].birth), vital: k.vital, activity: k.activity, aim: k.aim.clone(), sight });
             }
         }
         for row in self.candidates(slice, frame).skip(out.len()) {
             let u = &self.units[row as usize];
             slot.insert(row, out.len());
-            out.push(Exact { row, pose: u.birth, vital: u.birth_vital, activity: Activity::default(), aim: Vec::new() });
+            out.push(Exact { row, pose: u.birth, vital: u.birth_vital, activity: Activity::default(), aim: Vec::new(), sight: self.first_sight(row) });
+        }
+        for (f, row, sight) in &slice.sight {
+            if *f > frame {
+                break;
+            }
+            if let Some(&at) = slot.get(row) {
+                out[at].sight = *sight;
+            }
         }
         for track in &slice.tracks {
             let Some(&at) = slot.get(&track.row) else { continue };
@@ -430,6 +489,8 @@ impl Tape {
         let rows = &mut out.scratch;
         rows.clear();
         out.acts.clear();
+        out.seen_scratch.clear();
+        let packed = |s: [u16; 2]| s[0] as u32 | (s[1] as u32) << 16;
         // Unsorted first: the keyframe's units, then the ones created since, each a full row.
         let push = |rows: &mut Vec<f32>, slot: &mut Vec<u32>, row: u32, pose: &Pose, vital: &Vital| {
             let u = &self.units[row as usize];
@@ -441,11 +502,12 @@ impl Tape {
             rows.extend_from_slice(&[vital.health as f32 / full, vital.build as f32 / 1000.0, u.team_at(whole) as f32, flags as f32, row as f32, u.def as f32, vital.paralyze as f32 / full]);
             slot[row as usize] = (rows.len() / UNIT_STRIDE) as u32 - 1;
         };
-        for k in &slice.key {
+        for (i, k) in slice.key.iter().enumerate() {
             let u = &self.units[k.row as usize];
             if u.destroyed > whole {
                 push(rows, &mut out.slot, k.row, &k.pose.unwrap_or(u.birth), &k.vital);
                 out.acts.push(k.activity);
+                out.seen_scratch.push(packed(self.key_sight(slice, i, k.row)));
             }
         }
         let keyed = rows.len() / UNIT_STRIDE;
@@ -453,6 +515,16 @@ impl Tape {
             let u = &self.units[row as usize];
             push(rows, &mut out.slot, row, &u.birth, &u.birth_vital);
             out.acts.push(Activity::default());
+            out.seen_scratch.push(packed(self.first_sight(row)));
+        }
+        for (f, row, sight) in &slice.sight {
+            if *f > whole {
+                break;
+            }
+            let at = out.slot[*row as usize];
+            if at != u32::MAX {
+                out.seen_scratch[at as usize] = packed(*sight);
+            }
         }
         for (f, row, activity) in &slice.activity {
             if *f > whole {
@@ -522,10 +594,13 @@ impl Tape {
         }
         out.units.clear();
         out.units.resize(rows.len(), 0.0);
-        for row in rows.chunks_exact(UNIT_STRIDE) {
+        out.seen.clear();
+        out.seen.resize(rows.len() / UNIT_STRIDE, 0);
+        for (i, row) in rows.chunks_exact(UNIT_STRIDE).enumerate() {
             let place = next.get_mut(&(row[14] as u32)).unwrap();
             let base = *place as usize * UNIT_STRIDE;
             out.units[base..base + UNIT_STRIDE].copy_from_slice(row);
+            out.seen[*place as usize] = out.seen_scratch[i];
             out.slot[row[13] as usize] = *place;
             *place += 1;
         }
@@ -540,7 +615,9 @@ impl Tape {
             let aim = self.aim_of(act.cmd, match act.how { 3 => &params[..], 1 => &params[..1], _ => &[] }, whole);
             let (to, target) = self.aim_floats(aim, &out.units, &out.slot);
             let builds = if act.builds > 0 { self.row_of(act.builds, whole).map_or(-1.0, |r| r as f32) } else { -1.0 };
-            out.doing.extend_from_slice(&[out.slot[row[13] as usize] as f32, row[13], act.cmd as f32, to[0], to[1], to[2], to[3], target, builds, act.queue as f32]);
+            // (A raw stream of version 1 lost the queue's length while the unit built one whose id is over 127: 0.)
+            let queue = if self.raw_version < 2 && act.builds > 127 { 0.0 } else { act.queue as f32 };
+            out.doing.extend_from_slice(&[out.slot[row[13] as usize] as f32, row[13], act.cmd as f32, to[0], to[1], to[2], to[3], target, builds, queue]);
         }
         out.commands.clear();
         let before = index.checked_sub(1).and_then(|i| self.slices.get(&i));
@@ -709,7 +786,46 @@ fn write_pose(to: &mut [f32], pose: &[f32; 6]) {
 
 #[cfg(test)]
 mod tests {
-    use super::attitude;
+    use super::{Aim, Tape, attitude};
+    use crate::game::{Pose, Vital};
+    use crate::tables::{Ground, UnitRow};
+
+    /// A 1024-elmo map whose ground stands at 100, with one unit (engine id 7) alive from frame 0 to 1000.
+    fn tape(raw_version: u32) -> Tape {
+        let mut t = Tape { max_units: 32000, map_size: [1024.0, 1024.0], raw_version, ..Default::default() };
+        t.ground = Ground { columns: 129, rows: 129, low: 0.0, step: 1.0, heights: vec![100; 129 * 129] };
+        t.units.push(UnitRow {
+            engine_id: 7, def: 1, team: 0, created: 0, finished: 0, destroyed: 1000, killer: 0, builder: 0, mobile: true, max_health: 100.0,
+            birth: Pose::default(), birth_vital: Vital::default(), death: [0; 3], given: Vec::new(),
+        });
+        t.by_engine.insert(7, vec![0]);
+        t
+    }
+
+    #[test]
+    fn an_order_points_where_the_engine_means() {
+        let t = tape(2);
+        assert_eq!(t.aim_of(10, &[500, 100, 500], 10), Aim::Place([500.0, 100.0, 500.0]), "move: a place");
+        assert_eq!(t.aim_of(10, &[5000, 100, 500], 10), Aim::Nowhere, "a place off the map");
+        assert_eq!(t.aim_of(20, &[7], 10), Aim::Unit(0), "attack: a unit");
+        assert_eq!(t.aim_of(20, &[7], 2000), Aim::Nowhere, "a unit not alive then");
+        assert_eq!(t.aim_of(40, &[500, 100, 500, 300], 10), Aim::Place([500.0, 100.0, 500.0]), "repair an area");
+        assert_eq!(t.aim_of(40, &[7, 500, 100, 500, 300], 10), Aim::Unit(0), "repair one target in an area");
+        assert_eq!(t.aim_of(2, &[3, 4, 5], 10), Aim::Nowhere, "CMD_REMOVE's tags are not a place");
+        assert_eq!(t.aim_of(1, &[-1, 0, 0], 10), Aim::Nowhere, "an inserted stop points nowhere");
+        assert_eq!(t.aim_of(1, &[0, 10, 0, 500, 100, 500], 10), Aim::Place([500.0, 100.0, 500.0]), "an inserted move");
+        assert_eq!(t.aim_of(-12, &[500, 100, 500, 0], 10), Aim::Place([500.0, 100.0, 500.0]), "a build");
+    }
+
+    #[test]
+    fn a_version_1_head_order_of_three_numbers_is_told_apart() {
+        // A raw stream of version 1 kept three numbers of a five-number repair: the target's id, then the area's x
+        // and y. An area's centre is on the ground; anything else is the id.
+        let t = tape(1);
+        assert_eq!(t.aim_of(40, &[500, 100, 500], 10), Aim::Place([500.0, 100.0, 500.0]), "a centre on the ground");
+        assert_eq!(t.aim_of(40, &[7, 500, 100], 10), Aim::Unit(0), "the id, the area's x, its y");
+        assert_eq!(tape(2).aim_of(40, &[500, 900, 500], 10), Aim::Place([500.0, 900.0, 500.0]), "version 2: a centre, whatever its height");
+    }
 
     /// The widget's `attitude`, in Rust: the angles of a front and an up.
     fn angles(f: [f32; 3], u: [f32; 3]) -> (f32, f32, f32) {

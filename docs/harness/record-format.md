@@ -318,9 +318,11 @@ read (about a minute around the playhead, a click seeking there) and its kills; 
 the brain's last order, its part in the hands' picture and its history. A directory with a tape and no record of ours
 (a bot of `bots/`, a taped demo) opens as the 3D view alone: each side's numbers at the playhead (income, stores,
 units, army and its worth, losses) in the side pane, its losses as the timeline's lanes and a line a side in four
-charts (metal and energy income, army worth, units). Not yet: what each side could see (the tape does not hold it;
-the next capture pass, `docs/design/2026-11-15-game-tape.md` §7), players' map marks, and no piece of a model moves
-(turrets do not turn, legs do not walk), though the tape holds each weapon's direction when made with `--aim`.
+charts (metal and energy income, army worth, units). On a tape made from 2026-11-15 night on: "3D view as one side
+saw it" (the layers) draws what that side did not have in sight as a ghost (fainter still when not on its radar
+either) and only its own orders; the players' marks on the map stand over the scene in their team's colour until
+erased (with a side chosen, its players' alone). Not yet: no piece of a model moves (turrets do not turn, legs do
+not walk), though the tape holds each weapon's direction when made with `--aim`.
 
 Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view, in Chromium and with
 `SCENE_BROWSER=firefox` in Firefox (`tape-format.md`: run both);

@@ -28,6 +28,7 @@ const WRScene = (() => {
     const [mapX, mapZ] = terrain.mapSize;
     const heightAt = (x, z) => terrain.heightAt(x, z);
     const teamColor = new Map((tape.head.teams || []).map((t) => [t.team, t.color]));
+    const allyOf = new Map((tape.head.teams || []).map((t) => [t.team, t.ally]));
     /// Row -> the unit's place in the state last drawn (-1: not alive then).
     const slots = new Int32Array(tape.unitCount);
     const scene = {
@@ -38,6 +39,9 @@ const WRScene = (() => {
       /// unit's standing order; ranges: every static defence's reach; spots: the metal spots.
       layers: { grid: true, fire: true, commands: true, orders: false, ranges: false, spots: true },
       frame: 0, selected: -1, pending: 0, stats: {},
+      /// The ally team whose sight the view shows (-1 every unit, as a spectator): what it did not see is a ghost, and
+      /// of the orders only its own are drawn. Needs a tape that says what each side saw (`tape.hasSight`).
+      seenBy: -1,
       /// Whether the camera has been fitted to the map yet: it cannot be while the canvas has no size (the page
       /// opens the scene with its canvas hidden), so the first frame drawn with a size does it.
       fitted: false,
@@ -97,16 +101,31 @@ const WRScene = (() => {
       return reach;
     }
 
+    /// Marks in each unit's flags what the side the view shows did not see: 8 not in its sight, 16 with it on its
+    /// radar (a unit of that side is always seen). Cleared again when every unit is shown.
+    function markSight(state) {
+      const units = state.units, seen = state.seen;
+      const sight = scene.seenBy >= 0 && tape.hasSight ? 1 << scene.seenBy : 0;
+      for (let i = 0, j = 0; i < units.length; i += 16, j++) {
+        let flags = units[i + 12] & ~24;
+        if (sight && allyOf.get(units[i + 11]) !== scene.seenBy && !(seen[j] & sight)) flags |= seen[j] & (sight << 16) ? 24 : 8;
+        units[i + 12] = flags;
+      }
+    }
+
     /// The frame's lines: spots, orders, commands, ranges.
     function drawLines(state) {
       const units = state.units, L = scene.layers;
       if (L.spots) for (const [x, z] of tape.head.spots || []) lines.ring(x, z, 26, heightAt, [1, 0.85, 0.35, 0.3], 1);
       const D = WRTape.DOING_STRIDE;
+      // As one side saw it: its own orders alone (a player never sees the other side's).
+      const theirs = (u) => scene.seenBy >= 0 && allyOf.get(units[u + 11]) !== scene.seenBy;
       for (let i = 0; i < state.doing.length; i += D) {
         const d = state.doing;
         const mine = d[i + 1] === scene.selected;
         if ((!mine && !L.orders) || d[i + 3] === 0) continue;
         const u = d[i] * 16, cmd = d[i + 2];
+        if (!mine && theirs(u)) continue;
         const c = WRTape.commandColor(cmd);
         const rgba = [c[0], c[1], c[2], mine ? 0.95 : 0.4], width = mine ? 2 : 1.2;
         lines.add([units[u], units[u + 1] + 4, units[u + 2]], [d[i + 4], d[i + 5] + 4, d[i + 6]], rgba, width);
@@ -118,6 +137,7 @@ const WRScene = (() => {
         const C = WRTape.COMMAND_STRIDE, given = state.commands;
         for (let i = 0; i < given.length; i += C) {
           const u = given[i] * 16, c = WRTape.commandColor(given[i + 1]);
+          if (theirs(u)) continue;
           const fade = 1 - given[i + 6] / WRTape.COMMAND_FRAMES;
           lines.add([units[u], units[u + 1] + 4, units[u + 2]], [given[i + 3], given[i + 4] + 4, given[i + 5]], [c[0], c[1], c[2], 0.8 * fade * fade], 1.6);
         }
@@ -264,6 +284,7 @@ const WRScene = (() => {
       scene.stats.triangles = terrain.draw(v, scene.layers);
       scene.stats.features = units.drawFeatures(scene.frame, v);
       let selected = null;
+      if (state) markSight(state);
       if (state) {
         slots.fill(-1);
         for (let i = 0; i < state.units.length; i += 16) slots[state.units[i + 13]] = i / 16;
@@ -386,7 +407,11 @@ const WRScene = (() => {
     });
     canvas.addEventListener("mouseleave", () => hooks.onHover && hooks.onHover(-1, null, null));
 
-    tape.onSlice = redraw;
+    // A slice arrived: the picture, and whatever the page shows of the tape (`hooks.onSlice`), in either view.
+    tape.onSlice = () => {
+      redraw();
+      if (hooks.onSlice) hooks.onSlice();
+    };
     terrain.onChange = redraw;
     units.onChange = redraw;
     new ResizeObserver(redraw).observe(canvas);
@@ -417,17 +442,18 @@ const WRScene = (() => {
         clampTarget();
         redraw();
       },
-      /// The unit of a row at the frame shown: its floats, or null when it is not alive then.
-      unitNow(row) {
-        const state = tape.frame(scene.frame);
+      /// The unit of a row at a frame (the one shown when not given): its floats, or null when it is not alive then
+      /// or the tape is still being read there.
+      unitNow(row, frame = scene.frame) {
+        const state = tape.frame(frame);
         if (!state) return null;
         for (let i = 0; i < state.units.length; i += 16) if (state.units[i + 13] === row) return Array.from(state.units.subarray(i, i + 16));
         return null;
       },
-      /// What the unit of a row is doing at the frame shown: {cmd, how, at, target, builds, queue} (a state's `doing`,
-      /// tape.js), or null when it has no order and builds nothing.
-      doingOf(row) {
-        const state = tape.frame(scene.frame);
+      /// What the unit of a row is doing at a frame (the one shown when not given): {cmd, how, at, target, builds,
+      /// queue} (a state's `doing`, tape.js), or null when it has no order and builds nothing.
+      doingOf(row, frame = scene.frame) {
+        const state = tape.frame(frame);
         const d = state ? state.doing : [];
         for (let i = 0; i < d.length; i += WRTape.DOING_STRIDE) {
           if (d[i + 1] === row) return { cmd: d[i + 2], how: d[i + 3], at: [d[i + 4], d[i + 5], d[i + 6]], target: d[i + 7], builds: d[i + 8], queue: d[i + 9] };

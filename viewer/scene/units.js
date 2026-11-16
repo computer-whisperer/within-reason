@@ -90,6 +90,11 @@ const WRUnits = (() => {
       c = mix(c, vec3(0.5, 0.7, 1.0), 0.5);
     }
     if (vParalysis >= 1.0) c = mix(c, vec3(0.75, 0.85, 1.0), 0.45);   // stunned
+    if ((flags & 8) != 0) {
+      // Not seen by the side the view shows: a ghost, three pixels of four away, grey.
+      if (fract(gl_FragCoord.x * 0.5) < 0.5 || fract(gl_FragCoord.y * 0.5) < 0.5) discard;
+      c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))), 0.7) * 0.8;
+    }
     color = vec4(c, 1.0);
   }`;
 
@@ -117,6 +122,9 @@ const WRUnits = (() => {
     vUV = (info.xy + vec2(aCorner.x * 0.5 + 0.5, 0.5 - aCorner.y * 0.5)) / uCells;
     vTeam = uTeams[int(iState.z)];
     vAlpha = iState.y < 0.999 ? 0.45 : 1.0;
+    // Not seen by the side the view shows: faint, less so when on its radar.
+    int flags = int(iState.w);
+    if ((flags & 8) != 0) vAlpha *= (flags & 16) != 0 ? 0.55 : 0.25;
   }`;
 
   const ICON_FRAGMENT = `#version 300 es

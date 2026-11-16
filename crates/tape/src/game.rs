@@ -75,6 +75,8 @@ pub struct Unit {
     pub activity: Vec<(u32, Activity)>,
     /// (frame, weapon number from 1, where it points in the world: heading and pitch in `aim_scale`ths of a turn).
     pub aim: Vec<(u32, u8, [i16; 2])>,
+    /// (frame, [the ally teams that have it in sight, those that have it on radar]: bit `a` for ally team a).
+    pub sight: Vec<(u32, [u16; 2])>,
 }
 
 pub const PATH_FORMULA: u8 = 0;
@@ -167,6 +169,11 @@ pub struct Patch {
 #[derive(Debug, Default)]
 pub struct Game {
     pub head: Value,
+    /// The raw stream's version: 2 writes the unit a builder builds and its queue as two numbers, and what each
+    /// ally team sees (`S`).
+    pub raw_version: u32,
+    /// Each team's ally team, by team.
+    pub ally_of: Vec<u8>,
     pub unit_defs: Vec<Value>,
     pub weapon_defs: Vec<Value>,
     pub feature_defs: Vec<Value>,
@@ -252,6 +259,14 @@ impl Game {
                             if num(&row, "angle_scale") as i32 != ANGLE_TURN {
                                 return err(format!("the raw stream's angles are {}ths of a turn; this reader's are {ANGLE_TURN}ths (a stream of an older widget: capture the game again)", num(&row, "angle_scale")));
                             }
+                            game.raw_version = num(&row, "version") as u32;
+                            for t in row.get("teams").and_then(Value::as_array).into_iter().flatten() {
+                                let team = num(t, "team") as usize;
+                                if game.ally_of.len() <= team {
+                                    game.ally_of.resize(team + 1, 0);
+                                }
+                                game.ally_of[team] = num(t, "ally") as u8;
+                            }
                             game.head = row;
                         }
                         "unitdef" => {
@@ -289,7 +304,7 @@ impl Game {
                                 game.units.push(Unit {
                                     engine_id: id, def, team: num(&row, "team") as u8, created: frame, finished: NEVER, destroyed: NEVER, killer: 0, builder,
                                     mobile: mobile_def.get(&def).copied().unwrap_or(true), max_health: num(&row, "max_health") as f32, birth, birth_vital,
-                                    death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), aim: Vec::new(),
+                                    death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), aim: Vec::new(), sight: Vec::new(),
                                 });
                             }
                             "finished" => {
@@ -353,12 +368,29 @@ impl Game {
                 }
                 b'O' => {
                     let (frame, n) = (body.u32()?, body.u32()? as usize);
-                    let rows = f32s(&mut body, n * 7)?;
-                    for row in rows.chunks_exact(7) {
+                    // Version 1 wrote the unit it builds and its queue as one number, 65536 x the unit + the queue, a
+                    // float of 24 bits: the queue is lost when the unit's id is over 127, and is taken as unknown (0).
+                    let width = if game.raw_version >= 2 { 8 } else { 7 };
+                    let rows = f32s(&mut body, n * width)?;
+                    for row in rows.chunks_exact(width) {
                         let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
-                        let packed = row[6] as u64;
-                        let activity = Activity { cmd: row[1] as i32, how: row[2] as u8, a: row[3] as i32, b: row[4] as i32, c: row[5] as i32, builds: (packed >> 16) as u32, queue: (packed & 0xffff) as u16 };
+                        let (builds, queue) = if width == 8 {
+                            (row[6] as u32, row[7].min(65535.0) as u16)
+                        } else {
+                            let packed = row[6] as u64;
+                            let builds = (packed >> 16) as u32;
+                            (builds, if builds > 127 { 0 } else { (packed & 0xffff) as u16 })
+                        };
+                        let activity = Activity { cmd: row[1] as i32, how: row[2] as u8, a: row[3] as i32, b: row[4] as i32, c: row[5] as i32, builds, queue };
                         game.units[at].activity.push((frame, activity));
+                    }
+                }
+                b'S' => {
+                    let (frame, n) = (body.u32()?, body.u32()? as usize);
+                    for _ in 0..n {
+                        let (id, los, radar) = (body.u16()?, body.u16()?, body.u16()?);
+                        let Some(&at) = unit_at.get(&(id as u32)) else { continue };
+                        game.units[at].sight.push((frame, [los, radar]));
                     }
                 }
                 b'A' => {
@@ -516,5 +548,23 @@ impl Unit {
 
     pub fn team_at(&self, frame: u32) -> u8 {
         at_or_before(&self.given, frame).copied().unwrap_or(self.team)
+    }
+
+    /// Which ally teams have it in sight and on radar at `frame`; before its first look, its own (`own`, the ally
+    /// team of the team that made it) alone.
+    pub fn sight(&self, frame: u32, own: u8) -> [u16; 2] {
+        let mine = 1u16.checked_shl(own as u32).unwrap_or(0);
+        at_or_before(&self.sight, frame).copied().unwrap_or([mine, mine])
+    }
+}
+
+impl Game {
+    /// Whether the stream says what each ally team saw (raw version 2 on).
+    pub fn has_sight(&self) -> bool {
+        self.head.get("ally_teams").is_some()
+    }
+
+    pub fn ally(&self, team: u8) -> u8 {
+        self.ally_of.get(team as usize).copied().unwrap_or(0)
     }
 }

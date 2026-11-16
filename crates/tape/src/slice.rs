@@ -38,10 +38,17 @@ pub struct Slice {
     /// Every projectile in flight at some frame of the slice, by its first frame; its samples whole.
     pub projectiles: Vec<Projectile>,
     pub bursts: Vec<Burst>,
+    /// Whether the slice says what each ally team saw (a tape of format 2 made from a stream that does): then
+    /// `key_sight` is beside `key`, and `sight` is (frame, row, what changed to) in frame order. [in sight, on radar],
+    /// bit `a` for ally team a.
+    pub has_sight: bool,
+    pub key_sight: Vec<[u16; 2]>,
+    pub sight: Vec<(u32, u32, [u16; 2])>,
 }
 
-/// A slice's sections, in the order `encode_sections` ends them.
-pub const SECTIONS: [&str; 8] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts"];
+/// A slice's sections, in the order `encode_sections` ends them. The last is there only when the slice has sight:
+/// a slice of format 1 ends with its bursts.
+pub const SECTIONS: [&str; 9] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight"];
 
 /// Fixed-point scales of a projectile's numbers: eighths of an elmo, 1024ths of an elmo a frame, 65536ths for gravity.
 const P_POS: f32 = 8.0;
@@ -312,6 +319,32 @@ impl Slice {
             out.column(col);
         }
         ends.push(out.0.len());
+
+        if self.has_sight {
+            // Sight: the keyframe's units' in the keyframe's order, then the changes.
+            let mut c: [W; 2] = Default::default();
+            for s in &self.key_sight {
+                c[0].var(s[0] as u64);
+                c[1].var(s[1] as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            out.var(self.sight.len() as u64);
+            let mut c: [W; 4] = Default::default();
+            let mut frame = self.first;
+            for (f, row, s) in &self.sight {
+                c[0].var((f - frame) as u64);
+                frame = *f;
+                c[1].var(*row as u64);
+                c[2].var(s[0] as u64);
+                c[3].var(s[1] as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            ends.push(out.0.len());
+        }
         (out.0, ends)
     }
 
@@ -468,6 +501,21 @@ impl Slice {
             let kind = c[1].u8()?;
             let pos = [c[2].zig()? as f32 / P_POS, c[2].zig()? as f32 / P_POS, c[2].zig()? as f32 / P_POS];
             slice.bursts.push(Burst { frame, kind, pos, wdef: c[3].zig()? as i32, owner: c[4].var()? as u32 });
+        }
+
+        if r.left() > 0 {
+            slice.has_sight = true;
+            let mut c = take_columns::<2>(&mut r)?;
+            for _ in 0..slice.key.len() {
+                slice.key_sight.push([c[0].var()? as u16, c[1].var()? as u16]);
+            }
+            let n = r.var()? as usize;
+            let mut c = take_columns::<4>(&mut r)?;
+            let mut frame = slice.first;
+            for _ in 0..n {
+                frame += c[0].var()? as u32;
+                slice.sight.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
+            }
         }
         if r.left() != 0 {
             return err(format!("a slice has {} bytes after its last column", r.left()));

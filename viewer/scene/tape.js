@@ -102,6 +102,8 @@ const WRTape = (() => {
     tape.weaponDefs = new Map(defs.weapons.map((d) => [d.id, d]));
     tape.featureDefs = new Map(defs.features.map((d) => [d.id, d]));
     tape.unitCount = tape.unitInts.length / 8;
+    /// Whether the tape says what each side saw (taped from 2026-11-15 night on).
+    tape.hasSight = Array.isArray(head.ally_teams);
     // The rows that held each engine id, in the order created: the tie to the match record, which names a unit by
     // the engine's id.
     tape.rowsById = new Map();
@@ -118,11 +120,14 @@ const WRTape = (() => {
       return Math.min(this.slices.length - 1, Math.max(0, Math.floor(frame / this.sliceFrames)));
     },
 
-    /// Sees that the slice under a frame is loaded, and the next one (the playhead is going there). Answers whether
+    /// Sees that the slice under a frame is loaded, and the next one (the playhead is going there), and near its start
+    /// the one before. Answers whether
     /// the frame's own slice is ready now; `onSlice` is called when one arrives.
     want(frame) {
       const at = this.sliceIndex(frame);
-      for (const index of [at, at + 1]) {
+      // (and the one before while its last orders still fade: a state's `commands`)
+      const before = frame - at * this.sliceFrames < COMMAND_FRAMES ? [at - 1] : [];
+      for (const index of [at, at + 1, ...before]) {
         const slice = this.slices[index];
         if (!slice) continue;
         slice.used = ++this.clock;
@@ -173,6 +178,9 @@ const WRTape = (() => {
         /// number, -1), the row it is building (-1), its queue's length. Eight a command given in the last second
         /// and a half: the unit's place in `units`, the command, how it points, the place, frames since, 1 for shift.
         doing: array(8, Float32Array), commands: array(9, Float32Array),
+        /// Beside `units`, a unit each: the ally teams that have it in sight (bit `a` for ally team a) and, sixteen
+        /// bits up, those that have it on radar. Every bit set when the tape does not say (`hasSight`).
+        seen: array(11, Uint32Array),
       };
     },
 

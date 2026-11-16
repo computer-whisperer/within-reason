@@ -156,7 +156,10 @@ fn orders(file: &[u8]) {
             tape.orders_of(row - 1, &mut scratch);
             history += (scratch.len() / tape::read::HISTORY_STRIDE) as u64;
         }
-        tape.drop_slice(index.saturating_sub(1));
+        // (the slice before stays while this one is read: its last orders still fade in this one's first frames)
+        if let Some(before) = index.checked_sub(1) {
+            tape.drop_slice(before);
+        }
     }
     println!("{seconds} game seconds, {alive} unit-seconds; {flashes} commands in the fading lists; {history} history rows of one unit a slice");
     println!("{:>8} {:>10} {:>10} {:>10} {:>10} {:>10}", "command", "nowhere", "a place", "a unit", "a feature", "building");
@@ -209,7 +212,7 @@ fn check(game: &Game, file: &[u8], every: u32) {
         let mut f = first.div_ceil(sample) * sample;
         while f <= last {
             let mut want: Vec<Exact> = game.units.iter().enumerate().take_while(|(_, u)| u.created <= f).filter(|(_, u)| u.alive(f))
-                .map(|(row, u)| Exact { row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), aim: u.aims(f) })
+                .map(|(row, u)| Exact { row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), aim: u.aims(f), sight: if game.has_sight() { u.sight(f, game.ally(u.team)) } else { [u16::MAX; 2] } })
                 .collect();
             let mut got = tape.exact(index, f).unwrap_or_else(|| fail(format!("frame {f}: its slice is not loaded")));
             want.sort_by_key(|e| e.row);

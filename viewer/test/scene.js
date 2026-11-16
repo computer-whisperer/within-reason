@@ -278,6 +278,35 @@ async function gecko() {
   if (overlay.hidden || overlay.w !== overlay.cw || overlay.h !== overlay.ch) fail(`the overlay over the scene: ${JSON.stringify(overlay)}`);
   await shot("orders-and-ranges.png");
   await evaluate("(Object.assign(window.viewer.scene.layers, { orders: false, ranges: false }), window.viewer.scene.redraw())");
+  // As one side saw it (a tape that says what each side saw): some of the other side's units are ghosts halfway
+  // through, and none of the chosen side's.
+  const sight = await evaluate(`(() => { const s = window.viewer.scene; if (!s.tape.hasSight) return null;
+    const select = document.getElementById("seen-by"); select.value = "0"; select.dispatchEvent(new Event("change")); return true; })()`);
+  let sightWords = "the tape does not say what each side saw";
+  if (sight) {
+    await settled("as side 1 saw it");
+    const counts = await evaluate(`(() => { const s = window.viewer.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
+      const c = { own: 0, ownGhost: 0, other: 0, ghost: 0, radar: 0, marks: (s.tape.events || []).filter((e) => e.k === "mark").length };
+      for (let i = 0; i < st.units.length; i += 16) { const f = st.units[i + 12]; if (ally.get(st.units[i + 11]) === 0) { c.own++; if (f & 8) c.ownGhost++; } else { c.other++; if (f & 8) c.ghost++; if ((f & 24) === 24) c.radar++; } }
+      return c; })()`);
+    if (counts.ownGhost || !counts.ghost || counts.ghost >= counts.other) fail(`as side 1 saw it: ${JSON.stringify(counts)}`);
+    await shot("seen-by-side-1.png");
+    await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "-1"; select.dispatchEvent(new Event("change")); })()`);
+    sightWords = `as side 1 saw it: ${counts.ghost} of the other side's ${counts.other} units unseen (${counts.radar} of them on its radar), none of its own ${counts.own}; ${counts.marks} players' marks in the game`;
+    // With a record: what the tape says our side saw against what our bot's record says it saw, at a few moments.
+    if (!(await evaluate("window.viewer.match.tapeOnly"))) {
+      const rows = [];
+      for (const share of [0.2, 0.4, 0.6, 0.8]) {
+        await evaluate(`window.viewer.seek(${Math.round(last * share)})`);
+        await settled(`the sight at ${share}`);
+        rows.push(await evaluate(`(() => { const v = window.viewer, s = v.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
+          const ours = ally.get(v.match.seats[0].team); let sight = 0, radar = 0, all = 0;
+          for (let i = 0, j = 0; i < st.units.length; i += 16, j++) { if (ally.get(st.units[i + 11]) === ours) continue; all++; if (st.seen[j] & (1 << ours)) sight++; else if (st.seen[j] & (1 << (ours + 16))) radar++; }
+          return WR.clock(v.frame) + ": tape " + sight + " in sight + " + radar + " on radar of " + all + ", the record " + WR.stateAt(v.match, v.frame).enemies.length; })()`));
+      }
+      sightWords += `; ours against the record: ${rows.join("; ")}`;
+    }
+  }
   // The side pane: with no record of ours, each side's numbers from the tape.
   const now = await evaluate(`(() => ({ tapeOnly: document.body.dataset.tapeonly === "1", sides: document.querySelectorAll("#now table tr").length - 1, text: document.getElementById("now").textContent }))()`);
   if (now.tapeOnly && now.sides < 2) fail(`the sides' numbers: ${JSON.stringify(now).slice(0, 300)}`);
@@ -289,8 +318,20 @@ async function gecko() {
     oursPanel = await evaluate(`document.getElementById("unit").textContent`);
     if (id == null || !oursPanel.includes(`#${id}`) || !/Orders given to it/i.test(oursPanel) || !/history in the record/.test(oursPanel)) fail(`the panel of our unit #${id}: ${JSON.stringify(oursPanel).slice(0, 600)}`);
     await shot("ours-selected.png");
+    // In the 2D map the panel reads the tape at the playhead (the 3D view draws nothing there, its last frame stale).
+    await evaluate(`document.getElementById("mode").click()`);
+    await evaluate(`window.viewer.seek(${Math.round(last * 0.8)})`);
+    let at = null;
+    for (let i = 0; i < 50 && !at; i++) {
+      await sleep(100);
+      at = await evaluate(`(() => { const v = window.viewer, u = v.scene.unitNow(v.selectedRow, v.frame); const text = document.getElementById("unit").textContent;
+        return u ? { place: "(" + Math.round(u[0]) + ", " + Math.round(u[2]) + ")", text } : (v.frame >= v.scene.tape.unit(v.selectedRow).destroyed ? { place: "gone", text } : null); })()`);
+    }
+    if (!at || !at.text.includes(at.place)) fail(`the panel in the 2D map after a seek: ${JSON.stringify(at).slice(0, 400)}`);
+    oursPanel += ` | in the 2D map at ${Math.round(last * 0.8 / 30)} s: ${at.place}`;
+    await evaluate(`document.getElementById("mode").click()`);
   }
-  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...;` : ""} lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
+  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
   if (problems.length) fail(problems.join("\n"));
   console.log(`ok: screenshots in ${out}`);
   browser.kill();

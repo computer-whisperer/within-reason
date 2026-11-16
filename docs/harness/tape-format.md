@@ -1,4 +1,4 @@
-# The game tape — format version 1
+# The game tape — format version 2
 
 `game.tape`: one file of a whole game as the engine had it, both sides, every seat, made so that a viewer can show any
 moment at once. Where the match record (`record-format.md`) is the bot's fair view and its decisions once a second, the
@@ -57,9 +57,19 @@ Other tools: `tape info <game.tape>` (what it holds, the bytes by chunk kind), `
 A run of records: a byte of kind, a little-endian u32 of length, the payload. It is the packer's input and nothing
 else reads it; `tape_dump.lua` documents each kind where it writes it. `J` is a JSON object whose `t` names it (`header`,
 `unitdef`, `weapondef`, `featuredef`, `asset`, `map_files`, `ev`, `cmd`, `res`, `stats`, `over`); the rest are packed
-numbers: `U` unit samples, `V` vitals, `O` head orders, `A` aim, `P` new projectiles, `Q` projectile places, `E`
-projectiles gone, `X` and `B` explosions and muzzle fire, `G` the ground. A row is stamped with the frame of the
-widget's last `GameFrame`; a unit's row is written only when the unit changed.
+numbers: `U` unit samples, `V` vitals, `O` head orders, `S` what each ally team sees, `A` aim, `P` new projectiles, `Q`
+projectile places, `E` projectiles gone, `X` and `B` explosions and muzzle fire, `G` the ground. A row is stamped with
+the frame of the widget's last `GameFrame`; a unit's row is written only when the unit changed. The players' marks on
+the map are `ev` rows of kind `mark` (a point with its words, a line, an erase with its radius; the player, the team, the
+ally team, whether a spectator made it).
+
+The engine's Lua numbers are 32-bit floats, exact to 2^24: whatever the widget packs must fit. Raw version 1 wrote a
+head order's builder target and queue as one number (65536 x the unit + the queue), which lost the queue whenever the
+unit's id was over 127; version 2 (2026-11-15 night) writes them apart, writes `S` as two masks of sixteen bits, and
+puts `max_units` (`Game.maxUnits`) and `ally_teams` (the ally teams `S` covers) in the header. A widget's mistakes
+show only in the engine's log (`run/tape.py --keep`, then `infolog.txt` in `tape-capture/`: "Error in GameFrame()" and
+the widget is gone); `luac5.1 -l -p tape_dump.lua | grep GETGLOBAL` lists every global it reads, where a local used
+above its declaration shows up.
 
 ## The file
 
@@ -70,19 +80,19 @@ Little-endian. `magic "WRTAPE\1\0"`, then chunks, then a footer.
 
 | Chunk | Payload |
 |---|---|
-| `HEAD` | JSON: `format` ("within-reason-tape"), `version`, `engine`, `game`, `map` {name, width, height (elmos), gravity, low, high, wind_min, wind_max, tidal}, `teams` [{team, ally, side, name, ai, gaia, color [r, g, b], start [x, y, z], controller}] (the name and `controller` from the demo's start script, `tape pack --seats`: in a replay the engine names every seat UNKNOWN), `spots` [[x, z, metal]], `sample_frames` (3), `slice_frames` (300), `linger_frames` (60), `vitals_frames`, `activity_frames`, `check_frames`, `position_scale` (4), `angle_scale` (4096), `aim_scale` (1024), `aim` (1 when weapons' directions were captured), `last_frame`, `slices`, `winners`, `units`, `features`, `projectiles` (counts), `assets` {path in the engine's archives, lower case: the copy's name}, `map_files`, `capture` (the widget's own account: seconds by part, rows by kind), `path_check` {weapon kind: {rows, worst}} |
+| `HEAD` | JSON: `format` ("within-reason-tape"), `version` (2), `raw_version` (the raw stream's: 1 when absent), `max_units` (BAR's 32000 when absent), `ally_teams` (when the tape says what each saw), `engine`, `game`, `map` {name, width, height (elmos), gravity, low, high, wind_min, wind_max, tidal}, `teams` [{team, ally, side, name, ai, gaia, color [r, g, b], start [x, y, z], controller}] (the name and `controller` from the demo's start script, `tape pack --seats`: in a replay the engine names every seat UNKNOWN), `spots` [[x, z, metal]], `sample_frames` (3), `slice_frames` (300), `linger_frames` (60), `vitals_frames`, `activity_frames`, `check_frames`, `position_scale` (4), `angle_scale` (4096), `aim_scale` (1024), `aim` (1 when weapons' directions were captured), `last_frame`, `slices`, `winners`, `units`, `features`, `projectiles` (counts), `assets` {path in the engine's archives, lower case: the copy's name}, `map_files`, `capture` (the widget's own account: seconds by part, rows by kind), `path_check` {weapon kind: {rows, worst}} |
 | `DEFS` | JSON: `units`, `weapons`, `features`: the types the game used, each with the engine's `id`. A unit type: name, human, model {path, tex1, tex2, min, max}, xsize, zsize, height, radius, speed, mobile, air, building, factory, builder, health, metal, energy, build_time, build_speed, build_distance, extracts, sight, radar, sonar, jammer, cloak, tech, icon, weapons [weapon type ids], options [unit type ids it builds], wreck, death (the weapon type of its death blast, -1 none). A weapon type: name, kind (the engine's: Cannon, BeamLaser, LaserCannon, MissileLauncher, ...), range, speed, gravity, aoe, size, beamtime, duration, reload, salvo, tracks, turn_rate, wobble, dance, damage, paralyzer, shield, shield_radius, model, color, color2, thickness, core_thickness, flare, smoke_trail. A feature type: name, model, xsize, zsize, height, radius, metal, energy, reclaimable, blocking, geo, tree |
 | `GRND` | the ground at the start: columns u32, rows u32 (corners of the 8-elmo squares: width / 8 + 1), low f32, step f32, then a u16 a corner, row by row from the north, each the difference from its western neighbour; a height is `low + step * value` |
 | `SLIC` | a slice, below; one every `slice_frames`, in order |
 | `UNIT` | a row a unit life, in the order created; **the row number is the tape's id of a unit** (the engine reuses its ids) and everything in the tape names a unit by it, 1-based where 0 means none. Engine id, type, team, mobile, the frames created, finished and destroyed, the rows of its killer and builder, full health, health and build progress at birth, where it first stood and how it was turned, where it died, the teams it was given to |
 | `FEAT` | a row a feature (tree, rock, wreck): the engine's id, type, team, the frames it appeared and went, place, front and up directions, metal, energy |
 | `TEAM` | JSON: `frames` [f], `columns` (the ten names), `teams` {team: [[metal, store, pull, income, spend, energy, store, pull, income, spend] a second, null before a team first appears]} |
-| `EVNT` | JSON: the rare events as the widget wrote them: chat, the end with its winners |
+| `EVNT` | JSON: the rare events as the widget wrote them: chat, the players' marks, the end with its winners |
 | `GPAT` | every change to the ground after the start, in order: frame, column, row, columns, rows, then the u16 heights. The ground at a frame is `GRND` with the patches up to it |
 | `INDX` | u32 n, then for every chunk before it: kind[4], offset u64, length u32 (the chunk whole), a slice's first frame u32. Not compressed |
 
 The tables stand after the slices so that a tape being written can grow (append a slice, rewrite the tables, the index
-and the footer); version 1 is written once, after the game.
+and the footer); a tape is written once, after the game, for now.
 
 **One rule gives the state at a frame: everything stamped with that frame or an earlier one.**
 
@@ -110,6 +120,10 @@ table it is decoded alone. Its sections, each a run of columns (a u32 length, th
   from where it began to its target, 2 its samples, which follow), how it was aimed (1 the ground at a place, 2 a
   unit's row, 3 a feature, 4 a projectile) and at what.
 - **bursts**: explosions and muzzle fire as the game reported them (none from a headless capture).
+- **sight** (version 2, when the header lists `ally_teams`; a slice of version 1 ends with its bursts): for each unit of
+  the keyframe the ally teams that have it in sight and those that have it on radar (a bit `a` for ally team a), then
+  a row when they changed: (frame, row, in sight, on radar). Looked at every `vitals_frames` (half a second); before
+  a unit's first look, its own side alone.
 
 An attitude's three angles are made of the unit's front and up directions by `attitude` in `tape_dump.lua` and turned
 back by `read::attitude` (a test holds the two together): the heading about the vertical (0 facing south, +z), the
@@ -133,6 +147,8 @@ newer), loaded by `viewer/scene/tape.js`.
 - **bursts**, eight f32 each: place, frames since, weapon type (the unit's type for a death), kind (2 a projectile's
   end, 3 a unit's death; 0 and 1 the game's own), the owner's or the dead unit's row.
 
+- **seen**, a u32 a unit beside `units`: the ally teams that have it in sight (bit `a`) and, sixteen bits up, those
+  that have it on radar; every bit set on a tape that does not say.
 - **doing**, ten f32 a unit with a head order or a build under way: its place in `units`, its row, the command, how
   it points (0 nowhere, 1 a place, 2 a unit, 3 a feature), the place it points at this frame (a unit's where the unit
   is), the target's row or feature number (-1), the row it is building (-1), its queue's length.

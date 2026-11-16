@@ -274,13 +274,14 @@ const WV = (() => {
   /// Opens the match's tape in the 3D view. False when it could not be (said in the status line).
   async function openScene(base) {
     try {
-      view.scene = await WRScene.open($("scene"), `${base}game.tape`, { onPick: scenePick, onHover: sceneHover, onDraw: sceneDrawn, overlay: $("scene-overlay"), onOverlay: sceneOverlay });
+      view.scene = await WRScene.open($("scene"), `${base}game.tape`, { onPick: scenePick, onHover: sceneHover, onDraw: sceneDrawn, onSlice: renderPanels, overlay: $("scene-overlay"), onOverlay: sceneOverlay });
     } catch (e) {
       console.error(e);
       status(`the 3D view did not open: ${e.message}`);
       return false;
     }
     $("mode").hidden = !view.match || !view.match.seats.length; // with no record there is no 2D map to go to
+    fillSeenBy(view.scene.tape);
     // The view the address asks for (`view=2d`), else the one last used, else the 3D view.
     let saved = new URLSearchParams(location.search).get("view");
     try { saved = saved || localStorage.getItem("wr-mode"); } catch (_) { /* no storage */ }
@@ -319,11 +320,6 @@ const WV = (() => {
   function sceneDrawn(scene) {
     const s = scene.stats;
     $("scene-note").textContent = s.loading ? "reading the tape ..." : `${s.units} units · ${s.projectiles} projectiles in flight · ground ${scene.terrain.note()} · ${s.ms.toFixed(1)} ms`;
-    // A slice read since the panels were drawn: what they said of the playhead may have been "loading".
-    if (!s.loading && view.panelLoads !== scene.tape.loads) {
-      view.panelLoads = scene.tape.loads;
-      renderPanels();
-    }
   }
 
   /// A place in words: its named cell and its elmos.
@@ -338,6 +334,38 @@ const WV = (() => {
     const target = o.how === 2 ? tape.unit(o.target) : o.how === 3 ? tape.feature(o.target) : null;
     if (!target) return what;
     return `${what} ${target.def ? target.def.name : o.how === 2 ? "unit" : "feature"}${o.how === 2 ? ` #${target.id}` : ""}`;
+  }
+
+  /// The choice of a side whose sight the 3D view shows: its ally teams, each named by its first teams.
+  function fillSeenBy(tape) {
+    const select = $("seen-by");
+    select.length = 1;
+    const sides = new Map();
+    for (const t of tape.head.teams || []) if (!t.gaia) sides.set(t.ally, [...(sides.get(t.ally) || []), (t.name || "").trim() || t.side || `team ${t.team}`]);
+    for (const [ally, names] of [...sides].sort((a, b) => a[0] - b[0])) {
+      const option = el("option", null, `side ${ally + 1}: ${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""}`);
+      option.value = ally;
+      select.append(option);
+    }
+    select.value = "-1";
+    select.disabled = !tape.hasSight;
+    select.title = tape.hasSight ? "" : "this tape does not say what each side saw: taped before 2026-11-15 night (run/tape.py again)";
+  }
+
+  /// The players' marks on the map that stand at a frame: [{f, kind, p, to, label, player, team, ally}]. A mark stands
+  /// from its making until an erase covers it (a point within the erase's radius, a line with an end within it).
+  function marksAt(tape, frame) {
+    if (!tape.marks) {
+      const marks = (tape.events || []).filter((e) => e.k === "mark");
+      const near = (p, e) => Math.hypot(p[0] - e.p[0], p[2] - e.p[2]) <= (e.radius || 100);
+      for (const m of marks) {
+        if (m.kind === "erase") continue;
+        const erase = marks.find((e) => e.kind === "erase" && e.f >= m.f && (near(m.p, e) || (m.to && near(m.to, e))));
+        m.gone = erase ? erase.f : Infinity;
+      }
+      tape.marks = marks.filter((m) => m.kind !== "erase");
+    }
+    return tape.marks.filter((m) => m.f <= frame && frame < m.gone);
   }
 
   /// The words over the 3D view, through the scene's painter: the named cells, the starts the tape knows, and with a
@@ -376,6 +404,25 @@ const WV = (() => {
         ctx.fillText(`start: ${(t.name || "").trim() || t.side || `team ${t.team}`}`, at[0] + 9, at[1] - 7);
       }
       if (!match.tapeOnly) drawMarks(p);
+      // The players' own marks (a spectator sees everyone's; as one side saw it, that side's players').
+      const seenBy = view.scene.seenBy;
+      for (const m of marksAt(tape, view.frame)) {
+        if (seenBy >= 0 && (m.ally !== seenBy || m.spectator)) continue;
+        const team = (tape.head.teams || []).find((t) => t.team === m.team);
+        const css = team && !m.spectator ? `rgb(${team.color.map((v) => Math.round(v * 255)).join(", ")})` : "rgb(230, 230, 230)";
+        if (m.kind === "line") {
+          p.line([m.p[0], m.p[2]], [m.to[0], m.to[2]], css, 2.5);
+          continue;
+        }
+        const at = p.at(m.p[0], m.p[2], m.p[1]);
+        if (!at) continue;
+        ctx.strokeStyle = ctx.fillStyle = css;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(at[0], at[1], 6, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(at[0], at[1] - 6); ctx.lineTo(at[0], at[1] - 18); ctx.stroke();
+        ctx.font = "11px system-ui";
+        ctx.fillText(`${m.label || ""}${m.label ? " " : ""}(${m.player})`, at[0] + 8, at[1] - 16);
+      }
     }
     if (match.tapeOnly) return;
     const state = WR.stateAt(match, view.frame);
@@ -1657,7 +1704,7 @@ const WV = (() => {
 
   function drawTimeline() {
     const canvas = $("timeline");
-    if (!view.match) return;
+    if (!view.match || (view.match.tapeOnly && !view.scene)) return;
     const dpr = window.devicePixelRatio || 1;
     const picture = timelinePicture(canvas.clientWidth, canvas.clientHeight, dpr);
     // The lanes and charts of the match decide the timeline's height.
@@ -1788,6 +1835,7 @@ const WV = (() => {
   }
 
   function renderPanels() {
+    if (!view.match) return;
     if (view.match.tapeOnly) WV.panels.renderTape();
     else WV.panels.render();
   }
@@ -1899,6 +1947,11 @@ const WV = (() => {
         view.scene.redraw();
       });
     }
+    $("seen-by").addEventListener("change", (e) => {
+      if (!view.scene) return;
+      view.scene.seenBy = Number(e.target.value);
+      view.scene.redraw();
+    });
     document.addEventListener("keydown", (e) => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
       if (e.key === " ") setPlaying(!view.playing);

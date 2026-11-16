@@ -39,7 +39,7 @@ impl Report {
 pub fn cut(game: &Game, first: u32) -> Slice {
     let last = first + SLICE_FRAMES;
     let within = |frame: u32| frame > first && frame <= last;
-    let mut slice = Slice { first, frames: SLICE_FRAMES, ..Default::default() };
+    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), ..Default::default() };
     for (row, u) in game.units.iter().enumerate() {
         let row = row as u32;
         if u.created > last {
@@ -59,7 +59,14 @@ pub fn cut(game: &Game, first: u32) -> Slice {
         slice.vitals.extend(u.vitals.iter().filter(|(f, _)| within(*f)).map(|(f, v)| (*f, row, *v)));
         slice.activity.extend(u.activity.iter().filter(|(f, _)| within(*f)).map(|(f, a)| (*f, row, *a)));
         slice.aim.extend(u.aim.iter().filter(|(f, ..)| within(*f)).map(|(f, w, d)| (*f, row, *w, *d)));
+        if slice.has_sight {
+            if u.alive(first) {
+                slice.key_sight.push(u.sight(first, game.ally(u.team)));
+            }
+            slice.sight.extend(u.sight.iter().filter(|(f, _)| within(*f)).map(|(f, s)| (*f, row, *s)));
+        }
     }
+    slice.sight.sort_by_key(|s| (s.0, s.1));
     slice.vitals.sort_by_key(|v| (v.0, v.1));
     slice.activity.sort_by_key(|a| (a.0, a.1));
     slice.aim.sort_by_key(|a| (a.0, a.1, a.2));
@@ -106,7 +113,9 @@ pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
     if let Some(h) = head.as_object_mut() {
         h.remove("t");
         h.insert("format".into(), json!("within-reason-tape"));
-        h.insert("version".into(), json!(1));
+        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`).
+        h.insert("version".into(), json!(2));
+        h.insert("raw_version".into(), json!(game.raw_version.max(1)));
         h.insert("slice_frames".into(), json!(SLICE_FRAMES));
         h.insert("linger_frames".into(), json!(LINGER_FRAMES));
         h.insert("slices".into(), json!(slices));

@@ -66,6 +66,7 @@ local mobile, mobileAt, mobileCount = {}, {}, 0
 local all, allAt, allCount = {}, {}, 0
 local last = {} -- unit id -> { x, y, z, yaw, pitch, roll } as last written
 local vital = {} -- unit id -> { health, build, paralyze, flags } as last written
+local sight = {} -- unit id -> { in sight, on radar } as last written (the `S` rows)
 local doing = {} -- unit id -> { cmd, a, b, c, queue, builds } as last written
 local dirty = {} -- unit ids hit since the last sample: their health is read at the next
 local armed = {} -- unit id -> number of weapons, for the units whose aim is sampled
@@ -84,7 +85,7 @@ local flown = {}
 local poll = 0
 local explosions, barrels = {}, {}
 
-local stats = { units = 0, vitals = 0, activity = 0, aim = 0, projectiles = 0, events = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
+local stats = { units = 0, vitals = 0, activity = 0, sight = 0, aim = 0, projectiles = 0, events = 0, sight_rows = 0, marks = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
 	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, same_frame_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
 local wallStart
 
@@ -351,7 +352,7 @@ local function forget(id)
 	known[id] = nil
 	allCount = drop(all, allAt, allCount, id)
 	mobileCount = drop(mobile, mobileAt, mobileCount, id)
-	last[id], vital[id], doing[id], dirty[id], armed[id] = nil, nil, nil, nil, nil
+	last[id], vital[id], doing[id], dirty[id], armed[id], sight[id] = nil, nil, nil, nil, nil, nil
 end
 
 -- `U`: u32 frame, u32 n, then n unit ids (u16), 3n position components (s32, quarters of an elmo) and 3n angles
@@ -427,9 +428,41 @@ local function sampleVitals(frame, everyone)
 	end
 end
 
--- `O`: u32 frame, u32 n, then n rows of seven f32: unit id, the head order's command id (0 none; negative: a build of
--- that type), how the order points (0 nowhere, 1 at the unit or feature `a`, 3 at the place a, b, c), a, b, c, and
--- 65536 x the unit it is building (0 none) + the queue's length (at most 65535). Written when it changed.
+-- `S`: u32 frame, u32 n, then n rows of three u16: unit id, the ally teams that have it in sight (bit `a` for ally
+-- team a) and those that have it on radar. Every VITALS frames, a unit's row when it changed. Two masks of sixteen
+-- bits, not one of thirty-two: the engine's Lua numbers are 32-bit floats, exact to 2^24.
+local spGetUnitLosState = Spring.GetUnitLosState
+local sightTeams = {} -- the ally teams that play (gaia's sees nothing worth telling)
+local function sampleSight(frame)
+	local rows, n = {}, 0
+	for i = 1, allCount do
+		local id = all[i]
+		local los, radar = 0, 0
+		for k = 1, #sightTeams do
+			local a = sightTeams[k]
+			-- (the raw bits: 1 in sight, 2 on radar; this widget reads as a spectator does, so any ally team answers)
+			local state = spGetUnitLosState(id, a, true) or 0
+			if state % 2 == 1 then los = los + 2 ^ a end
+			if floor(state / 2) % 2 == 1 then radar = radar + 2 ^ a end
+		end
+		local s = sight[id]
+		if not s or s[1] ~= los or s[2] ~= radar then
+			sight[id] = { los, radar }
+			rows[n * 3 + 1], rows[n * 3 + 2], rows[n * 3 + 3] = id, los, radar
+			n = n + 1
+		end
+	end
+	if n > 0 then
+		record("S", packU32(frame, n) .. packU16(rows))
+		stats.sight_rows = stats.sight_rows + n
+	end
+end
+
+-- `O`: u32 frame, u32 n, then n rows of eight f32: unit id, the head order's command id (0 none; negative: a build of
+-- that type), how the order points (0 nowhere, 1 at the unit or feature `a`, 3 at the place a, b, c), a, b, c, the
+-- unit it is building (0 none) and the queue's length. Written when it changed. (Until raw version 2 the last two
+-- were one number, 65536 x the unit + the queue: the engine's Lua numbers are 32-bit floats, so the queue was lost
+-- whenever the unit's id was over 127.)
 --
 -- Repair, reclaim, resurrect and capture take five numbers when a builder working an area is on one target: its id,
 -- then the area (BuilderCAI.cpp). That is written as the target (`how` 1); until 2026-11-15 night it was written as
@@ -460,8 +493,8 @@ local function sampleActivity(frame)
 		end
 		if d[1] ~= cmd or d[2] ~= a or d[3] ~= b or d[4] ~= c or d[5] ~= queue or d[6] ~= builds then
 			d[1], d[2], d[3], d[4], d[5], d[6] = cmd, a, b, c, queue, builds
-			local k = n * 7
-			rows[k + 1], rows[k + 2], rows[k + 3], rows[k + 4], rows[k + 5], rows[k + 6], rows[k + 7] = id, cmd, how, a, b, c, builds * 65536 + queue
+			local k = n * 8
+			rows[k + 1], rows[k + 2], rows[k + 3], rows[k + 4], rows[k + 5], rows[k + 6], rows[k + 7], rows[k + 8] = id, cmd, how, a, b, c, builds, queue
 			n = n + 1
 		end
 	end
@@ -690,6 +723,10 @@ function widget:Initialize()
 	-- A lobby demo opens with the minutes its players took to load, and the engine plays them at the server's speed.
 	if skipOn then Spring.SendCommands("setmaxspeed 1000", "setminspeed 1000") end
 	local gaia = Spring.GetGaiaTeamID()
+	local gaiaAlly = select(6, Spring.GetTeamInfo(gaia, false))
+	for _, a in ipairs(Spring.GetAllyTeamList()) do
+		if a ~= gaiaAlly and a < 16 then sightTeams[#sightTeams + 1] = a end
+	end
 	local teams = {}
 	for _, team in ipairs(Spring.GetTeamList()) do
 		local _, leader, _, isAI, side, ally = Spring.GetTeamInfo(team, false)
@@ -713,7 +750,7 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 1, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 2, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE, aim_scale = AIM,
 		aim = aimOn and 1 or 0,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
@@ -758,6 +795,11 @@ function widget:GameFrame(frame)
 	t = spGetTimer()
 	if frame % ACTIVITY == 0 then sampleActivity(frame) end
 	timed("activity", t)
+	if frame % VITALS == 0 then
+		t = spGetTimer()
+		sampleSight(frame)
+		timed("sight", t)
+	end
 	if aimOn and frame % SAMPLE == 0 then
 		t = spGetTimer()
 		sampleAim(frame)
@@ -842,8 +884,27 @@ local function close(winners)
 	put({ t = "over", f = frameNow, winners = winners or {} })
 	out:close()
 	out = nil
-	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, vitals %.1f, activity %.1f, aim %.1f, projectiles %.1f",
-		frameNow, bytes, stats.units, stats.vitals, stats.activity, stats.aim, stats.projectiles))
+	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, vitals %.1f, activity %.1f, sight %.1f, aim %.1f, projectiles %.1f; %d marks",
+		frameNow, bytes, stats.units, stats.vitals, stats.activity, stats.sight, stats.aim, stats.projectiles, stats.marks))
+end
+
+-- The players' marks on the map: a point with its words, a line, an erase (which takes away what lies within its
+-- radius). A spectator's widget is told of every player's (InMapDrawModel.cpp, AllowedMsg); never taken from the game.
+function widget:MapDrawCmd(playerID, kind, x, y, z, a, b, c)
+	if not out then return false end
+	local name, _, spectator, team, ally = Spring.GetPlayerInfo(playerID, false)
+	local row = { t = "ev", k = "mark", f = Spring.GetGameFrame(), player = name or "", spectator = spectator and 1 or 0, team = team or -1,
+		ally = ally or -1, kind = kind, p = { round(x or 0), round(y or 0), round(z or 0) } }
+	if kind == "point" then
+		row.label = a or ""
+	elseif kind == "line" then
+		row.to = { round(a or 0), round(b or 0), round(c or 0) }
+	elseif kind == "erase" then
+		row.radius = a or 100
+	end
+	put(row)
+	stats.marks = stats.marks + 1
+	return false
 end
 
 function widget:GameOver(winners)

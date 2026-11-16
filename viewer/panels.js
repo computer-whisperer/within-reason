@@ -600,7 +600,8 @@
     const u = ours || (state && same ? state.enemies.find((v) => v.id === id) : null);
     const seat = ours ? match.seats[ours.seat] : null;
     const picture = seat ? pictureAt(seat, view.frame) : null;
-    const beat = tape ? `${row}:${Math.floor(view.frame / (view.playing ? 15 : 3))}:${tape.loads}` : Math.floor(view.frame / WR.FPS);
+    // (While playing, a few times a second whatever the speed: a link clicked must still be there.)
+    const beat = tape ? `${row}:${view.playing ? `p${Math.floor(performance.now() / 400)}` : Math.floor(view.frame / 3)}:${tape.loads}` : Math.floor(view.frame / WR.FPS);
     if (!keyed(box, `${id}:${view.version}:${beat}:${picture ? picture.f : "-"}`)) return;
     if (tape) tapeUnit(box, row, ours ? (multi() ? `ours, seat ${seat.name}` : "ours") : null);
     if (match.tapeOnly) return;
@@ -662,9 +663,9 @@
         box.append(open);
       } else if (picture) box.append(el("div", "meta", "not an actor of the hands' picture at the playhead (a building, or a unit not in a group yet)"));
     }
-    // Its history: orders and events, newest first, click to seek there (with a tape, for a unit of ours alone: the
-    // tape has the rest).
-    if (tape && !ours) return;
+    // Its history: orders and events, newest first, click to seek there (with a tape, for a unit of ours alone, dead
+    // or not yet made included: the tape has the rest).
+    if (tape && !ours && !match.seats.some((s) => s.team === tape.unit(row).team)) return;
     box.append(el("h2", "call-title", `history in the record: ${history.commands.length} orders, ${history.events.length} events`));
     const list = el("ol", "history");
     const rows = [...history.commands.map((o) => ({ f: o.f, text: orderWords(o) })), ...history.events.map((e) => ({ f: e.f, text: eventWords(e, id) }))].sort((a, b) => b.f - a.f);
@@ -745,7 +746,8 @@
   /// slices read (about a minute around the playhead), a click seeking there. `whose` is the record's word for it.
   function tapeUnit(box, row, whose) {
     const scene = view.scene, tape = scene.tape, unit = tape.unit(row), d = unit.def || {};
-    const now = scene.unitNow(row);
+    // (At the playhead, not the frame the 3D view last drew: in the 2D map that one is stale.)
+    const now = scene.unitNow(row, view.frame);
     const alive = unit.created <= view.frame && view.frame < unit.destroyed;
     const title = el("h2", null, `${d.human || d.name || "unit"} #${unit.id} `);
     title.append(el("span", "muted", `${d.name || ""}${whose ? ` · ${whose}` : ""}`), " ", teamTag(tape, now ? now[11] : unit.team));
@@ -763,7 +765,7 @@
       const health = Math.round(now[9] * unit.maxHealth), full = Math.round(unit.maxHealth);
       // (A unit's full health can grow after it is made: the table has the one it was made with.)
       fact("health", `${health > full ? `${health}, more than the ${full} it was made with` : `${health} of ${full} (${Math.round(now[9] * 100)}%)`}${states.length ? `, ${states.join(", ")}` : ""}`);
-      const doing = scene.doingOf(row);
+      const doing = scene.doingOf(row, view.frame);
       fact("order", doing && doing.cmd !== 0 ? `${WV.tapeOrderWords(doing)}${doing.queue > 1 ? `, ${doing.queue - 1} more queued` : ""}` : d.mobile || d.builder ? "none (idle)" : "none");
       if (doing && doing.builds >= 0) fact("building", unitLink(tape, doing.builds));
     } else if (alive) {

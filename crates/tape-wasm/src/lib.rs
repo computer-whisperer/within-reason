@@ -163,7 +163,8 @@ pub extern "C" fn wr_orders_of(row: u32) -> u32 {
 }
 
 /// An array's address: 0 units, 1 ranges (u32), 2 projectiles, 3 bursts, 4 the unit table's u32, 5 its f32, 6 the
-/// features, 7 the ground now (u16), 8 what the units are doing, 9 the commands just given, 10 a unit's orders.
+/// features, 7 the ground now (u16), 8 what the units are doing, 9 the commands just given, 10 a unit's orders, 11
+/// what each ally team sees of each unit (u32, beside 0).
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_array(which: u32) -> *const u8 {
     with(|s| match which {
@@ -177,6 +178,7 @@ pub extern "C" fn wr_array(which: u32) -> *const u8 {
         8 => s.frame.doing.as_ptr() as *const u8,
         9 => s.frame.commands.as_ptr() as *const u8,
         10 => s.history.as_ptr() as *const u8,
+        11 => s.frame.seen.as_ptr() as *const u8,
         _ => s.tape.as_ref().map_or(std::ptr::null(), |t| t.ground_now.as_ptr() as *const u8),
     })
 }
@@ -195,6 +197,7 @@ pub extern "C" fn wr_array_len(which: u32) -> u32 {
         8 => s.frame.doing.len(),
         9 => s.frame.commands.len(),
         10 => s.history.len(),
+        11 => s.frame.seen.len(),
         _ => s.tape.as_ref().map_or(0, |t| t.ground_now.len()),
     } as u32)
 }
