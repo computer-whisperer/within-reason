@@ -107,6 +107,10 @@ pub struct Exact {
     pub activity: Activity,
     pub aim: Vec<(u8, [i16; 2])>,
     pub sight: [u16; 2],
+    /// [build power in use in hundredths, a factory's line] and [experience, full health] (format 3; else zeros
+    /// and the full health it was made with).
+    pub work: [u16; 2],
+    pub rank: [f32; 2],
 }
 
 #[derive(Default)]
@@ -121,6 +125,8 @@ pub struct Tape {
     pub patches: Vec<GroundPatch>,
     pub units: Vec<UnitRow>,
     pub features: Vec<Feature>,
+    /// Each wreck's metal as it changed (format 3): (frame, the feature's index in `features`, whole metal).
+    pub feature_metal: Vec<(u32, u32, u32)>,
     pub slices: HashMap<u32, Slice>,
     pub slice_frames: u32,
     pub sample_frames: u32,
@@ -231,6 +237,9 @@ impl Tape {
                 for (at, f) in self.features.iter().enumerate() {
                     self.feature_by_id.entry(f.id).or_default().push(at as u32);
                 }
+            }
+            b"FMET" => {
+                self.feature_metal = serde_json::from_slice(&body).map_err(|e| Error(format!("the wrecks' metal does not parse: {e}")))?;
             }
             b"SLIC" => return err("a slice goes to load_slice"),
             other => return err(format!("a chunk of kind {:?} this reader does not know", String::from_utf8_lossy(other))),
@@ -434,13 +443,15 @@ impl Tape {
             if self.units[k.row as usize].destroyed > frame {
                 slot.insert(k.row, out.len());
                 let sight = self.key_sight(slice, i, k.row);
-                out.push(Exact { row: k.row, pose: k.pose.unwrap_or(self.units[k.row as usize].birth), vital: k.vital, activity: k.activity, aim: k.aim.clone(), sight });
+                let work = slice.key_work.get(i).copied().unwrap_or_default();
+                let rank = slice.key_rank.get(i).copied().unwrap_or([0.0, self.units[k.row as usize].max_health]);
+                out.push(Exact { row: k.row, pose: k.pose.unwrap_or(self.units[k.row as usize].birth), vital: k.vital, activity: k.activity, aim: k.aim.clone(), sight, work, rank });
             }
         }
         for row in self.candidates(slice, frame).skip(out.len()) {
             let u = &self.units[row as usize];
             slot.insert(row, out.len());
-            out.push(Exact { row, pose: u.birth, vital: u.birth_vital, activity: Activity::default(), aim: Vec::new(), sight: self.first_sight(row) });
+            out.push(Exact { row, pose: u.birth, vital: u.birth_vital, activity: Activity::default(), aim: Vec::new(), sight: self.first_sight(row), work: [0, 0], rank: [0.0, u.max_health] });
         }
         for (f, row, sight) in &slice.sight {
             if *f > frame {
@@ -482,6 +493,22 @@ impl Tape {
                     Some(entry) => entry.1 = *dir,
                     None => out[at].aim.push((*weapon, *dir)),
                 }
+            }
+        }
+        for (f, row, work) in &slice.work {
+            if *f > frame {
+                break;
+            }
+            if let Some(&at) = slot.get(row) {
+                out[at].work = *work;
+            }
+        }
+        for (f, row, rank) in &slice.rank {
+            if *f > frame {
+                break;
+            }
+            if let Some(&at) = slot.get(row) {
+                out[at].rank = *rank;
             }
         }
         for e in &mut out {

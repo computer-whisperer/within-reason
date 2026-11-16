@@ -39,7 +39,7 @@ impl Report {
 pub fn cut(game: &Game, first: u32) -> Slice {
     let last = first + SLICE_FRAMES;
     let within = |frame: u32| frame > first && frame <= last;
-    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), ..Default::default() };
+    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), has_audit: game.has_audit(), ..Default::default() };
     for (row, u) in game.units.iter().enumerate() {
         let row = row as u32;
         if u.created > last {
@@ -65,7 +65,19 @@ pub fn cut(game: &Game, first: u32) -> Slice {
             }
             slice.sight.extend(u.sight.iter().filter(|(f, _)| within(*f)).map(|(f, s)| (*f, row, *s)));
         }
+        if slice.has_audit {
+            if u.alive(first) {
+                slice.key_work.push(u.work_at(first));
+                slice.key_rank.push(u.rank_at(first));
+            }
+            slice.work.extend(u.work.iter().filter(|(f, _)| within(*f)).map(|(f, w)| (*f, row, *w)));
+            slice.rank.extend(u.rank.iter().filter(|(f, _)| within(*f)).map(|(f, k)| (*f, row, *k)));
+            slice.hurt.extend(u.hurt.iter().filter(|(f, _)| within(*f)).map(|(f, h)| (*f, row, *h)));
+        }
     }
+    slice.work.sort_by_key(|w| (w.0, w.1));
+    slice.rank.sort_by_key(|k| (k.0, k.1));
+    slice.hurt.sort_by_key(|h| (h.0, h.1));
     slice.sight.sort_by_key(|s| (s.0, s.1));
     slice.vitals.sort_by_key(|v| (v.0, v.1));
     slice.activity.sort_by_key(|a| (a.0, a.1));
@@ -94,7 +106,24 @@ fn teams_table(game: &Game) -> Value {
             list.push(Value::Array(row[1..].to_vec()));
         }
     }
-    json!({ "frames": frames, "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend"], "teams": teams })
+    let mut columns = vec!["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend"];
+    if game.raw_version >= 3 {
+        columns.extend(["metal_excess", "metal_sent", "metal_received", "energy_excess", "energy_sent", "energy_received"]);
+    }
+    // The engine's statistics of each team, a row as it added an entry: [frame, the numbers].
+    let mut stats: serde_json::Map<String, Value> = Default::default();
+    for (frame, rows) in &game.team_stats {
+        for row in rows.as_array().into_iter().flatten() {
+            let Some(row) = row.as_array() else { continue };
+            let Some(team) = row.first().and_then(Value::as_i64) else { continue };
+            let list = stats.entry(team.to_string()).or_insert_with(|| json!([]));
+            let mut entry = vec![json!(frame)];
+            entry.extend(row[1..].iter().cloned());
+            list.as_array_mut().unwrap().push(Value::Array(entry));
+        }
+    }
+    let stat_columns = ["metal_used", "metal_produced", "metal_excess", "energy_used", "energy_produced", "energy_excess", "damage_dealt", "damage_received", "units_produced", "units_died", "units_killed"];
+    json!({ "frames": frames, "columns": columns, "teams": teams, "stat_columns": stat_columns, "stats": stats })
 }
 
 /// The header: the raw stream's, with what the tape adds. `slices` and `last_frame` are the tape's as written (a
@@ -104,8 +133,9 @@ fn head_chunk(game: &Game, slices: u32, last_frame: u32, growing: bool) -> Vec<u
     if let Some(h) = head.as_object_mut() {
         h.remove("t");
         h.insert("format".into(), json!("within-reason-tape"));
-        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`).
-        h.insert("version".into(), json!(2));
+        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`); 3: and with what the
+        // waste audit reads, and the tables have its columns (from a raw stream of version 3).
+        h.insert("version".into(), json!(if game.has_audit() { 3 } else { 2 }));
         h.insert("raw_version".into(), json!(game.raw_version.max(1)));
         h.insert("slice_frames".into(), json!(SLICE_FRAMES));
         h.insert("linger_frames".into(), json!(LINGER_FRAMES));
@@ -141,17 +171,22 @@ fn ground_of(game: &Game, margin: f32) -> Ground {
     ground
 }
 
-/// The whole-game tables, after the slices.
-fn tables(game: &Game, ground: &Ground) -> [(&'static [u8; 4], Vec<u8>); 5] {
+/// The whole-game tables, after the slices. `FMET` (format 3): each wreck's metal as it changed, [frame, the
+/// feature's index in `FEAT`, whole metal].
+fn tables(game: &Game, ground: &Ground) -> Vec<(&'static [u8; 4], Vec<u8>)> {
     let rows: Vec<UnitRow> = game.units.iter().map(UnitRow::of).collect();
     let patches: Vec<GroundPatch> = game.patches.iter().map(|p| GroundPatch { frame: p.frame, x: p.x, z: p.z, w: p.w, h: p.h, heights: p.heights.iter().map(|h| ground.quantize(*h)).collect() }).collect();
-    [
+    let mut tables: Vec<(&'static [u8; 4], Vec<u8>)> = vec![
         (b"UNIT", encode_units(&rows)),
         (b"FEAT", encode_features(&game.features)),
         (b"TEAM", serde_json::to_vec(&teams_table(game)).unwrap()),
         (b"EVNT", serde_json::to_vec(&game.events).unwrap()),
         (b"GPAT", encode_patches(&patches)),
-    ]
+    ];
+    if game.has_audit() {
+        tables.push((b"FMET", serde_json::to_vec(&game.feature_metal).unwrap()));
+    }
+    tables
 }
 
 /// The index and the footer after it, appended to `file`; `base` is the file's length before `file` (whose offsets

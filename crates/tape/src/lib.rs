@@ -2,6 +2,7 @@
 //! capture widget writes while the headless engine plays a demo. `docs/harness/tape-format.md` is the format;
 //! `docs/design/2026-11-15-game-tape.md` why it is so.
 
+pub mod audit;
 pub mod format;
 pub mod game;
 #[cfg(feature = "pack")]

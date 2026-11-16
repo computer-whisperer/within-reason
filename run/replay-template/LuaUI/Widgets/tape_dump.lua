@@ -37,6 +37,10 @@ local spGetUnitIsCloaked = Spring.GetUnitIsCloaked
 local spGetUnitCurrentCommand = Spring.GetUnitCurrentCommand
 local spGetCommandQueue = Spring.GetCommandQueue
 local spGetUnitIsBuilding = Spring.GetUnitIsBuilding
+local spGetUnitCurrentBuildPower = Spring.GetUnitCurrentBuildPower
+local spGetFactoryCommands = Spring.GetFactoryCommands
+local spGetUnitExperience = Spring.GetUnitExperience
+local spGetFeatureResources = Spring.GetFeatureResources
 local spGetUnitWeaponVectors = Spring.GetUnitWeaponVectors
 local spGetProjectilesInRectangle = Spring.GetProjectilesInRectangle
 local spGetProjectilePosition = Spring.GetProjectilePosition
@@ -50,6 +54,8 @@ local spGetProjectileTimeToLive = Spring.GetProjectileTimeToLive
 local spGetProjectileGravity = Spring.GetProjectileGravity
 local spGetGroundHeight = Spring.GetGroundHeight
 local spGetTimer = Spring.GetTimer
+local spGetGameFrame = Spring.GetGameFrame
+local spGetUnitIsDead = Spring.GetUnitIsDead
 local spDiffTimers = Spring.DiffTimers
 local packU16, packU32, packS16, packS32, packF32 = VFS.PackU16, VFS.PackU32, VFS.PackS16, VFS.PackS32, VFS.PackF32
 local floor, atan2, asin, sqrt = math.floor, math.atan2, math.asin, math.sqrt
@@ -58,7 +64,7 @@ local TURN = 2 * math.pi
 local out
 local aimOn = false
 local skipOn = false
-local frameNow = 0
+local frameNow = 0 -- the frame of the last GameFrame; a call-in's row is stamped with the engine's own (spGetGameFrame)
 local bytes = 0
 
 -- Units. `mobile` is the list sampled every SAMPLE frames; a building is written once, when it appears.
@@ -69,6 +75,11 @@ local last = {} -- unit id -> { x, y, z, yaw, pitch, roll } as last written
 local vital = {} -- unit id -> { health, build, paralyze, flags } as last written
 local sight = {} -- unit id -> { in sight, on radar } as last written (the `S` rows)
 local doing = {} -- unit id -> { cmd, a, b, c, queue, builds } as last written
+local work = {} -- builder id -> { build power in hundredths, a factory's line } as last written (the `W` rows)
+local rank = {} -- unit id -> { experience, full health } as last written (the `R` rows)
+local hurt = {} -- unit id -> damage taken since the last `H` row
+local featureMetal = {} -- feature id -> its metal (whole) as last written
+local early = {} -- unit id -> the commands it was given before the tape met it (`UnitCommand`)
 local dirty = {} -- unit ids hit since the last sample: their health is read at the next
 local armed = {} -- unit id -> number of weapons, for the units whose aim is sampled
 local aimLast = {} -- unit id * 16 + weapon -> packed direction as last written
@@ -87,6 +98,7 @@ local poll = 0
 local explosions, barrels = {}, {}
 
 local stats = { units = 0, vitals = 0, activity = 0, sight = 0, aim = 0, projectiles = 0, events = 0, sight_rows = 0, marks = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
+	work_rows = 0, rank_rows = 0, hurt_rows = 0,
 	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, same_frame_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
 local wallStart
 
@@ -245,6 +257,16 @@ local function modelOf(d)
 	return { path = d.modelpath or "", tex1 = textures.tex1 or "", tex2 = textures.tex2 or "", min = { m.minx or 0, m.miny or 0, m.minz or 0 }, max = { m.maxx or 0, m.maxy or 0, m.maxz or 0 } }
 end
 
+-- A type's reach as the audit counts it: its longest weapon that is no shield and does damage.
+local function auditReach(d)
+	local reach = 0
+	for _, w in ipairs(d.weapons or {}) do
+		local wd = WeaponDefs[w.weaponDef]
+		if wd and (wd.range or 0) > reach and not wd.isShield and (wd.damages and (wd.damages[0] or 0) > 1 or wd.customParams) then reach = wd.range end
+	end
+	return reach
+end
+
 local function unitDef(id)
 	if defSeen[id] then return id end
 	defSeen[id] = true
@@ -268,6 +290,10 @@ local function unitDef(id)
 		build_distance = d.buildDistance or 0, extracts = d.extractsMetal or 0, sight = d.sightDistance or 0, radar = d.radarDistance or 0,
 		sonar = d.sonarDistance or 0, jammer = d.radarDistanceJam or 0, cloak = cloaks[id] and 1 or 0, tech = tonumber(cp.techlevel) or 1,
 		icon = d.iconType or "", weapons = weapons, options = options, wreck = d.corpse or "", death = weapon(blast and blast.id or -1),
+		-- (for the audit, as audit_dump.lua writes them)
+		power = d.power or 0, energy_make = d.energyMake or 0, energy_upkeep = d.energyUpkeep or 0, wind = d.windGenerator or 0,
+		tidal = d.tidalGenerator or 0, metal_store = d.metalStorage or 0, energy_store = d.energyStorage or 0, can_assist = d.canAssist and 1 or 0,
+		can_reclaim = d.canReclaim and 1 or 0, converter = tonumber(cp.energyconv_capacity) or 0, reach = auditReach(d),
 	})
 	return id
 end
@@ -302,7 +328,7 @@ local function ground(x1, z1, x2, z2)
 				heights[n] = spGetGroundHeight(x * 8, z * 8)
 			end
 		end
-		record("G", packU32(frameNow, x1, row, width, rows) .. packF32(heights))
+		record("G", packU32(spGetGameFrame(), x1, row, width, rows) .. packF32(heights))
 		row = row + rows
 	end
 end
@@ -343,9 +369,15 @@ local function meet(id, defID, team, builder)
 	local fx, fy, fz, _, _, _, ux, uy, uz = spGetUnitDirection(id)
 	local health, maxHealth, _, _, build = spGetUnitHealth(id)
 	local yaw, pitch, roll = attitude(fx or 0, fy or 0, fz or 1, ux or 0, uy or 1, uz or 0)
-	put({ t = "ev", k = "created", f = frameNow, u = id, d = defID, team = team or spGetUnitTeam(id), by = builder or -1,
+	put({ t = "ev", k = "created", f = spGetGameFrame(), u = id, d = defID, team = team or spGetUnitTeam(id), by = builder or -1,
 		p = { round((x or 0) * POS), round((y or 0) * POS), round((z or 0) * POS) }, rot = { yaw, pitch, roll },
 		health = health or 0, max_health = maxHealth or 0, build = build or 1 })
+	for _, row in ipairs(early[id] or {}) do put(row) end
+	early[id] = nil
+	-- (a unit can be made with experience: then its `R` row now, else the reader takes none)
+	local xp = spGetUnitExperience(id) or 0
+	rank[id] = { xp, round(maxHealth or 0) }
+	if xp > 0 then record("R", packU32(spGetGameFrame(), 1) .. packF32({ id, xp, round(maxHealth or 0) })) end
 	dirty[id] = true
 end
 
@@ -354,6 +386,7 @@ local function forget(id)
 	allCount = drop(all, allAt, allCount, id)
 	mobileCount = drop(mobile, mobileAt, mobileCount, id)
 	last[id], vital[id], doing[id], dirty[id], armed[id], sight[id] = nil, nil, nil, nil, nil, nil
+	work[id], rank[id], hurt[id], early[id] = nil, nil, nil, nil
 end
 
 -- `U`: u32 frame, u32 n, then n unit ids (u16), 3n position components (s32, quarters of an elmo) and 3n angles
@@ -500,6 +533,72 @@ local function sampleActivity(frame)
 		end
 	end
 	if n > 0 then record("O", packU32(frame, n) .. packF32(rows)) end
+end
+
+-- What the waste audit reads (run/audit.py, docs/harness/audit.md) beside the head order, every ACTIVITY frames, a row
+-- for each unit whose numbers changed (raw version 3).
+-- `W`: u32 frame, u32 n, then n rows of three u16: a builder's id, its build power in use in hundredths of its build
+-- speed (`GetUnitCurrentBuildPower`: what the economy lets it spend) and a factory's line (the units it is told to
+-- build, `GetFactoryCommands`).
+local function sampleWork(frame)
+	local rows, n = {}, 0
+	for i = 1, allCount do
+		local id = all[i]
+		local d = UnitDefs[known[id]]
+		if d.buildSpeed > 0 then
+			local power = round((spGetUnitCurrentBuildPower(id) or 0) * 100)
+			local line = d.isFactory and spGetFactoryCommands(id, 0) or 0
+			if type(line) ~= "number" then line = 0 end
+			if line > 65535 then line = 65535 end
+			local w = work[id]
+			if not w or w[1] ~= power or w[2] ~= line then
+				work[id] = { power, line }
+				rows[n * 3 + 1], rows[n * 3 + 2], rows[n * 3 + 3] = id, power, line
+				n = n + 1
+			end
+		end
+	end
+	if n > 0 then
+		record("W", packU32(frame, n) .. packU16(rows))
+		stats.work_rows = stats.work_rows + n
+	end
+end
+
+-- `R`: u32 frame, u32 n, then n rows of three f32: unit id, its experience (`GetUnitExperience`) and its full health
+-- now (BAR raises it with experience; the unit's `created` row has the one it was made with).
+local function sampleRank(frame)
+	local rows, n = {}, 0
+	for i = 1, allCount do
+		local id = all[i]
+		local xp = spGetUnitExperience(id) or 0
+		local _, full = spGetUnitHealth(id)
+		full = round(full or 0)
+		local r = rank[id]
+		if not r or r[1] ~= xp or r[2] ~= full then
+			rank[id] = { xp, full }
+			rows[n * 3 + 1], rows[n * 3 + 2], rows[n * 3 + 3] = id, xp, full
+			n = n + 1
+		end
+	end
+	if n > 0 then
+		record("R", packU32(frame, n) .. packF32(rows))
+		stats.rank_rows = stats.rank_rows + n
+	end
+end
+
+-- `H`: u32 frame, u32 n, then n rows of two f32: unit id and the damage it took since the last row, paralysis left out,
+-- as the engine tells a widget (`UnitDamaged`).
+local function flushHurt(frame)
+	local rows, n = {}, 0
+	for id, amount in pairs(hurt) do
+		rows[n * 2 + 1], rows[n * 2 + 2] = id, amount
+		n = n + 1
+	end
+	hurt = {}
+	if n > 0 then
+		record("H", packU32(frame, n) .. packF32(rows))
+		stats.hurt_rows = stats.hurt_rows + n
+	end
 end
 
 -- `A`: u32 frame, u32 n, then n rows of four s16: unit id, weapon number (from 1), and where the weapon points in
@@ -674,8 +773,23 @@ local function featureRow(id, kind)
 	local x, y, z = Spring.GetFeaturePosition(id)
 	local fx, fy, fz, _, _, _, ux, uy, uz = Spring.GetFeatureDirection(id)
 	local metal, _, energy = Spring.GetFeatureResources(id)
-	put({ t = "ev", k = kind, f = frameNow, id = id, d = defID, team = Spring.GetFeatureTeam(id) or -1, p = { x or 0, y or 0, z or 0 },
+	put({ t = "ev", k = kind, f = spGetGameFrame(), id = id, d = defID, team = Spring.GetFeatureTeam(id) or -1, p = { x or 0, y or 0, z or 0 },
 		front = { fx or 0, fy or 0, fz or 1 }, up = { ux or 0, uy or 1, uz or 0 }, metal = metal or 0, energy = energy or 0 })
+	featureMetal[id] = floor(metal or 0)
+end
+
+-- The features whose metal changed (a wreck reclaimed in part), whole metal, every WRECKS frames (the audit's wrecks).
+local WRECKS = 450
+local function sampleWrecks(frame)
+	local changed = {}
+	for id, was in pairs(featureMetal) do
+		local metal = floor(spGetFeatureResources(id) or 0)
+		if metal ~= was then
+			featureMetal[id] = metal
+			changed[#changed + 1] = { id, metal }
+		end
+	end
+	if #changed > 0 then put({ t = "fmetal", f = frame, w = changed }) end
 end
 
 function widget:FeatureCreated(id)
@@ -683,7 +797,8 @@ function widget:FeatureCreated(id)
 end
 
 function widget:FeatureDestroyed(id)
-	if out then put({ t = "ev", k = "feature_gone", f = frameNow, id = id }) end
+	if out then put({ t = "ev", k = "feature_gone", f = spGetGameFrame(), id = id }) end
+	featureMetal[id] = nil
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -692,14 +807,36 @@ local function timed(name, started)
 	stats[name] = stats[name] + spDiffTimers(spGetTimer(), started)
 end
 
+-- Each team's metal and energy: the store, its size, pull, income and spending, and from raw version 3 for the audit
+-- the excess, sent and received of each; and the engine's own statistics of the team (`GetTeamStatsHistory`'s last
+-- entry: metal used, produced and wasted, the same of energy, damage dealt and received, units made, lost and killed)
+-- whenever the engine has added an entry.
+local statsLast = {} -- team -> the statistics last written, as one string
 local function resources(frame)
-	local rows = {}
+	local rows, statRows = {}, {}
 	for _, team in ipairs(Spring.GetTeamList()) do
-		local m, ms, mp, mi, me = Spring.GetTeamResources(team, "metal")
-		local e, es, ep, ei, ee = Spring.GetTeamResources(team, "energy")
-		if m then rows[#rows + 1] = { team, round(m), round(ms), round(mp * 10) / 10, round(mi * 10) / 10, round(me * 10) / 10, round(e), round(es), round(ep * 10) / 10, round(ei * 10) / 10, round(ee * 10) / 10 } end
+		local m, ms, mp, mi, me, _, msent, mrecv, mx = Spring.GetTeamResources(team, "metal")
+		local e, es, ep, ei, ee, _, esent, erecv, ex = Spring.GetTeamResources(team, "energy")
+		local tenth = function(v) return round((v or 0) * 10) / 10 end
+		if m then
+			rows[#rows + 1] = { team, round(m), round(ms), tenth(mp), tenth(mi), tenth(me), round(e), round(es), tenth(ep), tenth(ei), tenth(ee),
+				tenth(mx), tenth(msent), tenth(mrecv), tenth(ex), tenth(esent), tenth(erecv) }
+		end
+		-- (the last entry is the one the engine is filling: it changes between entries, so it is compared, not counted)
+		local n = Spring.GetTeamStatsHistory(team)
+		local h = n and n > 0 and Spring.GetTeamStatsHistory(team, n, n)
+		local st = h and h[1]
+		if st then
+			local row = { team, st.metalUsed or 0, st.metalProduced or 0, st.metalExcess or 0, st.energyUsed or 0, st.energyProduced or 0,
+				st.energyExcess or 0, st.damageDealt or 0, st.damageReceived or 0, st.unitsProduced or 0, st.unitsDied or 0, st.unitsKilled or 0 }
+			local key = table.concat(row, ",")
+			if key ~= statsLast[team] then
+				statsLast[team] = key
+				statRows[#statRows + 1] = row
+			end
+		end
 	end
-	put({ t = "res", f = frame, teams = rows })
+	put({ t = "res", f = frame, teams = rows, stats = statRows })
 end
 
 function widget:Initialize()
@@ -757,7 +894,7 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 2, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 3, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE, aim_scale = AIM,
 		aim = aimOn and 1 or 0,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
@@ -790,8 +927,10 @@ function widget:GameFrame(frame)
 	local t = spGetTimer()
 	if allCount == 0 or frame % 300 == 0 then
 		-- a unit that stood before this widget loaded, or whose making no call-in told of
+		-- (not one dying: the engine lists a unit while it dies, after its UnitDestroyed; met again it would stand to
+		-- the game's end)
 		for _, id in ipairs(Spring.GetAllUnits()) do
-			if not known[id] then meet(id) end
+			if not known[id] and not spGetUnitIsDead(id) then meet(id) end
 		end
 	end
 	if frame % SAMPLE == 0 then sampleUnits(frame) end
@@ -800,7 +939,12 @@ function widget:GameFrame(frame)
 	if frame % SAMPLE == 0 then sampleVitals(frame, frame % VITALS == 0) end
 	timed("vitals", t)
 	t = spGetTimer()
-	if frame % ACTIVITY == 0 then sampleActivity(frame) end
+	if frame % ACTIVITY == 0 then
+		sampleActivity(frame)
+		sampleWork(frame)
+		sampleRank(frame)
+		flushHurt(frame)
+	end
 	timed("activity", t)
 	if frame % VITALS == 0 then
 		t = spGetTimer()
@@ -817,6 +961,7 @@ function widget:GameFrame(frame)
 	flushBursts(frame)
 	timed("projectiles", t)
 	if frame % RESOURCES == 0 then resources(frame) end
+	if frame % WRECKS == 0 then sampleWrecks(frame) end
 	-- Written out just past each slice's end, the frame that makes it whole for the arena's follower (the tape that
 	-- grows while the game is played).
 	if frame % 300 == 1 then out:flush() end
@@ -832,15 +977,27 @@ end
 function widget:UnitFinished(id, defID, team)
 	if not out then return end
 	meet(id, defID, team)
-	put({ t = "ev", k = "finished", f = frameNow, u = id })
+	put({ t = "ev", k = "finished", f = spGetGameFrame(), u = id })
 	dirty[id] = true
 end
 
 function widget:UnitDestroyed(id, defID, team, attacker, attackerDef, attackerTeam)
 	if not out then return end
+	-- The damage it took since the last `H` row, the killing blow with it, and its experience as it dies (what it dealt
+	-- in its last second), before its id is let go.
+	if hurt[id] then
+		record("H", packU32(spGetGameFrame(), 1) .. packF32({ id, hurt[id] }))
+		hurt[id] = nil
+	end
+	local xp = spGetUnitExperience(id) or 0
+	local _, full = spGetUnitHealth(id)
+	local r = rank[id]
+	if r and (r[1] ~= xp or (full and r[2] ~= round(full))) then
+		record("R", packU32(spGetGameFrame(), 1) .. packF32({ id, xp, round(full or r[2]) }))
+	end
 	local x, y, z = spGetUnitPosition(id)
 	local _, _, _, _, build = spGetUnitHealth(id)
-	put({ t = "ev", k = "destroyed", f = frameNow, u = id, by = attacker or -1, by_team = attackerTeam or -1,
+	put({ t = "ev", k = "destroyed", f = spGetGameFrame(), u = id, by = attacker or -1, by_team = attackerTeam or -1,
 		p = { round((x or 0) * POS), round((y or 0) * POS), round((z or 0) * POS) }, build = build or 1 })
 	forget(id)
 end
@@ -848,11 +1005,13 @@ end
 function widget:UnitGiven(id, defID, newTeam, oldTeam)
 	if not out then return end
 	meet(id, defID, newTeam)
-	put({ t = "ev", k = "given", f = frameNow, u = id, team = newTeam, from = oldTeam })
+	put({ t = "ev", k = "given", f = spGetGameFrame(), u = id, team = newTeam, from = oldTeam })
 end
 
-function widget:UnitDamaged(id)
-	if out then dirty[id] = true end
+function widget:UnitDamaged(id, defID, team, damage, paralyzer)
+	if not out then return end
+	dirty[id] = true
+	if not paralyzer and damage and damage > 0 then hurt[id] = (hurt[id] or 0) + damage end
 end
 
 function widget:UnitCloaked(id)
@@ -870,7 +1029,15 @@ function widget:UnitCommand(id, defID, team, cmdID, params, opts)
 	if params then
 		for i = 1, math.min(#params, 6) do p[i] = round(params[i]) end
 	end
-	put({ t = "cmd", f = frameNow, u = id, c = cmdID, p = p, shift = (opts and opts.shift) and 1 or 0 })
+	local row = { t = "cmd", f = spGetGameFrame(), u = id, c = cmdID, p = p, shift = (opts and opts.shift) and 1 or 0 }
+	-- A unit's first settings come before the call-in that tells of its making (which names its builder): held, and
+	-- written just after its `created` row.
+	if known[id] then
+		put(row)
+	else
+		early[id] = early[id] or {}
+		early[id][#early[id] + 1] = row
+	end
 end
 
 function widget:UnsyncedHeightMapUpdate(x1, z1, x2, z2)
@@ -880,7 +1047,7 @@ end
 function widget:AddConsoleLine(line)
 	if not out then return end
 	local name, text = line:match("^<([^>]+)> (.*)$")
-	if name then put({ t = "ev", k = "chat", f = frameNow, player = name, text = text }) end
+	if name then put({ t = "ev", k = "chat", f = spGetGameFrame(), player = name, text = text }) end
 end
 
 local function close(winners)
@@ -890,7 +1057,7 @@ local function close(winners)
 	stats.bytes = bytes
 	stats.wall = spDiffTimers(spGetTimer(), wallStart)
 	put(stats)
-	put({ t = "over", f = frameNow, winners = winners or {} })
+	put({ t = "over", f = spGetGameFrame(), winners = winners or {} })
 	out:close()
 	out = nil
 	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, vitals %.1f, activity %.1f, sight %.1f, aim %.1f, projectiles %.1f; %d marks",

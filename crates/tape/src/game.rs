@@ -77,6 +77,12 @@ pub struct Unit {
     pub aim: Vec<(u32, u8, [i16; 2])>,
     /// (frame, [the ally teams that have it in sight, those that have it on radar]: bit `a` for ally team a).
     pub sight: Vec<(u32, [u16; 2])>,
+    /// What the waste audit reads (raw version 3), each a row when it changed: (frame, [a builder's build power in
+    /// use in hundredths of its build speed, a factory's line]); (frame, [experience, full health now]); and (frame,
+    /// the damage it took since the last such row).
+    pub work: Vec<(u32, [u16; 2])>,
+    pub rank: Vec<(u32, [f32; 2])>,
+    pub hurt: Vec<(u32, f32)>,
 }
 
 pub const PATH_FORMULA: u8 = 0;
@@ -185,8 +191,15 @@ pub struct Game {
     pub projectiles: Vec<Projectile>,
     pub bursts: Vec<Burst>,
     pub orders: Vec<Order>,
-    /// Each second's resources: (frame, [[team, metal, store, pull, income, spend, energy, store, pull, income, spend]]).
+    /// Each second's resources: (frame, [[team, metal, store, pull, income, spend, energy, store, pull, income, spend]]),
+    /// from raw version 3 with metal's excess, sent and received and energy's after them.
     pub resources: Vec<(u32, Value)>,
+    /// The engine's statistics of each team as it added an entry (raw version 3): (frame, [[team, metal used,
+    /// produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed]]).
+    pub team_stats: Vec<(u32, Value)>,
+    /// A feature's metal as it changed (a wreck reclaimed in part; raw version 3): (frame, its index in `features`,
+    /// whole metal).
+    pub feature_metal: Vec<(u32, u32, u32)>,
     /// Chat and the end, as the widget wrote them.
     pub events: Vec<Value>,
     pub last_frame: u32,
@@ -198,6 +211,8 @@ pub struct Game {
     pub map_files: Value,
     /// What the formula's places missed the engine's by, per weapon kind: (rows checked, the worst miss in elmos).
     pub path_check: HashMap<String, (u32, f32)>,
+    /// Records of kinds this reader does not know, passed over: kind -> count.
+    pub unknown: std::collections::BTreeMap<char, u32>,
 }
 
 fn num(v: &Value, key: &str) -> f64 {
@@ -240,6 +255,9 @@ impl Game {
         let mut r = R::new(raw);
         // The engine's unit id -> the row of the unit that holds it now; the same for features and projectiles.
         let mut unit_at: HashMap<u32, usize> = HashMap::new();
+        // The engine's unit id -> the row of the last unit that held it, alive or dead: a killer that died first (a
+        // shell landing after its gun fell) is still named.
+        let mut last_at: HashMap<u32, usize> = HashMap::new();
         let mut feature_at: HashMap<u32, usize> = HashMap::new();
         let mut projectile_at: HashMap<u32, usize> = HashMap::new();
         let mut mobile_def: HashMap<u32, bool> = HashMap::new();
@@ -292,7 +310,20 @@ impl Game {
                             }
                         }
                         "map_files" => game.map_files = row.get("files").cloned().unwrap_or(Value::Null),
-                        "res" => game.resources.push((frame, row.get("teams").cloned().unwrap_or(Value::Null))),
+                        "res" => {
+                            game.resources.push((frame, row.get("teams").cloned().unwrap_or(Value::Null)));
+                            if let Some(stats) = row.get("stats").filter(|s| s.as_array().is_some_and(|a| !a.is_empty())) {
+                                game.team_stats.push((frame, stats.clone()));
+                            }
+                        }
+                        "fmetal" => {
+                            for w in row.get("w").and_then(Value::as_array).into_iter().flatten() {
+                                let pair = |i: usize| w.get(i).and_then(Value::as_f64).unwrap_or(0.0);
+                                if let Some(&at) = feature_at.get(&(pair(0) as u32)) {
+                                    game.feature_metal.push((frame, at as u32, pair(1).max(0.0) as u32));
+                                }
+                            }
+                        }
                         "stats" => game.stats = row,
                         "over" => {
                             game.winners = row.get("winners").cloned().unwrap_or(Value::Null);
@@ -309,10 +340,12 @@ impl Game {
                                 let birth_vital = Vital { health: num(&row, "health").round() as u32, build: (num(&row, "build") * 1000.0).round() as u16, paralyze: 0, flags: 0 };
                                 let builder = row_of(&unit_at, num(&row, "by"));
                                 unit_at.insert(id, game.units.len());
+                                last_at.insert(id, game.units.len());
                                 game.units.push(Unit {
                                     engine_id: id, def, team: num(&row, "team") as u8, created: frame, finished: NEVER, destroyed: NEVER, killer: 0, builder,
                                     mobile: mobile_def.get(&def).copied().unwrap_or(true), max_health: num(&row, "max_health") as f32, birth, birth_vital,
                                     death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), aim: Vec::new(), sight: Vec::new(),
+                                    work: Vec::new(), rank: Vec::new(), hurt: Vec::new(),
                                 });
                             }
                             "finished" => {
@@ -322,12 +355,26 @@ impl Game {
                             }
                             "destroyed" => {
                                 let id = num(&row, "u") as u32;
-                                let killer = row_of(&unit_at, num(&row, "by"));
+                                let by = num(&row, "by");
+                                let killer = match row_of(&unit_at, by) {
+                                    0 if by > 0.0 => last_at.get(&(by as u32)).map_or(0, |r| *r as u32 + 1),
+                                    row => row,
+                                };
                                 if let Some(at) = unit_at.remove(&id) {
                                     let unit = &mut game.units[at];
                                     unit.destroyed = frame;
                                     unit.killer = killer;
                                     unit.death = pose_of(&row).pos;
+                                    // Its vitals as it died: its build progress then (a frame killed unfinished), which
+                                    // no sample may have caught.
+                                    if let Some(build) = row.get("build").and_then(Value::as_f64) {
+                                        let mut vital = unit.vital(frame);
+                                        let build = (build * 1000.0).round() as u16;
+                                        if vital.build != build {
+                                            vital.build = build;
+                                            unit.vitals.push((frame, vital));
+                                        }
+                                    }
                                 }
                             }
                             "given" => {
@@ -401,6 +448,30 @@ impl Game {
                         game.units[at].sight.push((frame, [los, radar]));
                     }
                 }
+                b'W' => {
+                    let (frame, n) = (body.u32()?, body.u32()? as usize);
+                    for _ in 0..n {
+                        let (id, power, line) = (body.u16()?, body.u16()?, body.u16()?);
+                        let Some(&at) = unit_at.get(&(id as u32)) else { continue };
+                        game.units[at].work.push((frame, [power, line]));
+                    }
+                }
+                b'R' => {
+                    let (frame, n) = (body.u32()?, body.u32()? as usize);
+                    let rows = f32s(&mut body, n * 3)?;
+                    for row in rows.chunks_exact(3) {
+                        let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
+                        game.units[at].rank.push((frame, [row[1], row[2]]));
+                    }
+                }
+                b'H' => {
+                    let (frame, n) = (body.u32()?, body.u32()? as usize);
+                    let rows = f32s(&mut body, n * 2)?;
+                    for row in rows.chunks_exact(2) {
+                        let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
+                        game.units[at].hurt.push((frame, row[1]));
+                    }
+                }
                 b'A' => {
                     let (frame, n) = (body.u32()?, body.u32()? as usize);
                     for _ in 0..n {
@@ -459,7 +530,9 @@ impl Game {
                     let heights = f32s(&mut body, (w * h) as usize)?;
                     game.patches.push(Patch { frame, x, z, w, h, heights });
                 }
-                other => return err(format!("the raw stream has a record of kind {:?} this reader does not know", other as char)),
+                // A record of a later widget than this reader (an arena binary older than the widget it copies): its
+                // length is known, so it is passed over and counted, and the rest packed.
+                other => *game.unknown.entry(other as char).or_default() += 1,
             }
         }
         if game.head.is_null() {
@@ -564,9 +637,25 @@ impl Unit {
         let mine = 1u16.checked_shl(own as u32).unwrap_or(0);
         at_or_before(&self.sight, frame).copied().unwrap_or([mine, mine])
     }
+
+    /// Its build power in use and a factory's line as last written at or before `frame` (none: nothing).
+    pub fn work_at(&self, frame: u32) -> [u16; 2] {
+        at_or_before(&self.work, frame).copied().unwrap_or_default()
+    }
+
+    /// Its experience and full health as last written at or before `frame` (none: no experience, the full health it
+    /// was made with).
+    pub fn rank_at(&self, frame: u32) -> [f32; 2] {
+        at_or_before(&self.rank, frame).copied().unwrap_or([0.0, self.max_health])
+    }
 }
 
 impl Game {
+    /// Whether the stream has what the waste audit reads (raw version 3 on).
+    pub fn has_audit(&self) -> bool {
+        self.raw_version >= 3 && self.has_sight()
+    }
+
     /// Whether the stream says what each ally team saw (raw version 2 on).
     pub fn has_sight(&self) -> bool {
         self.head.get("ally_teams").is_some()

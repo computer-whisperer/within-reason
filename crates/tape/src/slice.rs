@@ -44,11 +44,20 @@ pub struct Slice {
     pub has_sight: bool,
     pub key_sight: Vec<[u16; 2]>,
     pub sight: Vec<(u32, u32, [u16; 2])>,
+    /// Whether the slice has what the waste audit reads (format 3, from a raw stream of version 3, which has sight
+    /// too): `key_work` and `key_rank` beside `key`, and (frame, row, what changed to) in frame order of [build power
+    /// in use in hundredths, a factory's line] and [experience, full health], and the damage each unit took.
+    pub has_audit: bool,
+    pub key_work: Vec<[u16; 2]>,
+    pub work: Vec<(u32, u32, [u16; 2])>,
+    pub key_rank: Vec<[f32; 2]>,
+    pub rank: Vec<(u32, u32, [f32; 2])>,
+    pub hurt: Vec<(u32, u32, f32)>,
 }
 
-/// A slice's sections, in the order `encode_sections` ends them. The last is there only when the slice has sight:
-/// a slice of format 1 ends with its bursts.
-pub const SECTIONS: [&str; 9] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight"];
+/// A slice's sections, in the order `encode_sections` ends them. Sight is there only when the slice has sight (a slice
+/// of format 1 ends with its bursts), and the three after it only when it has the audit's numbers (format 3).
+pub const SECTIONS: [&str; 12] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight", "work", "rank", "hurt"];
 
 /// Fixed-point scales of a projectile's numbers: eighths of an elmo, 1024ths of an elmo a frame, 65536ths for gravity.
 const P_POS: f32 = 8.0;
@@ -345,6 +354,66 @@ impl Slice {
             }
             ends.push(out.0.len());
         }
+        if self.has_audit {
+            // Work and rank: the keyframe's units' in the keyframe's order, then the changes; then the damage taken.
+            let mut c: [W; 2] = Default::default();
+            for w in &self.key_work {
+                c[0].var(w[0] as u64);
+                c[1].var(w[1] as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            out.var(self.work.len() as u64);
+            let mut c: [W; 4] = Default::default();
+            let mut frame = self.first;
+            for (f, row, w) in &self.work {
+                c[0].var((f - frame) as u64);
+                frame = *f;
+                c[1].var(*row as u64);
+                c[2].var(w[0] as u64);
+                c[3].var(w[1] as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            ends.push(out.0.len());
+            let mut c: [W; 2] = Default::default();
+            for k in &self.key_rank {
+                c[0].f32(k[0]);
+                c[1].var(k[1].max(0.0).round() as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            out.var(self.rank.len() as u64);
+            let mut c: [W; 4] = Default::default();
+            let mut frame = self.first;
+            for (f, row, k) in &self.rank {
+                c[0].var((f - frame) as u64);
+                frame = *f;
+                c[1].var(*row as u64);
+                c[2].f32(k[0]);
+                c[3].var(k[1].max(0.0).round() as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            ends.push(out.0.len());
+            out.var(self.hurt.len() as u64);
+            let mut c: [W; 3] = Default::default();
+            let mut frame = self.first;
+            for (f, row, amount) in &self.hurt {
+                c[0].var((f - frame) as u64);
+                frame = *f;
+                c[1].var(*row as u64);
+                c[2].f32(*amount);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            ends.push(out.0.len());
+        }
         (out.0, ends)
     }
 
@@ -515,6 +584,38 @@ impl Slice {
             for _ in 0..n {
                 frame += c[0].var()? as u32;
                 slice.sight.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
+            }
+        }
+        if r.left() > 0 {
+            slice.has_audit = true;
+            let mut c = take_columns::<2>(&mut r)?;
+            for _ in 0..slice.key.len() {
+                slice.key_work.push([c[0].var()? as u16, c[1].var()? as u16]);
+            }
+            let n = r.var()? as usize;
+            let mut c = take_columns::<4>(&mut r)?;
+            let mut frame = slice.first;
+            for _ in 0..n {
+                frame += c[0].var()? as u32;
+                slice.work.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
+            }
+            let mut c = take_columns::<2>(&mut r)?;
+            for _ in 0..slice.key.len() {
+                slice.key_rank.push([c[0].f32()?, c[1].var()? as f32]);
+            }
+            let n = r.var()? as usize;
+            let mut c = take_columns::<4>(&mut r)?;
+            let mut frame = slice.first;
+            for _ in 0..n {
+                frame += c[0].var()? as u32;
+                slice.rank.push((frame, c[1].var()? as u32, [c[2].f32()?, c[3].var()? as f32]));
+            }
+            let n = r.var()? as usize;
+            let mut c = take_columns::<3>(&mut r)?;
+            let mut frame = slice.first;
+            for _ in 0..n {
+                frame += c[0].var()? as u32;
+                slice.hurt.push((frame, c[1].var()? as u32, c[2].f32()?));
             }
         }
         if r.left() != 0 {

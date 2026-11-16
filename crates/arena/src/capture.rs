@@ -120,14 +120,19 @@ pub fn finish(repo: &Path, dir: &Path) -> io::Result<String> {
     let raw_path = dir.join(WRITTEN).join("tape.raw");
     let raw = fs::read(&raw_path).map_err(|e| io::Error::other(format!("no raw stream ({e}): see engine.log for the tape dump's lines")))?;
     let started = Instant::now();
-    let game = tape::game::Game::ingest(&raw).map_err(|e| io::Error::other(format!("the raw stream does not read: {e}")))?;
-    let (file, _) = tape::pack::pack(&game).map_err(|e| io::Error::other(format!("the tape does not pack: {e}")))?;
+    let kept = || format!("the raw stream is kept: target/release/tape pack {}", raw_path.display());
+    let game = tape::game::Game::ingest(&raw).map_err(|e| io::Error::other(format!("the raw stream does not read: {e}; {}", kept())))?;
+    let (file, _) = tape::pack::pack(&game).map_err(|e| io::Error::other(format!("the tape does not pack: {e}; {}", kept())))?;
+    let unknown = if game.unknown.is_empty() { String::new() } else { format!("; passed over, records this build does not know (the widget is newer: rebuild and pack the raw stream again): {:?}", game.unknown) };
     let temp = dir.join("game.tape.new");
     fs::write(&temp, &file)?;
     fs::rename(&temp, dir.join("game.tape"))?;
-    fs::remove_file(&raw_path)?;
+    // (a stream with records this build passed over is kept, for a newer build to pack whole)
+    if unknown.is_empty() {
+        fs::remove_file(&raw_path)?;
+    }
     Ok(format!(
-        "game.tape {:.1} MB from {:.1} MB of raw stream, {:.1} game minutes, packed in {:.1} s; {new_assets} new assets at the end",
+        "game.tape {:.1} MB from {:.1} MB of raw stream, {:.1} game minutes, packed in {:.1} s; {new_assets} new assets at the end{unknown}",
         file.len() as f64 / 1e6,
         raw.len() as f64 / 1e6,
         game.last_frame as f64 / 1800.0,

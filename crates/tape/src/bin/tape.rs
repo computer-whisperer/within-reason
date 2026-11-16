@@ -6,6 +6,9 @@
 //!                                                      `seats`: in a replay the engine names every seat UNKNOWN)
 //!     tape info <game.tape>                            what a tape holds
 //!     tape check <tape.raw> <game.tape> [--every N]    the tape read back against the raw stream it was made from
+//!     tape audit <game.tape> [-o audit.jsonl]         the waste audit's dump (docs/harness/audit.md) from a tape of
+//!                                                      format 3, as audit_dump.lua writes it in a replay; then
+//!                                                      run/audit.py <the directory>
 //!     tape grow <tape.raw> [--cuts N] [-o FILE]        the tape that grows while a game is played (pack::Growing),
 //!                                                      checked: the stream cut at N places (inside records, as the
 //!                                                      arena's follower meets it), the tape grown through each and
@@ -64,6 +67,9 @@ fn main() {
             for (name, raw, stored) in &report.sections {
                 println!("  slices' {name}: {} packed alone, {} unpacked", megabytes(*stored), megabytes(*raw));
             }
+            if !game.unknown.is_empty() {
+                println!("  passed over, records of kinds this reader does not know (a widget newer than this build): {:?}", game.unknown);
+            }
             let mut kinds: Vec<_> = game.path_check.iter().collect();
             kinds.sort_by(|a, b| a.0.cmp(b.0));
             for (kind, (rows, worst)) in kinds {
@@ -92,6 +98,18 @@ fn main() {
             }
         }
         Some("orders") if args.len() >= 2 => orders(&read(&args[1])),
+        Some("audit") if args.len() >= 2 => {
+            // `-o -`: to standard output, the account to standard error (run/audit.py reads a tape's audit so).
+            let out = value("-o").unwrap_or_else(|| std::path::Path::new(&args[1]).with_file_name("audit.jsonl").to_string_lossy().into_owned());
+            let started = Instant::now();
+            let file = read(&args[1]);
+            let sink: Box<dyn std::io::Write> = if out == "-" { Box::new(std::io::stdout().lock()) } else { Box::new(std::fs::File::create(&out).unwrap_or_else(|e| fail(format!("{out}: {e}")))) };
+            let mut writer = std::io::BufWriter::new(sink);
+            let written = tape::audit::write(&file, &mut writer).unwrap_or_else(fail);
+            std::io::Write::flush(&mut writer).unwrap_or_else(|e| fail(format!("{out}: {e}")));
+            let named = if out == "-" { format!("the audit of {}", args[1]) } else { out.clone() };
+            eprintln!("{named}: {} samples, {} unit rows, {} commands, {} unit events ({:.1} s)", written.samples, written.unit_rows, written.commands, written.events, started.elapsed().as_secs_f32());
+        }
         Some("grow") if args.len() >= 2 => {
             let raw = read(&args[1]);
             let cuts: usize = value("--cuts").and_then(|v| v.parse().ok()).unwrap_or(12).max(1);
@@ -259,6 +277,13 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
             let at = projectiles.iter().zip(&held).position(|(a, b)| a != b);
             fail::<()>(format!("slice {k}: projectiles differ ({} in the game, {} in the tape; the first difference at {:?}: {:?} against {:?})", projectiles.len(), held.len(), at, at.map(|i| &projectiles[i]), at.map(|i| &held[i])));
         }
+        if game.has_audit() {
+            let mut hurt: Vec<(u32, u32, f32)> = game.units.iter().enumerate().flat_map(|(row, u)| u.hurt.iter().filter(|(f, _)| within(*f)).map(move |(f, h)| (*f, row as u32, *h))).collect();
+            hurt.sort_by_key(|h| (h.0, h.1));
+            if hurt != slice.hurt {
+                fail::<()>(format!("slice {k}: the damage taken differs ({} rows in the game, {} in the tape)", hurt.len(), slice.hurt.len()));
+            }
+        }
         let bursts: Vec<_> = game.bursts.iter().filter(|b| b.frame + LINGER_FRAMES > first && b.frame <= first + SLICE_FRAMES).map(quantized_burst).collect();
         if bursts != slice.bursts {
             fail::<()>(format!("slice {k}: bursts differ"));
@@ -266,7 +291,10 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
         let mut f = first.div_ceil(sample) * sample;
         while f <= last {
             let mut want: Vec<Exact> = game.units.iter().enumerate().take_while(|(_, u)| u.created <= f).filter(|(_, u)| u.alive(f))
-                .map(|(row, u)| Exact { row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), aim: u.aims(f), sight: if game.has_sight() { u.sight(f, game.ally(u.team)) } else { [u16::MAX; 2] } })
+                .map(|(row, u)| {
+                    let (work, rank) = if game.has_audit() { (u.work_at(f), u.rank_at(f)) } else { ([0, 0], [0.0, u.max_health]) };
+                    Exact { row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), aim: u.aims(f), sight: if game.has_sight() { u.sight(f, game.ally(u.team)) } else { [u16::MAX; 2] }, work, rank }
+                })
                 .collect();
             let mut got = tape.exact(index, f).unwrap_or_else(|| fail(format!("frame {f}: its slice is not loaded")));
             want.sort_by_key(|e| e.row);
@@ -317,6 +345,9 @@ fn check_tables(tape: &Tape, game: &Game) {
     }
     if game.features != tape.features {
         fail::<()>("the feature tables differ");
+    }
+    if game.feature_metal != tape.feature_metal {
+        fail::<()>(format!("the wrecks' metal differs: {} changes in the game, {} in the tape", game.feature_metal.len(), tape.feature_metal.len()));
     }
     let step = tape.ground.step;
     let worst = game.ground.2.iter().zip(&tape.ground.heights).map(|(h, q)| (h - tape.ground.height(*q)).abs()).fold(0.0f32, f32::max);
