@@ -264,6 +264,14 @@ impl Game {
         num(&self.head, "position_scale").max(1.0) as f32
     }
 
+    /// Whether a raw stream being written holds its first record, the header row, whole. The widget's writes reach the
+    /// disk a buffer at a time, and a header longer than one (a 16-team game's teams and metal spots, 6 kB on All That
+    /// Glitters) stands on disk cut short while the widget reads and hashes the map's files: a stream read then is not begun,
+    /// where `ingest` would call it one without a header.
+    pub fn header_written(raw: &[u8]) -> bool {
+        raw.len() >= 5 && raw.len() - 5 >= u32::from_le_bytes([raw[1], raw[2], raw[3], raw[4]]) as usize
+    }
+
     /// Reads a raw stream whole.
     pub fn ingest(raw: &[u8]) -> Result<Game> {
         let mut game = Game::default();
@@ -684,5 +692,29 @@ impl Game {
 
     pub fn ally(&self, team: u8) -> u8 {
         self.ally_of.get(team as usize).copied().unwrap_or(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A header row longer than the cut: on disk while the widget's buffer holds its end.
+    #[test]
+    fn a_stream_cut_inside_its_header_is_not_begun() {
+        let teams: Vec<Value> = (0..17).map(|t| serde_json::json!({ "team": t, "ally": t / 8, "name": "BARb stable", "color": [0.1, 0.2, 0.3], "start": [1000.5, 200.25, 3000.75] })).collect();
+        let spots: Vec<Value> = (0..152).map(|i| serde_json::json!([i * 40, 192, 1836.8])).collect();
+        let head = serde_json::json!({ "t": "header", "format": "within-reason-tape-raw", "version": RAW_VERSION, "teams": teams, "spots": spots, "map": { "width": 64, "height": 64 } });
+        let body = serde_json::to_vec(&head).unwrap();
+        assert!(body.len() > 4096, "the header is {} bytes", body.len());
+        let mut raw = vec![b'J'];
+        raw.extend_from_slice(&(body.len() as u32).to_le_bytes());
+        raw.extend_from_slice(&body);
+        for cut in [0, 1, 4, 5, 4096, raw.len() - 1] {
+            assert!(!Game::header_written(&raw[..cut]), "cut at {cut}");
+            assert!(Game::ingest(&raw[..cut]).is_err(), "cut at {cut}");
+        }
+        assert!(Game::header_written(&raw));
+        assert_eq!(num(&Game::ingest(&raw).unwrap().head, "version") as u32, RAW_VERSION);
     }
 }

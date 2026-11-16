@@ -95,12 +95,19 @@ pub fn follow(repo: &Path, dir: &Path) -> Follower {
             let _ = move_assets(&repo, &dir);
             let size = fs::metadata(&raw_path).map_or(0, |m| m.len());
             if size > last_size && failed.is_none() {
-                last_size = size;
-                let grown = fs::read(&raw_path).map_err(|e| e.to_string()).and_then(|raw| tape::game::Game::ingest(&raw).map_err(|e| e.to_string())).and_then(|game| growing.grow(&game).map_err(|e| e.to_string()));
-                if let Err(e) = grown {
-                    failed = Some(e);
+                match fs::read(&raw_path) {
+                    // The header still cut short on disk (rt8v8-pieces, 2026-11-16, where reading it as a stream without
+                    // one stopped the following for the whole game): read again at the next turn.
+                    Ok(raw) if !tape::game::Game::header_written(&raw) => {}
+                    read => {
+                        last_size = size;
+                        let grown = read.map_err(|e| e.to_string()).and_then(|raw| tape::game::Game::ingest(&raw).map_err(|e| e.to_string())).and_then(|game| growing.grow(&game).map_err(|e| e.to_string()));
+                        if let Err(e) = grown {
+                            failed = Some(e);
+                        }
+                        reads += 1;
+                    }
                 }
-                reads += 1;
             }
             let took = started.elapsed();
             busy += took;
