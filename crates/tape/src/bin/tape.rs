@@ -1,6 +1,9 @@
 //! The tape's tool.
 //!
-//!     tape pack <tape.raw> [-o game.tape] [--check]    the raw stream of the capture widget into a tape
+//!     tape pack <tape.raw> [-o game.tape] [--check] [--seats seats.json]
+//!                                                      the raw stream of the capture widget into a tape; with
+//!                                                      `--seats`, who sat where (run/replays/startscript.py's
+//!                                                      `seats`: in a replay the engine names every seat UNKNOWN)
 //!     tape info <game.tape>                            what a tape holds
 //!     tape check <tape.raw> <game.tape> [--every N]    the tape read back against the raw stream it was made from
 //!
@@ -36,7 +39,11 @@ fn main() {
             let out = value("-o").unwrap_or_else(|| std::path::Path::new(raw_path).with_file_name("game.tape").to_string_lossy().into_owned());
             let started = Instant::now();
             let raw = read(raw_path);
-            let game = Game::ingest(&raw).unwrap_or_else(fail);
+            let mut game = Game::ingest(&raw).unwrap_or_else(fail);
+            if let Some(path) = value("--seats") {
+                let seats: serde_json::Value = serde_json::from_slice(&read(&path)).unwrap_or_else(|e| fail(format!("{path}: {e}")));
+                name_seats(&mut game, &seats);
+            }
             let read_s = started.elapsed().as_secs_f32();
             let (file, report) = pack::pack(&game).unwrap_or_else(fail);
             std::fs::write(&out, &file).unwrap_or_else(|e| fail(format!("{out}: {e}")));
@@ -83,7 +90,24 @@ fn main() {
             let every = value("--every").and_then(|v| v.parse().ok()).unwrap_or(1);
             check(&game, &read(&args[2]), every);
         }
-        _ => fail::<()>("usage: tape pack <tape.raw> [-o game.tape] [--check] | tape info <game.tape> | tape check <tape.raw> <game.tape> [--every N]"),
+        _ => fail::<()>("usage: tape pack <tape.raw> [-o game.tape] [--check] [--seats seats.json] | tape info <game.tape> | tape check <tape.raw> <game.tape> [--every N]"),
+    }
+}
+
+/// Gives the header's teams the start script's word on who plays them: a person's name, or an AI's short name and
+/// version; the whole controller row goes in as `controller`.
+fn name_seats(game: &mut Game, seats: &serde_json::Value) {
+    let Some(teams) = game.head.get_mut("teams").and_then(|t| t.as_array_mut()) else { return };
+    for seat in seats.as_array().into_iter().flatten() {
+        let Some(team) = teams.iter_mut().find(|t| t["team"] == seat["team"]) else { continue };
+        let controller = &seat["controller"];
+        let name = match (controller["person"]["name"].as_str(), controller["ai"]["short_name"].as_str().or(controller["ai"]["name"].as_str())) {
+            (Some(person), _) => person.to_string(),
+            (None, Some(ai)) => format!("{ai} {}", controller["ai"]["version"].as_str().unwrap_or("")).trim().to_string(),
+            _ => continue,
+        };
+        team["name"] = name.into();
+        team["controller"] = controller.clone();
     }
 }
 

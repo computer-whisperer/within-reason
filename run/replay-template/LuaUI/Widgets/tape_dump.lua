@@ -79,12 +79,13 @@ local live, liveAt, liveCount = {}, {}, 0
 local seen = {} -- projectile id -> the poll that last listed it
 local flies = {} -- projectile id -> true when its place is written every SAMPLE frames
 local endedAt = {} -- projectile id -> the frame it was last seen to end, for the count of quick reuse
+local madeBy = {} -- projectile id -> its owner and weapon type as one number: a change is another projectile
 local flown = {}
 local poll = 0
 local explosions, barrels = {}, {}
 
 local stats = { units = 0, vitals = 0, activity = 0, aim = 0, projectiles = 0, events = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
-	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
+	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, same_frame_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
 local wallStart
 
 local function esc(s)
@@ -502,9 +503,22 @@ local function sampleProjectiles(frame)
 	poll = poll + 1
 	local list = spGetProjectilesInRectangle(-8192, -8192, Game.mapSizeX + 8192, Game.mapSizeZ + 8192)
 	local fresh, f = {}, 0
+	local reused, r = {}, 0
 	for i = 1, #list do
 		local id = list[i]
+		-- The engine reuses a projectile's id as soon as it is gone (within two frames 335 times in the Erebos 10v8's
+		-- 281,852), and one gone and made again between two looks is still on the list: told apart by its owner and
+		-- weapon type, which the old one ends on and the new one begins from.
+		local maker = (spGetProjectileOwnerID(id) or -1) * 65536 + (spGetProjectileDefID(id) or -1)
+		if seen[id] and madeBy[id] ~= maker then
+			r = r + 1
+			reused[r] = id
+			seen[id], flies[id] = nil, nil
+			liveCount = drop(live, liveAt, liveCount, id)
+			stats.same_frame_reuse = stats.same_frame_reuse + 1
+		end
 		if not seen[id] then
+			madeBy[id] = maker
 			liveCount = add(live, liveAt, liveCount, id)
 			local isWeapon, isPiece = spGetProjectileType(id)
 			local wdef = -2
@@ -538,6 +552,11 @@ local function sampleProjectiles(frame)
 		end
 		seen[id] = poll
 	end
+	if r > 0 then
+		-- before the new ones' rows: a reader ends the old projectile of an id, then meets the new
+		record("E", packU32(frame, r) .. packU32(reused))
+		stats.projectile_ended = stats.projectile_ended + r
+	end
 	if f > 0 then
 		record("P", packU32(frame, f) .. packF32(fresh))
 		stats.projectile_new = stats.projectile_new + f
@@ -551,7 +570,7 @@ local function sampleProjectiles(frame)
 		if seen[id] ~= poll then
 			e = e + 1
 			ended[e] = id
-			seen[id], flies[id] = nil, nil
+			seen[id], flies[id], madeBy[id] = nil, nil, nil
 			endedAt[id] = frame
 			liveCount = drop(live, liveAt, liveCount, id)
 		else

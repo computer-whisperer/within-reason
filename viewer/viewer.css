@@ -37,7 +37,14 @@ button:hover { border-color: var(--muted); }
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: 8px; padding: 8px; min-height: 0; }
 #map-pane { position: relative; background: var(--surface); border-radius: 6px; min-height: 0; overflow: hidden; }
-#map { display: block; width: 100%; height: 100%; }
+#map, #scene { display: block; width: 100%; height: 100%; }
+#map[hidden], #scene[hidden] { display: none; }
+#scene { cursor: grab; }
+#mode { position: absolute; top: 6px; left: 6px; z-index: 2; }
+#scene-note { position: absolute; bottom: 6px; left: 8px; font-size: 11px; pointer-events: none; text-shadow: 0 0 3px #000; }
+/* A game with a tape and no record of ours (a bot of bots/, a taped demo): the view has the window. */
+body[data-tapeonly="1"] #side-pane { display: none; }
+body[data-tapeonly="1"] main { grid-template-columns: 1fr; }
 /* The layer switches and the legend fold away in one corner, so the map keeps its room in the wide mode. */
 #map-tools { position: absolute; top: 6px; right: 6px; max-height: calc(100% - 12px); overflow: auto; background: #1a1a19cc; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
 #map-tools summary { padding: 3px 8px; color: var(--muted); cursor: pointer; font-size: 12px; }

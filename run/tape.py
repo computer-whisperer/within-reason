@@ -17,11 +17,13 @@ A duel of twenty minutes takes under a minute; a 10v8 of thirty about a quarter 
 engine simulating the game. The models, textures and map files the viewer draws with are copied out of the engine's
 archives into run/data/tape-assets (named by content, shared by every tape).
 """
-import os, re, shutil, subprocess, sys, time
+import json, os, re, shutil, subprocess, sys, time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "run"))
+sys.path.insert(0, os.path.join(REPO, "run", "replays"))
 import replay_match
+import startscript
 
 
 def demo_of(match_dir):
@@ -65,7 +67,15 @@ def main():
         sys.exit(f"the engine wrote no tape.raw (exit {code}); see {out}/engine.log and infolog.txt")
     engine_s = time.time() - started
     tape = os.path.join(match_dir, "game.tape")
-    pack = subprocess.run([packer, "pack", raw, "-o", tape] + ([] if "--no-check" in args else ["--check"]), capture_output=True, text=True)
+    # Who sat where, from the demo's own start script: in a replay the engine names every seat "UNKNOWN".
+    seats = os.path.join(out, "seats.json")
+    try:
+        with open(seats, "w") as f:
+            json.dump(startscript.seats(startscript.parse(startscript.read_demo(demo)[1])), f)
+    except Exception as e:
+        print(f"the demo's start script did not read ({e}); the tape's seats keep the engine's names")
+        seats = None
+    pack = subprocess.run([packer, "pack", raw, "-o", tape] + (["--seats", seats] if seats else []) + ([] if "--no-check" in args else ["--check"]), capture_output=True, text=True)
     sys.stdout.write(pack.stdout)
     if pack.returncode != 0:
         sys.exit(f"tape pack failed:\n{pack.stderr}\nthe raw stream is kept: {raw}")

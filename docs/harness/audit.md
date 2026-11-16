@@ -12,7 +12,8 @@ included, and prints every table for both sides so that the opponent is the yard
     run/replay_match.py <match dir>/demos/<the demo>.sdfz --label <name> --audit
     run/audit.py run/matches/<time>-replay-<name>
 
-The replay runs the demo in the headless engine at about twice game speed (a 20-minute game: ten minutes of wall).
+The replay runs the demo in the headless engine as fast as the machine simulates it (from 2026-11-15; until then at
+twice game speed whatever the machine, a 20-minute game ten minutes of wall: `pitfalls.md`, the headless sleep).
 Beside the match records for every team (`record-format.md`) the widget `run/replay-template/LuaUI/Widgets/audit_dump.lua`
 writes `audit.jsonl`, about 2 MB a game minute. The unit ids and frames are the game's: a bot's own log lines in the
 arena match's `engine.log` (`[distilled ai=N] f=...`) line up with the dump by frame.

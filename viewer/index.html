@@ -20,6 +20,9 @@
 <main>
   <section id="map-pane">
     <canvas id="map"></canvas>
+    <canvas id="scene" hidden></canvas>
+    <button id="mode" hidden title="between the 3D view of the game's tape and the 2D map (m)">2D map</button>
+    <div id="scene-note" class="muted" hidden></div>
     <div id="tooltip" class="tooltip" hidden></div>
     <details id="map-tools">
       <summary>layers &amp; legend</summary>
@@ -36,9 +39,11 @@
       <label><input type="checkbox" data-layer="marks" checked> marks: the commander's, the players', the starts</label>
       <label><input type="checkbox" data-layer="deaths" checked> deaths</label>
       <label><input type="checkbox" data-layer="hands" checked> hands: groups, places, parties, the lane's ranks</label>
+      <label><input type="checkbox" data-scene-layer="grid" checked> 3D view: the named cells' grid</label>
+      <label><input type="checkbox" data-scene-layer="fire" checked> 3D view: projectiles and flashes</label>
     </fieldset>
     <ul id="map-legend" class="legend"></ul>
-    <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears</div>
+    <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears. In the 3D view a right drag (or shift and drag) turns and tilts; , and . step one sample back and on</div>
     </details>
   </section>
 
@@ -89,7 +94,7 @@
     <button id="forward" title="right arrow">+10 s</button>
     <label>speed
       <select id="speed">
-        <option value="1">1x</option><option value="5">5x</option><option value="10" selected>10x</option>
+        <option value="0.25">1/4x</option><option value="0.5">1/2x</option><option value="1">1x</option><option value="2">2x</option><option value="5">5x</option><option value="10" selected>10x</option>
         <option value="30">30x</option><option value="60">60x</option><option value="120">120x</option>
       </select>
     </label>
@@ -105,6 +110,13 @@
 </footer>
 
 <script src="record.js"></script>
+<script src="scene/gl.js"></script>
+<script src="scene/assets.js"></script>
+<script src="scene/tape.js"></script>
+<script src="scene/terrain.js"></script>
+<script src="scene/units.js"></script>
+<script src="scene/effects.js"></script>
+<script src="scene/scene.js"></script>
 <script src="app.js"></script>
 <script src="panels.js"></script>
 </body>

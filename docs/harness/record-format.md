@@ -6,6 +6,9 @@ decided, so a finished (or killed) match can be replayed in `viewer/` with `run/
 
 It is not the engine's replay. The engine's own `demos/*.sdfz` re-simulates the game inside the engine, cannot be read by
 a web page and knows nothing of our decisions; the record names it (`result.replay`) so the real thing can be opened too.
+Nor is it the game's tape (`tape-format.md`, from 2026-11-15): `run/tape.py` plays that demo through the engine once and
+writes `game.tape`, the whole game as the engine had it, both sides, ten times a second, which the viewer's 3D view
+draws; the record stays the bot's fair view and its decisions, and the two join by frame and the engine's unit id.
 
 ## Rules of the format
 - JSON Lines, UTF-8, one record per line, `t` names the record type, `f` is the game frame (30 per second).
@@ -292,7 +295,24 @@ for the seats in scope, and (from 2026-10-25) the lane's ranks from the sample's
 (filled when arrived) with its heading drawn as long as the pace's share of the full pace, and a line of the state
 (files in records before 2026-10-28, formed of members, the exceptions by cause, the pace share or held / engaged / arrived, the points left and
 the way left, or "no way"). A click selects a unit (ring; `Escape` clears).
-Tests: `node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
+**The 3D view** (2026-11-15, `docs/design/2026-11-15-game-tape.md`, `tape-format.md`): a match directory that holds
+`game.tape` opens in it (the button in the map pane's corner or `m` goes between it and the 2D map; `view=2d` in the
+address opens the 2D map). It draws the tape at the page's playhead: the ground with the map's own texture and its
+craters as they came, every unit of both sides as its model in its team's colour at its true place, height and
+attitude (a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one
+pale), a health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read,
+features (rocks, trees, wrecks), every projectile in flight as a streak in its weapon's colour (a beam as a line to
+what it was aimed at) and a flash where one ended or a unit died. The camera is the game's: a drag moves the ground
+under the cursor, the wheel zooms about it, a right drag (or shift and drag) turns and tilts, a double-click or `0`
+shows the whole map; `,` and `.` step one sample (a tenth of a second) and the speeds go down to a quarter. A click
+selects a unit as on the 2D map (the Unit tab is the record's: a unit of the other side has a tooltip only, for now).
+A directory with a tape and no record of ours (a bot of `bots/`, a taped demo) opens as the 3D view alone, with each
+side's losses as the timeline's lanes. Not in the 3D view yet (the 2D map has them): orders, the hands' groups, places
+and parties, marks, sight; and no piece of a model moves (turrets do not turn, legs do not walk), though the tape
+holds each weapon's direction when made with `--aim`.
+
+Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view (`tape-format.md`);
+`node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
 the truth, and through `run/viewer_index.py` each Jev log's index, a gate and its view, a picture) and
 `node viewer/test/browser.js <url> [shot.png]` (the real page in headless Chromium: the match browser when the url
 is the server's root, then load, follow a live match if it is one, scrub, play, hover, zoom, select, the seat

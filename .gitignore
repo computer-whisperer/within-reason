@@ -13,3 +13,6 @@ __pycache__/
 # Never a symlink at these paths: a merge replaced the ignored directories with symlinks and deleted every recorded game (2026-09-22)
 run/matches
 run/logs
+
+# The page's copy of the tape's reader: a build product (run/build_viewer.sh)
+viewer/scene/tape.wasm

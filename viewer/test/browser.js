@@ -10,7 +10,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const url = process.argv[2] || "http://127.0.0.1:8137/";
+// The 2D map is what this test drives: a match with a tape would open in the 3D view (viewer/test/scene.js tests that).
+const url = (process.argv[2] || "http://127.0.0.1:8137/").replace(/(\?.*)$/, "$1&view=2d");
 const screenshot = process.argv[3] || null;
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "wr-viewer-"));
 const chrome = spawn(process.env.CHROMIUM || "chromium", [

@@ -2,11 +2,15 @@
 // record.js; the side panels (commander, player, hands, cost, unit, decisions, log) in panels.js.
 //
 // URL parameters: match=<base URL of the match files, default "match/">, t=<seconds>, seat=<team number>,
-// bg=<image URL drawn under the map>. Without a server, use "Open files" and pick the records and their siblings.
+// bg=<image URL drawn under the map>, view=2d|3d (which of the two views a match with a tape opens in). Without a server, use "Open files" and pick the records and their siblings.
 // Every seat of ours in the match directory is loaded. A match without a result line is still being played: its
 // files are polled for new bytes (run/view_match.py serves `?from=<offset>`), the new rows are added to the model,
 // and with "follow live" ticked the playhead stays on the newest sample. The hands' logs (jev-<n>.jsonl) are never
 // fetched whole: the server sends an index of each, and the gate and the picture at the playhead on demand.
+//
+// A match with a tape (game.tape, run/tape.py) opens in the 3D view (viewer/scene/): the whole game as the engine had
+// it, both sides, drawn from the tape at the same playhead; `m` or the button goes between it and the 2D map. A
+// directory with a tape and no record of ours (a bot of bots/, a taped demo) opens as the 3D view alone.
 "use strict";
 
 const WV = (() => {
@@ -34,6 +38,8 @@ const WV = (() => {
     /// The map's view: zoom over the fitted scale (1 to MAX_ZOOM) and the elmo at the pane's centre; the selected
     /// unit; the hands' actor in focus ({seat, name}); the game's icon table (viewer/icons.json).
     zoom: 1, centre: null, selected: null, actor: null, icons: null,
+    /// The 3D view of the match's tape (viewer/scene/scene.js) when it has one, and which of the two is shown.
+    scene: null, mode: "2d",
     /// What changes when rows arrive: the lanes and the timeline's picture are rebuilt when it does.
     version: 0,
   };
@@ -260,6 +266,97 @@ const WV = (() => {
     link.hidden = false;
   }
 
+  // ---------------------------------------------------------------- the 3D view
+
+  /// Opens the match's tape in the 3D view. False when it could not be (said in the status line).
+  async function openScene(base) {
+    try {
+      view.scene = await WRScene.open($("scene"), `${base}game.tape`, { onPick: scenePick, onHover: sceneHover, onDraw: sceneDrawn });
+    } catch (e) {
+      console.error(e);
+      status(`the 3D view did not open: ${e.message}`);
+      return false;
+    }
+    $("mode").hidden = !view.match || !view.match.seats.length; // with no record there is no 2D map to go to
+    // The view the address asks for (`view=2d`), else the one last used, else the 3D view.
+    let saved = new URLSearchParams(location.search).get("view");
+    try { saved = saved || localStorage.getItem("wr-mode"); } catch (_) { /* no storage */ }
+    setMode(saved === "2d" && !$("mode").hidden ? "2d" : "3d");
+    return true;
+  }
+
+  function setMode(mode) {
+    view.mode = view.scene ? mode : "2d";
+    $("scene").hidden = view.mode !== "3d";
+    $("map").hidden = view.mode === "3d";
+    $("scene-note").hidden = view.mode !== "3d";
+    $("mode").textContent = view.mode === "3d" ? "2D map" : "3D view";
+    $("tooltip").hidden = true;
+    try { localStorage.setItem("wr-mode", view.mode); } catch (_) { /* no storage */ }
+    renderAll();
+  }
+
+  /// The record names a unit by the engine's id, the tape by its own row: the selection is the engine's id, and the
+  /// scene is told the row that held it at the playhead.
+  function drawScene() {
+    const scene = view.scene;
+    scene.selected = view.selected != null ? scene.tape.rowOf(view.selected, Math.floor(view.frame)) : -1;
+    scene.draw(view.frame);
+  }
+
+  function scenePick(row) {
+    if (row < 0) return select(null);
+    select(view.scene.tape.unit(row).id);
+  }
+
+  function sceneDrawn(scene) {
+    const s = scene.stats;
+    $("scene-note").textContent = s.loading ? "reading the tape ..." : `${s.units} units · ${s.projectiles} projectiles in flight · ground ${scene.terrain.note()} · ${s.ms.toFixed(1)} ms`;
+  }
+
+  /// What is under the cursor in the 3D view: the unit as the tape has it this frame, and the ground.
+  function sceneHover(row, ground, event) {
+    const tip = $("tooltip");
+    if (!event || (row < 0 && !ground)) return void (tip.hidden = true);
+    const tape = view.scene.tape;
+    const lines = [];
+    if (row >= 0) {
+      const unit = tape.unit(row), now = view.scene.unitNow(row);
+      const team = (tape.head.teams || []).find((t) => t.team === (now ? now[11] : unit.team));
+      lines.push(`${unit.def ? `${unit.def.human} (${unit.def.name})` : "unit"} #${unit.id}`);
+      lines.push(`team ${now ? now[11] : unit.team}${team ? `: ${team.name || team.side}` : ""}`);
+      if (now) lines.push(`health ${Math.round(now[9] * unit.maxHealth)} of ${Math.round(unit.maxHealth)}${now[10] < 0.999 ? `, ${Math.round(now[10] * 100)}% built` : ""}${now[15] >= 1 ? ", stunned" : ""}${(now[12] & 1) ? ", cloaked" : ""}`);
+    }
+    if (ground) lines.push(`${view.match && view.match.header.grid ? `${WR.gridName(view.match, ground[0], ground[2])}  ` : ""}(${Math.round(ground[0])}, ${Math.round(ground[2])}), height ${Math.round(ground[1])}`);
+    tip.textContent = lines.join("\n");
+    tip.hidden = false;
+    const pane = $("map-pane").getBoundingClientRect();
+    tip.style.left = `${Math.min(pane.width - 220, event.clientX - pane.left + 14)}px`;
+    tip.style.top = `${event.clientY - pane.top + 14}px`;
+  }
+
+  /// A directory with a tape and no record of ours: the 3D view alone, with the tape's own clock.
+  async function bootTapeOnly(live, params) {
+    const match = WR.newMatch();
+    view.match = match;
+    match.tapeOnly = true;
+    document.body.dataset.tapeonly = "1";
+    if (!(await openScene(live.base))) return;
+    const head = view.scene.tape.head;
+    match.header = { map: { name: head.map.name, width: head.map.width, height: head.map.height } };
+    match.lastFrame = head.last_frame;
+    view.version++; // the timeline drawn while the tape opened had no length yet
+    const teams = (head.teams || []).filter((t) => !t.gaia);
+    const sides = new Map();
+    for (const t of teams) sides.set(t.ally, [...(sides.get(t.ally) || []), t.name.trim() || t.side]);
+    const named = (names) => (names.length > 3 ? `${names.slice(0, 2).join(", ")} and ${names.length - 2} more` : names.join(", "));
+    $("subtitle").textContent = [head.map.name, [...sides.values()].map((names) => names.length).join(" v "), [...sides.values()].map(named).join("  against  "), `${(head.last_frame / 1800).toFixed(1)} min`, head.game].join("  ·  ");
+    status(`the game's tape, no record of ours: ${head.units} unit lives, ${head.projectiles} projectiles`);
+    view.frame = Math.min(Number(params.get("t") || 0) * WR.FPS, match.lastFrame);
+    document.body.dataset.loaded = `tape only, ${head.units} unit lives`;
+    renderAll();
+  }
+
   async function boot() {
     const params = new URLSearchParams(location.search);
     let base = params.get("match");
@@ -276,6 +373,7 @@ const WV = (() => {
     view.live = live;
     status("loading the match");
     await pullMatch(live);
+    if (!view.match && live.files.includes("game.tape")) return bootTapeOnly(live, params);
     if (!view.match) {
       if (live.files.length) return status(`No record-*.jsonl in the match directory (was it played with WITHIN_REASON_RECORD=1?). Files: ${live.files.join(", ")}`);
       return status("No match loaded. Start with run/view_match.py <match dir>, or use Open files.");
@@ -287,6 +385,7 @@ const WV = (() => {
     loadIcons();
     loadBackground(params.get("bg") || `maps/${encodeURIComponent(view.match.header.map.name)}.png`);
     loadTerrain(live.base, view.match.header.terrain);
+    if (live.files.includes("game.tape")) openScene(live.base);
     pullJev(live);
     if (!finished()) follow(live, !params.get("t"));
   }
@@ -461,7 +560,8 @@ const WV = (() => {
       parts.push(batch.realtime ? "realtime" : "the game waits for turns");
     }
     const r = (result && result.result) || match.batchResult;
-    if (r) parts.push(`${r.outcome}${r.called ? " (called)" : ""} after ${r.game_minutes.toFixed(1)} min${r.reason ? `: ${r.reason}` : ""}`);
+    // (A replayed demo's records end in a result row with an outcome alone: no minutes, no reason.)
+    if (r) parts.push(`${r.outcome}${r.called ? " (called)" : ""}${r.game_minutes != null ? ` after ${r.game_minutes.toFixed(1)} min` : ""}${r.reason ? `: ${r.reason}` : ""}`);
     else parts.push(finished() ? "ended without a result line" : "being played");
     $("subtitle").textContent = parts.join("  ·  ");
     const notes = [`${match.seats.length} seat${match.seats.length > 1 ? "s" : ""} of ours loaded (${match.seats.map((s) => s.name).join(", ")})`];
@@ -616,9 +716,10 @@ const WV = (() => {
   }
 
   function drawMap() {
+    if (view.mode === "3d" && view.scene) return drawScene();
     const { ctx, w, h } = fitCanvas($("map"));
     const match = view.match;
-    if (!match) return;
+    if (!match || match.tapeOnly) return;
     const map = match.header.map;
     const margin = 18;
     const fit = Math.min((w - 2 * margin) / map.width, (h - 2 * margin) / map.height);
@@ -1118,8 +1219,31 @@ const WV = (() => {
   }
 
   /// The lanes of the timeline for the scope: [{label, color, items: [{f, to?, seat?, faint?}]}].
+  /// The lanes of a game with a tape and no record of ours: each side's losses, from the tape's table of unit lives.
+  function tapeLanes() {
+    if (view.laneList) return view.laneList;
+    const tape = view.scene.tape, ints = tape.unitInts;
+    const teams = (tape.head.teams || []).filter((t) => !t.gaia);
+    const allies = [...new Set(teams.map((t) => t.ally))].sort((a, b) => a - b);
+    const allyOf = new Map(teams.map((t) => [t.team, t.ally]));
+    view.laneList = allies.map((ally) => {
+      const seats = teams.filter((t) => t.ally === ally);
+      const [r, g, b] = seats[0].color.map((v) => Math.round(v * 255));
+      const first = (seats[0].name || seats[0].side || `team ${seats[0].team}`).trim();
+      return { label: `losses: ${first.slice(0, 18)}${seats.length > 1 ? ` +${seats.length - 1}` : ""}`, css: `rgb(${r}, ${g}, ${b})`, items: [], ally };
+    });
+    for (let row = 0; row < tape.unitCount; row++) {
+      const destroyed = ints[row * 8 + 5];
+      const lane = view.laneList.find((l) => l.ally === allyOf.get(ints[row * 8 + 2]));
+      if (lane && destroyed !== 0xffffffff) lane.items.push({ f: destroyed });
+    }
+    for (const lane of view.laneList) lane.items.sort((a, b) => a.f - b.f);
+    return view.laneList;
+  }
+
   function timelineLanes() {
     const match = view.match;
+    if (match.tapeOnly) return tapeLanes();
     const key = `${view.version}:${view.scope}`;
     if (view.lanesKey === key) return view.laneList;
     const lanes = WR.lanes(match, view.scope);
@@ -1178,7 +1302,8 @@ const WV = (() => {
     const canvas = view.timelineCanvas || (view.timelineCanvas = document.createElement("canvas"));
     const lanes = timelineLanes();
     const cost = costMinutes();
-    const charts = compact ? [] : [...CHARTS, ...(expectsHands() ? [{ label: "Jev $ a minute", cost: true }] : [])];
+    // (The charts are the record's: a game with a tape alone has its lanes.)
+    const charts = compact || match.tapeOnly ? [] : [...CHARTS, ...(expectsHands() ? [{ label: "Jev $ a minute", cost: true }] : [])];
     const height = 6 + lanes.length * LANE_H + 4 + (charts.length ? 14 + charts.length * CHART_H : 0) + 20;
     view.timelineHeight = height;
     canvas.width = Math.round(w * dpr);
@@ -1197,7 +1322,7 @@ const WV = (() => {
       ctx.fillStyle = COLOR["surface-2"];
       ctx.fillRect(g.x0, y + 1, g.x1 - g.x0, LANE_H - 2);
       for (const item of lane.items) {
-        ctx.fillStyle = lane.bySeat && item.seat != null ? seatColor(item.seat) : COLOR[lane.color];
+        ctx.fillStyle = lane.css || (lane.bySeat && item.seat != null ? seatColor(item.seat) : COLOR[lane.color]);
         ctx.globalAlpha = item.faint ? 0.35 : 1;
         const x = Math.round(g.fx(item.f));
         // A turn is as wide as it took, in a game that ran on meanwhile.
@@ -1376,6 +1501,7 @@ const WV = (() => {
     const frame = timelineFrame(event);
     view.hoverFrame = frame;
     const match = view.match;
+    if (match.tapeOnly) return drawTimeline(); // the hover's numbers are the record's
     const total = WR.totalsAt(match, view.scope, frame);
     const theirs = view.scope == null || match.seats.length === 1 ? match.truth[WR.indexAt(match.truth, frame)] : null;
     const lines = [WR.clock(frame)];
@@ -1457,7 +1583,7 @@ const WV = (() => {
     $("clock").textContent = WR.clock(view.frame);
     drawMap();
     drawTimeline();
-    WV.panels.render();
+    if (!view.match.tapeOnly) WV.panels.render();
   }
 
   function seek(frame) {
@@ -1501,6 +1627,7 @@ const WV = (() => {
     try { if (localStorage.getItem("wr-compact") === "1") document.body.dataset.compact = "1"; } catch (_) { /* no storage */ }
     try { if (localStorage.getItem("wr-wide") === "1") document.body.dataset.wide = "1"; } catch (_) { /* no storage */ }
     $("play").addEventListener("click", () => setPlaying(!view.playing));
+    $("mode").addEventListener("click", () => setMode(view.mode === "3d" ? "2d" : "3d"));
     // Going anywhere by hand stops following the live match; ticking the box again jumps back to the newest sample.
     const leaveLive = () => ($("follow").checked = false);
     $("follow").addEventListener("change", (e) => e.target.checked && view.match && seek(view.match.lastFrame));
@@ -1553,10 +1680,17 @@ const WV = (() => {
       e.preventDefault();
       resetZoom();
     });
-    for (const box of document.querySelectorAll("#layers input")) {
+    for (const box of document.querySelectorAll("#layers input[data-layer]")) {
       box.addEventListener("change", () => {
         view.layers[box.dataset.layer] = box.checked;
         drawMap();
+      });
+    }
+    for (const box of document.querySelectorAll("#layers input[data-scene-layer]")) {
+      box.addEventListener("change", () => {
+        if (!view.scene) return;
+        view.scene.layers[box.dataset.sceneLayer] = box.checked;
+        view.scene.redraw();
       });
     }
     document.addEventListener("keydown", (e) => {
@@ -1566,6 +1700,12 @@ const WV = (() => {
       else if (e.key === "ArrowRight") seek(view.frame + (e.shiftKey ? 60 : 10) * WR.FPS);
       else if (e.key === "w") return setWide(document.body.dataset.wide !== "1");
       else if (e.key === "c") return setCompact(document.body.dataset.compact !== "1");
+      else if (e.key === "m" && view.scene && !$("mode").hidden) return setMode(view.mode === "3d" ? "2d" : "3d");
+      // One sample of the tape back or on (a tenth of a second): the finest step the units have.
+      else if (e.key === "," || e.key === ".") seek((Math.round(view.frame / 3) + (e.key === "," ? -1 : 1)) * 3);
+      else if (view.mode === "3d" && (e.key === "+" || e.key === "=")) return view.scene.zoom(1.5);
+      else if (view.mode === "3d" && e.key === "-") return view.scene.zoom(1 / 1.5);
+      else if (view.mode === "3d" && e.key === "0") return (view.scene.resetCamera(), view.scene.redraw());
       else if (e.key === "+" || e.key === "=") return view.mapBox && zoomAt(1.5, view.mapBox.paneW / 2, view.mapBox.paneH / 2);
       else if (e.key === "-") return view.mapBox && zoomAt(1 / 1.5, view.mapBox.paneW / 2, view.mapBox.paneH / 2);
       else if (e.key === "0") return resetZoom();
