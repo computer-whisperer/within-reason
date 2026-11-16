@@ -71,6 +71,16 @@ pub extern "C" fn wr_open(ptr: *const u8, len: usize) -> i32 {
     })
 }
 
+/// A tape still being written: its new index (`Tape::reindex`); the slices read stay.
+#[unsafe(no_mangle)]
+pub extern "C" fn wr_reindex(ptr: *const u8, len: usize) -> i32 {
+    attempt(|s| {
+        let Some(tape) = s.tape.as_mut() else { return tape::format::err("no tape is open") };
+        tape.reindex(bytes(ptr, len))?;
+        Ok(0)
+    })
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_chunk_count() -> u32 {
     with(|s| s.tape.as_ref().map_or(0, |t| t.chunks.len() as u32))

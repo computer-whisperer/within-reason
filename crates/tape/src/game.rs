@@ -246,8 +246,16 @@ impl Game {
         let mut weapon_kind: HashMap<i32, String> = HashMap::new();
         let row_of = |unit_at: &HashMap<u32, usize>, id: f64| if id > 0.0 { unit_at.get(&(id as u32)).map_or(0, |r| *r as u32 + 1) } else { 0 };
         while r.left() > 0 {
+            // A stream still being written, or one whose engine was killed, can end inside a record: what stands
+            // before it is the game so far.
+            if r.left() < 5 {
+                break;
+            }
             let kind = r.u8()?;
             let len = r.u32()? as usize;
+            if r.left() < len {
+                break;
+            }
             let mut body = R::new(r.take(len)?);
             match kind {
                 b'J' => {

@@ -87,6 +87,9 @@ const WV = (() => {
   /// A file of the match: how many of its bytes have been read, and the line the writer was half way through.
   const feeds = new Map();
   const POLL_MS = 3000;
+  /// Polls a match's growing tape is waited for after its record has ended (the arena packs it whole then), and
+  /// polls a tape with no record may stay still before it is taken for one that will not grow again.
+  const TAPE_GRACE_POLLS = 20, TAPE_QUIET_POLLS = 40;
 
   /// The complete lines a file has gained since the last pull; null when it has not grown.
   async function pullLines(base, name) {
@@ -488,15 +491,22 @@ const WV = (() => {
     match.header = { map: { name: head.map.name, width: head.map.width, height: head.map.height }, grid: { columns: cells(head.map.width), rows: cells(head.map.height) } };
     match.lastFrame = head.last_frame;
     view.version++; // the timeline drawn while the tape opened had no length yet
+    describeTape();
+    view.frame = Math.min(Number(params.get("t") || 0) * WR.FPS, match.lastFrame);
+    document.body.dataset.loaded = `tape only, ${head.units} unit lives`;
+    renderAll();
+    if (view.scene.tape.growing) followTape(!params.get("t"));
+  }
+
+  /// The title line and the status of a game with no record of ours, from its tape's header.
+  function describeTape() {
+    const head = view.scene.tape.head;
     const teams = (head.teams || []).filter((t) => !t.gaia);
     const sides = new Map();
     for (const t of teams) sides.set(t.ally, [...(sides.get(t.ally) || []), t.name.trim() || t.side]);
     const named = (names) => (names.length > 3 ? `${names.slice(0, 2).join(", ")} and ${names.length - 2} more` : names.join(", "));
-    $("subtitle").textContent = [head.map.name, [...sides.values()].map((names) => names.length).join(" v "), [...sides.values()].map(named).join("  against  "), `${(head.last_frame / 1800).toFixed(1)} min`, head.game].join("  ·  ");
-    status(`the game's tape, no record of ours: ${head.units} unit lives, ${head.projectiles} projectiles`);
-    view.frame = Math.min(Number(params.get("t") || 0) * WR.FPS, match.lastFrame);
-    document.body.dataset.loaded = `tape only, ${head.units} unit lives`;
-    renderAll();
+    $("subtitle").textContent = [head.map.name, [...sides.values()].map((names) => names.length).join(" v "), [...sides.values()].map(named).join("  against  "), `${(head.last_frame / 1800).toFixed(1)} min${head.growing ? " so far" : ""}`, head.game].join("  ·  ");
+    status(`the game's tape, no record of ours: ${head.units} unit lives, ${head.projectiles} projectiles${head.growing ? "; still being played, the tape grows a slice at a time" : ""}`);
   }
 
   async function boot() {
@@ -541,11 +551,18 @@ const WV = (() => {
     $("follow-label").hidden = false;
     $("follow").checked = stayOnNewest;
     if (stayOnNewest) seek(view.match.lastFrame);
-    let polls = 0;
+    let polls = 0, after = 0;
     const timer = setInterval(async () => {
       if (live.pulling) return;
       live.pulling = true;
       const grew = await pullMatch(live);
+      // The tape grows a slice at a time behind the record while the arena follows the game (it may first appear
+      // mid-game); its compact copy comes a little after the record's end.
+      if (view.scene) {
+        if (await view.scene.tape.refresh()) tapeGrew();
+      } else if (live.files.includes("game.tape")) {
+        await openScene(live.base);
+      }
       live.pulling = false;
       if (grew) {
         describeMatch();
@@ -553,12 +570,50 @@ const WV = (() => {
         seek($("follow").checked ? Infinity : view.frame);
       }
       if (grew || polls++ % 4 === 0) pullJev(live);
-      if (finished()) {
+      if (finished() && (!view.scene || !view.scene.tape.growing || after++ > TAPE_GRACE_POLLS)) {
         clearInterval(timer);
         $("follow-label").hidden = true;
         pullJev(live);
       }
     }, POLL_MS);
+  }
+
+  /// A game with no record of ours whose tape is still being written (the arena's follower): its footer asked again
+  /// every few seconds until the tape packed whole at the game's end has replaced it.
+  function followTape(stayOnNewest) {
+    $("follow-label").hidden = false;
+    $("follow").checked = stayOnNewest;
+    if (stayOnNewest) seek(view.match.lastFrame);
+    let quiet = 0;
+    const timer = setInterval(async () => {
+      if (await view.scene.tape.refresh()) {
+        quiet = 0;
+        tapeGrew();
+      } else {
+        quiet++;
+      }
+      // (an arena that died leaves a growing tape that never grows again)
+      if (!view.scene.tape.growing || quiet > TAPE_QUIET_POLLS) {
+        clearInterval(timer);
+        $("follow-label").hidden = true;
+      }
+    }, POLL_MS);
+  }
+
+  /// The tape grew while its game is played: what is worked out from its tables, again; and for a game with no record
+  /// of ours, the clock, at the newest frame when "follow live" is ticked.
+  function tapeGrew() {
+    const tape = view.scene.tape;
+    tape.marks = null;
+    view.tapeSides = null;
+    view.scene.grew();
+    if (view.match.tapeOnly) {
+      view.match.lastFrame = tape.lastFrame;
+      view.version++;
+      describeTape();
+      seek($("follow").checked ? tape.lastFrame : view.frame);
+    }
+    renderPanels();
   }
 
   // The record's terrain grid (docs/harness/record-format.md): heights then slopes, rendered once into three

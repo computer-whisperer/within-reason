@@ -249,7 +249,10 @@ a chart is the seats stacked (the top edge is the side's sum, the opponent's tru
 is that seat's line against the others' faint ones. A chart's axis ends a little over its 99th percentile.
 Live: a match with no `result` line (and not every seat's `end` line) is still being played; the page polls every 3 s
 and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
-and the scroll position of the decision list survive each refresh.
+and the scroll position of the decision list survive each refresh. An arena game's tape grows while it is played (a
+slice of ten seconds at a time, `tape-format.md`): the 3D view opens once the tape appears and reads it again at each
+poll, a few seconds behind the record; a game with no record of ours (a bot of `bots/`) follows its tape alone, until
+the tape packed whole at the game's end replaces it.
 
 **The hands' logs are never fetched whole.** The server indexes each `jev-<n>.jsonl` (or the `.jsonl.zst` the arena
 leaves, which answers to the raw name) once (`run/viewer_index.py`: it reads the log without parsing the menus, a raw

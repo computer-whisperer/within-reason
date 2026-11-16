@@ -6,6 +6,10 @@
 //!                                                      `seats`: in a replay the engine names every seat UNKNOWN)
 //!     tape info <game.tape>                            what a tape holds
 //!     tape check <tape.raw> <game.tape> [--every N]    the tape read back against the raw stream it was made from
+//!     tape grow <tape.raw> [--cuts N] [-o FILE]        the tape that grows while a game is played (pack::Growing),
+//!                                                      checked: the stream cut at N places (inside records, as the
+//!                                                      arena's follower meets it), the tape grown through each and
+//!                                                      read again by one reader that keeps its slices, as the page does
 //!     tape orders <game.tape>                          what the units stood under, a second at a time: by command,
 //!                                                      how many unit-seconds and what the order pointed at
 //!
@@ -88,6 +92,35 @@ fn main() {
             }
         }
         Some("orders") if args.len() >= 2 => orders(&read(&args[1])),
+        Some("grow") if args.len() >= 2 => {
+            let raw = read(&args[1]);
+            let cuts: usize = value("--cuts").and_then(|v| v.parse().ok()).unwrap_or(12).max(1);
+            let out = value("-o").unwrap_or_else(|| format!("{}.growing", args[1]));
+            let _ = std::fs::remove_file(&out);
+            let started = Instant::now();
+            let mut growing = pack::Growing::new(&out);
+            let mut tape: Option<Tape> = None;
+            for i in 1..=cuts {
+                let end = raw.len() * i / cuts;
+                let game = Game::ingest(&raw[..end]).unwrap_or_else(fail);
+                let added = growing.grow(&game).unwrap_or_else(fail);
+                if added == 0 {
+                    continue;
+                }
+                let file = read(&out);
+                match tape.as_mut() {
+                    None => tape = Some(Tape::open(&file).unwrap_or_else(fail)),
+                    Some(t) => t.refresh(&file).unwrap_or_else(fail),
+                }
+                let t = tape.as_mut().unwrap();
+                let (slices, frames, units, _) = check_slices(t, &game, &file, 1, true);
+                check_tables(t, &game);
+                println!("cut {i}/{cuts} ({} of {}): {added} slices added, {slices} in all, {:.1} MB; {frames} frames and {units} unit states the same as the stream so far", megabytes(end as u64), megabytes(raw.len() as u64), file.len() as f64 / 1e6);
+            }
+            let whole = Game::ingest(&raw).unwrap_or_else(fail);
+            let (packed, _) = pack::pack(&whole).unwrap_or_else(fail);
+            println!("grow: {} slices grown in {:.1} s, the file {} where the tape packed whole is {}", growing.slices(), started.elapsed().as_secs_f32(), megabytes(std::fs::metadata(&out).map_or(0, |m| m.len())), megabytes(packed.len() as u64));
+        }
         Some("check") if args.len() >= 3 => {
             let game = Game::ingest(&read(&args[1])).unwrap_or_else(fail);
             let every = value("--every").and_then(|v| v.parse().ok()).unwrap_or(1);
@@ -178,17 +211,33 @@ fn orders(file: &[u8]) {
 fn check(game: &Game, file: &[u8], every: u32) {
     let started = Instant::now();
     let mut tape = Tape::open(file).unwrap_or_else(fail);
+    let (slices, frames, units, seek_worst) = check_slices(&mut tape, game, file, every, false);
+    check_tables(&tape, game);
+    println!(
+        "check: {slices} slices, {frames} frames, {units} unit states, every order, projectile and burst, the tables and the ground the same as the raw stream ({:.1} s; the slowest slice to load {:.0} ms)",
+        started.elapsed().as_secs_f32(), seek_worst * 1000.0
+    );
+}
+
+/// Every slice of the tape's index against the game: its orders, projectiles and bursts, and every unit at every
+/// `every`th sample. A slice not loaded is loaded from `file`; with `keep` it stays (the growing tape's check, where
+/// one reader keeps its slices across refreshes as the page does), else it is dropped after. A projectile's end past
+/// its slice is compared as the slice's end and a frame: a growing tape's slice holds the end it had when written.
+/// Answers the slices, frames and unit states compared and the slowest load in seconds.
+fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: bool) -> (usize, u64, u64, f32) {
     let sample = game.sample_frames();
     let mut frame_out = Frame::default();
     let (mut frames, mut units, mut seek_worst) = (0u64, 0u64, 0f32);
     let slices: Vec<_> = tape.of_kind(b"SLIC").cloned().collect();
-    if tape.units.len() != game.units.len() {
-        fail::<()>(format!("the tape has {} unit lives, the game {}", tape.units.len(), game.units.len()));
-    }
     for (k, chunk) in slices.iter().enumerate() {
-        let t = Instant::now();
-        let index = tape.load_slice(chunk_bytes(file, chunk).unwrap_or_else(fail)).unwrap_or_else(fail);
-        seek_worst = seek_worst.max(t.elapsed().as_secs_f32());
+        let index = if keep && tape.slices.contains_key(&(k as u32)) {
+            k as u32
+        } else {
+            let t = Instant::now();
+            let index = tape.load_slice(chunk_bytes(file, chunk).unwrap_or_else(fail)).unwrap_or_else(fail);
+            seek_worst = seek_worst.max(t.elapsed().as_secs_f32());
+            index
+        };
         if index != k as u32 {
             fail::<()>(format!("slice {k} says it is slice {index}"));
         }
@@ -200,10 +249,15 @@ fn check(game: &Game, file: &[u8], every: u32) {
         if orders != slice.orders {
             fail::<()>(format!("slice {k}: {} orders in the tape, {} in the game, or they differ", slice.orders.len(), orders.len()));
         }
-        let projectiles: Vec<_> = game.projectiles.iter().filter(|p| p.begin <= first + SLICE_FRAMES && p.end + LINGER_FRAMES > first).map(quantized).collect();
-        if projectiles != slice.projectiles {
-            let at = projectiles.iter().zip(&slice.projectiles).position(|(a, b)| a != b);
-            fail::<()>(format!("slice {k}: projectiles differ ({} in the game, {} in the tape; the first difference at {:?}: {:?} against {:?})", projectiles.len(), slice.projectiles.len(), at, at.map(|i| &projectiles[i]), at.map(|i| &slice.projectiles[i])));
+        let past = |mut p: tape::game::Projectile| {
+            p.end = p.end.min(first + SLICE_FRAMES + 1);
+            p
+        };
+        let projectiles: Vec<_> = game.projectiles.iter().filter(|p| p.begin <= first + SLICE_FRAMES && p.end + LINGER_FRAMES > first).map(|p| past(quantized(p))).collect();
+        let held: Vec<_> = slice.projectiles.iter().cloned().map(past).collect();
+        if projectiles != held {
+            let at = projectiles.iter().zip(&held).position(|(a, b)| a != b);
+            fail::<()>(format!("slice {k}: projectiles differ ({} in the game, {} in the tape; the first difference at {:?}: {:?} against {:?})", projectiles.len(), held.len(), at, at.map(|i| &projectiles[i]), at.map(|i| &held[i])));
         }
         let bursts: Vec<_> = game.bursts.iter().filter(|b| b.frame + LINGER_FRAMES > first && b.frame <= first + SLICE_FRAMES).map(quantized_burst).collect();
         if bursts != slice.bursts {
@@ -244,9 +298,18 @@ fn check(game: &Game, file: &[u8], every: u32) {
             units += want.len() as u64;
             f += sample * every;
         }
-        tape.drop_slice(index);
+        if !keep {
+            tape.drop_slice(index);
+        }
     }
-    // The tables.
+    (slices.len(), frames, units, seek_worst)
+}
+
+/// The tape's tables against the game's: the unit rows, the features, the ground and its patches.
+fn check_tables(tape: &Tape, game: &Game) {
+    if tape.units.len() != game.units.len() {
+        fail::<()>(format!("the tape has {} unit lives, the game {}", tape.units.len(), game.units.len()));
+    }
     for (row, (u, t)) in game.units.iter().zip(&tape.units).enumerate() {
         if tape::tables::UnitRow::of(u) != *t {
             fail::<()>(format!("unit row {row} differs: {:?} against {:?}", tape::tables::UnitRow::of(u), t));
@@ -263,8 +326,4 @@ fn check(game: &Game, file: &[u8], every: u32) {
     if game.patches.len() != tape.patches.len() {
         fail::<()>("the ground patches differ in number");
     }
-    println!(
-        "check: {} slices, {frames} frames, {units} unit states, every order, projectile and burst, the tables and the ground the same as the raw stream ({:.1} s; the slowest slice to load {:.0} ms)",
-        slices.len(), started.elapsed().as_secs_f32(), seek_worst * 1000.0
-    );
 }

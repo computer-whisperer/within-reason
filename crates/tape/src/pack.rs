@@ -97,6 +97,80 @@ fn teams_table(game: &Game) -> Value {
     json!({ "frames": frames, "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend"], "teams": teams })
 }
 
+/// The header: the raw stream's, with what the tape adds. `slices` and `last_frame` are the tape's as written (a
+/// growing tape's are those of the slices it has so far).
+fn head_chunk(game: &Game, slices: u32, last_frame: u32, growing: bool) -> Vec<u8> {
+    let mut head = game.head.clone();
+    if let Some(h) = head.as_object_mut() {
+        h.remove("t");
+        h.insert("format".into(), json!("within-reason-tape"));
+        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`).
+        h.insert("version".into(), json!(2));
+        h.insert("raw_version".into(), json!(game.raw_version.max(1)));
+        h.insert("slice_frames".into(), json!(SLICE_FRAMES));
+        h.insert("linger_frames".into(), json!(LINGER_FRAMES));
+        h.insert("slices".into(), json!(slices));
+        h.insert("last_frame".into(), json!(last_frame));
+        h.insert("winners".into(), game.winners.clone());
+        h.insert("units".into(), json!(game.units.len()));
+        h.insert("features".into(), json!(game.features.len()));
+        h.insert("projectiles".into(), json!(game.projectiles.len()));
+        h.insert("capture".into(), game.stats.clone());
+        h.insert("assets".into(), Value::Object(game.assets.clone()));
+        h.insert("map_files".into(), game.map_files.clone());
+        h.insert("path_check".into(), json!(game.path_check.iter().map(|(k, v)| (k.clone(), json!({ "rows": v.0, "worst": v.1 }))).collect::<serde_json::Map<_, _>>()));
+        if growing {
+            // (still being written: a reader reads the footer again for more)
+            h.insert("growing".into(), json!(true));
+        }
+    }
+    serde_json::to_vec(&head).unwrap()
+}
+
+fn defs_chunk(game: &Game) -> Vec<u8> {
+    serde_json::to_vec(&json!({ "units": game.unit_defs, "weapons": game.weapon_defs, "features": game.feature_defs })).unwrap()
+}
+
+/// The ground at the start, its heights quantized to a scale that holds every height the game reaches (with
+/// `margin` elmos more each way for a game still being played, whose craters are not all made yet).
+fn ground_of(game: &Game, margin: f32) -> Ground {
+    let (low, step) = Ground::scale(&game.ground.2, &game.patches);
+    let (low, step) = if margin > 0.0 { (low - margin, (step * 65535.0 + 2.0 * margin) / 65535.0) } else { (low, step) };
+    let mut ground = Ground { columns: game.ground.0, rows: game.ground.1, low, step, heights: Vec::new() };
+    ground.heights = game.ground.2.iter().map(|h| ground.quantize(*h)).collect();
+    ground
+}
+
+/// The whole-game tables, after the slices.
+fn tables(game: &Game, ground: &Ground) -> [(&'static [u8; 4], Vec<u8>); 5] {
+    let rows: Vec<UnitRow> = game.units.iter().map(UnitRow::of).collect();
+    let patches: Vec<GroundPatch> = game.patches.iter().map(|p| GroundPatch { frame: p.frame, x: p.x, z: p.z, w: p.w, h: p.h, heights: p.heights.iter().map(|h| ground.quantize(*h)).collect() }).collect();
+    [
+        (b"UNIT", encode_units(&rows)),
+        (b"FEAT", encode_features(&game.features)),
+        (b"TEAM", serde_json::to_vec(&teams_table(game)).unwrap()),
+        (b"EVNT", serde_json::to_vec(&game.events).unwrap()),
+        (b"GPAT", encode_patches(&patches)),
+    ]
+}
+
+/// The index and the footer after it, appended to `file`; `base` is the file's length before `file` (whose offsets
+/// start at 0). Returns the index chunk's stored length.
+fn close(file: &mut Vec<u8>, base: u64, index: &[([u8; 4], u64, u32, u32)]) -> u32 {
+    let mut table = W::default();
+    table.u32(index.len() as u32);
+    for (kind, offset, len, first) in index {
+        table.bytes(kind);
+        table.u64(*offset);
+        table.u32(*len);
+        table.u32(*first);
+    }
+    let (offset, len) = write_chunk(file, b"INDX", &table.0, None);
+    file.extend_from_slice(&(base + offset).to_le_bytes());
+    file.extend_from_slice(END);
+    len
+}
+
 pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
     let mut file = MAGIC.to_vec();
     let mut report = Report::default();
@@ -109,32 +183,9 @@ pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
     };
 
     let slices = game.last_frame / SLICE_FRAMES + 1;
-    let mut head = game.head.clone();
-    if let Some(h) = head.as_object_mut() {
-        h.remove("t");
-        h.insert("format".into(), json!("within-reason-tape"));
-        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`).
-        h.insert("version".into(), json!(2));
-        h.insert("raw_version".into(), json!(game.raw_version.max(1)));
-        h.insert("slice_frames".into(), json!(SLICE_FRAMES));
-        h.insert("linger_frames".into(), json!(LINGER_FRAMES));
-        h.insert("slices".into(), json!(slices));
-        h.insert("last_frame".into(), json!(game.last_frame));
-        h.insert("winners".into(), game.winners.clone());
-        h.insert("units".into(), json!(game.units.len()));
-        h.insert("features".into(), json!(game.features.len()));
-        h.insert("projectiles".into(), json!(game.projectiles.len()));
-        h.insert("capture".into(), game.stats.clone());
-        h.insert("assets".into(), Value::Object(game.assets.clone()));
-        h.insert("map_files".into(), game.map_files.clone());
-        h.insert("path_check".into(), json!(game.path_check.iter().map(|(k, v)| (k.clone(), json!({ "rows": v.0, "worst": v.1 }))).collect::<serde_json::Map<_, _>>()));
-    }
-    put(&mut file, b"HEAD", serde_json::to_vec(&head).unwrap(), 0);
-    put(&mut file, b"DEFS", serde_json::to_vec(&json!({ "units": game.unit_defs, "weapons": game.weapon_defs, "features": game.feature_defs })).unwrap(), 0);
-
-    let (low, step) = Ground::scale(&game.ground.2, &game.patches);
-    let mut ground = Ground { columns: game.ground.0, rows: game.ground.1, low, step, heights: Vec::new() };
-    ground.heights = game.ground.2.iter().map(|h| ground.quantize(*h)).collect();
+    put(&mut file, b"HEAD", head_chunk(game, slices, game.last_frame, false), 0);
+    put(&mut file, b"DEFS", defs_chunk(game), 0);
+    let ground = ground_of(game, 0.0);
     put(&mut file, b"GRND", ground.encode(), 0);
 
     let birth = |row: u32| game.units[row as usize].birth;
@@ -150,27 +201,89 @@ pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
         }
         put(&mut file, b"SLIC", bytes, k * SLICE_FRAMES);
     }
-
-    let rows: Vec<UnitRow> = game.units.iter().map(UnitRow::of).collect();
-    put(&mut file, b"UNIT", encode_units(&rows), 0);
-    put(&mut file, b"FEAT", encode_features(&game.features), 0);
-    put(&mut file, b"TEAM", serde_json::to_vec(&teams_table(game)).unwrap(), 0);
-    put(&mut file, b"EVNT", serde_json::to_vec(&game.events).unwrap(), 0);
-    let patches: Vec<GroundPatch> = game.patches.iter().map(|p| GroundPatch { frame: p.frame, x: p.x, z: p.z, w: p.w, h: p.h, heights: p.heights.iter().map(|h| ground.quantize(*h)).collect() }).collect();
-    put(&mut file, b"GPAT", encode_patches(&patches), 0);
-
-    let mut table = W::default();
-    table.u32(index.len() as u32);
-    for (kind, offset, len, first) in &index {
-        table.bytes(kind);
-        table.u64(*offset);
-        table.u32(*len);
-        table.u32(*first);
+    for (kind, raw) in tables(game, &ground) {
+        put(&mut file, kind, raw, 0);
     }
-    let (offset, len) = write_chunk(&mut file, b"INDX", &table.0, None);
-    report.add(b"INDX", table.0.len(), len as usize);
-    file.extend_from_slice(&offset.to_le_bytes());
-    file.extend_from_slice(END);
+    let table_len = 4 + index.len() * 20;
+    let len = close(&mut file, 0, &index);
+    report.add(b"INDX", table_len, len as usize);
     report.sections = sections;
     Ok((file, report))
+}
+
+/// Elmos the ground's height scale reaches past the heights a growing tape has seen, for the craters still to come.
+const GROWING_MARGIN: f32 = 400.0;
+
+/// A tape written while its game is played (docs/design/2026-11-15-game-tape.md §8, 4b). The ground at the start goes
+/// in once; then each time `grow` finds slices the raw stream has passed, it appends them and after them the header,
+/// the types, the tables, the index and the footer. The file only grows, so a reader holding an older footer still
+/// reads whole chunks; the superseded header and tables are dead bytes until `pack` writes the game's tape compact
+/// at its end. The index lists the chunks in a packed tape's order (header, types, ground, slices, tables), the order
+/// a reader hands them in.
+pub struct Growing {
+    path: std::path::PathBuf,
+    file: Option<std::fs::File>,
+    len: u64,
+    ground: Option<(Ground, u64, u32)>,
+    /// Each slice written: offset, stored length, first frame.
+    slices: Vec<(u64, u32, u32)>,
+}
+
+impl Growing {
+    pub fn new(path: impl Into<std::path::PathBuf>) -> Growing {
+        Growing { path: path.into(), file: None, len: 0, ground: None, slices: Vec::new() }
+    }
+
+    /// Slices written so far.
+    pub fn slices(&self) -> u32 {
+        self.slices.len() as u32
+    }
+
+    /// Appends the slices `game` (the raw stream as far as it is written) has whole, a slice being whole once the
+    /// stream has passed its last frame, and after them the rest. Answers how many slices it added (none: nothing
+    /// written).
+    pub fn grow(&mut self, game: &Game) -> Result<u32> {
+        use std::io::Write;
+        let whole = game.last_frame.saturating_sub(1) / SLICE_FRAMES;
+        let before = self.slices.len() as u32;
+        if whole <= before || game.head.is_null() {
+            return Ok(0);
+        }
+        let io = |e: std::io::Error| crate::format::Error(format!("{}: {e}", self.path.display()));
+        let mut out = Vec::new();
+        let base = self.len;
+        let put = |out: &mut Vec<u8>, kind: &[u8; 4], raw: Vec<u8>| {
+            let (offset, len) = write_chunk(out, kind, &raw, compress(&raw));
+            (base + offset, len)
+        };
+        if self.ground.is_none() {
+            out.extend_from_slice(MAGIC);
+            let ground = ground_of(game, GROWING_MARGIN);
+            let (offset, len) = put(&mut out, b"GRND", ground.encode());
+            self.ground = Some((ground, offset, len));
+        }
+        let birth = |row: u32| game.units[row as usize].birth;
+        for k in before..whole {
+            let (bytes, _) = cut(game, k * SLICE_FRAMES).encode_sections(&birth);
+            let (offset, len) = put(&mut out, b"SLIC", bytes);
+            self.slices.push((offset, len, k * SLICE_FRAMES));
+        }
+        let (ground, ground_at, ground_len) = self.ground.as_ref().unwrap();
+        let head = put(&mut out, b"HEAD", head_chunk(game, whole, whole * SLICE_FRAMES, true));
+        let defs = put(&mut out, b"DEFS", defs_chunk(game));
+        let mut index = vec![(*b"HEAD", head.0, head.1, 0), (*b"DEFS", defs.0, defs.1, 0), (*b"GRND", *ground_at, *ground_len, 0)];
+        index.extend(self.slices.iter().map(|(offset, len, first)| (*b"SLIC", *offset, *len, *first)));
+        for (kind, raw) in tables(game, ground) {
+            let (offset, len) = put(&mut out, kind, raw);
+            index.push((*kind, offset, len, 0));
+        }
+        close(&mut out, base, &index);
+        if self.file.is_none() {
+            self.file = Some(std::fs::File::create(&self.path).map_err(io)?);
+        }
+        let file = self.file.as_mut().unwrap();
+        file.write_all(&out).map_err(io)?;
+        self.len += out.len() as u64;
+        Ok(whole - before)
+    }
 }

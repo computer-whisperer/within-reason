@@ -709,7 +709,7 @@
 
   /// What each unit of the tape killed and built (the unit table's killer and builder columns), worked out once a tape.
   function tallies(tape) {
-    if (tallies.tape === tape) return tallies.of;
+    if (tallies.ints === tape.unitInts) return tallies.of; // (a growing tape's refresh hands in a new table)
     const kills = new Map(), built = new Map(), ints = tape.unitInts;
     const add = (map, row, what) => (map.get(row) || map.set(row, []).get(row)).push(what);
     for (let row = 0; row < tape.unitCount; row++) {
@@ -717,7 +717,7 @@
       if (ints[row * 8 + 7]) add(built, ints[row * 8 + 7] - 1, row);
     }
     for (const list of kills.values()) list.sort((a, b) => ints[a * 8 + 5] - ints[b * 8 + 5]);
-    tallies.tape = tape;
+    tallies.ints = tape.unitInts;
     tallies.of = { kills, built };
     return tallies.of;
   }

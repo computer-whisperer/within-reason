@@ -226,7 +226,6 @@ const WRUnits = (() => {
     const icon = WRGL.program(gl, ICON_VERTEX, ICON_FRAGMENT);
     const bar = WRGL.program(gl, BAR_VERTEX, BAR_FRAGMENT);
     const ring = WRGL.program(gl, RING_VERTEX, RING_FRAGMENT);
-    const assets = tape.head.assets || {};
     const instances = gl.createBuffer();
     let capacity = 0;
     /// The features' own instances: the same sixteen floats a feature, by type, rebuilt when the set alive changes.
@@ -253,6 +252,18 @@ const WRUnits = (() => {
     const white = WRAssets.plainTexture(gl, [255, 255, 255, 255]);
     const noGlow = WRAssets.plainTexture(gl, [0, 0, 0, 255]);
     const textures = new Map();
+    /// Fetches a texture's file into its entry, when the tape names a copy of it (a growing tape may name it later:
+    /// the entry stays a stand-in, `stand`, and is filled in place at `tapeGrew`, so the models holding it see it).
+    const fill = (entry, key) => {
+      const file = (tape.head.assets || {})[key];
+      entry.stand = !file;
+      if (file && /\.dds$/.test(key)) {
+        WRAssets.fetchBytes(file).then((bytes) => {
+          entry.texture = WRAssets.uploadDDS(gl, WRAssets.parseDDS(bytes));
+          units.onChange && units.onChange();
+        }).catch((e) => console.error(key, e));
+      }
+    };
     const textureOf = (name, fallback) => {
       if (!name) return { texture: fallback };
       const key = `unittextures/${name.toLowerCase()}`;
@@ -260,12 +271,7 @@ const WRUnits = (() => {
       if (!entry) {
         entry = { texture: fallback };
         textures.set(key, entry);
-        if (assets[key] && /\.dds$/.test(key)) {
-          WRAssets.fetchBytes(assets[key]).then((bytes) => {
-            entry.texture = WRAssets.uploadDDS(gl, WRAssets.parseDDS(bytes));
-            units.onChange && units.onChange();
-          }).catch((e) => console.error(key, e));
-        }
+        fill(entry, key);
       }
       return entry;
     };
@@ -294,13 +300,14 @@ const WRUnits = (() => {
       let entry = models.get(key);
       if (entry !== undefined) return entry;
       const def = (feature ? tape.featureDefs : tape.unitDefs).get(defId) || {};
-      const file = def.model && assets[(def.model.path || "").toLowerCase()];
+      const file = def.model && (tape.head.assets || {})[(def.model.path || "").toLowerCase()];
       if (feature && !file) {
         models.set(key, null);
         return null;
       }
       entry = build(box(def));
       entry.radius = def.radius || entry.radius;
+      entry.stand = !file; // (asked again when a growing tape brings the file)
       models.set(key, entry);
       if (file && /\.s3o$/.test(file)) {
         WRAssets.fetchBytes(file).then((bytes) => {
@@ -313,15 +320,21 @@ const WRUnits = (() => {
       return entry;
     };
 
-    // The features in type order, and the frames at which the set alive changes, both worked out once.
-    const featureCount = tape.features.length / 14;
-    const featureOrder = Array.from({ length: featureCount }, (_, i) => i).sort((a, b) => tape.features[a * 14 + 11] - tape.features[b * 14 + 11]);
-    const featureChanges = [];
-    for (let i = 0; i < featureCount; i++) {
-      featureChanges.push(tape.features[i * 14 + 12]);
-      if (tape.features[i * 14 + 13] >= 0) featureChanges.push(tape.features[i * 14 + 13]);
-    }
-    featureChanges.sort((a, b) => a - b);
+    // The features in type order, and the frames at which the set alive changes: worked out once, and again when a
+    // growing tape brings more.
+    let featureCount = 0, featureOrder = [], featureChanges = [];
+    const indexFeatures = () => {
+      featureCount = tape.features.length / 14;
+      featureOrder = Array.from({ length: featureCount }, (_, i) => i).sort((a, b) => tape.features[a * 14 + 11] - tape.features[b * 14 + 11]);
+      featureChanges = [];
+      for (let i = 0; i < featureCount; i++) {
+        featureChanges.push(tape.features[i * 14 + 12]);
+        if (tape.features[i * 14 + 13] >= 0) featureChanges.push(tape.features[i * 14 + 13]);
+      }
+      featureChanges.sort((a, b) => a - b);
+      featureVersion = -1;
+    };
+    indexFeatures();
     /// How many of those changes lie at or before a frame: the same number, the same features alive.
     const changesBy = (frame) => {
       let low = 0, high = featureChanges.length;
@@ -352,24 +365,31 @@ const WRUnits = (() => {
       gl.bufferData(gl.ARRAY_BUFFER, data.subarray(0, n * 16), gl.DYNAMIC_DRAW);
     };
 
-    // The types' table for the icon and bar passes, and the icons' atlas (viewer/icons, the game's own bitmaps).
-    const maxDef = Math.max(1, ...tape.defs.units.map((d) => d.id));
-    const typeData = new Float32Array((maxDef + 1) * 4);
-    for (const d of tape.defs.units) typeData.set([0, 0, 0, d.radius || 16], d.id * 4);
+    // The types' table for the icon and bar passes (a texel a type: the icon's cell, its size, the type's radius), and
+    // the icons' atlas: every icon of the game (viewer/icons, its own bitmaps), so that a type a growing tape meets
+    // later has its cell already (`types`).
+    let typeData = new Float32Array(4);
+    let typeWidth = 1;
     const typeTexture = gl.createTexture();
-    const uploadTypes = () => {
+    let atlas = WRAssets.plainTexture(gl, [255, 255, 255, 255]);
+    let cells = 1;
+    let icons = null; // name -> [column, row, size], once the atlas is drawn
+    const types = () => {
+      typeWidth = Math.max(1, ...tape.defs.units.map((d) => d.id)) + 1;
+      typeData = new Float32Array(typeWidth * 4);
+      for (const d of tape.defs.units) {
+        const cell = icons && icons.get(d.name);
+        typeData.set(cell ? [cell[0], cell[1], cell[2], d.radius || 16] : [0, 0, 0, d.radius || 16], d.id * 4);
+      }
       gl.bindTexture(gl.TEXTURE_2D, typeTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, maxDef + 1, 1, 0, gl.RGBA, gl.FLOAT, typeData);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, typeWidth, 1, 0, gl.RGBA, gl.FLOAT, typeData);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     };
-    uploadTypes();
-    let atlas = WRAssets.plainTexture(gl, [255, 255, 255, 255]);
-    let cells = 1;
+    types();
     (async () => {
       const table = await (await fetch("icons.json")).json();
-      const wanted = tape.defs.units.filter((d) => table[d.name]);
-      const files = [...new Set(wanted.map((d) => table[d.name].file))];
+      const files = [...new Set(Object.values(table).map((t) => t.file))];
       cells = Math.max(1, Math.ceil(Math.sqrt(files.length)));
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = cells * ICON_CELL;
@@ -380,11 +400,8 @@ const WRUnits = (() => {
         image.onerror = done;
         image.src = `icons/${file}`;
       })));
-      for (const d of wanted) {
-        const i = files.indexOf(table[d.name].file);
-        typeData.set([i % cells, Math.floor(i / cells), table[d.name].size || 1], d.id * 4);
-      }
-      uploadTypes();
+      icons = new Map(Object.entries(table).map(([name, t]) => { const i = files.indexOf(t.file); return [name, [i % cells, Math.floor(i / cells), t.size || 1]]; }));
+      types();
       atlas = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, atlas);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
@@ -413,6 +430,13 @@ const WRUnits = (() => {
 
     const units = {
       onChange: null, ICON_BELOW,
+      /// The tape grew (one still being written): the types' table, the features, and the models that had no file.
+      tapeGrew() {
+        types();
+        indexFeatures();
+        for (const [key, entry] of models) if (entry === null || entry.stand) models.delete(key);
+        for (const [key, entry] of textures) if (entry.stand) fill(entry, key);
+      },
 
       /// Draws the features standing at a frame (trees, rocks, wrecks): models only, never icons. Says how many.
       drawFeatures(frame, camera) {

@@ -161,6 +161,13 @@ impl Tape {
         Ok(Tape { chunks, slice_frames: crate::SLICE_FRAMES, sample_frames: 3, position_scale: 4.0, max_units: 32000, ..Default::default() })
     }
 
+    /// A tape still being written (`pack::Growing`): the index again, from its new footer. The slices already read
+    /// stay, as the rows they name stay; the header and the tables are handed in again after it.
+    pub fn reindex(&mut self, index_chunk: &[u8]) -> Result<()> {
+        self.chunks = Tape::new(index_chunk)?.chunks;
+        Ok(())
+    }
+
     /// The chunks of one kind, in file order.
     pub fn of_kind<'a>(&'a self, kind: &'a [u8; 4]) -> impl Iterator<Item = &'a ChunkRef> {
         self.chunks.iter().filter(move |c| &c.kind == kind)
@@ -270,6 +277,18 @@ impl Tape {
             tape.set_chunk(chunk_bytes(file, c)?)?;
         }
         Ok(tape)
+    }
+
+    /// A tape still being written, read again from its new footer as the page does: the index (`reindex`: the slices
+    /// read stay) and then everything but the slices.
+    pub fn refresh(&mut self, file: &[u8]) -> Result<()> {
+        let at = index_offset(&file[file.len().saturating_sub(FOOTER)..])? as usize;
+        self.reindex(&file[at..file.len() - FOOTER])?;
+        let chunks = self.chunks.clone();
+        for c in chunks.iter().filter(|c| &c.kind != b"SLIC") {
+            self.set_chunk(chunk_bytes(file, c)?)?;
+        }
+        Ok(())
     }
 
     /// The row of the unit that held an engine id at a frame.

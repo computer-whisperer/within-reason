@@ -1,12 +1,13 @@
--- Within Reason: the tape dump. While the headless engine plays a demo, write everything a viewer needs to show the
--- game as the engine would have: every unit's place and attitude ten times a second, health and build progress, what
+-- Within Reason: the tape dump. While the headless engine plays a demo, or plays an arena game with this widget in
+-- its spectating host, write everything a viewer needs to show the game as the engine would have: every unit's place and attitude ten times a second, health and build progress, what
 -- each unit is doing, every projectile (where it began, how it flew, when it ended), the explosions and muzzle fire
 -- the game reports, the features (trees, rocks, wrecks), the ground's heights and every change to them, the orders of
 -- both sides and the teams' resources. One raw stream, `tape.raw`, which `target/release/tape pack` turns into the
 -- seekable `game.tape` (docs/design/2026-11-15-game-tape.md, docs/harness/tape-format.md).
 --
--- Loaded by run/replay_match.py --tape (and run/tape.py), which makes the marker file this widget looks for; without
--- the marker, and in a live game, it does nothing.
+-- Loaded by run/replay_match.py --tape (and run/tape.py) and by the arena (this file is the only copy: the arena copies
+-- it into each match), which make the marker file this widget looks for; without the marker it does nothing. In a
+-- live game it needs a spectator's full view, as a replay's: anything less would be one side's picture.
 --
 -- The raw stream is a run of records: one byte of kind, a little-endian u32 of length, the payload. Kind `J` is a
 -- JSON object whose `t` names it (header, unitdef, weapondef, featuredef, ev, cmd, res, over, stats); the others are
@@ -702,7 +703,13 @@ local function resources(frame)
 end
 
 function widget:Initialize()
-	if not Spring.IsReplay() or not VFS.FileExists(OUT .. "tape.on") then
+	if not VFS.FileExists(OUT .. "tape.on") then
+		widgetHandler:RemoveWidget(self)
+		return
+	end
+	local spectating, fullView = Spring.GetSpectatingState()
+	if not (spectating and fullView) then
+		Spring.Echo("<tape dump> not a spectator with full view: nothing written")
 		widgetHandler:RemoveWidget(self)
 		return
 	end
@@ -750,7 +757,7 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 2, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 2, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE, aim_scale = AIM,
 		aim = aimOn and 1 or 0,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
@@ -810,8 +817,10 @@ function widget:GameFrame(frame)
 	flushBursts(frame)
 	timed("projectiles", t)
 	if frame % RESOURCES == 0 then resources(frame) end
+	-- Written out just past each slice's end, the frame that makes it whole for the arena's follower (the tape that
+	-- grows while the game is played).
+	if frame % 300 == 1 then out:flush() end
 	if frame % 1800 == 0 then
-		out:flush()
 		Spring.Echo(string.format("<tape dump> f=%d wall=%.0fs units=%d mobile=%d projectiles=%d bytes=%d", frame, spDiffTimers(spGetTimer(), wallStart), allCount, mobileCount, liveCount, bytes))
 	end
 end

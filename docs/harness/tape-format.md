@@ -26,7 +26,23 @@ base64 of the file's MD5, made safe for a file name) and shared by every tape; t
 is (`assets`). The cache is git-ignored working data and belongs to its worktree: a tape made in one tree needs that
 tree's cache (or the files copied over, `cp -n`). BAR's art is CC BY-NC-ND: nothing of it is converted or committed.
 
-Other tools: `tape info <game.tape>` (what it holds, the bytes by chunk kind), `tape check <tape.raw> <game.tape>`.
+Other tools: `tape info <game.tape>` (what it holds, the bytes by chunk kind), `tape check <tape.raw> <game.tape>`,
+`tape grow <tape.raw> [--cuts N]` (the growing tape checked: the stream cut at N places inside records, the tape grown
+through each and read again from its new footer by one reader that keeps its slices, as the page does; on the dist358
+duel, 25 cuts, every slice the same as the stream so far, the grown file 3.5 MB where the compact tape is 2.3).
+
+**In an arena game** (2026-11-15 night; `--no-tape` turns it off) the tape is made while the game is played, with no
+second engine run: the arena's host is a spectator with full view, and `crates/arena/src/capture.rs` puts the same
+widget (its only copy is the replay template's) and its marker into the match directory. While the game runs, a
+follower thread reads the raw stream every few seconds (at most half a core: it waits as long as its last read took)
+and appends each slice the stream has passed to `game.tape` (`tape::pack::Growing`, below), moving the widget's asset
+copies into the cache as they come; after the game the raw stream is packed whole into a compact `game.tape` that
+replaces the growing one in one rename, and removed. The raw stream is written out just past each slice's end (frame
+`300k + 1`). A stream that ends inside a record (one still being written, an engine killed) reads as far as its last
+whole record. On a duel at speed 50 the widget costs about 2 s at load and 11 % of the game's time (1.29 against
+1.17 ms a frame); its own Lua work was 2.3 s of a 15-minute game. The arena's games are not repeatable even without
+it (two runs of one seed part at the sixth truth sample), so whether it moved the AIs' timing cannot be told from one
+game.
 
 **What the engine gives a widget in a headless replay, and what it does not** (measured 2026-11-15, engine
 2026.07.04, game test-31836 and test-31908):
@@ -132,6 +148,13 @@ engine's own vectors (the duel captured both ways, 379,447 samples at the same f
 is off by a median 0.011 degrees and at worst 0.063, the up by 0.018 and 0.079; a step is 0.088. A model's own x axis
 is the up crossed with the front (the engine's `CMatrix44f(pos, -rightdir, updir, frontdir)`, `SolidObject.h`).
 
+**A tape that grows** (`tape::pack::Growing`): the ground at the start goes in once (its height scale 400 elmos wider
+each way than the heights seen so far, for the craters to come); then each time the raw stream has passed a slice's
+last frame, the slice is appended and after it the header (with `growing: true`, and `last_frame` the written slices'
+end), the types, the tables, the index and the footer. The file only grows, so a reader holding an older footer still
+reads whole chunks; the superseded header and tables are dead bytes until the compact tape replaces the file. The index
+lists the chunks in a packed tape's order (header, types, ground, slices, tables), the order a reader hands them in.
+
 ## Reading one
 
 `crates/tape` is the one reader: `tape::read::Tape` takes the index, then any chunk, then slices, and answers
@@ -173,7 +196,9 @@ rows have their exact frames.
 `run/view_match.py` serves `game.tape` by byte range and the asset copies at `/assets/<name>`; a directory with a tape
 and no record of ours (a bot of `bots/`, a taped demo) is a match the browser lists and opens. `viewer/scene/`:
 `tape.js` (the reader and its fetches: the footer, the index, the tables, then the slice under the playhead and the
-next, eight kept), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js`, `effects.js`, `lines.js`
+next, twelve kept; never from the browser's cache; `refresh()` reads a growing tape's footer again and on a new index
+calls `wr_reindex`, which keeps the slices read, and hands the tables in again, or reads afresh when the file shrank:
+the compact tape at the game's end), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js`, `effects.js`, `lines.js`
 (lines over the scene: a set number of CSS pixels across at any distance, not depth-tested, so an order reads through
 a hill), `scene.js` (the camera, the drawing, picking, and a 2D canvas over the scene that the page paints with the
 same functions as the 2D map), `gl.js`. See `record-format.md`, Viewer, for what the page shows.
@@ -186,6 +211,10 @@ numbers of a game with no record, and with a record a unit of ours's panel; and 
 `SCENE_BROWSER=firefox` (over WebDriver BiDi); the user's browser is Firefox. The first build of this test reset the
 camera before every screenshot and so passed while the scene opened blank in every browser (the camera fitted while
 the canvas was still hidden, its distance infinite): the user found it in Firefox the same night.
+`node viewer/test/live.js <match url> <out dir>` watches a game being played (start the arena first): it waits for
+the tape, checks that it grows while the page watches with the playhead on its newest frame, and that at the game's
+end the page takes the compact tape and draws from it. Both browsers again. `viewer/test/driver.js` is the two tests'
+browser driver.
 
 ## Measured (2026-11-15)
 

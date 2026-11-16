@@ -445,6 +445,11 @@ const WRScene = (() => {
         redraw();
       },
       redraw, resetCamera, pick,
+      /// The tape grew (one still being written, `tape.refresh`): what is drawn from its tables, again.
+      grew() {
+        units.tapeGrew();
+        redraw();
+      },
       /// Zooms by a factor about the view's centre.
       zoom(factor) {
         scene.camera.distance /= factor;

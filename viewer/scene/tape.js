@@ -58,36 +58,42 @@ const WRTape = (() => {
     return new Type(wasm.memory.buffer, wasm.wr_array(which), wasm.wr_array_len(which));
   }
 
-  /// Bytes `first` to `last` of a file, or with `first` null its last `last` bytes; with them the file's size.
+  /// Bytes `first` to `last` of a file, or with `first` null its last `last` bytes; with them the file's size. Never
+  /// from the browser's cache: a growing tape's footer moves, and the tape packed whole at its game's end puts other
+  /// bytes at the offsets a cache would hold (the server is local).
   async function range(url, first, last) {
-    const response = await fetch(url, { headers: { Range: first == null ? `bytes=-${last}` : `bytes=${first}-${last}` } });
+    const response = await fetch(url, { cache: "no-store", headers: { Range: first == null ? `bytes=-${last}` : `bytes=${first}-${last}` } });
     if (response.status !== 206) throw new Error(`${url}: the server does not answer byte ranges (status ${response.status}); the 3D view needs run/view_match.py`);
     const size = Number((response.headers.get("Content-Range") || "").split("/")[1] || 0);
     return { bytes: new Uint8Array(await response.arrayBuffer()), size };
   }
 
-  async function open(url) {
-    await reader();
-    const footer = await range(url, null, 16);
-    if (new TextDecoder().decode(footer.bytes.subarray(8)) !== "WRTAPEND") throw new Error(`${url} is not a finished tape`);
+  /// The footer's word for a tape whose index stands before it: a finished tape, or one still growing between writes.
+  const whole = (footer) => new TextDecoder().decode(footer.bytes.subarray(8)) === "WRTAPEND";
+
+  /// The index the footer points at, handed to the reader by `call` (`wr_open` for a tape newly opened, `wr_reindex`
+  /// for one that grew: the slices read stay), then everything but the slices, fetched together and handed in in the
+  /// index's order (the unit table before any slice). Answers the tape's fields that come from them.
+  async function readIndex(url, footer, call) {
     const indexAt = Number(new DataView(footer.bytes.buffer).getBigUint64(0, true));
-    check(give((await range(url, indexAt, footer.size - 17)).bytes, wasm.wr_open), "the tape's index");
+    check(give((await range(url, indexAt, footer.size - 17)).bytes, call), "the tape's index");
     const chunks = [];
     for (let i = 0; i < wasm.wr_chunk_count(); i++) {
       const kind = wasm.wr_chunk(i, 0);
       chunks.push({ kind: String.fromCharCode(kind & 255, (kind >> 8) & 255, (kind >> 16) & 255, (kind >> 24) & 255), offset: wasm.wr_chunk(i, 1), length: wasm.wr_chunk(i, 2), first: wasm.wr_chunk(i, 3) });
     }
-    // Everything but the slices, fetched together and handed in in file order (the unit table before any slice).
     const tables = chunks.filter((c) => c.kind !== "SLIC");
     const bodies = await Promise.all(tables.map((c) => range(url, c.offset, c.offset + c.length - 1)));
     bodies.forEach((body, i) => check(give(body.bytes, wasm.wr_set_chunk), `the tape's ${tables[i].kind} chunk`));
     const head = JSON.parse(text(0));
     const defs = JSON.parse(text(1));
-    const tape = {
-      url, size: footer.size, head, defs,
+    const fields = {
+      size: footer.size, indexAt, head, defs,
       teams: JSON.parse(text(2) || "{}"), events: JSON.parse(text(3) || "[]"),
       lastFrame: head.last_frame, sliceFrames: head.slice_frames,
-      slices: chunks.filter((c) => c.kind === "SLIC").map((c) => ({ ...c, state: "out", used: 0 })),
+      /// Whether the tape is still being written (the arena's follower): read its footer again for more (`refresh`).
+      growing: !!head.growing,
+      sliceChunks: chunks.filter((c) => c.kind === "SLIC"),
       /// The unit table, a row a unit life (the row number is the tape's id of the unit): eight integers (engine id,
       /// type, team, the frames created, finished and destroyed (4294967295 never), killer row + 1, builder row + 1)
       /// and eight floats (full health, where it first stood, where it died, 1 when its type moves).
@@ -95,28 +101,65 @@ const WRTape = (() => {
       /// Fourteen floats a feature: place, front, up, metal, energy, type, the frames it appeared and went (-1 never).
       features: array(6, Float32Array).slice(),
       ground: { columns: wasm.wr_ground_info(0), rows: wasm.wr_ground_info(1), low: wasm.wr_ground_info(2), step: wasm.wr_ground_info(3) },
+      unitDefs: new Map(defs.units.map((d) => [d.id, d])),
+      weaponDefs: new Map(defs.weapons.map((d) => [d.id, d])),
+      featureDefs: new Map(defs.features.map((d) => [d.id, d])),
+      /// Whether the tape says what each side saw (taped from 2026-11-15 night on).
+      hasSight: Array.isArray(head.ally_teams),
+    };
+    fields.unitCount = fields.unitInts.length / 8;
+    // The rows that held each engine id, in the order created: the tie to the match record, which names a unit by
+    // the engine's id.
+    fields.rowsById = new Map();
+    for (let row = 0; row < fields.unitCount; row++) {
+      const id = fields.unitInts[row * 8];
+      if (!fields.rowsById.has(id)) fields.rowsById.set(id, []);
+      fields.rowsById.get(id).push(row);
+    }
+    return fields;
+  }
+
+  async function open(url) {
+    await reader();
+    const footer = await range(url, null, 16);
+    if (!whole(footer)) throw new Error(`${url} is not a finished tape`);
+    const fields = await readIndex(url, footer, wasm.wr_open);
+    const tape = {
+      url, ...fields,
+      slices: fields.sliceChunks.map((c) => ({ ...c, state: "out", used: 0 })),
       onSlice: null, clock: 0, worked: null, workedLoads: 0,
       /// How many slices have been read: a count that changes when what `ordersOf` can see does.
       loads: 0,
     };
-    tape.unitDefs = new Map(defs.units.map((d) => [d.id, d]));
-    tape.weaponDefs = new Map(defs.weapons.map((d) => [d.id, d]));
-    tape.featureDefs = new Map(defs.features.map((d) => [d.id, d]));
-    tape.unitCount = tape.unitInts.length / 8;
-    /// Whether the tape says what each side saw (taped from 2026-11-15 night on).
-    tape.hasSight = Array.isArray(head.ally_teams);
-    // The rows that held each engine id, in the order created: the tie to the match record, which names a unit by
-    // the engine's id.
-    tape.rowsById = new Map();
-    for (let row = 0; row < tape.unitCount; row++) {
-      const id = tape.unitInts[row * 8];
-      if (!tape.rowsById.has(id)) tape.rowsById.set(id, []);
-      tape.rowsById.get(id).push(row);
-    }
     return Object.assign(tape, methods);
   }
 
   const methods = {
+    /// A tape still being written (`growing`): its footer read again, and when it has moved, the new index and tables;
+    /// the slices read stay. A tape packed again whole at its game's end is a new, smaller file: read afresh. Answers
+    /// whether the tape changed. Never throws: a tape caught between writes is asked again at the next call.
+    async refresh() {
+      try {
+        const footer = await range(this.url, null, 16);
+        const indexAt = whole(footer) ? Number(new DataView(footer.bytes.buffer).getBigUint64(0, true)) : null;
+        if (indexAt == null || (indexAt === this.indexAt && footer.size === this.size)) return false;
+        const afresh = footer.size < this.size;
+        const before = new Map(this.slices.map((slice) => [slice.first, slice]));
+        const fields = await readIndex(this.url, footer, afresh ? wasm.wr_open : wasm.wr_reindex);
+        Object.assign(this, fields);
+        this.slices = fields.sliceChunks.map((c) => {
+          const old = before.get(c.first);
+          return { ...c, state: !afresh && old && old.state === "in" ? "in" : "out", used: old ? old.used : 0 };
+        });
+        this.worked = null;
+        this.loads++;
+        return true;
+      } catch (e) {
+        console.error("the tape's refresh:", e);
+        return false;
+      }
+    },
+
     sliceIndex(frame) {
       return Math.min(this.slices.length - 1, Math.max(0, Math.floor(frame / this.sliceFrames)));
     },

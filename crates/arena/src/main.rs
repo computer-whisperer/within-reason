@@ -5,6 +5,8 @@
 //! usage: arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive]
 //!              [--map NAME] [--max-minutes N] [--jev-budget DOLLARS]   (a match is called once its Jev bill passes it: 10 by default, 0 for no limit)
 //!              [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
+//!              [--no-tape]   (no game.tape: by default the tape widget rides in the engine's spectating host and the
+//!                             raw stream is packed after the game, docs/harness/tape-format.md)
 //!              [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se]   (default: alternate, the opponent the other of
 //!                                                               Armada and Cortex; `nw` is the first start box of the layout, W on Comet; a Legion seat on either side
 //!                                                               writes the game's experimentallegionfaction option; BARb and Apex both play Legion)
@@ -47,6 +49,7 @@
 mod place;
 mod record;
 mod script;
+mod capture;
 
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
@@ -106,6 +109,8 @@ struct Options {
     swap_corners: bool,
     /// End a game once it is settled (see [`Settled`]); `--play-out` turns it off.
     call_settled: bool,
+    /// The game's tape, captured during the game by the tape widget in the spectating host; `--no-tape` turns it off.
+    tape: bool,
     /// `--jev-budget N`: a match whose Jev bill passes N dollars is called (undecided), with the bill as the reason;
     /// 0 for no limit. The user, 2026-10-04: "over $10 in jev costs should terminate the game early".
     jev_budget: f64,
@@ -305,7 +310,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "claude_config_dir": options.claude_config_dir, "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "tape": options.tape, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief.as_deref().unwrap_or("rework"), "live_edge": options.live_edge, "players": options.players.as_deref().unwrap_or("one"), "claude_config_dir": options.claude_config_dir, "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "ally_ai": options.ally_ai, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -433,6 +438,9 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         }
     }
     copy_tree(&repo.join("run/match-template"), &dir)?;
+    if options.tape {
+        capture::begin(repo, &dir)?;
+    }
     let cache_template = repo.join("run/cache-template");
     if cache_template.is_dir() {
         copy_tree(&cache_template, &dir.join("cache"))?;
@@ -528,8 +536,13 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .spawn()?;
 
     let started = Instant::now();
+    // The tape grows while the game is played, for the viewer to watch it in 3D (capture.rs).
+    let follower = options.tape.then(|| capture::follow(repo, &dir));
     let result = referee(&mut autohost, &mut engine, bot.as_mut(), options, &setup, &dir.join("engine.log"));
     stop(&mut engine, &mut autohost);
+    if let Some(follower) = follower {
+        println!("match {index}: {}", follower.stop());
+    }
     if let Some(bot) = &mut bot {
         // The bot leaves by itself once its last session has ended (`WITHIN_REASON_EXIT_WHEN_OVER`), its players'
         // sessions writing their last result first: a player held in its `wait` has reported no usage since its
@@ -562,6 +575,12 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     copy_state(&dir.join("AI/Skirmish"), &opponent_state(repo, &options.opponent).join(SHARED_STATE));
     if let Err(e) = record::finish(&dir, &result, &format!("{} {}", opponent_name(&options.opponent), options.profile)) {
         eprintln!("match {index}: could not close the match record: {e}");
+    }
+    if options.tape {
+        match capture::finish(repo, &dir) {
+            Ok(words) => println!("match {index}: {words}"),
+            Err(e) => eprintln!("match {index}: no game.tape: {e}"),
+        }
     }
     // The hands' logs are a gigabyte a seat by a game's end: a frame a line from here on (run/jevlog.py reads them).
     match compress_jev_logs(&dir) {
@@ -833,6 +852,7 @@ fn parse_args() -> Options {
         starts: None,
         swap_corners: false,
         call_settled: true,
+        tape: true,
         jev_budget: 10.0,
         pianist: false,
         player: false,
@@ -886,6 +906,10 @@ fn parse_args() -> Options {
             }
             "--play-out" => {
                 options.call_settled = false;
+                continue;
+            }
+            "--no-tape" => {
+                options.tape = false;
                 continue;
             }
             "--ffa" => {
@@ -1029,7 +1053,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME[:VERSION]] [--ally-ai NAME[:VERSION]] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--no-tape] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief rework|experience|standard] [--objective TEXT] [--packet-example] [--no-live-edge] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME[:VERSION]] [--ally-ai NAME[:VERSION]] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 
