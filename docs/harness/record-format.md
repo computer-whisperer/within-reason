@@ -301,7 +301,8 @@ the way left, or "no way"). A click selects a unit (ring; `Escape` clears).
 **The 3D view** (2026-11-15, `docs/design/2026-11-15-game-tape.md`, `tape-format.md`): a match directory that holds
 `game.tape` opens in it (the button in the map pane's corner or `m` goes between it and the 2D map; `view=2d` in the
 address opens the 2D map). It draws the tape at the page's playhead: the ground with the map's own texture and its
-craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude (with the moving pieces of a tape captured with them, `run/tape.py --pieces`: turrets turned to their aim, legs walking, arms, doors, dishes as the game moves them)
+craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude (with its moving pieces: turrets turned to their aim, legs walking, arms, doors,
+dishes as the game moves them, unless the tape was captured `--no-pieces`)
 (a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one pale), a
 health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read (the switch
 "icons for units too small to see" off: its model at any distance), features (rocks, trees, wrecks), every projectile in
@@ -327,8 +328,7 @@ units, army and its worth, losses) in the side pane, its losses as the timeline'
 charts (metal and energy income, army worth, units). On a tape made from 2026-11-15 night on: "3D view as one side
 saw it" (the layers) draws what that side did not have in sight as a ghost (fainter still when not on its radar
 either) and only its own orders; the players' marks on the map stand over the scene in their team's colour until
-erased (with a side chosen, its players' alone). Not yet: no piece of a model moves (turrets do not turn, legs do
-not walk), though the tape holds each weapon's direction when made with `--aim`.
+erased (with a side chosen, its players' alone).
 
 Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view, in Chromium and with
 `SCENE_BROWSER=firefox` in Firefox (`tape-format.md`: run both);

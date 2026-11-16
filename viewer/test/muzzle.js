@@ -1,4 +1,4 @@
-// The moving pieces checked against the engine's own shots (a tape captured with `--pieces`): a shot leaves its gun at
+// The moving pieces checked against the engine's own shots (a tape with them, as captured by default): a shot leaves its gun at
 // a muzzle piece, so where it began must lie on one of its owner's pieces as the reader composes them (turned and moved),
 // and nearer than with the pieces at rest. A turn the wrong way round, a piece numbered wrong or a model space mirrored
 // would put the muzzles elsewhere.
@@ -90,7 +90,7 @@ async function measure() {
   page = await require("./driver").open({ firefox: process.env.SCENE_BROWSER === "firefox", out: require("os").tmpdir(), fail });
   await page.navigate(url);
   for (let i = 0; i < 300 && !(await page.evaluate("!!(window.viewer && window.viewer.scene && window.viewer.scene.tape)")); i++) await new Promise((r) => setTimeout(r, 100));
-  if (!(await page.evaluate("!!window.viewer.scene.tape.head.pieces"))) fail("the tape was captured without the moving pieces (run/tape.py --pieces)");
+  if (!(await page.evaluate("!!window.viewer.scene.tape.head.pieces"))) fail("the tape was captured without the moving pieces (--no-pieces)");
   const result = await page.evaluate(`(${measure.toString()})()`);
   if (page.problems.length) fail(page.problems.join("\n"));
   if (!result) fail("the measure gave nothing");

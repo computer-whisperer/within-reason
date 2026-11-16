@@ -1,4 +1,4 @@
-//! The waste audit's dump, `audit.jsonl` (docs/harness/audit.md), written from a tape of format 3 row for row as
+//! The waste audit's dump, `audit.jsonl` (docs/harness/audit.md), written from a tape row for row as
 //! `audit_dump.lua` writes it while a replay plays: so `run/audit.py`, `run/audit_side.py` and the review skill read a
 //! game's tape as they read a replay's dump, and an arena game needs no replay for its audit
 //! (docs/design/2026-11-15-game-tape.md §8, 4c).
@@ -60,9 +60,6 @@ fn at_or_before(rows: &[Value], frame: u32) -> Option<&Value> {
 pub fn write(file: &[u8], out: &mut impl Write) -> Result<Written> {
     let mut tape = Tape::open(file)?;
     let head = parse(&tape.head, "header")?;
-    if num(&head, "version") < 3.0 {
-        return err("this tape was made before it held what the audit reads (format 3, from 2026-11-15 night): capture the game again (run/tape.py) or replay it with run/replay_match.py --audit");
-    }
     let defs = parse(&tape.defs, "types")?;
     let teams_table = parse(&tape.teams, "teams table")?;
     let events = parse(&tape.events, "events")?;

@@ -41,7 +41,7 @@ const WRScene = (() => {
       layers: { grid: true, fire: true, commands: true, orders: false, ranges: false, spots: true, icons: true },
       frame: 0, selected: -1, pending: 0, stats: {},
       /// The ally team whose sight the view shows (-1 every unit, as a spectator): what it did not see is a ghost, and
-      /// of the orders only its own are drawn. Needs a tape that says what each side saw (`tape.hasSight`).
+      /// of the orders only its own are drawn.
       seenBy: -1,
       /// Whether the camera has been fitted to the map yet: it cannot be while the canvas has no size (the page
       /// opens the scene with its canvas hidden), so the first frame drawn with a size does it.
@@ -106,7 +106,7 @@ const WRScene = (() => {
     /// radar (a unit of that side is always seen). Cleared again when every unit is shown.
     function markSight(state) {
       const units = state.units, seen = state.seen;
-      const sight = scene.seenBy >= 0 && tape.hasSight ? 1 << scene.seenBy : 0;
+      const sight = scene.seenBy >= 0 ? 1 << scene.seenBy : 0;
       for (let i = 0, j = 0; i < units.length; i += 16, j++) {
         let flags = units[i + 12] & ~24;
         if (sight && allyOf.get(units[i + 11]) !== scene.seenBy && !(seen[j] & sight)) flags |= seen[j] & (sight << 16) ? 24 : 8;

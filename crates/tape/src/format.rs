@@ -131,14 +131,19 @@ impl<'a> R<'a> {
 
 /// One chunk as it lies in the file.
 pub fn write_chunk(file: &mut Vec<u8>, kind: &[u8; 4], raw: &[u8], compressed: Option<Vec<u8>>) -> (u64, u32) {
+    match &compressed {
+        Some(c) => write_stored(file, kind, raw.len(), c, true),
+        None => write_stored(file, kind, raw.len(), raw, false),
+    }
+}
+
+/// A chunk whose payload is already as it is stored (`zstd`: compressed from `raw_len` bytes, else those bytes).
+pub fn write_stored(file: &mut Vec<u8>, kind: &[u8; 4], raw_len: usize, stored: &[u8], zstd: bool) -> (u64, u32) {
     let offset = file.len() as u64;
-    let (flags, stored) = match &compressed {
-        Some(c) => (FLAG_ZSTD, c.as_slice()),
-        None => (0, raw),
-    };
+    let flags = if zstd { FLAG_ZSTD } else { 0 };
     file.extend_from_slice(kind);
     file.extend_from_slice(&flags.to_le_bytes());
-    file.extend_from_slice(&(raw.len() as u32).to_le_bytes());
+    file.extend_from_slice(&(raw_len as u32).to_le_bytes());
     file.extend_from_slice(&(stored.len() as u32).to_le_bytes());
     file.extend_from_slice(stored);
     (offset, (CHUNK_HEADER + stored.len()) as u32)

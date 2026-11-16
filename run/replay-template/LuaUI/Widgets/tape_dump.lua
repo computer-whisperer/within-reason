@@ -25,8 +25,7 @@ local ACTIVITY = 30 -- frames between looks at every unit's head order
 local RESOURCES = 30
 local CHECK = 15 -- frames between positions of the projectiles the reader works out itself (the check of that working)
 local POS = 4 -- a position is whole quarters of an elmo
-local ANGLE = 4096 -- an attitude's angle is whole 4096ths of a turn (0.09 degrees)
-local AIM = 1024 -- a weapon's direction is whole 1024ths of a turn
+local ANGLE = 1024 -- an attitude's angle is whole 1024ths of a turn (0.35 degrees)
 
 local spGetUnitPosition = Spring.GetUnitPosition
 local spGetUnitDirection = Spring.GetUnitDirection
@@ -41,7 +40,6 @@ local spGetUnitCurrentBuildPower = Spring.GetUnitCurrentBuildPower
 local spGetFactoryCommands = Spring.GetFactoryCommands
 local spGetUnitExperience = Spring.GetUnitExperience
 local spGetFeatureResources = Spring.GetFeatureResources
-local spGetUnitWeaponVectors = Spring.GetUnitWeaponVectors
 local spGetProjectilesInRectangle = Spring.GetProjectilesInRectangle
 local spGetProjectilePosition = Spring.GetProjectilePosition
 local spGetProjectileVelocity = Spring.GetProjectileVelocity
@@ -63,7 +61,6 @@ local floor, atan2, asin, sqrt = math.floor, math.atan2, math.asin, math.sqrt
 local TURN = 2 * math.pi
 
 local out
-local aimOn = false
 local piecesOn = false -- the moving pieces (`K` rows), with the marker tape.pieces
 local skipOn = false
 local frameNow = 0 -- the frame of the last GameFrame; a call-in's row is stamped with the engine's own (spGetGameFrame)
@@ -84,8 +81,6 @@ local featureMetal = {} -- feature id -> its metal (whole) as last written
 local early = {} -- unit id -> the commands it was given before the tape met it (`UnitCommand`)
 local pieceState = {} -- unit id -> its pieces' last model-space matrices and keyframes (`samplePieces`)
 local dirty = {} -- unit ids hit since the last sample: their health is read at the next
-local armed = {} -- unit id -> number of weapons, for the units whose aim is sampled
-local aimLast = {} -- unit id * 16 + weapon -> packed direction as last written
 local defSeen, weaponSeen, featureSeen = {}, {}, {}
 local cloaks = {} -- def id -> true for the types that can cloak
 local mobileDef = {} -- def id -> true for the types that move
@@ -100,7 +95,7 @@ local flown = {}
 local poll = 0
 local explosions, barrels = {}, {}
 
-local stats = { units = 0, vitals = 0, activity = 0, sight = 0, aim = 0, projectiles = 0, events = 0, sight_rows = 0, marks = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
+local stats = { units = 0, vitals = 0, activity = 0, sight = 0, projectiles = 0, events = 0, sight_rows = 0, marks = 0, unit_rows = 0, vital_rows = 0,
 	work_rows = 0, rank_rows = 0, hurt_rows = 0, pieces = 0, key_rows = 0,
 	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, same_frame_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
 local wallStart
@@ -366,8 +361,6 @@ local function meet(id, defID, team, builder)
 	known[id] = defID
 	allCount = add(all, allAt, allCount, id)
 	if mobileDef[defID] then mobileCount = add(mobile, mobileAt, mobileCount, id) end
-	local weapons = #(UnitDefs[defID].weapons or {})
-	if weapons > 0 then armed[id] = math.min(weapons, 8) end
 	local x, y, z = spGetUnitPosition(id)
 	local fx, fy, fz, _, _, _, ux, uy, uz = spGetUnitDirection(id)
 	local health, maxHealth, _, _, build = spGetUnitHealth(id)
@@ -388,7 +381,7 @@ local function forget(id)
 	known[id] = nil
 	allCount = drop(all, allAt, allCount, id)
 	mobileCount = drop(mobile, mobileAt, mobileCount, id)
-	last[id], vital[id], doing[id], dirty[id], armed[id], sight[id] = nil, nil, nil, nil, nil, nil
+	last[id], vital[id], doing[id], dirty[id], sight[id] = nil, nil, nil, nil, nil
 	work[id], rank[id], hurt[id], early[id], pieceState[id] = nil, nil, nil, nil, nil
 end
 
@@ -404,10 +397,12 @@ end
 -- only where one bends, the sample before lying off the straight line from the last keyframe to the new sample by more
 -- than A_TOL or T_TOL. A unit's first sample writes a keyframe for each piece not at rest. Every PIECE_SAMPLE frames.
 -- `K`: u32 n, then n frames (u32), n unit ids (u16), n piece numbers (u16, from 1), 3n angles (s32, A_SCALE a radian:
--- pitch, yaw, roll) and 3n place components (s16, T_SCALE an elmo).
-local A_SCALE, T_SCALE = 16384, 16
+-- pitch, yaw, roll) and 3n place components (s16, T_SCALE an elmo). A ninth of the tolerance below and a quarter of an
+-- elmo: finer numbers only made the tape bigger (docs/design/2026-11-15-game-tape.md section 10).
+local A_SCALE, T_SCALE = 1024, 4
 local A_TOL, T_TOL = 0.0087, 0.25 -- half a degree, a quarter of an elmo
 local PIECE_SAMPLE = 6 -- frames between looks at the pieces: a walking unit's legs bend at every look
+local SLICE = 300 -- the tape's slice (crates/tape SLICE_FRAMES): every piece that moved is a keyframe at its end
 local TWO_PI = 2 * math.pi
 local pieceTypes = {} -- def id -> { n, parent = {}, ox = {}, oy = {}, oz = {} }
 local keyRows = { f = {}, u = {}, p = {}, a = {}, t = {}, n = 0 }
@@ -439,11 +434,13 @@ local function keyRow(frame, id, p, ax, ay, az, x, y, z)
 	k.a[i - 2], k.a[i - 1], k.a[i] = round(ax * A_SCALE), round(ay * A_SCALE), round(az * A_SCALE)
 	k.t[i - 2], k.t[i - 1], k.t[i] = round(x * T_SCALE), round(y * T_SCALE), round(z * T_SCALE)
 end
--- Whether a piece's last sample differs from its last keyframe (a piece looked at only because its parent moved may
--- not have moved itself).
-local function differs(ks, ss, K)
-	return math.abs(ss[K + 2] - ks[K + 2]) > A_TOL or math.abs(ss[K + 3] - ks[K + 3]) > A_TOL or math.abs(ss[K + 4] - ks[K + 4]) > A_TOL
-		or math.abs(ss[K + 5] - ks[K + 5]) > T_TOL or math.abs(ss[K + 6] - ks[K + 6]) > T_TOL or math.abs(ss[K + 7] - ks[K + 7]) > T_TOL
+-- Whether two of a piece's six numbers as written differ (`kq` its last keyframe's, `sq` its last sample's: a piece
+-- looked at only because its parent moved may not have moved itself).
+local function apart(a, b, Q)
+	for j = 1, 6 do
+		if a[Q + j] ~= b[Q + j] then return true end
+	end
+	return false
 end
 -- A keyframe of a piece, after the one its stretch starts from when that was not written (a piece at rest when its
 -- unit was first looked at, which moves later): the reader draws a straight stretch between written keyframes.
@@ -472,7 +469,7 @@ local function flushPieces(id)
 	local ks, ss = st.k, st.s
 	for p = 1, t.n do
 		local K = (p - 1) * 7
-		if ss[K + 1] and ss[K + 1] > ks[K + 1] and differs(ks, ss, K) then
+		if ss[K + 1] and ss[K + 1] > ks[K + 1] and apart(st.kq, st.sq, (p - 1) * 6) then
 			bend(st, id, p, ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
 		end
 	end
@@ -494,10 +491,10 @@ local function samplePieces(frame)
 		local st = pieceState[id]
 		local fresh = not st
 		if fresh then
-			st = { ms = {}, k = {}, s = {}, c = {}, w = {}, kw = {} }
+			st = { ms = {}, k = {}, s = {}, c = {}, w = {}, kw = {}, kq = {}, sq = {} }
 			pieceState[id] = st
 		end
-		local ms, ks, ss, ch, was = st.ms, st.k, st.s, st.c, st.w
+		local ms, ks, ss, ch, was, kq, sq = st.ms, st.k, st.s, st.c, st.w, st.kq, st.sq
 		-- Which pieces moved in model space.
 		local any = fresh
 		for p = 1, n do
@@ -518,11 +515,13 @@ local function samplePieces(frame)
 			local q = t.parent[p]
 			local moved = fresh or ch[p] or (q > 0 and ch[q])
 			if not moved and was[p] then
-				-- It stopped: its last sample is where it stands, a keyframe unless it is the last one.
-				local K = (p - 1) * 7
-				if ss[K + 1] > ks[K + 1] and differs(ks, ss, K) then
+				-- It stopped: its last sample is where it stands, a keyframe unless it is the last one (or written as
+				-- the same numbers): what follows a stop never reaches back past it.
+				local K, Q = (p - 1) * 7, (p - 1) * 6
+				if ss[K + 1] > ks[K + 1] and apart(kq, sq, Q) then
 					bend(st, id, p, ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
 					for j = 1, 7 do ks[K + j] = ss[K + j] end
+					for j = 1, 6 do kq[Q + j] = sq[Q + j] end
 				end
 			end
 			was[p] = moved and not fresh
@@ -554,36 +553,60 @@ local function samplePieces(frame)
 					-- R12 is the second row's third entry (h), R02 the first's (g), R22 (ii), R10 (bb), R11 (e).
 					if h > 1 then h = 1 elseif h < -1 then h = -1 end
 					local ax, ay, az = asin(-h), atan2q(g, ii), atan2q(bb, e)
-					local K = (p - 1) * 7
+					local K, Q = (p - 1) * 7, (p - 1) * 6
+					if not fresh then ay, az = unwound(ay, ss[K + 3]), unwound(az, ss[K + 4]) end
+					-- (its six numbers as written: `keyRow`'s rounding)
+					local q1, q2, q3 = floor(ax * A_SCALE + 0.5), floor(ay * A_SCALE + 0.5), floor(az * A_SCALE + 0.5)
+					local q4, q5, q6 = floor(x * T_SCALE + 0.5), floor(y * T_SCALE + 0.5), floor(z * T_SCALE + 0.5)
 					if fresh then
 						ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = frame, ax, ay, az, x, y, z
 						ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7] = frame, ax, ay, az, x, y, z
+						kq[Q + 1], kq[Q + 2], kq[Q + 3], kq[Q + 4], kq[Q + 5], kq[Q + 6] = q1, q2, q3, q4, q5, q6
+						sq[Q + 1], sq[Q + 2], sq[Q + 3], sq[Q + 4], sq[Q + 5], sq[Q + 6] = q1, q2, q3, q4, q5, q6
 						st.kw[p] = false
-						if abs(ax) > A_TOL or abs(ay) > A_TOL or abs(az) > A_TOL or abs(x - t.ox[p]) > T_TOL or abs(y - t.oy[p]) > T_TOL or abs(z - t.oz[p]) > T_TOL then
+						-- (a piece with no keyframe is read at rest: one not exactly there is a keyframe at once)
+						if q1 ~= 0 or q2 ~= 0 or q3 ~= 0 or q4 ~= round(t.ox[p] * T_SCALE) or q5 ~= round(t.oy[p] * T_SCALE) or q6 ~= round(t.oz[p] * T_SCALE) then
 							keyRow(frame, id, p, ax, ay, az, x, y, z)
 							st.kw[p] = true
 						end
 					else
-						ay, az = unwound(ay, ss[K + 3]), unwound(az, ss[K + 4])
-						-- The path since the last keyframe: the last sample at its frame and, when the piece stood
-						-- still since, the same value one look ago; each one off the straight line from the last
-						-- keyframe to this sample is a bend, written as a keyframe.
-						local fs = ss[K + 1]
-						local hold = frame - PIECE_SAMPLE
-						for pass = 1, fs < hold and 2 or 1 do
-							local at = pass == 1 and fs or hold
-							local fk = ks[K + 1]
-							if at > fk then
-								local u = (at - fk) / (frame - fk)
-								if abs(ss[K + 2] - (ks[K + 2] + u * (ax - ks[K + 2]))) > A_TOL or abs(ss[K + 3] - (ks[K + 3] + u * (ay - ks[K + 3]))) > A_TOL
-									or abs(ss[K + 4] - (ks[K + 4] + u * (az - ks[K + 4]))) > A_TOL or abs(ss[K + 5] - (ks[K + 5] + u * (x - ks[K + 5]))) > T_TOL
-									or abs(ss[K + 6] - (ks[K + 6] + u * (y - ks[K + 6]))) > T_TOL or abs(ss[K + 7] - (ks[K + 7] + u * (z - ks[K + 7]))) > T_TOL then
-									bend(st, id, p, at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
-									ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7]
+						-- The path since the last keyframe: the last sample at its frame and, when the piece was not
+						-- looked at since, the same value one look ago; each is a keyframe when it is off the straight
+						-- line from the last keyframe to this sample (a bend), and always where a piece that stood
+						-- began to move again (standing at its last keyframe, or not looked at), so that a stretch
+						-- never spans a stand: a slice cut while the game is played, with the piece standing, would
+						-- read it standing where the later keyframe made it creep. A piece standing at its last
+						-- keyframe that has not moved (a parent's child, looked at for its parent) has nothing to test.
+						local same = q1 == sq[Q + 1] and q2 == sq[Q + 2] and q3 == sq[Q + 3] and q4 == sq[Q + 4] and q5 == sq[Q + 5] and q6 == sq[Q + 6]
+						local standing = not apart(kq, sq, Q)
+						if not (same and standing) then
+							local fs = ss[K + 1]
+							local hold = frame - PIECE_SAMPLE
+							for pass = 1, fs < hold and 2 or 1 do
+								local at = pass == 1 and fs or hold
+								local fk = ks[K + 1]
+								if at > fk then
+									local u = (at - fk) / (frame - fk)
+									if not same and (pass == 2 or standing) or abs(ss[K + 2] - (ks[K + 2] + u * (ax - ks[K + 2]))) > A_TOL or abs(ss[K + 3] - (ks[K + 3] + u * (ay - ks[K + 3]))) > A_TOL
+										or abs(ss[K + 4] - (ks[K + 4] + u * (az - ks[K + 4]))) > A_TOL or abs(ss[K + 5] - (ks[K + 5] + u * (x - ks[K + 5]))) > T_TOL
+										or abs(ss[K + 6] - (ks[K + 6] + u * (y - ks[K + 6]))) > T_TOL or abs(ss[K + 7] - (ks[K + 7] + u * (z - ks[K + 7]))) > T_TOL then
+										bend(st, id, p, at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
+										ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7]
+										for j = 1, 6 do kq[Q + j] = sq[Q + j] end
+									end
 								end
 							end
 						end
 						ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7] = frame, ax, ay, az, x, y, z
+						sq[Q + 1], sq[Q + 2], sq[Q + 3], sq[Q + 4], sq[Q + 5], sq[Q + 6] = q1, q2, q3, q4, q5, q6
+						-- At a slice's end a piece that moved since its last keyframe is one, so that nothing in a slice
+						-- hangs on a keyframe after it: a tape that grows while the game is played cuts a slice as
+						-- soon as the stream has passed its end, and a slow turn's next keyframe may be far off.
+						if frame % SLICE == 0 and ks[K + 1] < frame and apart(kq, sq, Q) then
+							bend(st, id, p, frame, ax, ay, az, x, y, z)
+							ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = frame, ax, ay, az, x, y, z
+							for j = 1, 6 do kq[Q + j] = sq[Q + j] end
+						end
 					end
 				end
 			end
@@ -593,7 +616,7 @@ local function samplePieces(frame)
 end
 
 -- `U`: u32 frame, u32 n, then n unit ids (u16), 3n position components (s32, quarters of an elmo) and 3n angles
--- (s16: heading, pitch, roll, 4096ths of a turn). Only the units that moved or turned since their last row.
+-- (s16: heading, pitch, roll, 1024ths of a turn). Only the units that moved or turned since their last row.
 local function sampleUnits(frame)
 	local ids, pos, rot, n = {}, {}, {}, 0
 	for i = 1, mobileCount do
@@ -801,32 +824,6 @@ local function flushHurt(frame)
 	if n > 0 then
 		record("H", packU32(frame, n) .. packF32(rows))
 		stats.hurt_rows = stats.hurt_rows + n
-	end
-end
-
--- `A`: u32 frame, u32 n, then n rows of four s16: unit id, weapon number (from 1), and where the weapon points in
--- the world: its heading and its pitch, 1024ths of a turn. Written when either changed.
-local function sampleAim(frame)
-	local rows, n = {}, 0
-	for id, weapons in pairs(armed) do
-		for w = 1, weapons do
-			local _, _, _, dx, dy, dz = spGetUnitWeaponVectors(id, w)
-			if dx then
-				local key = id * 16 + w
-				local yaw, pitch = turns(atan2(dx, dz), AIM), turns(asin(dy > 1 and 1 or (dy < -1 and -1 or dy)), AIM)
-				local packed = yaw * 4096 + pitch
-				if aimLast[key] ~= packed then
-					aimLast[key] = packed
-					local k = n * 4
-					rows[k + 1], rows[k + 2], rows[k + 3], rows[k + 4] = id, w, yaw, pitch
-					n = n + 1
-				end
-			end
-		end
-	end
-	if n > 0 then
-		record("A", packU32(frame, n) .. packS16(rows))
-		stats.aim_rows = stats.aim_rows + n
 	end
 end
 
@@ -1053,7 +1050,6 @@ function widget:Initialize()
 		widgetHandler:RemoveWidget(self)
 		return
 	end
-	aimOn = VFS.FileExists(OUT .. "tape.aim")
 	piecesOn = VFS.FileExists(OUT .. "tape.pieces")
 	skipOn = VFS.FileExists(OUT .. "records.off")
 	out = io.open(OUT .. "tape.raw", "wb")
@@ -1098,9 +1094,9 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 4, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
-		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE, aim_scale = AIM,
-		aim = aimOn and 1 or 0, pieces = piecesOn and 1 or 0, piece_angle_scale = A_SCALE, piece_place_scale = T_SCALE,
+		t = "header", format = "within-reason-tape-raw", version = 5, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE,
+		pieces = piecesOn and 1 or 0, piece_angle_scale = A_SCALE, piece_place_scale = T_SCALE,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
 			tidal = Game.tidal, low = low, high = high, water_damage = Game.waterDamage },
 		teams = teams, spots = spots,
@@ -1159,11 +1155,6 @@ function widget:GameFrame(frame)
 		t = spGetTimer()
 		sampleSight(frame)
 		timed("sight", t)
-	end
-	if aimOn and frame % SAMPLE == 0 then
-		t = spGetTimer()
-		sampleAim(frame)
-		timed("aim", t)
 	end
 	t = spGetTimer()
 	sampleProjectiles(frame)
@@ -1277,8 +1268,8 @@ local function close(winners)
 	put({ t = "over", f = spGetGameFrame(), winners = winners or {} })
 	out:close()
 	out = nil
-	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, pieces %.1f (%d keyframes), vitals %.1f, activity %.1f, sight %.1f, aim %.1f, projectiles %.1f; %d marks",
-		frameNow, bytes, stats.units, stats.pieces, stats.key_rows, stats.vitals, stats.activity, stats.sight, stats.aim, stats.projectiles, stats.marks))
+	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, pieces %.1f (%d keyframes), vitals %.1f, activity %.1f, sight %.1f, projectiles %.1f; %d marks",
+		frameNow, bytes, stats.units, stats.pieces, stats.key_rows, stats.vitals, stats.activity, stats.sight, stats.projectiles, stats.marks))
 end
 
 -- The players' marks on the map: a point with its words, a line, an erase (which takes away what lies within its

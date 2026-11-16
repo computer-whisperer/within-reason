@@ -1,16 +1,46 @@
 //! Cuts a game into the tape's chunks.
 
-use crate::format::{END, MAGIC, Result, W, write_chunk};
+use crate::format::{END, MAGIC, Result, W, write_chunk, write_stored};
 use crate::game::Game;
 use crate::slice::{KeyUnit, Slice, Track};
 use crate::tables::{Ground, GroundPatch, UnitRow, encode_features, encode_patches, encode_units};
 use crate::{LINGER_FRAMES, SLICE_FRAMES};
 use serde_json::{Value, json};
 
-const LEVEL: i32 = 12;
+/// zstd's level for a tape: 19 packs a tenth as fast as 12 and 5.6 % smaller (docs/design/2026-11-15-game-tape.md
+/// section 10), so `pack` packs the slices on every core at once. A growing tape, superseded at its game's end, is
+/// packed at `GROWING_LEVEL`.
+const LEVEL: i32 = 19;
+const GROWING_LEVEL: i32 = 3;
+/// The most threads `pack` packs slices on (an arena runs games beside it).
+const MAX_THREADS: usize = 16;
 
 fn compress(raw: &[u8]) -> Option<Vec<u8>> {
     zstd::bulk::compress(raw, LEVEL).ok()
+}
+
+/// `job` of each of 0..n on every core at once, the answers in order.
+fn on_every_core<T: Send>(n: u32, job: impl Fn(u32) -> T + Sync) -> Vec<T> {
+    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    let threads = std::thread::available_parallelism().map_or(1, |c| c.get()).min(MAX_THREADS).min(n as usize).max(1);
+    let next = AtomicU32::new(0);
+    let answers: Mutex<Vec<Option<T>>> = Mutex::new((0..n).map(|_| None).collect());
+    std::thread::scope(|scope| {
+        for _ in 0..threads {
+            scope.spawn(|| {
+                loop {
+                    let k = next.fetch_add(1, Ordering::Relaxed);
+                    if k >= n {
+                        break;
+                    }
+                    let answer = job(k);
+                    answers.lock().unwrap()[k as usize] = Some(answer);
+                }
+            });
+        }
+    });
+    answers.into_inner().unwrap().into_iter().map(|a| a.expect("every job answered")).collect()
 }
 
 /// What `pack` wrote: a chunk kind with its count, raw bytes and stored bytes; and what each section of the slices
@@ -39,7 +69,7 @@ impl Report {
 pub fn cut(game: &Game, first: u32) -> Slice {
     let last = first + SLICE_FRAMES;
     let within = |frame: u32| frame > first && frame <= last;
-    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), has_audit: game.has_audit(), has_pieces: game.has_pieces(), ..Default::default() };
+    let mut slice = Slice { first, frames: SLICE_FRAMES, has_pieces: game.has_pieces(), ..Default::default() };
     let rests = if slice.has_pieces { game.piece_rest() } else { Default::default() };
     for (row, u) in game.units.iter().enumerate() {
         let row = row as u32;
@@ -50,7 +80,7 @@ pub fn cut(game: &Game, first: u32) -> Slice {
             continue;
         }
         if u.alive(first) {
-            slice.key.push(KeyUnit { row, vital: u.vital(first), activity: u.doing(first), pose: u.mobile.then(|| u.pose(first)), aim: u.aims(first) });
+            slice.key.push(KeyUnit { row, vital: u.vital(first), activity: u.doing(first), pose: u.mobile.then(|| u.pose(first)) });
         }
         let from = u.samples.partition_point(|(f, _)| *f <= first);
         let to = u.samples.partition_point(|(f, _)| *f <= last);
@@ -59,22 +89,15 @@ pub fn cut(game: &Game, first: u32) -> Slice {
         }
         slice.vitals.extend(u.vitals.iter().filter(|(f, _)| within(*f)).map(|(f, v)| (*f, row, *v)));
         slice.activity.extend(u.activity.iter().filter(|(f, _)| within(*f)).map(|(f, a)| (*f, row, *a)));
-        slice.aim.extend(u.aim.iter().filter(|(f, ..)| within(*f)).map(|(f, w, d)| (*f, row, *w, *d)));
-        if slice.has_sight {
-            if u.alive(first) {
-                slice.key_sight.push(u.sight(first, game.ally(u.team)));
-            }
-            slice.sight.extend(u.sight.iter().filter(|(f, _)| within(*f)).map(|(f, s)| (*f, row, *s)));
+        if u.alive(first) {
+            slice.key_sight.push(u.sight(first, game.ally(u.team)));
+            slice.key_work.push(u.work_at(first));
+            slice.key_rank.push(u.rank_at(first));
         }
-        if slice.has_audit {
-            if u.alive(first) {
-                slice.key_work.push(u.work_at(first));
-                slice.key_rank.push(u.rank_at(first));
-            }
-            slice.work.extend(u.work.iter().filter(|(f, _)| within(*f)).map(|(f, w)| (*f, row, *w)));
-            slice.rank.extend(u.rank.iter().filter(|(f, _)| within(*f)).map(|(f, k)| (*f, row, *k)));
-            slice.hurt.extend(u.hurt.iter().filter(|(f, _)| within(*f)).map(|(f, h)| (*f, row, *h)));
-        }
+        slice.sight.extend(u.sight.iter().filter(|(f, _)| within(*f)).map(|(f, s)| (*f, row, *s)));
+        slice.work.extend(u.work.iter().filter(|(f, _)| within(*f)).map(|(f, w)| (*f, row, *w)));
+        slice.rank.extend(u.rank.iter().filter(|(f, _)| within(*f)).map(|(f, k)| (*f, row, *k)));
+        slice.hurt.extend(u.hurt.iter().filter(|(f, _)| within(*f)).map(|(f, h)| (*f, row, *h)));
         if slice.has_pieces && !u.keys.is_empty() {
             // Each piece's path through the slice, from its numbers at the slice's (or the unit's) first frame to
             // those at its last (or the unit's death).
@@ -109,7 +132,6 @@ pub fn cut(game: &Game, first: u32) -> Slice {
     slice.sight.sort_by_key(|s| (s.0, s.1));
     slice.vitals.sort_by_key(|v| (v.0, v.1));
     slice.activity.sort_by_key(|a| (a.0, a.1));
-    slice.aim.sort_by_key(|a| (a.0, a.1, a.2));
     slice.orders = game.orders.iter().filter(|o| within(o.frame)).cloned().collect();
     slice.projectiles = game.projectiles.iter().filter(|p| p.begin <= last && p.end + LINGER_FRAMES > first).cloned().collect();
     slice.bursts = game.bursts.iter().filter(|b| b.frame + LINGER_FRAMES > first && b.frame <= last).cloned().collect();
@@ -134,10 +156,10 @@ fn teams_table(game: &Game) -> Value {
             list.push(Value::Array(row[1..].to_vec()));
         }
     }
-    let mut columns = vec!["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend"];
-    if game.raw_version >= 3 {
-        columns.extend(["metal_excess", "metal_sent", "metal_received", "energy_excess", "energy_sent", "energy_received"]);
-    }
+    let columns = [
+        "metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_excess", "metal_sent",
+        "metal_received", "energy_excess", "energy_sent", "energy_received",
+    ];
     // The engine's statistics of each team, a row as it added an entry: [frame, the numbers].
     let mut stats: serde_json::Map<String, Value> = Default::default();
     for (frame, rows) in &game.team_stats {
@@ -161,10 +183,7 @@ fn head_chunk(game: &Game, slices: u32, last_frame: u32, growing: bool) -> Vec<u
     if let Some(h) = head.as_object_mut() {
         h.remove("t");
         h.insert("format".into(), json!("within-reason-tape"));
-        // 2: a slice may end with what each ally team saw (when the header has `ally_teams`); 3: and with what the
-        // waste audit reads, and the tables have its columns (from a raw stream of version 3).
-        h.insert("version".into(), json!(if game.has_pieces() { 4 } else if game.has_audit() { 3 } else { 2 }));
-        h.insert("raw_version".into(), json!(game.raw_version.max(1)));
+        h.insert("version".into(), json!(crate::FORMAT));
         h.insert("slice_frames".into(), json!(SLICE_FRAMES));
         h.insert("linger_frames".into(), json!(LINGER_FRAMES));
         h.insert("slices".into(), json!(slices));
@@ -199,22 +218,19 @@ fn ground_of(game: &Game, margin: f32) -> Ground {
     ground
 }
 
-/// The whole-game tables, after the slices. `FMET` (format 3): each wreck's metal as it changed, [frame, the
-/// feature's index in `FEAT`, whole metal].
+/// The whole-game tables, after the slices. `FMET`: each wreck's metal as it changed, [frame, the feature's index in
+/// `FEAT`, whole metal].
 fn tables(game: &Game, ground: &Ground) -> Vec<(&'static [u8; 4], Vec<u8>)> {
     let rows: Vec<UnitRow> = game.units.iter().map(UnitRow::of).collect();
     let patches: Vec<GroundPatch> = game.patches.iter().map(|p| GroundPatch { frame: p.frame, x: p.x, z: p.z, w: p.w, h: p.h, heights: p.heights.iter().map(|h| ground.quantize(*h)).collect() }).collect();
-    let mut tables: Vec<(&'static [u8; 4], Vec<u8>)> = vec![
+    vec![
         (b"UNIT", encode_units(&rows)),
         (b"FEAT", encode_features(&game.features)),
         (b"TEAM", serde_json::to_vec(&teams_table(game)).unwrap()),
         (b"EVNT", serde_json::to_vec(&game.events).unwrap()),
         (b"GPAT", encode_patches(&patches)),
-    ];
-    if game.has_audit() {
-        tables.push((b"FMET", serde_json::to_vec(&game.feature_metal).unwrap()));
-    }
-    tables
+        (b"FMET", serde_json::to_vec(&game.feature_metal).unwrap()),
+    ]
 }
 
 /// The index and the footer after it, appended to `file`; `base` is the file's length before `file` (whose offsets
@@ -234,7 +250,9 @@ fn close(file: &mut Vec<u8>, base: u64, index: &[([u8; 4], u64, u32, u32)]) -> u
     len
 }
 
-pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
+/// The game's tape, compact. With `account`, the report says what each slice section weighs packed alone (which packs
+/// them all a second time).
+pub fn pack(game: &Game, account: bool) -> Result<(Vec<u8>, Report)> {
     let mut file = MAGIC.to_vec();
     let mut report = Report::default();
     // (kind, offset, length, first frame)
@@ -251,26 +269,49 @@ pub fn pack(game: &Game) -> Result<(Vec<u8>, Report)> {
     let ground = ground_of(game, 0.0);
     put(&mut file, b"GRND", ground.encode(), 0);
 
+    // The slices, cut and packed on every core: each its raw length, what is stored (packed, or raw when zstd fails)
+    // and, with `account`, each section's raw and packed lengths.
     let birth = |row: u32| game.units[row as usize].birth;
-    let mut sections: Vec<(&'static str, u64, u64)> = crate::slice::SECTIONS.iter().map(|name| (*name, 0, 0)).collect();
-    for k in 0..slices {
-        let slice = cut(game, k * SLICE_FRAMES);
-        let (bytes, ends) = slice.encode_sections(&birth);
-        let mut from = 8; // after the slice's first frame and length
-        for (section, end) in sections.iter_mut().zip(&ends) {
-            section.1 += (end - from) as u64;
-            section.2 += compress(&bytes[from..*end]).map_or(0, |c| c.len() as u64);
-            from = *end;
+    let packed = on_every_core(slices, |k| {
+        let (bytes, ends) = cut(game, k * SLICE_FRAMES).encode_sections(&birth);
+        let mut weighed = Vec::new();
+        if account {
+            let mut from = 8; // after the slice's first frame and length
+            for end in &ends {
+                weighed.push(((end - from) as u64, compress(&bytes[from..*end]).map_or(0, |c| c.len() as u64)));
+                from = *end;
+            }
         }
-        put(&mut file, b"SLIC", bytes, k * SLICE_FRAMES);
+        let stored = compress(&bytes);
+        (bytes.len(), stored.ok_or(bytes), weighed)
+    });
+    let mut sections: Vec<(&'static str, u64, u64)> = crate::slice::SECTIONS.iter().map(|name| (*name, 0, 0)).collect();
+    for (k, (raw_len, stored, weighed)) in packed.into_iter().enumerate() {
+        let (offset, len) = match &stored {
+            Ok(packed) => write_stored(&mut file, b"SLIC", raw_len, packed, true),
+            Err(raw) => write_stored(&mut file, b"SLIC", raw_len, raw, false),
+        };
+        report.add(b"SLIC", raw_len, len as usize);
+        index.push((*b"SLIC", offset, len, k as u32 * SLICE_FRAMES));
+        for (section, (raw, packed)) in sections.iter_mut().zip(weighed) {
+            section.1 += raw;
+            section.2 += packed;
+        }
     }
+    let mut put = |file: &mut Vec<u8>, kind: &[u8; 4], raw: Vec<u8>, first: u32| {
+        let (offset, len) = write_chunk(file, kind, &raw, compress(&raw));
+        report.add(kind, raw.len(), len as usize);
+        index.push((*kind, offset, len, first));
+    };
     for (kind, raw) in tables(game, &ground) {
         put(&mut file, kind, raw, 0);
     }
     let table_len = 4 + index.len() * 20;
     let len = close(&mut file, 0, &index);
     report.add(b"INDX", table_len, len as usize);
-    report.sections = sections;
+    if account {
+        report.sections = sections;
+    }
     Ok((file, report))
 }
 
@@ -316,7 +357,7 @@ impl Growing {
         let mut out = Vec::new();
         let base = self.len;
         let put = |out: &mut Vec<u8>, kind: &[u8; 4], raw: Vec<u8>| {
-            let (offset, len) = write_chunk(out, kind, &raw, compress(&raw));
+            let (offset, len) = write_chunk(out, kind, &raw, zstd::bulk::compress(&raw, GROWING_LEVEL).ok());
             (base + offset, len)
         };
         if self.ground.is_none() {

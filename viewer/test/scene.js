@@ -189,34 +189,29 @@ setTimeout(() => fail("timed out"), 300000);
   if (overlay.hidden || overlay.w !== overlay.cw || overlay.h !== overlay.ch) fail(`the overlay over the scene: ${JSON.stringify(overlay)}`);
   await shot("orders-and-ranges.png");
   await evaluate("(Object.assign(window.viewer.scene.layers, { orders: false, ranges: false }), window.viewer.scene.redraw())");
-  // As one side saw it (a tape that says what each side saw): some of the other side's units are ghosts halfway
-  // through, and none of the chosen side's.
-  const sight = await evaluate(`(() => { const s = window.viewer.scene; if (!s.tape.hasSight) return null;
-    const select = document.getElementById("seen-by"); select.value = "0"; select.dispatchEvent(new Event("change")); return true; })()`);
-  let sightWords = "the tape does not say what each side saw";
-  if (sight) {
-    await settled("as side 1 saw it");
-    const counts = await evaluate(`(() => { const s = window.viewer.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
-      const c = { own: 0, ownGhost: 0, other: 0, ghost: 0, radar: 0, marks: (s.tape.events || []).filter((e) => e.k === "mark").length };
-      for (let i = 0; i < st.units.length; i += 16) { const f = st.units[i + 12]; if (ally.get(st.units[i + 11]) === 0) { c.own++; if (f & 8) c.ownGhost++; } else { c.other++; if (f & 8) c.ghost++; if ((f & 24) === 24) c.radar++; } }
-      return c; })()`);
-    if (counts.ownGhost || !counts.ghost || counts.ghost >= counts.other) fail(`as side 1 saw it: ${JSON.stringify(counts)}`);
-    await shot("seen-by-side-1.png");
-    await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "-1"; select.dispatchEvent(new Event("change")); })()`);
-    sightWords = `as side 1 saw it: ${counts.ghost} of the other side's ${counts.other} units unseen (${counts.radar} of them on its radar), none of its own ${counts.own}; ${counts.marks} players' marks in the game`;
-    // With a record: what the tape says our side saw against what our bot's record says it saw, at a few moments.
-    if (!(await evaluate("window.viewer.match.tapeOnly"))) {
-      const rows = [];
-      for (const share of [0.2, 0.4, 0.6, 0.8]) {
-        await evaluate(`window.viewer.seek(${Math.round(last * share)})`);
-        await settled(`the sight at ${share}`);
-        rows.push(await evaluate(`(() => { const v = window.viewer, s = v.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
-          const ours = ally.get(v.match.seats[0].team); let sight = 0, radar = 0, all = 0;
-          for (let i = 0, j = 0; i < st.units.length; i += 16, j++) { if (ally.get(st.units[i + 11]) === ours) continue; all++; if (st.seen[j] & (1 << ours)) sight++; else if (st.seen[j] & (1 << (ours + 16))) radar++; }
-          return WR.clock(v.frame) + ": tape " + sight + " in sight + " + radar + " on radar of " + all + ", the record " + WR.stateAt(v.match, v.frame).enemies.length; })()`));
-      }
-      sightWords += `; ours against the record: ${rows.join("; ")}`;
+  // As one side saw it: some of the other side's units are ghosts halfway through, and none of the chosen side's.
+  await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "0"; select.dispatchEvent(new Event("change")); })()`);
+  await settled("as side 1 saw it");
+  const counts = await evaluate(`(() => { const s = window.viewer.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
+    const c = { own: 0, ownGhost: 0, other: 0, ghost: 0, radar: 0, marks: (s.tape.events || []).filter((e) => e.k === "mark").length };
+    for (let i = 0; i < st.units.length; i += 16) { const f = st.units[i + 12]; if (ally.get(st.units[i + 11]) === 0) { c.own++; if (f & 8) c.ownGhost++; } else { c.other++; if (f & 8) c.ghost++; if ((f & 24) === 24) c.radar++; } }
+    return c; })()`);
+  if (counts.ownGhost || !counts.ghost || counts.ghost >= counts.other) fail(`as side 1 saw it: ${JSON.stringify(counts)}`);
+  await shot("seen-by-side-1.png");
+  await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "-1"; select.dispatchEvent(new Event("change")); })()`);
+  let sightWords = `as side 1 saw it: ${counts.ghost} of the other side's ${counts.other} units unseen (${counts.radar} of them on its radar), none of its own ${counts.own}; ${counts.marks} players' marks in the game`;
+  // With a record: what the tape says our side saw against what our bot's record says it saw, at a few moments.
+  if (!(await evaluate("window.viewer.match.tapeOnly"))) {
+    const rows = [];
+    for (const share of [0.2, 0.4, 0.6, 0.8]) {
+      await evaluate(`window.viewer.seek(${Math.round(last * share)})`);
+      await settled(`the sight at ${share}`);
+      rows.push(await evaluate(`(() => { const v = window.viewer, s = v.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
+        const ours = ally.get(v.match.seats[0].team); let sight = 0, radar = 0, all = 0;
+        for (let i = 0, j = 0; i < st.units.length; i += 16, j++) { if (ally.get(st.units[i + 11]) === ours) continue; all++; if (st.seen[j] & (1 << ours)) sight++; else if (st.seen[j] & (1 << (ours + 16))) radar++; }
+        return WR.clock(v.frame) + ": tape " + sight + " in sight + " + radar + " on radar of " + all + ", the record " + WR.stateAt(v.match, v.frame).enemies.length; })()`));
     }
+    sightWords += `; ours against the record: ${rows.join("; ")}`;
   }
   // The side pane: with no record of ours, each side's numbers from the tape.
   const now = await evaluate(`(() => ({ tapeOnly: document.body.dataset.tapeonly === "1", sides: document.querySelectorAll("#now table tr").length - 1, text: document.getElementById("now").textContent }))()`);

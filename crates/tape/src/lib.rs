@@ -16,3 +16,6 @@ pub mod tables;
 pub const SLICE_FRAMES: u32 = 300;
 /// Frames a projectile's end and a burst stay in the slices after them, for a reader to draw the flash.
 pub const LINGER_FRAMES: u32 = 60;
+/// The tape's format, the one this crate writes and reads (`HEAD`'s `version`): a tape of another is made again from
+/// its demo (`run/tape.py <match dir>`).
+pub const FORMAT: u32 = 5;

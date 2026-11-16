@@ -351,8 +351,6 @@ const WV = (() => {
       select.append(option);
     }
     select.value = "-1";
-    select.disabled = !tape.hasSight;
-    select.title = tape.hasSight ? "" : "this tape does not say what each side saw: taped before 2026-11-15 night (run/tape.py again)";
   }
 
   /// The players' marks on the map that stand at a frame: [{f, kind, p, to, label, player, team, ally}]. A mark stands

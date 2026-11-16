@@ -125,7 +125,7 @@ pub fn finish(repo: &Path, dir: &Path) -> io::Result<String> {
     let started = Instant::now();
     let kept = || format!("the raw stream is kept: target/release/tape pack {}", raw_path.display());
     let game = tape::game::Game::ingest(&raw).map_err(|e| io::Error::other(format!("the raw stream does not read: {e}; {}", kept())))?;
-    let (file, _) = tape::pack::pack(&game).map_err(|e| io::Error::other(format!("the tape does not pack: {e}; {}", kept())))?;
+    let (file, _) = tape::pack::pack(&game, false).map_err(|e| io::Error::other(format!("the tape does not pack: {e}; {}", kept())))?;
     let unknown = if game.unknown.is_empty() { String::new() } else { format!("; passed over, records this build does not know (the widget is newer: rebuild and pack the raw stream again): {:?}", game.unknown) };
     let temp = dir.join("game.tape.new");
     fs::write(&temp, &file)?;

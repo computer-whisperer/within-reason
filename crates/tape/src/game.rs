@@ -18,10 +18,15 @@ pub struct Pose {
     pub rot: [i16; 3],
 }
 
-/// The angles' scale: this many to a turn. The codec's differences wrap at it, so it is the format's, not a tape's.
-pub const ANGLE_TURN: i32 = 4096;
+/// The angles' scale: this many to a turn (0.35 degrees). The codec's differences wrap at it, so it is the format's,
+/// not a tape's.
+pub const ANGLE_TURN: i32 = 1024;
 
-/// An angle (or a difference of two) brought into -2048..=2047.
+/// The raw stream's version this packer reads (`tape_dump.lua`'s header), and no other: a stream of an older widget is
+/// captured again from its demo.
+pub const RAW_VERSION: u32 = 5;
+
+/// An angle (or a difference of two) brought into -512..=511.
 pub fn wrap(angle: i32) -> i32 {
     (angle + ANGLE_TURN / 2).rem_euclid(ANGLE_TURN) - ANGLE_TURN / 2
 }
@@ -86,17 +91,15 @@ pub struct Unit {
     pub samples: Vec<(u32, Pose)>,
     pub vitals: Vec<(u32, Vital)>,
     pub activity: Vec<(u32, Activity)>,
-    /// (frame, weapon number from 1, where it points in the world: heading and pitch in `aim_scale`ths of a turn).
-    pub aim: Vec<(u32, u8, [i16; 2])>,
     /// (frame, [the ally teams that have it in sight, those that have it on radar]: bit `a` for ally team a).
     pub sight: Vec<(u32, [u16; 2])>,
-    /// What the waste audit reads (raw version 3), each a row when it changed: (frame, [a builder's build power in
+    /// What the waste audit reads, each a row when it changed: (frame, [a builder's build power in
     /// use in hundredths of its build speed, a factory's line]); (frame, [experience, full health now]); and (frame,
     /// the damage it took since the last such row).
     pub work: Vec<(u32, [u16; 2])>,
     pub rank: Vec<(u32, [f32; 2])>,
     pub hurt: Vec<(u32, f32)>,
-    /// Its pieces' keyframes (raw version 4), by piece and then frame.
+    /// Its pieces' keyframes, by piece and then frame (none captured `--no-pieces`).
     pub keys: Vec<PieceKey>,
 }
 
@@ -190,9 +193,6 @@ pub struct Patch {
 #[derive(Debug, Default)]
 pub struct Game {
     pub head: Value,
-    /// The raw stream's version: 2 writes the unit a builder builds and its queue as two numbers, and what each
-    /// ally team sees (`S`).
-    pub raw_version: u32,
     /// Each team's ally team, by team.
     pub ally_of: Vec<u8>,
     pub unit_defs: Vec<Value>,
@@ -297,10 +297,10 @@ impl Game {
                     game.last_frame = game.last_frame.max(frame);
                     match row.get("t").and_then(Value::as_str).unwrap_or("") {
                         "header" => {
-                            if num(&row, "angle_scale") as i32 != ANGLE_TURN {
-                                return err(format!("the raw stream's angles are {}ths of a turn; this reader's are {ANGLE_TURN}ths (a stream of an older widget: capture the game again)", num(&row, "angle_scale")));
+                            let version = num(&row, "version") as u32;
+                            if version != RAW_VERSION {
+                                return err(format!("the raw stream is of version {version}; this packer reads version {RAW_VERSION} (a stream of another widget: capture the game again)"));
                             }
-                            game.raw_version = num(&row, "version") as u32;
                             for t in row.get("teams").and_then(Value::as_array).into_iter().flatten() {
                                 let team = num(t, "team") as usize;
                                 if game.ally_of.len() <= team {
@@ -366,7 +366,7 @@ impl Game {
                                 game.units.push(Unit {
                                     engine_id: id, def, team: num(&row, "team") as u8, created: frame, finished: NEVER, destroyed: NEVER, killer: 0, builder,
                                     mobile: mobile_def.get(&def).copied().unwrap_or(true), max_health: num(&row, "max_health") as f32, birth, birth_vital,
-                                    death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), aim: Vec::new(), sight: Vec::new(),
+                                    death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), sight: Vec::new(),
                                     work: Vec::new(), rank: Vec::new(), hurt: Vec::new(), keys: Vec::new(),
                                 });
                             }
@@ -445,19 +445,10 @@ impl Game {
                 }
                 b'O' => {
                     let (frame, n) = (body.u32()?, body.u32()? as usize);
-                    // Version 1 wrote the unit it builds and its queue as one number, 65536 x the unit + the queue, a
-                    // float of 24 bits: the queue is lost when the unit's id is over 127, and is taken as unknown (0).
-                    let width = if game.raw_version >= 2 { 8 } else { 7 };
-                    let rows = f32s(&mut body, n * width)?;
-                    for row in rows.chunks_exact(width) {
+                    let rows = f32s(&mut body, n * 8)?;
+                    for row in rows.chunks_exact(8) {
                         let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
-                        let (builds, queue) = if width == 8 {
-                            (row[6] as u32, row[7].min(65535.0) as u16)
-                        } else {
-                            let packed = row[6] as u64;
-                            let builds = (packed >> 16) as u32;
-                            (builds, if builds > 127 { 0 } else { (packed & 0xffff) as u16 })
-                        };
+                        let (builds, queue) = (row[6] as u32, row[7].min(65535.0) as u16);
                         let activity = Activity { cmd: row[1] as i32, how: row[2] as u8, a: row[3] as i32, b: row[4] as i32, c: row[5] as i32, builds, queue };
                         game.units[at].activity.push((frame, activity));
                     }
@@ -504,14 +495,6 @@ impl Game {
                     for row in rows.chunks_exact(2) {
                         let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
                         game.units[at].hurt.push((frame, row[1]));
-                    }
-                }
-                b'A' => {
-                    let (frame, n) = (body.u32()?, body.u32()? as usize);
-                    for _ in 0..n {
-                        let row: Vec<i16> = (0..4).map(|_| body.u16().map(|v| v as i16)).collect::<Result<_>>()?;
-                        let Some(&at) = unit_at.get(&(row[0] as u32)) else { continue };
-                        game.units[at].aim.push((frame, row[1] as u8, [row[2], row[3]]));
                     }
                 }
                 b'P' => {
@@ -649,22 +632,6 @@ impl Unit {
         at_or_before(&self.activity, frame).copied().unwrap_or_default()
     }
 
-    /// Each weapon's direction as last written at or before `frame`: (weapon number, direction), by weapon number.
-    pub fn aims(&self, frame: u32) -> Vec<(u8, [i16; 2])> {
-        let mut out: Vec<(u8, [i16; 2])> = Vec::new();
-        for (f, weapon, dir) in &self.aim {
-            if *f > frame {
-                break;
-            }
-            match out.iter_mut().find(|(w, _)| w == weapon) {
-                Some(entry) => entry.1 = *dir,
-                None => out.push((*weapon, *dir)),
-            }
-        }
-        out.sort_by_key(|(w, _)| *w);
-        out
-    }
-
     pub fn team_at(&self, frame: u32) -> u8 {
         at_or_before(&self.given, frame).copied().unwrap_or(self.team)
     }
@@ -696,9 +663,9 @@ impl Unit {
 }
 
 impl Game {
-    /// Whether the stream has the units' moving pieces (raw version 4, captured with them).
+    /// Whether the stream has the units' moving pieces (not captured `--no-pieces`).
     pub fn has_pieces(&self) -> bool {
-        self.raw_version >= 4 && num(&self.head, "pieces") > 0.0
+        num(&self.head, "pieces") > 0.0
     }
 
     /// Each unit type's pieces at rest: each one's offset from its parent in the tape's units of a place
@@ -713,16 +680,6 @@ impl Game {
                 Some((num(d, "id") as u32, rest))
             })
             .collect()
-    }
-
-    /// Whether the stream has what the waste audit reads (raw version 3 on).
-    pub fn has_audit(&self) -> bool {
-        self.raw_version >= 3 && self.has_sight()
-    }
-
-    /// Whether the stream says what each ally team saw (raw version 2 on).
-    pub fn has_sight(&self) -> bool {
-        self.head.get("ally_teams").is_some()
     }
 
     pub fn ally(&self, team: u8) -> u8 {

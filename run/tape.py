@@ -7,14 +7,14 @@ game.tape, the one seekable file the 3D viewer reads (docs/harness/tape-format.m
     run/tape.py <demo.sdfz> [--label L]  any demo: makes run/matches/<unix time>-tape-<label>/ with game.tape in it
                                          (and with --records the per-team records too, as run/replay_match.py writes)
 
-    --aim            every weapon's direction as well (a fifth more raw stream; the viewer's aimed turrets)
-    --pieces         every unit's moving pieces as well: turrets, legs, arms (docs/design/2026-11-15-game-tape.md section 9)
+    --no-pieces      without the units' moving pieces (turrets, legs, arms; docs/design/2026-11-15-game-tape.md sections 9
+                     and 10): a 10v8's engine time 962 s against 1,250 to 1,550 with them, which are 44 MB of its 105
     --keep           keep the engine's write directory and tape.raw (a match's: <match dir>/tape-capture/)
     --no-check       skip reading the tape back against the raw stream
     --timeout S      seconds the engine may take (default: an hour); it is killed then and what it wrote is packed
     --port N         the local port the engine's demo server takes (default: by process id)
 
-A duel of twenty minutes takes under a minute; a 10v8 of thirty about a quarter of an hour, nearly all of it the
+A duel of twenty minutes takes about a minute; a 10v8 of thirty about twenty-five minutes, nearly all of it the
 engine simulating the game. The models, textures and map files the viewer draws with are copied out of the engine's
 archives into run/data/tape-assets (named by content, shared by every tape).
 """
@@ -44,7 +44,7 @@ def main():
     packer = os.path.join(REPO, "target", "release", "tape")
     if not os.path.exists(packer):
         sys.exit(f"{packer} is not built: cargo build --release -p tape")
-    flags = ["--tape"] + (["--tape-aim"] if "--aim" in args else []) + (["--tape-pieces"] if "--pieces" in args else [])
+    flags = ["--tape"] + ([] if "--no-pieces" in args else ["--tape-pieces"])
     stamp = int(time.time())
     if os.path.isdir(source):
         demo = demo_of(source)

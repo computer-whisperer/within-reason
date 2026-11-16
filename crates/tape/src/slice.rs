@@ -12,7 +12,6 @@ pub struct KeyUnit {
     pub activity: Activity,
     /// Where it stands, for a unit whose type moves (the others stand where their table row says).
     pub pose: Option<Pose>,
-    pub aim: Vec<(u8, [i16; 2])>,
 }
 
 /// A unit's samples stamped inside the slice, in frame order.
@@ -33,28 +32,24 @@ pub struct Slice {
     /// (frame, row, what changed to), in frame order; the same for the next two.
     pub vitals: Vec<(u32, u32, Vital)>,
     pub activity: Vec<(u32, u32, Activity)>,
-    pub aim: Vec<(u32, u32, u8, [i16; 2])>,
     pub orders: Vec<Order>,
     /// Every projectile in flight at some frame of the slice, by its first frame; its samples whole.
     pub projectiles: Vec<Projectile>,
     pub bursts: Vec<Burst>,
-    /// Whether the slice says what each ally team saw (a tape of format 2 made from a stream that does): then
-    /// `key_sight` is beside `key`, and `sight` is (frame, row, what changed to) in frame order. [in sight, on radar],
-    /// bit `a` for ally team a.
-    pub has_sight: bool,
+    /// What each ally team saw: `key_sight` beside `key`, and `sight` (frame, row, what changed to) in frame order. [in
+    /// sight, on radar], bit `a` for ally team a.
     pub key_sight: Vec<[u16; 2]>,
     pub sight: Vec<(u32, u32, [u16; 2])>,
-    /// Whether the slice has what the waste audit reads (format 3, from a raw stream of version 3, which has sight
-    /// too): `key_work` and `key_rank` beside `key`, and (frame, row, what changed to) in frame order of [build power
-    /// in use in hundredths, a factory's line] and [experience, full health], and the damage each unit took.
-    pub has_audit: bool,
+    /// What the waste audit reads: `key_work` and `key_rank` beside `key`, and (frame, row, what changed to) in frame
+    /// order of [build power in use in hundredths, a factory's line] and [experience, full health], and the damage each
+    /// unit took.
     pub key_work: Vec<[u16; 2]>,
     pub work: Vec<(u32, u32, [u16; 2])>,
     pub key_rank: Vec<[f32; 2]>,
     pub rank: Vec<(u32, u32, [f32; 2])>,
     pub hurt: Vec<(u32, u32, f32)>,
-    /// Whether the slice has the units' moving pieces (format 4, from a raw stream of version 4 captured with them):
-    /// a track for each piece not at rest somewhere in the slice, by row and piece.
+    /// Whether the slice has the units' moving pieces (not captured `--no-pieces`): a track for each piece not at rest
+    /// somewhere in the slice, by row and piece.
     pub has_pieces: bool,
     pub pieces: Vec<PieceTrack>,
 }
@@ -69,9 +64,27 @@ pub struct PieceTrack {
     pub points: Vec<(u32, [i32; 3], [i32; 3])>,
 }
 
-/// A slice's sections, in the order `encode_sections` ends them. Sight is there only when the slice has sight (a slice
-/// of format 1 ends with its bursts), and the three after it only when it has the audit's numbers (format 3).
-pub const SECTIONS: [&str; 13] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight", "work", "rank", "hurt", "pieces"];
+/// A slice's sections, in the order `encode_sections` ends them. The pieces are there only when the slice has them.
+pub const SECTIONS: [&str; 12] = ["keyframe", "motion", "vitals", "activity", "orders", "projectiles", "bursts", "sight", "work", "rank", "hurt", "pieces"];
+
+/// The frames between two looks at the pieces (`tape_dump.lua`'s `PIECE_SAMPLE`): a point's frame step is written in
+/// looks when it is a whole number of them (most are), else in frames.
+const PIECE_LOOK: u32 = 6;
+
+/// A piece point's six numbers: its angles, then its place.
+fn numbers(a: &[i32; 3], p: &[i32; 3]) -> [i64; 6] {
+    [a[0] as i64, a[1] as i64, a[2] as i64, p[0] as i64, p[1] as i64, p[2] as i64]
+}
+
+/// Which of a piece track's six numbers move in it (bit k): those that differ anywhere from its first point's.
+fn moving(t: &PieceTrack) -> u8 {
+    let Some((_, a, p)) = t.points.first() else { return 0 };
+    let first = numbers(a, p);
+    t.points.iter().fold(0u8, |mask, (_, a, p)| {
+        let v = numbers(a, p);
+        (0..6).fold(mask, |m, k| if v[k] != first[k] { m | 1 << k } else { m })
+    })
+}
 
 /// Fixed-point scales of a projectile's numbers: eighths of an elmo, 1024ths of an elmo a frame, 65536ths for gravity.
 const P_POS: f32 = 8.0;
@@ -141,7 +154,7 @@ impl Slice {
 
         // The keyframe.
         out.var(self.key.len() as u64);
-        let (mut rows, mut poses, mut has_pose, mut aims) = (W::default(), W::default(), W::default(), W::default());
+        let (mut rows, mut poses, mut has_pose) = (W::default(), W::default(), W::default());
         let mut last_row = 0u32;
         for k in &self.key {
             rows.var((k.row - last_row) as u64);
@@ -155,15 +168,8 @@ impl Slice {
                     poses.zig(v as i64);
                 }
             }
-            aims.var(k.aim.len() as u64);
-            for (weapon, dir) in &k.aim {
-                aims.u8(*weapon);
-                for v in dir {
-                    aims.zig(*v as i64);
-                }
-            }
         }
-        for c in [&rows, &has_pose, &poses, &aims] {
+        for c in [&rows, &has_pose, &poses] {
             out.column(c);
         }
         for c in &vital_columns(self.key.iter().map(|k| k.vital)) {
@@ -211,7 +217,7 @@ impl Slice {
         }
 
         ends.push(out.0.len());
-        // Vitals, activity and aim as they changed.
+        // Vitals and activity as they changed.
         out.var(self.vitals.len() as u64);
         let (mut frames, mut rows) = (W::default(), W::default());
         let mut frame = self.first;
@@ -241,22 +247,6 @@ impl Slice {
             out.column(c);
         }
 
-        ends.push(out.0.len());
-        out.var(self.aim.len() as u64);
-        let mut c: [W; 5] = Default::default();
-        let mut frame = self.first;
-        for (f, row, weapon, d) in &self.aim {
-            c[0].var((f - frame) as u64);
-            frame = *f;
-            c[1].var(*row as u64);
-            c[2].u8(*weapon);
-            for i in 0..2 {
-                c[3 + i].zig(d[i] as i64);
-            }
-        }
-        for col in &c {
-            out.column(col);
-        }
 
         ends.push(out.0.len());
         // Orders.
@@ -343,118 +333,120 @@ impl Slice {
         }
         ends.push(out.0.len());
 
-        if self.has_sight {
-            // Sight: the keyframe's units' in the keyframe's order, then the changes.
-            let mut c: [W; 2] = Default::default();
-            for s in &self.key_sight {
-                c[0].var(s[0] as u64);
-                c[1].var(s[1] as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            out.var(self.sight.len() as u64);
-            let mut c: [W; 4] = Default::default();
-            let mut frame = self.first;
-            for (f, row, s) in &self.sight {
-                c[0].var((f - frame) as u64);
-                frame = *f;
-                c[1].var(*row as u64);
-                c[2].var(s[0] as u64);
-                c[3].var(s[1] as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            ends.push(out.0.len());
+        // Sight: the keyframe's units' in the keyframe's order, then the changes.
+        let mut c: [W; 2] = Default::default();
+        for s in &self.key_sight {
+            c[0].var(s[0] as u64);
+            c[1].var(s[1] as u64);
         }
-        if self.has_audit {
-            // Work and rank: the keyframe's units' in the keyframe's order, then the changes; then the damage taken.
-            let mut c: [W; 2] = Default::default();
-            for w in &self.key_work {
-                c[0].var(w[0] as u64);
-                c[1].var(w[1] as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            out.var(self.work.len() as u64);
-            let mut c: [W; 4] = Default::default();
-            let mut frame = self.first;
-            for (f, row, w) in &self.work {
-                c[0].var((f - frame) as u64);
-                frame = *f;
-                c[1].var(*row as u64);
-                c[2].var(w[0] as u64);
-                c[3].var(w[1] as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            ends.push(out.0.len());
-            let mut c: [W; 2] = Default::default();
-            for k in &self.key_rank {
-                c[0].f32(k[0]);
-                c[1].var(k[1].max(0.0).round() as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            out.var(self.rank.len() as u64);
-            let mut c: [W; 4] = Default::default();
-            let mut frame = self.first;
-            for (f, row, k) in &self.rank {
-                c[0].var((f - frame) as u64);
-                frame = *f;
-                c[1].var(*row as u64);
-                c[2].f32(k[0]);
-                c[3].var(k[1].max(0.0).round() as u64);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            ends.push(out.0.len());
-            out.var(self.hurt.len() as u64);
-            let mut c: [W; 3] = Default::default();
-            let mut frame = self.first;
-            for (f, row, amount) in &self.hurt {
-                c[0].var((f - frame) as u64);
-                frame = *f;
-                c[1].var(*row as u64);
-                c[2].f32(*amount);
-            }
-            for col in &c {
-                out.column(col);
-            }
-            ends.push(out.0.len());
+        for col in &c {
+            out.column(col);
         }
+        out.var(self.sight.len() as u64);
+        let mut c: [W; 4] = Default::default();
+        let mut frame = self.first;
+        for (f, row, s) in &self.sight {
+            c[0].var((f - frame) as u64);
+            frame = *f;
+            c[1].var(*row as u64);
+            c[2].var(s[0] as u64);
+            c[3].var(s[1] as u64);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        ends.push(out.0.len());
+        // Work and rank: the keyframe's units' in the keyframe's order, then the changes; then the damage taken.
+        let mut c: [W; 2] = Default::default();
+        for w in &self.key_work {
+            c[0].var(w[0] as u64);
+            c[1].var(w[1] as u64);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        out.var(self.work.len() as u64);
+        let mut c: [W; 4] = Default::default();
+        let mut frame = self.first;
+        for (f, row, w) in &self.work {
+            c[0].var((f - frame) as u64);
+            frame = *f;
+            c[1].var(*row as u64);
+            c[2].var(w[0] as u64);
+            c[3].var(w[1] as u64);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        ends.push(out.0.len());
+        let mut c: [W; 2] = Default::default();
+        for k in &self.key_rank {
+            c[0].f32(k[0]);
+            c[1].var(k[1].max(0.0).round() as u64);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        out.var(self.rank.len() as u64);
+        let mut c: [W; 4] = Default::default();
+        let mut frame = self.first;
+        for (f, row, k) in &self.rank {
+            c[0].var((f - frame) as u64);
+            frame = *f;
+            c[1].var(*row as u64);
+            c[2].f32(k[0]);
+            c[3].var(k[1].max(0.0).round() as u64);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        ends.push(out.0.len());
+        out.var(self.hurt.len() as u64);
+        let mut c: [W; 3] = Default::default();
+        let mut frame = self.first;
+        for (f, row, amount) in &self.hurt {
+            c[0].var((f - frame) as u64);
+            frame = *f;
+            c[1].var(*row as u64);
+            c[2].f32(*amount);
+        }
+        for col in &c {
+            out.column(col);
+        }
+        ends.push(out.0.len());
         if self.has_pieces {
-            // The tracks (row step, piece, points), then every point: the frame step from the last (from the slice's
-            // first for a track's first), the angles and the place, each the difference from the track's last point.
+            // The tracks (row step, piece, points, which of the six numbers move: bit k for angle k, bit 3 + k for the
+            // place's k), then every point: the frame step from the last (from the slice's first for a track's
+            // first; twice the looks when a whole number of them, else twice the frames and one), then its numbers,
+            // each the difference from the track's last point: all six for its first point, only the moving ones after.
             out.var(self.pieces.len() as u64);
-            let mut c: [W; 3] = Default::default();
+            let mut c: [W; 4] = Default::default();
             let mut last_row = 0u32;
-            for t in &self.pieces {
+            let masks: Vec<u8> = self.pieces.iter().map(moving).collect();
+            for (t, mask) in self.pieces.iter().zip(&masks) {
                 c[0].var((t.row - last_row) as u64);
                 last_row = t.row;
                 c[1].var(t.piece as u64);
                 c[2].var(t.points.len() as u64);
+                c[3].u8(*mask);
             }
             for col in &c {
                 out.column(col);
             }
             let mut c: [W; 7] = Default::default();
-            for t in &self.pieces {
-                let (mut frame, mut angles, mut place) = (self.first, [0i64; 3], [0i64; 3]);
-                for (f, a, p) in &t.points {
-                    c[0].var((f - frame) as u64);
+            for (t, mask) in self.pieces.iter().zip(&masks) {
+                let (mut frame, mut last) = (self.first, [0i64; 6]);
+                for (i, (f, a, p)) in t.points.iter().enumerate() {
+                    let step = f - frame;
+                    c[0].var(if step % PIECE_LOOK == 0 { (step / PIECE_LOOK) as u64 * 2 } else { step as u64 * 2 + 1 });
                     frame = *f;
-                    for k in 0..3 {
-                        c[1 + k].zig(a[k] as i64 - angles[k]);
-                        c[4 + k].zig(p[k] as i64 - place[k]);
+                    let v = numbers(a, p);
+                    for k in 0..6 {
+                        if i == 0 || mask & (1 << k) != 0 {
+                            c[1 + k].zig(v[k] - last[k]);
+                        }
                     }
-                    angles = a.map(|v| v as i64);
-                    place = p.map(|v| v as i64);
+                    last = v;
                 }
             }
             for col in &c {
@@ -470,7 +462,7 @@ impl Slice {
         let mut slice = Slice { first: r.u32()?, frames: r.u32()?, ..Default::default() };
 
         let n = r.var()? as usize;
-        let [mut rows, mut has_pose, mut poses, mut aims] = take_columns::<4>(&mut r)?;
+        let [mut rows, mut has_pose, mut poses] = take_columns::<3>(&mut r)?;
         let mut vital = take_columns::<4>(&mut r)?;
         let mut activity = take_columns::<7>(&mut r)?;
         let mut row = 0u32;
@@ -488,12 +480,7 @@ impl Slice {
             } else {
                 None
             };
-            let mut aim = Vec::new();
-            for _ in 0..aims.var()? {
-                let weapon = aims.u8()?;
-                aim.push((weapon, [aims.zig()? as i16, aims.zig()? as i16]));
-            }
-            slice.key.push(KeyUnit { row, vital: read_vital(&mut vital)?, activity: read_activity(&mut activity)?, pose, aim });
+            slice.key.push(KeyUnit { row, vital: read_vital(&mut vital)?, activity: read_activity(&mut activity)?, pose });
         }
 
         let n = r.var()? as usize;
@@ -543,16 +530,6 @@ impl Slice {
         for _ in 0..n {
             frame += frames.var()? as u32;
             slice.activity.push((frame, rows.var()? as u32, read_activity(&mut activity)?));
-        }
-
-        let n = r.var()? as usize;
-        let mut c = take_columns::<5>(&mut r)?;
-        let mut frame = slice.first;
-        for _ in 0..n {
-            frame += c[0].var()? as u32;
-            let row = c[1].var()? as u32;
-            let weapon = c[2].u8()?;
-            slice.aim.push((frame, row, weapon, [c[3].zig()? as i16, c[4].zig()? as i16]));
         }
 
         let n = r.var()? as usize;
@@ -620,73 +597,69 @@ impl Slice {
             slice.bursts.push(Burst { frame, kind, pos, wdef: c[3].zig()? as i32, owner: c[4].var()? as u32 });
         }
 
-        if r.left() > 0 {
-            slice.has_sight = true;
-            let mut c = take_columns::<2>(&mut r)?;
-            for _ in 0..slice.key.len() {
-                slice.key_sight.push([c[0].var()? as u16, c[1].var()? as u16]);
-            }
-            let n = r.var()? as usize;
-            let mut c = take_columns::<4>(&mut r)?;
-            let mut frame = slice.first;
-            for _ in 0..n {
-                frame += c[0].var()? as u32;
-                slice.sight.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
-            }
+        let mut c = take_columns::<2>(&mut r)?;
+        for _ in 0..slice.key.len() {
+            slice.key_sight.push([c[0].var()? as u16, c[1].var()? as u16]);
         }
-        if r.left() > 0 {
-            slice.has_audit = true;
-            let mut c = take_columns::<2>(&mut r)?;
-            for _ in 0..slice.key.len() {
-                slice.key_work.push([c[0].var()? as u16, c[1].var()? as u16]);
-            }
-            let n = r.var()? as usize;
-            let mut c = take_columns::<4>(&mut r)?;
-            let mut frame = slice.first;
-            for _ in 0..n {
-                frame += c[0].var()? as u32;
-                slice.work.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
-            }
-            let mut c = take_columns::<2>(&mut r)?;
-            for _ in 0..slice.key.len() {
-                slice.key_rank.push([c[0].f32()?, c[1].var()? as f32]);
-            }
-            let n = r.var()? as usize;
-            let mut c = take_columns::<4>(&mut r)?;
-            let mut frame = slice.first;
-            for _ in 0..n {
-                frame += c[0].var()? as u32;
-                slice.rank.push((frame, c[1].var()? as u32, [c[2].f32()?, c[3].var()? as f32]));
-            }
-            let n = r.var()? as usize;
-            let mut c = take_columns::<3>(&mut r)?;
-            let mut frame = slice.first;
-            for _ in 0..n {
-                frame += c[0].var()? as u32;
-                slice.hurt.push((frame, c[1].var()? as u32, c[2].f32()?));
-            }
+        let n = r.var()? as usize;
+        let mut c = take_columns::<4>(&mut r)?;
+        let mut frame = slice.first;
+        for _ in 0..n {
+            frame += c[0].var()? as u32;
+            slice.sight.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
+        }
+        let mut c = take_columns::<2>(&mut r)?;
+        for _ in 0..slice.key.len() {
+            slice.key_work.push([c[0].var()? as u16, c[1].var()? as u16]);
+        }
+        let n = r.var()? as usize;
+        let mut c = take_columns::<4>(&mut r)?;
+        let mut frame = slice.first;
+        for _ in 0..n {
+            frame += c[0].var()? as u32;
+            slice.work.push((frame, c[1].var()? as u32, [c[2].var()? as u16, c[3].var()? as u16]));
+        }
+        let mut c = take_columns::<2>(&mut r)?;
+        for _ in 0..slice.key.len() {
+            slice.key_rank.push([c[0].f32()?, c[1].var()? as f32]);
+        }
+        let n = r.var()? as usize;
+        let mut c = take_columns::<4>(&mut r)?;
+        let mut frame = slice.first;
+        for _ in 0..n {
+            frame += c[0].var()? as u32;
+            slice.rank.push((frame, c[1].var()? as u32, [c[2].f32()?, c[3].var()? as f32]));
+        }
+        let n = r.var()? as usize;
+        let mut c = take_columns::<3>(&mut r)?;
+        let mut frame = slice.first;
+        for _ in 0..n {
+            frame += c[0].var()? as u32;
+            slice.hurt.push((frame, c[1].var()? as u32, c[2].f32()?));
         }
         if r.left() > 0 {
             slice.has_pieces = true;
             let n = r.var()? as usize;
-            let mut c = take_columns::<3>(&mut r)?;
+            let mut c = take_columns::<4>(&mut r)?;
             let mut row = 0u32;
-            let mut counts = Vec::with_capacity(n);
+            let mut heads = Vec::with_capacity(n);
             for _ in 0..n {
                 row += c[0].var()? as u32;
                 slice.pieces.push(PieceTrack { row, piece: c[1].var()? as u16, points: Vec::new() });
-                counts.push(c[2].var()? as usize);
+                heads.push((c[2].var()? as usize, c[3].u8()?));
             }
             let mut c = take_columns::<7>(&mut r)?;
-            for (t, count) in slice.pieces.iter_mut().zip(counts) {
-                let (mut frame, mut angles, mut place) = (slice.first, [0i64; 3], [0i64; 3]);
-                for _ in 0..count {
-                    frame += c[0].var()? as u32;
-                    for k in 0..3 {
-                        angles[k] += c[1 + k].zig()?;
-                        place[k] += c[4 + k].zig()?;
+            for (t, (count, mask)) in slice.pieces.iter_mut().zip(heads) {
+                let (mut frame, mut v) = (slice.first, [0i64; 6]);
+                for i in 0..count {
+                    let step = c[0].var()?;
+                    frame += if step % 2 == 0 { (step / 2) as u32 * PIECE_LOOK } else { (step / 2) as u32 };
+                    for k in 0..6 {
+                        if i == 0 || mask & (1 << k) != 0 {
+                            v[k] += c[1 + k].zig()?;
+                        }
                     }
-                    t.points.push((frame, angles.map(|v| v as i32), place.map(|v| v as i32)));
+                    t.points.push((frame, [v[0] as i32, v[1] as i32, v[2] as i32], [v[3] as i32, v[4] as i32, v[5] as i32]));
                 }
             }
         }

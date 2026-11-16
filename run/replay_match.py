@@ -4,7 +4,7 @@ records for every team of it, so run/army_use.py, run/batch_trade.py, run/contac
 they read an arena match.
 
     run/replay_match.py <demo.sdfz> [--label NAME] [--timeout SECONDS] [--kill-on-timeout] [--port N] [--audit]
-                        [--tape] [--tape-aim] [--no-records]
+                        [--tape] [--tape-pieces] [--no-records]
 
 Makes run/matches/<unix time>-replay-<label>/ from run/replay-template/ (the LuaUI widget replay_dump.lua does the
 writing: record-<team>.jsonl and truth-<team>.jsonl per team), copies the demo in, runs `spring-headless` on it with
@@ -13,7 +13,7 @@ prints where the records are. With `--audit` the widget audit_dump.lua also writ
 build power and damage once a second for run/audit.py (docs/harness/audit.md; about 2 MB a game minute). On `--timeout` the engine is left running (a slow replay by hand is not lost) unless
 `--kill-on-timeout` is given, which a batch passes so the port is free for the next demo. With `--tape` the widget
 tape_dump.lua writes tape.raw, the raw stream of everything a viewer draws (docs/harness/tape-format.md; run/tape.py is
-the tool that makes a game's tape, and calls this); `--tape-aim` adds every weapon's direction to it; `--no-records`
+the tool that makes a game's tape, and calls this); `--tape-pieces` adds the units' moving pieces to it; `--no-records`
 leaves the per-team records out (a replay played for its tape alone). The game version the demo names must be in run/data
 (pr-downloader --download-game "<full name>", docs/harness/engine.md); the engine says so in infolog.txt if not.
 """
@@ -22,7 +22,7 @@ import os, re, shutil, subprocess, sys, time
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-FLAGS = (("--audit", "audit.on"), ("--tape", "tape.on"), ("--tape-aim", "tape.aim"), ("--tape-pieces", "tape.pieces"), ("--no-records", "records.off"))
+FLAGS = (("--audit", "audit.on"), ("--tape", "tape.on"), ("--tape-pieces", "tape.pieces"), ("--no-records", "records.off"))
 
 
 def replay(demo, out, flags=(), timeout=3600, kill_on_timeout=False, port=None):

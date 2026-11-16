@@ -1,4 +1,4 @@
-# The game tape — format version 4
+# The game tape — format version 5
 
 `game.tape`: one file of a whole game as the engine had it, both sides, every seat, made so that a viewer can show any
 moment at once. Where the match record (`record-format.md`) is the bot's fair view and its decisions once a second, the
@@ -17,9 +17,14 @@ Why it is shaped so: `docs/design/2026-11-15-game-tape.md`.
 `run/tape.py` plays the demo in the headless engine with the widget `run/replay-template/LuaUI/Widgets/tape_dump.lua`
 (through `run/replay_match.py --tape --no-records`), which writes the raw stream `tape.raw`; `target/release/tape pack`
 makes the tape of it and (`--check`, on unless `--no-check`) reads the tape back against the raw stream: every unit
-alive at every sample with its place, attitude, health, build progress, order and aim, every order, projectile and
-burst, the tables and the ground. `--aim` adds every weapon's direction; `--pieces` every unit's moving pieces (turrets,
-legs, arms, doors: below); `--keep` keeps the raw stream.
+alive at every sample with its place, attitude, health, build progress, order, sight, build power and experience,
+every order, projectile and burst, every moving piece's state, the tables and the ground. The moving pieces (turrets,
+legs, arms, doors: below) are captured unless `--no-pieces`; `--keep` keeps the raw stream.
+
+**Format 5 alone** (2026-11-16): the packer reads raw streams of version 5 and the reader tapes of format 5, and refuse
+any other with "capture it again". A tape is a cache of its demo: `run/tape.py <match dir>` makes it again.
+**When runs are archived, their tapes are not**: a match directory moved to the archive leaves its `game.tape` behind
+and keeps its demo (the user's plan, 2026-11-16; the runs are archived by hand).
 
 The widget also copies the files a viewer draws with out of the engine's archives, as they are: the models (`.s3o`),
 their textures (`.dds`), the map's `.smf` and `.smt`. They go to `run/data/tape-assets/<name>`, named by content (the
@@ -28,14 +33,16 @@ is (`assets`). The cache is git-ignored working data and belongs to its worktree
 tree's cache (or the files copied over, `cp -n`). BAR's art is CC BY-NC-ND: nothing of it is converted or committed.
 
 Other tools: `tape info <game.tape>` (what it holds, the bytes by chunk kind), `tape audit <game.tape>` (the waste
-audit's dump, `audit.jsonl`, from a tape of format 3; `-o -` to standard output, as `run/audit.py <match dir>` reads
+audit's dump, `audit.jsonl`; `-o -` to standard output, as `run/audit.py <match dir>` reads
 it; `docs/harness/audit.md`),
 `tape check <tape.raw> <game.tape>`,
 `tape grow <tape.raw> [--cuts N]` (the growing tape checked: the stream cut at N places inside records, the tape grown
 through each and read again from its new footer by one reader that keeps its slices, as the page does; on the dist358
-duel, 25 cuts, every slice the same as the stream so far, the grown file 3.5 MB where the compact tape is 2.3).
+duel in format 5 with its pieces, 25 cuts, every slice the same as the stream so far, the grown file 6.4 MB where the
+compact tape is 3.5).
 
-**In an arena game** (2026-11-15 night; `--no-tape` turns it off) the tape is made while the game is played, with no
+**In an arena game** (2026-11-15 night; `--no-tape` turns it off, `--no-pieces` leaves the moving pieces out) the tape
+is made while the game is played, with no
 second engine run: the arena's host is a spectator with full view, and `crates/arena/src/capture.rs` puts the same
 widget (its only copy is the replay template's) and its marker into the match directory. While the game runs, a
 follower thread reads the raw stream every few seconds (at most half a core: it waits as long as its last read took)
@@ -77,9 +84,9 @@ game.
 A run of records: a byte of kind, a little-endian u32 of length, the payload. It is the packer's input and nothing
 else reads it; `tape_dump.lua` documents each kind where it writes it. `J` is a JSON object whose `t` names it (`header`,
 `unitdef`, `weapondef`, `featuredef`, `asset`, `map_files`, `ev`, `cmd`, `res`, `stats`, `over`); the rest are packed
-numbers: `U` unit samples, `V` vitals, `O` head orders, `S` what each ally team sees, `A` aim, `P` new projectiles, `Q`
-projectile places, `E` projectiles gone, `X` and `B` explosions and muzzle fire, `G` the ground, and from version 3 what
-the waste audit reads (`docs/harness/audit.md`): `W` a builder's build power in use and a factory's line, `R`
+numbers: `U` unit samples, `V` vitals, `O` head orders, `S` what each ally team sees, `P` new projectiles, `Q`
+projectile places, `E` projectiles gone, `X` and `B` explosions and muzzle fire, `G` the ground, `K` the moving pieces'
+keyframes, and what the waste audit reads (`docs/harness/audit.md`): `W` a builder's build power in use and a factory's line, `R`
 experience and full health now, `H` the damage a unit took, every `activity_frames` for the units that changed (`R`
 and `H` also at a unit's death: its last second's), `fmetal` rows (a wreck's metal as it is reclaimed, every 15 s), the
 `res` rows' excess, sent and received and the engine's team statistics, and the unit types' fields the audit's
@@ -88,16 +95,18 @@ and `H` also at a unit's death: its last second's), `fmetal` rows (a wreck's met
 on the map are `ev` rows of kind `mark` (a point with its words, a line, an erase with its radius; the player, the
 team, the ally team, whether a spectator made it).
 
-**The moving pieces** (raw version 4, with the marker `tape.pieces`: `run/tape.py --pieces`; the design and what it
-costs: `docs/design/2026-11-15-game-tape.md` section 9). A unit type's pieces once, in a `pieces` row (names in the
+**The moving pieces** (with the marker `tape.pieces`, which `run/tape.py` and the arena make unless `--no-pieces`; the
+design and what it costs: `docs/design/2026-11-15-game-tape.md` sections 9 and 10). A unit type's pieces once, in a `pieces` row (names in the
 engine's order, each one's parent, its offset from the parent at rest), kept in `DEFS` with the type. Every 6 frames the
 widget reads every piece's model-space matrix (`GetUnitPieceMatrix`), and for each piece whose matrix or whose parent's
 changed works out its turn and place against its parent: the script's own angles (pitch = asin(-R12), yaw = atan2(R02,
 R22), roll = atan2(R10, R11), which `CQuaternion::FromEulerYPR` turns back into the engine's rotation; yaw and roll unwound
 so that a spin keeps counting) and its place. A script turns and moves at set speeds, so each number runs in straight
-stretches: a keyframe (`K`: frame, unit, piece, three angles in 16384ths of a radian, the place in sixteenths of an
-elmo) is written only where one bends by more than half a degree or a quarter of an elmo, where a piece stops, before
-a stretch that starts from rest, and at a unit's death and the capture's end. Before a piece's first keyframe it stands
+stretches: a keyframe (`K`: frame, unit, piece, three angles in 1024ths of a radian, the place in quarters of an
+elmo) is written only where one bends by more than half a degree or a quarter of an elmo, where a piece stops, where
+one standing at its last keyframe moves again, at a slice's end for every piece that moved since its last keyframe, at
+its unit's first look when it is not exactly at rest, and at a unit's death and the capture's end. So nothing in a
+slice hangs on a keyframe after it, and a slice cut while the game is played is the compact tape's slice. Before a piece's first keyframe it stands
 as that keyframe has it (a unit's creation script poses its pieces at once), after its last where that left it.
 
 A record of a kind the packer does not know (a widget newer than the build: the arena copies the widget from the
@@ -114,7 +123,11 @@ the sweep for units no call-in told of and stood to the game's end (a ghost: 122
 duel's, 13 in the flagship game's); a unit's first commands, given before the call-in that tells of its making, named
 a unit the tape did not know and were lost (they are held until it is met); and the damage of a killing blow was
 dropped with the unit. The packer now names a killer that died first (by the last unit that held its id) and takes a
-unit's build progress as it died from its `destroyed` row. A widget's mistakes
+unit's build progress as it died from its `destroyed` row. Version 4 (2026-11-16) adds the moving pieces. Version 5
+(2026-11-16) drops the weapons' aim (`A`: the page never drew it, and the pieces turn the turrets) and writes the
+attitude in 1024ths of a turn (was 4096ths), a piece's angles in 1024ths of a radian (was 16384ths) and its place in
+quarters of an elmo (was sixteenths): finer numbers only made the tape bigger (section 10 of the design). A widget's
+mistakes
 show only in the engine's log (`run/tape.py --keep`, then `infolog.txt` in `tape-capture/`: "Error in GameFrame()" and
 the widget is gone); `luac5.1 -l -p tape_dump.lua | grep GETGLOBAL` lists every global it reads, where a local used
 above its declaration shows up.
@@ -128,14 +141,14 @@ Little-endian. `magic "WRTAPE\1\0"`, then chunks, then a footer.
 
 | Chunk | Payload |
 |---|---|
-| `HEAD` | JSON: `format` ("within-reason-tape"), `version` (3 with what the audit reads, else 2; a tape that grows has `growing`), `raw_version` (the raw stream's: 1 when absent), `max_units` (BAR's 32000 when absent), `ally_teams` (when the tape says what each saw), `engine`, `game`, `map` {name, width, height (elmos), gravity, low, high, wind_min, wind_max, tidal}, `teams` [{team, ally, side, name, ai, gaia, color [r, g, b], start [x, y, z], controller}] (the name and `controller` from the demo's start script, `tape pack --seats`: in a replay the engine names every seat UNKNOWN), `spots` [[x, z, metal]], `sample_frames` (3), `slice_frames` (300), `linger_frames` (60), `vitals_frames`, `activity_frames`, `check_frames`, `position_scale` (4), `angle_scale` (4096), `aim_scale` (1024), `aim` (1 when weapons' directions were captured), `last_frame`, `slices`, `winners`, `units`, `features`, `projectiles` (counts), `assets` {path in the engine's archives, lower case: the copy's name}, `map_files`, `capture` (the widget's own account: seconds by part, rows by kind), `path_check` {weapon kind: {rows, worst}} |
+| `HEAD` | JSON: `format` ("within-reason-tape"), `version` (5; a tape that grows has `growing`), `max_units`, `ally_teams`, `engine`, `game`, `map` {name, width, height (elmos), gravity, low, high, wind_min, wind_max, tidal}, `teams` [{team, ally, side, name, ai, gaia, color [r, g, b], start [x, y, z], controller}] (the name and `controller` from the demo's start script, `tape pack --seats`: in a replay the engine names every seat UNKNOWN), `spots` [[x, z, metal]], `sample_frames` (3), `slice_frames` (300), `linger_frames` (60), `vitals_frames`, `activity_frames`, `check_frames`, `position_scale` (4), `angle_scale` (1024), `pieces` (1 with the moving pieces), `piece_angle_scale` (1024), `piece_place_scale` (4), `last_frame`, `slices`, `winners`, `units`, `features`, `projectiles` (counts), `assets` {path in the engine's archives, lower case: the copy's name}, `map_files`, `capture` (the widget's own account: seconds by part, rows by kind), `path_check` {weapon kind: {rows, worst}} |
 | `DEFS` | JSON: `units`, `weapons`, `features`: the types the game used, each with the engine's `id`. A unit type: name, human, model {path, tex1, tex2, min, max}, xsize, zsize, height, radius, speed, mobile, air, building, factory, builder, health, metal, energy, build_time, build_speed, build_distance, extracts, sight, radar, sonar, jammer, cloak, tech, icon, weapons [weapon type ids], options [unit type ids it builds], wreck, death (the weapon type of its death blast, -1 none). A weapon type: name, kind (the engine's: Cannon, BeamLaser, LaserCannon, MissileLauncher, ...), range, speed, gravity, aoe, size, beamtime, duration, reload, salvo, tracks, turn_rate, wobble, dance, damage, paralyzer, shield, shield_radius, model, color, color2, thickness, core_thickness, flare, smoke_trail. A feature type: name, model, xsize, zsize, height, radius, metal, energy, reclaimable, blocking, geo, tree |
 | `GRND` | the ground at the start: columns u32, rows u32 (corners of the 8-elmo squares: width / 8 + 1), low f32, step f32, then a u16 a corner, row by row from the north, each the difference from its western neighbour; a height is `low + step * value` |
 | `SLIC` | a slice, below; one every `slice_frames`, in order |
 | `UNIT` | a row a unit life, in the order created; **the row number is the tape's id of a unit** (the engine reuses its ids) and everything in the tape names a unit by it, 1-based where 0 means none. Engine id, type, team, mobile, the frames created, finished and destroyed, the rows of its killer and builder, full health, health and build progress at birth, where it first stood and how it was turned, where it died, the teams it was given to |
 | `FEAT` | a row a feature (tree, rock, wreck): the engine's id, type, team, the frames it appeared and went, place, front and up directions, metal, energy |
-| `TEAM` | JSON: `frames` [f], `columns` (the names: metal, store, pull, income, spend and the same of energy; from format 3 also metal's excess, sent and received and energy's), `teams` {team: [the columns a second, null before a team first appears]}, from format 3 `stat_columns` and `stats` {team: [[frame, metal used, produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed] as the engine's statistics changed]} |
-| `FMET` | (format 3) JSON: [[frame, the feature's index in `FEAT`, whole metal]] as a wreck's metal changed |
+| `TEAM` | JSON: `frames` [f], `columns` (the names: metal, store, pull, income, spend and the same of energy, then metal's excess, sent and received and energy's), `teams` {team: [the columns a second, null before a team first appears]}, `stat_columns` and `stats` {team: [[frame, metal used, produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed] as the engine's statistics changed]} |
+| `FMET` | JSON: [[frame, the feature's index in `FEAT`, whole metal]] as a wreck's metal changed |
 | `EVNT` | JSON: the rare events as the widget wrote them: chat, the players' marks, the end with its winners |
 | `GPAT` | every change to the ground after the start, in order: frame, column, row, columns, rows, then the u16 heights. The ground at a frame is `GRND` with the patches up to it |
 | `INDX` | u32 n, then for every chunk before it: kind[4], offset u64, length u32 (the chunk whole), a slice's first frame u32. Not compressed |
@@ -149,19 +162,17 @@ the footer: `pack::Growing`, below).
 `first + slice_frames`, so a slice's last frame is the next one's first and either answers for it. Given the `UNIT`
 table it is decoded alone. Its sections, each a run of columns (a u32 length, then varints; signed values zigzag):
 - **keyframe**: every unit alive at `first`: row, health, build progress (thousandths), paralysis, flags (1 cloaked),
-  its head order, and for a type that moves its place and attitude; each weapon's direction when captured.
+  its head order, and for a type that moves its place and attitude.
 - **motion**: for each unit that moved, its samples in `(first, first + slice_frames]`: the frame step, the place
   (quarters of an elmo; a second difference, so a steady pace writes zeros) and the attitude (heading, pitch and roll
-  in 4096ths of a turn, each difference the short way round). A sample exists only when the unit moved or turned, so
+  in 1024ths of a turn, each difference the short way round). A sample exists only when the unit moved or turned, so
   between two samples further apart than `sample_frames` the unit stood still until the last `sample_frames`.
-- **vitals**, **activity**, **aim**: a row when it changed: (frame, row, ...). Activity is the head of the order
+- **vitals**, **activity**: a row when it changed: (frame, row, ...). Activity is the head of the order
   queue: the engine's command id (negative: a build of that type), how it points (0 nowhere, 1 at the unit or feature
   with engine id `a`, 3 at the place a, b, c), the engine id of what a builder is building, the queue's length. A
   feature's engine id here and in orders is its own plus the unit limit (`max_units` in the header; BAR's 32000 when
   the header does not say). Repair, reclaim, resurrect and capture take five numbers when a builder working an area
-  is on one target (its id, then the area: `BuilderCAI.cpp`); the widget writes that as the target (`how` 1) since
-  2026-11-15 night, and before kept its first three numbers as a place, which the reader sorts out (`aim_of`: an
-  area's centre is a click on the ground, else the numbers are the id and the area's first two).
+  is on one target (its id, then the area: `BuilderCAI.cpp`); the widget writes that as the target (`how` 1).
 - **orders**: every command given, either side: frame, the unit's row, command id, shift, up to six parameters.
 - **projectiles**: every projectile in flight at a frame of the slice, or gone under `linger_frames` before it: the
   frames it began and ended, engine id, weapon type (-1 a piece of a dying unit), owner row, team, where it began
@@ -169,23 +180,26 @@ table it is decoded alone. Its sections, each a run of columns (a u32 length, th
   from where it began to its target, 2 its samples, which follow), how it was aimed (1 the ground at a place, 2 a
   unit's row, 3 a feature, 4 a projectile) and at what.
 - **bursts**: explosions and muzzle fire as the game reported them (none from a headless capture).
-- **sight** (version 2, when the header lists `ally_teams`; a slice of version 1 ends with its bursts): for each unit of
-  the keyframe the ally teams that have it in sight and those that have it on radar (a bit `a` for ally team a), then
+- **sight**: for each unit of the keyframe the ally teams that have it in sight and those that have it on radar (a bit `a` for ally team a), then
   a row when they changed: (frame, row, in sight, on radar). Looked at every `vitals_frames` (half a second); before
   a unit's first look, its own side alone.
-- **work**, **rank**, **hurt** (format 3, from a raw stream of version 3): for each unit of the keyframe its build
+- **work**, **rank**, **hurt**: for each unit of the keyframe its build
   power in use (hundredths of its build speed) and a factory's line, then a row when they changed; the same of its
   experience (f32) and full health; then the damage each unit took, (frame, row, f32), at the samples and at its death.
   Before a unit's first row: no build power, no experience, the full health it was made with.
-- **pieces** (format 4, from a raw stream of version 4 captured with them): a track for each piece not at rest
-  somewhere in the slice, by row and piece: its numbers at the slice's (or its unit's) first frame, at each keyframe
-  inside and at the slice's last frame, so that a slice is read alone; straight between two points.
+- **pieces** (none in a tape captured `--no-pieces`): a track for each piece not at rest somewhere in the slice, by row
+  and piece: its numbers at the slice's (or its unit's) first frame, at each keyframe inside and at the slice's last
+  frame, so that a slice is read alone; straight between two points. A track says which of its six numbers (three
+  angles, three of the place) move in it; its first point has all six, the others only those (as differences from the
+  point before). A point's frame step is written in looks (6 frames) when it is a whole number of them: twice the
+  looks, else twice the frames and one.
 
 An attitude's three angles are made of the unit's front and up directions by `attitude` in `tape_dump.lua` and turned
 back by `read::attitude` (a test holds the two together): the heading about the vertical (0 facing south, +z), the
 pitch (the front's rise), the roll (the up's turn about the front from where it would be with no roll). Against the
 engine's own vectors (the duel captured both ways, 379,447 samples at the same frame and unit): the front turned back
-is off by a median 0.011 degrees and at worst 0.063, the up by 0.018 and 0.079; a step is 0.088. A model's own x axis
+is off by a median 0.011 degrees and at worst 0.063, the up by 0.018 and 0.079, at 4096ths of a turn (a step 0.088
+degrees); since format 5 a step is 0.35 degrees, the nose of a unit 20 elmos long moved 0.12 elmos. A model's own x axis
 is the up crossed with the front (the engine's `CMatrix44f(pos, -rightdir, updir, frontdir)`, `SolidObject.h`).
 
 **A tape that grows** (`tape::pack::Growing`): the ground at the start goes in once (its height scale 400 elmos wider
@@ -210,12 +224,12 @@ newer), loaded by `viewer/scene/tape.js`.
 - **bursts**, eight f32 each: place, frames since, weapon type (the unit's type for a death), kind (2 a projectile's
   end, 3 a unit's death; 0 and 1 the game's own), the owner's or the dead unit's row.
 
-- **pieces** and **pieceAt** (format 4): for each unit with a piece not at rest, a block of `piece_stride` transforms
+- **pieces** and **pieceAt**: for each unit with a piece not at rest, a block of `piece_stride` transforms
   (the most pieces a type has), twelve floats each (`pieces::compose`: a rotation by columns and a translation, so that
   a vertex v of the model at rest is drawn at R v + t), its pieces composed through their parents; and beside `units`
   each unit's block's number, or -1.
 - **seen**, a u32 a unit beside `units`: the ally teams that have it in sight (bit `a`) and, sixteen bits up, those
-  that have it on radar; every bit set on a tape that does not say.
+  that have it on radar.
 - **doing**, ten f32 a unit with a head order or a build under way: its place in `units`, its row, the command, how
   it points (0 nowhere, 1 a place, 2 a unit, 3 a feature), the place it points at this frame (a unit's where the unit
   is), the target's row or feature number (-1), the row it is building (-1), its queue's length.
@@ -277,6 +291,13 @@ browser driver.
 (The Erebos 10v8 at the first encoding, places in eighths of an elmo and the attitude as two directions: 156 MB, 103 of
 it motion and 21 aim. Heading, pitch and roll in 4096ths and places in quarters brought motion to about 40 % of that:
 `docs/design/2026-11-15-game-tape.md` section 6.)
+
+Format 5 (2026-11-16), with the moving pieces: the dist358 duel 3.5 MB (motion 0.8, pieces 1.3), its engine 52 s; the
+flagship's Apex game 5.2 MB (motion 1.1, pieces 1.9), its engine 91 to 95 s; the Erebos 10v8 105.1 MB from a raw stream
+of 1.89 GB (motion 30.7, pieces 43.8, projectiles 8.7, orders 5.3, keyframes 5.0, activity 4.4), packed in 18 to 20 s at
+zstd level 19 on 16 threads, the check 195 to 243 s; its engine 1,253 s with format 5's first widget (962 without the
+pieces), not yet timed on a quiet machine with the final one (design section 10). Format 4 had made it 144.1 MB
+(with the aim), format 3 81.9 without the pieces.
 
 In the page (`viewer/test/scene.js`, headless Chromium on this machine's GPU, a Radeon RX 6900 XT): a seek to a slice
 not loaded, timed from the seek to the frame drawn, 100 to 155 ms on all three games, the 10v8 with its 5,200 units

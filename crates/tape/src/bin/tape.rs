@@ -6,8 +6,8 @@
 //!                                                      `seats`: in a replay the engine names every seat UNKNOWN)
 //!     tape info <game.tape>                            what a tape holds
 //!     tape check <tape.raw> <game.tape> [--every N]    the tape read back against the raw stream it was made from
-//!     tape audit <game.tape> [-o audit.jsonl]         the waste audit's dump (docs/harness/audit.md) from a tape of
-//!                                                      format 3, as audit_dump.lua writes it in a replay; then
+//!     tape audit <game.tape> [-o audit.jsonl]         the waste audit's dump (docs/harness/audit.md) from a tape,
+//!                                                      as audit_dump.lua writes it in a replay; then
 //!                                                      run/audit.py <the directory>
 //!     tape grow <tape.raw> [--cuts N] [-o FILE]        the tape that grows while a game is played (pack::Growing),
 //!                                                      checked: the stream cut at N places (inside records, as the
@@ -54,7 +54,7 @@ fn main() {
                 name_seats(&mut game, &seats);
             }
             let read_s = started.elapsed().as_secs_f32();
-            let (file, report) = pack::pack(&game).unwrap_or_else(fail);
+            let (file, report) = pack::pack(&game, true).unwrap_or_else(fail);
             std::fs::write(&out, &file).unwrap_or_else(|e| fail(format!("{out}: {e}")));
             println!(
                 "{out}: {} from {} of raw stream; {} frames ({:.1} game minutes), {} unit lives, {} projectiles, {} features; read {:.1} s, packed {:.1} s",
@@ -136,7 +136,7 @@ fn main() {
                 println!("cut {i}/{cuts} ({} of {}): {added} slices added, {slices} in all, {:.1} MB; {frames} frames and {units} unit states the same as the stream so far", megabytes(end as u64), megabytes(raw.len() as u64), file.len() as f64 / 1e6);
             }
             let whole = Game::ingest(&raw).unwrap_or_else(fail);
-            let (packed, _) = pack::pack(&whole).unwrap_or_else(fail);
+            let (packed, _) = pack::pack(&whole, false).unwrap_or_else(fail);
             println!("grow: {} slices grown in {:.1} s, the file {} where the tape packed whole is {}", growing.slices(), started.elapsed().as_secs_f32(), megabytes(std::fs::metadata(&out).map_or(0, |m| m.len())), megabytes(packed.len() as u64));
         }
         Some("check") if args.len() >= 3 => {
@@ -224,8 +224,9 @@ fn orders(file: &[u8]) {
 }
 
 /// The tape read back against the game it was packed from: at every `every`th sample frame every unit alive, its
-/// place, attitude, health, build progress, order and aim exactly; per slice its orders, projectiles and bursts; and
-/// the flat arrays of `Tape::frame` for the same units. Exits 1 on the first slice with a difference.
+/// place, attitude, health, build progress, order, sight, build power and experience exactly; per slice its orders,
+/// projectiles, bursts, damage taken and moving pieces; and the flat arrays of `Tape::frame` for the same units. Exits
+/// 1 on the first slice with a difference.
 fn check(game: &Game, file: &[u8], every: u32) {
     let started = Instant::now();
     let mut tape = Tape::open(file).unwrap_or_else(fail);
@@ -240,7 +241,8 @@ fn check(game: &Game, file: &[u8], every: u32) {
 /// Every slice of the tape's index against the game: its orders, projectiles and bursts, and every unit at every
 /// `every`th sample. A slice not loaded is loaded from `file`; with `keep` it stays (the growing tape's check, where
 /// one reader keeps its slices across refreshes as the page does), else it is dropped after. A projectile's end past
-/// its slice is compared as the slice's end and a frame: a growing tape's slice holds the end it had when written.
+/// its slice is compared as the slice's end and a frame, and its samples up to the slice's end: a growing tape's slice
+/// holds the end and the samples it had when written.
 /// Answers the slices, frames and unit states compared and the slowest load in seconds.
 fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: bool) -> (usize, u64, u64, f32) {
     let sample = game.sample_frames();
@@ -287,8 +289,12 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
         if orders != slice.orders {
             fail::<()>(format!("slice {k}: {} orders in the tape, {} in the game, or they differ", slice.orders.len(), orders.len()));
         }
+        // (and its samples up to the slice's last frame, a sample frame: a growing tape's slice holds those it had
+        // when written, and the slice is read no further)
         let past = |mut p: tape::game::Projectile| {
             p.end = p.end.min(first + SLICE_FRAMES + 1);
+            let n = p.samples.partition_point(|(f, _)| *f <= first + SLICE_FRAMES);
+            p.samples.truncate(n);
             p
         };
         let projectiles: Vec<_> = game.projectiles.iter().filter(|p| p.begin <= first + SLICE_FRAMES && p.end + LINGER_FRAMES > first).map(|p| past(quantized(p))).collect();
@@ -297,12 +303,10 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
             let at = projectiles.iter().zip(&held).position(|(a, b)| a != b);
             fail::<()>(format!("slice {k}: projectiles differ ({} in the game, {} in the tape; the first difference at {:?}: {:?} against {:?})", projectiles.len(), held.len(), at, at.map(|i| &projectiles[i]), at.map(|i| &held[i])));
         }
-        if game.has_audit() {
-            let mut hurt: Vec<(u32, u32, f32)> = game.units.iter().enumerate().flat_map(|(row, u)| u.hurt.iter().filter(|(f, _)| within(*f)).map(move |(f, h)| (*f, row as u32, *h))).collect();
-            hurt.sort_by_key(|h| (h.0, h.1));
-            if hurt != slice.hurt {
-                fail::<()>(format!("slice {k}: the damage taken differs ({} rows in the game, {} in the tape)", hurt.len(), slice.hurt.len()));
-            }
+        let mut hurt: Vec<(u32, u32, f32)> = game.units.iter().enumerate().flat_map(|(row, u)| u.hurt.iter().filter(|(f, _)| within(*f)).map(move |(f, h)| (*f, row as u32, *h))).collect();
+        hurt.sort_by_key(|h| (h.0, h.1));
+        if hurt != slice.hurt {
+            fail::<()>(format!("slice {k}: the damage taken differs ({} rows in the game, {} in the tape)", hurt.len(), slice.hurt.len()));
         }
         let bursts: Vec<_> = game.bursts.iter().filter(|b| b.frame + LINGER_FRAMES > first && b.frame <= first + SLICE_FRAMES).map(quantized_burst).collect();
         if bursts != slice.bursts {
@@ -311,9 +315,8 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
         let mut f = first.div_ceil(sample) * sample;
         while f <= last {
             let mut want: Vec<Exact> = game.units.iter().enumerate().take_while(|(_, u)| u.created <= f).filter(|(_, u)| u.alive(f))
-                .map(|(row, u)| {
-                    let (work, rank) = if game.has_audit() { (u.work_at(f), u.rank_at(f)) } else { ([0, 0], [0.0, u.max_health]) };
-                    Exact { row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), aim: u.aims(f), sight: if game.has_sight() { u.sight(f, game.ally(u.team)) } else { [u16::MAX; 2] }, work, rank }
+                .map(|(row, u)| Exact {
+                    row: row as u32, pose: u.pose(f), vital: u.vital(f), activity: u.doing(f), sight: u.sight(f, game.ally(u.team)), work: u.work_at(f), rank: u.rank_at(f),
                 })
                 .collect();
             let mut got = tape.exact(index, f).unwrap_or_else(|| fail(format!("frame {f}: its slice is not loaded")));

@@ -104,8 +104,6 @@ const WRTape = (() => {
       unitDefs: new Map(defs.units.map((d) => [d.id, d])),
       weaponDefs: new Map(defs.weapons.map((d) => [d.id, d])),
       featureDefs: new Map(defs.features.map((d) => [d.id, d])),
-      /// Whether the tape says what each side saw (taped from 2026-11-15 night on).
-      hasSight: Array.isArray(head.ally_teams),
     };
     fields.unitCount = fields.unitInts.length / 8;
     // The rows that held each engine id, in the order created: the tie to the match record, which names a unit by
@@ -235,9 +233,9 @@ const WRTape = (() => {
         /// and a half: the unit's place in `units`, the command, how it points, the place, frames since, 1 for shift.
         doing: array(8, Float32Array), commands: array(9, Float32Array),
         /// Beside `units`, a unit each: the ally teams that have it in sight (bit `a` for ally team a) and, sixteen
-        /// bits up, those that have it on radar. Every bit set when the tape does not say (`hasSight`).
+        /// bits up, those that have it on radar.
         seen: array(11, Uint32Array),
-        /// The moving pieces (a tape of format 4): beside `units`, each unit's block in `pieces` (-1: at rest), and the
+        /// The moving pieces (none on a tape captured `--no-pieces`): beside `units`, each unit's block in `pieces` (-1: at rest), and the
         /// blocks, `pieceStride` transforms each of twelve floats (a rotation by columns, then a translation: a
         /// vertex v of the model at rest is drawn at R v + t).
         pieceAt: array(13, Float32Array), pieces: array(12, Float32Array), pieceStride: wasm.wr_piece_stride(),
