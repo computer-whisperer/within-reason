@@ -36,8 +36,9 @@ const WRScene = (() => {
       /// Where the camera looks (a point on the ground), how far from it, its turn and tilt in radians.
       camera: { target: [mapX / 2, 0, mapZ / 2], distance: 1, yaw: 0, pitch: 1.0 },
       /// grid: the named cells; fire: projectiles and flashes; commands: orders as they are given; orders: every
-      /// unit's standing order; ranges: every static defence's reach; spots: the metal spots.
-      layers: { grid: true, fire: true, commands: true, orders: false, ranges: false, spots: true },
+      /// unit's standing order; ranges: every static defence's reach; spots: the metal spots; icons: a unit too small
+      /// on screen to read is its icon (off: its model at any distance).
+      layers: { grid: true, fire: true, commands: true, orders: false, ranges: false, spots: true, icons: true },
       frame: 0, selected: -1, pending: 0, stats: {},
       /// The ally team whose sight the view shows (-1 every unit, as a spectator): what it did not see is a ghost, and
       /// of the orders only its own are drawn. Needs a tape that says what each side saw (`tape.hasSight`).
@@ -134,12 +135,24 @@ const WRScene = (() => {
         if (def) lines.box(d[i + 4], d[i + 6], (def.xsize || 2) * 4, (def.zsize || 2) * 4, heightAt, rgba, width);
       }
       if (L.commands) {
+        // As the game's spectator view draws them (BAR's gui_commands_fx): a unit's latest command, with those given
+        // with it in the same frame, as one chain from the unit through each place in turn, fading; a later command
+        // takes the earlier's place. A command that is not queued starts the chain again at the unit. (The game's
+        // chain runs through the whole queue: one given queued behind older orders starts here at the unit.)
         const C = WRTape.COMMAND_STRIDE, given = state.commands;
+        const latest = new Map();
         for (let i = 0; i < given.length; i += C) {
-          const u = given[i] * 16, c = WRTape.commandColor(given[i + 1]);
-          if (theirs(u)) continue;
-          const fade = 1 - given[i + 6] / WRTape.COMMAND_FRAMES;
-          lines.add([units[u], units[u + 1] + 4, units[u + 2]], [given[i + 3], given[i + 4] + 4, given[i + 5]], [c[0], c[1], c[2], 0.8 * fade * fade], 1.6);
+          if (!latest.has(given[i]) || given[i + 6] < latest.get(given[i])) latest.set(given[i], given[i + 6]);
+        }
+        const chainEnd = new Map();
+        for (let i = 0; i < given.length; i += C) {
+          const slot = given[i], u = slot * 16;
+          if (given[i + 6] !== latest.get(slot) || theirs(u)) continue;
+          const c = WRTape.commandColor(given[i + 1]), fade = 1 - given[i + 6] / WRTape.COMMAND_FRAMES;
+          const from = (given[i + 7] > 0 && chainEnd.get(slot)) || [units[u], units[u + 1] + 4, units[u + 2]];
+          const to = [given[i + 3], given[i + 4] + 4, given[i + 5]];
+          lines.add(from, to, [c[0], c[1], c[2], 0.8 * fade * fade], 1.6);
+          chainEnd.set(slot, to);
         }
       }
       if (L.ranges) {
@@ -293,7 +306,7 @@ const WRScene = (() => {
         // The selected unit's place this frame, for its ring.
         const at = scene.selected >= 0 ? slots[scene.selected] * 16 : -1;
         if (at >= 0) selected = { x: state.units[at], y: state.units[at + 1], z: state.units[at + 2], radius: units.radiusOf(state.units[at + 14]) };
-        scene.stats.draws = units.draw(state, v, selected);
+        scene.stats.draws = units.draw(state, v, selected, scene.layers.icons);
       }
       terrain.drawWater(v);
       if (state && scene.layers.fire) effects.draw(state, v);

@@ -153,8 +153,9 @@ newer), loaded by `viewer/scene/tape.js`.
   it points (0 nowhere, 1 a place, 2 a unit, 3 a feature), the place it points at this frame (a unit's where the unit
   is), the target's row or feature number (-1), the row it is building (-1), its queue's length.
 - **commands**, eight f32 a command given in the last `COMMAND_FRAMES` (45: a second and a half) by a unit alive with
-  an aim: the unit's place in `units`, the command, the place it points at, frames since, 1 for shift. The fading
-  lines of the game's spectator view.
+  an aim: the unit's place in `units`, the command, the place it points at, frames since, 1 for shift, in the order given. The fading
+  lines of the game's spectator view: the page draws a unit's latest frame of them as one chain, as BAR's
+  `gui_commands_fx` does.
 - `orders_of(row)`: every order given to a unit in the slices loaded (the page keeps the twelve it used last, wherever
   they lie; the unit panel reads the minute it lists with `wantSpan` and keeps to it), eight f32 each: frame, command,
   shift, how, place, target.

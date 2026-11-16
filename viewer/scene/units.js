@@ -1,7 +1,7 @@
 // The units: each type's model drawn once for all its units (instanced), straight from the reader's array of the
 // state at a frame (sixteen floats a unit, by type: place, front, up, health, build progress, team, flags, row,
-// type, paralysis). A unit too small on screen to read is the game's own icon instead, as in the game. Health bars
-// stand over the hurt and the unfinished.
+// type, paralysis). A unit too small on screen to read is the game's own icon instead, as in the game (unless the
+// view's `icons` switch is off). Health bars stand over the hurt and the unfinished.
 "use strict";
 
 const WRUnits = (() => {
@@ -446,8 +446,9 @@ const WRUnits = (() => {
         return drawn;
       },
 
-      /// Draws the units of a state (`tape.frame`'s answer). Says how many it drew as models' draw calls.
-      draw(state, camera, selected) {
+      /// Draws the units of a state (`tape.frame`'s answer), a unit too small to read as its icon unless `icons` is
+      /// false (then its model at any distance, and no bar). Says how many it drew as models' draw calls.
+      draw(state, camera, selected, icons = true) {
         const count = state.units.length / 16;
         if (!count) return 0;
         gl.bindBuffer(gl.ARRAY_BUFFER, instances);
@@ -459,7 +460,7 @@ const WRUnits = (() => {
 
         common(model, camera);
         gl.uniform3fv(model.u.uSun, camera.sun);
-        gl.uniform1f(model.u.uIconBelow, ICON_BELOW);
+        gl.uniform1f(model.u.uIconBelow, icons ? ICON_BELOW : 0);
         gl.uniform1i(model.u.uTex1, 0);
         gl.uniform1i(model.u.uTex2, 1);
         let draws = 0;
@@ -493,18 +494,20 @@ const WRUnits = (() => {
         }
         gl.disable(gl.DEPTH_TEST);
         pointInstances(0);
-        common(icon, camera);
-        gl.uniform2f(icon.u.uViewport, camera.width, camera.height);
-        gl.uniform1f(icon.u.uIconBelow, ICON_BELOW);
-        gl.uniform1f(icon.u.uIconHalf, ICON_HALF * camera.dpr);
-        gl.uniform1f(icon.u.uCells, cells);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, typeTexture);
-        gl.uniform1i(icon.u.uTypes, 0);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, atlas);
-        gl.uniform1i(icon.u.uAtlas, 1);
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
+        if (icons) {
+          common(icon, camera);
+          gl.uniform2f(icon.u.uViewport, camera.width, camera.height);
+          gl.uniform1f(icon.u.uIconBelow, ICON_BELOW);
+          gl.uniform1f(icon.u.uIconHalf, ICON_HALF * camera.dpr);
+          gl.uniform1f(icon.u.uCells, cells);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, typeTexture);
+          gl.uniform1i(icon.u.uTypes, 0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, atlas);
+          gl.uniform1i(icon.u.uAtlas, 1);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
+        }
 
         common(bar, camera);
         gl.uniform2f(bar.u.uViewport, camera.width, camera.height);

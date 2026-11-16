@@ -199,6 +199,14 @@ async function gecko() {
     await shot(`${tag}-map.png`);
     const stats = await evaluate("(() => { const s = window.viewer.scene.stats; return { units: s.units, projectiles: s.projectiles, ms: s.ms, draws: s.draws, triangles: s.triangles }; })()");
     if (!stats.units) fail(`${tag}: no units drawn`);
+    // The icons switch, as the user flips it: off, every unit its model at this distance; then on again.
+    const iconsSwitch = (on) => evaluate(`(() => { const box = document.querySelector('input[data-scene-layer="icons"]'); box.checked = ${on}; box.dispatchEvent(new Event("change")); return window.viewer.scene.layers.icons; })()`);
+    if ((await iconsSwitch(false)) !== false) fail("the icons switch did not reach the scene");
+    await settled(`the whole map without icons at ${tag}`);
+    await shot(`${tag}-map-models.png`);
+    const modelsMs = await evaluate("window.viewer.scene.stats.ms");
+    await iconsSwitch(true);
+    await settled(`icons again at ${tag}`);
     // The busiest ground: the cell of 600 elmos with the most mobile units.
     const busy = await evaluate(`(() => { const s = window.viewer.scene, st = s.tape.frame(s.frame), cells = new Map(); let best = null;
       for (let i = 0; i < st.units.length; i += 16) { if (!(st.units[i + 12] & 2)) continue; const k = Math.floor(st.units[i] / 600) + "," + Math.floor(st.units[i + 2] / 600); const c = cells.get(k) || { n: 0, x: 0, z: 0 }; c.n++; c.x += st.units[i]; c.z += st.units[i + 2]; cells.set(k, c); if (!best || c.n > best.n) best = c; }
@@ -213,7 +221,7 @@ async function gecko() {
       await settled(`turned at ${tag}`);
       await shot(`${tag}-turned.png`);
     }
-    console.log(`${tag}: ${stats.units} units in ${stats.draws} model draws, ${stats.projectiles} projectiles, ${Math.round(stats.triangles / 1000)}k ground triangles, a frame ${stats.ms.toFixed(1)} ms, the seek ${seekMs} ms${busy ? `; the close look at (${Math.round(busy[0])}, ${Math.round(busy[1])}) with ${busy[2]} mobile units` : ""}`);
+    console.log(`${tag}: ${stats.units} units in ${stats.draws} model draws, ${stats.projectiles} projectiles, ${Math.round(stats.triangles / 1000)}k ground triangles, a frame ${stats.ms.toFixed(1)} ms (${modelsMs.toFixed(1)} ms with no icons), the seek ${seekMs} ms${busy ? `; the close look at (${Math.round(busy[0])}, ${Math.round(busy[1])}) with ${busy[2]} mobile units` : ""}`);
   }
   // Seeks, now that the models are here: to five far-apart moments whose slices are not loaded, each timed from the
   // seek to the frame drawn.

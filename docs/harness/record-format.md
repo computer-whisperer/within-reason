@@ -289,7 +289,7 @@ glyph). The wheel zooms about the cursor (1x to 32x the fitted scale), a drag pa
 `+`/`-` step. From 4x buildings show their footprints (`footprint` x 8 elmos, turned by the `finished` facing, a
 factory's front edge heavier) and units their names, from 8x their ids, and every unit's standing order (the last
 command the bot sent it, ended by a `stop` or the idle flag: a line to the point or target, a square at a build
-site); below 4x the last 3 s of orders. The `marks` layer draws the commander's marks, each player's own and the
+site); below 4x each unit's latest orders of the last 3 s (one tick's as a chain through its places). The `marks` layer draws the commander's marks, each player's own and the
 seats' starts; the `hands` layer the named places, the parties and the groups with a line to where each is going,
 for the seats in scope, and (from 2026-10-25) the lane's ranks from the sample's `groups`: the anchor as a diamond
 (filled when arrived) with its heading drawn as long as the pace's share of the full pace, and a line of the state
@@ -298,15 +298,17 @@ the way left, or "no way"). A click selects a unit (ring; `Escape` clears).
 **The 3D view** (2026-11-15, `docs/design/2026-11-15-game-tape.md`, `tape-format.md`): a match directory that holds
 `game.tape` opens in it (the button in the map pane's corner or `m` goes between it and the 2D map; `view=2d` in the
 address opens the 2D map). It draws the tape at the page's playhead: the ground with the map's own texture and its
-craters as they came, every unit of both sides as its model in its team's colour at its true place, height and
-attitude (a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one
-pale), a health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read,
-features (rocks, trees, wrecks), every projectile in flight as a streak in its weapon's colour (a beam as a line to
-what it was aimed at) and a flash where one ended or a unit died. The camera is the game's: a drag moves the ground
-under the cursor, the wheel zooms about it, a right drag (or shift and drag) turns and tilts, a double-click or `0`
-shows the whole map; `,` and `.` step one sample (a tenth of a second) and the speeds go down to a quarter.
-Over the scene (2026-11-15 night), not hidden by hills: the commands as they are given, fading over a second and a
-half in the game's own command colours (the map's "orders as they are given" switch), the selected unit's standing
+craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude
+(a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one pale), a
+health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read (the switch
+"icons for units too small to see" off: its model at any distance), features (rocks, trees, wrecks), every projectile in
+flight as a streak in its weapon's colour (a beam as a line to what it was aimed at) and a flash where one ended or a
+unit died. The camera is the game's: a drag moves the ground under the cursor, the wheel zooms about it, a right drag
+(or shift and drag) turns and tilts, a double-click or `0` shows the whole map; `,` and `.` step one sample (a tenth of
+a second) and the speeds go down to a quarter.
+Over the scene (2026-11-15 night), not hidden by hills: the commands as they are given, fading over a second and a half
+in the game's own command colours, a unit's latest with those given in the same frame as one chain through its places, as
+the game draws it (the map's "orders as they are given" switch), the selected unit's standing
 order (a line to what it points at, a box where a build is not begun) with its sight, radar, build, shield and weapon
 rings; on their own switches every unit's standing order and every finished static defence's reach in its team's
 colour; the metal spots and the named cells (the map's switches); and painted by the 2D map's own functions the

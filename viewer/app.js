@@ -955,17 +955,30 @@ const WV = (() => {
     if (view.layers.hands) drawRanks(painter, state);
 
     if (view.layers.orders && view.zoom < DETAIL_ZOOM) {
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.6;
+      // Each unit's latest orders of the last few seconds: those given in one tick (a route, a list of builds, queued
+      // behind the first; the record does not keep the queue bit) as one chain from the unit through each place in
+      // turn, as the 3D view and the game draw them; a later tick's take their place.
+      const latest = new Map();
       for (const seat of WR.scoped(match, view.scope)) {
         for (const record of WR.range(seat.commands, view.frame - ORDER_FRAMES, view.frame)) {
           for (const c of record.c) {
             const unit = byId.get(c[1]);
             const to = c[0] === "build" ? c.slice(3, 5) : c.slice(2, 4);
             if (!unit || to.length < 2 || !ORDER_COLOR[c[0]]) continue;
-            ctx.strokeStyle = ORDER_COLOR[c[0]];
-            ctx.beginPath(); ctx.moveTo(px(unit.x), pz(unit.z)); ctx.lineTo(px(to[0]), pz(to[1])); ctx.stroke();
+            let chain = latest.get(c[1]);
+            if (!chain || chain.f !== record.f) latest.set(c[1], (chain = { f: record.f, unit, steps: [] }));
+            chain.steps.push([ORDER_COLOR[c[0]], to]);
           }
+        }
+      }
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.6;
+      for (const { unit, steps } of latest.values()) {
+        let from = [unit.x, unit.z];
+        for (const [color, to] of steps) {
+          ctx.strokeStyle = color;
+          ctx.beginPath(); ctx.moveTo(px(from[0]), pz(from[1])); ctx.lineTo(px(to[0]), pz(to[1])); ctx.stroke();
+          from = to;
         }
       }
       ctx.globalAlpha = 1;
