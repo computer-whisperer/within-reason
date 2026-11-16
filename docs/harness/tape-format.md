@@ -295,8 +295,8 @@ it motion and 21 aim. Heading, pitch and roll in 4096ths and places in quarters 
 Format 5 (2026-11-16), with the moving pieces: the dist358 duel 3.5 MB (motion 0.8, pieces 1.3), its engine 52 s; the
 flagship's Apex game 5.2 MB (motion 1.1, pieces 1.9), its engine 91 to 95 s; the Erebos 10v8 105.1 MB from a raw stream
 of 1.89 GB (motion 30.7, pieces 43.8, projectiles 8.7, orders 5.3, keyframes 5.0, activity 4.4), packed in 18 to 20 s at
-zstd level 19 on 16 threads, the check 195 to 243 s; its engine 1,253 s with format 5's first widget (962 without the
-pieces), not yet timed on a quiet machine with the final one (design section 10). Format 4 had made it 144.1 MB
+zstd level 19 on 16 threads, the check 195 to 243 s; its engine 1,339 s, 883 without the pieces in a run right after
+(the widget's pieces 471 s; design section 10). Format 4 had made it 144.1 MB
 (with the aim), format 3 81.9 without the pieces.
 
 In the page (`viewer/test/scene.js`, headless Chromium on this machine's GPU, a Radeon RX 6900 XT): a seek to a slice

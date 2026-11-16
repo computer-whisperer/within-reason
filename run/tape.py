@@ -8,7 +8,7 @@ game.tape, the one seekable file the 3D viewer reads (docs/harness/tape-format.m
                                          (and with --records the per-team records too, as run/replay_match.py writes)
 
     --no-pieces      without the units' moving pieces (turrets, legs, arms; docs/design/2026-11-15-game-tape.md sections 9
-                     and 10): a 10v8's engine time 962 s against 1,250 to 1,550 with them, which are 44 MB of its 105
+                     and 10): a 10v8's engine time 883 s against 1,339 with them, which are 44 MB of its 105
     --keep           keep the engine's write directory and tape.raw (a match's: <match dir>/tape-capture/)
     --no-check       skip reading the tape back against the raw stream
     --timeout S      seconds the engine may take (default: an hour); it is killed then and what it wrote is packed
