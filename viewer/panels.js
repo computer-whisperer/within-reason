@@ -887,11 +887,11 @@
       tr.append(el("td", "mono", b.commit || ""));
       const cell = el("td", "matches");
       for (const m of b.matches || []) {
-        const path = b.batch === "." ? `matches/${m.index ? `${m.index}/` : ""}` : `matches/${encodeURIComponent(b.batch)}/${m.index}/`;
+        const path = b.batch === "." ? `matches/${m.index ? `${m.index}/` : ""}` : `matches/${encodeURIComponent(b.batch)}/${m.index ? `${m.index}/` : ""}`;
         const a = el("a", `match ${m.record ? "" : "norecord"} ${(m.outcome || "").toLowerCase()}`);
         a.href = `?match=${path}`;
         const words = m.outcome ? `${m.outcome}${m.called ? " (called)" : ""}${m.minutes != null ? ` ${m.minutes.toFixed(1)} min` : ""}` : b.finished ? "ended, no result recorded" : "playing";
-        a.textContent = `${m.index || "match"}: ${words}${m.arm ? ` (${m.arm})` : ""}${m.jev_dollars != null ? ` · Jev ~${money(m.jev_dollars)}` : ""}${m.record ? "" : " · no record"}`;
+        a.textContent = `${m.index || "match"}: ${words}${m.arm ? ` (${m.arm})` : ""}${m.jev_dollars != null ? ` · Jev ~${money(m.jev_dollars)}` : ""}${m.record ? "" : " · no record"}${m.tape ? " · tape (3D)" : ""}`;
         a.title = `${b.batch}/${m.index}`;
         cell.append(a);
       }

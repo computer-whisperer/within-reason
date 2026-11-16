@@ -52,6 +52,10 @@ def is_match(path):
     return os.path.isdir(path) and any((f.startswith("record-") and f.endswith(".jsonl")) or f == "game.tape" for f in os.listdir(path))
 
 
+def has_record(path):
+    return os.path.isdir(path) and any(f.startswith("record-") and f.endswith(".jsonl") for f in os.listdir(path))
+
+
 def is_batch(path):
     return os.path.isdir(path) and any(f.isdigit() and os.path.isdir(os.path.join(path, f)) for f in os.listdir(path))
 
@@ -104,7 +108,8 @@ def batch_entry(root, name):
     for sub in sorted(f for f in os.listdir(path) if f.isdigit() and os.path.isdir(os.path.join(path, f))):
         r = results.get(int(sub)) or {}
         matches.append({
-            "index": sub, "record": is_match(os.path.join(path, sub)),
+            "index": sub, "record": has_record(os.path.join(path, sub)),
+            "tape": os.path.isfile(os.path.join(path, sub, "game.tape")),
             "outcome": r.get("outcome"), "minutes": r.get("game_minutes"), "corner": r.get("our_corner"), "side": r.get("our_side"),
             "arm": r.get("arm") or None, "called": r.get("called"), "jev_dollars": jev_bill(os.path.join(path, sub)),
         })
@@ -247,6 +252,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.root_kind == "batch":
             return {"kind": "batch", "root": self.root, "batches": [dict(batch_entry(os.path.dirname(self.root), os.path.basename(self.root)), batch=".")]}
         batches = [batch_entry(self.root, name) for name in os.listdir(self.root) if is_batch(os.path.join(self.root, name))]
+        # A taped demo (run/tape.py <demo.sdfz>) is a match directory of its own, with no batch over it: listed as a
+        # batch of one. (A replayed demo's records without a tape are not listed, as before: opened by naming them.)
+        for name in os.listdir(self.root):
+            path = os.path.join(self.root, name)
+            if os.path.isfile(os.path.join(path, "game.tape")) and not is_batch(path):
+                batches.append({"batch": name, "label": name, "started": os.path.getmtime(os.path.join(path, "game.tape")), "matches": [{"index": "", "record": has_record(path), "tape": True}], "finished": True})
         batches.sort(key=lambda b: b["started"], reverse=True)
         return {"kind": "root", "root": self.root, "batches": batches}
 
