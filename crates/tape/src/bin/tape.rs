@@ -6,6 +6,8 @@
 //!                                                      `seats`: in a replay the engine names every seat UNKNOWN)
 //!     tape info <game.tape>                            what a tape holds
 //!     tape check <tape.raw> <game.tape> [--every N]    the tape read back against the raw stream it was made from
+//!     tape orders <game.tape>                          what the units stood under, a second at a time: by command,
+//!                                                      how many unit-seconds and what the order pointed at
 //!
 //! `run/tape.py` runs the engine on a demo and then `tape pack`.
 
@@ -85,12 +87,13 @@ fn main() {
                 println!("  {kind} x{count}: {}", megabytes(bytes));
             }
         }
+        Some("orders") if args.len() >= 2 => orders(&read(&args[1])),
         Some("check") if args.len() >= 3 => {
             let game = Game::ingest(&read(&args[1])).unwrap_or_else(fail);
             let every = value("--every").and_then(|v| v.parse().ok()).unwrap_or(1);
             check(&game, &read(&args[2]), every);
         }
-        _ => fail::<()>("usage: tape pack <tape.raw> [-o game.tape] [--check] [--seats seats.json] | tape info <game.tape> | tape check <tape.raw> <game.tape> [--every N]"),
+        _ => fail::<()>("usage: tape pack <tape.raw> [-o game.tape] [--check] [--seats seats.json] | tape info <game.tape> | tape check <tape.raw> <game.tape> [--every N] | tape orders <game.tape>"),
     }
 }
 
@@ -108,6 +111,61 @@ fn name_seats(game: &mut Game, seats: &serde_json::Value) {
         };
         team["name"] = name.into();
         team["controller"] = controller.clone();
+    }
+}
+
+/// The reader's account of the orders, once a game second: for each command the unit-seconds stood under it and what
+/// it pointed at (`Frame::doing`), and the commands given (`Frame::commands` over the same frames).
+fn orders(file: &[u8]) {
+    let mut tape = Tape::open(file).unwrap_or_else(fail);
+    let mut out = Frame::default();
+    // command -> [nowhere, a place, a unit, a feature], and the units building under it
+    let mut tally: BTreeMap<i32, ([u64; 4], u64)> = BTreeMap::new();
+    // command -> places off the map (or far above or below it), and the first few of them
+    let head: serde_json::Value = serde_json::from_str(&tape.head).unwrap_or_default();
+    let (width, height) = (head["map"]["width"].as_f64().unwrap_or(0.0) as f32, head["map"]["height"].as_f64().unwrap_or(0.0) as f32);
+    let mut off: BTreeMap<i32, (u64, Vec<String>)> = BTreeMap::new();
+    let (mut seconds, mut alive, mut flashes, mut history) = (0u64, 0u64, 0u64, 0u64);
+    let mut scratch = Vec::new();
+    let slices: Vec<_> = tape.of_kind(b"SLIC").cloned().collect();
+    for (k, chunk) in slices.iter().enumerate() {
+        let index = tape.load_slice(chunk_bytes(file, chunk).unwrap_or_else(fail)).unwrap_or_else(fail);
+        let first = k as u32 * SLICE_FRAMES;
+        for f in (first..(first + SLICE_FRAMES).min(tape.last_frame + 1)).step_by(30) {
+            if !tape.frame_in(index, f as f32, &mut out) {
+                fail::<()>(format!("frame {f}: no state"));
+            }
+            seconds += 1;
+            alive += (out.units.len() / tape::read::UNIT_STRIDE) as u64;
+            flashes += (out.commands.len() / tape::read::COMMAND_STRIDE) as u64;
+            for d in out.doing.chunks_exact(tape::read::DOING_STRIDE) {
+                // a build's type is not the command's kind: all builds are one line
+                let entry = tally.entry((d[2] as i32).max(-1)).or_default();
+                entry.0[d[3] as usize] += 1;
+                entry.1 += (d[8] >= 0.0) as u64;
+                if d[3] == 1.0 && (d[4] < -64.0 || d[6] < -64.0 || d[4] > width + 64.0 || d[6] > height + 64.0 || d[5].abs() > 5000.0) {
+                    let entry = off.entry(d[2] as i32).or_default();
+                    entry.0 += 1;
+                    if entry.1.len() < 4 {
+                        entry.1.push(format!("frame {f} row {} at ({:.0}, {:.0}, {:.0})", d[1], d[4], d[5], d[6]));
+                    }
+                }
+            }
+        }
+        if let Some(row) = tape.slices[&index].orders.first().map(|o| o.unit).filter(|u| *u > 0) {
+            tape.orders_of(row - 1, &mut scratch);
+            history += (scratch.len() / tape::read::HISTORY_STRIDE) as u64;
+        }
+        tape.drop_slice(index.saturating_sub(1));
+    }
+    println!("{seconds} game seconds, {alive} unit-seconds; {flashes} commands in the fading lists; {history} history rows of one unit a slice");
+    println!("{:>8} {:>10} {:>10} {:>10} {:>10} {:>10}", "command", "nowhere", "a place", "a unit", "a feature", "building");
+    for (cmd, (how, builds)) in tally {
+        let name = if cmd < 0 { "build".to_string() } else { cmd.to_string() };
+        println!("{name:>8} {:>10} {:>10} {:>10} {:>10} {builds:>10}", how[0], how[1], how[2], how[3]);
+    }
+    for (cmd, (n, first)) in off {
+        println!("command {cmd}: {n} unit-seconds at a place off the map ({width} x {height}), e.g. {}", first.join("; "));
     }
 }
 

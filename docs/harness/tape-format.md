@@ -97,7 +97,12 @@ table it is decoded alone. Its sections, each a run of columns (a u32 length, th
   between two samples further apart than `sample_frames` the unit stood still until the last `sample_frames`.
 - **vitals**, **activity**, **aim**: a row when it changed: (frame, row, ...). Activity is the head of the order
   queue: the engine's command id (negative: a build of that type), how it points (0 nowhere, 1 at the unit or feature
-  with engine id `a`, 3 at the place a, b, c), the engine id of what a builder is building, the queue's length.
+  with engine id `a`, 3 at the place a, b, c), the engine id of what a builder is building, the queue's length. A
+  feature's engine id here and in orders is its own plus the unit limit (`max_units` in the header; BAR's 32000 when
+  the header does not say). Repair, reclaim, resurrect and capture take five numbers when a builder working an area
+  is on one target (its id, then the area: `BuilderCAI.cpp`); the widget writes that as the target (`how` 1) since
+  2026-11-15 night, and before kept its first three numbers as a place, which the reader sorts out (`aim_of`: an
+  area's centre is a click on the ground, else the numbers are the id and the area's first two).
 - **orders**: every command given, either side: frame, the unit's row, command id, shift, up to six parameters.
 - **projectiles**: every projectile in flight at a frame of the slice, or gone under `linger_frames` before it: the
   frames it began and ended, engine id, weapon type (-1 a piece of a dying unit), owner row, team, where it began
@@ -128,6 +133,20 @@ newer), loaded by `viewer/scene/tape.js`.
 - **bursts**, eight f32 each: place, frames since, weapon type (the unit's type for a death), kind (2 a projectile's
   end, 3 a unit's death; 0 and 1 the game's own), the owner's or the dead unit's row.
 
+- **doing**, ten f32 a unit with a head order or a build under way: its place in `units`, its row, the command, how
+  it points (0 nowhere, 1 a place, 2 a unit, 3 a feature), the place it points at this frame (a unit's where the unit
+  is), the target's row or feature number (-1), the row it is building (-1), its queue's length.
+- **commands**, eight f32 a command given in the last `COMMAND_FRAMES` (45: a second and a half) by a unit alive with
+  an aim: the unit's place in `units`, the command, the place it points at, frames since, 1 for shift. The fading
+  lines of the game's spectator view.
+- `orders_of(row)`: every order given to a unit in the slices loaded (about a minute around the playhead), eight f32
+  each: frame, command, shift, how, place, target.
+
+A command points at a place when it has three or more numbers (a build's too), at a unit or feature when it has one
+and is one of attack, guard, repair, reclaim, manual fire, resurrect, capture, load, load onto or set target; a place
+off the map is no aim. `tape orders <game.tape>` counts, a game second at a time, every head order by what it points
+at, and lists any place off the map (none on the three games of 2026-11-15 once the five-number orders were read).
+
 Between samples a unit's place runs straight and each angle the short way round; projectile, burst, order and vitals
 rows have their exact frames.
 
@@ -136,13 +155,16 @@ rows have their exact frames.
 `run/view_match.py` serves `game.tape` by byte range and the asset copies at `/assets/<name>`; a directory with a tape
 and no record of ours (a bot of `bots/`, a taped demo) is a match the browser lists and opens. `viewer/scene/`:
 `tape.js` (the reader and its fetches: the footer, the index, the tables, then the slice under the playhead and the
-next, eight kept), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js`, `effects.js`, `scene.js`
-(the camera, the drawing, picking), `gl.js`. See `record-format.md`, Viewer, for what the page shows.
+next, eight kept), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js`, `effects.js`, `lines.js`
+(lines over the scene: a set number of CSS pixels across at any distance, not depth-tested, so an order reads through
+a hill), `scene.js` (the camera, the drawing, picking, and a 2D canvas over the scene that the page paints with the
+same functions as the 2D map), `gl.js`. See `record-format.md`, Viewer, for what the page shows.
 
 Tests: `cargo test -p tape`; `tape pack --check` on every tape made; `node viewer/test/scene.js <match url> <out dir>
 [seconds ...]` (the real page in a headless browser: checks the scene as it opens, seeks, saves screenshots of the
 whole map, the busiest ground and the same turned, times seeks, drives the wheel, a drag, a shift-drag, a hover and a
-click, and fails on any page error). **Run it in both browsers**: Chromium by default, Firefox with
+click, checks the clicked unit's panel, the lines with every order and reach on, the overlay's size, the sides'
+numbers of a game with no record, and with a record a unit of ours's panel; and fails on any page error). **Run it in both browsers**: Chromium by default, Firefox with
 `SCENE_BROWSER=firefox` (over WebDriver BiDi); the user's browser is Firefox. The first build of this test reset the
 camera before every screenshot and so passed while the scene opened blank in every browser (the camera fitted while
 the canvas was still hidden, its distance infinite): the user found it in Firefox the same night.
@@ -164,4 +186,6 @@ not loaded, timed from the seek to the frame drawn, 100 to 155 ms on all three g
 included (the test looks every 100 ms, so that is a ceiling); a frame's script 0.6 ms on the duel and 2.4 ms on the
 10v8 (276 model draws); the first frame after opening waits for the models and textures (the faction textures are
 22 MB each, the 10v8's map tiles 70 MB). On the software renderer the same seeks take 0.4 to 2.4 s on the 10v8.
+With the lines and the overlay (2026-11-15 night) the 10v8 on the GPU: seeks 105 to 231 ms, a frame's script 1.5 ms
+with 4,742 units (Firefox: seeks 106 to 330 ms, a frame 6 to 7 ms); on the software renderer seeks 0.5 to 3.3 s.
 The slowest slice to decode: 2 ms on the duel, 18 ms on the 10v8.

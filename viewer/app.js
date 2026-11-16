@@ -9,8 +9,10 @@
 // fetched whole: the server sends an index of each, and the gate and the picture at the playhead on demand.
 //
 // A match with a tape (game.tape, run/tape.py) opens in the 3D view (viewer/scene/): the whole game as the engine had
-// it, both sides, drawn from the tape at the same playhead; `m` or the button goes between it and the 2D map. A
-// directory with a tape and no record of ours (a bot of bots/, a taped demo) opens as the 3D view alone.
+// it, both sides, drawn from the tape at the same playhead; `m` or the button goes between it and the 2D map. The
+// marks, the hands' names and the lane's ranks are painted over both views by the same functions, through a painter
+// (`mapPainter` here, scene.js's for the 3D view). A directory with a tape and no record of ours (a bot of bots/, a
+// taped demo) opens as the 3D view alone, with the sides' numbers and charts from the tape's own tables.
 "use strict";
 
 const WV = (() => {
@@ -38,15 +40,16 @@ const WV = (() => {
     /// The map's view: zoom over the fitted scale (1 to MAX_ZOOM) and the elmo at the pane's centre; the selected
     /// unit; the hands' actor in focus ({seat, name}); the game's icon table (viewer/icons.json).
     zoom: 1, centre: null, selected: null, actor: null, icons: null,
-    /// The 3D view of the match's tape (viewer/scene/scene.js) when it has one, and which of the two is shown.
-    scene: null, mode: "2d",
+    /// The 3D view of the match's tape (viewer/scene/scene.js) when it has one, and which of the two is shown. The
+    /// selected unit's row in the tape (one life; the engine's id in `selected` is reused), or -1.
+    scene: null, mode: "2d", selectedRow: -1,
     /// What changes when rows arrive: the lanes and the timeline's picture are rebuilt when it does.
     version: 0,
   };
   window.viewer = view;
   // For the tests (viewer/test/browser.js), which drive the page from outside.
   view.seek = (frame) => seek(frame);
-  view.select = (id) => select(id);
+  view.select = (id, row) => select(id, row);
   view.gateAt = (seat, frame) => gateAt(view.match.seats[seat], frame);
 
   const seatColor = (index) => (index == null ? ALLY : view.match && view.match.seats.length > 1 ? SEAT_COLORS[index % SEAT_COLORS.length] : COLOR.ours);
@@ -271,7 +274,7 @@ const WV = (() => {
   /// Opens the match's tape in the 3D view. False when it could not be (said in the status line).
   async function openScene(base) {
     try {
-      view.scene = await WRScene.open($("scene"), `${base}game.tape`, { onPick: scenePick, onHover: sceneHover, onDraw: sceneDrawn });
+      view.scene = await WRScene.open($("scene"), `${base}game.tape`, { onPick: scenePick, onHover: sceneHover, onDraw: sceneDrawn, overlay: $("scene-overlay"), onOverlay: sceneOverlay });
     } catch (e) {
       console.error(e);
       status(`the 3D view did not open: ${e.message}`);
@@ -288,6 +291,7 @@ const WV = (() => {
   function setMode(mode) {
     view.mode = view.scene ? mode : "2d";
     $("scene").hidden = view.mode !== "3d";
+    $("scene-overlay").hidden = view.mode !== "3d";
     $("map").hidden = view.mode === "3d";
     $("scene-note").hidden = view.mode !== "3d";
     $("mode").textContent = view.mode === "3d" ? "2D map" : "3D view";
@@ -296,22 +300,108 @@ const WV = (() => {
     renderAll();
   }
 
-  /// The record names a unit by the engine's id, the tape by its own row: the selection is the engine's id, and the
-  /// scene is told the row that held it at the playhead.
+  /// The record names a unit by the engine's id, the tape by its own row. A unit selected before the tape was open
+  /// (or by a panel's link, which has the id alone) is the row that held the id at the playhead.
   function drawScene() {
     const scene = view.scene;
-    scene.selected = view.selected != null ? scene.tape.rowOf(view.selected, Math.floor(view.frame)) : -1;
+    if (view.selected != null && view.selectedRow < 0) view.selectedRow = scene.tape.rowNear(view.selected, Math.floor(view.frame));
+    scene.selected = view.selected != null ? view.selectedRow : -1;
+    // The layers the two views share are the map's switches.
+    Object.assign(scene.layers, { grid: view.layers.grid, spots: view.layers.spots, commands: view.layers.orders });
     scene.draw(view.frame);
   }
 
   function scenePick(row) {
     if (row < 0) return select(null);
-    select(view.scene.tape.unit(row).id);
+    select(view.scene.tape.unit(row).id, row);
   }
 
   function sceneDrawn(scene) {
     const s = scene.stats;
     $("scene-note").textContent = s.loading ? "reading the tape ..." : `${s.units} units · ${s.projectiles} projectiles in flight · ground ${scene.terrain.note()} · ${s.ms.toFixed(1)} ms`;
+    // A slice read since the panels were drawn: what they said of the playhead may have been "loading".
+    if (!s.loading && view.panelLoads !== scene.tape.loads) {
+      view.panelLoads = scene.tape.loads;
+      renderPanels();
+    }
+  }
+
+  /// A place in words: its named cell and its elmos.
+  const placeWords = (x, z) => `${view.match.header.grid ? `${WR.gridName(view.match, x, z)} ` : ""}(${Math.round(x)}, ${Math.round(z)})`;
+
+  /// An order of the tape in words: the command and what it points at ({cmd, how, at, target} of a state's `doing`
+  /// or of a unit's history, scene/tape.js).
+  function tapeOrderWords(o) {
+    const tape = view.scene.tape;
+    const what = o.cmd < 0 ? `build ${(tape.unitDefs.get(-o.cmd) || {}).name || `type ${-o.cmd}`}` : WRTape.commandName(o.cmd);
+    if (o.how === 1) return `${what} at ${placeWords(o.at[0], o.at[2])}`;
+    const target = o.how === 2 ? tape.unit(o.target) : o.how === 3 ? tape.feature(o.target) : null;
+    if (!target) return what;
+    return `${what} ${target.def ? target.def.name : o.how === 2 ? "unit" : "feature"}${o.how === 2 ? ` #${target.id}` : ""}`;
+  }
+
+  /// The words over the 3D view, through the scene's painter: the named cells, the starts the tape knows, and with a
+  /// record the marks, the hands' names and the lane's ranks exactly as the 2D map paints them, and a ring on each
+  /// unit of the hands' actor in focus.
+  function sceneOverlay(p) {
+    const match = view.match, ctx = p.ctx, tape = view.scene.tape;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+    ctx.shadowBlur = 3;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    if (view.layers.grid && match.header.grid) {
+      const { columns, rows } = match.header.grid, map = match.header.map;
+      ctx.font = "10px system-ui";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+      for (let c = 0; c < columns; c++) {
+        for (let r = 0; r < rows; r++) {
+          const at = p.at(((c + 0.04) * map.width) / columns, ((r + 0.06) * map.height) / rows);
+          // (not where a cell is a speck: the names would be a smear)
+          if (at && at[2] * (map.width / columns) > 46) ctx.fillText(String.fromCharCode(65 + c) + (r + 1), at[0], at[1]);
+        }
+      }
+    }
+    if (view.layers.marks) {
+      // Every team's start that is not a seat of ours (those have their home mark from the record).
+      const ours = new Set(match.seats.map((seat) => seat.team));
+      ctx.font = "11px system-ui";
+      for (const t of tape.head.teams || []) {
+        const at = !t.gaia && !ours.has(t.team) && (t.start[0] || t.start[2]) ? p.at(t.start[0], t.start[2]) : null;
+        if (!at) continue;
+        ctx.strokeStyle = ctx.fillStyle = `rgb(${t.color.map((v) => Math.round(v * 255)).join(", ")})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(at[0] - 7, at[1]); ctx.lineTo(at[0] + 7, at[1]); ctx.moveTo(at[0], at[1] - 7); ctx.lineTo(at[0], at[1] + 7);
+        ctx.stroke();
+        ctx.fillText(`start: ${(t.name || "").trim() || t.side || `team ${t.team}`}`, at[0] + 9, at[1] - 7);
+      }
+      if (!match.tapeOnly) drawMarks(p);
+    }
+    if (match.tapeOnly) return;
+    const state = WR.stateAt(match, view.frame);
+    view.state = state;
+    // The record names a unit by the engine's id: where the tape has that unit this frame.
+    const frame = Math.floor(view.frame);
+    const byId = {
+      get(id) {
+        const at = p.unit(tape.rowOf(id, frame));
+        return at ? { x: at[0], y: at[1], z: at[2] } : null;
+      },
+    };
+    if (view.layers.hands) {
+      drawHands(p, byId);
+      drawRanks(p, state);
+    }
+    if (view.actor) {
+      ctx.strokeStyle = COLOR.ink;
+      ctx.lineWidth = 1;
+      for (const id of actorUnits(view.actor)) {
+        const u = id !== view.selected ? byId.get(id) : null;
+        const at = u ? p.at(u.x, u.z, u.y) : null;
+        if (!at) continue;
+        ctx.beginPath(); ctx.arc(at[0], at[1], Math.max(8, 16 * at[2]), 0, 7); ctx.stroke();
+      }
+    }
   }
 
   /// What is under the cursor in the 3D view: the unit as the tape has it this frame, and the ground.
@@ -326,8 +416,11 @@ const WV = (() => {
       lines.push(`${unit.def ? `${unit.def.human} (${unit.def.name})` : "unit"} #${unit.id}`);
       lines.push(`team ${now ? now[11] : unit.team}${team ? `: ${team.name || team.side}` : ""}`);
       if (now) lines.push(`health ${Math.round(now[9] * unit.maxHealth)} of ${Math.round(unit.maxHealth)}${now[10] < 0.999 ? `, ${Math.round(now[10] * 100)}% built` : ""}${now[15] >= 1 ? ", stunned" : ""}${(now[12] & 1) ? ", cloaked" : ""}`);
+      const doing = view.scene.doingOf(row);
+      if (doing && doing.cmd !== 0) lines.push(`order: ${tapeOrderWords(doing)}${doing.queue > 1 ? ` (+${doing.queue - 1} queued)` : ""}`);
+      if (doing && doing.builds >= 0) lines.push(`building ${(tape.unit(doing.builds).def || {}).name || "a unit"}`);
     }
-    if (ground) lines.push(`${view.match && view.match.header.grid ? `${WR.gridName(view.match, ground[0], ground[2])}  ` : ""}(${Math.round(ground[0])}, ${Math.round(ground[2])}), height ${Math.round(ground[1])}`);
+    if (ground) lines.push(`${placeWords(ground[0], ground[2])}, height ${Math.round(ground[1])}`);
     tip.textContent = lines.join("\n");
     tip.hidden = false;
     const pane = $("map-pane").getBoundingClientRect();
@@ -343,7 +436,9 @@ const WV = (() => {
     document.body.dataset.tapeonly = "1";
     if (!(await openScene(live.base))) return;
     const head = view.scene.tape.head;
-    match.header = { map: { name: head.map.name, width: head.map.width, height: head.map.height } };
+    // The named cells as a bot's record has them (crates/terrain, Grid::of): about 1024 elmos a side, at most 26.
+    const cells = (extent) => Math.min(26, Math.max(1, Math.ceil(extent / 1024)));
+    match.header = { map: { name: head.map.name, width: head.map.width, height: head.map.height }, grid: { columns: cells(head.map.width), rows: cells(head.map.height) } };
     match.lastFrame = head.last_frame;
     view.version++; // the timeline drawn while the tape opened had no length yet
     const teams = (head.teams || []).filter((t) => !t.gaia);
@@ -807,9 +902,10 @@ const WV = (() => {
     const state = WR.stateAt(match, view.frame);
     view.state = state;
     const byId = new Map(state.own.map((u) => [u.id, u]));
-    if (view.layers.marks) drawMarks(ctx, px, pz);
-    if (view.layers.hands) drawHands(ctx, byId, px, pz);
-    if (view.layers.hands) drawRanks(ctx, state, px, pz);
+    const painter = mapPainter(ctx, px, pz, scale);
+    if (view.layers.marks) drawMarks(painter);
+    if (view.layers.hands) drawHands(painter, byId);
+    if (view.layers.hands) drawRanks(painter, state);
 
     if (view.layers.orders && view.zoom < DETAIL_ZOOM) {
       ctx.lineWidth = 1;
@@ -871,15 +967,36 @@ const WV = (() => {
     }
   }
 
+  /// The 2D map's painter: where a place of the map is on its canvas (with the pixels an elmo covers), and a line
+  /// between two places. The 3D view hands over the same shape (scene.js, `hooks.onOverlay`), so each of the three
+  /// functions below paints both views.
+  function mapPainter(ctx, px, pz, scale) {
+    return {
+      ctx,
+      at: (x, z) => [px(x), pz(z), scale],
+      line(a, b, css, width = 1.5, dash = null, alpha = 1) {
+        ctx.save();
+        ctx.strokeStyle = css;
+        ctx.lineWidth = width;
+        ctx.globalAlpha = alpha;
+        ctx.setLineDash(dash || []);
+        ctx.beginPath(); ctx.moveTo(px(a[0]), pz(a[1])); ctx.lineTo(px(b[0]), pz(b[1])); ctx.stroke();
+        ctx.restore();
+      },
+    };
+  }
+
   /// The places somebody named: the commander's marks (the whole side's), each player's own, and every seat's
   /// start with the enemy's presumed one.
-  function drawMarks(ctx, px, pz) {
-    const match = view.match;
+  function drawMarks(p) {
+    const match = view.match, ctx = p.ctx;
     ctx.font = "11px system-ui";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     const cross = (x, z, label, color, size = 7) => {
-      const [cx, cy] = [px(x), pz(z)];
+      const at = p.at(x, z);
+      if (!at) return;
+      const [cx, cy] = at;
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -895,7 +1012,9 @@ const WV = (() => {
       if (intent.enemy_start && seat.index === 0) cross(intent.enemy_start[0], intent.enemy_start[1], "enemy (presumed)", COLOR.theirs);
     }
     const pin = (m, color, by) => {
-      const [x, y] = [px(m.x), pz(m.z)];
+      const at = p.at(m.x, m.z);
+      if (!at) return;
+      const [x, y] = at;
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.lineWidth = 1.5;
@@ -916,8 +1035,8 @@ const WV = (() => {
 
   /// The hands' names at the playhead, per seat in scope: places (once each), enemy parties, groups and where each
   /// group is going. From the picture of the seat's last call (asked of the server; drawn when it has come).
-  function drawHands(ctx, byId, px, pz) {
-    const match = view.match;
+  function drawHands(p, byId) {
+    const match = view.match, ctx = p.ctx;
     const placed = new Set();
     for (const seat of WR.scoped(match, view.scope)) {
       const picture = pictureAt(seat, view.frame);
@@ -926,21 +1045,24 @@ const WV = (() => {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillStyle = COLOR.muted;
-      for (const p of picture.places) {
-        if (p.name === "home" || p.name === "enemy_base" || placed.has(p.name)) continue;
-        placed.add(p.name);
-        ctx.fillText(p.name.replace("spot_", "#").replace("passage_", "pass "), px(p.x) + 7, pz(p.z) - 7);
+      for (const place of picture.places) {
+        if (place.name === "home" || place.name === "enemy_base" || placed.has(place.name)) continue;
+        placed.add(place.name);
+        const at = p.at(place.x, place.z);
+        if (at) ctx.fillText(place.name.replace("spot_", "#").replace("passage_", "pass "), at[0] + 7, at[1] - 7);
       }
       ctx.strokeStyle = COLOR.theirs;
       ctx.fillStyle = COLOR.theirs;
       ctx.lineWidth = 1;
-      for (const p of picture.parties) {
-        if (placed.has(`party:${p.name}`)) continue;
-        placed.add(`party:${p.name}`);
+      for (const party of picture.parties) {
+        if (placed.has(`party:${party.name}`)) continue;
+        placed.add(`party:${party.name}`);
+        const at = p.at(party.x, party.z);
+        if (!at) continue;
         ctx.setLineDash([3, 3]);
-        ctx.beginPath(); ctx.arc(px(p.x), pz(p.z), 12, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(at[0], at[1], 12, 0, 7); ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillText(`${p.name} ${(p.composition || "").length > 44 ? `${p.composition.slice(0, 42)} ...` : p.composition || ""}`, px(p.x) + 14, pz(p.z) - 12);
+        ctx.fillText(`${party.name} ${(party.composition || "").length > 44 ? `${party.composition.slice(0, 42)} ...` : party.composition || ""}`, at[0] + 14, at[1] - 12);
       }
       ctx.font = "bold 11px system-ui";
       const color = match.seats.length > 1 ? seatColor(seat.index) : COLOR.jev;
@@ -948,15 +1070,11 @@ const WV = (() => {
         const members = g.members.map((id) => byId.get(id)).filter(Boolean);
         const at = members.length ? [members.reduce((a, u) => a + u.x, 0) / members.length, members.reduce((a, u) => a + u.z, 0) / members.length] : g.at;
         if (!at) continue;
-        const [x, y] = [px(at[0]), pz(at[1])];
         const kind = g.task?.kind || "hold";
-        if (g.task?.to && kind !== "hold") {
-          ctx.strokeStyle = kind === "engage" ? COLOR.critical : kind === "fight_to" ? COLOR.warning : color;
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash(kind === "move_to" ? [4, 3] : []);
-          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(px(g.task.to[0]), pz(g.task.to[1])); ctx.stroke();
-          ctx.setLineDash([]);
-        }
+        if (g.task?.to && kind !== "hold") p.line(at, g.task.to, kind === "engage" ? COLOR.critical : kind === "fight_to" ? COLOR.warning : color, 1.5, kind === "move_to" ? [4, 3] : null);
+        const on = p.at(at[0], at[1]);
+        if (!on) continue;
+        const [x, y] = on;
         ctx.fillStyle = color;
         ctx.fillText(`${g.name}${members.length > 1 ? ` (${members.length})` : ""} ${kind === "hold" ? "" : kind}`, x + 8, y + 9);
       }
@@ -967,8 +1085,8 @@ const WV = (() => {
   /// The lane's declared groups (the sample's `groups`, docs/harness/record-format.md): the anchor as a diamond with
   /// its heading, the heading's line as long as the pace's share of the full pace, and a line of the state: files (records
   /// before 2026-10-28), formed of members, the exceptions by cause, the pace share, the points left and the way left (or "no way").
-  function drawRanks(ctx, state, px, pz) {
-    const match = view.match;
+  function drawRanks(p, state) {
+    const match = view.match, ctx = p.ctx;
     ctx.font = "10px system-ui";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
@@ -976,7 +1094,9 @@ const WV = (() => {
       if (!sample || !sample.groups || !inScope(i)) return;
       const color = match.seats.length > 1 ? seatColor(i) : COLOR.jev;
       for (const [name, g] of Object.entries(sample.groups)) {
-        const [x, y] = [px(g.anchor[0]), pz(g.anchor[1])];
+        const on = p.at(g.anchor[0], g.anchor[1]);
+        if (!on) continue;
+        const [x, y] = on;
         const share = g.full_pace > 0 ? g.pace / g.full_pace : 0;
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
@@ -984,8 +1104,11 @@ const WV = (() => {
         ctx.beginPath();
         ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y); ctx.closePath();
         if (g.arrived) ctx.fill(); else ctx.stroke();
-        if (share > 0) {
-          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + g.heading[0] * 30 * share, y + g.heading[1] * 30 * share); ctx.stroke();
+        // The heading as it lies in this view: towards a place a little along it.
+        const tip = share > 0 ? p.at(g.anchor[0] + g.heading[0] * 64, g.anchor[1] + g.heading[1] * 64) : null;
+        const far = tip ? Math.hypot(tip[0] - x, tip[1] - y) : 0;
+        if (far > 0) {
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + ((tip[0] - x) / far) * 30 * share, y + ((tip[1] - y) / far) * 30 * share); ctx.stroke();
         }
         const causes = new Map();
         for (const [, cause] of g.exceptions || []) causes.set(cause, (causes.get(cause) || 0) + 1);
@@ -1143,12 +1266,14 @@ const WV = (() => {
     view.state.enemies.forEach(consider);
     select(best ? best.u.id : null);
   }
-  /// Selecting a unit opens the Unit tab on it; clearing the selection leaves the tab.
-  function select(id) {
+  /// Selecting a unit (the engine's id; with a tape its row there too, else the row that holds the id at the
+  /// playhead) opens the Unit tab on it; clearing the selection leaves the tab.
+  function select(id, row = -1) {
     view.selected = id;
+    view.selectedRow = id == null ? -1 : row >= 0 ? row : view.scene ? view.scene.tape.rowNear(id, Math.floor(view.frame)) : -1;
     $("tab-unit").hidden = id == null;
     if (id != null) setTab("unit");
-    else if (view.tab === "unit") setTab("decisions");
+    else if (view.tab === "unit") setTab(view.match.tapeOnly ? "none" : "decisions");
     else renderAll();
   }
 
@@ -1218,26 +1343,71 @@ const WV = (() => {
     return { x0: GUTTER, x1: w - 12, last, fx: (f) => GUTTER + ((w - 12 - GUTTER) * f) / last };
   }
 
-  /// The lanes of the timeline for the scope: [{label, color, items: [{f, to?, seat?, faint?}]}].
-  /// The lanes of a game with a tape and no record of ours: each side's losses, from the tape's table of unit lives.
-  function tapeLanes() {
-    if (view.laneList) return view.laneList;
-    const tape = view.scene.tape, ints = tape.unitInts;
+  /// The charts of a game with a tape and no record of ours, a line a side.
+  const TAPE_CHARTS = [
+    { label: "metal income", key: "metalIncome" },
+    { label: "energy income", key: "energyIncome" },
+    { label: "army worth (metal)", key: "armyMetal" },
+    { label: "units", key: "units" },
+  ];
+
+  /// The sides of a tape (its ally teams) and their numbers a game second, worked out once from its tables: each
+  /// side's metal and energy income and stores (the TEAM table, its teams summed), its finished units, and its
+  /// army: the finished units that move, shoot and do not build, with what they cost. And what each side lost.
+  function tapeSides() {
+    if (view.tapeSides) return view.tapeSides;
+    const tape = view.scene.tape, ints = tape.unitInts, NEVER = 0xffffffff;
     const teams = (tape.head.teams || []).filter((t) => !t.gaia);
-    const allies = [...new Set(teams.map((t) => t.ally))].sort((a, b) => a - b);
-    const allyOf = new Map(teams.map((t) => [t.team, t.ally]));
-    view.laneList = allies.map((ally) => {
+    const seconds = Math.floor(tape.lastFrame / WR.FPS) + 1;
+    const keys = ["metalIncome", "energyIncome", "metal", "energy", "units", "army", "armyMetal"];
+    const sides = [...new Set(teams.map((t) => t.ally))].sort((a, b) => a - b).map((ally) => {
       const seats = teams.filter((t) => t.ally === ally);
-      const [r, g, b] = seats[0].color.map((v) => Math.round(v * 255));
-      const first = (seats[0].name || seats[0].side || `team ${seats[0].team}`).trim();
-      return { label: `losses: ${first.slice(0, 18)}${seats.length > 1 ? ` +${seats.length - 1}` : ""}`, css: `rgb(${r}, ${g}, ${b})`, items: [], ally };
+      const first = (seats[0].name || "").trim() || seats[0].side || `team ${seats[0].team}`;
+      const side = { ally, teams: seats, css: `rgb(${seats[0].color.map((v) => Math.round(v * 255)).join(", ")})`, name: `${first.slice(0, 18)}${seats.length > 1 ? ` +${seats.length - 1}` : ""}`, losses: [] };
+      for (const key of keys) side[key] = new Float32Array(seconds + 1);
+      return side;
     });
+    const sideOf = new Map(teams.map((t) => [t.team, sides.find((side) => side.ally === t.ally)]));
+    const armed = (def) => (def.weapons || []).some((id) => {
+      const w = tape.weaponDefs.get(id);
+      return w && !w.shield && w.damage > 0;
+    });
+    const worth = new Map(tape.defs.units.map((def) => [def.id, def.mobile && !def.builder && armed(def) ? def.metal || 0 : -1]));
+    // A unit counts from the second it is finished to the second it dies: a step up and a step down, summed after.
     for (let row = 0; row < tape.unitCount; row++) {
-      const destroyed = ints[row * 8 + 5];
-      const lane = view.laneList.find((l) => l.ally === allyOf.get(ints[row * 8 + 2]));
-      if (lane && destroyed !== 0xffffffff) lane.items.push({ f: destroyed });
+      const a = row * 8, side = sideOf.get(ints[a + 2]);
+      if (!side) continue;
+      const [finished, destroyed] = [ints[a + 4], ints[a + 5]];
+      if (destroyed !== NEVER) side.losses.push({ f: destroyed, row });
+      if (finished === NEVER || finished >= destroyed) continue;
+      const from = Math.min(seconds, Math.ceil(finished / WR.FPS)), to = destroyed === NEVER ? seconds + 1 : Math.ceil(destroyed / WR.FPS);
+      const metal = worth.get(ints[a + 1]);
+      for (const [key, v] of [["units", 1], ["army", metal >= 0 ? 1 : 0], ["armyMetal", Math.max(0, metal)]]) {
+        side[key][from] += v;
+        if (to <= seconds) side[key][to] -= v;
+      }
     }
-    for (const lane of view.laneList) lane.items.sort((a, b) => a.f - b.f);
+    for (const side of sides) {
+      for (const key of ["units", "army", "armyMetal"]) for (let i = 1; i <= seconds; i++) side[key][i] += side[key][i - 1];
+      side.losses.sort((a, b) => a.f - b.f);
+      // The TEAM table's columns: metal, its store, pull, income and spend, then energy's five.
+      const frames = tape.teams.frames || [];
+      for (const t of side.teams) {
+        ((tape.teams.teams || {})[t.team] || []).forEach((row, i) => {
+          const at = Math.min(seconds, Math.round(frames[i] / WR.FPS));
+          if (!row) return;
+          side.metal[at] += row[0]; side.metalIncome[at] += row[3]; side.energy[at] += row[5]; side.energyIncome[at] += row[8];
+        });
+      }
+    }
+    view.tapeSides = sides;
+    return sides;
+  }
+
+  /// The lanes of the timeline for the scope: [{label, color, items: [{f, to?, seat?, faint?}]}].
+  /// The lanes of a game with a tape and no record of ours: each side's losses.
+  function tapeLanes() {
+    if (!view.laneList) view.laneList = tapeSides().map((side) => ({ label: `losses: ${side.name}`, css: side.css, items: side.losses }));
     return view.laneList;
   }
 
@@ -1302,8 +1472,7 @@ const WV = (() => {
     const canvas = view.timelineCanvas || (view.timelineCanvas = document.createElement("canvas"));
     const lanes = timelineLanes();
     const cost = costMinutes();
-    // (The charts are the record's: a game with a tape alone has its lanes.)
-    const charts = compact || match.tapeOnly ? [] : [...CHARTS, ...(expectsHands() ? [{ label: "Jev $ a minute", cost: true }] : [])];
+    const charts = compact ? [] : match.tapeOnly ? TAPE_CHARTS : [...CHARTS, ...(expectsHands() ? [{ label: "Jev $ a minute", cost: true }] : [])];
     const height = 6 + lanes.length * LANE_H + 4 + (charts.length ? 14 + charts.length * CHART_H : 0) + 20;
     view.timelineHeight = height;
     canvas.width = Math.round(w * dpr);
@@ -1347,10 +1516,11 @@ const WV = (() => {
         ctx.fillText(text, lx + 14, y + 6);
         lx += 22 + ctx.measureText(text).width;
       };
-      if (match.seats.length > 1) for (const s of match.seats) swatch(seatColor(s.index), one && one !== s ? `${s.name} (faint)` : s.name);
+      if (match.tapeOnly) for (const side of tapeSides()) swatch(side.css, side.name);
+      else if (match.seats.length > 1) for (const s of match.seats) swatch(seatColor(s.index), one && one !== s ? `${s.name} (faint)` : s.name);
       else swatch(COLOR.ours, "ours (bot's view)");
-      swatch(COLOR.theirs, match.truth.length ? "theirs (ground truth)" : "theirs: no truth file in this match");
-      if (!one) { ctx.fillStyle = COLOR.muted; ctx.fillText("stacked: the top edge is the side's sum", lx, y + 6); }
+      if (!match.tapeOnly) swatch(COLOR.theirs, match.truth.length ? "theirs (ground truth)" : "theirs: no truth file in this match");
+      if (!one && !match.tapeOnly) { ctx.fillStyle = COLOR.muted; ctx.fillText("stacked: the top edge is the side's sum", lx, y + 6); }
       y += 14;
       // One column every two pixels: each seat's value at that frame.
       const columns = [];
@@ -1369,7 +1539,29 @@ const WV = (() => {
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(g.x0, bottom + 0.5); ctx.lineTo(g.x1, bottom + 0.5); ctx.stroke();
         let max = 1;
-        if (chart.cost && !cost) {
+        // The axis ends a little over the 99th percentile: a second's spike (a wreck reclaimed, a transfer) is
+        // cut off at the top rather than flattening the whole curve.
+        const peak = (list) => {
+          const sorted = list.filter((v) => v > 0).sort((a, b) => a - b);
+          return sorted.length ? Math.max(1, Math.min(sorted[sorted.length - 1], sorted[Math.floor(0.99 * (sorted.length - 1))] * 1.1)) : 1;
+        };
+        if (match.tapeOnly) {
+          // A line a side, each column the side's number that second.
+          const sides = tapeSides();
+          max = Math.max(...sides.map((side) => peak(Array.from(side[chart.key]))));
+          for (const side of sides) {
+            const series = side[chart.key];
+            ctx.strokeStyle = side.css;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            columns.forEach((f, c) => {
+              const v = series[Math.min(series.length - 1, Math.round(f / WR.FPS))];
+              const [x, yv] = [g.x0 + 2 * c, bottom - ((bottom - top) * Math.min(v, max)) / max];
+              if (c) ctx.lineTo(x, yv); else ctx.moveTo(x, yv);
+            });
+            ctx.stroke();
+          }
+        } else if (chart.cost && !cost) {
           max = 0;
         } else if (chart.cost) {
           // Bars a game minute, stacked by seat.
@@ -1389,12 +1581,6 @@ const WV = (() => {
           const values = seats.map((s) => sample(s, chart.key));
           const sums = columns.map((_, c) => values.reduce((n, v) => n + (v[c] || 0), 0));
           const theirs = chart.theirs ? match.truth.map((t) => t[chart.theirs]) : [];
-          // The axis ends a little over the 99th percentile: a second's spike (a wreck reclaimed, a transfer) is
-          // cut off at the top rather than flattening the whole curve.
-          const peak = (list) => {
-            const sorted = list.filter((v) => v > 0).sort((a, b) => a - b);
-            return sorted.length ? Math.max(1, Math.min(sorted[sorted.length - 1], sorted[Math.floor(0.99 * (sorted.length - 1))] * 1.1)) : 1;
-          };
           max = one ? Math.max(peak(values[seats.indexOf(one)].map((v) => v || 0)), ...(match.seats.length === 1 ? [peak(theirs)] : [])) : Math.max(peak(sums), peak(theirs));
           const vy = (v) => bottom - ((bottom - top) * Math.min(v, max)) / max;
           const cx = (c) => g.x0 + 2 * c;
@@ -1497,14 +1683,38 @@ const WV = (() => {
   }
 
   function timelineHover(event) {
-    if (!view.match) return;
+    if (!view.match || (view.match.tapeOnly && !view.scene)) return;
     const frame = timelineFrame(event);
     view.hoverFrame = frame;
     const match = view.match;
-    if (match.tapeOnly) return drawTimeline(); // the hover's numbers are the record's
+    const near = (items) => WR.range(items, frame - 5 * WR.FPS, frame + 5 * WR.FPS);
+    const lines = [WR.clock(frame)];
+    if (match.tapeOnly) {
+      // Each side's numbers that second, and what it lost within five seconds.
+      const tape = view.scene.tape;
+      for (const side of tapeSides()) {
+        const at = Math.min(side.units.length - 1, Math.round(frame / WR.FPS));
+        lines.push(`${side.name}: metal +${side.metalIncome[at].toFixed(1)}, energy +${Math.round(side.energyIncome[at])}, ${side.units[at]} units, army ${side.army[at]} worth ${Math.round(side.armyMetal[at])}`);
+        const lost = near(side.losses);
+        if (lost.length) lines.push(`  lost: ${summarise(lost.map((e) => (tape.unit(e.row).def || {}).name || "unit"))}`);
+      }
+    } else hoverLines(lines, frame, near);
+    const tip = $("chart-tooltip");
+    tip.textContent = lines.join("\n");
+    tip.hidden = false;
+    const rect = $("timeline").getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    tip.style.left = `${x > rect.width - 420 ? x - 400 : x + 14}px`;
+    tip.style.bottom = "24px";
+    if (event.buttons & 1) seek(frame);
+    else drawTimeline();
+  }
+
+  /// The timeline's hover for a match with a record: the side's numbers, the losses and kills, the turns and plays near.
+  function hoverLines(lines, frame, near) {
+    const match = view.match;
     const total = WR.totalsAt(match, view.scope, frame);
     const theirs = view.scope == null || match.seats.length === 1 ? match.truth[WR.indexAt(match.truth, frame)] : null;
-    const lines = [WR.clock(frame)];
     if (total.seats) {
       lines.push(`metal +${total.metalIncome.toFixed(1)}   energy +${total.energyIncome.toFixed(0)}`);
       lines.push(`extractors ${total.extractors}${theirs ? ` / theirs ${theirs.extractors}` : ""}`);
@@ -1516,7 +1726,6 @@ const WV = (() => {
         }
       }
     }
-    const near = (items) => WR.range(items, frame - 5 * WR.FPS, frame + 5 * WR.FPS);
     const lanes = view.lanes || WR.lanes(match, view.scope);
     const lost = near(lanes.losses).concat(near(lanes.buildingLosses), near(lanes.extractorLosses));
     if (lost.length) lines.push(`lost: ${summarise(lost.map((e) => defName(e.d)))}`);
@@ -1532,15 +1741,6 @@ const WV = (() => {
     const plays = near(lanes.builders).concat(near(lanes.labs), near(lanes.groups)).sort((a, b) => a.f - b.f);
     for (const d of plays.slice(0, 6)) lines.push(`${WR.clock(d.f)} ${d.source}: ${d.inputs.actor}: ${d.outputs.did || ""}`.slice(0, 110));
     if (plays.length > 6) lines.push(`... ${plays.length - 6} more plays`);
-    const tip = $("chart-tooltip");
-    tip.textContent = lines.join("\n");
-    tip.hidden = false;
-    const rect = $("timeline").getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    tip.style.left = `${x > rect.width - 420 ? x - 400 : x + 14}px`;
-    tip.style.bottom = "24px";
-    if (event.buttons & 1) seek(frame);
-    else drawTimeline();
   }
 
   function summarise(names) {
@@ -1555,7 +1755,7 @@ const WV = (() => {
     view.tab = name;
     for (const button of document.querySelectorAll("#tabs [data-tab]")) button.classList.toggle("active", button.dataset.tab === name);
     for (const tab of document.querySelectorAll(".tab")) tab.hidden = tab.dataset.tab !== name;
-    if (name !== "unit") try { localStorage.setItem("wr-tab", name); } catch (_) { /* no storage */ }
+    if (name !== "unit" && name !== "none") try { localStorage.setItem("wr-tab", name); } catch (_) { /* no storage */ }
     renderAll();
   }
 
@@ -1579,11 +1779,17 @@ const WV = (() => {
   }
 
   function renderAll() {
-    if (!view.match) return;
+    // (A match of a tape alone has nothing to show until its tape is open.)
+    if (!view.match || (view.match.tapeOnly && !view.scene)) return;
     $("clock").textContent = WR.clock(view.frame);
     drawMap();
     drawTimeline();
-    if (!view.match.tapeOnly) WV.panels.render();
+    renderPanels();
+  }
+
+  function renderPanels() {
+    if (view.match.tapeOnly) WV.panels.renderTape();
+    else WV.panels.render();
   }
 
   function seek(frame) {
@@ -1718,7 +1924,7 @@ const WV = (() => {
   }
 
   return {
-    $, el, view, COLOR, status, seatColor, inScope, classOf, defName, playerOf, summarise, gateAt, pictureAt, actorUnits,
+    $, el, view, COLOR, status, seatColor, inScope, classOf, defName, playerOf, summarise, gateAt, pictureAt, actorUnits, placeWords, tapeOrderWords, tapeSides,
     seek, select, setTab, setScope, focusActor, renderAll, drawMap, start: () => { wire(); boot(); }, panels: {},
   };
 })();

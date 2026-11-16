@@ -7,7 +7,23 @@ const WRTape = (() => {
   let wasm = null;
   /// Slices kept decoded: the one under the playhead, its neighbours, and a few behind for scrubbing back.
   const KEEP = 8;
-  const UNIT_STRIDE = 16, PROJECTILE_STRIDE = 12, BURST_STRIDE = 8;
+  const UNIT_STRIDE = 16, PROJECTILE_STRIDE = 12, BURST_STRIDE = 8, DOING_STRIDE = 10, COMMAND_STRIDE = 8, HISTORY_STRIDE = 8;
+  /// How long a command given stays in a state's `commands`, in frames (the reader's COMMAND_FRAMES).
+  const COMMAND_FRAMES = 45;
+
+  /// The engine's commands a unit stands under, by id: the word, and the game's own colour for its line (BAR's
+  /// cmdcolors). A negative id is a build of that unit type.
+  const COMMANDS = {
+    0: ["stop"], 5: ["wait"], 10: ["move", [0.5, 1, 0.5]], 15: ["patrol", [0.2, 0.5, 1]], 16: ["fight", [1, 0.2, 1]],
+    20: ["attack", [1, 0.2, 0.2]], 21: ["area attack", [1, 0.2, 0.2]], 25: ["guard", [0.6, 1, 1]], 40: ["repair", [1, 0.9, 0.2]],
+    65: ["self-destruct"], 75: ["load", [0.4, 0.9, 0.9]], 76: ["load onto", [0.4, 0.9, 0.9]], 80: ["unload", [1, 0.8, 0]], 81: ["unload", [1, 0.8, 0]],
+    90: ["reclaim", [0.5, 1, 0.4]], 105: ["manual fire", [1, 0.45, 0.1]], 110: ["restore", [0, 1, 0]], 125: ["resurrect", [0.9, 0.5, 1]],
+    130: ["capture", [1, 1, 0.3]], 135: ["repair level"], 145: ["idle mode"], 34923: ["set target", [1, 0.5, 0.2]],
+  };
+  const BUILD = ["build", [0.3, 1, 0.3]];
+  const OTHER_COLOR = [0.75, 0.75, 0.75];
+  const commandName = (cmd) => (cmd < 0 ? BUILD : COMMANDS[cmd] || [`command ${cmd}`])[0];
+  const commandColor = (cmd) => (cmd < 0 ? BUILD : COMMANDS[cmd] || [])[1] || OTHER_COLOR;
 
   async function reader() {
     if (!wasm) {
@@ -78,12 +94,22 @@ const WRTape = (() => {
       /// Fourteen floats a feature: place, front, up, metal, energy, type, the frames it appeared and went (-1 never).
       features: array(6, Float32Array).slice(),
       ground: { columns: wasm.wr_ground_info(0), rows: wasm.wr_ground_info(1), low: wasm.wr_ground_info(2), step: wasm.wr_ground_info(3) },
-      onSlice: null, clock: 0,
+      onSlice: null, clock: 0, worked: null, workedLoads: 0,
+      /// How many slices have been read: a count that changes when what `ordersOf` can see does.
+      loads: 0,
     };
     tape.unitDefs = new Map(defs.units.map((d) => [d.id, d]));
     tape.weaponDefs = new Map(defs.weapons.map((d) => [d.id, d]));
     tape.featureDefs = new Map(defs.features.map((d) => [d.id, d]));
     tape.unitCount = tape.unitInts.length / 8;
+    // The rows that held each engine id, in the order created: the tie to the match record, which names a unit by
+    // the engine's id.
+    tape.rowsById = new Map();
+    for (let row = 0; row < tape.unitCount; row++) {
+      const id = tape.unitInts[row * 8];
+      if (!tape.rowsById.has(id)) tape.rowsById.set(id, []);
+      tape.rowsById.get(id).push(row);
+    }
     return Object.assign(tape, methods);
   }
 
@@ -112,6 +138,7 @@ const WRTape = (() => {
         const body = await range(this.url, slice.offset, slice.offset + slice.length - 1);
         check(give(body.bytes, wasm.wr_load_slice), `slice ${index}`);
         slice.state = "in";
+        this.loads++;
       } catch (e) {
         slice.state = "out";
         console.error(e);
@@ -130,8 +157,23 @@ const WRTape = (() => {
     /// The state at a frame: views of the reader's arrays, good until the next call into the reader. Null while the
     /// frame's slice is on its way.
     frame(frame) {
-      if (!this.want(frame) || !wasm.wr_frame(frame)) return null;
-      return { units: array(0, Float32Array), ranges: array(1, Uint32Array), projectiles: array(2, Float32Array), bursts: array(3, Float32Array) };
+      if (!this.want(frame)) return null;
+      // Asked again for the frame last worked out (the panels and the hover ask for the one just drawn), with no slice
+      // read since, the reader's arrays already hold it.
+      if (frame !== this.worked || this.workedLoads !== this.loads) {
+        this.worked = null;
+        if (!wasm.wr_frame(frame)) return null;
+        this.worked = frame;
+        this.workedLoads = this.loads;
+      }
+      return {
+        units: array(0, Float32Array), ranges: array(1, Uint32Array), projectiles: array(2, Float32Array), bursts: array(3, Float32Array),
+        /// Ten floats a unit with a head order or a build under way: its place in `units`, its row, the command, how
+        /// it points (0 nowhere, 1 a place, 2 a unit, 3 a feature), the place, the target (a row or a feature's
+        /// number, -1), the row it is building (-1), its queue's length. Eight a command given in the last second
+        /// and a half: the unit's place in `units`, the command, how it points, the place, frames since, 1 for shift.
+        doing: array(8, Float32Array), commands: array(9, Float32Array),
+      };
     },
 
     /// Brings the ground to a frame. Null when it has not changed since the last call; else the rectangle that did
@@ -155,18 +197,42 @@ const WRTape = (() => {
       };
     },
 
-    /// The row of the unit that held an engine id at a frame, or -1: the tie to the match record, which names units
-    /// by the engine's id.
+    /// The row of the unit that held an engine id at a frame, or -1.
     rowOf(engineId, frame) {
       const i = this.unitInts;
-      for (let row = 0; row < this.unitCount; row++) {
-        const a = row * 8;
-        if (i[a + 3] > frame) break; // in the order created
-        if (i[a] === engineId && frame < i[a + 5]) return row;
-      }
+      for (const row of this.rowsById.get(engineId) || []) if (i[row * 8 + 3] <= frame && frame < i[row * 8 + 5]) return row;
       return -1;
+    },
+
+    /// The row an engine id names nearest a frame: the unit alive then, else the last one of that id made before it.
+    rowNear(engineId, frame) {
+      const alive = this.rowOf(engineId, frame);
+      if (alive >= 0) return alive;
+      let best = -1;
+      for (const row of this.rowsById.get(engineId) || []) if (this.unitInts[row * 8 + 3] <= frame) best = row;
+      return best;
+    },
+
+    /// A feature's table row as an object.
+    feature(index) {
+      const f = this.features, a = index * 14;
+      if (index < 0 || a >= f.length) return null;
+      return { index, at: [f[a], f[a + 1], f[a + 2]], metal: f[a + 9], energy: f[a + 10], def: this.featureDefs.get(f[a + 11]), created: f[a + 12], gone: f[a + 13] };
+    },
+
+    /// Every order given to a unit in the slices now loaded (about a minute around the playhead), in frame order:
+    /// [{f, cmd, shift, how, at, target}] with `how` and `target` as in a state's `doing`.
+    ordersOf(row) {
+      const n = wasm.wr_orders_of(row);
+      const rows = array(10, Float32Array);
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const a = i * HISTORY_STRIDE;
+        out.push({ f: rows[a], cmd: rows[a + 1], shift: rows[a + 2] > 0, how: rows[a + 3], at: [rows[a + 4], rows[a + 5], rows[a + 6]], target: rows[a + 7] });
+      }
+      return out;
     },
   };
 
-  return { open, UNIT_STRIDE, PROJECTILE_STRIDE, BURST_STRIDE };
+  return { open, UNIT_STRIDE, PROJECTILE_STRIDE, BURST_STRIDE, DOING_STRIDE, COMMAND_STRIDE, COMMAND_FRAMES, commandName, commandColor };
 })();

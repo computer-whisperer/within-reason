@@ -260,6 +260,37 @@ async function gecko() {
   console.log(`mouse: the wheel zoomed ${before[2].toFixed(0)} -> ${zoomed[2].toFixed(0)}, a drag moved the ground ${Math.hypot(panned[0] - zoomed[0], panned[1] - zoomed[1]).toFixed(0)} elmos, a shift-drag turned ${(turned[3] - panned[3]).toFixed(2)} rad; the hover says ${JSON.stringify(tip.split("\n")[0])}; a click selected row ${selected} (the unit under it is row ${picked})`);
   if (selected < 0) fail("a click on a unit selected nothing");
   await shot("selected.png");
+  // The selected unit's panel, from the tape whoever's it is: what it is, its health, who made it.
+  await sleep(300);
+  const panel = await evaluate(`(() => { const box = document.getElementById("unit"), tab = box.closest(".tab"); return { shown: !!tab && !tab.hidden, text: box.textContent }; })()`);
+  if (!panel.shown || !/#\d+/.test(panel.text) || !/made/.test(panel.text) || !/health|gone|not made/.test(panel.text)) fail(`the unit panel: ${JSON.stringify(panel).slice(0, 500)}`);
+  // The lines over the scene: the selected unit's alone at first, then every standing order and every defence's reach,
+  // the whole map in view halfway through the game.
+  const linesNow = async (what) => (await settled(what), evaluate("window.viewer.scene.stats.lines"));
+  const selectedLines = await linesNow("the selected unit's lines");
+  await evaluate(`window.viewer.seek(${Math.round(last * 0.5)})`);
+  await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
+  const fewLines = await linesNow("the lines halfway");
+  await evaluate("(Object.assign(window.viewer.scene.layers, { orders: true, ranges: true }), window.viewer.scene.redraw())");
+  const allLines = await linesNow("every order and reach");
+  if (!(allLines > fewLines)) fail(`every unit's orders and every defence's reach drew no more lines (${fewLines} -> ${allLines})`);
+  const overlay = await evaluate(`(() => { const o = document.getElementById("scene-overlay"), c = document.getElementById("scene"); return { hidden: o.hidden, w: o.width, h: o.height, cw: c.width, ch: c.height }; })()`);
+  if (overlay.hidden || overlay.w !== overlay.cw || overlay.h !== overlay.ch) fail(`the overlay over the scene: ${JSON.stringify(overlay)}`);
+  await shot("orders-and-ranges.png");
+  await evaluate("(Object.assign(window.viewer.scene.layers, { orders: false, ranges: false }), window.viewer.scene.redraw())");
+  // The side pane: with no record of ours, each side's numbers from the tape.
+  const now = await evaluate(`(() => ({ tapeOnly: document.body.dataset.tapeonly === "1", sides: document.querySelectorAll("#now table tr").length - 1, text: document.getElementById("now").textContent }))()`);
+  if (now.tapeOnly && now.sides < 2) fail(`the sides' numbers: ${JSON.stringify(now).slice(0, 300)}`);
+  // With a record, a unit of ours: the tape's panel, then the record's part (the hands' picture, its history there).
+  let oursPanel = null;
+  if (!now.tapeOnly) {
+    const id = await evaluate(`(() => { const v = window.viewer, u = WR.stateAt(v.match, v.frame).own[0]; if (u) v.select(u.id); return u ? u.id : null; })()`);
+    await settled("a unit of ours selected");
+    oursPanel = await evaluate(`document.getElementById("unit").textContent`);
+    if (id == null || !oursPanel.includes(`#${id}`) || !/Orders given to it/i.test(oursPanel) || !/history in the record/.test(oursPanel)) fail(`the panel of our unit #${id}: ${JSON.stringify(oursPanel).slice(0, 600)}`);
+    await shot("ours-selected.png");
+  }
+  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...;` : ""} lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
   if (problems.length) fail(problems.join("\n"));
   console.log(`ok: screenshots in ${out}`);
   browser.kill();

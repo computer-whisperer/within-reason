@@ -304,12 +304,23 @@ pale), a health bar over the hurt and the unfinished, the game's own icon for a 
 features (rocks, trees, wrecks), every projectile in flight as a streak in its weapon's colour (a beam as a line to
 what it was aimed at) and a flash where one ended or a unit died. The camera is the game's: a drag moves the ground
 under the cursor, the wheel zooms about it, a right drag (or shift and drag) turns and tilts, a double-click or `0`
-shows the whole map; `,` and `.` step one sample (a tenth of a second) and the speeds go down to a quarter. A click
-selects a unit as on the 2D map (the Unit tab is the record's: a unit of the other side has a tooltip only, for now).
-A directory with a tape and no record of ours (a bot of `bots/`, a taped demo) opens as the 3D view alone, with each
-side's losses as the timeline's lanes. Not in the 3D view yet (the 2D map has them): orders, the hands' groups, places
-and parties, marks, sight; and no piece of a model moves (turrets do not turn, legs do not walk), though the tape
-holds each weapon's direction when made with `--aim`.
+shows the whole map; `,` and `.` step one sample (a tenth of a second) and the speeds go down to a quarter.
+Over the scene (2026-11-15 night), not hidden by hills: the commands as they are given, fading over a second and a
+half in the game's own command colours (the map's "orders as they are given" switch), the selected unit's standing
+order (a line to what it points at, a box where a build is not begun) with its sight, radar, build, shield and weapon
+rings; on their own switches every unit's standing order and every finished static defence's reach in its team's
+colour; the metal spots and the named cells (the map's switches); and painted by the 2D map's own functions the
+marks, the hands' groups, places, parties and the lane's ranks, and a ring on each unit of the hands' actor in focus.
+A hover names the unit, its health, its order and what it builds. A click selects a unit of either side, and the Unit
+tab is the tape's: what it is and whose, where, its health, its order and queue, who made it and when, who killed
+it, what it killed and built, its weapons (range, damage, how often) and reach, the orders given to it in the slices
+read (about a minute around the playhead, a click seeking there) and its kills; for a unit of ours the record adds
+the brain's last order, its part in the hands' picture and its history. A directory with a tape and no record of ours
+(a bot of `bots/`, a taped demo) opens as the 3D view alone: each side's numbers at the playhead (income, stores,
+units, army and its worth, losses) in the side pane, its losses as the timeline's lanes and a line a side in four
+charts (metal and energy income, army worth, units). Not yet: what each side could see (the tape does not hold it;
+the next capture pass, `docs/design/2026-11-15-game-tape.md` §7), players' map marks, and no piece of a model moves
+(turrets do not turn, legs do not walk), though the tape holds each weapon's direction when made with `--aim`.
 
 Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view, in Chromium and with
 `SCENE_BROWSER=firefox` in Firefox (`tape-format.md`: run both);

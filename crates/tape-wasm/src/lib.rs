@@ -21,6 +21,8 @@ struct State {
     features: Vec<f32>,
     /// The rectangle of the ground the last `wr_ground` changed: column, row, columns, rows.
     dirty: [u32; 4],
+    /// The orders of the unit last asked about (`wr_orders_of`).
+    history: Vec<f32>,
 }
 
 thread_local! {
@@ -148,8 +150,20 @@ pub extern "C" fn wr_frame(frame: f32) -> i32 {
     })
 }
 
+/// Fills array 10 with every order given to a unit (its row) in the slices now loaded; says how many.
+#[unsafe(no_mangle)]
+pub extern "C" fn wr_orders_of(row: u32) -> u32 {
+    with(|s| {
+        let State { tape, history, .. } = s;
+        if let Some(t) = tape.as_ref() {
+            t.orders_of(row, history);
+        }
+        (history.len() / tape::read::HISTORY_STRIDE) as u32
+    })
+}
+
 /// An array's address: 0 units, 1 ranges (u32), 2 projectiles, 3 bursts, 4 the unit table's u32, 5 its f32, 6 the
-/// features, 7 the ground now (u16).
+/// features, 7 the ground now (u16), 8 what the units are doing, 9 the commands just given, 10 a unit's orders.
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_array(which: u32) -> *const u8 {
     with(|s| match which {
@@ -160,6 +174,9 @@ pub extern "C" fn wr_array(which: u32) -> *const u8 {
         4 => s.unit_ints.as_ptr() as *const u8,
         5 => s.unit_floats.as_ptr() as *const u8,
         6 => s.features.as_ptr() as *const u8,
+        8 => s.frame.doing.as_ptr() as *const u8,
+        9 => s.frame.commands.as_ptr() as *const u8,
+        10 => s.history.as_ptr() as *const u8,
         _ => s.tape.as_ref().map_or(std::ptr::null(), |t| t.ground_now.as_ptr() as *const u8),
     })
 }
@@ -175,6 +192,9 @@ pub extern "C" fn wr_array_len(which: u32) -> u32 {
         4 => s.unit_ints.len(),
         5 => s.unit_floats.len(),
         6 => s.features.len(),
+        8 => s.frame.doing.len(),
+        9 => s.frame.commands.len(),
+        10 => s.history.len(),
         _ => s.tape.as_ref().map_or(0, |t| t.ground_now.len()),
     } as u32)
 }

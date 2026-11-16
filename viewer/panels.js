@@ -584,45 +584,58 @@
   // ---------------------------------------------------------------- the unit
 
   /// The selected unit: what it is, whose, its standing order, its actor in the hands' picture with that actor's
-  /// last plays, and its history.
+  /// last plays, and its history. With a tape, what it is and does comes from the tape (any unit of any side, its
+  /// orders as the engine had them); the record adds the hands' part and its history for a unit of ours.
   function renderUnit() {
     if (view.selected == null) return;
     const match = view.match;
     const box = $("unit");
     const id = view.selected;
-    const state = view.state || WR.stateAt(match, view.frame);
-    const ours = state.own.find((u) => u.id === id);
-    const u = ours || state.enemies.find((v) => v.id === id);
+    const tape = view.scene && view.selectedRow >= 0 ? view.scene.tape : null;
+    const row = tape ? view.selectedRow : -1;
+    // The engine reuses ids: the record's unit of this id at the playhead is the tape's row only while that row lives.
+    const same = !tape || tape.rowOf(id, Math.floor(view.frame)) === row;
+    const state = match.tapeOnly ? null : view.state || WR.stateAt(match, view.frame);
+    const ours = state && same ? state.own.find((u) => u.id === id) : null;
+    const u = ours || (state && same ? state.enemies.find((v) => v.id === id) : null);
     const seat = ours ? match.seats[ours.seat] : null;
     const picture = seat ? pictureAt(seat, view.frame) : null;
-    if (!keyed(box, `${id}:${view.version}:${Math.floor(view.frame / WR.FPS)}:${picture ? picture.f : "-"}`)) return;
+    const beat = tape ? `${row}:${Math.floor(view.frame / (view.playing ? 15 : 3))}:${tape.loads}` : Math.floor(view.frame / WR.FPS);
+    if (!keyed(box, `${id}:${view.version}:${beat}:${picture ? picture.f : "-"}`)) return;
+    if (tape) tapeUnit(box, row, ours ? (multi() ? `ours, seat ${seat.name}` : "ours") : null);
+    if (match.tapeOnly) return;
     const d = u && u.def >= 0 ? match.defs[u.def] : null;
     const history = WR.unitHistory(match, id);
-    const born = history.events.find((e) => e.k === "created" && e.u === id);
-    const dead = history.events.find((e) => (e.k === "destroyed" || e.k === "enemy_destroyed") && e.u === id);
-    const title = el("h2", null, `${d ? d.name : "unit"} #${id} `);
-    title.append(el("span", "muted", ours ? (multi() ? `ours, seat ${seat.name}` : "ours") : u ? "enemy" : dead && dead.f <= view.frame ? `gone at ${clock(dead.f)}` : "not on the map at the playhead"));
-    box.append(title);
-    const facts = el("div", "facts");
-    const fact = (k, v) => facts.append(el("span", "k", k), el("span", "v", v));
-    if (d) fact("type", `${d.class}${d.metal ? `, ${d.metal} metal` : ""}${d.reach ? `, reach ${d.reach}` : ""}${d.footprint ? `, footprint ${d.footprint[0] * 8} x ${d.footprint[1] * 8}` : ""}`);
-    if (u) {
-      fact("at", `${WR.gridName(match, u.x, u.z)} (${Math.round(u.x)}, ${Math.round(u.z)})`);
-      fact("health", ours ? `${u.health}%` : String(u.health));
-      const flags = [];
-      if (u.flags & WR.FLAG.beingBuilt) flags.push("being built");
-      if (ours && u.flags & WR.FLAG.idle) flags.push("idle");
-      if (flags.length) fact("flags", flags.join(", "));
-      if (u.damage) fact("damage", `${u.damage} this second`);
-    }
-    if (born) fact("created", `${clock(born.f)}${born.by != null ? ` by #${born.by}` : ""}`);
-    for (const e of history.events.filter((e) => e.k === "given" && e.u === id)) fact("given", `${clock(e.f)} from t${e.from_team} to t${e.to_team}`);
-    if (dead) fact("destroyed", `${clock(dead.f)}${dead.by_d != null && dead.by_d >= 0 ? ` by a ${defName(dead.by_d)}` : ""}`);
-    if (ours) {
+    if (!tape) {
+      const born = history.events.find((e) => e.k === "created" && e.u === id);
+      const dead = history.events.find((e) => (e.k === "destroyed" || e.k === "enemy_destroyed") && e.u === id);
+      const title = el("h2", null, `${d ? d.name : "unit"} #${id} `);
+      title.append(el("span", "muted", ours ? (multi() ? `ours, seat ${seat.name}` : "ours") : u ? "enemy" : dead && dead.f <= view.frame ? `gone at ${clock(dead.f)}` : "not on the map at the playhead"));
+      box.append(title);
+      const facts = el("div", "facts");
+      const fact = (k, v) => facts.append(el("span", "k", k), el("span", "v", v));
+      if (d) fact("type", `${d.class}${d.metal ? `, ${d.metal} metal` : ""}${d.reach ? `, reach ${d.reach}` : ""}${d.footprint ? `, footprint ${d.footprint[0] * 8} x ${d.footprint[1] * 8}` : ""}`);
+      if (u) {
+        fact("at", `${WR.gridName(match, u.x, u.z)} (${Math.round(u.x)}, ${Math.round(u.z)})`);
+        fact("health", ours ? `${u.health}%` : String(u.health));
+        const flags = [];
+        if (u.flags & WR.FLAG.beingBuilt) flags.push("being built");
+        if (ours && u.flags & WR.FLAG.idle) flags.push("idle");
+        if (flags.length) fact("flags", flags.join(", "));
+        if (u.damage) fact("damage", `${u.damage} this second`);
+      }
+      if (born) fact("created", `${clock(born.f)}${born.by != null ? ` by #${born.by}` : ""}`);
+      for (const e of history.events.filter((e) => e.k === "given" && e.u === id)) fact("given", `${clock(e.f)} from t${e.from_team} to t${e.to_team}`);
+      if (dead) fact("destroyed", `${clock(dead.f)}${dead.by_d != null && dead.by_d >= 0 ? ` by a ${defName(dead.by_d)}` : ""}`);
+      if (ours) {
+        const order = WR.ordersAt(seat, view.frame).get(id);
+        fact("standing order", u.flags & WR.FLAG.idle ? "none (idle)" : order ? orderWords(order) : "none recorded");
+      }
+      box.append(facts);
+    } else if (ours) {
       const order = WR.ordersAt(seat, view.frame).get(id);
-      fact("standing order", u.flags & WR.FLAG.idle ? "none (idle)" : order ? orderWords(order) : "none recorded");
+      box.append(el("div", "meta", `the brain's last order in the record: ${u.flags & WR.FLAG.idle ? "none (idle)" : order ? orderWords(order) : "none recorded"}`));
     }
-    box.append(facts);
     // Its part in the hands' picture: a builder or a plant by its own name, a soldier by its group.
     if (ours && seat.jev) {
       const actor = picture ? WR.actorOfUnit(picture, id, d ? d.class : null) : null;
@@ -649,8 +662,10 @@
         box.append(open);
       } else if (picture) box.append(el("div", "meta", "not an actor of the hands' picture at the playhead (a building, or a unit not in a group yet)"));
     }
-    // Its history: orders and events, newest first, click to seek there.
-    box.append(el("h2", "call-title", `history: ${history.commands.length} orders, ${history.events.length} events`));
+    // Its history: orders and events, newest first, click to seek there (with a tape, for a unit of ours alone: the
+    // tape has the rest).
+    if (tape && !ours) return;
+    box.append(el("h2", "call-title", `history in the record: ${history.commands.length} orders, ${history.events.length} events`));
     const list = el("ol", "history");
     const rows = [...history.commands.map((o) => ({ f: o.f, text: orderWords(o) })), ...history.events.map((e) => ({ f: e.f, text: eventWords(e, id) }))].sort((a, b) => b.f - a.f);
     for (const r of rows.slice(0, 80)) {
@@ -665,6 +680,163 @@
     const at = o.x != null ? ` at ${WR.gridName(view.match, o.x, o.z)} (${Math.round(o.x)}, ${Math.round(o.z)})` : o.target != null ? ` #${o.target}` : o.feature != null ? ` feature ${o.feature}` : "";
     return `${o.kind}${o.def != null ? ` ${defName(o.def)}` : ""}${at}${o.radius ? ` within ${o.radius}` : ""}`;
   }
+  // ---------------------------------------------------------------- the tape's side of things
+
+  const NEVER = 0xffffffff;
+  const css = (rgb) => `rgb(${rgb.map((v) => Math.round(v * 255)).join(", ")})`;
+  const teamOf = (tape, team) => (tape.head.teams || []).find((t) => t.team === team);
+  const teamName = (t, team) => (t ? (t.name || "").trim() || t.side || `team ${team}` : `team ${team}`);
+
+  function teamTag(tape, team) {
+    const t = teamOf(tape, team);
+    const tag = el("span", "seat-tag", `${teamName(t, team)}${t ? `, side ${t.ally + 1}` : ""}`);
+    if (t) tag.style.borderColor = tag.style.color = css(t.color);
+    return tag;
+  }
+
+  /// A unit of the tape by name, a click selecting it.
+  function unitLink(tape, row) {
+    const unit = tape.unit(row);
+    const a = el("a", "unit-link", `${unit.def ? unit.def.human || unit.def.name : "unit"} #${unit.id}`);
+    const t = teamOf(tape, unit.team);
+    if (t) a.style.color = css(t.color);
+    a.addEventListener("click", (e) => { e.stopPropagation(); select(unit.id, row); });
+    return a;
+  }
+
+  /// What each unit of the tape killed and built (the unit table's killer and builder columns), worked out once a tape.
+  function tallies(tape) {
+    if (tallies.tape === tape) return tallies.of;
+    const kills = new Map(), built = new Map(), ints = tape.unitInts;
+    const add = (map, row, what) => (map.get(row) || map.set(row, []).get(row)).push(what);
+    for (let row = 0; row < tape.unitCount; row++) {
+      if (ints[row * 8 + 6]) add(kills, ints[row * 8 + 6] - 1, row);
+      if (ints[row * 8 + 7]) add(built, ints[row * 8 + 7] - 1, row);
+    }
+    for (const list of kills.values()) list.sort((a, b) => ints[a * 8 + 5] - ints[b * 8 + 5]);
+    tallies.tape = tape;
+    tallies.of = { kills, built };
+    return tallies.of;
+  }
+
+  /// A list of units in words: how many by the playhead, of how many, by type.
+  function unitsWords(tape, rows, when) {
+    const by = rows.filter((row) => when(row) <= view.frame);
+    if (!rows.length) return null;
+    const names = by.map((row) => (tape.unit(row).def || {}).human || "unit");
+    return `${by.length} by now${by.length < rows.length ? ` (${rows.length} in the game)` : ""}${by.length ? `: ${WV.summarise(names)}` : ""}`;
+  }
+
+  /// A weapon type in words: what it is, how far, how hard and how often.
+  function weaponWords(w) {
+    if (w.shield) return `${w.name}: a shield, radius ${Math.round(w.shield_radius || 0)}`;
+    const salvo = Math.max(1, w.salvo || 1);
+    const perSecond = w.reload > 0 ? (w.damage * salvo) / w.reload : 0;
+    return [
+      `${w.name} (${w.kind}${w.paralyzer ? ", paralyses" : ""}${w.interceptor ? ", intercepts" : ""})`,
+      `range ${Math.round(w.range)}`,
+      w.damage > 0 ? `${Math.round(w.damage)} damage${salvo > 1 ? ` x${salvo}` : ""} every ${Number(w.reload).toFixed(w.reload < 1 ? 2 : 1)} s${perSecond ? ` (~${Math.round(perSecond)} a second)` : ""}` : null,
+      w.aoe > 16 ? `blast ${Math.round(w.aoe)}` : null,
+    ].filter(Boolean).join(", ");
+  }
+
+  /// The selected unit as the tape has it at the playhead: what it is and whose, where, its health, what it is doing,
+  /// who made it and who killed it, what it killed and built, what it reaches; then the orders given to it in the
+  /// slices read (about a minute around the playhead), a click seeking there. `whose` is the record's word for it.
+  function tapeUnit(box, row, whose) {
+    const scene = view.scene, tape = scene.tape, unit = tape.unit(row), d = unit.def || {};
+    const now = scene.unitNow(row);
+    const alive = unit.created <= view.frame && view.frame < unit.destroyed;
+    const title = el("h2", null, `${d.human || d.name || "unit"} #${unit.id} `);
+    title.append(el("span", "muted", `${d.name || ""}${whose ? ` · ${whose}` : ""}`), " ", teamTag(tape, now ? now[11] : unit.team));
+    box.append(title);
+    const facts = el("div", "facts");
+    const fact = (k, ...v) => {
+      const span = el("span", "v");
+      span.append(...v);
+      facts.append(el("span", "k", k), span);
+    };
+    fact("type", [`tech ${d.tech || 1}`, `${Math.round(d.metal || 0)} metal, ${Math.round(d.energy || 0)} energy`, `${Math.round(unit.maxHealth)} health`, d.speed ? `speed ${Math.round(d.speed)}` : d.mobile ? null : "does not move", d.cloak ? "cloaks" : null].filter(Boolean).join(", "));
+    if (now) {
+      fact("at", `${WV.placeWords(now[0], now[2])}, height ${Math.round(now[1])}`);
+      const states = [now[10] < 0.999 ? `${Math.round(now[10] * 100)}% built` : null, now[15] >= 1 ? "stunned" : now[15] > 0.01 ? `paralysis ${Math.round(now[15] * 100)}%` : null, now[12] & 1 ? "cloaked" : null].filter(Boolean);
+      const health = Math.round(now[9] * unit.maxHealth), full = Math.round(unit.maxHealth);
+      // (A unit's full health can grow after it is made: the table has the one it was made with.)
+      fact("health", `${health > full ? `${health}, more than the ${full} it was made with` : `${health} of ${full} (${Math.round(now[9] * 100)}%)`}${states.length ? `, ${states.join(", ")}` : ""}`);
+      const doing = scene.doingOf(row);
+      fact("order", doing && doing.cmd !== 0 ? `${WV.tapeOrderWords(doing)}${doing.queue > 1 ? `, ${doing.queue - 1} more queued` : ""}` : d.mobile || d.builder ? "none (idle)" : "none");
+      if (doing && doing.builds >= 0) fact("building", unitLink(tape, doing.builds));
+    } else if (alive) {
+      fact("at", "reading the tape at the playhead ...");
+    } else {
+      fact("at", unit.created > view.frame ? `not made yet: made at ${clock(unit.created)}` : `gone: died at ${WV.placeWords(unit.death[0], unit.death[2])}`);
+    }
+    fact("made", `${clock(unit.created)} at ${WV.placeWords(unit.birth[0], unit.birth[2])}`, ...(unit.builder >= 0 ? [" by ", unitLink(tape, unit.builder)] : []));
+    fact("finished", unit.finished === NEVER ? "never" : clock(unit.finished));
+    if (unit.destroyed !== NEVER) fact(unit.destroyed <= view.frame ? "destroyed" : "will die", clock(unit.destroyed), ...(unit.killer >= 0 ? [" by ", unitLink(tape, unit.killer)] : []));
+    const { kills, built } = tallies(tape);
+    const killed = unitsWords(tape, kills.get(row) || [], (r) => tape.unitInts[r * 8 + 5]);
+    if (killed) fact("killed", killed);
+    const made = unitsWords(tape, built.get(row) || [], (r) => tape.unitInts[r * 8 + 3]);
+    if (made) fact("built", made);
+    const weapons = [...new Set(d.weapons || [])].map((id) => tape.weaponDefs.get(id)).filter((w) => w && (w.shield || w.range > 0));
+    weapons.forEach((w, i) => fact(i ? "" : "weapons", weaponWords(w)));
+    const reach = [d.sight ? `sight ${Math.round(d.sight)}` : null, d.radar ? `radar ${Math.round(d.radar)}` : null, d.sonar ? `sonar ${Math.round(d.sonar)}` : null, d.jammer ? `jams ${Math.round(d.jammer)}` : null, d.builder && !d.factory && d.build_distance ? `builds within ${Math.round(d.build_distance)}, ${Math.round(d.build_speed)} build power` : d.factory ? `${Math.round(d.build_speed)} build power` : null].filter(Boolean);
+    if (reach.length) fact("reach", reach.join(", "));
+    box.append(facts);
+    const tools = el("div", "gate-nav");
+    const look = el("button", null, "look at it");
+    look.disabled = !now;
+    look.addEventListener("click", () => now && scene.lookAt(now[0], now[2], 900));
+    tools.append(look);
+    box.append(tools);
+    // The orders given to it, newest first; those after the playhead are faint.
+    const orders = tape.ordersOf(row);
+    section(box, "Orders given to it", `${orders.length || "none"} in the slices read (about a minute around the playhead)${orders.length ? ", newest first" : ""}`);
+    const list = el("ol", "history");
+    for (const o of orders.slice(-60).reverse()) {
+      const li = el("li", o.f > view.frame ? "future" : null);
+      li.append(el("span", "when", clock(o.f)), `${o.shift ? "queued: " : ""}${WV.tapeOrderWords(o)}`);
+      li.addEventListener("click", () => seek(o.f));
+      list.append(li);
+    }
+    box.append(list);
+    // What it killed, the kill a click away.
+    const mine = (kills.get(row) || []).filter((r) => tape.unitInts[r * 8 + 5] <= view.frame);
+    if (mine.length) {
+      section(box, "Its kills", "newest first");
+      const ol = el("ol", "history");
+      for (const r of mine.slice(-30).reverse()) {
+        const li = el("li");
+        li.append(el("span", "when", clock(tape.unitInts[r * 8 + 5])), unitLink(tape, r));
+        li.addEventListener("click", () => seek(tape.unitInts[r * 8 + 5] - 1));
+        ol.append(li);
+      }
+      box.append(ol);
+    }
+  }
+
+  /// A game with a tape and no record of ours: each side's numbers at the playhead, from the tape's tables.
+  function renderTapeNow() {
+    const box = $("now");
+    if (!view.scene || !keyed(box, `tape:${view.version}:${Math.floor(view.frame / WR.FPS)}`)) return;
+    const tape = view.scene.tape;
+    const table = el("table", "grid");
+    const head = el("tr", "head");
+    for (const h of ["side", "metal +", "energy +", "metal", "energy", "units", "army", "army worth", "lost"]) head.append(el("th", null, h));
+    table.append(head);
+    for (const side of WV.tapeSides()) {
+      const at = Math.min(side.units.length - 1, Math.max(0, Math.floor(view.frame / WR.FPS)));
+      const lost = WR.indexAt(side.losses, view.frame) + 1;
+      const tr = el("tr");
+      [side.name, side.metalIncome[at].toFixed(1), Math.round(side.energyIncome[at]), Math.round(side.metal[at]), Math.round(side.energy[at]), side.units[at], side.army[at], Math.round(side.armyMetal[at]), lost].forEach((v, i) => tr.append(el("td", i === 0 ? "name" : null, String(v))));
+      tr.firstChild.style.color = side.css;
+      tr.title = side.teams.map((t) => teamName(t, t.team)).join(", ");
+      table.append(tr);
+    }
+    box.append(table, el("div", "meta", `from the tape: ${(tape.head.teams || []).filter((t) => !t.gaia).length} teams; army is the finished units that move and shoot and do not build, its worth their metal`));
+  }
+
   function eventWords(e, id) {
     if (e.k === "created") return e.u === id ? `created${e.by != null ? ` by #${e.by}` : ""}` : `began a ${defName(e.d)} #${e.u} at ${WR.gridName(view.match, e.x, e.z)}`;
     if (e.k === "finished") return e.u === id ? "finished" : `finished #${e.u}`;
@@ -914,6 +1086,11 @@
     matchOpened() { renderSeats(); buildDecisionList(); },
     matchGrew() { rebuildDecisionList(); },
     scopeChanged() { renderSeats(); buildDecisionList(); },
+    /// A game with a tape and no record of ours: the sides' numbers, and the Unit tab when a unit is selected.
+    renderTape() {
+      renderTapeNow();
+      if (view.tab === "unit") renderUnit();
+    },
     render() {
       renderNow();
       // The decision list follows the hands' actor in focus.

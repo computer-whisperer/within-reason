@@ -32,7 +32,7 @@ const WRTerrain = (() => {
   uniform sampler2D uDiffuse;
   uniform sampler2D uSlope;
   uniform vec3 uSun;
-  uniform float uGrid;       // elmos a named cell (1024), 0 for no grid
+  uniform vec2 uGrid;        // elmos a named cell each way (about 1024: the map's side over its cells), 0 for no grid
   in vec2 vUV;
   in vec3 vWorld;
   out vec4 color;
@@ -45,7 +45,7 @@ const WRTerrain = (() => {
       float depth = clamp(-vWorld.y / 100.0, 0.0, 1.0);
       c = mix(c, vec3(0.04, 0.15, 0.25), 0.3 + 0.55 * depth);
     }
-    if (uGrid > 0.0) {
+    if (uGrid.x > 0.0) {
       // the named cells' lines, a constant width on screen
       vec2 cell = vWorld.xz / uGrid;
       vec2 line = abs(fract(cell - 0.5) - 0.5) / fwidth(cell);
@@ -237,7 +237,10 @@ const WRTerrain = (() => {
         gl.uniform2f(program.u.uCorners, columns - 1, rows - 1);
         gl.uniform2f(program.u.uScale, low, step);
         gl.uniform3fv(program.u.uSun, camera.sun);
-        gl.uniform1f(program.u.uGrid, layers.grid ? 1024 : 0);
+        // The named cells as crates/terrain has them (Grid::of): a whole number of them across the map, about 1024
+        // elmos each and at most 26.
+        const cells = (extent) => extent / Math.min(26, Math.max(1, Math.ceil(extent / 1024)));
+        gl.uniform2f(program.u.uGrid, layers.grid ? cells(mapSize[0]) : 0, layers.grid ? cells(mapSize[1]) : 0);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, heightTexture);
         gl.uniform1i(program.u.uHeight, 0);

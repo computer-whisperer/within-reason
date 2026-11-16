@@ -430,14 +430,21 @@ end
 -- `O`: u32 frame, u32 n, then n rows of seven f32: unit id, the head order's command id (0 none; negative: a build of
 -- that type), how the order points (0 nowhere, 1 at the unit or feature `a`, 3 at the place a, b, c), a, b, c, and
 -- 65536 x the unit it is building (0 none) + the queue's length (at most 65535). Written when it changed.
+--
+-- Repair, reclaim, resurrect and capture take five numbers when a builder working an area is on one target: its id,
+-- then the area (BuilderCAI.cpp). That is written as the target (`how` 1); until 2026-11-15 night it was written as
+-- the place of its first three numbers, which the reader sorts out (crates/tape/src/read.rs, `aim_of`).
+local AREA_TARGET = { [40] = true, [90] = true, [125] = true, [130] = true }
 local function sampleActivity(frame)
 	local rows, n = {}, 0
 	for i = 1, allCount do
 		local id = all[i]
-		local cmd, _, _, p1, p2, p3 = spGetUnitCurrentCommand(id)
+		local cmd, _, _, p1, p2, p3, _, p5 = spGetUnitCurrentCommand(id)
 		local queue = spGetCommandQueue(id, 0) or 0
 		local how, a, b, c = 0, 0, 0, 0
-		if cmd and p3 then
+		if cmd and p5 and AREA_TARGET[cmd] then
+			how, a = 1, round(p1)
+		elseif cmd and p3 then
 			how, a, b, c = 3, round(p1), round(p2), round(p3)
 		elseif cmd and p1 then
 			how, a = 1, round(p1)

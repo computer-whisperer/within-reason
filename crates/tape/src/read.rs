@@ -39,6 +39,37 @@ pub const PROJECTILE_STRIDE: usize = 12;
 /// (1-based), spare.
 pub const BURST_STRIDE: usize = 8;
 
+/// Floats a unit's head order in `Frame::doing`, for every unit that has one or is building: its place in `units`, its
+/// row, the command (the engine's id; negative a build of that unit type; 0 none), how it points (0 nowhere, 1 at a
+/// place, 2 at a unit, 3 at a feature), the place it points at (a unit's this frame), the target (the unit's row or
+/// the feature's number in the table, else -1), the row of what it is building (-1 none), its queue's length.
+pub const DOING_STRIDE: usize = 10;
+/// Floats a command lately given, in `Frame::commands`: the unit's place in `units`, the command, how it points and
+/// the place (as above), frames since it was given, 1 when it went to the queue's end (shift).
+pub const COMMAND_STRIDE: usize = 8;
+/// How long a command given stays in `Frame::commands`, in frames.
+pub const COMMAND_FRAMES: u32 = 45;
+/// Floats an order in a unit's history (`Tape::orders_of`): the frame, the command, 1 for shift, how it points, the
+/// place (zeros for a unit: it moves), the target (as above).
+pub const HISTORY_STRIDE: usize = 8;
+
+/// The engine's command ids whose single number names a unit or a feature: attack, guard, repair, reclaim, manual fire,
+/// resurrect, capture, load, load onto, and BAR's set-target.
+const POINTS_AT_ONE: [i32; 10] = [20, 25, 40, 90, 105, 125, 130, 75, 76, 34923];
+/// The engine's insert command: its numbers are a queue position, the command inserted, its options, its numbers.
+const CMD_INSERT: i32 = 1;
+
+/// What an order points at.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Aim {
+    Nowhere,
+    Place([f32; 3]),
+    /// A unit's row.
+    Unit(u32),
+    /// A feature's number in the table.
+    Feature(u32),
+}
+
 /// The state at a frame.
 #[derive(Debug, Default)]
 pub struct Frame {
@@ -48,9 +79,13 @@ pub struct Frame {
     pub ranges: Vec<u32>,
     pub projectiles: Vec<f32>,
     pub bursts: Vec<f32>,
+    pub doing: Vec<f32>,
+    pub commands: Vec<f32>,
     /// Row -> its place in `units` this frame, or `u32::MAX`.
     slot: Vec<u32>,
     scratch: Vec<f32>,
+    /// Each unit's head order, in the order of `scratch`.
+    acts: Vec<Activity>,
 }
 
 /// A unit at a whole frame, exactly as stamped: what the checker compares.
@@ -82,6 +117,13 @@ pub struct Tape {
     pub position_scale: f32,
     /// (frame, row) of every death, in frame order.
     deaths: Vec<(u32, u32)>,
+    /// The engine's unit limit: an order names a feature by its id plus this.
+    pub max_units: u32,
+    /// The map's width and height in elmos (zeros when the header does not say).
+    pub map_size: [f32; 2],
+    /// The rows that held an engine id, in the order they were created; the same for the features.
+    by_engine: HashMap<u32, Vec<u32>>,
+    feature_by_id: HashMap<u32, Vec<u32>>,
     /// The ground as it stands at `ground_frame`.
     pub ground_now: Vec<u16>,
     ground_patches: usize,
@@ -100,7 +142,7 @@ impl Tape {
         for _ in 0..n {
             chunks.push(ChunkRef { kind: r.take(4)?.try_into().unwrap(), offset: r.u64()?, len: r.u32()?, first: r.u32()? });
         }
-        Ok(Tape { chunks, slice_frames: crate::SLICE_FRAMES, sample_frames: 3, position_scale: 4.0, ..Default::default() })
+        Ok(Tape { chunks, slice_frames: crate::SLICE_FRAMES, sample_frames: 3, position_scale: 4.0, max_units: 32000, ..Default::default() })
     }
 
     /// The chunks of one kind, in file order.
@@ -120,6 +162,10 @@ impl Tape {
                 self.sample_frames = num("sample_frames", 3.0) as u32;
                 self.last_frame = num("last_frame", 0.0) as u32;
                 self.position_scale = num("position_scale", 4.0) as f32;
+                // (A tape of before 2026-11-15 does not say: BAR's limit.)
+                self.max_units = num("max_units", 32000.0) as u32;
+                let map = |key: &str| head.get("map").and_then(|m| m.get(key)).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                self.map_size = [map("width"), map("height")];
                 if num("angle_scale", 0.0) as i32 != ANGLE_TURN {
                     return err(format!("this tape's angles are {}ths of a turn; this reader's are {ANGLE_TURN}ths", num("angle_scale", 0.0)));
                 }
@@ -142,8 +188,18 @@ impl Tape {
                 self.units = decode_units(&body)?;
                 self.deaths = self.units.iter().enumerate().filter(|(_, u)| u.destroyed != crate::format::NEVER).map(|(row, u)| (u.destroyed, row as u32)).collect();
                 self.deaths.sort();
+                self.by_engine.clear();
+                for (row, u) in self.units.iter().enumerate() {
+                    self.by_engine.entry(u.engine_id).or_default().push(row as u32);
+                }
             }
-            b"FEAT" => self.features = decode_features(&body)?,
+            b"FEAT" => {
+                self.features = decode_features(&body)?;
+                self.feature_by_id.clear();
+                for (at, f) in self.features.iter().enumerate() {
+                    self.feature_by_id.entry(f.id).or_default().push(at as u32);
+                }
+            }
             b"SLIC" => return err("a slice goes to load_slice"),
             other => return err(format!("a chunk of kind {:?} this reader does not know", String::from_utf8_lossy(other))),
         }
@@ -189,6 +245,107 @@ impl Tape {
             tape.set_chunk(chunk_bytes(file, c)?)?;
         }
         Ok(tape)
+    }
+
+    /// The row of the unit that held an engine id at a frame.
+    pub fn row_of(&self, engine_id: u32, frame: u32) -> Option<u32> {
+        self.by_engine.get(&engine_id)?.iter().copied().find(|row| {
+            let u = &self.units[*row as usize];
+            u.created <= frame && frame < u.destroyed
+        })
+    }
+
+    /// What a command points at, from its numbers as the engine has them. For the commands that take a unit or a
+    /// feature one number is its id (a feature's offset by the unit limit); repair, reclaim, resurrect and capture
+    /// also take four (an area: x, y, z, radius) or five (the target a builder working an area is on, then the area:
+    /// BuilderCAI.cpp). Otherwise three or more are a place (a build's too). A place off the map is no aim: numbers
+    /// of some command that are not a place.
+    ///
+    /// A head order captured before 2026-11-15 night (tape_dump.lua, `O`) kept the first three numbers of five, so for
+    /// those four commands three numbers are an area's centre, or a target's id and the first two of its area: a
+    /// centre is a click on the ground (on the map, at the ground's height or the sea's), else the id.
+    pub fn aim_of(&self, cmd: i32, params: &[i32], frame: u32) -> Aim {
+        if cmd == CMD_INSERT && params.len() > 3 {
+            return self.aim_of(params[1], &params[3..], frame);
+        }
+        let in_area = matches!(cmd, 40 | 90 | 125 | 130);
+        if params.len() >= 3 && !(in_area && params.len() >= 5) {
+            let place = [params[0] as f32, params[1] as f32, params[2] as f32];
+            let cut = in_area && params.len() == 3;
+            if self.on_map(place) && (!cut || self.on_ground(place)) {
+                return Aim::Place(place);
+            }
+            if !cut {
+                return Aim::Nowhere;
+            }
+        }
+        if params.is_empty() || params[0] < 0 || !POINTS_AT_ONE.contains(&cmd) {
+            return Aim::Nowhere;
+        }
+        let id = params[0] as u32;
+        if id < self.max_units {
+            return self.row_of(id, frame).map_or(Aim::Nowhere, Aim::Unit);
+        }
+        let standing = |at: &&u32| {
+            let f = &self.features[**at as usize];
+            f.created <= frame && frame < f.gone
+        };
+        self.feature_by_id.get(&(id - self.max_units)).and_then(|list| list.iter().find(standing)).map_or(Aim::Nowhere, |at| Aim::Feature(*at))
+    }
+
+    /// Whether a place is on the map, give or take a footprint (any place when the map's size is not known).
+    fn on_map(&self, [x, _, z]: [f32; 3]) -> bool {
+        let [w, h] = self.map_size;
+        w == 0.0 || (-64.0..=w + 64.0).contains(&x) && (-64.0..=h + 64.0).contains(&z)
+    }
+
+    /// Whether a place is on the ground as it began (or on the sea over it), give or take a crater.
+    fn on_ground(&self, [x, y, z]: [f32; 3]) -> bool {
+        let g = &self.ground;
+        if g.heights.is_empty() {
+            return true;
+        }
+        let corner = |v: f32, n: u32| ((v / 8.0).round().max(0.0) as u32).min(n - 1) as usize;
+        let ground = g.height(g.heights[corner(z, g.rows) * g.columns as usize + corner(x, g.columns)]);
+        (y - ground).abs() < 64.0 || (y.abs() < 64.0 && ground < 0.0)
+    }
+
+    /// Every order given to a unit in the slices now loaded, in frame order, `HISTORY_STRIDE` floats each.
+    pub fn orders_of(&self, row: u32, out: &mut Vec<f32>) {
+        out.clear();
+        let mut indices: Vec<&u32> = self.slices.keys().collect();
+        indices.sort();
+        for index in indices {
+            for o in self.slices[index].orders.iter().filter(|o| o.unit == row + 1) {
+                let (cmd, params) = if o.cmd == CMD_INSERT && o.params.len() > 3 { (o.params[1], &o.params[3..]) } else { (o.cmd, &o.params[..]) };
+                let (how, place, target) = match self.aim_of(cmd, params, o.frame) {
+                    Aim::Nowhere => (0.0, [0.0; 3], -1.0),
+                    Aim::Place(p) => (1.0, p, -1.0),
+                    Aim::Unit(row) => (2.0, [0.0; 3], row as f32),
+                    Aim::Feature(at) => (3.0, self.features[at as usize].pos, at as f32),
+                };
+                out.extend_from_slice(&[o.frame as f32, cmd as f32, o.shift as u32 as f32, how, place[0], place[1], place[2], target]);
+            }
+        }
+    }
+
+    /// An aim as the page's four floats and a target: how it points, the place, the row or feature number.
+    fn aim_floats(&self, aim: Aim, units: &[f32], slot: &[u32]) -> ([f32; 4], f32) {
+        match aim {
+            Aim::Nowhere => ([0.0; 4], -1.0),
+            Aim::Place(p) => ([1.0, p[0], p[1], p[2]], -1.0),
+            Aim::Unit(row) => match slot.get(row as usize) {
+                Some(&at) if at != u32::MAX => {
+                    let base = at as usize * UNIT_STRIDE;
+                    ([2.0, units[base], units[base + 1], units[base + 2]], row as f32)
+                }
+                _ => ([0.0; 4], -1.0),
+            },
+            Aim::Feature(at) => {
+                let p = self.features[at as usize].pos;
+                ([3.0, p[0], p[1], p[2]], at as f32)
+            }
+        }
     }
 
     /// The rows that may be alive in a slice at `frame`: the keyframe's, then those created since.
@@ -272,6 +429,7 @@ impl Tape {
         out.slot.resize(self.units.len(), u32::MAX);
         let rows = &mut out.scratch;
         rows.clear();
+        out.acts.clear();
         // Unsorted first: the keyframe's units, then the ones created since, each a full row.
         let push = |rows: &mut Vec<f32>, slot: &mut Vec<u32>, row: u32, pose: &Pose, vital: &Vital| {
             let u = &self.units[row as usize];
@@ -287,12 +445,23 @@ impl Tape {
             let u = &self.units[k.row as usize];
             if u.destroyed > whole {
                 push(rows, &mut out.slot, k.row, &k.pose.unwrap_or(u.birth), &k.vital);
+                out.acts.push(k.activity);
             }
         }
         let keyed = rows.len() / UNIT_STRIDE;
         for row in self.candidates(slice, whole).skip(keyed) {
             let u = &self.units[row as usize];
             push(rows, &mut out.slot, row, &u.birth, &u.birth_vital);
+            out.acts.push(Activity::default());
+        }
+        for (f, row, activity) in &slice.activity {
+            if *f > whole {
+                break;
+            }
+            let at = out.slot[*row as usize];
+            if at != u32::MAX {
+                out.acts[at as usize] = *activity;
+            }
         }
         // Motion: the last sample at or before the frame, and on towards the next one over its last sample interval
         // (a unit is written only when it moved, so it stood still until then).
@@ -359,6 +528,35 @@ impl Tape {
             out.units[base..base + UNIT_STRIDE].copy_from_slice(row);
             out.slot[row[13] as usize] = *place;
             *place += 1;
+        }
+
+        // What each unit is doing, and the commands just given, each with what it points at as a place this frame.
+        out.doing.clear();
+        for (row, act) in rows.chunks_exact(UNIT_STRIDE).zip(&out.acts) {
+            if act.cmd == 0 && act.builds == 0 {
+                continue;
+            }
+            let params = [act.a, act.b, act.c];
+            let aim = self.aim_of(act.cmd, match act.how { 3 => &params[..], 1 => &params[..1], _ => &[] }, whole);
+            let (to, target) = self.aim_floats(aim, &out.units, &out.slot);
+            let builds = if act.builds > 0 { self.row_of(act.builds, whole).map_or(-1.0, |r| r as f32) } else { -1.0 };
+            out.doing.extend_from_slice(&[out.slot[row[13] as usize] as f32, row[13], act.cmd as f32, to[0], to[1], to[2], to[3], target, builds, act.queue as f32]);
+        }
+        out.commands.clear();
+        let before = index.checked_sub(1).and_then(|i| self.slices.get(&i));
+        for o in before.into_iter().chain(Some(slice)).flat_map(|s| &s.orders) {
+            if o.frame > whole {
+                break;
+            }
+            if (o.frame + COMMAND_FRAMES) as f32 <= frame || o.unit == 0 {
+                continue;
+            }
+            let at = out.slot[o.unit as usize - 1];
+            let (to, _) = self.aim_floats(self.aim_of(o.cmd, &o.params, o.frame), &out.units, &out.slot);
+            if at != u32::MAX && to[0] > 0.0 {
+                let cmd = if o.cmd == CMD_INSERT && o.params.len() > 3 { o.params[1] } else { o.cmd };
+                out.commands.extend_from_slice(&[at as f32, cmd as f32, to[0], to[1], to[2], to[3], frame - o.frame as f32, o.shift as u32 as f32]);
+            }
         }
 
         // Projectiles in flight, and the ends of those lately gone.

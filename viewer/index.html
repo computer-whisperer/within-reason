@@ -21,6 +21,7 @@
   <section id="map-pane">
     <canvas id="map"></canvas>
     <canvas id="scene" hidden></canvas>
+    <canvas id="scene-overlay" hidden></canvas>
     <button id="mode" hidden title="between the 3D view of the game's tape and the 2D map (m)">2D map</button>
     <div id="scene-note" class="muted" hidden></div>
     <div id="tooltip" class="tooltip" hidden></div>
@@ -35,12 +36,13 @@
       <label><input type="checkbox" data-layer="grid" checked> grid</label>
       <label><input type="checkbox" data-layer="spots" checked> metal spots</label>
       <label><input type="checkbox" data-layer="truth" checked> opponent (truth)</label>
-      <label><input type="checkbox" data-layer="orders" checked> orders</label>
+      <label><input type="checkbox" data-layer="orders" checked> orders as they are given</label>
       <label><input type="checkbox" data-layer="marks" checked> marks: the commander's, the players', the starts</label>
       <label><input type="checkbox" data-layer="deaths" checked> deaths</label>
       <label><input type="checkbox" data-layer="hands" checked> hands: groups, places, parties, the lane's ranks</label>
-      <label><input type="checkbox" data-scene-layer="grid" checked> 3D view: the named cells' grid</label>
       <label><input type="checkbox" data-scene-layer="fire" checked> 3D view: projectiles and flashes</label>
+      <label><input type="checkbox" data-scene-layer="orders"> 3D view: every unit's standing order</label>
+      <label><input type="checkbox" data-scene-layer="ranges"> 3D view: every static defence's reach</label>
     </fieldset>
     <ul id="map-legend" class="legend"></ul>
     <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears. In the 3D view a right drag (or shift and drag) turns and tilts; , and . step one sample back and on</div>
@@ -116,6 +118,7 @@
 <script src="scene/terrain.js"></script>
 <script src="scene/units.js"></script>
 <script src="scene/effects.js"></script>
+<script src="scene/lines.js"></script>
 <script src="scene/scene.js"></script>
 <script src="app.js"></script>
 <script src="panels.js"></script>
