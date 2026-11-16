@@ -1,0 +1,11 @@
+[package]
+name = "tape-wasm"
+version = "0.1.0"
+edition = "2024"
+description = "The tape's reader for the page: crates/tape behind a C interface, built for wasm32-unknown-unknown (run/build_viewer.sh)"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tape = { path = "../tape", default-features = false }

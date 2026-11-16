@@ -105,7 +105,8 @@ local function header(team)
 end
 
 function widget:Initialize()
-	if not Spring.IsReplay() then
+	-- `records.off` (run/replay_match.py --no-records): a replay played for its tape alone, whose match has its records.
+	if not Spring.IsReplay() or VFS.FileExists(OUT .. "records.off") then
 		widgetHandler:RemoveWidget(self)
 		return
 	end

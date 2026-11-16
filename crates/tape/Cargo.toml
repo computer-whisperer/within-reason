@@ -1,0 +1,19 @@
+[package]
+name = "tape"
+version = "0.1.0"
+edition = "2024"
+description = "The game tape: one seekable file of everything a viewer draws of a game (docs/harness/tape-format.md)"
+
+[features]
+default = ["pack"]
+# Writing a tape (the zstd library is C, so the page's build of the reader leaves it out).
+pack = ["dep:zstd"]
+
+[dependencies]
+serde_json = "1"
+ruzstd = "0.8"
+zstd = { version = "0.13", optional = true }
+
+[[bin]]
+name = "tape"
+required-features = ["pack"]
