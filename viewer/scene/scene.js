@@ -24,9 +24,17 @@ const WRScene = (() => {
       camera: { target: [mapX / 2, 0, mapZ / 2], distance: 1, yaw: 0, pitch: 1.0 },
       layers: { grid: true, fire: true },
       frame: 0, selected: -1, pending: 0, stats: {}, state: null,
+      /// Whether the camera has been fitted to the map yet: it cannot be while the canvas has no size (the page
+      /// opens the scene with its canvas hidden), so the first frame drawn with a size does it.
+      fitted: false,
     };
 
     function resetCamera() {
+      if (!canvas.clientWidth || !canvas.clientHeight) {
+        scene.fitted = false;
+        return;
+      }
+      scene.fitted = true;
       const c = scene.camera;
       c.target = [mapX / 2, terrain.heightAt(mapX / 2, mapZ / 2), mapZ / 2];
       c.yaw = 0;
@@ -53,8 +61,10 @@ const WRScene = (() => {
       return { eye, viewProj, inverse: WRGL.invert(viewProj), width, height, dpr, sun: SUN, pixels: height / (2 * Math.tan(FOV / 2)) };
     }
 
-    /// The ray under a point of the canvas (client pixels from its corner): an origin and a direction.
+    /// The ray under a point of the canvas (client pixels from its corner): an origin and a direction. Null when the
+    /// view has no inverse (a canvas with no size).
     function ray(v, x, y) {
+      if (!v.inverse) return null;
       const nx = (x / canvas.clientWidth) * 2 - 1, ny = 1 - (y / canvas.clientHeight) * 2;
       const a = WRGL.transform(v.inverse, [nx, ny, -1]), b = WRGL.transform(v.inverse, [nx, ny, 1]);
       const from = [a[0] / a[3], a[1] / a[3], a[2] / a[3]], to = [b[0] / b[3], b[1] / b[3], b[2] / b[3]];
@@ -63,7 +73,9 @@ const WRScene = (() => {
 
     /// Where a ray meets the ground: marched in steps, then halved in. Null when it leaves the map's air.
     function groundUnder(v, x, y) {
-      const { from, direction } = ray(v, x, y);
+      const r = ray(v, x, y);
+      if (!r) return null;
+      const { from, direction } = r;
       const reach = scene.camera.distance * 8 + Math.hypot(mapX, mapZ);
       let before = 0;
       const above = (t) => from[1] + direction[1] * t - terrain.heightAt(from[0] + direction[0] * t, from[2] + direction[2] * t);
@@ -83,7 +95,9 @@ const WRScene = (() => {
 
     /// Where a ray meets a level plane.
     function planeUnder(v, x, y, level) {
-      const { from, direction } = ray(v, x, y);
+      const r = ray(v, x, y);
+      if (!r) return null;
+      const { from, direction } = r;
       if (Math.abs(direction[1]) < 1e-5) return null;
       const t = (level - from[1]) / direction[1];
       return t > 0 ? WRGL.add(from, WRGL.scale(direction, t)) : null;
@@ -100,6 +114,8 @@ const WRScene = (() => {
 
     function render() {
       scene.pending = 0;
+      if (!canvas.clientWidth || !canvas.clientHeight) return; // hidden: drawn when it is shown (the resize observer)
+      if (!scene.fitted) resetCamera();
       const started = performance.now();
       const v = view();
       const change = tape.groundAt(scene.frame);

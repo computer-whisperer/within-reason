@@ -140,8 +140,12 @@ next, eight kept), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`
 (the camera, the drawing, picking), `gl.js`. See `record-format.md`, Viewer, for what the page shows.
 
 Tests: `cargo test -p tape`; `tape pack --check` on every tape made; `node viewer/test/scene.js <match url> <out dir>
-[seconds ...]` (the real page in headless Chromium: opens the tape, seeks, saves screenshots of the whole map, the
-busiest ground and the same turned, prints what was drawn and the seek's time, fails on any page error).
+[seconds ...]` (the real page in a headless browser: checks the scene as it opens, seeks, saves screenshots of the
+whole map, the busiest ground and the same turned, times seeks, drives the wheel, a drag, a shift-drag, a hover and a
+click, and fails on any page error). **Run it in both browsers**: Chromium by default, Firefox with
+`SCENE_BROWSER=firefox` (over WebDriver BiDi); the user's browser is Firefox. The first build of this test reset the
+camera before every screenshot and so passed while the scene opened blank in every browser (the camera fitted while
+the canvas was still hidden, its distance infinite): the user found it in Firefox the same night.
 
 ## Measured (2026-11-15)
 

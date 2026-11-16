@@ -311,7 +311,8 @@ side's losses as the timeline's lanes. Not in the 3D view yet (the 2D map has th
 and parties, marks, sight; and no piece of a model moves (turrets do not turn, legs do not walk), though the tape
 holds each weapon's direction when made with `--aim`.
 
-Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view (`tape-format.md`);
+Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view, in Chromium and with
+`SCENE_BROWSER=firefox` in Firefox (`tape-format.md`: run both);
 `node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
 the truth, and through `run/viewer_index.py` each Jev log's index, a gate and its view, a picture) and
 `node viewer/test/browser.js <url> [shot.png]` (the real page in headless Chromium: the match browser when the url
