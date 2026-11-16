@@ -155,8 +155,9 @@ newer), loaded by `viewer/scene/tape.js`.
 - **commands**, eight f32 a command given in the last `COMMAND_FRAMES` (45: a second and a half) by a unit alive with
   an aim: the unit's place in `units`, the command, the place it points at, frames since, 1 for shift. The fading
   lines of the game's spectator view.
-- `orders_of(row)`: every order given to a unit in the slices loaded (about a minute around the playhead), eight f32
-  each: frame, command, shift, how, place, target.
+- `orders_of(row)`: every order given to a unit in the slices loaded (the page keeps the twelve it used last, wherever
+  they lie; the unit panel reads the minute it lists with `wantSpan` and keeps to it), eight f32 each: frame, command,
+  shift, how, place, target.
 
 A command points at a place when it has three or more numbers (a build's too), at a unit or feature when it has one
 and is one of attack, guard, repair, reclaim, manual fire, resurrect, capture, load, load onto or set target; a place

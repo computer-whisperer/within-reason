@@ -305,6 +305,7 @@ const WRScene = (() => {
       scene.stats.loading = !state;
       scene.stats.ms = performance.now() - started;
       scene.last = v;
+      if (hover && !drag && hooks.onHover) hooks.onHover(pick(hover.x, hover.y), groundUnder(v, hover.x, hover.y), hover.e);
       if (hooks.onDraw) hooks.onDraw(scene);
     }
 
@@ -335,6 +336,9 @@ const WRScene = (() => {
 
     // ------------------------------------------------------------------------------------------------ the mouse
     let drag = null;
+    /// Where the mouse rests over the canvas: what is under it is told again after each picture, since the game and
+    /// the camera move under a still mouse.
+    let hover = null;
     const at = (e) => {
       const box = canvas.getBoundingClientRect();
       return [e.clientX - box.left, e.clientY - box.top];
@@ -403,9 +407,13 @@ const WRScene = (() => {
     canvas.addEventListener("mousemove", (e) => {
       if (drag || !hooks.onHover) return;
       const [x, y] = at(e);
+      hover = { x, y, e };
       hooks.onHover(pick(x, y), groundUnder(scene.last || view(), x, y), e);
     });
-    canvas.addEventListener("mouseleave", () => hooks.onHover && hooks.onHover(-1, null, null));
+    canvas.addEventListener("mouseleave", () => {
+      hover = null;
+      if (hooks.onHover) hooks.onHover(-1, null, null);
+    });
 
     // A slice arrived: the picture, and whatever the page shows of the tape (`hooks.onSlice`), in either view.
     tape.onSlice = () => {

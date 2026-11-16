@@ -684,6 +684,8 @@
   // ---------------------------------------------------------------- the tape's side of things
 
   const NEVER = 0xffffffff;
+  /// How far back a unit's orders are read for its panel: a minute of frames.
+  const ORDERS_BACK = 60 * WR.FPS;
   const css = (rgb) => `rgb(${rgb.map((v) => Math.round(v * 255)).join(", ")})`;
   const teamOf = (tape, team) => (tape.head.teams || []).find((t) => t.team === team);
   const teamName = (t, team) => (t ? (t.name || "").trim() || t.side || `team ${team}` : `team ${team}`);
@@ -792,17 +794,7 @@
     look.addEventListener("click", () => now && scene.lookAt(now[0], now[2], 900));
     tools.append(look);
     box.append(tools);
-    // The orders given to it, newest first; those after the playhead are faint.
-    const orders = tape.ordersOf(row);
-    section(box, "Orders given to it", `${orders.length || "none"} in the slices read (about a minute around the playhead)${orders.length ? ", newest first" : ""}`);
-    const list = el("ol", "history");
-    for (const o of orders.slice(-60).reverse()) {
-      const li = el("li", o.f > view.frame ? "future" : null);
-      li.append(el("span", "when", clock(o.f)), `${o.shift ? "queued: " : ""}${WV.tapeOrderWords(o)}`);
-      li.addEventListener("click", () => seek(o.f));
-      list.append(li);
-    }
-    box.append(list);
+    ordersSection(box, tape, row, unit);
     // What it killed, the kill a click away.
     const mine = (kills.get(row) || []).filter((r) => tape.unitInts[r * 8 + 5] <= view.frame);
     if (mine.length) {
@@ -816,6 +808,26 @@
       }
       box.append(ol);
     }
+  }
+
+  /// The orders given to a unit in the minute before the playhead and the slice after (or before its death), newest
+  /// first; those after the playhead are faint. That span is read for it once the playhead's own slice is in, so a
+  /// seek's picture comes first.
+  function ordersSection(box, tape, row, unit) {
+    const end = Math.min(view.frame + tape.sliceFrames, unit.destroyed === NEVER ? Infinity : unit.destroyed);
+    const start = Math.max(unit.created, end - ORDERS_BACK);
+    if (start > end) return; // not made yet
+    const coming = tape.want(view.frame) ? tape.wantSpan(start, end) : -1;
+    const orders = tape.ordersOf(row).filter((o) => o.f >= start && o.f <= end);
+    section(box, "Orders given to it", `${orders.length || "none"} from ${clock(start)} to ${clock(end)}${coming ? " (still reading the tape there)" : ""}${orders.length ? `, newest first${orders.length > 60 ? ", the last 60" : ""}` : ""}`);
+    const list = el("ol", "history orders");
+    for (const o of orders.slice(-60).reverse()) {
+      const li = el("li", o.f > view.frame ? "future" : null);
+      li.append(el("span", "when", clock(o.f)), `${o.shift ? "queued: " : ""}${WV.tapeOrderWords(o)}`);
+      li.addEventListener("click", () => seek(o.f));
+      list.append(li);
+    }
+    box.append(list);
   }
 
   /// A game with a tape and no record of ours: each side's numbers at the playhead, from the tape's tables.

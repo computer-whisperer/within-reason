@@ -271,6 +271,20 @@ async function gecko() {
   await evaluate(`window.viewer.seek(${Math.round(last * 0.5)})`);
   await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
   const fewLines = await linesNow("the lines halfway");
+  // The mouse has rested at the centre since the click: after the seek the hover names what is under it now.
+  const rest = await evaluate(`(() => { const s = window.viewer.scene, r = s.canvas.getBoundingClientRect(), row = s.pick(r.width / 2, r.height / 2), t = document.getElementById("tooltip");
+    return { id: row >= 0 ? s.tape.unit(row).id : null, first: t.hidden ? "" : t.textContent.split("\\n")[0] }; })()`);
+  if (rest.id != null ? !rest.first.includes(`#${rest.id}`) : /#\d+/.test(rest.first)) fail(`the hover after a seek, the mouse still: ${JSON.stringify(rest)}`);
+  // The selected unit's orders: each one listed inside the span its heading names, once that span is read.
+  let orders = null;
+  for (let i = 0; i < 50 && !(orders && orders.span && !orders.coming); i++) {
+    await sleep(100);
+    orders = await evaluate(`(() => { const box = document.getElementById("unit"), m = /from (\\d+):(\\d\\d) to (\\d+):(\\d\\d)/.exec(box.textContent);
+      const seconds = (t) => { const [a, b] = t.split(":").map(Number); return a * 60 + b; };
+      return { span: m && [Number(m[1]) * 60 + Number(m[2]), Number(m[3]) * 60 + Number(m[4])], coming: /still reading the tape there/.test(box.textContent),
+        when: [...box.querySelectorAll("ol.orders .when")].map((w) => seconds(w.textContent)) }; })()`);
+  }
+  if (orders.span && orders.when.some((t) => t < orders.span[0] || t > orders.span[1])) fail(`orders outside the panel's span: ${JSON.stringify(orders)}`);
   await evaluate("(Object.assign(window.viewer.scene.layers, { orders: true, ranges: true }), window.viewer.scene.redraw())");
   const allLines = await linesNow("every order and reach");
   if (!(allLines > fewLines)) fail(`every unit's orders and every defence's reach drew no more lines (${fewLines} -> ${allLines})`);
@@ -331,7 +345,7 @@ async function gecko() {
     oursPanel += ` | in the 2D map at ${Math.round(last * 0.8 / 30)} s: ${at.place}`;
     await evaluate(`document.getElementById("mode").click()`);
   }
-  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
+  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} after a seek the resting hover says ${JSON.stringify(rest.first)}, the panel lists ${orders.when.length} orders in ${orders.span ? orders.span.map((t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`).join("-") : "no span"}; lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
   if (problems.length) fail(problems.join("\n"));
   console.log(`ok: screenshots in ${out}`);
   browser.kill();

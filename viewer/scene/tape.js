@@ -5,8 +5,9 @@
 
 const WRTape = (() => {
   let wasm = null;
-  /// Slices kept decoded: the one under the playhead, its neighbours, and a few behind for scrubbing back.
-  const KEEP = 8;
+  /// Slices kept decoded: the one under the playhead and its neighbours, the minute before it a unit's panel reads
+  /// for its orders (`wantSpan`), and a few more for scrubbing back.
+  const KEEP = 12;
   const UNIT_STRIDE = 16, PROJECTILE_STRIDE = 12, BURST_STRIDE = 8, DOING_STRIDE = 10, COMMAND_STRIDE = 8, HISTORY_STRIDE = 8;
   /// How long a command given stays in a state's `commands`, in frames (the reader's COMMAND_FRAMES).
   const COMMAND_FRAMES = 45;
@@ -120,9 +121,21 @@ const WRTape = (() => {
       return Math.min(this.slices.length - 1, Math.max(0, Math.floor(frame / this.sliceFrames)));
     },
 
+    /// Sees that every slice over frames `from` to `to` is loaded (what `ordersOf` reads). Answers how many are not in
+    /// yet; `onSlice` is called as each arrives.
+    wantSpan(from, to) {
+      let missing = 0;
+      for (let index = this.sliceIndex(from); index <= this.sliceIndex(to); index++) {
+        const slice = this.slices[index];
+        slice.used = ++this.clock;
+        if (slice.state !== "in") missing++;
+        if (slice.state === "out") this.load(index);
+      }
+      return missing;
+    },
+
     /// Sees that the slice under a frame is loaded, and the next one (the playhead is going there), and near its start
-    /// the one before. Answers whether
-    /// the frame's own slice is ready now; `onSlice` is called when one arrives.
+    /// the one before. Answers whether the frame's own slice is ready now; `onSlice` is called when one arrives.
     want(frame) {
       const at = this.sliceIndex(frame);
       // (and the one before while its last orders still fade: a state's `commands`)
