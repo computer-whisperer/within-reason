@@ -10,6 +10,7 @@ pub mod pack;
 pub mod pieces;
 pub mod read;
 pub mod slice;
+pub mod stats;
 pub mod tables;
 
 /// Frames a slice covers: ten seconds.

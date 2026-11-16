@@ -15,6 +15,11 @@
 //!                                                      read again by one reader that keeps its slices, as the page does
 //!     tape orders <game.tape>                          what the units stood under, a second at a time: by command,
 //!                                                      how many unit-seconds and what the order pointed at
+//!     tape stats <game.tape> [--every N] [--at S] [--teams] [--types]
+//!                                                      the game's numbers as the page shows them (tape::stats), a
+//!                                                      row a side every N seconds (60), or at second S alone; a row
+//!                                                      a team with `--teams`; tab-separated. `--types`: the unit
+//!                                                      types the game used, each with its class and metal
 //!
 //! `run/tape.py` runs the engine on a demo and then `tape pack`.
 
@@ -36,6 +41,37 @@ fn read(path: &str) -> Vec<u8> {
 
 fn megabytes(bytes: u64) -> String {
     format!("{:.1} MB", bytes as f64 / 1e6)
+}
+
+/// `tape stats`: the numbers as tab-separated rows, a side (or a team) at a time.
+fn stats_table(stats: &tape::stats::Stats, every: usize, at: Option<usize>, by_team: bool, types: bool) -> String {
+    use std::fmt::Write;
+    use tape::stats::{CLASSES, METRICS};
+    let mut out = String::new();
+    if types {
+        writeln!(out, "type\tname\tclass\tmetal\tbuild power").unwrap();
+        for t in &stats.types {
+            writeln!(out, "{}\t{}\t{}\t{}\t{}", t.name, t.human, CLASSES[t.class], t.metal, t.build_power).unwrap();
+        }
+        return out;
+    }
+    let figure = |v: f32| if v == v.trunc() { format!("{}", v as i64) } else { format!("{v:.1}") };
+    writeln!(out, "time\tside\tname\t{}", METRICS.iter().map(|m| m.key).collect::<Vec<_>>().join("\t")).unwrap();
+    let last = stats.seconds.saturating_sub(1);
+    let seconds: Vec<usize> = match at {
+        Some(s) => vec![s.min(last)],
+        None => (0..=last).step_by(every.max(1)).chain((last % every.max(1) != 0).then_some(last)).collect(),
+    };
+    for second in seconds {
+        for (ally, teams) in stats.sides() {
+            let rows: Vec<(String, Vec<usize>)> = if by_team { teams.iter().map(|i| (stats.teams[*i].name.clone(), vec![*i])).collect() } else { vec![(stats.side_name(&teams), teams.clone())] };
+            for (name, members) in rows {
+                let values: Vec<String> = (0..METRICS.len()).map(|metric| figure(members.iter().map(|team| stats.series(*team, metric)[second]).sum())).collect();
+                writeln!(out, "{}:{:02}\t{}\t{}\t{}", second / 60, second % 60, ally + 1, name, values.join("\t")).unwrap();
+            }
+        }
+    }
+    out
 }
 
 fn main() {
@@ -98,6 +134,11 @@ fn main() {
             }
         }
         Some("orders") if args.len() >= 2 => orders(&read(&args[1])),
+        Some("stats") if args.len() >= 2 => {
+            let tape = Tape::open(&read(&args[1])).unwrap_or_else(fail);
+            let stats = tape::stats::compute(&tape).unwrap_or_else(fail);
+            print!("{}", stats_table(&stats, value("--every").and_then(|v| v.parse().ok()).unwrap_or(60), value("--at").and_then(|v| v.parse().ok()), flag("--teams"), flag("--types")));
+        }
         Some("audit") if args.len() >= 2 => {
             // `-o -`: to standard output, the account to standard error (run/audit.py reads a tape's audit so).
             let out = value("-o").unwrap_or_else(|| std::path::Path::new(&args[1]).with_file_name("audit.jsonl").to_string_lossy().into_owned());
