@@ -21,13 +21,16 @@ const CACHE: &str = "run/data/tape-assets";
 /// The follower's shortest wait between two reads of the raw stream.
 const FOLLOW_EVERY: Duration = Duration::from_secs(2);
 
-/// Puts the tape widget and its marker into a match directory, with the names the cache already holds (the widget
-/// copies only the others).
-pub fn begin(repo: &Path, dir: &Path) -> io::Result<()> {
+/// Puts the tape widget and its marker into a match directory (with `pieces`, the moving pieces' too), with the names
+/// the cache already holds (the widget copies only the others).
+pub fn begin(repo: &Path, dir: &Path, pieces: bool) -> io::Result<()> {
     fs::copy(repo.join(WIDGET), dir.join("LuaUI/Widgets/tape_dump.lua"))?;
     let written = dir.join(WRITTEN);
     fs::create_dir_all(written.join("assets"))?;
     fs::write(written.join("tape.on"), "")?;
+    if pieces {
+        fs::write(written.join("tape.pieces"), "")?;
+    }
     let cache = repo.join(CACHE);
     fs::create_dir_all(&cache)?;
     let mut names: Vec<String> = fs::read_dir(&cache)?.flatten().filter_map(|e| e.file_name().into_string().ok()).collect();

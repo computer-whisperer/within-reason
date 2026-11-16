@@ -189,6 +189,8 @@ pub extern "C" fn wr_array(which: u32) -> *const u8 {
         9 => s.frame.commands.as_ptr() as *const u8,
         10 => s.history.as_ptr() as *const u8,
         11 => s.frame.seen.as_ptr() as *const u8,
+        12 => s.frame.pieces.as_ptr() as *const u8,
+        13 => s.frame.piece_at.as_ptr() as *const u8,
         _ => s.tape.as_ref().map_or(std::ptr::null(), |t| t.ground_now.as_ptr() as *const u8),
     })
 }
@@ -208,6 +210,8 @@ pub extern "C" fn wr_array_len(which: u32) -> u32 {
         9 => s.frame.commands.len(),
         10 => s.history.len(),
         11 => s.frame.seen.len(),
+        12 => s.frame.pieces.len(),
+        13 => s.frame.piece_at.len(),
         _ => s.tape.as_ref().map_or(0, |t| t.ground_now.len()),
     } as u32)
 }
@@ -235,6 +239,12 @@ fn text(s: &State, which: u32) -> &str {
 }
 
 /// The ground's shape: 0 columns, 1 rows, 2 the height a zero stands for, 3 the height a step of one adds.
+/// The moving pieces' block in `Frame::pieces`: how many transforms a unit has (the most pieces a type has).
+#[unsafe(no_mangle)]
+pub extern "C" fn wr_piece_stride() -> u32 {
+    with(|s| s.tape.as_ref().map_or(0, |t| t.piece_stride as u32))
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_ground_info(what: u32) -> f32 {
     with(|s| {

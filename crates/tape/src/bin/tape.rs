@@ -18,7 +18,7 @@
 //!
 //! `run/tape.py` runs the engine on a demo and then `tape pack`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::time::Instant;
 use tape::game::Game;
 use tape::read::{Exact, Frame, Tape, chunk_bytes};
@@ -246,6 +246,25 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
     let sample = game.sample_frames();
     let mut frame_out = Frame::default();
     let (mut frames, mut units, mut seek_worst) = (0u64, 0u64, 0f32);
+    let mut pieces = 0u64;
+    let rests = game.piece_rest();
+    // Each unit's pieces with keyframes: the piece, where its keyframes lie in the unit's, and a cursor, the number of
+    // them at or before the frame checked (the frames only go forward, so it only moves on).
+    let mut runs: Vec<Vec<(u16, usize, usize, usize)>> = game
+        .units
+        .iter()
+        .map(|u| {
+            let mut run = Vec::new();
+            let mut i = 0;
+            while i < u.keys.len() {
+                let piece = u.keys[i].piece;
+                let j = i + u.keys[i..].partition_point(|k| k.piece == piece);
+                run.push((piece, i, j, 0));
+                i = j;
+            }
+            run
+        })
+        .collect();
     let slices: Vec<_> = tape.of_kind(b"SLIC").cloned().collect();
     for (k, chunk) in slices.iter().enumerate() {
         let index = if keep && tape.slices.contains_key(&(k as u32)) {
@@ -262,6 +281,7 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
         let first = k as u32 * SLICE_FRAMES;
         let last = (first + SLICE_FRAMES).min(game.last_frame);
         let slice = &tape.slices[&index];
+        let tracks: HashMap<(u32, u16), &tape::slice::PieceTrack> = slice.pieces.iter().map(|t| ((t.row, t.piece), t)).collect();
         let within = |f: u32| f > first && f <= first + SLICE_FRAMES;
         let orders: Vec<_> = game.orders.iter().filter(|o| within(o.frame)).cloned().collect();
         if orders != slice.orders {
@@ -318,6 +338,33 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
                     }
                 }
             }
+            // The moving pieces: each piece with keyframes as its track in the slice says, or at rest without one.
+            if game.has_pieces() {
+                for e in &want {
+                    let u = &game.units[e.row as usize];
+                    let rest = rests.get(&u.def);
+                    for (piece, i, j, n) in runs[e.row as usize].iter_mut() {
+                        let (piece, keys) = (*piece, &u.keys[*i..*j]);
+                        while *n < keys.len() && keys[*n].frame <= f {
+                            *n += 1;
+                        }
+                        let r = rest.and_then(|r| r.get(piece as usize - 1)).copied().unwrap_or([0.0; 3]);
+                        let (a, pl) = tape::pieces::state_past(keys, *n, f as f64, r);
+                        match tracks.get(&(e.row, piece)) {
+                            Some(track) => {
+                                let (ta, tp) = tape::pieces::track_at(&track.points, f as f64);
+                                if (0..3).any(|k| (a[k] - ta[k]).abs() > 1.5 || (pl[k] - tp[k]).abs() > 1.5) {
+                                    let near: Vec<_> = u.keys.iter().filter(|k| k.piece == piece && k.frame + 400 > f && k.frame < f + 400).map(|k| (k.frame, k.angles)).collect();
+                                    fail::<()>(format!("frame {f}: row {} piece {piece} is {a:?} {pl:?} in the game, {ta:?} {tp:?} in the tape; its keyframes near: {near:?}; the track: {:?}", e.row, track.points.iter().map(|p| (p.0, p.1)).collect::<Vec<_>>()));
+                                }
+                            }
+                            None if !tape::pieces::is_rest(a.map(f64::round), pl.map(f64::round), r) => fail::<()>(format!("frame {f}: row {} piece {piece} moves in the game ({a:?} {pl:?}) and has no track in slice {k}", e.row)),
+                            None => {}
+                        }
+                        pieces += 1;
+                    }
+                }
+            }
             let flying = game.projectiles.iter().filter(|p| p.begin <= f && f < p.end).count();
             if flying != frame_out.projectiles.len() / tape::read::PROJECTILE_STRIDE {
                 fail::<()>(format!("frame {f}: {flying} projectiles in flight in the game, {} in the arrays", frame_out.projectiles.len() / tape::read::PROJECTILE_STRIDE));
@@ -329,6 +376,9 @@ fn check_slices(tape: &mut Tape, game: &Game, file: &[u8], every: u32, keep: boo
         if !keep {
             tape.drop_slice(index);
         }
+    }
+    if pieces > 0 {
+        println!("  pieces: {pieces} piece states the same as the stream's keyframes");
     }
     (slices.len(), frames, units, seek_worst)
 }

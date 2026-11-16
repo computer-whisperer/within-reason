@@ -1,4 +1,4 @@
-# The game tape — format version 3
+# The game tape — format version 4
 
 `game.tape`: one file of a whole game as the engine had it, both sides, every seat, made so that a viewer can show any
 moment at once. Where the match record (`record-format.md`) is the bot's fair view and its decisions once a second, the
@@ -18,7 +18,8 @@ Why it is shaped so: `docs/design/2026-11-15-game-tape.md`.
 (through `run/replay_match.py --tape --no-records`), which writes the raw stream `tape.raw`; `target/release/tape pack`
 makes the tape of it and (`--check`, on unless `--no-check`) reads the tape back against the raw stream: every unit
 alive at every sample with its place, attitude, health, build progress, order and aim, every order, projectile and
-burst, the tables and the ground. `--aim` adds every weapon's direction; `--keep` keeps the raw stream.
+burst, the tables and the ground. `--aim` adds every weapon's direction; `--pieces` every unit's moving pieces (turrets,
+legs, arms, doors: below); `--keep` keeps the raw stream.
 
 The widget also copies the files a viewer draws with out of the engine's archives, as they are: the models (`.s3o`),
 their textures (`.dds`), the map's `.smf` and `.smt`. They go to `run/data/tape-assets/<name>`, named by content (the
@@ -86,6 +87,18 @@ and `H` also at a unit's death: its last second's), `fmetal` rows (a wreck's met
 (until version 3 with the last `GameFrame`'s); a unit's row is written only when the unit changed. The players' marks
 on the map are `ev` rows of kind `mark` (a point with its words, a line, an erase with its radius; the player, the
 team, the ally team, whether a spectator made it).
+
+**The moving pieces** (raw version 4, with the marker `tape.pieces`: `run/tape.py --pieces`; the design and what it
+costs: `docs/design/2026-11-15-game-tape.md` section 9). A unit type's pieces once, in a `pieces` row (names in the
+engine's order, each one's parent, its offset from the parent at rest), kept in `DEFS` with the type. Every 6 frames the
+widget reads every piece's model-space matrix (`GetUnitPieceMatrix`), and for each piece whose matrix or whose parent's
+changed works out its turn and place against its parent: the script's own angles (pitch = asin(-R12), yaw = atan2(R02,
+R22), roll = atan2(R10, R11), which `CQuaternion::FromEulerYPR` turns back into the engine's rotation; yaw and roll unwound
+so that a spin keeps counting) and its place. A script turns and moves at set speeds, so each number runs in straight
+stretches: a keyframe (`K`: frame, unit, piece, three angles in 16384ths of a radian, the place in sixteenths of an
+elmo) is written only where one bends by more than half a degree or a quarter of an elmo, where a piece stops, before
+a stretch that starts from rest, and at a unit's death and the capture's end. Before a piece's first keyframe it stands
+as that keyframe has it (a unit's creation script poses its pieces at once), after its last where that left it.
 
 A record of a kind the packer does not know (a widget newer than the build: the arena copies the widget from the
 checkout but runs the binary it was started as) is passed over by its length and counted, the rest packed; the
@@ -164,6 +177,9 @@ table it is decoded alone. Its sections, each a run of columns (a u32 length, th
   power in use (hundredths of its build speed) and a factory's line, then a row when they changed; the same of its
   experience (f32) and full health; then the damage each unit took, (frame, row, f32), at the samples and at its death.
   Before a unit's first row: no build power, no experience, the full health it was made with.
+- **pieces** (format 4, from a raw stream of version 4 captured with them): a track for each piece not at rest
+  somewhere in the slice, by row and piece: its numbers at the slice's (or its unit's) first frame, at each keyframe
+  inside and at the slice's last frame, so that a slice is read alone; straight between two points.
 
 An attitude's three angles are made of the unit's front and up directions by `attitude` in `tape_dump.lua` and turned
 back by `read::attitude` (a test holds the two together): the heading about the vertical (0 facing south, +z), the
@@ -194,6 +210,10 @@ newer), loaded by `viewer/scene/tape.js`.
 - **bursts**, eight f32 each: place, frames since, weapon type (the unit's type for a death), kind (2 a projectile's
   end, 3 a unit's death; 0 and 1 the game's own), the owner's or the dead unit's row.
 
+- **pieces** and **pieceAt** (format 4): for each unit with a piece not at rest, a block of `piece_stride` transforms
+  (the most pieces a type has), twelve floats each (`pieces::compose`: a rotation by columns and a translation, so that
+  a vertex v of the model at rest is drawn at R v + t), its pieces composed through their parents; and beside `units`
+  each unit's block's number, or -1.
 - **seen**, a u32 a unit beside `units`: the ally teams that have it in sight (bit `a`) and, sixteen bits up, those
   that have it on radar; every bit set on a tape that does not say.
 - **doing**, ten f32 a unit with a head order or a build under way: its place in `units`, its row, the command, how
@@ -222,7 +242,7 @@ and no record of ours (a bot of `bots/`, a taped demo) is a match the browser li
 `tape.js` (the reader and its fetches: the footer, the index, the tables, then the slice under the playhead and the
 next, twelve kept; never from the browser's cache; `refresh()` reads a growing tape's footer again and on a new index
 calls `wr_reindex`, which keeps the slices read, and hands the tables in again, or reads afresh when the file shrank:
-the compact tape at the game's end), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js`, `effects.js`, `lines.js`
+the compact tape at the game's end), `assets.js` (S3O, DDS, SMF and SMT as they are), `terrain.js`, `units.js` (each type's model once for all its units; a vertex carries its piece, renumbered to the engine's order by name, and a unit with a block of piece transforms has each vertex moved by its piece's, read from a float texture), `effects.js`, `lines.js`
 (lines over the scene: a set number of CSS pixels across at any distance, not depth-tested, so an order reads through
 a hill), `scene.js` (the camera, the drawing, picking, and a 2D canvas over the scene that the page paints with the
 same functions as the 2D map), `gl.js`. See `record-format.md`, Viewer, for what the page shows.
@@ -235,6 +255,12 @@ numbers of a game with no record, and with a record a unit of ours's panel; and 
 `SCENE_BROWSER=firefox` (over WebDriver BiDi); the user's browser is Firefox. The first build of this test reset the
 camera before every screenshot and so passed while the scene opened blank in every browser (the camera fitted while
 the canvas was still hidden, its distance infinite): the user found it in Firefox the same night.
+`node viewer/test/muzzle.js <match url>` checks the moving pieces against the engine's own shots: where a shot began
+must lie on one of its owner's pieces as composed, and nearer than at rest (the dist358 duel, 308 shots: a median of
+1.0 elmos, 90 % under 2.2, against 5.5 and 18.1 at rest, a light laser tower's 0.1 against 12 to 26; the Erebos 10v8,
+401 shots: 0.5 against 6.2; Chromium and Firefox the same to the tenth). The tail of the spread is the fast shots,
+already well out of the gun when the widget first sees them, not the pieces: an Alaris tank's shotgun pellets begin
+20 elmos from its nearest piece whether the pieces are composed or at rest; rocket and anti-air missile shots likewise.
 `node viewer/test/live.js <match url> <out dir>` watches a game being played (start the arena first): it waits for
 the tape, checks that it grows while the page watches with the playhead on its newest frame, and that at the game's
 end the page takes the compact tape and draws from it. Both browsers again. `viewer/test/driver.js` is the two tests'
@@ -259,4 +285,6 @@ included (the test looks every 100 ms, so that is a ceiling); a frame's script 0
 22 MB each, the 10v8's map tiles 70 MB). On the software renderer the same seeks take 0.4 to 2.4 s on the 10v8.
 With the lines and the overlay (2026-11-15 night) the 10v8 on the GPU: seeks 105 to 231 ms, a frame's script 1.5 ms
 with 4,742 units (Firefox: seeks 106 to 330 ms, a frame 6 to 7 ms); on the software renderer seeks 0.5 to 3.3 s.
-The slowest slice to decode: 2 ms on the duel, 18 ms on the 10v8.
+The slowest slice to decode: 2 ms on the duel, 18 ms on the 10v8. With the moving pieces (2026-11-16): the 10v8's seeks
+105 to 271 ms in Chromium and 108 to 329 ms in Firefox, a frame's script 3.6 ms in Chromium; the slowest slice to
+decode 43 to 71 ms on the 10v8 over two runs, 2 ms on the duel.

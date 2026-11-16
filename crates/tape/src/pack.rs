@@ -39,7 +39,8 @@ impl Report {
 pub fn cut(game: &Game, first: u32) -> Slice {
     let last = first + SLICE_FRAMES;
     let within = |frame: u32| frame > first && frame <= last;
-    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), has_audit: game.has_audit(), ..Default::default() };
+    let mut slice = Slice { first, frames: SLICE_FRAMES, has_sight: game.has_sight(), has_audit: game.has_audit(), has_pieces: game.has_pieces(), ..Default::default() };
+    let rests = if slice.has_pieces { game.piece_rest() } else { Default::default() };
     for (row, u) in game.units.iter().enumerate() {
         let row = row as u32;
         if u.created > last {
@@ -73,6 +74,33 @@ pub fn cut(game: &Game, first: u32) -> Slice {
             slice.work.extend(u.work.iter().filter(|(f, _)| within(*f)).map(|(f, w)| (*f, row, *w)));
             slice.rank.extend(u.rank.iter().filter(|(f, _)| within(*f)).map(|(f, k)| (*f, row, *k)));
             slice.hurt.extend(u.hurt.iter().filter(|(f, _)| within(*f)).map(|(f, h)| (*f, row, *h)));
+        }
+        if slice.has_pieces && !u.keys.is_empty() {
+            // Each piece's path through the slice, from its numbers at the slice's (or the unit's) first frame to
+            // those at its last (or the unit's death).
+            let (start, end) = (first.max(u.created), last.min(u.destroyed));
+            let rest = rests.get(&u.def);
+            let mut i = 0;
+            while i < u.keys.len() {
+                let piece = u.keys[i].piece;
+                let j = i + u.keys[i..].partition_point(|k| k.piece == piece);
+                let keys = &u.keys[i..j];
+                i = j;
+                let r = rest.and_then(|r| r.get(piece as usize - 1)).copied().unwrap_or([0.0; 3]);
+                let round = |v: [f64; 3]| v.map(|x| x.round() as i32);
+                let mut points = Vec::new();
+                let (a, p) = crate::pieces::state_at(keys, start as f64, r);
+                points.push((start, round(a), round(p)));
+                points.extend(keys.iter().filter(|k| k.frame > start && k.frame < end).map(|k| (k.frame, k.angles, k.place.map(|v| v as i32))));
+                if end > start {
+                    let (a, p) = crate::pieces::state_at(keys, end as f64, r);
+                    points.push((end, round(a), round(p)));
+                }
+                if points.iter().all(|(_, a, p)| crate::pieces::is_rest(a.map(|v| v as f64), p.map(|v| v as f64), r)) {
+                    continue;
+                }
+                slice.pieces.push(crate::slice::PieceTrack { row, piece, points });
+            }
         }
     }
     slice.work.sort_by_key(|w| (w.0, w.1));
@@ -135,7 +163,7 @@ fn head_chunk(game: &Game, slices: u32, last_frame: u32, growing: bool) -> Vec<u
         h.insert("format".into(), json!("within-reason-tape"));
         // 2: a slice may end with what each ally team saw (when the header has `ally_teams`); 3: and with what the
         // waste audit reads, and the tables have its columns (from a raw stream of version 3).
-        h.insert("version".into(), json!(if game.has_audit() { 3 } else { 2 }));
+        h.insert("version".into(), json!(if game.has_pieces() { 4 } else if game.has_audit() { 3 } else { 2 }));
         h.insert("raw_version".into(), json!(game.raw_version.max(1)));
         h.insert("slice_frames".into(), json!(SLICE_FRAMES));
         h.insert("linger_frames".into(), json!(LINGER_FRAMES));

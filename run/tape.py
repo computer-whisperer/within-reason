@@ -8,6 +8,7 @@ game.tape, the one seekable file the 3D viewer reads (docs/harness/tape-format.m
                                          (and with --records the per-team records too, as run/replay_match.py writes)
 
     --aim            every weapon's direction as well (a fifth more raw stream; the viewer's aimed turrets)
+    --pieces         every unit's moving pieces as well: turrets, legs, arms (docs/design/2026-11-15-game-tape.md section 9)
     --keep           keep the engine's write directory and tape.raw (a match's: <match dir>/tape-capture/)
     --no-check       skip reading the tape back against the raw stream
     --timeout S      seconds the engine may take (default: an hour); it is killed then and what it wrote is packed
@@ -43,7 +44,7 @@ def main():
     packer = os.path.join(REPO, "target", "release", "tape")
     if not os.path.exists(packer):
         sys.exit(f"{packer} is not built: cargo build --release -p tape")
-    flags = ["--tape"] + (["--tape-aim"] if "--aim" in args else [])
+    flags = ["--tape"] + (["--tape-aim"] if "--aim" in args else []) + (["--tape-pieces"] if "--pieces" in args else [])
     stamp = int(time.time())
     if os.path.isdir(source):
         demo = demo_of(source)

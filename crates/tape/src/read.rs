@@ -89,6 +89,11 @@ pub struct Frame {
     /// Beside `units`, a unit each: the ally teams that have it in sight (bit `a` for ally team a) and, sixteen bits
     /// up, those that have it on radar. Every bit set on a tape that does not say (`Tape::has_sight`).
     pub seen: Vec<u32>,
+    /// The moving pieces (format 4): for each unit with a piece not at rest, a block of `Tape::piece_stride`
+    /// transforms (twelve floats each, `pieces::compose`: a vertex v of the model at rest is drawn at R v + t), and
+    /// beside `units` each unit's block's number, or -1 for a unit at rest.
+    pub pieces: Vec<f32>,
+    pub piece_at: Vec<f32>,
     /// Row -> its place in `units` this frame, or `u32::MAX`.
     slot: Vec<u32>,
     scratch: Vec<f32>,
@@ -127,6 +132,12 @@ pub struct Tape {
     pub features: Vec<Feature>,
     /// Each wreck's metal as it changed (format 3): (frame, the feature's index in `features`, whole metal).
     pub feature_metal: Vec<(u32, u32, u32)>,
+    /// The unit types' pieces (format 4, from `DEFS`), by type; the scales of a piece's numbers (`HEAD`); and the most
+    /// pieces a type has, the size of a unit's block in `Frame::pieces`.
+    pub piece_models: HashMap<u32, crate::pieces::PieceModel>,
+    pub piece_angle_scale: f64,
+    pub piece_place_scale: f64,
+    pub piece_stride: usize,
     pub slices: HashMap<u32, Slice>,
     pub slice_frames: u32,
     pub sample_frames: u32,
@@ -196,6 +207,8 @@ impl Tape {
                 let map = |key: &str| head.get("map").and_then(|m| m.get(key)).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
                 self.map_size = [map("width"), map("height")];
                 self.raw_version = num("raw_version", 1.0) as u32;
+                self.piece_angle_scale = num("piece_angle_scale", 16384.0);
+                self.piece_place_scale = num("piece_place_scale", 16.0);
                 self.has_sight = head.get("ally_teams").is_some();
                 for t in head.get("teams").and_then(|v| v.as_array()).into_iter().flatten() {
                     let field = |key: &str| t.get(key).and_then(|v| v.as_u64()).unwrap_or(0) as usize;
@@ -209,7 +222,21 @@ impl Tape {
                 }
                 self.head = text(body)?;
             }
-            b"DEFS" => self.defs = text(body)?,
+            b"DEFS" => {
+                self.defs = text(body)?;
+                let defs: serde_json::Value = serde_json::from_str(&self.defs).unwrap_or_default();
+                self.piece_models.clear();
+                for d in defs.get("units").and_then(|v| v.as_array()).into_iter().flatten() {
+                    let Some(pieces) = d.get("pieces") else { continue };
+                    let parents: Vec<u16> = pieces.get("parents").and_then(|v| v.as_array()).into_iter().flatten().map(|v| v.as_u64().unwrap_or(0) as u16).collect();
+                    let offsets: Vec<[f64; 3]> = pieces.get("offsets").and_then(|v| v.as_array()).into_iter().flatten()
+                        .map(|o| [0, 1, 2].map(|k| o.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0))).collect();
+                    if parents.len() == offsets.len() {
+                        self.piece_models.insert(d.get("id").and_then(|v| v.as_u64()).unwrap_or(0) as u32, crate::pieces::PieceModel::new(parents, offsets));
+                    }
+                }
+                self.piece_stride = self.piece_models.values().map(|m| m.parents.len()).max().unwrap_or(0);
+            }
             b"TEAM" => self.teams = text(body)?,
             b"EVNT" => self.events = text(body)?,
             b"GRND" => {
@@ -649,6 +676,35 @@ impl Tape {
             out.seen[*place as usize] = out.seen_scratch[i];
             out.slot[row[13] as usize] = *place;
             *place += 1;
+        }
+
+        // The moving pieces: each unit with a track in this slice, its pieces through their parents.
+        out.pieces.clear();
+        out.piece_at.clear();
+        out.piece_at.resize(rows.len() / UNIT_STRIDE, -1.0);
+        let (a_scale, p_scale) = (1.0 / self.piece_angle_scale.max(1.0), 1.0 / self.piece_place_scale.max(1.0));
+        let mut t = 0;
+        let mut blocks = 0u32;
+        while t < slice.pieces.len() {
+            let row = slice.pieces[t].row;
+            let end = t + slice.pieces[t..].partition_point(|p| p.row == row);
+            let tracks = &slice.pieces[t..end];
+            t = end;
+            let place = out.slot.get(row as usize).copied().unwrap_or(u32::MAX);
+            let Some(model) = self.piece_models.get(&self.units[row as usize].def) else { continue };
+            if place == u32::MAX {
+                continue;
+            }
+            let local = |i: usize| -> Option<([f64; 3], [f64; 3])> {
+                let track = tracks.iter().find(|tr| tr.piece as usize == i + 1)?;
+                let (a, p) = crate::pieces::track_at(&track.points, frame as f64);
+                Some((a.map(|v| v * a_scale), p.map(|v| v * p_scale)))
+            };
+            let start = out.pieces.len();
+            crate::pieces::compose(model, &local, &mut out.pieces);
+            out.pieces.resize(start + self.piece_stride * 12, 0.0);
+            out.piece_at[place as usize] = blocks as f32;
+            blocks += 1;
         }
 
         // What each unit is doing, and the commands just given, each with what it points at as a place this frame.

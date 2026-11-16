@@ -27,7 +27,10 @@ const WRUnits = (() => {
   layout(location = 0) in vec3 aPlace;
   layout(location = 1) in vec3 aNormal;
   layout(location = 2) in vec2 aUV;
+  layout(location = 8) in float aPiece;  // the vertex's piece, in the engine's order from 0; -1 none
+  layout(location = 9) in float iBlock;  // the unit's block of piece transforms in uPieces; -1 at rest
   ${SHARED}
+  uniform highp sampler2D uPieces;       // a row a block: three texels a piece (rotation by columns, translation)
   uniform float uRadius;
   uniform float uIconBelow;
   out vec2 vUV;
@@ -37,10 +40,19 @@ const WRUnits = (() => {
   out vec4 vState;
   out float vParalysis;
   void main() {
+    // Its piece where the unit's pieces stand this frame (turned, moved), else where the model has it at rest.
+    vec3 place = aPlace, normal = aNormal;
+    if (iBlock >= 0.0 && aPiece >= 0.0) {
+      int x = int(aPiece) * 3, y = int(iBlock);
+      vec4 a = texelFetch(uPieces, ivec2(x, y), 0), b = texelFetch(uPieces, ivec2(x + 1, y), 0), c = texelFetch(uPieces, ivec2(x + 2, y), 0);
+      mat3 r = mat3(a.xyz, vec3(a.w, b.xy), vec3(b.zw, c.x));
+      place = r * aPlace + c.yzw;
+      normal = r * aNormal;
+    }
     // The engine's unit frame: x along up x front, y along up, z along front.
     vec3 right = cross(iUp, iFront);
-    vec3 world = iPos + right * aPlace.x + iUp * aPlace.y + iFront * aPlace.z;
-    vNormal = right * aNormal.x + iUp * aNormal.y + iFront * aNormal.z;
+    vec3 world = iPos + right * place.x + iUp * place.y + iFront * place.z;
+    vNormal = right * normal.x + iUp * normal.y + iFront * normal.z;
     vUV = aUV;
     vTeam = uTeams[int(iState.z)];
     vLocalY = aPlace.y;
@@ -215,7 +227,7 @@ const WRUnits = (() => {
     ];
     const vertices = [], indices = [];
     faces.forEach(([n, ...corners], f) => {
-      for (const c of corners) vertices.push(c[0], c[1], c[2], n[0], n[1], n[2], 0.5, 0.5, 0);
+      for (const c of corners) vertices.push(c[0], c[1], c[2], n[0], n[1], n[2], 0.5, 0.5, -1);
       indices.push(f * 4, f * 4 + 1, f * 4 + 2, f * 4, f * 4 + 2, f * 4 + 3);
     });
     return { vertices: new Float32Array(vertices), indices: new Uint32Array(indices), low: 0, high: h, radius: Math.max(def.radius || 0, Math.hypot(hx, hz)), tex1: "", tex2: "" };
@@ -241,7 +253,25 @@ const WRUnits = (() => {
         gl.vertexAttribPointer(location, size, gl.FLOAT, false, STRIDE, at + offset);
         gl.vertexAttribDivisor(location, 1);
       }
+      // Each unit's block of piece transforms, beside the units; a feature's pieces stand at rest.
+      if (buffer === instances) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, blocks);
+        gl.enableVertexAttribArray(9);
+        gl.vertexAttribPointer(9, 1, gl.FLOAT, false, 4, first * 4);
+        gl.vertexAttribDivisor(9, 1);
+      } else {
+        gl.disableVertexAttribArray(9);
+        gl.vertexAttrib1f(9, -1);
+      }
     };
+    /// The units' blocks (`tape.frame`'s `pieceAt`), and the blocks themselves as a texture (`pieces`).
+    const blocks = gl.createBuffer();
+    let blockCapacity = 0, restBlocks = new Float32Array(0);
+    const pieceTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, pieceTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array(4));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     // Team colours, by team number.
     const teams = new Float32Array(64 * 3).fill(0.6);
@@ -283,7 +313,7 @@ const WRUnits = (() => {
       gl.bindVertexArray(vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
       gl.bufferData(gl.ARRAY_BUFFER, shape.vertices, gl.STATIC_DRAW);
-      for (const [location, size, offset] of [[0, 3, 0], [1, 3, 12], [2, 2, 24]]) {
+      for (const [location, size, offset] of [[0, 3, 0], [1, 3, 12], [2, 2, 24], [8, 1, 32]]) {
         gl.enableVertexAttribArray(location);
         gl.vertexAttribPointer(location, size, gl.FLOAT, false, 36, offset);
       }
@@ -311,7 +341,13 @@ const WRUnits = (() => {
       models.set(key, entry);
       if (file && /\.s3o$/.test(file)) {
         WRAssets.fetchBytes(file).then((bytes) => {
-          const made = build(WRAssets.parseS3O(bytes));
+          const shape = WRAssets.parseS3O(bytes);
+          // Each vertex's piece as the engine numbers it (the tape's pieces, by name, from 0); a feature's and a piece
+          // the tape does not name stand at rest (-1).
+          const names = !feature && def.pieces ? def.pieces.names.map((n) => String(n).toLowerCase()) : [];
+          const engine = shape.pieces.map((p) => names.indexOf(String(p.name).toLowerCase()));
+          for (let v = 8; v < shape.vertices.length; v += 9) shape.vertices[v] = engine[shape.vertices[v]] ?? -1;
+          const made = build(shape);
           made.radius = def.radius || made.radius;
           models.set(key, made);
           units.onChange && units.onChange();
@@ -451,6 +487,10 @@ const WRUnits = (() => {
         gl.uniform1f(model.u.uIconBelow, 0);
         gl.uniform1i(model.u.uTex1, 0);
         gl.uniform1i(model.u.uTex2, 1);
+        // (a feature's pieces stand at rest: its block attribute is -1, the texture never read)
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, pieceTexture);
+        gl.uniform1i(model.u.uPieces, 2);
         let drawn = 0;
         for (const [defId, first, n] of featureRanges) {
           const m = modelOf(defId, true);
@@ -481,10 +521,27 @@ const WRUnits = (() => {
           gl.bufferData(gl.ARRAY_BUFFER, capacity * 4, gl.DYNAMIC_DRAW);
         }
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, state.units);
+        // Each unit's block of piece transforms (a tape with the moving pieces), and the blocks as a texture.
+        const animated = state.pieceAt && state.pieceAt.length === count && state.pieces.length > 0;
+        gl.bindBuffer(gl.ARRAY_BUFFER, blocks);
+        if (count > blockCapacity) {
+          blockCapacity = count * 2;
+          gl.bufferData(gl.ARRAY_BUFFER, blockCapacity * 4, gl.DYNAMIC_DRAW);
+          restBlocks = new Float32Array(blockCapacity).fill(-1);
+        }
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, animated ? state.pieceAt : restBlocks, 0, count);
+        gl.bindTexture(gl.TEXTURE_2D, pieceTexture);
+        if (animated) {
+          const width = state.pieceStride * 3;
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, state.pieces.length / (width * 4), 0, gl.RGBA, gl.FLOAT, state.pieces);
+        }
 
         common(model, camera);
         gl.uniform3fv(model.u.uSun, camera.sun);
         gl.uniform1f(model.u.uIconBelow, icons ? ICON_BELOW : 0);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, pieceTexture);
+        gl.uniform1i(model.u.uPieces, 2);
         gl.uniform1i(model.u.uTex1, 0);
         gl.uniform1i(model.u.uTex2, 1);
         let draws = 0;

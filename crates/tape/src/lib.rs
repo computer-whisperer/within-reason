@@ -7,6 +7,7 @@ pub mod format;
 pub mod game;
 #[cfg(feature = "pack")]
 pub mod pack;
+pub mod pieces;
 pub mod read;
 pub mod slice;
 pub mod tables;

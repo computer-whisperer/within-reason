@@ -53,11 +53,25 @@ pub struct Slice {
     pub key_rank: Vec<[f32; 2]>,
     pub rank: Vec<(u32, u32, [f32; 2])>,
     pub hurt: Vec<(u32, u32, f32)>,
+    /// Whether the slice has the units' moving pieces (format 4, from a raw stream of version 4 captured with them):
+    /// a track for each piece not at rest somewhere in the slice, by row and piece.
+    pub has_pieces: bool,
+    pub pieces: Vec<PieceTrack>,
+}
+
+/// One piece's path through a slice: its numbers at the slice's first frame (or its unit's first), at each keyframe
+/// inside, and at the slice's last frame, so that a slice is read alone: (frame, angles, place) in the tape's units
+/// (`crate::game::PieceKey`), straight between two points.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct PieceTrack {
+    pub row: u32,
+    pub piece: u16,
+    pub points: Vec<(u32, [i32; 3], [i32; 3])>,
 }
 
 /// A slice's sections, in the order `encode_sections` ends them. Sight is there only when the slice has sight (a slice
 /// of format 1 ends with its bursts), and the three after it only when it has the audit's numbers (format 3).
-pub const SECTIONS: [&str; 12] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight", "work", "rank", "hurt"];
+pub const SECTIONS: [&str; 13] = ["keyframe", "motion", "vitals", "activity", "aim", "orders", "projectiles", "bursts", "sight", "work", "rank", "hurt", "pieces"];
 
 /// Fixed-point scales of a projectile's numbers: eighths of an elmo, 1024ths of an elmo a frame, 65536ths for gravity.
 const P_POS: f32 = 8.0;
@@ -414,6 +428,40 @@ impl Slice {
             }
             ends.push(out.0.len());
         }
+        if self.has_pieces {
+            // The tracks (row step, piece, points), then every point: the frame step from the last (from the slice's
+            // first for a track's first), the angles and the place, each the difference from the track's last point.
+            out.var(self.pieces.len() as u64);
+            let mut c: [W; 3] = Default::default();
+            let mut last_row = 0u32;
+            for t in &self.pieces {
+                c[0].var((t.row - last_row) as u64);
+                last_row = t.row;
+                c[1].var(t.piece as u64);
+                c[2].var(t.points.len() as u64);
+            }
+            for col in &c {
+                out.column(col);
+            }
+            let mut c: [W; 7] = Default::default();
+            for t in &self.pieces {
+                let (mut frame, mut angles, mut place) = (self.first, [0i64; 3], [0i64; 3]);
+                for (f, a, p) in &t.points {
+                    c[0].var((f - frame) as u64);
+                    frame = *f;
+                    for k in 0..3 {
+                        c[1 + k].zig(a[k] as i64 - angles[k]);
+                        c[4 + k].zig(p[k] as i64 - place[k]);
+                    }
+                    angles = a.map(|v| v as i64);
+                    place = p.map(|v| v as i64);
+                }
+            }
+            for col in &c {
+                out.column(col);
+            }
+            ends.push(out.0.len());
+        }
         (out.0, ends)
     }
 
@@ -616,6 +664,30 @@ impl Slice {
             for _ in 0..n {
                 frame += c[0].var()? as u32;
                 slice.hurt.push((frame, c[1].var()? as u32, c[2].f32()?));
+            }
+        }
+        if r.left() > 0 {
+            slice.has_pieces = true;
+            let n = r.var()? as usize;
+            let mut c = take_columns::<3>(&mut r)?;
+            let mut row = 0u32;
+            let mut counts = Vec::with_capacity(n);
+            for _ in 0..n {
+                row += c[0].var()? as u32;
+                slice.pieces.push(PieceTrack { row, piece: c[1].var()? as u16, points: Vec::new() });
+                counts.push(c[2].var()? as usize);
+            }
+            let mut c = take_columns::<7>(&mut r)?;
+            for (t, count) in slice.pieces.iter_mut().zip(counts) {
+                let (mut frame, mut angles, mut place) = (slice.first, [0i64; 3], [0i64; 3]);
+                for _ in 0..count {
+                    frame += c[0].var()? as u32;
+                    for k in 0..3 {
+                        angles[k] += c[1 + k].zig()?;
+                        place[k] += c[4 + k].zig()?;
+                    }
+                    t.points.push((frame, angles.map(|v| v as i32), place.map(|v| v as i32)));
+                }
             }
         }
         if r.left() != 0 {

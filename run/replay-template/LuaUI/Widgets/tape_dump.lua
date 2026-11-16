@@ -56,6 +56,7 @@ local spGetGroundHeight = Spring.GetGroundHeight
 local spGetTimer = Spring.GetTimer
 local spGetGameFrame = Spring.GetGameFrame
 local spGetUnitIsDead = Spring.GetUnitIsDead
+local spGetUnitPieceMatrix = Spring.GetUnitPieceMatrix
 local spDiffTimers = Spring.DiffTimers
 local packU16, packU32, packS16, packS32, packF32 = VFS.PackU16, VFS.PackU32, VFS.PackS16, VFS.PackS32, VFS.PackF32
 local floor, atan2, asin, sqrt = math.floor, math.atan2, math.asin, math.sqrt
@@ -63,6 +64,7 @@ local TURN = 2 * math.pi
 
 local out
 local aimOn = false
+local piecesOn = false -- the moving pieces (`K` rows), with the marker tape.pieces
 local skipOn = false
 local frameNow = 0 -- the frame of the last GameFrame; a call-in's row is stamped with the engine's own (spGetGameFrame)
 local bytes = 0
@@ -80,6 +82,7 @@ local rank = {} -- unit id -> { experience, full health } as last written (the `
 local hurt = {} -- unit id -> damage taken since the last `H` row
 local featureMetal = {} -- feature id -> its metal (whole) as last written
 local early = {} -- unit id -> the commands it was given before the tape met it (`UnitCommand`)
+local pieceState = {} -- unit id -> its pieces' last model-space matrices and keyframes (`samplePieces`)
 local dirty = {} -- unit ids hit since the last sample: their health is read at the next
 local armed = {} -- unit id -> number of weapons, for the units whose aim is sampled
 local aimLast = {} -- unit id * 16 + weapon -> packed direction as last written
@@ -98,7 +101,7 @@ local poll = 0
 local explosions, barrels = {}, {}
 
 local stats = { units = 0, vitals = 0, activity = 0, sight = 0, aim = 0, projectiles = 0, events = 0, sight_rows = 0, marks = 0, unit_rows = 0, vital_rows = 0, aim_rows = 0,
-	work_rows = 0, rank_rows = 0, hurt_rows = 0,
+	work_rows = 0, rank_rows = 0, hurt_rows = 0, pieces = 0, key_rows = 0,
 	projectile_new = 0, projectile_rows = 0, projectile_ended = 0, projectile_peak = 0, quick_reuse = 0, same_frame_reuse = 0, explosions = 0, barrels = 0, cmds = 0, piece_projectiles = 0 }
 local wallStart
 
@@ -386,7 +389,207 @@ local function forget(id)
 	allCount = drop(all, allAt, allCount, id)
 	mobileCount = drop(mobile, mobileAt, mobileCount, id)
 	last[id], vital[id], doing[id], dirty[id], armed[id], sight[id] = nil, nil, nil, nil, nil, nil
-	work[id], rank[id], hurt[id], early[id] = nil, nil, nil, nil
+	work[id], rank[id], hurt[id], early[id], pieceState[id] = nil, nil, nil, nil, nil
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- The moving pieces (raw version 4, with the marker tape.pieces; docs/design/2026-11-15-game-tape.md section 9). A unit
+-- type's pieces as the engine has them, once, in a `pieces` row: names, each one's parent (its index from 1, 0 for the
+-- root) and offset from its parent at rest. Then every SAMPLE frames, for each piece whose model-space matrix
+-- (`GetUnitPieceMatrix`) or whose parent's changed, its turn and place against its parent: the script's own angles
+-- about x, y and z (the engine builds a piece's rotation as `CQuaternion::FromEulerYPR` of them, and
+-- `CQuaternion::ToEulerYPR` gives them back: pitch = asin(-R12), yaw = atan2(R02, R22), roll = atan2(R10, R11), R the
+-- rotation against the parent), unwound so that a spin keeps counting, and the place (the offset plus the script's
+-- move). A unit script turns and moves at set speeds, so each number runs in straight stretches: a keyframe is written
+-- only where one bends, the sample before lying off the straight line from the last keyframe to the new sample by more
+-- than A_TOL or T_TOL. A unit's first sample writes a keyframe for each piece not at rest. Every PIECE_SAMPLE frames.
+-- `K`: u32 n, then n frames (u32), n unit ids (u16), n piece numbers (u16, from 1), 3n angles (s32, A_SCALE a radian:
+-- pitch, yaw, roll) and 3n place components (s16, T_SCALE an elmo).
+local A_SCALE, T_SCALE = 16384, 16
+local A_TOL, T_TOL = 0.0087, 0.25 -- half a degree, a quarter of an elmo
+local PIECE_SAMPLE = 6 -- frames between looks at the pieces: a walking unit's legs bend at every look
+local TWO_PI = 2 * math.pi
+local pieceTypes = {} -- def id -> { n, parent = {}, ox = {}, oy = {}, oz = {} }
+local keyRows = { f = {}, u = {}, p = {}, a = {}, t = {}, n = 0 }
+local function piecesOf(id, defID)
+	local t = pieceTypes[defID]
+	if t then return t end
+	local names = Spring.GetUnitPieceList(id) or {}
+	local index = {}
+	for i, name in ipairs(names) do index[name] = i end
+	t = { n = #names, parent = {}, ox = {}, oy = {}, oz = {} }
+	local parents, offsets = {}, {}
+	for i = 1, #names do
+		local info = Spring.GetUnitPieceInfo(id, i) or {}
+		local o = info.offset or { 0, 0, 0 }
+		t.parent[i] = index[info.parent] or 0
+		t.ox[i], t.oy[i], t.oz[i] = o[1] or 0, o[2] or 0, o[3] or 0
+		parents[i], offsets[i] = t.parent[i], { o[1] or 0, o[2] or 0, o[3] or 0 }
+	end
+	pieceTypes[defID] = t
+	put({ t = "pieces", d = defID, names = names, parents = parents, offsets = offsets })
+	return t
+end
+local function keyRow(frame, id, p, ax, ay, az, x, y, z)
+	local k = keyRows
+	local n = k.n + 1
+	k.n = n
+	k.f[n], k.u[n], k.p[n] = frame, id, p
+	local i = n * 3
+	k.a[i - 2], k.a[i - 1], k.a[i] = round(ax * A_SCALE), round(ay * A_SCALE), round(az * A_SCALE)
+	k.t[i - 2], k.t[i - 1], k.t[i] = round(x * T_SCALE), round(y * T_SCALE), round(z * T_SCALE)
+end
+-- Whether a piece's last sample differs from its last keyframe (a piece looked at only because its parent moved may
+-- not have moved itself).
+local function differs(ks, ss, K)
+	return math.abs(ss[K + 2] - ks[K + 2]) > A_TOL or math.abs(ss[K + 3] - ks[K + 3]) > A_TOL or math.abs(ss[K + 4] - ks[K + 4]) > A_TOL
+		or math.abs(ss[K + 5] - ks[K + 5]) > T_TOL or math.abs(ss[K + 6] - ks[K + 6]) > T_TOL or math.abs(ss[K + 7] - ks[K + 7]) > T_TOL
+end
+-- A keyframe of a piece, after the one its stretch starts from when that was not written (a piece at rest when its
+-- unit was first looked at, which moves later): the reader draws a straight stretch between written keyframes.
+local function bend(st, id, p, frame, ax, ay, az, x, y, z)
+	if not st.kw[p] then
+		local K = (p - 1) * 7
+		local ks = st.k
+		keyRow(ks[K + 1], id, p, ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7])
+		st.kw[p] = true
+	end
+	keyRow(frame, id, p, ax, ay, az, x, y, z)
+end
+local abs, asin, atan2q = math.abs, math.asin, math.atan2
+-- An angle from atan2 brought within a half turn of the last one: a spin keeps counting.
+local function unwound(raw, last)
+	local d = raw - last
+	if d > math.pi or d < -math.pi then raw = raw - TWO_PI * floor((d + math.pi) / TWO_PI) end
+	return raw
+end
+-- Each piece's last sample as a keyframe where it is not the last one (a unit's death, the capture's end): the reader
+-- holds a piece at its last keyframe.
+local function flushPieces(id)
+	local st = pieceState[id]
+	local t = st and pieceTypes[known[id]]
+	if not t then return end
+	local ks, ss = st.k, st.s
+	for p = 1, t.n do
+		local K = (p - 1) * 7
+		if ss[K + 1] and ss[K + 1] > ks[K + 1] and differs(ks, ss, K) then
+			bend(st, id, p, ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
+		end
+	end
+end
+local function writeKeys()
+	local k = keyRows
+	if k.n > 0 then
+		record("K", packU32(k.n) .. packU32(k.f) .. packU16(k.u) .. packU16(k.p) .. packS32(k.a) .. packS16(k.t))
+		stats.key_rows = stats.key_rows + k.n
+		keyRows = { f = {}, u = {}, p = {}, a = {}, t = {}, n = 0 }
+	end
+end
+local function samplePieces(frame)
+	for i = 1, allCount do
+		local id = all[i]
+		local defID = known[id]
+		local t = pieceTypes[defID] or piecesOf(id, defID)
+		local n = t.n
+		local st = pieceState[id]
+		local fresh = not st
+		if fresh then
+			st = { ms = {}, k = {}, s = {}, c = {}, w = {}, kw = {} }
+			pieceState[id] = st
+		end
+		local ms, ks, ss, ch, was = st.ms, st.k, st.s, st.c, st.w
+		-- Which pieces moved in model space.
+		local any = fresh
+		for p = 1, n do
+			local m1, m2, m3, _, m5, m6, m7, _, m9, m10, m11, _, m13, m14, m15 = spGetUnitPieceMatrix(id, p)
+			local b = (p - 1) * 12
+			if m1 and (fresh or ms[b + 1] ~= m1 or ms[b + 2] ~= m2 or ms[b + 3] ~= m3 or ms[b + 4] ~= m5 or ms[b + 5] ~= m6 or ms[b + 6] ~= m7
+				or ms[b + 7] ~= m9 or ms[b + 8] ~= m10 or ms[b + 9] ~= m11 or ms[b + 10] ~= m13 or ms[b + 11] ~= m14 or ms[b + 12] ~= m15) then
+				ms[b + 1], ms[b + 2], ms[b + 3], ms[b + 4], ms[b + 5], ms[b + 6], ms[b + 7], ms[b + 8], ms[b + 9], ms[b + 10], ms[b + 11], ms[b + 12] =
+					m1, m2, m3, m5, m6, m7, m9, m10, m11, m13, m14, m15
+				ch[p] = true
+				any = true
+			else
+				ch[p] = false
+			end
+		end
+		-- (only a unit that had a piece moving at its last look can have one that stopped since)
+		for p = 1, st.moving and n or 0 do
+			local q = t.parent[p]
+			local moved = fresh or ch[p] or (q > 0 and ch[q])
+			if not moved and was[p] then
+				-- It stopped: its last sample is where it stands, a keyframe unless it is the last one.
+				local K = (p - 1) * 7
+				if ss[K + 1] > ks[K + 1] and differs(ks, ss, K) then
+					bend(st, id, p, ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
+					for j = 1, 7 do ks[K + j] = ss[K + j] end
+				end
+			end
+			was[p] = moved and not fresh
+		end
+		if any and not st.moving then
+			for p = 1, n do
+				local q = t.parent[p]
+				was[p] = not fresh and (ch[p] or (q > 0 and ch[q]))
+			end
+		end
+		st.moving = any and not fresh
+		if any then
+			for p = 1, n do
+				local q = t.parent[p]
+				if fresh or ch[p] or (q > 0 and ch[q]) then
+					-- The piece against its parent: R = Rp^T R, t = Rp^T (t - tp). Columns (a, bb, c), (d, e, f), (g, h, ii).
+					local b = (p - 1) * 12
+					local a, bb, c, d, e, f, g, h, ii, x, y, z = ms[b + 1], ms[b + 2], ms[b + 3], ms[b + 4], ms[b + 5], ms[b + 6], ms[b + 7], ms[b + 8], ms[b + 9], ms[b + 10], ms[b + 11], ms[b + 12]
+					if q > 0 then
+						local P = (q - 1) * 12
+						local p1, p2, p3, p5, p6, p7, p9, p10, p11 = ms[P + 1], ms[P + 2], ms[P + 3], ms[P + 4], ms[P + 5], ms[P + 6], ms[P + 7], ms[P + 8], ms[P + 9]
+						local dx, dy, dz = x - ms[P + 10], y - ms[P + 11], z - ms[P + 12]
+						a, bb, c, d, e, f, g, h, ii, x, y, z =
+							p1 * a + p2 * bb + p3 * c, p5 * a + p6 * bb + p7 * c, p9 * a + p10 * bb + p11 * c,
+							p1 * d + p2 * e + p3 * f, p5 * d + p6 * e + p7 * f, p9 * d + p10 * e + p11 * f,
+							p1 * g + p2 * h + p3 * ii, p5 * g + p6 * h + p7 * ii, p9 * g + p10 * h + p11 * ii,
+							p1 * dx + p2 * dy + p3 * dz, p5 * dx + p6 * dy + p7 * dz, p9 * dx + p10 * dy + p11 * dz
+					end
+					-- R12 is the second row's third entry (h), R02 the first's (g), R22 (ii), R10 (bb), R11 (e).
+					if h > 1 then h = 1 elseif h < -1 then h = -1 end
+					local ax, ay, az = asin(-h), atan2q(g, ii), atan2q(bb, e)
+					local K = (p - 1) * 7
+					if fresh then
+						ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = frame, ax, ay, az, x, y, z
+						ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7] = frame, ax, ay, az, x, y, z
+						st.kw[p] = false
+						if abs(ax) > A_TOL or abs(ay) > A_TOL or abs(az) > A_TOL or abs(x - t.ox[p]) > T_TOL or abs(y - t.oy[p]) > T_TOL or abs(z - t.oz[p]) > T_TOL then
+							keyRow(frame, id, p, ax, ay, az, x, y, z)
+							st.kw[p] = true
+						end
+					else
+						ay, az = unwound(ay, ss[K + 3]), unwound(az, ss[K + 4])
+						-- The path since the last keyframe: the last sample at its frame and, when the piece stood
+						-- still since, the same value one look ago; each one off the straight line from the last
+						-- keyframe to this sample is a bend, written as a keyframe.
+						local fs = ss[K + 1]
+						local hold = frame - PIECE_SAMPLE
+						for pass = 1, fs < hold and 2 or 1 do
+							local at = pass == 1 and fs or hold
+							local fk = ks[K + 1]
+							if at > fk then
+								local u = (at - fk) / (frame - fk)
+								if abs(ss[K + 2] - (ks[K + 2] + u * (ax - ks[K + 2]))) > A_TOL or abs(ss[K + 3] - (ks[K + 3] + u * (ay - ks[K + 3]))) > A_TOL
+									or abs(ss[K + 4] - (ks[K + 4] + u * (az - ks[K + 4]))) > A_TOL or abs(ss[K + 5] - (ks[K + 5] + u * (x - ks[K + 5]))) > T_TOL
+									or abs(ss[K + 6] - (ks[K + 6] + u * (y - ks[K + 6]))) > T_TOL or abs(ss[K + 7] - (ks[K + 7] + u * (z - ks[K + 7]))) > T_TOL then
+									bend(st, id, p, at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7])
+									ks[K + 1], ks[K + 2], ks[K + 3], ks[K + 4], ks[K + 5], ks[K + 6], ks[K + 7] = at, ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7]
+								end
+							end
+						end
+						ss[K + 1], ss[K + 2], ss[K + 3], ss[K + 4], ss[K + 5], ss[K + 6], ss[K + 7] = frame, ax, ay, az, x, y, z
+					end
+				end
+			end
+		end
+	end
+	writeKeys()
 end
 
 -- `U`: u32 frame, u32 n, then n unit ids (u16), 3n position components (s32, quarters of an elmo) and 3n angles
@@ -851,6 +1054,7 @@ function widget:Initialize()
 		return
 	end
 	aimOn = VFS.FileExists(OUT .. "tape.aim")
+	piecesOn = VFS.FileExists(OUT .. "tape.pieces")
 	skipOn = VFS.FileExists(OUT .. "records.off")
 	out = io.open(OUT .. "tape.raw", "wb")
 	if not out then
@@ -894,9 +1098,9 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 3, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 4, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE, aim_scale = AIM,
-		aim = aimOn and 1 or 0,
+		aim = aimOn and 1 or 0, pieces = piecesOn and 1 or 0, piece_angle_scale = A_SCALE, piece_place_scale = T_SCALE,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
 			tidal = Game.tidal, low = low, high = high, water_damage = Game.waterDamage },
 		teams = teams, spots = spots,
@@ -935,6 +1139,11 @@ function widget:GameFrame(frame)
 	end
 	if frame % SAMPLE == 0 then sampleUnits(frame) end
 	timed("units", t)
+	if piecesOn and frame % PIECE_SAMPLE == 0 then
+		t = spGetTimer()
+		samplePieces(frame)
+		timed("pieces", t)
+	end
 	t = spGetTimer()
 	if frame % SAMPLE == 0 then sampleVitals(frame, frame % VITALS == 0) end
 	timed("vitals", t)
@@ -995,6 +1204,10 @@ function widget:UnitDestroyed(id, defID, team, attacker, attackerDef, attackerTe
 	if r and (r[1] ~= xp or (full and r[2] ~= round(full))) then
 		record("R", packU32(spGetGameFrame(), 1) .. packF32({ id, xp, round(full or r[2]) }))
 	end
+	if piecesOn then
+		flushPieces(id)
+		writeKeys()
+	end
 	local x, y, z = spGetUnitPosition(id)
 	local _, _, _, _, build = spGetUnitHealth(id)
 	put({ t = "ev", k = "destroyed", f = spGetGameFrame(), u = id, by = attacker or -1, by_team = attackerTeam or -1,
@@ -1052,6 +1265,10 @@ end
 
 local function close(winners)
 	if not out then return end
+	if piecesOn then
+		for i = 1, allCount do flushPieces(all[i]) end
+		writeKeys()
+	end
 	stats.t = "stats"
 	stats.frames = frameNow
 	stats.bytes = bytes
@@ -1060,8 +1277,8 @@ local function close(winners)
 	put({ t = "over", f = spGetGameFrame(), winners = winners or {} })
 	out:close()
 	out = nil
-	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, vitals %.1f, activity %.1f, sight %.1f, aim %.1f, projectiles %.1f; %d marks",
-		frameNow, bytes, stats.units, stats.vitals, stats.activity, stats.sight, stats.aim, stats.projectiles, stats.marks))
+	Spring.Echo(string.format("<tape dump> closed at f=%d: %d bytes; seconds in units %.1f, pieces %.1f (%d keyframes), vitals %.1f, activity %.1f, sight %.1f, aim %.1f, projectiles %.1f; %d marks",
+		frameNow, bytes, stats.units, stats.pieces, stats.key_rows, stats.vitals, stats.activity, stats.sight, stats.aim, stats.projectiles, stats.marks))
 end
 
 -- The players' marks on the map: a point with its words, a line, an erase (which takes away what lies within its

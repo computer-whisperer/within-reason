@@ -6,7 +6,7 @@
 //! One rule gives the state at a frame, here and in the tape: everything stamped with that frame or an earlier one.
 
 use crate::format::{Error, NEVER, R, Result, err};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Where a unit stands and how it is turned: whole quarters of an elmo (the header's `position_scale`), and its
@@ -51,6 +51,19 @@ pub struct Activity {
     pub queue: u16,
 }
 
+/// A keyframe of one of a unit's pieces (raw version 4): its turn against its parent, the script's own angles about x,
+/// y and z in the header's `piece_angle_scale`ths of a radian (unwound: a spin keeps counting), and its place against
+/// its parent (the offset plus the script's move) in `piece_place_scale`ths of an elmo. Between two keyframes of a
+/// piece every number runs straight; before its first the piece is at rest, after its last it stays.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PieceKey {
+    pub frame: u32,
+    /// The piece's number in its model, from 1 (`GetUnitPieceList`'s order).
+    pub piece: u16,
+    pub angles: [i32; 3],
+    pub place: [i16; 3],
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Unit {
     pub engine_id: u32,
@@ -83,6 +96,8 @@ pub struct Unit {
     pub work: Vec<(u32, [u16; 2])>,
     pub rank: Vec<(u32, [f32; 2])>,
     pub hurt: Vec<(u32, f32)>,
+    /// Its pieces' keyframes (raw version 4), by piece and then frame.
+    pub keys: Vec<PieceKey>,
 }
 
 pub const PATH_FORMULA: u8 = 0;
@@ -316,6 +331,13 @@ impl Game {
                                 game.team_stats.push((frame, stats.clone()));
                             }
                         }
+                        "pieces" => {
+                            // A unit type's pieces (raw version 4), kept with the type: names, parents, offsets.
+                            let id = num(&row, "d");
+                            if let Some(def) = game.unit_defs.iter_mut().find(|d| num(d, "id") == id) {
+                                def["pieces"] = json!({ "names": row["names"], "parents": row["parents"], "offsets": row["offsets"] });
+                            }
+                        }
                         "fmetal" => {
                             for w in row.get("w").and_then(Value::as_array).into_iter().flatten() {
                                 let pair = |i: usize| w.get(i).and_then(Value::as_f64).unwrap_or(0.0);
@@ -345,7 +367,7 @@ impl Game {
                                     engine_id: id, def, team: num(&row, "team") as u8, created: frame, finished: NEVER, destroyed: NEVER, killer: 0, builder,
                                     mobile: mobile_def.get(&def).copied().unwrap_or(true), max_health: num(&row, "max_health") as f32, birth, birth_vital,
                                     death: birth.pos, given: Vec::new(), samples: Vec::new(), vitals: Vec::new(), activity: Vec::new(), aim: Vec::new(), sight: Vec::new(),
-                                    work: Vec::new(), rank: Vec::new(), hurt: Vec::new(),
+                                    work: Vec::new(), rank: Vec::new(), hurt: Vec::new(), keys: Vec::new(),
                                 });
                             }
                             "finished" => {
@@ -448,6 +470,18 @@ impl Game {
                         game.units[at].sight.push((frame, [los, radar]));
                     }
                 }
+                b'K' => {
+                    let n = body.u32()? as usize;
+                    let frames = u32s(&mut body, n)?;
+                    let ids: Vec<u16> = (0..n).map(|_| body.u16()).collect::<Result<_>>()?;
+                    let pieces: Vec<u16> = (0..n).map(|_| body.u16()).collect::<Result<_>>()?;
+                    let angles: Vec<i32> = (0..3 * n).map(|_| body.u32().map(|v| v as i32)).collect::<Result<_>>()?;
+                    let places: Vec<i16> = (0..3 * n).map(|_| body.u16().map(|v| v as i16)).collect::<Result<_>>()?;
+                    for i in 0..n {
+                        let Some(&at) = unit_at.get(&(ids[i] as u32)) else { continue };
+                        game.units[at].keys.push(PieceKey { frame: frames[i], piece: pieces[i], angles: angles[i * 3..i * 3 + 3].try_into().unwrap(), place: places[i * 3..i * 3 + 3].try_into().unwrap() });
+                    }
+                }
                 b'W' => {
                     let (frame, n) = (body.u32()?, body.u32()? as usize);
                     for _ in 0..n {
@@ -546,6 +580,10 @@ impl Game {
     /// flight ended, each formula-path projectile checked against the engine's own places (and given its samples to
     /// fly by when the formula misses), the lists in frame order.
     fn settle(&mut self, weapon_kind: &HashMap<i32, String>) {
+        for u in &mut self.units {
+            u.keys.sort_by_key(|k| (k.piece, k.frame));
+            u.keys.dedup_by_key(|k| (k.piece, k.frame));
+        }
         let map = self.head.get("map").cloned().unwrap_or(Value::Null);
         let (columns, rows) = ((num(&map, "width") / 8.0) as u32 + 1, (num(&map, "height") / 8.0) as u32 + 1);
         let mut heights = vec![0.0f32; (columns * rows) as usize];
@@ -638,6 +676,13 @@ impl Unit {
         at_or_before(&self.sight, frame).copied().unwrap_or([mine, mine])
     }
 
+    /// One piece's keyframes (a run of `keys`).
+    pub fn piece_keys(&self, piece: u16) -> &[PieceKey] {
+        let from = self.keys.partition_point(|k| k.piece < piece);
+        let to = self.keys.partition_point(|k| k.piece <= piece);
+        &self.keys[from..to]
+    }
+
     /// Its build power in use and a factory's line as last written at or before `frame` (none: nothing).
     pub fn work_at(&self, frame: u32) -> [u16; 2] {
         at_or_before(&self.work, frame).copied().unwrap_or_default()
@@ -651,6 +696,25 @@ impl Unit {
 }
 
 impl Game {
+    /// Whether the stream has the units' moving pieces (raw version 4, captured with them).
+    pub fn has_pieces(&self) -> bool {
+        self.raw_version >= 4 && num(&self.head, "pieces") > 0.0
+    }
+
+    /// Each unit type's pieces at rest: each one's offset from its parent in the tape's units of a place
+    /// (`piece_place_scale`ths of an elmo), by the type's id.
+    pub fn piece_rest(&self) -> HashMap<u32, Vec<[f64; 3]>> {
+        let scale = num(&self.head, "piece_place_scale").max(1.0);
+        self.unit_defs
+            .iter()
+            .filter_map(|d| {
+                let offsets = d.get("pieces")?.get("offsets")?.as_array()?;
+                let rest = offsets.iter().map(|o| [0, 1, 2].map(|k| (o.get(k).and_then(Value::as_f64).unwrap_or(0.0) * scale).round())).collect();
+                Some((num(d, "id") as u32, rest))
+            })
+            .collect()
+    }
+
     /// Whether the stream has what the waste audit reads (raw version 3 on).
     pub fn has_audit(&self) -> bool {
         self.raw_version >= 3 && self.has_sight()

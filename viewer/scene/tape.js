@@ -237,6 +237,10 @@ const WRTape = (() => {
         /// Beside `units`, a unit each: the ally teams that have it in sight (bit `a` for ally team a) and, sixteen
         /// bits up, those that have it on radar. Every bit set when the tape does not say (`hasSight`).
         seen: array(11, Uint32Array),
+        /// The moving pieces (a tape of format 4): beside `units`, each unit's block in `pieces` (-1: at rest), and the
+        /// blocks, `pieceStride` transforms each of twelve floats (a rotation by columns, then a translation: a
+        /// vertex v of the model at rest is drawn at R v + t).
+        pieceAt: array(13, Float32Array), pieces: array(12, Float32Array), pieceStride: wasm.wr_piece_stride(),
       };
     },
 

@@ -22,7 +22,7 @@ import os, re, shutil, subprocess, sys, time
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-FLAGS = (("--audit", "audit.on"), ("--tape", "tape.on"), ("--tape-aim", "tape.aim"), ("--no-records", "records.off"))
+FLAGS = (("--audit", "audit.on"), ("--tape", "tape.on"), ("--tape-aim", "tape.aim"), ("--tape-pieces", "tape.pieces"), ("--no-records", "records.off"))
 
 
 def replay(demo, out, flags=(), timeout=3600, kill_on_timeout=False, port=None):

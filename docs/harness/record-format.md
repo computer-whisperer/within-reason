@@ -301,7 +301,7 @@ the way left, or "no way"). A click selects a unit (ring; `Escape` clears).
 **The 3D view** (2026-11-15, `docs/design/2026-11-15-game-tape.md`, `tape-format.md`): a match directory that holds
 `game.tape` opens in it (the button in the map pane's corner or `m` goes between it and the 2D map; `view=2d` in the
 address opens the 2D map). It draws the tape at the page's playhead: the ground with the map's own texture and its
-craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude
+craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude (with the moving pieces of a tape captured with them, `run/tape.py --pieces`: turrets turned to their aim, legs walking, arms, doors, dishes as the game moves them)
 (a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one pale), a
 health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read (the switch
 "icons for units too small to see" off: its model at any distance), features (rocks, trees, wrecks), every projectile in
