@@ -9,10 +9,32 @@ included, and prints every table for both sides so that the opponent is the yard
 
 ## Making the dump
 
+From a game's tape (2026-11-15 night on: every arena game has one, `tape-format.md`), no replay:
+
+    run/audit.py <match dir>
+
+reads the dump `target/release/tape audit <game.tape> -o -` makes of the tape as it reads (kept nowhere: a duel's is
+12 MB and 0.3 s, the Erebos 10v8's 440 MB and 8 s; `-o audit.jsonl` keeps one). The tape must be of format 3 (its raw
+stream of version 3, from 2026-11-15 night): an older one says so. Without a tape, the replay:
+
     run/replay_match.py <match dir>/demos/<the demo>.sdfz --label <name> --audit
     run/audit.py run/matches/<time>-replay-<name>
 
-The replay runs the demo in the headless engine at about twice game speed (a 20-minute game: ten minutes of wall).
+**The two dumps against each other** (`run/audit_compare.py`; the dist358 duel replayed once with both widgets,
+2026-11-15 night): the events and their fields, the teams' numbers and statistics, experience, build power and the
+factories' lines are the same; of 159,165 unit-seconds every column is, but where the tape's reading differs on purpose
+or at an edge. A repair, reclaim, resurrect or capture of one target inside an area (6.7 % of the rows) is its target
+in the tape's, where the widget wrote the target's id and a height as the place `x, z`. A dead unit is listed once at
+the first sample after its death, with the experience it died with (the widget lists a dying unit for as long as the
+engine does: 264 rows more in the tape's, 20 in the widget's), its health 0 where the widget's is below 0. Damage a
+unit took after its death call-in is not in the tape's (0.3 % of all damage, 22 unit-seconds), nor 140 of 28,561
+commands, given to dying units. `run/audit.py`'s whole output on each: the same 407 lines, 86 of them with numbers that
+differ in the last figures (a builder's seconds waiting, 52:48 against 52:53; a walk of 4,778 elmos against 4,775);
+the damage each side dealt, which is scaled to the damage taken, by 0.3 and 0.5 %, and the metal of the opponent's
+units that died having dealt under a tenth of their cost, 1,317 against 1,207 (ours 1,067 in both).
+
+The replay runs the demo in the headless engine as fast as the machine simulates it (from 2026-11-15; until then at
+twice game speed whatever the machine, a 20-minute game ten minutes of wall: `pitfalls.md`, the headless sleep).
 Beside the match records for every team (`record-format.md`) the widget `run/replay-template/LuaUI/Widgets/audit_dump.lua`
 writes `audit.jsonl`, about 2 MB a game minute. The unit ids and frames are the game's: a bot's own log lines in the
 arena match's `engine.log` (`[distilled ai=N] f=...`) line up with the dump by frame.

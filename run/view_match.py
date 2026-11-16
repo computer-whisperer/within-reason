@@ -27,18 +27,32 @@ What the page asks for, beside the files themselves:
                                            (a log the arena compressed when the match closed, jev-<n>.jsonl.zst, answers
                                            to its raw name in these three)
 
+    <match>/game.tape                      the game's tape (run/tape.py, docs/harness/tape-format.md), which the 3D
+                                           view reads by byte range (a `Range` header: the footer, the index, then a
+                                           slice at a time)
+    /assets/<name>                         a model, texture or map file out of run/data/tape-assets, the copies the
+                                           tape's capture made, named by content (so cached for good by the browser)
+
 A Jev log is never sent whole to the page (a team game's are gigabytes); its index is cached in a sidecar
-`.viewer-jev-<n>.json` beside it, the only file this server writes.
+`.viewer-jev-<n>.json` beside it, the only file this server writes. At its start the server builds the page's copy of
+the tape's reader (run/build_viewer.sh: crates/tape-wasm into viewer/scene/tape.wasm) when the crate is newer.
 """
-import argparse, gzip, http.server, json, os, re, socket, sys, time, webbrowser
+import argparse, gzip, http.server, json, os, re, socket, subprocess, sys, time, webbrowser
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import viewer_index
 
 VIEWER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "viewer")
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "tape-assets")
 
 
 def is_match(path):
+    """A directory the page can open: it holds a record of ours, or a tape (a bot of bots/ leaves no record, and a
+    demo taped by run/tape.py has none unless asked)."""
+    return os.path.isdir(path) and any((f.startswith("record-") and f.endswith(".jsonl")) or f == "game.tape" for f in os.listdir(path))
+
+
+def has_record(path):
     return os.path.isdir(path) and any(f.startswith("record-") and f.endswith(".jsonl") for f in os.listdir(path))
 
 
@@ -94,7 +108,8 @@ def batch_entry(root, name):
     for sub in sorted(f for f in os.listdir(path) if f.isdigit() and os.path.isdir(os.path.join(path, f))):
         r = results.get(int(sub)) or {}
         matches.append({
-            "index": sub, "record": is_match(os.path.join(path, sub)),
+            "index": sub, "record": has_record(os.path.join(path, sub)),
+            "tape": os.path.isfile(os.path.join(path, sub, "game.tape")),
             "outcome": r.get("outcome"), "minutes": r.get("game_minutes"), "corner": r.get("our_corner"), "side": r.get("our_side"),
             "arm": r.get("arm") or None, "called": r.get("called"), "jev_dollars": jev_bill(os.path.join(path, sub)),
         })
@@ -136,6 +151,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif path.startswith("/match/") and self.match_dir:
             self.directory = self.match_dir
             path = path[len("/match"):]
+        elif path.startswith("/assets/"):
+            self.directory = ASSETS
+            path = path[len("/assets"):]
         else:
             self.directory = VIEWER
         return super().translate_path(path)
@@ -195,7 +213,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_jev(path, query)
         if (path.startswith("/matches/") or path.startswith("/match/")) and "?from=" in self.path:
             return self.send_tail()
+        if self.headers.get("Range"):
+            return self.send_range(path)
+        self.keeps = path.startswith("/assets/")
         super().do_GET()
+
+    def send_range(self, path):
+        """A byte range of a file (`Range: bytes=a-b`, `a-` or `-n` for the last n): how the page reads a tape."""
+        m = re.fullmatch(r"bytes=(\d*)-(\d*)", self.headers.get("Range").strip())
+        try:
+            with open(self.translate_path(path), "rb") as f:
+                size = os.fstat(f.fileno()).st_size
+                if not m or (not m.group(1) and not m.group(2)):
+                    return self.send_error(416)
+                if m.group(1):
+                    first = int(m.group(1))
+                    last = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+                else:
+                    first, last = max(0, size - int(m.group(2))), size - 1
+                if first > last or first >= size:
+                    return self.send_error(416)
+                f.seek(first)
+                body = f.read(last - first + 1)
+        except (OSError, ValueError):
+            return self.send_error(404)
+        self.send_response(206)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Range", f"bytes {first}-{last}/{size}")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def listing(self):
         """The browser's index: every batch under the root (or the one batch, or the one match), newest first."""
@@ -205,6 +252,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.root_kind == "batch":
             return {"kind": "batch", "root": self.root, "batches": [dict(batch_entry(os.path.dirname(self.root), os.path.basename(self.root)), batch=".")]}
         batches = [batch_entry(self.root, name) for name in os.listdir(self.root) if is_batch(os.path.join(self.root, name))]
+        # A taped demo (run/tape.py <demo.sdfz>) is a match directory of its own, with no batch over it: listed as a
+        # batch of one. (A replayed demo's records without a tape are not listed, as before: opened by naming them.)
+        for name in os.listdir(self.root):
+            path = os.path.join(self.root, name)
+            if os.path.isfile(os.path.join(path, "game.tape")) and not is_batch(path):
+                batches.append({"batch": name, "label": name, "started": os.path.getmtime(os.path.join(path, "game.tape")), "matches": [{"index": "", "record": has_record(path), "tape": True}], "finished": True})
         batches.sort(key=lambda b: b["started"], reverse=True)
         return {"kind": "root", "root": self.root, "batches": batches}
 
@@ -224,8 +277,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    keeps = False  # the file being sent never changes (an asset, named by its content)
+
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store")  # a match still being played grows between reloads
+        # A match still being played grows between reloads; an asset's name is its content.
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable" if self.keeps else "no-store")
+        self.keeps = False
         super().end_headers()
 
     def log_message(self, *args):
@@ -271,6 +328,11 @@ def main():
         if not any(is_batch(os.path.join(root, f)) for f in os.listdir(root)):
             sys.exit(f"{root} holds no match: no record-*.jsonl, no NN/ match directories, no batch directories (records are written when the bot runs with WITHIN_REASON_RECORD=1; the arena sets it)")
     Handler.root = root
+    # The page's copy of the tape's reader, built when crates/tape is newer than it. A failed build is said and the
+    # copy that stands is served: the 2D view needs none.
+    build = subprocess.run([os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_viewer.sh"), "--if-stale"], capture_output=True, text=True)
+    if build.returncode != 0:
+        print(f"the tape's reader for the page did not build (run/build_viewer.sh); the 3D view may be missing or old:\n{build.stderr.strip()[-2000:]}")
     for port in range(args.port, args.port + 20):
         try:
             server = Server((args.bind, port), Handler)

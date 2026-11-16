@@ -382,6 +382,18 @@ before/after over one source file is a script that copies the old file in, runs 
 back and runs the after arms (`cmp` at the end). `WITHIN_REASON_KEEP_INSTALLED=1` (install_ai.sh, from this evening)
 skips the build and the install for a bench that built and installed once; it does not make an edited checkout safe.
 
+## A headless engine holds the game's speed factor by sleeping: every replay ran at twice game speed (2026-11-15)
+
+`Game.cpp`, under `HEADLESS`, sleeps after every simulated frame for half of what a frame at the game's speed factor
+has left (`msecMaxSimFrameTime = 1000 / (GAME_SPEED * wantedSpeedFactor)`). A demo's own speed messages are dropped on
+replay (`GameServer.cpp`, `NETMSG_USER_SPEED` and `NETMSG_INTERNAL_SPEED`), so the factor is 1 and a replay ran at
+twice game speed however idle the machine was, the `skip` the dump widget asked for notwithstanding: a duel of 18.7
+minutes took 9.5, with 13 units as with 300. The widgets now send `setmaxspeed 1000` and `setminspeed 1000` before the
+skip and at load (`replay_dump.lua`, `tape_dump.lua`): the same duel simulates in 24 s, and the section below is
+history for the same reason (the pre-game stream is read at the server's speed: Erebos reached frame 0 in 7 s where it
+had taken 4.6 minutes). A big game is bound by the simulation itself at one worker thread (`WorkerThreadCount = 1` in
+the replay template): the Erebos 10v8's 29 minutes take about 15.
+
 ## A lobby demo replays its pre-game wait in real time (2026-11-07)
 
 A demo recorded from a lobby game begins when the battle room opens, not at frame 0, and the headless engine plays

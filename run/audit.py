@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """The waste audit of one game: every second of every unit of both sides accounted for, from the audit dump
-(`run/replay_match.py <demo> --audit` writes audit.jsonl; docs/harness/audit.md).
+(audit.jsonl; for a match with a game.tape and no audit.jsonl, the dump `target/release/tape audit` makes of the tape
+as it is read, kept nowhere; else `run/replay_match.py <demo> --audit` writes it; docs/harness/audit.md).
 
-    run/audit.py <replay match dir> [--team N] [--sections a,b,...] [--top N]
+    run/audit.py <match dir> [--team N] [--sections a,b,...] [--top N]
     run/audit.py <dir> --unit ID                      one unit's life, run by run
     run/audit.py <dir> --window M:SS M:SS [X Z R]     events and units in a span (and a place)
     run/audit.py <dir> --map M:SS                     both sides on a character map
@@ -14,7 +15,7 @@ sight first, which spots stood free. Every table is printed for both sides so th
 Sections: summary, economy, floats, power, builders, plants, frames, army, front, cohesion, types, trips, fights, raids,
 spots, wrecks, orders, sight. `ours` is the seat whose AI name starts with WR (else team 0, or --team).
 """
-import json, math, os, re, sys
+import json, math, os, re, subprocess, sys
 from collections import Counter, defaultdict
 
 FPS = 30
@@ -112,11 +113,18 @@ class Game:
             path = os.path.join(path, "audit.jsonl")
             if not os.path.exists(path):
                 path = os.path.join(self.dir, "LuaUI", "Config", "within-reason", "audit.jsonl")
+            tape = os.path.join(self.dir, "game.tape")
+            if not os.path.exists(path) and os.path.exists(tape):
+                # The dump made from the game's tape as it is read (a tape of format 3: every arena game from
+                # 2026-11-15 night on), kept nowhere: a 10v8's is 440 MB and made again in 8 s.
+                tool = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "target", "release", "tape")
+                made = subprocess.Popen([tool, "audit", tape, "-o", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                path = made
         else:
             self.dir = os.path.dirname(path)
         self.defs, self.units, self.frames, self.sides, self.events, self.cmds, self.wrecks, self.hits = {}, {}, [], {}, [], [], [], []
         self.winners = None
-        for line in open(path):
+        for line in (path.stdout if isinstance(path, subprocess.Popen) else open(path)):
             try:
                 r = json.loads(line)
             except ValueError:
@@ -160,6 +168,11 @@ class Game:
                 self.wrecks.append(r)
             elif t == "over":
                 self.winners = r.get("winners")
+        if isinstance(path, subprocess.Popen):
+            account = path.stderr.read().strip()
+            if path.wait() != 0:
+                sys.exit(f"no audit.jsonl in {self.dir}, and its game.tape gave none: {account}")
+            print(account, file=sys.stderr)
         self.end = self.frames[-1]
         for unit in self.units.values():
             if unit.created is None:

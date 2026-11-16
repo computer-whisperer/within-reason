@@ -6,6 +6,9 @@ decided, so a finished (or killed) match can be replayed in `viewer/` with `run/
 
 It is not the engine's replay. The engine's own `demos/*.sdfz` re-simulates the game inside the engine, cannot be read by
 a web page and knows nothing of our decisions; the record names it (`result.replay`) so the real thing can be opened too.
+Nor is it the game's tape (`tape-format.md`, from 2026-11-15): `run/tape.py` plays that demo through the engine once and
+writes `game.tape`, the whole game as the engine had it, both sides, ten times a second, which the viewer's 3D view
+draws; the record stays the bot's fair view and its decisions, and the two join by frame and the engine's unit id.
 
 ## Rules of the format
 - JSON Lines, UTF-8, one record per line, `t` names the record type, `f` is the game frame (30 per second).
@@ -246,7 +249,10 @@ a chart is the seats stacked (the top edge is the side's sum, the opponent's tru
 is that seat's line against the others' faint ones. A chart's axis ends a little over its 99th percentile.
 Live: a match with no `result` line (and not every seat's `end` line) is still being played; the page polls every 3 s
 and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
-and the scroll position of the decision list survive each refresh.
+and the scroll position of the decision list survive each refresh. An arena game's tape grows while it is played (a
+slice of ten seconds at a time, `tape-format.md`): the 3D view opens once the tape appears and reads it again at each
+poll, a few seconds behind the record; a game with no record of ours (a bot of `bots/`) follows its tape alone, until
+the tape packed whole at the game's end replaces it.
 
 **The hands' logs are never fetched whole.** The server indexes each `jev-<n>.jsonl` (or the `.jsonl.zst` the arena
 leaves, which answers to the raw name) once (`run/viewer_index.py`: it reads the log without parsing the menus, a raw
@@ -286,13 +292,47 @@ glyph). The wheel zooms about the cursor (1x to 32x the fitted scale), a drag pa
 `+`/`-` step. From 4x buildings show their footprints (`footprint` x 8 elmos, turned by the `finished` facing, a
 factory's front edge heavier) and units their names, from 8x their ids, and every unit's standing order (the last
 command the bot sent it, ended by a `stop` or the idle flag: a line to the point or target, a square at a build
-site); below 4x the last 3 s of orders. The `marks` layer draws the commander's marks, each player's own and the
+site); below 4x each unit's latest orders of the last 3 s (one tick's as a chain through its places). The `marks` layer draws the commander's marks, each player's own and the
 seats' starts; the `hands` layer the named places, the parties and the groups with a line to where each is going,
 for the seats in scope, and (from 2026-10-25) the lane's ranks from the sample's `groups`: the anchor as a diamond
 (filled when arrived) with its heading drawn as long as the pace's share of the full pace, and a line of the state
 (files in records before 2026-10-28, formed of members, the exceptions by cause, the pace share or held / engaged / arrived, the points left and
 the way left, or "no way"). A click selects a unit (ring; `Escape` clears).
-Tests: `node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
+**The 3D view** (2026-11-15, `docs/design/2026-11-15-game-tape.md`, `tape-format.md`): a match directory that holds
+`game.tape` opens in it (the button in the map pane's corner or `m` goes between it and the 2D map; `view=2d` in the
+address opens the 2D map). It draws the tape at the page's playhead: the ground with the map's own texture and its
+craters as they came, every unit of both sides as its model in its team's colour at its true place, height and attitude (with its moving pieces: turrets turned to their aim, legs walking, arms, doors,
+dishes as the game moves them, when the tape was captured with them: `run/tape.py` by default, the arena with `--pieces`)
+(a nanoframe solid up to its build progress and a green ghost above, a cloaked unit half there, a stunned one pale), a
+health bar over the hurt and the unfinished, the game's own icon for a unit too small on screen to read (the switch
+"icons for units too small to see" off: its model at any distance), features (rocks, trees, wrecks), every projectile in
+flight as a streak in its weapon's colour (a beam as a line to what it was aimed at) and a flash where one ended or a
+unit died. The camera is the game's: a drag moves the ground under the cursor, the wheel zooms about it, a right drag
+(or shift and drag) turns and tilts, a double-click or `0` shows the whole map; `,` and `.` step one sample (a tenth of
+a second) and the speeds go down to a quarter.
+Over the scene (2026-11-15 night), not hidden by hills: the commands as they are given, fading over a second and a half
+in the game's own command colours, a unit's latest with those given in the same frame as one chain through its places, as
+the game draws it (the map's "orders as they are given" switch), the selected unit's standing
+order (a line to what it points at, a box where a build is not begun) with its sight, radar, build, shield and weapon
+rings; on their own switches every unit's standing order and every finished static defence's reach in its team's
+colour; the metal spots and the named cells (the map's switches); and painted by the 2D map's own functions the
+marks, the hands' groups, places, parties and the lane's ranks, and a ring on each unit of the hands' actor in focus.
+A hover names the unit, its health, its order and what it builds, told again at each picture while the mouse rests. A
+click selects a unit of either side, and the Unit tab is the tape's: what it is and whose, where, its health, its order
+and queue, who made it and when, who killed it, what it killed and built, its weapons (range, damage, how often) and
+reach, the orders given to it in the minute before the playhead (or its death) and ten seconds after, a click seeking
+there, and its kills; for a unit of ours the record adds the brain's last order, its part in the hands' picture and its
+history. A directory with a tape and no record of ours
+(a bot of `bots/`, a taped demo) opens as the 3D view alone: each side's numbers at the playhead (income, stores,
+units, army and its worth, losses) in the side pane, its losses as the timeline's lanes and a line a side in four
+charts (metal and energy income, army worth, units). On a tape made from 2026-11-15 night on: "3D view as one side
+saw it" (the layers) draws what that side did not have in sight as a ghost (fainter still when not on its radar
+either) and only its own orders; the players' marks on the map stand over the scene in their team's colour until
+erased (with a side chosen, its players' alone).
+
+Tests: `node viewer/test/scene.js <match url> <out dir> [seconds ...]` drives the 3D view, in Chromium and with
+`SCENE_BROWSER=firefox` in Firefox (`tape-format.md`: run both);
+`node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
 the truth, and through `run/viewer_index.py` each Jev log's index, a gate and its view, a picture) and
 `node viewer/test/browser.js <url> [shot.png]` (the real page in headless Chromium: the match browser when the url
 is the server's root, then load, follow a live match if it is one, scrub, play, hover, zoom, select, the seat

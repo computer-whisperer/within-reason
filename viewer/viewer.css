@@ -37,7 +37,17 @@ button:hover { border-color: var(--muted); }
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: 8px; padding: 8px; min-height: 0; }
 #map-pane { position: relative; background: var(--surface); border-radius: 6px; min-height: 0; overflow: hidden; }
-#map { display: block; width: 100%; height: 100%; }
+#map, #scene { display: block; width: 100%; height: 100%; }
+#map[hidden], #scene[hidden] { display: none; }
+#scene { cursor: grab; }
+#scene-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#scene-overlay[hidden] { display: none; }
+#mode { position: absolute; top: 6px; left: 6px; z-index: 2; }
+#scene-note { position: absolute; bottom: 6px; left: 8px; font-size: 11px; pointer-events: none; text-shadow: 0 0 3px #000; }
+/* A game with a tape and no record of ours (a bot of bots/, a taped demo): the sides' numbers and the selected
+   unit beside the view, no tabs to choose from. */
+body[data-tapeonly="1"] #tabs, body[data-tapeonly="1"] #seats { display: none; }
+body[data-tapeonly="1"] #now { display: block; }
 /* The layer switches and the legend fold away in one corner, so the map keeps its room in the wide mode. */
 #map-tools { position: absolute; top: 6px; right: 6px; max-height: calc(100% - 12px); overflow: auto; background: #1a1a19cc; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
 #map-tools summary { padding: 3px 8px; color: var(--muted); cursor: pointer; font-size: 12px; }
@@ -224,5 +234,6 @@ table.grid tr.fault td { color: var(--critical); }
 .pass-line .source, .hist .source { display: inline-block; min-width: 34px; padding: 0 4px; margin-right: 4px; border-radius: 3px; background: var(--surface-2); color: var(--muted); font-size: 10.5px; text-align: center; }
 .chip { margin-left: 8px; padding: 0 6px; font-size: 11px; text-transform: none; letter-spacing: 0; }
 #unit .hist { cursor: pointer; }
+.unit-link { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 /* One line, whatever it says: a status that wraps would change the footer's height and with it the map's scale. */
 #status { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

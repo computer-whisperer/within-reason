@@ -105,7 +105,8 @@ local function header(team)
 end
 
 function widget:Initialize()
-	if not Spring.IsReplay() then
+	-- `records.off` (run/replay_match.py --no-records): a replay played for its tape alone, whose match has its records.
+	if not Spring.IsReplay() or VFS.FileExists(OUT .. "records.off") then
 		widgetHandler:RemoveWidget(self)
 		return
 	end
@@ -128,6 +129,7 @@ function widget:Initialize()
 			truths[team] = io.open(OUT .. "truth-" .. team .. ".jsonl", "w")
 		end
 	end
+	Spring.SendCommands("setmaxspeed 1000", "setminspeed 1000")
 	for _, team in ipairs(teams) do header(team) end
 	for _, p in ipairs(Spring.GetPlayerList()) do
 		local name, _, spectator, team = Spring.GetPlayerInfo(p, false)
@@ -140,9 +142,13 @@ end
 -- Played at its own pace a demo takes as long as the game did, waiting through the lobby's countdown and every pause;
 -- the local server's skip reads it as fast as the client simulates, and past the end just stops skipping. Sent once
 -- the game has started: sent at load, a demo with a long countdown hung the client before its first frame.
+-- And the speed first: a headless engine sleeps after every frame to hold the game's speed factor (Game.cpp, under
+-- HEADLESS: half of what a frame at that speed has left), so at the demo's own factor of 1 the skip ran at twice game
+-- speed however idle the machine was (every replay until 2026-11-15). The same commands at load take the minutes a
+-- lobby demo's players spent loading at the server's speed too.
 function widget:GameStart()
 	if Spring.IsReplay() then
-		Spring.SendCommands("skip f100000000")
+		Spring.SendCommands("setmaxspeed 1000", "setminspeed 1000", "skip f100000000")
 	end
 end
 

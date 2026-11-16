@@ -10,7 +10,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const url = process.argv[2] || "http://127.0.0.1:8137/";
+// The 2D map is what this test drives: a match with a tape would open in the 3D view (viewer/test/scene.js tests that).
+const url = (process.argv[2] || "http://127.0.0.1:8137/").replace(/(\?.*)$/, "$1&view=2d");
 const screenshot = process.argv[3] || null;
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "wr-viewer-"));
 const chrome = spawn(process.env.CHROMIUM || "chromium", [
@@ -68,8 +69,9 @@ function run(socket) {
       await evaluate("document.getElementById('browser').querySelector('input').value = 'zzz-no-such-batch'; document.getElementById('browser').querySelector('input').dispatchEvent(new Event('input'))");
       report.browser.filtered = await evaluate("[...document.querySelectorAll('#browser table.batches tr')].filter((tr) => !tr.hidden).length - 1");
       if (report.browser.filtered !== 0) fail("the browser's filter did not narrow the list");
-      const href = await evaluate("(document.querySelector('#browser a.match.win, #browser a.match.loss') || document.querySelector('#browser a.match:not(.norecord)')).getAttribute('href')");
-      await send("Page.navigate", { url: new URL(href, url).href });
+      // A match with a record of ours (a tape alone has no panels to read), in its 2D map.
+      const href = await evaluate("(document.querySelector('#browser a.match.win:not(.norecord), #browser a.match.loss:not(.norecord)') || document.querySelector('#browser a.match:not(.norecord)')).getAttribute('href')");
+      await send("Page.navigate", { url: `${new URL(href, url).href}&view=2d` });
       for (let i = 0; i < 600 && !(await evaluate("document.body.dataset.loaded")); i++) await sleep(100);
     }
     const loaded = await evaluate("document.body.dataset.loaded");

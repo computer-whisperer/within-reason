@@ -8,6 +8,8 @@ and an arena that runs headless batches against the stock BARb AI.
   every brain change registers its heuristic in `docs/heuristics.md` and the claim it rests on in `docs/knowledge/`;
   every arena batch gets a line in `docs/experiments.md`.
 - `docs/harness/record-format.md` — the per-match record the bot writes; `run/view_match.py` (the matches directory, or one match) replays it in `viewer/`.
+- `docs/harness/tape-format.md` — the game tape: `run/tape.py <match dir | demo.sdfz>` plays a game's demo through the engine once and writes `game.tape`,
+  the whole game as the engine had it (both sides, ten samples a second, projectiles, the ground), which the viewer's 3D view seeks through at once.
 - `docs/harness/pitfalls.md` — read before running engines or installing the AI.
 - `docs/harness/audit.md` — the waste audit: `run/replay_match.py <demo> --audit`, then `run/audit.py <replay dir>` accounts for every
   builder's, plant's and soldier's second of both sides (the store, the walks, the front). Start a game review there.
