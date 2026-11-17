@@ -28,7 +28,11 @@
 //! dies when it dies in the engine. When its rows run out it stands (and fires at will).
 //!
 //! A **script** (`duel --script FILE`, 2026-09-28, `docs/design/2026-09-28-tas-micro.md`) is a separate file: timed
-//! orders for side 0, which replace the director's orders for that side (and its lane):
+//! orders for side 0, which replace the director's orders for that side (and its lane); from 2026-11-16 a row with
+//! `"side": 1` orders side 1 the same way (a side with any row is the script's alone), and a row with
+//! `"from": "contact"` counts its `t` from the first tick its side had a unit of the other side in sight or on radar
+//! (the air drills, `docs/design/2026-11-16-air-intercept.md`: a scramble a second after the first radar contact; the
+//! file's `"contact_after": S` beside `rows` counts no contact in the first S seconds):
 //!
 //! ```json
 //! { "format": "within-reason-script", "version": 1, "note": "anything",
@@ -44,6 +48,10 @@
 //!     { "t": 20.0, "unit": 5, "cmd": "repair", "target": 0 },                   // a builder repairs a unit of side 0
 //!     { "t": 9.0, "unit": 5, "cmd": "stop" },
 //!     { "t": 9.0, "unit": 5, "cmd": "firestate", "state": 0 },             // 0 hold fire, 1 return fire, 2 fire at will
+//!     { "t": 0.0, "unit": 5, "cmd": "movestate", "state": 2 },             // 0 hold position, 1 manoeuvre, 2 roam
+//!     { "t": 0.0, "unit": 5, "cmd": "patrol", "x": 4300, "z": 1900 },      // the engine's patrol from where it is (Command::Patrol)
+//!     { "t": 0.5, "from": "contact", "unit": 5, "cmd": "fight", "x": 4300, "z": 1900 },   // half a second after first contact
+//!     { "t": 20.0, "side": 1, "unit": "all", "cmd": "attack_ground", "x": 5233, "z": 6502 },  // side 1: a bomber's run at a point
 //!     { "t": 150.0, "unit": 0, "cmd": "fire", "x": 6500, "z": 3072 },        // a manual-fire weapon at the ground (a silo's missile)
 //!     { "t": 210.0, "unit": 0, "cmd": "probe", "x": 6500, "z": 3072 } ] }    // the ground's height there and round it
 //! ```
@@ -126,6 +134,11 @@ pub struct Script {
     pub label: String,
     /// Sorted by time; rows of one time keep the file's order.
     pub rows: Vec<ScriptRow>,
+    /// A contact sooner than this many seconds after the first orders is not one (the file's `contact_after`). In
+    /// the first duel of a match a bomber given standing 3,200 from anything of ours was in our side's sight for
+    /// five seconds from its first order (air-run2-none, 2026-11-16; why is not known), which would have started
+    /// every row counted from contact.
+    pub contact_after: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -139,6 +152,22 @@ pub struct ScriptRow {
     #[serde(default)]
     pub queue: bool,
     pub state: Option<i32>,
+    /// The side the row orders: 0, or 1 (the air drills: a bombing run flown again by its recorded orders).
+    #[serde(default)]
+    pub side: usize,
+    /// What `t` counts from.
+    #[serde(default)]
+    pub from: Since,
+}
+
+/// What a row's time counts from: the fight's first orders, or the first tick the row's side had a unit of the other
+/// side in sight or on radar (never, if it never has).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Since {
+    #[default]
+    Start,
+    Contact,
 }
 
 /// Which units of side 0 a row orders.
@@ -183,6 +212,13 @@ pub enum ScriptCmd {
     /// A builder repairs `target`, an index into side 0 (`Command::Repair`).
     Repair,
     Firestate,
+    /// The engine's move state (`Command::MoveState`): 0 hold position, 1 manoeuvre, 2 roam.
+    Movestate,
+    /// The engine's patrol between where the unit is and x, z (`Command::Patrol`); queued rows add corners.
+    Patrol,
+    /// An attack at the ground at x, z (`Command::FireAt` for a type without a manual-fire weapon): a bomber's run.
+    #[serde(rename = "attack_ground")]
+    AttackGround,
     /// A manual-fire weapon at the ground at x, z: a silo's missile (`Command::FireAt`).
     Fire,
     /// From now on the unit is a member of one roving group the lane runs (H-MICRO-ROVE): no order of its own; a
@@ -198,7 +234,11 @@ pub enum ScriptCmd {
 #[serde(untagged)]
 enum ScriptFile {
     Rows(Vec<ScriptRow>),
-    Wrapped { rows: Vec<ScriptRow> },
+    Wrapped {
+        rows: Vec<ScriptRow>,
+        #[serde(default)]
+        contact_after: f32,
+    },
 }
 
 impl Script {
@@ -207,35 +247,56 @@ impl Script {
         self.rows.iter().any(|r| r.cmd == ScriptCmd::Rove)
     }
 
+    /// Whether the script orders this side: a side with a row is the script's alone. Side 0 is always (a script with
+    /// rows for side 1 only leaves side 0 standing: an air drill's baseline).
+    pub fn orders(&self, side: usize) -> bool {
+        side == 0 || self.rows.iter().any(|r| r.side == side)
+    }
+
+    /// Whether a row of this side is still to go out: one counted from the start that has not, or one counted from
+    /// contact once there has been contact.
+    pub fn pending(&self, side: usize, sent: &std::collections::HashSet<usize>, contact: bool) -> bool {
+        self.rows.iter().enumerate().any(|(i, r)| r.side == side && !sent.contains(&i) && (r.from == Since::Start || contact))
+    }
+
     /// Reads and checks a script against the scenario it will be fought in.
     pub fn load(path: &std::path::Path, scenario: &Scenario) -> Result<Script, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let file: ScriptFile = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
-        let mut rows = match file {
-            ScriptFile::Rows(rows) | ScriptFile::Wrapped { rows } => rows,
+        let (mut rows, contact_after) = match file {
+            ScriptFile::Rows(rows) => (rows, 0.0),
+            ScriptFile::Wrapped { rows, contact_after } => (rows, contact_after),
         };
-        let (ours, theirs) = (scenario.sides[0].units.len(), scenario.sides[1].units.len());
         for (n, row) in rows.iter().enumerate() {
             let problem = |what: &str| Err(format!("{}: row {n}: {what}", path.display()));
+            if row.side > 1 {
+                return problem("side is 0 or 1");
+            }
+            // A row's units are its own side's, its attack's target the other side's.
+            let (ours, theirs) = (scenario.sides[row.side].units.len(), scenario.sides[1 - row.side].units.len());
             if let Units::All(word) = &row.unit
                 && word != "all"
             {
                 return problem("unit is an index, a list of indices, or \"all\"");
             }
             if row.unit.indices(ours).iter().any(|&i| i >= ours) {
-                return problem(&format!("a unit index past side 0's {ours} units"));
+                return problem(&format!("a unit index past side {}'s {ours} units", row.side));
             }
             match row.cmd {
-                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::FightReclaimingEnemies | ScriptCmd::Fire | ScriptCmd::Probe if row.x.is_none() || row.z.is_none() => return problem("move, fight, fire and probe need x and z"),
+                ScriptCmd::Move | ScriptCmd::Fight | ScriptCmd::FightReclaimingEnemies | ScriptCmd::Fire | ScriptCmd::Probe | ScriptCmd::Patrol | ScriptCmd::AttackGround if row.x.is_none() || row.z.is_none() => {
+                    return problem("move, fight, patrol, attack_ground, fire and probe need x and z");
+                }
+                ScriptCmd::Movestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("movestate needs a state 0, 1 or 2"),
+                ScriptCmd::Rove | ScriptCmd::Tend | ScriptCmd::Probe if row.side != 0 => return problem("rove, tend and probe are side 0's"),
                 ScriptCmd::Attack | ScriptCmd::SetTarget if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack and set_target need a target below {theirs}")),
-                ScriptCmd::Guard | ScriptCmd::Repair if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard and repair need a target (of side 0) below {ours}")),
+                ScriptCmd::Guard | ScriptCmd::Repair if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard and repair need a target (of the row's own side) below {ours}")),
                 ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),
                 _ => {}
             }
         }
         rows.sort_by(|a, b| a.t.total_cmp(&b.t));
         let label = path.file_stem().map_or_else(|| "script".to_string(), |s| s.to_string_lossy().replace(',', "_"));
-        Ok(Script { label, rows })
+        Ok(Script { label, rows, contact_after })
     }
 }
 

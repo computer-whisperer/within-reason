@@ -312,8 +312,13 @@ struct Army {
     /// Shots per unit since the last per-second log line, and damage taken: (attacker, victim, damage).
     second_shots: HashMap<UnitId, u32>,
     second_hits: Vec<(UnitId, UnitId, f32)>,
-    /// A script's next row (side 0 under `--script`).
-    next_row: usize,
+    /// The script's rows of this side that have gone out, by their place in the script.
+    rows_sent: HashSet<usize>,
+    /// The other side's units in this side's sight or on its radar at its last tick, by spawn index, each with whether
+    /// it is in sight (a type the snapshot names) or on radar alone; and the frame the first was, once the fight is on
+    /// (a script's rows `from: contact` count from it).
+    sees: Vec<(usize, bool)>,
+    contact_at: Option<i32>,
     /// The units a script's `rove` rows handed to the lane's roving group.
     roving: Vec<UnitId>,
     /// The construction turrets a script's `tend` rows put under their standing order, and when each was last told:
@@ -375,7 +380,9 @@ impl Army {
             last_row_frame: None,
             second_shots: HashMap::new(),
             second_hits: Vec::new(),
-            next_row: 0,
+            rows_sent: HashSet::new(),
+            sees: Vec::new(),
+            contact_at: None,
             roving: Vec::new(),
             tending: HashMap::new(),
             track_sent: HashMap::new(),
@@ -1483,6 +1490,13 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
         }
         army.reported = frame;
         army.energy = tick.snapshot.energy.current;
+        army.sees = tick.snapshot.enemies.iter().filter_map(|e| Some((*enemy.spawn_of.get(&e.id)?, e.def.is_some()))).collect();
+        army.sees.sort();
+        let contact_from = rules.script.map_or(0, |s| (s.contact_after * FPS as f32) as i32);
+        if fighting && army.ordered_at.is_some_and(|at| frame - at >= contact_from) && army.contact_at.is_none() && !army.sees.is_empty() {
+            army.contact_at = Some(frame);
+            duel.notes.push(json!({"contact": side, "f": frame, "sees": army.sees.iter().map(|(i, _)| *i).collect::<Vec<_>>()}));
+        }
         for event in &tick.events {
             match event {
                 Event::UnitDamaged { unit, damage, attacker, .. } if fighting && army.units.contains(unit) => {
@@ -1686,9 +1700,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             let from = commands.len();
             // The raid's hunts, as groups for the lane (design D15).
             let mut hunt_groups: Vec<(String, Vec<UnitId>, GroupOrder)> = Vec::new();
-            // A scenario's side under a script (side 0) or on its track (side 1) takes no orders from the director.
-            let script = rules.script.filter(|_| scenario && side == 0);
-            let on_track = scenario && side == 1 && rules.theirs == Control::Track;
+            // A scenario's side under a script (side 0, and side 1 when the script has rows for it) or on its track
+            // (side 1) takes no orders from the director.
+            let script = rules.script.filter(|s| scenario && s.orders(side));
+            let on_track = scenario && side == 1 && rules.theirs == Control::Track && script.is_none();
             if frame >= advance_at {
                 if army.ordered_at.is_none() {
                     army.ordered_at = Some(frame);
@@ -1699,7 +1714,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 }
                 let settled = army.ordered_at.is_some_and(|at| !scenario || frame - at >= FPS);
                 if let Some(script) = script {
-                    script_orders(army, enemy, script, rules.script_delay, frame, &mut duel.notes, commands);
+                    script_orders(army, enemy, script, side, rules.script_delay, frame, &mut duel.notes, commands);
                     tend_again(army, tick, frame, commands);
                 } else if on_track {
                     track_orders(army, rules.track, frame, commands);
@@ -1994,7 +2009,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 // stalemate's minute, is not a stalemate however quiet it is: a silo's round takes minutes before the
                 // script fires it, and the missile flies for thirteen seconds after.
                 let script_pending = scenario
-                    && rules.script.is_some_and(|s| duel.armies[0].next_row < s.rows.len() || duel.armies[0].last_row_frame.is_some_and(|f| frame - f < STALEMATE));
+                    && rules.script.is_some_and(|s| {
+                        (duel.armies.iter().enumerate()).any(|(i, a)| s.pending(i, &a.rows_sent, a.contact_at.is_some()) || a.last_row_frame.is_some_and(|f| frame - f < STALEMATE))
+                    });
                 let walking: Vec<usize> = (duel.armies[0].alive.keys()).filter_map(|u| duel.armies[0].spawn_of.get(u).copied()).filter(|&i| duel.armies[0].spawns[i].mobile).collect();
                 let reason = if let Some(drill) = &duel.drill {
                     // A drill ends on arrival (an `into`: when everyone has fired) or the time limit alone (`drill.rs`);
@@ -2181,18 +2198,27 @@ fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, with_orders: bo
     }
 }
 
-/// A script's rows that are due (`scenario.rs` `Script`): each row at its time plus `delay` after the first orders, in
-/// file order; a dead unit or a dead target skips the row for that unit. What went out goes into `notes` for the log.
-fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, frame: i32, notes: &mut Vec<Value>, commands: &mut Vec<Command>) {
+/// A script's rows of this side that are due (`scenario.rs` `Script`): each row at its time plus `delay` after the
+/// first orders, or after this side's first contact for a row counted from it, in file order; a dead unit or a dead
+/// target skips the row for that unit. What went out goes into `notes` for the log.
+#[allow(clippy::too_many_arguments)]
+fn script_orders(army: &mut Army, enemy: &Army, script: &Script, side: usize, delay: f32, frame: i32, notes: &mut Vec<Value>, commands: &mut Vec<Command>) {
     let Some(at) = army.ordered_at else { return };
-    let elapsed = (frame - at) as f32 / FPS as f32;
+    let seconds_since = |from: i32| (frame - from) as f32 / FPS as f32;
     let count = army.spawns.len();
     let living = |a: &Army, i: usize| a.unit_of.get(&i).copied().filter(|u| a.alive.contains_key(u));
-    while let Some(row) = script.rows.get(army.next_row)
-        && row.t + delay <= elapsed + 1e-3
-    {
-        let index = army.next_row;
-        army.next_row += 1;
+    for (index, row) in script.rows.iter().enumerate() {
+        let elapsed = match row.from {
+            scenario::Since::Start => seconds_since(at),
+            scenario::Since::Contact => match army.contact_at {
+                Some(contact) => seconds_since(contact),
+                None => continue,
+            },
+        };
+        if row.side != side || army.rows_sent.contains(&index) || row.t + delay > elapsed + 1e-3 {
+            continue;
+        }
+        army.rows_sent.insert(index);
         army.last_row_frame = Some(frame);
         if row.cmd == ScriptCmd::Probe {
             let at = Vec3 { x: row.x.unwrap_or(0.0), y: 0.0, z: row.z.unwrap_or(0.0) };
@@ -2221,7 +2247,9 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                 ScriptCmd::Stop => Command::Stop { unit },
                 ScriptCmd::ClearTarget => Command::ClearTarget { unit },
                 ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
-                ScriptCmd::Fire => Command::FireAt { unit, at: to },
+                ScriptCmd::Movestate => Command::MoveState { unit, state: row.state.unwrap_or(1) },
+                ScriptCmd::Patrol => Command::Patrol { unit, to, queue: row.queue },
+                ScriptCmd::Fire | ScriptCmd::AttackGround => Command::FireAt { unit, at: to },
                 ScriptCmd::Rove => {
                     if !army.roving.contains(&unit) {
                         army.roving.push(unit);
@@ -2259,6 +2287,9 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
             sent.push(i);
         }
         let mut note = json!({"row": index, "f": frame, "cmd": format!("{:?}", row.cmd).to_lowercase(), "sent": sent});
+        if side != 0 {
+            note["side"] = json!(side);
+        }
         if !skipped.is_empty() {
             note["skipped"] = json!(skipped);
         }
@@ -2366,6 +2397,11 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         "stunned": {"x": stunned(x), "y": stunned(y)},
         "orders": std::mem::take(&mut duel.notes),
     });
+    // What each side has of the other in sight (1) or on radar alone (0), by spawn index: when there is any.
+    if !x.sees.is_empty() || !y.sees.is_empty() {
+        let seen = |a: &Army| a.sees.iter().map(|(i, sight)| json!([i, *sight as u8])).collect::<Vec<_>>();
+        line["sees"] = json!({"x": seen(x), "y": seen(y)});
+    }
     if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {
         line["stores"] = json!(stores.iter().map(|v| v.round()).collect::<Vec<_>>());
     }

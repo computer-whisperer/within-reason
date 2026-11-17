@@ -356,6 +356,7 @@ impl Recorder {
                 },
                 Command::Move { unit, to, .. } => json!(["move", unit.0, to.x as i32, to.z as i32]),
                 Command::Fight { unit, to, .. } => json!(["fight", unit.0, to.x as i32, to.z as i32]),
+                Command::Patrol { unit, to, .. } => json!(["patrol", unit.0, to.x as i32, to.z as i32]),
                 Command::FightReclaimingEnemies { unit, to, .. } => json!(["fight_reclaiming_enemies", unit.0, to.x as i32, to.z as i32]),
                 Command::Tend { unit, to } => json!(["tend", unit.0, to.x as i32, to.z as i32]),
                 Command::Stop { unit } => json!(["stop", unit.0]),

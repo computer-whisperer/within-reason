@@ -585,6 +585,7 @@ impl<L: Transport> Instance<L> {
             let (Command::Build { unit, .. }
             | Command::Move { unit, .. }
             | Command::Fight { unit, .. }
+            | Command::Patrol { unit, .. }
             | Command::FightReclaimingEnemies { unit, .. }
             | Command::Tend { unit, .. }
             | Command::Attack { unit, .. }

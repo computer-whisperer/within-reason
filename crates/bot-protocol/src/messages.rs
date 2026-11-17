@@ -793,6 +793,12 @@ pub enum Command {
     Build { unit: UnitId, def: UnitDefId, site: Option<BuildSite>, queue: bool },
     Move { unit: UnitId, to: Vec3, queue: bool },
     Fight { unit: UnitId, to: Vec3, queue: bool },
+    /// The engine's patrol: the unit flies or walks between where it is and `to` (and every further point queued),
+    /// each leg a fight order the engine renews at its end. A fighter on a leg takes the nearest enemy aircraft in
+    /// sight or on radar within 1,000 times its move state of the point on the leg ahead of it (`CAirCAI::ExecuteFight`;
+    /// under manoeuvre only one within 1,000 of the leg itself, under hold position none), kills it and comes back to
+    /// the leg (docs/design/2026-11-16-air-intercept.md).
+    Patrol { unit: UnitId, to: Vec3, queue: bool },
     /// A builder's fight in the engine's enemy-only reclaim mode (`CBuilderCAI::ExecuteFight` with CTRL and META):
     /// it walks the line stopping for nothing of ours (a plain fight makes a builder repair and help build what is
     /// ours beside the line and take wrecks apart), takes apart any enemy unit within its search radius, and its

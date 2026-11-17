@@ -1097,6 +1097,16 @@ const CANCEL_TARGET_COMMAND: c_int = 34924;
                     toPos_posF3: pos.as_mut_ptr(),
                 })
             }
+            Command::Patrol { unit, to, queue } => {
+                let mut pos = self.on_the_ground(to);
+                self.handle(sys::COMMAND_UNIT_PATROL, &mut sys::SPatrolUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: options(queue),
+                    timeOut: NO_TIMEOUT,
+                    toPos_posF3: pos.as_mut_ptr(),
+                })
+            }
             Command::Tend { unit, to } => {
                 let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {

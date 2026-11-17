@@ -34,6 +34,7 @@ fn effect(command: &Command) -> Option<(UnitId, Effect)> {
         Command::Move { unit, queue, .. }
         | Command::Build { unit, queue, .. }
         | Command::Fight { unit, queue, .. }
+        | Command::Patrol { unit, queue, .. }
         | Command::FightReclaimingEnemies { unit, queue, .. }
         | Command::ReclaimFeature { unit, queue, .. }
         | Command::ReclaimUnit { unit, queue, .. }

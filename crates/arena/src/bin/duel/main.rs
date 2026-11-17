@@ -780,6 +780,10 @@ fn parse_args() -> io::Result<Options> {
             eprintln!("--script: side 0 is the script's alone; its lane is off");
             options.lanes[0] = LaneMode::Off;
         }
+        if options.script.as_ref().is_some_and(|s| s.orders(1)) && options.lanes[1] != LaneMode::Off {
+            eprintln!("--script: it has rows for side 1, which is the script's alone too; its lane is off");
+            options.lanes[1] = LaneMode::Off;
+        }
     }
     if options.theirs == Control::Track && options.scenario.as_ref().is_none_or(|s| s.sides[1].track.is_empty()) {
         usage("--theirs track needs a scenario whose side 1 has a track (run/engagement.py --track)");
