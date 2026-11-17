@@ -86,3 +86,9 @@ Found on the way, not from this work (both fail the same on main): `browser.js` 
 eight-seat log is not in before the test looks); `scene.js` failed "as side 1 saw it" on the lobby games because it
 required the first side to see some of the other's units halfway through, which is the game's affair: it now checks
 the ghosts against the tape's own sight masks.
+
+Seen by the user 2026-11-16 ("Good work. One nit: the top bar thrashes left and right with the changing width of the
+various statistic blocks."): every number's cell of the strip now has its width from the start, in digits of its
+longest text (a number is five characters at most), so no column moves under the playhead. Measured through 121
+moments of 1794780805-human: 68 different layouts before, one after, in Chromium and Firefox; `scene.js` checks it
+(one layout through the game, no text wider than its cell). The strip is about 1,520 px wide for two sides.

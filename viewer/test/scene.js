@@ -232,6 +232,17 @@ setTimeout(() => fail("timed out"), 300000);
   if (now.sides < 2 || now.absent) fail(`the strip has no line a side, or a side without the tape's numbers: ${JSON.stringify(now).slice(0, 300)}`);
   if (now.added !== 1 || now.back !== 0) fail(`a click on a number of the strip did not show its chart and a second take it away: ${JSON.stringify(now).slice(0, 300)}`);
   if (now.folds && !now.teams) fail("a side of several players did not unfold");
+  // The strip stands still: through the whole game, as every number changes its length, no cell moves and no text
+  // is wider than its cell.
+  const still = await evaluate(`(() => { const v = window.viewer, at = v.frame, seen = new Set(); let over = 0;
+    for (let i = 0; i <= 120; i++) { v.seek(Math.round((v.match.lastFrame * i) / 120));
+      seen.add([...document.querySelectorAll("#strip tr.side:first-of-type td, #strip th")].map((c) => Math.round(c.getBoundingClientRect().left * 2) / 2).join(","));
+      for (const td of document.querySelectorAll("#strip td.num")) over = Math.max(over, td.firstChild.getBoundingClientRect().width - (td.getBoundingClientRect().width - 14)); }
+    v.seek(at);
+    const strip = document.getElementById("strip");
+    return { layouts: seen.size, over: Math.round(over * 10) / 10, table: Math.round(document.querySelector("#strip table").getBoundingClientRect().width), room: Math.round(strip.getBoundingClientRect().width) }; })()`);
+  if (still.layouts !== 1 || still.over > 0) fail(`the strip's cells move as the numbers change: ${JSON.stringify(still)}`);
+  await settled("after the strip's walk through the game");
   // With a record, a unit of ours: the tape's panel, then the record's part (the hands' picture, its history there).
   let oursPanel = null;
   if (!now.tapeOnly) {
@@ -253,7 +264,7 @@ setTimeout(() => fail("timed out"), 300000);
     oursPanel += ` | in the 2D map at ${Math.round(last * 0.8 / 30)} s: ${at.place}`;
     await evaluate(`document.getElementById("mode").click()`);
   }
-  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} after a seek the resting hover says ${JSON.stringify(rest.first)}, the panel lists ${orders.when.length} orders in ${orders.span ? orders.span.map((t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`).join("-") : "no span"}; lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; the strip: ${now.sides} sides${now.folds ? `, ${now.teams} players unfolded` : ""}, ${now.lanes} lanes, ${JSON.stringify(now.text.slice(0, 80))}`);
+  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} after a seek the resting hover says ${JSON.stringify(rest.first)}, the panel lists ${orders.when.length} orders in ${orders.span ? orders.span.map((t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`).join("-") : "no span"}; lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; the strip: ${now.sides} sides${now.folds ? `, ${now.teams} players unfolded` : ""}, ${now.lanes} lanes, one layout through the game (${still.table} px wide of ${still.room}), ${JSON.stringify(now.text.slice(0, 80))}`);
   if (problems.length) fail(problems.join("\n"));
   console.log(`ok: screenshots in ${out}`);
   browser.kill();

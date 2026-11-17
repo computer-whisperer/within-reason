@@ -51,6 +51,7 @@ body[data-match="1"] .open input { display: none; }
 #strip th.wind { text-align: left; color: var(--ink-2); }
 #strip td { padding: 1px 6px; text-align: right; color: var(--ink); }
 #strip td.first { border-left: 1px solid var(--line); padding-left: 8px; }
+/* (Every number's cell has its width from the start, set with it: no column moves as the numbers change.) */
 #strip td.who { text-align: left; color: var(--ink); padding-left: 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 #strip td.who.folds { cursor: pointer; }
 #strip tr.team td { color: var(--ink-2); font-size: 11.5px; }
@@ -61,7 +62,6 @@ body[data-match="1"] .open input { display: none; }
 #strip td.absent { color: var(--muted); cursor: default; }
 /* A number whose chart is on the timeline. */
 #strip td.charted span { border-bottom: 1px solid var(--jev); }
-#strip td.store { min-width: 104px; }
 #strip .bar { display: block; height: 3px; margin-top: 1px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
 #strip .bar b { display: block; height: 100%; background: #c9c4b0; }
 #strip .bar.energy b { background: #e0c23a; }

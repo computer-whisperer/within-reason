@@ -282,20 +282,22 @@
   // ---------------------------------------------------------------- the strip
 
   /// The strip's columns. A cell is a metric; `of` the capacity beside what is stored, `count` how many units the
-  /// worth is of, `sign` what stands before a flow.
+  /// worth is of, `sign` what stands before a flow. `ch` is the cell's width in digits, the longest its text gets
+  /// ("99.9k / 99.9k", "1,234 · 123k": a number is five characters at most): every cell has its width from the start, so no column moves as the
+  /// numbers change under the playhead.
   const STRIP = [
-    { head: "metal", title: "metal stored of the capacity, then income and spend a second", cells: [{ key: "metal", of: "metal_store" }, { key: "metal_income", sign: "+" }, { key: "metal_spend", sign: "−" }] },
-    { head: "energy", title: "energy stored of the capacity, then income and spend a second", cells: [{ key: "energy", of: "energy_store" }, { key: "energy_income", sign: "+" }, { key: "energy_spend", sign: "−" }] },
-    { head: "build power", title: "the build power of every finished builder and factory", cells: [{ key: "build_power" }] },
-    { head: "builders", title: "finished units that build: commanders, constructors, construction turrets", cells: [{ key: "count_builders" }] },
-    { head: "army", title: "finished units that move on the ground and shoot: how many, and their metal", cells: [{ key: "value_army", count: "count_army" }] },
-    { head: "air", title: "finished aircraft that do not build: how many, and their metal", cells: [{ key: "value_air", count: "count_air" }] },
-    { head: "defence", title: "finished buildings that shoot: how many, and their metal", cells: [{ key: "value_defence", count: "count_defence" }] },
-    { head: "economy", title: "the metal of the finished extractors, generators, converters and stores", cells: [{ key: "value_economy" }] },
-    { head: "extractors", title: "finished metal extractors", cells: [{ key: "extractors" }] },
-    { head: "units", title: "every finished unit", cells: [{ key: "units" }] },
-    { head: "killed", title: "the metal of the other side's finished units this side destroyed, so far", cells: [{ key: "killed_value" }] },
-    { head: "lost", title: "the metal of this side's finished units destroyed, so far", cells: [{ key: "lost_value" }] },
+    { head: "metal", title: "metal stored of the capacity, then income and spend a second", cells: [{ key: "metal", of: "metal_store", ch: 13 }, { key: "metal_income", sign: "+", ch: 6 }, { key: "metal_spend", sign: "−", ch: 6 }] },
+    { head: "energy", title: "energy stored of the capacity, then income and spend a second", cells: [{ key: "energy", of: "energy_store", ch: 13 }, { key: "energy_income", sign: "+", ch: 6 }, { key: "energy_spend", sign: "−", ch: 6 }] },
+    { head: "build power", title: "the build power of every finished builder and factory", cells: [{ key: "build_power", ch: 5 }] },
+    { head: "builders", title: "finished units that build: commanders, constructors, construction turrets", cells: [{ key: "count_builders", ch: 5 }] },
+    { head: "army", title: "finished units that move on the ground and shoot: how many, and their metal", cells: [{ key: "value_army", count: "count_army", ch: 12 }] },
+    { head: "air", title: "finished aircraft that do not build: how many, and their metal", cells: [{ key: "value_air", count: "count_air", ch: 12 }] },
+    { head: "defence", title: "finished buildings that shoot: how many, and their metal", cells: [{ key: "value_defence", count: "count_defence", ch: 12 }] },
+    { head: "economy", title: "the metal of the finished extractors, generators, converters and stores", cells: [{ key: "value_economy", ch: 5 }] },
+    { head: "extractors", title: "finished metal extractors", cells: [{ key: "extractors", ch: 3 }] },
+    { head: "units", title: "every finished unit", cells: [{ key: "units", ch: 5 }] },
+    { head: "killed", title: "the metal of the other side's finished units this side destroyed, so far", cells: [{ key: "killed_value", ch: 5 }] },
+    { head: "lost", title: "the metal of this side's finished units destroyed, so far", cells: [{ key: "lost_value", ch: 5 }] },
   ];
 
   let strip = { key: null, cells: [] };
@@ -344,6 +346,8 @@
         column.cells.forEach((cell, i) => {
           const td = el("td", `num${i === 0 ? " first" : ""}${cell.of ? " store" : ""}`);
           td.title = `${m.metric(cell.key).label}: click for its chart`;
+          // (A digit and a half over the longest text: a letter of the font may be wider than its digits.)
+          td.style.minWidth = `calc(${cell.ch + 1.5}ch + 14px)`;
           td.addEventListener("click", () => WV.timeline.toggleChart(cell.key));
           const text = el("span");
           td.append(text);
