@@ -143,3 +143,14 @@ Tested: the crate's unit tests (the nine classes rule for rule, the new columns,
 without a tape. Not tested: the arena's own capture of a game as it is played (the same widget and packer; `cargo
 check -p arena` passes), a game with ships or a nuke silo on the page (the classes are unit-tested, the two columns
 were not seen), `viewer/test/live.js`.
+
+All seven games are taped again in the worktree (the Tangerine 3v3: engine 415 s, 27.2 MB) and each is the same as its
+raw stream. The Tangerine tape at 20:00 agrees with its format 5 tape where they share a number (metal +291.1 and
++352.3, army 20,339 and 45,375) and adds: wind 12.5; the people 12,413 of 25,645 build power in use, 29 of their 63
+constructors without an order, 15,582 metal reclaimed against our 722, 3,000 metal of strategic buildings; our 110
+orders a second against their 29. Its strip has the strategic column and is 1,475 px wide for two sides (the cells'
+slack and padding were trimmed for it; at a 1,600 px window the first cut was 58 px too wide and grew a scroll bar).
+
+`scene.js` on that game failed in Firefox alone at "the hover after a seek": the view's centre fell on half a pixel
+in the new layout, Firefox hands the page a whole-pixel mouse position and the test looked up the unit at the
+unrounded centre. The test now rests the mouse on a whole pixel and looks up that same place.

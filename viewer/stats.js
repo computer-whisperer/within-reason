@@ -362,8 +362,8 @@
         column.cells.forEach((cell, i) => {
           const td = el("td", `num${i === 0 ? " first" : ""}${cell.of ? " store" : ""}`);
           td.title = `${m.metric(cell.key).label}: click for its chart`;
-          // (A digit and a half over the longest text: a letter of the font may be wider than its digits.)
-          td.style.minWidth = `calc(${cell.ch + 1.5}ch + 14px)`;
+          // (A digit over the longest text: a letter of the font may be wider than its digits.)
+          td.style.minWidth = `calc(${cell.ch + 1}ch + 12px)`;
           td.addEventListener("click", () => WV.timeline.toggleChart(cell.key));
           const text = el("span");
           td.append(text);

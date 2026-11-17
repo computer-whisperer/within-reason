@@ -127,7 +127,9 @@ setTimeout(() => fail("timed out"), 300000);
   await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
   await settled("reset");
   const box = await evaluate(`(() => { const r = window.viewer.scene.canvas.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()`);
-  const [cx, cy] = [box[0] + box[2] / 2, box[1] + box[3] / 2];
+  // (A whole pixel: a browser may hand the page a mouse position rounded, and what is looked up later at "the place
+  // the mouse rests" must be that same place, not half a pixel beside it.)
+  const [cx, cy] = [Math.round(box[0] + box[2] / 2), Math.round(box[1] + box[3] / 2)];
   const camera = () => evaluate("(() => { const c = window.viewer.scene.camera; return [c.target[0], c.target[2], c.distance, c.yaw, c.pitch]; })()");
   const before = await camera();
   await page.wheel(cx, cy, -600);
@@ -169,7 +171,7 @@ setTimeout(() => fail("timed out"), 300000);
   await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
   const fewLines = await linesNow("the lines halfway");
   // The mouse has rested at the centre since the click: after the seek the hover names what is under it now.
-  const rest = await evaluate(`(() => { const s = window.viewer.scene, r = s.canvas.getBoundingClientRect(), row = s.pick(r.width / 2, r.height / 2), t = document.getElementById("tooltip");
+  const rest = await evaluate(`(() => { const s = window.viewer.scene, r = s.canvas.getBoundingClientRect(), row = s.pick(${cx} - r.left, ${cy} - r.top), t = document.getElementById("tooltip");
     return { id: row >= 0 ? s.tape.unit(row).id : null, first: t.hidden ? "" : t.textContent.split("\\n")[0] }; })()`);
   if (rest.id != null ? !rest.first.includes(`#${rest.id}`) : /#\d+/.test(rest.first)) fail(`the hover after a seek, the mouse still: ${JSON.stringify(rest)}`);
   // The selected unit's orders: each one listed inside the span its heading names, once that span is read.
@@ -237,7 +239,7 @@ setTimeout(() => fail("timed out"), 300000);
   const still = await evaluate(`(() => { const v = window.viewer, at = v.frame, seen = new Set(); let over = 0;
     for (let i = 0; i <= 120; i++) { v.seek(Math.round((v.match.lastFrame * i) / 120));
       seen.add([...document.querySelectorAll("#strip tr.side:first-of-type td, #strip th")].map((c) => Math.round(c.getBoundingClientRect().left * 2) / 2).join(","));
-      for (const td of document.querySelectorAll("#strip td.num")) over = Math.max(over, td.firstChild.getBoundingClientRect().width - (td.getBoundingClientRect().width - 14)); }
+      for (const td of document.querySelectorAll("#strip td.num")) over = Math.max(over, td.firstChild.getBoundingClientRect().width - (td.getBoundingClientRect().width - 10)); }
     v.seek(at);
     const strip = document.getElementById("strip");
     return { layouts: seen.size, over: Math.round(over * 10) / 10, table: Math.round(document.querySelector("#strip table").getBoundingClientRect().width), room: Math.round(strip.getBoundingClientRect().width) }; })()`);

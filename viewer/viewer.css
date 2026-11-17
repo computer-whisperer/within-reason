@@ -46,14 +46,14 @@ body[data-match="1"] .open::before { content: "open files"; font-size: 11px; cur
 body[data-match="1"] .open input { display: none; }
 #strip { flex: 1; min-width: 0; overflow-x: auto; }
 #strip table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-#strip th { color: var(--muted); font-weight: 400; font-size: 10.5px; text-align: center; padding: 0 8px; border-left: 1px solid var(--line); }
+#strip th { color: var(--muted); font-weight: 400; font-size: 10.5px; text-align: center; padding: 0 4px; border-left: 1px solid var(--line); }
 #strip th.who { text-align: left; border-left: 0; }
-#strip th.wind { text-align: left; color: var(--ink-2); min-width: 190px; font-variant-numeric: tabular-nums; cursor: pointer; }
+#strip th.wind { text-align: left; color: var(--ink-2); min-width: 176px; padding-left: 8px; font-variant-numeric: tabular-nums; cursor: pointer; }
 #strip th.wind.charted { text-decoration: underline; text-decoration-color: var(--jev); }
-#strip td { padding: 1px 6px; text-align: right; color: var(--ink); }
-#strip td.first { border-left: 1px solid var(--line); padding-left: 8px; }
+#strip td { padding: 1px 5px; text-align: right; color: var(--ink); }
+#strip td.first { border-left: 1px solid var(--line); padding-left: 6px; }
 /* (Every number's cell has its width from the start, set with it: no column moves as the numbers change.) */
-#strip td.who { text-align: left; color: var(--ink); padding-left: 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+#strip td.who { text-align: left; color: var(--ink); padding-left: 2px; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
 #strip td.who.folds { cursor: pointer; }
 #strip tr.team td { color: var(--ink-2); font-size: 11.5px; }
 #strip tr.team td.who { padding-left: 16px; }
