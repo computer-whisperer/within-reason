@@ -162,3 +162,16 @@ uboat4, boat9), and my unit test had used the files' spelling, so it passed on a
 ignores case and the test uses the names read off a tape; `tape stats --types` lists each type's group and move class
 beside its class. No tape needs making again for it (a class is read off the tape, not written in it). With the sea
 and the strategic column both, that game's strip is 1,563 px wide for two sides.
+
+## 7. Merged (2026-11-16, e3f52637)
+
+On the user's word ("We should be good to merge the branch and re-run tape captures on the recent human games."),
+six commits. In main the seven lobby games of 2026-11-15 are taped again in format 6, each the same as its raw
+stream (engine 69 s for the shortest to 385 s for the Tangerine 3v3, seven at once), and `viewer/test/scene.js`
+passes against main's own viewer on the Tangerine game in Firefox and Chromium. What sections 5 and 6 say of a
+separate viewer on port 1237 and of main's tapes staying format 5 is history: that viewer is stopped. The side
+worktree `within-reason.viewer-stats` still stands with its copies of the seven games; removing it waits for his
+word. The lobby games of 2026-11-12 and 2026-11-14 have no demo in their match directories and so no tape.
+
+Open: BAR's marks on the charts (first tier 2, a fusion, a commander lost, a strike); the arena's own capture on
+format 6 and a game being played live are untested; the wind of a game without a tape.
