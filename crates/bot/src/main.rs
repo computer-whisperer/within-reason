@@ -124,6 +124,15 @@ fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
     let ToBot::Hello(hello) = next()? else {
         return Err(io::Error::other("expected Hello first"));
     };
+    // One session a team: a lobby can enter two AIs under one team (`team::Seat`), and the second sits out.
+    let _seat = match team::Seat::take(hello.game_id, hello.team, hello.ai_id) {
+        Ok(seat) => seat,
+        Err(holder) => {
+            let words = session::seat_taken_words(hello.team, &brain::ai_entries(&hello.script, hello.team));
+            eprintln!("[ai {}] sits out: team {} is played by ai {holder}, and this AI is entered under it too. {words} This entry has no player, no hands and no record.", hello.ai_id, hello.team);
+            return session::sit_out(stream, next, &words);
+        }
+    };
     // A player session that fails to start is not fatal: the hands play alone.
     let board = team::TeamBoard::of(&hello);
     strategist::note_bonuses(&hello);

@@ -77,6 +77,9 @@ tokens (`bots/README.md`).
    engine's own list is a greedy packing capped at 10,000; `metal_fields` carries the metal's connected regions with their
    room in extractors, and `map.extractor_worth` what a tier-1 extractor draws there (`docs/design/2026-11-01-metal-maps.md`).
 2. bot → shim `Commands(vec)` — also serves as "ready for next tick" credit.
+   A `Hello` for a team another AI of the same game already plays (a lobby can enter two AIs under one team:
+   `docs/harness/pitfalls.md`) starts no session: that AI sits out, its every tick answered with no orders, and says so
+   once in the chat and the log (`team::Seat`, `session::sit_out`).
 3. shim → bot `Tick { frame, late, events, snapshot }` — due every `tick_frames` frames (3, 10 Hz, since 2026-09-20; `Hello`
    carries the setting, `WITHIN_REASON_TICK_FRAMES` overrides it with another divisor of 15) and sent at the first UPDATE at
    which the shim holds credit, `late` being the frames it waited. Events that occur while waiting are buffered, not

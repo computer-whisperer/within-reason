@@ -301,6 +301,32 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
     }
 }
 
+/// What the people at the game and the log are told when the lobby entered this AI under a team another AI of ours
+/// already plays (`team::Seat`): `entries` are the lobby's names of the AIs on that team, when the script gave them.
+pub(crate) fn seat_taken_words(team: i32, entries: &[String]) -> String {
+    let who = match entries {
+        [] | [_] => "two AIs".to_string(),
+        [first @ .., last] => format!("{} and {last}", first.join(", ")),
+    };
+    format!("The lobby gave {who} the same player ID (engine team {team}), so only one of them plays and this side is a seat short. Removing one and adding it again in the lobby should give it its own.")
+}
+
+/// A seat that is not played: the session of an AI whose team another AI of ours already plays. No player, no hands,
+/// no record: two sessions over one team's units cost twice the tokens and order against each other. Every tick is
+/// answered with no orders, so the engine's side keeps its connection (a closed one comes back each second as a
+/// fresh Hello), and the people at the game are told once, in the chat, when the engine takes a line.
+pub(crate) fn sit_out(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<ToBot>, words: &str) -> io::Result<()> {
+    let mut lines = crate::brain::chat_lines(words);
+    write_frame(&mut stream, &Commands::default())?;
+    loop {
+        let ToBot::Tick(tick) = next()? else {
+            return Err(io::Error::other("unexpected second Hello"));
+        };
+        let say = if tick.frame >= crate::brain::SAY_FROM_FRAME { std::mem::take(&mut lines) } else { Vec::new() };
+        write_frame(&mut stream, &Commands(say.into_iter().map(|text| Command::Say { text, to: bot_protocol::SayTo::Everyone }).collect()))?;
+    }
+}
+
 /// The brain's thread: `decide` on every tick handed over, until the fast thread is gone. Ticks that piled up while
 /// the brain worked (realtime, the brain slower than the tick) are folded into one: the newest snapshot, every event
 /// in order, and `late` set so that `Tick::due` is the think frame among them when there was one, so the brain's
@@ -334,5 +360,45 @@ fn brain_thread(mut brain: Brain, from_fast: mpsc::Receiver<(Arc<Tick>, LaneRepo
         if to_fast.send(answer).is_err() {
             return;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bot_protocol::{FrameReader, SayTo, Snapshot};
+
+    /// The engine's side of a connection, as the shim plays it: a tick out, the answer in.
+    fn exchange(shim: &mut UnixStream, reader: &mut FrameReader, frame: i32) -> Vec<Command> {
+        write_frame(shim, &ToBot::Tick(Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot::default() })).unwrap();
+        reader.read::<Commands>(shim).unwrap().expect("a blocking socket").0
+    }
+
+    /// 1794880397-human: the second AI on team 3 answers every tick with no orders, says why once the engine takes a
+    /// chat line, in lines the engine does not cut and our other seats take for our own, and ends with the connection.
+    #[test]
+    fn a_seat_that_sits_out_answers_every_tick_and_says_why_once() {
+        let words = seat_taken_words(3, &["WReason0.1(2)".to_string(), "WReason0.1(3)".to_string()]);
+        assert!(words.starts_with("The lobby gave WReason0.1(2) and WReason0.1(3) the same player ID (engine team 3)"), "{words}");
+        assert!(seat_taken_words(3, &[]).starts_with("The lobby gave two AIs the same player ID"));
+        let (mut shim, bot) = UnixStream::pair().unwrap();
+        let mut input = bot.try_clone().unwrap();
+        let mut frames = FrameReader::default();
+        let session = std::thread::spawn(move || sit_out(bot, move || frames.read::<ToBot>(&mut input).map(|m| m.expect("a blocking socket")), &words));
+        let mut reader = FrameReader::default();
+        // The answer to Hello: the credit for the first tick.
+        assert!(reader.read::<Commands>(&mut shim).unwrap().expect("a blocking socket").0.is_empty());
+        assert!(exchange(&mut shim, &mut reader, 0).is_empty());
+        assert!(exchange(&mut shim, &mut reader, crate::brain::SAY_FROM_FRAME - 3).is_empty());
+        let said = exchange(&mut shim, &mut reader, crate::brain::SAY_FROM_FRAME);
+        assert_eq!(said.len(), 2, "{said:?}");
+        for command in &said {
+            let Command::Say { text, to } = command else { panic!("{command:?}") };
+            assert_eq!(*to, SayTo::Everyone);
+            assert!(text.starts_with(crate::brain::CHAT_PREFIX) && text.chars().count() <= 127, "{text}");
+        }
+        assert!(exchange(&mut shim, &mut reader, crate::brain::SAY_FROM_FRAME + 3).is_empty());
+        drop(shim);
+        assert!(session.join().unwrap().is_err());
     }
 }

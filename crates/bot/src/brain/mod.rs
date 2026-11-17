@@ -13,6 +13,7 @@ mod guns;
 pub mod journal;
 mod micro;
 mod people;
+pub(crate) use people::ai_entries;
 pub mod pianist;
 mod planner;
 mod scout;
@@ -72,6 +73,9 @@ struct Taking {
 }
 
 const FRAMES_PER_SECOND: i32 = 30;
+/// The frame from which the engine takes an AI's chat line: a seat's banner goes out then, and a seat that sits out
+/// says so then (`session::sit_out`).
+pub(crate) const SAY_FROM_FRAME: i32 = 2 * FRAMES_PER_SECOND;
 /// Frames between runs of the whole brain (`think`), 2 Hz: the shim's ticks come more often than that, for the
 /// control lane (`micro.rs`), and must divide this (`docs/design/2026-09-20-micro-lane.md`).
 pub(crate) const BRAIN_FRAMES: i32 = 15;
@@ -713,7 +717,7 @@ impl Brain {
         self.timed("nanos", |b| b.tend_nanos(tick, &mut commands));
         self.timed("chat", |b| b.relay_chat(tick, &mut commands));
         // The game names AIs at random (ai_namer.lua), so the bot says who it is, once the engine takes orders.
-        if tick.frame >= 2 * FRAMES_PER_SECOND
+        if tick.frame >= SAY_FROM_FRAME
             && let Some(banner) = self.banner.take()
         {
             let side = self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map_or("?", |t| t.side.as_str());

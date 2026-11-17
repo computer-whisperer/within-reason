@@ -64,6 +64,39 @@ pub struct Others {
 
 static BOARDS: Mutex<Vec<(u64, i32, Weak<TeamBoard>)>> = Mutex::new(Vec::new());
 
+/// Which AI plays each team of each game this process is in: the game, the team, the AI, the hold's own number.
+static SEATS: Mutex<Vec<(u64, i32, i32, u64)>> = Mutex::new(Vec::new());
+
+/// A session's hold on the team it plays, from its Hello to its end. A lobby can enter two AIs under one team, and
+/// the engine then runs both over the same units (1794880397-human, `docs/harness/pitfalls.md`: the autohost's script
+/// had `[ai1]` and `[ai2]` on team 3, and two whole sessions, a player and hands each, drove one commander for 26
+/// minutes). The second to say Hello is refused the seat and sits out (`session::sit_out`).
+pub struct Seat {
+    hold: u64,
+}
+
+impl Seat {
+    /// Takes `team` of `game` for `ai`, or names the other AI of this process that plays it. The same AI asking again
+    /// takes its seat over: its connection dropped and came back before its old session saw the end.
+    pub fn take(game: u64, team: i32, ai: i32) -> Result<Seat, i32> {
+        static HOLDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let mut seats = SEATS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(&(_, _, holder, _)) = seats.iter().find(|(g, t, a, _)| (*g, *t) == (game, team) && *a != ai) {
+            return Err(holder);
+        }
+        seats.retain(|(g, t, ..)| (*g, *t) != (game, team));
+        let hold = HOLDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        seats.push((game, team, ai, hold));
+        Ok(Seat { hold })
+    }
+}
+
+impl Drop for Seat {
+    fn drop(&mut self) {
+        SEATS.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).retain(|(.., hold)| *hold != self.hold);
+    }
+}
+
 impl TeamBoard {
     /// The board of this seat's game and ally team, shared with every other session of this process that plays it.
     pub fn of(hello: &Hello) -> Arc<TeamBoard> {
@@ -164,5 +197,25 @@ mod tests {
         assert!(board.exchange(3, post(30, 30.0, 7)).lead_target.is_none());
         // A seat that has stopped posting drops out.
         assert!(board.exchange(3, post(300, 30.0, 7)).with_us.is_empty());
+    }
+
+    #[test]
+    fn a_team_is_played_by_one_ai_of_a_game() {
+        // A game number of this test's own: the seats are the process's, and tests run side by side.
+        let game = 0x5ea7_0001;
+        let first = Seat::take(game, 3, 1).expect("the first AI on team 3 plays it");
+        // 1794880397-human: `[ai2]` of the script on team 3 as well.
+        assert_eq!(Seat::take(game, 3, 2).err(), Some(1));
+        // Another team of the game, and the same team of another game, are other seats.
+        let _other_team = Seat::take(game, 2, 0).expect("team 2 is free");
+        let _other_game = Seat::take(game + 1, 3, 2).expect("another game's team 3 is free");
+        // The holder's connection came back before its old session ended: it plays on, and the old session's end
+        // does not free the seat under it.
+        let again = Seat::take(game, 3, 1).expect("the same AI takes its seat over");
+        drop(first);
+        assert_eq!(Seat::take(game, 3, 2).err(), Some(1));
+        // Its session over, the seat is free.
+        drop(again);
+        assert!(Seat::take(game, 3, 2).is_ok());
     }
 }

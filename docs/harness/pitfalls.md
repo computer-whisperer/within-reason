@@ -106,6 +106,29 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
   for two of three seats. Between the drops some orders were likely misread without an error. Since then the
   connection opens with a protocol handshake that refuses a mismatch (DESIGN.md, Protocol 0), and `run/human_game.sh`
   refuses to start while the client's installed library is not `target/release/libai_shim.so`.
+- **A lobby can enter two AIs under one team, and the engine runs both.** 1794880397-human (2026-11-16, two people
+  against three seats of ours on Comet Catcher): the autohost's script had `[ai1]` and `[ai2]` on team 3, the engine
+  gave both the team ("took over control of team 3" twice in the client's infolog), and two whole sessions, a player
+  and hands each, drove one commander for 26 minutes. The side was a seat short, each of the two hands took 1.6M
+  tokens in a minute at the end against 0.8M for the clean seat, and the two dropped 33 and 20 build orders against 1
+  (whether they ordered against each other was not checked order by order). The symptom: two `[ai N] team T` lines
+  with one T at the top of `bot.log`, one name twice among the banners.
+  The host's side, read in stock SPADS (`upstream/SPADS/src/spads.pl`; BAR's hosts add a plugin that was not read,
+  the chat's messages are this code's): the start check refuses a shared ID only across ally teams (`getBattleState`);
+  the automatic balance, the step that renumbers the IDs, fires only when the head-count divides evenly among the
+  teams, so never for two people and three AIs in a "team" room; `!forcestart` skips "battle hasn't been balanced
+  yet". A "coop" room renumbers every AI at each balance, and the three-seat games before this one were coop rooms.
+  How the third AI came to be added with the second's ID is not known: the client logs none of the lobby's traffic
+  (a race between the balance of four entries and the adding of the fifth is a guess, untested). The next game in the
+  same room (1794882434-human) had three teams for three AIs after one was removed and added again.
+  Since 2026-11-16 the bot plays a team once (`team::Seat`, `session::sit_out`): the second AI of a game to say Hello
+  for a team sits out with no player, no hands and no record, answers every tick with no orders, and says so once in
+  the chat (`[WReason] The lobby gave WReason0.1(2) and WReason0.1(3) the same player ID (engine team 3), so only one
+  of them plays ...`) and in `bot.log` (`[ai N] sits out: ...`). The side is still a seat short. Checked in a headless
+  game from a script of that shape written by hand (three of our AIs, two on team 1, against NullAI; no arena flag
+  makes one): the lines went out whole at frame 61, the other two seats played, the idle connection held to the end,
+  no file was written for the idle AI. Not covered: the bots of `bots/` (two entries of one on a team both play it),
+  and a playing AI whose session fails leaves its team unplayed, the idle one staying idle.
 - The shim says Hello at `init` since 2026-10-01 (the opening turn, `docs/design/2026-09-30-opening-turn.md`): a shim
   installed before that connects at the first frame, the opening turn then starts as the game does, and the hands wait
   for it with the game running. Re-run `run/install_to_bar.sh` before a game with people. The bot must be listening

@@ -89,6 +89,18 @@ pub(super) fn host_of(script: &str, team: i32) -> Option<i32> {
     numbered_sections(script, "ai").into_iter().find(|(_, body)| value(body, "team").and_then(|t| t.parse::<i32>().ok()) == Some(team)).and_then(|(_, body)| value(&body, "host")?.parse().ok())
 }
 
+/// The lobby's names of the AIs the script enters under `team` (`WReason0.1(2)`), in the order of their sections'
+/// numbers: more than one when the lobby gave two of them one team (`team::Seat`).
+pub(crate) fn ai_entries(script: &str, team: i32) -> Vec<String> {
+    let mut entries: Vec<(i32, String)> = numbered_sections(script, "ai")
+        .into_iter()
+        .filter(|(_, body)| value(body, "team").and_then(|t| t.parse::<i32>().ok()) == Some(team))
+        .map(|(number, body)| (number, value(&body, "name").unwrap_or_default()))
+        .collect();
+    entries.sort();
+    entries.into_iter().map(|(_, name)| name).filter(|name| !name.is_empty()).collect()
+}
+
 impl Brain {
     /// The person hosting this AI, when the script names one.
     fn host(&self) -> Option<Person> {
@@ -172,6 +184,18 @@ mod tests {
         assert_eq!(host_of(arena, 5), None);
         let host = people(lobby).into_iter().find(|p| p.player == host_of(lobby, 1).unwrap()).unwrap();
         assert!(host.spectator, "the lobby's host watches");
+    }
+
+    /// 1794880397-human, the sections in the autohost's order: two of the three AIs on team 3.
+    #[test]
+    fn the_script_names_every_ai_entered_under_a_team() {
+        let lobby = "[game]\n{\n[ai1]\n{\nteam=3;\nhost=1;\nname=WReason0.1(2);\nshortname=WReason;\n}\n[ai2]\n{\nteam=3;\nhost=1;\nname=WReason0.1(3);\nshortname=WReason;\n}\n[player1]\n{\nteam=1;\nname=computer_whisperer;\nspectator=0;\n}\n[ai0]\n{\nteam=2;\nhost=1;\nname=WReason0.1(1);\nshortname=WReason;\n}\n}";
+        assert_eq!(ai_entries(lobby, 3), vec!["WReason0.1(2)", "WReason0.1(3)"]);
+        assert_eq!(ai_entries(lobby, 2), vec!["WReason0.1(1)"]);
+        // A person's team has no AI entry.
+        assert!(ai_entries(lobby, 1).is_empty());
+        let arena = "[GAME]\n{\n\t[AI1] { Name=ai1; Team=1; Host=0; ShortName=BARb; [OPTIONS] { profile=hard; } }\n\t[AI0] { Name=ai0; Team=0; Host=0; ShortName=WReason; Version=0.1; }\n}";
+        assert_eq!(ai_entries(arena, 1), vec!["ai1"]);
     }
 
     /// A player on our side is shown all-chat, our allies' team chat and spectators' visible lines; nothing else.
