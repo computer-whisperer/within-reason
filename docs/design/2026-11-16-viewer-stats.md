@@ -154,3 +154,11 @@ slack and padding were trimmed for it; at a 1,600 px window the first cut was 58
 `scene.js` on that game failed in Firefox alone at "the hover after a seek": the view's centre fell on half a pixel
 in the new layout, Firefox hands the page a whole-pixel mouse position and the test looked up the unit at the
 unrounded centre. The test now rests the mouse on a whole pixel and looks up that same place.
+
+**The ships (the user, 2026-11-16, on my "none of the seven has ships": "The tangerine game did have ships.").** It
+did: the people's Black Hydra and two Arrow Storms, 23,000 metal, counted as army. The rule matched the move classes
+as the game's files spell them (BOAT4, UBOAT4, EPICSHIP); the engine hands a widget the names in lower case (boat4,
+uboat4, boat9), and my unit test had used the files' spelling, so it passed on a rule that never fired. The rule now
+ignores case and the test uses the names read off a tape; `tape stats --types` lists each type's group and move class
+beside its class. No tape needs making again for it (a class is read off the tape, not written in it). With the sea
+and the strategic column both, that game's strip is 1,563 px wide for two sides.

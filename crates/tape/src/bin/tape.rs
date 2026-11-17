@@ -49,9 +49,9 @@ fn stats_table(stats: &tape::stats::Stats, every: usize, at: Option<usize>, by_t
     use tape::stats::{CLASSES, METRICS};
     let mut out = String::new();
     if types {
-        writeln!(out, "type\tname\tclass\tmetal").unwrap();
+        writeln!(out, "type\tname\tclass\tmetal\tgroup\tmove class").unwrap();
         for t in &stats.types {
-            writeln!(out, "{}\t{}\t{}\t{}", t.name, t.human, CLASSES[t.class], t.metal).unwrap();
+            writeln!(out, "{}\t{}\t{}\t{}\t{}\t{}", t.name, t.human, CLASSES[t.class], t.metal, t.group, t.move_class).unwrap();
         }
         return out;
     }

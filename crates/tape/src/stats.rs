@@ -142,6 +142,9 @@ pub struct Type {
     pub metal: f32,
     pub class: usize,
     pub extractor: bool,
+    /// What the class was read from: the game's `unitgroup` and the type's move class.
+    pub group: String,
+    pub move_class: String,
 }
 
 pub struct Stats {
@@ -212,8 +215,10 @@ pub fn class_of(def: &Value, armed: bool) -> usize {
     if yes(def, "air") {
         return class("air");
     }
-    // A move class is named by its kind and a number: BOAT4, UBOAT4, EPICSHIP.
-    let kind: String = def.get("move_class").and_then(Value::as_str).unwrap_or("").chars().take_while(|c| c.is_ascii_uppercase()).collect();
+    // A move class is named by its kind and a number. The game's files write BOAT4, UBOAT4, EPICSHIP; the engine
+    // hands a widget the name in lower case (boat4, uboat4: read off a tape, 2026-11-16, after the first cut of
+    // this rule matched the files' spelling alone and counted every ship as army).
+    let kind: String = def.get("move_class").and_then(Value::as_str).unwrap_or("").chars().take_while(|c| c.is_ascii_alphabetic()).map(|c| c.to_ascii_uppercase()).collect();
     if ["BOAT", "UBOAT", "EPICSHIP"].contains(&kind.as_str()) {
         return class("sea");
     }
@@ -236,6 +241,8 @@ pub fn types(defs: &Value) -> Vec<Type> {
                 metal: num(d, "metal") as f32,
                 class: class_of(d, armed),
                 extractor: num(d, "extracts") > 0.0,
+                group: text("group"),
+                move_class: text("move_class"),
             }
         })
         .collect()
@@ -455,17 +462,20 @@ mod tests {
             { "team": 0, "ally": 0, "name": "a" }, { "team": 1, "ally": 1, "name": "" , "side": "cortex" }, { "team": 2, "ally": 2, "gaia": true, "name": "gaia" } ] });
         let defs = serde_json::json!({
             "units": [
-                { "id": 1, "name": "tank", "human": "Tank", "speed": 60, "metal": 100, "weapons": [7], "group": "weapon", "move_class": "TANK3" },
+                { "id": 1, "name": "tank", "human": "Tank", "speed": 60, "metal": 100, "weapons": [7], "group": "weapon", "move_class": "tank3" },
                 { "id": 2, "name": "mex", "human": "Extractor", "speed": 0, "metal": 50, "extracts": 0.001, "weapons": [], "group": "metal" },
                 { "id": 3, "name": "con", "human": "Constructor", "speed": 40, "builder": true, "build_speed": 80, "metal": 120, "weapons": [7], "group": "builder" },
                 { "id": 4, "name": "gun", "human": "Gun", "speed": 0, "metal": 80, "energy_store": 100, "weapons": [7], "group": "weapon" },
                 { "id": 5, "name": "wall", "human": "Wall", "speed": 0, "metal": 5, "weapons": [] },
-                { "id": 6, "name": "ship", "human": "Ship", "speed": 50, "metal": 300, "weapons": [7], "group": "weapon", "move_class": "BOAT4" },
+                { "id": 6, "name": "ship", "human": "Ship", "speed": 50, "metal": 300, "weapons": [7], "group": "weapon", "move_class": "boat4" },
+                { "id": 14, "name": "sub", "human": "Sub", "speed": 50, "metal": 300, "weapons": [7], "group": "sub", "move_class": "uboat4" },
+                { "id": 15, "name": "flagship", "human": "Flagship", "speed": 30, "metal": 21000, "weapons": [7], "group": "weapon", "move_class": "EPICSHIP" },
+                { "id": 16, "name": "hover", "human": "Hovercraft", "speed": 80, "metal": 75, "weapons": [7], "group": "weapon", "move_class": "hover2" },
                 { "id": 7, "name": "silo", "human": "Silo", "speed": 0, "metal": 8000, "weapons": [7], "group": "nuke" },
-                { "id": 8, "name": "floating silo", "human": "Silo", "speed": 20, "metal": 8000, "weapons": [7], "group": "nuke", "move_class": "BOAT4" },
+                { "id": 8, "name": "floating silo", "human": "Silo", "speed": 20, "metal": 8000, "weapons": [7], "group": "nuke", "move_class": "boat4" },
                 { "id": 9, "name": "radar", "human": "Radar", "speed": 0, "metal": 60, "weapons": [], "group": "util" },
                 { "id": 10, "name": "plane", "human": "Plane", "speed": 200, "air": 1, "metal": 150, "weapons": [7], "group": "weapon" },
-                { "id": 11, "name": "scout", "human": "Scout", "speed": 90, "metal": 30, "weapons": [], "move_class": "BOT1" },
+                { "id": 11, "name": "scout", "human": "Scout", "speed": 90, "metal": 30, "weapons": [], "move_class": "bot1" },
                 { "id": 12, "name": "plant", "human": "Plant", "speed": 0, "factory": 1, "builder": 1, "metal": 600, "weapons": [] },
                 { "id": 13, "name": "long gun", "human": "Long gun", "speed": 0, "metal": 4500, "weapons": [7], "group": "weapon", "lrpc": 1 } ],
             "weapons": [{ "id": 7, "damage": 10 }],
@@ -544,7 +554,11 @@ mod tests {
         assert_eq!(class("silo"), "strategic");
         assert_eq!(class("floating silo"), "strategic");
         assert_eq!(class("long gun"), "strategic");
+        // (The move class as the engine hands it to a widget, lower case, and as the game's files spell it.)
         assert_eq!(class("ship"), "sea");
+        assert_eq!(class("sub"), "sea");
+        assert_eq!(class("flagship"), "sea");
+        assert_eq!(class("hover"), "army");
         assert_eq!(class("plane"), "air");
         // What moves on the ground without a weapon is utility.
         assert_eq!(class("scout"), "utility");
