@@ -260,6 +260,46 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
   `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.
 
+### Air drills: a bombing run flown again (2026-11-16)
+
+`docs/design/2026-11-16-air-intercept.md`. A run is cut from a game's tape and flown against a defence we choose:
+
+    run/air_scene.py <match dir | audit.jsonl> --frame F --target X,Z --bombers corhurc [--prelude X,Z;X,Z]
+        [--fighters armfig*12@X,Z] [--add armarad@X,Z ...] [--arm none|hold|idle|patrol|fight|spread|patrol_fight|patrol_spread]
+        [--state 2] [--delay 0.5] [--loop 900] [--toward X,Z] [--lead 12] --out PREFIX
+    target/release/duel --scenario PREFIX.json --script PREFIX.script.json --reps 8 --parallel 1 --time-limit 150 --label L
+    run/air_drill.py run/matches/<batch> ... [--reps]
+
+The cutter reads the tape's audit dump (`tape audit <game.tape> -o -`, or a file of it). Side 1 is the bombers that
+were given the attack at the ground, where they stood at frame `F`, and the script's rows for them are their player's
+own move and attack orders from `F` on, `--lead` seconds late. Side 0 is ours as it stood at `F`, finished units only:
+everything within `--block` (1,200) of the target, the anti-air within `--anti-air` (3,000), every radar, everything
+within `--near-path` (1,200) of where the bombers then flew; no aircraft of ours, no commander. `--fighters` and
+`--add` put the defence under test beside it, and `--arm` writes the fighters' rows (the tool's own text says what
+each arm is). The bombers are given standing and a Hailstorm takes fifteen seconds to its speed: cut from where they
+waited or far out (the first cut, from thirteen seconds before the first contact, had them come at 170 to 220 a
+second in a column a thousand long, and the anti-air killed three before the block).
+
+What the scripts gained for it (`scenario.rs`): a row's `"side": 1` orders side 1, and a side with a row is the
+script's alone (side 0 always is: a script with rows for side 1 only leaves ours standing, the baseline); a row's
+`"from": "contact"` counts its `t` from the first tick its side had a unit of the other side in sight or on radar;
+the rows `patrol` (`Command::Patrol`, new in the protocol: the engine's patrol, further corners queued), `movestate`
+and `attack_ground` (`Command::FireAt`); the file's `"contact_after": S` counts no contact in the first `S` seconds.
+The per-second log says what each side has of the other (`sees`: {x, y: [[index, 1 in sight or 0 on radar alone]]})
+and notes the first contact among its `orders` (`{"contact": side, "f", "sees"}`).
+
+**Why `contact_after`.** In the first duel of a match (air-run2-none, 2026-11-16) one bomber given standing 3,200
+from anything of ours was in our side's sight, type known, for five seconds from its first order, and never in the
+duels after it on the same field; the cause was not found (the engine's own `getEnemyUnitsInRadarAndLos` said so).
+The cutter writes `contact_after` as the lead plus eight seconds.
+
+**How near the drill is to the game** (the baselines, no fighters; `air-run1-none`, `air-run2-none`, three
+repetitions each): run 1 lost 13,250 to 13,480 metal and three fusions with no bomber down before the bombs, seventeen
+seconds after the first contact (the game: 14,540, three fusions, none down, fifteen seconds); run 2 lost 39,782 to
+39,822 by the same chain, fusion then advanced fusion, seventeen seconds after the first radar contact (the game:
+43,807 with what stood unfinished, seventeen seconds). In the drill of run 2 the anti-air has every bomber shot down
+about a second before the first bomb lands, where the game's had one of seven; the bombs of two to four still land.
+
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
 `duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the
