@@ -244,9 +244,18 @@ is a feed: the page asks for its new bytes (`<file>?from=<byte offset>`, answere
 `X-From` header; any other server sends the whole file and the page takes what is new), parses the complete lines
 once and adds the rows to the model. A sample's `al` rows of a seat that is loaded are dropped at parse time. Units
 are tinted by seat; the enemy is the truth layer and what any seat sees, once per unit. The **seat selector** (all,
-or one) scopes the stats, the lanes, the charts and the panels, and dims the other seats on the map. With all seats
-a chart is the seats stacked (the top edge is the side's sum, the opponent's truth a line over it); with one seat it
-is that seat's line against the others' faint ones. A chart's axis ends a little over its 99th percentile.
+or one) scopes the lanes and the panels, and dims the other seats on the map; the numbers stay the side's (a side
+unfolds into its players in the strip).
+**The numbers** (2026-11-16, docs/design/2026-11-16-viewer-stats.md; `viewer/stats.js`): a strip across the top, a
+line a side at the playhead: metal and energy stored of the capacity with income and spend, build power, builders,
+army, air and defence (how many and their metal), the economy's metal, extractors, units, the metal killed and lost;
+the map's wind range and tide at its end. A click on a side's name unfolds a line a player, there and in every chart;
+a click on a number shows or hides its chart. A game with a tape has the tape's numbers, both sides
+(`crates/tape/src/stats.rs`, which `tape stats <game.tape>` prints too); a game without one has our record's (stored,
+capacity, income, spend, extractors, army, builders, the metal lost) and of the other side what the truth file has
+(extractors, army) and what we killed, a dash elsewhere. The **Stats** tab is the whole table at the playhead in the
+game's own views (Live, Economy, Combat, Composition), a row a metric and a column a side or player, each row a
+switch for its chart; and "Unit types", each side's finished units by type with their metal.
 Live: a match with no `result` line (and not every seat's `end` line) is still being played; the page polls every 3 s
 and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
 and the scroll position of the decision list survive each refresh. An arena game's tape grows while it is played (a
@@ -279,12 +288,18 @@ decode fused it (the reading is shown), `near` shut it (inferred, see the log's 
 its place blanked it, or an earlier answer stands (`same` or `again`: the log does not say which per question).
 Clicking an actor in the Hands tab rings its units on the map and narrows the decision list to it; clicking a unit
 opens the Unit tab with its actor's entry in the picture, that actor's plays and a button to its menu. The tab and
-the two modes are remembered in the browser: "⟷ wide" (key `w`) gives the side pane most of the window, "▾ charts"
-(key `c`) folds the timeline's charts away and keeps the lanes.
-The timeline's lanes: unit, building and extractor losses, kills (a kill every seat saw is one), the commander's
-turns and the players' (as wide as the turn took, in a realtime game), the hands' gates, and the hands' plays by
-builders, plants and army (the pick's solid, the lists' faint). The charts: metal income, energy income, extractors,
-army metal, Jev dollars a minute.
+the modes are remembered in the browser: "⟷ wide" (key `w`) gives the side pane most of the window, "panel ▸" (key
+`s`) folds it away so the map takes the window's width, "▾ charts" (key `c`) folds the timeline's charts away and
+keeps the lanes.
+The timeline (`viewer/timeline.js`) is rows chosen one at a time ("rows ▾", or a click on a number of the strip or a
+row of the Stats tab) and remembered in the browser. Lanes: the metal destroyed (ten seconds a bar, the other side's
+losses up and ours down, beside it what each lost in the last minute), the commander's turns and the players' (as
+wide as the turn took, in a realtime game), and, hidden until chosen, the hands' gates and the hands' plays by
+builders, plants and army (the pick's solid, the lists' faint). Charts: any metric, both sides as lines on a
+zero-based axis with each line's value at the playhead beside it (a side unfolded in the strip is its players' lines
+under its own); a running total has a switch to what it gained in the last minute; "worth by class" is a chart a
+side of its classes as bands; Jev dollars a minute. A flow's axis ends a little over what it nearly always stays
+under. The first charts are army worth and metal income.
 The map (2026-09-24, docs/design/2026-09-24-viewer-overhaul.md): every unit is the game's own minimap icon
 (`viewer/icons.json` and `viewer/icons/`, exported unmodified from BAR's `gamedata/icontypes.lua` by `run/icons.py`;
 CC BY-NC-ND, tinted by seat on the canvas as the engine tints them by team; a unit without an icon keeps its class
@@ -323,9 +338,8 @@ and queue, who made it and when, who killed it, what it killed and built, its we
 reach, the orders given to it in the minute before the playhead (or its death) and ten seconds after, a click seeking
 there, and its kills; for a unit of ours the record adds the brain's last order, its part in the hands' picture and its
 history. A directory with a tape and no record of ours
-(a bot of `bots/`, a taped demo) opens as the 3D view alone: each side's numbers at the playhead (income, stores,
-units, army and its worth, losses) in the side pane, its losses as the timeline's lanes and a line a side in four
-charts (metal and energy income, army worth, units). On a tape made from 2026-11-15 night on: "3D view as one side
+(a bot of `bots/`, a taped demo) opens as the 3D view with the strip, the timeline and the Stats and Unit tabs alone
+(the sides in the game's own colours). On a tape made from 2026-11-15 night on: "3D view as one side
 saw it" (the layers) draws what that side did not have in sight as a ghost (fainter still when not on its radar
 either) and only its own orders; the players' marks on the map stand over the scene in their team's colour until
 erased (with a side chosen, its players' alone).

@@ -89,7 +89,8 @@ function run(socket) {
       if (!(report.live.to > first)) fail("the live match did not grow in 45 s (is it paused for a long turn, or over?)");
       if (!report.live.following) fail("the playhead did not follow the live match");
     }
-    const [tx, ty] = await centre("#timeline", 0.6, 0.5);
+    // (The pictures of the timeline's rows share one span of time; a label or a value beside one is not it.)
+    const [tx, ty] = await centre(".tl-plot", 0.6, 0.5);
     await mouse("mousePressed", tx, ty, 1);
     await mouse("mouseReleased", tx, ty);
     const share = await evaluate("viewer.frame / viewer.match.lastFrame");
@@ -155,7 +156,7 @@ function run(socket) {
     await evaluate("document.querySelectorAll('#decision-filters input').forEach((box) => box.click())");
     await evaluate("document.querySelectorAll('#decision-filters input').forEach((box) => box.click())");
     await send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowLeft", code: "ArrowLeft" });
-    report.panels = await evaluate("({ decisions: document.querySelectorAll('#decisions li').length, llmTurns: document.querySelectorAll('#decisions li.llm').length, stats: document.querySelectorAll('#now .stat').length, mapPixels: (() => { const c = document.getElementById('map'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0 && (d[i] > 60 || d[i + 1] > 60 || d[i + 2] > 60)) n++; return n; })() })");
+    report.panels = await evaluate("({ decisions: document.querySelectorAll('#decisions li').length, llmTurns: document.querySelectorAll('#decisions li.llm').length, stats: document.querySelectorAll('#strip tr.side td.num:not(.absent)').length, mapPixels: (() => { const c = document.getElementById('map'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0 && (d[i] > 60 || d[i + 1] > 60 || d[i + 2] > 60)) n++; return n; })() })");
     await evaluate("document.querySelector('#tabs [data-tab=log]').click()");
     report.panels.rules = await evaluate("document.querySelectorAll('#rules .rule').length");
     report.panels.buildOrder = await evaluate("document.querySelectorAll('#build-order li').length");
@@ -166,12 +167,15 @@ function run(socket) {
     report.seats = { loaded: seats, buttons: await evaluate("document.querySelectorAll('#seats button').length"), units: await evaluate("viewer.match.seats.map((s) => viewer.state.own.filter((u) => u.seat === s.index).length)") };
     if (seats > 1) {
       if (report.seats.buttons !== seats + 1) fail(`the seat selector has ${report.seats.buttons} buttons for ${seats} seats`);
-      const all = await evaluate("document.querySelector('#now .stat b').textContent");
+      // The seat selector narrows the panels and the lanes; the strip keeps the side's whole numbers (a side
+      // unfolds into its players there).
+      const all = await evaluate("document.querySelector('#strip tr.side td.num').textContent");
       await evaluate("document.querySelectorAll('#seats button')[1].click()");
-      report.seats.scoped = await evaluate("({ scope: viewer.scope, lanes: viewer.laneList.map((l) => l.label), metal: document.querySelector('#now .stat b').textContent })");
+      report.seats.scoped = await evaluate("({ scope: viewer.scope, lanes: [...document.querySelectorAll('.tl-row.lane .tl-label span')].map((l) => l.textContent), metal: document.querySelector('#strip tr.side td.num').textContent })");
       if (report.seats.scoped.scope !== 0) fail("clicking a seat did not narrow the page to it");
+      if (report.seats.scoped.metal !== all) fail("the strip's numbers changed with the seat the panels are narrowed to");
       await evaluate("document.querySelectorAll('#seats button')[0].click()");
-      if ((await evaluate("viewer.scope")) !== null || (await evaluate("document.querySelector('#now .stat b').textContent")) !== all) fail("the page did not widen to all seats again");
+      if ((await evaluate("viewer.scope")) !== null) fail("the page did not widen to all seats again");
     }
 
     // The commander: a direction in force, its turns in the list.
@@ -248,6 +252,22 @@ function run(socket) {
     report.modes = await evaluate("({ wide: document.body.dataset.wide, compact: document.body.dataset.compact })");
     await evaluate("document.getElementById('wide').click()");
     await evaluate("document.getElementById('compact').click()");
+    // The strip of the moment's numbers: a line a side, ours with what it has stored and the capacity; a click on a
+    // number shows its chart. The Stats tab: the table at the playhead. The side pane folds away.
+    report.strip = await evaluate(`(() => { const charts = () => document.querySelectorAll(".tl-row.chart").length, before = charts();
+      const cell = [...document.querySelectorAll("#strip tr.side td.num")].find((td) => !td.classList.contains("charted") && !td.classList.contains("absent"));
+      cell.click();
+      const added = charts() - before;
+      [...document.querySelectorAll("#strip tr.side td.num")].find((td) => td.title === cell.title).click();
+      document.querySelector("#tabs [data-tab=stats]").click();
+      const table = document.querySelectorAll("#stats table.stats tr").length;
+      document.getElementById("side-toggle").click();
+      const folded = document.getElementById("side-pane").getBoundingClientRect().width;
+      document.getElementById("side-toggle").click();
+      return { sides: document.querySelectorAll("#strip tr.side").length, ours: document.querySelector("#strip tr.side").textContent, added, back: charts() - before, table, folded, pane: document.getElementById("side-pane").getBoundingClientRect().width }; })()`);
+    if (report.strip.sides < 2 || !/\d \/ \d/.test(report.strip.ours)) fail(`the strip: ${JSON.stringify(report.strip)}`);
+    if (report.strip.added !== 1 || report.strip.back !== 0 || report.strip.table < 4) fail(`the strip's chart or the Stats tab: ${JSON.stringify(report.strip)}`);
+    if (report.strip.folded !== 0 || !(report.strip.pane > 200)) fail(`the side pane did not fold away and come back: ${JSON.stringify(report.strip)}`);
     if (screenshot) {
       // With the layers back on and the map hovered nowhere: the page as a reader sees it.
       await evaluate("document.querySelectorAll('#layers input').forEach((box) => box.click())");

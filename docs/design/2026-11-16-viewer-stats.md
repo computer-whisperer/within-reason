@@ -62,3 +62,27 @@ Wind speed over time (not recorded anywhere); BAR's exact classes (`unitgroup`, 
 conversion in use and reclaim by team; a summary a second of what lies in the slices (build power in use, idle
 builders and plants, the order rate), so a chart does not read the whole tape. Step 3: BAR's marks on the charts
 (first tier 2, fusion, a commander lost, a strike).
+
+## 5. Status (2026-11-16, step 1 built on the branch, not yet seen by the user)
+
+Built: `crates/tape/src/stats.rs` with `tape stats` and `wr_stats`; `viewer/stats.js` (the model from a tape or from
+a record, the strip, the Stats tab); `viewer/timeline.js` (the rows; the old timeline, its five fixed charts, the
+eight-number block and the tape-only side table are deleted from `app.js` and `panels.js`, `WR.totalsAt` with them).
+
+Measured on 1794780805-human in a 1920x937 window: the scene 1436x560 with the trade lane, the two turn lanes and two
+charts open (511 before, with five charts 32 px tall); 1904 wide and about 730 tall with the side pane and the charts
+folded. `tape stats` on that tape: 0.1 s. Its numbers at 20:00 agree with what the page showed before for our side
+(metal +352.3, army worth 45,375) and add the other side's (+291.1, 20,339).
+
+Tested: the crate's unit tests (the unit lives, an ownership change, a kill, the table's rows; the classes);
+`viewer/test/scene.js` in Chromium and Firefox on a game with a record and a tape (1794767778-human) and on a tape
+alone, with the strip's checks (a line a side with no number absent, a click showing a chart and a second taking it
+away, a side unfolding); `viewer/test/browser.js` on a one-seat flagship game without a tape
+(1794709644-apex-v0511-ladder-20-1: the strip from the record, the Stats tab, the side pane folding). Not tested: a
+game being played (`viewer/test/live.js` needs an arena game).
+
+Found on the way, not from this work (both fail the same on main): `browser.js` on the 8v8
+1794724277-vents-barb-8v8-1 stops at "the hands panel shows another gate than the one sought" (the gate of an
+eight-seat log is not in before the test looks); `scene.js` failed "as side 1 saw it" on the lobby games because it
+required the first side to see some of the other's units halfway through, which is the game's affair: it now checks
+the ghosts against the tape's own sight masks.

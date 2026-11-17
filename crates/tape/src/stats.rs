@@ -386,3 +386,90 @@ impl Stats {
         .to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::{Pose, Vital};
+    use crate::tables::UnitRow;
+
+    fn unit(def: u32, team: u8, finished: u32, destroyed: u32, killer: u32, given: Vec<(u32, u8)>) -> UnitRow {
+        UnitRow {
+            engine_id: 0, def, team, created: 0, finished, destroyed, killer, builder: 0, mobile: true, max_health: 100.0,
+            birth: Pose::default(), birth_vital: Vital { health: 0, build: 0, paralyze: 0, flags: 0 }, death: [0; 3], given,
+        }
+    }
+
+    /// Two teams on two sides: a tank each (ours killed by theirs at frame 90), an extractor of ours taken by them
+    /// at frame 150, a constructor of theirs never finished.
+    fn game() -> Tape {
+        let head = serde_json::json!({ "teams": [
+            { "team": 0, "ally": 0, "name": "a" }, { "team": 1, "ally": 1, "name": "" , "side": "cortex" }, { "team": 2, "ally": 2, "gaia": true, "name": "gaia" } ] });
+        let defs = serde_json::json!({
+            "units": [
+                { "id": 1, "name": "tank", "human": "Tank", "mobile": true, "metal": 100, "weapons": [7] },
+                { "id": 2, "name": "mex", "human": "Extractor", "mobile": false, "metal": 50, "extracts": 0.001, "weapons": [] },
+                { "id": 3, "name": "con", "human": "Constructor", "mobile": true, "builder": true, "build_speed": 80, "metal": 120, "weapons": [] },
+                { "id": 4, "name": "gun", "human": "Gun", "mobile": false, "metal": 80, "energy_store": 100, "weapons": [7] },
+                { "id": 5, "name": "wall", "human": "Wall", "mobile": false, "metal": 5, "weapons": [8] } ],
+            "weapons": [{ "id": 7, "damage": 10 }, { "id": 8, "damage": 0 }],
+        });
+        let row = |income: f64| serde_json::json!([10, 500, 3, income, 4, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
+        let teams = serde_json::json!({
+            "frames": [0, 31, 60, 89],
+            "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_excess", "metal_sent", "metal_received", "energy_excess", "energy_sent", "energy_received"],
+            "teams": { "0": [row(1.0), row(2.0), row(5.0), row(7.0)], "1": [null, row(2.0), row(2.0), row(2.0)] },
+            "stat_columns": ["metal_used", "metal_produced", "metal_excess", "energy_used", "energy_produced", "energy_excess", "damage_dealt", "damage_received", "units_produced", "units_died", "units_killed"],
+            "stats": { "0": [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [45, 3, 10, 0, 0, 0, 0, 0, 0, 1, 0, 0]] },
+        });
+        let mut tape = Tape::default();
+        (tape.head, tape.defs, tape.teams, tape.last_frame) = (head.to_string(), defs.to_string(), teams.to_string(), 300);
+        tape.units = vec![unit(1, 0, 30, 90, 2, vec![]), unit(1, 1, 30, NEVER, 0, vec![]), unit(2, 0, 60, NEVER, 0, vec![(150, 1)]), unit(3, 1, NEVER, NEVER, 0, vec![])];
+        tape
+    }
+
+    #[test]
+    fn the_numbers_follow_the_unit_lives_and_the_table() {
+        let stats = compute(&game()).unwrap();
+        assert_eq!(stats.seconds, 11);
+        assert_eq!(stats.teams.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), ["a", "cortex"], "Gaia is no team of the game; a nameless team goes by its faction");
+        let of = |team: usize, key: &str| stats.series(team, metric(key).unwrap()).to_vec();
+        // The tank stands finished from second 1 and is dead by second 3; the extractor from second 2, theirs from 5.
+        assert_eq!(of(0, "units")[..7], [0.0, 1.0, 2.0, 1.0, 1.0, 0.0, 0.0]);
+        assert_eq!(of(1, "units")[..7], [0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0]);
+        assert_eq!(of(0, "value_army")[..5], [0.0, 100.0, 100.0, 0.0, 0.0]);
+        assert_eq!(of(0, "extractors")[..7], [0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0]);
+        assert_eq!(of(1, "extractors")[5], 1.0);
+        assert_eq!(of(0, "value_economy")[4], 50.0);
+        // A unit never finished counts nowhere.
+        assert_eq!(of(1, "build_power")[10], 0.0);
+        assert_eq!(of(1, "count_builders")[10], 0.0);
+        // The death is the owner's loss and its killer's side's kill, from the second after it.
+        assert_eq!(of(0, "lost_value")[2..4], [0.0, 100.0]);
+        assert_eq!(of(1, "killed_value")[2..4], [0.0, 100.0]);
+        assert_eq!(of(0, "killed_value")[10], 0.0);
+        // The table: a level or a flow stands until the next row (a row is the second its frame is nearest), what
+        // was sent runs up, a team has nothing before its first row, the engine's statistics stand from their frame.
+        assert_eq!(of(0, "metal_income")[..5], [1.0, 2.0, 5.0, 7.0, 7.0]);
+        assert_eq!(of(0, "metal_store")[4], 500.0);
+        assert_eq!(of(0, "metal_sent")[..5], [1.0, 2.0, 3.0, 4.0, 4.0]);
+        assert_eq!(of(1, "metal_income")[..3], [0.0, 2.0, 2.0]);
+        assert_eq!(of(0, "metal_produced")[..4], [0.0, 0.0, 10.0, 10.0]);
+        assert_eq!(of(0, "units_produced")[2], 1.0);
+        // A side is the sum of its teams, and its name its first team's.
+        assert_eq!(stats.sides().len(), 2);
+        assert_eq!(stats.side_name(&stats.sides()[1].1), "cortex");
+    }
+
+    #[test]
+    fn a_class_is_read_off_the_type() {
+        let kinds = types(&serde_json::from_str(&game().defs).unwrap());
+        let class = |name: &str| CLASSES[kinds.iter().find(|t| t.name == name).unwrap().class];
+        assert_eq!(class("tank"), "army");
+        assert_eq!(class("mex"), "economy");
+        assert_eq!(class("con"), "builders");
+        // A building that shoots is a defence though it keeps energy for its gun; a weapon without damage arms nothing.
+        assert_eq!(class("gun"), "defence");
+        assert_eq!(class("wall"), "utility");
+    }
+}

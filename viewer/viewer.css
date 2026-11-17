@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
   background: var(--page); color: var(--ink);
   font: 13px/1.4 system-ui, sans-serif;
 }
@@ -34,6 +34,37 @@ button:hover { border-color: var(--muted); }
 #subtitle { color: var(--ink-2); flex: 1; }
 .open { color: var(--muted); }
 .open input { color: var(--muted); max-width: 210px; }
+#links { display: flex; gap: 12px; align-items: baseline; white-space: nowrap; }
+
+/* A match is open: the strip of the moment's numbers takes the title bar (viewer/stats.js), a line a side, and the
+   title line stands beside the clock. */
+body[data-match="1"] #top { padding: 3px 8px 4px; gap: 10px; align-items: center; flex-wrap: nowrap; }
+body[data-match="1"] #title { display: none; }
+body[data-match="1"] #links { flex-direction: column; gap: 0; align-items: flex-end; font-size: 11px; }
+body[data-match="1"] .open { font-size: 0; }
+body[data-match="1"] .open::before { content: "open files"; font-size: 11px; cursor: pointer; text-decoration: underline dotted; }
+body[data-match="1"] .open input { display: none; }
+#strip { flex: 1; min-width: 0; overflow-x: auto; }
+#strip table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#strip th { color: var(--muted); font-weight: 400; font-size: 10.5px; text-align: center; padding: 0 8px; border-left: 1px solid var(--line); }
+#strip th.who { text-align: left; border-left: 0; }
+#strip th.wind { text-align: left; color: var(--ink-2); }
+#strip td { padding: 1px 6px; text-align: right; color: var(--ink); }
+#strip td.first { border-left: 1px solid var(--line); padding-left: 8px; }
+#strip td.who { text-align: left; color: var(--ink); padding-left: 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+#strip td.who.folds { cursor: pointer; }
+#strip tr.team td { color: var(--ink-2); font-size: 11.5px; }
+#strip tr.team td.who { padding-left: 16px; }
+#strip .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+#strip td.num { cursor: pointer; }
+#strip td.num:hover { background: var(--surface-2); }
+#strip td.absent { color: var(--muted); cursor: default; }
+/* A number whose chart is on the timeline. */
+#strip td.charted span { border-bottom: 1px solid var(--jev); }
+#strip td.store { min-width: 104px; }
+#strip .bar { display: block; height: 3px; margin-top: 1px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+#strip .bar b { display: block; height: 100%; background: #c9c4b0; }
+#strip .bar.energy b { background: #e0c23a; }
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: 8px; padding: 8px; min-height: 0; }
 #map-pane { position: relative; background: var(--surface); border-radius: 6px; min-height: 0; overflow: hidden; }
@@ -44,10 +75,8 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px)
 #scene-overlay[hidden] { display: none; }
 #mode { position: absolute; top: 6px; left: 6px; z-index: 2; }
 #scene-note { position: absolute; bottom: 6px; left: 8px; font-size: 11px; pointer-events: none; text-shadow: 0 0 3px #000; }
-/* A game with a tape and no record of ours (a bot of bots/, a taped demo): the sides' numbers and the selected
-   unit beside the view, no tabs to choose from. */
-body[data-tapeonly="1"] #tabs, body[data-tapeonly="1"] #seats { display: none; }
-body[data-tapeonly="1"] #now { display: block; }
+/* A game with a tape and no record of ours (a bot of bots/, a taped demo) has no seats to narrow to. */
+body[data-tapeonly="1"] #seats { display: none; }
 /* The layer switches and the legend fold away in one corner, so the map keeps its room in the wide mode. */
 #map-tools { position: absolute; top: 6px; right: 6px; max-height: calc(100% - 12px); overflow: auto; background: #1a1a19cc; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); }
 #map-tools summary { padding: 3px 8px; color: var(--muted); cursor: pointer; font-size: 12px; }
@@ -60,10 +89,6 @@ body[data-tapeonly="1"] #now { display: block; }
 
 #side-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .panel { background: var(--surface); border-radius: 6px; padding: 8px 10px; }
-#now { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 10px; }
-#now .stat b { display: block; font-size: 15px; font-weight: 600; }
-#now .stat span { color: var(--muted); font-size: 11px; }
-#now .stat small { color: var(--theirs); }
 #tabs { display: flex; gap: 6px; padding: 6px 8px; align-items: center; flex-wrap: wrap; }
 #tabs button { padding: 3px 12px; }
 #tabs button.active { background: var(--jev); color: #0d0d0d; border-color: var(--jev); font-weight: 600; }
@@ -103,16 +128,62 @@ h2.call-title { margin-top: 10px; }
 
 footer { border-top: 1px solid var(--line); padding: 6px 8px 8px; }
 #controls { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+#controls #subtitle { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #clock { font-size: 16px; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
-#timeline-wrap { position: relative; background: var(--surface); border-radius: 6px; }
-/* Its height is set by the page: the lanes and charts the match has. */
-#timeline { display: block; width: 100%; height: 200px; cursor: crosshair; }
+#timeline-wrap { position: relative; background: var(--surface); border-radius: 6px; padding: 4px 0 2px; }
+/* The timeline's rows (viewer/timeline.js): a label, a picture, the values at the playhead; as tall as the rows
+   chosen. The playhead and the hover are lines laid over the pictures. */
+#timeline { cursor: crosshair; }
+.tl-row { display: grid; grid-template-columns: 168px minmax(0, 1fr) 176px; align-items: stretch; }
+.tl-row.chart { border-top: 1px solid var(--surface-2); }
+.tl-label { display: flex; gap: 4px; align-items: flex-start; justify-content: flex-end; padding: 0 8px 0 6px; font-size: 10.5px; color: var(--ink-2); line-height: 12px; text-align: right; overflow: hidden; cursor: default; }
+.tl-row.chart .tl-label { padding-top: 4px; flex-wrap: wrap; align-content: flex-start; }
+.tl-row.chart .tl-label span { flex-basis: 100%; font-size: 11.5px; color: var(--ink); }
+.tl-row.trade .tl-label { align-items: center; }
+/* (Its height is the row's, set with it: a canvas has a height of its own that a percentage does not override.) */
+.tl-plot { display: block; width: 100%; }
+.tl-values { padding: 0 6px 0 8px; font-size: 10.5px; line-height: 13px; color: var(--ink-2); overflow: hidden; cursor: default; font-variant-numeric: tabular-nums; }
+.tl-row.chart .tl-values { padding-top: 4px; }
+.tl-values div { display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+.tl-values div.bold { color: var(--ink); }
+.tl-values i { flex: none; width: 7px; height: 7px; border-radius: 2px; }
+.tl-values span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.tl-values b { font-weight: 600; }
+.tl-row.trade .tl-values { display: flex; flex-direction: column; justify-content: center; }
+.tl-button { padding: 0 5px; font-size: 10px; line-height: 13px; color: var(--muted); }
+.head { position: absolute; top: 4px; bottom: 20px; width: 1px; background: var(--ink); pointer-events: none; z-index: 2; }
+#hoverhead { background: var(--muted); }
+.head[hidden] { display: none; }
 body[data-compact="1"] #compact { color: var(--ink); border-color: var(--muted); }
+/* The menu of rows opens upward from its button. */
+.menu { position: relative; }
+.menu summary { list-style: none; cursor: pointer; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; white-space: nowrap; }
+.menu summary::-webkit-details-marker { display: none; }
+#rows-list { position: absolute; right: 0; bottom: 30px; z-index: 6; width: 300px; max-height: 52vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+#rows-list h2 { margin: 6px 0 2px; }
+#rows-list label { display: block; font-size: 12px; color: var(--ink-2); }
+
+/* The side pane folded away (s). */
+body[data-side="0"] main { grid-template-columns: minmax(0, 1fr); }
+body[data-side="0"] #side-pane { display: none; }
+
+/* The Stats tab. */
+#stats .views { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+#stats .views button { padding: 1px 8px; font-size: 11.5px; }
+#stats .views button.active { background: var(--ink-2); color: #0d0d0d; border-color: var(--ink-2); font-weight: 600; }
+#stats table.stats { width: 100%; }
+#stats table.stats tr { cursor: pointer; }
+#stats table.stats th.folds { cursor: pointer; }
+#stats table.stats td.side { color: var(--ink); }
+#stats table.stats tr.charted td.name { color: var(--jev); }
+#stats td.absent { color: var(--muted); }
+#stats .types { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+#stats .side-types { flex: 1; min-width: 190px; }
+#stats .side-types td.cls { color: var(--muted); text-align: left; }
 
 .tooltip { position: absolute; pointer-events: none; background: #0d0d0dee; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: 12px; white-space: pre; z-index: 5; }
 
 body[data-wide="1"] main { grid-template-columns: minmax(260px, 34%) minmax(0, 1fr); }
-body[data-wide="1"] #now { grid-template-columns: repeat(8, 1fr); }
 
 @media (max-width: 900px) {
   body { display: block; }

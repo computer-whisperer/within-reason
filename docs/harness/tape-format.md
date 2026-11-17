@@ -35,6 +35,11 @@ tree's cache (or the files copied over, `cp -n`). BAR's art is CC BY-NC-ND: noth
 Other tools: `tape info <game.tape>` (what it holds, the bytes by chunk kind), `tape audit <game.tape>` (the waste
 audit's dump, `audit.jsonl`; `-o -` to standard output, as `run/audit.py <match dir>` reads
 it; `docs/harness/audit.md`),
+`tape stats <game.tape> [--every N] [--at S] [--teams] [--types]` (the game's numbers as the page's strip, charts
+and Stats tab show them, `crates/tape/src/stats.rs`: tab-separated, a row a side every N seconds (60) or at second S
+alone, a row a team with `--teams`; from the `TEAM` and `UNIT` tables alone, a tenth of a second for a 35-minute 3v3.
+`--types` lists the unit types with the class each counts in: an approximation of BAR's own classes, since a format 5
+tape's types do not say `unitgroup` or the move class: ships count as army, nukes and long-range guns as defence),
 `tape check <tape.raw> <game.tape>`,
 `tape grow <tape.raw> [--cuts N]` (the growing tape checked: the stream cut at N places inside records, the tape grown
 through each and read again from its new footer by one reader that keeps its slices, as the page does; on the dist358

@@ -76,41 +76,6 @@
     for (const seat of view.match.seats) button(seat.name, seat.index, seatColor(seat.index));
   }
 
-  function renderNow() {
-    const match = view.match;
-    const total = WR.totalsAt(match, view.scope, view.frame);
-    const now = $("now");
-    now.textContent = "";
-    if (!total.seats) return;
-    const whole = view.scope == null || !multi();
-    const theirs = whole ? match.truth[WR.indexAt(match.truth, view.frame)] : null;
-    const stat = (label, value, other) => {
-      const div = el("div", "stat");
-      const b = el("b", null, value);
-      if (other != null) {
-        const small = el("small", null, ` / ${other}`);
-        small.title = "theirs, from the ground truth";
-        b.append(small);
-      }
-      div.append(b, el("span", null, label));
-      now.append(div);
-    };
-    stat(`metal (+${total.metalIncome.toFixed(1)} / -${total.metalUse.toFixed(1)})`, Math.round(total.metal));
-    stat(`energy of ${Math.round(total.energyStore)} (+${total.energyIncome.toFixed(0)} / -${total.energyUse.toFixed(0)})`, Math.round(total.energy));
-    stat("extractors", total.extractors, theirs?.extractors);
-    stat("army", total.army, theirs?.army);
-    stat("army metal", Math.round(total.armyMetal), theirs ? Math.round(theirs.armyMetal) : null);
-    stat("builders", total.builders);
-    stat("enemies in view", total.enemiesVisible);
-    const hands = WR.scoped(match, view.scope).filter((s) => s.jev);
-    if (hands.length) {
-      const minute = Math.floor(view.frame / (60 * WR.FPS));
-      let tokens = 0;
-      for (const s of hands) for (const m of s.jev.index.minutes) if (m.minute <= minute) tokens += Object.values(m.tokens).reduce((a, b) => a + b, 0);
-      stat("Jev so far (to this minute's end)", money((tokens * WR.JEV_PRICE) / 1e6));
-    }
-  }
-
   // ---------------------------------------------------------------- the commander
 
   function turnLine(turn, match) {
@@ -830,27 +795,6 @@
     box.append(list);
   }
 
-  /// A game with a tape and no record of ours: each side's numbers at the playhead, from the tape's tables.
-  function renderTapeNow() {
-    const box = $("now");
-    if (!view.scene || !keyed(box, `tape:${view.version}:${Math.floor(view.frame / WR.FPS)}`)) return;
-    const tape = view.scene.tape;
-    const table = el("table", "grid");
-    const head = el("tr", "head");
-    for (const h of ["side", "metal +", "energy +", "metal", "energy", "units", "army", "army worth", "lost"]) head.append(el("th", null, h));
-    table.append(head);
-    for (const side of WV.tapeSides()) {
-      const at = Math.min(side.units.length - 1, Math.max(0, Math.floor(view.frame / WR.FPS)));
-      const lost = WR.indexAt(side.losses, view.frame) + 1;
-      const tr = el("tr");
-      [side.name, side.metalIncome[at].toFixed(1), Math.round(side.energyIncome[at]), Math.round(side.metal[at]), Math.round(side.energy[at]), side.units[at], side.army[at], Math.round(side.armyMetal[at]), lost].forEach((v, i) => tr.append(el("td", i === 0 ? "name" : null, String(v))));
-      tr.firstChild.style.color = side.css;
-      tr.title = side.teams.map((t) => teamName(t, t.team)).join(", ");
-      table.append(tr);
-    }
-    box.append(table, el("div", "meta", `from the tape: ${(tape.head.teams || []).filter((t) => !t.gaia).length} teams; army is the finished units that move and shoot and do not build, its worth their metal`));
-  }
-
   function eventWords(e, id) {
     if (e.k === "created") return e.u === id ? `created${e.by != null ? ` by #${e.by}` : ""}` : `began a ${defName(e.d)} #${e.u} at ${WR.gridName(view.match, e.x, e.z)}`;
     if (e.k === "finished") return e.u === id ? "finished" : `finished #${e.u}`;
@@ -1100,13 +1044,12 @@
     matchOpened() { renderSeats(); buildDecisionList(); },
     matchGrew() { rebuildDecisionList(); },
     scopeChanged() { renderSeats(); buildDecisionList(); },
-    /// A game with a tape and no record of ours: the sides' numbers, and the Unit tab when a unit is selected.
+    /// A game with a tape and no record of ours: the Stats tab, and the Unit tab when a unit is selected.
     renderTape() {
-      renderTapeNow();
       if (view.tab === "unit") renderUnit();
+      else if (view.tab === "stats") WV.stats.renderTab();
     },
     render() {
-      renderNow();
       // The decision list follows the hands' actor in focus.
       const actorKey = view.actor ? `${view.actor.seat}:${view.actor.name}` : "";
       if (actorKey !== (renderDecisions.actor || "")) {
@@ -1114,6 +1057,7 @@
         buildDecisionList();
       }
       switch (view.tab) {
+        case "stats": return WV.stats.renderTab();
         case "commander": return renderCommander();
         case "player": return renderPlayer();
         case "hands": return renderHands();

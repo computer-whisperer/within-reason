@@ -87,9 +87,14 @@ const WRTape = (() => {
     bodies.forEach((body, i) => check(give(body.bytes, wasm.wr_set_chunk), `the tape's ${tables[i].kind} chunk`));
     const head = JSON.parse(text(0));
     const defs = JSON.parse(text(1));
+    check(wasm.wr_stats(), "the game's numbers");
     const fields = {
       size: footer.size, indexAt, head, defs,
       teams: JSON.parse(text(2) || "{}"), events: JSON.parse(text(3) || "[]"),
+      /// The game's numbers a second (crates/tape/src/stats.rs; viewer/stats.js reads them): `seconds`, `teams`
+      /// [{team, ally, name}], `metrics` [{key, label, group, kind}], `classes`, `types` [{id, class}] and `values`,
+      /// `[team][metric][second]` in those orders.
+      stats: { ...JSON.parse(text(4)), values: array(14, Float32Array).slice() },
       lastFrame: head.last_frame, sliceFrames: head.slice_frames,
       /// Whether the tape is still being written (the arena's follower): read its footer again for more (`refresh`).
       growing: !!head.growing,

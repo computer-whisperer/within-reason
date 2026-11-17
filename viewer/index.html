@@ -7,12 +7,17 @@
 <link rel="stylesheet" href="viewer.css">
 </head>
 <body>
+<!-- With a match open the strip of the moment's numbers stands here (viewer/stats.js) and the title line beside the
+     clock; the title shows on the list of matches. -->
 <header id="top">
   <h1 id="title">Within Reason match viewer</h1>
   <span id="subtitle"></span>
-  <a id="browse" class="replay" href="?" hidden title="Back to the list of matches">matches</a>
-  <a id="replay" class="replay" hidden download title="Download the engine's replay (.sdfz) of this match; copy it into BAR's demos folder to watch it in the game">replay ⤓</a>
-  <label class="open" title="Without run/view_match.py: pick a match's record-*.jsonl files and their siblings (strategist-*.jsonl, commander.jsonl, truth-*.jsonl, bot.log). The hands' logs need the server.">Open files <input type="file" id="files" multiple></label>
+  <div id="strip" hidden></div>
+  <nav id="links">
+    <a id="browse" class="replay" href="?" hidden title="Back to the list of matches">matches</a>
+    <a id="replay" class="replay" hidden download title="Download the engine's replay (.sdfz) of this match; copy it into BAR's demos folder to watch it in the game">replay ⤓</a>
+    <label class="open" title="Without run/view_match.py: pick a match's record-*.jsonl files and their siblings (strategist-*.jsonl, commander.jsonl, truth-*.jsonl, bot.log). The hands' logs need the server.">Open files <input type="file" id="files" multiple></label>
+  </nav>
 </header>
 
 <section id="browser" class="panel" hidden></section>
@@ -47,14 +52,14 @@
       <label title="what the side did not see is a ghost (fainter when not even on its radar), and only its own orders and its players' marks show">3D view as one side saw it: <select id="seen-by"><option value="-1">every unit</option></select></label>
     </fieldset>
     <ul id="map-legend" class="legend"></ul>
-    <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears. In the 3D view a right drag (or shift and drag) turns and tilts; , and . step one sample back and on</div>
+    <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears. In the 3D view a right drag (or shift and drag) turns and tilts; , and . step one sample back and on. Keys: s folds the side pane, c the charts, w widens the side pane, m swaps map and 3D view</div>
     </details>
   </section>
 
   <section id="side-pane">
     <div id="seats" class="panel" hidden></div>
-    <div id="now" class="panel"></div>
     <nav id="tabs" class="panel">
+      <button data-tab="stats" title="the whole table of numbers at the playhead, and each side's units by type">Stats</button>
       <button data-tab="commander" hidden>Commander</button>
       <button data-tab="player" hidden>Player</button>
       <button data-tab="hands" hidden>Hands</button>
@@ -64,6 +69,7 @@
       <button data-tab="log">Log</button>
       <button id="wide" title="give the side pane most of the window (w)">⟷ wide</button>
     </nav>
+    <div class="tab panel" data-tab="stats" hidden><div id="stats"></div></div>
     <div class="tab panel" data-tab="commander" hidden><div id="commander"></div></div>
     <div class="tab panel" data-tab="player" hidden><div id="player"></div></div>
     <div class="tab panel" data-tab="hands" hidden>
@@ -103,12 +109,19 @@
       </select>
     </label>
     <label id="follow-label" hidden title="stay on the newest sample of a match still being played"><input type="checkbox" id="follow"> follow live</label>
-    <button id="compact" title="fold the charts away and keep the lanes (c)">▾ charts</button>
     <output id="clock">0:00</output>
     <span id="status" class="muted"></span>
+    <details id="rows-menu" class="menu">
+      <summary title="which lanes and charts the timeline shows; a click on a number of the strip shows its chart too">rows ▾</summary>
+      <div id="rows-list"></div>
+    </details>
+    <button id="compact" title="fold the charts away and keep the lanes (c)">▾ charts</button>
+    <button id="side-toggle" title="fold the side pane away: the map takes the window's width (s)">panel ▸</button>
   </div>
   <div id="timeline-wrap">
-    <canvas id="timeline"></canvas>
+    <div id="timeline"></div>
+    <div id="hoverhead" class="head" hidden></div>
+    <div id="playhead" class="head" hidden></div>
     <div id="chart-tooltip" class="tooltip" hidden></div>
   </div>
 </footer>
@@ -123,6 +136,8 @@
 <script src="scene/lines.js"></script>
 <script src="scene/scene.js"></script>
 <script src="app.js"></script>
+<script src="stats.js"></script>
+<script src="timeline.js"></script>
 <script src="panels.js"></script>
 </body>
 </html>
