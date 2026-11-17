@@ -127,7 +127,9 @@ setTimeout(() => fail("timed out"), 300000);
   await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
   await settled("reset");
   const box = await evaluate(`(() => { const r = window.viewer.scene.canvas.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()`);
-  const [cx, cy] = [box[0] + box[2] / 2, box[1] + box[3] / 2];
+  // (A whole pixel: a browser may hand the page a mouse position rounded, and what is looked up later at "the place
+  // the mouse rests" must be that same place, not half a pixel beside it.)
+  const [cx, cy] = [Math.round(box[0] + box[2] / 2), Math.round(box[1] + box[3] / 2)];
   const camera = () => evaluate("(() => { const c = window.viewer.scene.camera; return [c.target[0], c.target[2], c.distance, c.yaw, c.pitch]; })()");
   const before = await camera();
   await page.wheel(cx, cy, -600);
@@ -169,7 +171,7 @@ setTimeout(() => fail("timed out"), 300000);
   await evaluate("(window.viewer.scene.resetCamera(), window.viewer.scene.redraw())");
   const fewLines = await linesNow("the lines halfway");
   // The mouse has rested at the centre since the click: after the seek the hover names what is under it now.
-  const rest = await evaluate(`(() => { const s = window.viewer.scene, r = s.canvas.getBoundingClientRect(), row = s.pick(r.width / 2, r.height / 2), t = document.getElementById("tooltip");
+  const rest = await evaluate(`(() => { const s = window.viewer.scene, r = s.canvas.getBoundingClientRect(), row = s.pick(${cx} - r.left, ${cy} - r.top), t = document.getElementById("tooltip");
     return { id: row >= 0 ? s.tape.unit(row).id : null, first: t.hidden ? "" : t.textContent.split("\\n")[0] }; })()`);
   if (rest.id != null ? !rest.first.includes(`#${rest.id}`) : /#\d+/.test(rest.first)) fail(`the hover after a seek, the mouse still: ${JSON.stringify(rest)}`);
   // The selected unit's orders: each one listed inside the span its heading names, once that span is read.
@@ -193,10 +195,12 @@ setTimeout(() => fail("timed out"), 300000);
   await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "0"; select.dispatchEvent(new Event("change")); })()`);
   await settled("as side 1 saw it");
   const counts = await evaluate(`(() => { const s = window.viewer.scene, st = s.tape.frame(s.frame), ally = new Map(s.tape.head.teams.map((t) => [t.team, t.ally]));
-    const c = { own: 0, ownGhost: 0, other: 0, ghost: 0, radar: 0, marks: (s.tape.events || []).filter((e) => e.k === "mark").length };
-    for (let i = 0; i < st.units.length; i += 16) { const f = st.units[i + 12]; if (ally.get(st.units[i + 11]) === 0) { c.own++; if (f & 8) c.ownGhost++; } else { c.other++; if (f & 8) c.ghost++; if ((f & 24) === 24) c.radar++; } }
+    const c = { own: 0, ownGhost: 0, other: 0, ghost: 0, unseen: 0, radar: 0, marks: (s.tape.events || []).filter((e) => e.k === "mark").length };
+    for (let i = 0, j = 0; i < st.units.length; i += 16, j++) { const f = st.units[i + 12]; if (ally.get(st.units[i + 11]) === 0) { c.own++; if (f & 8) c.ownGhost++; } else { c.other++; if (f & 8) c.ghost++; if ((f & 24) === 24) c.radar++; if (!(st.seen[j] & 1)) c.unseen++; } }
     return c; })()`);
-  if (counts.ownGhost || !counts.ghost || counts.ghost >= counts.other) fail(`as side 1 saw it: ${JSON.stringify(counts)}`);
+  // (How many it saw is the game's: a side at home sees none of the other's. The ghosts are exactly the units the
+  // tape says it did not have in sight.)
+  if (counts.ownGhost || !counts.ghost || counts.ghost !== counts.unseen) fail(`as side 1 saw it: ${JSON.stringify(counts)}`);
   await shot("seen-by-side-1.png");
   await evaluate(`(() => { const select = document.getElementById("seen-by"); select.value = "-1"; select.dispatchEvent(new Event("change")); })()`);
   let sightWords = `as side 1 saw it: ${counts.ghost} of the other side's ${counts.other} units unseen (${counts.radar} of them on its radar), none of its own ${counts.own}; ${counts.marks} players' marks in the game`;
@@ -213,9 +217,34 @@ setTimeout(() => fail("timed out"), 300000);
     }
     sightWords += `; ours against the record: ${rows.join("; ")}`;
   }
-  // The side pane: with no record of ours, each side's numbers from the tape.
-  const now = await evaluate(`(() => ({ tapeOnly: document.body.dataset.tapeonly === "1", sides: document.querySelectorAll("#now table tr").length - 1, text: document.getElementById("now").textContent }))()`);
-  if (now.tapeOnly && now.sides < 2) fail(`the sides' numbers: ${JSON.stringify(now).slice(0, 300)}`);
+  // The strip across the top: a line a side with the tape's numbers, both sides', with or without a record of ours;
+  // a click on a number puts its chart on the timeline and a second click takes it away; a side unfolds.
+  const now = await evaluate(`(() => { const rows = () => document.querySelectorAll(".tl-row.chart").length, before = rows();
+    const cell = [...document.querySelectorAll("#strip tr.side td.num")].find((td) => td.title.startsWith("energy income") && !td.classList.contains("charted"));
+    if (cell) cell.click();
+    const added = rows() - before;
+    const again = [...document.querySelectorAll("#strip tr.side td.num")].find((td) => td.title.startsWith("energy income"));
+    if (cell && again) again.click();
+    const fold = document.querySelector("#strip td.who.folds");
+    if (fold) fold.click();
+    const teams = document.querySelectorAll("#strip tr.team").length;
+    if (fold) document.querySelector("#strip td.who.folds").click();
+    return { tapeOnly: document.body.dataset.tapeonly === "1", sides: document.querySelectorAll("#strip tr.side").length, absent: document.querySelectorAll("#strip tr.side td.absent").length, added, back: rows() - before,
+      folds: !!fold, teams, lanes: document.querySelectorAll(".tl-row.lane").length, text: document.querySelector("#strip tr.side").textContent }; })()`);
+  if (now.sides < 2 || now.absent) fail(`the strip has no line a side, or a side without the tape's numbers: ${JSON.stringify(now).slice(0, 300)}`);
+  if (now.added !== 1 || now.back !== 0) fail(`a click on a number of the strip did not show its chart and a second take it away: ${JSON.stringify(now).slice(0, 300)}`);
+  if (now.folds && !now.teams) fail("a side of several players did not unfold");
+  // The strip stands still: through the whole game, as every number changes its length, no cell moves and no text
+  // is wider than its cell.
+  const still = await evaluate(`(() => { const v = window.viewer, at = v.frame, seen = new Set(); let over = 0;
+    for (let i = 0; i <= 120; i++) { v.seek(Math.round((v.match.lastFrame * i) / 120));
+      seen.add([...document.querySelectorAll("#strip tr.side:first-of-type td, #strip th")].map((c) => Math.round(c.getBoundingClientRect().left * 2) / 2).join(","));
+      for (const td of document.querySelectorAll("#strip td.num")) over = Math.max(over, td.firstChild.getBoundingClientRect().width - (td.getBoundingClientRect().width - 10)); }
+    v.seek(at);
+    const strip = document.getElementById("strip");
+    return { layouts: seen.size, over: Math.round(over * 10) / 10, table: Math.round(document.querySelector("#strip table").getBoundingClientRect().width), room: Math.round(strip.getBoundingClientRect().width) }; })()`);
+  if (still.layouts !== 1 || still.over > 0) fail(`the strip's cells move as the numbers change: ${JSON.stringify(still)}`);
+  await settled("after the strip's walk through the game");
   // With a record, a unit of ours: the tape's panel, then the record's part (the hands' picture, its history there).
   let oursPanel = null;
   if (!now.tapeOnly) {
@@ -237,7 +266,7 @@ setTimeout(() => fail("timed out"), 300000);
     oursPanel += ` | in the 2D map at ${Math.round(last * 0.8 / 30)} s: ${at.place}`;
     await evaluate(`document.getElementById("mode").click()`);
   }
-  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} after a seek the resting hover says ${JSON.stringify(rest.first)}, the panel lists ${orders.when.length} orders in ${orders.span ? orders.span.map((t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`).join("-") : "no span"}; lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; ${now.tapeOnly ? `${now.sides} sides in the side pane` : "the record's numbers in the side pane"}`);
+  console.log(`the unit panel: ${JSON.stringify(panel.text.slice(0, 160))}...;${oursPanel ? ` ours: ${JSON.stringify(oursPanel.slice(0, 120))}...${oursPanel.includes(" | ") ? `; ${oursPanel.split(" | ").pop()}` : ""};` : ""} after a seek the resting hover says ${JSON.stringify(rest.first)}, the panel lists ${orders.when.length} orders in ${orders.span ? orders.span.map((t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`).join("-") : "no span"}; lines: ${selectedLines} with the selection, ${fewLines} halfway, ${allLines} with every order and reach; overlay ${overlay.w}x${overlay.h}; ${sightWords}; the strip: ${now.sides} sides${now.folds ? `, ${now.teams} players unfolded` : ""}, ${now.lanes} lanes, one layout through the game (${still.table} px wide of ${still.room}), ${JSON.stringify(now.text.slice(0, 80))}`);
   if (problems.length) fail(problems.join("\n"));
   console.log(`ok: screenshots in ${out}`);
   browser.kill();

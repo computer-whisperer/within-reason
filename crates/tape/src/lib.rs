@@ -10,6 +10,7 @@ pub mod pack;
 pub mod pieces;
 pub mod read;
 pub mod slice;
+pub mod stats;
 pub mod tables;
 
 /// Frames a slice covers: ten seconds.
@@ -18,4 +19,4 @@ pub const SLICE_FRAMES: u32 = 300;
 pub const LINGER_FRAMES: u32 = 60;
 /// The tape's format, the one this crate writes and reads (`HEAD`'s `version`): a tape of another is made again from
 /// its demo (`run/tape.py <match dir>`).
-pub const FORMAT: u32 = 5;
+pub const FORMAT: u32 = 6;

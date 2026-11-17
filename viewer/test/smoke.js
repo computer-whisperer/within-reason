@@ -49,10 +49,12 @@ assert.strictEqual(new Set(state.own.map((u) => u.id)).size, state.own.length, "
 assert(state.own.every((u) => match.seats[u.seat]), "own units carry their seat");
 assert.strictEqual(new Set(state.enemies.map((u) => u.id)).size, state.enemies.length, "an enemy is drawn once");
 assert.strictEqual(WR.stateAt(match, -5).own.length, 0);
-const total = WR.totalsAt(match, null, mid);
-const perSeat = match.seats.map((s) => WR.totalsAt(match, s.index, mid));
-assert.strictEqual(total.extractors, perSeat.reduce((n, t) => n + t.extractors, 0), "the side's extractors are the seats' summed");
-assert(Math.abs(total.metalIncome - perSeat.reduce((n, t) => n + t.metalIncome, 0)) < 1e-6, "the side's income is the seats' summed");
+// The side's numbers at the middle: each seat's last sample there, summed (the page's own are viewer/stats.js').
+const total = { extractors: 0, armyMetal: 0, metalIncome: 0 };
+for (const seat of match.seats) {
+  const i = WR.indexAt(seat.samples, mid);
+  if (i >= 0) for (const key of Object.keys(total)) total[key] += seat.series[i][key];
+}
 
 // Interpolation stays between two samples of a seat.
 const seat0 = match.seats[0];

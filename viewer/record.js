@@ -420,22 +420,6 @@ const WR = (() => {
     return out;
   }
 
-  /// The side's numbers at `frame` over the seats in scope: each seat's last sample summed.
-  function totalsAt(match, scope, frame) {
-    const total = { metal: 0, metalIncome: 0, metalUse: 0, energy: 0, energyIncome: 0, energyUse: 0, energyStore: 0, extractors: 0, army: 0, armyMetal: 0, builders: 0, buildings: 0, enemiesVisible: 0, seats: 0 };
-    for (const seat of scoped(match, scope)) {
-      const i = indexAt(seat.samples, frame);
-      if (i < 0) continue;
-      const s = seat.samples[i], n = seat.series[i];
-      total.seats++;
-      total.metal += s.m[0]; total.metalIncome += s.m[1]; total.metalUse += s.m[2] || 0;
-      total.energy += s.e[0]; total.energyIncome += s.e[1]; total.energyUse += s.e[2] || 0; total.energyStore += s.e[3] || 0;
-      for (const key of ["extractors", "army", "armyMetal", "builders", "buildings"]) total[key] += n[key];
-      total.enemiesVisible = Math.max(total.enemiesVisible, n.enemiesVisible);
-    }
-    return total;
-  }
-
   /// Heuristic firings (the footwork rules' counts) summed over the game minute that contains `frame`.
   function rulesInMinute(match, scope, frame) {
     const start = Math.floor(frame / (60 * FPS)) * 60 * FPS;
@@ -799,7 +783,7 @@ const WR = (() => {
     FPS, FLAG, JEV_PRICE, JEV_VERSION, FLAG_BAR, FUSE_BAR,
     parseLines, newSeat, addRecordRows, parseRecord, newMatch, addSeat, settle, scoped, sides,
     newTranscript, addTranscriptRows, parseTranscript, inferRealtime, turnEnd, callsOf, directionAt, latestByKey, marksAt, signalsAt, packetAt,
-    addTruthRows, parseBotLog, indexAt, lastAt, range, seatStateAt, stateAt, totalsAt, rulesInMinute, lanes, actorPlays, PLAY_SOURCES, playSource, clock, ago, gridName,
+    addTruthRows, parseBotLog, indexAt, lastAt, range, seatStateAt, stateAt, rulesInMinute, lanes, actorPlays, PLAY_SOURCES, playSource, clock, ago, gridName,
     ordersAt, unitHistory, facings, chatUpTo, actorOfUnit, unitsOfActor, readingsByActor, readingsOf, gateView, costView,
   };
 })();

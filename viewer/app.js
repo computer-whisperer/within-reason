@@ -34,7 +34,7 @@ const WV = (() => {
   const view = {
     match: null, frame: 0, playing: false, speed: 10, lastTime: 0, live: null,
     layers: { terrain: true, nobots: true, notanks: false, metal: true, grid: true, spots: true, truth: true, orders: true, marks: true, deaths: true, hands: true },
-    terrain: null, background: null, mapBox: null, hoverFrame: null, tab: null,
+    terrain: null, background: null, mapBox: null, tab: null,
     /// The seat the panels, the stats and the charts are narrowed to (its index), or null for all seats.
     scope: null,
     /// The map's view: zoom over the fitted scale (1 to MAX_ZOOM) and the elmo at the pane's centre; the selected
@@ -45,6 +45,9 @@ const WV = (() => {
     scene: null, mode: "2d", selectedRow: -1,
     /// What changes when rows arrive: the lanes and the timeline's picture are rebuilt when it does.
     version: 0,
+    /// The sides whose players are shown one by one, in the strip and in every chart (their places in the numbers'
+    /// model, viewer/stats.js).
+    unfolded: new Set(),
   };
   window.viewer = view;
   // For the tests (viewer/test/browser.js), which drive the page from outside.
@@ -492,7 +495,7 @@ const WV = (() => {
     describeTape();
     view.frame = Math.min(Number(params.get("t") || 0) * WR.FPS, match.lastFrame);
     document.body.dataset.loaded = `tape only, ${head.units} unit lives`;
-    renderAll();
+    setTab("stats");
     if (view.scene.tape.growing) followTape(!params.get("t"));
   }
 
@@ -519,6 +522,7 @@ const WV = (() => {
     }
     if (!base.endsWith("/")) base += "/";
     $("browse").hidden = false;
+    asMatch();
     const live = { base, files: [], seats: new Map(), teams: new Set() };
     view.live = live;
     status("loading the match");
@@ -603,7 +607,6 @@ const WV = (() => {
   function tapeGrew() {
     const tape = view.scene.tape;
     tape.marks = null;
-    view.tapeSides = null;
     view.scene.grew();
     if (view.match.tapeOnly) {
       view.match.lastFrame = tape.lastFrame;
@@ -716,9 +719,18 @@ const WV = (() => {
     opened(0);
   }
 
+  /// A match is to be shown: the strip of the moment's numbers takes the title bar's place, and the title line goes
+  /// beside the clock.
+  function asMatch() {
+    if (document.body.dataset.match) return;
+    document.body.dataset.match = "1";
+    $("controls").insertBefore($("subtitle"), $("status"));
+  }
+
   /// The match is in the model: the page is set up around it.
   function opened(frame) {
     const match = view.match;
+    asMatch();
     view.frame = Math.min(frame, match.lastFrame);
     describeMatch();
     buildLegend();
@@ -1386,7 +1398,7 @@ const WV = (() => {
     view.selectedRow = id == null ? -1 : row >= 0 ? row : view.scene ? view.scene.tape.rowNear(id, Math.floor(view.frame)) : -1;
     $("tab-unit").hidden = id == null;
     if (id != null) setTab("unit");
-    else if (view.tab === "unit") setTab(view.match.tapeOnly ? "none" : "decisions");
+    else if (view.tab === "unit") setTab(view.match.tapeOnly ? "stats" : "decisions");
     else renderAll();
   }
 
@@ -1437,425 +1449,6 @@ const WV = (() => {
     tip.style.top = `${my + 14}px`;
   }
 
-  // ---------------------------------------------------------------- timeline
-
-  const GUTTER = 200;
-  const LANE_H = 12;
-  const CHART_H = 32;
-  // Every chart has its own zero-based axis. With all seats a chart is the seats stacked (the top edge is the
-  // side's sum); with one seat, its line against the other seats' faint ones. "theirs" is the ground truth.
-  const CHARTS = [
-    { label: "metal income", key: "metalIncome" },
-    { label: "energy income", key: "energyIncome" },
-    { label: "extractors", key: "extractors", theirs: "extractors" },
-    { label: "army metal", key: "armyMetal", theirs: "armyMetal" },
-  ];
-
-  function timelineGeometry(w) {
-    const last = Math.max(view.match.lastFrame, 1);
-    return { x0: GUTTER, x1: w - 12, last, fx: (f) => GUTTER + ((w - 12 - GUTTER) * f) / last };
-  }
-
-  /// The charts of a game with a tape and no record of ours, a line a side.
-  const TAPE_CHARTS = [
-    { label: "metal income", key: "metalIncome" },
-    { label: "energy income", key: "energyIncome" },
-    { label: "army worth (metal)", key: "armyMetal" },
-    { label: "units", key: "units" },
-  ];
-
-  /// The sides of a tape (its ally teams) and their numbers a game second, worked out once from its tables: each
-  /// side's metal and energy income and stores (the TEAM table, its teams summed), its finished units, and its
-  /// army: the finished units that move, shoot and do not build, with what they cost. And what each side lost.
-  function tapeSides() {
-    if (view.tapeSides) return view.tapeSides;
-    const tape = view.scene.tape, ints = tape.unitInts, NEVER = 0xffffffff;
-    const teams = (tape.head.teams || []).filter((t) => !t.gaia);
-    const seconds = Math.floor(tape.lastFrame / WR.FPS) + 1;
-    const keys = ["metalIncome", "energyIncome", "metal", "energy", "units", "army", "armyMetal"];
-    const sides = [...new Set(teams.map((t) => t.ally))].sort((a, b) => a - b).map((ally) => {
-      const seats = teams.filter((t) => t.ally === ally);
-      const first = (seats[0].name || "").trim() || seats[0].side || `team ${seats[0].team}`;
-      const side = { ally, teams: seats, css: `rgb(${seats[0].color.map((v) => Math.round(v * 255)).join(", ")})`, name: `${first.slice(0, 18)}${seats.length > 1 ? ` +${seats.length - 1}` : ""}`, losses: [] };
-      for (const key of keys) side[key] = new Float32Array(seconds + 1);
-      return side;
-    });
-    const sideOf = new Map(teams.map((t) => [t.team, sides.find((side) => side.ally === t.ally)]));
-    const armed = (def) => (def.weapons || []).some((id) => {
-      const w = tape.weaponDefs.get(id);
-      return w && !w.shield && w.damage > 0;
-    });
-    const worth = new Map(tape.defs.units.map((def) => [def.id, def.mobile && !def.builder && armed(def) ? def.metal || 0 : -1]));
-    // A unit counts from the second it is finished to the second it dies: a step up and a step down, summed after.
-    for (let row = 0; row < tape.unitCount; row++) {
-      const a = row * 8, side = sideOf.get(ints[a + 2]);
-      if (!side) continue;
-      const [finished, destroyed] = [ints[a + 4], ints[a + 5]];
-      if (destroyed !== NEVER) side.losses.push({ f: destroyed, row });
-      if (finished === NEVER || finished >= destroyed) continue;
-      const from = Math.min(seconds, Math.ceil(finished / WR.FPS)), to = destroyed === NEVER ? seconds + 1 : Math.ceil(destroyed / WR.FPS);
-      const metal = worth.get(ints[a + 1]);
-      for (const [key, v] of [["units", 1], ["army", metal >= 0 ? 1 : 0], ["armyMetal", Math.max(0, metal)]]) {
-        side[key][from] += v;
-        if (to <= seconds) side[key][to] -= v;
-      }
-    }
-    for (const side of sides) {
-      for (const key of ["units", "army", "armyMetal"]) for (let i = 1; i <= seconds; i++) side[key][i] += side[key][i - 1];
-      side.losses.sort((a, b) => a.f - b.f);
-      // The TEAM table's columns: metal, its store, pull, income and spend, then energy's five.
-      const frames = tape.teams.frames || [];
-      for (const t of side.teams) {
-        ((tape.teams.teams || {})[t.team] || []).forEach((row, i) => {
-          const at = Math.min(seconds, Math.round(frames[i] / WR.FPS));
-          if (!row) return;
-          side.metal[at] += row[0]; side.metalIncome[at] += row[3]; side.energy[at] += row[5]; side.energyIncome[at] += row[8];
-        });
-      }
-    }
-    view.tapeSides = sides;
-    return sides;
-  }
-
-  /// The lanes of the timeline for the scope: [{label, color, items: [{f, to?, seat?, faint?}]}].
-  /// The lanes of a game with a tape and no record of ours: each side's losses.
-  function tapeLanes() {
-    if (!view.laneList) view.laneList = tapeSides().map((side) => ({ label: `losses: ${side.name}`, css: side.css, items: side.losses }));
-    return view.laneList;
-  }
-
-  function timelineLanes() {
-    const match = view.match;
-    if (match.tapeOnly) return tapeLanes();
-    const key = `${view.version}:${view.scope}`;
-    if (view.lanesKey === key) return view.laneList;
-    const lanes = WR.lanes(match, view.scope);
-    view.lanes = lanes;
-    const multi = match.seats.length > 1;
-    const list = [
-      { label: "unit losses", color: "ours", bySeat: multi, items: lanes.losses },
-      { label: "building losses", color: "ours", bySeat: multi, items: lanes.buildingLosses },
-      { label: "extractor losses", color: "ours", bySeat: multi, items: lanes.extractorLosses },
-      { label: "kills", color: "theirs", items: lanes.kills },
-    ];
-    const turns = (transcript, seat) => transcript.turns.map((t) => ({ f: t.f, to: WR.turnEnd(match, t), seat, turn: t }));
-    if (match.commander) list.push({ label: "commander turns", color: "llm", items: turns(match.commander, null), bars: true });
-    const players = new Map();
-    for (const seat of WR.scoped(match, view.scope)) {
-      const player = playerOf(seat);
-      if (player && !players.has(player)) players.set(player, seat.index);
-    }
-    if (players.size) {
-      const items = [...players].flatMap(([player, seat]) => turns(player, seat)).sort((a, b) => a.f - b.f);
-      list.push({ label: players.size > 1 ? "player turns, by seat" : "player turns", color: "llm", bySeat: players.size > 1, items, bars: players.size === 1 });
-    }
-    // The lane stands from the start for a seat with a log, and fills when its index has come: the page does not
-    // jump when it does.
-    if (expectsHands()) {
-      const hands = WR.scoped(match, view.scope).filter((s) => s.jev);
-      const items = hands.flatMap((s) => s.jev.index.gates.map((f) => ({ f, seat: s.index }))).sort((a, b) => a.f - b.f);
-      list.push({ label: "hands: gates asked", color: "jev", bySeat: multi, items });
-    }
-    for (const [name, label] of [["builders", "hands: builders"], ["labs", "hands: plants"], ["groups", "hands: army"]]) {
-      const items = lanes[name].map((d) => ({ ...d, faint: d.source !== "plan" }));
-      if (items.length) list.push({ label, color: "jev", bySeat: multi, items, plays: true });
-    }
-    view.lanesKey = key;
-    view.laneList = list;
-    return list;
-  }
-
-  /// Whether a seat in scope has a hands' log, read yet or not.
-  function expectsHands() {
-    return WR.scoped(view.match, view.scope).some((s) => s.jev || (view.live && view.live.files.includes(`jev-${s.header.ai_id}.jsonl`)));
-  }
-
-  /// The Jev bill a game minute of the seats in scope that have an index: [{minute, seats: Map seat -> dollars}].
-  function costMinutes() {
-    const hands = WR.scoped(view.match, view.scope).filter((s) => s.jev);
-    return hands.length ? WR.costView(hands.map((s) => ({ seat: s.index, index: s.jev.index }))) : null;
-  }
-
-  /// Everything of the timeline that does not move with the playhead, drawn once into its own canvas and blitted.
-  function timelinePicture(w, h, dpr) {
-    const match = view.match;
-    const compact = document.body.dataset.compact === "1";
-    const key = `${view.version}:${view.scope}:${w}:${dpr}:${compact}`;
-    if (view.timelineKey === key) return view.timelineCanvas;
-    const canvas = view.timelineCanvas || (view.timelineCanvas = document.createElement("canvas"));
-    const lanes = timelineLanes();
-    const cost = costMinutes();
-    const charts = compact ? [] : match.tapeOnly ? TAPE_CHARTS : [...CHARTS, ...(expectsHands() ? [{ label: "Jev $ a minute", cost: true }] : [])];
-    const height = 6 + lanes.length * LANE_H + 4 + (charts.length ? 14 + charts.length * CHART_H : 0) + 20;
-    view.timelineHeight = height;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(height * dpr);
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const g = timelineGeometry(w);
-    ctx.font = "10.5px system-ui";
-    ctx.textBaseline = "middle";
-    let y = 6;
-    for (const lane of lanes) {
-      ctx.fillStyle = COLOR["ink-2"];
-      ctx.textAlign = "right";
-      const picked = lane.plays ? lane.items.filter((d) => !d.faint).length : 0;
-      ctx.fillText(lane.plays ? `${lane.label} (${picked} pick, ${lane.items.length - picked} list)` : `${lane.label} (${lane.items.length})`, GUTTER - 8, y + LANE_H / 2);
-      ctx.fillStyle = COLOR["surface-2"];
-      ctx.fillRect(g.x0, y + 1, g.x1 - g.x0, LANE_H - 2);
-      for (const item of lane.items) {
-        ctx.fillStyle = lane.css || (lane.bySeat && item.seat != null ? seatColor(item.seat) : COLOR[lane.color]);
-        ctx.globalAlpha = item.faint ? 0.35 : 1;
-        const x = Math.round(g.fx(item.f));
-        // A turn is as wide as it took, in a game that ran on meanwhile.
-        const wide = lane.bars && item.to > item.f ? Math.max(2, Math.round(g.fx(item.to)) - x) : 2;
-        ctx.fillRect(x - (wide === 2 ? 1 : 0), y + 2, wide, LANE_H - 4);
-      }
-      ctx.globalAlpha = 1;
-      y += LANE_H;
-    }
-    y += 4;
-    view.chartRows = [];
-    const seats = WR.scoped(match, null);
-    const one = view.scope != null ? match.seats[view.scope] : match.seats.length === 1 ? match.seats[0] : null;
-    if (charts.length) {
-      // Legend, once.
-      ctx.textAlign = "left";
-      let lx = g.x0;
-      const swatch = (color, text) => {
-        ctx.fillStyle = color;
-        ctx.fillRect(lx, y + 2, 10, 8);
-        ctx.fillStyle = COLOR["ink-2"];
-        ctx.fillText(text, lx + 14, y + 6);
-        lx += 22 + ctx.measureText(text).width;
-      };
-      if (match.tapeOnly) for (const side of tapeSides()) swatch(side.css, side.name);
-      else if (match.seats.length > 1) for (const s of match.seats) swatch(seatColor(s.index), one && one !== s ? `${s.name} (faint)` : s.name);
-      else swatch(COLOR.ours, "ours (bot's view)");
-      if (!match.tapeOnly) swatch(COLOR.theirs, match.truth.length ? "theirs (ground truth)" : "theirs: no truth file in this match");
-      if (!one && !match.tapeOnly) { ctx.fillStyle = COLOR.muted; ctx.fillText("stacked: the top edge is the side's sum", lx, y + 6); }
-      y += 14;
-      // One column every two pixels: each seat's value at that frame.
-      const columns = [];
-      for (let x = g.x0; x <= g.x1; x += 2) columns.push(((x - g.x0) / (g.x1 - g.x0)) * g.last);
-      const sample = (seat, chartKey) => {
-        let i = -1;
-        return columns.map((f) => {
-          while (i + 1 < seat.series.length && seat.series[i + 1].f <= f) i++;
-          return i >= 0 && f <= seat.lastFrame + 2 * WR.FPS ? seat.series[i][chartKey] : null;
-        });
-      };
-      for (const chart of charts) {
-        const top = y + 4;
-        const bottom = y + CHART_H - 2;
-        ctx.strokeStyle = COLOR.line;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(g.x0, bottom + 0.5); ctx.lineTo(g.x1, bottom + 0.5); ctx.stroke();
-        let max = 1;
-        // The axis ends a little over the 99th percentile: a second's spike (a wreck reclaimed, a transfer) is
-        // cut off at the top rather than flattening the whole curve.
-        const peak = (list) => {
-          const sorted = list.filter((v) => v > 0).sort((a, b) => a - b);
-          return sorted.length ? Math.max(1, Math.min(sorted[sorted.length - 1], sorted[Math.floor(0.99 * (sorted.length - 1))] * 1.1)) : 1;
-        };
-        if (match.tapeOnly) {
-          // A line a side, each column the side's number that second.
-          const sides = tapeSides();
-          max = Math.max(...sides.map((side) => peak(Array.from(side[chart.key]))));
-          for (const side of sides) {
-            const series = side[chart.key];
-            ctx.strokeStyle = side.css;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            columns.forEach((f, c) => {
-              const v = series[Math.min(series.length - 1, Math.round(f / WR.FPS))];
-              const [x, yv] = [g.x0 + 2 * c, bottom - ((bottom - top) * Math.min(v, max)) / max];
-              if (c) ctx.lineTo(x, yv); else ctx.moveTo(x, yv);
-            });
-            ctx.stroke();
-          }
-        } else if (chart.cost && !cost) {
-          max = 0;
-        } else if (chart.cost) {
-          // Bars a game minute, stacked by seat.
-          const dollars = (tokens) => (tokens * WR.JEV_PRICE) / 1e6;
-          max = Math.max(0.01, ...cost.minutes.map((m) => dollars(m.tokens)));
-          for (const m of cost.minutes) {
-            let base = 0;
-            const [xa, xb] = [g.fx(m.minute * 60 * WR.FPS), Math.min(g.x1, g.fx((m.minute + 1) * 60 * WR.FPS))];
-            for (const [seat, tokens] of [...m.seats].sort((a, b) => a[0] - b[0])) {
-              const hgt = ((bottom - top) * dollars(tokens)) / max;
-              ctx.fillStyle = seatColor(seat);
-              ctx.fillRect(xa + 0.5, bottom - base - hgt, Math.max(1, xb - xa - 1), hgt);
-              base += hgt;
-            }
-          }
-        } else {
-          const values = seats.map((s) => sample(s, chart.key));
-          const sums = columns.map((_, c) => values.reduce((n, v) => n + (v[c] || 0), 0));
-          const theirs = chart.theirs ? match.truth.map((t) => t[chart.theirs]) : [];
-          max = one ? Math.max(peak(values[seats.indexOf(one)].map((v) => v || 0)), ...(match.seats.length === 1 ? [peak(theirs)] : [])) : Math.max(peak(sums), peak(theirs));
-          const vy = (v) => bottom - ((bottom - top) * Math.min(v, max)) / max;
-          const cx = (c) => g.x0 + 2 * c;
-          if (one) {
-            // The seat's line over the other seats' faint ones, on one axis.
-            seats.forEach((s, si) => {
-              ctx.strokeStyle = seatColor(s.index);
-              ctx.globalAlpha = s === one ? 1 : 0.3;
-              ctx.lineWidth = s === one ? 2 : 1;
-              ctx.beginPath();
-              let started = false;
-              values[si].forEach((v, c) => {
-                if (v == null) return;
-                if (started) ctx.lineTo(cx(c), vy(v)); else ctx.moveTo(cx(c), vy(v));
-                started = true;
-              });
-              ctx.stroke();
-            });
-            ctx.globalAlpha = 1;
-          } else {
-            const base = columns.map(() => 0);
-            seats.forEach((s, si) => {
-              ctx.fillStyle = seatColor(s.index);
-              ctx.globalAlpha = 0.85;
-              ctx.beginPath();
-              ctx.moveTo(cx(0), vy(base[0]));
-              const tops = base.map((b, c) => b + (values[si][c] || 0));
-              tops.forEach((v, c) => ctx.lineTo(cx(c), vy(v)));
-              for (let c = columns.length - 1; c >= 0; c--) ctx.lineTo(cx(c), vy(base[c]));
-              ctx.closePath();
-              ctx.fill();
-              tops.forEach((v, c) => (base[c] = v));
-            });
-            ctx.globalAlpha = 1;
-          }
-          // Theirs: the side's whole, so drawn where ours is the side's whole too (all seats, or a game of one).
-          if (chart.theirs && match.truth.length && (!one || match.seats.length === 1)) {
-            ctx.strokeStyle = COLOR.theirs;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            const step = Math.max(1, Math.floor(match.truth.length / (g.x1 - g.x0)));
-            for (let i = 0; i < match.truth.length; i += step) {
-              const t = match.truth[i];
-              if (i === 0) ctx.moveTo(g.fx(t.f), vy(t[chart.theirs])); else ctx.lineTo(g.fx(t.f), vy(t[chart.theirs]));
-            }
-            ctx.stroke();
-          }
-        }
-        ctx.fillStyle = COLOR["ink-2"];
-        ctx.textAlign = "right";
-        ctx.fillText(chart.label, GUTTER - 8, (top + bottom) / 2 + 4);
-        ctx.fillStyle = COLOR.muted;
-        ctx.fillText(chart.cost ? `$${max.toFixed(2)}` : String(Math.round(max)), GUTTER - 8, top + 2);
-        view.chartRows.push({ chart, top, bottom });
-        y += CHART_H;
-      }
-    }
-    // Time axis: a label every few minutes, however long the game.
-    const minutes = g.last / (60 * WR.FPS);
-    const every = [1, 2, 5, 10, 20].find((n) => minutes / n <= 12) || 30;
-    ctx.fillStyle = COLOR.muted;
-    ctx.textAlign = "center";
-    for (let m = 0; m <= minutes; m += every) {
-      const x = Math.round(g.fx(m * 60 * WR.FPS)) + 0.5;
-      ctx.strokeStyle = COLOR.line;
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
-      ctx.fillText(`${m}:00`, x, y + 12);
-    }
-    view.timelineBottom = y;
-    view.timelineKey = key;
-    return canvas;
-  }
-
-  function drawTimeline() {
-    const canvas = $("timeline");
-    if (!view.match || (view.match.tapeOnly && !view.scene)) return;
-    const dpr = window.devicePixelRatio || 1;
-    const picture = timelinePicture(canvas.clientWidth, canvas.clientHeight, dpr);
-    // The lanes and charts of the match decide the timeline's height.
-    if (canvas.style.height !== `${view.timelineHeight}px`) canvas.style.height = `${view.timelineHeight}px`;
-    const { ctx, w } = fitCanvas(canvas);
-    ctx.drawImage(picture, 0, 0, picture.width / dpr, picture.height / dpr);
-    const g = timelineGeometry(w);
-    const line = (frame, color) => {
-      const x = Math.round(g.fx(frame)) + 0.5;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(x, 4); ctx.lineTo(x, view.timelineBottom); ctx.stroke();
-    };
-    if (view.hoverFrame != null) line(view.hoverFrame, COLOR.muted);
-    line(view.frame, COLOR.ink);
-  }
-
-  function timelineFrame(event) {
-    const rect = $("timeline").getBoundingClientRect();
-    const g = timelineGeometry(rect.width);
-    const t = (event.clientX - rect.left - g.x0) / (g.x1 - g.x0);
-    return Math.round(Math.min(1, Math.max(0, t)) * g.last);
-  }
-
-  function timelineHover(event) {
-    if (!view.match || (view.match.tapeOnly && !view.scene)) return;
-    const frame = timelineFrame(event);
-    view.hoverFrame = frame;
-    const match = view.match;
-    const near = (items) => WR.range(items, frame - 5 * WR.FPS, frame + 5 * WR.FPS);
-    const lines = [WR.clock(frame)];
-    if (match.tapeOnly) {
-      // Each side's numbers that second, and what it lost within five seconds.
-      const tape = view.scene.tape;
-      for (const side of tapeSides()) {
-        const at = Math.min(side.units.length - 1, Math.round(frame / WR.FPS));
-        lines.push(`${side.name}: metal +${side.metalIncome[at].toFixed(1)}, energy +${Math.round(side.energyIncome[at])}, ${side.units[at]} units, army ${side.army[at]} worth ${Math.round(side.armyMetal[at])}`);
-        const lost = near(side.losses);
-        if (lost.length) lines.push(`  lost: ${summarise(lost.map((e) => (tape.unit(e.row).def || {}).name || "unit"))}`);
-      }
-    } else hoverLines(lines, frame, near);
-    const tip = $("chart-tooltip");
-    tip.textContent = lines.join("\n");
-    tip.hidden = false;
-    const rect = $("timeline").getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    tip.style.left = `${x > rect.width - 420 ? x - 400 : x + 14}px`;
-    tip.style.bottom = "24px";
-    if (event.buttons & 1) seek(frame);
-    else drawTimeline();
-  }
-
-  /// The timeline's hover for a match with a record: the side's numbers, the losses and kills, the turns and plays near.
-  function hoverLines(lines, frame, near) {
-    const match = view.match;
-    const total = WR.totalsAt(match, view.scope, frame);
-    const theirs = view.scope == null || match.seats.length === 1 ? match.truth[WR.indexAt(match.truth, frame)] : null;
-    if (total.seats) {
-      lines.push(`metal +${total.metalIncome.toFixed(1)}   energy +${total.energyIncome.toFixed(0)}`);
-      lines.push(`extractors ${total.extractors}${theirs ? ` / theirs ${theirs.extractors}` : ""}`);
-      lines.push(`army ${total.army} worth ${Math.round(total.armyMetal)}${theirs ? ` / theirs ${theirs.army} worth ${Math.round(theirs.armyMetal)}` : ""}`);
-      if (view.scope == null && match.seats.length > 1) {
-        for (const seat of match.seats) {
-          const t = WR.totalsAt(match, seat.index, frame);
-          if (t.seats) lines.push(`  ${seat.name}: +${t.metalIncome.toFixed(1)} m, ${t.extractors} mex, army ${Math.round(t.armyMetal)}`);
-        }
-      }
-    }
-    const lanes = view.lanes || WR.lanes(match, view.scope);
-    const lost = near(lanes.losses).concat(near(lanes.buildingLosses), near(lanes.extractorLosses));
-    if (lost.length) lines.push(`lost: ${summarise(lost.map((e) => defName(e.d)))}`);
-    const killed = near(lanes.kills);
-    if (killed.length) lines.push(`killed: ${summarise(killed.map((e) => defName(e.d)))}`);
-    for (const lane of view.laneList || []) {
-      if (!lane.bars && !/turns/.test(lane.label)) continue;
-      for (const item of near(lane.items).slice(0, 3)) {
-        const who = item.seat != null && match.seats.length > 1 ? `player ${match.seats[item.seat].name}` : lane.label.replace(/ turns.*/, "");
-        lines.push(`${WR.clock(item.f)} ${who}: ${item.turn.wake || "turn"}${item.turn.wallSeconds != null ? ` (${item.turn.wallSeconds.toFixed(0)} s)` : ""}`.slice(0, 110));
-      }
-    }
-    const plays = near(lanes.builders).concat(near(lanes.labs), near(lanes.groups)).sort((a, b) => a.f - b.f);
-    for (const d of plays.slice(0, 6)) lines.push(`${WR.clock(d.f)} ${d.source}: ${d.inputs.actor}: ${d.outputs.did || ""}`.slice(0, 110));
-    if (plays.length > 6) lines.push(`... ${plays.length - 6} more plays`);
-  }
-
   function summarise(names) {
     const counts = new Map();
     for (const n of names) counts.set(n, (counts.get(n) || 0) + 1);
@@ -1896,7 +1489,8 @@ const WV = (() => {
     if (!view.match || (view.match.tapeOnly && !view.scene)) return;
     $("clock").textContent = WR.clock(view.frame);
     drawMap();
-    drawTimeline();
+    WV.stats.renderStrip();
+    WV.timeline.draw();
     renderPanels();
   }
 
@@ -1946,6 +1540,15 @@ const WV = (() => {
     $("compact").addEventListener("click", () => setCompact(document.body.dataset.compact !== "1"));
     try { if (localStorage.getItem("wr-compact") === "1") document.body.dataset.compact = "1"; } catch (_) { /* no storage */ }
     try { if (localStorage.getItem("wr-wide") === "1") document.body.dataset.wide = "1"; } catch (_) { /* no storage */ }
+    // The side pane folds away and the scene takes the window's width.
+    const setSide = (shown) => {
+      document.body.dataset.side = shown ? "" : "0";
+      $("side-toggle").textContent = shown ? "panel ▸" : "◂ panel";
+      try { localStorage.setItem("wr-side", shown ? "" : "0"); } catch (_) { /* no storage */ }
+      renderAll();
+    };
+    $("side-toggle").addEventListener("click", () => setSide(document.body.dataset.side === "0"));
+    try { if (localStorage.getItem("wr-side") === "0") setSide(false); } catch (_) { /* no storage */ }
     $("play").addEventListener("click", () => setPlaying(!view.playing));
     $("mode").addEventListener("click", () => setMode(view.mode === "3d" ? "2d" : "3d"));
     // Going anywhere by hand stops following the live match; ticking the box again jumps back to the newest sample.
@@ -1953,19 +1556,12 @@ const WV = (() => {
     $("follow").addEventListener("change", (e) => e.target.checked && view.match && seek(view.match.lastFrame));
     $("play").addEventListener("click", leaveLive);
     $("back").addEventListener("click", leaveLive);
-    $("timeline").addEventListener("mousedown", leaveLive);
     $("back").addEventListener("click", () => seek(view.frame - 10 * WR.FPS));
     $("forward").addEventListener("click", () => seek(view.frame + 10 * WR.FPS));
     $("forward").addEventListener("click", leaveLive);
     $("speed").addEventListener("change", (e) => (view.speed = Number(e.target.value)));
     $("files").addEventListener("change", (e) => openFiles(e.target.files));
-    $("timeline").addEventListener("mousedown", (e) => view.match && seek(timelineFrame(e)));
-    $("timeline").addEventListener("mousemove", timelineHover);
-    $("timeline").addEventListener("mouseleave", () => {
-      view.hoverFrame = null;
-      $("chart-tooltip").hidden = true;
-      drawTimeline();
-    });
+    WV.timeline.wire(leaveLive);
     $("map").addEventListener("mousemove", mapHover);
     $("map").addEventListener("mouseleave", () => ($("tooltip").hidden = true));
     $("map").addEventListener("wheel", (e) => {
@@ -2025,6 +1621,7 @@ const WV = (() => {
       else if (e.key === "ArrowRight") seek(view.frame + (e.shiftKey ? 60 : 10) * WR.FPS);
       else if (e.key === "w") return setWide(document.body.dataset.wide !== "1");
       else if (e.key === "c") return setCompact(document.body.dataset.compact !== "1");
+      else if (e.key === "s") return setSide(document.body.dataset.side === "0");
       else if (e.key === "m" && view.scene && !$("mode").hidden) return setMode(view.mode === "3d" ? "2d" : "3d");
       // One sample of the tape back or on (a tenth of a second): the finest step the units have.
       else if (e.key === "," || e.key === ".") seek((Math.round(view.frame / 3) + (e.key === "," ? -1 : 1)) * 3);
@@ -2043,7 +1640,7 @@ const WV = (() => {
   }
 
   return {
-    $, el, view, COLOR, status, seatColor, inScope, classOf, defName, playerOf, summarise, gateAt, pictureAt, actorUnits, placeWords, tapeOrderWords, tapeSides,
+    $, el, view, COLOR, status, seatColor, inScope, classOf, defName, playerOf, summarise, gateAt, pictureAt, actorUnits, placeWords, tapeOrderWords, fitCanvas, finished: () => finished(),
     seek, select, setTab, setScope, focusActor, renderAll, drawMap, start: () => { wire(); boot(); }, panels: {},
   };
 })();

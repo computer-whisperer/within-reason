@@ -23,6 +23,9 @@ struct State {
     dirty: [u32; 4],
     /// The orders of the unit last asked about (`wr_orders_of`).
     history: Vec<f32>,
+    /// The game's numbers a second (`wr_stats`): `tape::stats`' values and its description of them.
+    stats: Vec<f32>,
+    stats_text: String,
 }
 
 thread_local! {
@@ -172,9 +175,22 @@ pub extern "C" fn wr_orders_of(row: u32) -> u32 {
     })
 }
 
+/// Works out the game's numbers a second from the tables now in (`tape::stats`): array 14 the values
+/// (`[team][metric][second]`), text 4 what they are (the seconds, the teams, the metrics). The seconds, or -1.
+#[unsafe(no_mangle)]
+pub extern "C" fn wr_stats() -> i32 {
+    attempt(|s| {
+        let Some(tape) = s.tape.as_ref() else { return tape::format::err("no tape is open") };
+        let stats = tape::stats::compute(tape)?;
+        s.stats_text = stats.describe();
+        s.stats = stats.values;
+        Ok(stats.seconds as i32)
+    })
+}
+
 /// An array's address: 0 units, 1 ranges (u32), 2 projectiles, 3 bursts, 4 the unit table's u32, 5 its f32, 6 the
 /// features, 7 the ground now (u16), 8 what the units are doing, 9 the commands just given, 10 a unit's orders, 11
-/// what each ally team sees of each unit (u32, beside 0).
+/// what each ally team sees of each unit (u32, beside 0), 12 and 13 the moving pieces, 14 the game's numbers.
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_array(which: u32) -> *const u8 {
     with(|s| match which {
@@ -191,6 +207,7 @@ pub extern "C" fn wr_array(which: u32) -> *const u8 {
         11 => s.frame.seen.as_ptr() as *const u8,
         12 => s.frame.pieces.as_ptr() as *const u8,
         13 => s.frame.piece_at.as_ptr() as *const u8,
+        14 => s.stats.as_ptr() as *const u8,
         _ => s.tape.as_ref().map_or(std::ptr::null(), |t| t.ground_now.as_ptr() as *const u8),
     })
 }
@@ -212,11 +229,13 @@ pub extern "C" fn wr_array_len(which: u32) -> u32 {
         11 => s.frame.seen.len(),
         12 => s.frame.pieces.len(),
         13 => s.frame.piece_at.len(),
+        14 => s.stats.len(),
         _ => s.tape.as_ref().map_or(0, |t| t.ground_now.len()),
     } as u32)
 }
 
-/// A text's address: 0 the header, 1 the types, 2 the teams' resources, 3 the events (all JSON), 9 the last error.
+/// A text's address: 0 the header, 1 the types, 2 the teams' resources, 3 the events, 4 what `wr_stats` worked out
+/// (all JSON), 9 the last error.
 #[unsafe(no_mangle)]
 pub extern "C" fn wr_text(which: u32) -> *const u8 {
     with(|s| text(s, which).as_ptr())
@@ -233,6 +252,7 @@ fn text(s: &State, which: u32) -> &str {
         (1, Some(t)) => &t.defs,
         (2, Some(t)) => &t.teams,
         (3, Some(t)) => &t.events,
+        (4, _) => &s.stats_text,
         (9, _) => &s.error,
         _ => "",
     }

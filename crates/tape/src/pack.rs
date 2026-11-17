@@ -159,6 +159,10 @@ fn teams_table(game: &Game) -> Value {
     let columns = [
         "metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_excess", "metal_sent",
         "metal_received", "energy_excess", "energy_sent", "energy_received",
+        // (format 6) the converters' energy in use and capacity, what was reclaimed so far (-1: the game's version
+        // keeps no count), the finished builders' build power and how much is in use, the constructors and the idle
+        // of them, the plants and the idle of them, the orders given that second
+        "conv_use", "conv_capacity", "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders",
     ];
     // The engine's statistics of each team, a row as it added an entry: [frame, the numbers].
     let mut stats: serde_json::Map<String, Value> = Default::default();
@@ -173,7 +177,7 @@ fn teams_table(game: &Game) -> Value {
         }
     }
     let stat_columns = ["metal_used", "metal_produced", "metal_excess", "energy_used", "energy_produced", "energy_excess", "damage_dealt", "damage_received", "units_produced", "units_died", "units_killed"];
-    json!({ "frames": frames, "columns": columns, "teams": teams, "stat_columns": stat_columns, "stats": stats })
+    json!({ "frames": frames, "columns": columns, "teams": teams, "stat_columns": stat_columns, "stats": stats, "wind": game.wind })
 }
 
 /// The header: the raw stream's, with what the tape adds. `slices` and `last_frame` are the tape's as written (a
