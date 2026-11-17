@@ -48,7 +48,8 @@ body[data-match="1"] .open input { display: none; }
 #strip table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 #strip th { color: var(--muted); font-weight: 400; font-size: 10.5px; text-align: center; padding: 0 8px; border-left: 1px solid var(--line); }
 #strip th.who { text-align: left; border-left: 0; }
-#strip th.wind { text-align: left; color: var(--ink-2); }
+#strip th.wind { text-align: left; color: var(--ink-2); min-width: 190px; font-variant-numeric: tabular-nums; cursor: pointer; }
+#strip th.wind.charted { text-decoration: underline; text-decoration-color: var(--jev); }
 #strip td { padding: 1px 6px; text-align: right; color: var(--ink); }
 #strip td.first { border-left: 1px solid var(--line); padding-left: 8px; }
 /* (Every number's cell has its width from the start, set with it: no column moves as the numbers change.) */

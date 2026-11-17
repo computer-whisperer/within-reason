@@ -13,12 +13,12 @@
   /// Seconds a bar of the metal destroyed covers.
   const TRADE_SECONDS = 10;
   /// The classes' bands: softer than any side's colour, so a band is not read as a side.
-  const CLASS_COLORS = { army: "#d98f7a", air: "#adcce6", defence: "#b8b8b2", factories: "#dbcc8a", builders: "#9ecc9e", economy: "#85c7c2", utility: "#d1adc2" };
+  const CLASS_COLORS = { army: "#d98f7a", air: "#adcce6", sea: "#809ecc", defence: "#b8b8b2", strategic: "#b39ed6", factories: "#dbcc8a", builders: "#9ecc9e", economy: "#85c7c2", utility: "#d1adc2" };
 
   // ---------------------------------------------------------------- what is shown
 
   /// The rows chosen. A chart is a metric's key, `<key>/min` for a running total as what it gained in the last
-  /// minute, `classes` (each side's worth by class) or `jev_cost`.
+  /// minute, `classes` (each side's worth by class), `wind` (the game's wind) or `jev_cost`.
   const DEFAULT = { charts: ["value_army", "metal_income"], lanes: { trade: true, commander: true, player: true, gates: false, builders: false, labs: false, groups: false } };
   let prefs = JSON.parse(JSON.stringify(DEFAULT));
   try {
@@ -235,8 +235,8 @@
     ctx.fillRect(0, middle, w, 1);
   }
 
-  /// A metric's lines on a zero-based axis of its own.
-  function paintChart(canvas, lines, mean) {
+  /// A metric's lines on a zero-based axis of its own (or one that reaches `atLeast`).
+  function paintChart(canvas, lines, mean, atLeast = 0) {
     const { ctx, w, h } = fit(canvas);
     minuteLines(ctx, w, h);
     const top = 5, bottom = h - 3;
@@ -249,7 +249,7 @@
       const sorted = drawn.filter((line) => line.bold).flatMap((line) => Array.from(line.at)).filter((v) => v > 0).sort((a, b) => a - b);
       if (sorted.length) peak = Math.min(peak, sorted[Math.floor(0.985 * (sorted.length - 1))] * 1.25);
     }
-    const { max, step } = axis(peak);
+    const { max, step } = axis(Math.max(peak, atLeast));
     const y = (v) => bottom - ((bottom - top) * Math.max(0, Math.min(v, max))) / max;
     ctx.textAlign = "left";
     for (let v = 0; v <= max + step / 2; v += step) {
@@ -375,6 +375,13 @@
       return { ...r, paint: () => paintCost(r.canvas, cost), value: () => [] };
     }
     if (chart === "classes") return null; // (one row a side: see `build`)
+    if (chart === "wind") {
+      // The wind is the game's, one line: on the axis of the range the map's wind blows in.
+      if (!m.wind) return null;
+      const line = { name: `of ${Math.round(m.windRange[0])}–${Math.round(m.windRange[1])}`, css: COLOR["ink-2"], data: m.wind, bold: true };
+      const r = row("chart", CHART_H, "wind", [remove]);
+      return { ...r, key: "wind", paint: () => paintChart(r.canvas, [line], false, m.windRange[1]), value: (second) => [{ css: line.css, name: line.name, text: m.wind[second].toFixed(1), bold: true }] };
+    }
     const metric = m.metric(metricOf(chart));
     const lines = metric ? linesOf(m, chart) : [];
     if (!lines.length) return null;
@@ -428,7 +435,7 @@
   /// under the mouse must not be swapped out).
   function buildMenu(m, lanes) {
     const box = $("rows-list");
-    const key = JSON.stringify([lanes.map((lane) => lane.label), m ? [m.source, m.metrics.length, m.classes.length] : null, prefs, view.match.seats.length && expectsHands()]);
+    const key = JSON.stringify([lanes.map((lane) => lane.label), m ? [m.source, m.metrics.length, m.classes.length, !!m.wind] : null, prefs, view.match.seats.length && expectsHands()]);
     if (box.dataset.key === key) return;
     box.dataset.key = key;
     box.textContent = "";
@@ -445,6 +452,10 @@
     if (lanes.length) box.append(el("h2", null, "lanes"));
     for (const lane of lanes) tick(lane.label, !!prefs.lanes[lane.name], (on) => { prefs.lanes[lane.name] = on; changed(); });
     if (m) {
+      if (m.wind) {
+        box.append(el("h2", null, "charts: the game"));
+        chart("wind", "wind");
+      }
       for (const group of [...new Set(m.metrics.map((x) => x.group))]) {
         box.append(el("h2", null, `charts: ${group}`));
         for (const metric of m.metrics.filter((x) => x.group === group)) chart(metric.key, metric.label);

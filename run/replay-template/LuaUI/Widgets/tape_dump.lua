@@ -75,6 +75,8 @@ local vital = {} -- unit id -> { health, build, paralyze, flags } as last writte
 local sight = {} -- unit id -> { in sight, on radar } as last written (the `S` rows)
 local doing = {} -- unit id -> { cmd, a, b, c, queue, builds } as last written
 local work = {} -- builder id -> { build power in hundredths, a factory's line } as last written (the `W` rows)
+local industry = {} -- team -> { build power, in use, constructors, idle, plants, idle } at `sampleWork`'s last look
+local ordersGiven = {} -- team -> the orders given to its units since the last `res` row
 local rank = {} -- unit id -> { experience, full health } as last written (the `R` rows)
 local hurt = {} -- unit id -> damage taken since the last `H` row
 local featureMetal = {} -- feature id -> its metal (whole) as last written
@@ -292,6 +294,9 @@ local function unitDef(id)
 		power = d.power or 0, energy_make = d.energyMake or 0, energy_upkeep = d.energyUpkeep or 0, wind = d.windGenerator or 0,
 		tidal = d.tidalGenerator or 0, metal_store = d.metalStorage or 0, energy_store = d.energyStorage or 0, can_assist = d.canAssist and 1 or 0,
 		can_reclaim = d.canReclaim and 1 or 0, converter = tonumber(cp.energyconv_capacity) or 0, reach = auditReach(d),
+		-- (raw version 6, for the game's own classes of units: tape::stats, after the game's team stats gadget)
+		group = cp.unitgroup or "", move_class = d.moveDef and d.moveDef.name or "", lrpc = cp.islrpc and 1 or 0,
+		commander = cp.iscommander and 1 or 0, metal_make = d.metalMake or 0,
 	})
 	return id
 end
@@ -766,15 +771,38 @@ end
 -- `W`: u32 frame, u32 n, then n rows of three u16: a builder's id, its build power in use in hundredths of its build
 -- speed (`GetUnitCurrentBuildPower`: what the economy lets it spend) and a factory's line (the units it is told to
 -- build, `GetFactoryCommands`).
+-- And from raw version 6, summed a team at the same look for the `res` row (`industry`): the build power of its
+-- finished builders and how much of it is in use, its constructors and how many have no order, its plants and how many
+-- have an empty line. A constructor is what the game's own statistics call one: a builder that moves and is no
+-- commander.
 local function sampleWork(frame)
 	local rows, n = {}, 0
+	industry = {}
 	for i = 1, allCount do
 		local id = all[i]
 		local d = UnitDefs[known[id]]
 		if d.buildSpeed > 0 then
-			local power = round((spGetUnitCurrentBuildPower(id) or 0) * 100)
+			local share = spGetUnitCurrentBuildPower(id) or 0
+			local power = round(share * 100)
 			local line = d.isFactory and spGetFactoryCommands(id, 0) or 0
 			if type(line) ~= "number" then line = 0 end
+			if not Spring.GetUnitIsBeingBuilt(id) then
+				local team = Spring.GetUnitTeam(id)
+				local t = industry[team]
+				if not t then
+					t = { 0, 0, 0, 0, 0, 0 }
+					industry[team] = t
+				end
+				t[1] = t[1] + d.buildSpeed
+				t[2] = t[2] + d.buildSpeed * share
+				if d.isFactory then
+					t[5] = t[5] + 1
+					if line == 0 then t[6] = t[6] + 1 end
+				elseif d.speed > 0 and not (d.customParams or {}).iscommander then
+					t[3] = t[3] + 1
+					if (Spring.GetUnitCommandCount(id) or 0) == 0 then t[4] = t[4] + 1 end
+				end
+			end
 			if line > 65535 then line = 65535 end
 			local w = work[id]
 			if not w or w[1] ~= power or w[2] ~= line then
@@ -1010,7 +1038,11 @@ end
 -- Each team's metal and energy: the store, its size, pull, income and spending, and from raw version 3 for the audit
 -- the excess, sent and received of each; and the engine's own statistics of the team (`GetTeamStatsHistory`'s last
 -- entry: metal used, produced and wasted, the same of energy, damage dealt and received, units made, lost and killed)
--- whenever the engine has added an entry.
+-- whenever the engine has added an entry. From raw version 6 a team's row goes on with the converters' energy in use
+-- and their capacity (the game's `mmUse` and `mmCapacity`), the metal and energy reclaimed so far (the game's own
+-- count, -1 where its version keeps none), what `sampleWork` summed (build power, build power in use, constructors
+-- and the idle of them, plants and the idle of them) and the orders given to its units since the last row; and the
+-- row has the wind's strength, as the game's top bar shows it.
 local statsLast = {} -- team -> the statistics last written, as one string
 local function resources(frame)
 	local rows, statRows = {}, {}
@@ -1019,8 +1051,13 @@ local function resources(frame)
 		local e, es, ep, ei, ee, _, esent, erecv, ex = Spring.GetTeamResources(team, "energy")
 		local tenth = function(v) return round((v or 0) * 10) / 10 end
 		if m then
+			local w = industry[team] or { 0, 0, 0, 0, 0, 0 }
 			rows[#rows + 1] = { team, round(m), round(ms), tenth(mp), tenth(mi), tenth(me), round(e), round(es), tenth(ep), tenth(ei), tenth(ee),
-				tenth(mx), tenth(msent), tenth(mrecv), tenth(ex), tenth(esent), tenth(erecv) }
+				tenth(mx), tenth(msent), tenth(mrecv), tenth(ex), tenth(esent), tenth(erecv),
+				tenth(Spring.GetTeamRulesParam(team, "mmUse")), tenth(Spring.GetTeamRulesParam(team, "mmCapacity")),
+				round(Spring.GetTeamRulesParam(team, "teamStatsReclaimedMetal") or -1), round(Spring.GetTeamRulesParam(team, "teamStatsReclaimedEnergy") or -1),
+				round(w[1]), round(w[2]), w[3], w[4], w[5], w[6], ordersGiven[team] or 0 }
+			ordersGiven[team] = 0
 		end
 		-- (the last entry is the one the engine is filling: it changes between entries, so it is compared, not counted)
 		local n = Spring.GetTeamStatsHistory(team)
@@ -1036,7 +1073,7 @@ local function resources(frame)
 			end
 		end
 	end
-	put({ t = "res", f = frame, teams = rows, stats = statRows })
+	put({ t = "res", f = frame, teams = rows, stats = statRows, wind = round((select(4, Spring.GetWind()) or 0) * 10) / 10 })
 end
 
 function widget:Initialize()
@@ -1094,7 +1131,7 @@ function widget:Initialize()
 	end
 	local low, high = Spring.GetGroundExtremes()
 	put({
-		t = "header", format = "within-reason-tape-raw", version = 5, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
+		t = "header", format = "within-reason-tape-raw", version = 6, live = Spring.IsReplay() and 0 or 1, max_units = Game.maxUnits, ally_teams = sightTeams, engine = Engine and Engine.version or "", game = Game.gameName .. " " .. Game.gameVersion,
 		sample_frames = SAMPLE, vitals_frames = VITALS, activity_frames = ACTIVITY, check_frames = CHECK, position_scale = POS, angle_scale = ANGLE,
 		pieces = piecesOn and 1 or 0, piece_angle_scale = A_SCALE, piece_place_scale = T_SCALE,
 		map = { name = Game.mapName, width = Game.mapSizeX, height = Game.mapSizeZ, gravity = Game.gravity, wind_min = Game.windMin, wind_max = Game.windMax,
@@ -1229,6 +1266,7 @@ end
 function widget:UnitCommand(id, defID, team, cmdID, params, opts)
 	if not out then return end
 	stats.cmds = stats.cmds + 1
+	ordersGiven[team] = (ordersGiven[team] or 0) + 1
 	local p = {}
 	if params then
 		for i = 1, math.min(#params, 6) do p[i] = round(params[i]) end

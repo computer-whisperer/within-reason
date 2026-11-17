@@ -49,14 +49,16 @@ fn stats_table(stats: &tape::stats::Stats, every: usize, at: Option<usize>, by_t
     use tape::stats::{CLASSES, METRICS};
     let mut out = String::new();
     if types {
-        writeln!(out, "type\tname\tclass\tmetal\tbuild power").unwrap();
+        writeln!(out, "type\tname\tclass\tmetal").unwrap();
         for t in &stats.types {
-            writeln!(out, "{}\t{}\t{}\t{}\t{}", t.name, t.human, CLASSES[t.class], t.metal, t.build_power).unwrap();
+            writeln!(out, "{}\t{}\t{}\t{}", t.name, t.human, CLASSES[t.class], t.metal).unwrap();
         }
         return out;
     }
     let figure = |v: f32| if v == v.trunc() { format!("{}", v as i64) } else { format!("{v:.1}") };
-    writeln!(out, "time\tside\tname\t{}", METRICS.iter().map(|m| m.key).collect::<Vec<_>>().join("\t")).unwrap();
+    // (A metric the game has no numbers for is left out; the wind is the game's, the same in every row of a second.)
+    let shown: Vec<usize> = (0..METRICS.len()).filter(|i| !stats.absent.contains(&METRICS[*i].key)).collect();
+    writeln!(out, "time\tside\tname\twind\t{}", shown.iter().map(|i| METRICS[*i].key).collect::<Vec<_>>().join("\t")).unwrap();
     let last = stats.seconds.saturating_sub(1);
     let seconds: Vec<usize> = match at {
         Some(s) => vec![s.min(last)],
@@ -66,8 +68,8 @@ fn stats_table(stats: &tape::stats::Stats, every: usize, at: Option<usize>, by_t
         for (ally, teams) in stats.sides() {
             let rows: Vec<(String, Vec<usize>)> = if by_team { teams.iter().map(|i| (stats.teams[*i].name.clone(), vec![*i])).collect() } else { vec![(stats.side_name(&teams), teams.clone())] };
             for (name, members) in rows {
-                let values: Vec<String> = (0..METRICS.len()).map(|metric| figure(members.iter().map(|team| stats.series(*team, metric)[second]).sum())).collect();
-                writeln!(out, "{}:{:02}\t{}\t{}\t{}", second / 60, second % 60, ally + 1, name, values.join("\t")).unwrap();
+                let values: Vec<String> = shown.iter().map(|metric| figure(members.iter().map(|team| stats.series(*team, *metric)[second]).sum())).collect();
+                writeln!(out, "{}:{:02}\t{}\t{}\t{}\t{}", second / 60, second % 60, ally + 1, name, figure(stats.wind[second]), values.join("\t")).unwrap();
             }
         }
     }

@@ -92,7 +92,8 @@ const WRTape = (() => {
       size: footer.size, indexAt, head, defs,
       teams: JSON.parse(text(2) || "{}"), events: JSON.parse(text(3) || "[]"),
       /// The game's numbers a second (crates/tape/src/stats.rs; viewer/stats.js reads them): `seconds`, `teams`
-      /// [{team, ally, name}], `metrics` [{key, label, group, kind}], `classes`, `types` [{id, class}] and `values`,
+      /// [{team, ally, name}], `metrics` [{key, label, group, kind}], `classes`, `types` [{id, class}], `wind` (the
+      /// game's wind a second), `absent` (the metrics this game has no numbers for) and `values`,
       /// `[team][metric][second]` in those orders.
       stats: { ...JSON.parse(text(4)), values: array(14, Float32Array).slice() },
       lastFrame: head.last_frame, sliceFrames: head.slice_frames,

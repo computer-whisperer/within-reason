@@ -3,13 +3,13 @@
 //! for a script or a review agent. `docs/design/2026-11-16-viewer-stats.md`.
 //!
 //! Every metric is additive: a side's number is the sum of its teams'. Three sources: the `TEAM` table's rows a
-//! second (what is stored, the capacity, income, spend, pull; what was sent and received, summed here into running
-//! totals), the engine's own running statistics in the same table, and the `UNIT` table with the types (how many
-//! stand finished, the extractors, the build power, count and metal worth by class, the metal worth killed and
-//! lost).
+//! second (what is stored, the capacity, income, spend, pull; the converters' energy in use and capacity; the build
+//! power and how much is in use; the constructors and plants and the idle of each; the orders given; what was
+//! reclaimed; what was sent and received, summed here into running totals), the engine's own running statistics in
+//! the same table, and the `UNIT` table with the types (how many stand finished, the extractors, count and metal
+//! worth by class, the metal worth killed and lost). The wind is the game's, not a team's: `Stats::wind`.
 //!
-//! A class is an approximation of BAR's own (its team stats gadget's `bucketOf`): a format 5 tape's types do not
-//! say `unitgroup` or the move class, so ships count as army and the strategic buildings as defence.
+//! A class is the game's own (its team stats gadget's `bucketOf`, rule for rule).
 
 use serde_json::Value;
 
@@ -53,8 +53,8 @@ const fn m(key: &'static str, label: &'static str, group: &'static str, kind: Ki
     Metric { key, label, group, kind }
 }
 
-/// What a unit counts as. The order is the order of the `value_*` and `count_*` metrics.
-pub const CLASSES: [&str; 7] = ["army", "air", "defence", "factories", "builders", "economy", "utility"];
+/// What a unit counts as, the game's own classes in its order: the order of the `value_*` and `count_*` metrics.
+pub const CLASSES: [&str; 9] = ["army", "air", "sea", "defence", "strategic", "factories", "builders", "economy", "utility"];
 
 pub const METRICS: &[Metric] = &[
     m("metal", "metal stored", "live", Kind::Level),
@@ -68,6 +68,9 @@ pub const METRICS: &[Metric] = &[
     m("energy_spend", "energy spend", "live", Kind::Rate),
     m("energy_pull", "energy pull", "live", Kind::Rate),
     m("build_power", "build power", "live", Kind::Level),
+    m("build_power_used", "build power in use", "live", Kind::Level),
+    m("conv_use", "conversion: energy in use", "live", Kind::Rate),
+    m("conv_capacity", "conversion: capacity", "live", Kind::Rate),
     m("metal_produced", "metal produced", "economy", Kind::Total),
     m("metal_used", "metal used", "economy", Kind::Total),
     m("metal_excess", "metal wasted", "economy", Kind::Total),
@@ -78,6 +81,8 @@ pub const METRICS: &[Metric] = &[
     m("energy_excess", "energy wasted", "economy", Kind::Total),
     m("energy_sent", "energy sent", "economy", Kind::Total),
     m("energy_received", "energy received", "economy", Kind::Total),
+    m("metal_reclaimed", "metal reclaimed", "economy", Kind::Total),
+    m("energy_reclaimed", "energy reclaimed", "economy", Kind::Total),
     m("extractors", "extractors", "economy", Kind::Count),
     m("damage_dealt", "damage dealt", "combat", Kind::Total),
     m("damage_received", "damage received", "combat", Kind::Total),
@@ -89,18 +94,27 @@ pub const METRICS: &[Metric] = &[
     m("units_produced", "units made", "units", Kind::Total),
     m("value_army", "army worth", "composition", Kind::Value),
     m("value_air", "air worth", "composition", Kind::Value),
+    m("value_sea", "sea worth", "composition", Kind::Value),
     m("value_defence", "defence worth", "composition", Kind::Value),
+    m("value_strategic", "strategic worth", "composition", Kind::Value),
     m("value_factories", "factories worth", "composition", Kind::Value),
     m("value_builders", "builders worth", "composition", Kind::Value),
     m("value_economy", "economy worth", "composition", Kind::Value),
     m("value_utility", "utility worth", "composition", Kind::Value),
     m("count_army", "army", "composition", Kind::Count),
     m("count_air", "aircraft", "composition", Kind::Count),
+    m("count_sea", "ships", "composition", Kind::Count),
     m("count_defence", "defences", "composition", Kind::Count),
+    m("count_strategic", "strategic buildings", "composition", Kind::Count),
     m("count_factories", "factories", "composition", Kind::Count),
     m("count_builders", "builders", "composition", Kind::Count),
     m("count_economy", "economy buildings", "composition", Kind::Count),
     m("count_utility", "utility", "composition", Kind::Count),
+    m("cons", "constructors", "activity", Kind::Count),
+    m("idle_cons", "constructors without an order", "activity", Kind::Count),
+    m("labs", "plants", "activity", Kind::Count),
+    m("idle_labs", "plants with an empty line", "activity", Kind::Count),
+    m("orders", "orders given a second", "activity", Kind::Rate),
 ];
 
 pub fn metric(key: &str) -> Option<usize> {
@@ -128,7 +142,6 @@ pub struct Type {
     pub metal: f32,
     pub class: usize,
     pub extractor: bool,
-    pub build_power: f32,
 }
 
 pub struct Stats {
@@ -138,6 +151,11 @@ pub struct Stats {
     pub types: Vec<Type>,
     /// `[team][metric][second]`, the teams in `teams`' order and the metrics in `METRICS`'.
     pub values: Vec<f32>,
+    /// The wind's strength a second.
+    pub wind: Vec<f32>,
+    /// The metrics this game has no numbers for (a game version that keeps no count of what is reclaimed): their
+    /// values are zeros and no reader should show them.
+    pub absent: Vec<&'static str>,
 }
 
 fn parse(text: &str, what: &str) -> Result<Value> {
@@ -166,45 +184,50 @@ fn yes(v: &Value, key: &str) -> bool {
     }
 }
 
-/// The class of a unit type (an index into `CLASSES`), from what a format 5 tape says of it. The order follows the
-/// game's own rule: a factory, then anything that builds (a commander, a constructor, a construction turret), then
-/// by whether it moves.
+/// The class of a unit type (an index into `CLASSES`): the game's own rule, its team stats gadget's `bucketOf`.
+/// Builders come before the rest, so a constructor with a gun is a builder; strategic and economy come before the
+/// split by medium, so a floating nuke silo is strategic, not sea. `armed` is whether the type has a weapon at all.
 pub fn class_of(def: &Value, armed: bool) -> usize {
     let class = |name: &str| CLASSES.iter().position(|c| *c == name).unwrap();
+    let group = def.get("group").and_then(Value::as_str).unwrap_or("");
     if yes(def, "factory") {
         return class("factories");
     }
     if yes(def, "builder") {
         return class("builders");
     }
-    if !yes(def, "mobile") {
-        // What draws metal or turns wind, tide or energy into income is the economy's even with a gun on it; a
-        // building that shoots is a defence even when it keeps a store of energy for its own gun (a Pulsar, a
-        // Bulwark); the rest of what makes or stores is the economy's.
-        let draws = num(def, "extracts") > 0.0 || num(def, "wind") > 0.0 || num(def, "tidal") > 0.0 || yes(def, "converter");
-        let makes = num(def, "energy_make") > 0.0 || num(def, "energy_upkeep") < 0.0 || num(def, "metal_store") > 0.0 || num(def, "energy_store") > 0.0;
-        return class(if draws { "economy" } else if armed { "defence" } else if makes { "economy" } else { "utility" });
+    if group == "nuke" || group == "antinuke" || yes(def, "lrpc") {
+        return class("strategic");
     }
-    class(if yes(def, "air") { "air" } else if armed { "army" } else { "utility" })
+    if group == "energy" || group == "metal" {
+        return class("economy");
+    }
+    if group == "util" {
+        return class("utility");
+    }
+    let armed = armed || ["weapon", "aa", "sub", "emp", "explo", "weaponaa", "weaponsub"].contains(&group);
+    if num(def, "speed") == 0.0 {
+        return class(if armed { "defence" } else { "utility" });
+    }
+    if yes(def, "air") {
+        return class("air");
+    }
+    // A move class is named by its kind and a number: BOAT4, UBOAT4, EPICSHIP.
+    let kind: String = def.get("move_class").and_then(Value::as_str).unwrap_or("").chars().take_while(|c| c.is_ascii_uppercase()).collect();
+    if ["BOAT", "UBOAT", "EPICSHIP"].contains(&kind.as_str()) {
+        return class("sea");
+    }
+    class(if armed { "army" } else { "utility" })
 }
 
 /// The unit types of a tape's `DEFS`.
 pub fn types(defs: &Value) -> Vec<Type> {
-    // A weapon that does damage: a shield is a weapon type too, and so is a target painter.
-    let harmful: std::collections::HashSet<u64> = defs
-        .get("weapons")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter(|w| !yes(w, "shield") && num(w, "damage") > 0.0)
-        .filter_map(|w| w.get("id").and_then(Value::as_u64))
-        .collect();
     defs.get("units")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
         .map(|d| {
-            let armed = d.get("weapons").and_then(Value::as_array).into_iter().flatten().any(|w| w.as_u64().is_some_and(|id| harmful.contains(&id)));
+            let armed = d.get("weapons").and_then(Value::as_array).is_some_and(|w| !w.is_empty());
             let text = |key: &str| d.get(key).and_then(Value::as_str).unwrap_or("").to_string();
             Type {
                 id: num(d, "id") as u32,
@@ -213,7 +236,6 @@ pub fn types(defs: &Value) -> Vec<Type> {
                 metal: num(d, "metal") as f32,
                 class: class_of(d, armed),
                 extractor: num(d, "extracts") > 0.0,
-                build_power: if yes(d, "builder") || yes(d, "factory") { num(d, "build_speed") as f32 } else { 0.0 },
             }
         })
         .collect()
@@ -243,7 +265,7 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
         .collect();
     let seconds = (tape.last_frame / FPS) as usize + 1;
     let types = types(&defs);
-    let mut stats = Stats { seconds, teams, types, values: Vec::new() };
+    let mut stats = Stats { seconds, teams, types, values: Vec::new(), wind: vec![0.0; seconds], absent: Vec::new() };
     stats.values = vec![0.0; stats.teams.len() * METRICS.len() * seconds];
     let index_of: std::collections::HashMap<u8, usize> = stats.teams.iter().enumerate().map(|(i, t)| (t.team, i)).collect();
     let stride = METRICS.len() * seconds;
@@ -253,8 +275,32 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
     // second runs up into a total.
     let columns: Vec<&str> = table.get("columns").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).collect();
     let frames: Vec<u32> = table.get("frames").and_then(Value::as_array).into_iter().flatten().map(|f| f.as_f64().unwrap_or(0.0) as u32).collect();
-    let held = ["metal", "metal_store", "metal_income", "metal_spend", "metal_pull", "energy", "energy_store", "energy_income", "energy_spend", "energy_pull"];
+    let held = [
+        "metal", "metal_store", "metal_income", "metal_spend", "metal_pull", "energy", "energy_store", "energy_income", "energy_spend", "energy_pull", "conv_use", "conv_capacity",
+        "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders",
+    ];
     let summed = ["metal_sent", "metal_received", "energy_sent", "energy_received"];
+    // The wind, a value a row.
+    let winds: Vec<f32> = table.get("wind").and_then(Value::as_array).into_iter().flatten().map(|v| v.as_f64().unwrap_or(0.0) as f32).collect();
+    let (mut next, mut value) = (0, 0.0f32);
+    for second in 0..seconds {
+        while next < winds.len() && next < frames.len() && ((frames[next] + FPS / 2) / FPS) as usize <= second {
+            value = winds[next];
+            next += 1;
+        }
+        stats.wind[second] = value;
+    }
+    // What the game counts only in some of its versions is written as -1 where it does not: absent, when no team
+    // ever has a count.
+    for name in ["metal_reclaimed", "energy_reclaimed"] {
+        let column = columns.iter().position(|c| *c == name);
+        let counted = column.is_some_and(|column| {
+            table.get("teams").and_then(Value::as_object).into_iter().flat_map(|t| t.values()).filter_map(Value::as_array).flatten().any(|row| row.get(column).and_then(Value::as_f64).is_some_and(|v| v >= 0.0))
+        });
+        if !counted {
+            stats.absent.push(METRICS[at(name)].key);
+        }
+    }
     for (ti, team) in stats.teams.iter().enumerate() {
         let rows = table.get("teams").and_then(|t| t.get(team.team.to_string())).and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
         for (names, running) in [(&held[..], false), (&summed[..], true)] {
@@ -266,7 +312,7 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
                 for second in 0..seconds {
                     // A row is the second its frame is nearest: the widget writes one a second, not always on it.
                     while next < rows.len() && next < frames.len() && ((frames[next] + FPS / 2) / FPS) as usize <= second {
-                        let v = rows[next].get(column).and_then(Value::as_f64).unwrap_or(0.0) as f32;
+                        let v = rows[next].get(column).and_then(Value::as_f64).unwrap_or(0.0).max(0.0) as f32;
                         value = if running { value + v } else { v };
                         next += 1;
                     }
@@ -294,10 +340,10 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
     // The unit lives: a step up at the second a unit stands finished and a step down at the second it is gone (or
     // given away), summed after; a death is a step up in what its team lost and its killer's team killed.
     let type_of: std::collections::HashMap<u32, &Type> = stats.types.iter().map(|t| (t.id, t)).collect();
-    let (units, extractors, build_power) = (at("units"), at("extractors"), at("build_power"));
+    let (units, extractors) = (at("units"), at("extractors"));
     let (value0, count0) = (at("value_army"), at("count_army"));
     let (killed, lost) = (at("killed_value"), at("lost_value"));
-    let stepped: Vec<usize> = [units, extractors, build_power, killed, lost].into_iter().chain((0..CLASSES.len()).flat_map(|c| [value0 + c, count0 + c])).collect();
+    let stepped: Vec<usize> = [units, extractors, killed, lost].into_iter().chain((0..CLASSES.len()).flat_map(|c| [value0 + c, count0 + c])).collect();
     let mut steps = vec![0.0f32; stats.values.len()];
     let ally_of = |team: u8| index_of.get(&team).map(|i| stats.teams[*i].ally);
     for unit in &tape.units {
@@ -319,7 +365,7 @@ pub fn compute(tape: &Tape) -> Result<Stats> {
             if a >= seconds || a >= b {
                 continue;
             }
-            for (metric, v) in [(units, 1.0), (extractors, kind.extractor as u8 as f32), (build_power, kind.build_power), (value0 + kind.class, kind.metal), (count0 + kind.class, 1.0)] {
+            for (metric, v) in [(units, 1.0), (extractors, kind.extractor as u8 as f32), (value0 + kind.class, kind.metal), (count0 + kind.class, 1.0)] {
                 steps[cell(*ti, metric, a)] += v;
                 if b < seconds {
                     steps[cell(*ti, metric, b)] -= v;
@@ -381,6 +427,8 @@ impl Stats {
             "teams": self.teams.iter().map(|t| serde_json::json!({ "team": t.team, "ally": t.ally, "name": t.name })).collect::<Vec<_>>(),
             "metrics": METRICS.iter().map(|m| serde_json::json!({ "key": m.key, "label": m.label, "group": m.group, "kind": m.kind.word() })).collect::<Vec<_>>(),
             "classes": CLASSES,
+            "wind": self.wind,
+            "absent": self.absent,
             "types": self.types.iter().map(|t| serde_json::json!({ "id": t.id, "class": CLASSES[t.class] })).collect::<Vec<_>>(),
         })
         .to_string()
@@ -407,17 +455,29 @@ mod tests {
             { "team": 0, "ally": 0, "name": "a" }, { "team": 1, "ally": 1, "name": "" , "side": "cortex" }, { "team": 2, "ally": 2, "gaia": true, "name": "gaia" } ] });
         let defs = serde_json::json!({
             "units": [
-                { "id": 1, "name": "tank", "human": "Tank", "mobile": true, "metal": 100, "weapons": [7] },
-                { "id": 2, "name": "mex", "human": "Extractor", "mobile": false, "metal": 50, "extracts": 0.001, "weapons": [] },
-                { "id": 3, "name": "con", "human": "Constructor", "mobile": true, "builder": true, "build_speed": 80, "metal": 120, "weapons": [] },
-                { "id": 4, "name": "gun", "human": "Gun", "mobile": false, "metal": 80, "energy_store": 100, "weapons": [7] },
-                { "id": 5, "name": "wall", "human": "Wall", "mobile": false, "metal": 5, "weapons": [8] } ],
-            "weapons": [{ "id": 7, "damage": 10 }, { "id": 8, "damage": 0 }],
+                { "id": 1, "name": "tank", "human": "Tank", "speed": 60, "metal": 100, "weapons": [7], "group": "weapon", "move_class": "TANK3" },
+                { "id": 2, "name": "mex", "human": "Extractor", "speed": 0, "metal": 50, "extracts": 0.001, "weapons": [], "group": "metal" },
+                { "id": 3, "name": "con", "human": "Constructor", "speed": 40, "builder": true, "build_speed": 80, "metal": 120, "weapons": [7], "group": "builder" },
+                { "id": 4, "name": "gun", "human": "Gun", "speed": 0, "metal": 80, "energy_store": 100, "weapons": [7], "group": "weapon" },
+                { "id": 5, "name": "wall", "human": "Wall", "speed": 0, "metal": 5, "weapons": [] },
+                { "id": 6, "name": "ship", "human": "Ship", "speed": 50, "metal": 300, "weapons": [7], "group": "weapon", "move_class": "BOAT4" },
+                { "id": 7, "name": "silo", "human": "Silo", "speed": 0, "metal": 8000, "weapons": [7], "group": "nuke" },
+                { "id": 8, "name": "floating silo", "human": "Silo", "speed": 20, "metal": 8000, "weapons": [7], "group": "nuke", "move_class": "BOAT4" },
+                { "id": 9, "name": "radar", "human": "Radar", "speed": 0, "metal": 60, "weapons": [], "group": "util" },
+                { "id": 10, "name": "plane", "human": "Plane", "speed": 200, "air": 1, "metal": 150, "weapons": [7], "group": "weapon" },
+                { "id": 11, "name": "scout", "human": "Scout", "speed": 90, "metal": 30, "weapons": [], "move_class": "BOT1" },
+                { "id": 12, "name": "plant", "human": "Plant", "speed": 0, "factory": 1, "builder": 1, "metal": 600, "weapons": [] },
+                { "id": 13, "name": "long gun", "human": "Long gun", "speed": 0, "metal": 4500, "weapons": [7], "group": "weapon", "lrpc": 1 } ],
+            "weapons": [{ "id": 7, "damage": 10 }],
         });
-        let row = |income: f64| serde_json::json!([10, 500, 3, income, 4, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]);
+        // (a row: the sixteen of format 5, then conversion in use and capacity, what was reclaimed (-1: not counted),
+        // build power and its use, constructors and the idle, plants and the idle, the orders that second)
+        let row = |income: f64| serde_json::json!([10, 500, 3, income, 4, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3, 10, -1, -1, 300, 150, 2, 1, 1, 0, 4]);
         let teams = serde_json::json!({
             "frames": [0, 31, 60, 89],
-            "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_excess", "metal_sent", "metal_received", "energy_excess", "energy_sent", "energy_received"],
+            "columns": ["metal", "metal_store", "metal_pull", "metal_income", "metal_spend", "energy", "energy_store", "energy_pull", "energy_income", "energy_spend", "metal_excess", "metal_sent", "metal_received", "energy_excess", "energy_sent", "energy_received",
+                "conv_use", "conv_capacity", "metal_reclaimed", "energy_reclaimed", "build_power", "build_power_used", "cons", "idle_cons", "labs", "idle_labs", "orders"],
+            "wind": [5, 6.5, 7, 8],
             "teams": { "0": [row(1.0), row(2.0), row(5.0), row(7.0)], "1": [null, row(2.0), row(2.0), row(2.0)] },
             "stat_columns": ["metal_used", "metal_produced", "metal_excess", "energy_used", "energy_produced", "energy_excess", "damage_dealt", "damage_received", "units_produced", "units_died", "units_killed"],
             "stats": { "0": [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [45, 3, 10, 0, 0, 0, 0, 0, 0, 1, 0, 0]] },
@@ -442,7 +502,6 @@ mod tests {
         assert_eq!(of(1, "extractors")[5], 1.0);
         assert_eq!(of(0, "value_economy")[4], 50.0);
         // A unit never finished counts nowhere.
-        assert_eq!(of(1, "build_power")[10], 0.0);
         assert_eq!(of(1, "count_builders")[10], 0.0);
         // The death is the owner's loss and its killer's side's kill, from the second after it.
         assert_eq!(of(0, "lost_value")[2..4], [0.0, 100.0]);
@@ -456,20 +515,38 @@ mod tests {
         assert_eq!(of(1, "metal_income")[..3], [0.0, 2.0, 2.0]);
         assert_eq!(of(0, "metal_produced")[..4], [0.0, 0.0, 10.0, 10.0]);
         assert_eq!(of(0, "units_produced")[2], 1.0);
+        // The widget's sums of a second: the build power and its use, the idle, the conversion, the orders; the wind
+        // is the game's; what the game's version keeps no count of is absent, its values zeros.
+        assert_eq!((of(0, "build_power")[2], of(0, "build_power_used")[2], of(0, "idle_cons")[2], of(0, "conv_use")[2], of(0, "orders")[2]), (300.0, 150.0, 1.0, 3.0, 4.0));
+        assert_eq!(of(1, "build_power")[..2], [0.0, 300.0]);
+        assert_eq!(stats.wind[..5], [5.0, 6.5, 7.0, 8.0, 8.0]);
+        assert_eq!(stats.absent, ["metal_reclaimed", "energy_reclaimed"]);
+        assert_eq!(of(0, "metal_reclaimed")[3], 0.0);
         // A side is the sum of its teams, and its name its first team's.
         assert_eq!(stats.sides().len(), 2);
         assert_eq!(stats.side_name(&stats.sides()[1].1), "cortex");
     }
 
     #[test]
-    fn a_class_is_read_off_the_type() {
+    fn a_class_is_the_games_own() {
         let kinds = types(&serde_json::from_str(&game().defs).unwrap());
         let class = |name: &str| CLASSES[kinds.iter().find(|t| t.name == name).unwrap().class];
         assert_eq!(class("tank"), "army");
         assert_eq!(class("mex"), "economy");
+        // A constructor with a gun is a builder, a plant a factory though it builds.
         assert_eq!(class("con"), "builders");
-        // A building that shoots is a defence though it keeps energy for its gun; a weapon without damage arms nothing.
+        assert_eq!(class("plant"), "factories");
+        // A building that shoots is a defence though it keeps energy for its gun; one without a weapon is utility.
         assert_eq!(class("gun"), "defence");
         assert_eq!(class("wall"), "utility");
+        assert_eq!(class("radar"), "utility");
+        // A nuke silo is strategic even afloat, and so is a long-range gun; a ship is sea, a plane air.
+        assert_eq!(class("silo"), "strategic");
+        assert_eq!(class("floating silo"), "strategic");
+        assert_eq!(class("long gun"), "strategic");
+        assert_eq!(class("ship"), "sea");
+        assert_eq!(class("plane"), "air");
+        // What moves on the ground without a weapon is utility.
+        assert_eq!(class("scout"), "utility");
     }
 }

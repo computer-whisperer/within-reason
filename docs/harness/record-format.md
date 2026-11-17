@@ -247,14 +247,17 @@ are tinted by seat; the enemy is the truth layer and what any seat sees, once pe
 or one) scopes the lanes and the panels, and dims the other seats on the map; the numbers stay the side's (a side
 unfolds into its players in the strip).
 **The numbers** (2026-11-16, docs/design/2026-11-16-viewer-stats.md; `viewer/stats.js`): a strip across the top, a
-line a side at the playhead: metal and energy stored of the capacity with income and spend, build power, builders,
-army, air and defence (how many and their metal), the economy's metal, extractors, units, the metal killed and lost;
-the map's wind range and tide at its end. A click on a side's name unfolds a line a player, there and in every chart;
+line a side at the playhead: metal and energy stored of the capacity with income and spend, build power and the
+share of it in use, army, air and defence (how many and their metal; the sea and the strategic buildings too in a
+game that has any), the economy's metal, extractors, the metal killed and lost; at its end the wind's strength now of
+the range the map's wind blows in, and the tide. Every cell has its width from the start: no column moves as the
+numbers change. A click on a side's name unfolds a line a player, there and in every chart;
 a click on a number shows or hides its chart. A game with a tape has the tape's numbers, both sides
 (`crates/tape/src/stats.rs`, which `tape stats <game.tape>` prints too); a game without one has our record's (stored,
 capacity, income, spend, extractors, army, builders, the metal lost) and of the other side what the truth file has
 (extractors, army) and what we killed, a dash elsewhere. The **Stats** tab is the whole table at the playhead in the
-game's own views (Live, Economy, Combat, Composition), a row a metric and a column a side or player, each row a
+game's own views (Live, Economy, Combat, Composition, Activity: the constructors and plants and the idle of
+each, the orders given a second), a row a metric and a column a side or player, each row a
 switch for its chart; and "Unit types", each side's finished units by type with their metal.
 Live: a match with no `result` line (and not every seat's `end` line) is still being played; the page polls every 3 s
 and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
@@ -298,7 +301,7 @@ wide as the turn took, in a realtime game), and, hidden until chosen, the hands'
 builders, plants and army (the pick's solid, the lists' faint). Charts: any metric, both sides as lines on a
 zero-based axis with each line's value at the playhead beside it (a side unfolded in the strip is its players' lines
 under its own); a running total has a switch to what it gained in the last minute; "worth by class" is a chart a
-side of its classes as bands; Jev dollars a minute. A flow's axis ends a little over what it nearly always stays
+side of its classes as bands; the wind; Jev dollars a minute. A flow's axis ends a little over what it nearly always stays
 under. The first charts are army worth and metal income.
 The map (2026-09-24, docs/design/2026-09-24-viewer-overhaul.md): every unit is the game's own minimap icon
 (`viewer/icons.json` and `viewer/icons/`, exported unmodified from BAR's `gamedata/icontypes.lua` by `run/icons.py`;

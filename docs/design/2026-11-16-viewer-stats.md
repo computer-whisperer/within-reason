@@ -92,3 +92,54 @@ various statistic blocks."): every number's cell of the strip now has its width 
 longest text (a number is five characters at most), so no column moves under the playhead. Measured through 121
 moments of 1794780805-human: 68 different layouts before, one after, in Chromium and Firefox; `scene.js` checks it
 (one layout through the game, no text wider than its cell). The strip is about 1,520 px wide for two sides.
+
+## 6. Step 2: tape format 6 (on his "Let's fix that before continuing with step 2", 2026-11-16)
+
+What the capture widget writes more (raw version 6), all of it once a second in the `res` row or once a unit type:
+
+- **The wind**: `wind`, the strength of `Spring.GetWind()`, as the game's top bar shows it.
+- **A team's row, ten more numbers**: the converters' energy in use and their capacity (the game's `mmUse` and
+  `mmCapacity` team rules params); the metal and energy reclaimed so far (the game's `teamStatsReclaimedMetal` and
+  `...Energy`, -1 when the game's version does not publish them: the metric is then absent, not zero); the build
+  power of the finished builders and how much of it is in use (`buildSpeed * GetUnitCurrentBuildPower`, summed at the
+  widget's look at every builder, which it already makes for the audit's `W` rows); the constructors and how many of
+  them have no order, the plants and how many have an empty line (the game's own definitions: a constructor is a
+  builder that moves and is no commander); the orders given to the team's units that second.
+- **A unit type**: `group` (the game's `unitgroup`), `move_class`, `lrpc`, `commander`, `metal_make`.
+
+`tape::stats` then sorts a type into the game's own nine classes (its team stats gadget's `bucketOf`, rule for
+rule): army, air, sea, defence, strategic, factories, builders, economy, utility. New metrics: the wind (the game's,
+not a team's), conversion in use and capacity, build power in use, metal and energy reclaimed, constructors and
+plants with the idle of each, orders a second.
+
+The page: the wind now beside its range in the strip, with a chart; the share of build power in use beside the build
+power; sea and strategic columns in the strip of a game that has any; the new metrics in the Stats tab (an Activity
+view) and as charts.
+
+Format 6 alone, as format 5 was: the packer reads raw version 6 only, the reader format 6 only; a tape of format 5
+is made again from its demo. Until the branch is merged the tapes of main's games stay format 5 for main's page: the
+branch's viewer (port 1237) serves copies of the seven lobby games of 2026-11-15 taped again in the worktree's own
+`run/matches`.
+
+### Step 2 as built (2026-11-16 evening, on the branch)
+
+Built as section 6 says: `tape_dump.lua` writes raw version 6, the packer and the reader are format 6 alone,
+`tape::stats` sorts by the game's own nine classes and has the new metrics, the page shows them (the wind now and its
+chart, the share of build power in use, a sea and a strategic column in a game that has any, an Activity view).
+The strip dropped its builders and units columns for them (both are in the Stats tab).
+
+The worktree stands on its own engine and data (reflink copies of main's `run/engines` and `run/data`) and has the
+seven lobby games of 2026-11-15 as copies in its `run/matches`, each taped again in format 6 and checked the same as
+its raw stream. The branch's viewer on port 1237 serves those; main's tapes stay format 5 for main's page until the
+merge, after which they are made again there (`run/tape.py <match dir>`, each has its demo).
+
+Read off the new tapes at 20:00: Gecko Isle wind 12.5 (of the map's range), the people's side 8,355 of 14,140 build
+power in use, 1 of 52 constructors idle, 2 orders a second against our 30; Ceasefire the people's converters taking
+2,093 of 3,840. The game's version of that day counts what is reclaimed (6.7k to 8.8k metal a side by then).
+A scout plane is utility, not air: the game's rule puts its `util` group before the question whether it flies.
+
+Tested: the crate's unit tests (the nine classes rule for rule, the new columns, the wind, an absent metric);
+`scene.js` in Chromium and Firefox on a format 6 tape with a record and on one alone; `browser.js` on a game
+without a tape. Not tested: the arena's own capture of a game as it is played (the same widget and packer; `cargo
+check -p arena` passes), a game with ships or a nuke silo on the page (the classes are unit-tested, the two columns
+were not seen), `viewer/test/live.js`.

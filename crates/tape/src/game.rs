@@ -24,7 +24,7 @@ pub const ANGLE_TURN: i32 = 1024;
 
 /// The raw stream's version this packer reads (`tape_dump.lua`'s header), and no other: a stream of an older widget is
 /// captured again from its demo.
-pub const RAW_VERSION: u32 = 5;
+pub const RAW_VERSION: u32 = 6;
 
 /// An angle (or a difference of two) brought into -512..=511.
 pub fn wrap(angle: i32) -> i32 {
@@ -209,6 +209,8 @@ pub struct Game {
     /// Each second's resources: (frame, [[team, metal, store, pull, income, spend, energy, store, pull, income, spend]]),
     /// from raw version 3 with metal's excess, sent and received and energy's after them.
     pub resources: Vec<(u32, Value)>,
+    /// The wind's strength at each of those seconds (raw version 6), beside `resources`.
+    pub wind: Vec<f32>,
     /// The engine's statistics of each team as it added an entry (raw version 3): (frame, [[team, metal used,
     /// produced, excess, energy used, produced, excess, damage dealt, received, units made, lost, killed]]).
     pub team_stats: Vec<(u32, Value)>,
@@ -335,6 +337,7 @@ impl Game {
                         "map_files" => game.map_files = row.get("files").cloned().unwrap_or(Value::Null),
                         "res" => {
                             game.resources.push((frame, row.get("teams").cloned().unwrap_or(Value::Null)));
+                            game.wind.push(num(&row, "wind") as f32);
                             if let Some(stats) = row.get("stats").filter(|s| s.as_array().is_some_and(|a| !a.is_empty())) {
                                 game.team_stats.push((frame, stats.clone()));
                             }

@@ -51,7 +51,9 @@
   /// The tape's numbers: `tape.stats` (scene/tape.js) is `[team][metric][second]`.
   function fromTape(tape, match) {
     const s = tape.stats;
-    const index = new Map(s.metrics.map((m, i) => [m.key, i]));
+    // (A metric this game has no numbers for, a count its version does not keep, is absent: no row, no chart.)
+    const absent = new Set(s.absent || []);
+    const index = new Map(s.metrics.map((m, i) => [m.key, i]).filter(([key]) => !absent.has(key)));
     const heads = new Map((tape.head.teams || []).map((t) => [t.team, t]));
     const ourAlly = match.seats.length && match.header ? match.header.ally_team : null;
     const seatOf = new Map(match.seats.map((seat) => [seat.team, seat.index]));
@@ -72,7 +74,9 @@
     const sums = new Map();
     const classOf = new Map((s.types || []).map((t) => [t.id, t.class]));
     return {
-      id: ++ids, source: "tape", seconds: s.seconds, sides, metrics: s.metrics, classes: s.classes || [], tape,
+      id: ++ids, source: "tape", seconds: s.seconds, sides, metrics: s.metrics.filter((x) => !absent.has(x.key)), classes: s.classes || [], tape,
+      /// The wind's strength a second (the game's, not a side's) and the range the map's wind blows in.
+      wind: s.wind && s.wind.length ? s.wind : null, windRange: [tape.head.map.wind_min || 0, tape.head.map.wind_max || 0],
       metric: (key) => s.metrics[index.get(key)] || null,
       series(key, side, team = null) {
         const metric = index.get(key);
@@ -201,7 +205,7 @@
       return null;
     };
     return {
-      id: ++ids, source: "record", seconds, sides, metrics: RECORD_METRICS, classes: [], multi,
+      id: ++ids, source: "record", seconds, sides, metrics: RECORD_METRICS, classes: [], multi, wind: null, windRange: null,
       metric: (key) => index.get(key) || null,
       series(key, side, team = null) {
         const name = `${key}:${side}:${team}`;
@@ -283,31 +287,41 @@
 
   /// The strip's columns. A cell is a metric; `of` the capacity beside what is stored, `count` how many units the
   /// worth is of, `sign` what stands before a flow. `ch` is the cell's width in digits, the longest its text gets
-  /// ("99.9k / 99.9k", "1,234 · 123k": a number is five characters at most): every cell has its width from the start, so no column moves as the
+  /// ("99.9k / 99.9k", "1,234 · 123k" of an army, "123 · 45.6k" of the smaller classes: a number is five characters at most): every cell has its width from the start, so no column moves as the
   /// numbers change under the playhead.
   const STRIP = [
     { head: "metal", title: "metal stored of the capacity, then income and spend a second", cells: [{ key: "metal", of: "metal_store", ch: 13 }, { key: "metal_income", sign: "+", ch: 6 }, { key: "metal_spend", sign: "−", ch: 6 }] },
     { head: "energy", title: "energy stored of the capacity, then income and spend a second", cells: [{ key: "energy", of: "energy_store", ch: 13 }, { key: "energy_income", sign: "+", ch: 6 }, { key: "energy_spend", sign: "−", ch: 6 }] },
-    { head: "build power", title: "the build power of every finished builder and factory", cells: [{ key: "build_power", ch: 5 }] },
-    { head: "builders", title: "finished units that build: commanders, constructors, construction turrets", cells: [{ key: "count_builders", ch: 5 }] },
+    { head: "build power", title: "the build power of every finished builder and factory, and the share of it in use", cells: [{ key: "build_power", share: "build_power_used", ch: 12 }] },
     { head: "army", title: "finished units that move on the ground and shoot: how many, and their metal", cells: [{ key: "value_army", count: "count_army", ch: 12 }] },
-    { head: "air", title: "finished aircraft that do not build: how many, and their metal", cells: [{ key: "value_air", count: "count_air", ch: 12 }] },
-    { head: "defence", title: "finished buildings that shoot: how many, and their metal", cells: [{ key: "value_defence", count: "count_defence", ch: 12 }] },
+    { head: "air", title: "finished aircraft: how many, and their metal", cells: [{ key: "value_air", count: "count_air", ch: 10 }] },
+    { head: "sea", title: "finished ships and submarines: how many, and their metal", some: true, cells: [{ key: "value_sea", count: "count_sea", ch: 10 }] },
+    { head: "defence", title: "finished buildings that shoot: how many, and their metal", cells: [{ key: "value_defence", count: "count_defence", ch: 10 }] },
+    { head: "strategic", title: "finished nuke silos, anti-nukes and long-range guns: how many, and their metal", some: true, cells: [{ key: "value_strategic", count: "count_strategic", ch: 10 }] },
     { head: "economy", title: "the metal of the finished extractors, generators, converters and stores", cells: [{ key: "value_economy", ch: 5 }] },
     { head: "extractors", title: "finished metal extractors", cells: [{ key: "extractors", ch: 3 }] },
-    { head: "units", title: "every finished unit", cells: [{ key: "units", ch: 5 }] },
     { head: "killed", title: "the metal of the other side's finished units this side destroyed, so far", cells: [{ key: "killed_value", ch: 5 }] },
     { head: "lost", title: "the metal of this side's finished units destroyed, so far", cells: [{ key: "lost_value", ch: 5 }] },
   ];
 
+  /// Whether any side has anything of a metric at any second of the game: a column marked `some` (the sea, the
+  /// strategic buildings) stands only in a game that has it, from the start, so the strip does not change mid-game.
+  function ever(m, key) {
+    return m.sides.some((_, i) => {
+      const series = m.series(key, i);
+      return !!series && series.some((v) => v > 0);
+    });
+  }
+
   let strip = { key: null, cells: [] };
 
-  /// The wind and tide of the map: the range the wind blows in (its speed now is not recorded yet).
-  function mapWords() {
+  /// The wind and tide of the map: the wind's strength at a second where the tape has it, and the range it blows in.
+  function mapWords(m, second) {
     const tape = view.scene && view.scene.tape;
     const map = (tape && tape.head.map) || (view.match.header && view.match.header.map) || {};
     if (map.wind_min == null) return "";
-    const wind = map.wind_max > 0 ? `wind ${Math.round(map.wind_min)}–${Math.round(map.wind_max)}` : "no wind";
+    const range = `${Math.round(map.wind_min)}–${Math.round(map.wind_max)}`;
+    const wind = !(map.wind_max > 0) ? "no wind" : m.wind ? `wind ${m.wind[second].toFixed(1)} of ${range}` : `wind ${range}`;
     return `${wind}${map.tidal ? ` · tide ${Math.round(map.tidal)}` : ""}`;
   }
 
@@ -318,18 +332,20 @@
     const who = el("th", "who", m.source === "tape" ? "" : "from our record: no tape of this game");
     if (m.source !== "tape") who.title = "A tape has both sides' numbers: run/tape.py <match dir> makes one from the game's demo";
     head.append(who);
-    const columns = STRIP.map((column) => ({ ...column, cells: column.cells.filter((cell) => m.metric(cell.key)) })).filter((column) => column.cells.length);
+    const columns = STRIP.map((column) => ({ ...column, cells: column.cells.filter((cell) => m.metric(cell.key) && (!column.some || ever(m, cell.key))) })).filter((column) => column.cells.length);
     for (const column of columns) {
       const th = el("th", "group", column.head);
       th.colSpan = column.cells.length;
       th.title = column.title;
       head.append(th);
     }
-    const wind = el("th", "wind", mapWords());
-    wind.title = "the range the map's wind blows in; its speed through the game is not recorded yet";
+    const wind = el("th", "wind");
+    wind.title = m.wind ? "the wind's strength now, of the range the map's wind blows in: click for its chart" : "the range the map's wind blows in (its strength through the game is on a tape)";
+    if (m.wind) wind.addEventListener("click", () => WV.timeline.toggleChart("wind"));
     head.append(wind);
     table.append(head);
     const cells = [];
+    cells.wind = wind;
     for (const row of rowsOf(m)) {
       const tr = el("tr", row.team == null ? "side" : "team");
       const name = el("td", "who");
@@ -379,6 +395,8 @@
     const at = `${secondOf(m, view.frame)}:${[...charted].join(",")}`;
     if (strip.at === at) return;
     strip.at = at;
+    strip.cells.wind.textContent = mapWords(m, secondOf(m, view.frame));
+    strip.cells.wind.classList.toggle("charted", charted.has("wind"));
     for (const { td, text, fill, cell, row } of strip.cells) {
       const v = valueAt(m, cell.key, row.side, row.team, view.frame);
       td.classList.toggle("charted", charted.has(cell.key));
@@ -395,6 +413,9 @@
       } else if (cell.count) {
         const n = valueAt(m, cell.count, row.side, row.team, view.frame);
         text.textContent = n != null ? `${short(n)} · ${short(v)}` : short(v);
+      } else if (cell.share) {
+        const part = valueAt(m, cell.share, row.side, row.team, view.frame);
+        text.textContent = part != null && v > 0 ? `${short(v)} · ${Math.round((100 * part) / v)}%` : short(v);
       } else {
         text.textContent = `${v ? cell.sign || "" : ""}${short(v)}`;
       }
@@ -404,7 +425,7 @@
   // ---------------------------------------------------------------- the Stats tab
 
   /// The tab's views, after the game's own statistics window, and the metric groups each shows.
-  const VIEWS = [["live", "Live", ["live"]], ["economy", "Economy", ["economy"]], ["combat", "Combat", ["combat"]], ["composition", "Composition", ["units", "composition"]], ["types", "Unit types", []]];
+  const VIEWS = [["live", "Live", ["live"]], ["economy", "Economy", ["economy"]], ["combat", "Combat", ["combat"]], ["composition", "Composition", ["units", "composition"]], ["activity", "Activity", ["activity"]], ["types", "Unit types", []]];
   let tab = { key: null, cells: [] };
   let shown = "live";
   try { shown = localStorage.getItem("wr-stats-view") || "live"; } catch (_) { /* no storage */ }
@@ -457,7 +478,8 @@
       }
       table.append(tr);
     }
-    box.append(table, el("div", "meta", m.source === "tape" ? "From the tape. A class is the tape's reading of the unit type (ships count as army, nukes and long-range guns as defence, until the tape says more); worth is metal cost of the finished units." : ""));
+    if (!table.rows[1]) box.append(el("div", "meta", "This game's source has none of these numbers."));
+    box.append(table, el("div", "meta", m.source === "tape" ? "From the tape. A class is the game's own (its statistics window's); worth is the metal cost of the finished units; an idle constructor has no order, an idle plant an empty line." : ""));
     return cells;
   }
 
