@@ -4,8 +4,8 @@ Branch `air-intercept` (worktree `within-reason.air-intercept`). Begun 2026-11-1
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
 **State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
-2dd830c4), and flown against raids the game did not show (section 6.4). Nothing in the flagship or in a bot declares
-it: the player's order is ruled (a move of the hands, as rove is; section 7) and not built.
+2dd830c4), and flown against raids the game did not show (section 6.4). The player's order is built as ruled, a move
+of the hands as rove is: the air patrol (section 7). No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -321,27 +321,64 @@ Two faults these raids found, both corrected (2dd830c4):
 Not flown: his fighters ahead of his bombers as a sweep, gunships, a jammed raid (nothing on radar), another map's
 ground, Highwinds or another faction's fighters on these raids, and anything in a game.
 
-## 7. What is not built: how the player orders it (2026-11-17)
+## 7. The player's order: the hands' air patrol (2026-11-17)
 
 The user's rulings (section 1): the patrol is "something the player orders with the engine choosing targets", and
 "we can treat this like rove for now in terms of having the player hand the necessary resources over to the micro
-engine for control". Two ways to do that were put to him; **his ruling, 2026-11-17: "I agree with A for how the
-player and hands manage this."** Not built yet:
+engine for control". Two ways to do that were put to him:
 
-- **A: a move of the hands, as `rove` is** (ruled): a group of fighters is offered "keeps the air over
-  <place>"; the player names the job and the place in the packet, Jev picks it, and any later pick takes the group
-  back. About a dozen places in `crates/bot/src/brain/pianist/` (the task, the menu's move and words, the
-  picture's words for what the wing is doing, the record, `declare_groups`), the wing's words from
-  `Lane::intercept_report`, and a row in `docs/code-decisions.md`.
-- B, not taken: the hold of every fighter group is a wing at its hold point (no new move, but the hand-over is
-  then implied by a hold and not said).
+- **A: a move of the hands, as `rove` is**: a group of fighters is offered the patrol over a place; the player
+  names the group, the job and the place in the packet, Jev picks it, and any later pick takes the group back.
+- B: the hold of every fighter group is a wing at its hold point (no new move, but the hand-over is then implied by
+  a hold and not said).
 
-What section 6.4 asks of A's words: the wing keeps what it circles (about 2,000 round its place with the warning
-these radars gave), it is a help to anti-air and not a replacement for it, and Falcons do not hold a Liche or a
-Stiletto.
+**His ruling, 2026-11-17: "I agree with A for how the player and hands manage this."** And after the raids of
+section 6.4: "Good. Let's proceed with A." B is not taken.
 
-Beside it, from section 5: the words for an air party, and in the texts that tier-2 fighters answer tier-2 bombers,
-that an advanced radar earns its seconds on the flank with a view, and that a fighter group that only holds does
-nothing. The bare change of a held fighter group from hold position to manoeuvre was looked at and left: by the
-drills it keeps 0 to 2 of 8, and a fighter that chases from an idle hold lands wherever the chase ended.
+### 7.1 As built
+
+- **The move.** An air group whose every aircraft is a fighter (it hits what flies harder than the ground: the
+  lane's own test, `micro::intercept::fighter`, so no bomber, gunship or stun drone, and no mixed group) has
+  `air_patrol_<place>` for every named place that is a point: the marks, and the spots, passages, cells' names and
+  `home` the packet names. The place the group stands at is among them (a walk there is not on a menu, a patrol
+  there is the common case). The move carries the place's reading, so under the `fuse` layer the patrols at places
+  the packet does not name for the group go off its menu as its walks there do. Its words: "group_F patrols the air
+  over home (...): its fighters circle there in the air on their own and fly at every aircraft of his that comes
+  within 4500 of it, turning in behind his bombers to shoot them down before they drop, and come back to it when
+  none is left; a pick of yours brings it back".
+- **The task.** The pick sets `GroupTask::AirPatrol { at, place }` and orders nothing. From the next tick the brain
+  declares the group to the lane as `GroupKind::Intercept { place: at, keep: 4500 }` and the lane flies its
+  fighters (section 6). The hands keep up no order for it; its menu keeps `stay`, `hold`, the walks and the patrols
+  over the other places, and has no move at a party; a party near it, a hit and a sighting are no news that asks it
+  again. Any other pick is the way back, with that pick's own orders.
+- **The deal.** The group's place is the patrol's point, so new fighters come to it and are the lane's once inside
+  the gate, and a fighter out on a scramble stays the group's (the leaving gate is 30 s of its own flight, 8,600
+  for a Falcon, against 5,200 for the keep's edge). What the slots took that is no fighter is sent to the place on
+  hold position and said in the group's words.
+- **The words.** `doing`: "patrolling the air over home: its 12 fighters circle there, nothing of his flying within
+  4500 of it", or "... scrambled at 7 aircraft of his within 4500 of it, the nearest at spot_12 (D3), 2900 from
+  home: of its 12 fighters, 3 flying to meet them, 5 turning in behind them, 4 attacking". `lane`: what the lane
+  does with it. `air_patrol`: the log, "12:04 scrambled at 7 aircraft of his at D3, 3900 from home" and "12:38 back
+  over home after 34 s: nothing of his flies within its keep, 2 of its fighters lost meanwhile"; both also go into
+  what the hands did, for the player's report.
+- **The player's text** (`crates/bot/src/strategist/player.md`, the list of the hands' moves): the move, how to ask
+  for it (the group, the job and the place, as for roving; a mark where no place names the thing to keep), that a
+  fighter ordered straight at a bomber is left behind and a fighter group on a hold flies at nothing, and what
+  section 6.4 measured: it keeps what it circles, it helps the anti-air under it and does not replace it, and a
+  fighter stays behind only what is slower than it. Not read by him yet.
+- **One correction to the lane from it:** a wing whose place the host moves flew on round the old one (a patrol
+  never goes idle, and the loop was sent again only to an idle fighter); the loop now carries its place.
+- **The ledgers:** `docs/code-decisions.md` §2 (the hand-over, by his words), §3 (who is offered it, and no move at
+  a party) and §5 (the lane's row); `docs/heuristics.md` H-MICRO-INTERCEPT; `docs/harness/record-format.md` (the
+  group's `air_patrol` task and the pass line's `air_patrol` events).
+
+Not built with it: a keep other than 4,500 by the player's word; a way for the player to tell a patrol what not to
+fly at (any aircraft in the keep scrambles it, a scout included); the patrol for a seat's allies' fields.
+
+Still open beside it, from section 5, on his word: the words for an air party (a radar contact that flies reads
+"unidentified, speed unknown" in the picture), and in the brief's air article that an advanced radar earns its
+seconds on the flank with a view, that tier-2 fighters answer tier-2 bombers and that a fighter group that only
+holds does nothing (the last two are in the move's own text now, not in the article). The bare change of a held
+fighter group from hold position to manoeuvre was looked at and left: by the drills it keeps 0 to 2 of 8, and a
+fighter that chases from an idle hold lands wherever the chase ended.
 

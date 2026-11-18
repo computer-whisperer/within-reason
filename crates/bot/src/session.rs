@@ -12,7 +12,7 @@ use std::sync::{Arc, mpsc};
 use std::time::Instant;
 
 use bot_protocol::{Command, Commands, Event, Terrain, Tick, ToBot, UnitDefId, UnitDefInfo, UnitId, Vec3, write_frame};
-use micro::{GroupOrder, GroupState, HuntEvent, Lane, RoveEvent, RoveGoal, RoveReport, Stats, View};
+use micro::{GroupOrder, GroupState, HuntEvent, InterceptEvent, InterceptReport, Lane, RoveEvent, RoveGoal, RoveReport, Stats, View};
 
 use crate::brain::journal::{Intent, Journal};
 use crate::brain::{BRAIN_FRAMES, Brain};
@@ -149,6 +149,10 @@ pub(crate) struct LaneReport {
     pub groups: HashMap<String, GroupState>,
     /// Every rover's report.
     pub roving: HashMap<UnitId, RoveReport>,
+    /// What the air patrols scrambled at and when they were back (H-MICRO-INTERCEPT), and every patrol's report by
+    /// its group's lane name.
+    pub intercepts: Vec<InterceptEvent>,
+    pub wings: HashMap<String, InterceptReport>,
 }
 
 /// What the brain answers a tick with.
@@ -272,7 +276,7 @@ pub(crate) fn run(mut stream: UnixStream, mut next: impl FnMut() -> io::Result<T
             let groups: HashMap<String, GroupState> = lane.group_names().into_iter().filter_map(|name| lane.group_state(&name).cloned().map(|state| (name, state))).collect();
             journal.groups = groups.iter().map(|(name, state)| (name.clone(), state.clone())).collect();
             commands.extend(output.commands);
-            report = LaneReport { hunts: output.hunts, rove: output.rove, fired: output.fired, groups, roving: lane.rovers_roving() };
+            report = LaneReport { hunts: output.hunts, rove: output.rove, fired: output.fired, groups, roving: lane.rovers_roving(), intercepts: output.intercepts, wings: lane.intercept_reports() };
         }
         // The game runs and the opening turn is not over (nobody had a start to place, or the people were ready
         // first): the host is asked to hold it. Lockstep holds the first tick itself (`Shared::hold_for_opening`).

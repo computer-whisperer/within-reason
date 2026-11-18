@@ -91,7 +91,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   field of the call only when it changed since the last logged call, so a reader carries it forward; `questions` and
   `answers` are the API's own shapes (`docs/harness/jev.md`); `played` is one entry per menu answered, the decision
   record's fields plus `kept` (a busy actor held its course); `groups` [{`name`, `members` [unit ids], `at` [x, z],
-  `task` {`kind` hold/move_to/fight_to/engage/attack_unit/hunt/escort, `place`, `to` [x, z]; a hunt's `party` and `quarry`, an escort's `ward` (the builder's name, from 2026-10-01)}}], `places` [{`name`, `x`, `z`, `spot`}] and
+  `task` {`kind` hold/move_to/fight_to/engage/attack_unit/hunt/follow/rove/air_patrol, `place`, `to` [x, z]; a hunt's `party` and `quarry`, a follow's `ward` (the builder's or the group's name; `escort` from 2026-10-01 until the follow), a rove's `within`, an air patrol's `place` and `to` (the point it circles; from 2026-11-17, H-MICRO-INTERCEPT)}}], `places` [{`name`, `x`, `z`, `spot`}] and
   `parties` [{`name`, `ids`, `x`, `z`, `metal`, `composition`}] are what the picture named, so a reader can draw them.
 - `{"t":"error","f","error"}` for a call that failed (every actor kept its task).
 - From 2026-09-24 late to 2026-09-25 a group's `do` was asked in two levels (H-HANDS-TWO-LEVEL, deleted): those logs
@@ -104,7 +104,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
 - From 2026-09-26 midday (version 2, H-HANDS-ONE-PASS, `docs/design/2026-09-26-one-pass.md`) the executor's
   `standing` line is gone and a `pass` line stands each second the pass had anything to say: `{"t": "pass", "f",
-  "open": [slot names with a state to consider], "plan": ["actor: what the base world started"], "hunts": [ends], "rove": ["group_X <clock> what a rover found, attacked, ran from or gave up"] (from 2026-09-27, H-MICRO-ROVE),
+  "open": [slot names with a state to consider], "plan": ["actor: what the base world started"], "hunts": [ends], "rove": ["group_X <clock> what a rover found, attacked, ran from or gave up"] (from 2026-09-27, H-MICRO-ROVE), "air_patrol": ["group_X <clock> what its air patrol scrambled at, or that it is back over its place"] (from 2026-11-17, H-MICRO-INTERCEPT),
   "played": [{actor, kind, played: state id, did, source: rule|list}]}`; on a second that asks it also carries
   `slots` ([{name, kind: "threat at spot_N"|builder|lab|group, base, idle, states: [{id, actor, words, dim, metal,
   default, current, pair_only}]}], index 0 the `party_N.leave` or `<actor>.keep` state), `gate` (the noul ids of the
@@ -148,7 +148,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   (its best-rated move's id), "best_p", "fault" (both at 0.5 or over: the layer would have been wrong to close it)}`.
   `worlds_gate` is as before with `worlds` [[move index per menu]] (0 is `stay`; world 1 is all zeros) and `flags`
   holding every noul by id. A `call` line's groups say `task.kind` hold (with `picked`), move_to, fight_to, engage,
-  attack_unit, hunt, follow (`ward`: a builder's or a group's name) or, from 2026-10-08, rove. `plan` lines are unchanged. A gate that
+  attack_unit, hunt, follow (`ward`: a builder's or a group's name), from 2026-10-08 rove, or from 2026-11-17 air_patrol (`place`, `to`). `plan` lines are unchanged. A gate that
   fails writes an `error` line and is asked again at the next second.
   With the `same` layer on, the pass line's `layers.same` counts the questions not sent and the audited ones, the
   `call` line carries only what was sent (the standing answers are in `worlds_gate.flags`), and an audit line reads

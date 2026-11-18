@@ -145,6 +145,13 @@ const KEEP_OUT: f32 = 1.15;
 /// when the radar gave nothing.
 const MOVESTATE_MANOEUVRE: i32 = 1;
 
+/// A fighter by its numbers, of what flies: it hits what flies harder than the ground. A bomber's bombs stand in
+/// the table as hitting aircraft at their ground damage and a gunship's guns at a share of it, and neither is a
+/// wing's: a wing takes the fighters of its group and leaves the rest to the host.
+pub fn fighter(stats: &crate::Stats) -> bool {
+    stats.air_dps > stats.dps
+}
+
 /// What the lane reports of an intercept group, once each.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InterceptEvent {
@@ -163,8 +170,9 @@ pub enum InterceptWhat {
 /// What a wing is doing this tick, for the host's picture.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterceptReport {
-    /// Flying contacts in its keep.
+    /// Flying contacts in its keep, and the nearest of them to its place.
     pub contacts: usize,
+    pub nearest: Option<Vec3>,
     /// Its fighters on the loiter, closing, turning in, and behind a contact attacking.
     pub loitering: usize,
     pub closing: usize,
@@ -182,7 +190,8 @@ enum Phase {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Sent {
-    Loiter,
+    /// The loop round this place.
+    Loiter(Vec3),
     Move(Vec3),
     Attack(UnitId),
 }
@@ -367,6 +376,11 @@ impl Lane {
         self.wings.get(name).map(|w| &w.report)
     }
 
+    /// Every wing's report by its group's name, for a host that reads the lane from another thread.
+    pub fn intercept_reports(&self) -> HashMap<String, InterceptReport> {
+        self.wings.iter().map(|(name, w)| (name.clone(), w.report.clone())).collect()
+    }
+
     /// H-MICRO-INTERCEPT for one declared group of kind `Intercept` (the module's comment).
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn intercept(&mut self, view: &dyn View, name: &str, place: Vec3, keep: f32, fighters: &[&OwnUnit], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<InterceptEvent>, debug: bool) {
@@ -377,7 +391,8 @@ impl Lane {
             .filter(|e| e.pos.dist2d(place) <= out_to && flies(view, e))
             .map(|e| Contact { id: e.id, pos: e.pos, vel: (e.vel.x * FRAMES_PER_SECOND as f32, e.vel.z * FRAMES_PER_SECOND as f32), health: if e.def.is_some() && e.health > 0.0 { e.health } else { BLIP_HEALTH } })
             .collect();
-        let mut report = InterceptReport { contacts: contacts.len(), ..InterceptReport::default() };
+        let nearest = contacts.iter().map(|c| c.pos).min_by(|a, b| a.dist2d(place).total_cmp(&b.dist2d(place)));
+        let mut report = InterceptReport { contacts: contacts.len(), nearest, ..InterceptReport::default() };
         for unit in fighters {
             self.interceptors.entry(unit.id).or_insert(Interceptor { phase: Phase::Loiter, side: 0.0, sent: None, target: None, ahead: 0 });
         }
@@ -393,11 +408,12 @@ impl Lane {
                 memory.phase = Phase::Loiter;
                 memory.target = None;
                 let due = match memory.sent {
-                    Some((Sent::Loiter, at)) => unit.idle && frame - at >= LOITER_RESEND,
+                    // Its loop, unless the host has moved the wing's place since.
+                    Some((Sent::Loiter(over), at)) => over != place || (unit.idle && frame - at >= LOITER_RESEND),
                     _ => true,
                 };
                 if due {
-                    memory.sent = Some((Sent::Loiter, frame));
+                    memory.sent = Some((Sent::Loiter(place), frame));
                     // A loop round the place, each fighter beginning at the next corner: at any moment some of the
                     // wing is flying toward whatever comes, from whichever side.
                     let half = LOITER_LOOP / 2.0;
@@ -510,7 +526,7 @@ impl Lane {
             let slow = s < SLOW || s >= stats.speed * CATCH;
             if debug && frame % 15 == 0 {
                 let h = dir(v).unwrap_or(u);
-                eprintln!("{} f={frame} micro: #{} state {:?} speed {speed:.0} heading {:.0} off the body's ({} of {} at {s:.0}), {:.0} ahead of the rearmost, {:.0} across, last {:?}", view.label(), unit.id.0, memory.phase, dot(h, u).clamp(-1.0, 1.0).acos().to_degrees(), rear.id.0, body.members.len(), dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)), memory.sent.map(|(what, at)| (match what { Sent::Loiter => "loiter", Sent::Move(_) => "move", Sent::Attack(_) => "attack" }, frame - at)));
+                eprintln!("{} f={frame} micro: #{} state {:?} speed {speed:.0} heading {:.0} off the body's ({} of {} at {s:.0}), {:.0} ahead of the rearmost, {:.0} across, last {:?}", view.label(), unit.id.0, memory.phase, dot(h, u).clamp(-1.0, 1.0).acos().to_degrees(), rear.id.0, body.members.len(), dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)), memory.sent.map(|(what, at)| (match what { Sent::Loiter(_) => "loiter", Sent::Move(_) => "move", Sent::Attack(_) => "attack" }, frame - at)));
             }
             if memory.phase == Phase::Close {
                 // The side of the track it is on, chosen once (the left when it is on the track).
@@ -759,6 +775,12 @@ mod tests {
         let again = lane.tick(&host, &tick(33, vec![falcon(1, 2000.0, 2000.0, (0.0, 0.0)), falcon(2, 2050.0, 2000.0, (0.0, 0.0))], vec![pawn]), &mut Vec::new(), false);
         assert!(again.commands.is_empty(), "{:?}", again.commands);
         assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.loitering)), Some((0, 2)));
+        // The host moves the wing's place: the loop is flown round the new one at once (a patrol never goes idle).
+        let moved = at(6000.0, 5000.0);
+        lane.set_group("wing", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Intercept { place: moved, keep: KEEP }, Vec::new()));
+        let out = lane.tick(&host, &tick(36, vec![falcon(1, 2000.0, 2000.0, (0.0, 0.0)), falcon(2, 2050.0, 2000.0, (0.0, 0.0))], Vec::new()), &mut Vec::new(), false);
+        let legs: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Patrol { to, .. } => Some(*to), _ => None }).collect();
+        assert!(legs.len() == 8 && legs.iter().all(|p| p.dist2d(moved) < 600.0), "{:?}", out.commands);
     }
 
     /// At a radar contact that flies the wing leaves its loop for the point beside the contact's track and ahead of

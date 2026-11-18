@@ -147,6 +147,9 @@ pub(crate) enum Order {
     /// The whole group roves within a region the player marked: its soldiers look at nothing and attack nothing
     /// outside it (docs/design/2026-10-17-rove-destinations.md).
     RoveWithin(String),
+    /// The group's fighters patrol the air over the place (H-MICRO-INTERCEPT): the lane's from the next tick, until
+    /// a later pick takes the group elsewhere.
+    AirPatrol(String),
     Build(UnitDefId, Site),
     /// Guard a factory or another builder: its build power goes to whatever that makes.
     Help(UnitId),
@@ -810,6 +813,12 @@ impl Brain {
                     None => ("rove", "rove".to_string(), format!("roves: {rest}"), None),
                 }
             }
+            // The entry's words: what the patrol is doing this second (`picture.rs` `air_patrol_words`).
+            GroupTask::AirPatrol { place, .. } => {
+                let doing = picture.state["actors"][&name]["doing"].as_str().unwrap_or("patrolling the air");
+                let rest = doing.split_once(": ").map_or("its fighters circle there", |(_, rest)| rest);
+                ("air_patrol", format!("air_patrol_{place}"), format!("patrols the air over {place}: {rest}"), None)
+            }
         }
     }
 
@@ -1042,7 +1051,7 @@ impl Brain {
             GroupTask::Move { to, .. } => Some(*to),
             GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
             GroupTask::Hunt(h) => Some(h.at),
-            GroupTask::Hold { .. } | GroupTask::Rove { .. } => None,
+            GroupTask::Hold { .. } | GroupTask::Rove { .. } | GroupTask::AirPatrol { .. } => None,
         };
         let nearest_to = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
         // The party in the group's entry, as the picture has it.
@@ -1116,6 +1125,7 @@ impl Brain {
             GroupTask::Hunt(h) => format!("; leaves its hunt of {}", h.party),
             GroupTask::Follow { name: ward, .. } => format!("; leaves {ward}"),
             GroupTask::Rove { .. } => "; leaves its roving".to_string(),
+            GroupTask::AirPatrol { place, .. } => format!("; leaves its air patrol over {place}"),
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{against_words}{keeps}"), "its course".into(), None, false)];
@@ -1211,7 +1221,7 @@ impl Brain {
         }
         // The shooter out of sight that is hitting this group: its estimated place is one to advance on.
         if !air
-            && !group.roving()
+            && !group.handed_over()
             && let Some(s) = self.shelling_for(&group.members)
             && let Some(sp) = picture.places.iter().find(|p| p.name == format!("shelling_{}", group.name)).or_else(|| picture.places.iter().find(|p| p.name == "shelling"))
             && self.reachable_for(walker, s.at)
@@ -1256,8 +1266,9 @@ impl Brain {
         // a party the body outweighed four times, which the rule below offers to detachments alone).
         let every_detachment_forbidden = !ladder.is_empty() && ladder.iter().all(|n| pianist.decode.reads.get(&format!("{name}|detach|{n}")).is_some_and(|p| *p >= super::decode::ON));
         let stunners = air && !units.is_empty() && units.iter().all(|u| self.stuns_only(u.def));
-        // A roving group's parties are the lane's business (H-MICRO-ROVE): no attack, shell or send on its menu.
-        for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| !group.roving()) {
+        // A roving group's parties are the lane's business (H-MICRO-ROVE), and an air patrol's (H-MICRO-INTERCEPT):
+        // no attack, shell or send on its menu.
+        for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| !group.handed_over()) {
             if !self.reachable_for(walker, party.at) {
                 continue;
             }
@@ -1479,7 +1490,7 @@ impl Brain {
                 lends.push((key, lend));
             }
         }
-        if !air && !long_reach.is_empty() && !group.roving() {
+        if !air && !long_reach.is_empty() && !group.handed_over() {
             for (place, words) in scene.his.iter().filter(|(p, _)| self.reachable_for(walker, p.at)) {
                 push(
                     format!("shell_{}", place.name),
@@ -1581,6 +1592,30 @@ impl Brain {
                         false,
                     );
                 }
+            }
+        }
+        // An air patrol (H-MICRO-INTERCEPT; the air-intercept design §7, the user's ruling A, 2026-11-17: "I agree with
+        // A for how the player and hands manage this"): a group whose every aircraft is a fighter is offered the
+        // patrol over every named place that is a point, the one it stands at among them (a wing made at home
+        // patrols over home). The move carries the place's reading (`reads_of`), as a walk there does, so the `fuse`
+        // layer takes the patrols at places the packet does not name for the group off its menu. The lane flies it
+        // from the next tick, choosing the targets (the user, 2026-11-16: "the patrol being something the player
+        // orders with the engine choosing targets"); any later pick is the way back.
+        if air && !units.is_empty() && units.iter().all(|u| self.is_fighter(u.def)) {
+            for place in scene.named.iter().copied().filter(|p| p.cells.is_none()) {
+                push(
+                    format!("air_patrol_{}", place.name),
+                    Order::AirPatrol(place.name.clone()),
+                    format!(
+                        "{name} patrols the air over {} ({}): its fighters circle there in the air on their own and fly at every aircraft of his that comes within {:.0} of it, turning in behind his bombers to shoot them down before they drop, and come back to it when none is left; a pick of yours brings it back{keeps}{leaves}",
+                        place.name,
+                        way_words(body.at.dist2d(place.at), speed),
+                        micro::intercept::KEEP
+                    ),
+                    format!("the air patrol over {}", place.name),
+                    None,
+                    false,
+                );
             }
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
@@ -2061,13 +2096,14 @@ impl Brain {
         Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false, answering: None })
     }
 
-    /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
-    /// at, the type a builder builds, the group joined, the ward followed, the size of a detachment, and whether
+    /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance, an air patrol or a
+    /// build is aimed at, the type a builder builds, the group joined, the ward followed, the size of a detachment, and whether
     /// aircraft are forbidden it when the party is one of `air_parties`. An attack on his buildings or on a party of
     /// the ground, and a shooter's estimated place, are the picture's and bear on nothing here.
     fn reads_of(&self, order: &Order, air_parties: &BTreeSet<String>) -> Vec<Read> {
         match order {
             Order::Go(place) | Order::FightTo(place) if !place.starts_with("shelling") => vec![Read::Place(place.clone())],
+            Order::AirPatrol(place) => vec![Read::Place(place.clone())],
             Order::Build(def, site) => {
                 let mut reads = vec![Read::Build(self.name(*def).to_string(), self.short_words(*def))];
                 match site {
@@ -2354,6 +2390,69 @@ pub(super) mod tests {
         let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
         let rove = menu.moves.iter().find(|m| m.key == "rove").unwrap();
         assert!(rove.words.contains("keeping out of the reach of his anti-air wherever it would kill them within 15 s"), "{}", rove.words);
+    }
+
+    /// A group whose every aircraft is a fighter is offered the air patrol over every named point, the one it stands
+    /// at among them, each with its place's reading; gunships, bombers, stun drones and a mixed group are not, and
+    /// no region is a patrol's place. Picked, the group is the lane's wing (H-MICRO-INTERCEPT) over that point: its
+    /// course is the patrol, its menu keeps the way back and the patrol over the other places, and the hands order
+    /// nothing of it.
+    #[test]
+    fn a_fighter_group_is_offered_the_air_patrol_and_a_patrol_is_the_lanes() {
+        use super::super::fixtures::{at, brain_of, own};
+        use bot_protocol::{Resource, Snapshot};
+        let mut brain = brain_of(&["armkam", "armfig", "armthund", "corbw"]);
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let groups = [("A", vec![(10, 1), (11, 1)]), ("B", vec![(20, 2), (21, 2)]), ("C", vec![(30, 1), (31, 2)]), ("D", vec![(40, 3), (41, 3)]), ("E", vec![(50, 4), (51, 4)])];
+        let mut own_units = Vec::new();
+        for (i, (name, members)) in groups.iter().enumerate() {
+            for (id, def) in members {
+                own_units.push(own(*id, *def, at(1000.0 + 300.0 * i as f32, 1000.0)));
+            }
+            pianist.groups.push(Group::of(name.to_string(), Domain::Air, members.iter().map(|(id, _)| UnitId(*id)).collect(), GroupTask::idle_hold(Vec3::default()), 0));
+        }
+        brain.pianist = Some(pianist);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None, conversion: 0.0, vents: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, vehicle_constructor: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        // The fighters stand at `block`, a mark; the packet names `home`; `east_half` is a region.
+        let picture = Picture {
+            rules: String::new(),
+            state: serde_json::json!({ "instructions": "group_B (the Falcons): patrols the air over home.", "actors": {}, "places": {} }),
+            places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }, Place { name: "block".into(), at: at(1300.0, 1000.0), spot: None, cells: None }, Place { name: "east_half".into(), at: at(6000.0, 4000.0), spot: None, cells: Some((4, 0, 7, 7)) }],
+            parties: Vec::new(),
+        };
+        let patrols = |menus: &[Menu], group: &str| -> Vec<String> { menus.iter().find(|m| m.name == format!("group_{group}")).expect(group).moves.iter().filter(|m| m.key.starts_with("air_patrol")).map(|m| m.key.clone()).collect() };
+        let menus = brain.menus(&tick, &kit, &picture);
+        assert_eq!(patrols(&menus, "B"), ["air_patrol_home", "air_patrol_block"], "the Falcons, the place they stand at among them");
+        for (group, what) in [("A", "Banshees"), ("C", "a Banshee and a Falcon"), ("D", "Stormbringers"), ("E", "stun drones")] {
+            assert!(patrols(&menus, group).is_empty(), "{what}: {:?}", patrols(&menus, group));
+        }
+        let menu = menus.iter().find(|m| m.name == "group_B").unwrap();
+        let patrol = menu.moves.iter().find(|m| m.key == "air_patrol_block").unwrap();
+        assert!(matches!(&patrol.order, Order::AirPatrol(p) if p == "block") && patrol.reads == [Read::Place("block".into())] && !patrol.forbiddable, "{:?} {:?}", patrol.order, patrol.reads);
+        assert!(patrol.words.starts_with("group_B patrols the air over block (") && patrol.words.contains("fly at every aircraft of his that comes within 4500 of it") && patrol.words.contains("a pick of yours brings it back"), "{}", patrol.words);
+        assert!(!menu.moves.iter().any(|m| m.key == "go_block") && menu.moves.iter().any(|m| m.key == "go_home"), "no walk to where it stands: the patrol there has its own reading");
+        // Picked: the task, no order of the hands', and the lane's wing over the point.
+        let mut commands = Vec::new();
+        let did = brain.execute_group(&tick, &picture, "B", &patrol.order, &mut commands).expect("played");
+        assert!(did.starts_with("patrols the air over block") && commands.is_empty(), "{did} {commands:?}");
+        let group = brain.pianist.as_ref().unwrap().groups.iter().find(|g| g.name == "B").unwrap();
+        assert!(matches!(&group.task, GroupTask::AirPatrol { at: point, place } if place == "block" && point.x == 1300.0) && group.handed_over() && !group.roving(), "{:?}", group.task);
+        assert_eq!(group.course_word(), "patrolling the air over block");
+        let declared = brain.declare_groups();
+        let (_, members, order) = declared.iter().find(|(name, ..)| name == "group_B").expect("declared to the lane");
+        assert!(matches!(order.kind, micro::GroupKind::Intercept { place, keep } if place.x == 1300.0 && keep == micro::intercept::KEEP) && members.len() == 2, "{:?}", order.kind);
+        // Its menu while it patrols: the course, the way back, the patrol over the other place.
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_B").unwrap();
+        let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
+        assert_eq!(keys, ["stay", "hold", "go_home", "go_east_half", "air_patrol_home"], "nothing at a party, no patrol over the place it patrols or over a region");
+        assert!(!menu.idle && menu.course == "air_patrol", "{}", menu.course);
+        let words = |key: &str| menu.moves.iter().find(|m| m.key == key).unwrap().words.as_str();
+        assert!(words("stay").starts_with("group_B patrols the air over block: "), "{}", words("stay"));
+        assert!(words("hold").ends_with("; leaves its air patrol over block"), "{}", words("hold"));
     }
 
     /// A group of stun weapons alone has a stun over each party and no attack (which would aim it at one unit, the

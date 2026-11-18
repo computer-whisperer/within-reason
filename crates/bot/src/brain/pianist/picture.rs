@@ -524,6 +524,25 @@ impl Brain {
         words.join("; ")
     }
 
+    /// What an air patrol is doing this second, from the lane (H-MICRO-INTERCEPT): its fighters circling, or what
+    /// they are scrambled at and how many of them are flying to meet it, turning in behind it and attacking; and
+    /// what of the group is no fighter, which the lane does not fly.
+    pub(super) fn air_patrol_words(&self, group: &super::Group, units: &[&OwnUnit], place: &str, at: Vec3, places: &[Place]) -> String {
+        let fighters = units.iter().filter(|u| self.is_fighter(u.def)).count();
+        let waiting = match units.len() - fighters {
+            0 => String::new(),
+            n => format!("; {n} of its aircraft {} no fighter{} and wait{} at {place}", if n == 1 { "is" } else { "are" }, if n == 1 { "" } else { "s" }, if n == 1 { "s" } else { "" }),
+        };
+        let keep = micro::intercept::KEEP;
+        let Some(r) = self.lane_wings.get(&group.lane_name()) else { return format!("its {fighters} fighters are taking off for it{waiting}") };
+        if r.contacts == 0 {
+            return format!("its {fighters} fighters circle there, nothing of his flying within {keep:.0} of it{waiting}");
+        }
+        let nearest = r.nearest.map_or(String::new(), |p| format!(", the nearest at {}, {:.0} from {place}", self.place_words(places, p), p.dist2d(at)));
+        let parts: Vec<String> = [(r.closing, "flying to meet them"), (r.turning, "turning in behind them"), (r.trailing, "attacking"), (r.loitering, "circling")].into_iter().filter(|(n, _)| *n > 0).map(|(n, what)| format!("{n} {what}")).collect();
+        format!("scrambled at {} aircraft of his within {keep:.0} of it{nearest}: of its {fighters} fighters, {}{waiting}", r.contacts, parts.join(", "))
+    }
+
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
     pub(super) fn place_words(&self, places: &[Place], pos: Vec3) -> String {
         let grid = self.world.grid(pos);
@@ -2099,7 +2118,7 @@ impl Brain {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
                 GroupTask::Hunt(h) => Some(h.at),
-                GroupTask::Hold { .. } | GroupTask::Rove { .. } => None,
+                GroupTask::Hold { .. } | GroupTask::Rove { .. } | GroupTask::AirPatrol { .. } => None,
             };
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
             let toward = goal.or_else(|| parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
@@ -2169,6 +2188,8 @@ impl Brain {
                 GroupTask::Hunt(hunt) => format!("hunting {} (its quarry {} at {})", hunt.party, if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
                 // What each rover is doing this second; the menu's course words are these (`group_course`).
                 GroupTask::Rove { within, .. } => format!("roving{}: {}", within.as_ref().map_or(String::new(), |w| format!(" within {w}")), self.rover_words(group, own, &snapshot.enemies, &places)),
+                // What the patrol is doing this second; the menu's course words are these (`group_course`).
+                GroupTask::AirPatrol { at, place } => format!("patrolling the air over {place}: {}", self.air_patrol_words(group, &units, place, *at, &places)),
             };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
             // losses since the player's last orders, which is what it asked about.
@@ -2245,8 +2266,19 @@ impl Brain {
             } else if group.roving() {
                 entry["lane"] = json!("roving: its soldiers look at the places nothing of ours has seen (his start box first), kill what they find unguarded (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back");
             }
-            if group.roving() && !group.rove_log.is_empty() {
-                entry["rove"] = json!(group.rove_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
+            if group.roving() && !group.lane_log.is_empty() {
+                entry["rove"] = json!(group.lane_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
+            }
+            // An air patrol is the lane's too (H-MICRO-INTERCEPT, a pick): what the lane does with it, and what it
+            // has scrambled at.
+            if let GroupTask::AirPatrol { place, .. } = &group.task {
+                entry["lane"] = json!(format!(
+                    "patrolling the air over {place}: its fighters circle there in the air and fly on their own at every aircraft of his that comes within {:.0} of it, turning in behind his bombers to shoot them from astern, and come back when none is left; a pick of yours brings them back",
+                    micro::intercept::KEEP
+                ));
+                if !group.lane_log.is_empty() {
+                    entry["air_patrol"] = json!(group.lane_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
+                }
             }
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
             // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the
@@ -2891,5 +2923,30 @@ mod tests {
         brain.track_takings(&tick(30, 100.0, Vec::new()));
         brain.track_takings(&tick(60, 90.0, vec![Event::UnitDamaged { unit: UnitId(1), attacker: None, damage: 10.0, from: None, weapon: None }]));
         assert!(brain.takings.is_empty());
+    }
+
+    /// An air patrol's words (H-MICRO-INTERCEPT), from the lane's report of its wing: taking off before the lane has
+    /// said anything, circling with nothing flying in its keep, and scrambled, with the nearest contact by place and
+    /// by its distance from the patrol's place and the fighters by what they are doing; what is no fighter waits.
+    #[test]
+    fn an_air_patrols_words_say_what_its_fighters_are_doing() {
+        use super::super::fixtures::{at, brain_of, own};
+        use super::super::{Group, GroupTask};
+        use super::super::super::Brain;
+        use super::Place;
+        use bot_protocol::OwnUnit;
+        let mut brain = brain_of(&["armfig", "armthund"]);
+        let ours = [own(1, 1, at(2000.0, 2000.0)), own(2, 1, at(2100.0, 2000.0)), own(3, 1, at(2200.0, 2000.0)), own(4, 2, at(2000.0, 2100.0))];
+        let units: Vec<&OwnUnit> = ours.iter().collect();
+        let place = at(2000.0, 2000.0);
+        let group = Group::of("F".into(), crate::world::Domain::Air, ours.iter().map(|u| u.id).collect(), GroupTask::AirPatrol { at: place, place: "home".into() }, 0);
+        let places = [Place { name: "home".into(), at: place, spot: None, cells: None }, Place { name: "north".into(), at: at(2000.0, 5000.0), spot: None, cells: None }];
+        let words = |brain: &Brain| brain.air_patrol_words(&group, &units, "home", place, &places);
+        assert_eq!(words(&brain), "its 3 fighters are taking off for it; 1 of its aircraft is no fighter and waits at home");
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { loitering: 3, ..Default::default() });
+        assert_eq!(words(&brain), "its 3 fighters circle there, nothing of his flying within 4500 of it; 1 of its aircraft is no fighter and waits at home");
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { contacts: 7, nearest: Some(at(2000.0, 4900.0)), closing: 1, turning: 0, trailing: 2, loitering: 0 });
+        let scrambled = words(&brain);
+        assert!(scrambled.starts_with("scrambled at 7 aircraft of his within 4500 of it, the nearest at north") && scrambled.contains(", 2900 from home: of its 3 fighters, 1 flying to meet them, 2 attacking; 1 of its aircraft"), "{scrambled}");
     }
 }

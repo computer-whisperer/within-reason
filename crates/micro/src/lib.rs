@@ -824,8 +824,8 @@ impl Lane {
         for (name, d) in &self.groups {
             match d.order.kind {
                 GroupKind::Intercept { place, keep } => {
-                    // Its fighters: what of its members flies and hits what flies.
-                    let wing: Vec<&OwnUnit> = fliers.iter().copied().filter(|u| d.members.contains(&u.id) && view.stats(u.def).is_some_and(|s| s.air_dps > 0.0)).collect();
+                    // Its fighters (`intercept::fighter`); what else is of the group is the host's.
+                    let wing: Vec<&OwnUnit> = fliers.iter().copied().filter(|u| d.members.contains(&u.id) && view.stats(u.def).is_some_and(|s| intercept::fighter(&s))).collect();
                     owned.extend(wing.iter().map(|u| u.id));
                     wings.push((name.clone(), place, keep, wing));
                 }

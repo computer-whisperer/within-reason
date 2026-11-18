@@ -303,6 +303,8 @@ pub struct Brain {
     /// `LaneReport`: the lane runs on the session's fast thread, `micro.rs` is the brain's side of it).
     lane_groups: HashMap<String, micro::GroupState>,
     lane_roving: HashMap<UnitId, micro::RoveReport>,
+    /// Every air patrol's report by its group's lane name (H-MICRO-INTERCEPT).
+    lane_wings: HashMap<String, micro::InterceptReport>,
     /// Whether the lane's fixed view has gone out (once, with the first answer after the faction is adopted).
     lane_fixed_sent: bool,
     /// Events from the ticks since `think` last ran, in order, for its next run.
@@ -487,6 +489,7 @@ impl Brain {
             journal: Default::default(),
             lane_groups: HashMap::new(),
             lane_roving: HashMap::new(),
+            lane_wings: HashMap::new(),
             lane_fixed_sent: false,
             carried_events: Vec::new(),
             received: Default::default(),
