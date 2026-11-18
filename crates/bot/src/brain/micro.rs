@@ -57,9 +57,9 @@ impl Brain {
                     declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Rove { within }, Vec::new()).with_heal(heal)));
                 }
                 // An air patrol is the lane's wing (H-MICRO-INTERCEPT): its fighters circle the place and fly at what
-                // flies into the keep; the lane takes the fighters of the members and nothing else.
+                // comes at it; the lane takes the fighters of the members and nothing else.
                 super::pianist::GroupTask::AirPatrol { at, .. } => {
-                    declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Intercept { place: *at, keep: micro::intercept::KEEP }, Vec::new())));
+                    declared.push((name, group.members.clone(), micro::GroupOrder::new(micro::GroupKind::Intercept { place: *at }, Vec::new())));
                 }
                 // A formation (chunks 2 and 3): the hold about its point, the walk or the advance to its place, the
                 // attack on a party (its named unit, or the fight to its centre as the sightings move it); the lane

@@ -35,8 +35,9 @@ pub enum GroupKind {
     /// south-east corners). The route is ignored.
     Rove { within: Option<(Vec3, Vec3)> },
     /// Every member is a fighter of a wing that keeps the air round a place (H-MICRO-INTERCEPT, `intercept.rs`): up
-    /// on a short leg across the place, and flown at whatever flies within `keep` of it. The route is ignored.
-    Intercept { place: Vec3, keep: f32 },
+    /// on a loop over the place, and flown at what flies at it, as many fighters as that needs and no further from
+    /// the place than the wing's leash. The route is ignored.
+    Intercept { place: Vec3 },
 }
 
 impl GroupKind {

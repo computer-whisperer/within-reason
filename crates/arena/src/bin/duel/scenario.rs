@@ -51,7 +51,7 @@
 //!     { "t": 0.0, "unit": 5, "cmd": "movestate", "state": 2 },             // 0 hold position, 1 manoeuvre, 2 roam
 //!     { "t": 0.0, "unit": 5, "cmd": "patrol", "x": 4300, "z": 1900 },      // the engine's patrol from where it is (Command::Patrol)
 //!     { "t": 0.5, "from": "contact", "unit": 5, "cmd": "fight", "x": 4300, "z": 1900 },   // half a second after first contact
-//!     { "t": 0.0, "unit": [5, 6], "cmd": "intercept", "x": 5233, "z": 6502, "keep": 4500 },  // a wing the lane runs (H-MICRO-INTERCEPT)
+//!     { "t": 0.0, "unit": [5, 6], "cmd": "intercept", "x": 5233, "z": 6502 },  // a wing the lane runs (H-MICRO-INTERCEPT)
 //!     { "t": 20.0, "side": 1, "unit": "all", "cmd": "attack_ground", "x": 5233, "z": 6502 },  // side 1: a bomber's run at a point
 //!     { "t": 150.0, "unit": 0, "cmd": "fire", "x": 6500, "z": 3072 },        // a manual-fire weapon at the ground (a silo's missile)
 //!     { "t": 210.0, "unit": 0, "cmd": "probe", "x": 6500, "z": 3072 } ] }    // the ground's height there and round it
@@ -153,8 +153,6 @@ pub struct ScriptRow {
     #[serde(default)]
     pub queue: bool,
     pub state: Option<i32>,
-    /// An intercept row's keep: how far from its place the wing answers what flies.
-    pub keep: Option<f32>,
     /// The side the row orders: 0, or 1 (the air drills: a bombing run flown again by its recorded orders).
     #[serde(default)]
     pub side: usize,
@@ -227,9 +225,9 @@ pub enum ScriptCmd {
     /// From now on the unit is a member of one roving group the lane runs (H-MICRO-ROVE): no order of its own; a
     /// script with a rove row keeps side 0's lane on for it.
     Rove,
-    /// From now on the unit is a fighter of one wing the lane runs (H-MICRO-INTERCEPT): it keeps the air round x, z,
-    /// out to the row's `keep` (`micro::intercept::KEEP` when absent); a script with an intercept row keeps side
-    /// 0's lane on for it.
+    /// From now on the unit is a fighter of one wing the lane runs (H-MICRO-INTERCEPT): it keeps the air over x, z
+    /// (the wing's bounds are the lane's, `micro::intercept::bounds`); a script with an intercept row keeps side 0's
+    /// lane on for it.
     Intercept,
     /// The ground's height at x, z and on two rings of eight round it, 150 and 300 out (`Command::Probe`), as the
     /// distilled bot reads a strike's crater (D-NUKE-VERDICT); the answer goes to the per-second log as `ground`. The

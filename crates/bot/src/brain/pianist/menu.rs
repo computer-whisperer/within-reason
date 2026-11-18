@@ -1209,7 +1209,11 @@ impl Brain {
                 );
             }
         }
-        for (place, words) in scene.his.iter().filter(|(p, _)| p.at.dist2d(body.front) > HERE && self.reachable_for(walker, p.at)) {
+        // No attack on his buildings for a group whose every aircraft is a fighter: its weapons are for what flies
+        // (the user, 2026-11-18: "remove the building attacks for figher only groups"; air-patrol-1: 26 such
+        // questions asked of the patrolling Falcons).
+        let fighters_only = air && !units.is_empty() && units.iter().all(|u| self.is_fighter(u.def));
+        for (place, words) in scene.his.iter().filter(|(p, _)| !fighters_only && p.at.dist2d(body.front) > HERE && self.reachable_for(walker, p.at)) {
             push(
                 format!("fight_to_{}", place.name),
                 Order::Raid(place.name.clone()),
@@ -1600,17 +1604,19 @@ impl Brain {
         // patrols over home). The move carries the place's reading (`reads_of`), as a walk there does, so the `fuse`
         // layer takes the patrols at places the packet does not name for the group off its menu. The lane flies it
         // from the next tick, choosing the targets (the user, 2026-11-16: "the patrol being something the player
-        // orders with the engine choosing targets"); any later pick is the way back.
-        if air && !units.is_empty() && units.iter().all(|u| self.is_fighter(u.def)) {
+        // orders with the engine choosing targets"); any later pick is the way back. The words say the loop's bounds
+        // as the lane holds them (the design note §8.1): what comes at the place, the fighters that needs, the leash.
+        if fighters_only {
+            let bounds = micro::intercept::bounds();
             for place in scene.named.iter().copied().filter(|p| p.cells.is_none()) {
                 push(
                     format!("air_patrol_{}", place.name),
                     Order::AirPatrol(place.name.clone()),
                     format!(
-                        "{name} patrols the air over {} ({}): its fighters circle there in the air on their own and fly at every aircraft of his that comes within {:.0} of it, turning in behind his bombers to shoot them down before they drop, and come back to it when none is left; a pick of yours brings it back{keeps}{leaves}",
+                        "{name} patrols the air over {} ({}): its fighters circle there in the air on their own and fly at the aircraft of his that come at it, as many fighters as shoot them down and never further than {:.0} from it, turning in behind his bombers to shoot them down before they drop, and come back to it; a pick of yours brings it back{keeps}{leaves}",
                         place.name,
                         way_words(body.at.dist2d(place.at), speed),
-                        micro::intercept::KEEP
+                        bounds.leash
                     ),
                     format!("the air patrol over {}", place.name),
                     None,
@@ -2432,7 +2438,7 @@ pub(super) mod tests {
         let menu = menus.iter().find(|m| m.name == "group_B").unwrap();
         let patrol = menu.moves.iter().find(|m| m.key == "air_patrol_block").unwrap();
         assert!(matches!(&patrol.order, Order::AirPatrol(p) if p == "block") && patrol.reads == [Read::Place("block".into())] && !patrol.forbiddable, "{:?} {:?}", patrol.order, patrol.reads);
-        assert!(patrol.words.starts_with("group_B patrols the air over block (") && patrol.words.contains("fly at every aircraft of his that comes within 4500 of it") && patrol.words.contains("a pick of yours brings it back"), "{}", patrol.words);
+        assert!(patrol.words.starts_with("group_B patrols the air over block (") && patrol.words.contains("fly at the aircraft of his that come at it, as many fighters as shoot them down and never further than 3000 from it") && patrol.words.contains("a pick of yours brings it back"), "{}", patrol.words);
         assert!(!menu.moves.iter().any(|m| m.key == "go_block") && menu.moves.iter().any(|m| m.key == "go_home"), "no walk to where it stands: the patrol there has its own reading");
         // Picked: the task, no order of the hands', and the lane's wing over the point.
         let mut commands = Vec::new();
@@ -2443,7 +2449,7 @@ pub(super) mod tests {
         assert_eq!(group.course_word(), "patrolling the air over block");
         let declared = brain.declare_groups();
         let (_, members, order) = declared.iter().find(|(name, ..)| name == "group_B").expect("declared to the lane");
-        assert!(matches!(order.kind, micro::GroupKind::Intercept { place, keep } if place.x == 1300.0 && keep == micro::intercept::KEEP) && members.len() == 2, "{:?}", order.kind);
+        assert!(matches!(order.kind, micro::GroupKind::Intercept { place } if place.x == 1300.0) && members.len() == 2, "{:?}", order.kind);
         // Its menu while it patrols: the course, the way back, the patrol over the other place.
         let menus = brain.menus(&tick, &kit, &picture);
         let menu = menus.iter().find(|m| m.name == "group_B").unwrap();

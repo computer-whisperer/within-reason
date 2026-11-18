@@ -525,24 +525,32 @@ impl Brain {
     }
 
     /// What an air patrol is doing this second, from the lane (H-MICRO-INTERCEPT): its fighters circling, or what
-    /// they are scrambled at and how many of them are flying to meet it, turning in behind it and attacking; and
-    /// what of the group is no fighter, which the lane does not fly.
+    /// is coming at its place and how many of them are flying to meet it, turning in behind it, attacking, on the
+    /// way back and still circling; what else of his flies in sight and is left be; and what of the group is no
+    /// fighter, which the lane does not fly.
     pub(super) fn air_patrol_words(&self, group: &super::Group, units: &[&OwnUnit], place: &str, at: Vec3, places: &[Place]) -> String {
         let fighters = units.iter().filter(|u| self.is_fighter(u.def)).count();
         let waiting = match units.len() - fighters {
             0 => String::new(),
             n => format!("; {n} of its aircraft {} no fighter{} and wait{} at {place}", if n == 1 { "is" } else { "are" }, if n == 1 { "" } else { "s" }, if n == 1 { "s" } else { "" }),
         };
-        let keep = micro::intercept::KEEP;
         // "its 1 fighter circles" (air-patrol-1, 5:33: "its 1 fighters circle there").
         let (noun, circle, are) = if fighters == 1 { ("fighter", "circles", "is") } else { ("fighters", "circle", "are") };
         let Some(r) = self.lane_wings.get(&group.lane_name()) else { return format!("its {fighters} {noun} {are} taking off for it{waiting}") };
-        if r.contacts == 0 {
-            return format!("its {fighters} {noun} {circle} there, nothing of his flying within {keep:.0} of it{waiting}");
+        let nearest = |p: Vec3| format!("the nearest at {}, {:.0} from {place}", self.place_words(places, p), p.dist2d(at));
+        // What else of his flies in sight and is not coming at the place: the wing leaves it be.
+        let watched = match (r.watched, r.nearest_watched) {
+            (0, _) | (_, None) => String::new(),
+            (n, Some(p)) => format!("; {n} aircraft of his in sight {} not coming at it ({})", if n == 1 { "is" } else { "are" }, nearest(p)),
+        };
+        if r.contacts == 0 && r.returning == 0 {
+            return format!("its {fighters} {noun} {circle} there, nothing of his coming at it{watched}{waiting}");
         }
-        let nearest = r.nearest.map_or(String::new(), |p| format!(", the nearest at {}, {:.0} from {place}", self.place_words(places, p), p.dist2d(at)));
-        let parts: Vec<String> = [(r.closing, "flying to meet them"), (r.turning, "turning in behind them"), (r.trailing, "attacking"), (r.loitering, "circling")].into_iter().filter(|(n, _)| *n > 0).map(|(n, what)| format!("{n} {what}")).collect();
-        format!("scrambled at {} aircraft of his within {keep:.0} of it{nearest}: of its {fighters} {noun}, {}{waiting}", r.contacts, parts.join(", "))
+        let parts: Vec<String> = [(r.closing, "flying to meet them"), (r.turning, "turning in behind them"), (r.trailing, "attacking"), (r.returning, "on the way back"), (r.loitering, "circling")].into_iter().filter(|(n, _)| *n > 0).map(|(n, what)| format!("{n} {what}")).collect();
+        if r.contacts == 0 {
+            return format!("nothing of his coming at it now: of its {fighters} {noun}, {}{watched}{waiting}", parts.join(", "));
+        }
+        format!("scrambled at {} aircraft of his coming at it{}: of its {fighters} {noun}, {}{watched}{waiting}", r.contacts, r.nearest.map_or(String::new(), |p| format!(" ({})", nearest(p))), parts.join(", "))
     }
 
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
@@ -2274,9 +2282,10 @@ impl Brain {
             // An air patrol is the lane's too (H-MICRO-INTERCEPT, a pick): what the lane does with it, and what it
             // has scrambled at.
             if let GroupTask::AirPatrol { place, .. } = &group.task {
+                let bounds = micro::intercept::bounds();
                 entry["lane"] = json!(format!(
-                    "patrolling the air over {place}: its fighters circle there in the air and fly on their own at every aircraft of his that comes within {:.0} of it, turning in behind his bombers to shoot them from astern, and come back when none is left; a pick of yours brings them back",
-                    micro::intercept::KEEP
+                    "patrolling the air over {place}: its fighters circle there in the air and fly on their own at the aircraft of his that come at it (on a course to within {:.0} of it and under {:.0} s away, or already that near), as many fighters as shoot them down, turning in behind his bombers to shoot them from astern, never further than {:.0} from it, and fly back to it after; a pick of yours brings them back",
+                    bounds.guard, bounds.seconds, bounds.leash
                 ));
                 if !group.lane_log.is_empty() {
                     entry["air_patrol"] = json!(group.lane_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
@@ -2928,8 +2937,9 @@ mod tests {
     }
 
     /// An air patrol's words (H-MICRO-INTERCEPT), from the lane's report of its wing: taking off before the lane has
-    /// said anything, circling with nothing flying in its keep, and scrambled, with the nearest contact by place and
-    /// by its distance from the patrol's place and the fighters by what they are doing; what is no fighter waits.
+    /// said anything, circling with nothing coming at its place (and what flies in sight without coming at it),
+    /// scrambled, with the nearest contact by place and by its distance from the patrol's place and the fighters by
+    /// what they are doing, and on the way back; what is no fighter waits.
     #[test]
     fn an_air_patrols_words_say_what_its_fighters_are_doing() {
         use super::super::fixtures::{at, brain_of, own};
@@ -2946,12 +2956,19 @@ mod tests {
         let words = |brain: &Brain| brain.air_patrol_words(&group, &units, "home", place, &places);
         assert_eq!(words(&brain), "its 3 fighters are taking off for it; 1 of its aircraft is no fighter and waits at home");
         brain.lane_wings.insert("group_F".into(), micro::InterceptReport { loitering: 3, ..Default::default() });
-        assert_eq!(words(&brain), "its 3 fighters circle there, nothing of his flying within 4500 of it; 1 of its aircraft is no fighter and waits at home");
+        assert_eq!(words(&brain), "its 3 fighters circle there, nothing of his coming at it; 1 of its aircraft is no fighter and waits at home");
+        // His aircraft in sight that are not coming at the place are said and left be.
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { loitering: 3, watched: 2, nearest_watched: Some(at(2000.0, 6400.0)), ..Default::default() });
+        assert_eq!(words(&brain), "its 3 fighters circle there, nothing of his coming at it; 2 aircraft of his in sight are not coming at it (the nearest at (B6), 4400 from home); 1 of its aircraft is no fighter and waits at home");
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { loitering: 3, ..Default::default() });
         // One fighter: "its 1 fighter circles".
         let alone = Group::of("F".into(), crate::world::Domain::Air, vec![ours[0].id], GroupTask::AirPatrol { at: place, place: "home".into() }, 0);
-        assert_eq!(brain.air_patrol_words(&alone, &units[..1], "home", place, &places), "its 1 fighter circles there, nothing of his flying within 4500 of it");
-        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { contacts: 7, nearest: Some(at(2000.0, 4900.0)), closing: 1, turning: 0, trailing: 2, loitering: 0 });
+        assert_eq!(brain.air_patrol_words(&alone, &units[..1], "home", place, &places), "its 1 fighter circles there, nothing of his coming at it");
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { contacts: 7, nearest: Some(at(2000.0, 4900.0)), closing: 1, trailing: 1, loitering: 1, ..Default::default() });
         let scrambled = words(&brain);
-        assert!(scrambled.starts_with("scrambled at 7 aircraft of his within 4500 of it, the nearest at north") && scrambled.contains(", 2900 from home: of its 3 fighters, 1 flying to meet them, 2 attacking; 1 of its aircraft"), "{scrambled}");
+        assert!(scrambled.starts_with("scrambled at 7 aircraft of his coming at it (the nearest at north") && scrambled.contains(", 2900 from home): of its 3 fighters, 1 flying to meet them, 1 attacking, 1 circling; 1 of its aircraft"), "{scrambled}");
+        // The threat gone, a fighter still on its way back.
+        brain.lane_wings.insert("group_F".into(), micro::InterceptReport { returning: 1, loitering: 2, ..Default::default() });
+        assert_eq!(words(&brain), "nothing of his coming at it now: of its 3 fighters, 1 on the way back, 2 circling; 1 of its aircraft is no fighter and waits at home");
     }
 }

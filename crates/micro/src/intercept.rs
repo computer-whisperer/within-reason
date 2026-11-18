@@ -1,6 +1,12 @@
-//! H-MICRO-INTERCEPT: a wing of fighters kept up by a place and flown at what flies into its keep
+//! H-MICRO-INTERCEPT: a wing of fighters kept up over a place and flown at the aircraft that come at it
 //! (`docs/design/2026-11-16-air-intercept.md`; the user, 2026-11-16: bombing runs "have to be intercepted with
 //! fighters before they reach the base", and the player hands the wing to the lane as it hands a roving group).
+//!
+//! Two parts. The **law** is how one fighter gets behind a body of aircraft and stays there (the stern
+//! conversion, drilled against the two recorded runs and fifteen made-up raids, §6 of the note). The **loop** is
+//! what the wing answers, with how many fighters, how far from its place, and how it comes back (§8, re-derived
+//! after the first game, where a loop that answered whatever flew within 4,500 took fourteen Falcons 4,000 out at
+//! one bomber milling over its own station and then chased it home).
 //!
 //! **Why a law and not an attack order.** A fighter ordered at a bomber that is coming at it meets it nose to nose:
 //! the closing speed is both speeds together (a Falcon's 289 and a loaded Hailstorm's 200 to 250, 500 a second), its
@@ -33,18 +39,35 @@
 //!   goes back to the turn's rule, which takes it across the track until they have passed.
 //!
 //! A body slower than `SLOW` (a gunship that hovers) is attacked as it is, and so is one the fighter cannot stay
-//! behind (`CATCH`: a Liche or a Stiletto to a Falcon). A wing with nothing flying in its keep
-//! patrols a small loop round its place (`Command::Patrol`), each fighter beginning at the next corner: in the air,
-//! where the drills' landed wing answered three to four seconds later and died in the block's own blast, and some of
-//! it flying toward whatever comes.
+//! behind (`CATCH`: a Liche or a Stiletto to a Falcon).
+//!
+//! **The loop.** The wing guards a place; it does not hunt.
+//! - **What it answers.** A contact is a threat when it is coming at the place (`coming`: its course passes within
+//!   `GUARD` of it and it is within `THREAT_SECONDS` of its nearest point to it) and has held that course for
+//!   `HOLD_FRAMES` (within `STRAIGHT_DEG`: a raid on its leg flies straight, an aircraft milling points at the
+//!   place a second in each round), or when it is inside `GUARD` whatever its course. A contact taken on stays the
+//!   wing's until it has been beyond `LEASH` and not coming for `RELEASE_FRAMES`. Aircraft that pass abeam or mill
+//!   about their own station are counted (`watched`) and left.
+//! - **With how many.** Each body of threats is given the fighters that kill it: for each member, the fighters
+//!   whose anti-air damage takes its health in `WINDOW`. Bodies are served soonest first; a fighter keeps the body
+//!   it has; free fighters are taken nearest the body's rear. The rest stay on the loop.
+//! - **How far.** No point and no target further than `LEASH` from the place: a fighter's point beyond it is
+//!   pulled in to it along the way, a target beyond it and not coming is not followed, and a fighter found
+//!   `SLACK` beyond it is in the return whatever it was doing.
+//! - **The way back.** A fighter with no threat flies a move order to the place under hold position
+//!   (K-engine-a-fighter-on-a-patrol-order-chases-what-it-sees: a patrol order from out there is a chase with no
+//!   place in it), and inside `HOME` of it its loop (`Command::Patrol`, four corners, each fighter beginning at the
+//!   next), also under hold position. In the air, where the drills' landed wing answered three to four seconds
+//!   later and died in the block's own blast. A fighter sent at a threat flies under manoeuvre.
 //!
 //! What flies: an aircraft by its type when the type is known, and a radar contact by its height over the ground
 //! and its speed, which the snapshot carries before the type is seen
 //! (K-snapshot-a-radar-contact-carries-its-height-and-its-velocity).
 //!
-//! Not in the law: his fighters with the bombers (it flies the same conversion on whatever flies), a wing's losses
-//! to anti-air under the bombers' track, and a way back for a fighter rolled out far to the side other than the
-//! engine's pursuit.
+//! Not in it: his fighters with the bombers (it flies the same conversion on whatever flies, and counts a fighter
+//! of his as one of ours' work), a wing's losses to anti-air under the bombers' track, a target of his further
+//! than `GUARD` from the wing's place (the raid's course does not pass the place, so the wing stays: §6.4's third
+//! limit, now by design), and a way back for a fighter rolled out far to the side other than the engine's pursuit.
 
 use std::collections::{HashMap, HashSet};
 
@@ -53,9 +76,31 @@ use bot_protocol::{Command, EnemyUnit, OwnUnit, UnitId, Vec3};
 use crate::{FRAMES_PER_SECOND, Lane, View};
 
 pub const INTERCEPT: &str = "H-MICRO-INTERCEPT";
-/// The keep of a wing whose host gave none: about what a tier-2 radar by the place shows (3,500), and a second's
-/// flight more.
-pub const KEEP: f32 = 4500.0;
+/// The loop's bounds (`docs/design/2026-11-16-air-intercept.md` §8.1). A contact is coming at the place when its
+/// course passes within `GUARD` of it and it is within `THREAT_SECONDS` of its nearest point to it at its speed (a
+/// Hailstorm flying straight in, 4,500 out: 18 seconds, which is what the conversion needs with what these radars
+/// gave); anything that flies inside `GUARD` is the wing's whatever its course. No fighter is given a point or a
+/// target further than `LEASH` from the place: the wing met a raid flying straight in 2,400 out, and a chase ends
+/// there.
+pub const GUARD: f32 = 1500.0;
+pub const LEASH: f32 = 3000.0;
+pub const THREAT_SECONDS: f32 = 18.0;
+/// A fighter found this much beyond the leash is in the return whatever it was doing.
+const SLACK: f32 = 500.0;
+/// A fighter with no threat flies a move order to the place while it is further than this from it, and its loop
+/// inside; one on the loop is in the return again when something has carried it half as far again.
+const HOME: f32 = 1000.0;
+const HOME_OUT: f32 = 1500.0;
+/// A contact's course holds once it has been coming at the place this long with its heading no more than
+/// `STRAIGHT_DEG` off what it was when that began: an aircraft milling about its own station turns thirty degrees
+/// a second and points at the place a second in each round; a raid on its leg flies straight (air-patrol-1: one
+/// Stormbringer milling 4,100 to 4,900 out took fourteen Falcons off their place).
+const HOLD_FRAMES: i32 = FRAMES_PER_SECOND;
+const STRAIGHT_DEG: f32 = 15.0;
+/// A contact the wing has taken on stays its until it has been beyond the leash and not coming for this long.
+const RELEASE_FRAMES: i32 = 3 * FRAMES_PER_SECOND / 2;
+/// A contact out of sight is forgotten after this long.
+const FORGET_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 /// A fighter's half turn at speed: the seconds it costs and how far across it carries the plane. Read from the
 /// drills' tracks of Falcons and Highwinds: 0.7 s before the nose moves, then 60 to 90 degrees a second, 350 to 620
 /// across; and the plane comes out of it at 140 to 200 a second, slower than the bombers, and takes three seconds to
@@ -139,11 +184,37 @@ const LOITER_RESEND: i32 = 2 * FRAMES_PER_SECOND;
 /// A standing attack goes out again this often, and this often to a fighter with no order.
 const ATTACK_RESEND: i32 = 5 * FRAMES_PER_SECOND;
 const ATTACK_IDLE_RESEND: i32 = FRAMES_PER_SECOND / 2;
-/// A contact stays the wing's until it is this share of the keep away from the place.
-const KEEP_OUT: f32 = 1.15;
-/// The engine's manoeuvre move state: a patrolling fighter under it still answers what comes within sight of its leg
-/// when the radar gave nothing.
+/// The engine's move states. A fighter on a threat flies under manoeuvre, as every drill of the conversion did. On
+/// the loop and on its way back it is on hold position: the engine's own search for targets, a thousand elmos round
+/// the fighter wherever the fighter is, is a second loop with no place in it (air-patrol-1: a patrol order under
+/// manoeuvre given 4,000 from home beside his fighters was a chase to his station, ten of fourteen Falcons). What
+/// flies near the loop is inside `GUARD` and the wing's by its own rule.
+const MOVESTATE_HOLD: i32 = 0;
 const MOVESTATE_MANOEUVRE: i32 = 1;
+
+/// The loop's bounds in force: the constants, or `WITHIN_REASON_INTERCEPT` for a drill (`guard=2000,leash=3500,seconds=18`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Bounds {
+    pub guard: f32,
+    pub leash: f32,
+    pub seconds: f32,
+}
+
+pub fn bounds() -> Bounds {
+    static BOUNDS: std::sync::OnceLock<Bounds> = std::sync::OnceLock::new();
+    *BOUNDS.get_or_init(|| {
+        let mut bounds = Bounds { guard: GUARD, leash: LEASH, seconds: THREAT_SECONDS };
+        for pair in std::env::var("WITHIN_REASON_INTERCEPT").unwrap_or_default().split(',') {
+            match pair.split_once('=').map(|(key, value)| (key.trim(), value.trim().parse::<f32>())) {
+                Some(("guard", Ok(v))) => bounds.guard = v,
+                Some(("leash", Ok(v))) => bounds.leash = v,
+                Some(("seconds", Ok(v))) => bounds.seconds = v,
+                _ => {}
+            }
+        }
+        bounds
+    })
+}
 
 /// A fighter by its numbers, of what flies: it hits what flies harder than the ground. A bomber's bombs stand in
 /// the table as hitting aircraft at their ground damage and a gunship's guns at a share of it, and neither is a
@@ -161,20 +232,25 @@ pub struct InterceptEvent {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InterceptWhat {
-    /// The wing left its loiter: this many flying contacts, their centre, and how far that is from its place.
-    Scrambled { contacts: usize, at: Vec3, out: f32 },
-    /// Nothing that flies is left in its keep; it is back on its loiter. `seconds` since the scramble.
+    /// Fighters left the loop for a threat: this many contacts coming at the place or inside its guard, their
+    /// centre, how far that is from the place, and how many fighters went.
+    Scrambled { contacts: usize, at: Vec3, out: f32, fighters: usize },
+    /// No threat is left and every fighter is back on the loop. `seconds` since the scramble.
     Returned { seconds: i32 },
 }
 
 /// What a wing is doing this tick, for the host's picture.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterceptReport {
-    /// Flying contacts in its keep, and the nearest of them to its place.
+    /// The contacts it has taken on (coming at its place, or inside its guard), and the nearest of them to the place.
     pub contacts: usize,
     pub nearest: Option<Vec3>,
-    /// Its fighters on the loiter, closing, turning in, and behind a contact attacking.
+    /// What else flies in its sight within two leashes of the place, and the nearest of those.
+    pub watched: usize,
+    pub nearest_watched: Option<Vec3>,
+    /// Its fighters on the loop, on their way back to it, closing, turning in, and behind a contact attacking.
     pub loitering: usize,
+    pub returning: usize,
     pub closing: usize,
     pub turning: usize,
     pub trailing: usize,
@@ -183,6 +259,8 @@ pub struct InterceptReport {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Phase {
     Loiter,
+    /// On a move order back to the place.
+    Return,
     Close,
     Turn { since: i32 },
     Trail,
@@ -192,6 +270,8 @@ enum Phase {
 enum Sent {
     /// The loop round this place.
     Loiter(Vec3),
+    /// The move back to this place.
+    Home(Vec3),
     Move(Vec3),
     Attack(UnitId),
 }
@@ -208,10 +288,23 @@ pub(crate) struct Interceptor {
     ahead: i32,
 }
 
+/// What a wing remembers of one contact that flies.
+#[derive(Clone, Copy, Debug)]
+struct Track {
+    /// Since when it has been coming at the place on one course, and its heading when that began.
+    since: Option<(i32, (f32, f32))>,
+    /// The wing has taken it on.
+    taken: bool,
+    /// Since when, taken on, it has been beyond the leash and not coming.
+    gone: Option<i32>,
+    seen: i32,
+}
+
 /// The lane's memory of one wing.
 #[derive(Default)]
 pub(crate) struct Wing {
     scrambled: Option<i32>,
+    tracks: HashMap<UnitId, Track>,
     pub(crate) report: InterceptReport,
 }
 
@@ -383,98 +476,116 @@ impl Lane {
 
     /// H-MICRO-INTERCEPT for one declared group of kind `Intercept` (the module's comment).
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn intercept(&mut self, view: &dyn View, name: &str, place: Vec3, keep: f32, fighters: &[&OwnUnit], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<InterceptEvent>, debug: bool) {
+    pub(crate) fn intercept(&mut self, view: &dyn View, name: &str, place: Vec3, fighters: &[&OwnUnit], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<InterceptEvent>, debug: bool) {
+        let b = bounds();
         let mut wing = self.wings.remove(name).unwrap_or_default();
-        // What flies in the keep; once scrambled, what the wing is on stays its until it is well out of it.
-        let out_to = if wing.scrambled.is_some() { keep * KEEP_OUT } else { keep };
-        let contacts: Vec<Contact> = (enemies.iter())
-            .filter(|e| e.pos.dist2d(place) <= out_to && flies(view, e))
+        // What flies in the seat's sight, wherever it is, each with its track: whether its course holds at the
+        // place, and whether the wing has taken it on.
+        let flying: Vec<Contact> = (enemies.iter())
+            .filter(|e| flies(view, e))
             .map(|e| Contact { id: e.id, pos: e.pos, vel: (e.vel.x * FRAMES_PER_SECOND as f32, e.vel.z * FRAMES_PER_SECOND as f32), health: if e.def.is_some() && e.health > 0.0 { e.health } else { BLIP_HEALTH } })
             .collect();
-        let nearest = contacts.iter().map(|c| c.pos).min_by(|a, b| a.dist2d(place).total_cmp(&b.dist2d(place)));
-        let mut report = InterceptReport { contacts: contacts.len(), nearest, ..InterceptReport::default() };
+        for c in &flying {
+            let track = wing.tracks.entry(c.id).or_insert(Track { since: None, taken: false, gone: None, seen: frame });
+            track.seen = frame;
+            let out = c.pos.dist2d(place);
+            let is_coming = coming(c, place, b);
+            match (is_coming, dir(c.vel), track.since) {
+                (true, Some(h), Some((_, began))) if dot(h, began) >= STRAIGHT_DEG.to_radians().cos() => {}
+                (true, Some(h), _) => track.since = Some((frame, h)),
+                _ => track.since = None,
+            }
+            let held = track.since.is_some_and(|(since, _)| frame - since >= HOLD_FRAMES);
+            if !track.taken && (out <= b.guard || held) {
+                track.taken = true;
+                if debug {
+                    eprintln!("{} f={frame} micro: {name} takes on #{} {out:.0} out ({}), {:.0} a second", view.label(), c.id.0, if out <= b.guard { "inside its guard" } else { "its course holds at the place" }, norm(c.vel));
+                }
+            }
+            if track.taken && out > b.leash && !is_coming {
+                let since = *track.gone.get_or_insert(frame);
+                if frame - since >= RELEASE_FRAMES {
+                    track.taken = false;
+                    track.gone = None;
+                    if debug {
+                        eprintln!("{} f={frame} micro: {name} lets #{} go, {out:.0} out and not coming", view.label(), c.id.0);
+                    }
+                }
+            } else {
+                track.gone = None;
+            }
+        }
+        wing.tracks.retain(|_, t| frame - t.seen <= FORGET_FRAMES);
+        // What a fighter may be flown at: a contact inside the leash, or one coming at the place (following that
+        // one brings the fighter in).
+        let reachable = |c: &Contact| c.pos.dist2d(place) <= b.leash || coming(c, place, b);
+        // The threats: the bodies with a member taken on and a member to fly at, the soonest at the place first. A
+        // body that has left the leash and is not coming takes no fighter, though the wing has not let it go yet.
+        let taken = |c: &Contact| wing.tracks.get(&c.id).is_some_and(|t| t.taken);
+        let (mut bodies, others): (Vec<Body>, Vec<Body>) = bodies(&flying).into_iter().partition(|body| body.members.iter().any(taken) && body.members.iter().any(reachable));
+        let soon = |body: &Body| {
+            let near = body.members.iter().map(|c| c.pos.dist2d(place)).fold(f32::INFINITY, f32::min);
+            if near <= b.guard { 0.0 } else { (near - b.guard) / body.speed.max(1.0) }
+        };
+        bodies.sort_by(|x, y| soon(x).total_cmp(&soon(y)));
+        let threats: Vec<&Contact> = bodies.iter().flat_map(|body| &body.members).collect();
+        let watched: Vec<&Contact> = others.iter().flat_map(|body| &body.members).filter(|c| c.pos.dist2d(place) <= 2.0 * b.leash).collect();
+        let nearest = |of: &[&Contact]| of.iter().map(|c| c.pos).min_by(|x, y| x.dist2d(place).total_cmp(&y.dist2d(place)));
+        let mut report = InterceptReport { contacts: threats.len(), nearest: nearest(&threats), watched: watched.len(), nearest_watched: nearest(&watched), ..InterceptReport::default() };
         for unit in fighters {
             self.interceptors.entry(unit.id).or_insert(Interceptor { phase: Phase::Loiter, side: 0.0, sent: None, target: None, ahead: 0 });
         }
-        if contacts.is_empty() {
-            if let Some(since) = wing.scrambled.take() {
-                events.push(InterceptEvent { group: name.to_string(), what: InterceptWhat::Returned { seconds: (frame - since) / FRAMES_PER_SECOND } });
-                if debug {
-                    eprintln!("{} f={frame} micro: {name} back to its loiter after {} s", view.label(), (frame - since) / FRAMES_PER_SECOND);
-                }
-            }
-            for (k, unit) in fighters.iter().enumerate() {
-                let memory = self.interceptors.get_mut(&unit.id).expect("entered above");
-                memory.phase = Phase::Loiter;
-                memory.target = None;
-                let due = match memory.sent {
-                    // Its loop, unless the host has moved the wing's place since.
-                    Some((Sent::Loiter(over), at)) => over != place || (unit.idle && frame - at >= LOITER_RESEND),
-                    _ => true,
-                };
-                if due {
-                    memory.sent = Some((Sent::Loiter(place), frame));
-                    // A loop round the place, each fighter beginning at the next corner: at any moment some of the
-                    // wing is flying toward whatever comes, from whichever side.
-                    let half = LOITER_LOOP / 2.0;
-                    let corners = [(-half, -half), (half, -half), (half, half), (-half, half)];
-                    self.counts.1 += 5;
-                    commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_MANOEUVRE });
-                    for step in 0..4 {
-                        let (dx, dz) = corners[(k + step) % 4];
-                        commands.push(Command::Patrol { unit: unit.id, to: Vec3 { x: place.x + dx, y: place.y, z: place.z + dz }, queue: step > 0 });
-                    }
-                }
-            }
-            report.loitering = fighters.len();
-            wing.report = report;
-            self.wings.insert(name.to_string(), wing);
-            return;
-        }
-        let bodies = bodies(&contacts);
-        if wing.scrambled.is_none() {
-            wing.scrambled = Some(frame);
-            let n = contacts.len() as f32;
-            let at = Vec3 { x: contacts.iter().map(|c| c.pos.x).sum::<f32>() / n, y: 0.0, z: contacts.iter().map(|c| c.pos.z).sum::<f32>() / n };
-            fired.push(INTERCEPT);
-            self.counts.0 += fighters.len() as u32;
-            events.push(InterceptEvent { group: name.to_string(), what: InterceptWhat::Scrambled { contacts: contacts.len(), at, out: at.dist2d(place) } });
-            if debug {
-                let b = &bodies[0];
-                eprintln!("{} f={frame} micro: {name} scrambles {} fighters at {} flying contacts {:.0} out (the first body: {} at {:.0} a second, {:.0} over the ground)", view.label(), fighters.len(), contacts.len(), at.dist2d(place), b.members.len(), b.speed, b.members[0].pos.y - ground_height(view, b.members[0].pos));
-            }
-        }
-        // Each fighter's body: the one its contact is in, else the body with the most health to each fighter on it
-        // (ties to the nearer).
-        let body_of = |id: UnitId| bodies.iter().position(|b| b.members.iter().any(|c| c.id == id));
-        let mut on: Vec<f32> = vec![0.0; bodies.len()];
+        // Who flies at what. A fighter on a threat stays on it; each threat then takes the free fighters nearest it
+        // until it has the fighters whose fire kills its members in `WINDOW` each; the rest stay on the loop. A
+        // fighter beyond the leash and its slack is on none.
+        let within = |unit: &OwnUnit| unit.pos.dist2d(place) <= b.leash + SLACK;
+        let body_of = |id: UnitId| bodies.iter().position(|body| body.members.iter().any(|c| c.id == id));
+        let mut on: Vec<usize> = vec![0; bodies.len()];
         let mut chosen: HashMap<UnitId, usize> = HashMap::new();
-        for unit in fighters {
-            if let Some(b) = self.interceptors.get(&unit.id).and_then(|m| m.target).and_then(body_of) {
-                chosen.insert(unit.id, b);
-                on[b] += 1.0;
+        for unit in fighters.iter().filter(|unit| within(unit)) {
+            if let Some(index) = self.interceptors.get(&unit.id).and_then(|m| m.target).and_then(body_of) {
+                chosen.insert(unit.id, index);
+                on[index] += 1;
             }
         }
-        for unit in fighters {
-            if chosen.contains_key(&unit.id) {
+        let fire = |f: &OwnUnit| view.stats(f.def).map_or(0.0, |s| s.air_dps * WINDOW).max(1.0);
+        let mean_fire = fighters.iter().map(|f| fire(f)).sum::<f32>() / fighters.len().max(1) as f32;
+        for (index, body) in bodies.iter().enumerate() {
+            let need: usize = body.members.iter().map(|c| (c.health / mean_fire.max(1.0)).ceil().max(1.0) as usize).sum();
+            if on[index] >= need {
                 continue;
             }
-            let weight = |b: &Body| b.members.iter().map(|c| c.health).sum::<f32>();
-            let best = (0..bodies.len()).min_by(|&x, &y| ((on[x] + 1.0) / weight(&bodies[x])).total_cmp(&((on[y] + 1.0) / weight(&bodies[y]))).then(bodies[x].members[0].pos.dist2d(unit.pos).total_cmp(&bodies[y].members[0].pos.dist2d(unit.pos)))).expect("a contact is in a body");
-            chosen.insert(unit.id, best);
-            on[best] += 1.0;
+            let rear = body.members[0].pos;
+            let mut free: Vec<&OwnUnit> = fighters.iter().copied().filter(|unit| !chosen.contains_key(&unit.id) && within(unit)).collect();
+            free.sort_by(|x, y| x.pos.dist2d(rear).total_cmp(&y.pos.dist2d(rear)).then(x.id.0.cmp(&y.id.0)));
+            for unit in free.into_iter().take(need - on[index]) {
+                chosen.insert(unit.id, index);
+                on[index] += 1;
+            }
+        }
+        if !chosen.is_empty() && wing.scrambled.is_none() {
+            wing.scrambled = Some(frame);
+            let n = threats.len().max(1) as f32;
+            let at = Vec3 { x: threats.iter().map(|c| c.pos.x).sum::<f32>() / n, y: 0.0, z: threats.iter().map(|c| c.pos.z).sum::<f32>() / n };
+            fired.push(INTERCEPT);
+            self.counts.0 += chosen.len() as u32;
+            events.push(InterceptEvent { group: name.to_string(), what: InterceptWhat::Scrambled { contacts: threats.len(), at, out: at.dist2d(place), fighters: chosen.len() } });
+            if debug {
+                let first = &bodies[0];
+                eprintln!("{} f={frame} micro: {name} scrambles {} of {} fighters at {} contacts {:.0} out (the first body: {} at {:.0} a second, {:.0} over the ground)", view.label(), chosen.len(), fighters.len(), threats.len(), at.dist2d(place), first.members.len(), first.speed, first.members[0].pos.y - ground_height(view, first.members[0].pos));
+            }
         }
         // The fighters behind a body are dealt its members from the rear forward, each member the fighters that kill
         // it in `WINDOW`: first the fighters that keep the contact they have, then the nearest of the rest.
         let mut dealt: HashMap<UnitId, UnitId> = HashMap::new();
         for (index, body) in bodies.iter().enumerate() {
-            let trailing: Vec<&OwnUnit> = fighters.iter().copied().filter(|f| chosen[&f.id] == index && self.interceptors.get(&f.id).is_some_and(|m| m.phase == Phase::Trail)).collect();
+            let trailing: Vec<&OwnUnit> = fighters.iter().copied().filter(|f| chosen.get(&f.id) == Some(&index) && self.interceptors.get(&f.id).is_some_and(|m| m.phase == Phase::Trail)).collect();
             let weight = |f: &OwnUnit| view.stats(f.def).map_or(0.0, |s| s.air_dps * WINDOW).max(1.0);
             let mut cover: HashMap<UnitId, f32> = HashMap::new();
             let mut free: HashSet<UnitId> = trailing.iter().map(|f| f.id).collect();
             for f in &trailing {
                 let Some(target) = self.interceptors.get(&f.id).and_then(|m| m.target) else { continue };
-                let Some(member) = body.members.iter().find(|c| c.id == target) else { continue };
+                let Some(member) = body.members.iter().find(|c| c.id == target && reachable(c)) else { continue };
                 let had = cover.entry(target).or_insert(0.0);
                 if *had < member.health && dot(sub(member.pos, f.pos), (f.vel.x, f.vel.z)) > 0.0 {
                     *had += weight(f);
@@ -484,7 +595,7 @@ impl Lane {
             }
             // A fighter is dealt what is in front of it: with its contact behind it the engine flies it straight on.
             let in_front = |f: &OwnUnit, c: &Contact| dot(sub(c.pos, f.pos), (f.vel.x, f.vel.z)) > 0.0;
-            for member in &body.members {
+            for member in body.members.iter().filter(|c| reachable(c)) {
                 let mut near: Vec<&OwnUnit> = trailing.iter().copied().filter(|f| free.contains(&f.id) && in_front(f, member)).collect();
                 near.sort_by(|a, b| a.pos.dist2d(member.pos).total_cmp(&b.pos.dist2d(member.pos)).then(a.id.0.cmp(&b.id.0)));
                 for f in near {
@@ -500,23 +611,34 @@ impl Lane {
             // Fighters over (every member in front of them is covered, or none is in front): the nearest in front,
             // else the nearest.
             for f in trailing.iter().filter(|f| free.contains(&f.id)) {
-                let nearest = |front: bool| body.members.iter().filter(|c| !front || in_front(f, c)).min_by(|a, b| a.pos.dist2d(f.pos).total_cmp(&b.pos.dist2d(f.pos)));
+                let nearest = |front: bool| body.members.iter().filter(|c| reachable(c) && (!front || in_front(f, c))).min_by(|a, b| a.pos.dist2d(f.pos).total_cmp(&b.pos.dist2d(f.pos)));
                 if let Some(member) = nearest(true).or_else(|| nearest(false)) {
                     dealt.insert(f.id, member.id);
                 }
             }
         }
-        for unit in fighters {
-            let body = &bodies[chosen[&unit.id]];
+        for (k, unit) in fighters.iter().enumerate() {
+            let Some(body) = chosen.get(&unit.id).map(|index| &bodies[*index]) else {
+                // No threat is its: the way back to the place, then the loop.
+                let memory = self.interceptors.get_mut(&unit.id).expect("entered above");
+                if home(memory, unit, k, place, frame, commands, &mut self.counts) {
+                    report.returning += 1;
+                } else {
+                    report.loitering += 1;
+                }
+                continue;
+            };
             let Some(stats) = view.stats(unit.def) else { continue };
             let rear = body.members[0];
             let (u, s) = (body.u, body.speed);
             let v = (unit.vel.x * FRAMES_PER_SECOND as f32, unit.vel.z * FRAMES_PER_SECOND as f32);
             let speed = norm(v);
             let memory = self.interceptors.get_mut(&unit.id).expect("entered above");
-            if memory.phase == Phase::Loiter {
+            if matches!(memory.phase, Phase::Loiter | Phase::Return) {
                 memory.phase = Phase::Close;
                 memory.side = 0.0;
+                self.counts.1 += 1;
+                commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_MANOEUVRE });
             }
             // Until it trails it is on the body's rearmost.
             if memory.phase != Phase::Trail {
@@ -526,7 +648,7 @@ impl Lane {
             let slow = s < SLOW || s >= stats.speed * CATCH;
             if debug && frame % 15 == 0 {
                 let h = dir(v).unwrap_or(u);
-                eprintln!("{} f={frame} micro: #{} state {:?} speed {speed:.0} heading {:.0} off the body's ({} of {} at {s:.0}), {:.0} ahead of the rearmost, {:.0} across, last {:?}", view.label(), unit.id.0, memory.phase, dot(h, u).clamp(-1.0, 1.0).acos().to_degrees(), rear.id.0, body.members.len(), dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)), memory.sent.map(|(what, at)| (match what { Sent::Loiter(_) => "loiter", Sent::Move(_) => "move", Sent::Attack(_) => "attack" }, frame - at)));
+                eprintln!("{} f={frame} micro: #{} state {:?} speed {speed:.0} heading {:.0} off the body's ({} of {} at {s:.0}), {:.0} ahead of the rearmost, {:.0} across, last {:?}", view.label(), unit.id.0, memory.phase, dot(h, u).clamp(-1.0, 1.0).acos().to_degrees(), rear.id.0, body.members.len(), dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)), memory.sent.map(|(what, at)| (match what { Sent::Loiter(_) => "loiter", Sent::Home(_) => "home", Sent::Move(_) => "move", Sent::Attack(_) => "attack" }, frame - at)));
             }
             if memory.phase == Phase::Close {
                 // The side of the track it is on, chosen once (the left when it is on the track).
@@ -535,6 +657,8 @@ impl Lane {
                 }
                 let fast = speed.max(stats.speed * 0.8);
                 let (at, turn) = turn_point(unit.pos, fast, rear.pos, u, s, memory.side);
+                // Never a point beyond the leash: one out there is flown to as far as the leash.
+                let at = pulled(at, place, b.leash);
                 // Its heading: its velocity, or the way to its point while it has none (on the ground, taking off).
                 let h = if speed > 30.0 { dir(v) } else { dir(sub(at, unit.pos)) }.unwrap_or((-u.0, -u.1));
                 // How fast the trail it would roll out to grows: the two speeds along the track.
@@ -557,10 +681,14 @@ impl Lane {
                         eprintln!("{} f={frame} micro: #{} turns in on {} ({name}): {along:.0} ahead of it along its track, {across:.0} across, a turn of {:.0} planned", view.label(), unit.id.0, rear.id.0, turn.to_degrees());
                     }
                 } else {
-                    let to = match dir(sub(at, unit.pos)) {
-                        Some(d) => carried(at, d, BEYOND),
-                        None => at,
-                    };
+                    let to = pulled(
+                        match dir(sub(at, unit.pos)) {
+                            Some(d) => carried(at, d, BEYOND),
+                            None => at,
+                        },
+                        place,
+                        b.leash,
+                    );
                     let due = match memory.sent {
                         Some((Sent::Move(last), sent)) => unit.idle || (frame - sent >= RESEND_FRAMES && last.dist2d(to) > RESEND_MOVED),
                         _ => true,
@@ -611,6 +739,7 @@ impl Lane {
                     } else {
                         carried(rear.pos, u, s * (TURN_SECONDS - turned).max(0.0) + TURN_AHEAD)
                     };
+                    let to = pulled(to, place, b.leash);
                     let due = match memory.sent {
                         Some((Sent::Move(last), sent)) => unit.idle || (frame - sent >= RESEND_FRAMES && last.dist2d(to) > 2.0 * RESEND_MOVED),
                         _ => true,
@@ -641,9 +770,18 @@ impl Lane {
                     report.turning += 1;
                     continue;
                 }
-                // Dealt from the next tick on (the deal is of the fighters already behind the body); the rearmost
-                // until then.
-                let target = dealt.get(&unit.id).copied().unwrap_or(rear.id);
+                // Dealt from the next tick on (the deal is of the fighters already behind the body); until then the
+                // rearmost it may be flown at. Nothing beyond the leash that is not coming is followed.
+                let may = |id: &UnitId| body.members.iter().any(|c| c.id == *id && reachable(c));
+                let Some(target) = dealt.get(&unit.id).copied().filter(may).or_else(|| body.members.iter().find(|c| reachable(c)).map(|c| c.id)) else {
+                    memory.phase = Phase::Return;
+                    if home(memory, unit, k, place, frame, commands, &mut self.counts) {
+                        report.returning += 1;
+                    } else {
+                        report.loitering += 1;
+                    }
+                    continue;
+                };
                 memory.target = Some(target);
                 let due = match memory.sent {
                     Some((Sent::Attack(last), sent)) => last != target || frame - sent >= ATTACK_RESEND || (unit.idle && frame - sent >= ATTACK_IDLE_RESEND),
@@ -657,9 +795,82 @@ impl Lane {
                 report.trailing += 1;
             }
         }
+        // Said once: every fighter back on the loop with no threat left.
+        if chosen.is_empty()
+            && report.returning == 0
+            && let Some(since) = wing.scrambled.take()
+        {
+            events.push(InterceptEvent { group: name.to_string(), what: InterceptWhat::Returned { seconds: (frame - since) / FRAMES_PER_SECOND } });
+            if debug {
+                eprintln!("{} f={frame} micro: {name} back on its loop after {} s", view.label(), (frame - since) / FRAMES_PER_SECOND);
+            }
+        }
         wing.report = report;
         self.wings.insert(name.to_string(), wing);
     }
+}
+
+/// Whether a contact is coming at the place: it moves, the place is ahead of it, its course passes within the guard
+/// of the place, and it is within the bound's seconds of its nearest point to the place at its speed.
+fn coming(c: &Contact, place: Vec3, b: Bounds) -> bool {
+    let speed = norm(c.vel);
+    let Some(h) = dir(c.vel).filter(|_| speed >= FLYING_MOVING) else { return false };
+    let to = sub(place, c.pos);
+    let along = dot(to, h);
+    along > 0.0 && cross(h, to).abs() <= b.guard && along / speed <= b.seconds
+}
+
+/// A point no further from the place than the leash: itself, or the point of the leash on the way to it.
+fn pulled(to: Vec3, place: Vec3, leash: f32) -> Vec3 {
+    let out = to.dist2d(place);
+    if out <= leash {
+        return to;
+    }
+    Vec3 { x: place.x + (to.x - place.x) * leash / out, y: to.y, z: place.z + (to.z - place.z) * leash / out }
+}
+
+/// A fighter with no threat: a move order to the place under hold position while it is further than `HOME` from it
+/// (a fighter on a move order searches for nothing), the loop round the place inside, each fighter beginning at the
+/// next corner. Whether it is on its way back.
+fn home(memory: &mut Interceptor, unit: &OwnUnit, k: usize, place: Vec3, frame: i32, commands: &mut Vec<Command>, counts: &mut (u32, u32)) -> bool {
+    memory.target = None;
+    memory.ahead = 0;
+    let out = unit.pos.dist2d(place);
+    memory.phase = match memory.phase {
+        Phase::Loiter if out <= HOME_OUT => Phase::Loiter,
+        _ if out <= HOME => Phase::Loiter,
+        _ => Phase::Return,
+    };
+    if memory.phase == Phase::Return {
+        let due = match memory.sent {
+            Some((Sent::Home(to), at)) => to != place || (unit.idle && frame - at >= LOITER_RESEND),
+            _ => true,
+        };
+        if due {
+            memory.sent = Some((Sent::Home(place), frame));
+            counts.1 += 2;
+            commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_HOLD });
+            commands.push(Command::Move { unit: unit.id, to: place, queue: false });
+        }
+        return true;
+    }
+    let due = match memory.sent {
+        // Its loop, unless the host has moved the wing's place since.
+        Some((Sent::Loiter(over), at)) => over != place || (unit.idle && frame - at >= LOITER_RESEND),
+        _ => true,
+    };
+    if due {
+        memory.sent = Some((Sent::Loiter(place), frame));
+        let half = LOITER_LOOP / 2.0;
+        let corners = [(-half, -half), (half, -half), (half, half), (-half, half)];
+        counts.1 += 5;
+        commands.push(Command::MoveState { unit: unit.id, state: MOVESTATE_HOLD });
+        for step in 0..4 {
+            let (dx, dz) = corners[(k + step) % 4];
+            commands.push(Command::Patrol { unit: unit.id, to: Vec3 { x: place.x + dx, y: place.y, z: place.z + dz }, queue: step > 0 });
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -752,7 +963,7 @@ mod tests {
 
     fn wing(ids: &[i32]) -> Lane {
         let mut lane = Lane::default();
-        lane.set_group("wing", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Intercept { place: PLACE, keep: KEEP }, Vec::new()));
+        lane.set_group("wing", ids.iter().map(|id| UnitId(*id)).collect(), GroupOrder::new(GroupKind::Intercept { place: PLACE }, Vec::new()));
         lane
     }
 
@@ -760,7 +971,7 @@ mod tests {
     fn a_wing_with_nothing_flying_patrols_a_loop_round_its_place_and_the_hosts_orders_to_it_are_dropped() {
         let host = Host::new(Vec::new());
         let mut lane = wing(&[1, 2]);
-        // A tank in the keep is nothing to it.
+        // A tank beside the place is nothing to it.
         let pawn = crate::test_host::enemy(50, PAWN, 2300.0, 2000.0);
         let mut said = vec![Command::Move { unit: UnitId(1), to: at(100.0, 100.0), queue: false }];
         let out = lane.tick(&host, &tick(30, vec![falcon(1, 2000.0, 2000.0, (0.0, 0.0)), falcon(2, 2050.0, 2000.0, (0.0, 0.0))], vec![pawn.clone()]), &mut said, false);
@@ -770,17 +981,92 @@ mod tests {
             let legs: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Patrol { unit, to, .. } if unit.0 == id => Some(*to), _ => None }).collect();
             assert_eq!(legs.len(), 4, "{:?}", out.commands);
             assert!(legs.iter().all(|p| p.dist2d(PLACE) < 600.0));
+            // The loop is flown on hold position: the engine's own search for targets is off.
+            assert!(out.commands.iter().any(|c| matches!(c, Command::MoveState { unit, state: 0 } if unit.0 == id)), "{:?}", out.commands);
         }
         // Not told again while it flies the loop.
         let again = lane.tick(&host, &tick(33, vec![falcon(1, 2000.0, 2000.0, (0.0, 0.0)), falcon(2, 2050.0, 2000.0, (0.0, 0.0))], vec![pawn]), &mut Vec::new(), false);
         assert!(again.commands.is_empty(), "{:?}", again.commands);
         assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.loitering)), Some((0, 2)));
-        // The host moves the wing's place: the loop is flown round the new one at once (a patrol never goes idle).
+        // The host moves the wing's place 5,000 off: each fighter flies a move order to it (a patrol never goes
+        // idle, and a patrol order from there would be flown as a search on the way), and its loop once it is there.
         let moved = at(6000.0, 5000.0);
-        lane.set_group("wing", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Intercept { place: moved, keep: KEEP }, Vec::new()));
+        lane.set_group("wing", vec![UnitId(1), UnitId(2)], GroupOrder::new(GroupKind::Intercept { place: moved }, Vec::new()));
         let out = lane.tick(&host, &tick(36, vec![falcon(1, 2000.0, 2000.0, (0.0, 0.0)), falcon(2, 2050.0, 2000.0, (0.0, 0.0))], Vec::new()), &mut Vec::new(), false);
-        let legs: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Patrol { to, .. } => Some(*to), _ => None }).collect();
-        assert!(legs.len() == 8 && legs.iter().all(|p| p.dist2d(moved) < 600.0), "{:?}", out.commands);
+        let moves: Vec<Vec3> = out.commands.iter().filter_map(|c| match c { Command::Move { to, .. } => Some(*to), _ => None }).collect();
+        assert!(moves.len() == 2 && moves.iter().all(|p| *p == moved) && !out.commands.iter().any(|c| matches!(c, Command::Patrol { .. })), "{:?}", out.commands);
+        assert_eq!(lane.intercept_report("wing").map(|r| (r.returning, r.loitering)), Some((2, 0)));
+        let out = lane.tick(&host, &tick(39, vec![falcon(1, 5500.0, 4600.0, (200.0, 160.0)), falcon(2, 2600.0, 2400.0, (200.0, 160.0))], Vec::new()), &mut Vec::new(), false);
+        let legs: Vec<(i32, Vec3)> = out.commands.iter().filter_map(|c| match c { Command::Patrol { unit, to, .. } => Some((unit.0, *to)), _ => None }).collect();
+        assert!(legs.len() == 4 && legs.iter().all(|(id, p)| *id == 1 && p.dist2d(moved) < 600.0), "the one that is there: {:?}", out.commands);
+    }
+
+    /// What is not coming at the place moves nothing: a bomber whose course passes 2,500 abeam, and one whose nose
+    /// swings through the place as it mills about (thirty degrees a second). One flying straight at the place is
+    /// taken on once its course has held a second, and only the fighters that kill it in two seconds go: six
+    /// Falcons a Hailstorm, the other six stay on the loop.
+    #[test]
+    fn a_wing_leaves_its_loop_for_what_comes_at_its_place_and_with_the_fighters_that_needs() {
+        let host = Host::new(Vec::new());
+        let ids: Vec<i32> = (1..=12).collect();
+        let over = |ids: &[i32]| -> Vec<OwnUnit> { ids.iter().map(|id| falcon(*id, 2000.0 + 20.0 * *id as f32, 2000.0, (0.0, 0.0))).collect() };
+        // 3,000 west of the place flying east, its course 2,500 south of it.
+        let mut lane = wing(&ids);
+        for frame in (30..=120).step_by(3) {
+            let out = lane.tick(&host, &tick(frame, over(&ids), vec![bomber(60, -1000.0, 4500.0, true)]), &mut Vec::new(), false);
+            assert!(out.intercepts.is_empty() && !out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "f={frame} {:?}", out.intercepts);
+        }
+        assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.watched, r.loitering)), Some((0, 1, 12)));
+        // 3,000 west of the place, milling: its nose comes round three degrees a tick.
+        let mut lane = wing(&ids);
+        for (k, frame) in (30..=390).step_by(3).enumerate() {
+            let angle = (k as f32 * 3.0).to_radians();
+            let milling = EnemyUnit { vel: at(230.0 / 30.0 * angle.cos(), 230.0 / 30.0 * angle.sin()), ..bomber(60, -1000.0, 2000.0, true) };
+            let out = lane.tick(&host, &tick(frame, over(&ids), vec![milling]), &mut Vec::new(), false);
+            assert!(out.intercepts.is_empty(), "f={frame} {:?}", out.intercepts);
+        }
+        // 3,000 west of the place flying straight at it.
+        let mut lane = wing(&ids);
+        for frame in (30..60).step_by(3) {
+            let out = lane.tick(&host, &tick(frame, over(&ids), vec![bomber(60, -1000.0, 2000.0, true)]), &mut Vec::new(), false);
+            assert!(out.intercepts.is_empty(), "f={frame}: its course has not held a second yet");
+        }
+        let out = lane.tick(&host, &tick(60, over(&ids), vec![bomber(60, -770.0, 2000.0, true)]), &mut Vec::new(), false);
+        assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { contacts: 1, fighters: 6, .. }, .. }]), "{:?}", out.intercepts);
+        assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.closing, r.loitering)), Some((1, 6, 6)));
+        // The six that go fly under manoeuvre, as the conversion was drilled.
+        assert_eq!(out.commands.iter().filter(|c| matches!(c, Command::MoveState { state: 1, .. })).count(), 6, "{:?}", out.commands);
+    }
+
+    /// The leash: a fighter behind a bomber that flies away is given no target further than the leash from the place
+    /// and flies a move order back to it on hold position; the wing says it is back once every fighter is on the
+    /// loop again, not when the threat is gone.
+    #[test]
+    fn a_fighter_follows_nothing_beyond_the_leash_and_the_return_is_a_move_to_the_place() {
+        let host = Host::new(Vec::new());
+        let mut lane = wing(&[1]);
+        // A bomber 1,000 east of the place flying on east, the fighter 300 behind it: taken on (inside the guard),
+        // attacked from behind.
+        let mut events = Vec::new();
+        let mut commands = Vec::new();
+        for (k, frame) in (30..=390).step_by(3).enumerate() {
+            let x = 3000.0 + 23.0 * k as f32;
+            let out = lane.tick(&host, &tick(frame, vec![falcon(1, x - 300.0, 2000.0, (230.0, 0.0))], vec![bomber(60, x, 2000.0, true)]), &mut Vec::new(), false);
+            events.extend(out.intercepts);
+            commands.extend(out.commands.into_iter().map(|c| (x, c)));
+        }
+        // Attacked while the bomber was inside the leash (3,000 from the place: x 5,000), never after.
+        let attacks: Vec<f32> = commands.iter().filter(|(_, c)| matches!(c, Command::Attack { .. })).map(|(x, _)| *x).collect();
+        assert!(!attacks.is_empty() && attacks.iter().all(|x| *x <= 2000.0 + LEASH), "{attacks:?}");
+        // Then the way back: hold position and a move to the place, and no patrol from out there.
+        let back: Vec<&(f32, Command)> = commands.iter().filter(|(x, _)| *x > 2000.0 + LEASH).collect();
+        assert!(back.iter().any(|(_, c)| matches!(c, Command::Move { to, .. } if *to == PLACE)) && back.iter().any(|(_, c)| matches!(c, Command::MoveState { state: 0, .. })), "{back:?}");
+        assert!(!back.iter().any(|(_, c)| matches!(c, Command::Patrol { .. } | Command::Attack { .. })), "{back:?}");
+        assert!(matches!(events.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { .. }, .. }]), "not back while the fighter is 2,700 out: {events:?}");
+        // The bomber gone and the fighter home: the loop, and the word that it is back.
+        let out = lane.tick(&host, &tick(420, vec![falcon(1, 2300.0, 2000.0, (-280.0, 0.0))], Vec::new()), &mut Vec::new(), false);
+        assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Returned { .. }, .. }]), "{:?}", out.intercepts);
+        assert_eq!(out.commands.iter().filter(|c| matches!(c, Command::Patrol { .. })).count(), 4);
     }
 
     /// At a radar contact that flies the wing leaves its loop for the point beside the contact's track and ahead of
@@ -789,9 +1075,14 @@ mod tests {
     fn a_wing_scrambles_at_a_radar_contact_that_flies_to_a_point_beside_its_track() {
         let host = Host::new(Vec::new());
         let mut lane = wing(&[1]);
-        // The bomber 3,000 west of the place, flying east at it; the fighter over the place, a little north.
-        let out = lane.tick(&host, &tick(30, vec![falcon(1, 2000.0, 1950.0, (-250.0, 0.0))], vec![bomber(60, -1000.0, 2000.0, false)]), &mut Vec::new(), false);
-        assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { contacts: 1, .. }, .. }]), "{:?}", out.intercepts);
+        // The bomber 3,000 west of the place, flying east at it; the fighter over the place, a little north. Its
+        // course has to hold a second first.
+        for frame in (30..60).step_by(3) {
+            let out = lane.tick(&host, &tick(frame, vec![falcon(1, 2000.0, 1950.0, (-250.0, 0.0))], vec![bomber(60, -1000.0, 2000.0, false)]), &mut Vec::new(), false);
+            assert!(out.intercepts.is_empty(), "f={frame}");
+        }
+        let out = lane.tick(&host, &tick(60, vec![falcon(1, 2000.0, 1950.0, (-250.0, 0.0))], vec![bomber(60, -1000.0, 2000.0, false)]), &mut Vec::new(), false);
+        assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { contacts: 1, fighters: 1, .. }, .. }]), "{:?}", out.intercepts);
         assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "{:?}", out.commands);
         let to = out.commands.iter().find_map(|c| match c { Command::Move { to, .. } => Some(*to), _ => None }).expect("a move");
         // West of it, toward the bomber, and on its own (north) side of the track.

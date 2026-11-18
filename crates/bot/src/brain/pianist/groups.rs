@@ -147,9 +147,9 @@ pub(crate) enum GroupTask {
     /// `rove_<region>` move; docs/design/2026-10-17-rove-destinations.md).
     Rove { within: Option<String> },
     /// An air patrol (H-MICRO-INTERCEPT; `docs/design/2026-11-16-air-intercept.md` §7, the user's ruling A): the
-    /// group's fighters are the lane's, circling over the place and flown at every aircraft of his that comes
-    /// within the keep, the engine choosing the targets. A pick like every task (the `air_patrol_<place>` move);
-    /// the way back is any other pick. `at`: the place's point; `place`: its name.
+    /// group's fighters are the lane's, circling over the place and flown at the aircraft of his that come at it
+    /// (the lane's threat test and leash, §8 of the note), the engine choosing the targets. A pick like every task
+    /// (the `air_patrol_<place>` move); the way back is any other pick. `at`: the place's point; `place`: its name.
     AirPatrol { at: Vec3, place: String },
 }
 
@@ -928,8 +928,8 @@ impl Brain {
     }
 
     /// The lane's word from the air patrols (H-MICRO-INTERCEPT), into their groups' logs (the picture's `air_patrol`
-    /// entry) and into what the hands did for the player's report: what a patrol scrambled at and where, and when it
-    /// was back over its place, with the fighters it lost meanwhile.
+    /// entry) and into what the hands did for the player's report: how many fighters a patrol scrambled at what and
+    /// where, and when all of them were back over its place, with the fighters it lost meanwhile.
     pub(crate) fn air_patrol_events(&mut self, events: &[micro::InterceptEvent], frame: i32) {
         let Some(mut pianist) = self.pianist.take() else { return };
         let clock = super::picture::clock(frame);
@@ -938,8 +938,8 @@ impl Brain {
             let lane_name = group.lane_name();
             for event in events.iter().filter(|e| e.group == lane_name) {
                 let line = match &event.what {
-                    micro::InterceptWhat::Scrambled { contacts, at, out } => {
-                        format!("scrambled at {contacts} aircraft of his at {}, {out:.0} from {place}", self.place_words(&pianist.places, *at))
+                    micro::InterceptWhat::Scrambled { contacts, at, out, fighters } => {
+                        format!("scrambled {fighters} of its fighters at {contacts} aircraft of his coming at {place}, at {}, {out:.0} from it", self.place_words(&pianist.places, *at))
                     }
                     micro::InterceptWhat::Returned { seconds } => {
                         // The losses kept are a minute's.
@@ -950,7 +950,7 @@ impl Brain {
                             (n, false) => format!(", {n} of its fighters lost meanwhile"),
                             (n, true) => format!(", {n} of its fighters lost in the last minute of it"),
                         };
-                        format!("back over {place} after {seconds} s: nothing of his flies within its keep{losses}")
+                        format!("all back over {place} after {seconds} s{losses}")
                     }
                 };
                 pianist.done.push(format!("{clock} group_{}'s air patrol {line}", group.name));
@@ -1534,7 +1534,7 @@ mod tests {
         group.losses.push((900 + 20 * FRAMES_PER_SECOND, UnitDefId(1), None));
         pianist.groups.push(group);
         brain.pianist = Some(pianist);
-        let scrambled = micro::InterceptEvent { group: "group_F".into(), what: micro::InterceptWhat::Scrambled { contacts: 7, at: at(2000.0, 5000.0), out: 3000.0 } };
+        let scrambled = micro::InterceptEvent { group: "group_F".into(), what: micro::InterceptWhat::Scrambled { contacts: 7, at: at(2000.0, 5000.0), out: 3000.0, fighters: 2 } };
         let returned = micro::InterceptEvent { group: "group_F".into(), what: micro::InterceptWhat::Returned { seconds: 34 } };
         brain.air_patrol_events(std::slice::from_ref(&scrambled), 900);
         brain.air_patrol_events(std::slice::from_ref(&returned), 900 + 34 * FRAMES_PER_SECOND);
@@ -1543,9 +1543,9 @@ mod tests {
         let pianist = brain.pianist.as_ref().unwrap();
         let log: Vec<&str> = pianist.groups[0].lane_log.iter().map(|(_, line)| line.as_str()).collect();
         assert_eq!(log.len(), 2, "{log:?}");
-        assert!(log[0].starts_with("0:30 scrambled at 7 aircraft of his at ") && log[0].ends_with(", 3000 from home"), "{}", log[0]);
-        assert_eq!(log[1], "1:04 back over home after 34 s: nothing of his flies within its keep, 1 of its fighters lost meanwhile");
-        assert!(pianist.done.iter().any(|d| d.starts_with("0:30 group_F's air patrol scrambled at 7 aircraft of his")) && pianist.done.iter().any(|d| d.starts_with("1:04 group_F's air patrol back over home after 34 s")), "{:?}", pianist.done);
+        assert!(log[0].starts_with("0:30 scrambled 2 of its fighters at 7 aircraft of his coming at home, at ") && log[0].ends_with(", 3000 from it"), "{}", log[0]);
+        assert_eq!(log[1], "1:04 all back over home after 34 s, 1 of its fighters lost meanwhile");
+        assert!(pianist.done.iter().any(|d| d.starts_with("0:30 group_F's air patrol scrambled 2 of its fighters at 7 aircraft of his")) && pianist.done.iter().any(|d| d.starts_with("1:04 group_F's air patrol all back over home after 34 s")), "{:?}", pianist.done);
         assert_eq!(pianist.patrol_events.len(), 2);
     }
 

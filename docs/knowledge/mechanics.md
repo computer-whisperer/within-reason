@@ -1380,3 +1380,35 @@ out (the first body: 1 at 230 a second, 349 over the ground)".
 **Would be wrong if.** A contact under a jammer or at the radar's edge came with no velocity. Not tried: the radar's
 wobble on a contact's place, and what a jammed aircraft shows.
 **Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighter-on-a-patrol-order-chases-what-it-sees
+**Claim.** A fighter on the engine's patrol order with its move state at manoeuvre attacks aircraft of his that come
+near the fighter itself, wherever the fighter is, and follows them for as long as they stay near: the patrol's
+corners have no part in it. Given to a fighter far from its corners with his aircraft beside it, the order is a
+chase to wherever they fly. The same fighter on a move order with its move state at hold position flies to the
+point and attacks nothing on the way, and a patrol flown on hold position stays on its corners.
+**Status.** observed in a game and on the bench (2026-11-17/18). The reach of the engine's own search (about 1,000
+round the fighter by the game's distances) is not read from the source.
+**Evidence.** air-patrol-1 14:27 to 14:44 (`run/matches/1794975308-air-patrol-1`): the wing was put "back on its
+loop" 4,000 from its place with his Falcons 900 away, by a patrol order under manoeuvre; it followed them to his
+air station, 5,700 to 6,500 from the place, and lost 10 of its 14. The bench's `out` scene (eleven Valiants out to
+3,000 from the place and called back to a station 5,900 out): under that return the furthest fighter got 4,829 from
+the place on average and 6,287 at most, and 2,409 out when the duel ended (air-L0-out, three duels); with the return
+as a move order on hold position 3,135 and 3,796, and 768 at the end, every fighter on its loop (air-L1-out).
+**Would be wrong if.** A fighter given a patrol order under manoeuvre 4,000 from its corners, with fighters of his
+within 900 of it flying away, flew to the corners.
+**Used by.** [[H-MICRO-INTERCEPT]] (the return is a move order on hold position, and the loop is flown on hold
+position).
+
+### K-engine-a-unit-given-thirty-orders-at-once-flies-none
+**Claim.** An aircraft given 32 move orders in one tick (the first not queued, the rest queued behind it) flew none
+of them: it was within 50 of where it began for the whole duel (72 s). Given eight at once, and four more as each
+lap was half flown, it flew them all.
+**Status.** observed once on the bench (2026-11-18), one Whirlwind under the duel director's script rows. Not read:
+whether the engine's queue or the sender drops them, and where between 8 and 32 the limit lies.
+**Evidence.** `run/matches/1794979056-duel-air-L0-mill` (the bomber at 5694,1516 from the 36th second to the 72nd)
+against `1794979214-duel-air-L0-mill` (the same scene with the laps given two at first and one at a time after: at
+5350,2485 at 55 s and 5740,2546 at 110 s); `run/air_raid.py` `%R`.
+**Would be wrong if.** A unit given 32 queued moves at once flew the first of them.
+**Used by.** `run/air_raid.py` (a lap's orders go out as the lap before it ends). Not checked: whether anything of
+the flagship's or the bots' queues that many orders on one unit at once.

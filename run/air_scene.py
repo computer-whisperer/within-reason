@@ -33,7 +33,7 @@ what the drill adds: `--fighters` (given landed in ranks of six at the place) an
   patrol_fight, patrol_spread
           up on the patrol under manoeuvre until first contact, then as fight or spread
   intercept
-          the lane's wing (H-MICRO-INTERCEPT, `crates/micro/src/intercept.rs`) keeping the target, out to `--keep`:
+          the lane's wing (H-MICRO-INTERCEPT, `crates/micro/src/intercept.rs`) keeping the target:
           one row; the lane loiters it, scrambles it and flies it (`duel` then runs side 0's lane for the wing alone)
 """
 import argparse, csv, json, math, os, subprocess, sys
@@ -102,7 +102,6 @@ def main():
     ap.add_argument("--fighters")
     ap.add_argument("--add", action="append", default=[])
     ap.add_argument("--arm", default="none", choices=["none", "hold", "idle", "patrol", "fight", "spread", "patrol_fight", "patrol_spread", "intercept"])
-    ap.add_argument("--keep", type=float, default=None, help="--arm intercept: the wing's keep in elmos (the lane's own when absent)")
     ap.add_argument("--state", type=int, default=2)
     ap.add_argument("--delay", type=float, default=0.5)
     ap.add_argument("--loop", type=float, default=900.0)
@@ -205,10 +204,7 @@ def main():
         rows.append({"t": args.delay, "from": "contact", "unit": every, "cmd": "movestate", "state": args.state})
         rows.append({"t": args.delay, "from": "contact", "unit": every, "cmd": "fight", "x": args.toward[0], "z": args.toward[1]})
     elif args.arm == "intercept":
-        row = {"t": 0, "unit": every, "cmd": "intercept", "x": tx, "z": tz}
-        if args.keep is not None:
-            row["keep"] = args.keep
-        rows.append(row)
+        rows.append({"t": 0, "unit": every, "cmd": "intercept", "x": tx, "z": tz})
     elif args.arm in ("spread", "patrol_spread"):
         if args.arm == "spread":
             rows.append({"t": 0, "unit": every, "cmd": "movestate", "state": 0})

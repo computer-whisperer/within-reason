@@ -321,9 +321,9 @@ struct Army {
     contact_at: Option<i32>,
     /// The units a script's `rove` rows handed to the lane's roving group.
     roving: Vec<UnitId>,
-    /// The fighters a script's `intercept` rows handed to the lane's wing, and the place and keep of the last such row.
+    /// The fighters a script's `intercept` rows handed to the lane's wing, and the place of the last such row.
     intercepting: Vec<UnitId>,
-    wing_keeps: Option<(Vec3, f32)>,
+    wing_at: Option<Vec3>,
     /// The construction turrets a script's `tend` rows put under their standing order, and when each was last told:
     /// told again every second while idle, as the flagship's `nanos.rs` does (the fight ends whenever it finds nothing).
     tending: HashMap<UnitId, i32>,
@@ -388,7 +388,7 @@ impl Army {
             contact_at: None,
             roving: Vec::new(),
             intercepting: Vec::new(),
-            wing_keeps: None,
+            wing_at: None,
             tending: HashMap::new(),
             track_sent: HashMap::new(),
         }
@@ -1780,9 +1780,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     let rovers: Vec<UnitId> = army.roving.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
                     lane.set_group("rove", rovers, GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()));
                 }
-                if let Some((place, keep)) = army.wing_keeps {
+                if let Some(place) = army.wing_at {
                     let wing: Vec<UnitId> = army.intercepting.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
-                    lane.set_group("wing", wing, GroupOrder::new(GroupKind::Intercept { place, keep }, Vec::new()));
+                    lane.set_group("wing", wing, GroupOrder::new(GroupKind::Intercept { place }, Vec::new()));
                 }
                 // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
                 // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
@@ -1967,7 +1967,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 commands.extend(output.commands);
                 for event in &output.intercepts {
                     duel.notes.push(match &event.what {
-                        micro::InterceptWhat::Scrambled { contacts, at, out } => json!({"wing": "scrambled", "f": frame, "contacts": contacts, "at": [at.x.round(), at.z.round()], "out": out.round()}),
+                        micro::InterceptWhat::Scrambled { contacts, at, out, fighters } => json!({"wing": "scrambled", "f": frame, "contacts": contacts, "at": [at.x.round(), at.z.round()], "out": out.round(), "fighters": fighters}),
                         micro::InterceptWhat::Returned { seconds } => json!({"wing": "returned", "f": frame, "seconds": seconds}),
                     });
                 }
@@ -2280,7 +2280,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, side: usize, de
                     if !army.intercepting.contains(&unit) {
                         army.intercepting.push(unit);
                     }
-                    army.wing_keeps = Some((to, row.keep.unwrap_or(micro::intercept::KEEP)));
+                    army.wing_at = Some(to);
                     sent.push(i);
                     continue;
                 }
@@ -2429,9 +2429,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         let seen = |a: &Army| a.sees.iter().map(|(i, sight)| json!([i, *sight as u8])).collect::<Vec<_>>();
         line["sees"] = json!({"x": seen(x), "y": seen(y)});
     }
-    // Side 0's wing (H-MICRO-INTERCEPT): the flying contacts in its keep, and its fighters by what they are doing.
+    // Side 0's wing (H-MICRO-INTERCEPT): the contacts coming at its place, those it watches, and its fighters by what
+    // they are doing.
     if let Some(wing) = x.lane.as_ref().and_then(|l| l.intercept_report("wing")) {
-        line["wing"] = json!({"contacts": wing.contacts, "loitering": wing.loitering, "closing": wing.closing, "turning": wing.turning, "trailing": wing.trailing});
+        line["wing"] = json!({"contacts": wing.contacts, "watched": wing.watched, "loitering": wing.loitering, "returning": wing.returning, "closing": wing.closing, "turning": wing.turning, "trailing": wing.trailing});
     }
     if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {
         line["stores"] = json!(stores.iter().map(|v| v.round()).collect::<Vec<_>>());

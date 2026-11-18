@@ -300,25 +300,37 @@ seconds after the first contact (the game: 14,540, three fusions, none down, fif
 43,807 with what stood unfinished, seventeen seconds). In the drill of run 2 the anti-air has every bomber shot down
 about a second before the first bomb lands, where the game's had one of seven; the bombs of two to four still land.
 
-**The wing (2026-11-17, H-MICRO-INTERCEPT).** `--arm intercept [--keep N]` writes one row for the fighters,
+**The wing (2026-11-17, H-MICRO-INTERCEPT).** `--arm intercept` writes one row for the fighters,
 `{"t": 0, "unit": [...], "cmd": "intercept", "x": X, "z": Z}` (the place is the target): the row hands them to the
-lane's wing (`crates/micro/src/intercept.rs`), which loiters them, scrambles them at what flies within its keep and
-flies them; nothing counted from contact is needed. A script with an `intercept` row (as with a `rove` row) keeps
+lane's wing (`crates/micro/src/intercept.rs`), which loiters them, scrambles those a threat needs at what comes at
+the place and flies them; nothing counted from contact is needed. The wing's bounds are the lane's
+(`WITHIN_REASON_INTERCEPT=guard=2000,leash=3500,seconds=18` in the duel's environment sets others for a drill;
+until 2026-11-18 a row's `keep` and `--keep`). A script with an `intercept` row (as with a `rove` row) keeps
 side 0's lane on, for the units a row handed it alone: from 2026-11-17 a scripted side's other units get no reflex
 from the lane (before, a script with a rove row put them under the flee, the fan and the kite). The wing's scramble
-and return are notes in the per-second log's `orders` (`{"wing": "scrambled", "contacts", "at", "out"}`,
-`{"wing": "returned", "seconds"}`), and each line carries `wing`: the flying contacts in its keep and its fighters
-loitering, closing, turning and trailing. `WITHIN_REASON_MICRO_DEBUG=1` prints each fighter's state every half second
+and return are notes in the per-second log's `orders` (`{"wing": "scrambled", "contacts", "at", "out", "fighters"}`,
+`{"wing": "returned", "seconds"}`), and each line carries `wing`: the contacts it has taken on, what else flies in
+its sight (`watched`) and its fighters loitering, returning, closing, turning and trailing. `WITHIN_REASON_MICRO_DEBUG=1` prints each fighter's state every half second
 (its phase, speed, heading off the bombers', how far ahead of the rearmost and across) and its turn-in and trail
 lines. `run/air_drill.py --places` reads where the fighters were from the merge to the bombs (in firing position,
 inbound, ahead, wide, far) and the hits a second each place landed: the instrument the law was found with
-(`docs/design/2026-11-16-air-intercept.md` section 6.2).
+(`docs/design/2026-11-16-air-intercept.md` section 6.2). `run/air_drill.py --leash` reads how far the fighters went
+from the place they keep and whether they came back (the furthest any got, the seconds with one over 1,500 out,
+where the furthest was in the last second, the most the wing had off its loop at once): the instrument of the
+loop's properties (section 8).
 
 **Made-up raids (2026-11-17).** `run/air_raid.py <cut prefix> --target X,Z --his "corhurc*7@5580,700>bomb" [--his ...]
 [--without anti-air] --out PREFIX` keeps a cut's own side and its rows and replaces his recorded bombers by groups
 we choose: a type and count at a place, waypoints, and `bomb` (an attack at the ground at the target), `fight` (an
 escort) or `pass` (a scout flying through); `+S` delays a group, `~W` flies it line abreast. `--without` takes our
-anti-air (or named types) out of the cut. Section 6.4 of the design note is its first use.
+anti-air (or named types) out of the cut. Section 6.4 of the design note is its first use. From 2026-11-18, for
+aircraft that are not a raid (section 8.1): `>!X,Z` is a fight order to a point, `%R` flies the waypoints R times
+over (a group milling about a place; each lap's orders go out as the lap before it ends, since a unit given thirty
+orders at once flies none), a group with no waypoint that ends in `pass` is given no order (a turret), and
+`--row T,G,move|fight,X,Z` is one more order for group G, T seconds after the lead (fighters called back). Two
+things the bench does with such scenes: a duel whose aircraft are all shot down or fly out ends on the stalemate
+clock (72 seconds), and after a duel in which his fighters were called back the engine's game ends, so such a
+scene runs three repetitions a batch.
 
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 

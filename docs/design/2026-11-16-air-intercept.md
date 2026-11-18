@@ -3,12 +3,14 @@
 Branch `air-intercept` (worktree `within-reason.air-intercept`). Begun 2026-11-16 from the user's review of the
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
-**State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
+**State (2026-11-18):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
 2dd830c4), and flown against raids the game did not show (section 6.4). The player's order is built as ruled, a move
-of the hands as rove is: the air patrol (section 7.1, 8e09b893). **Its first game (section 7.2) showed that the
-wing's loop is wrong outside a raid: it leaves its place for any aircraft within 4,500 and its return has no leash;
-ten of fourteen Falcons were lost over his station.** The loop re-derived is section 8, a proposal put to the user
-and not built. No bot of `bots/` declares a wing. Not merged, and not fit to merge before section 8 is settled.
+of the hands as rove is: the air patrol (section 7.1, 8e09b893). Its first game (section 7.2) showed that the
+wing's loop was wrong outside a raid: it left its place for any aircraft within 4,500 and its return had no leash;
+ten of fourteen Falcons were lost over his station. **The loop was re-derived (section 8), ruled on by the user and
+rebuilt (sections 8.1 and 8.2): it answers what comes at its place, with the fighters that needs, no further than
+a leash, and flies back. On the bench the game's two faults are gone and the raids hold; it has not been in a game,
+and one number (`THREAT_SECONDS`, 18 or 24) is open.** No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -340,6 +342,9 @@ section 6.4: "Good. Let's proceed with A." B is not taken.
 
 ### 7.1 As built
 
+(As it stood for the first game. Section 8.2 changed what the wing answers and the words that say it: no keep of
+4,500, the loop's bounds in its place, and no attack on his buildings on a fighter group's menu.)
+
 - **The move.** An air group whose every aircraft is a fighter (it hits what flies harder than the ground: the
   lane's own test, `micro::intercept::fighter`, so no bomber, gunship or stun drone, and no mixed group) has
   `air_patrol_<place>` for every named place that is a point: the marks, and the spots, passages, cells' names and
@@ -528,3 +533,112 @@ The bench shows both of the game's faults: twelve Falcons leave for one scout or
 
 The numbers are the first values; `GUARD` and `LEASH` are drilled (a target 2,080 from the place is outside any
 `GUARD` under 2,080: the wing will not leave for a raid on it, where the old law left and saved nothing).
+
+### 8.2 As built, and what the drills gave (2026-11-18)
+
+**Built** as section 8.1 has it, in `crates/micro/src/intercept.rs`; the conversion (close, turn, trail, the
+bodies, the deal) is untouched. The kind is `GroupKind::Intercept { place }`: the keep is gone from it, from the
+bench's `intercept` row and from `run/air_scene.py`. On the hands' side the move's words, the pick's words, the
+picture's `doing` and `lane` lines and the patrol's log say threats and the loop's bounds where they said the keep
+("its 12 fighters circle there, nothing of his coming at it; 2 aircraft of his in sight are not coming at it";
+"scrambled 6 of its fighters at 1 aircraft of his coming at home"; "all back over home after 34 s"); an air group
+whose every aircraft is a fighter has no `fight_to_<his place>` on its menu; the player's text says what the patrol
+answers and that it "is a guard of its place, not a hunt".
+
+**One departure from 8.1, found by a unit test before the bench.** By rule 3 alone a contact that had flown out
+past the leash was still the wing's for the 1.5 seconds of its release, so a fighter turned home at the leash was
+chosen for the same leaving body again the next tick, and home again the tick after. A body is a threat only while
+one of its members can be flown at (inside the leash, or coming), and a fighter trailing a body takes a target that
+can be, or goes home.
+
+**One departure from the drills section 8 named.** The game's two moments were flown as made-up scenes with the
+game's distances on run 2's base (`mill`: one bomber milling 3,870 to 4,720 out; `out` and `outaa`: eleven fighters
+out to 3,000 from the place and called back to a station 5,900 out, without and with four anti-air turrets by it),
+not cut from the game's tape.
+
+**The scenes, the old loop and the new** (twelve Falcons over the block; eight repetitions, `out` and `outaa` three;
+`run/air_drill.py --leash`; old: air-L0-\* at d83633d3, new: air-L1-\*):
+
+| scene | furthest a fighter got from the place (mean, most): old | new | most fighters off the loop at once: old | new | fighters lost: old | new |
+|---|---|---|---|---|---|---|
+| mill | 2,658, 4,733 | 819, 838 | 6.0 | 0 | 0 | 0 |
+| abeam (a scout 2,180 west) | 2,319, 2,699 | 964, 1,316 | 12 | 0 | 0 | 0 |
+| over (a scout over the place) | 1,572, 1,915 | 1,403, 1,975 | 12 | 4 | 0 | 0 |
+| out | 4,829, 6,287 (2,409 out at the end) | 3,135, 3,796 (768 at the end) | 12 | 12 | 3.3 | 2.7 |
+| outaa | not flown | 3,003, 3,288 (911 at the end) | | 12 | | 3.0 |
+| sweep (eleven Valiants at the place) | 2,614, 3,114 | 2,527, 2,975 | 12 | 12 | 3.2 | 3.6 |
+
+Properties 1 to 3 of section 8 hold on the bench: the milling bomber and the scout abeam move nothing, the scout
+overhead takes four fighters (it is a contact of no known type on radar: four by the deal's measure, one once it is
+seen), and after `out` every fighter is back on its loop. The most a fighter got from the place, 3,796, is 300
+past the leash and its slack: a Falcon at 290 a second needs that to come round.
+
+**The raids of section 6.4 again, and the two runs at 40** (property 4; air-G1-\*, eight repetitions; the runs
+air-G1 and air-G2 together; saved, and mean metal lost):
+
+| raid | the old loop (6.4) | the new |
+|---|---|---|
+| 7 Hailstorms from the north | 8 of 8, 79 | 8 of 8, 473 |
+| from the north-west | 8 of 8, 170 | 8 of 8, 614 |
+| from the west | 8 of 8, 5 | 8 of 8, 20 |
+| from the south-west | 8 of 8, 148 | 15 of 16, 606 |
+| the dogleg | 8 of 8, 0 | 8 of 8, 0 |
+| two groups at once | 8 of 8, 0 | 8 of 8, 16 |
+| the decoy scout, then 7 | 8 of 8, 445 | 8 of 8, 731 |
+| 14 Whirlwinds | 8 of 8, 329 | 8 of 8, 557 |
+| 12 Hailstorms | 7 of 8, 3,752 | 7 of 8, 7,087 |
+| 7 Hailstorms and 8 Valiants | 8 of 8, 382 (2.5 Falcons lost) | 8 of 8, 119 (2.1) |
+| a line abreast | 5 of 8 and 7 of 8 | 7 of 8 |
+| 2 Liches | 8 of 8, 584 | 8 of 8, 570 |
+| 4 Stilettos | 0.8 of 4 dropped | 1.2 of 4 |
+| 7 Hailstorms, the base's anti-air out | 2 of 8 | **1 of 24** |
+| a fusion 2,080 from the place (9 s of warning) | 0 of 8 | 0 of 8 |
+| run 1 as the sensors stood | 37 of 40 | 37 of 40 |
+| run 2 | 40 of 40 | 39 of 40 |
+
+The raids and the two runs hold: no cell but one moved by more than an eight-repetition cell swings. The price the
+proposal named is there and small: the first hit on the northern raid comes at 10.1 to 10.5 s after contact in the
+four batches flown at 18 seconds against 9.1 and 9.6 before, and the metal lost is a little higher in most cells. **The
+one cell that fell is the base with no anti-air under the wing, 1 of 24 against 2 of 8** (the same damage before the
+first bomb, 88 to 90 % of the bombers' health, and the same bombers dropping, 2.5 to 2.8 of 7: there a half second
+is a reactor). In the raid on the fusion 2,080 from the place (flown here with the 9 s of warning the base's own
+sensors give, not 6.4's 15) the wing no longer leaves before the bombs: its first hit comes 33 s after contact,
+where it came at 7 and cost 1.9 Falcons; nothing was saved either way.
+
+**The bounds, each flown off its first value** (`WITHIN_REASON_INTERCEPT`, eight repetitions, `out` three;
+air-Pg25-\*, air-Pl20-\*, air-Pl40-\*, air-Ps24-\*, air-Ps24b-\*):
+
+| bound | scene | at the first value | off it |
+|---|---|---|---|
+| `GUARD` 1,500, flown at 2,500 | the fusion 2,080 from the place | 0 of 8; 4.0 of 7 dropped; 0.1 Falcons lost | the wing leaves (first hit at 7 s): 0 of 8; 4.4 of 7 dropped; 1.4 Falcons lost |
+| | the scout 2,180 abeam | no fighter leaves | 4 leave, to 2,462 out |
+| | the milling bomber; the northern raid | none leaves; 8 of 8 | the same |
+| `LEASH` 3,000, flown at 2,000 and 4,000 | the northern raid | 8 of 8, first hit 10.1 s | 8 of 8 both; 10.5 and 10.2 s |
+| | `out` (furthest mean, most; Falcons lost; his lost) | 3,135, 3,796; 2.7; 5.0 of 11 | 2,000: 1,957, 2,486; 2.3; 2.0. 4,000: 3,706, 3,794; 3.0; 7.0 |
+| | the sweep | 2,527, 2,975; 3.6 lost; 11 of 11 | 2,000: 2,492, 2,888; 2.4. 4,000: 2,616, 3,341; 3.2 |
+| `THREAT_SECONDS` 18, flown at 24 | the northern raid | 8 of 8, first hit 10.1 s | 8 of 8, 9.8 s |
+| | the anti-air out | **1 of 24**, first hit 10.3 s, 6.4 Falcons lost | **6 of 24**, 9.8 s, 5.3 lost |
+| | the line abreast | 7 of 8 | 8 of 8 |
+| | the milling bomber; the scout abeam; the scout overhead | none; none; 4 | the same |
+| | `out` | 3,135, 3,796; 2.7 lost; 5.0 of 11 | 2,797, 2,978; 3.0 lost; 9.0 of 11 |
+| | the sweep | 3.6 lost | 2.5 lost |
+
+- **`GUARD` stands at 1,500.** A guard wide enough to send the wing at the raid 2,080 aside saves nothing there and
+  costs fighters, and it answers the scout abeam. Where between the place and 2,080 the wing stops saving what is
+  bombed is not located (no scene with a target 1,000 or 1,500 aside).
+- **`LEASH` stands at 3,000.** Against what comes at the place it does nothing between 2,000 and 4,000 (the wing
+  meets a raid 2,300 to 2,600 out by itself); it is what bounds the chase after `out`.
+- **`THREAT_SECONDS` is open, 18 or 24.** At 24 the wing leaves as early as the old loop did against a raid first
+  seen further out than 18 seconds, and has the half second back: 6 of 24 against 1 of 24 with the anti-air out
+  (one-sided p about 0.05), and nothing changed in any scene that is not a raid. Twenty-four seconds is also where
+  the leash and not the warning sets the meeting point: a Falcon (289 a second) that leaves when a Hailstorm (230)
+  is 23.4 s out meets it 3,000 from the place, so leaving earlier buys nothing. What the bench does not price is
+  traffic far out: at 24 s an aircraft of his flying straight at our place for a second is a threat from 5,500 out
+  (a bomber) or 7,000 (a fighter), at 18 s from 4,100 and 5,200; in air-patrol-1 his station lay 6,000 from our
+  home, so his fighters leaving it our way would have scrambled a fighter each to the leash at 24 and not at 18. The
+  constant is 18, as ruled; the switch (`WITHIN_REASON_INTERCEPT=seconds=24` in a game's environment) flies the
+  other without a build.
+
+**Still not shown:** the new loop in a game (it has only the bench's scenes behind it, and the first loop failed
+outside its drills); the game's two moments from its own tape; a target between the place and 2,080 aside; his
+fighters ahead of his bombers; a jammed raid; another map; Highwinds on the loop's scenes.

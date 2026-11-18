@@ -820,14 +820,14 @@ impl Lane {
         let mut owned: HashSet<UnitId> = HashSet::new();
         let mut rovers: Vec<(&OwnUnit, Option<(Vec3, Vec3)>, bool)> = Vec::new();
         let mut hunts: Vec<(String, HuntOrder, Vec<&OwnUnit>)> = Vec::new();
-        let mut wings: Vec<(String, Vec3, f32, Vec<&OwnUnit>)> = Vec::new();
+        let mut wings: Vec<(String, Vec3, Vec<&OwnUnit>)> = Vec::new();
         for (name, d) in &self.groups {
             match d.order.kind {
-                GroupKind::Intercept { place, keep } => {
+                GroupKind::Intercept { place } => {
                     // Its fighters (`intercept::fighter`); what else is of the group is the host's.
                     let wing: Vec<&OwnUnit> = fliers.iter().copied().filter(|u| d.members.contains(&u.id) && view.stats(u.def).is_some_and(|s| intercept::fighter(&s))).collect();
                     owned.extend(wing.iter().map(|u| u.id));
-                    wings.push((name.clone(), place, keep, wing));
+                    wings.push((name.clone(), place, wing));
                 }
                 GroupKind::Rove { within } => {
                     for u in soldiers.iter().chain(&fliers).filter(|u| d.members.contains(&u.id)) {
@@ -857,8 +857,8 @@ impl Lane {
         }
         self.wings.retain(|name, _| wings.iter().any(|(n, ..)| n == name));
         self.interceptors.retain(|id, _| wings.iter().any(|(.., wing)| wing.iter().any(|u| u.id == *id)));
-        for (name, place, keep, wing) in &wings {
-            self.intercept(view, name, *place, *keep, wing, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.intercepts, debug);
+        for (name, place, wing) in &wings {
+            self.intercept(view, name, *place, wing, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.intercepts, debug);
         }
         self.hunts.retain(|name, _| hunts.iter().any(|(n, ..)| n == name));
         for (name, order, hunters) in &hunts {

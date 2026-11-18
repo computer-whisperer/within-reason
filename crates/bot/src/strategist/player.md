@@ -145,10 +145,14 @@ whenever you hit that edge.
   would kill them soon: Banshees on his extractors, one each across the map, are thebluegecko's use of it; fighters and
   Shurikens do not rove. A group whose every aircraft is a fighter has `air_patrol_<place>` (an air patrol over a
   place the packet names for it, the place it stands at among them): its fighters circle over the place in the air,
-  and code flies each of them ten times a second at every aircraft of his that comes within 4,500 of it, turning in
-  behind his bombers to shoot them from astern until they are dead, and back to the place when none is left (a fighter
+  and code flies them ten times a second at the aircraft of his that come at the place: those on a course that passes
+  within 1,500 of it and less than 18 seconds out, or already that near. Only as many fighters go as shoot them down
+  (six Falcons a Hailstorm, one a scout or a fighter), the rest stay over the place; they turn in behind his bombers
+  to shoot them from astern, follow nothing further than 3,000 from the place, and fly back to it after (a fighter
   ordered straight at a bomber passes it nose to nose with two shots and is then left behind it; a fighter group on a
-  hold flies at nothing). It is a pick like roving: say the group, the job and the place
+  hold flies at nothing). An aircraft of his that passes at a distance or mills about its own station is left be: the
+  group's entry says what of his it sees and is not flying at. So the patrol is a guard of its place, not a hunt: to
+  kill his aircraft where they stand is an order to attack them. It is a pick like roving: say the group, the job and the place
   in the packet ("group_F (the Falcons): patrols the air over home"; `mark` the thing to keep when no place names
   it), while it patrols its menu has no party moves, and any later pick takes it elsewhere. What the drills measured
   of it (twelve Falcons against five to twelve tier-2 bombers at a base as it stood in a game): it keeps what it

@@ -548,7 +548,7 @@ impl Brain {
                 if let Some(p) = place(place_name) {
                     let group = &mut pianist.groups[index];
                     group.set_task(GroupTask::AirPatrol { at: p.at, place: p.name.clone() }, frame);
-                    did = Some(format!("patrols the air over {}: its fighters circle there and fly at every aircraft of his that comes within {:.0} of it", p.name, micro::intercept::KEEP));
+                    did = Some(format!("patrols the air over {}: its fighters circle there and fly at the aircraft of his that come at it, never further than {:.0} from it", p.name, micro::intercept::bounds().leash));
                 }
             }
             _ => {}
