@@ -3,8 +3,9 @@
 Branch `air-intercept` (worktree `within-reason.air-intercept`). Begun 2026-11-16 from the user's review of the
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
-**State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commit 67ba56b6). Nothing in
-the flagship or in a bot declares it: how the player orders it is the open decision (section 7).
+**State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
+2dd830c4), and flown against raids the game did not show (section 6.4). Nothing in the flagship or in a bot declares
+it: the player's order is ruled (a move of the hands, as rove is; section 7) and not built.
 
 ## 1. The ask, in his words
 
@@ -308,7 +309,7 @@ What it leans on, measured:
   anti-air there, three of seven were shot down before the drop.
 - **Being faster than the bombers.** A Falcon cannot stay behind a Liche or a Stiletto.
 
-Two faults these raids found, both corrected (commit below):
+Two faults these raids found, both corrected (2dd830c4):
 - A body the fighter cannot stay behind is now met nose to nose (`CATCH`): the wing's damage before the first bomb
   went from 42 to 81 % of two Liches' health and from 29 to 53 % of four Stilettos'.
 - The turn's point was a half turn's whatever the fighter's course, so a wing that came across the bombers' track
