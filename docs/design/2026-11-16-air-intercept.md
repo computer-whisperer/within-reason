@@ -424,7 +424,7 @@ fighter group from hold position to manoeuvre was looked at and left: by the dri
 fighter that chases from an idle hold lands wherever the chase ended.
 
 
-## 8. The wing's loop, re-derived (2026-11-17; a proposal, not built)
+## 8. The wing's loop, re-derived (2026-11-17; ruled 2026-11-18, section 8.1 on)
 
 The user's rule for a control loop that fails in a scenario its design did not consider (2026-11-15): "you must
 re-evaluate the assumptions you used to design it. Don't patch this". So no rule at the site: what the loop must
@@ -480,3 +480,51 @@ costs up to a second of the warning, and what that takes off 37 of 40 is the pri
 
 **What stays as it is:** the stern conversion itself (close, turn, trail), the bodies, the deal of targets, the
 pass at what the fighter cannot stay behind, and all of the hands' side (section 7.1).
+
+### 8.1 The ruling and the target design (2026-11-18)
+
+The user, on the proposal above: "I agree with the new approach and proposed tests. We can include the "only the
+fighters needed" part, and also remove the building attacks for figher only groups." So all four parts, the drills
+first, and the hands' attack on his buildings off a fighter group's menu.
+
+**The drills, flown on the old law first** (`run/air_raid.py` on run 2's base with the wing of twelve Falcons, eight
+repetitions; `run/air_drill.py --leash`; the place is the block, 5580,6397):
+
+| scene | what flies | furthest a fighter got from the place (mean, most) | seconds with a fighter over 1,500 out | most fighters off the loop at once | fighters lost |
+|---|---|---|---|---|---|
+| mill | one Whirlwind milling 3,870 to 4,720 north of the place, never coming at it | 2,658, 4,733 | 16.9 | 6.0 (all twelve in the repetitions that saw it inside 4,500) | 0 |
+| out | eleven Valiants out to 3,000 from the place on a fight order, called back to their station 5,900 out sixteen seconds on (three repetitions a batch: the bench's engine ends after one such duel) | 4,829, 6,287 | 56.7 | 12 | 3.3 |
+| abeam | a scout passing 2,180 west of the place (our anti-air out, so that it lives) | 2,319, 2,699 | 6.5 | 12 | 0 |
+| over | a scout straight over the place (our anti-air out) | 1,572, 1,915 | 0.8 | 12 | 0 |
+| sweep | eleven Valiants on a fight order at the place | 2,614, 3,114 | 11.6 | 12 | 3.2 (all eleven of his) |
+
+The bench shows both of the game's faults: twelve Falcons leave for one scout or one milling bomber, and after
+`out` fighters of ours are found over his station.
+
+**The target design** (the conversion itself, sections 5 and 6, is unchanged; this is what decides who flies it):
+
+1. *What the wing sees:* every contact that flies, wherever it is. Each has a track in the wing's memory: since
+   when its course has held at the place, whether the wing has taken it on, when it was last seen (forgotten three
+   seconds after).
+2. *Coming at the place:* the contact moves, the place is ahead of it, its course passes within `GUARD` (1,500) of
+   the place, and it is within `THREAT_SECONDS` (18) of its nearest point to the place at its speed (for a
+   Hailstorm flying straight in, 4,500 out: what the keep was). The course *holds* when that has been so for `HOLD`
+   (one second) with the heading not more than `STRAIGHT` (15 degrees) off what it was when the second began: a
+   bomber milling turns 30 degrees a second and never holds, a raid on its leg does.
+3. *Taken on:* a contact whose course holds, or one inside `GUARD` whatever its course. It stays the wing's until
+   it has been further than `LEASH` (3,000) from the place and not coming for `RELEASE` (1.5 seconds). A body of
+   contacts is a threat while one of its members is taken on.
+4. *The fighters a threat needs:* for each of its members the fighters whose fire kills it in `WINDOW` (2 seconds,
+   the deal's own measure: six Falcons a Hailstorm, one a scout or a Falcon, four an unidentified contact). The
+   threats are served soonest to the place first; a fighter already on a threat stays on it; the rest are the free
+   fighters nearest it. Fighters not needed stay on the loop.
+5. *The leash:* no fighter is given a point further than `LEASH` from the place; a fighter is given no target
+   further than that; and one found further than `LEASH + SLACK` (500) is in the return whatever it was doing.
+6. *The return:* a fighter with no threat that is further than `HOME` (1,000) from the place flies a move order to
+   it under hold position, and takes up the loop inside `HOME`. The loop is flown under hold position too: the
+   engine's own search is off, and what flies near the loop is inside `GUARD` and the wing's by rule 3.
+7. *Said once:* scrambled when the first fighter leaves the loop for a threat (with how many went), returned when
+   every fighter is back on the loop.
+
+The numbers are the first values; `GUARD` and `LEASH` are drilled (a target 2,080 from the place is outside any
+`GUARD` under 2,080: the wing will not leave for a raid on it, where the old law left and saved nothing).

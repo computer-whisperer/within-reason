@@ -2,7 +2,7 @@
 """Read air-drill batches (`run/air_scene.py` cuts flown by `target/release/duel --scenario ... --script ...`): one
 row a batch, from the per-second logs.
 
-    run/air_drill.py <batch dir> ... [--reps] [--places]
+    run/air_drill.py <batch dir> ... [--reps] [--places] [--leash]
 
 Per batch, the mean over its repetitions (and each repetition with `--reps`):
   warning    seconds from our side's first contact (sight or radar) to the first harm to anything of ours (a bomb's
@@ -22,6 +22,12 @@ in firing position (behind the rearmost bomber by no more than 550 and within 30
 bombers (inbound), ahead of the rearmost while flying its way, wide (more than 300 across) and far (more than 550
 behind), each with the hits a fighter-second landed there; and the seconds from first contact to the merge and from
 the merge to the end.
+
+`--leash` adds a table of how far the fighters went from the place they keep (the scenario's centre) and whether
+they came back: the furthest any fighter was from it (the mean over the repetitions of each one's furthest, and the
+furthest of all), the seconds in which some fighter was more than 1,500 from it, the share of the fighter-seconds
+spent there, how far the furthest fighter was from it in the last second, the most fighters the wing had off its loop at once (flying to meet
+something, turning in or attacking, by the lane's own report), the fighters lost and what of his died.
 """
 import csv, glob, json, math, os, sys
 
@@ -122,6 +128,34 @@ def places(batch, scenario):
     return seconds, hits, leads, spans
 
 
+AWAY = 1500.0
+
+
+def leash(batch, scenario):
+    """How far the fighters went from the scenario's centre, repetition by repetition."""
+    fighters = set(scenario["source"].get("fighters", []))
+    tx, tz = scenario["centre"]
+    his = len(scenario["sides"][1]["units"])
+    runs = []
+    for log in sorted(glob.glob(os.path.join(batch, "seconds", "*.jsonl"))):
+        furthest, away, seconds, there, last, alive, his_left, off = 0.0, 0, 0, 0, 0.0, len(fighters), his, 0
+        for line in open(log):
+            r = json.loads(line)
+            out = [math.hypot(u[1] - tx, u[2] - tz) for u in r["x"] if u[0] in fighters]
+            if not out:
+                alive = 0
+                continue
+            furthest = max(furthest, max(out))
+            away += max(out) > AWAY
+            seconds += len(out)
+            there += sum(d > AWAY for d in out)
+            last, alive, his_left = max(out), len(out), sum(1 for u in r["y"] if u[3] > 0)
+            wing = r.get("wing") or {}
+            off = max(off, wing.get("closing", 0) + wing.get("turning", 0) + wing.get("trailing", 0))
+        runs.append({"furthest": furthest, "away": away, "share": there / max(1, seconds), "last": last, "lost": len(fighters) - alive, "his_lost": his - his_left, "off": off})
+    return runs, his
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     each = "--reps" in sys.argv
@@ -161,6 +195,21 @@ def main():
                 continue
             cells = " | ".join(f"{100 * seconds[p] / total:.0f} % ({hits[p] / max(1, seconds[p]):.2f})" for p in PLACES)
             print(f"| {info['label']} | {show(mean(leads), 1)} | {show(mean(spans), 1)} | {cells} | {sum(hits.values()) / total:.2f} |")
+    if "--leash" in sys.argv:
+        print()
+        print(f"| batch | reps | furthest from the place (mean, most) | seconds with a fighter over {AWAY:.0f} out | fighter-seconds out there | furthest at the end | most off the loop at once | fighters lost | his lost |")
+        print("|---|---|---|---|---|---|---|---|---|")
+        for batch in args:
+            info = json.load(open(os.path.join(batch, "batch.json")))
+            scenario = json.load(open(info["argv"][info["argv"].index("--scenario") + 1]))
+            runs, his = leash(batch, scenario)
+            if not runs:
+                continue
+            pick = lambda key: [r[key] for r in runs]
+            print(
+                f"| {info['label']} | {len(runs)} | {mean(pick('furthest')):.0f}, {max(pick('furthest')):.0f} | {mean(pick('away')):.1f} | {100 * mean(pick('share')):.0f} % | "
+                f"{mean(pick('last')):.0f} | {mean(pick('off')):.1f} | {mean(pick('lost')):.1f} of {len(scenario['source'].get('fighters', []))} | {mean(pick('his_lost')):.1f} of {his} |"
+            )
 
 
 if __name__ == "__main__":
