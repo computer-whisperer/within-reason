@@ -26,6 +26,7 @@ pub mod form;
 pub mod ground;
 pub mod group;
 pub mod army;
+pub mod intercept;
 pub mod layout;
 mod rove;
 #[cfg(test)]
@@ -37,6 +38,7 @@ pub use group::{Cause, CompanyState, GroupKind, GroupOrder, GroupState, HuntOrde
 pub use layout::Block;
 pub mod threat;
 
+pub use intercept::{InterceptEvent, InterceptReport, InterceptWhat};
 pub use rove::{AIR_DANGER_SECONDS, HEAL, PUSH, RoveEvent, RoveGoal, RoveReport, RoveWhat, StandKind};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -438,6 +440,8 @@ pub struct Output {
     pub hunts: Vec<HuntEvent>,
     /// What the rovers found, attacked, ran from and gave up this tick (H-MICRO-ROVE).
     pub rove: Vec<RoveEvent>,
+    /// The wings that scrambled or went back to their loiter this tick (H-MICRO-INTERCEPT).
+    pub intercepts: Vec<InterceptEvent>,
 }
 
 #[derive(Default)]
@@ -467,6 +471,9 @@ pub struct Lane {
     push_odds: HashMap<UnitId, (i32, usize, f32, f32)>,
     /// Enemy units some rover has already reported finding.
     rove_found: HashSet<UnitId>,
+    /// Each wing's memory by its group's name, and each of its fighters' (H-MICRO-INTERCEPT, `intercept.rs`).
+    wings: HashMap<String, intercept::Wing>,
+    interceptors: HashMap<UnitId, intercept::Interceptor>,
     /// H-MICRO-FORM-SPACING's numbers.
     pub tuning: FormTuning,
     /// The groups the host declared (`set_group`), by name.
@@ -670,7 +677,7 @@ impl Lane {
                 // starts afresh on the body and no reader sees a formed hold while the members roam (migration-2-1:
                 // a group that roved 27 s kept its hold's anchor and state, and the advance picked after planned
                 // from that anchor 4,000 from its members and walked it alone).
-                if matches!(order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. }) {
+                if !order.kind.formation() {
                     d.army = army::Army::default();
                     d.ground = None;
                     d.state = None;
@@ -687,6 +694,7 @@ impl Lane {
     /// The group is no more: its members are the host's again (their claims dropped).
     pub fn clear_group(&mut self, name: &str) {
         self.hunts.remove(name);
+        self.wings.remove(name);
         if let Some(d) = self.groups.remove(name) {
             for id in d.members {
                 self.claims.remove(&id);
@@ -812,8 +820,15 @@ impl Lane {
         let mut owned: HashSet<UnitId> = HashSet::new();
         let mut rovers: Vec<(&OwnUnit, Option<(Vec3, Vec3)>, bool)> = Vec::new();
         let mut hunts: Vec<(String, HuntOrder, Vec<&OwnUnit>)> = Vec::new();
+        let mut wings: Vec<(String, Vec3, f32, Vec<&OwnUnit>)> = Vec::new();
         for (name, d) in &self.groups {
             match d.order.kind {
+                GroupKind::Intercept { place, keep } => {
+                    // Its fighters: what of its members flies and hits what flies.
+                    let wing: Vec<&OwnUnit> = fliers.iter().copied().filter(|u| d.members.contains(&u.id) && view.stats(u.def).is_some_and(|s| s.air_dps > 0.0)).collect();
+                    owned.extend(wing.iter().map(|u| u.id));
+                    wings.push((name.clone(), place, keep, wing));
+                }
                 GroupKind::Rove { within } => {
                     for u in soldiers.iter().chain(&fliers).filter(|u| d.members.contains(&u.id)) {
                         rovers.push((*u, within, d.order.heal));
@@ -839,6 +854,11 @@ impl Lane {
         if !rovers.is_empty() {
             let air_sources = if rovers.iter().any(|(u, ..)| view.def(u.def).is_some_and(is_air_soldier)) { self.threat_sources(view, snapshot.enemies.as_slice(), frame, true) } else { Vec::new() };
             self.rove(view, &rovers, snapshot.own_units.as_slice(), snapshot.enemies.as_slice(), &sources, &air_sources, frame, commands, fired, &mut out.rove, debug);
+        }
+        self.wings.retain(|name, _| wings.iter().any(|(n, ..)| n == name));
+        self.interceptors.retain(|id, _| wings.iter().any(|(.., wing)| wing.iter().any(|u| u.id == *id)));
+        for (name, place, keep, wing) in &wings {
+            self.intercept(view, name, *place, *keep, wing, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.intercepts, debug);
         }
         self.hunts.retain(|name, _| hunts.iter().any(|(n, ..)| n == name));
         for (name, order, hunters) in &hunts {
@@ -932,7 +952,7 @@ impl Lane {
     fn hold_position(&mut self, view: &dyn View, snapshot: &Snapshot, soldiers: &[&OwnUnit], form_on: bool, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>) {
         let on = form_on && view.enabled(HOLDPOS);
         let members: HashSet<UnitId> = if on {
-            self.groups.values().filter(|d| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. })).flat_map(|d| d.members.iter().copied()).collect()
+            self.groups.values().filter(|d| d.order.kind.formation()).flat_map(|d| d.members.iter().copied()).collect()
         } else {
             HashSet::new()
         };
@@ -1247,7 +1267,7 @@ impl Lane {
     fn group_orders(&mut self, view: &dyn View, frame: i32, snapshot: &Snapshot, soldiers: &[&OwnUnit], sources: &[Source]) -> HashMap<UnitId, SlotOrder> {
         let mut orders = HashMap::new();
         let enemies: &[EnemyUnit] = snapshot.enemies.as_slice();
-        let formation = |d: &Declared| !matches!(d.order.kind, GroupKind::Hunt(_) | GroupKind::Rove { .. });
+        let formation = |d: &Declared| d.order.kind.formation();
         // What stands on the ground this tick (design D18), marked once for every group's ground.
         let structures = view.terrain().filter(|_| self.groups.values().any(formation)).map(|terrain| {
             let footprints = self.structure_footprints(view, snapshot, terrain.cell);

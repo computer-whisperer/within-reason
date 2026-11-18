@@ -321,6 +321,9 @@ struct Army {
     contact_at: Option<i32>,
     /// The units a script's `rove` rows handed to the lane's roving group.
     roving: Vec<UnitId>,
+    /// The fighters a script's `intercept` rows handed to the lane's wing, and the place and keep of the last such row.
+    intercepting: Vec<UnitId>,
+    wing_keeps: Option<(Vec3, f32)>,
     /// The construction turrets a script's `tend` rows put under their standing order, and when each was last told:
     /// told again every second while idle, as the flagship's `nanos.rs` does (the fight ends whenever it finds nothing).
     tending: HashMap<UnitId, i32>,
@@ -384,6 +387,8 @@ impl Army {
             sees: Vec::new(),
             contact_at: None,
             roving: Vec::new(),
+            intercepting: Vec::new(),
+            wing_keeps: None,
             tending: HashMap::new(),
             track_sent: HashMap::new(),
         }
@@ -1756,7 +1761,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let members = army.units.clone();
                 lane.note_standing_orders(&mine, frame, |u| members.contains(&u));
                 let all: HashMap<UnitId, Commitment> = members.iter().map(|u| (*u, Commitment::All)).collect();
-                lane.set_commitments(all, HashMap::new());
+                // A scripted side's units are the script's, order by order: the lane has those a row handed it (a
+                // roving group, a wing) and gives the rest no reflex. (Until 2026-11-17 a script with a rove row put
+                // every other unit of the side under the flee, the fan and the kite.)
+                let raw: HashMap<UnitId, micro::Footwork> = if script.is_some() { members.iter().map(|u| (*u, micro::Footwork::raw())).collect() } else { HashMap::new() };
+                lane.set_commitments(all, raw);
                 if duel.raid.is_some() {
                     for name in lane.group_names() {
                         if !hunt_groups.iter().any(|(n, ..)| *n == name) {
@@ -1770,6 +1779,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 if !army.roving.is_empty() {
                     let rovers: Vec<UnitId> = army.roving.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
                     lane.set_group("rove", rovers, GroupOrder::new(GroupKind::Rove { within: None }, Vec::new()));
+                }
+                if let Some((place, keep)) = army.wing_keeps {
+                    let wing: Vec<UnitId> = army.intercepting.iter().copied().filter(|u| army.alive.contains_key(u)).collect();
+                    lane.set_group("wing", wing, GroupOrder::new(GroupKind::Intercept { place, keep }, Vec::new()));
                 }
                 // The army as one declared group (`docs/design/2026-10-24-formation-drills.md` §2): a drill's army
                 // walks or fights to the goal in force, a plain fight's (a scenario's attack-moving side included) to
@@ -1952,6 +1965,12 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let output = lane.tick(&view, tick, &mut mine, std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some());
                 commands.extend(mine);
                 commands.extend(output.commands);
+                for event in &output.intercepts {
+                    duel.notes.push(match &event.what {
+                        micro::InterceptWhat::Scrambled { contacts, at, out } => json!({"wing": "scrambled", "f": frame, "contacts": contacts, "at": [at.x.round(), at.z.round()], "out": out.round()}),
+                        micro::InterceptWhat::Returned { seconds } => json!({"wing": "returned", "f": frame, "seconds": seconds}),
+                    });
+                }
                 if let Some(raid) = duel.raid.as_mut() {
                     raid.note_hunt_events(&output.hunts, frame, commands);
                 }
@@ -2257,6 +2276,14 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, side: usize, de
                     sent.push(i);
                     continue;
                 }
+                ScriptCmd::Intercept => {
+                    if !army.intercepting.contains(&unit) {
+                        army.intercepting.push(unit);
+                    }
+                    army.wing_keeps = Some((to, row.keep.unwrap_or(micro::intercept::KEEP)));
+                    sent.push(i);
+                    continue;
+                }
                 ScriptCmd::Probe => unreachable!("a probe row goes out before the units' loop"),
                 ScriptCmd::Attack | ScriptCmd::SetTarget => match row.target.and_then(|t| living(enemy, t)) {
                     Some(target) if row.cmd == ScriptCmd::Attack => Command::Attack { unit, target, queue: row.queue },
@@ -2401,6 +2428,10 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
     if !x.sees.is_empty() || !y.sees.is_empty() {
         let seen = |a: &Army| a.sees.iter().map(|(i, sight)| json!([i, *sight as u8])).collect::<Vec<_>>();
         line["sees"] = json!({"x": seen(x), "y": seen(y)});
+    }
+    // Side 0's wing (H-MICRO-INTERCEPT): the flying contacts in its keep, and its fighters by what they are doing.
+    if let Some(wing) = x.lane.as_ref().and_then(|l| l.intercept_report("wing")) {
+        line["wing"] = json!({"contacts": wing.contacts, "loitering": wing.loitering, "closing": wing.closing, "turning": wing.turning, "trailing": wing.trailing});
     }
     if let Some(stores) = duel.drill.as_ref().and_then(|d| d.stores) {
         line["stores"] = json!(stores.iter().map(|v| v.round()).collect::<Vec<_>>());

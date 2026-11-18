@@ -1315,3 +1315,68 @@ tried in a game.
 **Would be wrong if.** A game with default options answers the gadget's command.
 **Used by.** K-group-a-faster-type-costs-an-order-a-cell.
 
+
+### K-engine-a-fighter-sent-at-a-plane-flying-at-it-passes-it-and-is-left-behind
+**Claim.** A fighter ordered to attack an aircraft that is flying toward it meets it nose to nose. The two close at
+their speeds together (a Falcon's 289 and a loaded Hailstorm's 200 to 250: about 500 a second), so the fighter has
+it in its missile's reach (680) for a second and a half and fires two or three times. Inside BAR's
+`attacksafetydistance` (300) the engine drops the attack run and flies the plane level; with its target behind it the
+plane's yaw and roll stay locked until the target is its turn radius away (`turnRadius x speed`, 617 for a Falcon at
+speed), so it flies straight on for a second or more; then it turns, three to four seconds, and comes out 1,100 to
+1,400 behind a bomber it gains 40 to 80 a second on. It does not fire again before the bombs unless the bombers slow
+or turn. The same lock holds a fighter that is ahead of its target and flying its way: it flies straight on, ahead of
+it, until the target is 617 behind.
+**Status.** supported from source and on the bench (2026-11-16/17).
+**Evidence.** Recoil 2026.07.04 `rts/Sim/MoveTypes/StrafeAirMoveType.cpp`: `Update` (`goalInFront && goalInRange` or
+`UpdateFlying`), `UpdateAttack` (`goalDist < attackSafetyDistance`), `UpdateFlying` (`allowUnlockYawRoll = goalDist2D
+>= TurnRadius(turnRadius, spd.w) || goalVec.dot(frontdir) > 0`); BAR `units/ArmAircraft/armfig.lua` (`turnradius =
+64`, `attacksafetydistance = 300`, the missile's `range = 680`, `reloadtime = 0.9`). The drills: air-E-run1-w2-f12-pspread
+(a Falcon's track: one hit at the merge 2,300 from the block, 749 behind a second later, turning from there, 1,300 to
+1,400 behind at the end of the turn and 1,111 when the bombs fell eight seconds after), air-A-run2-f12-pspread (69 %
+of the wing's seconds from the merge to the bombs more than 550 behind the rearmost bomber; `places.py` of the
+session), air-I11-run2-rF-f12 (three Falcons 60 to 420 ahead of the bombers, flying their way, for ten seconds).
+**Would be wrong if.** A fighter given an attack on an approaching bomber from 3,000 out were within 550 behind it
+three seconds after passing it.
+**Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighter-behind-its-target-is-held-there-and-fires-every-reload
+**Claim.** A fighter attacking an aircraft that is in front of it and in reach is throttled by the engine: its thrust
+is the range over its reach plus one less 0.7 times the cosine of the target's angle off its nose, at most one. Behind
+a bomber it therefore slows to the bomber's speed about 300 to 350 behind it and stays, and it fires every reload: in
+that place (behind the rearmost bomber by no more than 550 and within 300 across) a Falcon lands 0.5 to 0.85 hits a
+second, against 0.0 to 0.2 further behind, beside or ahead. A missile on a target flying away reaches less far than
+its range: a Falcon's flies 1.2 s (about 820 elmos from a start of 450 a second), and a bomber at 230 has gone 280 by
+then, so about 550.
+**Status.** supported from source and on the bench (2026-11-17).
+**Evidence.** `StrafeAirMoveType.cpp` `UpdateAttack` (`thrustLim = min(1, goalDist / maxRange + 1 - goalDotFront *
+0.7)` for an air target); `armfig.lua` (`flighttime = 1.2`, `startvelocity = 450`, `weaponacceleration = 400`,
+`weaponvelocity = 850`). The drills: air-I2-run2-f12 (a Falcon 306 to 355 behind for four seconds at 171 to 235 a
+second, the wing 10 to 12 hits a second by 6 to 8 of its 12); the hit rates by place in air-I6-\* to air-I12-\*
+(`places.py`).
+**Would be wrong if.** A Falcon attacking a Hailstorm from 300 behind passed it, or landed fewer than one hit in
+three seconds there.
+**Used by.** [[H-MICRO-INTERCEPT]].
+
+### K-engine-a-fighters-turn-costs-four-seconds-of-the-bombers-flight
+**Claim.** A Falcon or a Highwind told to fly to a point behind it does nothing for 0.7 s (it banks), then comes round
+at 60 to 90 degrees a second, 350 to 620 elmos across, and leaves the turn at 140 to 200 a second, taking about three
+seconds to have its speed again. Against bombers at 200 to 250 the half turn therefore costs what they fly in four
+seconds, not in the three it takes to come round. To a point dead astern the engine turns a plane either way; a point
+abeam decides the side.
+**Status.** measured on the bench (2026-11-17), Falcons; Highwinds read from two tracks only.
+**Evidence.** The lane's debug lines in air-I5-run2-rF-f12 (heading 161 to 147 degrees off in the first 0.7 s, 147 to 62
+in the next 1.5) and the tracks of air-I8-run2-f12 (speed 138 at the turn's middle, 162, 218, 243 in the seconds after;
+the trail growing from 461 to 613 meanwhile); air-I7-run1-rF-f12 (turns away from the track ending 600 to 800 across).
+**Would be wrong if.** A Falcon's trail on a bomber did not grow in the two seconds after its turn.
+**Used by.** [[H-MICRO-INTERCEPT]] (`TURN_SECONDS`, `TURN_ACROSS`, `ROLL_IN`, the point abeam).
+
+### K-snapshot-a-radar-contact-carries-its-height-and-its-velocity
+**Claim.** An enemy unit on radar alone, its type unknown, is in the snapshot with its place in three dimensions and
+its velocity: a bomber 3,200 from anything of ours read as 230 a second and 349 over the ground. What flies can be
+told from that before its type is seen.
+**Status.** observed on the bench (2026-11-17): the wing's scramble line in air-I0-run2-f12 and every later drill.
+**Evidence.** `crates/micro/src/intercept.rs` `flies`; the debug line "scrambles 12 fighters at 1 flying contacts 3224
+out (the first body: 1 at 230 a second, 349 over the ground)".
+**Would be wrong if.** A contact under a jammer or at the radar's edge came with no velocity. Not tried: the radar's
+wobble on a contact's place, and what a jammed aircraft shows.
+**Used by.** [[H-MICRO-INTERCEPT]].
