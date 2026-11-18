@@ -314,6 +314,12 @@ lines. `run/air_drill.py --places` reads where the fighters were from the merge 
 inbound, ahead, wide, far) and the hits a second each place landed: the instrument the law was found with
 (`docs/design/2026-11-16-air-intercept.md` section 6.2).
 
+**Made-up raids (2026-11-17).** `run/air_raid.py <cut prefix> --target X,Z --his "corhurc*7@5580,700>bomb" [--his ...]
+[--without anti-air] --out PREFIX` keeps a cut's own side and its rows and replaces his recorded bombers by groups
+we choose: a type and count at a place, waypoints, and `bomb` (an attack at the ground at the target), `fight` (an
+escort) or `pass` (a scout flying through); `+S` delays a group, `~W` flies it line abreast. `--without` takes our
+anti-air (or named types) out of the cut. Section 6.4 of the design note is its first use.
+
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
 `duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the

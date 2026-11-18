@@ -32,7 +32,8 @@
 //!   no more, and a fighter is dealt only what is in front of it. A fighter with nothing of the body in front of it
 //!   goes back to the turn's rule, which takes it across the track until they have passed.
 //!
-//! A body slower than `SLOW` (a gunship that hovers) is attacked as it is. A wing with nothing flying in its keep
+//! A body slower than `SLOW` (a gunship that hovers) is attacked as it is, and so is one the fighter cannot stay
+//! behind (`CATCH`: a Liche or a Stiletto to a Falcon). A wing with nothing flying in its keep
 //! patrols a small loop round its place (`Command::Patrol`), each fighter beginning at the next corner: in the air,
 //! where the drills' landed wing answered three to four seconds later and died in the block's own blast, and some of
 //! it flying toward whatever comes.
@@ -104,6 +105,11 @@ const INSIDE_ALONG: f32 = 350.0;
 const TURN_AHEAD: f32 = 500.0;
 /// A contact slower than this (elmos a second) is attacked as it is.
 const SLOW: f32 = 90.0;
+/// So is one flying at this share of the fighter's own speed or more: behind it the fighter, slow from its turn,
+/// is left at once (a Falcon at 289 on a Liche at 295 or a Stiletto at 300: 0.13 to 0.17 hits a second in the
+/// place behind them, the bombers that dropped the same with the wing as without, air-R-liche-\*, air-R-stil-\*).
+/// The pass nose to nose is all there is to have.
+const CATCH: f32 = 0.93;
 /// A radar contact flies when it is this high over the ground and moving at all, or faster than anything on the
 /// ground.
 const FLYING_HEIGHT: f32 = 60.0;
@@ -289,10 +295,41 @@ fn bodies(contacts: &[Contact]) -> Vec<Body> {
     out
 }
 
-/// Where a fighter at `f` flying `v` a second begins its turn on a body whose rearmost member is at `r`: the point
-/// `across` to the left of the track (to its right when negative) and `lead` ahead of where `r` will be when the
-/// fighter gets there.
-fn turn_point(f: Vec3, v: f32, r: Vec3, u: (f32, f32), s: f32, lead: f32, across: f32) -> Vec3 {
+/// The turn's point for a fighter that comes to it flying `turn` radians off the body's heading (a half turn when it
+/// flies against them, a quarter when it comes across their track): how far ahead of the rearmost contact along the
+/// track (behind it when negative), and how far to the fighter's own side of the track. The lead is what the body
+/// flies in the turn's time, less what the turn itself carries the fighter along the track, less the trail; the
+/// side is the turn's own width for that angle, in the share `CLOSE_ACROSS` is of a half turn's.
+fn turn_geometry(s: f32, turn: f32) -> (f32, f32) {
+    let seconds = ROLL_IN + (TURN_SECONDS - ROLL_IN) * turn / std::f32::consts::PI;
+    (s * seconds - TURN_ACROSS / 2.0 * turn.sin() - TRAIL, CLOSE_ACROSS * (1.0 - turn.cos()) / 2.0)
+}
+
+/// Where a fighter at `f` flying `v` a second begins its turn on a body whose rearmost member is at `r`, on `side`
+/// of its track (+1 the left), and the turn it will need there. The point depends on the heading the fighter comes
+/// to it with, and that on the point: a few rounds settle it. (For a half turn alone, as it first was, a wing that
+/// came across the bombers' track was sent 600 ahead of them, crossed in front of them and came round wide: nothing
+/// kept of a target 2,000 from its place in 8 of 8 with fifteen seconds of warning, air-R3-asideP-wing.)
+fn turn_point(f: Vec3, v: f32, r: Vec3, u: (f32, f32), s: f32, side: f32) -> (Vec3, f32) {
+    let mut turn = std::f32::consts::PI;
+    let mut at = f;
+    for _ in 0..6 {
+        let (lead, across) = turn_geometry(s, turn);
+        at = meeting_point(f, v, r, u, s, lead, across * side);
+        let Some(course) = dir(sub(at, f)) else { break };
+        let next = dot(course, u).clamp(-1.0, 1.0).acos();
+        if (next - turn).abs() < 0.03 {
+            turn = next;
+            break;
+        }
+        turn = 0.5 * (turn + next);
+    }
+    (at, turn)
+}
+
+/// Where a fighter at `f` flying `v` a second meets the point `across` to the left of the track (to its right when
+/// negative) and `lead` ahead of a contact now at `r` flying `u` at `s`.
+fn meeting_point(f: Vec3, v: f32, r: Vec3, u: (f32, f32), s: f32, lead: f32, across: f32) -> Vec3 {
     let n = (-u.1, u.0);
     let start = Vec3 { x: r.x + u.0 * lead + n.0 * across, y: f.y, z: r.z + u.1 * lead + n.1 * across };
     // |start + u s t - f| = v t, for the least t that is not negative.
@@ -469,7 +506,8 @@ impl Lane {
             if memory.phase != Phase::Trail {
                 memory.target = Some(rear.id);
             }
-            let slow = s < SLOW;
+            // Attacked as it is: a body that hovers, or one the fighter cannot stay behind.
+            let slow = s < SLOW || s >= stats.speed * CATCH;
             if debug && frame % 15 == 0 {
                 let h = dir(v).unwrap_or(u);
                 eprintln!("{} f={frame} micro: #{} state {:?} speed {speed:.0} heading {:.0} off the body's ({} of {} at {s:.0}), {:.0} ahead of the rearmost, {:.0} across, last {:?}", view.label(), unit.id.0, memory.phase, dot(h, u).clamp(-1.0, 1.0).acos().to_degrees(), rear.id.0, body.members.len(), dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)), memory.sent.map(|(what, at)| (match what { Sent::Loiter => "loiter", Sent::Move(_) => "move", Sent::Attack(_) => "attack" }, frame - at)));
@@ -479,23 +517,28 @@ impl Lane {
                 if memory.side == 0.0 {
                     memory.side = if cross(u, sub(unit.pos, rear.pos)) >= 0.0 { 1.0 } else { -1.0 };
                 }
-                let lead = (s * TURN_SECONDS - TRAIL).max(0.0);
-                let at = turn_point(unit.pos, speed.max(stats.speed * 0.8), rear.pos, u, s, lead, CLOSE_ACROSS * memory.side);
+                let fast = speed.max(stats.speed * 0.8);
+                let (at, turn) = turn_point(unit.pos, fast, rear.pos, u, s, memory.side);
                 // Its heading: its velocity, or the way to its point while it has none (on the ground, taking off).
                 let h = if speed > 30.0 { dir(v) } else { dir(sub(at, unit.pos)) }.unwrap_or((-u.0, -u.1));
                 // How fast the trail it would roll out to grows: the two speeds along the track.
                 let closing = (s - dot(v, u)).max(0.0);
-                // The turn begins when a turn begun now would roll it out the trail behind, and in any case once it
-                // is no further ahead of them along the track than the turn's point: a fighter that came to the point
-                // at an angle swung onto their heading after it, the first test (which reads its heading) never
-                // held, and it flew on ahead of them for the rest of the fight, a third of the wing in every drill
-                // up to air-I10 (air-I11-run2-rF-f12: three Falcons in `Close` 60 to 420 ahead for ten seconds).
-                // From there the turn's own rule keeps it from rolling out ahead.
+                // The turn begins when a turn begun now would roll it out the trail behind; and in any case at its
+                // point, or once it is no further ahead of them along the track than a half turn's point while it
+                // flies against them or is within a turn's width of their track: there no point is left to fly
+                // to, and the turn's own rule keeps it from rolling out ahead. (By the first test alone a fighter
+                // that came to its point at an angle swung onto their heading after it and flew on ahead of them
+                // for the rest of the fight, a third of the wing in every drill up to air-I10: air-I11-run2-rF-f12,
+                // three Falcons in `Close` 60 to 420 ahead for ten seconds.)
                 let along = dot(sub(unit.pos, rear.pos), u);
-                if slow || along <= lead + closing * LATENCY || rollout_behind(unit.pos, h, rear.pos, u, s, ROLL_IN) >= TRAIL - closing * LATENCY {
+                let across = cross(u, sub(unit.pos, rear.pos));
+                let reached = unit.pos.dist2d(at) <= fast * LATENCY + 40.0;
+                let against = dot(h, u) < INSIDE_DEG.to_radians().cos();
+                let inside = along <= turn_geometry(s, std::f32::consts::PI).0 + closing * LATENCY && (against || across.abs() <= TURN_ACROSS);
+                if slow || reached || inside || rollout_behind(unit.pos, h, rear.pos, u, s, ROLL_IN) >= TRAIL - closing * LATENCY {
                     memory.phase = Phase::Turn { since: frame };
                     if debug {
-                        eprintln!("{} f={frame} micro: #{} turns in on {} ({name}): {:.0} ahead of it along its track, {:.0} across", view.label(), unit.id.0, rear.id.0, dot(sub(unit.pos, rear.pos), u), cross(u, sub(unit.pos, rear.pos)));
+                        eprintln!("{} f={frame} micro: #{} turns in on {} ({name}): {along:.0} ahead of it along its track, {across:.0} across, a turn of {:.0} planned", view.label(), unit.id.0, rear.id.0, turn.to_degrees());
                     }
                 } else {
                     let to = match dir(sub(at, unit.pos)) {
@@ -634,11 +677,34 @@ mod tests {
         let (u, s, v) = ((1.0, 0.0), 200.0, 290.0);
         let (f, r) = (at(3500.0, 0.0), at(0.0, 0.0));
         let lead = s * TURN_SECONDS - TRAIL;
-        let p = turn_point(f, v, r, u, s, lead, TURN_ACROSS);
+        let p = meeting_point(f, v, r, u, s, lead, TURN_ACROSS);
         assert!((p.z - TURN_ACROSS).abs() < 1.0);
         let t = p.dist2d(f) / v;
         assert!((p.x - (lead + s * t)).abs() < 2.0, "the point {p:?} at t={t}");
         assert!(p.x > 1500.0 && p.x < 2200.0);
+    }
+
+    /// A fighter flying at the bombers turns well ahead of them; one that comes across their track turns about
+    /// level with the rearmost, a quarter turn from being behind it.
+    #[test]
+    fn the_turn_point_is_for_the_heading_the_fighter_comes_with() {
+        let (u, s, v) = ((1.0, 0.0), 230.0, 289.0);
+        let r = at(0.0, 0.0);
+        let (head_on, turn) = turn_point(at(3500.0, 100.0), v, r, u, s, 1.0);
+        assert!(turn.to_degrees() > 170.0, "{}", turn.to_degrees());
+        let met = head_on.dist2d(at(3500.0, 100.0)) / v;
+        assert!((head_on.x - s * met - (s * TURN_SECONDS - TRAIL)).abs() < 80.0, "{head_on:?}");
+        // From 2,500 to the side, level with where they will be: it comes across.
+        let from = at(1800.0, 2500.0);
+        let (across, turn) = turn_point(from, v, r, u, s, 1.0);
+        assert!((60.0..125.0).contains(&turn.to_degrees()), "{}", turn.to_degrees());
+        let met = across.dist2d(from) / v;
+        let lead = across.x - s * met;
+        assert!(lead < 250.0, "a crossing fighter's point {lead} ahead of the rearmost");
+        // And the turn's own test holds there: a turn begun at the point on that course rolls out the trail behind.
+        let course = dir(sub(across, from)).unwrap();
+        let rear_then = at(s * met, 0.0);
+        assert!((rollout_behind(across, course, rear_then, u, s, ROLL_IN) - TRAIL).abs() < 40.0, "{}", rollout_behind(across, course, rear_then, u, s, ROLL_IN));
     }
 
     #[test]

@@ -270,19 +270,74 @@ Three things the drills corrected, in the order found:
 - The bench's own: section 3's, and the early sighting it guards with `contact_after` (the wing does not read
   that guard; the bombers' first place is outside its keep in both runs).
 
-## 7. What is not built: how the player orders it (open, 2026-11-17)
+### 6.4 Other raids: how far the law carries (2026-11-17)
+
+The user, on the results above: "my only worry is that what you have built is too specific to this scenario. What is
+your take on its robustness to other flight paths, targets, bomber control, and other parameters?" Asked of the
+bench: `run/air_raid.py` puts made-up raids against run 2's base (sensors and anti-air as they stood; twelve Falcons
+at the block; eight repetitions; "none" is the same raid with no fighters). Saved, and mean metal lost:
+
+| raid | the wing | none |
+|---|---|---|
+| 7 Hailstorms straight in from the north | 8 of 8, 79 | 4 of 8, 21,378 |
+| from the north-west | 8 of 8, 170 | 8 of 8, 2,416 |
+| from the west | 8 of 8, 5 | 8 of 8, 0 |
+| from the south-west (13 s of warning) | 8 of 8, 148 | 7 of 8, 2,143 |
+| from the west with a 50-degree dogleg 2,700 out | 8 of 8, 0 | 8 of 8, 290 |
+| 4 from the north and 4 from the west at once | 8 of 8, 0 | 7 of 8, 6,737 |
+| a scout across the keep, then 7 from the north | 8 of 8, 445 | 3 of 8, 22,960 |
+| 14 Whirlwinds (tier 1) from the north-west | 8 of 8, 329 | 5 of 8, 14,000 |
+| 12 Hailstorms from the north | 7 of 8, 3,752 | 0 of 8, 40,082 |
+| 7 Hailstorms and 8 Valiants with them | 8 of 8, 382 (2.5 Falcons lost) | 8 of 8, 1,221 |
+| 7 Hailstorms in a line abreast 1,500 wide | 5 of 8 and 7 of 8 | 1 of 8, 35,277 |
+| 2 Liches (295 a second to the Falcon's 289) | 8 of 8, 584 | 8 of 8, 1,236 |
+| 4 Stilettos (300) | 0.8 of 4 dropped | 1.5 of 4 dropped |
+| 7 Hailstorms, **the base's anti-air taken out** | **2 of 8**, 26,500 (5.6 Falcons lost) | 0 of 8, 34,942 |
+| 5 Hailstorms, the anti-air taken out | 5 of 8, 13,100 | 0 of 8, 34,937 |
+| 7 Hailstorms at **a fusion 2,080 from the wing's place**, 15 s of warning | **0 of 8** (4 of 7 dropped) | 0 of 8 (4.2 of 7) |
+
+What carries: the law reads the bombers' place and velocity each tick and nothing of the map, the target or the
+route, and it held from four directions, through a dogleg, against two groups at once, a decoy, twice the bombers of
+half the health, and more bombers than the runs had.
+
+What it leans on, measured:
+- **The base's own anti-air.** Twelve Falcons shoot down about four Hailstorms in the time they have and cripple
+  the rest; the anti-air finishes those. With none, seven Hailstorms were stopped in 2 of 8 and five in 5 of 8.
+- **Being where the bombs go.** From contact the wing needs five to ten seconds to its first shot and four more
+  for the turn. A target 2,000 from its place costs seven seconds of flight: with fifteen seconds of warning and no
+  anti-air there, three of seven were shot down before the drop.
+- **Being faster than the bombers.** A Falcon cannot stay behind a Liche or a Stiletto.
+
+Two faults these raids found, both corrected (commit below):
+- A body the fighter cannot stay behind is now met nose to nose (`CATCH`): the wing's damage before the first bomb
+  went from 42 to 81 % of two Liches' health and from 29 to 53 % of four Stilettos'.
+- The turn's point was a half turn's whatever the fighter's course, so a wing that came across the bombers' track
+  (the target away from its place) crossed in front of them and came round wide. The point is now solved for the
+  heading the fighter comes with (`turn_point`): its seconds behind the bombers in reach went from 18 to 54 % in
+  that raid. The two recorded runs after it: run 1 kept 13 of 16 and 23 of 24, run 2 16 of 16 (run 1 as the sensors
+  stood, every batch since the law's commit: 79 of 88).
+
+Not flown: his fighters ahead of his bombers as a sweep, gunships, a jammed raid (nothing on radar), another map's
+ground, Highwinds or another faction's fighters on these raids, and anything in a game.
+
+## 7. What is not built: how the player orders it (2026-11-17)
 
 The user's rulings (section 1): the patrol is "something the player orders with the engine choosing targets", and
 "we can treat this like rove for now in terms of having the player hand the necessary resources over to the micro
-engine for control". Two ways to do that, neither built:
+engine for control". Two ways to do that were put to him; **his ruling, 2026-11-17: "I agree with A for how the
+player and hands manage this."** Not built yet:
 
-- **A move of the hands, as `rove` is** (my recommendation): a group of fighters is offered "keeps the air over
+- **A: a move of the hands, as `rove` is** (ruled): a group of fighters is offered "keeps the air over
   <place>"; the player names the job and the place in the packet, Jev picks it, and any later pick takes the group
   back. About a dozen places in `crates/bot/src/brain/pianist/` (the task, the menu's move and words, the
   picture's words for what the wing is doing, the record, `declare_groups`), the wing's words from
   `Lane::intercept_report`, and a row in `docs/code-decisions.md`.
-- **The hold of every fighter group is a wing at its hold point.** No new move; but the hand-over is then implied
-  by a hold and not said.
+- B, not taken: the hold of every fighter group is a wing at its hold point (no new move, but the hand-over is
+  then implied by a hold and not said).
+
+What section 6.4 asks of A's words: the wing keeps what it circles (about 2,000 round its place with the warning
+these radars gave), it is a help to anti-air and not a replacement for it, and Falcons do not hold a Liche or a
+Stiletto.
 
 Beside it, from section 5: the words for an air party, and in the texts that tier-2 fighters answer tier-2 bombers,
 that an advanced radar earns its seconds on the flank with a view, and that a fighter group that only holds does
