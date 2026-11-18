@@ -534,13 +534,15 @@ impl Brain {
             n => format!("; {n} of its aircraft {} no fighter{} and wait{} at {place}", if n == 1 { "is" } else { "are" }, if n == 1 { "" } else { "s" }, if n == 1 { "s" } else { "" }),
         };
         let keep = micro::intercept::KEEP;
-        let Some(r) = self.lane_wings.get(&group.lane_name()) else { return format!("its {fighters} fighters are taking off for it{waiting}") };
+        // "its 1 fighter circles" (air-patrol-1, 5:33: "its 1 fighters circle there").
+        let (noun, circle, are) = if fighters == 1 { ("fighter", "circles", "is") } else { ("fighters", "circle", "are") };
+        let Some(r) = self.lane_wings.get(&group.lane_name()) else { return format!("its {fighters} {noun} {are} taking off for it{waiting}") };
         if r.contacts == 0 {
-            return format!("its {fighters} fighters circle there, nothing of his flying within {keep:.0} of it{waiting}");
+            return format!("its {fighters} {noun} {circle} there, nothing of his flying within {keep:.0} of it{waiting}");
         }
         let nearest = r.nearest.map_or(String::new(), |p| format!(", the nearest at {}, {:.0} from {place}", self.place_words(places, p), p.dist2d(at)));
         let parts: Vec<String> = [(r.closing, "flying to meet them"), (r.turning, "turning in behind them"), (r.trailing, "attacking"), (r.loitering, "circling")].into_iter().filter(|(n, _)| *n > 0).map(|(n, what)| format!("{n} {what}")).collect();
-        format!("scrambled at {} aircraft of his within {keep:.0} of it{nearest}: of its {fighters} fighters, {}{waiting}", r.contacts, parts.join(", "))
+        format!("scrambled at {} aircraft of his within {keep:.0} of it{nearest}: of its {fighters} {noun}, {}{waiting}", r.contacts, parts.join(", "))
     }
 
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
@@ -2945,6 +2947,9 @@ mod tests {
         assert_eq!(words(&brain), "its 3 fighters are taking off for it; 1 of its aircraft is no fighter and waits at home");
         brain.lane_wings.insert("group_F".into(), micro::InterceptReport { loitering: 3, ..Default::default() });
         assert_eq!(words(&brain), "its 3 fighters circle there, nothing of his flying within 4500 of it; 1 of its aircraft is no fighter and waits at home");
+        // One fighter: "its 1 fighter circles".
+        let alone = Group::of("F".into(), crate::world::Domain::Air, vec![ours[0].id], GroupTask::AirPatrol { at: place, place: "home".into() }, 0);
+        assert_eq!(brain.air_patrol_words(&alone, &units[..1], "home", place, &places), "its 1 fighter circles there, nothing of his flying within 4500 of it");
         brain.lane_wings.insert("group_F".into(), micro::InterceptReport { contacts: 7, nearest: Some(at(2000.0, 4900.0)), closing: 1, turning: 0, trailing: 2, loitering: 0 });
         let scrambled = words(&brain);
         assert!(scrambled.starts_with("scrambled at 7 aircraft of his within 4500 of it, the nearest at north") && scrambled.contains(", 2900 from home: of its 3 fighters, 1 flying to meet them, 2 attacking; 1 of its aircraft"), "{scrambled}");

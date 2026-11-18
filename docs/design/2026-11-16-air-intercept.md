@@ -5,7 +5,10 @@ lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost ab
 
 **State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commits 67ba56b6 and
 2dd830c4), and flown against raids the game did not show (section 6.4). The player's order is built as ruled, a move
-of the hands as rove is: the air patrol (section 7). No bot of `bots/` declares a wing. Not merged.
+of the hands as rove is: the air patrol (section 7.1, 8e09b893). **Its first game (section 7.2) showed that the
+wing's loop is wrong outside a raid: it leaves its place for any aircraft within 4,500 and its return has no leash;
+ten of fourteen Falcons were lost over his station.** The loop re-derived is section 8, a proposal put to the user
+and not built. No bot of `bots/` declares a wing. Not merged, and not fit to merge before section 8 is settled.
 
 ## 1. The ask, in his words
 
@@ -420,3 +423,60 @@ holds does nothing (the last two are in the move's own text now, not in the arti
 fighter group from hold position to manoeuvre was looked at and left: by the drills it keeps 0 to 2 of 8, and a
 fighter that chases from an idle hold lands wherever the chase ended.
 
+
+## 8. The wing's loop, re-derived (2026-11-17; a proposal, not built)
+
+The user's rule for a control loop that fails in a scenario its design did not consider (2026-11-15): "you must
+re-evaluate the assumptions you used to design it. Don't patch this". So no rule at the site: what the loop must
+hold, what the game broke, which assumptions those were, and what would replace them.
+
+**What the wing is for:** his bombers are behind our fighters' guns before they drop on what the wing keeps. It is
+a guard of a place.
+
+**Properties the loop must hold under a fixed order (patrol over P), whatever his aircraft do:**
+
+| | Property | In air-patrol-1 |
+|---|---|---|
+| 1 | *A leash.* No fighter is ever further from P than a bound the design states | broken: 6,500 from P |
+| 2 | *It comes back.* With nothing threatening P every fighter converges on the loop over P from wherever it is, whatever flies near it on the way | broken: the return was an engine patrol under manoeuvre, begun 4,000 out beside his fighters |
+| 3 | *Threat, not presence.* It leaves the loop only for aircraft that are coming at what it keeps; an aircraft that is not moves nothing | broken: a bomber milling beside his own station took all 14 |
+| 4 | *In time.* Against a raid coming straight in it is behind the bombers before the drop | held in the drills (sections 6.1, 6.4); not asked of it in the game |
+
+**The assumptions that were wrong:**
+- *"What flies in the keep is a raid."* Both recorded runs and every made-up raid were bombers flying at the base
+  from their first contact to their drop, so the keep, a radius taken from the warning a raid needs (18 seconds of
+  a bomber's flight), was used as a test of presence. On this map 4,500 about home is half the map.
+- *"When no contact is left the wing is at its place."* In the drills the bombers died or left over our own base.
+  The return was never a state of the design: it was the loiter's order given again from wherever the wing was.
+- *"The engine's patrol under manoeuvre is a safe idle."* It was chosen so that the wing still answers what the
+  radar missed. It is a second control loop inside ours: the engine's own search, 1,000 round the fighter wherever
+  the fighter is, with no place in it.
+- *The pursuit's end* (a contact is the wing's until 1.15 keeps) was a hysteresis against flicker, not a leash.
+
+**The proposal:**
+1. **A threat test in place of the keep's presence test.** A body of contacts is a threat when its course, held
+   for about a second, passes within the guarded radius of P and brings it there within the time the conversion
+   needs (the 18 seconds the keep stood for), or when it is already inside the guarded radius. A bomber milling
+   4,500 out, a scout crossing 3,000 abeam and a fighter wing circling its own station are not threats; the same
+   aircraft turning in are, from the second their course holds. The guarded radius is what section 6.4 says the
+   wing can keep: under 2,000 (a target 2,080 from P was lost in 8 of 8), to be found by a drill.
+2. **A leash.** No fighter is sent to a point, and none follows a target, further from P than a stated bound (the
+   meeting point with a raid coming straight in from 4,500 lies 2,400 out; a bound near 3,000, to be drilled). A
+   fighter beyond it is in the return whatever is near it.
+3. **The return as a state.** A move order straight to P (a fighter on a move order does not search for targets)
+   until it is within 1,000 of P; the patrol under manoeuvre only there, where the engine's own search stays
+   inside the leash.
+4. An option beside these: **in proportion.** Only the fighters a threat needs leave the loop (those that kill it
+   in the time it has; the deal already counts them for the attack), the rest stay over P. Fourteen Falcons at one
+   Stormbringer left nothing over the base. It makes the wing's state per fighter and not per wing, and is the one
+   part of this that changes how a real raid is met, so it is the user's to take or leave.
+
+**Drills before the mechanism, one a property:** this game's two moments cut from its tape as scenes (13:52, the
+milling bomber; 14:18 to 14:44, his fighters coming out and turning back): the furthest any fighter gets from P,
+the seconds until all are back on the loop, the fighters lost (properties 1 to 3). Made-up beside them: a scout
+3,000 abeam, a wing of his fighters flying at the patrol over P (not drilled before: the law is the bombers'
+conversion). And sections 6.1 and 6.4 again whole, the two runs at 40 repetitions, for property 4: the threat test
+costs up to a second of the warning, and what that takes off 37 of 40 is the price to know before it is paid.
+
+**What stays as it is:** the stern conversion itself (close, turn, trail), the bodies, the deal of targets, the
+pass at what the fighter cannot stay behind, and all of the hands' side (section 7.1).
