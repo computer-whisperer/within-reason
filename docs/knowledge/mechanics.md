@@ -1333,8 +1333,8 @@ it, until the target is 617 behind.
 64`, `attacksafetydistance = 300`, the missile's `range = 680`, `reloadtime = 0.9`). The drills: air-E-run1-w2-f12-pspread
 (a Falcon's track: one hit at the merge 2,300 from the block, 749 behind a second later, turning from there, 1,300 to
 1,400 behind at the end of the turn and 1,111 when the bombs fell eight seconds after), air-A-run2-f12-pspread (69 %
-of the wing's seconds from the merge to the bombs more than 550 behind the rearmost bomber; `places.py` of the
-session), air-I11-run2-rF-f12 (three Falcons 60 to 420 ahead of the bombers, flying their way, for ten seconds).
+of the wing's seconds from the merge to the bombs more than 550 behind the rearmost bomber; `run/air_drill.py
+--places`), air-I11-run2-rF-f12 (three Falcons 60 to 420 ahead of the bombers, flying their way, for ten seconds).
 **Would be wrong if.** A fighter given an attack on an approaching bomber from 3,000 out were within 550 behind it
 three seconds after passing it.
 **Used by.** [[H-MICRO-INTERCEPT]].
@@ -1351,8 +1351,8 @@ then, so about 550.
 **Evidence.** `StrafeAirMoveType.cpp` `UpdateAttack` (`thrustLim = min(1, goalDist / maxRange + 1 - goalDotFront *
 0.7)` for an air target); `armfig.lua` (`flighttime = 1.2`, `startvelocity = 450`, `weaponacceleration = 400`,
 `weaponvelocity = 850`). The drills: air-I2-run2-f12 (a Falcon 306 to 355 behind for four seconds at 171 to 235 a
-second, the wing 10 to 12 hits a second by 6 to 8 of its 12); the hit rates by place in air-I6-\* to air-I12-\*
-(`places.py`).
+second, the wing 10 to 12 hits a second by 6 to 8 of its 12); the hit rates by place in air-I6-\* to air-K-\*
+(`run/air_drill.py --places`).
 **Would be wrong if.** A Falcon attacking a Hailstorm from 300 behind passed it, or landed fewer than one hit in
 three seconds there.
 **Used by.** [[H-MICRO-INTERCEPT]].

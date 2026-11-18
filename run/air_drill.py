@@ -2,7 +2,7 @@
 """Read air-drill batches (`run/air_scene.py` cuts flown by `target/release/duel --scenario ... --script ...`): one
 row a batch, from the per-second logs.
 
-    run/air_drill.py <batch dir> ... [--reps]
+    run/air_drill.py <batch dir> ... [--reps] [--places]
 
 Per batch, the mean over its repetitions (and each repetition with `--reps`):
   warning    seconds from our side's first contact (sight or radar) to the first harm to anything of ours (a bomb's
@@ -15,6 +15,13 @@ Per batch, the mean over its repetitions (and each repetition with `--reps`):
   saved      repetitions that kept every reactor
   lost       metal of ours destroyed, the fighters apart: the mean, and the least and the most
   fighters lost
+
+`--places` adds a second table, where the fighters were from the merge (the first second a fighter is within 300 of
+the rearmost bomber along its track) to the first bomb or the last bomber's death: the share of the fighter-seconds
+in firing position (behind the rearmost bomber by no more than 550 and within 300 across), still flying at the
+bombers (inbound), ahead of the rearmost while flying its way, wide (more than 300 across) and far (more than 550
+behind), each with the hits a fighter-second landed there; and the seconds from first contact to the merge and from
+the merge to the end.
 """
 import csv, glob, json, math, os, sys
 
@@ -68,6 +75,53 @@ def read(log, scenario, metal, health):
     }
 
 
+PLACES = ("firing", "inbound", "ahead", "wide", "far")
+
+
+def places(batch, scenario):
+    """Where the fighters were, second by second, against the bombers' rearmost and their mean heading."""
+    fighters = set(scenario["source"].get("fighters", []))
+    seconds, hits = dict.fromkeys(PLACES, 0), dict.fromkeys(PLACES, 0)
+    leads, spans = [], []
+    for log in sorted(glob.glob(os.path.join(batch, "seconds", "*.jsonl"))):
+        before_theirs, before_ours, merge, contact = {}, {}, None, None
+        for line in open(log):
+            r = json.loads(line)
+            if contact is None and any(o.get("contact") == 0 for o in r["orders"]):
+                contact = r["t"]
+            bombers = [u for u in r["y"] if u[3] > 0]
+            if r["dealt"]["y"] or (merge is not None and not bombers):
+                if merge is not None:
+                    spans.append(r["t"] - merge)
+                break
+            moved = [(u[1] - before_theirs[u[0]][0], u[2] - before_theirs[u[0]][1]) for u in bombers if u[0] in before_theirs]
+            if moved:
+                vx, vz = sum(m[0] for m in moved) / len(moved), sum(m[1] for m in moved) / len(moved)
+                speed = math.hypot(vx, vz)
+                if speed > 50:
+                    ux, uz = vx / speed, vz / speed
+                    rear = min(bombers, key=lambda u: u[1] * ux + u[2] * uz)
+                    here = []
+                    for u in r["x"]:
+                        if u[0] in fighters:
+                            dx, dz = u[1] - rear[1], u[2] - rear[2]
+                            was = before_ours.get(u[0])
+                            its_way = (u[1] - was[0]) * ux + (u[2] - was[1]) * uz if was else 0.0
+                            here.append((-(dx * ux + dz * uz), ux * dz - uz * dx, its_way, sum(1 for d in r["dealt"]["x"] if d[0] == u[0])))
+                    if merge is None and any(behind > -300 and abs(across) < 700 for behind, across, _, _ in here):
+                        merge = r["t"]
+                        if contact is not None:
+                            leads.append(merge - contact)
+                    if merge is not None:
+                        for behind, across, its_way, landed in here:
+                            place = ("inbound" if its_way < 0 else "ahead") if behind < 0 else "far" if behind > 550 else "wide" if abs(across) > 300 else "firing"
+                            seconds[place] += 1
+                            hits[place] += landed
+            before_theirs = {u[0]: (u[1], u[2]) for u in r["y"]}
+            before_ours = {u[0]: (u[1], u[2]) for u in r["x"]}
+    return seconds, hits, leads, spans
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     each = "--reps" in sys.argv
@@ -94,6 +148,19 @@ def main():
         if each:
             for k, r in enumerate(runs):
                 print(f"|   rep {k} | | {show(r['warning'])} | {show(r['out'])} | {show(r['first_hit'])} | {100 * r['fighter_share']:.0f} % | {r['bombed']} | {'yes' if r['saved'] else 'no'} | {show(r['lost'])} | {r['fighters_lost']} |")
+    if "--places" in sys.argv:
+        print()
+        print("| batch | merge s after contact | merge to the end s | " + " | ".join(f"{p} (hits a second there)" for p in PLACES) + " | hits a fighter-second |")
+        print("|---|---|---|" + "---|" * (len(PLACES) + 1))
+        for batch in args:
+            info = json.load(open(os.path.join(batch, "batch.json")))
+            scenario = json.load(open(info["argv"][info["argv"].index("--scenario") + 1]))
+            seconds, hits, leads, spans = places(batch, scenario)
+            total = sum(seconds.values())
+            if not total:
+                continue
+            cells = " | ".join(f"{100 * seconds[p] / total:.0f} % ({hits[p] / max(1, seconds[p]):.2f})" for p in PLACES)
+            print(f"| {info['label']} | {show(mean(leads), 1)} | {show(mean(spans), 1)} | {cells} | {sum(hits.values()) / total:.2f} |")
 
 
 if __name__ == "__main__":

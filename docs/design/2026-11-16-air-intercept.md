@@ -3,6 +3,9 @@
 Branch `air-intercept` (worktree `within-reason.air-intercept`). Begun 2026-11-16 from the user's review of the
 lobby 3v3 on Tangerine (`run/matches/1794780805-human` in the main tree, lost about 35:00).
 
+**State (2026-11-17):** the wing is built in the micro engine and drilled (section 6; commit 67ba56b6). Nothing in
+the flagship or in a bot declares it: how the player orders it is the open decision (section 7).
+
 ## 1. The ask, in his words
 
 2026-11-16: "Probably the biggest mistake I see us make in that game is the damage we take from thebluegecko's
@@ -148,7 +151,7 @@ Arbalests); bombers at their full speed at an early contact (in the drill they a
 which flatters the early-radar arms); Hailstorms flown apart instead of abreast. The one bomber seen at its start
 (`contact_after`, `docs/harness/duels.md`) is unexplained.
 
-## 5. What the micro engine needs (proposed, not built)
+## 5. What the micro engine needs (the proposal of 2026-11-16; section 6 is what was built from it)
 
 An **intercept group**, declared by the player as a roving group is (his ruling, section 1): the side's fighters, a
 place to keep, and the word that the lane runs them.
@@ -170,3 +173,119 @@ Beside the lane, for the player and the hands: the patrol as the player's order 
 words for an air party; and in the texts, that tier-2 fighters are the answer to tier-2 bombers (eight Highwinds
 against twenty-four Falcons), that a tier-2 radar earns its seconds only on the flank with a view, and that fighters
 over our own block do not meet his.
+
+## 6. The wing as built (2026-11-17)
+
+The user, 2026-11-17: "Agreed, let's build the intercept group in the micro engine and drill against the two runs."
+
+`crates/micro/src/intercept.rs`, H-MICRO-INTERCEPT: a declared group of kind `Intercept { place, keep }`. The law is
+written out at the head of the module and in the heuristic's row; in short:
+
+- **Loiter.** With nothing flying within the keep (4,500 by default) the fighters patrol a 700 loop round the
+  place, each beginning at the next corner.
+- **Scramble** at the first contact that flies in the keep: an aircraft by its type, a radar contact by its height
+  and speed (the snapshot carries both: K-snapshot-a-radar-contact-carries-its-height-and-its-velocity).
+- **The stern conversion.** The proposal's point 3 ("a merge point chosen for the second pass") was the wrong
+  frame: there is no second pass to be had (K-engine-a-fighter-sent-at-a-plane-flying-at-it-passes-it-and-is-left-behind).
+  What the fighter wants is to be behind the bombers, where the engine holds it and it fires every reload
+  (K-engine-a-fighter-behind-its-target-is-held-there-and-fires-every-reload). So each fighter closes on a point
+  beside the bombers' track and ahead of them, turns before they pass, and rolls out behind the rearmost. The turn
+  is watched while it is flown: a fighter that would come out ahead of them (they slow and turn for their run just
+  where the wing meets them) flies on, or across the track, until they have passed.
+- **Targets** dealt from the rear of the body forward, each bomber covered by the fighters that kill it in two
+  seconds and no more (six Falcons, two Highwinds), a fighter given only what is in front of it.
+- **Back to the loop** when nothing that flies is left within 1.15 keeps of the place.
+
+### 6.1 What it does against the two runs
+
+Saved = no reactor lost. The scripted arms are section 4's (eight repetitions); the wing's cells are the batches
+air-J-\* and air-K-\* together (commit 67ba56b6 and the same code before its clean-up).
+
+| twelve Falcons | run 1 (five Hailstorms) | run 2 (seven Hailstorms) |
+|---|---|---|
+| none (the game) | 0 of 8, 13,284 lost | 1 of 8, 35,231 lost |
+| held as the hands hold an air group | 0 of 8 | 1 of 8 |
+| up, scrambled by script, a bomber each | 8 of 8 | 2 of 8 |
+| **the wing, sensors as they stood** | **37 of 40**, 1,123 lost a run | **40 of 40**, 239 lost a run |
+| up, scrambled by script, advanced radar on the flank | 1 of 8 | 8 of 8 |
+| **the wing, advanced radar on the flank** | **40 of 40**, 42 lost a run | **40 of 40**, 99 lost a run |
+
+Other wings, sensors as they stood (eight repetitions unless said; a cell of eight swings by two):
+
+| wing | metal | run 1 | run 2 |
+|---|---|---|---|
+| 8 Falcons | 584 | 4 of 8 | 8 of 8 |
+| 16 Falcons | 1,168 | 23 of 24 (5 of 8 in the first eight) | 8 of 8 |
+| 24 Falcons | 1,752 | 7 of 8 | 8 of 8 |
+| 4 Highwinds | 600 | 3 of 8 | 8 of 8 |
+| 8 Highwinds | 1,200 | 8 of 8 | 8 of 8 |
+
+In run 1 as the sensors stood the wing's three lost repetitions of 40 each lost about 13,000 (two, two and four
+bombers dropped); in 23 of the 37 kept, one to three bombers still dropped something and no reactor went. "Saved" is
+a threshold on a thin margin there: the count of bombers that drop (1.0 to 1.3 of 5 a run) is the steadier number.
+
+No fighter was lost in 146 of the 160 twelve-Falcon repetitions. All the losses are in run 1 as the sensors stood
+(1.5 a run, in 13 of its 37 kept repetitions too, so not the fusions' blast alone); what kills them was not traced
+(a dying Hailstorm's blast and our own flak's bursts are the candidates).
+
+### 6.2 How it was found (the instrument)
+
+`run/air_drill.py --places` reads where the fighters were, second by second, from the merge to the bombs. A Falcon
+behind the rearmost bomber and in reach lands 0.5 to 0.7 hits a second; anywhere else, next to none.
+
+| twelve Falcons | in firing position | still inbound | ahead, flying their way | wide | far behind | hits a fighter-second |
+|---|---|---|---|---|---|---|
+| scripted scramble, run 2 | 12 % | 13 % | 0 % | 6 % | 69 % | 0.22 |
+| scripted scramble, run 1 | 34 % | 16 % | 3 % | 40 % | 7 % | 0.48 |
+| the wing's first builds (air-I7, air-I9, air-I10) | 20 to 43 % | 13 to 27 % | 21 to 60 % | 2 to 8 % | 1 to 18 % | 0.25 to 0.46 |
+| the wing as committed (air-K), run 1 | 53 % | 26 % | 5 % | 13 % | 4 % | 0.38 |
+| the wing as committed (air-K), run 2 | 56 % | 23 % | 3 % | 8 % | 9 % | 0.51 |
+
+Three things the drills corrected, in the order found:
+1. The attack order given at the turn's first tick flew the nose-to-nose pass again (air-I1). The attack is given
+   only once the fighter is round on their heading with a contact ahead of it.
+2. A third of the wing never began its turn (air-I11): a fighter reaching its turn point at an angle swung onto the
+   bombers' heading chasing the point, and the trigger, which read its heading, never held. Reaching the point
+   begins the turn now, whatever the heading. This was the "ahead" column.
+3. The turn's cost is four seconds of the bombers' flight, not the three it takes to come round, because the plane
+   leaves it slow (K-engine-a-fighters-turn-costs-four-seconds-of-the-bombers-flight); and to a point dead astern
+   the engine turns a plane either way, so the turn is given by a point abeam toward the track.
+
+### 6.3 Limits
+
+- **Not in a game.** The bench gives the wing whole fighters, up on their loop twelve seconds before his bombers
+  move, against bombers flying his recorded orders. In a game the wing must exist, be up, and be the player's to
+  hand over.
+- **His fighters with the bombers** are not drilled: the wing flies the same conversion on whatever flies. He sent
+  none with these runs; his eleven Nighthawks patrolled his own half.
+- **The keep is a radius.** A scout or his patrol crossing it scrambles the wing; nothing yet weighs what the
+  contact is or where it is going.
+- **Inbound shots.** The scripted pass lands 1.2 to 1.6 hits a fighter-second on the way in, the wing 0.4 to 0.5
+  (it closes on a point beside the track, not on the bombers). Not pursued: the wing's place behind them is worth
+  more, and the two were not combined.
+- **Highwinds** fly the Falcon's turn numbers; four of them kept run 2 and not run 1.
+- **Constants** (`TURN_SECONDS` 4.0, `TURN_ACROSS` 550, `TRAIL` 300, `CLOSE_ACROSS` 200) were set on these two
+  runs and Falcons; between builds an eight-repetition cell moved by two for no change that mattered, so they are
+  placed, not tuned.
+- The bench's own: section 3's, and the early sighting it guards with `contact_after` (the wing does not read
+  that guard; the bombers' first place is outside its keep in both runs).
+
+## 7. What is not built: how the player orders it (open, 2026-11-17)
+
+The user's rulings (section 1): the patrol is "something the player orders with the engine choosing targets", and
+"we can treat this like rove for now in terms of having the player hand the necessary resources over to the micro
+engine for control". Two ways to do that, neither built:
+
+- **A move of the hands, as `rove` is** (my recommendation): a group of fighters is offered "keeps the air over
+  <place>"; the player names the job and the place in the packet, Jev picks it, and any later pick takes the group
+  back. About a dozen places in `crates/bot/src/brain/pianist/` (the task, the menu's move and words, the
+  picture's words for what the wing is doing, the record, `declare_groups`), the wing's words from
+  `Lane::intercept_report`, and a row in `docs/code-decisions.md`.
+- **The hold of every fighter group is a wing at its hold point.** No new move; but the hand-over is then implied
+  by a hold and not said.
+
+Beside it, from section 5: the words for an air party, and in the texts that tier-2 fighters answer tier-2 bombers,
+that an advanced radar earns its seconds on the flank with a view, and that a fighter group that only holds does
+nothing. The bare change of a held fighter group from hold position to manoeuvre was looked at and left: by the
+drills it keeps 0 to 2 of 8, and a fighter that chases from an idle hold lands wherever the chase ended.
+

@@ -300,6 +300,20 @@ seconds after the first contact (the game: 14,540, three fusions, none down, fif
 43,807 with what stood unfinished, seventeen seconds). In the drill of run 2 the anti-air has every bomber shot down
 about a second before the first bomb lands, where the game's had one of seven; the bombs of two to four still land.
 
+**The wing (2026-11-17, H-MICRO-INTERCEPT).** `--arm intercept [--keep N]` writes one row for the fighters,
+`{"t": 0, "unit": [...], "cmd": "intercept", "x": X, "z": Z}` (the place is the target): the row hands them to the
+lane's wing (`crates/micro/src/intercept.rs`), which loiters them, scrambles them at what flies within its keep and
+flies them; nothing counted from contact is needed. A script with an `intercept` row (as with a `rove` row) keeps
+side 0's lane on, for the units a row handed it alone: from 2026-11-17 a scripted side's other units get no reflex
+from the lane (before, a script with a rove row put them under the flee, the fan and the kite). The wing's scramble
+and return are notes in the per-second log's `orders` (`{"wing": "scrambled", "contacts", "at", "out"}`,
+`{"wing": "returned", "seconds"}`), and each line carries `wing`: the flying contacts in its keep and its fighters
+loitering, closing, turning and trailing. `WITHIN_REASON_MICRO_DEBUG=1` prints each fighter's state every half second
+(its phase, speed, heading off the bombers', how far ahead of the rearmost and across) and its turn-in and trail
+lines. `run/air_drill.py --places` reads where the fighters were from the merge to the bombs (in firing position,
+inbound, ahead, wide, far) and the hits a second each place landed: the instrument the law was found with
+(`docs/design/2026-11-16-air-intercept.md` section 6.2).
+
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
 `duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the
