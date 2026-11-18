@@ -286,6 +286,8 @@ pub(crate) struct Interceptor {
     target: Option<UnitId>,
     /// The ticks running in which nothing of its body was in front of it while it attacked.
     ahead: i32,
+    /// The members of the body it is on, as of the last tick: a body is the same body while one of them is in it.
+    with: Vec<UnitId>,
 }
 
 /// What a wing remembers of one contact that flies.
@@ -533,7 +535,7 @@ impl Lane {
         let nearest = |of: &[&Contact]| of.iter().map(|c| c.pos).min_by(|x, y| x.dist2d(place).total_cmp(&y.dist2d(place)));
         let mut report = InterceptReport { contacts: threats.len(), nearest: nearest(&threats), watched: watched.len(), nearest_watched: nearest(&watched), ..InterceptReport::default() };
         for unit in fighters {
-            self.interceptors.entry(unit.id).or_insert(Interceptor { phase: Phase::Loiter, side: 0.0, sent: None, target: None, ahead: 0 });
+            self.interceptors.entry(unit.id).or_insert(Interceptor { phase: Phase::Loiter, side: 0.0, sent: None, target: None, ahead: 0, with: Vec::new() });
         }
         // Who flies at what. A fighter on a threat stays on it; each threat then takes the free fighters nearest it
         // until it has the fighters whose fire kills its members in `WINDOW` each; the rest stay on the loop. A
@@ -574,6 +576,28 @@ impl Lane {
                 let first = &bodies[0];
                 eprintln!("{} f={frame} micro: {name} scrambles {} of {} fighters at {} contacts {:.0} out (the first body: {} at {:.0} a second, {:.0} over the ground)", view.label(), chosen.len(), fighters.len(), threats.len(), at.dist2d(place), first.members.len(), first.speed, first.members[0].pos.y - ground_height(view, first.members[0].pos));
             }
+        }
+        // A fighter given a body it was not on (its own is dead or gone and another threat took it the same tick, so
+        // it never went by the loop) begins the conversion anew: its side of the track, its turn's clock and its
+        // place behind were the other body's. Without this a fighter trailing the first wave was sent an attack by
+        // id at the second from wherever it was, which is the nose-to-nose pass the conversion is there to avoid.
+        for unit in fighters {
+            let memory = self.interceptors.get_mut(&unit.id).expect("entered above");
+            let Some(index) = chosen.get(&unit.id) else {
+                memory.with.clear();
+                continue;
+            };
+            let members = &bodies[*index].members;
+            if !matches!(memory.phase, Phase::Loiter | Phase::Return) && !members.iter().any(|c| memory.with.contains(&c.id)) {
+                if debug {
+                    eprintln!("{} f={frame} micro: #{} is given another body ({name}): its conversion begins anew from {:?}", view.label(), unit.id.0, memory.phase);
+                }
+                memory.phase = Phase::Close;
+                memory.side = 0.0;
+                memory.ahead = 0;
+                memory.target = None;
+            }
+            memory.with = members.iter().map(|c| c.id).collect();
         }
         // The fighters behind a body are dealt its members from the rear forward, each member the fighters that kill
         // it in `WINDOW`: first the fighters that keep the contact they have, then the nearest of the rest.
@@ -771,17 +795,10 @@ impl Lane {
                     continue;
                 }
                 // Dealt from the next tick on (the deal is of the fighters already behind the body); until then the
-                // rearmost it may be flown at. Nothing beyond the leash that is not coming is followed.
+                // rearmost it may be flown at. Nothing beyond the leash that is not coming is followed (a threat has
+                // a member that may be: that is what made it one).
                 let may = |id: &UnitId| body.members.iter().any(|c| c.id == *id && reachable(c));
-                let Some(target) = dealt.get(&unit.id).copied().filter(may).or_else(|| body.members.iter().find(|c| reachable(c)).map(|c| c.id)) else {
-                    memory.phase = Phase::Return;
-                    if home(memory, unit, k, place, frame, commands, &mut self.counts) {
-                        report.returning += 1;
-                    } else {
-                        report.loitering += 1;
-                    }
-                    continue;
-                };
+                let Some(target) = dealt.get(&unit.id).copied().filter(may).or_else(|| body.members.iter().find(|c| reachable(c)).map(|c| c.id)) else { continue };
                 memory.target = Some(target);
                 let due = match memory.sent {
                     Some((Sent::Attack(last), sent)) => last != target || frame - sent >= ATTACK_RESEND || (unit.idle && frame - sent >= ATTACK_IDLE_RESEND),
@@ -795,8 +812,11 @@ impl Lane {
                 report.trailing += 1;
             }
         }
-        // Said once: every fighter back on the loop with no threat left.
-        if chosen.is_empty()
+        // Said once: every fighter back on the loop with no threat left. A wing with no fighter left is not back:
+        // its scramble ends unsaid (the group's losses are the host's to say).
+        if fighters.is_empty() {
+            wing.scrambled = None;
+        } else if chosen.is_empty()
             && report.returning == 0
             && let Some(since) = wing.scrambled.take()
         {
@@ -1067,6 +1087,41 @@ mod tests {
         let out = lane.tick(&host, &tick(420, vec![falcon(1, 2300.0, 2000.0, (-280.0, 0.0))], Vec::new()), &mut Vec::new(), false);
         assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Returned { .. }, .. }]), "{:?}", out.intercepts);
         assert_eq!(out.commands.iter().filter(|c| matches!(c, Command::Patrol { .. })).count(), 4);
+    }
+
+    /// A fighter trailing one body whose last member dies, with a second body a threat the same tick, is not sent
+    /// an attack at the second from where it is (it would meet it nose to nose): it closes on it as from the loop.
+    #[test]
+    fn a_fighter_given_another_body_begins_its_conversion_anew() {
+        let host = Host::new(Vec::new());
+        let mut lane = wing(&[1]);
+        // Behind a bomber inside the guard, flying its way: the attack from the first tick.
+        for frame in [30, 33] {
+            let out = lane.tick(&host, &tick(frame, vec![falcon(1, 700.0, 2000.0, (280.0, 0.0))], vec![bomber(60, 1000.0, 2000.0, true)]), &mut Vec::new(), false);
+            assert!(frame != 30 || out.commands.iter().any(|c| matches!(c, Command::Attack { target: UnitId(60), .. })), "{:?}", out.commands);
+        }
+        assert_eq!(lane.intercept_report("wing").map(|r| r.trailing), Some(1));
+        // That bomber is gone, and another is inside the guard east of the place, flying west at the fighter.
+        let second = EnemyUnit { vel: at(-230.0 / 30.0, 0.0), ..bomber(70, 3200.0, 2100.0, true) };
+        let out = lane.tick(&host, &tick(36, vec![falcon(1, 760.0, 2000.0, (280.0, 0.0))], vec![second]), &mut Vec::new(), false);
+        assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "{:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::Move { .. })), "{:?}", out.commands);
+        assert_eq!(lane.intercept_report("wing").map(|r| (r.contacts, r.closing, r.trailing)), Some((1, 1, 0)));
+        // One scramble said, and no return between the two bodies.
+        assert!(out.intercepts.is_empty(), "{:?}", out.intercepts);
+    }
+
+    /// A wing whose every fighter is dead is not "back": nothing is said, with the threat there or gone.
+    #[test]
+    fn a_wing_with_no_fighter_left_does_not_say_it_is_back() {
+        let host = Host::new(Vec::new());
+        let mut lane = wing(&[1]);
+        let out = lane.tick(&host, &tick(30, vec![falcon(1, 700.0, 2000.0, (280.0, 0.0))], vec![bomber(60, 1000.0, 2000.0, true)]), &mut Vec::new(), false);
+        assert!(matches!(out.intercepts.as_slice(), [InterceptEvent { what: InterceptWhat::Scrambled { .. }, .. }]), "{:?}", out.intercepts);
+        let out = lane.tick(&host, &tick(33, Vec::new(), vec![bomber(60, 1023.0, 2000.0, true)]), &mut Vec::new(), false);
+        assert!(out.intercepts.is_empty(), "{:?}", out.intercepts);
+        let out = lane.tick(&host, &tick(36, Vec::new(), Vec::new()), &mut Vec::new(), false);
+        assert!(out.intercepts.is_empty(), "{:?}", out.intercepts);
     }
 
     /// At a radar contact that flies the wing leaves its loop for the point beside the contact's track and ahead of

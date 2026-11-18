@@ -536,7 +536,7 @@ The numbers are the first values; `GUARD` and `LEASH` are drilled (a target 2,08
 
 ### 8.2 As built, and what the drills gave (2026-11-18)
 
-**Built** as section 8.1 has it, in `crates/micro/src/intercept.rs`; the conversion (close, turn, trail, the
+**Built** as section 8.1 has it (4f0f8b74), in `crates/micro/src/intercept.rs`; the conversion (close, turn, trail, the
 bodies, the deal) is untouched. The kind is `GroupKind::Intercept { place }`: the keep is gone from it, from the
 bench's `intercept` row and from `run/air_scene.py`. On the hands' side the move's words, the pick's words, the
 picture's `doing` and `lane` lines and the patrol's log say threats and the loop's bounds where they said the keep
@@ -557,7 +557,7 @@ out to 3,000 from the place and called back to a station 5,900 out, without and 
 not cut from the game's tape.
 
 **The scenes, the old loop and the new** (twelve Falcons over the block; eight repetitions, `out` and `outaa` three;
-`run/air_drill.py --leash`; old: air-L0-\* at d83633d3, new: air-L1-\*):
+`run/air_drill.py --leash`; old: air-L0-\* at d83633d3, new: air-L1-\* on 4f0f8b74's tree):
 
 | scene | furthest a fighter got from the place (mean, most): old | new | most fighters off the loop at once: old | new | fighters lost: old | new |
 |---|---|---|---|---|---|---|
@@ -642,3 +642,67 @@ air-Pg25-\*, air-Pl20-\*, air-Pl40-\*, air-Ps24-\*, air-Ps24b-\*):
 **Still not shown:** the new loop in a game (it has only the bench's scenes behind it, and the first loop failed
 outside its drills); the game's two moments from its own tape; a target between the place and 2,080 aside; his
 fighters ahead of his bombers; a jammed raid; another map; Highwinds on the loop's scenes.
+
+### 8.3 The loop read for what the drills do not fly (2026-11-18)
+
+The first loop failed in the one game it had, outside every scene it was drilled on. So the rebuilt one was read
+by a second instance of the model that was given the code, the four properties and the list of scenes already
+flown, and asked for sequences that break a property, flap, stall or report wrongly. It found no path past the
+leash and none that keeps a fighter from coming back. What it found, each checked against the code here:
+
+**Two faults, corrected (the commit after 4f0f8b74):**
+- *A fighter given another body kept the first one's conversion.* The conversion began (`Close`, the side unset)
+  only from the loop or the return. A fighter trailing the last bomber of one body when it died, with a second
+  body a threat the same tick, never went by the loop: it was still "trailing", and was sent an attack by id at the
+  second body from wherever it was, nose to nose when that body was coming at it; one in its turn kept the turn's
+  clock, one closing kept its side of the first track. A fighter now remembers the members of its body, a body is
+  the same while one of them is in it, and a fighter given another begins anew.
+- *"All back" from a wing with no fighter left.* With every fighter dead nothing was chosen and nothing was on its
+  way back, which is the test for the return's word: the log said "all back over home after 40 s, 12 of its
+  fighters lost meanwhile" with the raid still on. A wing with no fighter says nothing.
+- A branch that could not run (the trail's own way home: a threat has a member to fly at by what makes it a
+  threat) is removed.
+
+**Flown again on the corrected loop** (air-L2-\*, air-G3-\*, air-W1-\*; 238 duels): the scenes as in 8.2 (the
+milling bomber and the scout abeam take no fighter off the loop, the scout overhead four; after `out` the furthest
+Falcon was 2,917 from the place and all were back). The raids: 8 of 8 in twelve of the fifteen, twelve Hailstorms
+7 of 8, the anti-air out 0 of 8 and the fusion aside 0 of 8, as before. Run 1 23 of 24, run 2 24 of 24 (on the
+rebuilt loop in all, 8.2's with these: 60 of 64 and 63 of 64). Two raids were made for the first fault, a second
+wave of four Hailstorms 10 s after the first from the west (`waveW`) and 8 s behind it from the north (`waveN`),
+sixteen repetitions each before the correction (air-W0-\*) and after: every reactor kept in all four batches; the
+bombers that dropped 1.0 and then 0.8 of 8, and 2.9 and then 1.9; metal lost 242 and then 29, and 605 and then 79.
+With the base's anti-air under them these raids lose no reactor either way, so the drills say the correction broke
+nothing and lean its way; that it is right rests on the reading of the code and on a unit test that fails without
+it.
+
+**Open, the likeliest in a game first; none built, each the user's to weigh:**
+1. *A contact missing from one snapshot recalls its fighters.* The bodies are made of this tick's contacts; the
+   three seconds a track is remembered keep that it was taken on, not that it is a threat. A body of one (a scout,
+   a lone bomber) that is unseen for a tick sends its fighters home that tick, and if they were within 1,000 of the
+   place the wing says "back" and then "scrambled" again. A raid of several is recalled only when all of it is
+   unseen at once. On the bench single contacts do drop out for a second (the milling bomber 19 times in 8
+   flights, a bomber of the northern raid 9 times in 56), a whole raid never did (no second of the northern raid or
+   the line abreast with every living bomber unseen after one was seen); what the gaps cost is inside every number
+   above, and the first loop judged by the tick's contacts too. The remedy is an addition to the design: a contact
+   taken on is carried through a short gap at its last place and velocity, which needs the lane to tell one shot
+   down from one out of sight. A jammed raid is where it would matter, and is not flown.
+2. *A later raid is not said while an earlier scramble is open* (rule 7 says the scramble once). After "scrambled 4
+   of its fighters at 1 aircraft" (a scout) a raid that comes before the wing is back adds no line to the log, and
+   a scout that stays inside the leash keeps the scramble open. The picture's `doing` line is right each second;
+   the log, which is what the player's report carries, is not.
+3. *The body is the unit.* An aircraft the wing has not taken on that flies within 700 of one it has is of its
+   body: counted in what the threat needs and dealt as a target while inside the leash (rule 3 as designed: a
+   raid's escort is of the raid). A scout the wing follows past his gunships 2,200 out takes fighters at them for
+   those seconds, and at a gap that hovers about 700 the fighters over what the scout alone needs would go between
+   the loop and the body.
+4. *A contact of no known type counts four fighters*, so a scout that leaves sight but not radar inside the leash
+   takes three more.
+5. *Rare:* a place moved in the middle of a scramble keeps what was taken on at the old one; a stunned fighter is
+   counted as flying.
+6. *Not verified, the engine's part unknown:* a point off the map. The loop's corners lie 350 from the place, the
+   close's move 800 beyond the turn's point, and the leash is a circle that leaves the map wherever the place is
+   within 3,000 of an edge; on the bench a scout given a waypoint off the map flew nowhere (the scouts' first
+   scenes, air-L0-abeam and air-L0-over as first cut). The lane cannot clamp today: what it knows of the map is the threat grid's size, which the test host sets apart from any
+   map. A wing over a place 300 from an edge is the scene that would say.
+7. *Outside the loop:* bombers in line astern are one body and the conversion is flown on its last member; not
+   drilled.
