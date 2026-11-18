@@ -332,6 +332,15 @@ things the bench does with such scenes: a duel whose aircraft are all shot down 
 clock (72 seconds), and after a duel in which his fighters were called back the engine's game ends, so such a
 scene runs three repetitions a batch.
 
+**A game's patrol (2026-11-18).** `run/air_patrol.py <match dir>` reads an air patrol out of a game, the hands' log
+joined with the game's tape: the group, its place and the bounds the hands' words carried; how far the furthest
+fighter was from the place with no scramble open; one row a scramble (the fighters sent, at how many contacts how
+far out, the seconds until all were back, his aircraft inside the leash meanwhile and the nearest any came to the
+place, the furthest a fighter went, the fighter-seconds beyond the leash, the fighters lost, his aircraft that
+went down inside the leash, what of ours his aircraft destroyed); his aircraft within the guard of the place with
+no scramble open; and everything of ours his aircraft destroyed. The tape names no attacker for an aircraft (it is
+destroyed when it has crashed), so his aircraft down are counted by where and when, not by who shot them.
+
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
 `duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the

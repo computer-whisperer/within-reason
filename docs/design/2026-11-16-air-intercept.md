@@ -9,8 +9,12 @@ of the hands as rove is: the air patrol (section 7.1, 8e09b893). Its first game 
 wing's loop was wrong outside a raid: it left its place for any aircraft within 4,500 and its return had no leash;
 ten of fourteen Falcons were lost over his station. **The loop was re-derived (section 8), ruled on by the user and
 rebuilt (sections 8.1 and 8.2): it answers what comes at its place, with the fighters that needs, no further than
-a leash, and flies back. On the bench the game's two faults are gone and the raids hold; it has not been in a game,
-and one number (`THREAT_SECONDS`, 18 or 24) is open.** No bot of `bots/` declares a wing. Not merged.
+a leash, and flies back. On the bench the game's two faults are gone and the raids hold. Its one game (section 8.4,
+flown at 24 seconds on his word) had two raids of four Stormbringers at its place: all eight shot down before the
+nearest was within 1,650 of it, nothing under the patrol hit, no fighter lost or beyond 2,600 from the place, a lone
+bomber 3,100 out left alone. The game itself was lost on the ground. It did not tell 18 seconds from 24 (his
+fighters never came into our sight), so `THREAT_SECONDS` is still open, the constant 18.** No bot of `bots/`
+declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -706,3 +710,82 @@ it.
    map. A wing over a place 300 from an edge is the scene that would say.
 7. *Outside the loop:* bombers in line astern are one body and the conversion is flown on its last member; not
    drilled.
+
+### 8.4 The second game (air-patrol-2, 2026-11-18)
+
+His word on the report of 8.2 and 8.3: "Good. Let's run the second game with WRDistilled. We can use 24s". Read as
+this game flown at 24 seconds, not as the constant's ruling: the code stays 18.
+
+**What was under test.** 375509f3 (the rebuilt loop with the two corrections of 8.3), `WITHIN_REASON_INTERCEPT=seconds=24`
+in the arena's environment (read back from the bot process's environment at the start; the picture's words for the
+group said "under 24 s away" all game), the launch of air-patrol-1 otherwise: Comet Catcher Remake 1.8, mirror,
+seed 3, realtime, `--opponent WRDistilled:0.2.0`, the same objective (an aircraft plant by 7:00, twelve fighters in
+a group of their own, on the air patrol over our energy from the first). `run/matches/1795014462-air-patrol-2`.
+**Lost at 28:44** (not called; 126 turns; Jev $1.24; the `claude` account +1.0 point of its week, extra usage
++0.00). Read with `run/air_patrol.py` (new: the hands' log joined with the tape, `docs/harness/duels.md`), which
+was run on the first game too:
+
+| | air-patrol-1 (the first loop) | air-patrol-2 (the rebuilt loop, 24 s) |
+|---|---|---|
+| The pick | 5:32, over `home` (the draw; the packet meant `energy_field`), kept to the end | 5:22, over `energy_field` (1150, 5500), kept to the end: one pick, the group's task in all 1,819 calls after it |
+| Fighters in the group | 25 over the game, 14 at most | 14 |
+| On the loop, no scramble open: the furthest a fighter was from the place | 6,676 (the "return", 14:44) | 1,299; no fighter-second beyond 1,700 in 16,843 |
+| Scrambles | 2: a bomber milling 4,489 out, his fighters 4,490 out; nothing of his came within 3,000 of the place | 2: four Stormbringers coming at the place each time, the first seen 4,471 and 4,068 out |
+| Fighters sent | all 14, twice | 3 at the first bomber seen, 12 of the 14 once all four were (three a Stormbringer), 2 left circling |
+| The furthest a fighter went in a scramble | 4,541, and 6,676 after the log's "back" | 2,571 and 2,433 |
+| Fighter-seconds beyond 3,000 from the place | 203 in the scrambles, the chase after them besides | 0 |
+| Fighters lost | 10, every one beyond 3,000 | 0 (the 14 went with the side when our commander fell at 28:38) |
+| His aircraft down within 3,000 of the place | 0 | 8 of 8 Stormbringers |
+| Ours destroyed by his aircraft | a Blitz 5,113 from the place | an extractor 3,634 from the place (16:40, a lone bomber, before the first raid) |
+
+**The two raids, second by second (the tape).** Under the patrol stood 44 solar collectors (53 at the second raid),
+four vehicle plants, the aircraft plant, four Nettles and five Sentries.
+
+| | Raid 1 (17:28) | Raid 2 (25:31) |
+|---|---|---|
+| The lead bomber first in our sight | 4,546 from the place | 4,144 |
+| The other three in sight | 3 to 4 s later, 4,580 to 4,640 out | 3 to 4 s later, 4,310 to 4,370 out |
+| The fighters' first hit | 6 s after first sight (the lead 3,009 out), with weight from 8 s (286 that second, the lead 2,489 out) | 7 s (400 that second, the lead 2,335 out) |
+| The four shot down (health at nothing), after first sight | 10, 12, 15 and 16 s | 10, 13, 15 and 16 s |
+| The nearest a bomber came to the place while it flew | 1,932 | 1,678 |
+| Hits on anything of ours but the fighters, nearest to the place | 3,583 (the armies' fight) | 2,691 (the armies' fight) |
+| Damage to the fighters | 0 | 0 |
+| All fighters within 1,000 of the place again | 21 s after first sight | 21 s |
+
+The fourth bomber of each raid was still falling when the lane said "all back"; it struck the ground 1,441 and 854
+from the place. The kills are the fighters' by the tape's places (a fighter within 35 to 260 of each bomber as its
+health fell, the base's Nettles 1,400 and more away); the tape names no attacker for an aircraft.
+
+**What the game showed.** (1) *In time, in a game:* both raids were stopped before a bomb fell on what the patrol
+covers, by twelve Falcons flying the conversion from the loop, with sixteen seconds from first sight to the last
+bomber shot down. (2) *The leash and the way back:* no fighter beyond 2,600 from the place, all back over it in
+21 s, twice. (3) *Threat, not presence:* from 16:12 to 16:48 one Stormbringer flew 3,100 to 4,500 from the place in
+our sight, the scene that took all fourteen out in the first game, and no fighter left the loop. (4) *Only the
+fighters needed:* three, then twelve, two circling. (5) *The limit of 6.4 and 8.2, as written:* that lone bomber
+destroyed an extractor 3,634 from the place and was not answered; what lies further than the guard from the
+place is not the patrol's.
+
+**What it did not show.**
+- *18 seconds or 24.* A Stormbringer flies 250 a second, so 18 s is 4,500 out, and the lead bombers were first
+  seen 4,546 and 4,144 out: our sight set the start, not the time bound, and both scrambles would have begun in the
+  same second at 18. His 32 Falcons were never in our sight or radar while the patrol flew (28,400 fighter-seconds,
+  all of them 4,100 or more from the place, nine in ten 5,200 to 7,000). Five times, for two to four seconds, one
+  to three of them were on a course to within 1,500 of the place and under 24 s away by the tape's second-to-second
+  places, 5,700 to 6,000 out: outside
+  18 s's 5,200 for a fighter, inside 24 s's 6,900. With a radar reaching there those are what 24 would have had to
+  judge and 18 not; whether so short a course holds the track's second is not known. The price of 24 has a shape
+  now and still no number.
+- *His fighters coming out and turning back* (the first game's second fault): they did not come. Bench only (8.2).
+- *Finding 6 of 8.3* (points off the map): the place lay 644 from the map's edge, the loop flew, and both raids
+  came from inland.
+
+**Finding 2 of 8.3, seen.** The log, which is what the player's report carries, said "scrambled 3 of its fighters at
+1 aircraft of his" and "all back over energy_field after 19 s" for a raid of four answered by twelve, twice, and
+says nowhere what was shot down. The picture's line was right each second ("scrambled at 4 aircraft ... 12 flying to
+meet them"), and the player's debrief had it right from there ("14/14 alive all game, scrambled correctly ...
+twice").
+
+**The game itself** (the player's debrief, `docs/briefs/inbox/1795014462-air-patrol-2.md`; not reviewed): the army
+"never fought as one body", going into his Stouts and artillery "a slice at a time" from 12:54 until some 35 of his
+vehicles overran home at 28:18; "the air half was free". Checked on the tape: he had produced 118,600 metal to our
+89,700 by 27:00, and our commander fell at 28:38. The patrol's fourteen Falcons are 1,022 metal.
