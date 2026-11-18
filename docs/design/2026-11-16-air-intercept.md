@@ -372,6 +372,44 @@ section 6.4: "Good. Let's proceed with A." B is not taken.
   a party) and §5 (the lane's row); `docs/heuristics.md` H-MICRO-INTERCEPT; `docs/harness/record-format.md` (the
   group's `air_patrol` task and the pass line's `air_patrol` events).
 
+### 7.2 The first game (air-patrol-1, 2026-11-17)
+
+One realtime 1v1 on Comet Catcher against WRDistilled 0.2.0 (the bot that builds fighters and bombers from 30 metal
+a second), with an objective that asked the player for an aircraft plant, twelve fighters in a group of their own
+and the air patrol over its energy. Won at 16:55; the patrol was never needed (his three bombers stood at his
+station to the end), and it showed what the bench had not.
+
+What worked:
+- The player declared `group_F`, marked `energy_field` and named the job in the packet. At 5:32, the second the
+  first Falcon was out, Jev rated the patrol over `energy_field` 0.91 and over `home` 0.79 and every other place
+  under 0.2; the world pick gave them 0.61 and 0.35, and the hands' draw (H-HANDS-MIN-P) took `home`. The two were
+  both "right here". The patrol stayed the group's course for the rest of the game: 43 `change` questions, none
+  taken.
+- The lane put each new Falcon on the loop as it came out of the plant, one order set a fighter and none repeated;
+  from 9:30 to 13:52 all 14 flew within 850 of home.
+- The picture's words read as meant: "patrolling the air over home: scrambled at 11 aircraft of his within 4500 of
+  it, the nearest at 377 from spot_21 (D2), 4464 from home: of its 14 fighters, 14 flying to meet them".
+
+What failed, both in the lane:
+- **What scrambles it.** At 13:52 one of his Stormbringers, milling 4,100 to 4,900 from our home beside his own air
+  station (6,000 out), was inside the keep: all 14 Falcons flew 4,000 out in 18 seconds and killed it. Nothing of
+  his was coming at the base. A keep of 4,500 is 18 seconds of a bomber's flight, which is what a raid coming
+  straight in asks for; as a radius about the place it is also half of this map.
+- **The return.** His 11 Falcons came out after the wing (a second scramble at 14:18), and when they turned back
+  past 1.15 keeps the lane sent the wing "back on its loop": a patrol order under manoeuvre, given 4,000 from
+  home with his fighters 900 away. That is the engine's own chase with no leash, and the wing followed them to his
+  station, 5,700 to 6,500 from our home and over his Sentries. Ten of 14 Falcons were lost from 14:34 to 14:44 for
+  seven of his; the base had no patrol from 13:54.
+
+The player's debrief named it: "air_patrol ... scrambles far past our half: group_F chased his fighters to E1/E2
+into his Sentries and lost 10 of 14 Falcons in one fight"; wished: "A keep radius on air_patrol, so group_F never
+chases past our half".
+
+Smaller things seen: the first gate of a new group is asked before the decode has read its places (30 questions for
+`group_F` at 5:32, 16 of them patrols; the hands' way for every new actor); the words said "its 1 fighters"; a
+patrolling fighter group is still offered attacks on his buildings (`fight_to_<place>`, an air group's move from
+before this arc: 26 questions in the game).
+
 Not built with it: a keep other than 4,500 by the player's word; a way for the player to tell a patrol what not to
 fly at (any aircraft in the keep scrambles it, a scout included); the patrol for a seat's allies' fields.
 
