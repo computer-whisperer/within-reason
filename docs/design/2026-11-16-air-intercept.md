@@ -13,8 +13,12 @@ a leash, and flies back. On the bench the game's two faults are gone and the rai
 flown at 24 seconds on his word) had two raids of four Stormbringers at its place: all eight shot down before the
 nearest was within 1,650 of it, nothing under the patrol hit, no fighter lost or beyond 2,600 from the place, a lone
 bomber 3,100 out left alone. The game itself was lost on the ground. It did not tell 18 seconds from 24 (his
-fighters never came into our sight), so `THREAT_SECONDS` is still open, the constant 18.** No bot of `bots/`
-declares a wing. Not merged.
+fighters never came into our sight), so `THREAT_SECONDS` is still open, the constant 18. A third game, against
+Apex with a 50 % bonus (section 8.5, a timeout at 40:00), was an air war: his aircraft destroyed 3,800 metal of
+ours in forty minutes and nothing under the home patrol, and it showed three things the bench had not: the seat's
+order budget held the wing's first moves for seven seconds in one scramble, the wing circles and scrambles into
+his ground anti-air (his anti-air was in reach where 158 of the 220 Falcons lost fell, most of them over patrols
+the player had put forward), and Falcons lose to Highwinds.** No bot of `bots/` declares a wing. Not merged.
 
 ## 1. The ask, in his words
 
@@ -789,3 +793,94 @@ twice").
 "never fought as one body", going into his Stouts and artillery "a slice at a time" from 12:54 until some 35 of his
 vehicles overran home at 28:18; "the air half was free". Checked on the tape: he had produced 118,600 metal to our
 89,700 by 27:00, and our commander fell at 28:38. The patrol's fourteen Falcons are 1,022 metal.
+
+### 8.5 The third game (air-patrol-3-apex50, 2026-11-18)
+
+His word on the report of 8.4: "Let's run a game with flagship against apex, and give apex +50 bonus. That should
+get us a scenario with at least some enemy bombers."
+
+**What was under test.** 0367459b (the code of 375509f3; the reader and the ledgers since), the constant's 18
+seconds (no switch: he named no setting, and 18 was the recommendation of 8.4), Apex v0.5.11 standard with
+`--enemy-bonus 50`, the Apex ladder's launch otherwise (Comet Catcher Remake 1.8, mirror, seed 3, realtime, a
+40-minute limit, the player at medium effort) with the objective of the two earlier patrol games.
+`run/matches/1795017370-air-patrol-3-apex50`. **A timeout at 40:00**, neither side beaten (143 turns; Jev $4.17; the
+`claude` account +1.0 point of its week, extra usage +0.00).
+
+**What he flew:** 20 Stormbringers, 4 Blizzards and a Liche (bombers); 7 Banshees, 11 Roughnecks and 2 Hornets
+(gunships); 4 Stilettos; 48 Falcons and 22 Highwinds (fighters); 74 construction aircraft. **What the player did
+with the move:** four fighter groups on patrols, eleven patrol picks in all. `fighters` over `home` from 6:05 to
+the end; `fighters_front` from 15:38 over two forward spots and from 30:01 over `army_sky` (6500, 4400: his half);
+`fighters_north` from 19:53 over `spot_22`, our northern outpost 3,640 from home; `fighters_army` from 27:57 over
+`guns_60` (a place the player had marked for his guns), `army_sky` and three more. 224 Falcons were built
+(16,352 metal, 4.4 % of what we produced) and 220 lost.
+
+**The whole game's air, from the tape.**
+
+| | |
+|---|---|
+| Ours destroyed by his aircraft | 18 things, 3,795 metal (of 237,000 lost in all): 8 extractors, 5 Sentries, an advanced extractor, 2 Stouts, 2 Bulls; 9 of them in the last five minutes |
+| Of that within 3,000 of `home` | one Bull, 2,423 out, at 39:56 |
+| His aircraft destroyed | 129, 21,610 metal: 20 of 20 Stormbringers, 7 of 7 Banshees, 4 of 4 Stilettos, the Liche, 1 of 4 Blizzards, 3 of 11 Roughnecks, 45 of 48 Falcons, 17 of 22 Highwinds, 31 construction aircraft (the fighters' and our ground anti-air's together: the tape names no attacker for an aircraft) |
+| Our Falcons destroyed | 220, 16,060 metal: `fighters` 27, `fighters_front` 44, `fighters_north` 59, `fighters_army` 90 |
+
+**The home patrol** (the design's case: a place of ours, our anti-air under it). With no scramble open the furthest
+fighter was 1,339 from the place in 26,234 fighter-seconds. Twenty-four scrambles; those with weight:
+
+| Scramble | Sent | At | Until all back | His aircraft inside 3,000 meanwhile | The nearest came, still flying | Furthest fighter | Fighters lost | His down inside 3,000 |
+|---|---|---|---|---|---|---|---|---|
+| 12:10 | 3 | 1, 3,738 out | 13 s | 1 Stormbringer | 1,017 | 1,046 | 0 | 0 in the window; it fell at 811 a second after |
+| 15:04 | 2 | 1, 2,695 out | 13 s | 1 Banshee | 1,708 | 1,859 | 0 | 1 Banshee |
+| 15:39 | 1 | 1, 4,004 out | 18 s | 5 Falcons, 1 Banshee | 2,274 | 3,159 | 1 | 5 Falcons |
+| 16:03 | 6 | 2, 3,367 out | 19 s | 2 Stormbringers | 2,049 | 2,951 | 0 | 2 Stormbringers |
+| 19:43 | 14 | 10, 4,190 out | 21 s | none (they bombed the northern outpost 3,100 to 4,500 from home) | - | 4,159 | 1 | 6 Falcons and 3 Stormbringers 2,633 to 3,740 out |
+| 20:44 | 9 | 3, 3,325 out | 17 s | 3 Stormbringers | 1,317 | 2,486 | 0 | 3 Stormbringers |
+| 36:50 | 1 | 1, 2,922 out | 13 s | 6 Highwinds, 1 Falcon | 1,961 | 2,648 | 2 | 2 Highwinds, 1 Falcon |
+| 39:10 | 24 | 10, 3,310 out | 30 s | 7 Roughnecks, 6 Falcons, 5 Highwinds, 3 Blizzards, 2 Hornets, a Stiletto, a Stormbringer | 1,901 | 3,710 | 23 | 3 Falcons, 2 Highwinds, 2 Roughnecks, a Stiletto |
+
+Until the last minute the home patrol lost four fighters in thirty-three minutes and nothing within 3,000 of home
+was destroyed from the air. The last raid (about 23 tier-2 aircraft with Highwinds among them, his army's
+Archangels beneath) took 23 of its 24 Falcons in 29 seconds.
+
+**What the game showed that the bench had not.**
+
+1. *The seat's order budget holds the wing's moves* (H-HOST-ORDER-BUDGET: a move that replaces a unit's orders
+   waits while the seat is over 100 orders a second, the newest replacing the older; every other order goes out
+   when given). In the scramble of 12:10 the bot issued 12 to 14 moves to each of the three fighters from 12:09.27,
+   to points 2,400 from home (the match's record), and the engine received none of them (the tape): only the move
+   state, and at 12:17.10 the attack, which dropped the waiting move. The Stormbringer flew in from 3,714 unmet and
+   was shot down from the loop, 811 from home. The host's line for that minute: held 102, replaced 262, dropped 13,
+   longest wait 20.7 s. In the other minutes with holds (five of them) the longest wait was 0.3 to 1.7 s. In the
+   second game's two raids the moves went out within 0.3 s (the seat sent 56 orders a second on the average then,
+   152 here). The wing's place in the budget is a ruling of his (the budget is his standard, "the Apex average and
+   moves only"): a wing sends each fighter about two moves a second while it closes, so sixty fighters out are a
+   seat's whole budget.
+2. *The wing has no answer to his ground anti-air.* His anti-air stood in reach of where 158 of the 220 Falcons
+   fell (a type with 40 or more a second against aircraft within its range and 150 of the crash; 113 of them with no
+   fighter of his within 800; his fighters alone were near at 12, neither at 50). 61 fell with no scramble open,
+   circling: 35 over `spot_22`, where his army came with Archangels. In reach where they fell: Archangels at 77,
+   Ferrets 38, Nettles 26, Crossbows 25, Chainsaws 21, Platypuses 19. The loop does not leave a place that is shot
+   at, a scramble flies at a contact over his guns, and the player put three of the four patrols forward or over
+   his ground. Section 6.3 says the wing does not count anti-air; the words of the move do not say that a place
+   under his anti-air is no place for it.
+3. *Falcons against Highwinds* (358 a second and 536 a second against aircraft, to a Falcon's 289 and 139): the
+   last raid, and the 22 he built. The law counts the fighters a threat needs by its health and
+   takes no account of what the threat does to them.
+4. *The leash is soft at its edge.* In the fight of 19:43 four to six of the fourteen were 3,100 to 3,900 from home
+   for eight seconds, attacking aircraft 3,100 to 3,700 out whose courses read as at home (the departure of 8.2: a
+   contact beyond the leash that is coming is a target); one reached 4,159 and fell there. In the last raid seven
+   were beyond 3,000 at once, 3,710 at most. No chase to his station: the first game's 6,676 did not come back.
+5. *The log is noisy at 18 seconds.* 64 scrambles said over the game by the four groups; 19 lasted three seconds
+   or less, 11 of those with nothing of his inside 3,000 meanwhile (far traffic on a course at the place for a
+   second or two), and one pair was "all back after 1 s" and "scrambled" the same second (finding 1 of 8.3). Each
+   is two lines of the player's report. At 24 seconds more of his traffic would qualify.
+
+**The reader's limit, found here:** the engine uses a dead unit's id again, and with 220 Falcons dead a new unit
+stood as a dead member of a group for a call now and then (a "furthest fighter" of 6,440 for one second in
+`fighters_north`'s table). The per-second traces above were read with that in mind; the groups' tables other than
+home's are not printed here.
+
+**The player's own account** (`docs/briefs/inbox/1795017370-air-patrol-3-apex50.md`): "twelve Falcons as an air
+guard is a dead end. They held fine against bombers up to ~26:00, but Highwinds (358 speed, 536 air dps) killed 23
+of my 24 Falcons in 29 seconds at 39:40, and his Liche at 295 speed simply outruns Falcons so patrols can never
+catch it"; it asks for flak under the patrol and tier-2 fighters. It does not know it lost 220: the log's losses
+are a line a scramble. (The Liche flew past `spot_22` at 28:56 and went down 1,570 from the army group's place at 29:26.)
