@@ -1487,6 +1487,9 @@ and 7 a fighter); six degrees and half a second (`air-B1-*`, `air-B1b-run1`) run
 run 2. Where the moves went (`WITHIN_REASON_MICRO_DEBUG`, `air-D0-*`, four duels a run): by the point's shift 7.9
 and 14.1 a fighter in the close and 4.6 and 5.6 in the turn. The turn's moves sent by bearing instead were twice as
 many (`air-D1-*`: the turn's point is beside the fighter and moves with it), so the turn keeps the point's shift.
+On the line abreast, the longest approach, the rule made no difference either: 16 of 24 by bearing at ten degrees
+and a second, 17 at three degrees and a fifth of a second, 15 by the point's shift (`air-L10-line`, `-L3-line`,
+`-LP-line`).
 **Would be wrong if.** At forty repetitions more the bearing rule kept clearly fewer of either run than the point
 rule (the cells here differ by one and three, inside what a cell of forty gives twice over).
 **Used by.** H-MICRO-INTERCEPT (`CLOSE_RESEND_DEG`, `CLOSE_RESEND_FRAMES`).

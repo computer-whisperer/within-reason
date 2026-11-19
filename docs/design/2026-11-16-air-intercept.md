@@ -922,3 +922,60 @@ headroom drills for the dogfight, the bomber's pass and the split against flak):
    back to the place is not. The measure: orders a fighter a scramble (about 18 before, ten of them moves), and the
    two recorded runs, a tier-1 raid and the scenes of 8.2 against the wing as it was.
 
+**What was built (82510919 and the commit after it), and what it gave.**
+
+*1, the route.* As the target says: `way_danger` (the shooters a rover can keep ahead of) for the ways to a place
+and to a healer, `NEEDLE_HOLD_FRAMES` a second. The cause was read from the game (the same end in every batch, the
+legs changing, "ran from his Stormbringer" and two places given up as "its way passes the reach of something that
+can shoot it" in the group's log at 12:09), not reproduced on the bench. Two lane tests; the first fails with the
+filter out. Not flown in a game.
+
+*2, the budget.* As the target says; four tests of the budget's (the debt's limit, a first-class move through a
+flood, the class's own share, a first-class move with the budget off). On the bench with a host held to eight
+orders a second (`WITHIN_REASON_ORDER_CAP=8`, a twelfth of the standard; `air-F1cap8-run2`): run 2 kept 7 of 8, 73
+first-class moves a duel going out at once and 52 in the batch coming past the class's share, 257 moves held, the
+longest wait 2.6 s, 0.48 hits a fighter-second against 0.55. Not compared with the budget as it was at that cap,
+and not seen in a game.
+
+*3, the wing's orders.* **Not as the target said.** Flown first as written (`air-S1-*`: every move by bearing, the
+turn-in decided once), it rolled the fighters out ahead of the bombers on the long approaches (25 % of the
+fighter-seconds from the merge to the bombs on the northern raid, 32 % on the line abreast, none before; 0.9
+fighters lost a duel against none) and saved few orders. The per-move debug line (`air-D0-*`, four duels a run)
+showed why the target's count was wrong: on the recorded runs the close is 8 and 14 moves a fighter and the turn 5
+and 6, and by bearing the turn's moves doubled, because the turn's point is beside the fighter and moves with it.
+So the turn is left as it was, and the close alone is sent by bearing (`Resend::Heading`): ten degrees and a second,
+chosen over six degrees and half a second and over the rule as it was in one build with the rule switched by the
+environment, forty repetitions a cell on the runs:
+
+| The close's move sent again | Run 1 kept | Run 2 kept | Conversion moves a fighter a scramble (run 1, run 2) |
+|---|---|---|---|
+| when its point has shifted 120 (as it was) | 38 of 40 | 15 of 16 | 20, 12 |
+| by bearing, 6 degrees, half a second | 35 of 40 | 14 of 16 | 13, 8 |
+| by bearing, 10 degrees, a second (**built**) | 37 of 40 | 39 of 40 | 10, 7 |
+
+The fight is the same by the instrument in every row (52 to 62 % of the fighter-seconds in firing position, 0 to
+4 % ahead of the bombers, 0.40 to 0.42 hits a fighter-second on run 1 and 0.50 to 0.56 on run 2); the cells differ
+by what forty repetitions give. With the final build (`air-F1-*`): run 1 15 of 16 and run 2 15 of 16; eleven of
+the fifteen raids 8 of 8 as before, twelve Hailstorms 6 of 8 (7), the base with its anti-air out 1 of 8, the raid
+2,080 aside 0 of 8; no fighter ahead of the bombers on the northern raid or the line abreast again; the scenes of
+8.2 as they were (the milling bomber and the scout abeam take no fighter off the loop, the scout overhead 3.6,
+after his fighters come out the furthest Falcon 2,982 and all back, the sweep 3.1 lost for eleven). Every move of
+the conversion is first-class; a wing of twelve sends 7 to 10 a fighter in a scramble, 85 to 125 in all, inside
+the class's share.
+
+**One cell not explained: the line abreast.** It kept 6 of 8 with the final build where three batches the day
+before had kept 23 of 24. Flown at 24 repetitions an arm it kept 16 with the rule built, 17 with the close sent
+every fifth of a second, 15 with the close as it was, 18 with the budget off, and **19 with yesterday's code
+checked out and built again** (`air-L10`, `-L3`, `-LP`, `-LC0`, `-LOLD`): about seven in ten whatever the code, the
+same number of bombers through as the day before (2.5 to 2.9 of 7) and the same shares in each place. So today's
+changes are not what moved it; why the same code kept 23 of 24 the day before is not known (the scene files are
+identical), and every count for that raid in 6.4 and 8.2 is to be read as one in three or four lost, not one in
+twenty-four.
+
+**A correction to a counter.** The first-class moves a duel were first read from one host's lines; the wing sits
+on either host from duel to duel, and the figures above are both hosts' summed (the first reading was half).
+
+**Not done:** the turn's five moves a fighter (a sparser turn has to keep its correction: K-micro-the-wings-turn-in-is-a-correction-flown-tick-by-tick);
+the loop's own orders (four patrol corners and two states a fighter a return); a queued chain in the budget; the
+other lanes' candidates for the first class (a flee's first step, a dodge), each to be named with its number.
+

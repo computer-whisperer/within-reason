@@ -213,17 +213,15 @@ pub struct Bounds {
     pub guard: f32,
     pub leash: f32,
     pub seconds: f32,
-    /// The close's sending rule: degrees (`closedeg`) and seconds (`closegap`); `resend=point` is the rule as it
-    /// first was (again when the point has shifted 120), the bench's arm to fly one against the other in one build.
+    /// The close's sending rule: degrees (`closedeg`) and seconds (`closegap`).
     pub close_deg: f32,
     pub close_gap: f32,
-    pub by_point: bool,
 }
 
 pub fn bounds() -> Bounds {
     static BOUNDS: std::sync::OnceLock<Bounds> = std::sync::OnceLock::new();
     *BOUNDS.get_or_init(|| {
-        let mut bounds = Bounds { guard: GUARD, leash: LEASH, seconds: THREAT_SECONDS, close_deg: CLOSE_RESEND_DEG, close_gap: CLOSE_RESEND_FRAMES as f32 / FRAMES_PER_SECOND as f32, by_point: false };
+        let mut bounds = Bounds { guard: GUARD, leash: LEASH, seconds: THREAT_SECONDS, close_deg: CLOSE_RESEND_DEG, close_gap: CLOSE_RESEND_FRAMES as f32 / FRAMES_PER_SECOND as f32 };
         for pair in std::env::var("WITHIN_REASON_INTERCEPT").unwrap_or_default().split(',') {
             match pair.split_once('=').map(|(key, value)| (key.trim(), value.trim().parse::<f32>())) {
                 Some(("guard", Ok(v))) => bounds.guard = v,
@@ -231,7 +229,6 @@ pub fn bounds() -> Bounds {
                 Some(("seconds", Ok(v))) => bounds.seconds = v,
                 Some(("closedeg", Ok(v))) => bounds.close_deg = v,
                 Some(("closegap", Ok(v))) => bounds.close_gap = v,
-                _ if pair.trim() == "resend=point" => bounds.by_point = true,
                 _ => {}
             }
         }
@@ -736,8 +733,7 @@ impl Lane {
                         place,
                         b.leash,
                     );
-                    let rule = if b.by_point { Resend::Shifted(120.0, RESEND_FRAMES) } else { Resend::Heading(b.close_deg, (b.close_gap * FRAMES_PER_SECOND as f32) as i32) };
-                    if let Some(why) = move_due(memory.sent, unit, to, frame, rule) {
+                    if let Some(why) = move_due(memory.sent, unit, to, frame, Resend::Heading(b.close_deg, (b.close_gap * FRAMES_PER_SECOND as f32) as i32)) {
                         if debug {
                             eprintln!("{} f={frame} micro: #{} sent a move (close) {why}", view.label(), unit.id.0);
                         }
