@@ -850,10 +850,17 @@ Archangels beneath) took 23 of its 24 Falcons in 29 seconds.
    state, and at 12:17.10 the attack, which dropped the waiting move. The Stormbringer flew in from 3,714 unmet and
    was shot down from the loop, 811 from home. The host's line for that minute: held 102, replaced 262, dropped 13,
    longest wait 20.7 s. In the other minutes with holds (five of them) the longest wait was 0.3 to 1.7 s. In the
-   second game's two raids the moves went out within 0.3 s (the seat sent 56 orders a second on the average then,
-   152 here). The wing's place in the budget is a ruling of his (the budget is his standard, "the Apex average and
-   moves only"): a wing sends each fighter about two moves a second while it closes, so sixty fighters out are a
-   seat's whole budget.
+   second game's two raids the moves went out within 0.3 s. **What starved them, traced the same day:** not the
+   army's traffic. From 12:08.28 two Rovers were each sent a route of 31 to 35 queued waypoints again every six
+   frames, 978 and 1,089 moves in eight seconds (205 to 393 orders a second for four seconds, 304 and 302 a second
+   again at 12:16; the game's only bursts over 200; the seat's median second is 27 orders, its ninetieth
+   percentile 62, and 45 of its 2,263 seconds are over 100). A queued move is not held, each takes a token, and the
+   bucket has no floor: it stood some 1,300 in debt and no held move went out until that was paid. Who sends a
+   scout's route whole five times a second is not traced. So there are two faults of the host's and the hands'
+   here before any of the wing's: a flood through the door the budget leaves open, and a debt without a limit.
+   The wing's own stream is the smaller matter: about ten moves a fighter a scramble (a third of them refining one
+   meeting point by 130 a step, the rest the turn's rule changing its mind between two points a thousand apart),
+   18 orders with the return, about 10 a second for twelve fighters.
 2. *The wing has no answer to his ground anti-air.* His anti-air stood in reach of where 158 of the 220 Falcons
    fell (a type with 40 or more a second against aircraft within its range and 150 of the crash; 113 of them with no
    fighter of his within 800; his fighters alone were near at 12, neither at 50). 61 fell with no scramble open,
